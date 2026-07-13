@@ -74,19 +74,19 @@ The `run` field defines commands that start your dev server or other long-runnin
 
 ## User Overrides
 
-Override project scripts without modifying the repo by placing a `config.json` in your home directory:
+Override project scripts without modifying the repo by placing a `config.json` in your home directory, mirroring the repo's absolute path:
 
 ```
-~/.superset/projects/<project-id>/config.json
+~/.superset/projects/<repo-path>/config.json
 ```
 
-Where `<project-id>` is your project's unique ID in Superset (visible in the app's project settings).
+For a repo at `/Users/me/work/app`, that's `~/.superset/projects/Users/me/work/app/config.json`. The legacy location keyed by project ID (`~/.superset/projects/<project-id>/config.json`) still works as a fallback.
 
 ### Priority Order
 
 For each key (`setup`, `teardown`, `run`), the highest-priority source that defines it wins:
 
-1. `~/.superset/projects/<project-id>/config.json` — user override
+1. `~/.superset/projects/<repo-path>/config.json` — user override
 2. `<worktree>/.superset/config.json` — workspace-specific (setup and teardown only)
 3. `<repo>/.superset/config.json` — project default
 

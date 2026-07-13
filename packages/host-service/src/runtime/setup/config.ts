@@ -165,18 +165,24 @@ export function getProjectConfigPath(repoPath: string): string {
 	return join(repoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
 }
 
-function getUserOverridePath(
-	projectId: string,
-	homeDir: string,
-): string | null {
-	if (projectId.includes("/") || projectId.includes("\\")) return null;
-	return join(
-		homeDir,
-		SUPERSET_DIR_NAME,
-		PROJECTS_DIR_NAME,
-		projectId,
-		CONFIG_FILE_NAME,
-	);
+/**
+ * Candidate user-override files, highest priority first: keyed by the
+ * project's repo path mirrored under the projects dir (e.g.
+ * `~/.superset/projects/Users/me/work/app/config.json` — discoverable
+ * without looking up an ID), then by project id (legacy). The first
+ * candidate that parses wins.
+ */
+function getUserOverridePaths(args: {
+	repoPath: string;
+	projectId: string;
+	homeDir: string;
+}): string[] {
+	const projectsDir = join(args.homeDir, SUPERSET_DIR_NAME, PROJECTS_DIR_NAME);
+	const paths = [join(projectsDir, args.repoPath, CONFIG_FILE_NAME)];
+	if (!args.projectId.includes("/") && !args.projectId.includes("\\")) {
+		paths.push(join(projectsDir, args.projectId, CONFIG_FILE_NAME));
+	}
+	return paths;
 }
 
 function getLocalOverlayPath(repoPath: string): string {
@@ -190,7 +196,8 @@ function getLocalOverlayPath(repoPath: string): string {
  *   1. <repoPath>/.superset/config.json      — canonical project config
  *   2. <worktreePath>/.superset/config.json  — workspace/branch override
  *      (only when a worktree is in scope: setup at create, teardown at delete)
- *   3. ~/.superset/projects/<id>/config.json — per-machine user override
+ *   3. ~/.superset/projects/<repoPath>/config.json — per-machine user
+ *      override (falls back to the legacy <project-id> key)
  *
  * Then a local overlay with before/after/replace semantics: the worktree's
  * `config.local.json` if present, else the main repo's.
@@ -210,13 +217,15 @@ export function loadSetupConfig(args: {
 		? readSetupConfigAt(getProjectConfigPath(args.worktreePath))
 		: null;
 
-	const userOverridePath = getUserOverridePath(
-		args.projectId,
-		args.homeDir ?? homedir(),
-	);
-	const userConfig = userOverridePath
-		? readSetupConfigAt(userOverridePath)
-		: null;
+	let userConfig: SetupConfig | null = null;
+	for (const overridePath of getUserOverridePaths({
+		repoPath: args.repoPath,
+		projectId: args.projectId,
+		homeDir: args.homeDir ?? homedir(),
+	})) {
+		userConfig = readSetupConfigAt(overridePath);
+		if (userConfig) break;
+	}
 
 	const base = mergeBaseConfigs(
 		mergeBaseConfigs(projectConfig, worktreeConfig),

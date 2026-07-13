@@ -59,6 +59,16 @@ function writeUserOverride(
 	writeFileSync(join(dir, "config.json"), JSON.stringify(content), "utf-8");
 }
 
+function writeUserOverrideByPath(
+	homeDir: string,
+	repoPath: string,
+	content: object,
+) {
+	const dir = join(homeDir, ".superset", "projects", repoPath);
+	mkdirSync(dir, { recursive: true });
+	writeFileSync(join(dir, "config.json"), JSON.stringify(content), "utf-8");
+}
+
 const PROJECT_ID = "11111111-1111-1111-1111-111111111111";
 
 describe("loadSetupConfig", () => {
@@ -199,6 +209,29 @@ describe("loadSetupConfig", () => {
 		});
 
 		expect(result?.setup).toEqual(["worktree-local", "base"]);
+	});
+
+	it("resolves the user override by repo path", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		writeUserOverrideByPath(sandbox.homeDir, sandbox.repoPath, {
+			setup: ["from-path-override"],
+		});
+
+		const result = load();
+		expect(result?.setup).toEqual(["from-path-override"]);
+	});
+
+	it("path-keyed user override wins over the legacy id-keyed one", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		writeUserOverrideByPath(sandbox.homeDir, sandbox.repoPath, {
+			setup: ["from-path-override"],
+		});
+		writeUserOverride(sandbox.homeDir, PROJECT_ID, {
+			setup: ["from-id-override"],
+		});
+
+		const result = load();
+		expect(result?.setup).toEqual(["from-path-override"]);
 	});
 
 	it("user override only sets keys it explicitly defines", () => {
