@@ -1,5 +1,5 @@
 import { db } from "@superset/db/client";
-import { members } from "@superset/db/schema";
+import { members, users } from "@superset/db/schema";
 import { CORE_ACTIVITY_EVENTS } from "@superset/shared/customer-health";
 
 import { executeHogQLQuery } from "../../lib/posthog-client";
@@ -153,7 +153,7 @@ LIMIT ${SNAPSHOT_ROW_LIMIT}`;
 
 const MEMO_TTL_MS = 15 * 60 * 1000;
 
-function memoizeAsync<T>(fn: () => Promise<T>): () => Promise<T> {
+export function memoizeAsync<T>(fn: () => Promise<T>): () => Promise<T> {
 	let memo: { promise: Promise<T>; expiresAt: number } | null = null;
 	return () => {
 		if (memo && Date.now() < memo.expiresAt) {
@@ -170,15 +170,25 @@ function memoizeAsync<T>(fn: () => Promise<T>): () => Promise<T> {
 
 export const getActivitySnapshot = memoizeAsync(fetchSnapshot);
 
+/** All (org, user) membership pairs — ~51k small rows, so memoized. */
+export const getMembershipRows = memoizeAsync(() =>
+	db
+		.select({
+			organizationId: members.organizationId,
+			userId: members.userId,
+		})
+		.from(members),
+);
+
+/** id+email for every user — ~50k small rows, so memoized. */
+export const getUserDirectory = memoizeAsync(() =>
+	db.select({ id: users.id, email: users.email }).from(users),
+);
+
 async function fetchOrgActivityIndex(): Promise<OrgActivityIndex> {
 	const [snapshot, memberRows] = await Promise.all([
 		getActivitySnapshot(),
-		db
-			.select({
-				organizationId: members.organizationId,
-				userId: members.userId,
-			})
-			.from(members),
+		getMembershipRows(),
 	]);
 
 	const byOrgId = new Map<string, OrgActivity>();

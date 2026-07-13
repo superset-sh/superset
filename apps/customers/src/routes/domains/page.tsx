@@ -50,7 +50,7 @@ function DomainsPage() {
 		setPage(1);
 	}, [debouncedSearch, minUsers, includeFreemail, health, trend, sort]);
 
-	const { data, isLoading, error } = useQuery(
+	const { data, isLoading, isFetching, error } = useQuery(
 		trpc.customers.domainRollup.queryOptions(
 			{
 				page,
@@ -184,6 +184,7 @@ function DomainsPage() {
 				rows={data?.rows}
 				total={data?.total}
 				isLoading={isLoading}
+				isFetching={isFetching}
 				error={error}
 			/>
 

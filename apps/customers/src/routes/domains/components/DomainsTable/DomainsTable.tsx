@@ -12,7 +12,7 @@ import {
 } from "@superset/ui/table";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { LuAtSign } from "react-icons/lu";
+import { LuAtSign, LuLoaderCircle } from "react-icons/lu";
 
 import { HealthBadge } from "@/components/HealthBadge";
 import { StageBadge } from "@/components/StageBadge";
@@ -24,6 +24,7 @@ export interface DomainsTableProps {
 	rows: DomainRow[] | undefined;
 	total: number | undefined;
 	isLoading: boolean;
+	isFetching: boolean;
 	error: { message: string } | null;
 }
 
@@ -36,6 +37,7 @@ export function DomainsTable({
 	rows,
 	total,
 	isLoading,
+	isFetching,
 	error,
 }: DomainsTableProps) {
 	if (isLoading && !rows) {
@@ -77,9 +79,14 @@ export function DomainsTable({
 
 	return (
 		<Card>
-			<CardContent>
-				<p className="text-muted-foreground pb-3 text-sm">
+			<CardContent
+				className={
+					isFetching ? "opacity-60 transition-opacity" : "transition-opacity"
+				}
+			>
+				<p className="text-muted-foreground flex items-center gap-2 pb-3 text-sm">
 					{total?.toLocaleString()} domain{total === 1 ? "" : "s"}
+					{isFetching && <LuLoaderCircle className="size-3.5 animate-spin" />}
 				</p>
 				<Table>
 					<TableHeader>

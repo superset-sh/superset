@@ -23,7 +23,10 @@ import { adminProcedure } from "../../trpc";
 import {
 	fetchWeeklyActivity,
 	getActivitySnapshot,
+	getMembershipRows,
 	getOrgActivityIndex,
+	getUserDirectory,
+	memoizeAsync,
 	type UserActivity,
 	WEEKLY_ACTIVITY_IDS_CAP,
 } from "./activity-snapshot";
@@ -85,9 +88,7 @@ function summarizeSubscription(
 	};
 }
 
-async function getSubscriptionsByOrg(): Promise<
-	Map<string, SelectSubscription>
-> {
+const getSubscriptionsByOrg = memoizeAsync(async () => {
 	const rows = await db.select().from(subscriptions);
 	const grouped = new Map<string, SelectSubscription[]>();
 	for (const row of rows) {
@@ -104,7 +105,7 @@ async function getSubscriptionsByOrg(): Promise<
 		if (picked) byOrg.set(orgId, picked);
 	}
 	return byOrg;
-}
+});
 
 function trendPct(current: number, previous: number): number | null {
 	if (previous === 0) return null;
@@ -136,6 +137,73 @@ const healthFilterSchema = z.enum([
 
 const DOMAIN_USERS_SHOWN_CAP = 200;
 const DOMAIN_ORG_CHIPS_CAP = 30;
+
+type DomainIndexEntry = {
+	domain: string;
+	userCount: number;
+	activeUsers7d: number;
+	events30d: number;
+	events30dPrev: number;
+	lastActiveAt: Date | null;
+	orgIds: Set<string>;
+};
+
+/**
+ * Per-domain aggregates over every user (freemail included — filtered at
+ * query time). Building this walks ~50k users, so it's memoized; requests
+ * only filter/sort/paginate it.
+ */
+const getDomainIndex = memoizeAsync(async () => {
+	const [snapshot, userRows, memberRows] = await Promise.all([
+		getActivitySnapshot(),
+		getUserDirectory(),
+		getMembershipRows(),
+	]);
+
+	const orgIdsByUser = new Map<string, string[]>();
+	for (const { organizationId, userId } of memberRows) {
+		const list = orgIdsByUser.get(userId);
+		if (list) {
+			list.push(organizationId);
+		} else {
+			orgIdsByUser.set(userId, [organizationId]);
+		}
+	}
+
+	const byDomain = new Map<string, DomainIndexEntry>();
+	for (const user of userRows) {
+		const domain = user.email.split("@")[1]?.toLowerCase();
+		if (!domain || domain === COMPANY_DOMAIN) continue;
+
+		let entry = byDomain.get(domain);
+		if (!entry) {
+			entry = {
+				domain,
+				userCount: 0,
+				activeUsers7d: 0,
+				events30d: 0,
+				events30dPrev: 0,
+				lastActiveAt: null,
+				orgIds: new Set(),
+			};
+			byDomain.set(domain, entry);
+		}
+		entry.userCount += 1;
+		for (const orgId of orgIdsByUser.get(user.id) ?? []) {
+			entry.orgIds.add(orgId);
+		}
+
+		const activity = snapshot.byUserId.get(user.id.toLowerCase());
+		if (!activity) continue;
+		entry.events30d += activity.events30d;
+		entry.events30dPrev += activity.events30dPrev;
+		if (activity.events7d > 0) entry.activeUsers7d += 1;
+		if (!entry.lastActiveAt || activity.lastActiveAt > entry.lastActiveAt) {
+			entry.lastActiveAt = activity.lastActiveAt;
+		}
+	}
+	return byDomain;
+});
 
 function getUsersByDomain(domain: string) {
 	return db
@@ -810,71 +878,11 @@ export const customersRouter = {
 			}),
 		)
 		.query(async ({ input }) => {
-			const [snapshot, userRows, memberRows, subsByOrg] = await Promise.all([
-				getActivitySnapshot(),
-				db.select({ id: users.id, email: users.email }).from(users),
-				db
-					.select({
-						organizationId: members.organizationId,
-						userId: members.userId,
-					})
-					.from(members),
+			const [byDomain, subsByOrg, snapshot] = await Promise.all([
+				getDomainIndex(),
 				getSubscriptionsByOrg(),
+				getActivitySnapshot(),
 			]);
-
-			const orgIdsByUser = new Map<string, string[]>();
-			for (const { organizationId, userId } of memberRows) {
-				const list = orgIdsByUser.get(userId);
-				if (list) {
-					list.push(organizationId);
-				} else {
-					orgIdsByUser.set(userId, [organizationId]);
-				}
-			}
-
-			type DomainEntry = {
-				domain: string;
-				userCount: number;
-				activeUsers7d: number;
-				events30d: number;
-				events30dPrev: number;
-				lastActiveAt: Date | null;
-				orgIds: Set<string>;
-			};
-
-			const byDomain = new Map<string, DomainEntry>();
-			for (const user of userRows) {
-				const domain = user.email.split("@")[1]?.toLowerCase();
-				if (!domain || domain === COMPANY_DOMAIN) continue;
-				if (!input.includeFreemail && FREEMAIL_DOMAINS.has(domain)) continue;
-
-				let entry = byDomain.get(domain);
-				if (!entry) {
-					entry = {
-						domain,
-						userCount: 0,
-						activeUsers7d: 0,
-						events30d: 0,
-						events30dPrev: 0,
-						lastActiveAt: null,
-						orgIds: new Set(),
-					};
-					byDomain.set(domain, entry);
-				}
-				entry.userCount += 1;
-				for (const orgId of orgIdsByUser.get(user.id) ?? []) {
-					entry.orgIds.add(orgId);
-				}
-
-				const activity = snapshot.byUserId.get(user.id.toLowerCase());
-				if (!activity) continue;
-				entry.events30d += activity.events30d;
-				entry.events30dPrev += activity.events30dPrev;
-				if (activity.events7d > 0) entry.activeUsers7d += 1;
-				if (!entry.lastActiveAt || activity.lastActiveAt > entry.lastActiveAt) {
-					entry.lastActiveAt = activity.lastActiveAt;
-				}
-			}
 
 			const isPayingOrg = (orgId: string) => {
 				const sub = subsByOrg.get(orgId);
@@ -890,6 +898,7 @@ export const customersRouter = {
 				.filter(
 					(entry) =>
 						entry.userCount >= input.minUsers &&
+						(input.includeFreemail || !FREEMAIL_DOMAINS.has(entry.domain)) &&
 						(!searchTerm || entry.domain.includes(searchTerm)),
 				)
 				.map((entry) => {

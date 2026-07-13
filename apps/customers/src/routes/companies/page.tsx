@@ -39,7 +39,7 @@ function CompaniesPage() {
 		setPage(1);
 	}, [debouncedSearch, plan, health, scope, sort]);
 
-	const { data, isLoading, error } = useQuery(
+	const { data, isLoading, isFetching, error } = useQuery(
 		trpc.customers.listCompanies.queryOptions(
 			{
 				page,
@@ -85,6 +85,7 @@ function CompaniesPage() {
 				rows={data?.rows}
 				total={data?.total}
 				isLoading={isLoading}
+				isFetching={isFetching}
 				error={error}
 			/>
 

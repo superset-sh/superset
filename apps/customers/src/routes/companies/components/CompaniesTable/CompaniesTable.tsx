@@ -13,7 +13,7 @@ import {
 } from "@superset/ui/table";
 import { Link, useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { LuBuilding2, LuUsers } from "react-icons/lu";
+import { LuBuilding2, LuLoaderCircle, LuUsers } from "react-icons/lu";
 
 import { HealthBadge } from "@/components/HealthBadge";
 import { PlanBadge } from "@/components/PlanBadge";
@@ -26,6 +26,7 @@ export interface CompaniesTableProps {
 	rows: CompanyRow[] | undefined;
 	total: number | undefined;
 	isLoading: boolean;
+	isFetching: boolean;
 	error: { message: string } | null;
 }
 
@@ -38,6 +39,7 @@ export function CompaniesTable({
 	rows,
 	total,
 	isLoading,
+	isFetching,
 	error,
 }: CompaniesTableProps) {
 	const navigate = useNavigate();
@@ -81,9 +83,14 @@ export function CompaniesTable({
 
 	return (
 		<Card>
-			<CardContent>
-				<p className="text-muted-foreground pb-3 text-sm">
+			<CardContent
+				className={
+					isFetching ? "opacity-60 transition-opacity" : "transition-opacity"
+				}
+			>
+				<p className="text-muted-foreground flex items-center gap-2 pb-3 text-sm">
 					{total?.toLocaleString()} compan{total === 1 ? "y" : "ies"}
+					{isFetching && <LuLoaderCircle className="size-3.5 animate-spin" />}
 				</p>
 				<Table>
 					<TableHeader>
