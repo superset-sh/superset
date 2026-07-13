@@ -27,6 +27,7 @@ import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/co
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
+import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
@@ -81,6 +82,7 @@ export function DashboardSidebarHeader({
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
+	const { myFailedCount } = useFailedAutomations();
 
 	const {
 		tab: lastTab,
@@ -144,13 +146,16 @@ export function DashboardSidebarHeader({
 							type="button"
 							onClick={handleAutomationsClick}
 							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
+								"relative flex size-8 items-center justify-center rounded-md transition-colors",
 								isAutomationsOpen
 									? "bg-accent text-foreground"
 									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
 							)}
 						>
 							<LuClock className="size-4" />
+							{myFailedCount > 0 && (
+								<span className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500" />
+							)}
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Automations</TooltipContent>
@@ -288,6 +293,14 @@ export function DashboardSidebarHeader({
 			>
 				<LuClock className="size-4 shrink-0" />
 				<span className="flex-1 text-left">Automations</span>
+				{myFailedCount > 0 && (
+					<span
+						title={`${myFailedCount} of your automations failed their last run`}
+						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
+					>
+						{myFailedCount > 9 ? "9+" : myFailedCount}
+					</span>
+				)}
 			</button>
 
 			<button

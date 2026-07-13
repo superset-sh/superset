@@ -13,6 +13,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { TableCell, TableRow } from "@superset/ui/table";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { HiOutlineComputerDesktop } from "react-icons/hi2";
@@ -30,6 +31,8 @@ interface AutomationRowProps {
 	project: ProjectOption | undefined;
 	workspaceLabel: string;
 	hostLabel: string;
+	/** Whether the automation's most recent run failed. */
+	lastRunFailed: boolean;
 	isOwner: boolean;
 	onRunNow: (automation: SelectAutomation) => void;
 	onDelete: (automation: SelectAutomation) => void;
@@ -42,6 +45,7 @@ export function AutomationRow({
 	project,
 	workspaceLabel,
 	hostLabel,
+	lastRunFailed,
 	isOwner,
 	onRunNow,
 	onDelete,
@@ -110,6 +114,21 @@ export function AutomationRow({
 								<Badge variant="secondary" className="shrink-0 text-[10px]">
 									paused
 								</Badge>
+							)}
+							{lastRunFailed && (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<Badge
+											variant="secondary"
+											className="shrink-0 border-red-500/30 bg-red-500/15 text-[10px] text-red-600 dark:text-red-400"
+										>
+											failed
+										</Badge>
+									</TooltipTrigger>
+									<TooltipContent>
+										The last run failed. Click to see why.
+									</TooltipContent>
+								</Tooltip>
 							)}
 						</span>
 					</TableCell>

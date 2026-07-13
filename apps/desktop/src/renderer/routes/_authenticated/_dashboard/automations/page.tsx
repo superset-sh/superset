@@ -42,6 +42,7 @@ import {
 	SortableHeader,
 	type SortDirection,
 } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
+import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { AutomationRow } from "./components/AutomationRow";
@@ -134,6 +135,8 @@ function AutomationsPage() {
 			})),
 		[collections.users],
 	);
+	const { failedIds } = useFailedAutomations();
+
 	const recentProjects = useRecentProjects();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const { data: hostRows = [] } = useLiveQuery(
@@ -462,6 +465,7 @@ function AutomationsPage() {
 											project={projectsById.get(automation.v2ProjectId)}
 											workspaceLabel={workspaceLabel}
 											hostLabel={host?.name ?? "Auto"}
+											lastRunFailed={failedIds.has(automation.id)}
 											isOwner={automation.ownerUserId === currentUserId}
 											onRunNow={(a) =>
 												runNowMutation.mutate({
