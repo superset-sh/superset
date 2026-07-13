@@ -41,14 +41,15 @@ export function Workspace<TData>({
 		return item?.tabId ?? null;
 	});
 
-	// While dragging the active tab, render the tab before it in order instead.
-	// Dropping a tab onto its own view is a no-op (you'd merge it into itself),
-	// so showing the preceding tab lets you see — and drop onto — the actual
-	// merge target.
+	// While dragging the active tab, render its neighbor (preceding tab, or the
+	// next one when dragging the first tab) instead. Dropping a tab onto its own
+	// view is a no-op (you'd merge it into itself), so showing a sibling lets
+	// you see — and drop onto — an actual merge target.
 	const displayedTab = useMemo(() => {
 		if (draggedTabId && draggedTabId === activeTabId) {
 			const index = tabs.findIndex((t) => t.id === draggedTabId);
 			if (index > 0) return tabs[index - 1];
+			if (index === 0 && tabs.length > 1) return tabs[1];
 		}
 		return activeTab;
 	}, [draggedTabId, activeTabId, tabs, activeTab]);

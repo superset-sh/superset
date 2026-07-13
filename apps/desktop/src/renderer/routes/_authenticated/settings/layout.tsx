@@ -4,7 +4,7 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -16,6 +16,7 @@ import {
 import { NavigationControls } from "../_dashboard/components/NavigationControls";
 import { SearchResultsBanner } from "./components/SearchResultsBanner";
 import { SettingsSidebar } from "./components/SettingsSidebar";
+import { useScrollReset } from "./hooks/useScrollReset";
 import {
 	getMatchCountBySection,
 	searchSettings,
@@ -113,18 +114,13 @@ function SettingsLayout() {
 	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
-	const contentRef = useRef<HTMLDivElement>(null);
+	// Reset scroll to top when navigating to a different settings page.
+	const contentRef = useScrollReset<HTMLDivElement>(location.pathname);
 	const normalizedSearchQuery = searchQuery.trim();
 	const isSearchActive = normalizedSearchQuery.length > 0;
 	const totalMatches = isSearchActive
 		? searchSettings(normalizedSearchQuery).length
 		: 0;
-
-	// Reset scroll to top when navigating to a different settings page.
-	// biome-ignore lint/correctness/useExhaustiveDependencies: pathname is the trigger, not read in the body
-	useEffect(() => {
-		contentRef.current?.scrollTo({ top: 0 });
-	}, [location.pathname]);
 
 	useEffect(() => {
 		if (!isSearchActive) return;
