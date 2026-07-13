@@ -175,7 +175,8 @@ changelog link, so the tweet carries the highlights and the changelog carries th
 Shape:
 
 - Open with `What we shipped this week @superset_sh 🛳️` (or `the last N weeks`).
-- Number the top 2-4 features; trailing emoji on each title.
+- Number the top features, up to 4; trailing emoji on each title. One numbered feature
+  is fine on a slow week. Never pad or invent to hit a count.
 - Flagship feature (#1): 1-2 short paragraphs. Lead with the pain or the bet behind it,
   then what it does. Remaining features: one tight paragraph each on what it does + how
   to turn it on (e.g. "Enable it in Settings → …").
@@ -196,9 +197,11 @@ summary:
 - **No em dashes.** Periods or commas.
 - No performative or salesy lines ("genuinely excited", "we really appreciate you",
   vision taglines bolted onto feature blurbs).
-- No AI tells: no noun-pile compression (use normal verbs and articles), no "not just X,
-  but Y", no rule-of-three stacking, no signposting ("Here's the thing"), and none of:
-  delve, leverage, robust, seamless, crucial, comprehensive, streamline.
+- No AI tells in the prose: no noun-pile compression (use normal verbs and articles), no
+  "not just X, but Y", no stacking parallel clauses for rhythm, no signposting ("Here's
+  the thing"), and none of: delve, leverage, robust, seamless, crucial, comprehensive,
+  streamline. A plain comma list of shipped capabilities (as in the example below) is
+  fine; the ban is on rhetorical stacking, not lists of real things.
 
 Reference example (the voice + shape to emulate):
 
