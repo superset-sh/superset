@@ -17,6 +17,7 @@ import { LuBuilding2, LuUsers } from "react-icons/lu";
 
 import { HealthBadge } from "@/components/HealthBadge";
 import { PlanBadge } from "@/components/PlanBadge";
+import { StageBadge } from "@/components/StageBadge";
 import { TrendCell } from "@/components/TrendCell";
 
 type CompanyRow = RouterOutputs["customers"]["listCompanies"]["rows"][number];
@@ -88,6 +89,7 @@ export function CompaniesTable({
 					<TableHeader>
 						<TableRow>
 							<TableHead>Company</TableHead>
+							<TableHead>Stage</TableHead>
 							<TableHead>Members</TableHead>
 							<TableHead>Plan</TableHead>
 							<TableHead>Seats</TableHead>
@@ -133,6 +135,9 @@ export function CompaniesTable({
 											)}
 										</div>
 									</div>
+								</TableCell>
+								<TableCell>
+									<StageBadge stage={row.stage} />
 								</TableCell>
 								<TableCell>
 									<span className="flex items-center gap-1.5">

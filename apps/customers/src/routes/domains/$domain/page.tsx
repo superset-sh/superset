@@ -10,9 +10,11 @@ import { LuArrowLeft, LuCircleDollarSign } from "react-icons/lu";
 import { ActivityChart } from "@/components/ActivityChart";
 import { HealthBadge } from "@/components/HealthBadge";
 import { SnapshotNote } from "@/components/SnapshotNote";
+import { StageBadge } from "@/components/StageBadge";
 import { WeeksPicker } from "@/components/WeeksPicker";
 import { useTRPC } from "@/trpc/react";
 
+import { CompanyInfoCard } from "./components/CompanyInfoCard";
 import { DomainUsersTable } from "./components/DomainUsersTable";
 
 export const Route = createFileRoute("/domains/$domain/")({
@@ -84,6 +86,7 @@ function DomainDetailPage() {
 							@{data.domain}
 						</h1>
 						<HealthBadge health={data.health} />
+						<StageBadge stage={data.stage} />
 					</div>
 					<p className="text-muted-foreground text-sm">
 						Last active{" "}
@@ -153,17 +156,22 @@ function DomainDetailPage() {
 				</div>
 			)}
 
-			<ActivityChart
-				points={timeseries.data?.points}
-				isLoading={timeseries.isLoading}
-				error={timeseries.error}
-				headerAction={<WeeksPicker value={weeks} onChange={setWeeks} />}
-			/>
-			{timeseries.data?.sampled && (
-				<p className="text-muted-foreground -mt-4 text-xs">
-					Chart sampled from the 1,000 most recently active users
-				</p>
-			)}
+			<div className="grid gap-4 lg:grid-cols-3">
+				<CompanyInfoCard domain={data.domain} />
+				<div className="lg:col-span-2">
+					<ActivityChart
+						points={timeseries.data?.points}
+						isLoading={timeseries.isLoading}
+						error={timeseries.error}
+						headerAction={<WeeksPicker value={weeks} onChange={setWeeks} />}
+					/>
+					{timeseries.data?.sampled && (
+						<p className="text-muted-foreground mt-2 text-xs">
+							Chart sampled from the 1,000 most recently active users
+						</p>
+					)}
+				</div>
+			</div>
 
 			<DomainUsersTable users={data.users} totalUsers={data.totalUsers} />
 		</div>

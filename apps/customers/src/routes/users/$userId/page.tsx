@@ -22,6 +22,8 @@ import { TrendCell } from "@/components/TrendCell";
 import { WeeksPicker } from "@/components/WeeksPicker";
 import { useTRPC } from "@/trpc/react";
 
+import { UserRoleLine } from "./components/UserRoleLine";
+
 export const Route = createFileRoute("/users/$userId/")({
 	component: UserDetailPage,
 });
@@ -121,6 +123,7 @@ function UserDetailPage() {
 							</p>
 						</div>
 					</div>
+					<UserRoleLine userId={userId} />
 				</div>
 				<SnapshotNote snapshotAt={data.snapshotAt} />
 			</div>

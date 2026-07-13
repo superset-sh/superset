@@ -15,6 +15,7 @@ import { formatDistanceToNow } from "date-fns";
 import { LuAtSign } from "react-icons/lu";
 
 import { HealthBadge } from "@/components/HealthBadge";
+import { StageBadge } from "@/components/StageBadge";
 import { TrendCell } from "@/components/TrendCell";
 
 type DomainRow = RouterOutputs["customers"]["domainRollup"]["rows"][number];
@@ -84,6 +85,7 @@ export function DomainsTable({
 					<TableHeader>
 						<TableRow>
 							<TableHead>Domain</TableHead>
+							<TableHead>Stage</TableHead>
 							<TableHead>Users</TableHead>
 							<TableHead>Active (7d)</TableHead>
 							<TableHead>Events (30d)</TableHead>
@@ -105,6 +107,9 @@ export function DomainsTable({
 									>
 										{row.domain}
 									</Link>
+								</TableCell>
+								<TableCell>
+									<StageBadge stage={row.stage} />
 								</TableCell>
 								<TableCell>{row.userCount}</TableCell>
 								<TableCell>

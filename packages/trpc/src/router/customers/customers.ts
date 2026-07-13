@@ -10,12 +10,12 @@ import {
 	isActiveSubscriptionStatus,
 	isPaidPlan,
 } from "@superset/shared/billing";
-import { COMPANY } from "@superset/shared/constants";
 import {
 	type CustomerHealth,
 	healthFromLastActive,
 	isChurnRisk,
 } from "@superset/shared/customer-health";
+import { stageFromUserCount } from "@superset/shared/customer-stage";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { eq, ilike, inArray, or } from "drizzle-orm";
 import { z } from "zod";
@@ -28,39 +28,8 @@ import {
 	WEEKLY_ACTIVITY_IDS_CAP,
 } from "./activity-snapshot";
 
-const COMPANY_DOMAIN = COMPANY.EMAIL_DOMAIN.replace(/^@/, "");
-
-const FREEMAIL_DOMAINS = new Set([
-	"gmail.com",
-	"googlemail.com",
-	"outlook.com",
-	"hotmail.com",
-	"live.com",
-	"msn.com",
-	"yahoo.com",
-	"ymail.com",
-	"icloud.com",
-	"me.com",
-	"mac.com",
-	"proton.me",
-	"protonmail.com",
-	"pm.me",
-	"aol.com",
-	"gmx.com",
-	"gmx.de",
-	"web.de",
-	"mail.com",
-	"mail.ru",
-	"yandex.ru",
-	"yandex.com",
-	"qq.com",
-	"163.com",
-	"126.com",
-	"hey.com",
-	"fastmail.com",
-	"duck.com",
-	"naver.com",
-]);
+import { COMPANY_DOMAIN, domainSchema, FREEMAIL_DOMAINS } from "./domain-utils";
+import { getDomainEnrichment, getPersonEnrichment } from "./enrichment";
 
 type SubscriptionSummary = {
 	plan: string;
@@ -153,13 +122,6 @@ const healthFilterSchema = z.enum([
 	"dormant",
 	"churnRisk",
 ]);
-
-/** Valid domain chars only — also keeps the ILIKE pattern free of wildcards. */
-const domainSchema = z
-	.string()
-	.trim()
-	.toLowerCase()
-	.regex(/^[a-z0-9][a-z0-9.-]{0,252}$/, "Invalid domain");
 
 const DOMAIN_USERS_SHOWN_CAP = 200;
 const DOMAIN_ORG_CHIPS_CAP = 30;
@@ -357,6 +319,10 @@ export const customersRouter = {
 						slug: org?.slug ?? null,
 						logo: org?.logo ?? null,
 						createdAt: org?.createdAt ?? null,
+						stage: stageFromUserCount(
+							entry.memberCount,
+							entry.subscription?.plan === "enterprise",
+						),
 					};
 				}),
 			};
@@ -565,6 +531,7 @@ export const customersRouter = {
 
 			return {
 				domain: input.domain,
+				stage: stageFromUserCount(userDetails.length),
 				totalUsers: userDetails.length,
 				activeUsers7d: userDetails.filter((user) => user.events7d > 0).length,
 				events30d: userDetails.reduce((sum, user) => sum + user.events30d, 0),
@@ -706,6 +673,27 @@ export const customersRouter = {
 		)
 		.query(async ({ input }) => {
 			return { points: await fetchWeeklyActivity([input.userId], input.weeks) };
+		}),
+
+	domainEnrichment: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(({ input }) => getDomainEnrichment(input.domain)),
+
+	userRoleEnrichment: adminProcedure
+		.input(z.object({ userId: z.string().uuid() }))
+		.query(async ({ input }) => {
+			const user = await db.query.users.findFirst({
+				where: eq(users.id, input.userId),
+			});
+			if (!user) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+			}
+			const domain = user.email.split("@")[1]?.toLowerCase() ?? "";
+			return getPersonEnrichment({
+				cacheKey: user.id,
+				name: user.name,
+				domain,
+			});
 		}),
 
 	domainRollup: adminProcedure
@@ -872,6 +860,7 @@ export const customersRouter = {
 				snapshotAt: snapshot.fetchedAt,
 				rows: pageEntries.map((entry) => ({
 					domain: entry.domain,
+					stage: stageFromUserCount(entry.userCount),
 					userCount: entry.userCount,
 					activeUsers7d: entry.activeUsers7d,
 					events30d: entry.events30d,

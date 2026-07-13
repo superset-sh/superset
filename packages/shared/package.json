@@ -80,6 +80,10 @@
 			"types": "./src/customer-health.ts",
 			"default": "./src/customer-health.ts"
 		},
+		"./customer-stage": {
+			"types": "./src/customer-stage.ts",
+			"default": "./src/customer-stage.ts"
+		},
 		"./workspace-launch": {
 			"types": "./src/workspace-launch/index.ts",
 			"default": "./src/workspace-launch/index.ts"
