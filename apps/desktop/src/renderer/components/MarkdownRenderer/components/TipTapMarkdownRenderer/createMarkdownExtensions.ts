@@ -39,14 +39,12 @@ const SafeImage = Image.extend({
 });
 
 const ReadOnlyCodeBlock = CodeBlockLowlight.extend({
-	whitespace: "pre",
 	addNodeView() {
 		return ReactNodeViewRenderer(ReadOnlyCodeBlockView);
 	},
 });
 
 const EditableCodeBlock = CodeBlockLowlight.extend({
-	whitespace: "pre",
 	addNodeView() {
 		return ReactNodeViewRenderer(EditableCodeBlockView);
 	},

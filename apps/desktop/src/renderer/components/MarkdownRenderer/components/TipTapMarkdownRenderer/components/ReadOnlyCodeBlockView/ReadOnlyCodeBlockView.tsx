@@ -8,7 +8,7 @@ export function ReadOnlyCodeBlockView({ node }: NodeViewProps) {
 
 	return (
 		<NodeViewWrapper as="div" className="my-4">
-			<CodeBlock className={language ? `language-${language}` : undefined}>
+			<CodeBlock className={`language-${language ?? "text"}`}>
 				{node.textContent}
 			</CodeBlock>
 		</NodeViewWrapper>
