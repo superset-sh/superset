@@ -6,7 +6,7 @@ body:
     id: problem
     attributes:
       label: What problem are you trying to solve?
-      description: Describe the situation where Superset falls short, not just the feature you want. This helps us find the best solution even if it differs from your proposal.
+      description: Describe where Superset falls short. Knowing the problem helps us find the right fix, even if it's different from what you propose.
     validations:
       required: true
   - type: textarea

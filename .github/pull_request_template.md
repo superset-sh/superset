@@ -15,5 +15,5 @@ PR titles become the squash-merge commit subject, so use conventional commit for
 ## Checklist
 
 - [ ] PR title follows conventional commits (`type(scope): subject`)
-- [ ] `bun run lint` and `bun run typecheck` pass (CI fails on lint warnings, not just errors)
-- [ ] "Allow edits from maintainers" is checked (fork PRs — speeds up review)
+- [ ] `bun run lint` and `bun run typecheck` pass (CI fails on lint warnings too)
+- [ ] "Allow edits from maintainers" is checked on fork PRs
