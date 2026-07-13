@@ -170,7 +170,7 @@ export const CodeBlock = ({
 				<div className="relative">
 					<div
 						className={cn(
-							"overflow-auto dark:hidden [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
+							"overflow-auto dark:hidden [&>pre]:m-0 [&>pre]:whitespace-pre [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
 							!colorize &&
 								"[&_span[style]]:!text-foreground [&_.line>.shiki-line-number]:!opacity-50",
 						)}
@@ -179,7 +179,7 @@ export const CodeBlock = ({
 					</div>
 					<div
 						className={cn(
-							"hidden overflow-auto dark:block [&>pre]:m-0 [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
+							"hidden overflow-auto dark:block [&>pre]:m-0 [&>pre]:whitespace-pre [&>pre]:bg-background! [&>pre]:p-4 [&>pre]:text-foreground! [&>pre]:text-sm [&_code]:font-mono [&_code]:text-sm",
 							!colorize &&
 								"[&_span[style]]:!text-foreground [&_.line>.shiki-line-number]:!opacity-50",
 						)}
