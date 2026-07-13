@@ -8,7 +8,9 @@ import { setDomainResearchProgress } from "./research-settings";
  * short; a QStash job is the durable upgrade if that becomes a problem.
  */
 
-const CONCURRENCY = 3;
+// Exa comfortably handles this in parallel (~2s/lookup) — a 200-person
+// batch completes in under a minute.
+const CONCURRENCY = 8;
 const runningDomains = new Set<string>();
 
 export interface BatchResearchTarget {
