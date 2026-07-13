@@ -7,6 +7,10 @@ import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
+import {
+	getResolvedTeardownCommands,
+	loadSetupConfig,
+} from "../setup/config";
 
 export { TEARDOWN_TIMEOUT_MS };
 
@@ -31,14 +35,24 @@ interface RunTeardownOptions {
 	db: HostDb;
 	workspaceId: string;
 	worktreePath: string;
+	/** Main repo path — source of truth for `.superset/config.json`. */
+	repoPath: string;
+	projectId: string;
 	timeoutMs?: number;
+	/** Override $HOME for tests. Defaults to `os.homedir()`. */
+	homeDir?: string;
 }
 
 /**
- * Runs `.superset/teardown.sh` inside the workspace, reusing the same
- * terminal primitive v2 uses for interactive sessions. This gives the
- * script full environment parity with the user's terminals (login shell
- * rcfiles, PATH, nvm/rbenv, etc.), matching how setup.sh runs.
+ * Runs the workspace's teardown, reusing the same terminal primitive v2 uses
+ * for interactive sessions. This gives it full environment parity with the
+ * user's terminals (login shell rcfiles, PATH, nvm/rbenv, etc.), matching how
+ * setup runs.
+ *
+ * The teardown to run is resolved by {@link resolveTeardownCommand}: the
+ * configured `teardown` commands from `.superset/config.json` take precedence,
+ * falling back to a `<worktree>/.superset/teardown.sh` script. Skipped (as a
+ * success) when neither source resolves to anything runnable.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -47,13 +61,20 @@ export async function runTeardown({
 	db,
 	workspaceId,
 	worktreePath,
+	repoPath,
+	projectId,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
+	homeDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const scriptPath = join(worktreePath, TEARDOWN_SCRIPT_REL_PATH);
-	if (!existsSync(scriptPath)) return { status: "skipped" };
+	const initialCommand = resolveTeardownCommand({
+		repoPath,
+		projectId,
+		worktreePath,
+		homeDir,
+	});
+	if (initialCommand === null) return { status: "skipped" };
 
 	const terminalId = randomUUID();
-	const initialCommand = buildTeardownInitialCommand(scriptPath);
 
 	const session = await createTerminalSessionInternal({
 		terminalId,
@@ -137,11 +158,62 @@ export async function runTeardown({
 	});
 }
 
+/**
+ * Resolve the teardown command for a workspace, if any. Source order mirrors
+ * setup (see `resolveInitialCommand`):
+ *
+ *   1. Configured `teardown` array from `.superset/config.json` (+ user
+ *      override and `config.local.json` overlay), resolved against the main
+ *      repo path — joined with ` && ` so a failing command short-circuits.
+ *   2. Fallback: `<worktreePath>/.superset/teardown.sh`, preserved for
+ *      projects that ship a teardown script instead of config commands.
+ *
+ * Returns null when neither source resolves to anything runnable, which the
+ * caller treats as a skipped (successful) teardown.
+ *
+ * Exported for tests.
+ */
+export function resolveTeardownCommand(args: {
+	repoPath: string;
+	projectId: string;
+	worktreePath: string;
+	/** Override $HOME for tests. */
+	homeDir?: string;
+}): string | null {
+	const config = loadSetupConfig({
+		repoPath: args.repoPath,
+		projectId: args.projectId,
+		homeDir: args.homeDir,
+	});
+	const commands = getResolvedTeardownCommands(config);
+	if (commands.length > 0) {
+		return buildTeardownCommandFromShell(commands.join(" && "));
+	}
+
+	const fallbackScript = join(args.worktreePath, TEARDOWN_SCRIPT_REL_PATH);
+	if (existsSync(fallbackScript)) {
+		return buildTeardownInitialCommand(fallbackScript);
+	}
+
+	return null;
+}
+
 export function buildTeardownInitialCommand(scriptPath: string): string {
 	// `exec` replaces the user's login shell with the teardown process. That
 	// avoids shell-specific exit-status syntax like `$?`, which breaks in fish
 	// and leaves the hidden teardown terminal open until timeout.
 	return `exec bash ${singleQuote(scriptPath)}`;
+}
+
+/**
+ * Build the initial command for configured `teardown` commands. The joined
+ * command runs via `bash -c` so multiple `&&`-chained entries execute in one
+ * shell; `exec` still replaces the login shell so the hidden PTY exits with
+ * the teardown status (and avoids fish `$?` breakage), matching the script
+ * form above.
+ */
+export function buildTeardownCommandFromShell(shellCommand: string): string {
+	return `exec bash -c ${singleQuote(shellCommand)}`;
 }
 
 /** POSIX single-quote escape: safe for any byte sequence in a path. */

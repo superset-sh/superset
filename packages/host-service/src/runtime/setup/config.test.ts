@@ -5,6 +5,7 @@ import { join } from "node:path";
 import {
 	getProjectConfigPath,
 	getResolvedSetupCommands,
+	getResolvedTeardownCommands,
 	hasConfiguredScripts,
 	loadSetupConfig,
 } from "./config";
@@ -332,6 +333,24 @@ describe("getResolvedSetupCommands", () => {
 				setup: ["bun install", "", "   ", "bun run db:migrate"],
 			}),
 		).toEqual(["bun install", "bun run db:migrate"]);
+	});
+});
+
+describe("getResolvedTeardownCommands", () => {
+	it("returns empty for null config", () => {
+		expect(getResolvedTeardownCommands(null)).toEqual([]);
+	});
+
+	it("returns empty when no teardown is configured", () => {
+		expect(getResolvedTeardownCommands({ setup: ["bun install"] })).toEqual([]);
+	});
+
+	it("filters out empty and whitespace-only entries", () => {
+		expect(
+			getResolvedTeardownCommands({
+				teardown: ["docker compose down", "", "   ", "rm -rf .cache"],
+			}),
+		).toEqual(["docker compose down", "rm -rf .cache"]);
 	});
 });
 

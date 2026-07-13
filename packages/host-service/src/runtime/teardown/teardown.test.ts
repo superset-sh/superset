@@ -9,7 +9,11 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { buildTeardownInitialCommand } from "./teardown";
+import {
+	buildTeardownCommandFromShell,
+	buildTeardownInitialCommand,
+	resolveTeardownCommand,
+} from "./teardown";
 
 function isFishAvailable(): boolean {
 	const result = spawnSync("fish", ["-c", "exit 0"], { stdio: "ignore" });
@@ -24,6 +28,23 @@ describe("teardown initial command", () => {
 
 		expect(command).toBe("exec bash '/tmp/worktree/.superset/teardown.sh'");
 		expect(command).not.toContain("$?");
+	});
+
+	test("shell-command form runs via `bash -c` and avoids $?", () => {
+		const command = buildTeardownCommandFromShell(
+			"docker compose down && rm -rf .cache",
+		);
+
+		expect(command).toBe(
+			"exec bash -c 'docker compose down && rm -rf .cache'",
+		);
+		expect(command).not.toContain("$?");
+	});
+
+	test("shell-command form single-quote-escapes the command", () => {
+		expect(buildTeardownCommandFromShell("echo 'bye'")).toBe(
+			"exec bash -c 'echo '\\''bye'\\'''",
+		);
 	});
 
 	test("exits fish with the teardown script status", () => {
@@ -48,6 +69,119 @@ describe("teardown initial command", () => {
 			expect(result.status).toBe(7);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
+		}
+	});
+});
+
+describe("resolveTeardownCommand", () => {
+	function makeSandbox(): { repoPath: string; homeDir: string; cleanup: () => void } {
+		const root = mkdtempSync(join(tmpdir(), "host-service-teardown-resolve-"));
+		const repoPath = join(root, "repo");
+		const homeDir = join(root, "home");
+		mkdirSync(join(repoPath, ".superset"), { recursive: true });
+		mkdirSync(homeDir, { recursive: true });
+		return {
+			repoPath,
+			homeDir,
+			cleanup: () => rmSync(root, { recursive: true, force: true }),
+		};
+	}
+
+	function writeConfig(repoPath: string, config: unknown): void {
+		writeFileSync(
+			join(repoPath, ".superset", "config.json"),
+			JSON.stringify(config),
+		);
+	}
+
+	// Reproduces #5486: configured `teardown` commands must run on delete.
+	// Before the fix, teardown only looked for `<worktree>/.superset/teardown.sh`
+	// and silently skipped when it was absent, ignoring the config entirely.
+	test("runs configured teardown commands from .superset/config.json", () => {
+		const sb = makeSandbox();
+		try {
+			writeConfig(sb.repoPath, {
+				setup: ["bash setup.sh"],
+				teardown: ["docker compose down", "bash teardown.sh"],
+			});
+
+			const command = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				// Worktree has no teardown.sh — the classic reported case.
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
+				homeDir: sb.homeDir,
+			});
+
+			expect(command).toBe(
+				"exec bash -c 'docker compose down && bash teardown.sh'",
+			);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("configured teardown takes precedence over a teardown.sh script", () => {
+		const sb = makeSandbox();
+		try {
+			writeConfig(sb.repoPath, { teardown: ["echo configured"] });
+			// A stale worktree script must not win over the configured command.
+			const worktreePath = join(sb.repoPath, ".worktrees", "feature");
+			mkdirSync(join(worktreePath, ".superset"), { recursive: true });
+			writeFileSync(
+				join(worktreePath, ".superset", "teardown.sh"),
+				"#!/usr/bin/env bash\n",
+			);
+
+			const command = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				worktreePath,
+				homeDir: sb.homeDir,
+			});
+
+			expect(command).toBe("exec bash -c 'echo configured'");
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("falls back to <worktree>/.superset/teardown.sh when no teardown is configured", () => {
+		const sb = makeSandbox();
+		try {
+			// Config exists but only defines setup — teardown must fall back.
+			writeConfig(sb.repoPath, { setup: ["bash setup.sh"] });
+			const worktreePath = join(sb.repoPath, ".worktrees", "feature");
+			mkdirSync(join(worktreePath, ".superset"), { recursive: true });
+			const scriptPath = join(worktreePath, ".superset", "teardown.sh");
+			writeFileSync(scriptPath, "#!/usr/bin/env bash\n");
+
+			const command = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				worktreePath,
+				homeDir: sb.homeDir,
+			});
+
+			expect(command).toBe(`exec bash ${`'${scriptPath}'`}`);
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("returns null (skipped) when neither config nor script provides a teardown", () => {
+		const sb = makeSandbox();
+		try {
+			const command = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
+				homeDir: sb.homeDir,
+			});
+
+			expect(command).toBeNull();
+		} finally {
+			sb.cleanup();
 		}
 	});
 });
