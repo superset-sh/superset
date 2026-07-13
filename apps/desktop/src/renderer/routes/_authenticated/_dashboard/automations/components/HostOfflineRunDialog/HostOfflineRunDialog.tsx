@@ -50,7 +50,7 @@ export function HostOfflineRunDialog({
 		onOpenChange(false);
 		toast.promise(setExpose.mutateAsync({ enabled: true }), {
 			loading: "Restarting host services…",
-			success: "Relay access enabled — connecting to the relay…",
+			success: "Relay access enabled, connecting to the relay…",
 			error: (err: Error) => err.message ?? "Failed to enable relay access",
 		});
 	};
@@ -69,14 +69,12 @@ export function HostOfflineRunDialog({
 					<DialogDescription asChild>
 						<div className="select-text cursor-text space-y-2 pt-1 text-sm leading-relaxed">
 							{isLocal ? (
-								<>
-									<p>
-										The run was skipped because this device isn't connected to
-										the Superset relay — automations dispatch through the relay
-										even on the device they run on.
-									</p>
-									<p>Enable relay access, then run the automation again.</p>
-								</>
+								<p>
+									The run was skipped because this device isn't connected to the
+									Superset relay. Automations go through the relay even when
+									they run on this device. Enable relay access, then run it
+									again.
+								</p>
 							) : (
 								<p>
 									The run was skipped because{" "}
@@ -84,8 +82,8 @@ export function HostOfflineRunDialog({
 										{remoteHost?.name ?? "the target host"}
 									</span>{" "}
 									isn't connected to the Superset relay. Make sure relay access
-									is enabled in Settings &gt; Security on that device, then run
-									the automation again.
+									is on in Settings &gt; Security on that device, then run it
+									again.
 								</p>
 							)}
 						</div>
