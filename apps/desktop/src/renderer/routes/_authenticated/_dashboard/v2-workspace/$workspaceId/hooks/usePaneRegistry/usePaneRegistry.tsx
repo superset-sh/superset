@@ -344,7 +344,15 @@ export function usePaneRegistry({
 						/>
 					</div>
 				),
-				renderHeaderExtras: () => <TerminalPaneHeaderExtras />,
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => {
+					const { terminalId } = ctx.pane.data as TerminalPaneData;
+					return (
+						<TerminalPaneHeaderExtras
+							terminalId={terminalId}
+							terminalInstanceId={ctx.pane.id}
+						/>
+					);
+				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
 						ctx={ctx}
