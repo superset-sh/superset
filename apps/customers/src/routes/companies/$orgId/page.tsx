@@ -2,11 +2,9 @@ import { Card, CardContent } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-
+import { ActivityChart } from "@/components/ActivityChart";
 import { SnapshotNote } from "@/components/SnapshotNote";
 import { useTRPC } from "@/trpc/react";
-
-import { ActivityChart } from "./components/ActivityChart";
 import { CompanyHeader } from "./components/CompanyHeader";
 import { MembersTable } from "./components/MembersTable";
 import { SubscriptionCard } from "./components/SubscriptionCard";

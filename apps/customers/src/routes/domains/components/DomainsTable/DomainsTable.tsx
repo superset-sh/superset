@@ -95,7 +95,15 @@ export function DomainsTable({
 					<TableBody>
 						{rows.map((row) => (
 							<TableRow key={row.domain}>
-								<TableCell className="font-medium">{row.domain}</TableCell>
+								<TableCell>
+									<Link
+										to="/domains/$domain"
+										params={{ domain: row.domain }}
+										className="font-medium hover:underline"
+									>
+										{row.domain}
+									</Link>
+								</TableCell>
 								<TableCell>{row.userCount}</TableCell>
 								<TableCell>
 									{row.activeUsers7d > 0 ? (

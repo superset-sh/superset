@@ -1,0 +1,167 @@
+import { Badge } from "@superset/ui/badge";
+import { Card, CardContent } from "@superset/ui/card";
+import { Skeleton } from "@superset/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { formatDistanceToNow } from "date-fns";
+import { LuArrowLeft, LuCircleDollarSign } from "react-icons/lu";
+
+import { ActivityChart } from "@/components/ActivityChart";
+import { HealthBadge } from "@/components/HealthBadge";
+import { SnapshotNote } from "@/components/SnapshotNote";
+import { useTRPC } from "@/trpc/react";
+
+import { DomainUsersTable } from "./components/DomainUsersTable";
+
+export const Route = createFileRoute("/domains/$domain/")({
+	component: DomainDetailPage,
+});
+
+const numberFormat = new Intl.NumberFormat("en-US", {
+	notation: "compact",
+	maximumFractionDigits: 1,
+});
+
+function Stat({ label, value }: { label: string; value: React.ReactNode }) {
+	return (
+		<div>
+			<p className="text-muted-foreground text-xs">{label}</p>
+			<p className="text-xl font-semibold">{value}</p>
+		</div>
+	);
+}
+
+function DomainDetailPage() {
+	const { domain } = Route.useParams();
+	const trpc = useTRPC();
+
+	const detail = useQuery(trpc.customers.domainDetail.queryOptions({ domain }));
+	const timeseries = useQuery(
+		trpc.customers.domainActivityTimeseries.queryOptions({ domain }),
+	);
+
+	if (detail.isLoading) {
+		return (
+			<div className="space-y-6">
+				<Skeleton className="h-16 w-96" />
+				<Skeleton className="h-56 w-full" />
+				<Skeleton className="h-64 w-full" />
+			</div>
+		);
+	}
+
+	if (detail.error || !detail.data) {
+		return (
+			<Card>
+				<CardContent className="py-12 text-center">
+					<p className="text-lg font-medium">Failed to load domain</p>
+					<p className="text-muted-foreground text-sm">
+						{detail.error?.message ?? "No users found for this domain"}
+					</p>
+				</CardContent>
+			</Card>
+		);
+	}
+
+	const data = detail.data;
+
+	return (
+		<div className="space-y-6">
+			<div className="flex items-start justify-between">
+				<div className="space-y-3">
+					<Link
+						to="/domains"
+						className="text-muted-foreground hover:text-foreground flex items-center gap-1 text-sm"
+					>
+						<LuArrowLeft className="size-3.5" />
+						Domains
+					</Link>
+					<div className="flex items-center gap-3">
+						<h1 className="text-3xl font-bold tracking-tight">
+							@{data.domain}
+						</h1>
+						<HealthBadge health={data.health} />
+					</div>
+					<p className="text-muted-foreground text-sm">
+						Last active{" "}
+						{data.lastActiveAt
+							? formatDistanceToNow(data.lastActiveAt, { addSuffix: true })
+							: "never"}
+					</p>
+				</div>
+				<SnapshotNote snapshotAt={data.snapshotAt} />
+			</div>
+
+			<Card>
+				<CardContent className="flex flex-wrap items-center gap-x-12 gap-y-4">
+					<Stat label="Users" value={data.totalUsers} />
+					<Stat
+						label="Active (7d)"
+						value={
+							data.activeUsers7d > 0 ? (
+								<span className="text-emerald-500">{data.activeUsers7d}</span>
+							) : (
+								0
+							)
+						}
+					/>
+					<Stat
+						label="Events (30d)"
+						value={numberFormat.format(data.events30d)}
+					/>
+					<Stat label="Orgs" value={data.totalOrgCount} />
+					<Stat
+						label="Paying orgs"
+						value={
+							data.payingOrgCount > 0 ? (
+								<span className="text-sky-400">{data.payingOrgCount}</span>
+							) : (
+								0
+							)
+						}
+					/>
+				</CardContent>
+			</Card>
+
+			{data.orgs.length > 0 && (
+				<div className="flex flex-wrap items-center gap-1.5">
+					{data.orgs.map((org) => (
+						<Link
+							key={org.id}
+							to="/companies/$orgId"
+							params={{ orgId: org.id }}
+						>
+							<Badge
+								variant="outline"
+								className="hover:bg-accent max-w-48 truncate"
+							>
+								{org.isPaying && (
+									<LuCircleDollarSign className="text-sky-400" />
+								)}
+								{org.name}
+							</Badge>
+						</Link>
+					))}
+					{data.totalOrgCount > data.orgs.length && (
+						<Badge variant="outline">
+							+{data.totalOrgCount - data.orgs.length} more
+						</Badge>
+					)}
+				</div>
+			)}
+
+			<ActivityChart
+				points={timeseries.data?.points}
+				isLoading={timeseries.isLoading}
+				error={timeseries.error}
+			/>
+			{timeseries.data?.sampled && (
+				<p className="text-muted-foreground -mt-4 text-xs">
+					Chart sampled from the 1,000 most recently active users
+				</p>
+			)}
+
+			<DomainUsersTable users={data.users} totalUsers={data.totalUsers} />
+		</div>
+	);
+}

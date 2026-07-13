@@ -12,7 +12,6 @@ import {
 } from "@superset/shared/billing";
 import { COMPANY } from "@superset/shared/constants";
 import {
-	CORE_ACTIVITY_EVENTS,
 	type CustomerHealth,
 	healthFromLastActive,
 	isChurnRisk,
@@ -20,14 +19,13 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { eq, ilike, inArray, or } from "drizzle-orm";
 import { z } from "zod";
-import { executeHogQLQuery } from "../../lib/posthog-client";
 import { adminProcedure } from "../../trpc";
 import {
+	fetchWeeklyActivity,
 	getActivitySnapshot,
 	getOrgActivityIndex,
-	parseHogDate,
-	quoteEventList,
 	type UserActivity,
+	WEEKLY_ACTIVITY_IDS_CAP,
 } from "./activity-snapshot";
 
 const COMPANY_DOMAIN = COMPANY.EMAIL_DOMAIN.replace(/^@/, "");
@@ -154,6 +152,29 @@ const healthFilterSchema = z.enum([
 	"dormant",
 	"churnRisk",
 ]);
+
+/** Valid domain chars only — also keeps the ILIKE pattern free of wildcards. */
+const domainSchema = z
+	.string()
+	.trim()
+	.toLowerCase()
+	.regex(/^[a-z0-9][a-z0-9.-]{0,252}$/, "Invalid domain");
+
+const DOMAIN_USERS_SHOWN_CAP = 200;
+const DOMAIN_ORG_CHIPS_CAP = 30;
+
+function getUsersByDomain(domain: string) {
+	return db
+		.select({
+			id: users.id,
+			name: users.name,
+			email: users.email,
+			image: users.image,
+			createdAt: users.createdAt,
+		})
+		.from(users)
+		.where(ilike(users.email, `%@${domain}`));
+}
 
 export const customersRouter = {
 	listCompanies: adminProcedure
@@ -435,34 +456,166 @@ export const customersRouter = {
 				.from(members)
 				.where(eq(members.organizationId, input.orgId));
 
-			// Belt-and-braces: these come from our own DB, but they are
-			// interpolated into HogQL, so re-validate the UUID shape.
-			const userIds = memberRows
-				.map((row) => row.userId.toLowerCase())
-				.filter((id) => /^[0-9a-f-]{36}$/.test(id));
-			if (userIds.length === 0) return { points: [] };
-
-			const idList = userIds.map((id) => `'${id}'`).join(", ");
-			const sql = `
-SELECT
-  toStartOfWeek(timestamp, 1) AS week_start,
-  uniq(distinct_id) AS active_users,
-  count() AS events
-FROM events
-WHERE timestamp >= now() - INTERVAL ${input.weeks} WEEK
-  AND event IN (${quoteEventList(CORE_ACTIVITY_EVENTS)})
-  AND lower(distinct_id) IN (${idList})
-GROUP BY week_start
-ORDER BY week_start`;
-
-			const { results } =
-				await executeHogQLQuery<[string, number, number][]>(sql);
 			return {
-				points: results.map(([weekStart, activeUsers, events]) => ({
-					weekStart: parseHogDate(weekStart),
-					activeUsers: Number(activeUsers),
-					events: Number(events),
+				points: await fetchWeeklyActivity(
+					memberRows.map((row) => row.userId),
+					input.weeks,
+				),
+			};
+		}),
+
+	domainDetail: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(async ({ input }) => {
+			const [snapshot, domainUsers, subsByOrg] = await Promise.all([
+				getActivitySnapshot(),
+				getUsersByDomain(input.domain),
+				getSubscriptionsByOrg(),
+			]);
+
+			if (domainUsers.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No users with @${input.domain} emails`,
+				});
+			}
+
+			const memberRows = await db
+				.select({
+					organizationId: members.organizationId,
+					userId: members.userId,
+				})
+				.from(members)
+				.where(
+					inArray(
+						members.userId,
+						domainUsers.map((user) => user.id),
+					),
+				);
+			const orgIdsByUser = new Map<string, string[]>();
+			for (const { organizationId, userId } of memberRows) {
+				const list = orgIdsByUser.get(userId);
+				if (list) {
+					list.push(organizationId);
+				} else {
+					orgIdsByUser.set(userId, [organizationId]);
+				}
+			}
+
+			const isPayingOrg = (orgId: string) => {
+				const sub = subsByOrg.get(orgId);
+				return (
+					sub != null &&
+					isActiveSubscriptionStatus(sub.status) &&
+					isPaidPlan(sub.plan)
+				);
+			};
+
+			const userDetails = domainUsers
+				.map((user) => {
+					const activity = snapshot.byUserId.get(user.id.toLowerCase());
+					return {
+						userId: user.id,
+						name: user.name,
+						email: user.email,
+						image: user.image,
+						userCreatedAt: user.createdAt,
+						orgIds: orgIdsByUser.get(user.id) ?? [],
+						lastActiveAt: activity?.lastActiveAt ?? null,
+						events7d: activity?.events7d ?? 0,
+						events30d: activity?.events30d ?? 0,
+						activeDays30: activity?.activeDays30 ?? 0,
+						topSurface: topSurface(activity),
+						health: healthFromLastActive(activity?.lastActiveAt ?? null),
+						hasActivityData: activity != null,
+					};
+				})
+				.sort(
+					(a, b) =>
+						(b.lastActiveAt?.getTime() ?? 0) - (a.lastActiveAt?.getTime() ?? 0),
+				);
+
+			const shownUsers = userDetails.slice(0, DOMAIN_USERS_SHOWN_CAP);
+
+			// Hydrate org names for the chips and the shown users' org lists.
+			const allOrgIds = [
+				...new Set(memberRows.map((row) => row.organizationId)),
+			];
+			const chipOrgIds = [...allOrgIds]
+				.sort((a, b) => Number(isPayingOrg(b)) - Number(isPayingOrg(a)))
+				.slice(0, DOMAIN_ORG_CHIPS_CAP);
+			const nameOrgIds = [
+				...new Set([
+					...chipOrgIds,
+					...shownUsers.flatMap((user) => user.orgIds),
+				]),
+			];
+			const orgRows =
+				nameOrgIds.length > 0
+					? await db
+							.select({ id: organizations.id, name: organizations.name })
+							.from(organizations)
+							.where(inArray(organizations.id, nameOrgIds))
+					: [];
+			const orgNameById = new Map(orgRows.map((row) => [row.id, row.name]));
+
+			const lastActiveAt = userDetails[0]?.lastActiveAt ?? null;
+			const payingOrgCount = allOrgIds.filter(isPayingOrg).length;
+
+			return {
+				domain: input.domain,
+				totalUsers: userDetails.length,
+				activeUsers7d: userDetails.filter((user) => user.events7d > 0).length,
+				events30d: userDetails.reduce((sum, user) => sum + user.events30d, 0),
+				lastActiveAt,
+				health: healthFromLastActive(lastActiveAt),
+				totalOrgCount: allOrgIds.length,
+				payingOrgCount,
+				orgs: chipOrgIds.map((orgId) => ({
+					id: orgId,
+					name: orgNameById.get(orgId) ?? "Unknown org",
+					isPaying: isPayingOrg(orgId),
 				})),
+				users: shownUsers.map(({ orgIds, ...user }) => ({
+					...user,
+					orgs: orgIds.slice(0, 3).map((orgId) => ({
+						id: orgId,
+						name: orgNameById.get(orgId) ?? "Unknown org",
+					})),
+					orgCount: orgIds.length,
+				})),
+				snapshotAt: snapshot.fetchedAt,
+			};
+		}),
+
+	domainActivityTimeseries: adminProcedure
+		.input(
+			z.object({
+				domain: domainSchema,
+				weeks: z.number().int().min(1).max(26).default(12),
+			}),
+		)
+		.query(async ({ input }) => {
+			const [snapshot, domainUsers] = await Promise.all([
+				getActivitySnapshot(),
+				getUsersByDomain(input.domain),
+			]);
+
+			// Most-recently-active first so the IN-list cap keeps the users
+			// that actually contribute to the chart.
+			const ids = domainUsers
+				.map((user) => user.id)
+				.sort(
+					(a, b) =>
+						(snapshot.byUserId.get(b.toLowerCase())?.lastActiveAt.getTime() ??
+							0) -
+						(snapshot.byUserId.get(a.toLowerCase())?.lastActiveAt.getTime() ??
+							0),
+				);
+
+			return {
+				points: await fetchWeeklyActivity(ids, input.weeks),
+				sampled: ids.length > WEEKLY_ACTIVITY_IDS_CAP,
 			};
 		}),
 

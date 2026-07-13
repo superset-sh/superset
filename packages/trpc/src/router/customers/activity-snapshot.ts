@@ -212,3 +212,46 @@ async function fetchOrgActivityIndex(): Promise<OrgActivityIndex> {
 }
 
 export const getOrgActivityIndex = memoizeAsync(fetchOrgActivityIndex);
+
+export interface WeeklyActivityPoint {
+	weekStart: Date;
+	activeUsers: number;
+	events: number;
+}
+
+/** Keeps the interpolated IN-list bounded for huge cohorts (e.g. gmail.com);
+ * callers should pass ids ordered most-recently-active first. */
+export const WEEKLY_ACTIVITY_IDS_CAP = 1000;
+
+export async function fetchWeeklyActivity(
+	userIds: string[],
+	weeks: number,
+): Promise<WeeklyActivityPoint[]> {
+	// Belt-and-braces: ids come from our own DB, but they are interpolated
+	// into HogQL, so re-validate the UUID shape.
+	const ids = userIds
+		.map((id) => id.toLowerCase())
+		.filter((id) => /^[0-9a-f-]{36}$/.test(id))
+		.slice(0, WEEKLY_ACTIVITY_IDS_CAP);
+	if (ids.length === 0) return [];
+
+	const idList = ids.map((id) => `'${id}'`).join(", ");
+	const sql = `
+SELECT
+  toStartOfWeek(timestamp, 1) AS week_start,
+  uniq(distinct_id) AS active_users,
+  count() AS events
+FROM events
+WHERE timestamp >= now() - INTERVAL ${weeks} WEEK
+  AND event IN (${quoteEventList(CORE_ACTIVITY_EVENTS)})
+  AND lower(distinct_id) IN (${idList})
+GROUP BY week_start
+ORDER BY week_start`;
+
+	const { results } = await executeHogQLQuery<[string, number, number][]>(sql);
+	return results.map(([weekStart, activeUsers, events]) => ({
+		weekStart: parseHogDate(weekStart),
+		activeUsers: Number(activeUsers),
+		events: Number(events),
+	}));
+}
