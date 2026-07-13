@@ -256,6 +256,25 @@ export async function resolveMatchingSlug(
 }
 
 /**
+ * Guard a user-derived directory name before it is joined onto a parent dir.
+ * Rejects empty/whitespace names, embedded path separators, and the `.`/`..`
+ * path references. Without the `.`/`..` check, a project named "." or ".."
+ * flows through `dirNameForEmpty` unchanged and `join(parentDir, "..")`
+ * resolves *outside* the intended `<parentDir>/<name>` location (to the
+ * parent dir itself, or its parent). Mirrors the reserved-segment rejection
+ * already done in `deriveCloneDirectoryName`, so all creation paths agree.
+ */
+function assertUsableDirName(dirName: string): void {
+	const trimmed = dirName.trim();
+	if (!trimmed || /[/\\]/.test(dirName) || trimmed === "." || trimmed === "..") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid directory name: "${dirName}"`,
+		});
+	}
+}
+
+/**
  * Empty git repo at `<parentDir>/<dirName>`: atomic mkdir (fails on EEXIST,
  * so we never blow away someone else's directory), `git init`, initial
  * empty commit. Cleans up the dir on any post-mkdir failure.
@@ -268,12 +287,7 @@ export async function initEmptyRepo(
 	parentDir: string,
 	dirName: string,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Invalid directory name: "${dirName}"`,
-		});
-	}
+	assertUsableDirName(dirName);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
@@ -311,12 +325,7 @@ export async function cloneTemplateInto(
 	dirName: string,
 	credentials?: GitCredentialProvider,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Invalid directory name: "${dirName}"`,
-		});
-	}
+	assertUsableDirName(dirName);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);

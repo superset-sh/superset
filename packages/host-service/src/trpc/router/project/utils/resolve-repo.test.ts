@@ -20,6 +20,8 @@ import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
 	cloneRepoInto,
+	cloneTemplateInto,
+	initEmptyRepo,
 	initLocalRepoInPlace,
 	resolveLocalRepo,
 } from "./resolve-repo";
@@ -460,5 +462,59 @@ describe("cloneRepoInto", () => {
 
 		expect(resolved.parsed).toBeNull();
 		expect(resolved.remoteName).toBeNull();
+	});
+});
+
+// ── directory-name guard (initEmptyRepo / cloneTemplateInto) ───────
+//
+// The guard runs before any filesystem/git work, so these assert the
+// rejection without a real repo. A project name that slugs down to "." or
+// ".." (via `dirNameForEmpty`) would otherwise reach `join(parentDir, "..")`
+// and escape the projects directory — the same reserved segments
+// `deriveCloneDirectoryName` already rejects for the clone-from-URL path.
+
+describe("initEmptyRepo directory-name guard", () => {
+	test("rejects '.' as a directory name", async () => {
+		await expect(initEmptyRepo(workRoot, ".")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+	});
+
+	test("rejects '..' as a directory name", async () => {
+		await expect(initEmptyRepo(workRoot, "..")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+	});
+
+	test("still rejects embedded path separators", async () => {
+		await expect(initEmptyRepo(workRoot, "a/b")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+		await expect(initEmptyRepo(workRoot, "a\\b")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+	});
+
+	test("still rejects empty / whitespace-only names", async () => {
+		await expect(initEmptyRepo(workRoot, "   ")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+	});
+});
+
+describe("cloneTemplateInto directory-name guard", () => {
+	// The guard is the first statement, so no template is ever fetched.
+	const templateUrl = "https://example.invalid/template.git";
+
+	test("rejects '.' as a directory name", async () => {
+		await expect(
+			cloneTemplateInto(templateUrl, workRoot, "."),
+		).rejects.toThrow(/Invalid directory name/);
+	});
+
+	test("rejects '..' as a directory name", async () => {
+		await expect(
+			cloneTemplateInto(templateUrl, workRoot, ".."),
+		).rejects.toThrow(/Invalid directory name/);
 	});
 });
