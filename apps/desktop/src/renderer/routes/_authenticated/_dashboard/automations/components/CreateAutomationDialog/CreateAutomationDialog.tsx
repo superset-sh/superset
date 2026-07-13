@@ -24,6 +24,7 @@ import { useRecentProjects } from "../../hooks/useRecentProjects";
 import type { AutomationTemplate } from "../../templates";
 import { AgentPicker } from "../AgentPicker";
 import { ProjectPicker } from "../ProjectPicker";
+import { RelayOfflineNotice } from "../RelayOfflineNotice";
 import { SchedulePicker } from "../SchedulePicker";
 import { WorkspacePicker } from "../WorkspacePicker";
 import { TemplateGalleryPanel } from "./components/TemplateGalleryPanel";
@@ -59,8 +60,13 @@ export function CreateAutomationDialog({
 	const [rrule, setRrule] = useState(DEFAULT_RRULE);
 	const [v2WorkspaceId, setV2WorkspaceId] = useState<string | null>(null);
 
-	const { localHostId } = useWorkspaceHostOptions();
+	const { localHostId, localHostIsOnline } = useWorkspaceHostOptions();
 	const targetHostId = hostId ?? localHostId;
+	// The local device is only dispatchable once relay access is enabled in
+	// Settings > Security; block creation until then. Offline remote hosts
+	// only warn — they may reconnect by the time a run is scheduled.
+	const localRelayBlocked =
+		targetHostId === localHostId && localHostIsOnline === false;
 	const hostUrl = useHostUrl(targetHostId);
 	const { agents: hostAgents } = useV2AgentChoices(hostUrl);
 	const recentProjects = useRecentProjects();
@@ -182,6 +188,7 @@ export function CreateAutomationDialog({
 		!!targetHostId &&
 		!!selectedAgent &&
 		rrule.trim().length > 0 &&
+		!localRelayBlocked &&
 		!createMutation.isPending;
 
 	const handleTemplatePicked = (template: AutomationTemplate) => {
@@ -249,6 +256,8 @@ export function CreateAutomationDialog({
 									searchFiles={searchFiles}
 								/>
 
+								<RelayOfflineNotice hostId={targetHostId} className="mt-2" />
+
 								{humanReadableCreateError && (
 									<p className="text-destructive text-sm mt-2 line-clamp-2">
 										{humanReadableCreateError}
@@ -261,6 +270,7 @@ export function CreateAutomationDialog({
 									<DevicePicker
 										className="w-[160px]"
 										hostId={hostId}
+										showLocalOnlineState
 										onSelectHostId={(next) => {
 											setHostId(next);
 											setV2WorkspaceId(null);

@@ -39,6 +39,11 @@ interface DevicePickerProps {
 	hostId: string | null;
 	onSelectHostId: (hostId: string | null) => void;
 	className?: string;
+	/**
+	 * Also show relay connectivity for the local device. Cloud-dispatched work
+	 * (automations) goes through the relay, so "local" is not inherently online.
+	 */
+	showLocalOnlineState?: boolean;
 }
 
 function getSelectedLabel(
@@ -64,9 +69,11 @@ export function DevicePicker({
 	hostId,
 	onSelectHostId,
 	className,
+	showLocalOnlineState = false,
 }: DevicePickerProps) {
 	const { machineId } = useLocalHostService();
-	const { currentDeviceName, otherHosts } = useWorkspaceHostOptions();
+	const { currentDeviceName, localHostIsOnline, otherHosts } =
+		useWorkspaceHostOptions();
 	const isLocal = hostId === null || hostId === machineId;
 	const selectedLabel = getSelectedLabel(
 		hostId,
@@ -74,10 +81,12 @@ export function DevicePicker({
 		currentDeviceName,
 		otherHosts,
 	);
-	// Only remote hosts have a meaningful online indicator — the app itself
-	// is the local host, so it's tautologically online.
-	const selectedRemoteOnline = isLocal
-		? null
+	// For direct (local) use the app itself is the host, so it's tautologically
+	// online and gets no indicator. Relay-dispatched contexts opt into showing
+	// the local device's relay connectivity instead.
+	const localOnline = showLocalOnlineState ? localHostIsOnline : null;
+	const selectedOnline = isLocal
+		? localOnline
 		: (otherHosts.find((host) => host.id === hostId)?.isOnline ?? false);
 
 	return (
@@ -90,9 +99,7 @@ export function DevicePicker({
 				>
 					{getSelectedIcon(hostId, machineId)}
 					<span className="truncate">{selectedLabel}</span>
-					{selectedRemoteOnline !== null && (
-						<OnlineDot online={selectedRemoteOnline} />
-					)}
+					{selectedOnline !== null && <OnlineDot online={selectedOnline} />}
 					<HiChevronUpDown className="size-3 shrink-0" />
 				</FormPickerTrigger>
 			</DropdownMenuTrigger>
@@ -100,6 +107,7 @@ export function DevicePicker({
 				<DropdownMenuItem onSelect={() => onSelectHostId(machineId)}>
 					<HiOutlineComputerDesktop className="size-4" />
 					<span className="flex-1">Local Device</span>
+					{localOnline !== null && <OnlineDot online={localOnline} />}
 					{isLocal && <HiCheck className="size-4" />}
 				</DropdownMenuItem>
 				{otherHosts.length > 0 && (
