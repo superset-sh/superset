@@ -84,12 +84,25 @@ Where `<project-id>` is your project's unique ID in Superset (visible in the app
 
 ### Priority Order
 
-Config is resolved in this order (first found wins, for setup, teardown, and run):
+For each key (`setup`, `teardown`, `run`), the highest-priority source that defines it wins:
+
 1. `~/.superset/projects/<project-id>/config.json` — user override
-2. `<worktree>/.superset/config.json` — worktree-specific
+2. `<worktree>/.superset/config.json` — workspace-specific (setup and teardown only)
 3. `<repo>/.superset/config.json` — project default
 
-No merging occurs between levels—the first config found is used entirely.
+Levels merge per key: a key one level doesn't define falls through to the next. `run` resolves at the project level, so it skips the worktree layer.
+
+### Script Fallback
+
+If no commands are configured for a key, Superset looks for a script instead: `.superset/<key>.sh` (`setup.sh`, `teardown.sh`, `run.sh`) in the worktree first, then the main repo. Gitignored scripts only exist in the main repo, since worktrees skip gitignored files.
+
+### Working Directory
+
+Set `cwd` to run commands somewhere other than the workspace root. Relative paths resolve against the worktree:
+
+```json
+{ "cwd": "apps/web", "run": ["bun dev"] }
+```
 
 ### Examples
 
