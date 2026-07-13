@@ -29,7 +29,7 @@ import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuPlus, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -49,6 +49,7 @@ import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { useRecentProjects } from "./hooks/useRecentProjects";
 import type { AutomationTemplate } from "./templates";
+import { showRunNowErrorToast } from "./utils/hostOfflineError";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -61,6 +62,7 @@ type Scope = "mine" | "team";
 type AutomationSortField = "name" | "owner" | "project" | "schedule";
 
 function AutomationsPage() {
+	const navigate = useNavigate();
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
@@ -79,9 +81,7 @@ function AutomationsPage() {
 			apiTrpcClient.automation.runNow.mutate({ id }),
 		onSuccess: (_, { name }) => toast.success(`Running "${name}" now`),
 		onError: (error) =>
-			toast.error(
-				error instanceof Error ? error.message : "Failed to trigger run",
-			),
+			showRunNowErrorToast(error, () => navigate({ to: "/settings/security" })),
 	});
 
 	const deleteMutation = useMutation({

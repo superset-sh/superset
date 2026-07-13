@@ -4,6 +4,10 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceStrict } from "date-fns";
 import { useNow } from "renderer/hooks/useNow";
+import {
+	HOST_OFFLINE_HELP,
+	isHostOfflineError,
+} from "../../../utils/hostOfflineError";
 
 const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
 	dispatched: "bg-emerald-500",
@@ -84,7 +88,9 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 									side="left"
 									className="max-w-xs whitespace-pre-wrap"
 								>
-									{run.error}
+									{isHostOfflineError(run.error)
+										? `${run.error}. ${HOST_OFFLINE_HELP}`
+										: run.error}
 								</TooltipContent>
 							</Tooltip>
 						) : (

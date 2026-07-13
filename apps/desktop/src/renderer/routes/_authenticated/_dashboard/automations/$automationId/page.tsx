@@ -11,6 +11,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { showRunNowErrorToast } from "../utils/hostOfflineError";
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
@@ -70,6 +71,9 @@ function AutomationDetailPage() {
 	const runNowMutation = useMutation({
 		mutationFn: () =>
 			apiTrpcClient.automation.runNow.mutate({ id: automationId }),
+		onSuccess: () => toast.success("Running now"),
+		onError: (error) =>
+			showRunNowErrorToast(error, () => navigate({ to: "/settings/security" })),
 	});
 
 	const deleteMutation = useMutation({
