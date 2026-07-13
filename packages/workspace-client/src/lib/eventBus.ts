@@ -210,6 +210,7 @@ function getOrCreateConnection(
 	// inside partysocket. Buffering is disabled so command semantics stay
 	// "send only while open" — watches are replayed from state on each open.
 	const socket = createRelaySocket({
+		name: "event-bus",
 		buildUrl: () => `${hostUrl.replace(/\/$/, "")}/events`,
 		getToken: getWsToken,
 		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,

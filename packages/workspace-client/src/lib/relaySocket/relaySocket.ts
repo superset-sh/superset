@@ -1,7 +1,10 @@
 import { WebSocket as ReconnectingWebSocket } from "partysocket";
 import { primeRelayAffinity } from "../primeRelayAffinity";
+import { createOutageReporter } from "./outageReporter";
 
 export interface RelaySocketOptions {
+	/** Label attached to telemetry events so consumers are distinguishable. */
+	name?: string;
 	/** URL for this attempt, WITHOUT the auth token — the wrapper signs it. */
 	buildUrl: () => string | Promise<string>;
 	/** Fresh token per attempt (user JWT for relay hosts, PSK for local). */
@@ -49,11 +52,17 @@ const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
  */
 export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 	let socket: ReconnectingWebSocket | null = null;
+	const reporter = createOutageReporter(opts.name ?? "relay");
+	// retryCount only resets after minUptime of stable connection, so it counts
+	// consecutive failed dials across the whole outage.
+	const attempts = () => socket?.retryCount ?? 0;
 
 	const provider = async (): Promise<string> => {
 		const url = signUrl(await opts.buildUrl(), await opts.getToken());
 		const probe = await primeRelayAffinity(url);
+		reporter.attempt(url, probe);
 		if (probe?.status === 403) {
+			reporter.accessDenied(attempts());
 			opts.onAccessDenied?.();
 			if (opts.accessDeniedRetryMs == null) {
 				socket?.close(1000, "relay access denied");
@@ -74,5 +83,15 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 		connectionTimeout: opts.connectionTimeout,
 		maxEnqueuedMessages: opts.maxEnqueuedMessages ?? 0,
 	});
+
+	socket.addEventListener("close", (event) => {
+		// 1000 = deliberate close (cleanup, access-denied shutdown), not a failure.
+		if (event.code !== 1000) {
+			reporter.failed(attempts(), { code: event.code, reason: event.reason });
+		}
+	});
+	socket.addEventListener("error", () => reporter.failed(attempts()));
+	socket.addEventListener("open", () => reporter.opened(attempts()));
+
 	return socket;
 }

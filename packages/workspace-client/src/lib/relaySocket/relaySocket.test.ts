@@ -1,4 +1,8 @@
 import { afterEach, describe, expect, it } from "bun:test";
+import {
+	type RelaySocketTelemetryEvent,
+	setRelaySocketTelemetry,
+} from "./outageReporter";
 import { createRelaySocket, type RelaySocket } from "./relaySocket";
 
 // Local WS server whose /hosts/:id/_whoowns preflight status is scriptable.
@@ -34,6 +38,7 @@ let socket: RelaySocket | null = null;
 afterEach(() => {
 	socket?.close();
 	socket = null;
+	setRelaySocketTelemetry(null);
 });
 
 function waitFor(cond: () => boolean, timeoutMs = 3_000): Promise<void> {
@@ -106,6 +111,68 @@ describe("createRelaySocket", () => {
 		expect(socket.readyState).toBeLessThanOrEqual(1); // CONNECTING or OPEN
 		server.stop(true);
 	});
+
+	it("emits degraded once per outage, then recovered with outage stats", async () => {
+		const { server, port } = makeServer(() => 200);
+		server.stop(true); // outage: every dial is refused
+		const telemetry: RelaySocketTelemetryEvent[] = [];
+		setRelaySocketTelemetry((e) => telemetry.push(e));
+		socket = createRelaySocket({
+			name: "test-bus",
+			buildUrl: () => `ws://localhost:${port}${HOST_PATH}`,
+			getToken: () => "secret-token",
+			minReconnectionDelay: 10,
+			maxReconnectionDelay: 20,
+		});
+		await waitFor(() => telemetry.some((e) => e.kind === "degraded"), 8_000);
+		// Keep failing: still one degraded per outage.
+		await Bun.sleep(150);
+		expect(telemetry.filter((e) => e.kind === "degraded").length).toBe(1);
+		const degraded = telemetry.find((e) => e.kind === "degraded");
+		expect(degraded?.socketName).toBe("test-bus");
+		expect(degraded?.endpoint).not.toContain("secret-token");
+
+		const revived = Bun.serve({
+			port,
+			fetch(req, srv) {
+				const url = new URL(req.url);
+				if (url.pathname.endsWith("/_whoowns")) {
+					return new Response(JSON.stringify({ ok: true }), { status: 200 });
+				}
+				if (srv.upgrade(req)) return;
+				return new Response("no", { status: 400 });
+			},
+			websocket: { open() {}, message() {} },
+		});
+		await waitFor(() => telemetry.some((e) => e.kind === "recovered"), 8_000);
+		const recovered = telemetry.find((e) => e.kind === "recovered");
+		expect(recovered?.failedAttempts).toBeGreaterThanOrEqual(5);
+		expect(recovered?.outageMs).not.toBeNull();
+		revived.stop(true);
+	}, 20_000);
+
+	it("emits access_denied once per denial episode and recovered on regrant", async () => {
+		let status = 403;
+		const { server, port } = makeServer(() => status);
+		const telemetry: RelaySocketTelemetryEvent[] = [];
+		setRelaySocketTelemetry((e) => telemetry.push(e));
+		let denied = 0;
+		socket = createRelaySocket({
+			buildUrl: () => `ws://localhost:${port}${HOST_PATH}`,
+			getToken: () => "tok",
+			onAccessDenied: () => denied++,
+			accessDeniedRetryMs: 30,
+			minReconnectionDelay: 10,
+			maxReconnectionDelay: 20,
+		});
+		await waitFor(() => denied >= 3);
+		expect(telemetry.filter((e) => e.kind === "access_denied").length).toBe(1);
+		expect(telemetry.filter((e) => e.kind === "degraded").length).toBe(0);
+		expect(telemetry[0]?.preflightStatus).toBe(403);
+		status = 200;
+		await waitFor(() => telemetry.some((e) => e.kind === "recovered"), 8_000);
+		server.stop(true);
+	}, 20_000);
 
 	it("dials local (non-/hosts) URLs without a preflight, converting http to ws", async () => {
 		const { server, tokensSeen, port } = makeServer(() => 503);

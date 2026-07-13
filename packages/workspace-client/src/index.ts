@@ -19,6 +19,8 @@ export {
 	createRelaySocket,
 	type RelaySocket,
 	type RelaySocketOptions,
+	type RelaySocketTelemetryEvent,
+	setRelaySocketTelemetry,
 } from "./lib/relaySocket";
 export {
 	useWorkspaceClient,
