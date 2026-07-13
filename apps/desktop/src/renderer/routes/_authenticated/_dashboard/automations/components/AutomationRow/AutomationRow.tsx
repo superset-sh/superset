@@ -1,4 +1,8 @@
-import type { SelectAutomation, SelectUser } from "@superset/db/schema";
+import type {
+	SelectAutomation,
+	SelectAutomationRun,
+	SelectUser,
+} from "@superset/db/schema";
 import { describeSchedule } from "@superset/shared/rrule";
 import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
@@ -31,12 +35,22 @@ interface AutomationRowProps {
 	project: ProjectOption | undefined;
 	workspaceLabel: string;
 	hostLabel: string;
-	/** Whether the automation's most recent run failed. */
-	lastRunFailed: boolean;
+	/** The automation's most recent run status; null when it has no runs. */
+	lastRunStatus: SelectAutomationRun["status"] | null;
 	isOwner: boolean;
 	onRunNow: (automation: SelectAutomation) => void;
 	onDelete: (automation: SelectAutomation) => void;
 }
+
+const LAST_RUN_META: Record<
+	SelectAutomationRun["status"],
+	{ dot: string; label: string; failed?: boolean }
+> = {
+	dispatched: { dot: "bg-emerald-500", label: "ran" },
+	dispatching: { dot: "bg-amber-500", label: "running" },
+	skipped_offline: { dot: "bg-red-500", label: "failed", failed: true },
+	dispatch_failed: { dot: "bg-red-500", label: "failed", failed: true },
+};
 
 export function AutomationRow({
 	automation,
@@ -45,7 +59,7 @@ export function AutomationRow({
 	project,
 	workspaceLabel,
 	hostLabel,
-	lastRunFailed,
+	lastRunStatus,
 	isOwner,
 	onRunNow,
 	onDelete,
@@ -115,21 +129,6 @@ export function AutomationRow({
 									paused
 								</Badge>
 							)}
-							{lastRunFailed && (
-								<Tooltip>
-									<TooltipTrigger asChild>
-										<Badge
-											variant="secondary"
-											className="shrink-0 border-red-500/30 bg-red-500/15 text-[10px] text-red-600 dark:text-red-400"
-										>
-											failed
-										</Badge>
-									</TooltipTrigger>
-									<TooltipContent>
-										The last run failed. Click to see why.
-									</TooltipContent>
-								</Tooltip>
-							)}
 						</span>
 					</TableCell>
 
@@ -187,6 +186,42 @@ export function AutomationRow({
 						title={scheduleLabel}
 					>
 						{scheduleLabel}
+					</TableCell>
+
+					<TableCell className="text-xs text-muted-foreground">
+						{lastRunStatus ? (
+							(() => {
+								const meta = LAST_RUN_META[lastRunStatus];
+								const cell = (
+									<span
+										className={cn(
+											"flex items-center gap-1.5",
+											meta.failed && "text-red-600 dark:text-red-400",
+										)}
+									>
+										<span
+											className={cn(
+												"inline-block size-1.5 shrink-0 rounded-full",
+												meta.dot,
+											)}
+										/>
+										{meta.label}
+									</span>
+								);
+								return meta.failed ? (
+									<Tooltip>
+										<TooltipTrigger asChild>{cell}</TooltipTrigger>
+										<TooltipContent>
+											The last run failed. Click to see why.
+										</TooltipContent>
+									</Tooltip>
+								) : (
+									cell
+								);
+							})()
+						) : (
+							<span>—</span>
+						)}
 					</TableCell>
 
 					<TableCell className="pr-4">

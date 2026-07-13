@@ -10,6 +10,8 @@ const FAILED_STATUSES: SelectAutomationRun["status"][] = [
 ];
 
 interface FailedAutomations {
+	/** Most recent run status per automation (absent = no runs yet). */
+	lastRunStatusById: Map<string, SelectAutomationRun["status"]>;
 	/** Automations whose most recent run failed. */
 	failedIds: Set<string>;
 	/** How many of the current user's automations are in that set. */
@@ -52,8 +54,10 @@ export function useFailedAutomations(): FailedAutomations {
 				latest.set(run.automationId, { status: run.status, at });
 			}
 		}
+		const lastRunStatusById = new Map<string, SelectAutomationRun["status"]>();
 		const failedIds = new Set<string>();
 		for (const [id, run] of latest) {
+			lastRunStatusById.set(id, run.status);
 			if (FAILED_STATUSES.includes(run.status)) failedIds.add(id);
 		}
 		const myFailedCount = currentUserId
@@ -62,6 +66,6 @@ export function useFailedAutomations(): FailedAutomations {
 						a != null && a.ownerUserId === currentUserId && failedIds.has(a.id),
 				).length
 			: 0;
-		return { failedIds, myFailedCount };
+		return { lastRunStatusById, failedIds, myFailedCount };
 	}, [runRows, automationRows, currentUserId]);
 }

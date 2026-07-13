@@ -135,7 +135,7 @@ function AutomationsPage() {
 			})),
 		[collections.users],
 	);
-	const { failedIds } = useFailedAutomations();
+	const { lastRunStatusById } = useFailedAutomations();
 
 	const recentProjects = useRecentProjects();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
@@ -245,8 +245,9 @@ function AutomationsPage() {
 		if (!next) setInitialTemplate(null);
 	};
 
-	const colWidth = scope === "team" ? "w-[13%]" : "w-[15%]";
-	const scheduleWidth = scope === "team" ? "w-[16%]" : "w-[18%]";
+	const colWidth = scope === "team" ? "w-[11%]" : "w-[13%]";
+	const scheduleWidth = scope === "team" ? "w-[14%]" : "w-[16%]";
+	const lastRunWidth = "w-[9%]";
 	const showAutomationLoading = !automationsReady && visible.length === 0;
 	const showMineEmptyState =
 		automationsReady && visible.length === 0 && scope === "mine";
@@ -439,6 +440,9 @@ function AutomationsPage() {
 											onSort={handleSort}
 										/>
 									</TableHead>
+									<TableHead className={cn(DATA_TABLE_HEAD_CELL, lastRunWidth)}>
+										Last run
+									</TableHead>
 									<TableHead
 										className={cn(DATA_TABLE_HEAD_CELL, "w-12 pr-4")}
 									/>
@@ -465,7 +469,9 @@ function AutomationsPage() {
 											project={projectsById.get(automation.v2ProjectId)}
 											workspaceLabel={workspaceLabel}
 											hostLabel={host?.name ?? "Auto"}
-											lastRunFailed={failedIds.has(automation.id)}
+											lastRunStatus={
+												lastRunStatusById.get(automation.id) ?? null
+											}
 											isOwner={automation.ownerUserId === currentUserId}
 											onRunNow={(a) =>
 												runNowMutation.mutate({
