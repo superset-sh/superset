@@ -59,7 +59,7 @@ export default async function ComparePage() {
 						Superset vs the Alternatives
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
-						See how Superset compares to other AI coding tools — from AI editors
+						See how Superset compares to other AI coding tools, from AI editors
 						to coding agents to cloud-based AI engineers.
 					</p>
 

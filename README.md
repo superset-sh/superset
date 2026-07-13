@@ -97,11 +97,11 @@ cd superset
 bun run dev
 ```
 
-No Neon account or third-party credentials needed — `setup.local.sh` brings up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
+No Neon account or third-party credentials needed. `setup.local.sh` brings up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
 Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
 
-See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide — what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
+See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide: what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
 ## Keyboard Shortcuts
 
@@ -172,8 +172,8 @@ echo "Workspace ready!"
 ```
 
 Scripts have access to environment variables:
-- `SUPERSET_WORKSPACE_NAME` — Name of the workspace
-- `SUPERSET_ROOT_PATH` — Path to the main repository
+- `SUPERSET_WORKSPACE_NAME`: name of the workspace
+- `SUPERSET_ROOT_PATH`: path to the main repository
 
 ## Mastra Dependencies
 
@@ -196,22 +196,12 @@ This repo uses the published upstream `mastracode` and `@mastra/*` packages dire
 
 ## Private by Default
 
-- **Source Available** — Full source is available on GitHub under Elastic License 2.0 (ELv2).
-- **Explicit Connections** — You choose which agents, providers, and integrations to connect.
+- **Source Available**: full source is on GitHub under Elastic License 2.0 (ELv2).
+- **Explicit Connections**: you choose which agents, providers, and integrations to connect.
 
 ## Contributing
 
-We welcome contributions! If you have a suggestion that would make Superset better:
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
-
-You can also [open issues](https://github.com/superset-sh/superset/issues) for bugs or feature requests.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions and code of conduct.
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for how to get set up and open a PR. Bugs and feature requests go in [issues](https://github.com/superset-sh/superset/issues).
 
 <a href="https://github.com/superset-sh/superset/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=superset-sh/superset" />
@@ -221,10 +211,10 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions and code of con
 
 Join the Superset community to get help, share feedback, and connect with other users:
 
-- **[Discord](https://discord.gg/cZeD9WYcV7)** — Chat with the team and community
-- **[Twitter](https://x.com/superset_sh)** — Follow for updates and announcements
-- **[GitHub Issues](https://github.com/superset-sh/superset/issues)** — Report bugs and request features
-- **[GitHub Discussions](https://github.com/superset-sh/superset/discussions)** — Ask questions and share ideas
+- **[Discord](https://discord.gg/cZeD9WYcV7)**: chat with the team and community
+- **[Twitter](https://x.com/superset_sh)**: follow for updates and announcements
+- **[GitHub Issues](https://github.com/superset-sh/superset/issues)**: report bugs and request features
+- **[GitHub Discussions](https://github.com/superset-sh/superset/discussions)**: ask questions and share ideas
 
 ### Team
 

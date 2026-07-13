@@ -4,19 +4,19 @@ description: Drive Superset programmatically from any TypeScript or JavaScript c
 ---
 
 <Callout type="warn">
-The SDK is in early alpha — it is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
+The SDK is in early alpha. It is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
 </Callout>
 
-The Superset TypeScript SDK lets you create and manage your workspaces, tasks, projects, and automations from code — anything you can do in the dashboard, your scripts and services can do too.
+The Superset TypeScript SDK lets you create and manage your workspaces, tasks, projects, and automations from code. Anything you can do in the dashboard, your scripts and services can do too.
 
 A few things you might use it for:
 
-- **Bulk task management** — script the creation, triage, or cleanup of tasks across one or many projects.
-- **Integrations** — sync tasks to/from your CRM, issue tracker, or internal tools.
-- **Provisioning** — spin up workspaces on a developer's machine when an issue is opened, a PR is reviewed, or a customer ticket lands.
-- **On-demand agents** — kick off a recurring automation off-schedule when a webhook fires.
+- **Bulk task management**: script the creation, triage, or cleanup of tasks across one or many projects.
+- **Integrations**: sync tasks to/from your CRM, issue tracker, or internal tools.
+- **Provisioning**: spin up workspaces on a developer's machine when an issue is opened, a PR is reviewed, or a customer ticket lands.
+- **On-demand agents**: kick off a recurring automation off-schedule when a webhook fires.
 
-Everything is fully typed and works in Node, Bun, and Deno. The bundle also runs in browsers, but **don't ship `sk_live_…` keys to a frontend** — they're long-lived and grant full org access. From the browser, talk to a thin server proxy that holds the key.
+Everything is fully typed and works in Node, Bun, and Deno. The bundle also runs in browsers, but **don't ship `sk_live_…` keys to a frontend**: they're long-lived and grant full org access. From the browser, talk to a thin server proxy that holds the key.
 
 ## Install
 
@@ -43,12 +43,12 @@ bun add @superset_sh/sdk
 </Tab>
 </Tabs>
 
-We're under active development — the SDK follows the API as it grows, so **stay on the latest version** rather than pinning. New methods get added; existing ones don't change shape without a version bump and a note in the changelog.
+We're under active development. The SDK follows the API as it grows, so **stay on the latest version** rather than pinning. New methods get added; existing ones don't change shape without a version bump and a note in the changelog.
 
 ## Get an API key
 
-1. Open the [Superset desktop app](https://superset.sh/download) → **Settings → API Keys** → **Create**. The key starts with `sk_live_…` — copy it now (you won't be able to see it again).
-2. Note your **organization ID** — find it in the org switcher inside the desktop app.
+1. Open the [Superset desktop app](https://superset.sh/download) → **Settings → API Keys** → **Create**. The key starts with `sk_live_…`. Copy it now (you won't be able to see it again).
+2. Note your **organization ID**. Find it in the org switcher inside the desktop app.
 
 ```bash
 export SUPERSET_API_KEY=sk_live_…

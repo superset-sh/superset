@@ -10,10 +10,10 @@ A workspace lives on the machine that hosts its files, terminal, and ports. **Re
 
 **Superset Relay** is a service that provides a secure way to route traffic between your different devices. There are two ways to grant a device remote access through the relay:
 
-## Option 1 — Desktop
+## Option 1: Desktop
 
 <Callout type="warn">
-Exposing your primary workstation through the relay means anything reachable by your local host service — files, terminals, agent runs — becomes reachable by clients you grant access to. The recommended setup is a **separate machine** provisioned with only the repos and credentials you intend to share. That way a misclick or compromised client can't wipe an unrelated project or leak unrelated secrets.
+Exposing your primary workstation through the relay means anything reachable by your local host service (files, terminals, agent runs) becomes reachable by clients you grant access to. The recommended setup is a **separate machine** provisioned with only the repos and credentials you intend to share. That way a misclick or compromised client can't wipe an unrelated project or leak unrelated secrets.
 
 Use the desktop toggle when you genuinely need it on this machine. Otherwise prefer the CLI path on a dedicated host.
 </Callout>
@@ -24,7 +24,7 @@ Open the desktop app and go to **Settings → Security**. Flip on **Allow remote
 
 Enabling the toggle restarts the host service, so any running terminals on this device will be interrupted. You'll be asked to type a confirmation phrase before the change applies.
 
-## Option 2 — CLI
+## Option 2: CLI
 
 <Callout type="info">
 See the CLI's [Getting Started](/cli/getting-started) and [Host Server](/cli/host-server) docs to get set up.
@@ -47,16 +47,16 @@ superset status
 
 ### Headless (sandbox, CI, or server)
 
-On a machine with no browser to complete an interactive login, authenticate with an API key instead. Create one in **Settings → API Keys**, then export it — the CLI reads `SUPERSET_API_KEY` automatically (no `superset auth login` needed):
+On a machine with no browser to complete an interactive login, authenticate with an API key instead. Create one in **Settings → API Keys**, then export it. The CLI reads `SUPERSET_API_KEY` automatically (no `superset auth login` needed):
 
 ```bash
 export SUPERSET_API_KEY=sk_live_…
 superset start --daemon --org <id|slug|name>
 ```
 
-Pass `--org` to choose which organization the host registers under. It's required when your key belongs to more than one organization (the CLI won't guess); with a single organization you can omit it. The host claims itself to the key's user on first registration — no desktop step required.
+Pass `--org` to choose which organization the host registers under. It's required when your key belongs to more than one organization (the CLI won't guess); with a single organization you can omit it. The host claims itself to the key's user on first registration. No desktop step required.
 
-Observe or manage it from the same headless environment — every `hosts`/`status` command takes the same `--org`:
+Observe or manage it from the same headless environment. Every `hosts`/`status` command takes the same `--org`:
 
 ```bash
 superset hosts list --org <id|slug|name>
@@ -75,13 +75,13 @@ Open **Settings → Hosts** in the desktop app, pick the host, and use **Add mem
 
 On any other device signed into the same organization, open the desktop app's **Workspaces** list. Use the **Device** filter in the top right to pick a remote host:
 
-- **This device** — workspaces on the machine you're using now
-- **All devices** — everything you can reach
-- **Other devices** — each remote host that has opted in, with an online indicator
+- **This device**: workspaces on the machine you're using now
+- **All devices**: everything you can reach
+- **Other devices**: each remote host that has opted in, with an online indicator
 
 ![Device filter in the workspaces list](/images/remote-workspaces-device-filter.png)
 
-Pick a remote host to see the workspaces hosted there. Open one and you get the full Superset experience — terminals, ports, agent runs, the diff viewer — proxied through the relay to the host machine.
+Pick a remote host to see the workspaces hosted there. Open one and you get the full Superset experience (terminals, ports, agent runs, the diff viewer) proxied through the relay to the host machine.
 
 ## Turning access off
 

@@ -23,7 +23,7 @@ cd superset
 bun run dev
 ```
 
-That's it. **You do not need a Neon account, Stripe keys, or any other third-party credentials** — `.env.local.example` ships fake placeholders that pass env validation, and `setup.local.sh` runs everything against a local Docker stack.
+That's it. **You do not need a Neon account, Stripe keys, or any other third-party credentials.** `.env.local.example` ships fake placeholders that pass env validation, and `setup.local.sh` runs everything against a local Docker stack.
 
 ### What `setup.local.sh` does
 
@@ -47,7 +47,7 @@ After `bun run dev`, open the web app and click the **"Sign in as dev"** button 
 - Email: `admin@local.test`
 - Password: `supersetdev`
 
-The dev sign-in button and email/password auth are gated on `NODE_ENV=development` — they don't ship in production.
+The dev sign-in button and email/password auth are gated on `NODE_ENV=development`. They don't ship in production.
 
 ## Manual setup (advanced)
 
@@ -81,10 +81,10 @@ See [`AGENTS.md`](./AGENTS.md) for repo structure, monorepo conventions, and dat
 
 ## Troubleshooting
 
-- **`caddy trust` prompts for sudo** — expected, once per machine. Without it Chromium rejects `https://localhost:*` with `ERR_CERT_AUTHORITY_INVALID`.
-- **Port collision** — `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
-- **DB connection errors after pulling main** — re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
-- **Stuck Docker stack** — `./.superset/teardown.local.sh` then re-run setup.
+- **`caddy trust` prompts for sudo**: expected, once per machine. Without it Chromium rejects `https://localhost:*` with `ERR_CERT_AUTHORITY_INVALID`.
+- **Port collision**: `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
+- **DB connection errors after pulling main**: re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
+- **Stuck Docker stack**: `./.superset/teardown.local.sh` then re-run setup.
 
 ## Contributing
 

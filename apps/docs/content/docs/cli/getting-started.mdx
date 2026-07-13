@@ -4,7 +4,7 @@ description: Install the Superset CLI, sign in, and run your first commands.
 ---
 
 <Callout type="warn">
-The CLI is currently in Beta — commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
+The CLI is currently in Beta. Commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
 </Callout>
 
 The Superset CLI (`superset`) is a single static binary that drives the same
@@ -59,8 +59,8 @@ skip the prompt and pick directly:
 superset auth login --organization acme
 ```
 
-For CI or other non-interactive environments — where there's no browser to
-complete the OAuth flow — use an API key instead. You can either store it
+For CI or other non-interactive environments (where there's no browser to
+complete the OAuth flow), use an API key instead. You can either store it
 once with `auth login --api-key`:
 
 ```bash
@@ -97,7 +97,7 @@ List the projects in your organization:
 superset projects list
 ```
 
-If your repo isn't there yet, register it on this machine — clone from a
+If your repo isn't there yet, register it on this machine. Clone from a
 Git URL or import an existing checkout:
 
 ```bash
@@ -170,7 +170,7 @@ superset workspaces list --local
 ```
 
 Mutating host commands (`projects create`, `projects setup`,
-`workspaces create`) require an explicit `--host` or `--local` — there's
+`workspaces create`) require an explicit `--host` or `--local`. There's
 no default. `workspaces list` is organization-wide when neither `--host`
 nor `--local` is provided; pass `--local` to restrict it to this machine.
 
