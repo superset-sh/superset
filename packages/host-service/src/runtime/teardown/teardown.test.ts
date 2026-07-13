@@ -97,8 +97,8 @@ describe("resolveTeardownCommand", () => {
 	}
 
 	// Reproduces #5486: configured `teardown` commands must run on delete.
-	// Before the fix, teardown only looked for `<worktree>/.superset/teardown.sh`
-	// and silently skipped when it was absent, ignoring the config entirely.
+	// Before the fix, teardown never consulted the resolved config and
+	// silently skipped when no teardown.sh script existed.
 	test("runs configured teardown commands from .superset/config.json", () => {
 		const sb = makeSandbox();
 		try {
@@ -107,17 +107,16 @@ describe("resolveTeardownCommand", () => {
 				teardown: ["docker compose down", "bash teardown.sh"],
 			});
 
-			const command = resolveTeardownCommand({
+			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
-				// Worktree has no teardown.sh — the classic reported case.
-				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
 				homeDir: sb.homeDir,
 			});
 
-			expect(command).toBe(
-				"exec bash -c 'docker compose down && bash teardown.sh'",
-			);
+			expect(resolved).toEqual({
+				initialCommand:
+					"exec bash -c 'docker compose down && bash teardown.sh'",
+			});
 		} finally {
 			sb.cleanup();
 		}
@@ -127,91 +126,65 @@ describe("resolveTeardownCommand", () => {
 		const sb = makeSandbox();
 		try {
 			writeConfig(sb.repoPath, { teardown: ["echo configured"] });
-			// A stale worktree script must not win over the configured command.
-			const worktreePath = join(sb.repoPath, ".worktrees", "feature");
-			mkdirSync(join(worktreePath, ".superset"), { recursive: true });
-			writeFileSync(
-				join(worktreePath, ".superset", "teardown.sh"),
-				"#!/usr/bin/env bash\n",
-			);
-
-			const command = resolveTeardownCommand({
-				repoPath: sb.repoPath,
-				projectId: "proj-1",
-				worktreePath,
-				homeDir: sb.homeDir,
-			});
-
-			expect(command).toBe("exec bash -c 'echo configured'");
-		} finally {
-			sb.cleanup();
-		}
-	});
-
-	test("falls back to <worktree>/.superset/teardown.sh when no teardown is configured", () => {
-		const sb = makeSandbox();
-		try {
-			// Config exists but only defines setup — teardown must fall back.
-			writeConfig(sb.repoPath, { setup: ["bash setup.sh"] });
-			const worktreePath = join(sb.repoPath, ".worktrees", "feature");
-			mkdirSync(join(worktreePath, ".superset"), { recursive: true });
-			const scriptPath = join(worktreePath, ".superset", "teardown.sh");
-			writeFileSync(scriptPath, "#!/usr/bin/env bash\n");
-
-			const command = resolveTeardownCommand({
-				repoPath: sb.repoPath,
-				projectId: "proj-1",
-				worktreePath,
-				homeDir: sb.homeDir,
-			});
-
-			expect(command).toBe(`exec bash ${`'${scriptPath}'`}`);
-		} finally {
-			sb.cleanup();
-		}
-	});
-
-	test("falls back to <repoPath>/.superset/teardown.sh when the worktree has none", () => {
-		const sb = makeSandbox();
-		try {
-			// Gitignored scripts don't exist in worktrees — the main repo copy
-			// must still run, mirroring the setup.sh fallback.
-			const scriptPath = join(sb.repoPath, ".superset", "teardown.sh");
-			writeFileSync(scriptPath, "#!/usr/bin/env bash\n");
-
-			const command = resolveTeardownCommand({
-				repoPath: sb.repoPath,
-				projectId: "proj-1",
-				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
-				homeDir: sb.homeDir,
-			});
-
-			expect(command).toBe(`exec bash '${scriptPath}'`);
-		} finally {
-			sb.cleanup();
-		}
-	});
-
-	test("worktree teardown.sh wins over the main repo copy", () => {
-		const sb = makeSandbox();
-		try {
 			writeFileSync(
 				join(sb.repoPath, ".superset", "teardown.sh"),
 				"#!/usr/bin/env bash\n",
 			);
-			const worktreePath = join(sb.repoPath, ".worktrees", "feature");
-			mkdirSync(join(worktreePath, ".superset"), { recursive: true });
-			const worktreeScript = join(worktreePath, ".superset", "teardown.sh");
-			writeFileSync(worktreeScript, "#!/usr/bin/env bash\n");
 
-			const command = resolveTeardownCommand({
+			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
-				worktreePath,
 				homeDir: sb.homeDir,
 			});
 
-			expect(command).toBe(`exec bash '${worktreeScript}'`);
+			expect(resolved).toEqual({
+				initialCommand: "exec bash -c 'echo configured'",
+			});
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("falls back to <repoPath>/.superset/teardown.sh when no teardown is configured", () => {
+		const sb = makeSandbox();
+		try {
+			// Config exists but only defines setup — teardown must fall back.
+			// The main repo is the source, matching setup.sh resolution:
+			// gitignored scripts don't exist in worktrees.
+			writeConfig(sb.repoPath, { setup: ["bash setup.sh"] });
+			const scriptPath = join(sb.repoPath, ".superset", "teardown.sh");
+			writeFileSync(scriptPath, "#!/usr/bin/env bash\n");
+
+			const resolved = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				homeDir: sb.homeDir,
+			});
+
+			expect(resolved).toEqual({ initialCommand: `exec bash '${scriptPath}'` });
+		} finally {
+			sb.cleanup();
+		}
+	});
+
+	test("carries config cwd for the teardown session", () => {
+		const sb = makeSandbox();
+		try {
+			writeConfig(sb.repoPath, {
+				teardown: ["docker compose down"],
+				cwd: "apps/web",
+			});
+
+			const resolved = resolveTeardownCommand({
+				repoPath: sb.repoPath,
+				projectId: "proj-1",
+				homeDir: sb.homeDir,
+			});
+
+			expect(resolved).toEqual({
+				initialCommand: "exec bash -c 'docker compose down'",
+				cwd: "apps/web",
+			});
 		} finally {
 			sb.cleanup();
 		}
@@ -220,14 +193,13 @@ describe("resolveTeardownCommand", () => {
 	test("returns null (skipped) when neither config nor script provides a teardown", () => {
 		const sb = makeSandbox();
 		try {
-			const command = resolveTeardownCommand({
+			const resolved = resolveTeardownCommand({
 				repoPath: sb.repoPath,
 				projectId: "proj-1",
-				worktreePath: join(sb.repoPath, ".worktrees", "feature"),
 				homeDir: sb.homeDir,
 			});
 
-			expect(command).toBeNull();
+			expect(resolved).toBeNull();
 		} finally {
 			sb.cleanup();
 		}

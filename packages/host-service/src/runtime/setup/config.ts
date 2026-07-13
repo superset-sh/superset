@@ -27,7 +27,7 @@ interface LocalSetupConfig {
 }
 
 const SCRIPT_KEYS = ["setup", "teardown", "run"] as const;
-type ScriptKey = (typeof SCRIPT_KEYS)[number];
+export type ScriptKey = (typeof SCRIPT_KEYS)[number];
 
 function isStringArray(value: unknown): value is string[] {
 	return (
@@ -228,12 +228,52 @@ export function hasConfiguredScripts(config: SetupConfig | null): boolean {
 	return false;
 }
 
-export function getResolvedSetupCommands(config: SetupConfig | null): string[] {
-	return nonEmptyStrings(config?.setup);
+export type ResolvedScript =
+	| { kind: "commands"; commands: string[]; cwd?: string }
+	| { kind: "script"; scriptPath: string; cwd?: string };
+
+/**
+ * Resolve a lifecycle script (`setup` | `teardown` | `run`) for a project.
+ * Every key gets the same posture:
+ *
+ *   1. Configured commands from `.superset/config.json` (+ user override and
+ *      `config.local.json` overlay), resolved against the main repo path.
+ *   2. Fallback: `<repoPath>/.superset/<key>.sh`. The main repo is the single
+ *      source of truth — worktrees skip gitignored files and are
+ *      agent-writable, so they are never consulted.
+ *
+ * `cwd` from the same config rides along either way. Returns null when no
+ * source resolves to anything runnable.
+ */
+export function resolveScript(
+	key: ScriptKey,
+	args: {
+		repoPath: string;
+		projectId: string;
+		/** Override $HOME for tests. Defaults to `os.homedir()`. */
+		homeDir?: string;
+	},
+): ResolvedScript | null {
+	const config = loadSetupConfig(args);
+	const cwd = config?.cwd;
+	const commands = nonEmptyStrings(config?.[key]);
+	if (commands.length > 0) {
+		return { kind: "commands", commands, ...(cwd && { cwd }) };
+	}
+
+	const scriptPath = join(
+		args.repoPath,
+		PROJECT_SUPERSET_DIR_NAME,
+		`${key}.sh`,
+	);
+	if (existsSync(scriptPath)) {
+		return { kind: "script", scriptPath, ...(cwd && { cwd }) };
+	}
+
+	return null;
 }
 
-export function getResolvedTeardownCommands(
-	config: SetupConfig | null,
-): string[] {
-	return nonEmptyStrings(config?.teardown);
+/** POSIX single-quote escape: safe for any byte sequence in a path. */
+export function shellSingleQuote(s: string): string {
+	return `'${s.replaceAll("'", "'\\''")}'`;
 }

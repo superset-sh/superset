@@ -4,10 +4,10 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	getProjectConfigPath,
-	getResolvedSetupCommands,
-	getResolvedTeardownCommands,
 	hasConfiguredScripts,
 	loadSetupConfig,
+	resolveScript,
+	shellSingleQuote,
 } from "./config";
 
 interface Sandbox {
@@ -322,35 +322,101 @@ describe("hasConfiguredScripts", () => {
 	});
 });
 
-describe("getResolvedSetupCommands", () => {
-	it("returns empty for null config", () => {
-		expect(getResolvedSetupCommands(null)).toEqual([]);
+describe("resolveScript", () => {
+	let sandbox: Sandbox;
+
+	beforeEach(() => {
+		sandbox = createSandbox();
 	});
 
-	it("filters out empty and whitespace-only entries", () => {
-		expect(
-			getResolvedSetupCommands({
-				setup: ["bun install", "", "   ", "bun run db:migrate"],
-			}),
-		).toEqual(["bun install", "bun run db:migrate"]);
+	afterEach(() => {
+		sandbox.cleanup();
+	});
+
+	function resolve(key: "setup" | "teardown" | "run") {
+		return resolveScript(key, {
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			homeDir: sandbox.homeDir,
+		});
+	}
+
+	function writeFallbackScript(key: string) {
+		const dir = join(sandbox.repoPath, ".superset");
+		mkdirSync(dir, { recursive: true });
+		const scriptPath = join(dir, `${key}.sh`);
+		writeFileSync(scriptPath, "#!/usr/bin/env bash\n", "utf-8");
+		return scriptPath;
+	}
+
+	it("returns null when no config and no fallback script exist", () => {
+		expect(resolve("setup")).toBeNull();
+		expect(resolve("teardown")).toBeNull();
+		expect(resolve("run")).toBeNull();
+	});
+
+	it("returns configured commands, filtering empty entries", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			teardown: ["docker compose down", "", "   ", "rm -rf .cache"],
+		});
+		expect(resolve("teardown")).toEqual({
+			kind: "commands",
+			commands: ["docker compose down", "rm -rf .cache"],
+		});
+	});
+
+	it("only resolves the requested key", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["bun install"] });
+		expect(resolve("setup")).toEqual({
+			kind: "commands",
+			commands: ["bun install"],
+		});
+		expect(resolve("teardown")).toBeNull();
+		expect(resolve("run")).toBeNull();
+	});
+
+	it("falls back to <repoPath>/.superset/<key>.sh per key", () => {
+		const setupScript = writeFallbackScript("setup");
+		const teardownScript = writeFallbackScript("teardown");
+		expect(resolve("setup")).toEqual({
+			kind: "script",
+			scriptPath: setupScript,
+		});
+		expect(resolve("teardown")).toEqual({
+			kind: "script",
+			scriptPath: teardownScript,
+		});
+		expect(resolve("run")).toBeNull();
+	});
+
+	it("configured commands win over the fallback script", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["bun install"] });
+		writeFallbackScript("setup");
+		expect(resolve("setup")).toEqual({
+			kind: "commands",
+			commands: ["bun install"],
+		});
+	});
+
+	it("carries cwd on both command and script resolutions", () => {
+		writeRepoConfig(sandbox.repoPath, { cwd: "apps/web", run: ["bun dev"] });
+		const teardownScript = writeFallbackScript("teardown");
+		expect(resolve("run")).toEqual({
+			kind: "commands",
+			commands: ["bun dev"],
+			cwd: "apps/web",
+		});
+		expect(resolve("teardown")).toEqual({
+			kind: "script",
+			scriptPath: teardownScript,
+			cwd: "apps/web",
+		});
 	});
 });
 
-describe("getResolvedTeardownCommands", () => {
-	it("returns empty for null config", () => {
-		expect(getResolvedTeardownCommands(null)).toEqual([]);
-	});
-
-	it("returns empty when no teardown is configured", () => {
-		expect(getResolvedTeardownCommands({ setup: ["bun install"] })).toEqual([]);
-	});
-
-	it("filters out empty and whitespace-only entries", () => {
-		expect(
-			getResolvedTeardownCommands({
-				teardown: ["docker compose down", "", "   ", "rm -rf .cache"],
-			}),
-		).toEqual(["docker compose down", "rm -rf .cache"]);
+describe("shellSingleQuote", () => {
+	it("escapes embedded single quotes", () => {
+		expect(shellSingleQuote("it's a path")).toBe("'it'\\''s a path'");
 	});
 });
 

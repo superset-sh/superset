@@ -1,10 +1,8 @@
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { eq } from "drizzle-orm";
 import { projects, workspaces } from "../../../../db/schema";
 import {
-	getResolvedSetupCommands,
-	loadSetupConfig,
+	resolveScript,
+	shellSingleQuote,
 } from "../../../../runtime/setup/config";
 import { createTerminalSessionInternal } from "../../../../terminal/terminal";
 import type { HostServiceContext } from "../../../../types";
@@ -23,16 +21,13 @@ interface StartSetupTerminalResult {
 /**
  * Resolve and start the workspace-creation setup terminal, if any.
  *
- * Source order:
- *   1. Configured `setup` array from `.superset/config.json` (+ user override
- *      and `config.local.json` overlay) — joined with ` && ` so failures
- *      short-circuit.
- *   2. Fallback: `bash <repoPath>/.superset/setup.sh` against the main repo
- *      (NOT the worktree — worktrees skip gitignored files, the main repo is
- *      authoritative). Scripts that need the canonical `.superset/` dir read
- *      `$SUPERSET_ROOT_PATH`, injected by the v2 terminal env builder.
+ * Source order is the shared lifecycle-script posture (see `resolveScript`):
+ * configured `setup` commands (joined with ` && ` so failures short-circuit),
+ * then `bash <repoPath>/.superset/setup.sh`. Scripts that need the canonical
+ * `.superset/` dir read `$SUPERSET_ROOT_PATH`, injected by the v2 terminal
+ * env builder. Configured `cwd` is honored via the terminal session.
  *
- * No-op when neither source resolves to anything runnable.
+ * No-op when no source resolves to anything runnable.
  */
 export async function startSetupTerminalIfPresent(
 	args: StartSetupTerminalArgs,
@@ -52,11 +47,11 @@ export async function startSetupTerminalIfPresent(
 		return { terminal: null, warning: null };
 	}
 
-	const initialCommand = resolveInitialCommand({
+	const resolved = resolveInitialCommand({
 		repoPath: row.repoPath,
 		projectId: row.projectId,
 	});
-	if (!initialCommand) {
+	if (!resolved) {
 		return { terminal: null, warning: null };
 	}
 
@@ -66,7 +61,8 @@ export async function startSetupTerminalIfPresent(
 		workspaceId: args.workspaceId,
 		db: args.ctx.db,
 		eventBus: args.ctx.eventBus,
-		initialCommand,
+		initialCommand: resolved.initialCommand,
+		...(resolved.cwd && { cwd: resolved.cwd }),
 	});
 	if ("error" in result) {
 		return {
@@ -91,22 +87,13 @@ export function resolveInitialCommand(args: {
 	projectId: string;
 	/** Override $HOME for tests. */
 	homeDir?: string;
-}): string | null {
-	const config = loadSetupConfig(args);
-	const commands = getResolvedSetupCommands(config);
-	if (commands.length > 0) {
-		return commands.join(" && ");
-	}
+}): { initialCommand: string; cwd?: string } | null {
+	const resolved = resolveScript("setup", args);
+	if (!resolved) return null;
 
-	const fallbackScript = join(args.repoPath, ".superset", "setup.sh");
-	if (existsSync(fallbackScript)) {
-		return `bash ${singleQuote(fallbackScript)}`;
-	}
-
-	return null;
-}
-
-/** POSIX single-quote escape: safe for any path passed through a shell. */
-function singleQuote(value: string): string {
-	return `'${value.replaceAll("'", "'\\''")}'`;
+	const initialCommand =
+		resolved.kind === "commands"
+			? resolved.commands.join(" && ")
+			: `bash ${shellSingleQuote(resolved.scriptPath)}`;
+	return { initialCommand, ...(resolved.cwd && { cwd: resolved.cwd }) };
 }

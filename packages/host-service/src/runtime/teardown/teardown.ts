@@ -1,17 +1,14 @@
 import { randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
-import { join } from "node:path";
 import { TEARDOWN_TIMEOUT_MS } from "@superset/shared/constants";
 import type { HostDb } from "../../db";
 import {
 	createTerminalSessionInternal,
 	disposeSession,
 } from "../../terminal/terminal";
-import { getResolvedTeardownCommands, loadSetupConfig } from "../setup/config";
+import { resolveScript, shellSingleQuote } from "../setup/config";
 
 export { TEARDOWN_TIMEOUT_MS };
 
-export const TEARDOWN_SCRIPT_REL_PATH = ".superset/teardown.sh";
 const OUTPUT_TAIL_BYTES = 4096;
 const KILL_GRACE_MS = 2_000;
 
@@ -31,7 +28,6 @@ export type TeardownResult =
 interface RunTeardownOptions {
 	db: HostDb;
 	workspaceId: string;
-	worktreePath: string;
 	/** Main repo path — source of truth for `.superset/config.json`. */
 	repoPath: string;
 	projectId: string;
@@ -48,8 +44,9 @@ interface RunTeardownOptions {
  *
  * The teardown to run is resolved by {@link resolveTeardownCommand}: the
  * configured `teardown` commands from `.superset/config.json` take precedence,
- * falling back to a `.superset/teardown.sh` script (worktree first, then main
- * repo). Skipped (as a success) when no source resolves to anything runnable.
+ * falling back to `<repoPath>/.superset/teardown.sh` — the shared lifecycle
+ * posture (see `resolveScript`). Skipped (as a success) when no source
+ * resolves to anything runnable.
  *
  * Silent by design — the PTY session is transient and not surfaced as a
  * visible pane. The renderer only sees the output tail on failure.
@@ -57,19 +54,13 @@ interface RunTeardownOptions {
 export async function runTeardown({
 	db,
 	workspaceId,
-	worktreePath,
 	repoPath,
 	projectId,
 	timeoutMs = TEARDOWN_TIMEOUT_MS,
 	homeDir,
 }: RunTeardownOptions): Promise<TeardownResult> {
-	const initialCommand = resolveTeardownCommand({
-		repoPath,
-		projectId,
-		worktreePath,
-		homeDir,
-	});
-	if (initialCommand === null) return { status: "skipped" };
+	const resolved = resolveTeardownCommand({ repoPath, projectId, homeDir });
+	if (resolved === null) return { status: "skipped" };
 
 	const terminalId = randomUUID();
 
@@ -77,7 +68,8 @@ export async function runTeardown({
 		terminalId,
 		workspaceId,
 		db,
-		initialCommand,
+		initialCommand: resolved.initialCommand,
+		...(resolved.cwd && { cwd: resolved.cwd }),
 		listed: false,
 	});
 	if ("error" in session) {
@@ -156,17 +148,10 @@ export async function runTeardown({
 }
 
 /**
- * Resolve the teardown command for a workspace, if any. Source order mirrors
- * setup (see `resolveInitialCommand`):
- *
- *   1. Configured `teardown` array from `.superset/config.json` (+ user
- *      override and `config.local.json` overlay), resolved against the main
- *      repo path — joined with ` && ` so a failing command short-circuits.
- *   2. Fallback: `<worktreePath>/.superset/teardown.sh`, preserved for
- *      projects that ship a teardown script instead of config commands.
- *   3. Fallback: `<repoPath>/.superset/teardown.sh` — gitignored scripts don't
- *      exist in worktrees, so the main repo is checked last (mirroring the
- *      setup fallback, which reads `setup.sh` from the main repo).
+ * Resolve the teardown command for a workspace, if any. Uses the shared
+ * lifecycle-script posture (see `resolveScript`): configured `teardown`
+ * commands — joined with ` && ` so a failing command short-circuits — then
+ * `<repoPath>/.superset/teardown.sh`.
  *
  * Returns null when no source resolves to anything runnable, which the
  * caller treats as a skipped (successful) teardown.
@@ -176,33 +161,24 @@ export async function runTeardown({
 export function resolveTeardownCommand(args: {
 	repoPath: string;
 	projectId: string;
-	worktreePath: string;
 	/** Override $HOME for tests. */
 	homeDir?: string;
-}): string | null {
-	const config = loadSetupConfig({
-		repoPath: args.repoPath,
-		projectId: args.projectId,
-		homeDir: args.homeDir,
-	});
-	const commands = getResolvedTeardownCommands(config);
-	if (commands.length > 0) {
-		return buildTeardownCommandFromShell(commands.join(" && "));
-	}
+}): { initialCommand: string; cwd?: string } | null {
+	const resolved = resolveScript("teardown", args);
+	if (!resolved) return null;
 
-	for (const root of [args.worktreePath, args.repoPath]) {
-		const script = join(root, TEARDOWN_SCRIPT_REL_PATH);
-		if (existsSync(script)) return buildTeardownInitialCommand(script);
-	}
-
-	return null;
+	const initialCommand =
+		resolved.kind === "commands"
+			? buildTeardownCommandFromShell(resolved.commands.join(" && "))
+			: buildTeardownInitialCommand(resolved.scriptPath);
+	return { initialCommand, ...(resolved.cwd && { cwd: resolved.cwd }) };
 }
 
 export function buildTeardownInitialCommand(scriptPath: string): string {
 	// `exec` replaces the user's login shell with the teardown process. That
 	// avoids shell-specific exit-status syntax like `$?`, which breaks in fish
 	// and leaves the hidden teardown terminal open until timeout.
-	return `exec bash ${singleQuote(scriptPath)}`;
+	return `exec bash ${shellSingleQuote(scriptPath)}`;
 }
 
 /**
@@ -213,10 +189,5 @@ export function buildTeardownInitialCommand(scriptPath: string): string {
  * form above.
  */
 export function buildTeardownCommandFromShell(shellCommand: string): string {
-	return `exec bash -c ${singleQuote(shellCommand)}`;
-}
-
-/** POSIX single-quote escape: safe for any byte sequence in a path. */
-function singleQuote(s: string): string {
-	return `'${s.replaceAll("'", "'\\''")}'`;
+	return `exec bash -c ${shellSingleQuote(shellCommand)}`;
 }
