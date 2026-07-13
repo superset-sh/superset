@@ -156,10 +156,10 @@ export async function runTeardown({
 /**
  * Resolve the teardown command for a workspace, if any. Uses the shared
  * lifecycle-script posture (see `resolveScript`): configured `teardown`
- * commands — joined with ` && ` so a failing command short-circuits — then a
- * `teardown.sh` script, worktree first (scripts generated during the session
- * must win) and main repo second (gitignored scripts don't exist in
- * worktrees).
+ * commands — joined with ` && ` so a failing command short-circuits, worktree
+ * config overriding the main repo's — then a `teardown.sh` script, worktree
+ * first (state generated during the session must win) and main repo second
+ * (gitignored scripts don't exist in worktrees).
  *
  * Returns null when no source resolves to anything runnable, which the
  * caller treats as a skipped (successful) teardown.
@@ -173,12 +173,7 @@ export function resolveTeardownCommand(args: {
 	/** Override $HOME for tests. */
 	homeDir?: string;
 }): { initialCommand: string; cwd?: string } | null {
-	const resolved = resolveScript("teardown", {
-		repoPath: args.repoPath,
-		projectId: args.projectId,
-		scriptRoots: [args.worktreePath],
-		homeDir: args.homeDir,
-	});
+	const resolved = resolveScript("teardown", args);
 	if (!resolved) return null;
 
 	const initialCommand =

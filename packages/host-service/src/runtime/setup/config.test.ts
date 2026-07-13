@@ -141,6 +141,66 @@ describe("loadSetupConfig", () => {
 		expect(result?.cwd).toBe("packages/web");
 	});
 
+	it("worktree config overrides the repo config per key", () => {
+		writeRepoConfig(sandbox.repoPath, {
+			setup: ["from-repo"],
+			teardown: ["repo-teardown"],
+		});
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoConfig(worktreePath, { setup: ["from-worktree"] });
+
+		const result = loadSetupConfig({
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			worktreePath,
+			homeDir: sandbox.homeDir,
+		});
+
+		// Keys the worktree doesn't define fall through to the repo config.
+		expect(result).toEqual({
+			setup: ["from-worktree"],
+			teardown: ["repo-teardown"],
+		});
+	});
+
+	it("user override still beats the worktree config", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoConfig(worktreePath, { setup: ["from-worktree"] });
+		writeUserOverride(sandbox.homeDir, PROJECT_ID, {
+			setup: ["from-user"],
+		});
+
+		const result = loadSetupConfig({
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			worktreePath,
+			homeDir: sandbox.homeDir,
+		});
+
+		expect(result?.setup).toEqual(["from-user"]);
+	});
+
+	it("prefers the worktree's config.local.json overlay when present", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["base"] });
+		writeRepoLocalConfig(sandbox.repoPath, {
+			setup: { before: ["repo-local"] },
+		});
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoLocalConfig(worktreePath, {
+			setup: { before: ["worktree-local"] },
+		});
+
+		const result = loadSetupConfig({
+			repoPath: sandbox.repoPath,
+			projectId: PROJECT_ID,
+			worktreePath,
+			homeDir: sandbox.homeDir,
+		});
+
+		expect(result?.setup).toEqual(["worktree-local", "base"]);
+	});
+
 	it("user override only sets keys it explicitly defines", () => {
 		writeRepoConfig(sandbox.repoPath, {
 			setup: ["bun install"],
@@ -389,33 +449,48 @@ describe("resolveScript", () => {
 		expect(resolve("run")).toBeNull();
 	});
 
-	it("checks extra scriptRoots before the main repo", () => {
+	it("prefers the worktree script when worktreePath is in scope", () => {
 		writeFallbackScript("teardown");
-		const extraRoot = join(sandbox.repoPath, ".worktrees", "feature");
-		mkdirSync(join(extraRoot, ".superset"), { recursive: true });
-		const extraScript = join(extraRoot, ".superset", "teardown.sh");
-		writeFileSync(extraScript, "#!/usr/bin/env bash\n", "utf-8");
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		mkdirSync(join(worktreePath, ".superset"), { recursive: true });
+		const worktreeScript = join(worktreePath, ".superset", "teardown.sh");
+		writeFileSync(worktreeScript, "#!/usr/bin/env bash\n", "utf-8");
 
 		expect(
 			resolveScript("teardown", {
 				repoPath: sandbox.repoPath,
 				projectId: PROJECT_ID,
-				scriptRoots: [extraRoot],
+				worktreePath,
 				homeDir: sandbox.homeDir,
 			}),
-		).toEqual({ kind: "script", scriptPath: extraScript });
+		).toEqual({ kind: "script", scriptPath: worktreeScript });
 	});
 
-	it("falls back to the main repo when scriptRoots have no script", () => {
+	it("falls back to the main repo script when the worktree has none", () => {
 		const teardownScript = writeFallbackScript("teardown");
 		expect(
 			resolveScript("teardown", {
 				repoPath: sandbox.repoPath,
 				projectId: PROJECT_ID,
-				scriptRoots: [join(sandbox.repoPath, ".worktrees", "feature")],
+				worktreePath: join(sandbox.repoPath, ".worktrees", "feature"),
 				homeDir: sandbox.homeDir,
 			}),
 		).toEqual({ kind: "script", scriptPath: teardownScript });
+	});
+
+	it("worktree config commands override the main repo's", () => {
+		writeRepoConfig(sandbox.repoPath, { setup: ["from-repo"] });
+		const worktreePath = join(sandbox.repoPath, ".worktrees", "feature");
+		writeRepoConfig(worktreePath, { setup: ["from-worktree"] });
+
+		expect(
+			resolveScript("setup", {
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath,
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({ kind: "commands", commands: ["from-worktree"] });
 	});
 
 	it("configured commands win over the fallback script", () => {

@@ -139,12 +139,35 @@ describe("resolveInitialCommand", () => {
 		}
 	});
 
-	it("does not consult worktree-level config (uses main repoPath)", () => {
+	it("worktree config wins over the main repo's when in scope", () => {
 		writeConfig(sandbox.repoPath, { setup: ["from-main"] });
-		// A sibling worktree directory with its own config should be ignored.
-		const sibling = join(sandbox.repoPath, "..", "sibling-worktree");
-		writeConfig(sibling, { setup: ["from-worktree"] });
+		const worktreePath = join(sandbox.repoPath, "..", "feature-worktree");
+		writeConfig(worktreePath, { setup: ["from-worktree"] });
 
-		expect(resolve()).toEqual({ initialCommand: "from-main" });
+		expect(
+			resolveInitialCommand({
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath,
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({ initialCommand: "from-worktree" });
+	});
+
+	it("falls back to the worktree setup.sh before the main repo's", () => {
+		writeFallbackScript(sandbox.repoPath);
+		const worktreePath = join(sandbox.repoPath, "..", "feature-worktree");
+		writeFallbackScript(worktreePath);
+
+		expect(
+			resolveInitialCommand({
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath,
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({
+			initialCommand: `bash '${join(worktreePath, ".superset", "setup.sh")}'`,
+		});
 	});
 });

@@ -22,8 +22,9 @@ interface StartSetupTerminalResult {
  * Resolve and start the workspace-creation setup terminal, if any.
  *
  * Source order is the shared lifecycle-script posture (see `resolveScript`):
- * configured `setup` commands (joined with ` && ` so failures short-circuit),
- * then `bash <repoPath>/.superset/setup.sh`. Scripts that need the canonical
+ * configured `setup` commands (joined with ` && ` so failures short-circuit;
+ * worktree config overrides the main repo's), then `bash .superset/setup.sh`
+ * (worktree first, then main repo). Scripts that need the canonical
  * `.superset/` dir read `$SUPERSET_ROOT_PATH`, injected by the v2 terminal
  * env builder. Configured `cwd` is honored via the terminal session.
  *
@@ -50,6 +51,7 @@ export async function startSetupTerminalIfPresent(
 	const resolved = resolveInitialCommand({
 		repoPath: row.repoPath,
 		projectId: row.projectId,
+		worktreePath: row.worktreePath,
 	});
 	if (!resolved) {
 		return { terminal: null, warning: null };
@@ -85,6 +87,7 @@ export async function startSetupTerminalIfPresent(
 export function resolveInitialCommand(args: {
 	repoPath: string;
 	projectId: string;
+	worktreePath?: string;
 	/** Override $HOME for tests. */
 	homeDir?: string;
 }): { initialCommand: string; cwd?: string } | null {

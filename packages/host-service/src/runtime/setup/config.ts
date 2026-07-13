@@ -184,22 +184,31 @@ function getLocalOverlayPath(repoPath: string): string {
 }
 
 /**
- * Resolve setup/teardown/run config for a v2 project.
+ * Resolve setup/teardown/run config for a v2 project. Base merge, per key,
+ * later wins:
  *
- *   1. <repoPath>/.superset/config.json    — canonical
- *   2. ~/.superset/projects/<id>/config.json — per-machine override (later wins)
- *   3. <repoPath>/.superset/config.local.json — overlay with before/after/replace
+ *   1. <repoPath>/.superset/config.json      — canonical project config
+ *   2. <worktreePath>/.superset/config.json  — workspace/branch override
+ *      (only when a worktree is in scope: setup at create, teardown at delete)
+ *   3. ~/.superset/projects/<id>/config.json — per-machine user override
  *
- * Returns null when no source defines anything. Worktrees are not consulted —
- * the main repo path is the single source of truth.
+ * Then a local overlay with before/after/replace semantics: the worktree's
+ * `config.local.json` if present, else the main repo's.
+ *
+ * Returns null when no source defines anything.
  */
 export function loadSetupConfig(args: {
 	repoPath: string;
 	projectId: string;
+	/** Workspace worktree; when set, its config overrides the main repo's. */
+	worktreePath?: string;
 	/** Override $HOME for tests. Defaults to `os.homedir()`. */
 	homeDir?: string;
 }): SetupConfig | null {
 	const projectConfig = readSetupConfigAt(getProjectConfigPath(args.repoPath));
+	const worktreeConfig = args.worktreePath
+		? readSetupConfigAt(getProjectConfigPath(args.worktreePath))
+		: null;
 
 	const userOverridePath = getUserOverridePath(
 		args.projectId,
@@ -209,10 +218,17 @@ export function loadSetupConfig(args: {
 		? readSetupConfigAt(userOverridePath)
 		: null;
 
-	const base = mergeBaseConfigs(projectConfig, userConfig);
+	const base = mergeBaseConfigs(
+		mergeBaseConfigs(projectConfig, worktreeConfig),
+		userConfig,
+	);
 	if (!base) return null;
 
-	const local = readLocalConfigAt(getLocalOverlayPath(args.repoPath));
+	const worktreeLocal = args.worktreePath
+		? readLocalConfigAt(getLocalOverlayPath(args.worktreePath))
+		: null;
+	const local =
+		worktreeLocal ?? readLocalConfigAt(getLocalOverlayPath(args.repoPath));
 	return local ? applyLocalOverlay(base, local) : base;
 }
 
@@ -236,13 +252,13 @@ export type ResolvedScript =
  * Resolve a lifecycle script (`setup` | `teardown` | `run`) for a project.
  * Every key gets the same posture:
  *
- *   1. Configured commands from `.superset/config.json` (+ user override and
- *      `config.local.json` overlay), resolved against the main repo path —
- *      worktrees are never consulted for config.
- *   2. Fallback: `.superset/<key>.sh` from each of `scriptRoots` in order,
- *      then the main repo. Callers that want a workspace-local script to win
- *      (teardown) pass the worktree path; setup/run resolve from the main
- *      repo only, since worktrees skip gitignored files.
+ *   1. Configured commands via {@link loadSetupConfig} — worktree config
+ *      overrides the main repo's when `worktreePath` is in scope.
+ *   2. Fallback: `.superset/<key>.sh`, worktree first (when in scope), then
+ *      the main repo — gitignored scripts only exist in the main repo.
+ *
+ * Setup and teardown pass their worktree; `run` resolves per project, where
+ * no single worktree exists, so it uses the main repo only.
  *
  * `cwd` from the same config rides along either way. Returns null when no
  * source resolves to anything runnable.
@@ -252,8 +268,8 @@ export function resolveScript(
 	args: {
 		repoPath: string;
 		projectId: string;
-		/** Extra roots to check for `<key>.sh` before the main repo. */
-		scriptRoots?: string[];
+		/** Workspace worktree; its config and script win over the main repo. */
+		worktreePath?: string;
 		/** Override $HOME for tests. Defaults to `os.homedir()`. */
 		homeDir?: string;
 	},
@@ -265,7 +281,10 @@ export function resolveScript(
 		return { kind: "commands", commands, ...(cwd && { cwd }) };
 	}
 
-	for (const root of [...(args.scriptRoots ?? []), args.repoPath]) {
+	const roots = args.worktreePath
+		? [args.worktreePath, args.repoPath]
+		: [args.repoPath];
+	for (const root of roots) {
 		const scriptPath = join(root, PROJECT_SUPERSET_DIR_NAME, `${key}.sh`);
 		if (existsSync(scriptPath)) {
 			return { kind: "script", scriptPath, ...(cwd && { cwd }) };
