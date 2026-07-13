@@ -17,7 +17,6 @@ describe("CodeBlock", () => {
 			/>,
 		);
 
-		// In HTML, [&>pre] gets escaped to [&amp;&gt;pre]
 		expect(html).toContain("[&amp;&gt;pre]:whitespace-pre");
 
 		const whitespacePreCount = (html.match(/whitespace-pre/g) || []).length;
