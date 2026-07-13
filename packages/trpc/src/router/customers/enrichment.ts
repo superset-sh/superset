@@ -6,10 +6,15 @@ import { env } from "../../env";
 import { FREEMAIL_DOMAINS } from "./domain-utils";
 
 /**
- * Automated firmographic enrichment: one Claude call with the server-side
- * web-search tool researches a domain (or a person) and returns structured
- * facts. Results are cached for 30 days — each domain/person is researched
- * once, on demand, when someone opens its page.
+ * Automated firmographic enrichment. Two interchangeable backends:
+ *
+ * - Exa `/search` with `outputSchema` (preferred when EXA_API_KEY is set) —
+ *   purpose-built people/company indexes, grounded structured output with
+ *   citations in one call. https://docs.exa.ai/reference/search-api-guide-for-coding-agents
+ * - Claude + server-side web-search tool (fallback) — no extra vendor.
+ *
+ * Results are cached for 30 days — each domain/person is researched once,
+ * on demand, when someone opens its page.
  */
 
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -66,6 +71,89 @@ function cached<T>(key: string, fn: () => Promise<T>): Promise<T> {
 	return promise;
 }
 
+const confidenceSchema = z.enum(["high", "medium", "low"]);
+type Confidence = z.infer<typeof confidenceSchema>;
+
+// ---------------------------------------------------------------------------
+// Exa backend
+// ---------------------------------------------------------------------------
+
+type ExaGroundingEntry = {
+	field?: string;
+	citations?: { url?: string; title?: string }[];
+	confidence?: string;
+};
+
+/**
+ * Exa /search with outputSchema: retrieval + grounded structured synthesis in
+ * one call. Note: the schema must NOT contain citation/confidence fields —
+ * those come back automatically in `output.grounding`.
+ */
+async function exaStructuredSearch(options: {
+	query: string;
+	category: "company" | "people";
+	systemPrompt: string;
+	outputSchema: Record<string, unknown>;
+}): Promise<{
+	content: unknown;
+	sources: string[];
+	confidence: Confidence;
+} | null> {
+	const response = await fetch("https://api.exa.ai/search", {
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+			"x-api-key": env.EXA_API_KEY ?? "",
+		},
+		body: JSON.stringify({
+			query: options.query,
+			type: "auto",
+			category: options.category,
+			numResults: 10,
+			contents: { highlights: true },
+			systemPrompt: options.systemPrompt,
+			outputSchema: options.outputSchema,
+		}),
+	});
+	if (!response.ok) {
+		throw new Error(
+			`Exa API error: ${response.status} - ${await response.text()}`,
+		);
+	}
+
+	const body = (await response.json()) as {
+		output?: { content?: unknown; grounding?: ExaGroundingEntry[] };
+	};
+	if (body.output?.content == null) return null;
+
+	const grounding = body.output.grounding ?? [];
+	const sources = [
+		...new Set(
+			grounding.flatMap((entry) =>
+				(entry.citations ?? []).flatMap((citation) =>
+					citation.url ? [citation.url] : [],
+				),
+			),
+		),
+	].slice(0, 3);
+
+	// Overall confidence = the most common per-field grounding confidence.
+	const counts = new Map<string, number>();
+	for (const entry of grounding) {
+		if (entry.confidence) {
+			counts.set(entry.confidence, (counts.get(entry.confidence) ?? 0) + 1);
+		}
+	}
+	const top = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+	const confidence = confidenceSchema.catch("low").parse(top ?? "low");
+
+	return { content: body.output.content, sources, confidence };
+}
+
+// ---------------------------------------------------------------------------
+// Claude web-search backend (fallback)
+// ---------------------------------------------------------------------------
+
 const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 
 /**
@@ -116,42 +204,92 @@ function extractJson(text: string): unknown {
 	}
 }
 
-const confidenceSchema = z.enum(["high", "medium", "low"]);
+// ---------------------------------------------------------------------------
+// Domain enrichment
+// ---------------------------------------------------------------------------
 
-const domainEnrichmentSchema = z.object({
+const domainFieldsSchema = z.object({
 	companyName: z.string().nullable().catch(null),
 	description: z.string().nullable().catch(null),
 	employeeRange: z.string().nullable().catch(null),
 	stage: z.string().nullable().catch(null),
 	industry: z.string().nullable().catch(null),
 	headquarters: z.string().nullable().catch(null),
-	confidence: confidenceSchema.catch("low"),
-	sources: z.array(z.string()).catch([]),
 });
 
-export type DomainEnrichment = z.infer<typeof domainEnrichmentSchema> & {
+export type DomainEnrichment = z.infer<typeof domainFieldsSchema> & {
 	domain: string;
+	confidence: Confidence;
+	sources: string[];
 	fetchedAt: string;
 };
 
-const EMPTY_DOMAIN_FIELDS = {
+const EMPTY_DOMAIN_FIELDS: z.infer<typeof domainFieldsSchema> = {
 	companyName: null,
 	description: null,
 	employeeRange: null,
 	stage: null,
 	industry: null,
 	headquarters: null,
-	confidence: "low" as const,
-	sources: [],
+};
+
+const EMPLOYEE_RANGES =
+	'"1-10", "11-50", "51-200", "201-1000", "1001-5000", "5000+"';
+const STAGES =
+	'"bootstrapped", "pre-seed", "seed", "series-a", "series-b", "series-c+", "public", "subsidiary", "nonprofit"';
+
+const EXA_DOMAIN_SCHEMA = {
+	type: "object",
+	description: "Verified facts about the company that owns the domain",
+	required: [],
+	properties: {
+		companyName: { type: "string", description: "Official company name" },
+		description: {
+			type: "string",
+			description: "One sentence on what the company does",
+		},
+		employeeRange: {
+			type: "string",
+			description: `Employee count bucket — exactly one of: ${EMPLOYEE_RANGES}`,
+		},
+		stage: {
+			type: "string",
+			description: `Company stage — exactly one of: ${STAGES}`,
+		},
+		industry: {
+			type: "string",
+			description: "Short industry label, e.g. developer tools",
+		},
+		headquarters: { type: "string", description: "City, country" },
+	},
 };
 
 export function getDomainEnrichment(domain: string): Promise<DomainEnrichment> {
 	return cached(`domain:${domain}`, async () => {
+		const base = { domain, fetchedAt: new Date().toISOString() };
 		if (FREEMAIL_DOMAINS.has(domain)) {
 			return {
-				domain,
-				fetchedAt: new Date().toISOString(),
+				...base,
 				...EMPTY_DOMAIN_FIELDS,
+				confidence: "low" as const,
+				sources: [],
+			};
+		}
+
+		if (env.EXA_API_KEY) {
+			const result = await exaStructuredSearch({
+				query: `company with the website domain ${domain}`,
+				category: "company",
+				systemPrompt:
+					"Identify the company that owns the given domain. Prefer official sources (the company's own site, LinkedIn company page, Crunchbase). Only report facts you can verify from the sources; omit anything uncertain.",
+				outputSchema: EXA_DOMAIN_SCHEMA,
+			});
+			const fields = domainFieldsSchema.safeParse(result?.content ?? {});
+			return {
+				...base,
+				...(fields.success ? fields.data : EMPTY_DOMAIN_FIELDS),
+				confidence: result?.confidence ?? "low",
+				sources: result?.sources ?? [],
 			};
 		}
 
@@ -162,8 +300,8 @@ Respond with ONLY a single JSON object — no markdown fences, no prose before o
 {
   "companyName": string | null,
   "description": string | null,        // one sentence on what the company does
-  "employeeRange": "1-10" | "11-50" | "51-200" | "201-1000" | "1001-5000" | "5000+" | null,
-  "stage": "bootstrapped" | "pre-seed" | "seed" | "series-a" | "series-b" | "series-c+" | "public" | "subsidiary" | "nonprofit" | null,
+  "employeeRange": ${EMPLOYEE_RANGES.replaceAll(", ", " | ")} | null,
+  "stage": ${STAGES.replaceAll(", ", " | ")} | null,
   "industry": string | null,           // short, e.g. "developer tools"
   "headquarters": string | null,       // city, country
   "confidence": "high" | "medium" | "low",
@@ -172,28 +310,65 @@ Respond with ONLY a single JSON object — no markdown fences, no prose before o
 Use null for anything you cannot verify. If the domain is a personal email provider, parked, or unidentifiable, return all-null fields with confidence "low".`,
 		);
 
-		const parsed = domainEnrichmentSchema.safeParse(extractJson(text));
+		const parsed = domainFieldsSchema
+			.extend({
+				confidence: confidenceSchema.catch("low"),
+				sources: z.array(z.string()).catch([]),
+			})
+			.safeParse(extractJson(text));
 		return {
-			domain,
-			fetchedAt: new Date().toISOString(),
-			...(parsed.success ? parsed.data : EMPTY_DOMAIN_FIELDS),
+			...base,
+			...(parsed.success
+				? parsed.data
+				: { ...EMPTY_DOMAIN_FIELDS, confidence: "low" as const, sources: [] }),
 		};
 	});
 }
 
-const personEnrichmentSchema = z.object({
+// ---------------------------------------------------------------------------
+// Person enrichment
+// ---------------------------------------------------------------------------
+
+const personFieldsSchema = z.object({
 	title: z.string().nullable().catch(null),
 	seniority: z
 		.enum(["founder", "exec", "manager", "ic"])
 		.nullable()
 		.catch(null),
 	linkedinUrl: z.string().nullable().catch(null),
-	confidence: confidenceSchema.catch("low"),
-	sources: z.array(z.string()).catch([]),
 });
 
-export type PersonEnrichment = z.infer<typeof personEnrichmentSchema> & {
+export type PersonEnrichment = z.infer<typeof personFieldsSchema> & {
+	confidence: Confidence;
+	sources: string[];
 	fetchedAt: string;
+};
+
+const EMPTY_PERSON_FIELDS: z.infer<typeof personFieldsSchema> = {
+	title: null,
+	seniority: null,
+	linkedinUrl: null,
+};
+
+const EXA_PERSON_SCHEMA = {
+	type: "object",
+	description: "Verified facts about this specific person",
+	required: [],
+	properties: {
+		title: {
+			type: "string",
+			description: 'Current job title, e.g. "CTO", "Senior Software Engineer"',
+		},
+		seniority: {
+			type: "string",
+			description:
+				'Seniority bucket — exactly one of: "founder", "exec", "manager", "ic"',
+		},
+		linkedinUrl: {
+			type: "string",
+			description: "URL of their LinkedIn profile",
+		},
+	},
 };
 
 export function getPersonEnrichment(options: {
@@ -202,7 +377,29 @@ export function getPersonEnrichment(options: {
 	domain: string;
 }): Promise<PersonEnrichment> {
 	return cached(`person:${options.cacheKey}`, async () => {
-		const companyHint = FREEMAIL_DOMAINS.has(options.domain)
+		const base = { fetchedAt: new Date().toISOString() };
+		const isFreemail = FREEMAIL_DOMAINS.has(options.domain);
+
+		if (env.EXA_API_KEY) {
+			const result = await exaStructuredSearch({
+				query: isFreemail
+					? `${options.name}, software professional`
+					: `${options.name}, who works at the company with the domain ${options.domain}`,
+				category: "people",
+				systemPrompt:
+					"Identify this specific person — the name (and employer domain, when given) must match. Prefer LinkedIn profiles, company team pages, and GitHub. If you cannot confidently match this exact person, return an empty object; never report another person's details.",
+				outputSchema: EXA_PERSON_SCHEMA,
+			});
+			const fields = personFieldsSchema.safeParse(result?.content ?? {});
+			return {
+				...base,
+				...(fields.success ? fields.data : EMPTY_PERSON_FIELDS),
+				confidence: result?.confidence ?? "low",
+				sources: result?.sources ?? [],
+			};
+		}
+
+		const companyHint = isFreemail
 			? "Their email is on a personal provider, so no company is known."
 			: `They signed up with an email at "${options.domain}", so they likely work at the company owning that domain.`;
 
@@ -220,18 +417,17 @@ Respond with ONLY a single JSON object — no markdown fences, no prose — with
 Only report a title if you are reasonably sure it is THIS person (name AND company/domain match). If you cannot confidently identify them, return all-null fields with confidence "low". Never guess.`,
 		);
 
-		const parsed = personEnrichmentSchema.safeParse(extractJson(text));
+		const parsed = personFieldsSchema
+			.extend({
+				confidence: confidenceSchema.catch("low"),
+				sources: z.array(z.string()).catch([]),
+			})
+			.safeParse(extractJson(text));
 		return {
-			fetchedAt: new Date().toISOString(),
+			...base,
 			...(parsed.success
 				? parsed.data
-				: {
-						title: null,
-						seniority: null,
-						linkedinUrl: null,
-						confidence: "low" as const,
-						sources: [],
-					}),
+				: { ...EMPTY_PERSON_FIELDS, confidence: "low" as const, sources: [] }),
 		};
 	});
 }
