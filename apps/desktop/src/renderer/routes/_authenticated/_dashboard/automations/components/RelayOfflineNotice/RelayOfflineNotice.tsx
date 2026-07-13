@@ -1,7 +1,13 @@
+import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
+import { useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
+import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
+import { ExposeViaRelayConfirmDialog } from "renderer/routes/_authenticated/components/ExposeViaRelayConfirmDialog";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 interface RelayOfflineNoticeProps {
@@ -21,6 +27,16 @@ export function RelayOfflineNotice({
 	const { machineId } = useLocalHostService();
 	const { localHostId, localHostIsOnline, otherHosts } =
 		useWorkspaceHostOptions();
+	const { gateFeature } = usePaywall();
+	const [confirmOpen, setConfirmOpen] = useState(false);
+
+	const utils = electronTrpc.useUtils();
+	const setExpose =
+		electronTrpc.settings.setExposeHostServiceViaRelay.useMutation({
+			onSettled: () => {
+				utils.settings.getExposeHostServiceViaRelay.invalidate();
+			},
+		});
 
 	const isLocal =
 		hostId === null || hostId === machineId || hostId === localHostId;
@@ -34,6 +50,15 @@ export function RelayOfflineNotice({
 			: false;
 	if (!offline) return null;
 
+	const enableRelay = () => {
+		setConfirmOpen(false);
+		toast.promise(setExpose.mutateAsync({ enabled: true }), {
+			loading: "Restarting host services…",
+			success: "Relay access enabled — connecting to the relay…",
+			error: (err: Error) => err.message ?? "Failed to enable relay access",
+		});
+	};
+
 	return (
 		<div
 			className={cn(
@@ -46,21 +71,31 @@ export function RelayOfflineNotice({
 				aria-hidden="true"
 			/>
 			{isLocal ? (
-				<span>
-					This device isn't connected to the Superset relay, so automations
-					can't reach it and runs will be skipped. Turn on{" "}
-					<span className="font-medium text-foreground">
-						Allow remote workspaces to access this device via relay
-					</span>{" "}
-					in{" "}
-					<Link
-						to="/settings/security"
-						className="font-medium text-foreground underline underline-offset-2"
+				<div className="flex flex-col items-start gap-1.5">
+					<span>
+						This device isn't connected to the Superset relay, so automations
+						can't reach it and runs will be skipped.
+					</span>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-6 px-2 text-xs"
+						disabled={setExpose.isPending}
+						onClick={() =>
+							gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () =>
+								setConfirmOpen(true),
+							)
+						}
 					>
-						Settings &gt; Security
-					</Link>
-					.
-				</span>
+						Enable relay access…
+					</Button>
+					<ExposeViaRelayConfirmDialog
+						open={confirmOpen}
+						targetEnabled
+						onOpenChange={setConfirmOpen}
+						onConfirm={enableRelay}
+					/>
+				</div>
 			) : (
 				<span>
 					<span className="font-medium text-foreground">
