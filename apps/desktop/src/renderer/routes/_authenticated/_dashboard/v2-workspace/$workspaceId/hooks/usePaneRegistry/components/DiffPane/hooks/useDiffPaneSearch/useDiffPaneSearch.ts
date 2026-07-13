@@ -71,6 +71,21 @@ function resolveRowSide(row: HTMLElement): SelectionSide {
 		: "additions";
 }
 
+function getRowForRangeBoundary(node: Node): Element | null {
+	const element = node instanceof Element ? node : node.parentElement;
+	return element?.closest("[data-line]") ?? null;
+}
+
+/** The DOM scan concatenates row text with no separator, so a query can match
+ *  across two adjacent rows. The data-driven match list is strictly per-line,
+ *  so painting such a range would show a highlight the counter never counts. */
+function isWithinSingleRow(range: Range): boolean {
+	return (
+		getRowForRangeBoundary(range.startContainer) ===
+		getRowForRangeBoundary(range.endContainer)
+	);
+}
+
 /** Locate the rendered row for a match, if the virtualizer currently has it
  *  mounted. Returns null while the row is scrolled out of the render window. */
 function findMatchRowElement(
@@ -302,6 +317,7 @@ export function useDiffPaneSearch({
 			});
 			const allHighlight = new Highlight();
 			for (const range of ranges) {
+				if (!isWithinSingleRow(range)) continue;
 				allHighlight.add(range);
 			}
 			CSS.highlights.set(highlightKeys.matches, allHighlight);

@@ -136,6 +136,35 @@ describe("collectDiffSearchMatches", () => {
 		]);
 	});
 
+	test("fills the gaps between and after hunks exactly once when expandUnchanged is set", () => {
+		// Two changes far enough apart to produce two hunks, with needles in the
+		// unchanged gap between them (line 10) and in the tail after the last
+		// hunk (line 28). Exercises the expandedLine handoff across hunks.
+		const gap = `${"pad\n".repeat(8)}needle mid\n${"pad\n".repeat(8)}`;
+		const tail = `${"pad\n".repeat(8)}needle end\n`;
+		const entry = makeEntry(
+			`old start\n${gap}old middle\n${tail}`,
+			`new start\n${gap}new middle\n${tail}`,
+		);
+		expect(entry.fileDiff.hunks).toHaveLength(2);
+
+		const collapsed = collectDiffSearchMatches([entry], {
+			...defaultOptions,
+			query: "needle",
+		});
+		expect(collapsed).toEqual([]);
+
+		const expanded = collectDiffSearchMatches([entry], {
+			caseSensitive: false,
+			expandUnchanged: true,
+			query: "needle",
+		});
+		expect(expanded.map((match) => [match.side, match.lineNumber])).toEqual([
+			["additions", 10],
+			["additions", 28],
+		]);
+	});
+
 	test("orders matches by file, then rendered position", () => {
 		const first = makeEntry("", "needle a\n", "diff:a.ts");
 		const second = makeEntry("needle removed\n", "needle added\n", "diff:b.ts");
