@@ -40,6 +40,7 @@ import {
 	getDomainEnrichment,
 	getPersonEnrichment,
 } from "./enrichment";
+import { getPinnedDomains, setPinnedDomains } from "./pinned-domains";
 import {
 	getDomainResearchProgress,
 	getDomainResearchSettings,
@@ -205,6 +206,40 @@ const getDomainIndex = memoizeAsync(async () => {
 	}
 	return byDomain;
 });
+
+function makeIsPayingOrg(subsByOrg: Map<string, SelectSubscription>) {
+	return (orgId: string) => {
+		const sub = subsByOrg.get(orgId);
+		return (
+			sub != null &&
+			isActiveSubscriptionStatus(sub.status) &&
+			isPaidPlan(sub.plan)
+		);
+	};
+}
+
+/** One display row for a domain, shared by the rollup and the pinned list. */
+function toDomainRow(
+	entry: DomainIndexEntry,
+	isPayingOrg: (orgId: string) => boolean,
+) {
+	const health = healthFromLastActive(entry.lastActiveAt);
+	const payingOrgCount = [...entry.orgIds].filter(isPayingOrg).length;
+	return {
+		domain: entry.domain,
+		stage: stageFromUserCount(entry.userCount),
+		userCount: entry.userCount,
+		activeUsers7d: entry.activeUsers7d,
+		events30d: entry.events30d,
+		events30dPrev: entry.events30dPrev,
+		trendPct: trendPct(entry.events30d, entry.events30dPrev),
+		lastActiveAt: entry.lastActiveAt,
+		health,
+		churnRisk: isChurnRisk(health, payingOrgCount > 0),
+		totalOrgCount: entry.orgIds.size,
+		payingOrgCount,
+	};
+}
 
 function getUsersByDomain(domain: string) {
 	return db
@@ -892,14 +927,7 @@ export const customersRouter = {
 				getActivitySnapshot(),
 			]);
 
-			const isPayingOrg = (orgId: string) => {
-				const sub = subsByOrg.get(orgId);
-				return (
-					sub != null &&
-					isActiveSubscriptionStatus(sub.status) &&
-					isPaidPlan(sub.plan)
-				);
-			};
+			const isPayingOrg = makeIsPayingOrg(subsByOrg);
 
 			const searchTerm = input.search?.toLowerCase();
 			const entries = [...byDomain.values()]
@@ -909,17 +937,7 @@ export const customersRouter = {
 						(input.includeFreemail || !FREEMAIL_DOMAINS.has(entry.domain)) &&
 						(!searchTerm || entry.domain.includes(searchTerm)),
 				)
-				.map((entry) => {
-					const health = healthFromLastActive(entry.lastActiveAt);
-					const payingOrgCount = [...entry.orgIds].filter(isPayingOrg).length;
-					return {
-						...entry,
-						health,
-						payingOrgCount,
-						churnRisk: isChurnRisk(health, payingOrgCount > 0),
-						trendPct: trendPct(entry.events30d, entry.events30dPrev),
-					};
-				})
+				.map((entry) => toDomainRow(entry, isPayingOrg))
 				.filter((entry) => {
 					if (input.health === "churnRisk" && !entry.churnRisk) return false;
 					if (
@@ -962,20 +980,35 @@ export const customersRouter = {
 			return {
 				total,
 				snapshotAt: snapshot.fetchedAt,
-				rows: pageEntries.map((entry) => ({
-					domain: entry.domain,
-					stage: stageFromUserCount(entry.userCount),
-					userCount: entry.userCount,
-					events30dPrev: entry.events30dPrev,
-					activeUsers7d: entry.activeUsers7d,
-					events30d: entry.events30d,
-					trendPct: entry.trendPct,
-					lastActiveAt: entry.lastActiveAt,
-					health: entry.health,
-					churnRisk: entry.churnRisk,
-					totalOrgCount: entry.orgIds.size,
-					payingOrgCount: entry.payingOrgCount,
-				})),
+				rows: pageEntries,
 			};
+		}),
+
+	pinnedDomains: adminProcedure.query(async () => {
+		const [pinned, byDomain, subsByOrg, snapshot] = await Promise.all([
+			getPinnedDomains(),
+			getDomainIndex(),
+			getSubscriptionsByOrg(),
+			getActivitySnapshot(),
+		]);
+		const isPayingOrg = makeIsPayingOrg(subsByOrg);
+		return {
+			snapshotAt: snapshot.fetchedAt,
+			rows: pinned.flatMap((domain) => {
+				const entry = byDomain.get(domain);
+				return entry ? [toDomainRow(entry, isPayingOrg)] : [];
+			}),
+		};
+	}),
+
+	setDomainPinned: adminProcedure
+		.input(z.object({ domain: domainSchema, pinned: z.boolean() }))
+		.mutation(async ({ input }) => {
+			const pinned = await getPinnedDomains();
+			const without = pinned.filter((domain) => domain !== input.domain);
+			await setPinnedDomains(
+				input.pinned ? [...without, input.domain] : without,
+			);
+			return { pinned: input.pinned };
 		}),
 } satisfies TRPCRouterRecord;

@@ -1,5 +1,6 @@
 import type { RouterOutputs } from "@superset/trpc";
 import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { Card, CardContent } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
 import {
@@ -10,9 +11,10 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
+import { cn } from "@superset/ui/utils";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
-import { LuAtSign, LuLoaderCircle } from "react-icons/lu";
+import { LuAtSign, LuLoaderCircle, LuStar } from "react-icons/lu";
 
 import { HealthBadge } from "@/components/HealthBadge";
 import { StageBadge } from "@/components/StageBadge";
@@ -26,6 +28,10 @@ export interface DomainsTableProps {
 	isLoading: boolean;
 	isFetching: boolean;
 	error: { message: string } | null;
+	pinnedDomains: Set<string>;
+	onTogglePin: (domain: string, pinned: boolean) => void;
+	/** Renders as a titled section (e.g. "Pinned") that hides when empty. */
+	heading?: string;
 }
 
 const numberFormat = new Intl.NumberFormat("en-US", {
@@ -39,7 +45,12 @@ export function DomainsTable({
 	isLoading,
 	isFetching,
 	error,
+	pinnedDomains,
+	onTogglePin,
+	heading,
 }: DomainsTableProps) {
+	if (heading && (!rows || rows.length === 0)) return null;
+
 	if (isLoading && !rows) {
 		return (
 			<Card>
@@ -85,12 +96,14 @@ export function DomainsTable({
 				}
 			>
 				<p className="text-muted-foreground flex items-center gap-2 pb-3 text-sm">
-					{total?.toLocaleString()} domain{total === 1 ? "" : "s"}
+					{heading ??
+						`${total?.toLocaleString()} domain${total === 1 ? "" : "s"}`}
 					{isFetching && <LuLoaderCircle className="size-3.5 animate-spin" />}
 				</p>
 				<Table>
 					<TableHeader>
 						<TableRow>
+							<TableHead className="w-8" />
 							<TableHead>Domain</TableHead>
 							<TableHead>Stage</TableHead>
 							<TableHead>Users</TableHead>
@@ -105,6 +118,30 @@ export function DomainsTable({
 					<TableBody>
 						{rows.map((row) => (
 							<TableRow key={row.domain}>
+								<TableCell className="w-8">
+									<Button
+										variant="ghost"
+										size="icon"
+										className="size-7"
+										title={
+											pinnedDomains.has(row.domain)
+												? "Unpin domain"
+												: "Pin domain"
+										}
+										onClick={() =>
+											onTogglePin(row.domain, !pinnedDomains.has(row.domain))
+										}
+									>
+										<LuStar
+											className={cn(
+												"size-3.5",
+												pinnedDomains.has(row.domain)
+													? "fill-amber-400 text-amber-400"
+													: "text-muted-foreground",
+											)}
+										/>
+									</Button>
+								</TableCell>
 								<TableCell>
 									<Link
 										to="/domains/$domain"

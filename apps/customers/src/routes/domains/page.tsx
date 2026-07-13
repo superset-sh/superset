@@ -9,8 +9,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import {
+	keepPreviousData,
+	useMutation,
+	useQuery,
+	useQueryClient,
+} from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { LuSearch } from "react-icons/lu";
@@ -68,6 +74,28 @@ function DomainsPage() {
 	);
 
 	const totalPages = data ? Math.max(1, Math.ceil(data.total / PAGE_SIZE)) : 1;
+
+	const queryClient = useQueryClient();
+	const pinned = useQuery(trpc.customers.pinnedDomains.queryOptions());
+	const pinnedSet = new Set(pinned.data?.rows.map((row) => row.domain) ?? []);
+	const togglePin = useMutation(
+		trpc.customers.setDomainPinned.mutationOptions({
+			onSuccess: (result, variables) => {
+				queryClient.invalidateQueries({
+					queryKey: trpc.customers.pinnedDomains.queryKey(),
+				});
+				toast.success(
+					result.pinned
+						? `Pinned ${variables.domain}`
+						: `Unpinned ${variables.domain}`,
+				);
+			},
+			onError: (mutationError) =>
+				toast.error(`Failed to update pin: ${mutationError.message}`),
+		}),
+	);
+	const handleTogglePin = (domain: string, shouldPin: boolean) =>
+		togglePin.mutate({ domain, pinned: shouldPin });
 
 	return (
 		<div className="space-y-6">
@@ -185,11 +213,24 @@ function DomainsPage() {
 			</div>
 
 			<DomainsTable
+				heading="Pinned"
+				rows={pinned.data?.rows}
+				total={pinned.data?.rows.length}
+				isLoading={pinned.isLoading}
+				isFetching={pinned.isFetching}
+				error={null}
+				pinnedDomains={pinnedSet}
+				onTogglePin={handleTogglePin}
+			/>
+
+			<DomainsTable
 				rows={data?.rows}
 				total={data?.total}
 				isLoading={isLoading}
 				isFetching={isFetching}
 				error={error}
+				pinnedDomains={pinnedSet}
+				onTogglePin={handleTogglePin}
 			/>
 
 			{data && data.total > PAGE_SIZE && (

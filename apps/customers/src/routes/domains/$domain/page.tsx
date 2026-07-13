@@ -1,15 +1,17 @@
 import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { Card, CardContent } from "@superset/ui/card";
 import { Label } from "@superset/ui/label";
 import { Progress } from "@superset/ui/progress";
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
+import { cn } from "@superset/ui/utils";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect, useState } from "react";
-import { LuArrowLeft, LuCircleDollarSign } from "react-icons/lu";
+import { LuArrowLeft, LuCircleDollarSign, LuStar } from "react-icons/lu";
 
 import { ActivityChart } from "@/components/ActivityChart";
 import { HealthBadge } from "@/components/HealthBadge";
@@ -74,6 +76,22 @@ function DomainDetailPage() {
 		}
 	}, [finishedAt, queryClient, trpc, domain]);
 
+	const pinned = useQuery(trpc.customers.pinnedDomains.queryOptions());
+	const isPinned =
+		pinned.data?.rows.some((row) => row.domain === domain) ?? false;
+	const togglePin = useMutation(
+		trpc.customers.setDomainPinned.mutationOptions({
+			onSuccess: (result) => {
+				queryClient.invalidateQueries({
+					queryKey: trpc.customers.pinnedDomains.queryKey(),
+				});
+				toast.success(
+					result.pinned ? `Pinned ${domain}` : `Unpinned ${domain}`,
+				);
+			},
+		}),
+	);
+
 	const setResearchMode = useMutation(
 		trpc.customers.setDomainResearchMode.mutationOptions({
 			onSuccess: (result, variables) => {
@@ -135,6 +153,23 @@ function DomainDetailPage() {
 						<h1 className="text-3xl font-bold tracking-tight">
 							@{data.domain}
 						</h1>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-8"
+							title={isPinned ? "Unpin domain" : "Pin domain"}
+							disabled={togglePin.isPending}
+							onClick={() => togglePin.mutate({ domain, pinned: !isPinned })}
+						>
+							<LuStar
+								className={cn(
+									"size-4",
+									isPinned
+										? "fill-amber-400 text-amber-400"
+										: "text-muted-foreground",
+								)}
+							/>
+						</Button>
 						<HealthBadge health={data.health} />
 						<StageBadge stage={data.stage} />
 					</div>
