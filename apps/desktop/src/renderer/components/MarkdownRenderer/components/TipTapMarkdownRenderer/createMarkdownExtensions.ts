@@ -16,7 +16,10 @@ import { ListItem } from "@tiptap/extension-list-item";
 import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Strike } from "@tiptap/extension-strike";
-import { TableKit } from "@tiptap/extension-table";
+import { Table } from "@tiptap/extension-table";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableRow } from "@tiptap/extension-table-row";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
@@ -28,6 +31,10 @@ import { Markdown } from "tiptap-markdown";
 import { EditableCodeBlockView } from "./components/EditableCodeBlockView";
 import { ReadOnlyCodeBlockView } from "./components/ReadOnlyCodeBlockView";
 import { ReadOnlySafeImageView } from "./components/ReadOnlySafeImageView";
+import {
+	serializeMarkdownTable,
+	serializeTableChild,
+} from "./serializeMarkdownTable";
 
 const lowlight = createLowlight(common);
 const ENABLE_RAW_MARKDOWN_HTML = false;
@@ -155,23 +162,56 @@ export function createMarkdownExtensions({
 			},
 		}),
 		SafeImage,
-		TableKit.configure({
-			table: {
-				resizable: false,
-				cellMinWidth: 192,
-				HTMLAttributes: {
-					class: "markdown-table my-4 min-w-full border-collapse",
-				},
+		// Individually-extended table nodes (instead of TableKit) so we can attach
+		// a GFM markdown serializer to the `table` node's `storage.markdown`. This
+		// overrides tiptap-markdown's built-in serializer, which otherwise writes
+		// the literal `[table]` when copying a headerless/partial cell selection.
+		// The CellSelection editing plugins live on the `Table` node, so behavior
+		// (rendering, parsing, selection) is unchanged.
+		Table.extend({
+			addStorage() {
+				return {
+					...this.parent?.(),
+					markdown: { serialize: serializeMarkdownTable },
+				};
 			},
-			tableHeader: {
-				HTMLAttributes: {
-					class: "bg-muted px-4 py-2 text-left text-sm font-semibold align-top",
-				},
+		}).configure({
+			resizable: false,
+			cellMinWidth: 192,
+			HTMLAttributes: {
+				class: "markdown-table my-4 min-w-full border-collapse",
 			},
-			tableCell: {
-				HTMLAttributes: {
-					class: "border-t border-border px-4 py-2 text-sm align-top",
-				},
+		}),
+		TableRow.extend({
+			addStorage() {
+				return {
+					...this.parent?.(),
+					markdown: { serialize: serializeTableChild },
+				};
+			},
+		}),
+		TableHeader.extend({
+			addStorage() {
+				return {
+					...this.parent?.(),
+					markdown: { serialize: serializeTableChild },
+				};
+			},
+		}).configure({
+			HTMLAttributes: {
+				class: "bg-muted px-4 py-2 text-left text-sm font-semibold align-top",
+			},
+		}),
+		TableCell.extend({
+			addStorage() {
+				return {
+					...this.parent?.(),
+					markdown: { serialize: serializeTableChild },
+				};
+			},
+		}).configure({
+			HTMLAttributes: {
+				class: "border-t border-border px-4 py-2 text-sm align-top",
 			},
 		}),
 		Markdown.configure({
