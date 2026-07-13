@@ -50,28 +50,36 @@ export function createOutageReporter(socketName: string) {
 	let probe: RelayAffinityProbe | null = null;
 	let endpoint: string | null = null;
 	let outageStartedAt: number | null = null;
+	// Failed dials surface as error and close events in either order, and only
+	// the close carries a code — keep the outage's last observed one so the
+	// threshold-crossing call doesn't have to be the one that saw it.
+	let lastClose: CloseInfo | null = null;
 	// One telemetry event per outage episode; cleared on the next open.
 	let reported = false;
 
 	const emit = (
 		kind: RelaySocketTelemetryEvent["kind"],
 		failedAttempts: number,
-		close?: CloseInfo,
+		close: CloseInfo | null,
 	): void => {
-		telemetrySink?.({
-			kind,
-			socketName,
-			endpoint,
-			preflightStatus: probe?.status ?? null,
-			tunnelRegion: probe?.region ?? null,
-			closeCode: close?.code ?? null,
-			closeReason: close?.reason || null,
-			failedAttempts,
-			outageMs:
-				kind === "recovered" && outageStartedAt !== null
-					? Date.now() - outageStartedAt
-					: null,
-		});
+		try {
+			telemetrySink?.({
+				kind,
+				socketName,
+				endpoint,
+				preflightStatus: probe?.status ?? null,
+				tunnelRegion: probe?.region ?? null,
+				closeCode: close?.code ?? null,
+				closeReason: close?.reason || null,
+				failedAttempts,
+				outageMs:
+					kind === "recovered" && outageStartedAt !== null
+						? Date.now() - outageStartedAt
+						: null,
+			});
+		} catch {
+			// A throwing sink must never break the socket lifecycle.
+		}
 	};
 
 	return {
@@ -86,21 +94,23 @@ export function createOutageReporter(socketName: string) {
 			outageStartedAt ??= Date.now();
 			if (reported) return;
 			reported = true;
-			emit("access_denied", failedAttempts);
+			emit("access_denied", failedAttempts, null);
 		},
 
 		/** A dial failed or an established connection dropped. */
 		failed(failedAttempts: number, close?: CloseInfo): void {
 			outageStartedAt ??= Date.now();
+			if (close) lastClose = close;
 			if (reported || failedAttempts < DEGRADED_AFTER_ATTEMPTS) return;
 			reported = true;
-			emit("degraded", failedAttempts, close);
+			emit("degraded", failedAttempts, lastClose);
 		},
 
 		/** The socket (re)connected; closes out a reported episode. */
 		opened(failedAttempts: number): void {
-			if (reported) emit("recovered", failedAttempts);
+			if (reported) emit("recovered", failedAttempts, null);
 			outageStartedAt = null;
+			lastClose = null;
 			reported = false;
 		},
 	};

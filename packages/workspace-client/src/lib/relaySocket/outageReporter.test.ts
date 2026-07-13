@@ -43,6 +43,44 @@ describe("createOutageReporter", () => {
 		expect(telemetry[1]?.outageMs).not.toBeNull();
 	});
 
+	it("attaches the outage's last observed close info when the threshold-crossing call has none", () => {
+		collect();
+		const reporter = createOutageReporter("bus");
+		reporter.attempt("ws://relay/hosts/h/events", null);
+		// Dial failures surface as close (with code) and error (without) pairs;
+		// the error side can be the one that crosses the threshold.
+		reporter.failed(4, { code: 1006, reason: "abnormal" });
+		reporter.failed(5);
+		expect(telemetry).toHaveLength(1);
+		expect(telemetry[0]).toMatchObject({
+			kind: "degraded",
+			closeCode: 1006,
+			closeReason: "abnormal",
+		});
+
+		// The stashed close info doesn't leak into the next outage.
+		reporter.opened(6);
+		for (let i = 1; i <= 6; i++) {
+			reporter.failed(i);
+		}
+		const second = telemetry.filter((e) => e.kind === "degraded")[1];
+		expect(second?.closeCode).toBeNull();
+	});
+
+	it("never lets a throwing sink escape into the caller", () => {
+		setRelaySocketTelemetry(() => {
+			throw new Error("analytics exploded");
+		});
+		const reporter = createOutageReporter("bus");
+		reporter.attempt("ws://relay/hosts/h/events", {
+			status: 403,
+			region: null,
+		});
+		expect(() => reporter.accessDenied(1)).not.toThrow();
+		expect(() => reporter.failed(6)).not.toThrow();
+		expect(() => reporter.opened(7)).not.toThrow();
+	});
+
 	it("stays silent for short blips and clean opens", () => {
 		collect();
 		const reporter = createOutageReporter("bus");
