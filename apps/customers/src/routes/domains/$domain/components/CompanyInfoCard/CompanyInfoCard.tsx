@@ -75,7 +75,7 @@ export function CompanyInfoCard({ domain }: CompanyInfoCardProps) {
 					{data
 						? `AI-researched · ${data.confidence} confidence · ${formatDistanceToNow(new Date(data.fetchedAt), { addSuffix: true })}`
 						: isResearching
-							? "Researching on the web — first run takes ~30s"
+							? "Researching on the web — this can take a minute or two"
 							: "Firmographics researched with AI, on demand"}
 				</CardDescription>
 			</CardHeader>

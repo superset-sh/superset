@@ -6,15 +6,17 @@ import { env } from "../../env";
 import { FREEMAIL_DOMAINS } from "./domain-utils";
 
 /**
- * Automated firmographic enrichment. Two interchangeable backends:
+ * Automated firmographic enrichment. Two backends, split by what each
+ * benchmarked best at:
  *
- * - Exa `/search` with `outputSchema` (preferred when EXA_API_KEY is set) —
- *   purpose-built people/company indexes, grounded structured output with
- *   citations in one call. https://docs.exa.ai/reference/search-api-guide-for-coding-agents
- * - Claude + server-side web-search tool (fallback) — no extra vendor.
+ * - PEOPLE → Exa `/search` with `outputSchema` — ~2s, near-100% hit rate on
+ *   its people index. https://docs.exa.ai/reference/search-api-guide-for-coding-agents
+ * - COMPANIES → Claude + server-side web-search — slower (~30s) but more
+ *   accurate and current (acquisitions, late rounds, no wrong-entity hits);
+ *   domains are researched far less often than people.
  *
- * Results are cached for 30 days — each domain/person is researched once,
- * on demand, when someone opens its page.
+ * Each falls back to the other backend when its key is missing. Results are
+ * cached for 30 days — each domain/person is researched once, on demand.
  */
 
 const CACHE_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -215,10 +217,14 @@ const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
  * final text. `pause_turn` means the server-side tool loop hit its iteration
  * limit — resend to let it resume.
  */
+/** Placeholder keys ("dummy") show up in dev worktrees — treat as absent. */
+function hasAnthropicKey(): boolean {
+	return Boolean(env.ANTHROPIC_API_KEY && env.ANTHROPIC_API_KEY.length >= 20);
+}
+
 async function runResearch(prompt: string): Promise<string> {
-	// Local dev worktrees often carry a placeholder key — fail with a clear
-	// message instead of a cryptic 401.
-	if (!env.ANTHROPIC_API_KEY || env.ANTHROPIC_API_KEY.length < 20) {
+	// Fail with a clear message instead of a cryptic 401.
+	if (!hasAnthropicKey()) {
 		throw new Error(
 			"ANTHROPIC_API_KEY is not configured (placeholder value) — set a real key in .env to enable AI enrichment",
 		);
@@ -332,7 +338,12 @@ export function getDomainEnrichment(domain: string): Promise<DomainEnrichment> {
 				};
 			}
 
-			if (env.EXA_API_KEY) {
+			// Companies: Claude's agentic search benchmarked notably more
+			// accurate and current than Exa here (catches acquisitions and
+			// late-stage rounds, avoids wrong-entity hits) — and domains are
+			// looked up far less often than people, so ~30s is acceptable.
+			// Exa is the fallback when no Anthropic key is configured.
+			if (!hasAnthropicKey() && env.EXA_API_KEY) {
 				const result = await exaStructuredSearch({
 					query: `company with the website domain ${domain}`,
 					category: "company",
