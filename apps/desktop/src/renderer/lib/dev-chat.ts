@@ -6,7 +6,22 @@ export const DEV_CHAT_MODELS: ModelOption[] = [
 	{
 		id: "minimax/MiniMax-M3",
 		name: "MiniMax-M3",
-		provider: "MiniMax",
+		provider: "MiniMax (minimax.io)",
+	},
+	{
+		id: "minimax/MiniMax-M2.7",
+		name: "MiniMax-M2.7",
+		provider: "MiniMax (minimax.io)",
+	},
+	{
+		id: "minimax-cn/MiniMax-M3",
+		name: "MiniMax-M3",
+		provider: "MiniMax (minimaxi.com)",
+	},
+	{
+		id: "minimax-cn/MiniMax-M2.7",
+		name: "MiniMax-M2.7",
+		provider: "MiniMax (minimaxi.com)",
 	},
 	{
 		id: "anthropic/claude-opus-4-8",

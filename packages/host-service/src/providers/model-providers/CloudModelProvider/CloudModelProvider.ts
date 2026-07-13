@@ -10,6 +10,7 @@ const CLOUD_PROVIDER_ENV_KEYS = [
 	"OPENAI_API_KEY",
 	"OPENAI_AUTH_TOKEN",
 	"OPENAI_BASE_URL",
+	"MINIMAX_API_KEY",
 	"CLAUDE_CODE_USE_BEDROCK",
 	"AWS_REGION",
 	"AWS_DEFAULT_REGION",
@@ -74,7 +75,8 @@ export class CloudModelProvider implements ModelProviderRuntimeResolver {
 				env.ANTHROPIC_API_KEY ||
 					env.ANTHROPIC_AUTH_TOKEN ||
 					env.OPENAI_API_KEY ||
-					env.OPENAI_AUTH_TOKEN,
+					env.OPENAI_AUTH_TOKEN ||
+					env.MINIMAX_API_KEY,
 			),
 		};
 	}
