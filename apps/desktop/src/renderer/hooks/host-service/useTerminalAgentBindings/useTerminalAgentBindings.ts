@@ -13,6 +13,29 @@ type TerminalAgentBindings = Awaited<
 export type TerminalAgentBinding = TerminalAgentBindings[number];
 
 /**
+ * React Query key for a workspace's terminal-agent bindings. Exported so the
+ * bulk status source (`useV2WorkspaceStatuses`) reads/writes the exact same
+ * cache entries as the per-row hook — rows and status buckets can never show
+ * contradictory agent states.
+ */
+export function getTerminalAgentBindingsQueryKey(
+	hostUrl: string | null,
+	workspaceId: string,
+) {
+	return ["terminal-agent-bindings", hostUrl, workspaceId] as const;
+}
+
+/** Fetch a workspace's terminal-agent bindings from its host. */
+export function fetchTerminalAgentBindings(
+	hostUrl: string,
+	workspaceId: string,
+): Promise<TerminalAgentBindings> {
+	return getHostServiceClientByUrl(
+		hostUrl,
+	).terminalAgents.listByWorkspace.query({ workspaceId });
+}
+
+/**
  * Map of `terminalId → agent binding` for a workspace, read from the host
  * store and invalidated on `agent:lifecycle` / `terminal:lifecycle` events.
  */
@@ -23,7 +46,7 @@ export function useTerminalAgentBindings(
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
-		() => ["terminal-agent-bindings", hostUrl, workspaceId] as const,
+		() => getTerminalAgentBindingsQueryKey(hostUrl, workspaceId),
 		[hostUrl, workspaceId],
 	);
 
@@ -35,9 +58,7 @@ export function useTerminalAgentBindings(
 		enabled,
 		queryFn: () => {
 			if (!hostUrl) return [] as TerminalAgentBindings;
-			return getHostServiceClientByUrl(
-				hostUrl,
-			).terminalAgents.listByWorkspace.query({ workspaceId });
+			return fetchTerminalAgentBindings(hostUrl, workspaceId);
 		},
 		// Lifecycle events invalidate for instant updates; the finite
 		// staleTime lets focus/remount refetches self-heal any staleness

@@ -7,6 +7,18 @@ export type DashboardSidebarWorkspaceHostType =
 
 export type DashboardSidebarWorkspaceType = "main" | "worktree";
 
+/**
+ * Derived per-workspace status bucket for the status-grouped sidebar. Kept here
+ * (rather than in the builder) so both the builder and the shape types can
+ * reference it without an import cycle.
+ */
+export type SidebarStatusBucket =
+	| "working"
+	| "waiting"
+	| "open_pr"
+	| "done"
+	| "idle";
+
 export interface DashboardSidebarWorkspacePullRequestCheck {
 	name: string;
 	status: "success" | "failure" | "pending" | "skipped" | "cancelled";
@@ -44,6 +56,13 @@ export interface DashboardSidebarWorkspace {
 	updatedAt: Date;
 	taskId: string | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+	/**
+	 * Repo name for the per-row chip in status mode (where rows from different
+	 * repos mix under one bucket). Populated by the status builder as the GitHub
+	 * repo name, falling back to the project name so the chip is never empty;
+	 * null only if the project has neither. Only *rendered* in status mode.
+	 */
+	repoLabel?: string | null;
 }
 
 export interface DashboardSidebarSection {
@@ -79,4 +98,13 @@ export interface DashboardSidebarProject {
 	updatedAt: Date;
 	isCollapsed: boolean;
 	children: DashboardSidebarProjectChild[];
+	/**
+	 * "project" (default/omitted) = a real repo group. "status" = a synthetic
+	 * bucket produced by `buildDashboardSidebarStatusGroups` whose `id` is
+	 * `status:<bucket>`; the render layer forks on this to skip all real-project
+	 * chrome (context menu, DnD, section actions).
+	 */
+	kind?: "project" | "status";
+	/** Set only when `kind === "status"`. */
+	statusBucket?: SidebarStatusBucket;
 }

@@ -319,9 +319,15 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
+	// Left workspace rail grouping. "project" groups by repo → workspace (the
+	// default, unchanged behavior); "status" groups by derived per-workspace
+	// status (Working / Open PR / Done / Idle). Local, per-device, per-org —
+	// same expectation as the Theme setting; no DB/Electric/migration.
+	sidebarGroupMode: z.enum(["project", "status"]).default("project"),
 });
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
+export type SidebarGroupMode = V2UserPreferencesRow["sidebarGroupMode"];
 
 export const V2_USER_PREFERENCES_ID = "preferences" as const;
 
@@ -337,6 +343,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 	showPresetsBar: true,
+	sidebarGroupMode: "project",
 };
 
 /**

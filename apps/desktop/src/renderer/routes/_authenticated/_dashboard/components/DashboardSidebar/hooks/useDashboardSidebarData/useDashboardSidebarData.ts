@@ -2,7 +2,9 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
+import { useV2WorkspaceStatuses } from "renderer/hooks/host-service/useV2WorkspaceStatuses";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -12,12 +14,14 @@ import {
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useStatusGroupedSidebarEnabled } from "renderer/stores/status-grouped-sidebar";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarWorkspace,
 } from "../../types";
 import { buildDashboardSidebarProjects } from "./buildDashboardSidebarProjects";
+import { buildDashboardSidebarStatusGroups } from "./buildDashboardSidebarStatusGroups";
 import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
@@ -388,20 +392,53 @@ export function useDashboardSidebarData() {
 	const pullRequestsByWorkspaceId =
 		useStablePullRequestsByWorkspaceId(pullRequestRows);
 
+	const { preferences } = useV2UserPreferences();
+	// Status grouping is an opt-in experiment. When it's off, force project mode
+	// regardless of the persisted preference so a stale "status" never leaks the
+	// feature to users who haven't enabled it.
+	const statusGroupingEnabled = useStatusGroupedSidebarEnabled();
+	const groupMode = statusGroupingEnabled
+		? preferences.sidebarGroupMode
+		: "project";
+	const isStatusMode = groupMode === "status";
+
+	// Only mount the bulk agent-status queries when status grouping is active;
+	// project mode has no need for them.
+	const statusWorkspaceIds = useMemo(
+		() =>
+			isStatusMode
+				? visibleSidebarWorkspaces.map((workspace) => workspace.id)
+				: [],
+		[isStatusMode, visibleSidebarWorkspaces],
+	);
+	const statusByWorkspaceId = useV2WorkspaceStatuses(statusWorkspaceIds, {
+		enabled: isStatusMode,
+	});
+
 	const computedGroups = useMemo<DashboardSidebarProject[]>(
 		() =>
-			buildDashboardSidebarProjects({
-				sidebarProjects,
-				sidebarSections,
-				visibleSidebarWorkspaces,
-				machineId,
-				pullRequestsByWorkspaceId,
-			}),
+			isStatusMode
+				? buildDashboardSidebarStatusGroups({
+						sidebarProjects,
+						visibleSidebarWorkspaces,
+						machineId,
+						pullRequestsByWorkspaceId,
+						statusByWorkspaceId,
+					})
+				: buildDashboardSidebarProjects({
+						sidebarProjects,
+						sidebarSections,
+						visibleSidebarWorkspaces,
+						machineId,
+						pullRequestsByWorkspaceId,
+					}),
 		[
+			isStatusMode,
 			machineId,
 			pullRequestsByWorkspaceId,
 			sidebarProjects,
 			sidebarSections,
+			statusByWorkspaceId,
 			visibleSidebarWorkspaces,
 		],
 	);
@@ -409,6 +446,8 @@ export function useDashboardSidebarData() {
 
 	return {
 		groups,
+		groupMode,
+		sidebarProjects,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

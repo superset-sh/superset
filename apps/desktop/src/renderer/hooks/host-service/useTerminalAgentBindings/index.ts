@@ -1,4 +1,6 @@
 export {
+	fetchTerminalAgentBindings,
+	getTerminalAgentBindingsQueryKey,
 	type TerminalAgentBinding,
 	useTerminalAgentBinding,
 	useTerminalAgentBindings,

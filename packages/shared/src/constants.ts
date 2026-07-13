@@ -88,6 +88,8 @@ export const FEATURE_FLAGS = {
 	GITHUB_INTEGRATION_ACCESS: "github-integration-access",
 	/** Gates access to Cloud features (environment variables, sandboxes). */
 	CLOUD_ACCESS: "cloud-access",
+	/** Gates the status-grouped workspace sidebar (Working / Open PR / Done / Idle). */
+	STATUS_GROUPED_SIDEBAR: "status-grouped-sidebar-access",
 	/** When enabled, blocks remote agent execution on the desktop (e.g., for enterprise orgs). */
 	DISABLE_REMOTE_AGENT: "disable-remote-agent",
 	/**

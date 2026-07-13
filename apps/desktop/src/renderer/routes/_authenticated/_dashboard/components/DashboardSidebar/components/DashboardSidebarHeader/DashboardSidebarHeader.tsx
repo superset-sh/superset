@@ -37,6 +37,7 @@ import {
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { SidebarGroupingToggle } from "./components/SidebarGroupingToggle";
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -256,7 +257,11 @@ export function DashboardSidebarHeader({
 					<SidebarToggle />
 					<NavigationControls />
 				</ZoomStable>
-				<ZoomStable enabled={isMac} className="ml-auto">
+				<ZoomStable
+					enabled={isMac}
+					className="ml-auto flex items-center gap-0.5"
+				>
+					<SidebarGroupingToggle />
 					<ResourceConsumption surface="v2" />
 				</ZoomStable>
 			</div>
