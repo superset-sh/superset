@@ -59,6 +59,15 @@ const desktopDevOrigins =
 			]
 		: [];
 
+const customersDevPort = process.env.CUSTOMERS_PORT || "3005";
+const customersDevOrigins =
+	process.env.NODE_ENV === "development"
+		? [
+				`http://localhost:${customersDevPort}`,
+				`http://127.0.0.1:${customersDevPort}`,
+			]
+		: [];
+
 function serializeCancellationDetails(
 	cancellationDetails?: Stripe.Subscription.CancellationDetails | null,
 ) {
@@ -94,8 +103,10 @@ export const auth = betterAuth({
 		env.NEXT_PUBLIC_MARKETING_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
 		...(env.NEXT_PUBLIC_DESKTOP_URL ? [env.NEXT_PUBLIC_DESKTOP_URL] : []),
+		...(env.NEXT_PUBLIC_CUSTOMERS_URL ? [env.NEXT_PUBLIC_CUSTOMERS_URL] : []),
 		...getTrustedVercelPreviewOrigins(request?.url ?? env.NEXT_PUBLIC_API_URL),
 		...desktopDevOrigins,
+		...customersDevOrigins,
 		"superset://app",
 		"superset://",
 		...(process.env.NODE_ENV === "development"
