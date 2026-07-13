@@ -50,6 +50,15 @@ describe("CodeBlock", () => {
 });
 
 describe("highlightCode", () => {
+	// biome-ignore lint/suspicious/noExplicitAny: HAST tree structure is recursive and untyped
+	const extractText = (node: any): string => {
+		if (node.type === "text") return node.value;
+		if (node.children) {
+			return node.children.map(extractText).join("");
+		}
+		return "";
+	};
+
 	it("preserves whitespace in highlighted plain text", async () => {
 		const codeWithWhitespace = `Line 1      has    multiple   spaces
   Line 2 is indented with 2 spaces
@@ -60,15 +69,6 @@ describe("highlightCode", () => {
 			"text" as BundledLanguage,
 			false,
 		);
-
-		// biome-ignore lint/suspicious/noExplicitAny: HAST tree structure is recursive and untyped
-		const extractText = (node: any): string => {
-			if (node.type === "text") return node.value;
-			if (node.children) {
-				return node.children.map(extractText).join("");
-			}
-			return "";
-		};
 
 		const lightText = extractText(light);
 		const darkText = extractText(dark);
@@ -88,15 +88,6 @@ describe("highlightCode", () => {
 			"javascript" as BundledLanguage,
 			false,
 		);
-
-		// biome-ignore lint/suspicious/noExplicitAny: HAST tree structure is recursive and untyped
-		const extractText = (node: any): string => {
-			if (node.type === "text") return node.value;
-			if (node.children) {
-				return node.children.map(extractText).join("");
-			}
-			return "";
-		};
 
 		const lightText = extractText(light);
 		const darkText = extractText(dark);
@@ -119,10 +110,10 @@ describe("highlightCode", () => {
 		// biome-ignore lint/suspicious/noExplicitAny: HAST tree structure is recursive and untyped
 		const extractCodeText = (node: any): string => {
 			if (node.type === "text") {
-				// Skip line number text nodes (they have className shiki-line-number)
 				return node.value;
 			}
 			if (node.type === "element" && node.properties?.className) {
+				// Skip line number elements (they have className shiki-line-number)
 				const classes = node.properties.className;
 				if (Array.isArray(classes) && classes.includes("shiki-line-number")) {
 					return "";
