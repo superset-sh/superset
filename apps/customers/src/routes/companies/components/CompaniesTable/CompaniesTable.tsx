@@ -11,7 +11,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useNavigate } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import {
 	LuBuilding2,
@@ -144,7 +144,14 @@ export function CompaniesTable({
 											</AvatarFallback>
 										</Avatar>
 										<div className="flex flex-col">
-											<span className="font-medium">{row.name}</span>
+											<Link
+												to="/companies/$orgId"
+												params={{ orgId: row.orgId }}
+												className="font-medium hover:underline"
+												onClick={(event) => event.stopPropagation()}
+											>
+												{row.name}
+											</Link>
 											{row.slug && (
 												<span className="text-muted-foreground text-xs">
 													{row.slug}

@@ -54,6 +54,7 @@ export function AppSidebar({ user, ...props }: AppSidebarProps) {
 									>
 										<Link to={item.url}>
 											<item.icon className="size-4" />
+											{item.title}
 										</Link>
 									</SidebarMenuButton>
 								</SidebarMenuItem>
