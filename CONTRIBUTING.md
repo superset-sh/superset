@@ -26,7 +26,7 @@ No Neon or third-party credentials needed.
    ```bash
    bun run lint      # CI fails on warnings too. Run `bun run lint:fix` first.
    bun run typecheck
-   bun test
+   bun run test
    ```
 3. [Open a PR from your fork](https://docs.github.com/en/pull-requests/collaborating-with-pull-requests/proposing-changes-to-your-work-with-pull-requests/creating-a-pull-request-from-a-fork) and fill in the template. Check **"Allow edits from maintainers"** so we can touch up your branch. It speeds up review a lot.
 

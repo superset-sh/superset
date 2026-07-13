@@ -11,13 +11,14 @@ body:
         - Web app (app.superset.sh)
         - CLI
         - Building from source
+        - Other
     validations:
       required: true
   - type: input
     id: version
     attributes:
       label: Version
-      description: "Desktop: Superset > About Superset. Source builds: the commit SHA."
+      description: "Desktop: Superset > About Superset. CLI: superset --version. Source builds: the commit SHA."
       placeholder: "e.g. 1.15.0"
     validations:
       required: true

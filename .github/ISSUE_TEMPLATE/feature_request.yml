@@ -20,5 +20,6 @@ body:
     id: alternatives
     attributes:
       label: Workarounds you've tried
+      description: Anything you tried, even if it didn't fully work.
     validations:
       required: false
