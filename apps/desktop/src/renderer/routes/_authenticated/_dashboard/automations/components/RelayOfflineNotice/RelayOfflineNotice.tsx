@@ -67,8 +67,14 @@ export function RelayOfflineNotice({
 						{remoteHost?.name ?? "This device"}
 					</span>{" "}
 					isn't connected to the Superset relay — runs targeting it will be
-					skipped until it reconnects. Relay access is enabled in Settings &gt;
-					Security on that device.
+					skipped until it reconnects. Relay access is enabled in{" "}
+					<Link
+						to="/settings/security"
+						className="font-medium text-foreground underline underline-offset-2"
+					>
+						Settings &gt; Security
+					</Link>{" "}
+					on that device.
 				</span>
 			)}
 		</div>
