@@ -84,6 +84,50 @@ function cached<T>(
 const confidenceSchema = z.enum(["high", "medium", "low"]);
 type Confidence = z.infer<typeof confidenceSchema>;
 
+/** Cache-only read — never triggers research. */
+export function getCachedDomainEnrichment(
+	domain: string,
+): Promise<DomainEnrichment | null> {
+	return getCached<DomainEnrichment>(`domain:${domain}`);
+}
+
+/** Cache-only read — never triggers research. */
+export function getCachedPersonEnrichment(
+	cacheKey: string,
+): Promise<PersonEnrichment | null> {
+	return getCached<PersonEnrichment>(`person:v2:${cacheKey}`);
+}
+
+/** Cache-only batch read (KV mget) — never triggers research. */
+export async function getCachedPersonEnrichmentBatch(
+	cacheKeys: string[],
+): Promise<Map<string, PersonEnrichment>> {
+	const result = new Map<string, PersonEnrichment>();
+	if (cacheKeys.length === 0) return result;
+
+	if (isKVConfigured) {
+		try {
+			const values = await kv.mget<(PersonEnrichment | null)[]>(
+				...cacheKeys.map((key) => `${CACHE_PREFIX}person:v2:${key}`),
+			);
+			cacheKeys.forEach((key, index) => {
+				const value = values[index];
+				if (value) result.set(key, value);
+			});
+			return result;
+		} catch {
+			// Fall through to memory cache on KV error
+		}
+	}
+	for (const key of cacheKeys) {
+		const entry = memoryCache.get(`${CACHE_PREFIX}person:v2:${key}`);
+		if (entry && Date.now() <= entry.expiresAt) {
+			result.set(key, entry.data as PersonEnrichment);
+		}
+	}
+	return result;
+}
+
 // ---------------------------------------------------------------------------
 // Exa backend
 // ---------------------------------------------------------------------------

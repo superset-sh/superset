@@ -29,7 +29,17 @@ import {
 } from "./activity-snapshot";
 
 import { COMPANY_DOMAIN, domainSchema, FREEMAIL_DOMAINS } from "./domain-utils";
-import { getDomainEnrichment, getPersonEnrichment } from "./enrichment";
+import {
+	getCachedDomainEnrichment,
+	getCachedPersonEnrichment,
+	getCachedPersonEnrichmentBatch,
+	getDomainEnrichment,
+	getPersonEnrichment,
+} from "./enrichment";
+import {
+	getDomainResearchSettings,
+	setDomainResearchSettings,
+} from "./research-settings";
 
 type SubscriptionSummary = {
 	plan: string;
@@ -436,11 +446,13 @@ export const customersRouter = {
 	domainDetail: adminProcedure
 		.input(z.object({ domain: domainSchema }))
 		.query(async ({ input }) => {
-			const [snapshot, domainUsers, subsByOrg] = await Promise.all([
-				getActivitySnapshot(),
-				getUsersByDomain(input.domain),
-				getSubscriptionsByOrg(),
-			]);
+			const [snapshot, domainUsers, subsByOrg, researchSettings] =
+				await Promise.all([
+					getActivitySnapshot(),
+					getUsersByDomain(input.domain),
+					getSubscriptionsByOrg(),
+					getDomainResearchSettings(input.domain),
+				]);
 
 			if (domainUsers.length === 0) {
 				throw new TRPCError({
@@ -505,6 +517,9 @@ export const customersRouter = {
 				);
 
 			const shownUsers = userDetails.slice(0, DOMAIN_USERS_SHOWN_CAP);
+			const cachedResearch = await getCachedPersonEnrichmentBatch(
+				shownUsers.map((user) => user.userId),
+			);
 
 			// Hydrate org names for the chips and the shown users' org lists.
 			const allOrgIds = [
@@ -534,6 +549,7 @@ export const customersRouter = {
 			return {
 				domain: input.domain,
 				stage: stageFromUserCount(userDetails.length),
+				autoResearch: researchSettings.autoResearch,
 				totalUsers: userDetails.length,
 				activeUsers7d: userDetails.filter((user) => user.events7d > 0).length,
 				events30d: userDetails.reduce((sum, user) => sum + user.events30d, 0),
@@ -548,6 +564,7 @@ export const customersRouter = {
 				})),
 				users: shownUsers.map(({ orgIds, ...user }) => ({
 					...user,
+					enrichedTitle: cachedResearch.get(user.userId)?.title ?? null,
 					orgs: orgIds.slice(0, 3).map((orgId) => ({
 						id: orgId,
 						name: orgNameById.get(orgId) ?? "Unknown org",
@@ -615,6 +632,9 @@ export const customersRouter = {
 				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
 			}
 
+			const emailDomain = user.email.split("@")[1]?.toLowerCase() ?? "";
+			const researchSettings = await getDomainResearchSettings(emailDomain);
+
 			const activity = snapshot.byUserId.get(user.id.toLowerCase());
 			const health = healthFromLastActive(activity?.lastActiveAt ?? null);
 			const orgs = memberRows.map((row) => {
@@ -663,6 +683,7 @@ export const customersRouter = {
 					orgs.some((org) => org.isPaying),
 				),
 				hasActivityData: activity != null,
+				autoResearch: researchSettings.autoResearch,
 				snapshotAt: snapshot.fetchedAt,
 			};
 		}),
@@ -681,6 +702,66 @@ export const customersRouter = {
 	domainEnrichment: adminProcedure
 		.input(z.object({ domain: domainSchema }))
 		.query(({ input }) => getDomainEnrichment(input.domain)),
+
+	domainEnrichmentCached: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(({ input }) => getCachedDomainEnrichment(input.domain)),
+
+	userRoleEnrichmentCached: adminProcedure
+		.input(z.object({ userId: z.string().uuid() }))
+		.query(({ input }) => getCachedPersonEnrichment(input.userId)),
+
+	setDomainResearchMode: adminProcedure
+		.input(z.object({ domain: domainSchema, autoResearch: z.boolean() }))
+		.mutation(async ({ input }) => {
+			await setDomainResearchSettings(input.domain, {
+				autoResearch: input.autoResearch,
+			});
+			if (!input.autoResearch) return { queued: 0 };
+
+			// Proactively research the company and its users (most recently
+			// active first), capped like the domain page's user list.
+			const [snapshot, domainUsers] = await Promise.all([
+				getActivitySnapshot(),
+				getUsersByDomain(input.domain),
+			]);
+			const targets = [...domainUsers]
+				.sort(
+					(a, b) =>
+						(snapshot.byUserId
+							.get(b.id.toLowerCase())
+							?.lastActiveAt.getTime() ?? 0) -
+						(snapshot.byUserId
+							.get(a.id.toLowerCase())
+							?.lastActiveAt.getTime() ?? 0),
+				)
+				.slice(0, DOMAIN_USERS_SHOWN_CAP);
+
+			// Fire-and-forget with bounded concurrency; every result lands in
+			// the enrichment cache. (Runs within this server process — on
+			// serverless it may be cut short; a QStash job is the durable
+			// upgrade if that becomes a problem.)
+			void (async () => {
+				await getDomainEnrichment(input.domain).catch(() => {});
+				const queue = [...targets];
+				await Promise.all(
+					Array.from({ length: 3 }, async () => {
+						for (;;) {
+							const user = queue.shift();
+							if (!user) return;
+							const userDomain = user.email.split("@")[1]?.toLowerCase() ?? "";
+							await getPersonEnrichment({
+								cacheKey: user.id,
+								name: user.name,
+								domain: userDomain,
+							}).catch(() => {});
+						}
+					}),
+				);
+			})();
+
+			return { queued: targets.length };
+		}),
 
 	userRoleEnrichment: adminProcedure
 		.input(z.object({ userId: z.string().uuid() }))

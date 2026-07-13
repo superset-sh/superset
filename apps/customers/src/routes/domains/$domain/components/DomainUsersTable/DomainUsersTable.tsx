@@ -96,6 +96,7 @@ export function DomainUsersTable({ users, totalUsers }: DomainUsersTableProps) {
 												</Link>
 												<span className="text-muted-foreground text-xs">
 													{user.email}
+													{user.enrichedTitle && ` · ${user.enrichedTitle}`}
 												</span>
 											</div>
 										</div>

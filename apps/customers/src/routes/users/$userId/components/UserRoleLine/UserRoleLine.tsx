@@ -17,6 +17,8 @@ import { useTRPC } from "@/trpc/react";
 
 export interface UserRoleLineProps {
 	userId: string;
+	/** Domain-level setting: research automatically instead of on click. */
+	autoResearch: boolean;
 }
 
 function SocialLink({
@@ -42,36 +44,45 @@ function SocialLink({
 	);
 }
 
-/** Job title + public social profiles researched by AI, cached 30 days. */
-export function UserRoleLine({ userId }: UserRoleLineProps) {
+/**
+ * Job title + public social profiles researched by AI, cached 30 days.
+ * Cached results always render; fresh research runs automatically when the
+ * user's domain is set to auto-research, otherwise only on click.
+ */
+export function UserRoleLine({ userId, autoResearch }: UserRoleLineProps) {
 	const trpc = useTRPC();
 	const [requested, setRequested] = useState(false);
-	const role = useQuery(
+	const researchActive = requested || autoResearch;
+
+	const cachedResult = useQuery(
+		trpc.customers.userRoleEnrichmentCached.queryOptions(
+			{ userId },
+			{ staleTime: 60_000, retry: false },
+		),
+	);
+	const research = useQuery(
 		trpc.customers.userRoleEnrichment.queryOptions(
 			{ userId },
-			{ staleTime: Number.POSITIVE_INFINITY, retry: false, enabled: requested },
+			{
+				staleTime: Number.POSITIVE_INFINITY,
+				retry: false,
+				enabled: researchActive,
+			},
 		),
 	);
 
-	if (!requested) {
-		return (
-			<Button variant="outline" size="sm" onClick={() => setRequested(true)}>
-				<LuSparkles />
-				Research role & socials
-			</Button>
-		);
-	}
+	const data = research.data ?? cachedResult.data ?? null;
+	const isResearching = researchActive && research.isLoading && !data;
 
-	if (role.isLoading) {
+	if (isResearching || cachedResult.isLoading) {
 		return (
 			<p className="text-muted-foreground flex items-center gap-1.5 text-sm">
 				<LuLoaderCircle className="size-3.5 animate-spin" />
-				Researching role & profiles on the web…
+				{isResearching ? "Researching role & profiles on the web…" : "Loading…"}
 			</p>
 		);
 	}
 
-	const data = role.data;
 	const hasAnything =
 		data &&
 		(data.title ||
@@ -80,7 +91,16 @@ export function UserRoleLine({ userId }: UserRoleLineProps) {
 			data.githubUrl ||
 			data.websiteUrl);
 
-	if (role.error || !hasAnything) {
+	if (!data && !research.error) {
+		return (
+			<Button variant="outline" size="sm" onClick={() => setRequested(true)}>
+				<LuSparkles />
+				Research role & socials
+			</Button>
+		);
+	}
+
+	if (research.error || !hasAnything) {
 		return (
 			<p className="text-muted-foreground flex items-center gap-1.5 text-sm">
 				<LuBriefcase className="size-3.5" />

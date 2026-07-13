@@ -1,7 +1,10 @@
 import { Badge } from "@superset/ui/badge";
 import { Card, CardContent } from "@superset/ui/card";
+import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
-import { useQuery } from "@tanstack/react-query";
+import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
@@ -38,11 +41,30 @@ function Stat({ label, value }: { label: string; value: React.ReactNode }) {
 function DomainDetailPage() {
 	const { domain } = Route.useParams();
 	const trpc = useTRPC();
+	const queryClient = useQueryClient();
 
 	const [weeks, setWeeks] = useState(12);
 	const detail = useQuery(trpc.customers.domainDetail.queryOptions({ domain }));
 	const timeseries = useQuery(
 		trpc.customers.domainActivityTimeseries.queryOptions({ domain, weeks }),
+	);
+
+	const setResearchMode = useMutation(
+		trpc.customers.setDomainResearchMode.mutationOptions({
+			onSuccess: (result, variables) => {
+				queryClient.invalidateQueries({
+					queryKey: trpc.customers.domainDetail.queryKey({ domain }),
+				});
+				toast.success(
+					variables.autoResearch
+						? `Auto-research on — researching ${result.queued} people in the background`
+						: "Auto-research off — research is manual again",
+				);
+			},
+			onError: (error) => {
+				toast.error(`Failed to update research mode: ${error.message}`);
+			},
+		}),
 	);
 
 	if (detail.isLoading) {
@@ -95,7 +117,25 @@ function DomainDetailPage() {
 							: "never"}
 					</p>
 				</div>
-				<SnapshotNote snapshotAt={data.snapshotAt} />
+				<div className="flex flex-col items-end gap-2">
+					<SnapshotNote snapshotAt={data.snapshotAt} />
+					<div className="flex items-center gap-2">
+						<Switch
+							id="auto-research"
+							checked={data.autoResearch}
+							disabled={setResearchMode.isPending}
+							onCheckedChange={(checked) =>
+								setResearchMode.mutate({ domain, autoResearch: checked })
+							}
+						/>
+						<Label
+							htmlFor="auto-research"
+							className="text-muted-foreground text-sm"
+						>
+							Auto-research everyone
+						</Label>
+					</div>
+				</div>
 			</div>
 
 			<Card>
@@ -157,7 +197,10 @@ function DomainDetailPage() {
 			)}
 
 			<div className="grid gap-4 lg:grid-cols-3">
-				<CompanyInfoCard domain={data.domain} />
+				<CompanyInfoCard
+					domain={data.domain}
+					autoResearch={data.autoResearch}
+				/>
 				<div className="lg:col-span-2">
 					<ActivityChart
 						points={timeseries.data?.points}
