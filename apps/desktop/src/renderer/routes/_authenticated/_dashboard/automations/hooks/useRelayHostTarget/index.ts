@@ -1,1 +1,1 @@
-export * from "./useRelayHostTarget";
+export { useRelayHostTarget } from "./useRelayHostTarget";

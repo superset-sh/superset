@@ -145,6 +145,11 @@ export function DashboardSidebarHeader({
 						<button
 							type="button"
 							onClick={handleAutomationsClick}
+							aria-label={
+								myFailedCount > 0
+									? `Automations, ${myFailedCount} failing`
+									: "Automations"
+							}
 							className={cn(
 								"relative flex size-8 items-center justify-center rounded-md transition-colors",
 								isAutomationsOpen
@@ -154,11 +159,18 @@ export function DashboardSidebarHeader({
 						>
 							<LuClock className="size-4" />
 							{myFailedCount > 0 && (
-								<span className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500" />
+								<span
+									aria-hidden="true"
+									className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
+								/>
 							)}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Automations</TooltipContent>
+					<TooltipContent side="right">
+						{myFailedCount > 0
+							? `Automations (${myFailedCount} failing)`
+							: "Automations"}
+					</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>

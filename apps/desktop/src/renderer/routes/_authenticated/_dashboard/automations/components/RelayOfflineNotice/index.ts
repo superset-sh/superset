@@ -1,1 +1,1 @@
-export * from "./RelayOfflineNotice";
+export { RelayOfflineNotice } from "./RelayOfflineNotice";

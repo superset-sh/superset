@@ -8,13 +8,12 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
-import { toast } from "@superset/ui/sonner";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
-import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ExposeViaRelayConfirmDialog } from "renderer/routes/_authenticated/components/ExposeViaRelayConfirmDialog";
+import { useEnableRelayAccess } from "../../hooks/useEnableRelayAccess";
 import { useRelayHostTarget } from "../../hooks/useRelayHostTarget";
 
 interface HostOfflineRunDialogProps {
@@ -36,23 +35,12 @@ export function HostOfflineRunDialog({
 	const { isLocal, remoteHost } = useRelayHostTarget(hostId);
 	const { gateFeature } = usePaywall();
 	const [confirmOpen, setConfirmOpen] = useState(false);
+	const { enableRelay, isPending } = useEnableRelayAccess();
 
-	const utils = electronTrpc.useUtils();
-	const setExpose =
-		electronTrpc.settings.setExposeHostServiceViaRelay.useMutation({
-			onSettled: () => {
-				utils.settings.getExposeHostServiceViaRelay.invalidate();
-			},
-		});
-
-	const enableRelay = () => {
+	const handleConfirm = () => {
 		setConfirmOpen(false);
 		onOpenChange(false);
-		toast.promise(setExpose.mutateAsync({ enabled: true }), {
-			loading: "Restarting host services…",
-			success: "Relay access enabled, connecting to the relay…",
-			error: (err: Error) => err.message ?? "Failed to enable relay access",
-		});
+		enableRelay();
 	};
 
 	return (
@@ -96,7 +84,7 @@ export function HostOfflineRunDialog({
 					</DialogClose>
 					{isLocal ? (
 						<Button
-							disabled={setExpose.isPending}
+							disabled={isPending}
 							onClick={() =>
 								gateFeature(GATED_FEATURES.REMOTE_WORKSPACES, () =>
 									setConfirmOpen(true),
@@ -124,7 +112,7 @@ export function HostOfflineRunDialog({
 					open={confirmOpen}
 					targetEnabled
 					onOpenChange={setConfirmOpen}
-					onConfirm={enableRelay}
+					onConfirm={handleConfirm}
 				/>
 			</DialogContent>
 		</Dialog>
