@@ -87,7 +87,13 @@ export function DomainUsersTable({ users, totalUsers }: DomainUsersTableProps) {
 												</AvatarFallback>
 											</Avatar>
 											<div className="flex flex-col">
-												<span className="font-medium">{user.name}</span>
+												<Link
+													to="/users/$userId"
+													params={{ userId: user.userId }}
+													className="font-medium hover:underline"
+												>
+													{user.name}
+												</Link>
 												<span className="text-muted-foreground text-xs">
 													{user.email}
 												</span>

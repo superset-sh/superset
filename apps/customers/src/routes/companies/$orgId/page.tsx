@@ -2,8 +2,10 @@ import { Card, CardContent } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
 import { ActivityChart } from "@/components/ActivityChart";
 import { SnapshotNote } from "@/components/SnapshotNote";
+import { WeeksPicker } from "@/components/WeeksPicker";
 import { useTRPC } from "@/trpc/react";
 import { CompanyHeader } from "./components/CompanyHeader";
 import { MembersTable } from "./components/MembersTable";
@@ -17,9 +19,10 @@ function CompanyDetailPage() {
 	const { orgId } = Route.useParams();
 	const trpc = useTRPC();
 
+	const [weeks, setWeeks] = useState(12);
 	const detail = useQuery(trpc.customers.companyDetail.queryOptions({ orgId }));
 	const timeseries = useQuery(
-		trpc.customers.companyActivityTimeseries.queryOptions({ orgId }),
+		trpc.customers.companyActivityTimeseries.queryOptions({ orgId, weeks }),
 	);
 
 	if (detail.isLoading) {
@@ -70,6 +73,7 @@ function CompanyDetailPage() {
 						points={timeseries.data?.points}
 						isLoading={timeseries.isLoading}
 						error={timeseries.error}
+						headerAction={<WeeksPicker value={weeks} onChange={setWeeks} />}
 					/>
 				</div>
 			</div>

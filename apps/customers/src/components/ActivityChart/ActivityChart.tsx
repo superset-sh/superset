@@ -12,6 +12,7 @@ import {
 	ChartTooltipContent,
 } from "@superset/ui/chart";
 import { Skeleton } from "@superset/ui/skeleton";
+import type { ReactNode } from "react";
 import { Bar, ComposedChart, Line, XAxis, YAxis } from "recharts";
 
 interface ActivityPoint {
@@ -24,6 +25,7 @@ export interface ActivityChartProps {
 	points: ActivityPoint[] | undefined;
 	isLoading: boolean;
 	error: { message: string } | null;
+	headerAction?: ReactNode;
 }
 
 const chartConfig = {
@@ -41,14 +43,20 @@ export function ActivityChart({
 	points,
 	isLoading,
 	error,
+	headerAction,
 }: ActivityChartProps) {
 	return (
 		<Card>
 			<CardHeader>
-				<CardTitle>Weekly activity</CardTitle>
-				<CardDescription>
-					Active members and core product events per week
-				</CardDescription>
+				<div className="flex items-center justify-between">
+					<div>
+						<CardTitle>Weekly activity</CardTitle>
+						<CardDescription>
+							Active members and core product events per week
+						</CardDescription>
+					</div>
+					{headerAction}
+				</div>
 			</CardHeader>
 			<CardContent>
 				{isLoading ? (

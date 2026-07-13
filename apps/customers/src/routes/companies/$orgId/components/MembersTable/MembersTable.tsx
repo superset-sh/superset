@@ -18,6 +18,7 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
 import type { IconType } from "react-icons";
 import { LuMessageSquare, LuMonitor, LuTerminal } from "react-icons/lu";
@@ -97,7 +98,13 @@ export function MembersTable({ members }: MembersTableProps) {
 												</AvatarFallback>
 											</Avatar>
 											<div className="flex flex-col">
-												<span className="font-medium">{member.name}</span>
+												<Link
+													to="/users/$userId"
+													params={{ userId: member.userId }}
+													className="font-medium hover:underline"
+												>
+													{member.name}
+												</Link>
 												<span className="text-muted-foreground text-xs">
 													{member.email}
 												</span>

@@ -448,7 +448,7 @@ export const customersRouter = {
 		.input(
 			z.object({
 				orgId: z.string().uuid(),
-				weeks: z.number().int().min(1).max(26).default(12),
+				weeks: z.number().int().min(1).max(52).default(12),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -593,7 +593,7 @@ export const customersRouter = {
 		.input(
 			z.object({
 				domain: domainSchema,
-				weeks: z.number().int().min(1).max(26).default(12),
+				weeks: z.number().int().min(1).max(52).default(12),
 			}),
 		)
 		.query(async ({ input }) => {
@@ -618,6 +618,94 @@ export const customersRouter = {
 				points: await fetchWeeklyActivity(ids, input.weeks),
 				sampled: ids.length > WEEKLY_ACTIVITY_IDS_CAP,
 			};
+		}),
+
+	userDetail: adminProcedure
+		.input(z.object({ userId: z.string().uuid() }))
+		.query(async ({ input }) => {
+			const [user, memberRows, subsByOrg, snapshot] = await Promise.all([
+				db.query.users.findFirst({ where: eq(users.id, input.userId) }),
+				db
+					.select({
+						organizationId: members.organizationId,
+						role: members.role,
+						joinedAt: members.createdAt,
+						orgName: organizations.name,
+					})
+					.from(members)
+					.innerJoin(
+						organizations,
+						eq(members.organizationId, organizations.id),
+					)
+					.where(eq(members.userId, input.userId)),
+				getSubscriptionsByOrg(),
+				getActivitySnapshot(),
+			]);
+
+			if (!user) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+			}
+
+			const activity = snapshot.byUserId.get(user.id.toLowerCase());
+			const health = healthFromLastActive(activity?.lastActiveAt ?? null);
+			const orgs = memberRows.map((row) => {
+				const sub = subsByOrg.get(row.organizationId) ?? null;
+				return {
+					id: row.organizationId,
+					name: row.orgName,
+					role: row.role,
+					joinedAt: row.joinedAt,
+					isPaying:
+						sub != null &&
+						isActiveSubscriptionStatus(sub.status) &&
+						isPaidPlan(sub.plan),
+				};
+			});
+
+			return {
+				user: {
+					id: user.id,
+					name: user.name,
+					email: user.email,
+					image: user.image,
+					createdAt: user.createdAt,
+					onboardedAt: user.onboardedAt,
+				},
+				orgs,
+				lastActiveAt: activity?.lastActiveAt ?? null,
+				events7d: activity?.events7d ?? 0,
+				events30d: activity?.events30d ?? 0,
+				trendPct: trendPct(
+					activity?.events30d ?? 0,
+					activity?.events30dPrev ?? 0,
+				),
+				activeDays30: activity?.activeDays30 ?? 0,
+				// Per-surface event counts over the snapshot's 90d window.
+				surfaces: {
+					desktop: activity?.desktopEvents ?? 0,
+					cli: activity?.cliEvents ?? 0,
+					chat: activity?.chatEvents ?? 0,
+				},
+				topSurface: topSurface(activity),
+				health,
+				churnRisk: isChurnRisk(
+					health,
+					orgs.some((org) => org.isPaying),
+				),
+				hasActivityData: activity != null,
+				snapshotAt: snapshot.fetchedAt,
+			};
+		}),
+
+	userActivityTimeseries: adminProcedure
+		.input(
+			z.object({
+				userId: z.string().uuid(),
+				weeks: z.number().int().min(1).max(52).default(12),
+			}),
+		)
+		.query(async ({ input }) => {
+			return { points: await fetchWeeklyActivity([input.userId], input.weeks) };
 		}),
 
 	domainRollup: adminProcedure

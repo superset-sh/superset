@@ -4,11 +4,13 @@ import { Skeleton } from "@superset/ui/skeleton";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 import { LuArrowLeft, LuCircleDollarSign } from "react-icons/lu";
 
 import { ActivityChart } from "@/components/ActivityChart";
 import { HealthBadge } from "@/components/HealthBadge";
 import { SnapshotNote } from "@/components/SnapshotNote";
+import { WeeksPicker } from "@/components/WeeksPicker";
 import { useTRPC } from "@/trpc/react";
 
 import { DomainUsersTable } from "./components/DomainUsersTable";
@@ -35,9 +37,10 @@ function DomainDetailPage() {
 	const { domain } = Route.useParams();
 	const trpc = useTRPC();
 
+	const [weeks, setWeeks] = useState(12);
 	const detail = useQuery(trpc.customers.domainDetail.queryOptions({ domain }));
 	const timeseries = useQuery(
-		trpc.customers.domainActivityTimeseries.queryOptions({ domain }),
+		trpc.customers.domainActivityTimeseries.queryOptions({ domain, weeks }),
 	);
 
 	if (detail.isLoading) {
@@ -154,6 +157,7 @@ function DomainDetailPage() {
 				points={timeseries.data?.points}
 				isLoading={timeseries.isLoading}
 				error={timeseries.error}
+				headerAction={<WeeksPicker value={weeks} onChange={setWeeks} />}
 			/>
 			{timeseries.data?.sampled && (
 				<p className="text-muted-foreground -mt-4 text-xs">
