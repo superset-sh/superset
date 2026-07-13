@@ -126,7 +126,11 @@ export function TerminalConnectionIndicator({
 							<button
 								type="button"
 								onClick={() =>
-									navigator.clipboard.writeText(formatLogsForClipboard(logs))
+									navigator.clipboard
+										.writeText(formatLogsForClipboard(logs))
+										.catch((error) =>
+											console.error("[terminal] copy log failed:", error),
+										)
 								}
 								className="text-muted-foreground transition-colors hover:text-foreground"
 							>

@@ -213,6 +213,9 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 		const url = entry.transport.currentUrl;
 		if (!url) return;
+		// Manual retry gets a full backoff budget, like reconnectNow(); the
+		// exhausted counter would otherwise block scheduling any follow-up.
+		entry.transport._reconnectAttempt = 0;
 		connect(entry.transport, entry.runtime.terminal, url);
 	}
 
