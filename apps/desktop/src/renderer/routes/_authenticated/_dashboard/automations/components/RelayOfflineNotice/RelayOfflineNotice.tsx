@@ -6,9 +6,8 @@ import { useState } from "react";
 import { LuTriangleAlert } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { ExposeViaRelayConfirmDialog } from "renderer/routes/_authenticated/components/ExposeViaRelayConfirmDialog";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useRelayHostTarget } from "../../hooks/useRelayHostTarget";
 
 interface RelayOfflineNoticeProps {
 	hostId: string | null;
@@ -24,9 +23,7 @@ export function RelayOfflineNotice({
 	hostId,
 	className,
 }: RelayOfflineNoticeProps) {
-	const { machineId } = useLocalHostService();
-	const { localHostId, localHostIsOnline, otherHosts } =
-		useWorkspaceHostOptions();
+	const { isLocal, remoteHost, localHostIsOnline } = useRelayHostTarget(hostId);
 	const { gateFeature } = usePaywall();
 	const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -38,11 +35,6 @@ export function RelayOfflineNotice({
 			},
 		});
 
-	const isLocal =
-		hostId === null || hostId === machineId || hostId === localHostId;
-	const remoteHost = isLocal
-		? null
-		: otherHosts.find((host) => host.id === hostId);
 	const offline = isLocal
 		? localHostIsOnline === false
 		: remoteHost

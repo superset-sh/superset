@@ -29,7 +29,7 @@ import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { LuPlus, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -47,9 +47,10 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
+import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
 import { useRecentProjects } from "./hooks/useRecentProjects";
 import type { AutomationTemplate } from "./templates";
-import { showRunNowErrorToast } from "./utils/hostOfflineError";
+import { isHostOfflineError } from "./utils/hostOfflineError";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -62,7 +63,6 @@ type Scope = "mine" | "team";
 type AutomationSortField = "name" | "owner" | "project" | "schedule";
 
 function AutomationsPage() {
-	const navigate = useNavigate();
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
@@ -75,13 +75,27 @@ function AutomationsPage() {
 	const [pendingDelete, setPendingDelete] = useState<SelectAutomation | null>(
 		null,
 	);
+	const [hostOfflineRun, setHostOfflineRun] = useState<{
+		hostId: string | null;
+	} | null>(null);
 
 	const runNowMutation = useMutation({
-		mutationFn: ({ id }: { id: string; name: string }) =>
-			apiTrpcClient.automation.runNow.mutate({ id }),
+		mutationFn: ({
+			id,
+		}: {
+			id: string;
+			name: string;
+			targetHostId: string | null;
+		}) => apiTrpcClient.automation.runNow.mutate({ id }),
 		onSuccess: (_, { name }) => toast.success(`Running "${name}" now`),
-		onError: (error) =>
-			showRunNowErrorToast(error, () => navigate({ to: "/settings/security" })),
+		onError: (error, { targetHostId }) => {
+			const message = error instanceof Error ? error.message : null;
+			if (isHostOfflineError(message)) {
+				setHostOfflineRun({ hostId: targetHostId });
+				return;
+			}
+			toast.error(message ?? "Failed to trigger run");
+		},
 	});
 
 	const deleteMutation = useMutation({
@@ -450,7 +464,11 @@ function AutomationsPage() {
 											hostLabel={host?.name ?? "Auto"}
 											isOwner={automation.ownerUserId === currentUserId}
 											onRunNow={(a) =>
-												runNowMutation.mutate({ id: a.id, name: a.name })
+												runNowMutation.mutate({
+													id: a.id,
+													name: a.name,
+													targetHostId: a.targetHostId,
+												})
 											}
 											onDelete={setPendingDelete}
 										/>
@@ -467,6 +485,14 @@ function AutomationsPage() {
 				onOpenChange={handleDialogOpenChange}
 				initialTemplate={initialTemplate}
 				onCreated={() => handleDialogOpenChange(false)}
+			/>
+
+			<HostOfflineRunDialog
+				hostId={hostOfflineRun?.hostId ?? null}
+				open={!!hostOfflineRun}
+				onOpenChange={(next) => {
+					if (!next) setHostOfflineRun(null);
+				}}
 			/>
 
 			<AlertDialog
