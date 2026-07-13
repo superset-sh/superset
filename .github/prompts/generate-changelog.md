@@ -161,60 +161,75 @@ Only set it when you have a genuinely strong hero; a mediocre or awkwardly-tilte
 worse than none, so leave it out and the card renders text-only rather than force a bad
 image. Inline media still carries the visuals.
 
-## Launch tweet / thread
+## Launch tweet
 
-Alongside the changelog `.mdx`, always draft a short "what we shipped" thread for X and
-write it to a **sibling file** `apps/marketing/content/changelog/YYYY-MM-DD-tweet.md` (a `.md`, not
+Alongside the changelog `.mdx`, always draft the "what we shipped" launch tweet and write
+it to a **sibling file** `apps/marketing/content/changelog/YYYY-MM-DD-tweet.md` (a `.md`, not
 `.mdx` — the changelog loader only reads `.mdx`, so this companion file is ignored by the
 site and won't render as an entry). Give it light frontmatter (`title`, `date`,
-`type: tweet`) and the thread body.
+`type: tweet`) and the body.
 
-Lead with the 2-4 biggest features and give each the **why**, not just the **what**.
+It is **one single tweet** (one long X post), not a thread. It goes out together with the
+changelog link, so the tweet carries the highlights and the changelog carries the detail.
 
-Style — match this shape and voice:
+Shape:
 
-- Open with `What we shipped <this week | the last N weeks> @ Superset 🛳️`.
-- Number the top features; put a trailing emoji on each title.
-- Flagship feature (#1): 1-2 short paragraphs framing the **bet / vision** behind it —
-  where the product is going — not just the mechanics. Remaining features: one tight
-  paragraph each on what it does + how to turn it on (e.g. "Enable it in Settings → …").
-- First-person plural, opinionated, casual. No corporate hedging or feature-list dryness.
-- If a feature was itself used to produce the changelog (e.g. an automation drafted it),
-  call it out ("This changelog draft was created by an automation").
-- Close with: `As always, tons of bug fixes and improvements, thanks to all our users in
-  open beta for V2 helping us make the product better everyday <3`
+- Open with `What we shipped this week @superset_sh 🛳️` (or `the last N weeks`).
+- Number the top 2-4 features; trailing emoji on each title.
+- Flagship feature (#1): 1-2 short paragraphs. Lead with the pain or the bet behind it,
+  then what it does. Remaining features: one tight paragraph each on what it does + how
+  to turn it on (e.g. "Enable it in Settings → …").
+- Fold everything smaller into one `Also this week: …` sentence.
+- If an automation drafted the changelog, say so ("This changelog draft was created by an
+  automation").
+- Close with: `Plus a bunch of bug fixes. Thanks to everyone in the v2 open beta for the
+  reports, please keep them coming!`
+- End with the changelog link: `Full changelog: https://superset.sh/changelog/<slug>`.
+
+Voice — the source of truth is the Notion page **"Kiet's Email voice"**. Before writing
+the tweet, fetch it with the Notion MCP (`notion-search` for "Kiet's Email voice", then
+`notion-fetch` the result) and follow it; the same rules apply to tweets. If the Notion
+MCP isn't available in the environment (e.g. the headless CI run), fall back to this
+summary:
+
+- First-person plural, casual, opinionated. Write like a person typing fast, then cut half.
+- **No em dashes.** Periods or commas.
+- No performative or salesy lines ("genuinely excited", "we really appreciate you",
+  vision taglines bolted onto feature blurbs).
+- No AI tells: no noun-pile compression (use normal verbs and articles), no "not just X,
+  but Y", no rule-of-three stacking, no signposting ("Here's the thing"), and none of:
+  delve, leverage, robust, seamless, crucial, comprehensive, streamline.
 
 Reference example (the voice + shape to emulate):
 
 ```text
-What we shipped the last 2 weeks @ Superset 🛳️
+What we shipped this week @superset_sh 🛳️
 
-1. Automations ⚡
+1. Rich input for the terminal ⌨️
+Writing a real prompt in a raw TTY line is painful. No multiline editing, no mentions,
+and pasting can execute line by line. So we brought the workspace chat composer into the
+terminal. Press ⌘I over any terminal pane and you get a real editor: Shift+Enter
+newlines, @-file mentions, drafts that survive tab switches. Your prompt lands in the
+TUI as one clean block.
 
-One of the most important features in Superset for the future. If the software
-development lifecycle becomes more like a factory, human inputs should be to tune
-automation, not generate the code.
+2. Terminal scrolling at Ghostty speed 🖱️
+Claude Code transcripts used to scroll at a third of native speed in Superset. Agent
+TUIs tune themselves to the terminal they think they're in, so we fixed the identity we
+advertise. Scrolling now matches Ghostty.
 
-Automations is our first experiment towards that, scheduling agents to create workspaces
-and PRs on events and triggers. Simply create a prompt and run any agents on it.
+3. Mistral Vibe 🤝
+Mistral's Vibe CLI is now a first-class Superset agent, contributed by the Mistral team
+themselves. Its own icon in the pickers, a model selector, a completion chime. We also
+added GPT-5.6 Sol, Terra, and Luna to the Codex picker.
 
-We will add more capabilities such as auto-triage GitHub issues, Linear tasks, etc. This
-changelog draft was created by an automation.
+Also this week: wake offline hosts with a configurable wake command, remote hosts on
+every plan (relay no longer needs a paid subscription), a Sydney relay region, and
+Linear project/cycle filters for Tasks.
 
-2. CLI 🎹
+Plus a bunch of bug fixes. Thanks to everyone in the v2 open beta for the reports,
+please keep them coming!
 
-Superset can now be driven through the CLI by agents. Let Claude Code, Codex, etc. create
-workspaces, spin up other agents, and even create automations, all through the command
-line. Packaged directly into the Superset terminal, no installation necessary.
-
-3. Slack bot 🤖
-
-Create Superset workspaces and tasks directly from your threads, it can read contexts
-from your conversations, create issues, and spin up workspace + agents on your machine to
-solve it. Enable it through Settings -> Integrations.
-
-As always, tons of bug fixes and improvements, thanks to all our users in open beta for V2
-helping us make the product better everyday <3
+Full changelog: https://superset.sh/changelog/2026-07-12-terminal-rich-input
 ```
 
 ## Reference Examples
@@ -235,7 +250,7 @@ Otherwise, produce and commit the full set:
    - the changelog entry `apps/marketing/content/changelog/YYYY-MM-DD-<slug>.mdx`
    - its media assets in `apps/marketing/public/changelog/` (screenshots/recordings, when
      the environment allows — see above; otherwise placeholders + TODOs)
-   - the companion launch thread `apps/marketing/content/changelog/YYYY-MM-DD-tweet.md`
+   - the companion launch tweet `apps/marketing/content/changelog/YYYY-MM-DD-tweet.md`
 2. **Format:** run `bun run lint:fix`, then verify `bun run lint` exits 0 before committing.
 3. **Branch:** create `changelog/YYYY-MM-DD`.
 4. **Commit** the `.mdx`, its media assets, and the `-tweet.md` file together with message
