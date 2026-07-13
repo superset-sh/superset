@@ -16,6 +16,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useScrollReset } from "renderer/routes/_authenticated/settings/hooks/useScrollReset";
 import { AgentDetail } from "./components/AgentDetail";
 import { AgentsSettingsSidebar } from "./components/AgentsSettingsSidebar";
 import {
@@ -200,6 +201,9 @@ export function V2AgentsSettings({
 
 	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
+	const detailRef = useScrollReset<HTMLDivElement>(
+		isCreating ? "new" : selectedAgentId,
+	);
 	const consumedInitialPresetIdRef = useRef(false);
 
 	// Auto-select first agent when none selected, and clear selection when the
@@ -261,7 +265,7 @@ export function V2AgentsSettings({
 					isResetting={resetMutation.isPending}
 				/>
 			)}
-			<div className="flex-1 overflow-y-auto">
+			<div ref={detailRef} className="flex-1 overflow-y-auto">
 				{isCreating ? (
 					<NewCustomAgentDetail
 						onCreate={(input) => addCustomMutation.mutate(input)}

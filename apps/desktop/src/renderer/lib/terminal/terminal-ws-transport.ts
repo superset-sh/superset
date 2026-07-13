@@ -5,7 +5,10 @@ import {
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { ensureFreshJwt } from "renderer/lib/auth-client";
 import { posthog } from "renderer/lib/posthog";
-import { classifyTerminalFailure } from "./terminalConnectionDiagnostics";
+import {
+	classifyTerminalFailure,
+	type TerminalFailureClassification,
+} from "./terminalConnectionDiagnostics";
 import { createWriteCoalescer, type WriteCoalescer } from "./write-coalescer";
 
 export type ConnectionState = "disconnected" | "connecting" | "open" | "closed";
@@ -79,6 +82,12 @@ export interface TerminalTransport {
 	_writeCoalescer: WriteCoalescer | null;
 	/** Internal: last `_whoowns` probe, used to explain a failed connection. */
 	_lastProbe: RelayAffinityProbe | null;
+	/**
+	 * Why the connection is down, once the transport has stopped trying (gave
+	 * up, access denied, fatal server error, PTY exit). Null while healthy or
+	 * still auto-reconnecting. Drives the pane header status indicator.
+	 */
+	lastDiagnosis: TerminalFailureClassification | null;
 	/** Internal: bumped per connect() so async preflight callbacks from a
 	 * superseded attempt (reconnectNow re-entering the same URL) can't open a
 	 * duplicate socket or fatally terminate the newer attempt. */
@@ -184,6 +193,7 @@ export function createTransport(): TerminalTransport {
 		_resumeListener: null,
 		_writeCoalescer: null,
 		_lastProbe: null,
+		lastDiagnosis: null,
 		_connectEpoch: 0,
 	};
 }
@@ -377,6 +387,7 @@ export function connect(
 		terminal.write(data),
 	);
 	transport._terminated = false;
+	transport.lastDiagnosis = null;
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
 	const actualUrl = transport._hasReceivedBytes
@@ -444,6 +455,7 @@ export function connect(
 						return;
 					}
 					const diagnosis = classifyTerminalFailure(probe, true);
+					transport.lastDiagnosis = diagnosis;
 					pushLog(
 						transport,
 						"error",
@@ -511,12 +523,17 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "attached") {
+			transport.lastDiagnosis = null;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
 			return;
 		}
 
 		if (message.type === "error") {
+			transport.lastDiagnosis = {
+				category: "unknown",
+				message: message.message,
+			};
 			pushLog(transport, "error", message.message);
 			// Server closes after this; reconnecting would just hit the same error.
 			transport._terminated = true;
@@ -527,6 +544,10 @@ function attachSocketListeners(
 		if (message.type === "exit") {
 			transport._writeCoalescer?.flushSync();
 			transport._terminated = true;
+			transport.lastDiagnosis = {
+				category: "unknown",
+				message: `The terminal session ended (exit code ${message.exitCode}).`,
+			};
 			cancelReconnect(transport);
 			terminal.writeln(
 				`\r\n[terminal] exited with code ${message.exitCode} (signal ${message.signal})`,
@@ -551,7 +572,7 @@ function attachSocketListeners(
 				pushLog(
 					transport,
 					"warn",
-					`WebSocket closed while connected to ${endpoint} (${formatCloseDetails(event)}). Reconnecting...`,
+					`WebSocket closed while connected to ${endpoint} (${formatCloseDetails(event)}). Reconnecting (attempt ${transport._reconnectAttempt + 1}/${MAX_RECONNECT_ATTEMPTS})...`,
 				);
 			} else {
 				// Gave up. Classify why from the preflight probe and record it so
@@ -560,6 +581,7 @@ function attachSocketListeners(
 					transport._lastProbe,
 					isRelayHostUrl(transport.currentUrl),
 				);
+				transport.lastDiagnosis = diagnosis;
 				pushLog(
 					transport,
 					"error",
@@ -609,6 +631,7 @@ export function disconnect(transport: TerminalTransport) {
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
+	transport.lastDiagnosis = null;
 	setTerminalTitle(transport, undefined);
 	setConnectionState(transport, "disconnected");
 	transport.onDataDisposable?.dispose();
@@ -651,6 +674,7 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._reconnectAttempt = 0;
+	transport.lastDiagnosis = null;
 	setTerminalTitle(transport, undefined);
 	transport.onDataDisposable?.dispose();
 	transport.onDataDisposable = null;

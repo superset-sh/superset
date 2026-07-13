@@ -26,6 +26,7 @@ import {
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
+import type { TerminalFailureClassification } from "./terminalConnectionDiagnostics";
 
 interface RegistryEntry {
 	terminalId: string;
@@ -200,6 +201,22 @@ class TerminalRuntimeRegistryImpl {
 		if (entry.transport.connectionState === "disconnected") return;
 		if (entry.transport.currentUrl === wsUrl) return;
 		connect(entry.transport, entry.runtime.terminal, wsUrl);
+	}
+
+	/**
+	 * Manually re-dial the last URL after the transport stopped trying (gave
+	 * up on max attempts, access denied, fatal server error). connect() clears
+	 * the terminated flag, so this restarts a dead loop.
+	 */
+	retryConnect(terminalId: string, instanceId = terminalId) {
+		const entry = this.getEntry(terminalId, instanceId);
+		if (!entry?.runtime) return;
+		const url = entry.transport.currentUrl;
+		if (!url) return;
+		// Manual retry gets a full backoff budget, like reconnectNow(); the
+		// exhausted counter would otherwise block scheduling any follow-up.
+		entry.transport._reconnectAttempt = 0;
+		connect(entry.transport, entry.runtime.terminal, url);
 	}
 
 	/**
@@ -384,6 +401,21 @@ class TerminalRuntimeRegistryImpl {
 		return this.getEntry(terminalId, instanceId)?.transport.logs ?? EMPTY_LOGS;
 	}
 
+	/**
+	 * Why the connection is down, once the transport has stopped retrying.
+	 * Null while healthy or still auto-reconnecting. Changes are announced
+	 * through the state and log listeners (diagnosis flips always accompany a
+	 * state change or a log push).
+	 */
+	getConnectionDiagnosis(
+		terminalId: string,
+		instanceId?: string,
+	): TerminalFailureClassification | null {
+		return (
+			this.getEntry(terminalId, instanceId)?.transport.lastDiagnosis ?? null
+		);
+	}
+
 	clearLogs(terminalId: string, instanceId?: string): void {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry) return;
@@ -448,6 +480,7 @@ if (import.meta.hot) {
 export type {
 	ConnectionState,
 	LinkHoverInfo,
+	TerminalFailureClassification,
 	TerminalLinkHandlers,
 	TerminalLogEntry,
 };
