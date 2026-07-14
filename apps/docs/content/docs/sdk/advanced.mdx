@@ -1,17 +1,17 @@
 ---
 title: Advanced Usage
-description: Real-world recipes that combine the SDK's primitives — webhooks, triage scripts, and on-demand agents.
+description: Real-world recipes that combine the SDK's primitives (webhooks, triage scripts, and on-demand agents).
 ---
 
 <Callout type="warn">
-The SDK is in early alpha — it is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
+The SDK is in early alpha. It is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
 </Callout>
 
 The SDK's individual methods are simple. The interesting part is what you compose them into. These are end-to-end recipes you can copy as starting points.
 
 ## Sentry webhook → agent on the bug
 
-When Sentry fires an alert, file a task and spawn an agent to investigate — all in two SDK calls. (In production, verify the Sentry signature header before trusting any payload — that part is omitted here for clarity.)
+When Sentry fires an alert, file a task and spawn an agent to investigate, all in two SDK calls. (In production, verify the Sentry signature header before trusting any payload. That part is omitted here for clarity.)
 
 ```ts title="sentry-webhook.ts"
 import { Hono } from 'hono';
@@ -133,7 +133,7 @@ Run it from a daily cron on a beefy host and you wake up to a branch per bug. On
 
 ## Sweep a refactor across every repo
 
-Internal API rename, dependency bump, lint rule rollout — anything that has to land identically in dozens of repos is a one-loop, fan-out problem:
+Internal API rename, dependency bump, lint rule rollout. Anything that has to land identically in dozens of repos is a one-loop, fan-out problem:
 
 ```ts title="sweep-rename-getUser.ts"
 import Superset from '@superset_sh/sdk';
@@ -176,7 +176,7 @@ Same loop works for "bump TypeScript to 5.7", "swap Sentry SDK for the new one",
 
 ## On-demand agent dispatch from your tools
 
-If you've already created a recurring automation in the dashboard, the SDK can fire it off-schedule from anywhere — a Slack slash command, a CI job, an internal admin panel:
+If you've already created a recurring automation in the dashboard, the SDK can fire it off-schedule from anywhere (a Slack slash command, a CI job, an internal admin panel):
 
 ```ts
 const run = await client.automations.run('<automation-id>');

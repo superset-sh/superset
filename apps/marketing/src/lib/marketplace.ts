@@ -376,7 +376,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Concrete-and-glass discipline. Black, white, three greys — and one color, used once. The architectural equivalent of a Bauhaus chair.",
+			"Concrete-and-glass discipline. Black, white, three greys. One color, used once. The architectural equivalent of a Bauhaus chair.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -450,7 +450,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"A blacksmith's forge at first light. Cold dark steel meets hot orange embers — the metal hasn't lost its memory of fire.",
+			"A blacksmith's forge at first light. Cold dark steel meets hot orange embers. The metal hasn't lost its memory of fire.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -487,7 +487,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Working warehouse at end of shift — concrete grey, safety orange, diesel yellow, exit-sign red. Functional, not decorative.",
+			"Working warehouse at end of shift: concrete grey, safety orange, diesel yellow, exit-sign red. Functional, not decorative.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -524,7 +524,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Fountain-pen blue ink on bone-white paper. A long-form essayist's draft surface — patient, literary, cool.",
+			"Fountain-pen blue ink on bone-white paper. A long-form essayist's draft surface: patient, literary, cool.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -561,7 +561,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Black lacquer mended with gold dust. Cracks showing where the break was — the repair is the point, not what to hide.",
+			"Black lacquer mended with gold dust. Cracks showing where the break was. The repair is the point, not what to hide.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -598,7 +598,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"A cooling pool inside a research reactor — Cherenkov-blue glow on graphite walls, uranium-yellow caution.",
+			"A cooling pool inside a research reactor: Cherenkov-blue glow on graphite walls, uranium-yellow caution.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -635,7 +635,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"Risograph print on cream paper. Fluorescent pink, soybean yellow, federal blue — slightly off-register, slightly handmade.",
+			"Risograph print on cream paper. Fluorescent pink, soybean yellow, federal blue. Slightly off-register, slightly handmade.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -709,7 +709,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Baris Can Sayin",
 		submittedBy: "itsbariscan",
 		description:
-			"After the streetlights, before full night. Pre-dawn navy meets sodium-vapor orange — a single moment captured.",
+			"After the streetlights, before full night. Pre-dawn navy meets sodium-vapor orange, a single moment captured.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -783,7 +783,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Zeno Rocha",
 		submittedBy: "itsbariscan",
 		description:
-			"A faithful port of Dracula — the dark theme with cyan, green, orange, pink, purple, red, yellow on deep slate.",
+			"A faithful port of Dracula: the dark theme with cyan, green, orange, pink, purple, red, yellow on deep slate.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -820,7 +820,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Pavel Pertsev",
 		submittedBy: "itsbariscan",
 		description:
-			"Retro groove from Pavel Pertsev — warm dark base, ochre/olive/clay accents. Honest, woodgrain feel.",
+			"Retro groove from Pavel Pertsev: warm dark base, ochre/olive/clay accents. Honest, woodgrain feel.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -931,7 +931,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Ethan Schoonover",
 		submittedBy: "itsbariscan",
 		description:
-			"Precision colors engineered for legibility — dark variant. Same accents as Solarized Light; only base tones flip.",
+			"Precision colors engineered for legibility, dark variant. Same accents as Solarized Light; only base tones flip.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -968,7 +968,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Ethan Schoonover",
 		submittedBy: "itsbariscan",
 		description:
-			"Precision colors engineered for legibility — light variant. Cream paper base, ink foreground, same accent hues as Solarized Dark.",
+			"Precision colors engineered for legibility, light variant. Cream paper base, ink foreground, same accent hues as Solarized Dark.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",
@@ -1005,7 +1005,7 @@ export const themeListings: ThemeListing[] = [
 		author: "Enkia",
 		submittedBy: "itsbariscan",
 		description:
-			"A dark theme inspired by Tokyo at night — neon over deep navy, with cyan, magenta, and lavender highlights.",
+			"A dark theme inspired by Tokyo at night: neon over deep navy, with cyan, magenta, and lavender highlights.",
 		addedOn: "May 7, 2026",
 		source: {
 			label: "Download",

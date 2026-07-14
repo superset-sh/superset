@@ -48,7 +48,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "now-2",
 		title: "Cloud workspaces",
 		description:
-			"Run agents in the cloud with persistent workspaces — no local machine required.",
+			"Run agents in the cloud with persistent workspaces, no local machine required.",
 		category: "Web",
 		status: "now",
 	},
@@ -98,7 +98,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "next-4",
 		title: "Webhook integrations",
 		description:
-			"Trigger agents from external events via webhooks — CI pipelines, GitHub, Slack.",
+			"Trigger agents from external events via webhooks: CI pipelines, GitHub, Slack.",
 		category: "Integrations",
 		status: "next",
 	},
@@ -160,7 +160,7 @@ export const ROADMAP_ITEMS: RoadmapItem[] = [
 		id: "shipped-3",
 		title: "CodeMirror editor",
 		description:
-			"Replaced Monaco with CodeMirror — 150KB vs 5MB, significantly faster loading.",
+			"Replaced Monaco with CodeMirror: 150KB vs 5MB, significantly faster loading.",
 		category: "Desktop",
 		status: "shipped",
 		shippedDate: "Mar 2026",
