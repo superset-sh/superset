@@ -30,7 +30,7 @@ import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { LuPlus, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -135,7 +135,13 @@ function AutomationsPage() {
 			})),
 		[collections.users],
 	);
-	const { lastRunStatusById } = useFailedAutomations();
+	const { lastRunStatusById, markMyFailuresSeen } = useFailedAutomations();
+
+	// Opening the page clears the sidebar failure badge; failures that sync in
+	// while it stays open are marked seen too, until a newer run fails.
+	useEffect(() => {
+		markMyFailuresSeen();
+	}, [markMyFailuresSeen]);
 
 	const recentProjects = useRecentProjects();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
