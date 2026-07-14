@@ -9,9 +9,9 @@ import { devtools, persist } from "zustand/middleware";
  */
 export interface AutomationFailuresState {
 	/**
-	 * createdAt (ms, host clock) of the newest failed run the user has
-	 * acknowledged. Must be a host-clock value, never the renderer clock, which
-	 * can drift and mask or resurface failures incorrectly.
+	 * createdAt (ms) of the newest failed run the user has acknowledged. This is
+	 * the run's DB timestamp (a single server clock), so it's comparable across
+	 * hosts without skew — never substitute the renderer clock here.
 	 */
 	lastSeenFailureAt: number;
 	/** Acknowledge failures up to `at`. Monotonic — never moves backward. */

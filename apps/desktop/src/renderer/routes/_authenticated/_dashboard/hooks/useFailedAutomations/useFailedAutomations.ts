@@ -69,7 +69,8 @@ export function useFailedAutomations(): FailedAutomations {
 			lastRunStatusById.set(id, run.status);
 			if (FAILED_STATUSES.includes(run.status)) failedIds.add(id);
 		}
-		// createdAt of each of the current user's failing runs.
+		// createdAt of each of the current user's failing runs. Drop non-finite
+		// times (unparseable createdAt) so one bad run can't poison the max below.
 		const myFailureTimes = currentUserId
 			? automationRows
 					.filter(
@@ -79,6 +80,7 @@ export function useFailedAutomations(): FailedAutomations {
 							failedIds.has(a.id),
 					)
 					.map((a) => latest.get(a.id)?.at ?? 0)
+					.filter((at) => Number.isFinite(at))
 			: [];
 		return { lastRunStatusById, failedIds, myFailureTimes };
 	}, [runRows, automationRows, currentUserId]);
