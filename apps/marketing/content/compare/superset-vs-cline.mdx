@@ -1,0 +1,104 @@
+---
+title: "Superset vs Cline (2026): Agent Workspace vs In-Editor Agent"
+description: "Compare Superset and Cline for AI coding. See how an editor-independent workspace running parallel agents differs from an autonomous agent embedded in VS Code."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "1v1"
+competitors:
+  - cline
+keywords:
+  - superset vs cline
+  - cline alternative
+  - vs code ai agent
+  - autonomous coding agent
+  - parallel coding agents
+---
+
+Cline is a popular open-source autonomous coding agent that lives inside VS Code. It plans, edits files, runs terminal commands, and uses your own API keys — all within the editor. Superset takes a different shape: it is an editor-independent, local-first workspace that runs many CLI agents in parallel across isolated Git worktrees, and treats your editor as a choice rather than the container.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Cline** |
+|---|---|---|
+| **Category** | Agent orchestration workspace | In-editor autonomous agent |
+| **Home** | Standalone desktop app | VS Code (and forks) extension |
+| **AI approach** | Agent-agnostic — Claude Code, Codex, Aider, Superset Chat, any CLI agent | Model-agnostic — Anthropic, OpenRouter, Bedrock, and more via your keys |
+| **Parallelism** | Core feature — 10+ agents across isolated Git worktrees | One agent per editor window/session |
+| **Isolation** | Git worktree per task | Works in your open workspace folder |
+| **Pricing** | Free tier + Pro $20/seat/mo (bring your own API keys) | Free, open source; bring your own API keys |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Aider, Copilot, Cursor Agent, Gemini CLI, Superset Chat, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. You can review inside Superset or jump into VS Code, Cursor, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+---
+
+## What Is Cline?
+
+Cline is an open-source AI coding agent that runs as a VS Code extension. It works in Plan and Act modes: it can read and write files, run terminal commands, use a browser, and connect to MCP servers, all from inside the editor. You bring your own model access (Anthropic, OpenRouter, AWS Bedrock, and others), so there is no hosted runtime or credit system — the extension is free and you pay your provider directly. Its strength is tight, in-editor autonomy: the agent operates right where you already write code.
+
+---
+
+## Key Differences
+
+### In-Editor Agent vs Editor-Independent Workspace
+
+Cline is embedded in VS Code — its context is your open editor window. Superset sits outside any single editor: it orchestrates agents around the repository and lets you review in its own UI or in VS Code, Cursor, JetBrains, or Xcode. If you are not a VS Code user, Cline does not fit; Superset does not care which editor you use.
+
+### One Agent vs Many in Parallel
+
+Cline runs one agent session per editor window. Superset is built to run 10+ agents at once, each isolated in its own Git worktree, so parallel tasks never collide over the same files or branch. That is the difference between an in-editor assistant and a multi-agent orchestrator.
+
+### Worktree Isolation
+
+Cline operates in your currently open workspace folder. Superset gives every task its own Git worktree, so an experimental refactor and a hotfix can run at the same time on the same repo without interfering. Isolation is the core primitive Superset is built around.
+
+### Privacy
+
+Both keep code local and use your own model keys — no required hosted runtime. Cline is fully open source; Superset is source-available (ELv2) and runs agents locally in worktrees.
+
+---
+
+## Pricing
+
+Superset offers a free tier and a Pro plan at $20/seat/month. You also pay for your agents' API keys (for example Anthropic for Claude Code or OpenAI for Codex) — transparent provider costs, no platform credit system.
+
+Cline is free and open source. You pay only for the model API you connect it to. That makes both tools "bring your own keys" with no markup — the difference is form factor, not billing model.
+
+---
+
+## Which Should You Choose?
+
+**Choose Cline if you:**
+- Live in VS Code and want an autonomous agent right inside the editor
+- Work one task at a time and want the agent to share your open workspace context
+- Want a free, open-source extension with your own model keys
+- Value Plan/Act control and MCP support inside the editor
+
+**Choose Superset if you:**
+- Want to run many agents in parallel across isolated Git worktrees
+- Use JetBrains, Xcode, Neovim, or multiple editors — or want to stay editor-independent
+- Need a workspace with diff review, chat, browser preview, and port management around your agents
+- Want to mix agents (Claude Code, Codex, Aider, and more) rather than one in-editor agent
+
+Both can coexist: use Cline for in-editor autonomy, and Superset to dispatch parallel agents across worktrees for larger, concurrent work.
+
+---
+
+## Frequently Asked Questions
+
+### Is Superset a VS Code extension like Cline?
+
+No. Superset is a standalone desktop workspace, not an editor extension. It runs agents around your repository and lets you review in its own UI or open the code in VS Code, Cursor, JetBrains, or Xcode.
+
+### Does Cline support running multiple agents in parallel?
+
+Cline runs one agent per editor session. For many concurrent tasks, you would open multiple windows, but they share your workspace folder. Superset instead isolates each agent in its own Git worktree so parallel work does not collide.
+
+### Are Superset and Cline both bring-your-own-key?
+
+Yes. Both let you use your own model provider keys with no credit system. Cline is a free open-source extension; Superset has a free tier plus a $20/seat/month Pro plan for its workspace features.
