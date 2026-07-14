@@ -8,7 +8,7 @@ export const CODE_PADDING_RIGHT = 16;
 // shifts as content renders in.
 export const HUNK_ROW_HEIGHT = 28;
 export const EXPANDER_ROW_HEIGHT = 38;
-export const FILE_HEADER_HEIGHT = 48;
+export const FILE_HEADER_HEIGHT = 56;
 export const NOTE_ROW_HEIGHT = 48;
 
 /** Monospace advance estimate until the probe measures the real value. */

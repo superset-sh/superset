@@ -69,7 +69,10 @@ export default function AuthenticatedLayout() {
 					<Stack.Screen
 						name="workspace/[id]/files-changed"
 						options={{
-							...glassHeaderOptions,
+							// Solid themed header (matches the sticky file bars), not glass.
+							headerShown: true,
+							headerBackButtonDisplayMode: "minimal",
+							headerShadowVisible: false,
 							title: "Files changed",
 							// Right-swipes are horizontal diff scrolling — back stays edge-only.
 							fullScreenGestureEnabled: false,

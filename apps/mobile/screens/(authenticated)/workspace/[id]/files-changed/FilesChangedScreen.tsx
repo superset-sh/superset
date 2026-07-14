@@ -1,9 +1,7 @@
 import { FlashList, type FlashListRef } from "@shopify/flash-list";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
-import * as Haptics from "expo-haptics";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { useHeaderHeight } from "expo-router/build/react-navigation/elements/Header/useHeaderHeight";
 import { FileDiff } from "lucide-react-native";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
@@ -69,7 +67,6 @@ export function FilesChangedScreen() {
 	const router = useRouter();
 	const workspaceId = id ?? null;
 	const { width: windowWidth } = useWindowDimensions();
-	const headerInset = useHeaderHeight();
 	const queryClient = useQueryClient();
 
 	const changeset = useWorkspaceChangeset(workspaceId);
@@ -369,55 +366,33 @@ export function FilesChangedScreen() {
 		[workspace, changeset.hostUrl, changeset.refetch],
 	);
 
-	const openFileMenu = useCallback(
+	const copyFilePath = useCallback((file: ChangesetFile) => {
+		void Clipboard.setStringAsync(file.path);
+	}, []);
+
+	const viewFile = useCallback(
 		(file: ChangesetFile) => {
-			void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-			ActionSheetIOS.showActionSheetWithOptions(
-				{
-					title: file.path,
-					options: [
-						"Copy relative path",
-						"View file",
-						"Add file comment",
-						"Delete file",
-						"Cancel",
-					],
-					destructiveButtonIndex: 3,
-					cancelButtonIndex: 4,
-				},
-				(buttonIndex) => {
-					switch (buttonIndex) {
-						case 0:
-							void Clipboard.setStringAsync(file.path);
-							return;
-						case 1:
-							router.push(
-								`/(authenticated)/workspace/${workspaceId}/file?path=${encodeURIComponent(file.path)}&source=${file.source}`,
-							);
-							return;
-						case 2:
-							if (workspaceId) {
-								openComposer({
-									workspaceId,
-									path: file.path,
-									side: "new",
-									line: 0,
-									lineText: "",
-									lineType: "file",
-								});
-								router.push(
-									`/(authenticated)/workspace/${workspaceId}/line-comment`,
-								);
-							}
-							return;
-						case 3:
-							deleteFile(file);
-							return;
-					}
-				},
+			router.push(
+				`/(authenticated)/workspace/${workspaceId}/file?path=${encodeURIComponent(file.path)}&source=${file.source}`,
 			);
 		},
-		[router, workspaceId, openComposer, deleteFile],
+		[router, workspaceId],
+	);
+
+	const addFileComment = useCallback(
+		(file: ChangesetFile) => {
+			if (!workspaceId) return;
+			openComposer({
+				workspaceId,
+				path: file.path,
+				side: "new",
+				line: 0,
+				lineText: "",
+				lineType: "file",
+			});
+			router.push(`/(authenticated)/workspace/${workspaceId}/line-comment`);
+		},
+		[workspaceId, openComposer, router],
 	);
 
 	useEffect(() => {
@@ -444,14 +419,10 @@ export function FilesChangedScreen() {
 			(item) => item.kind === "file" && item.file.path === path,
 		);
 		if (index >= 0) {
-			listRef.current?.scrollToIndex({
-				index,
-				animated: true,
-				viewOffset: headerInset,
-			});
+			listRef.current?.scrollToIndex({ index, animated: true });
 		}
 		clearJump();
-	}, [jumpTarget, items, viewedSet, clearJump, headerInset]);
+	}, [jumpTarget, items, viewedSet, clearJump]);
 
 	// The per-file diff queries key on +/− counts with infinite staleTime, so a
 	// same-count content change needs an explicit invalidation to show up.
@@ -479,7 +450,10 @@ export function FilesChangedScreen() {
 							expanded={item.expanded}
 							viewed={item.viewed}
 							onToggle={toggleCollapsed}
-							onMenu={openFileMenu}
+							onCopyPath={copyFilePath}
+							onViewFile={viewFile}
+							onAddComment={addFileComment}
+							onDelete={deleteFile}
 							onToggleViewed={onToggleViewed}
 						/>
 					);
@@ -553,7 +527,10 @@ export function FilesChangedScreen() {
 		},
 		[
 			toggleCollapsed,
-			openFileMenu,
+			copyFilePath,
+			viewFile,
+			addFileComment,
+			deleteFile,
 			onToggleViewed,
 			workspaceId,
 			contentWidthByPath,
@@ -615,18 +592,10 @@ export function FilesChangedScreen() {
 					keyExtractor={(item) => item.key}
 					getItemType={(item) => item.kind}
 					stickyHeaderIndices={stickyHeaderIndices}
-					stickyHeaderConfig={{ offset: headerInset, hideRelatedCell: true }}
-					contentContainerStyle={{
-						paddingTop: headerInset + 8,
-						paddingBottom: 96,
-					}}
-					scrollIndicatorInsets={{ top: headerInset }}
+					stickyHeaderConfig={{ hideRelatedCell: true }}
+					contentContainerStyle={{ paddingBottom: 96 }}
 					refreshControl={
-						<RefreshControl
-							refreshing={refreshing}
-							onRefresh={onRefresh}
-							progressViewOffset={headerInset}
-						/>
+						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
 					ListFooterComponent={
 						changeset.isReady && changeset.files.length === 0 ? (
