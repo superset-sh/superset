@@ -47,6 +47,11 @@ export const DEFAULT_IGNORE_PATTERNS = [
 	"**/.vercel/**",
 	"**/target/**",
 	"**/out/**",
+	"**/.venv/**",
+	"**/vendor/**",
+	"**/.gradle/**",
+	"**/.pnpm-store/**",
+	"**/.yarn/**",
 	"**/*.tsbuildinfo",
 ];
 

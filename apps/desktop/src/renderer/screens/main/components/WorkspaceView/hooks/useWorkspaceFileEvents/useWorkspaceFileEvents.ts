@@ -114,6 +114,12 @@ export function useWorkspaceFileEventBridge(
 				Boolean(workspaceId) &&
 				Boolean(worktreePath) &&
 				listenerCount > 0,
+			onError: (error) => {
+				console.error("[useWorkspaceFileEvents] watch failed:", {
+					workspaceId,
+					error,
+				});
+			},
 			onData: (payload) => {
 				if (!worktreePath) {
 					return;

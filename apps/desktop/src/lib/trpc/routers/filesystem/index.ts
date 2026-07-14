@@ -299,17 +299,17 @@ export const createFilesystemRouter = () => {
 								error: toErrorMessage(error),
 							});
 
-							if (
-								emitIfOpen({
-									events: [
-										{
-											kind: "overflow",
-											absolutePath: input.absolutePath,
-										},
-									],
-								})
-							) {
-								runCleanup();
+							// Never mask this as a synthetic overflow event — consumers
+							// read overflow as "rescan", not "watcher died" (see watch.ts).
+							runCleanup();
+							try {
+								emit.error(
+									error instanceof Error
+										? error
+										: new Error(toErrorMessage(error)),
+								);
+							} catch {
+								// Stream already closed by the client — nothing to notify.
 							}
 						}
 					})();

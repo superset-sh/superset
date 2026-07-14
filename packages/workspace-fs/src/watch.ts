@@ -363,7 +363,10 @@ export class FsWatcherManager {
 
 	constructor(options: FsWatcherManagerOptions = {}) {
 		this.debounceMs = options.debounceMs ?? 75;
-		this.ignore = options.ignore ?? DEFAULT_IGNORE_PATTERNS;
+		// Merged so a custom pattern can't silently drop node_modules/.git.
+		this.ignore = options.ignore
+			? [...new Set([...DEFAULT_IGNORE_PATTERNS, ...options.ignore])]
+			: DEFAULT_IGNORE_PATTERNS;
 		this.filePathsMax = options.filePathsMax ?? FILE_PATHS_MAX;
 	}
 
@@ -441,10 +444,12 @@ export class FsWatcherManager {
 					realPathDiffers: true,
 				};
 			}
-		} catch {
-			// realpath fails on non-existent paths; the caller already
-			// validated via stat() above, so any failure here is benign —
-			// fall through to using the original path.
+		} catch (error) {
+			// Path vanished since stat(). Watching the unresolved form would run
+			// with dead ignore globs (parcel prefix-matches the resolved root).
+			throw new Error(
+				`Cannot watch path: failed to resolve real path: ${absolutePath} (${toErrorMessage(error)})`,
+			);
 		}
 		return {
 			realPath: absolutePath,
