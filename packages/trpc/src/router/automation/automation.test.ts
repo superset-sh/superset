@@ -363,7 +363,12 @@ describe("automation.setEnabled exhausted recurrence", () => {
 	it("resumes normally when the recurrence still has future occurrences", async () => {
 		getAutomationForUserMock.mockResolvedValue({ ...pausedExisting });
 		updateResults.push([
-			{ id: AUTOMATION_ID, enabled: true, rrule: "FREQ=DAILY", timezone: "UTC" },
+			{
+				id: AUTOMATION_ID,
+				enabled: true,
+				rrule: "FREQ=DAILY",
+				timezone: "UTC",
+			},
 		]);
 
 		const caller = createCaller(createContext());
