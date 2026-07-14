@@ -223,6 +223,10 @@ interface NormalizedRepoIdentity {
 	name: string;
 	url: string;
 	remoteName: string;
+	// Repo's default branch (e.g. `main`), or null when it can't be resolved.
+	// Used to keep workspaces that merely track `origin/<default>` from linking
+	// to whatever open PR happens to have head=<default>.
+	defaultBranch: string | null;
 }
 
 type PullRequestRow = typeof pullRequests.$inferSelect;
@@ -286,6 +290,10 @@ export class PullRequestRuntimeManager {
 		string,
 		{ promise: Promise<GitHubPullRequestNode[]>; fetchedAt: number }
 	>();
+	// Default branch rarely changes; cache successful resolutions for the
+	// process lifetime. Nulls are not cached so a later `git remote set-head`
+	// heals without a restart.
+	private readonly defaultBranchCache = new Map<string, string>();
 
 	constructor(options: PullRequestRuntimeManagerOptions) {
 		this.db = options.db;
@@ -644,7 +652,7 @@ export class PullRequestRuntimeManager {
 			const upstreamOwner = workspace.upstreamOwner;
 			const upstreamRepo = workspace.upstreamRepo;
 			const upstreamBranch = workspace.upstreamBranch ?? workspace.branch;
-			const key = upstreamKey(upstreamOwner, upstreamRepo, upstreamBranch);
+			const key = this.effectiveUpstreamKey(workspace, repo);
 			if (key && upstreamOwner && upstreamRepo) {
 				wantedRefs.set(key, {
 					owner: upstreamOwner,
@@ -658,11 +666,7 @@ export class PullRequestRuntimeManager {
 			await this.fetchRepoPullRequests(projectId, repo, wantedRefs, options);
 
 		for (const workspace of projectWorkspaces) {
-			const key = upstreamKey(
-				workspace.upstreamOwner,
-				workspace.upstreamRepo,
-				workspace.upstreamBranch ?? workspace.branch,
-			);
+			const key = this.effectiveUpstreamKey(workspace, repo);
 			if (!key) {
 				// PR checkouts recovered from GitHub's archived refs intentionally
 				// have no upstream. Keep the explicit PR link only while the
@@ -712,6 +716,7 @@ export class PullRequestRuntimeManager {
 			.sync();
 		if (!project) return null;
 
+		let identity: Omit<NormalizedRepoIdentity, "defaultBranch">;
 		if (
 			project.repoProvider === "github" &&
 			project.repoOwner &&
@@ -719,47 +724,108 @@ export class PullRequestRuntimeManager {
 			project.repoUrl &&
 			project.remoteName
 		) {
-			return {
+			identity = {
 				provider: "github",
 				owner: project.repoOwner,
 				name: project.repoName,
 				url: project.repoUrl,
 				remoteName: project.remoteName,
 			};
-		}
-
-		const git = await this.git(project.repoPath);
-		const remoteName = "origin";
-		let remoteUrl: string;
-		try {
-			const value = await git.remote(["get-url", remoteName]);
-			if (typeof value !== "string") {
+		} else {
+			const git = await this.git(project.repoPath);
+			const remoteName = "origin";
+			let remoteUrl: string;
+			try {
+				const value = await git.remote(["get-url", remoteName]);
+				if (typeof value !== "string") {
+					return null;
+				}
+				remoteUrl = value.trim();
+			} catch {
 				return null;
 			}
-			remoteUrl = value.trim();
+
+			const parsedRemote = parseGitHubRemote(remoteUrl);
+			if (!parsedRemote) return null;
+
+			this.db
+				.update(projects)
+				.set({
+					repoProvider: parsedRemote.provider,
+					repoOwner: parsedRemote.owner,
+					repoName: parsedRemote.name,
+					repoUrl: parsedRemote.url,
+					remoteName,
+				})
+				.where(eq(projects.id, projectId))
+				.run();
+
+			identity = { ...parsedRemote, remoteName };
+		}
+
+		const defaultBranch = await this.resolveDefaultBranch(
+			projectId,
+			project.repoPath,
+			identity.remoteName,
+		);
+		return { ...identity, defaultBranch };
+	}
+
+	private async resolveDefaultBranch(
+		projectId: string,
+		repoPath: string,
+		remoteName: string,
+	): Promise<string | null> {
+		const cached = this.defaultBranchCache.get(projectId);
+		if (cached) return cached;
+		try {
+			const git = await this.git(repoPath);
+			// `refs/remotes/<remote>/HEAD` is a symref to the remote's default
+			// branch, written by `git clone` / `git remote set-head`.
+			const ref = await tryRaw(git, [
+				"symbolic-ref",
+				"--short",
+				`refs/remotes/${remoteName}/HEAD`,
+			]);
+			if (!ref) return null;
+			const prefix = `${remoteName}/`;
+			const branch = ref.startsWith(prefix) ? ref.slice(prefix.length) : ref;
+			this.defaultBranchCache.set(projectId, branch);
+			return branch;
 		} catch {
 			return null;
 		}
+	}
 
-		const parsedRemote = parseGitHubRemote(remoteUrl);
-		if (!parsedRemote) return null;
-
-		this.db
-			.update(projects)
-			.set({
-				repoProvider: parsedRemote.provider,
-				repoOwner: parsedRemote.owner,
-				repoName: parsedRemote.name,
-				repoUrl: parsedRemote.url,
-				remoteName,
-			})
-			.where(eq(projects.id, projectId))
-			.run();
-
-		return {
-			...parsedRemote,
-			remoteName,
-		};
+	// Dedup + link key for a workspace, with the default-branch guard applied.
+	// A workspace branched off the repo's default branch still tracks
+	// `origin/<default>` until its own branch is pushed, so its resolved
+	// upstream branch is `<default>` even though no PR has this workspace's
+	// branch as head. Keying on `<default>` would glue it to whatever open PR
+	// has head=<default> (e.g. a "sync <default> into X" PR). Only the
+	// workspace whose LOCAL branch actually is the default branch may key on
+	// it. Restricted to the base repo so fork PRs whose head happens to be
+	// named `<default>` (e.g. a `gh pr checkout` rename) still link. Branch
+	// stays case-sensitive to match `upstreamKey`.
+	private effectiveUpstreamKey(
+		workspace: typeof workspaces.$inferSelect,
+		repo: NormalizedRepoIdentity,
+	): string | null {
+		const upstreamBranch = workspace.upstreamBranch ?? workspace.branch;
+		if (
+			repo.defaultBranch &&
+			upstreamBranch === repo.defaultBranch &&
+			workspace.branch !== repo.defaultBranch &&
+			workspace.upstreamOwner?.toLowerCase() === repo.owner.toLowerCase() &&
+			workspace.upstreamRepo?.toLowerCase() === repo.name.toLowerCase()
+		) {
+			return null;
+		}
+		return upstreamKey(
+			workspace.upstreamOwner,
+			workspace.upstreamRepo,
+			upstreamBranch,
+		);
 	}
 
 	private findPullRequestRow(
