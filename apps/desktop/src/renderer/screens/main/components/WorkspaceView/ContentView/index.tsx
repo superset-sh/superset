@@ -2,11 +2,9 @@ import type { ExternalApp } from "@superset/local-db";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { SidebarControl } from "../../SidebarControl";
-import { ContentHeader } from "./ContentHeader";
 import { PresetsBar } from "./components/PresetsBar";
 import { useShowPresetsBar } from "./hooks/useShowPresetsBar";
 import { TabsContent } from "./TabsContent";
-import { GroupStrip } from "./TabsContent/GroupStrip";
 
 interface ContentViewProps {
 	defaultExternalApp?: ExternalApp | null;
@@ -31,18 +29,18 @@ export function ContentView({
 	});
 
 	return (
-		<div className="h-full flex flex-col overflow-hidden">
-			<ContentHeader
-				trailingAction={!isSidebarOpen ? <SidebarControl /> : undefined}
-			>
-				<GroupStrip />
-			</ContentHeader>
+		<div className="relative h-full flex flex-col overflow-hidden">
 			{showPresetsBar && <PresetsBar />}
 			<TabsContent
 				defaultExternalApp={defaultExternalApp}
 				onOpenInApp={onOpenInApp}
 				onOpenQuickOpen={onOpenQuickOpen}
 			/>
+			{!isSidebarOpen && (
+				<div className="absolute right-1 top-0 z-30 flex h-10 items-center bg-background pl-1">
+					<SidebarControl />
+				</div>
+			)}
 		</div>
 	);
 }

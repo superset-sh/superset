@@ -1,25 +1,21 @@
 import type { TerminalPreset } from "@superset/local-db";
-import { eq, or } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useNavigate, useParams } from "@tanstack/react-router";
+import { useNavigate } from "@tanstack/react-router";
 import {
 	useCallback,
 	useEffect,
 	useLayoutEffect,
-	useMemo,
 	useRef,
 	useState,
 } from "react";
+import { useDrop } from "react-dnd";
+import { MosaicDragType } from "react-mosaic-component";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { requestTabClose } from "renderer/stores/editor-state/editorCoordinator";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import type { Tab } from "renderer/stores/tabs/types";
 import { useTabsWithPresets } from "renderer/stores/tabs/useTabsWithPresets";
-import {
-	isLastPaneInTab,
-	resolveActiveTabIdForWorkspace,
-} from "renderer/stores/tabs/utils";
+import { isLastPaneInTab } from "renderer/stores/tabs/utils";
 import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
@@ -27,32 +23,38 @@ import {
 import { type ActivePaneStatus, pickHigherStatus } from "shared/tabs-types";
 import { useShowPresetsBar } from "../../hooks/useShowPresetsBar";
 import { AddTabButton } from "./components/AddTabButton";
-import { GroupItem } from "./GroupItem";
+import { GroupItem, type TabDragItem } from "./GroupItem";
 
-const NO_WORKSPACE_MATCH = "__no_workspace__";
+interface GroupStripProps {
+	workspaceId: string;
+	/** Panel (editor group) this strip belongs to */
+	panelId: string;
+	/** Ordered tabs of this panel */
+	tabs: Tab[];
+	/** The panel's visible tab */
+	activeTabId: string | null;
+}
 
-export function GroupStrip() {
-	const { workspaceId: activeWorkspaceId } = useParams({ strict: false });
-
-	const allTabs = useTabsStore((s) => s.tabs);
+export function GroupStrip({
+	workspaceId,
+	panelId,
+	tabs,
+	activeTabId,
+}: GroupStripProps) {
 	const panes = useTabsStore((s) => s.panes);
-	const activeTabIds = useTabsStore((s) => s.activeTabIds);
-	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
 	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
 	const movePaneToTab = useTabsStore((s) => s.movePaneToTab);
 	const movePaneToNewTab = useTabsStore((s) => s.movePaneToNewTab);
-	const reorderTabs = useTabsStore((s) => s.reorderTabs);
+	const moveTabToPanel = useTabsStore((s) => s.moveTabToPanel);
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 
-	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
-	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
 	const navigate = useNavigate();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
-		{ id: activeWorkspaceId ?? "" },
-		{ enabled: !!activeWorkspaceId },
+		{ id: workspaceId },
+		{ enabled: !!workspaceId },
 	);
 	const { addTab, openPreset } = useTabsWithPresets(workspace?.projectId);
 	const { matchedPresets: presets } = usePresets(workspace?.projectId);
@@ -89,137 +91,47 @@ export function GroupStrip() {
 			},
 		});
 
-	const tabs = useMemo(
-		() =>
-			activeWorkspaceId
-				? allTabs.filter((tab) => tab.workspaceId === activeWorkspaceId)
-				: [],
-		[activeWorkspaceId, allTabs],
-	);
-
-	const activeTabId = useMemo(() => {
-		if (!activeWorkspaceId) return null;
-		return resolveActiveTabIdForWorkspace({
-			workspaceId: activeWorkspaceId,
-			tabs: allTabs,
-			activeTabIds,
-			tabHistoryStacks,
-		});
-	}, [activeWorkspaceId, activeTabIds, allTabs, tabHistoryStacks]);
-
-	// Compute aggregate status per tab using shared priority logic
-	const tabStatusMap = useMemo(() => {
+	// Aggregate status per tab (scoped to this panel's tabs)
+	const tabStatusMap = (() => {
+		const tabIds = new Set(tabs.map((t) => t.id));
 		const result = new Map<string, ActivePaneStatus>();
 		for (const pane of Object.values(panes)) {
 			if (!pane.status || pane.status === "idle") continue;
+			if (!tabIds.has(pane.tabId)) continue;
 			const higher = pickHigherStatus(result.get(pane.tabId), pane.status);
 			if (higher !== "idle") {
 				result.set(pane.tabId, higher);
 			}
 		}
 		return result;
-	}, [panes]);
+	})();
 
-	// Sync Electric session titles → tab and pane names for chat panes in this workspace
-	const chatSessionTargets = useMemo(() => {
-		const map = new Map<
-			string,
-			{ tabIds: Set<string>; paneIds: Set<string> }
-		>();
-		for (const pane of Object.values(panes)) {
-			if (pane.type === "chat" && pane.chat?.sessionId) {
-				const tab = tabs.find((t) => t.id === pane.tabId);
-				if (!tab) continue;
-				const sessionId = pane.chat.sessionId;
-				const existing = map.get(sessionId) ?? {
-					tabIds: new Set<string>(),
-					paneIds: new Set<string>(),
-				};
-				existing.tabIds.add(tab.id);
-				existing.paneIds.add(pane.id);
-				map.set(sessionId, existing);
-			}
+	/** New tabs land in the focused panel, so focus this panel first */
+	const focusPanel = useCallback(() => {
+		if (activeTabId) {
+			setActiveTab(workspaceId, activeTabId);
 		}
-		return map;
-	}, [panes, tabs]);
-	const targetSessionIds = useMemo(
-		() => Array.from(chatSessionTargets.keys()),
-		[chatSessionTargets],
-	);
-	const targetSessionIdsKey = targetSessionIds.join(",");
-	const shouldSyncChatTitles =
-		Boolean(activeWorkspaceId) && targetSessionIds.length > 0;
-
-	const collections = useCollections();
-	const { data: chatSessions } = useLiveQuery(
-		(q) =>
-			q
-				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) => {
-					if (!shouldSyncChatTitles) {
-						return eq(chatSessions.workspaceId, NO_WORKSPACE_MATCH);
-					}
-					const [firstSessionId, ...restSessionIds] = targetSessionIds;
-					if (!firstSessionId) {
-						return eq(chatSessions.workspaceId, NO_WORKSPACE_MATCH);
-					}
-					let predicate = eq(chatSessions.id, firstSessionId);
-					for (const sessionId of restSessionIds) {
-						predicate = or(predicate, eq(chatSessions.id, sessionId));
-					}
-					return predicate;
-				})
-				.select(({ chatSessions }) => ({
-					id: chatSessions.id,
-					title: chatSessions.title,
-					workspaceId: chatSessions.workspaceId,
-				})),
-		[collections.chatSessions, shouldSyncChatTitles, targetSessionIdsKey],
-	);
-
-	useEffect(() => {
-		if (!shouldSyncChatTitles) return;
-		if (!chatSessions) return;
-		for (const session of chatSessions) {
-			const target = chatSessionTargets.get(session.id);
-			const title = session.title?.trim();
-			if (!target || !title) continue;
-			for (const tabId of target.tabIds) {
-				setTabAutoTitle(tabId, title);
-			}
-			for (const paneId of target.paneIds) {
-				setPaneAutoTitle(paneId, title);
-			}
-		}
-	}, [
-		chatSessions,
-		chatSessionTargets,
-		setPaneAutoTitle,
-		setTabAutoTitle,
-		shouldSyncChatTitles,
-	]);
+	}, [workspaceId, activeTabId, setActiveTab]);
 
 	const handleAddGroup = () => {
-		if (!activeWorkspaceId) return;
-		addTab(activeWorkspaceId);
+		focusPanel();
+		addTab(workspaceId);
 	};
 
 	const handleAddChat = () => {
-		if (!activeWorkspaceId) return;
-		addChatTab(activeWorkspaceId);
+		addChatTab(workspaceId, { panelId });
 	};
 
 	const handleAddBrowser = () => {
-		if (!activeWorkspaceId) return;
-		addBrowserTab(activeWorkspaceId);
+		addBrowserTab(workspaceId, undefined, { panelId });
 	};
 
 	const handleOpenPreset = useCallback(
 		(preset: TerminalPreset) => {
-			if (!activeWorkspaceId) return;
-			openPreset(activeWorkspaceId, preset, { target: "active-tab" });
+			focusPanel();
+			openPreset(workspaceId, preset, { target: "active-tab" });
 		},
-		[activeWorkspaceId, openPreset],
+		[workspaceId, focusPanel, openPreset],
 	);
 
 	const handleOpenPresetsSettings = useCallback(() => {
@@ -227,9 +139,7 @@ export function GroupStrip() {
 	}, [navigate]);
 
 	const handleSelectGroup = (tabId: string) => {
-		if (activeWorkspaceId) {
-			setActiveTab(activeWorkspaceId, tabId);
-		}
+		setActiveTab(workspaceId, tabId);
 	};
 
 	const handleCloseGroup = (tabId: string) => {
@@ -248,13 +158,11 @@ export function GroupStrip() {
 		}
 	};
 
-	const handleReorderTabs = useCallback(
-		(fromIndex: number, toIndex: number) => {
-			if (activeWorkspaceId) {
-				reorderTabs(activeWorkspaceId, fromIndex, toIndex);
-			}
+	const handleMoveTabHere = useCallback(
+		(tabId: string, index?: number) => {
+			moveTabToPanel(tabId, panelId, index);
 		},
-		[activeWorkspaceId, reorderTabs],
+		[moveTabToPanel, panelId],
 	);
 
 	const checkIsLastPaneInTab = useCallback((paneId: string) => {
@@ -264,6 +172,30 @@ export function GroupStrip() {
 		if (!pane) return true;
 		return isLastPaneInTab(freshPanes, pane.tabId);
 	}, []);
+
+	// Dropping a tab on the strip's empty space appends it to this panel
+	const [{ isTabOverStrip }, stripDrop] = useDrop<
+		TabDragItem,
+		{ handled: true },
+		{ isTabOverStrip: boolean }
+	>(
+		() => ({
+			accept: MosaicDragType.WINDOW,
+			canDrop: (item) => item.isTabDrag === true,
+			drop: (item, monitor) => {
+				// A GroupItem already handled this drop
+				if (monitor.didDrop()) return { handled: true };
+				if (item.isTabDrag) {
+					handleMoveTabHere(item.tabId);
+				}
+				return { handled: true };
+			},
+			collect: (monitor) => ({
+				isTabOverStrip: monitor.isOver({ shallow: true }) && monitor.canDrop(),
+			}),
+		}),
+		[handleMoveTabHere],
+	);
 
 	const updateOverflow = useCallback(() => {
 		const container = scrollContainerRef.current;
@@ -318,7 +250,12 @@ export function GroupStrip() {
 	);
 
 	return (
-		<div className="flex h-10 min-w-0 flex-1 items-stretch">
+		<div
+			ref={(node) => {
+				stripDrop(node);
+			}}
+			className="flex h-10 min-w-0 flex-1 items-stretch"
+		>
 			<div
 				ref={scrollContainerRef}
 				className="flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
@@ -337,6 +274,7 @@ export function GroupStrip() {
 										<GroupItem
 											tab={tab}
 											index={index}
+											panelId={panelId}
 											isActive={tab.id === activeTabId}
 											status={tabStatusMap.get(tab.id) ?? null}
 											onSelect={() => handleSelectGroup(tab.id)}
@@ -344,7 +282,7 @@ export function GroupStrip() {
 											onRename={(newName) => handleRenameGroup(tab.id, newName)}
 											onMarkAsUnread={() => handleMarkTabAsUnread(tab.id)}
 											onPaneDrop={(paneId) => movePaneToTab(paneId, tab.id)}
-											onReorder={handleReorderTabs}
+											onTabDrop={handleMoveTabHere}
 										/>
 									</div>
 								);
@@ -361,6 +299,9 @@ export function GroupStrip() {
 						<div className="shrink-0">{plusControl}</div>
 					)}
 				</div>
+				{isTabOverStrip && (
+					<div className="my-1.5 w-0.5 shrink-0 rounded bg-primary/60" />
+				)}
 			</div>
 			{hasHorizontalOverflow && (
 				<div className="shrink-0 bg-background/95 pr-1">{plusControl}</div>

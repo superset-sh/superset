@@ -19,10 +19,17 @@ import {
 	movePaneToNewTab,
 	movePaneToTab,
 } from "./actions/move-pane";
+import {
+	deriveWorkspacePanels,
+	moveTabToPanel,
+	resolveNewTabPanelId,
+	splitPanelWithTab,
+} from "./actions/panels";
 import type {
 	AddFileViewerPaneOptions,
 	AddTabWithMultiplePanesOptions,
 	CommentPaneData,
+	Tab,
 	TabsState,
 	TabsStore,
 } from "./types";
@@ -52,6 +59,7 @@ import {
 	removePaneFromLayout,
 	resolveActiveTabIdForWorkspace,
 	resolveFileViewerMode,
+	updateHistoryStack,
 } from "./utils";
 import { killTerminalForPane } from "./utils/terminal-cleanup";
 
@@ -167,6 +175,20 @@ const withDerivedTabNames = (
 	};
 };
 
+/**
+ * Assign a freshly created tab to a panel: an explicitly requested one, or the
+ * workspace's focused panel (VS Code opens new editors in the active group).
+ */
+const stampNewTabPanel = <T extends Tab>(
+	state: TabsState,
+	workspaceId: string,
+	tab: T,
+	explicitPanelId?: string,
+): T => {
+	const panelId = explicitPanelId ?? resolveNewTabPanelId(state, workspaceId);
+	return panelId ? { ...tab, panelId } : tab;
+};
+
 const cleanupEditorPaneState = (paneId: string): void => {
 	const sessionsStore = useEditorSessionsStore.getState();
 	const session = sessionsStore.sessions[paneId];
@@ -199,15 +221,23 @@ export const useTabsStore = create<TabsStore>()(
 				focusedPaneIds: {},
 				tabHistoryStacks: {},
 				closedTabsStack: [],
+				panelLayouts: {},
+				panelActiveTabIds: {},
 
 				// Tab operations
-				addTab: (workspaceId, options?: CreatePaneOptions) => {
+				addTab: (workspaceId, options) => {
 					const state = get();
 
-					const { tab, pane } = createTabWithPane(
+					const { tab: rawTab, pane } = createTabWithPane(
 						workspaceId,
 						state.tabs,
 						options,
+					);
+					const tab = stampNewTabPanel(
+						state,
+						workspaceId,
+						rawTab,
+						options?.panelId,
 					);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
@@ -248,7 +278,16 @@ export const useTabsStore = create<TabsStore>()(
 				addChatTab: (workspaceId: string, options) => {
 					const state = get();
 
-					const { tab, pane } = createChatTabWithPane(workspaceId, options);
+					const { tab: rawTab, pane } = createChatTabWithPane(
+						workspaceId,
+						options,
+					);
+					const tab = stampNewTabPanel(
+						state,
+						workspaceId,
+						rawTab,
+						options?.panelId,
+					);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -304,13 +343,13 @@ export const useTabsStore = create<TabsStore>()(
 						(t) => t.workspaceId === workspaceId,
 					);
 
-					const tab = {
+					const tab = stampNewTabPanel(state, workspaceId, {
 						id: tabId,
 						name: generateTabName(workspaceTabs),
 						workspaceId,
 						layout,
 						createdAt: Date.now(),
-					};
+					});
 
 					const panesRecord: Record<string, (typeof panes)[number]> = {};
 					for (const pane of panes) {
@@ -470,6 +509,10 @@ export const useTabsStore = create<TabsStore>()(
 						}
 					}
 
+					// Keep the tab's panel showing it (panel focus follows the active tab)
+					const panelId = deriveWorkspacePanels(state, workspaceId)
+						.panelIdByTabId[tabId];
+
 					set({
 						activeTabIds: {
 							...state.activeTabIds,
@@ -480,6 +523,14 @@ export const useTabsStore = create<TabsStore>()(
 							[workspaceId]: newHistoryStack,
 						},
 						...(hasChanges ? { panes: newPanes } : {}),
+						...(panelId
+							? {
+									panelActiveTabIds: {
+										...state.panelActiveTabIds,
+										[panelId]: tabId,
+									},
+								}
+							: {}),
 					});
 				},
 
@@ -961,13 +1012,13 @@ export const useTabsStore = create<TabsStore>()(
 							isPinned: true,
 						});
 
-						const newTab = {
+						const newTab = stampNewTabPanel(state, workspaceId, {
 							id: newTabId,
 							workspaceId,
 							name: newPane.name,
 							layout: newPane.id as MosaicNode<string>,
 							createdAt: Date.now(),
-						};
+						});
 
 						const currentActiveId = state.activeTabIds[workspaceId];
 						const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -1117,6 +1168,40 @@ export const useTabsStore = create<TabsStore>()(
 
 					const alreadyFocused = state.focusedPaneIds[tabId] === paneId;
 
+					// Focusing a pane in another panel's visible tab activates that tab
+					// workspace-wide (VS Code: clicking an editor focuses its group).
+					// Hidden tabs (programmatic focus) don't steal activation.
+					let activation: Partial<TabsState> = {};
+					const tab = state.tabs.find((t) => t.id === tabId);
+					if (tab) {
+						const derived = deriveWorkspacePanels(state, tab.workspaceId);
+						const panelId = derived.panelIdByTabId[tabId];
+						if (
+							panelId &&
+							derived.activeTabIdByPanel[panelId] === tabId &&
+							derived.activeTabId !== tabId
+						) {
+							activation = {
+								activeTabIds: {
+									...state.activeTabIds,
+									[tab.workspaceId]: tabId,
+								},
+								tabHistoryStacks: {
+									...state.tabHistoryStacks,
+									[tab.workspaceId]: updateHistoryStack(
+										state.tabHistoryStacks[tab.workspaceId] || [],
+										state.activeTabIds[tab.workspaceId] ?? null,
+										tabId,
+									),
+								},
+								panelActiveTabIds: {
+									...state.panelActiveTabIds,
+									[panelId]: tabId,
+								},
+							};
+						}
+					}
+
 					set({
 						panes: {
 							...state.panes,
@@ -1131,6 +1216,7 @@ export const useTabsStore = create<TabsStore>()(
 							...state.focusedPaneIds,
 							[tabId]: paneId,
 						},
+						...activation,
 					});
 				},
 
@@ -1603,6 +1689,39 @@ export const useTabsStore = create<TabsStore>()(
 					set(withDerivedTabNames(result, [targetTabId]));
 				},
 
+				// Panel (editor group) operations
+				updatePanelLayout: (workspaceId, layout) => {
+					const state = get();
+					set({
+						panelLayouts: {
+							...state.panelLayouts,
+							[workspaceId]: layout,
+						},
+					});
+				},
+
+				moveTabToPanel: (tabId, targetPanelId, targetIndex) => {
+					const result = moveTabToPanel(
+						get(),
+						tabId,
+						targetPanelId,
+						targetIndex,
+					);
+					if (!result) return;
+					set(result);
+				},
+
+				splitPanelWithTab: (tabId, destinationPanelId, position) => {
+					const result = splitPanelWithTab(
+						get(),
+						tabId,
+						destinationPanelId,
+						position,
+					);
+					if (!result) return;
+					set(result);
+				},
+
 				// Comment operations
 				openCommentPane: (workspaceId: string, comment: CommentPaneData) => {
 					const state = get();
@@ -1649,7 +1768,11 @@ export const useTabsStore = create<TabsStore>()(
 						return { tabId: existingPane.tabId, paneId: existingPane.id };
 					}
 
-					const { tab, pane } = createCommentTabWithPane(workspaceId, comment);
+					const { tab: rawTab, pane } = createCommentTabWithPane(
+						workspaceId,
+						comment,
+					);
+					const tab = stampNewTabPanel(state, workspaceId, rawTab);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
 					const historyStack = state.tabHistoryStacks[workspaceId] || [];
@@ -1687,13 +1810,19 @@ export const useTabsStore = create<TabsStore>()(
 				},
 
 				// Browser operations
-				addBrowserTab: (workspaceId: string, url?: string) => {
+				addBrowserTab: (workspaceId: string, url?: string, options?) => {
 					const state = get();
 
-					const { tab, pane } = createBrowserTabWithPane(
+					const { tab: rawTab, pane } = createBrowserTabWithPane(
 						workspaceId,
 						state.tabs,
 						url,
+					);
+					const tab = stampNewTabPanel(
+						state,
+						workspaceId,
+						rawTab,
+						options?.panelId,
 					);
 
 					const currentActiveId = state.activeTabIds[workspaceId];
@@ -2355,11 +2484,32 @@ export const useTabsStore = create<TabsStore>()(
 						}
 					}
 
+					// Prune panel records that no longer point at live workspaces/tabs.
+					// (Panel state is self-repairing on read; this just avoids growth.)
+					const nextPanelLayouts = { ...(mergedState.panelLayouts ?? {}) };
+					for (const workspaceId of Object.keys(nextPanelLayouts)) {
+						if (!workspaceTabIdSets.has(workspaceId)) {
+							delete nextPanelLayouts[workspaceId];
+						}
+					}
+					const nextPanelActiveTabIds = {
+						...(mergedState.panelActiveTabIds ?? {}),
+					};
+					for (const [panelId, tabId] of Object.entries(
+						nextPanelActiveTabIds,
+					)) {
+						if (!tabIds.has(tabId)) {
+							delete nextPanelActiveTabIds[panelId];
+						}
+					}
+
 					return {
 						...mergedState,
 						activeTabIds: nextActiveTabIds,
 						tabHistoryStacks: nextHistoryStacks,
 						focusedPaneIds: nextFocusedPaneIds,
+						panelLayouts: nextPanelLayouts,
+						panelActiveTabIds: nextPanelActiveTabIds,
 					};
 				},
 			},
