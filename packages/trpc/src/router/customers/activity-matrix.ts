@@ -56,6 +56,10 @@ export async function fetchActivityMatrix(
 	if (ids.length === 0) return new Map();
 
 	const idList = ids.map((id) => `'${id}'`).join(", ");
+	// PostHog's query API clamps HogQL to 100 rows unless a LIMIT is explicit —
+	// this query returns up to users × days rows, so it MUST carry its own.
+	// Newest-first so recent days survive if the limit is ever hit anyway.
+	const rowLimit = ids.length * days + 10;
 	const sql = `
 SELECT
   lower(distinct_id) AS uid,
@@ -69,7 +73,8 @@ WHERE timestamp >= now() - INTERVAL ${days} DAY
   AND event IN (${quoteEventList(CORE_ACTIVITY_EVENTS)})
   AND lower(distinct_id) IN (${idList})
 GROUP BY uid, day
-ORDER BY day`;
+ORDER BY day DESC
+LIMIT ${rowLimit}`;
 
 	const { results } =
 		await executeHogQLQuery<[string, string, number, number, number, number][]>(
