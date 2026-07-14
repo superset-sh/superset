@@ -209,7 +209,7 @@ export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
 
 interface ItemListJsonLdProps {
 	name: string;
-	items: string[];
+	items: Array<{ name: string; url?: string }>;
 }
 
 export function ItemListJsonLd({ name, items }: ItemListJsonLdProps) {
@@ -220,7 +220,8 @@ export function ItemListJsonLd({ name, items }: ItemListJsonLdProps) {
 		itemListElement: items.map((item, index) => ({
 			"@type": "ListItem",
 			position: index + 1,
-			name: item,
+			name: item.name,
+			...(item.url && { url: item.url }),
 		})),
 	};
 

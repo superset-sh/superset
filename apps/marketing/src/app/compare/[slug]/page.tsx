@@ -16,6 +16,7 @@ import {
 	extractRoundupItems,
 	getComparisonPageTypeLabel,
 } from "@/lib/compare-utils";
+import { slugify } from "@/lib/content-utils";
 import { CompareLayout } from "./components/CompareLayout";
 
 interface PageProps {
@@ -33,7 +34,12 @@ export default async function ComparePageRoute({ params }: PageProps) {
 	const url = `${COMPANY.MARKETING_URL}/compare/${slug}`;
 	const faqItems = extractComparisonFaqItems(page.content);
 	const roundupItems =
-		page.type === "roundup" ? extractRoundupItems(page.content) : [];
+		page.type === "roundup"
+			? extractRoundupItems(page.content).map((item) => ({
+					name: item,
+					url: `${url}#${slugify(item)}`,
+				}))
+			: [];
 
 	return (
 		<main>

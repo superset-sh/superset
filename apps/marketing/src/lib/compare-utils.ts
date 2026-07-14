@@ -152,7 +152,9 @@ export function extractRoundupItems(content: string): string[] {
 			continue; // skip header and separator rows
 		}
 
-		const firstCell = trimmed.slice(1, trimmed.indexOf("|", 1));
+		// Split the row into cells on unescaped pipes, then unescape "\|".
+		const cells = trimmed.slice(1, -1).split(/(?<!\\)\|/);
+		const firstCell = (cells[0] ?? "").replace(/\\\|/g, "|");
 		const name = stripMarkdownFormatting(firstCell);
 		if (name) {
 			items.push(name);
