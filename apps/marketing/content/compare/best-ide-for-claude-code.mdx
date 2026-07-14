@@ -1,0 +1,127 @@
+---
+title: "Best IDE for Claude Code in 2026: Where to Run It"
+description: "The best places to run Claude Code in 2026, from the terminal and VS Code to JetBrains, Zed, Conductor, and Superset for parallel worktree sessions."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "roundup"
+competitors:
+  - vs-code
+  - jetbrains
+  - zed
+  - cursor
+  - conductor
+  - cmux
+keywords:
+  - best ide for claude code
+  - where to run claude code
+  - claude code ide
+  - run claude code in vscode
+  - claude code editor
+  - claude code parallel
+---
+
+Claude Code runs almost anywhere: a terminal, an editor extension, a desktop app, the web, and even your phone. So "the best IDE for Claude Code" is really two questions. If you run one session at a time, pick the surface that fits your editor. If you want several Claude Code sessions in parallel on the same repository, the answer changes: you need Git worktree isolation more than another editor pane.
+
+This guide covers both, from the simplest terminal setup to a full parallel-agent workspace.
+
+---
+
+## The Short Version
+
+| Where you run Claude Code | Best for | Parallel sessions on one repo? | Main tradeoff |
+|---|---|---|---|
+| **Superset** | Running many Claude Code sessions at once | Yes -- one Git worktree per task | Not a single-file editor experience |
+| **Terminal (CLI)** | The most complete, scriptable Claude Code | Manual (tmux + worktrees yourself) | You manage isolation and review |
+| **VS Code extension** | Editing alongside Claude Code | Limited without extra tooling | In-editor, single working copy |
+| **JetBrains extension** | JetBrains users | Limited | Tied to JetBrains IDEs |
+| **Zed (ACP)** | A fast editor hosting Claude Code | Working-copy edits with review | No per-task worktrees |
+| **Conductor** | A focused Mac app for a few agents | Yes -- worktrees | macOS only |
+| **cmux** | A native macOS agent terminal | Organizes sessions; no auto isolation | macOS only; isolation is manual |
+
+## Where You Can Run Claude Code
+
+Claude Code is Anthropic's coding agent, and the same engine runs across several official surfaces: the CLI (the most complete), a desktop app, VS Code and JetBrains extensions, the web, and mobile. Beyond Anthropic's own surfaces, Claude Code also runs inside third-party editors and workspaces that host it as an agent. The right choice depends on whether you want a place to edit or a place to orchestrate.
+
+## The Options
+
+### Terminal (Claude Code CLI)
+
+The CLI is the reference surface: it is the most complete, supports scripting and the Agent SDK, and works in any terminal. For a single deep task, it is hard to beat. The catch is parallelism: running several sessions on one repository means managing tmux panes and Git worktrees yourself, then reviewing each diff by hand. Great for one task; more work for many.
+
+### VS Code extension
+
+The VS Code extension puts Claude Code beside your code, so you can edit while it works. It is the natural home if VS Code is your editor. Like most in-editor setups, it operates in a single working copy, so running several isolated sessions at once needs extra tooling.
+
+### JetBrains extension
+
+Claude Code has a JetBrains extension for IntelliJ, PyCharm, WebStorm, and the rest, bringing it into those IDEs with the same shared configuration and MCP support. Ideal if you already live in JetBrains, with the same single-working-copy limitation for parallel work.
+
+### Zed (via ACP)
+
+Zed hosts Claude Code natively through the Agent Client Protocol, running it inside Zed's agent panel and presenting an editable diff you accept before committing. It is one of the cleanest ways to run Claude Code inside a fast, modern editor. Zed edits in the working copy with review gating rather than isolating each task in a worktree.
+
+### Conductor
+
+Conductor is a macOS app that runs Claude Code (and Codex and Cursor) in parallel, each in an isolated Git worktree, with a review-and-merge and pull-request flow. It is a focused, polished way to run a few agents in parallel on a Mac. It is macOS only.
+
+For the direct comparison, see [Superset vs Conductor](/compare/superset-vs-conductor).
+
+### cmux
+
+cmux is a native macOS terminal built for agents. It keeps many Claude Code sessions visible in tabs and split panes with notifications, but it does not isolate what each session changes -- that is left to you. It is a great terminal for agents, not an orchestrator.
+
+For the direct comparison, see [Superset vs cmux](/compare/superset-vs-cmux).
+
+### Superset
+
+Superset runs Claude Code as a first-class agent, giving every session its own Git worktree, branch, and persistent terminal, so multiple Claude Code sessions can work the same repository at once without collisions. Around that it adds a built-in diff and file editor, an in-app browser, MCP tooling, and remote and cloud workspaces. You can review inside Superset or hand off to VS Code, Cursor, JetBrains, or Xcode. It is the strongest fit when your goal is many Claude Code sessions in parallel, not another editor pane.
+
+For the direct comparison, see [Superset vs Claude Code](/compare/superset-vs-claude-code).
+
+## How To Choose
+
+- For one deep task, run the Claude Code CLI in your terminal, or use the VS Code or JetBrains extension if you want to edit alongside it.
+- To host Claude Code inside a fast editor, use Zed's ACP support.
+- To run many Claude Code sessions in parallel on one repository, use a worktree-based workspace like Superset or Conductor.
+
+## Best Picks by Use Case
+
+### Best for a single deep task: Claude Code CLI
+
+The terminal remains the most complete and scriptable way to run Claude Code.
+
+### Best for editing alongside Claude Code: VS Code or JetBrains
+
+The official extensions are the natural home if you want to keep editing in your IDE.
+
+### Best editor host for Claude Code: Zed
+
+Zed's ACP support runs Claude Code cleanly inside a fast, modern editor.
+
+### Best for parallel Claude Code sessions: Superset
+
+Superset gives every session its own worktree, so many can run at once without collisions, with review and orchestration built in.
+
+## Verdict
+
+If you run Claude Code one task at a time, the best IDE is whichever editor you already use: the CLI for depth, VS Code or JetBrains to edit alongside, or Zed to host it inside a fast editor. The moment you want several Claude Code sessions in parallel on the same repository, the deciding factor becomes worktree isolation and review, and a workspace like Superset is the better answer.
+
+For the workflow details, see [How to Run Multiple Claude Code Agents in Parallel](/compare/multiple-claude-code-agents-parallel). For the broader category, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best IDE for Claude Code?
+
+For a single task, the Claude Code CLI or the VS Code and JetBrains extensions are excellent. For running several sessions in parallel on one repository, a worktree-based workspace like Superset is the better fit.
+
+### Can I run Claude Code in VS Code?
+
+Yes. Claude Code has an official VS Code extension that runs it beside your code. For isolated parallel sessions, pair it with a worktree workflow or use a workspace like Superset.
+
+### How do I run multiple Claude Code sessions at once?
+
+Give each session its own Git worktree so they do not share a working directory. You can do this manually with tmux and worktrees, or automatically with a workspace like Superset or Conductor. See [How to Run Multiple Claude Code Agents in Parallel](/compare/multiple-claude-code-agents-parallel).
+
+### Does Claude Code have its own IDE?
+
+Claude Code ships as a CLI, a desktop app, VS Code and JetBrains extensions, a web experience, and mobile apps. For orchestrating many sessions in parallel, developers often add a worktree-based workspace on top.
