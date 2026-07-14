@@ -4,7 +4,14 @@ import { TRPCError } from "@trpc/server";
 
 // Kept outside the primary checkout so editors, file watchers, and
 // ignore rules treat worktrees as separate trees, not nested ones.
+//
+// SUPERSET_WORKTREES_ROOT overrides the location so worktrees can live on the
+// same volume as the repo they clone from — the APFS clonefile in
+// .superset/setup.sh only works within a single volume, so a homedir-rooted
+// default forces a slow full install when the repo lives on an external disk.
 export function defaultWorktreesRoot(): string {
+	const override = process.env.SUPERSET_WORKTREES_ROOT?.trim();
+	if (override) return resolve(override);
 	return join(homedir(), ".superset", "worktrees");
 }
 
