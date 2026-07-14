@@ -90,6 +90,23 @@ export function CompanyInfoCard({ domain }: CompanyInfoCardProps) {
 							{data.description && (
 								<p className="pb-1 text-sm">{data.description}</p>
 							)}
+							{data.websiteUrl && (
+								<Row
+									label="Website"
+									value={
+										<a
+											href={data.websiteUrl}
+											target="_blank"
+											rel="noreferrer"
+											className="hover:text-foreground underline"
+										>
+											{data.websiteUrl
+												.replace(/^https?:\/\/(www\.)?/, "")
+												.replace(/\/$/, "")}
+										</a>
+									}
+								/>
+							)}
 							<Row label="Employees" value={data.employeeRange} />
 							<Row
 								label="Stage"
