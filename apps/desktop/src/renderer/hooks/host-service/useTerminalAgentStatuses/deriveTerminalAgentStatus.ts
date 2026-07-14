@@ -16,6 +16,9 @@ export function deriveTerminalAgentStatus({
 }): PaneStatus {
 	if (lastEventType === "Start") return "working";
 	if (lastEventType === "PermissionRequest") return "permission";
+	// Failure persists (like permission) until the agent does something new —
+	// a retry emits Start, closing the terminal drops the binding.
+	if (lastEventType === "Failed") return "failed";
 	if (lastEventType === "Stop") {
 		return lastEventAt > (lastSeenAt ?? 0) ? "review" : "idle";
 	}

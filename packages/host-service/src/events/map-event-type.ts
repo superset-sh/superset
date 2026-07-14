@@ -4,6 +4,10 @@
  * - `Start` / `Stop`: per-turn working-state cadence — drives the working
  *   indicator and the completion chime.
  * - `PermissionRequest`: agent is blocked waiting for a tool/exec decision.
+ * - `Failed`: the agent's turn ended in failure (e.g. Claude Code's
+ *   `StopFailure` API-error hook, or an abnormal terminal process exit).
+ *   Distinct from `Stop` so the UI can surface it instead of showing a clean
+ *   completion — this is what stops failures from being silent.
  * - `Attached` / `Detached`: session-lifetime signal — drives the pane icon
  *   binding only. NOT working state: SessionStart fires on agent boot when
  *   the agent is still idle waiting for input.
@@ -12,6 +16,7 @@ export type AgentLifecycleEventType =
 	| "Start"
 	| "Stop"
 	| "PermissionRequest"
+	| "Failed"
 	| "Attached"
 	| "Detached";
 
@@ -66,6 +71,21 @@ export function mapEventType(
 		eventType === "request_user_input"
 	) {
 		return "PermissionRequest";
+	}
+	// Failure must be checked before Stop: Claude Code emits `StopFailure` on
+	// API errors (rate_limit, overloaded, auth, billing, server_error, …) while
+	// the session stays alive, so the binding stays live and the pane can show
+	// a red "failed" state instead of a clean completion.
+	if (
+		eventType === "StopFailure" ||
+		eventType === "stopFailure" ||
+		eventType === "stop_failure" ||
+		eventType === "Failed" ||
+		eventType === "failed" ||
+		eventType === "turn_failed" ||
+		eventType === "agent-turn-failed"
+	) {
+		return "Failed";
 	}
 	if (
 		eventType === "Stop" ||

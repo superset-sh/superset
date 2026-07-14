@@ -157,6 +157,34 @@ describe("notificationsRouter.hook", () => {
 		expect(binding?.lastEventType).toBe("Attached");
 	});
 
+	it("maps Claude Code's StopFailure API-error hook to a Failed event and records it", async () => {
+		const { ctx, broadcastAgentLifecycle, terminalAgentStore } =
+			createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+
+		// The agent first attaches, then the API turn fails.
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "StopFailure",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		const failedBroadcast = broadcastAgentLifecycle.mock.calls.at(-1)?.[0];
+		expect(failedBroadcast).toMatchObject({
+			workspaceId: "workspace-1",
+			eventType: "Failed",
+			terminalId: "terminal-1",
+		});
+		// The binding stays live (not deleted) and reflects the failure.
+		expect(terminalAgentStore.get("terminal-1")?.lastEventType).toBe("Failed");
+	});
+
 	it("drops agent identity entirely when agentId is missing", async () => {
 		const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
 

@@ -173,6 +173,7 @@ export function getClaudeGlobalSettingsJsonContent(
 			| "SessionEnd"
 			| "UserPromptSubmit"
 			| "Stop"
+			| "StopFailure"
 			| "PostToolUse"
 			| "PostToolUseFailure"
 			| "PermissionRequest";
@@ -192,6 +193,13 @@ export function getClaudeGlobalSettingsJsonContent(
 		},
 		{
 			eventName: "Stop",
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
+		},
+		{
+			// Claude Code's API-error hook (rate_limit, overloaded, auth,
+			// billing, server_error, …). Fires while the session stays alive,
+			// so the agent surfaces as "failed" instead of silently "working".
+			eventName: "StopFailure",
 			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
