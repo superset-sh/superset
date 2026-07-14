@@ -39,22 +39,132 @@ Wait less, ship more.
 
 ## Features
 
-| Feature | Description |
-|:--------|:------------|
-| **Parallel Execution** | Run 10+ coding agents simultaneously on your machine |
-| **Worktree Isolation** | Each task gets its own branch and working directory |
-| **Agent Monitoring** | Track every agent from the sidebar, with dock badges when one needs attention |
-| **Built-in Terminal** | Tabs, splits, presets, persistent sessions, and an optional rich prompt editor |
-| **Built-in Diff Viewer** | Inspect, comment on, and edit agent changes without leaving the app |
-| **Command Palette** | Jump to any workspace, action, or setting from one search box |
-| **In-App Browser & Ports** | Preview running dev servers, with ports detected per workspace |
-| **Remote Workspaces** | Connect another machine and reach its workspaces from anywhere |
-| **Automations** | Run agent sessions on a schedule |
-| **Custom Agents** | Add your own terminal agents with custom icons |
-| **Workspace Presets** | Automate env setup, dependency installation, and more |
-| **Slack & Linear** | Spin up workspaces from Slack messages or Linear issues |
-| **Universal Compatibility** | Works with any CLI agent that runs in a terminal |
-| **IDE Integration** | Open any workspace in your favorite editor with one click |
+<table>
+<tr>
+<td width="50%" valign="middle">
+
+### Parallel Workspaces
+
+Run 10+ coding agents at once, each in its own git worktree with its own branch, terminal, and environment. Compare the results and merge the winner.
+
+[Docs →](https://docs.superset.sh/workspaces)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/workspaces"><img src="apps/marketing/public/images/readme/parallel-workspaces.png" alt="Superset sidebar with multiple workspaces running agents in parallel" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
+### Agent Monitoring
+
+Track every agent from the sidebar, with working indicators, completion chimes, and dock badges when one needs your attention.
+
+[Docs →](https://docs.superset.sh/agent-integration)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/agent-integration"><img src="apps/marketing/public/images/readme/agent-monitoring.png" alt="Agent status indicators in the workspace sidebar" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
+### Built-in Terminal
+
+Tabs, infinite splits, presets, and persistent sessions that survive restarts. Press ⌘I for a rich prompt editor with multiline editing and @-file mentions.
+
+[Docs →](https://docs.superset.sh/terminal-integration)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/terminal-integration"><img src="apps/marketing/public/images/readme/terminal.png" alt="Split terminals running agents side by side" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
+### Built-in Diff Viewer
+
+Inspect, comment on, and edit agent changes without leaving the app, then commit and push when it's ready.
+
+[Docs →](https://docs.superset.sh/diff-viewer)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/diff-viewer"><img src="apps/marketing/public/images/readme/diff-viewer.png" alt="Reviewing an agent's changes in the diff viewer" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
+### In-App Browser & Ports
+
+Preview running dev servers in a browser pane. Ports are detected per workspace, so every worktree gets its own preview.
+
+[Docs →](https://docs.superset.sh/browser)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/browser"><img src="apps/marketing/public/images/readme/browser-ports.png" alt="In-app browser previewing a dev server with detected ports" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
+### Automations
+
+Run agent sessions on a schedule: triage issues overnight, draft the weekly changelog, keep dependencies fresh.
+
+[Docs →](https://docs.superset.sh/automations)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/automations"><img src="apps/marketing/public/images/readme/automations.png" alt="Scheduled agent automations" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
+### Remote Workspaces
+
+Connect another machine and reach its workspaces from anywhere: the desktop app, the CLI, or your phone. Wake offline hosts with a custom command.
+
+[Docs →](https://docs.superset.sh/remote-workspaces)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/remote-workspaces"><img src="apps/docs/public/images/remote-workspaces-hosts-members.png" alt="Hosts and members in organization settings" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
+### Command Palette
+
+Jump to any workspace, action, or setting from one search box.
+
+[Docs →](https://docs.superset.sh/keyboard-shortcuts)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/keyboard-shortcuts"><img src="apps/marketing/public/images/readme/command-palette.png" alt="Command palette searching across workspaces and actions" width="100%" /></a>
+</td>
+</tr>
+</table>
+
+**Also in the box:**
+
+- **[Model picker & custom agents](https://docs.superset.sh/agent-integration)**: choose a model and reasoning effort at launch, and add any terminal agent with its own icon
+- **[Workspace setup scripts](https://docs.superset.sh/setup-teardown-scripts)**: automate env setup, dependency installs, and dev servers per workspace
+- **[Terminal presets](https://docs.superset.sh/terminal-presets)**: save agent and shell layouts and open them with one keystroke
+- **[Slack & Linear](https://docs.superset.sh/use-with-linear)**: spin up workspaces from Slack messages or Linear issues
+- **[Open in your IDE](https://docs.superset.sh/use-with-ide)**: one-click handoff to Cursor, VS Code, or any editor
+- **[Custom themes](https://docs.superset.sh/custom-themes)**: build, edit, and import theme files
+- **[Keyboard shortcuts](https://docs.superset.sh/keyboard-shortcuts)**: every action is remappable via **Settings → Keyboard Shortcuts** (⌘/)
+- **[Bring your own providers](https://docs.superset.sh/providers)**: connect OpenRouter, Bedrock, Vertex, or Vercel AI Gateway
+- **And many more**: we ship daily, so this list is perpetually behind. The [changelog](https://superset.sh/changelog) is the real feature list.
 
 ## Supported Agents
 
@@ -140,42 +250,6 @@ Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`)
 
 See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide: what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
-## Keyboard Shortcuts
-
-All shortcuts are customizable via **Settings > Keyboard Shortcuts** (`⌘/`). See [full documentation](https://docs.superset.sh/keyboard-shortcuts).
-
-### Workspace Navigation
-
-| Shortcut | Action |
-|:---------|:-------|
-| `⌘1-9` | Switch to workspace 1-9 |
-| `⌘⌥↑/↓` | Previous/next workspace |
-| `⌘N` | New workspace |
-| `⌘⇧N` | Quick create workspace |
-| `⌘⇧O` | Open project |
-
-### Terminal
-
-| Shortcut | Action |
-|:---------|:-------|
-| `⌘T` | New tab |
-| `⌘W` | Close pane/terminal |
-| `⌘D` | Split right |
-| `⌘⇧D` | Split down |
-| `⌘K` | Clear terminal |
-| `⌘F` | Find in terminal |
-| `⌘⌥←/→` | Previous/next tab |
-| `Ctrl+1-9` | Open preset 1-9 |
-
-### Layout
-
-| Shortcut | Action |
-|:---------|:-------|
-| `⌘B` | Toggle workspaces sidebar |
-| `⌘L` | Toggle changes panel |
-| `⌘O` | Open in external app |
-| `⌘⇧C` | Copy path |
-
 ## Configuration
 
 Configure workspace setup, teardown, and run scripts in `.superset/config.json`. See [full documentation](https://docs.superset.sh/setup-teardown-scripts).
@@ -188,36 +262,7 @@ Configure workspace setup, teardown, and run scripts in `.superset/config.json`.
 }
 ```
 
-| Option | Type | Description |
-|:-------|:-----|:------------|
-| `setup` | `string[]` | Commands to run when creating a workspace |
-| `teardown` | `string[]` | Commands to run when deleting a workspace |
-| `run` | `string[]` | Restartable dev-server commands, triggered by the Run button |
-
-### Example setup script
-
-```bash
-#!/bin/bash
-# .superset/setup.sh
-
-# Copy environment variables
-cp ../.env .env
-
-# Install dependencies
-bun install
-
-# Run any other setup tasks
-echo "Workspace ready!"
-```
-
-Scripts have access to environment variables:
-- `SUPERSET_WORKSPACE_NAME`: name of the workspace
-- `SUPERSET_WORKSPACE_PATH`: path to the workspace worktree
-- `SUPERSET_ROOT_PATH`: path to the main repository
-
-## Mastra Dependencies
-
-This repo uses the published upstream `mastracode` and `@mastra/*` packages directly. Avoid adding custom tarball overrides unless there is a repo-specific blocker.
+Keyboard shortcuts are customizable via **Settings → Keyboard Shortcuts** (⌘/); see the [full shortcut list](https://docs.superset.sh/keyboard-shortcuts).
 
 ## Tech Stack
 
