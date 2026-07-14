@@ -50,12 +50,17 @@ const tabNodeSchema = z.object({
 	activePaneId: z.string().nullable(),
 	layout: layoutNodeSchema,
 	panes: z.record(z.string(), paneNodeSchema),
+	panelId: z.string().optional(),
 });
+
+const panelActiveTabIdsSchema = z.record(z.string(), z.string());
 
 const EMPTY_PANE_LAYOUT: WorkspaceState<unknown> = {
 	version: 1,
 	tabs: [],
 	activeTabId: null,
+	panelLayout: null,
+	panelActiveTabIds: {},
 };
 
 /**
@@ -64,7 +69,9 @@ const EMPTY_PANE_LAYOUT: WorkspaceState<unknown> = {
  * resets to empty; individually-corrupt tabs (e.g. a split node missing a
  * child) are dropped while valid tabs are kept, and `activeTabId` is repaired
  * to point at a surviving tab. Prevents the renderer from rendering an
- * undefined layout node.
+ * undefined layout node. Panel fields (`panelLayout`, `panelActiveTabIds`)
+ * fall back to the implicit single panel when malformed — the panes store
+ * self-repairs any remaining inconsistency on read.
  */
 export function sanitizePaneLayout(raw: unknown): WorkspaceState<unknown> {
 	if (!raw || typeof raw !== "object") return EMPTY_PANE_LAYOUT;
@@ -81,7 +88,21 @@ export function sanitizePaneLayout(raw: unknown): WorkspaceState<unknown> {
 		tabs.some((tab) => tab.id === value.activeTabId)
 			? value.activeTabId
 			: (tabs[0]?.id ?? null);
-	return { version: 1, tabs, activeTabId };
+
+	const parsedPanelLayout =
+		value.panelLayout == null
+			? null
+			: layoutNodeSchema.safeParse(value.panelLayout);
+	const panelLayout =
+		parsedPanelLayout?.success === true ? parsedPanelLayout.data : null;
+	const parsedPanelActiveTabIds = panelActiveTabIdsSchema.safeParse(
+		value.panelActiveTabIds ?? {},
+	);
+	const panelActiveTabIds = parsedPanelActiveTabIds.success
+		? parsedPanelActiveTabIds.data
+		: {};
+
+	return { version: 1, tabs, activeTabId, panelLayout, panelActiveTabIds };
 }
 
 const changesFilterSchema = z.discriminatedUnion("kind", [

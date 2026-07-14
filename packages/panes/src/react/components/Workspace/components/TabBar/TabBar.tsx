@@ -31,6 +31,10 @@ interface TabBarProps<TData> {
 	onRenameTab: (tabId: string, title: string | undefined) => void;
 	onReorderTab: (tabId: string, toIndex: number) => void;
 	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
+	/** Any pointer-down in the bar (select the bar's panel) */
+	onBarMouseDown?: () => void;
+	/** Double-click on the bar's empty space (not a tab or control) */
+	onBarDoubleClick?: () => void;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
 	renderTabBarTrailing?: () => ReactNode;
@@ -81,6 +85,8 @@ export function TabBar<TData>({
 	onRenameTab,
 	onReorderTab,
 	onMovePaneToNewTab,
+	onBarMouseDown,
+	onBarDoubleClick,
 	renderTabIcon,
 	renderAddTabMenu,
 	renderTabBarTrailing,
@@ -88,6 +94,17 @@ export function TabBar<TData>({
 }: TabBarProps<TData>) {
 	const tabsTrackRef = useRef<HTMLDivElement>(null);
 	const [hasHorizontalOverflow, setHasHorizontalOverflow] = useState(false);
+
+	const handleBarDoubleClick = useCallback(
+		(e: React.MouseEvent) => {
+			// Only the bar's own background — tabs and controls have their own
+			// double-click behavior (rename, menus).
+			const target = e.target as HTMLElement;
+			if (target.closest("[data-tab-item],button,input")) return;
+			onBarDoubleClick?.();
+		},
+		[onBarDoubleClick],
+	);
 
 	const insertIndexRef = useRef<number | null>(null);
 	const [insertIndex, setInsertIndex] = useState<number | null>(null);
@@ -126,12 +143,11 @@ export function TabBar<TData>({
 					return;
 				}
 
+				// Adjust for removal of the dragged tab when it lives in this bar;
+				// a tab dragged in from another panel isn't in `tabs`.
 				const dragIndex = tabs.findIndex((t) => t.id === item.tabId);
-				if (dragIndex === -1) return;
-
-				// Adjust for removal of dragged tab
 				let toIndex = idx;
-				if (dragIndex < toIndex) toIndex--;
+				if (dragIndex !== -1 && dragIndex < toIndex) toIndex--;
 
 				onReorderTab(item.tabId, toIndex);
 			},
@@ -167,9 +183,12 @@ export function TabBar<TData>({
 
 	if (tabs.length === 0) {
 		return (
+			// biome-ignore lint/a11y/noStaticElementInteractions: pointer-down selects the bar's panel; keyboard focus flows through the tabs/buttons inside
 			<div
 				ref={setRootRef}
 				className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+				onMouseDownCapture={onBarMouseDown}
+				onDoubleClick={handleBarDoubleClick}
 			>
 				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
@@ -185,9 +204,12 @@ export function TabBar<TData>({
 	}
 
 	return (
+		// biome-ignore lint/a11y/noStaticElementInteractions: pointer-down selects the bar's panel; keyboard focus flows through the tabs/buttons inside
 		<div
 			ref={setRootRef}
 			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+			onMouseDownCapture={onBarMouseDown}
+			onDoubleClick={handleBarDoubleClick}
 		>
 			<OverflowFadeContainer
 				observeChildren

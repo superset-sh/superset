@@ -31,10 +31,23 @@ export interface Tab<TData> {
 	activePaneId: string | null;
 	layout: LayoutNode;
 	panes: Record<string, Pane<TData>>;
+	/**
+	 * Panel (VS Code-style editor group) this tab lives in. Tabs with a
+	 * missing/unknown panelId resolve to the workspace's first panel.
+	 */
+	panelId?: string;
 }
 
 export interface WorkspaceState<TData> {
 	version: 1;
 	tabs: Tab<TData>[];
 	activeTabId: string | null;
+	/**
+	 * Panel split tree. Reuses LayoutNode — leaves are `{ type: "pane" }`
+	 * nodes whose `paneId` carries a *panel* id. Missing/null means a single
+	 * implicit panel holding all tabs.
+	 */
+	panelLayout?: LayoutNode | null;
+	/** Active (visible) tab per panel. Stale entries are ignored on read. */
+	panelActiveTabIds?: Record<string, string>;
 }

@@ -34,9 +34,9 @@ export function useWorkspacePaneOpeners({
 		side?: DiffFocusSide,
 		changeKey?: string,
 	) => void;
-	addTerminalTab: () => Promise<void>;
-	addChatTab: () => void;
-	addBrowserTab: () => void;
+	addTerminalTab: (options?: { panelId?: string }) => Promise<void>;
+	addChatTab: (options?: { panelId?: string }) => void;
+	addBrowserTab: (options?: { panelId?: string }) => void;
 	openCommentPane: (comment: CommentPaneData) => void;
 } {
 	const openDiffPane = useCallback(
@@ -113,54 +113,70 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addBlankTerminalTab = useCallback(async () => {
-		const terminalId = await launcher.create();
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
-				},
-			],
-		});
-	}, [store, launcher]);
+	const addBlankTerminalTab = useCallback(
+		async (options?: { panelId?: string }) => {
+			const terminalId = await launcher.create();
+			store.getState().addTab({
+				panes: [
+					{
+						kind: "terminal",
+						data: { terminalId } as TerminalPaneData,
+					},
+				],
+				panelId: options?.panelId,
+			});
+		},
+		[store, launcher],
+	);
 
-	const addTerminalTab = useCallback(async () => {
-		if (newTabPresets.length === 0) {
-			await addBlankTerminalTab();
-			return;
-		}
+	const addTerminalTab = useCallback(
+		async (options?: { panelId?: string }) => {
+			if (newTabPresets.length === 0) {
+				await addBlankTerminalTab(options);
+				return;
+			}
 
-		// New terminal tabs are the trigger point for applyOnNewTab presets.
-		// Each matching preset owns the tab/pane shape it creates.
-		for (const preset of newTabPresets) {
-			await executePreset(preset, { target: "new-tab" });
-		}
-	}, [addBlankTerminalTab, executePreset, newTabPresets]);
+			// New terminal tabs are the trigger point for applyOnNewTab presets.
+			// Each matching preset owns the tab/pane shape it creates; preset tabs
+			// land in the focused panel (selecting a panel's bar focuses it).
+			for (const preset of newTabPresets) {
+				await executePreset(preset, { target: "new-tab" });
+			}
+		},
+		[addBlankTerminalTab, executePreset, newTabPresets],
+	);
 
-	const addChatTab = useCallback(() => {
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "chat",
-					data: { sessionId: null } as ChatPaneData,
-				},
-			],
-		});
-	}, [store]);
+	const addChatTab = useCallback(
+		(options?: { panelId?: string }) => {
+			store.getState().addTab({
+				panes: [
+					{
+						kind: "chat",
+						data: { sessionId: null } as ChatPaneData,
+					},
+				],
+				panelId: options?.panelId,
+			});
+		},
+		[store],
+	);
 
-	const addBrowserTab = useCallback(() => {
-		store.getState().addTab({
-			panes: [
-				{
-					kind: "browser",
-					data: {
-						url: "about:blank",
-					} as BrowserPaneData,
-				},
-			],
-		});
-	}, [store]);
+	const addBrowserTab = useCallback(
+		(options?: { panelId?: string }) => {
+			store.getState().addTab({
+				panes: [
+					{
+						kind: "browser",
+						data: {
+							url: "about:blank",
+						} as BrowserPaneData,
+					},
+				],
+				panelId: options?.panelId,
+			});
+		},
+		[store],
+	);
 
 	const openCommentPane = useCallback(
 		(comment: CommentPaneData) => {

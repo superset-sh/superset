@@ -5,6 +5,8 @@ export type {
 	WorkspaceStore,
 } from "./core/store";
 export { createWorkspaceStore } from "./core/store";
+export type { DerivedPanels } from "./core/store/panels";
+export { deriveWorkspacePanels, IMPLICIT_PANEL_ID } from "./core/store/panels";
 export type { FocusDirection } from "./core/store/utils";
 export {
 	getActiveIdAfterRemoval,

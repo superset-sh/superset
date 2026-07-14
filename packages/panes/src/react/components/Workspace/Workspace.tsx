@@ -1,13 +1,21 @@
 import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef } from "react";
-import { useDragLayer } from "react-dnd";
 import { useStore } from "zustand";
-import type { Pane } from "../../../types";
+import { deriveWorkspacePanels } from "../../../core/store/panels";
+import type { LayoutNode, Pane, Tab as TabType } from "../../../types";
 import type { WorkspaceProps } from "../../types";
-import { Tab } from "./components/Tab";
-import { TabBar } from "./components/TabBar";
-import { TAB_DRAG_TYPE } from "./components/TabBar/components/TabItem";
+import { Panels, type PanelsContext } from "./components/Panels";
 import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
+
+/** Panel touching the top-right corner (hosts workspace-level controls) */
+function findTopRightPanelId(node: LayoutNode): string {
+	if (node.type === "pane") {
+		return node.paneId;
+	}
+	return findTopRightPanelId(
+		node.direction === "horizontal" ? node.second : node.first,
+	);
+}
 
 export function Workspace<TData>({
 	store,
@@ -27,32 +35,30 @@ export function Workspace<TData>({
 }: WorkspaceProps<TData>) {
 	const tabs = useStore(store, (s) => s.tabs);
 	const activeTabId = useStore(store, (s) => s.activeTabId);
-	const activeTab = tabs.find((t) => t.id === activeTabId) ?? null;
+	const panelLayout = useStore(store, (s) => s.panelLayout);
+	const panelActiveTabIds = useStore(store, (s) => s.panelActiveTabIds);
 	const { onSplitResizeDragging } = useWorkspaceInteractionState({
 		onInteractionStateChange,
 	});
 
-	// The tab id currently being dragged in the tab bar, if any.
-	const draggedTabId = useDragLayer((monitor) => {
-		if (!monitor.isDragging() || monitor.getItemType() !== TAB_DRAG_TYPE) {
-			return null;
-		}
-		const item = monitor.getItem() as { tabId?: string } | null;
-		return item?.tabId ?? null;
-	});
+	const derived = useMemo(
+		() =>
+			deriveWorkspacePanels({
+				tabs,
+				activeTabId,
+				panelLayout,
+				panelActiveTabIds,
+			}),
+		[tabs, activeTabId, panelLayout, panelActiveTabIds],
+	);
 
-	// While dragging the active tab, render its neighbor (preceding tab, or the
-	// next one when dragging the first tab) instead. Dropping a tab onto its own
-	// view is a no-op (you'd merge it into itself), so showing a sibling lets
-	// you see — and drop onto — an actual merge target.
-	const displayedTab = useMemo(() => {
-		if (draggedTabId && draggedTabId === activeTabId) {
-			const index = tabs.findIndex((t) => t.id === draggedTabId);
-			if (index > 0) return tabs[index - 1];
-			if (index === 0 && tabs.length > 1) return tabs[1];
+	const tabsById = useMemo(() => {
+		const map = new Map<string, TabType<TData>>();
+		for (const tab of tabs) {
+			map.set(tab.id, tab);
 		}
-		return activeTab;
-	}, [draggedTabId, activeTabId, tabs, activeTab]);
+		return map;
+	}, [tabs]);
 
 	const previousPanesRef = useRef<Map<string, Pane<TData>>>(new Map());
 	useEffect(() => {
@@ -87,6 +93,23 @@ export function Workspace<TData>({
 		}
 	};
 
+	const panelsContext: PanelsContext<TData> = {
+		store,
+		registry,
+		derived,
+		tabsById,
+		topRightPanelId: findTopRightPanelId(derived.layout),
+		closeTab,
+		renderTabIcon,
+		renderAddTabMenu,
+		renderTabBarTrailing,
+		renderTabAccessory,
+		renderEmptyState,
+		paneActions,
+		contextMenuActions,
+		onSplitResizeDragging,
+	};
+
 	return (
 		<div
 			className={cn(
@@ -94,51 +117,10 @@ export function Workspace<TData>({
 				className,
 			)}
 		>
-			<TabBar
-				tabs={tabs}
-				registry={registry}
-				activeTabId={activeTabId}
-				onSelectTab={(tabId) => store.getState().setActiveTab(tabId)}
-				onCloseTab={closeTab}
-				onCloseOtherTabs={async (tabId) => {
-					for (const tab of tabs) {
-						if (tab.id !== tabId) await closeTab(tab.id);
-					}
-				}}
-				onCloseAllTabs={async () => {
-					for (const tab of tabs) {
-						await closeTab(tab.id);
-					}
-				}}
-				onRenameTab={(tabId, title) =>
-					store.getState().setTabTitleOverride({ tabId, titleOverride: title })
-				}
-				onReorderTab={(tabId, toIndex) =>
-					store.getState().reorderTab({ tabId, toIndex })
-				}
-				onMovePaneToNewTab={(paneId, toIndex) =>
-					store.getState().movePaneToNewTab({ paneId, toIndex })
-				}
-				renderTabIcon={renderTabIcon}
-				renderAddTabMenu={renderAddTabMenu}
-				renderTabBarTrailing={renderTabBarTrailing}
-				renderTabAccessory={renderTabAccessory}
-			/>
 			{renderBelowTabBar?.()}
-			{displayedTab ? (
-				<Tab
-					store={store}
-					tab={displayedTab}
-					registry={registry}
-					paneActions={paneActions}
-					contextMenuActions={contextMenuActions}
-					onSplitResizeDragging={onSplitResizeDragging}
-				/>
-			) : (
-				<div className="flex min-h-0 min-w-0 flex-1 items-center justify-center text-sm text-muted-foreground">
-					{renderEmptyState?.() ?? "No tabs open"}
-				</div>
-			)}
+			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+				<Panels node={derived.layout} path={[]} context={panelsContext} />
+			</div>
 		</div>
 	);
 }

@@ -115,6 +115,7 @@ export function TabItem<TData>({
 				{/* biome-ignore lint/a11y/useKeyWithClickEvents: tabs are pointer-driven; keyboard nav is out of scope here */}
 				<div
 					ref={setRef}
+					data-tab-item=""
 					className={cn(
 						"group relative flex h-full w-full items-center border-r border-border transition-colors",
 						isActive

@@ -104,7 +104,11 @@ export interface WorkspaceProps<TData> {
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderEmptyState?: () => ReactNode;
-	renderAddTabMenu?: () => ReactNode;
+	/**
+	 * Add-tab menu for a panel's "+" button. Receives the panel it was opened
+	 * from so new tabs can target that panel (`addTab({ panelId })`).
+	 */
+	renderAddTabMenu?: (context: { panelId: string }) => ReactNode;
 	/** Rendered at the trailing (right) edge of the tab bar row. */
 	renderTabBarTrailing?: () => ReactNode;
 	renderBelowTabBar?: () => ReactNode;

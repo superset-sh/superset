@@ -8,6 +8,14 @@ import type {
 	WorkspaceState,
 } from "../../types";
 import {
+	buildExpandedPanelLayout,
+	computePanelActiveSync,
+	deriveWorkspacePanels,
+	isPanelExpanded,
+	moveTabToPanel as moveTabToPanelPure,
+	splitPanelWithTab as splitPanelWithTabPure,
+} from "./panels";
+import {
 	equalizeAllSplits,
 	findFirstPaneId,
 	findPaneInLayout,
@@ -57,6 +65,7 @@ function buildTab<TData>(args: {
 	titleOverride?: string;
 	panes: [Pane<TData>, ...Pane<TData>[]];
 	activePaneId?: string;
+	panelId?: string;
 }): Tab<TData> {
 	const panesMap: Record<string, Pane<TData>> = {};
 	const leaves: LayoutNode[] = [];
@@ -73,6 +82,7 @@ function buildTab<TData>(args: {
 		activePaneId: args.activePaneId ?? args.panes[0].id,
 		layout: buildBalancedTree(leaves),
 		panes: panesMap,
+		panelId: args.panelId,
 	};
 }
 
@@ -106,6 +116,8 @@ export type CreateTabInput<TData> = {
 	titleOverride?: string;
 	panes: [CreatePaneInput<TData>, ...CreatePaneInput<TData>[]];
 	activePaneId?: string;
+	/** Panel to place the new tab in (defaults to the focused panel) */
+	panelId?: string;
 };
 
 export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
@@ -168,7 +180,16 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	}) => void;
 
 	movePaneToTab: (args: { paneId: string; targetTabId: string }) => void;
-	movePaneToNewTab: (args: { paneId: string; toIndex?: number }) => void;
+	movePaneToNewTab: (args: {
+		paneId: string;
+		toIndex?: number;
+		/**
+		 * Panel to create the tab in. When set, `toIndex` is relative to that
+		 * panel's strip; when omitted, the tab lands in the source tab's panel
+		 * and `toIndex` is a global tabs index (legacy behavior).
+		 */
+		panelId?: string;
+	}) => void;
 	moveTabToSplit: (args: {
 		sourceTabId: string;
 		targetPaneId: string;
@@ -176,6 +197,39 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 	}) => void;
 
 	reorderTab: (args: { tabId: string; toIndex: number }) => void;
+
+	// Panel (VS Code-style editor group) operations
+	/**
+	 * Move a tab into an existing panel. `toIndex` positions the tab within
+	 * the panel's strip (excluding the moved tab); omitted = append.
+	 * Same-panel moves are pure reorders.
+	 */
+	moveTabToPanel: (args: {
+		tabId: string;
+		targetPanelId: string;
+		toIndex?: number;
+	}) => void;
+	/**
+	 * Create a new panel on the given edge of `targetPanelId` and move the tab
+	 * into it (VS Code edge drop).
+	 */
+	splitPanelWithTab: (args: {
+		tabId: string;
+		targetPanelId: string;
+		position: SplitPosition;
+	}) => void;
+	/** Persist a panel split ratio (path into the panel layout tree) */
+	resizePanelSplit: (args: {
+		path: SplitPath;
+		splitPercentage: number;
+	}) => void;
+	/** Distribute space evenly across all panels */
+	equalizePanels: () => void;
+	/**
+	 * Expand a panel (its branch dominates every ancestor split); if it's
+	 * already expanded, restore even sizes. VS Code's expand-group toggle.
+	 */
+	toggleExpandPanel: (args: { panelId: string }) => void;
 
 	replaceState: (
 		next:
@@ -191,21 +245,27 @@ export interface CreateWorkspaceStoreOptions<TData> {
 export function createWorkspaceStore<TData>(
 	options?: CreateWorkspaceStoreOptions<TData>,
 ): StoreApi<WorkspaceStore<TData>> {
-	return createStore<WorkspaceStore<TData>>((set, get) => ({
+	const store = createStore<WorkspaceStore<TData>>((set, get) => ({
 		version: 1,
 		tabs: options?.initialState?.tabs ?? [],
 		activeTabId: options?.initialState?.activeTabId ?? null,
+		panelLayout: options?.initialState?.panelLayout ?? null,
+		panelActiveTabIds: options?.initialState?.panelActiveTabIds ?? {},
 
 		addTab: (args) => {
 			const builtPanes = args.panes.map(buildPane) as [
 				Pane<TData>,
 				...Pane<TData>[],
 			];
-			const tab = buildTab({ ...args, panes: builtPanes });
-			set((s) => ({
-				tabs: [...s.tabs, tab],
-				activeTabId: tab.id,
-			}));
+			set((s) => {
+				// New tabs land in the requested panel, else the focused one
+				const panelId = args.panelId ?? deriveWorkspacePanels(s).focusedPanelId;
+				const tab = buildTab({ ...args, panes: builtPanes, panelId });
+				return {
+					tabs: [...s.tabs, tab],
+					activeTabId: tab.id,
+				};
+			});
 		},
 
 		removeTab: (tabId) => {
@@ -812,6 +872,8 @@ export function createWorkspaceStore<TData>(
 				}
 				if (!sourceTab || !pane || !sourceTab.layout) return s;
 
+				const derivedPanels = deriveWorkspacePanels(s);
+
 				const nextSourceLayout = removePaneFromLayout(
 					sourceTab.layout,
 					args.paneId,
@@ -821,6 +883,9 @@ export function createWorkspaceStore<TData>(
 				const newTab = buildTab({
 					panes: [pane],
 					activePaneId: pane.id,
+					// Keep the extracted pane next to its source tab unless a panel
+					// was explicitly targeted (e.g. dropping onto that panel's bar)
+					panelId: args.panelId ?? derivedPanels.panelIdByTabId[sourceTab.id],
 				});
 
 				const nextTabs = s.tabs
@@ -843,17 +908,32 @@ export function createWorkspaceStore<TData>(
 					})
 					.filter((t): t is Tab<TData> => t !== null);
 
-				const requestedIndex = args.toIndex ?? nextTabs.length;
-				const adjustedIndex =
-					args.toIndex !== undefined &&
-					!nextSourceLayout &&
-					sourceTabIndex < args.toIndex
-						? args.toIndex - 1
-						: requestedIndex;
-				const insertIndex = Math.max(
-					0,
-					Math.min(adjustedIndex, nextTabs.length),
-				);
+				let insertIndex: number;
+				if (args.panelId !== undefined) {
+					// toIndex is relative to the target panel's strip
+					const members = nextTabs.filter(
+						(t) => derivedPanels.panelIdByTabId[t.id] === args.panelId,
+					);
+					const toIndex = args.toIndex ?? members.length;
+					const anchor = members[toIndex];
+					if (anchor) {
+						insertIndex = nextTabs.indexOf(anchor);
+					} else {
+						const lastMember = members[members.length - 1];
+						insertIndex = lastMember
+							? nextTabs.indexOf(lastMember) + 1
+							: nextTabs.length;
+					}
+				} else {
+					const requestedIndex = args.toIndex ?? nextTabs.length;
+					const adjustedIndex =
+						args.toIndex !== undefined &&
+						!nextSourceLayout &&
+						sourceTabIndex < args.toIndex
+							? args.toIndex - 1
+							: requestedIndex;
+					insertIndex = Math.max(0, Math.min(adjustedIndex, nextTabs.length));
+				}
 
 				nextTabs.splice(insertIndex, 0, newTab);
 
@@ -912,6 +992,48 @@ export function createWorkspaceStore<TData>(
 			});
 		},
 
+		moveTabToPanel: (args) => {
+			set((s) => moveTabToPanelPure(s, args) ?? s);
+		},
+
+		splitPanelWithTab: (args) => {
+			set((s) => splitPanelWithTabPure(s, args) ?? s);
+		},
+
+		resizePanelSplit: (args) => {
+			set((s) => {
+				// Materialize the derived tree so the path resolves even when the
+				// stored layout is implicit or stale
+				const layout = deriveWorkspacePanels(s).layout;
+				return {
+					panelLayout: updateAtPath(layout, args.path, (node) =>
+						node.type === "split"
+							? { ...node, splitPercentage: args.splitPercentage }
+							: node,
+					),
+				};
+			});
+		},
+
+		equalizePanels: () => {
+			set((s) => ({
+				panelLayout: equalizeAllSplits(deriveWorkspacePanels(s).layout),
+			}));
+		},
+
+		toggleExpandPanel: (args) => {
+			set((s) => {
+				const layout = deriveWorkspacePanels(s).layout;
+				const expanded = buildExpandedPanelLayout(layout, args.panelId);
+				if (!expanded) return s;
+				return {
+					panelLayout: isPanelExpanded(layout, args.panelId)
+						? equalizeAllSplits(layout)
+						: expanded,
+				};
+			});
+		},
+
 		replaceState: (next) => {
 			set((s) => {
 				const resolved =
@@ -920,14 +1042,29 @@ export function createWorkspaceStore<TData>(
 								version: s.version,
 								tabs: s.tabs,
 								activeTabId: s.activeTabId,
+								panelLayout: s.panelLayout,
+								panelActiveTabIds: s.panelActiveTabIds,
 							})
 						: next;
 				return {
 					version: resolved.version,
 					tabs: resolved.tabs,
 					activeTabId: resolved.activeTabId,
+					panelLayout: resolved.panelLayout ?? null,
+					panelActiveTabIds: resolved.panelActiveTabIds ?? {},
 				};
 			});
 		},
 	}));
+
+	// Keep each panel's recorded active tab in sync with workspace activation
+	// (idempotent, so the nested setState can't loop).
+	store.subscribe((s) => {
+		const sync = computePanelActiveSync(s);
+		if (sync) {
+			store.setState(sync);
+		}
+	});
+
+	return store;
 }
