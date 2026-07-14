@@ -196,9 +196,7 @@ export function getClaudeGlobalSettingsJsonContent(
 			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{
-			// Claude Code's API-error hook (rate_limit, overloaded, auth,
-			// billing, server_error, …). Fires while the session stays alive,
-			// so the agent surfaces as "failed" instead of silently "working".
+			// API-error hook; fires while the session stays alive, unlike Stop.
 			eventName: "StopFailure",
 			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},

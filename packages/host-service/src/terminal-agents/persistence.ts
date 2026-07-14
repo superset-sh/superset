@@ -69,10 +69,9 @@ export class SqliteTerminalAgentBindingPersistence
 	 * healing — so a dead terminal's agent is unrepresentable in reads no
 	 * matter how the terminal died (kill -9, crash, host downtime).
 	 *
-	 * `failed` is deliberately kept live: a terminal whose agent process died
-	 * abnormally flips to `failed` (not `exited`) so its binding survives and
-	 * the pane can show the red "failed" state instead of silently vanishing.
-	 * It clears when the user disposes the terminal or the host restarts.
+	 * `failed` is kept live too: an abnormally-exited terminal flips to `failed`
+	 * (not `exited`) so its binding survives here and the pane can show it,
+	 * until the terminal is disposed.
 	 */
 	listLiveByWorkspace(
 		workspaceId: string,

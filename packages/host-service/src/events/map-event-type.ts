@@ -72,10 +72,6 @@ export function mapEventType(
 	) {
 		return "PermissionRequest";
 	}
-	// Failure must be checked before Stop: Claude Code emits `StopFailure` on
-	// API errors (rate_limit, overloaded, auth, billing, server_error, …) while
-	// the session stays alive, so the binding stays live and the pane can show
-	// a red "failed" state instead of a clean completion.
 	if (
 		eventType === "StopFailure" ||
 		eventType === "stopFailure" ||

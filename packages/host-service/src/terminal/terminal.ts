@@ -896,19 +896,14 @@ function resolveTerminalCwd(
 }
 
 /**
- * Flip the agent binding for a crashed terminal to `Failed` so the pane shows a
- * red "failed" state. Only marks failure when an agent was actually bound to
- * the terminal — a plain shell exiting non-zero is not an agent failure.
+ * Flip a crashed terminal's agent binding to `Failed`. No-ops when no agent was
+ * bound — a plain shell exiting non-zero is not an agent failure.
  *
- * Writes straight to the DB rather than through `TerminalAgentStore`, which
- * isn't in scope here. Every status read (`listByWorkspace`/`list`/
- * `findActive`) is persistence-backed, so those reflect the failure. The one
- * in-memory read, `store.get()`, can briefly return the pre-crash
- * `lastEventType` — but its sole caller (`waitForBinding`) matches on
- * workspace/agent/definition ids only, never `lastEventType`, and the stale
- * entry is dropped when the dead terminal is disposed. The caller is
- * responsible for setting the session status to `failed` and broadcasting the
- * lifecycle event.
+ * Writes straight to the DB (the store isn't in scope here). Status reads
+ * (`listByWorkspace`/`list`/`findActive`) are persistence-backed and reflect
+ * this; only the in-memory `store.get()` can stay briefly stale, and its sole
+ * caller (`waitForBinding`) never reads `lastEventType`. Caller sets the session
+ * status to `failed` and broadcasts the event.
  */
 function markAgentBindingFailed(
 	db: HostDb,
@@ -1231,9 +1226,8 @@ export async function createTerminalSessionInternal({
 
 				portManager.unregisterSession(terminalId);
 
-				// An abnormal exit with a bound agent surfaces as `failed` (not
-				// `exited`) so the binding survives the liveness filter and the
-				// pane shows the failure instead of silently going idle.
+				// `failed` (not `exited`) keeps the binding past the liveness
+				// filter, so the pane shows the failure instead of going idle.
 				const agentFailed =
 					isAbnormalAgentExit(session.exitCode, session.exitSignal) &&
 					markAgentBindingFailed(db, terminalId, occurredAt);

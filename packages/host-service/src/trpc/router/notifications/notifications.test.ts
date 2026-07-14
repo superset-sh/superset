@@ -162,7 +162,6 @@ describe("notificationsRouter.hook", () => {
 			createContext("workspace-1");
 		const caller = notificationsRouter.createCaller(ctx);
 
-		// The agent first attaches, then the API turn fails.
 		await caller.hook({
 			terminalId: "terminal-1",
 			eventType: "SessionStart",
@@ -180,12 +179,9 @@ describe("notificationsRouter.hook", () => {
 			workspaceId: "workspace-1",
 			eventType: "Failed",
 			terminalId: "terminal-1",
-			// Agent identity must survive onto the Failed broadcast — the whole
-			// point of Failed (vs an exit that drops the binding) is that the
-			// agent stays identifiable.
+			// Failed keeps the agent identifiable, unlike an exit that drops it.
 			agent: { agentId: "claude", sessionId: "session-abc" },
 		});
-		// The binding stays live (not deleted) and keeps its identity + failure.
 		const binding = terminalAgentStore.get("terminal-1");
 		expect(binding?.lastEventType).toBe("Failed");
 		expect(binding?.agentId).toBe("claude");

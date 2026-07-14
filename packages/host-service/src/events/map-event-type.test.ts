@@ -31,7 +31,6 @@ describe("mapEventType", () => {
 		expect(mapEventType("stop_failure")).toBe("Failed");
 		expect(mapEventType("Failed")).toBe("Failed");
 		expect(mapEventType("turn_failed")).toBe("Failed");
-		// A clean stop stays a Stop.
 		expect(mapEventType("Stop")).toBe("Stop");
 	});
 

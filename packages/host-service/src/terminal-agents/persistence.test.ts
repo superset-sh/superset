@@ -83,14 +83,12 @@ describe("SqliteTerminalAgentBindingPersistence live reads", () => {
 		});
 
 		const persistence = new SqliteTerminalAgentBindingPersistence(db);
-		// A crashed agent's binding stays visible so the pane can show "failed".
 		expect(
 			persistence
 				.listLiveByWorkspace("ws-1")
 				.map((binding) => binding.terminalId)
 				.sort(),
 		).toEqual(["t-failed", "t-live"]);
-		// But a dead (failed) terminal must not be picked as a live attach target.
 		expect(persistence.findLiveActive("ws-1", "claude")?.terminalId).toBe(
 			"t-live",
 		);
