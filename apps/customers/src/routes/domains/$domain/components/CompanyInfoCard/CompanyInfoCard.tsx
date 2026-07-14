@@ -68,8 +68,16 @@ export function CompanyInfoCard({ domain }: CompanyInfoCardProps) {
 		<Card>
 			<CardHeader>
 				<CardTitle className="flex items-center gap-2">
-					<LuGlobe className="text-muted-foreground size-4" />
-					{data?.companyName ?? "Company"}
+					<a
+						href={`https://${domain}`}
+						target="_blank"
+						rel="noreferrer"
+						title={`https://${domain}`}
+						className="flex items-center gap-2 hover:underline"
+					>
+						<LuGlobe className="text-muted-foreground size-4" />
+						{data?.companyName ?? "Company"}
+					</a>
 				</CardTitle>
 				<CardDescription>
 					{data
@@ -89,23 +97,6 @@ export function CompanyInfoCard({ domain }: CompanyInfoCardProps) {
 						<>
 							{data.description && (
 								<p className="pb-1 text-sm">{data.description}</p>
-							)}
-							{data.websiteUrl && (
-								<Row
-									label="Website"
-									value={
-										<a
-											href={data.websiteUrl}
-											target="_blank"
-											rel="noreferrer"
-											className="hover:text-foreground underline"
-										>
-											{data.websiteUrl
-												.replace(/^https?:\/\/(www\.)?/, "")
-												.replace(/\/$/, "")}
-										</a>
-									}
-								/>
 							)}
 							<Row label="Employees" value={data.employeeRange} />
 							<Row

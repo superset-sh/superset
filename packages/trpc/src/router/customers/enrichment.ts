@@ -90,7 +90,7 @@ type Confidence = z.infer<typeof confidenceSchema>;
 export function getCachedDomainEnrichment(
 	domain: string,
 ): Promise<DomainEnrichment | null> {
-	return getCached<DomainEnrichment>(`domain:v3:${domain}`);
+	return getCached<DomainEnrichment>(`domain:v2:${domain}`);
 }
 
 /** Cache-only read — never triggers research. */
@@ -275,7 +275,6 @@ const domainFieldsSchema = z.object({
 	stage: z.string().nullable().catch(null),
 	industry: z.string().nullable().catch(null),
 	headquarters: z.string().nullable().catch(null),
-	websiteUrl: z.string().nullable().catch(null),
 	// Experimental fields being evaluated in KV before graduating to the DB
 	totalRaised: z.string().nullable().catch(null),
 	lastRoundAt: z.string().nullable().catch(null),
@@ -299,7 +298,6 @@ const EMPTY_DOMAIN_FIELDS: z.infer<typeof domainFieldsSchema> = {
 	stage: null,
 	industry: null,
 	headquarters: null,
-	websiteUrl: null,
 	totalRaised: null,
 	lastRoundAt: null,
 	investors: [],
@@ -336,15 +334,13 @@ const EXA_DOMAIN_SCHEMA = {
 			description: "Short industry label, e.g. developer tools",
 		},
 		headquarters: { type: "string", description: "City, country" },
-		// Exa caps outputSchema at 10 properties — lastRoundAt is dropped from
-		// this fallback schema to make room for websiteUrl.
-		websiteUrl: {
-			type: "string",
-			description: "URL of the company's main marketing website",
-		},
 		totalRaised: {
 			type: "string",
 			description: 'Total funding raised, e.g. "$58M"',
+		},
+		lastRoundAt: {
+			type: "string",
+			description: 'Most recent funding round date as "YYYY-MM"',
 		},
 		investors: {
 			type: "array",
@@ -359,10 +355,9 @@ const EXA_DOMAIN_SCHEMA = {
 };
 
 export function getDomainEnrichment(domain: string): Promise<DomainEnrichment> {
-	// v3: added websiteUrl (v2 added funding/YC/founded/parent) — old cache
-	// entries lack the newer fields.
+	// v2: added funding/YC/founded/parent fields — old cache entries lack them.
 	return cached(
-		`domain:v3:${domain}`,
+		`domain:v2:${domain}`,
 		async () => {
 			const base = { domain, fetchedAt: new Date().toISOString() };
 			if (FREEMAIL_DOMAINS.has(domain)) {
@@ -407,7 +402,6 @@ Respond with ONLY a single JSON object — no markdown fences, no prose before o
   "stage": ${STAGES.replaceAll(", ", " | ")} | null,
   "industry": string | null,           // short, e.g. "developer tools"
   "headquarters": string | null,       // city, country
-  "websiteUrl": string | null,         // the company's main marketing website URL (may differ from the email domain)
   "totalRaised": string | null,        // total funding raised, e.g. "$58M"
   "lastRoundAt": string | null,        // most recent funding round date as "YYYY-MM" (or "YYYY")
   "investors": string[],               // up to 5 notable investors, [] if unknown
