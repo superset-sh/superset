@@ -9,9 +9,14 @@ import { TRPCError } from "@trpc/server";
 // same volume as the repo they clone from — the APFS clonefile in
 // .superset/setup.sh only works within a single volume, so a homedir-rooted
 // default forces a slow full install when the repo lives on an external disk.
+// The value is normalized exactly like the user-facing worktreeBaseDir setting
+// (~ expansion, absolute-path requirement) so both configuration paths behave
+// identically instead of silently resolving a relative value against cwd.
 export function defaultWorktreesRoot(): string {
-	const override = process.env.SUPERSET_WORKTREES_ROOT?.trim();
-	if (override) return resolve(override);
+	const override = normalizeWorktreeBaseDir(
+		process.env.SUPERSET_WORKTREES_ROOT,
+	);
+	if (override) return override;
 	return join(homedir(), ".superset", "worktrees");
 }
 

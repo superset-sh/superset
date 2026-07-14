@@ -45,6 +45,18 @@ describe("defaultWorktreesRoot", () => {
 			join(homedir(), ".superset", "worktrees"),
 		);
 	});
+
+	it("expands a leading ~ against the home directory", () => {
+		process.env[ENV_KEY] = "~/worktrees";
+		expect(defaultWorktreesRoot()).toBe(join(homedir(), "worktrees"));
+	});
+
+	it("rejects a relative env var instead of silently resolving against cwd", () => {
+		process.env[ENV_KEY] = "relative/worktrees";
+		expect(() => defaultWorktreesRoot()).toThrow(
+			"Worktree location must be an absolute path or start with ~",
+		);
+	});
 });
 
 describe("worktreeBaseDir precedence over SUPERSET_WORKTREES_ROOT", () => {
@@ -75,6 +87,12 @@ describe("worktreeBaseDir precedence over SUPERSET_WORKTREES_ROOT", () => {
 	it("uses the env var as the default when no worktreeBaseDir is given", () => {
 		expect(projectWorktreesRoot(PROJECT_ID)).toBe(
 			join("/Volumes/samsung/worktrees", PROJECT_ID),
+		);
+	});
+
+	it("falls through to the env var default in safeResolveWorktreePath", () => {
+		expect(safeResolveWorktreePath(PROJECT_ID, "feature")).toBe(
+			join("/Volumes/samsung/worktrees", PROJECT_ID, "feature"),
 		);
 	});
 });
