@@ -272,14 +272,19 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 }
 
 /**
- * Pass-through wrapper for Claude. Hooks live in ~/.claude/settings.json
- * (createClaudeSettingsJson); the wrapper exists only to forward SUPERSET_*
- * env vars into the agent process tree.
+ * Wrapper for Claude. Hooks live in ~/.claude/settings.json
+ * (createClaudeSettingsJson); the wrapper forwards SUPERSET_* env vars and
+ * keeps output in xterm's primary buffer so reconnects retain scrollback.
  */
 export function createClaudeWrapper(): void {
-	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
-		agentId: "claude",
-	});
+	const script = buildWrapperScript(
+		"claude",
+		`export CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN="\${CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN:-1}"
+exec "$REAL_BIN" "$@"`,
+		{
+			agentId: "claude",
+		},
+	);
 	createWrapper("claude", script);
 }
 
