@@ -1,4 +1,4 @@
-import { realpath, stat } from "node:fs/promises";
+import { realpath, rm, stat, writeFile } from "node:fs/promises";
 import path from "node:path";
 import {
 	type AsyncSubscription,
@@ -38,6 +38,13 @@ const MAX_WORK_CHUNK_SIZE = 500;
 const THROTTLE_DELAY_MS = 200;
 const MAX_BUFFERED_EVENTS = 30_000;
 
+// Recovery liveness probe: a freshly attached FSEvents stream can be deaf for
+// a sub-second window after subscribe() resolves (observed on a busy Electron
+// main loop) — writes in that window are missed forever. Recovery writes a
+// probe file and only announces the resumed root once its event arrives.
+const PROBE_PREFIX = ".superset-watcher-probe-";
+const PROBE_TIMEOUT_MS = 4_000;
+
 // Watches are always recursive — @parcel/watcher offers no shallow mode.
 export interface WatchPathOptions {
 	absolutePath: string;
@@ -65,6 +72,17 @@ interface WatcherState {
 	subscription: AsyncSubscription | null;
 	recoveryTimer: ReturnType<typeof setInterval> | null;
 	recovering: boolean;
+	/**
+	 * Bumped on every native attach/suspend; callbacks from a superseded
+	 * stream compare against it and drop their events, so a stale batch can't
+	 * re-suspend a stream that recovery just brought back.
+	 */
+	generation: number;
+	/** Set by the parcel callback when it sees the recovery liveness probe. */
+	probeSeen: boolean;
+	/** Bounded post-overflow probe for a root deletion whose event was dropped. */
+	overflowRootCheckTimer: ReturnType<typeof setInterval> | null;
+	overflowRootChecksLeft: number;
 	listeners: Set<WatchListener>;
 	filePaths: Map<string, true>;
 	directoryPaths: Set<string>;
@@ -201,6 +219,8 @@ export class FsWatcherManager {
 			clearInterval(state.recoveryTimer);
 			state.recoveryTimer = null;
 		}
+		this.clearOverflowRootCheck(state);
+		state.generation += 1;
 		state.throttler.dispose();
 		const subscription = state.subscription;
 		state.subscription = null;
@@ -317,6 +337,8 @@ export class FsWatcherManager {
 			// longer be trusted; drop the index and let the next search rebuild
 			// from a fresh disk walk. Cheap (a map delete), so no debounce.
 			invalidateSearchIndexesForRoot(state.absolutePath);
+			// The dropped events may have included the root's own deletion.
+			this.scheduleOverflowRootCheck(state);
 			return;
 		}
 
@@ -358,6 +380,10 @@ export class FsWatcherManager {
 			subscription: null,
 			recoveryTimer: null,
 			recovering: false,
+			generation: 0,
+			probeSeen: false,
+			overflowRootCheckTimer: null,
+			overflowRootChecksLeft: 0,
 			listeners: new Set<WatchListener>(),
 			filePaths: new Map<string, true>(),
 			directoryPaths: new Set<string>(),
@@ -393,6 +419,16 @@ export class FsWatcherManager {
 		state.realPath = realPath;
 		state.realPathNormalized = realPathNormalized;
 		state.realPathDiffers = realPathDiffers;
+		const generation = ++state.generation;
+
+		// parcel dedupes native backends by (dir, ignore-set); a wedged backend
+		// from the dead stream (its unsubscribe can hang) would be silently
+		// joined and never deliver. The pattern matches nothing real — it only
+		// forces a distinct backend identity.
+		const ignore =
+			generation === 1
+				? this.ignore
+				: [...this.ignore, `**/.superset-watch-generation-${generation}/**`];
 
 		// Subscribe to the resolved real path so kernel paths come back in a
 		// consistent form; we map them back to `state.absolutePath` in
@@ -400,6 +436,11 @@ export class FsWatcherManager {
 		state.subscription = await subscribeToFilesystem(
 			realPath,
 			(error, events) => {
+				if (state.generation !== generation) {
+					// Late callback from a superseded stream (suspended or
+					// replaced by recovery) — its events describe a dead tree.
+					return;
+				}
 				if (error) {
 					this.onUnexpectedError(error, state);
 					// Continue: process whatever events did arrive alongside
@@ -407,20 +448,29 @@ export class FsWatcherManager {
 					// pattern (log error, then onParcelEvents anyway).
 				}
 
-				if (events.length === 0) {
+				// Consume the liveness probe before it reaches listeners or the index.
+				const visibleEvents = events.filter((event) => {
+					if (path.basename(event.path).startsWith(PROBE_PREFIX)) {
+						state.probeSeen = true;
+						return false;
+					}
+					return true;
+				});
+
+				if (visibleEvents.length === 0) {
 					return;
 				}
 
 				if (process.env.SUPERSET_FS_EVENTS_DEBUG === "1") {
 					console.log("[fs:debug] parcel callback", {
 						path: state.absolutePath,
-						count: events.length,
-						kinds: events.map((e) => e.type),
+						count: visibleEvents.length,
+						kinds: visibleEvents.map((e) => e.type),
 					});
 				}
 
-				this.normalizeEvents(events, state);
-				state.pendingEvents.push(...events);
+				this.normalizeEvents(visibleEvents, state);
+				state.pendingEvents.push(...visibleEvents);
 				if (state.flushTimer) {
 					return;
 				}
@@ -437,7 +487,7 @@ export class FsWatcherManager {
 				flushTimer.unref?.();
 			},
 			{
-				ignore: this.ignore,
+				ignore,
 			},
 		);
 	}
@@ -448,6 +498,47 @@ export class FsWatcherManager {
 	 * and its listeners, drop the native side, and poll for the path to
 	 * reappear — VS Code's suspend/resume pattern (baseWatcher.ts).
 	 */
+	/**
+	 * A kernel overflow can swallow the root-delete event itself (reproduced
+	 * with a 20k-file rm -rf), leaving the event-based detection in
+	 * flushPendingEvents blind. Probe the root's existence for a bounded
+	 * window after each overflow and suspend if it vanished.
+	 */
+	private scheduleOverflowRootCheck(state: WatcherState): void {
+		state.overflowRootChecksLeft = 5;
+		if (state.overflowRootCheckTimer) {
+			return;
+		}
+		const timer = setInterval(() => {
+			void (async () => {
+				if (this.watchers.get(state.absolutePath) !== state) {
+					this.clearOverflowRootCheck(state);
+					return;
+				}
+				state.overflowRootChecksLeft -= 1;
+				try {
+					await stat(state.absolutePath);
+					if (state.overflowRootChecksLeft <= 0) {
+						this.clearOverflowRootCheck(state);
+					}
+				} catch {
+					this.clearOverflowRootCheck(state);
+					await this.suspendForRecovery(state);
+				}
+			})();
+		}, 1_000);
+		timer.unref?.();
+		state.overflowRootCheckTimer = timer;
+	}
+
+	private clearOverflowRootCheck(state: WatcherState): void {
+		if (state.overflowRootCheckTimer) {
+			clearInterval(state.overflowRootCheckTimer);
+			state.overflowRootCheckTimer = null;
+		}
+		state.overflowRootChecksLeft = 0;
+	}
+
 	private async suspendForRecovery(state: WatcherState): Promise<void> {
 		if (!state.subscription || state.recoveryTimer) {
 			return;
@@ -461,6 +552,15 @@ export class FsWatcherManager {
 		);
 		const deadSubscription = state.subscription;
 		state.subscription = null;
+		// A stale root-delete flushed after resume would re-suspend the
+		// recovered stream — invalidate the dead stream and drop its queue.
+		state.generation += 1;
+		state.pendingEvents.length = 0;
+		if (state.flushTimer) {
+			clearTimeout(state.flushTimer);
+			state.flushTimer = null;
+		}
+		this.clearOverflowRootCheck(state);
 		// Must complete before any re-subscribe on this path: a new parcel
 		// subscription opened while the dead one is still registered joins the
 		// dead native backend and never delivers (verified empirically).
@@ -491,6 +591,13 @@ export class FsWatcherManager {
 				return;
 			}
 			await this.attachNativeSubscription(state);
+			if (!(await this.verifyStreamLiveness(state))) {
+				// Deaf stream — detach and retry on the next poll tick.
+				const deafSubscription = state.subscription;
+				state.subscription = null;
+				await unsubscribeQuietly(deafSubscription);
+				return;
+			}
 		} catch {
 			return;
 		} finally {
@@ -526,6 +633,33 @@ export class FsWatcherManager {
 				},
 			],
 		});
+	}
+
+	/**
+	 * Write a probe file and wait for its event: proves the freshly attached
+	 * stream is actually capturing. The probe never reaches listeners (the
+	 * parcel callback consumes anything with PROBE_PREFIX).
+	 */
+	private async verifyStreamLiveness(state: WatcherState): Promise<boolean> {
+		const probePath = path.join(
+			state.absolutePath,
+			`${PROBE_PREFIX}${state.generation}`,
+		);
+		state.probeSeen = false;
+		try {
+			await writeFile(probePath, "");
+		} catch {
+			return false;
+		}
+		try {
+			const deadline = Date.now() + PROBE_TIMEOUT_MS;
+			while (!state.probeSeen && Date.now() < deadline) {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+			return state.probeSeen;
+		} finally {
+			await rm(probePath, { force: true }).catch(() => {});
+		}
 	}
 
 	private async flushPendingEvents(
