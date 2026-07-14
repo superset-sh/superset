@@ -899,9 +899,16 @@ function resolveTerminalCwd(
  * Flip the agent binding for a crashed terminal to `Failed` so the pane shows a
  * red "failed" state. Only marks failure when an agent was actually bound to
  * the terminal — a plain shell exiting non-zero is not an agent failure.
- * Writes straight to the DB (the store's reads are persistence-backed); the
- * caller is responsible for setting the session status to `failed` and
- * broadcasting the lifecycle event.
+ *
+ * Writes straight to the DB rather than through `TerminalAgentStore`, which
+ * isn't in scope here. Every status read (`listByWorkspace`/`list`/
+ * `findActive`) is persistence-backed, so those reflect the failure. The one
+ * in-memory read, `store.get()`, can briefly return the pre-crash
+ * `lastEventType` — but its sole caller (`waitForBinding`) matches on
+ * workspace/agent/definition ids only, never `lastEventType`, and the stale
+ * entry is dropped when the dead terminal is disposed. The caller is
+ * responsible for setting the session status to `failed` and broadcasting the
+ * lifecycle event.
  */
 function markAgentBindingFailed(
 	db: HostDb,

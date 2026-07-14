@@ -180,9 +180,16 @@ describe("notificationsRouter.hook", () => {
 			workspaceId: "workspace-1",
 			eventType: "Failed",
 			terminalId: "terminal-1",
+			// Agent identity must survive onto the Failed broadcast — the whole
+			// point of Failed (vs an exit that drops the binding) is that the
+			// agent stays identifiable.
+			agent: { agentId: "claude", sessionId: "session-abc" },
 		});
-		// The binding stays live (not deleted) and reflects the failure.
-		expect(terminalAgentStore.get("terminal-1")?.lastEventType).toBe("Failed");
+		// The binding stays live (not deleted) and keeps its identity + failure.
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.agentId).toBe("claude");
+		expect(binding?.agentSessionId).toBe("session-abc");
 	});
 
 	it("drops agent identity entirely when agentId is missing", async () => {

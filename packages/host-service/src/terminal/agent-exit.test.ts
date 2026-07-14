@@ -11,9 +11,16 @@ describe("isAbnormalAgentExit", () => {
 		expect(isAbnormalAgentExit(127, 0)).toBe(true);
 	});
 
-	it("treats user-interrupt exit codes (130 SIGINT, 143 SIGTERM) as normal", () => {
-		expect(isAbnormalAgentExit(130, 0)).toBe(false);
-		expect(isAbnormalAgentExit(143, 0)).toBe(false);
+	it("treats 128+signal interrupt exit codes as normal, symmetric with the signals", () => {
+		expect(isAbnormalAgentExit(129, 0)).toBe(false); // SIGHUP
+		expect(isAbnormalAgentExit(130, 0)).toBe(false); // SIGINT
+		expect(isAbnormalAgentExit(137, 0)).toBe(false); // SIGKILL
+		expect(isAbnormalAgentExit(143, 0)).toBe(false); // SIGTERM
+	});
+
+	it("still treats other 128+ crash-signal exit codes as abnormal", () => {
+		expect(isAbnormalAgentExit(139, 0)).toBe(true); // 128+SIGSEGV
+		expect(isAbnormalAgentExit(134, 0)).toBe(true); // 128+SIGABRT
 	});
 
 	it("treats user/host stop signals as normal", () => {
