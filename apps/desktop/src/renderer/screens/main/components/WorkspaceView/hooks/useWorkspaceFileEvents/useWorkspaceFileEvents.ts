@@ -107,7 +107,6 @@ export function useWorkspaceFileEventBridge(
 		{
 			workspaceId,
 			absolutePath: worktreePath ?? "",
-			recursive: true,
 		},
 		{
 			enabled:
