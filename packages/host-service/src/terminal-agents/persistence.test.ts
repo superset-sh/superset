@@ -72,28 +72,6 @@ describe("SqliteTerminalAgentBindingPersistence live reads", () => {
 		);
 	});
 
-	it("surfaces failed sessions in live reads but never as an attach target", () => {
-		const db = createTestDb();
-		seedSession(db, { id: "t-live", status: "active", workspaceId: "ws-1" });
-		seedSession(db, {
-			id: "t-failed",
-			status: "failed",
-			workspaceId: "ws-1",
-			lastEventAt: 100,
-		});
-
-		const persistence = new SqliteTerminalAgentBindingPersistence(db);
-		expect(
-			persistence
-				.listLiveByWorkspace("ws-1")
-				.map((binding) => binding.terminalId)
-				.sort(),
-		).toEqual(["t-failed", "t-live"]);
-		expect(persistence.findLiveActive("ws-1", "claude")?.terminalId).toBe(
-			"t-live",
-		);
-	});
-
 	it("routes store reads through the live join, never returning dead terminals", () => {
 		const db = createTestDb();
 		seedSession(db, {

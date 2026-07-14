@@ -17,15 +17,9 @@ import { and, eq, ne } from "drizzle-orm";
 import type { Hono } from "hono";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
-import {
-	projects,
-	terminalAgentBindings,
-	terminalSessions,
-	workspaces,
-} from "../db/schema.ts";
+import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
-import { isAbnormalAgentExit } from "./agent-exit.ts";
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
@@ -895,35 +889,6 @@ function resolveTerminalCwd(
 	return existsSync(resolvedPath) ? resolvedPath : worktreePath;
 }
 
-/**
- * Flip a crashed terminal's agent binding to `Failed`. No-ops when no agent was
- * bound — a plain shell exiting non-zero is not an agent failure.
- *
- * Writes straight to the DB (the store isn't in scope here). Status reads
- * (`listByWorkspace`/`list`/`findActive`) are persistence-backed and reflect
- * this; only the in-memory `store.get()` can stay briefly stale, and its sole
- * caller (`waitForBinding`) never reads `lastEventType`. Caller sets the session
- * status to `failed` and broadcasts the event.
- */
-function markAgentBindingFailed(
-	db: HostDb,
-	terminalId: string,
-	occurredAt: number,
-): boolean {
-	const binding = db.query.terminalAgentBindings
-		.findFirst({
-			where: eq(terminalAgentBindings.terminalId, terminalId),
-			columns: { terminalId: true },
-		})
-		.sync();
-	if (!binding) return false;
-	db.update(terminalAgentBindings)
-		.set({ lastEventType: "Failed", lastEventAt: occurredAt })
-		.where(eq(terminalAgentBindings.terminalId, terminalId))
-		.run();
-	return true;
-}
-
 function getTerminalWorkspaceMismatchError({
 	terminalId,
 	ownerWorkspaceId,
@@ -1226,17 +1191,8 @@ export async function createTerminalSessionInternal({
 
 				portManager.unregisterSession(terminalId);
 
-				// `failed` (not `exited`) keeps the binding past the liveness
-				// filter, so the pane shows the failure instead of going idle.
-				const agentFailed =
-					isAbnormalAgentExit(session.exitCode, session.exitSignal) &&
-					markAgentBindingFailed(db, terminalId, occurredAt);
-
 				db.update(terminalSessions)
-					.set({
-						status: agentFailed ? "failed" : "exited",
-						endedAt: occurredAt,
-					})
+					.set({ status: "exited", endedAt: occurredAt })
 					.where(eq(terminalSessions.id, terminalId))
 					.run();
 
@@ -1245,15 +1201,6 @@ export async function createTerminalSessionInternal({
 					exitCode: session.exitCode,
 					signal: session.exitSignal,
 				});
-
-				if (agentFailed) {
-					eventBus?.broadcastAgentLifecycle({
-						workspaceId,
-						terminalId,
-						eventType: "Failed",
-						occurredAt,
-					});
-				}
 
 				eventBus?.broadcastTerminalLifecycle({
 					workspaceId,
@@ -1416,7 +1363,7 @@ export function registerWorkspaceTerminalRoute({
 				if (record.status === "disposed") {
 					return { error: `Terminal session "${terminalId}" is disposed.` };
 				}
-				if (record.status === "exited" || record.status === "failed") {
+				if (record.status === "exited") {
 					return { error: `Terminal session "${terminalId}" has exited.` };
 				}
 				if (!record.originWorkspaceId) {

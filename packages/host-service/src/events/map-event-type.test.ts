@@ -30,7 +30,6 @@ describe("mapEventType", () => {
 		expect(mapEventType("StopFailure")).toBe("Failed");
 		expect(mapEventType("stop_failure")).toBe("Failed");
 		expect(mapEventType("Failed")).toBe("Failed");
-		expect(mapEventType("turn_failed")).toBe("Failed");
 		expect(mapEventType("Stop")).toBe("Stop");
 	});
 

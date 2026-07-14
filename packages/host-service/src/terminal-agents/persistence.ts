@@ -68,10 +68,6 @@ export class SqliteTerminalAgentBindingPersistence
 	 * maintained by pty onExit, the dispose routes, and the reaper's orphan
 	 * healing — so a dead terminal's agent is unrepresentable in reads no
 	 * matter how the terminal died (kill -9, crash, host downtime).
-	 *
-	 * `failed` is kept live too: an abnormally-exited terminal flips to `failed`
-	 * (not `exited`) so its binding survives here and the pane can show it,
-	 * until the terminal is disposed.
 	 */
 	listLiveByWorkspace(
 		workspaceId: string,
@@ -87,7 +83,7 @@ export class SqliteTerminalAgentBindingPersistence
 			.where(
 				and(
 					eq(terminalAgentBindings.workspaceId, workspaceId),
-					inArray(terminalSessions.status, ["active", "failed"]),
+					eq(terminalSessions.status, "active"),
 					isNotNull(terminalSessions.originWorkspaceId),
 					...(filter?.agentId
 						? [eq(terminalAgentBindings.agentId, filter.agentId)]
@@ -112,7 +108,7 @@ export class SqliteTerminalAgentBindingPersistence
 			)
 			.where(
 				and(
-					inArray(terminalSessions.status, ["active", "failed"]),
+					eq(terminalSessions.status, "active"),
 					isNotNull(terminalSessions.originWorkspaceId),
 				),
 			)
