@@ -826,8 +826,11 @@ export async function disposeSessionAndWait(
 }
 
 /**
- * Dispose every active session belonging to the given workspace.
- * Returns counts so callers (e.g. workspaceCleanup.destroy) can surface warnings.
+ * Dispose every active session belonging to the given workspace, then drop the
+ * confirmed-dead rows so the workspace's session index dies with it rather than
+ * lingering as `set null` orphans. A still-`active` row is a failed kill we keep
+ * reachable for the reaper. Returns counts so callers (e.g.
+ * workspaceCleanup.destroy) can surface warnings.
  */
 export async function disposeSessionsByWorkspaceId(
 	workspaceId: string,
@@ -858,6 +861,16 @@ export async function disposeSessionsByWorkspaceId(
 			failed += 1;
 		}
 	}
+
+	db.delete(terminalSessions)
+		.where(
+			and(
+				eq(terminalSessions.originWorkspaceId, workspaceId),
+				ne(terminalSessions.status, "active"),
+			),
+		)
+		.run();
+
 	return { terminated, failed };
 }
 
@@ -882,16 +895,6 @@ export async function disposeSessionsByWorktreePath(
 		const result = await disposeSessionsByWorkspaceId(id, db);
 		terminated += result.terminated;
 		failed += result.failed;
-		// Drop the now-disposed rows so the deleted worktree's session index dies
-		// with it; still-active rows are failed kills we keep for the reaper.
-		db.delete(terminalSessions)
-			.where(
-				and(
-					eq(terminalSessions.originWorkspaceId, id),
-					ne(terminalSessions.status, "active"),
-				),
-			)
-			.run();
 	}
 	return { terminated, failed };
 }

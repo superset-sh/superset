@@ -1,5 +1,5 @@
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
@@ -214,24 +214,9 @@ export const terminalRouter = router({
 	// workspaceCleanup.destroy, so their terminals don't leak in the daemon.
 	disposeWorkspaceSessions: protectedProcedure
 		.input(z.object({ workspaceId: z.string() }))
-		.mutation(async ({ ctx, input }) => {
-			const result = await disposeSessionsByWorkspaceId(
-				input.workspaceId,
-				ctx.db,
-			);
-			// Drop the now-disposed rows so the workspace's session index dies with
-			// it; still-active rows are failed kills we keep reachable for the reaper.
-			ctx.db
-				.delete(terminalSessions)
-				.where(
-					and(
-						eq(terminalSessions.originWorkspaceId, input.workspaceId),
-						ne(terminalSessions.status, "active"),
-					),
-				)
-				.run();
-			return result;
-		}),
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorkspaceId(input.workspaceId, ctx.db),
+		),
 
 	// Like disposeWorkspaceSessions but for a closed worktree, which no longer
 	// has a workspace id — resolve sessions through the shared worktree path.
