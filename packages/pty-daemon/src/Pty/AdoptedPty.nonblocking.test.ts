@@ -400,11 +400,11 @@ test("spawned NodePtyAdapter freezes and drains pending input exactly once", asy
 			import { spawnSync as runSync } from "node:child_process";
 			import { createHash } from "node:crypto";
 
-			// Several megabytes are far above the macOS PTY kernel buffer, so this
-			// deterministically exercises node-pty's queued-write drain. Keep enough
-			// scheduling margin for the production 2s fail-closed timeout on a busy CI
-			// host; the test checks ordering and exactness, not disk-like throughput.
-			const inputBytes = 4 * 1024 * 1024;
+			// One MiB is still far above the macOS PTY kernel buffer, so this
+			// deterministically exercises node-pty's queued-write drain. Avoid turning
+			// the production 2s fail-closed deadline into a multi-megabyte throughput
+			// benchmark on a saturated host; the test checks ordering and exactness.
+			const inputBytes = 1024 * 1024;
 			const readerSource = [
 				"import hashlib, os, select, termios, tty",
 				"tty.setraw(0, termios.TCSANOW)",
