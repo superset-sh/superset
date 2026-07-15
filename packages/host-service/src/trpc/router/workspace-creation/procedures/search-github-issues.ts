@@ -16,7 +16,7 @@ interface IssueResult {
 	authorLogin: string | null;
 }
 
-interface IssuesPage {
+export interface IssuesPage {
 	issues: IssueResult[];
 	totalCount: number;
 	hasNextPage: boolean;

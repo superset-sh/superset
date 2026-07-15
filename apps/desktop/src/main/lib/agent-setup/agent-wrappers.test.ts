@@ -1612,6 +1612,95 @@ describe("agent-wrappers codex hooks.json", () => {
 	});
 });
 
+import {
+	getVibeHooksTomlContent,
+	getVibeWrapperScript,
+	VIBE_HOOKS_MARKER_END,
+	VIBE_HOOKS_MARKER_START,
+} from "./agent-wrappers-vibe";
+
+describe("vibe wrapper", () => {
+	it("enables experimental hooks and stamps the agent id", () => {
+		const script = getVibeWrapperScript();
+		expect(script).toContain('export SUPERSET_AGENT_ID="vibe"');
+		expect(script).toContain("export VIBE_ENABLE_EXPERIMENTAL_HOOKS=true");
+		expect(script).toContain('exec "$REAL_BIN" "$@"');
+	});
+});
+
+describe("vibe hooks.toml", () => {
+	it("writes both managed hooks inside markers on an empty file", () => {
+		const out = getVibeHooksTomlContent("");
+		expect(out).toContain(VIBE_HOOKS_MARKER_START);
+		expect(out).toContain(VIBE_HOOKS_MARKER_END);
+		expect(out).toContain('type = "before_tool"');
+		expect(out).toContain('type = "post_agent_turn"');
+		expect(out).toContain("SUPERSET_AGENT_ID=vibe");
+	});
+	it("preserves user hooks and is idempotent", () => {
+		const user =
+			'[[hooks]]\nname = "mine"\ntype = "after_tool"\ncommand = "echo hi"\n';
+		const once = getVibeHooksTomlContent(user);
+		expect(once).toContain('name = "mine"');
+		// Re-running does not duplicate the managed block.
+		const twice = getVibeHooksTomlContent(once);
+		// Count by splitting: the marker contains regex metachars ("(do not edit)"),
+		// so `new RegExp(marker)` would not match the literal text.
+		expect(twice.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(twice).toContain('name = "mine"');
+	});
+	it("cleans up an orphaned start marker left by a partial write", () => {
+		// Simulate a prior interrupted write: a user hook, then a start marker and
+		// a half-written managed block with NO end marker.
+		const partial = [
+			"[[hooks]]",
+			'name = "mine"',
+			'type = "after_tool"',
+			'command = "echo hi"',
+			"",
+			VIBE_HOOKS_MARKER_START,
+			"[[hooks]]",
+			'name = "superset-notify-before-tool"',
+			'type = "before_tool"',
+			"",
+		].join("\n");
+		const out = getVibeHooksTomlContent(partial);
+		// User hook survives, and exactly one complete managed block is emitted —
+		// no duplicate hook entries and no dangling marker.
+		expect(out).toContain('name = "mine"');
+		expect(out.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(out.split(VIBE_HOOKS_MARKER_END).length - 1).toBe(1);
+		expect(out.split('type = "before_tool"').length - 1).toBe(1);
+		expect(out.split('type = "post_agent_turn"').length - 1).toBe(1);
+	});
+	it("preserves user hooks that follow an orphaned start marker", () => {
+		// End marker lost to a hand-edit/crash, with a user hook AFTER our block.
+		const partial = [
+			VIBE_HOOKS_MARKER_START,
+			"[[hooks]]",
+			'name = "superset-notify-before-tool"',
+			'type = "before_tool"',
+			"command = 'true'",
+			// NO end marker
+			"",
+			"# my own hook",
+			"[[hooks]]",
+			'name = "my-lint-on-save"',
+			'type = "before_tool"',
+			'command = "run-my-linter.sh"',
+		].join("\n");
+		const out = getVibeHooksTomlContent(partial);
+		expect(out).toContain('name = "my-lint-on-save"');
+		expect(out).toContain("# my own hook");
+		// Exactly one complete managed block, no dangling/duplicate markers.
+		expect(out.split(VIBE_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(out.split(VIBE_HOOKS_MARKER_END).length - 1).toBe(1);
+		expect(out.split('name = "superset-notify-before-tool"').length - 1).toBe(
+			1,
+		);
+	});
+});
+
 describe("agent-wrappers pi", () => {
 	beforeEach(() => {
 		mockedHomeDir = path.join(TEST_ROOT, "home");

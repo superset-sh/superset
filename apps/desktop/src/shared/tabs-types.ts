@@ -22,8 +22,14 @@ export type PaneType =
  * - working: Agent actively processing (amber)
  * - permission: Agent blocked, needs user action (red)
  * - review: Agent completed, ready for review (green)
+ * - failed: Agent turn/process ended in failure, needs attention (red)
  */
-export type PaneStatus = "idle" | "working" | "permission" | "review";
+export type PaneStatus =
+	| "idle"
+	| "working"
+	| "permission"
+	| "review"
+	| "failed";
 
 /** Non-idle status for UI indicators */
 export type ActivePaneStatus = Exclude<PaneStatus, "idle">;
@@ -31,12 +37,16 @@ export type ActivePaneStatus = Exclude<PaneStatus, "idle">;
 /**
  * Status priority order (higher = more urgent).
  * Single source of truth for aggregation logic.
+ *
+ * `failed` sits just below `permission`: both demand attention, but a live
+ * permission prompt is actionable right now, whereas a failure is terminal.
  */
 export const STATUS_PRIORITY = {
 	idle: 0,
 	review: 1,
 	working: 2,
-	permission: 3,
+	failed: 3,
+	permission: 4,
 } as const satisfies Record<PaneStatus, number>;
 
 /**

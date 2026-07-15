@@ -391,6 +391,16 @@ export const HOTKEYS_REGISTRY = {
 		category: "Terminal",
 		description: "Search text in the active chat",
 	},
+	FIND_IN_CHANGES: {
+		key: {
+			mac: L("meta+f"),
+			windows: L("ctrl+shift+f"),
+			linux: L("ctrl+shift+f"),
+		},
+		label: "Find in Changes",
+		category: "Terminal",
+		description: "Search text in the changes diff",
+	},
 	NEW_GROUP: {
 		key: {
 			mac: L("meta+t"),

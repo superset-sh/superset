@@ -5,7 +5,7 @@ import type {
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
-import { primeRelayAffinity } from "./primeRelayAffinity";
+import { createRelaySocket, type RelaySocket } from "./relaySocket";
 
 export type { AgentIdentity };
 
@@ -92,28 +92,22 @@ interface ListenerEntry {
 
 const RECONNECT_BASE_MS = 1_000;
 const RECONNECT_MAX_MS = 30_000;
+// Definitive access denial (preflight 403): the relay will keep saying no, so
+// exponential 1-30s retries just hammer it. Poll slowly instead of stopping
+// outright so access granted later (host sharing) is picked up eventually.
+const ACCESS_DENIED_RETRY_MS = 5 * 60_000;
 
 interface ConnectionState {
-	socket: WebSocket | null;
+	socket: RelaySocket;
 	refCount: number;
 	listeners: Set<ListenerEntry>;
 	fsWatchedWorkspaces: Map<string, number>;
-	reconnectAttempts: number;
-	reconnectTimer: ReturnType<typeof setTimeout> | null;
-	disposed: boolean;
 }
 
 const connections = new Map<string, ConnectionState>();
 
-function buildEventBusUrl(hostUrl: string, wsToken: string | null): string {
-	const base = hostUrl.replace(/\/$/, "");
-	const wsBase = base.replace(/^http/, "ws");
-	const params = wsToken ? `?token=${encodeURIComponent(wsToken)}` : "";
-	return `${wsBase}/events${params}`;
-}
-
 function sendCommand(state: ConnectionState, message: ClientMessage): void {
-	if (state.socket?.readyState === WebSocket.OPEN) {
+	if (state.socket.readyState === WebSocket.OPEN) {
 		state.socket.send(JSON.stringify(message));
 	}
 }
@@ -203,75 +197,6 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 	}
 }
 
-function connect(
-	state: ConnectionState,
-	hostUrl: string,
-	getWsToken: () => string | null,
-): void {
-	if (state.disposed) return;
-
-	const wsUrl = buildEventBusUrl(hostUrl, getWsToken());
-	// Pre-flight an HTTP request to lock fly's edge affinity to the owning
-	// machine before the WS upgrade. fly-replay isn't transparent to all WS
-	// clients on the upgrade itself, but is on plain HTTP, so a quick GET
-	// avoids the connect → 1006 close → reconnect flicker.
-	void primeRelayAffinity(wsUrl).then(() => {
-		if (state.disposed || state.socket) return;
-		let socket: WebSocket;
-		try {
-			socket = new WebSocket(wsUrl);
-		} catch {
-			scheduleReconnect(state, hostUrl, getWsToken);
-			return;
-		}
-		state.socket = socket;
-
-		socket.onopen = () => {
-			state.reconnectAttempts = 0;
-
-			// Re-send all active fs:watch commands
-			for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
-				sendCommand(state, { type: "fs:watch", workspaceId });
-			}
-		};
-
-		socket.onmessage = (event) => {
-			handleMessage(state, event.data);
-		};
-
-		socket.onclose = () => {
-			if (state.disposed) return;
-			state.socket = null;
-			scheduleReconnect(state, hostUrl, getWsToken);
-		};
-
-		socket.onerror = () => {
-			// onclose will fire after onerror
-		};
-	});
-}
-
-function scheduleReconnect(
-	state: ConnectionState,
-	hostUrl: string,
-	getWsToken: () => string | null,
-): void {
-	if (state.disposed || state.reconnectTimer) return;
-
-	const delay = Math.min(
-		RECONNECT_BASE_MS * 2 ** state.reconnectAttempts,
-		RECONNECT_MAX_MS,
-	);
-	state.reconnectAttempts++;
-
-	state.reconnectTimer = setTimeout(() => {
-		state.reconnectTimer = null;
-		if (!state.disposed) {
-			connect(state, hostUrl, getWsToken);
-		}
-	}, delay);
-}
-
 function getOrCreateConnection(
 	hostUrl: string,
 	getWsToken: () => string | null,
@@ -280,17 +205,38 @@ function getOrCreateConnection(
 	const existing = connections.get(key);
 	if (existing) return existing;
 
+	// createRelaySocket runs the fly-affinity preflight and re-signs the URL
+	// with a fresh token before every attempt; backoff and reconnection live
+	// inside partysocket. Buffering is disabled so command semantics stay
+	// "send only while open" — watches are replayed from state on each open.
+	const socket = createRelaySocket({
+		name: "event-bus",
+		buildUrl: () => `${hostUrl.replace(/\/$/, "")}/events`,
+		getToken: getWsToken,
+		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,
+		minReconnectionDelay: RECONNECT_BASE_MS,
+		maxReconnectionDelay: RECONNECT_MAX_MS,
+		maxEnqueuedMessages: 0,
+	});
+
 	const state: ConnectionState = {
-		socket: null,
+		socket,
 		refCount: 0,
 		listeners: new Set(),
 		fsWatchedWorkspaces: new Map(),
-		reconnectAttempts: 0,
-		reconnectTimer: null,
-		disposed: false,
 	};
+
+	socket.addEventListener("open", () => {
+		// Re-send all active fs:watch commands
+		for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
+			sendCommand(state, { type: "fs:watch", workspaceId });
+		}
+	});
+	socket.addEventListener("message", (event) => {
+		handleMessage(state, event.data);
+	});
+
 	connections.set(key, state);
-	connect(state, hostUrl, getWsToken);
 	return state;
 }
 
@@ -301,17 +247,7 @@ function maybeCleanupConnection(hostUrl: string): void {
 
 	if (state.refCount > 0 || state.listeners.size > 0) return;
 
-	state.disposed = true;
-	if (state.reconnectTimer) {
-		clearTimeout(state.reconnectTimer);
-		state.reconnectTimer = null;
-	}
-	if (
-		state.socket?.readyState === WebSocket.CONNECTING ||
-		state.socket?.readyState === WebSocket.OPEN
-	) {
-		state.socket.close(1000, "No more subscribers");
-	}
+	state.socket.close(1000, "No more subscribers");
 	connections.delete(key);
 }
 

@@ -2,7 +2,7 @@
 title: "Superset vs GitHub Copilot (2026): Agent Orchestration vs AI Pair Programmer"
 description: "Compare Superset and GitHub Copilot for AI-assisted development. See how parallel agent orchestration differs from inline AI code completion and chat."
 date: 2026-02-18
-lastUpdated: 2026-03-21
+lastUpdated: 2026-07-13
 type: "1v1"
 competitors:
   - github-copilot
@@ -25,10 +25,10 @@ GitHub Copilot is an AI pair programmer that lives inside your editor, offering 
 |---|---|---|
 | **Category** | Agent orchestration workspace | AI pair programmer (editor extension) |
 | **What it does** | Runs 10+ coding agents in parallel with Git worktrees, chat, diff/file review, and browser tooling | Inline code completions, chat, and Copilot Agent mode in your editor |
-| **AI approach** | Agent-agnostic — orchestrates any CLI agent | Multiple models (GPT-4o, Claude, Gemini) via GitHub |
-| **Parallelism** | Core feature — many agents on separate branches simultaneously | Single-threaded; Copilot Coding Agent runs one task at a time in cloud |
-| **Editor** | Works alongside any editor | VS Code, JetBrains, Neovim (extension) |
-| **Pricing** | Free tier + Pro $20/seat/mo | Free tier (limited), Pro $10/mo, Business $19/user/mo, Enterprise $39/user/mo |
+| **AI approach** | Agent-agnostic — orchestrates any CLI agent | Multiple frontier models (Claude, GPT, Gemini) via GitHub |
+| **Parallelism** | Core feature — many agents on separate branches simultaneously | In-editor agent mode; cloud coding agent runs on a branch and opens a PR |
+| **Editor** | Works alongside any editor | VS Code, JetBrains, Visual Studio, Neovim (extension) |
+| **Pricing** | Free tier + Pro $20/seat/mo | Free; Pro $10/mo, Pro+ $39/mo, Max $100/mo; Business $19/user, Enterprise $39/user |
 | **License** | Source-available (ELv2) | Closed source |
 
 ---
@@ -41,7 +41,7 @@ Superset is a local-first desktop workspace for AI coding agents. It launches Cl
 
 ## What Is GitHub Copilot?
 
-GitHub Copilot is an AI coding assistant from GitHub (Microsoft). It integrates into your editor as an extension, providing inline code completions (ghost text as you type), a chat panel for questions and code generation, and Copilot Agent mode that can make multi-file changes autonomously. Copilot also offers a cloud-based Coding Agent that creates PRs from GitHub Issues. It uses multiple models including GPT-4o, Claude Sonnet, and Gemini, accessible through GitHub's infrastructure.
+GitHub Copilot is an AI coding assistant from GitHub (Microsoft). It integrates into your editor as an extension, providing inline code completions (ghost text as you type), a chat panel for questions and code generation, and Copilot agent mode that can make multi-file changes autonomously. Copilot also offers a cloud-based coding agent that creates PRs from GitHub Issues, MCP support across all plans, and delegation to third-party agents like Claude and Codex on higher tiers. It uses multiple frontier models including Claude, GPT, and Gemini, accessible through GitHub's infrastructure.
 
 ---
 
@@ -61,7 +61,7 @@ Copilot lives inside your editor (VS Code, JetBrains, Neovim). Superset is a sep
 
 ### Model and Agent Flexibility
 
-Copilot supports multiple models (GPT-4o, Claude, Gemini) through GitHub's infrastructure. Superset supports any CLI-based agent — and by extension, whatever models those agents support. The difference is direct vs proxied: with Superset, you bring your own API keys and pay providers directly. With Copilot, you use GitHub's model access through their pricing tiers.
+Copilot supports multiple frontier models (Claude, GPT, Gemini) through GitHub's infrastructure. Superset supports any CLI-based agent — and by extension, whatever models those agents support. The difference is direct vs proxied: with Superset, you bring your own API keys and pay providers directly. With Copilot, you use GitHub's model access through their pricing tiers.
 
 ### Privacy
 
@@ -71,7 +71,7 @@ Superset runs the workspace locally in Git worktrees, and its source-available c
 
 ## Pricing
 
-Superset offers a free tier and Pro at $20/seat/month, plus your agents' API costs. GitHub Copilot offers Free (limited), Pro ($10/mo or $100/year), Business ($19/user/mo), and Enterprise ($39/user/mo). Copilot's pricing includes model access; Superset's doesn't (you pay agents' API costs separately).
+Superset offers a free tier and Pro at $20/seat/month, plus your agents' API costs. GitHub Copilot offers Free (limited), Pro ($10/mo), Pro+ ($39/mo), and Max ($100/mo) for individuals, plus Business ($19/user/mo) and Enterprise ($39/user/mo); higher tiers add more usage and third-party agent delegation. Copilot's pricing includes model access; Superset's doesn't (you pay agents' API costs separately).
 
 ---
 

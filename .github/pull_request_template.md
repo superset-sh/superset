@@ -1,29 +1,19 @@
-## Description
+<!--
+PR titles become the squash-merge commit subject, so use conventional commit format:
+  feat(desktop): add copy-logs button to failed CI checks
+  fix(web): guard against missing PR in workspace header
+-->
 
-<!-- Provide a clear and concise description of your changes -->
+## What & why
 
-## Related Issues
+<!-- What changed and the problem it solves. Link the issue if there is one (e.g. "fixes #123"). -->
 
-<!-- Link any related issues using GitHub keywords (e.g., "closes #123", "fixes #456", "related to #789") -->
+## How I tested it
 
-## Type of Change
+<!-- What you ran or clicked to verify this works. For UI changes, add a screenshot or recording below. -->
 
-<!-- Put an `x` in the boxes that apply -->
+## Checklist
 
-- [ ] Bug fix
-- [ ] New feature
-- [ ] Documentation
-- [ ] Refactor
-- [ ] Other (please describe):
-
-## Testing
-
-<!-- Describe the tests you ran or the steps to verify your changes -->
-
-## Screenshots (if applicable)
-
-<!-- Add screenshots to help explain your changes -->
-
-## Additional Notes
-
-<!-- Add any other context about the PR here -->
+- [ ] PR title follows conventional commits (`type(scope): subject`)
+- [ ] `bun run lint` and `bun run typecheck` pass (CI fails on lint warnings too)
+- [ ] "Allow edits from maintainers" is checked on fork PRs

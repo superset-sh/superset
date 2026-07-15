@@ -27,7 +27,7 @@ const SCALE = 2;
 // Bigger frame + tighter canvas = the UI reads larger, less dead background.
 const CANVAS_W = 1600;
 const CANVAS_H = style === "tilt" ? 1040 : 980;
-const FRAME_W = style === "tilt" ? "86%" : "92%";
+const FRAME_FRAC = style === "tilt" ? 0.86 : 0.92;
 const tilt =
 	style === "tilt"
 		? "perspective(2600px) rotateY(-8deg) rotateX(3deg) rotateZ(-0.6deg)"
@@ -42,6 +42,7 @@ const img = `data:image/png;base64,${Buffer.from(bytes).toString("base64")}`;
 
 // Either show the whole image, or crop into a feature region via background-position.
 let shot: string;
+let aspect = W0 / H0;
 if (cropArg) {
 	const segs = cropArg.split(",");
 	const nums = segs.map((s) => Number(s.trim()));
@@ -56,6 +57,7 @@ if (cropArg) {
 		process.exit(2);
 	}
 	const [cx, cy, cw, ch] = nums;
+	aspect = cw / ch;
 	const sizeW = ((W0 / cw) * 100).toFixed(3);
 	const posX = W0 - cw > 0 ? ((cx / (W0 - cw)) * 100).toFixed(3) : "0";
 	const posY = H0 - ch > 0 ? ((cy / (H0 - ch)) * 100).toFixed(3) : "0";
@@ -65,6 +67,13 @@ if (cropArg) {
 } else {
 	shot = `<img src="${img}">`;
 }
+
+// Contain-fit: constrain the frame by BOTH width and height so tall/narrow
+// crops float as a bordered card on the backdrop instead of overflowing the
+// canvas and getting cut off top/bottom.
+const frameW = Math.round(
+	Math.min(CANVAS_W * FRAME_FRAC, CANVAS_H * FRAME_FRAC * aspect),
+);
 
 const html = `<!doctype html><html><head><meta charset="utf8"><style>
   * { margin:0; padding:0; box-sizing:border-box; }
@@ -81,7 +90,7 @@ const html = `<!doctype html><html><head><meta charset="utf8"><style>
   .g4 { width:520px; height:520px; right:-120px; top:-160px; background:#2a2c31; opacity:.6; }
   .noise { position:absolute; inset:0; opacity:.045; mix-blend-mode:screen; }
   .frame {
-    position:relative; width:${FRAME_W}; transform:${tilt}; transform-origin:center;
+    position:relative; width:${frameW}px; transform:${tilt}; transform-origin:center;
     border-radius:16px; overflow:hidden;
     box-shadow: 0 2px 4px rgba(0,0,0,.4),
                 0 40px 80px -20px rgba(0,0,0,.75),

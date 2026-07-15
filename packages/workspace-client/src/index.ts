@@ -11,7 +11,17 @@ export {
 	type WorkspaceChangedPayload,
 	type WorkspaceSnapshotPayload,
 } from "./lib/eventBus";
-export { primeRelayAffinity } from "./lib/primeRelayAffinity";
+export {
+	primeRelayAffinity,
+	type RelayAffinityProbe,
+} from "./lib/primeRelayAffinity";
+export {
+	createRelaySocket,
+	type RelaySocket,
+	type RelaySocketOptions,
+	type RelaySocketTelemetryEvent,
+	setRelaySocketTelemetry,
+} from "./lib/relaySocket";
 export {
 	useWorkspaceClient,
 	useWorkspaceHostUrl,

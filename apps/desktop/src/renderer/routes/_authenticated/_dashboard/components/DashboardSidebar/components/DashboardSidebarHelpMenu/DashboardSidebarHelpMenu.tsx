@@ -115,7 +115,7 @@ export function DashboardSidebarHelpMenu({
 							</DropdownMenuItem>
 							<DropdownMenuItem onClick={() => openExternal(COMPANY.MAIL_TO)}>
 								<HiOutlineEnvelope className="h-4 w-4" />
-								Email Founders
+								Email Support
 							</DropdownMenuItem>
 						</DropdownMenuSubContent>
 					</DropdownMenuSub>

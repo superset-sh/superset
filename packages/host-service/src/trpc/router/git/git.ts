@@ -139,16 +139,18 @@ export const gitRouter = router({
 				const raw = await git.raw([
 					"log",
 					`${baseRef}..HEAD`,
-					"--format=%H\t%h\t%s\t%an\t%aI",
+					"--format=%H\t%h\t%s\t%an\t%ae\t%aI",
 				]);
 				for (const line of raw.trim().split("\n")) {
 					if (!line) continue;
-					const [hash, shortHash, message, author, date] = line.split("\t");
+					const [hash, shortHash, message, author, authorEmail, date] =
+						line.split("\t");
 					commits.push({
 						hash: hash ?? "",
 						shortHash: shortHash ?? "",
 						message: message ?? "",
 						author: author ?? "",
+						authorEmail: authorEmail ?? "",
 						date: date ?? "",
 					});
 				}

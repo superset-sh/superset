@@ -175,6 +175,7 @@ async function resolveTargetHost(
 			machineId: v2Hosts.machineId,
 			name: v2Hosts.name,
 			isOnline: v2Hosts.isOnline,
+			wakeCommand: v2Hosts.wakeCommand,
 			createdByUserId: v2Hosts.createdByUserId,
 			createdAt: v2Hosts.createdAt,
 			updatedAt: v2Hosts.updatedAt,

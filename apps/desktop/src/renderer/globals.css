@@ -298,9 +298,55 @@
 		background-color: var(--highlight-active);
 	}
 
-	/* Disable sonner toast hover animation for update toast only */
-	[data-sonner-toast]:has(.update-toast) {
-		transform: translateY(0);
+	/* UpdatesPill: checkmark draw-in on download-confirmed */
+	@keyframes check-draw {
+		from {
+			stroke-dashoffset: 26;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	/* UpdatesPill: countdown line tracing the border while the confirmation runs out */
+	@keyframes countdown-border-trace {
+		from {
+			stroke-dashoffset: 100;
+		}
+		to {
+			stroke-dashoffset: 0;
+		}
+	}
+
+	/* UpdatesPill: retro pixel-dissolve when the confirmation expires — a
+	   checkerboard mask flips on and coarsens in discrete steps (mask-image
+	   animates discretely, swapping at segment midpoints) until the pill
+	   crumbles away */
+	@keyframes pill-pixel-out {
+		0% {
+			opacity: 1;
+			mask-image: none;
+		}
+		30% {
+			opacity: 1;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 3px 3px;
+		}
+		55% {
+			opacity: 0.9;
+			mask-image: repeating-conic-gradient(transparent 0% 25%, #000 0% 50%);
+			mask-size: 5px 5px;
+		}
+		80% {
+			opacity: 0.75;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 8px 8px;
+		}
+		100% {
+			opacity: 0;
+			mask-image: repeating-conic-gradient(#000 0% 25%, transparent 0% 50%);
+			mask-size: 12px 12px;
+		}
 	}
 
 	/* Tiptap chat input placeholder */

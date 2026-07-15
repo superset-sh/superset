@@ -130,5 +130,6 @@ export interface Commit {
 	shortHash: string;
 	message: string;
 	author: string;
+	authorEmail: string;
 	date: string;
 }

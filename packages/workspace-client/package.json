@@ -7,6 +7,10 @@
 		".": {
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
+		},
+		"./relay-socket": {
+			"types": "./src/lib/relaySocket/index.ts",
+			"default": "./src/lib/relaySocket/index.ts"
 		}
 	},
 	"scripts": {
@@ -20,12 +24,14 @@
 		"@tanstack/react-query": "5.101.1",
 		"@trpc/client": "11.16.0",
 		"@trpc/react-query": "11.16.0",
+		"partysocket": "1.3.0",
 		"superjson": "2.2.6"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
+		"bun-types": "1.3.14",
 		"react": "19.2.3",
 		"typescript": "6.0.3"
 	},

@@ -1,10 +1,25 @@
 import fs from "node:fs";
 import path from "node:path";
 import { SUPERSET_MANAGED_BINARIES } from "./desktop-agent-capabilities";
+import { NOTIFY_SCRIPT_NAME } from "./notify-hook";
 import { BIN_DIR } from "./paths";
 
 export const WRAPPER_MARKER = "# Superset agent-wrapper v3";
 export { SUPERSET_MANAGED_BINARIES };
+
+/** Path (under SUPERSET_HOME_DIR) of the runtime notify hook script. */
+export const MANAGED_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
+
+/**
+ * Shell command written into an agent's global hook config. The notify path is
+ * resolved at runtime from SUPERSET_HOME_DIR so one shared config works for both
+ * dev and prod installs, and `SUPERSET_AGENT_ID` is inlined so the v2 hook
+ * payload carries wrapper-level identity even when the agent is launched outside
+ * the Superset wrapper (system PATH resolves the real binary directly).
+ */
+export function getManagedNotifyHookCommand(agentId: string): string {
+	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=${agentId} "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" || true`;
+}
 
 // Dev setup (.superset/lib/setup/steps.sh) points SUPERSET_HOME_DIR at
 // $PWD/superset-dev-data — without a leading dot — so we must recognize that

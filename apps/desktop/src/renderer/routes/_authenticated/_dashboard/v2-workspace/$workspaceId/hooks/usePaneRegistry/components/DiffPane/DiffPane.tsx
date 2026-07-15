@@ -8,6 +8,7 @@ import type { RendererContext } from "@superset/panes";
 import { Button } from "@superset/ui/button";
 import { useCallback, useMemo, useRef } from "react";
 import { LuFileCode } from "react-icons/lu";
+import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
@@ -31,6 +32,7 @@ import { useDiffCodeViewItems } from "./hooks/useDiffCodeViewItems";
 import { useDiffCodeViewScroll } from "./hooks/useDiffCodeViewScroll";
 import { useDiffCodeViewTheme } from "./hooks/useDiffCodeViewTheme";
 import { useDiffCommentComposer } from "./hooks/useDiffCommentComposer";
+import { useDiffPaneSearch } from "./hooks/useDiffPaneSearch";
 
 interface CreateNewAgentSessionInput {
 	configId: string;
@@ -55,6 +57,7 @@ export function DiffPane({
 }: DiffPaneProps) {
 	const data = context.pane.data as DiffPaneData;
 	const codeViewRef = useRef<CodeViewHandle<DiffAnnotationMetadata>>(null);
+	const searchContainerRef = useRef<HTMLDivElement>(null);
 
 	const ref = useSidebarDiffRef(workspaceId);
 	const { files, isLoading } = useChangeset({ workspaceId, ref });
@@ -116,6 +119,17 @@ export function DiffPane({
 			extraAnnotationsByItemId: composerAnnotationsByItemId,
 		});
 	fileByItemIdRef.current = fileByItemId;
+
+	const search = useDiffPaneSearch({
+		containerRef: searchContainerRef,
+		codeViewRef,
+		items,
+		fileByItemId,
+		collapsedSet,
+		setCollapsed,
+		isActive: context.isActive,
+		paneId: context.pane.id,
+	});
 
 	const { targetItemId } = useDiffCodeViewScroll({
 		codeViewRef,
@@ -281,17 +295,31 @@ export function DiffPane({
 					count={currentSection.count}
 				/>
 			) : null}
-			<CodeView<DiffAnnotationMetadata>
-				ref={codeViewRef}
-				className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
-				style={style}
-				items={items}
-				options={codeViewOptions}
-				onScroll={onScroll}
-				renderHeaderPrefix={renderHeaderPrefix}
-				renderHeaderMetadata={renderHeaderMetadata}
-				renderAnnotation={renderAnnotation}
-			/>
+			<div ref={searchContainerRef} className="relative min-h-0 w-full flex-1">
+				<MarkdownSearch
+					isOpen={search.isSearchOpen}
+					query={search.query}
+					caseSensitive={search.caseSensitive}
+					matchCount={search.matchCount}
+					activeMatchIndex={search.activeMatchIndex}
+					onQueryChange={search.setQuery}
+					onCaseSensitiveChange={search.setCaseSensitive}
+					onFindNext={search.findNext}
+					onFindPrevious={search.findPrevious}
+					onClose={search.closeSearch}
+				/>
+				<CodeView<DiffAnnotationMetadata>
+					ref={codeViewRef}
+					className="h-full w-full overflow-y-auto overflow-x-clip overscroll-contain [overflow-anchor:none]"
+					style={style}
+					items={items}
+					options={codeViewOptions}
+					onScroll={onScroll}
+					renderHeaderPrefix={renderHeaderPrefix}
+					renderHeaderMetadata={renderHeaderMetadata}
+					renderAnnotation={renderAnnotation}
+				/>
+			</div>
 		</div>
 	);
 }

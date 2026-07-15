@@ -1,11 +1,14 @@
 "use client";
 
+import { installTerminalWheelEventHandler } from "@superset/shared/terminal-wheel-handler";
 import { FitAddon } from "@xterm/addon-fit";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { MobileTerminalInput } from "../../../../../components/MobileTerminalInput";
+import { getAuthToken } from "../../../../../trpc/auth-token";
+import { getRelayUrl } from "../../../../../trpc/relay-url";
 import { TerminalConnection } from "./TerminalConnection";
 
 const TERMINAL_THEME: ITheme = {
@@ -81,6 +84,10 @@ export function WebTerminal({
 		const fitAddon = new FitAddon();
 		terminal.loadAddon(fitAddon);
 		terminal.open(container);
+		// PTYs identify as TERM_PROGRAM=kitty (host-service env), which tells
+		// TUIs to expect a native-fidelity wheel report stream — this handler
+		// provides it. See @superset/shared/terminal-wheel-handler.
+		installTerminalWheelEventHandler(terminal);
 		if (window.matchMedia("(pointer: coarse)").matches) {
 			const xtermInput = terminal.textarea;
 			if (xtermInput) {
@@ -143,6 +150,7 @@ export function WebTerminal({
 				},
 				onStateChange: (next) => setState(next),
 			},
+			{ getToken: getAuthToken, relayUrl: getRelayUrl },
 		);
 		connectionRef.current = connection;
 		connection.start();

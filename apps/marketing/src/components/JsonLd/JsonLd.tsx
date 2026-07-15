@@ -207,6 +207,27 @@ export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
 	return <JsonLdScript schema={schema} />;
 }
 
+interface ItemListJsonLdProps {
+	name: string;
+	items: Array<{ name: string; url?: string }>;
+}
+
+export function ItemListJsonLd({ name, items }: ItemListJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		name,
+		itemListElement: items.map((item, index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name: item.name,
+			...(item.url && { url: item.url }),
+		})),
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
 interface BreadcrumbJsonLdProps {
 	items: Array<{ name: string; url: string }>;
 }

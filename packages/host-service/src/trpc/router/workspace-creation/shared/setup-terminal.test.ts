@@ -64,36 +64,44 @@ describe("resolveInitialCommand", () => {
 		writeConfig(sandbox.repoPath, {
 			setup: ["bun install", "bun run db:migrate"],
 		});
-		expect(resolve()).toBe("bun install && bun run db:migrate");
+		expect(resolve()).toEqual({
+			initialCommand: "bun install && bun run db:migrate",
+		});
 	});
 
 	it("returns the single command when setup has only one line", () => {
 		writeConfig(sandbox.repoPath, { setup: ["bun install"] });
-		expect(resolve()).toBe("bun install");
+		expect(resolve()).toEqual({ initialCommand: "bun install" });
 	});
 
 	it("falls back to bash <repoPath>/.superset/setup.sh when config is empty", () => {
 		writeConfig(sandbox.repoPath, { setup: [], teardown: [] });
 		writeFallbackScript(sandbox.repoPath);
 
-		const cmd = resolve();
-		expect(cmd).toBe(
-			`bash '${join(sandbox.repoPath, ".superset", "setup.sh")}'`,
-		);
+		expect(resolve()).toEqual({
+			initialCommand: `bash '${join(sandbox.repoPath, ".superset", "setup.sh")}'`,
+		});
 	});
 
 	it("falls back to setup.sh when no config.json exists at all", () => {
 		writeFallbackScript(sandbox.repoPath);
-		const cmd = resolve();
-		expect(cmd).toBe(
-			`bash '${join(sandbox.repoPath, ".superset", "setup.sh")}'`,
-		);
+		expect(resolve()).toEqual({
+			initialCommand: `bash '${join(sandbox.repoPath, ".superset", "setup.sh")}'`,
+		});
 	});
 
 	it("config setup wins over the fallback script", () => {
 		writeConfig(sandbox.repoPath, { setup: ["bun install"] });
 		writeFallbackScript(sandbox.repoPath);
-		expect(resolve()).toBe("bun install");
+		expect(resolve()).toEqual({ initialCommand: "bun install" });
+	});
+
+	it("carries config cwd for the terminal session", () => {
+		writeConfig(sandbox.repoPath, { setup: ["bun install"], cwd: "apps/web" });
+		expect(resolve()).toEqual({
+			initialCommand: "bun install",
+			cwd: "apps/web",
+		});
 	});
 
 	it("ignores teardown when resolving the setup command", () => {
@@ -108,7 +116,7 @@ describe("resolveInitialCommand", () => {
 		writeConfig(sandbox.repoPath, {
 			setup: ["", "   ", "bun install", "\n"],
 		});
-		expect(resolve()).toBe("bun install");
+		expect(resolve()).toEqual({ initialCommand: "bun install" });
 	});
 
 	it("escapes single quotes in fallback path", () => {
@@ -120,7 +128,7 @@ describe("resolveInitialCommand", () => {
 				repoPath: trickyRepo,
 				projectId: PROJECT_ID,
 				homeDir: sandboxWithQuote.homeDir,
-			});
+			})?.initialCommand;
 			expect(cmd).toContain("'\\''");
 			// Verify the escape sequence wraps the single quote correctly.
 			expect(cmd).toBe(
@@ -131,12 +139,35 @@ describe("resolveInitialCommand", () => {
 		}
 	});
 
-	it("does not consult worktree-level config (uses main repoPath)", () => {
+	it("worktree config wins over the main repo's when in scope", () => {
 		writeConfig(sandbox.repoPath, { setup: ["from-main"] });
-		// A sibling worktree directory with its own config should be ignored.
-		const sibling = join(sandbox.repoPath, "..", "sibling-worktree");
-		writeConfig(sibling, { setup: ["from-worktree"] });
+		const worktreePath = join(sandbox.repoPath, "..", "feature-worktree");
+		writeConfig(worktreePath, { setup: ["from-worktree"] });
 
-		expect(resolve()).toBe("from-main");
+		expect(
+			resolveInitialCommand({
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath,
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({ initialCommand: "from-worktree" });
+	});
+
+	it("falls back to the worktree setup.sh before the main repo's", () => {
+		writeFallbackScript(sandbox.repoPath);
+		const worktreePath = join(sandbox.repoPath, "..", "feature-worktree");
+		writeFallbackScript(worktreePath);
+
+		expect(
+			resolveInitialCommand({
+				repoPath: sandbox.repoPath,
+				projectId: PROJECT_ID,
+				worktreePath,
+				homeDir: sandbox.homeDir,
+			}),
+		).toEqual({
+			initialCommand: `bash '${join(worktreePath, ".superset", "setup.sh")}'`,
+		});
 	});
 });

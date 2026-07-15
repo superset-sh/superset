@@ -1045,7 +1045,6 @@ export async function createTerminalSessionInternal({
 		workspaceId,
 		workspacePath: workspace.worktreePath,
 		rootPath,
-		hostServiceVersion: process.env.HOST_SERVICE_VERSION || "unknown",
 		supersetEnv:
 			process.env.NODE_ENV === "development" ? "development" : "production",
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",

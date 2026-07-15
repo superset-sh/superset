@@ -239,6 +239,8 @@ async function runDestroy(
 			db: ctx.db,
 			workspaceId: input.workspaceId,
 			worktreePath: local.worktreePath,
+			repoPath: project.repoPath,
+			projectId: local.projectId,
 		});
 		if (teardown.status === "failed") {
 			const cause: TeardownFailureCause = {

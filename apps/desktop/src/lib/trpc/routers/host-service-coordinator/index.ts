@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { env } from "main/env.main";
 import {
@@ -16,7 +17,10 @@ export const createHostServiceCoordinatorRouter = () => {
 			const coordinator = getHostServiceCoordinator();
 			const { token } = await loadToken();
 			if (!token) {
-				throw new Error("No auth token available — user must be logged in");
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "No auth token available — user must be logged in",
+				});
 			}
 			return coordinator.start(input.organizationId, {
 				authToken: token,
@@ -46,7 +50,10 @@ export const createHostServiceCoordinatorRouter = () => {
 			const coordinator = getHostServiceCoordinator();
 			const { token } = await loadToken();
 			if (!token) {
-				throw new Error("No auth token available — user must be logged in");
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "No auth token available — user must be logged in",
+				});
 			}
 			return coordinator.restart(input.organizationId, {
 				authToken: token,
@@ -58,7 +65,10 @@ export const createHostServiceCoordinatorRouter = () => {
 			const coordinator = getHostServiceCoordinator();
 			const { token } = await loadToken();
 			if (!token) {
-				throw new Error("No auth token available — user must be logged in");
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "No auth token available — user must be logged in",
+				});
 			}
 			return coordinator.reset(input.organizationId, {
 				authToken: token,

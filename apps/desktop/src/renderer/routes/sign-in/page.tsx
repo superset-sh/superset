@@ -4,6 +4,7 @@ import {
 	DEV_NAME,
 	DEV_PASSWORD,
 } from "@superset/shared/dev-credentials";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
@@ -133,11 +134,7 @@ function SignInPage() {
 		}
 	};
 
-	const lastUsedBadge = (
-		<span className="absolute right-3 rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
-			Last used
-		</span>
-	);
+	const lastUsedBadge = <Badge variant="secondary">Last used</Badge>;
 
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
@@ -166,7 +163,7 @@ function SignInPage() {
 								variant="outline"
 								size="lg"
 								onClick={signInAsDev}
-								className="relative w-full gap-3"
+								className="w-full gap-3"
 								disabled={isLoadingDev}
 							>
 								{isLoadingDev
@@ -184,7 +181,7 @@ function SignInPage() {
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("github")}
-							className="relative w-full gap-3"
+							className="w-full gap-3"
 							disabled={signInMutation.isPending}
 						>
 							<FaGithub className="size-5" />
@@ -196,7 +193,7 @@ function SignInPage() {
 							variant="outline"
 							size="lg"
 							onClick={() => signIn("google")}
-							className="relative w-full gap-3"
+							className="w-full gap-3"
 							disabled={signInMutation.isPending}
 						>
 							<FcGoogle className="size-5" />

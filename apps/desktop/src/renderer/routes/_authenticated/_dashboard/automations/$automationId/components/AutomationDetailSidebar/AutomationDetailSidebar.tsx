@@ -10,6 +10,7 @@ import { DevicePicker } from "renderer/routes/_authenticated/components/Dashboar
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { AgentPicker } from "../../../components/AgentPicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
+import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { SchedulePicker } from "../../../components/SchedulePicker";
 import { TimezonePicker } from "../../../components/TimezonePicker";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
@@ -99,6 +100,7 @@ export function AutomationDetailSidebar({
 							<DevicePicker
 								className="-mr-4"
 								hostId={hostId}
+								showLocalOnlineState
 								onSelectHostId={(nextHostId) => {
 									updateMutation.mutate({ targetHostId: nextHostId });
 								}}
@@ -186,6 +188,7 @@ export function AutomationDetailSidebar({
 							/>
 						}
 					/>
+					<RelayOfflineNotice hostId={hostId} className="mt-2" />
 				</Section>
 			</div>
 

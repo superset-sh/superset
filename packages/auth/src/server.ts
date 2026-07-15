@@ -122,7 +122,9 @@ export const auth = betterAuth({
 		},
 	},
 	emailAndPassword: {
-		enabled: process.env.NODE_ENV === "development",
+		enabled:
+			process.env.NODE_ENV === "development" ||
+			process.env.VERCEL_ENV === "preview",
 		autoSignIn: true,
 	},
 	socialProviders: {
@@ -883,7 +885,7 @@ export const auth = betterAuth({
 				) => {
 					if (plan.name === "enterprise") {
 						throw new Error(
-							"Enterprise subscriptions are managed by admins. Contact founders@superset.sh.",
+							"Enterprise subscriptions are managed by admins. Contact support@superset.sh.",
 						);
 					}
 

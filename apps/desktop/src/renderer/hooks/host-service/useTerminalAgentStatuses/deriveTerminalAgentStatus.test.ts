@@ -52,6 +52,16 @@ describe("deriveTerminalAgentStatus", () => {
 		).toBe("idle");
 	});
 
+	it("maps Failed to failed regardless of seen timestamp", () => {
+		expect(
+			deriveTerminalAgentStatus({
+				lastEventType: "Failed",
+				lastEventAt: 100,
+				lastSeenAt: 200,
+			}),
+		).toBe("failed");
+	});
+
 	it("maps Attached to idle", () => {
 		expect(
 			deriveTerminalAgentStatus({

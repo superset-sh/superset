@@ -8,7 +8,9 @@ import {
 	getProjectConfigPath,
 	hasConfiguredScripts,
 	loadSetupConfig,
+	resolveScript,
 	type SetupConfig,
+	shellSingleQuote,
 } from "../../../runtime/setup/config";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
@@ -130,19 +132,19 @@ export const configRouter = router({
 		.input(projectIdInput)
 		.query(({ ctx, input }) => {
 			const project = requireProject(ctx, input.projectId);
-			const config = loadSetupConfig({
+			const resolved = resolveScript("run", {
 				repoPath: project.repoPath,
 				projectId: project.id,
 			});
-			const commands = (config?.run ?? []).filter(
-				(command) => command.trim().length > 0,
-			);
-			if (commands.length === 0) return null;
+			if (!resolved) return null;
 			return {
 				source: "project-config" as const,
 				projectId: project.id,
-				commands,
-				...(config?.cwd?.trim() && { cwd: config.cwd.trim() }),
+				commands:
+					resolved.kind === "commands"
+						? resolved.commands
+						: [`bash ${shellSingleQuote(resolved.scriptPath)}`],
+				...(resolved.cwd && { cwd: resolved.cwd }),
 			};
 		}),
 });

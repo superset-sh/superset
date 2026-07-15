@@ -255,7 +255,6 @@ export class EventBus {
 			const service = this.filesystem.getServiceForWorkspace(workspaceId);
 			const stream = service.watchPath({
 				absolutePath: rootPath,
-				recursive: true,
 			});
 			iterator = stream[Symbol.asyncIterator]();
 		} catch (error) {

@@ -1,0 +1,32 @@
+app = "superset-discord-triage"
+primary_region = "sjc"
+kill_signal = "SIGINT"
+kill_timeout = "10s"
+
+[build]
+  dockerfile = "Dockerfile"
+
+[env]
+  PORT = "8080"
+  # 1456374121494478869 = #bugs (forum), 1466502145825050759 = #feature-request (text)
+  DISCORD_CHANNEL_IDS = "1456374121494478869,1466502145825050759"
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  # Gateway bot must stay connected; never scale to zero.
+  auto_stop_machines = "off"
+  auto_start_machines = true
+  min_machines_running = 1
+
+[[http_service.checks]]
+  interval = "15s"
+  timeout = "2s"
+  grace_period = "30s"
+  method = "GET"
+  path = "/health"
+
+[[vm]]
+  memory = "512mb"
+  cpu_kind = "shared"
+  cpus = 1

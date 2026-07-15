@@ -154,3 +154,44 @@ export function getHighlightStyleContainers(
 
 	return Array.from(styleContainers);
 }
+
+export type HighlightStyleElementMap = Map<
+	HTMLHeadElement | ShadowRoot,
+	HTMLStyleElement
+>;
+
+/**
+ * Keep a `::highlight()` style element mounted in every style container that
+ * hosts a search root (document head or shadow root), removing elements whose
+ * container no longer holds any search root.
+ */
+export function syncHighlightStyles(
+	searchRoots: Array<Node & ParentNode>,
+	ownerDocument: Document,
+	styleElements: HighlightStyleElementMap,
+	styles: string,
+): void {
+	const styleContainers = new Set(
+		getHighlightStyleContainers(searchRoots, ownerDocument),
+	);
+
+	for (const [styleContainer, styleElement] of styleElements) {
+		if (styleContainers.has(styleContainer)) {
+			continue;
+		}
+
+		styleElement.remove();
+		styleElements.delete(styleContainer);
+	}
+
+	for (const styleContainer of styleContainers) {
+		if (styleElements.has(styleContainer)) {
+			continue;
+		}
+
+		const styleElement = ownerDocument.createElement("style");
+		styleElement.textContent = styles;
+		styleContainer.appendChild(styleElement);
+		styleElements.set(styleContainer, styleElement);
+	}
+}

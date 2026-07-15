@@ -1,3 +1,4 @@
+import { installTerminalWheelEventHandler } from "@superset/shared/terminal-wheel-handler";
 import { FitAddon } from "@xterm/addon-fit";
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
@@ -233,6 +234,7 @@ export function createRuntime(
 	terminal.open(wrapper);
 
 	installTerminalKeyEventHandler(terminal);
+	installTerminalWheelEventHandler(terminal);
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)

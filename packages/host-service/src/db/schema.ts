@@ -1,3 +1,4 @@
+import type { HarnessKind, StopReason } from "@superset/session-protocol";
 import type {
 	AgentDefinitionId,
 	BuiltinAgentId,
@@ -206,6 +207,30 @@ export const workspaces = sqliteTable(
 			.on(table.projectId)
 			.where(sql`type = 'main'`),
 	],
+);
+
+/**
+ * Registry of ACP agent sessions (docs/acp-sessions.md). One row per
+ * session, kept fresh on every state emit. Rows survive host restarts so the
+ * manager can list them as `offline` and resurrect on demand via the
+ * adapter's `session/load` — the journal itself is not persisted; transcript
+ * replay comes from the agent harness's own on-disk session store.
+ */
+export const acpSessions = sqliteTable(
+	"acp_sessions",
+	{
+		sessionId: text("session_id").primaryKey(),
+		workspaceId: text("workspace_id").notNull(),
+		/** Adapter-side ACP session id — the `session/load` key. */
+		acpSessionId: text("acp_session_id").notNull(),
+		harness: text().notNull().$type<HarnessKind>(),
+		cwd: text().notNull(),
+		title: text(),
+		lastStopReason: text("last_stop_reason").$type<StopReason>(),
+		createdAt: integer("created_at").notNull(),
+		updatedAt: integer("updated_at").notNull(),
+	},
+	(table) => [index("acp_sessions_workspace_id_idx").on(table.workspaceId)],
 );
 
 /**

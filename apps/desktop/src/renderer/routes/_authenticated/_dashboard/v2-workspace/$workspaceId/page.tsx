@@ -1,7 +1,7 @@
 import { Workspace } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
@@ -26,6 +26,7 @@ import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActio
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useSlotElement } from "./hooks/useSlotElement";
 import { useTabCloseGuard } from "./hooks/useTabCloseGuard";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
 import { useV2TerminalLauncher } from "./hooks/useV2TerminalLauncher";
@@ -234,19 +235,12 @@ function V2WorkspaceContent() {
 	);
 
 	// The sidebar slot lives at the dashboard layout level (next to TopBar) so
-	// the sidebar runs full-height. The slot is mounted by the parent layout
-	// before this child renders, so look it up synchronously during state init —
-	// otherwise users with rightSidebarOpen=true persisted see a 1-frame flash
-	// while the post-mount effect fills the ref.
-	const [sidebarSlotEl, setSidebarSlotEl] = useState<HTMLElement | null>(() =>
-		typeof document !== "undefined"
-			? document.getElementById("workspace-right-sidebar-slot")
-			: null,
-	);
-	useEffect(() => {
-		if (sidebarSlotEl) return;
-		setSidebarSlotEl(document.getElementById("workspace-right-sidebar-slot"));
-	}, [sidebarSlotEl]);
+	// the sidebar runs full-height.
+	const sidebarSlotEl = useSlotElement("workspace-right-sidebar-slot");
+	// TopBar slot for the run button when the presets bar (its usual home) is
+	// hidden. The button renders here via portal so it keeps this page's
+	// context (pane store, workspace providers) while appearing in the TopBar.
+	const runButtonSlotEl = useSlotElement("workspace-topbar-run-slot");
 
 	useWorkspaceHotkeys({
 		store,
@@ -306,11 +300,7 @@ function V2WorkspaceContent() {
 										onToggleShowPresetsBar={setShowPresetsBar}
 										trailing={workspaceRunButton}
 									/>
-								) : (
-									<div className="flex h-8 min-w-0 shrink-0 items-center border-b border-border bg-background px-2">
-										{workspaceRunButton}
-									</div>
-								)
+								) : null
 							}
 							renderAddTabMenu={() => (
 								<AddTabMenu
@@ -341,6 +331,9 @@ function V2WorkspaceContent() {
 						/>
 					</div>
 				</div>
+				{!showPresetsBar &&
+					runButtonSlotEl &&
+					createPortal(workspaceRunButton, runButtonSlotEl)}
 				{sidebarOpen &&
 					sidebarSlotEl &&
 					createPortal(

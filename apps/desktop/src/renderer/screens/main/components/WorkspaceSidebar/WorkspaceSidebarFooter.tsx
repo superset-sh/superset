@@ -13,6 +13,7 @@ import {
 	LuGitBranch,
 	LuLayoutTemplate,
 } from "react-icons/lu";
+import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useOpenProject } from "renderer/react-query/projects";
 import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import {
@@ -83,6 +84,7 @@ export function WorkspaceSidebarFooter({
 	if (isCollapsed) {
 		return (
 			<div className="border-t border-border p-2 flex flex-col items-center gap-1">
+				<UpdatesPill isCollapsed />
 				<DropdownMenu>
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
@@ -147,6 +149,7 @@ export function WorkspaceSidebarFooter({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
+			<UpdatesPill />
 		</div>
 	);
 }

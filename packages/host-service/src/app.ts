@@ -2,15 +2,22 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/chat/server/desktop";
+import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createDb, type HostDb } from "./db";
+import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
+import {
+	AcpSessionManager,
+	registerAcpSessionStreamRoute,
+	SqliteAcpSessionPersistence,
+} from "./runtime/acp-sessions";
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
@@ -59,6 +66,7 @@ export interface CreateAppOptions {
 	execGh?: ExecGh;
 	chatRuntime?: ChatRuntimeManager;
 	chatService?: ChatService;
+	acpSessions?: AcpSessionManager;
 }
 
 export interface CreateAppResult {
@@ -114,8 +122,37 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
+	// ACP session harness (docs/acp-sessions.md) — owns Claude Code
+	// adapter child processes. Fully parallel to the mastra chat runtime.
+	// Pre-release, so internal-channel only: the desktop coordinator spawns
+	// hosts with SUPERSET_ACP_SESSIONS=1 on canary/dev builds, never on
+	// stable. Without it the harness is inert — no WS route, every RPC except
+	// the `list` capability probe rejected. Tests that inject a manager opt
+	// in implicitly.
+	const acpSessionsEnabled =
+		options.acpSessions !== undefined ||
+		process.env.SUPERSET_ACP_SESSIONS === "1";
+	const acpSessions =
+		options.acpSessions ??
+		new AcpSessionManager({
+			resolveWorkspaceCwd: (workspaceId) => {
+				const workspace = db.query.workspaces
+					.findFirst({ where: eq(workspaces.id, workspaceId) })
+					.sync();
+				if (!workspace) {
+					throw new Error(`Workspace not found: ${workspaceId}`);
+				}
+				return workspace.worktreePath;
+			},
+			// Registry rows only (workspace binding, adapter session id, title)
+			// — the journal stays in-memory; a restarted host lists these as
+			// `offline` and resurrects on demand via the adapter's session/load.
+			persistence: new SqliteAcpSessionPersistence(db),
+		});
 
 	const runtime = {
+		acpSessions,
+		acpSessionsEnabled,
 		auth: chatService,
 		chat: chatRuntime,
 		filesystem,
@@ -200,6 +237,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
+	app.use("/acp-sessions/*", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
@@ -208,6 +246,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		upgradeWebSocket,
 	});
+	if (acpSessionsEnabled) {
+		registerAcpSessionStreamRoute({
+			app,
+			sessions: acpSessions,
+			upgradeWebSocket,
+		});
+	}
 
 	app.use(
 		"/trpc/*",
@@ -248,6 +293,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			await acpSessions.dispose();
+		} catch (err) {
+			console.warn("[host-service] acpSessions.dispose failed:", err);
 		}
 		try {
 			eventBus.close();

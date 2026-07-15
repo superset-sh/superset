@@ -1,6 +1,3 @@
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { WorkspaceScreen } from "@/screens/(authenticated)/workspace/[id]/WorkspaceScreen";
 
-export default function WorkspaceIndex() {
-	const { id } = useLocalSearchParams<{ id: string }>();
-	return <Redirect href={`/(authenticated)/workspace/${id}/chat`} />;
-}
+export default WorkspaceScreen;

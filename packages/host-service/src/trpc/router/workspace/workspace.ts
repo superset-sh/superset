@@ -62,21 +62,28 @@ export const workspaceRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			const current = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.id) })
+				.sync();
+			if (!current) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+			if (input.name !== undefined && current.type === "main") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						'The local workspace cannot be renamed — it always displays as "local".',
+				});
+			}
 			const patch: { name?: string; branch?: string; taskId?: string | null } =
 				{};
 			if (input.name !== undefined) patch.name = input.name;
 			if (input.branch !== undefined) patch.branch = input.branch;
 			if (input.taskId !== undefined) patch.taskId = input.taskId;
 			if (Object.keys(patch).length === 0) {
-				const current = ctx.db.query.workspaces
-					.findFirst({ where: eq(workspaces.id, input.id) })
-					.sync();
-				if (!current) {
-					throw new TRPCError({
-						code: "NOT_FOUND",
-						message: "Workspace not found",
-					});
-				}
 				return toCloudShape(current, ctx.organizationId);
 			}
 			const updated = updateLocalWorkspace(

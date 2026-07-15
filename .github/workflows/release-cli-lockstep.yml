@@ -1,0 +1,57 @@
+name: Release CLI Lockstep
+
+# When a desktop-v* release is published (draft -> published or --publish),
+# tag the matching plain cli-v<version> at the same commit so the standalone
+# CLI always ships in lockstep with desktop — regardless of how the desktop
+# release was published. Skips when the tag already exists (e.g. a CLI hotfix
+# already claimed the version, or a republish).
+#
+# The tag is created via the API with GITHUB_TOKEN, which does NOT emit a push
+# event that could trigger release-cli.yml — so that workflow is dispatched
+# explicitly on the new tag ref (its jobs gate on the ref, which a tag-ref
+# dispatch satisfies).
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+  actions: write
+
+jobs:
+  tag-matching-cli:
+    name: Tag matching cli-v release
+    if: startsWith(github.event.release.tag_name, 'desktop-v')
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      GH_REPO: ${{ github.repository }}
+      DESKTOP_TAG: ${{ github.event.release.tag_name }}
+    steps:
+      - name: Tag cli-v<version> and dispatch release-cli.yml
+        run: |
+          set -euo pipefail
+          if ! printf '%s' "$DESKTOP_TAG" | grep -Eq '^desktop-v[0-9]+\.[0-9]+\.[0-9]+$'; then
+            echo "::error::Unexpected desktop tag format: $DESKTOP_TAG"
+            exit 1
+          fi
+          VERSION="${DESKTOP_TAG#desktop-v}"
+          CLI_TAG="cli-v${VERSION}"
+
+          if gh api "repos/${GH_REPO}/git/ref/tags/${CLI_TAG}" >/dev/null 2>&1; then
+            echo "${CLI_TAG} already exists — lockstep satisfied."
+            exit 0
+          fi
+
+          SHA=$(gh api "repos/${GH_REPO}/commits/${DESKTOP_TAG}" --jq .sha)
+          gh api "repos/${GH_REPO}/git/refs" -f ref="refs/tags/${CLI_TAG}" -f sha="${SHA}"
+          echo "Created ${CLI_TAG} at ${SHA}"
+
+          # A rerun of this workflow can't recover a failed dispatch (the
+          # tag-exists check above exits early), so name the manual command.
+          if ! gh workflow run release-cli.yml --ref "${CLI_TAG}"; then
+            echo "::error::${CLI_TAG} was created but the dispatch failed. Recover with: gh workflow run release-cli.yml --ref ${CLI_TAG}"
+            exit 1
+          fi
+          echo "Dispatched release-cli.yml on ${CLI_TAG}"

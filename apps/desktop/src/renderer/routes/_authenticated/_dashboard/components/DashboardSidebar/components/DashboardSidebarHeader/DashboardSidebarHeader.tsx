@@ -27,6 +27,7 @@ import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/co
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
+import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
@@ -81,6 +82,7 @@ export function DashboardSidebarHeader({
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
+	const { myFailedCount } = useFailedAutomations();
 
 	const {
 		tab: lastTab,
@@ -88,6 +90,7 @@ export function DashboardSidebarHeader({
 		search: lastSearch,
 		typeTab: lastTypeTab,
 		projectFilter: lastProjectFilter,
+		linearProjectFilter: lastLinearProjectFilter,
 	} = useTasksFilterStore();
 
 	const handleWorkspacesClick = () => {
@@ -108,6 +111,7 @@ export function DashboardSidebarHeader({
 					search: lastSearch,
 					typeTab: lastTypeTab,
 					projectFilter: lastProjectFilter,
+					linearProjectFilter: lastLinearProjectFilter,
 				}),
 			});
 		});
@@ -141,17 +145,32 @@ export function DashboardSidebarHeader({
 						<button
 							type="button"
 							onClick={handleAutomationsClick}
+							aria-label={
+								myFailedCount > 0
+									? `Automations, ${myFailedCount} failing`
+									: "Automations"
+							}
 							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
+								"relative flex size-8 items-center justify-center rounded-md transition-colors",
 								isAutomationsOpen
 									? "bg-accent text-foreground"
 									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
 							)}
 						>
 							<LuClock className="size-4" />
+							{myFailedCount > 0 && (
+								<span
+									aria-hidden="true"
+									className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
+								/>
+							)}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="right">Automations</TooltipContent>
+					<TooltipContent side="right">
+						{myFailedCount > 0
+							? `Automations (${myFailedCount} failing)`
+							: "Automations"}
+					</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>
@@ -226,12 +245,12 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div
-			className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2"
+			className="flex flex-col gap-1 border-b border-border px-3 pt-2 pb-2"
 			// Pin the top inset so the traffic-light row stays a constant physical
 			// distance from the window top under page zoom (see the row below).
 			style={isMac ? { paddingTop: `${8 / zoomFactor}px` } : undefined}
 		>
-			{/* -mx-2 cancels the parent's px-2 so this row owns the 80px traffic-light
+			{/* -mx-3 cancels the parent's px-3 so this row owns the 80px traffic-light
 			    inset; inset and height are counter-scaled to a constant physical size
 			    so the fixed macOS traffic lights stay aligned under page zoom. On Mac
 			    the control clusters below use ZoomStable so the collapse/nav icons and
@@ -240,7 +259,7 @@ export function DashboardSidebarHeader({
 			    pinned row height it matches is Mac-only; elsewhere the row height (h-8)
 			    scales with zoom, so the controls should scale with it. */}
 			<div
-				className="drag -mx-2 flex h-8 items-center gap-1.5 pr-2"
+				className="drag -mx-3 flex h-8 items-center gap-1.5 pr-3"
 				style={
 					isMac
 						? {
@@ -286,6 +305,14 @@ export function DashboardSidebarHeader({
 			>
 				<LuClock className="size-4 shrink-0" />
 				<span className="flex-1 text-left">Automations</span>
+				{myFailedCount > 0 && (
+					<span
+						title={`${myFailedCount} of your automations failed their last run`}
+						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
+					>
+						{myFailedCount > 9 ? "9+" : myFailedCount}
+					</span>
+				)}
 			</button>
 
 			<button
@@ -302,7 +329,7 @@ export function DashboardSidebarHeader({
 				<span className="flex-1 text-left">Tasks & PRs</span>
 			</button>
 
-			<div className="flex items-center gap-0">
+			<div className="flex items-center gap-1">
 				<button
 					type="button"
 					onClick={() => openModal()}

@@ -2,12 +2,16 @@ import { toast } from "@superset/ui/sonner";
 import {
 	BellIcon,
 	BellOffIcon,
+	CircleCheckIcon,
+	DownloadIcon,
 	KeyboardIcon,
 	PaletteIcon,
 	PanelLeftIcon,
 	PanelRightIcon,
 	RefreshCwIcon,
+	TriangleAlertIcon,
 } from "lucide-react";
+import { env } from "renderer/env.renderer";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggle-intent";
@@ -110,6 +114,41 @@ export const actionsProvider: CommandProvider = {
 				},
 			},
 		);
+
+		if (env.NODE_ENV === "development") {
+			commands.push(
+				{
+					id: "actions.simulateUpdateDownloading",
+					title: "Simulate update: downloading",
+					section: "actions",
+					icon: DownloadIcon,
+					keywords: ["update", "dev", "simulate", "test"],
+					run: async () => {
+						await electronTrpcClient.autoUpdate.simulateDownloading.mutate();
+					},
+				},
+				{
+					id: "actions.simulateUpdateReady",
+					title: "Simulate update: ready",
+					section: "actions",
+					icon: CircleCheckIcon,
+					keywords: ["update", "dev", "simulate", "test"],
+					run: async () => {
+						await electronTrpcClient.autoUpdate.simulateReady.mutate();
+					},
+				},
+				{
+					id: "actions.simulateUpdateError",
+					title: "Simulate update: error",
+					section: "actions",
+					icon: TriangleAlertIcon,
+					keywords: ["update", "dev", "simulate", "test"],
+					run: async () => {
+						await electronTrpcClient.autoUpdate.simulateError.mutate();
+					},
+				},
+			);
+		}
 
 		return commands;
 	},

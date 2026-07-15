@@ -38,6 +38,10 @@ const agentDefinitionIdSchema = z.union([
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
 export const terminalAgentsRouter = router({
+	list: protectedProcedure.query(({ ctx }) => {
+		return ctx.terminalAgentStore.list();
+	}),
+
 	listByWorkspace: protectedProcedure
 		.input(
 			z.object({
