@@ -103,6 +103,61 @@ describe("deriveWorkspacePanels", () => {
 		expect(derived.panelIds).toEqual(["panel-b"]);
 	});
 
+	it("re-equalizes survivors when pruning from an equal layout", () => {
+		// Equal thirds: a=33.3, then b/c split 50/50. panel-c has no tabs.
+		const state = createState({
+			tabs: [
+				createTab("tab-1", { panelId: "panel-a" }),
+				createTab("tab-2", { panelId: "panel-b" }),
+			],
+			panelLayout: {
+				type: "split",
+				direction: "horizontal",
+				splitPercentage: 100 / 3,
+				first: panelNode("panel-a"),
+				second: {
+					type: "split",
+					direction: "horizontal",
+					splitPercentage: 50,
+					first: panelNode("panel-b"),
+					second: panelNode("panel-c"),
+				},
+			},
+			activeTabId: "tab-1",
+		});
+
+		const derived = deriveWorkspacePanels(state);
+		if (derived.layout.type !== "split") throw new Error("expected split");
+		expect(derived.layout.splitPercentage).toBe(50);
+	});
+
+	it("preserves custom sizes when pruning from an unequal layout", () => {
+		const state = createState({
+			tabs: [
+				createTab("tab-1", { panelId: "panel-a" }),
+				createTab("tab-2", { panelId: "panel-b" }),
+			],
+			panelLayout: {
+				type: "split",
+				direction: "horizontal",
+				splitPercentage: 20,
+				first: panelNode("panel-a"),
+				second: {
+					type: "split",
+					direction: "horizontal",
+					splitPercentage: 50,
+					first: panelNode("panel-b"),
+					second: panelNode("panel-c"),
+				},
+			},
+			activeTabId: "tab-1",
+		});
+
+		const derived = deriveWorkspacePanels(state);
+		if (derived.layout.type !== "split") throw new Error("expected split");
+		expect(derived.layout.splitPercentage).toBe(20);
+	});
+
 	it("keeps the workspace active tab visible over a stale record", () => {
 		const state = createState({
 			tabs: [

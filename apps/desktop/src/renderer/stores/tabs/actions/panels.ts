@@ -64,6 +64,25 @@ const EMPTY_PANELS: WorkspacePanels = {
 /** Stable id for the implicit panel of a workspace without a stored layout */
 const implicitPanelId = (workspaceId: string): string => `panel-${workspaceId}`;
 
+/** Same tree with matching split sizes (± 1%; missing size = 50) */
+const splitSizesMatch = (
+	a: MosaicNode<string>,
+	b: MosaicNode<string>,
+): boolean => {
+	if (typeof a === "string" || typeof b === "string") {
+		return a === b;
+	}
+	return (
+		Math.abs((a.splitPercentage ?? 50) - (b.splitPercentage ?? 50)) < 1 &&
+		splitSizesMatch(a.first, b.first) &&
+		splitSizesMatch(a.second, b.second)
+	);
+};
+
+/** Whether every panel currently has an equal share ("equal mode") */
+const isLayoutEqualized = (layout: MosaicNode<string>): boolean =>
+	splitSizesMatch(layout, equalizeSplitPercentages(layout));
+
 export function deriveWorkspacePanels(
 	state: PanelsInputState,
 	workspaceId: string,
@@ -103,7 +122,13 @@ export function deriveWorkspacePanels(
 	);
 	let finalLayout = layout;
 	if (nonEmptyPanelIds.size !== orderedLeafIds.length) {
+		// Equal mode stays equal: survivors re-share the space evenly. Custom
+		// ratios are preserved (the pruned leaf's sibling absorbs its space).
+		const wasEqualized = isLayoutEqualized(layout);
 		finalLayout = cleanLayout(layout, nonEmptyPanelIds) ?? defaultPanelId;
+		if (wasEqualized) {
+			finalLayout = equalizeSplitPercentages(finalLayout);
+		}
 		for (const leafId of orderedLeafIds) {
 			if (!nonEmptyPanelIds.has(leafId)) {
 				delete tabIdsByPanel[leafId];
@@ -324,9 +349,15 @@ export function moveTabToPanel(
 	}
 
 	const sourceRemoved = derived.tabIdsByPanel[sourcePanelId].length === 1;
-	const layoutAfterMove = sourceRemoved
-		? (removePaneFromLayout(derived.layout, sourcePanelId) ?? targetPanelId)
-		: derived.layout;
+	let layoutAfterMove = derived.layout;
+	if (sourceRemoved) {
+		layoutAfterMove =
+			removePaneFromLayout(derived.layout, sourcePanelId) ?? targetPanelId;
+		// Equal mode stays equal when a panel collapses
+		if (isLayoutEqualized(derived.layout)) {
+			layoutAfterMove = equalizeSplitPercentages(layoutAfterMove);
+		}
+	}
 
 	return {
 		tabs: [...otherTabs, ...reordered],

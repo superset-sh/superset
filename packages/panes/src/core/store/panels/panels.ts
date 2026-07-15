@@ -90,6 +90,22 @@ const replaceLeaf = (
 	return { ...node, first, second };
 };
 
+/** Same tree with matching split sizes (± 1%; missing size = 50) */
+const splitSizesMatch = (a: LayoutNode, b: LayoutNode): boolean => {
+	if (a.type === "pane" || b.type === "pane") {
+		return a.type === "pane" && b.type === "pane" && a.paneId === b.paneId;
+	}
+	return (
+		Math.abs((a.splitPercentage ?? 50) - (b.splitPercentage ?? 50)) < 1 &&
+		splitSizesMatch(a.first, b.first) &&
+		splitSizesMatch(a.second, b.second)
+	);
+};
+
+/** Whether every panel currently has an equal share ("equal mode") */
+const isLayoutEqualized = (layout: LayoutNode): boolean =>
+	splitSizesMatch(layout, equalizeAllSplits(layout));
+
 export function deriveWorkspacePanels<TData>(
 	state: PanelsSource<TData>,
 ): DerivedPanels {
@@ -122,7 +138,13 @@ export function deriveWorkspacePanels<TData>(
 		leafIds.filter((id) => (tabIdsByPanel[id]?.length ?? 0) > 0),
 	);
 	if (nonEmpty.size > 0 && nonEmpty.size !== leafIds.length) {
+		// Equal mode stays equal: survivors re-share the space evenly. Custom
+		// ratios are preserved (the pruned leaf's sibling absorbs its space).
+		const wasEqualized = isLayoutEqualized(layout);
 		layout = pruneLayoutLeaves(layout, nonEmpty) ?? panelLeaf(defaultPanelId);
+		if (wasEqualized) {
+			layout = equalizeAllSplits(layout);
+		}
 		for (const leafId of leafIds) {
 			if (!nonEmpty.has(leafId)) {
 				delete tabIdsByPanel[leafId];
@@ -294,10 +316,16 @@ export function moveTabToPanel<TData>(
 
 	const sourceRemoved =
 		(derived.tabIdsByPanel[sourcePanelId]?.length ?? 0) === 1;
-	const panelLayout = sourceRemoved
-		? (removePaneFromLayout(derived.layout, sourcePanelId) ??
-			panelLeaf(args.targetPanelId))
-		: derived.layout;
+	let panelLayout = derived.layout;
+	if (sourceRemoved) {
+		panelLayout =
+			removePaneFromLayout(derived.layout, sourcePanelId) ??
+			panelLeaf(args.targetPanelId);
+		// Equal mode stays equal when a panel collapses
+		if (isLayoutEqualized(derived.layout)) {
+			panelLayout = equalizeAllSplits(panelLayout);
+		}
+	}
 
 	return {
 		tabs: reordered,
@@ -428,18 +456,6 @@ export function buildExpandedPanelLayout(
 	}
 	return null;
 }
-
-/** Same tree with matching split sizes (± 1%; missing size = 50) */
-const splitSizesMatch = (a: LayoutNode, b: LayoutNode): boolean => {
-	if (a.type === "pane" || b.type === "pane") {
-		return a.type === "pane" && b.type === "pane" && a.paneId === b.paneId;
-	}
-	return (
-		Math.abs((a.splitPercentage ?? 50) - (b.splitPercentage ?? 50)) < 1 &&
-		splitSizesMatch(a.first, b.first) &&
-		splitSizesMatch(a.second, b.second)
-	);
-};
 
 /** Whether the layout already matches the expanded arrangement for `panelId` */
 export function isPanelExpanded(layout: LayoutNode, panelId: string): boolean {
