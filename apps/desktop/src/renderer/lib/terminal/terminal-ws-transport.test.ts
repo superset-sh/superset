@@ -291,6 +291,16 @@ describe("PTY output write coalescing", () => {
 });
 
 describe("terminal-ws-transport", () => {
+	test("mock preserves the relay-socket module's other exports", async () => {
+		// Regression guard: bun's mock.module is process-global, so stubbing only
+		// createRelaySocket drops the module's other exports (e.g.
+		// setRelaySocketTelemetry, which renderer/lib/posthog imports) and crashes
+		// unrelated desktop tests suite-wide with "export not found". The mock must
+		// spread the real module — assert that here so a partial stub fails fast.
+		const mod = await import("@superset/workspace-client/relay-socket");
+		expect(typeof mod.setRelaySocketTelemetry).toBe("function");
+	});
+
 	test("server-sent error routes to logs, not xterm, and terminates", () => {
 		const transport = createTransport();
 		const writelnCalls: string[] = [];
@@ -425,13 +435,17 @@ describe("terminal-ws-transport", () => {
 	});
 
 	test("surfaces the diagnosis for dial failures that never open", () => {
-		const { transport, socket } = connectAttached();
+		// Never opened: connect but don't open/attach — the host is unreachable.
+		const transport = createTransport();
+		connect(transport, createMockTerminal(), "ws://host/terminal/t1");
+		const socket = FakeRelaySocket.instances.at(-1);
+		if (!socket) throw new Error("expected relay socket instance");
 
-		// Host unreachable: every attempt fails BEFORE the socket opens, arriving
-		// as an error + a string-code synthetic close (no numeric server close).
-		// retryCount still climbs, so the header must eventually explain the
-		// outage. The regression: a close-counting gate stays silent forever here,
-		// leaving a genuinely-offline terminal retrying with no indication.
+		// Every attempt fails BEFORE the socket opens, arriving as an error + a
+		// string-code synthetic close (no numeric server close). retryCount still
+		// climbs, so the header must eventually explain the outage. The
+		// regression: a close-counting gate stays silent forever here, leaving a
+		// genuinely-offline terminal retrying with no indication.
 		for (let i = 0; i < 9; i++) socket.dialFail();
 		expect(transport.lastDiagnosis).toBeNull();
 
@@ -473,5 +487,21 @@ describe("terminal-ws-transport", () => {
 		disconnect(transport);
 		expect(socket.closed).toBe(true);
 		expect(transport.connectionState).toBe("disconnected");
+	});
+
+	test("ignores late events from a socket detached during teardown", () => {
+		const { transport, socket } = connectAttached();
+
+		disconnect(transport);
+		expect(transport.connectionState).toBe("disconnected");
+
+		// A real WS can deliver a trailing close/message after teardown nulls the
+		// socket; it must not resurrect "closed" state or push logs.
+		socket.drop(1006, "late");
+		socket.message(JSON.stringify({ type: "title", title: "late" }));
+
+		expect(transport.connectionState).toBe("disconnected");
+		expect(transport.logs).toHaveLength(0);
+		expect(transport.title).toBeUndefined();
 	});
 });

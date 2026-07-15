@@ -69,11 +69,17 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 	// that preceded the successful dial.
 	const failuresSoFar = () => (socket?.retryCount ?? 0) + 1;
 
+	// Per-dial epoch so a slow preflight from a superseded dial (URL swap,
+	// reconnect) can't publish its probe after a newer dial has started —
+	// otherwise a stale probe could make the diagnosis describe the prior endpoint.
+	let probeEpoch = 0;
+
 	const provider = async (): Promise<string> => {
+		const epoch = ++probeEpoch;
 		const url = signUrl(await opts.buildUrl(), await opts.getToken());
 		const probe = await primeRelayAffinity(url);
 		reporter.attempt(url, probe);
-		opts.onProbe?.(probe);
+		if (epoch === probeEpoch) opts.onProbe?.(probe);
 		if (probe?.status === 403) {
 			reporter.accessDenied(failuresSoFar());
 			opts.onAccessDenied?.();

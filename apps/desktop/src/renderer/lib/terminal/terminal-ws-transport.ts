@@ -511,6 +511,8 @@ function attachSocketListeners(
 	socket: RelaySocket,
 ): void {
 	socket.addEventListener("message", (event) => {
+		// Ignore events from a socket we've detached (teardown nulls _socket).
+		if (transport._socket !== socket) return;
 		const data = (event as { data: unknown }).data;
 
 		// Binary frame = PTY output bytes (data + replay collapsed onto one
@@ -576,6 +578,9 @@ function attachSocketListeners(
 	});
 
 	socket.addEventListener("close", (event) => {
+		// Ignore a late close from a socket we've detached, so it can't overwrite
+		// the "disconnected" state or mutate logs after teardown.
+		if (transport._socket !== socket) return;
 		const closeEvent = event as { code?: unknown; reason?: unknown };
 		// Render whatever arrived before the close instead of holding it for a
 		// frame that may never come (e.g. hidden window).
@@ -604,6 +609,7 @@ function attachSocketListeners(
 	});
 
 	socket.addEventListener("error", () => {
+		if (transport._socket !== socket) return;
 		if (transport._terminated) return;
 		// Below the diagnosis threshold, surface the transient error; past it the
 		// header diagnosis already conveys "offline", so stop logging an identical
