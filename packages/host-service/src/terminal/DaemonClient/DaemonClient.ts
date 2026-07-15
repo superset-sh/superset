@@ -42,6 +42,18 @@ export interface SubscribeCallbacks {
 	onExit: (info: ExitInfo) => void;
 }
 
+export type UpgradePreparedResult =
+	| { ok: true; successorPid: number }
+	| {
+			ok: false;
+			reason: string;
+			/**
+			 * Absent only when talking to a pre-transaction legacy daemon. Missing
+			 * ownership is ambiguous and must never be interpreted as a safe abort.
+			 */
+			ownership?: "predecessor" | "unresolved";
+	  };
+
 interface SessionCallbacks {
 	output: Set<(chunk: Buffer) => void>;
 	exit: Set<(info: ExitInfo) => void>;
@@ -75,6 +87,12 @@ export class DaemonClient {
 	private daemonVersion = "";
 	private negotiated: number | null = null;
 	private connected = false;
+	/**
+	 * Protocol v1 has no request ids for list/prepare-upgrade replies. Keep
+	 * non-session requests strictly serialized so an older concurrent list reply
+	 * cannot satisfy the handoff barrier that was sent later.
+	 */
+	private nonSessionTail: Promise<void> = Promise.resolve();
 
 	constructor(opts: DaemonClientOptions) {
 		this.opts = opts;
@@ -143,13 +161,15 @@ export class DaemonClient {
 	}
 
 	async list(): Promise<SessionInfo[]> {
-		const reply = await this.requestNonSession(
-			{ type: "list" },
-			"list-reply",
-			LIST_TIMEOUT_MS,
-		);
-		if (reply.type === "list-reply") return reply.sessions;
-		throw new Error(`list: unexpected reply ${reply.type}`);
+		return this.serializeNonSession(async () => {
+			const reply = await this.requestNonSession(
+				{ type: "list" },
+				"list-reply",
+				LIST_TIMEOUT_MS,
+			);
+			if (reply.type === "list-reply") return reply.sessions;
+			throw new Error(`list: unexpected reply ${reply.type}`);
+		});
 	}
 
 	/**
@@ -160,18 +180,24 @@ export class DaemonClient {
 	 * Timeout is generous: the daemon has to write a snapshot, spawn a child
 	 * Node process, wait for the successor's adopt+ack, then reply.
 	 */
-	async prepareUpgrade(): Promise<
-		{ ok: true; successorPid: number } | { ok: false; reason: string }
-	> {
-		const reply = await this.requestNonSession(
-			{ type: "prepare-upgrade" },
-			"upgrade-prepared",
-			PREPARE_UPGRADE_TIMEOUT_MS,
-		);
-		if (reply.type === "upgrade-prepared") return reply.result;
-		if (reply.type === "error")
-			throw new Error(`prepare-upgrade: ${reply.message}`);
-		throw new Error(`prepare-upgrade: unexpected reply ${reply.type}`);
+	async prepareUpgrade(): Promise<UpgradePreparedResult> {
+		return this.serializeNonSession(async () => {
+			const reply = await this.requestNonSession(
+				{ type: "prepare-upgrade" },
+				"upgrade-prepared",
+				PREPARE_UPGRADE_TIMEOUT_MS,
+			);
+			if (reply.type === "upgrade-prepared") {
+				// The workspace package's generated declaration can lag its source
+				// during a local multi-package build. New daemons carry the ownership
+				// discriminator; legacy protocol-v1 daemons may omit it, which the
+				// optional compatibility type deliberately preserves as ambiguous.
+				return reply.result as UpgradePreparedResult;
+			}
+			if (reply.type === "error")
+				throw new Error(`prepare-upgrade: ${reply.message}`);
+			throw new Error(`prepare-upgrade: unexpected reply ${reply.type}`);
+		});
 	}
 
 	/** Fire-and-forget; bytes go straight to the PTY. */
@@ -251,6 +277,15 @@ export class DaemonClient {
 	}
 
 	// ---- Internals ----
+
+	private serializeNonSession<T>(operation: () => Promise<T>): Promise<T> {
+		const result = this.nonSessionTail.then(operation, operation);
+		this.nonSessionTail = result.then(
+			() => {},
+			() => {},
+		);
+		return result;
+	}
 
 	private async handshake(): Promise<void> {
 		this.send({

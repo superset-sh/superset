@@ -21,14 +21,18 @@ import type { HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
-import {
+import type {
 	DaemonClient,
-	type Signal as DaemonSignal,
+	Signal as DaemonSignal,
+	SubscribeCallbacks,
 } from "./DaemonClient/index.ts";
 import {
 	getDaemonClient,
 	onDaemonDisconnect,
+	onDaemonPlannedRotation,
+	runCurrentDaemonMutation,
 } from "./daemon-client-singleton.ts";
+import { DaemonMutationQueueOverflowError } from "./daemon-mutation-gate.ts";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
@@ -55,11 +59,17 @@ interface PtyDataDisposer {
 	dispose(): void;
 }
 
-interface DaemonPty {
+export interface DaemonPty {
 	pid: number;
-	write(data: string): void;
-	resize(cols: number, rows: number): void;
+	write(data: string): Promise<void>;
+	resize(cols: number, rows: number): Promise<void>;
 	kill(signal?: NodeJS.Signals): Promise<void>;
+	subscribe(
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): PtyDataDisposer;
+	rebindDaemon(daemon: DaemonClient): void;
+	disposeSubscriptions(): void;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
 		cb: (info: { exitCode: number; signal: number }) => void,
@@ -71,20 +81,115 @@ function makeDaemonPty(
 	sessionId: string,
 	pid: number,
 ): DaemonPty {
+	interface SubscriptionEntry {
+		callbacks: SubscribeCallbacks;
+		unsubscribe: (() => void) | null;
+		disposed: boolean;
+	}
+
+	let currentDaemon = daemon;
+	const subscriptions = new Set<SubscriptionEntry>();
+
+	const bindSubscription = (
+		entry: SubscriptionEntry,
+		replay: boolean,
+	): void => {
+		entry.unsubscribe = currentDaemon.subscribe(
+			sessionId,
+			{ replay },
+			entry.callbacks,
+		);
+	};
+
+	const subscribe = (
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): PtyDataDisposer => {
+		const entry: SubscriptionEntry = {
+			callbacks,
+			unsubscribe: null,
+			disposed: false,
+		};
+		bindSubscription(entry, opts.replay);
+		subscriptions.add(entry);
+		return {
+			dispose() {
+				if (entry.disposed) return;
+				entry.disposed = true;
+				subscriptions.delete(entry);
+				try {
+					entry.unsubscribe?.();
+				} catch {
+					// The prior transport may already be closed during rotation.
+				}
+				entry.unsubscribe = null;
+			},
+		};
+	};
+
 	return {
 		pid,
 		write(data) {
-			daemon.input(sessionId, Buffer.from(data, "utf8"));
+			// Copy before enqueue. The caller may reuse its source storage while a
+			// daemon update holds this closure.
+			const payload = Buffer.from(data, "utf8");
+			return runCurrentDaemonMutation(
+				{ kind: "input", byteCost: payload.byteLength },
+				async () => {
+					const current = await getDaemonClient();
+					current.input(sessionId, payload);
+				},
+			);
 		},
 		resize(cols, rows) {
-			try {
-				daemon.resize(sessionId, cols, rows);
-			} catch {
-				// Daemon may have disconnected; surface via the next op.
-			}
+			const nextCols = cols;
+			const nextRows = rows;
+			return runCurrentDaemonMutation({ kind: "resize" }, async () => {
+				const current = await getDaemonClient();
+				current.resize(sessionId, nextCols, nextRows);
+			});
 		},
 		kill(signal) {
-			return daemon.close(sessionId, toDaemonSignal(signal));
+			const daemonSignal = toDaemonSignal(signal);
+			return runCurrentDaemonMutation({ kind: "close" }, async () => {
+				const current = await getDaemonClient();
+				await current.close(sessionId, daemonSignal);
+			});
+		},
+		subscribe,
+		rebindDaemon(nextDaemon) {
+			if (nextDaemon === currentDaemon) return;
+			for (const entry of subscriptions) {
+				try {
+					entry.unsubscribe?.();
+				} catch {
+					// Expected when the predecessor socket has already closed.
+				}
+				entry.unsubscribe = null;
+			}
+			currentDaemon = nextDaemon;
+			// Never replay the whole ring during a live rotation: existing xterms
+			// already contain it. A handoff successor keeps each adopted PTY reader
+			// staged until its first subscribe frame, so independently-produced output
+			// remains in the kernel across the transport gap. These subscribe frames
+			// are also written before the gate flushes held input on the same socket,
+			// so output caused by that input is observed without a reconnect gap.
+			for (const entry of subscriptions) {
+				if (!entry.disposed) bindSubscription(entry, false);
+			}
+		},
+		disposeSubscriptions() {
+			for (const entry of [...subscriptions]) {
+				if (entry.disposed) continue;
+				entry.disposed = true;
+				try {
+					entry.unsubscribe?.();
+				} catch {
+					// best-effort during disconnect/dispose
+				}
+				entry.unsubscribe = null;
+			}
+			subscriptions.clear();
 		},
 		onData(cb) {
 			// StringDecoder buffers partial UTF-8 sequences across chunks.
@@ -92,8 +197,7 @@ function makeDaemonPty(
 			// 1–3 bytes of any codepoint that straddles a boundary with U+FFFD —
 			// the same bug we ripped out of the primary data path.
 			const decoder = new StringDecoder("utf8");
-			const unsub = daemon.subscribe(
-				sessionId,
+			return subscribe(
 				{ replay: false },
 				{
 					onOutput: (chunk) => {
@@ -103,11 +207,9 @@ function makeDaemonPty(
 					onExit: () => {},
 				},
 			);
-			return { dispose: unsub };
 		},
 		onExit(cb) {
-			const unsub = daemon.subscribe(
-				sessionId,
+			return subscribe(
 				{ replay: false },
 				{
 					onOutput: () => {},
@@ -115,9 +217,17 @@ function makeDaemonPty(
 						cb({ exitCode: code ?? 0, signal: signal ?? 0 }),
 				},
 			);
-			return { dispose: unsub };
 		},
 	};
+}
+
+/** Test-only constructor for the rebindable daemon subscription adapter. */
+export function __makeDaemonPtyForTesting(
+	daemon: DaemonClient,
+	sessionId: string,
+	pid = 1,
+): DaemonPty {
+	return makeDaemonPty(daemon, sessionId, pid);
 }
 
 interface RegisterWorkspaceTerminalRouteOptions {
@@ -274,6 +384,15 @@ interface TerminalSession {
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
 
+// A successful fd handoff preserves the PTYs, so keep host session objects and
+// renderer WebSockets intact. Rebind every primary and auxiliary subscription
+// before the mutation gate flushes held input to this successor.
+onDaemonPlannedRotation((daemon) => {
+	for (const session of sessions.values()) {
+		session.pty.rebindDaemon(daemon);
+	}
+});
+
 // When the daemon disconnects, close every WS socket so the renderer's
 // existing exponential-backoff reconnect kicks in. On reconnect, host-service
 // rebuilds the DaemonClient (next getDaemonClient() call), and the adoption-
@@ -298,14 +417,8 @@ onDaemonDisconnect((err) => {
 			}
 		}
 		session.sockets.clear();
-		if (session.unsubscribeDaemon) {
-			try {
-				session.unsubscribeDaemon();
-			} catch {
-				// best-effort
-			}
-			session.unsubscribeDaemon = null;
-		}
+		session.pty.disposeSubscriptions();
+		session.unsubscribeDaemon = null;
 		try {
 			session.modeTracker.dispose();
 		} catch {
@@ -325,13 +438,8 @@ onDaemonDisconnect((err) => {
  */
 export function __resetSessionsForTesting(): void {
 	for (const session of sessions.values()) {
-		if (session.unsubscribeDaemon) {
-			try {
-				session.unsubscribeDaemon();
-			} catch {
-				// best-effort
-			}
-		}
+		session.pty.disposeSubscriptions();
+		session.unsubscribeDaemon = null;
 		try {
 			session.modeTracker.dispose();
 		} catch {
@@ -447,7 +555,7 @@ export function countTerminalSessions(
 	return count;
 }
 
-export function writeInputToSession({
+export async function writeInputToSession({
 	terminalId,
 	workspaceId,
 	data,
@@ -455,7 +563,9 @@ export function writeInputToSession({
 	terminalId: string;
 	workspaceId: string;
 	data: string;
-}): { success: true } | { error: string } {
+}): Promise<
+	{ success: true } | { error: string; code?: "QUEUE_FULL" | "WRITE_FAILED" }
+> {
 	const session = sessions.get(terminalId);
 	if (!session) {
 		return { error: "Terminal session not found" };
@@ -467,7 +577,20 @@ export function writeInputToSession({
 		return { error: "Terminal session has exited" };
 	}
 
-	session.pty.write(data);
+	try {
+		await session.pty.write(data);
+	} catch (error) {
+		return {
+			error:
+				error instanceof Error
+					? error.message
+					: "Failed to write terminal input",
+			code:
+				error instanceof DaemonMutationQueueOverflowError
+					? "QUEUE_FULL"
+					: "WRITE_FAILED",
+		};
+	}
 	return { success: true };
 }
 
@@ -641,6 +764,7 @@ function resolveShellReady(
 function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
+	directDaemon?: DaemonClient,
 ): void {
 	if (session.initialCommandQueued || session.exited) return;
 	session.initialCommandQueued = true;
@@ -649,7 +773,29 @@ function queueInitialCommand(
 		: `${initialCommand}\n`;
 	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
 	// and gating turned broken/missing markers into a guaranteed stall.
-	session.pty.write(cmd);
+	if (directDaemon) {
+		// createTerminalSessionInternalDirect already owns a mutation lease, so
+		// nesting another gated operation could deadlock if an update starts
+		// between the open and this initial write. The same-socket barrier in the
+		// outer lease still orders this fire-and-forget frame before handoff.
+		directDaemon.input(session.terminalId, Buffer.from(cmd, "utf8"));
+		return;
+	}
+	void session.pty.write(cmd).catch((error) => {
+		session.initialCommandQueued = false;
+		reportSessionMutationError(session, "initial input", error);
+	});
+}
+
+function reportSessionMutationError(
+	session: TerminalSession,
+	operation: string,
+	error: unknown,
+): void {
+	const detail = error instanceof Error ? error.message : String(error);
+	const message = `Terminal ${operation} failed: ${detail}`;
+	console.error(`[terminal] ${message}`, { terminalId: session.terminalId });
+	broadcastMessage(session, { type: "error", message });
 }
 
 interface DaemonCloseResult {
@@ -693,16 +839,22 @@ function reachableDaemonSocketPath(): string | null {
 	return manifest.socketPath;
 }
 
-async function closeDaemonSessionById(
+async function closeDaemonSessionByIdDirect(
 	terminalId: string,
 	signal: DaemonSignal = "SIGHUP",
+	knownInMemorySession = false,
 ): Promise<DaemonCloseResult> {
-	const socketPath = reachableDaemonSocketPath();
-	if (!socketPath) return { attempted: false, succeeded: true };
-
-	const daemon = new DaemonClient({ socketPath, connectTimeoutMs: 1000 });
+	// Preserve stale-row/reaper semantics: when there is no known live session
+	// and no reachable owner, there is nothing to kill and the DB row may be
+	// disposed. A known in-memory session still gets a close attempt even if a
+	// manifest disappeared between checks.
+	if (!knownInMemorySession && !reachableDaemonSocketPath()) {
+		return { attempted: false, succeeded: true };
+	}
 	try {
-		await daemon.connect();
+		// Resolve inside the mutation lease. After a successful handoff this is
+		// the successor singleton; after an abort it is still the predecessor.
+		const daemon = await getDaemonClient();
 		await daemon.close(terminalId, signal);
 		return { attempted: true, succeeded: true };
 	} catch (error) {
@@ -710,8 +862,6 @@ async function closeDaemonSessionById(
 			return { attempted: true, succeeded: true };
 		}
 		return { attempted: true, succeeded: false, error };
-	} finally {
-		await daemon.dispose().catch(() => {});
 	}
 }
 
@@ -735,7 +885,7 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		});
 }
 
-export async function disposeSessionAndWait(
+async function disposeSessionAndWaitDirect(
 	terminalId: string,
 	db: HostDb,
 ): Promise<DisposeSessionResult> {
@@ -752,33 +902,11 @@ export async function disposeSessionAndWait(
 		}
 		session.sockets.clear();
 		if (!session.exited) {
-			try {
-				closePromise = session.pty.kill().then(
-					() =>
-						({ attempted: true, succeeded: true }) satisfies DaemonCloseResult,
-					(error) => ({
-						attempted: true,
-						succeeded: isUnknownDaemonSessionError(error),
-						error,
-					}),
-				);
-			} catch (error) {
-				closePromise = Promise.resolve({
-					attempted: true,
-					succeeded: isUnknownDaemonSessionError(error),
-					error,
-				});
-			}
+			closePromise = closeDaemonSessionByIdDirect(terminalId, "SIGHUP", true);
 		}
 		// Stop receiving daemon callbacks for this session.
-		if (session.unsubscribeDaemon) {
-			try {
-				session.unsubscribeDaemon();
-			} catch {
-				// best-effort
-			}
-			session.unsubscribeDaemon = null;
-		}
+		session.pty.disposeSubscriptions();
+		session.unsubscribeDaemon = null;
 		try {
 			session.modeTracker.dispose();
 		} catch {
@@ -786,7 +914,7 @@ export async function disposeSessionAndWait(
 		}
 		sessions.delete(terminalId);
 	} else {
-		closePromise = closeDaemonSessionById(terminalId, "SIGHUP");
+		closePromise = closeDaemonSessionByIdDirect(terminalId, "SIGHUP");
 	}
 
 	portManager.unregisterSession(terminalId);
@@ -823,6 +951,17 @@ export async function disposeSessionAndWait(
 		daemonCloseAttempted: closeResult.attempted,
 		daemonCloseSucceeded: closeResult.succeeded,
 	};
+}
+
+export function disposeSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
+	const copiedTerminalId = `${terminalId}`;
+	return runCurrentDaemonMutation(
+		{ kind: "dispose", byteCost: Buffer.byteLength(copiedTerminalId) },
+		() => disposeSessionAndWaitDirect(copiedTerminalId, db),
+	);
 }
 
 /**
@@ -960,7 +1099,22 @@ function getTerminalWorkspaceMismatchError({
 	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
 }
 
-export async function createTerminalSessionInternal({
+export function createTerminalSessionInternal(
+	options: CreateTerminalSessionOptions,
+): Promise<TerminalSession | { error: string }> {
+	// Strings/numbers are immutable, but copy the option record itself before
+	// enqueue so a caller cannot replace fields while an update is holding it.
+	const copiedOptions: CreateTerminalSessionOptions = { ...options };
+	const byteCost =
+		Buffer.byteLength(copiedOptions.terminalId) +
+		Buffer.byteLength(copiedOptions.initialCommand ?? "") +
+		Buffer.byteLength(copiedOptions.cwd ?? "");
+	return runCurrentDaemonMutation({ kind: "open", byteCost }, () =>
+		createTerminalSessionInternalDirect(copiedOptions),
+	);
+}
+
+async function createTerminalSessionInternalDirect({
 	terminalId,
 	workspaceId,
 	themeType,
@@ -1193,8 +1347,7 @@ export async function createTerminalSessionInternal({
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
-	session.unsubscribeDaemon = daemon.subscribe(
-		terminalId,
+	const primarySubscription = pty.subscribe(
 		{ replay: replayOnAdoption },
 		{
 			onOutput(chunk) {
@@ -1268,9 +1421,10 @@ export async function createTerminalSessionInternal({
 			},
 		},
 	);
+	session.unsubscribeDaemon = () => primarySubscription.dispose();
 
 	if (initialCommand) {
-		queueInitialCommand(session, initialCommand);
+		queueInitialCommand(session, initialCommand, daemon);
 	}
 
 	return session;
@@ -1317,7 +1471,7 @@ export function registerWorkspaceTerminalRoute({
 	});
 
 	// REST dispose — does not require an open WebSocket
-	app.delete("/terminal/sessions/:terminalId", (c) => {
+	app.delete("/terminal/sessions/:terminalId", async (c) => {
 		const terminalId = c.req.param("terminalId");
 		if (!terminalId) {
 			return c.json({ error: "Missing terminalId" }, 400);
@@ -1328,8 +1482,22 @@ export function registerWorkspaceTerminalRoute({
 			return c.json({ error: "Session not found" }, 404);
 		}
 
-		disposeSession(terminalId, db);
-		return c.json({ terminalId, status: "disposed" });
+		try {
+			const result = await disposeSessionAndWait(terminalId, db);
+			if (!result.daemonCloseSucceeded) {
+				return c.json({ error: "Failed to close terminal session" }, 503);
+			}
+			return c.json({ terminalId, status: "disposed" });
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Failed to dispose terminal session";
+			return c.json(
+				{ error: message },
+				error instanceof DaemonMutationQueueOverflowError ? 429 : 503,
+			);
+		}
 	});
 
 	// REST list — enumerate live terminal sessions
@@ -1515,7 +1683,9 @@ export function registerWorkspaceTerminalRoute({
 					if (session.exited) return;
 
 					if (message.type === "input") {
-						session.pty.write(message.data);
+						void session.pty.write(message.data).catch((error) => {
+							reportSessionMutationError(session, "input", error);
+						});
 						return;
 					}
 
@@ -1530,10 +1700,16 @@ export function registerWorkspaceTerminalRoute({
 							MIN_TERMINAL_ROWS,
 							DEFAULT_TERMINAL_ROWS,
 						);
-						session.pty.resize(cols, rows);
-						session.modeTracker.resize(cols, rows);
-						session.cols = cols;
-						session.rows = rows;
+						void session.pty
+							.resize(cols, rows)
+							.then(() => {
+								session.modeTracker.resize(cols, rows);
+								session.cols = cols;
+								session.rows = rows;
+							})
+							.catch((error) => {
+								reportSessionMutationError(session, "resize", error);
+							});
 					}
 				},
 

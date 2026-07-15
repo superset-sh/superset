@@ -16,6 +16,12 @@ function fakePty(meta: { cols: number; rows: number }): Pty {
 		kill: () => {},
 		onData: () => {},
 		onExit: () => {},
+		prepareForHandoff: async () => {},
+		pauseOutputForHandoff: () => {},
+		drainOutputForHandoff: async () => [],
+		sealOutputForHandoff: async () => [],
+		restoreAfterFailedHandoff: () => {},
+		cancelHandoff: () => {},
 		getMasterFd: () => -1,
 	};
 }

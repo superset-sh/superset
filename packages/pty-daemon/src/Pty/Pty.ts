@@ -28,15 +28,25 @@ export interface Pty {
 	kill(signal?: NodeJS.Signals): void;
 	onData(cb: PtyOnData): void;
 	onExit(cb: PtyOnExit): void;
+	/** Stop new input synchronously and drain all previously accepted writes. */
+	prepareForHandoff(): Promise<void>;
 	/**
-	 * Optional hook for adapters that own a user-space input queue. Stops new
-	 * input and drains that queue before fd handoff. NodePtyAdapter intentionally
-	 * retains node-pty's existing best-effort handoff semantics because its
-	 * private write-stream queue has no stable drain API.
+	 * Stop consuming PTY output before the handoff snapshot is captured. Bytes
+	 * produced afterwards stay in the kernel buffer for whichever daemon commits.
 	 */
-	prepareForHandoff?(): Promise<void>;
+	pauseOutputForHandoff(): void;
+	/** Drain bytes already read by Node before pause() reached libuv. */
+	drainOutputForHandoff(): Promise<Buffer[]>;
+	/** Permanently detach this predecessor's reader after COMMIT becomes irreversible. */
+	sealOutputForHandoff(): Promise<Buffer[]>;
+	/**
+	 * child_process stdio setup can clear O_NONBLOCK on the shared open-file
+	 * description before the successor adopts it. An aborted handoff must restore
+	 * the predecessor's fd before input is accepted again.
+	 */
+	restoreAfterFailedHandoff(): void;
 	/** Resume input if a handoff attempt aborts before ownership transfers. */
-	cancelHandoff?(): void;
+	cancelHandoff(): void;
 	/**
 	 * The kernel master fd backing this PTY. Required for daemon-upgrade
 	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
@@ -61,11 +71,31 @@ class NodePtyAdapter implements Pty {
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
+	private readonly handoffWriteStream: NodePtyCustomWriteStream;
+	private handoffFrozen = false;
+	private outputPausedForHandoff = false;
+	private readonly dataCallbacks: PtyOnData[] = [];
+	private readonly pausedOutput: Buffer[] = [];
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
+		// node-pty is pinned to 1.1.0. Validate every private field needed by
+		// handoff at spawn time, while a broken dependency contract is still
+		// attributable to this session instead of surfacing during an upgrade.
+		this.handoffWriteStream = requireNodePtyWriteStream(term);
+		this.term.onData((data) => {
+			const chunk =
+				typeof data === "string"
+					? Buffer.from(data, "utf8")
+					: Buffer.from(data);
+			if (this.outputPausedForHandoff) {
+				this.pausedOutput.push(chunk);
+				return;
+			}
+			for (const callback of this.dataCallbacks) callback(chunk);
+		});
 		this.term.onExit(({ exitCode, signal }) => {
 			if (this.exited) return;
 			this.exited = true;
@@ -91,6 +121,9 @@ class NodePtyAdapter implements Pty {
 	}
 
 	write(data: Buffer): void {
+		if (this.handoffFrozen) {
+			throw new Error("pty input is frozen for daemon handoff");
+		}
 		// node-pty's write accepts strings or buffers; pass buffer to keep bytes intact.
 		this.term.write(data as unknown as string);
 	}
@@ -112,9 +145,7 @@ class NodePtyAdapter implements Pty {
 	}
 
 	onData(cb: PtyOnData): void {
-		this.term.onData((d) => {
-			cb(typeof d === "string" ? Buffer.from(d, "utf8") : d);
-		});
+		this.dataCallbacks.push(cb);
 	}
 
 	onExit(cb: PtyOnExit): void {
@@ -123,6 +154,100 @@ class NodePtyAdapter implements Pty {
 			return;
 		}
 		this.exitCallbacks.push(cb);
+	}
+
+	async prepareForHandoff(): Promise<void> {
+		// This assignment deliberately happens before the first await. A write
+		// arriving in the same turn after prepareUpgrade() starts is rejected.
+		this.handoffFrozen = true;
+		await drainNodePtyWriteStream(
+			this.handoffWriteStream,
+			HANDOFF_WRITE_DRAIN_TIMEOUT_MS,
+		);
+	}
+
+	pauseOutputForHandoff(): void {
+		if (this.outputPausedForHandoff) return;
+		const terminal = this.term as unknown as { pause?: () => unknown };
+		if (typeof terminal.pause !== "function") {
+			throw new Error(
+				"daemon handoff requires node-pty pause() output control",
+			);
+		}
+		terminal.pause();
+		this.outputPausedForHandoff = true;
+	}
+
+	async drainOutputForHandoff(): Promise<Buffer[]> {
+		if (!this.outputPausedForHandoff) {
+			throw new Error("PTY output must be paused before handoff drain");
+		}
+		const terminal = this.term as unknown as {
+			pause?: () => unknown;
+			resume?: () => unknown;
+		};
+		if (
+			typeof terminal.pause !== "function" ||
+			typeof terminal.resume !== "function"
+		) {
+			throw new Error("daemon handoff requires node-pty output flow control");
+		}
+		// Flow the already-buffered Readable data through our interception hook,
+		// then stop libuv again. Two turns cover resume scheduling plus a read that
+		// was already armed when pause() ran; every delivered byte is queued above.
+		terminal.resume();
+		await new Promise((resolve) => setImmediate(resolve));
+		terminal.pause();
+		await new Promise((resolve) => setImmediate(resolve));
+		return this.pausedOutput.splice(0);
+	}
+
+	async sealOutputForHandoff(): Promise<Buffer[]> {
+		const chunks = await this.drainOutputForHandoff();
+		const socket = (this.term as unknown as { _socket?: unknown })._socket as
+			| { destroy?: () => unknown }
+			| undefined;
+		if (!socket || typeof socket.destroy !== "function") {
+			throw new Error("daemon handoff requires detachable node-pty reader");
+		}
+		socket.destroy();
+		await new Promise((resolve) => setImmediate(resolve));
+		chunks.push(...this.pausedOutput.splice(0));
+		return chunks;
+	}
+
+	cancelHandoff(): void {
+		if (this.outputPausedForHandoff) {
+			const terminal = this.term as unknown as { resume?: () => unknown };
+			if (typeof terminal.resume !== "function") {
+				throw new Error(
+					"daemon handoff requires node-pty resume() output control",
+				);
+			}
+			this.outputPausedForHandoff = false;
+			for (const chunk of this.pausedOutput.splice(0)) {
+				for (const callback of this.dataCallbacks) callback(chunk);
+			}
+			terminal.resume();
+		}
+		this.handoffFrozen = false;
+	}
+
+	restoreAfterFailedHandoff(): void {
+		const readStream = (this.term as unknown as { _socket?: unknown })._socket;
+		try {
+			setAdoptedPtyNonBlocking(readStream);
+		} catch (error) {
+			// A blocking master can pin a global libuv worker forever. If the
+			// runtime contract disappeared, fail this PTY closed instead of
+			// returning it to service in a daemon-wide hazardous state.
+			try {
+				this.term.kill("SIGKILL");
+			} catch {
+				// Preserve the nonblocking restoration error below.
+			}
+			throw error;
+		}
 	}
 
 	private scheduleKillEscalation(
@@ -142,6 +267,97 @@ class NodePtyAdapter implements Pty {
 		}, KILL_ESCALATION_TIMEOUT_MS);
 		this.killEscalationTimer.unref();
 	}
+}
+
+interface NodePtyWriteTask {
+	buffer: Buffer;
+	offset: number;
+}
+
+interface NodePtyCustomWriteStream {
+	_fd: number;
+	_writeQueue: NodePtyWriteTask[];
+	_writeImmediate?: NodeJS.Immediate;
+	write(data: string | Buffer): void;
+}
+
+/** @internal Exported so the pinned node-pty private contract is testable. */
+export function requireNodePtyWriteStream(
+	term: unknown,
+): NodePtyCustomWriteStream {
+	const candidate = (
+		term as {
+			_fd?: unknown;
+			_writeStream?: unknown;
+		}
+	)._writeStream as Partial<NodePtyCustomWriteStream> | undefined;
+	const masterFd = (term as { _fd?: unknown })._fd;
+	if (
+		typeof masterFd !== "number" ||
+		!Number.isInteger(masterFd) ||
+		masterFd < 0 ||
+		!candidate ||
+		candidate._fd !== masterFd ||
+		!Array.isArray(candidate._writeQueue) ||
+		(candidate._writeImmediate !== undefined &&
+			typeof candidate._writeImmediate !== "object") ||
+		typeof candidate.write !== "function"
+	) {
+		throw new Error(
+			"node-pty 1.1.0 private CustomWriteStream contract unavailable; " +
+				"daemon handoff requires matching _fd, _writeStream._fd, _writeQueue, _writeImmediate, and write()",
+		);
+	}
+	assertNodePtyWriteTasks(candidate._writeQueue);
+	return candidate as NodePtyCustomWriteStream;
+}
+
+async function drainNodePtyWriteStream(
+	stream: NodePtyCustomWriteStream,
+	timeoutMs: number,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (true) {
+		assertNodePtyWriteTasks(stream._writeQueue);
+		if (
+			stream._writeQueue.length === 0 &&
+			stream._writeImmediate === undefined
+		) {
+			return;
+		}
+		if (Date.now() >= deadline) {
+			throw new Error(
+				`node-pty input queue did not drain within ${timeoutMs}ms (${nodePtyPendingBytes(stream._writeQueue)} bytes pending)`,
+			);
+		}
+		await new Promise<void>((resolve) => setTimeout(resolve, 2));
+	}
+}
+
+function assertNodePtyWriteTasks(
+	tasks: unknown[],
+): asserts tasks is NodePtyWriteTask[] {
+	for (const task of tasks) {
+		const candidate = task as Partial<NodePtyWriteTask> | null;
+		if (
+			!candidate ||
+			!Buffer.isBuffer(candidate.buffer) ||
+			!Number.isInteger(candidate.offset) ||
+			(candidate.offset as number) < 0 ||
+			(candidate.offset as number) > candidate.buffer.byteLength
+		) {
+			throw new Error(
+				"node-pty 1.1.0 private CustomWriteStream queue task contract changed",
+			);
+		}
+	}
+}
+
+function nodePtyPendingBytes(tasks: NodePtyWriteTask[]): number {
+	return tasks.reduce(
+		(total, task) => total + task.buffer.byteLength - task.offset,
+		0,
+	);
 }
 
 function validateDims(cols: number, rows: number): void {
@@ -211,10 +427,21 @@ export function spawn({ meta }: SpawnOptions): Pty {
 			`spawn failed (shell=${meta.shell} cwd=${meta.cwd ?? "(none)"} errno=${reprobeErrno(meta)}): ${(err as Error).message}`,
 		);
 	}
-	const adapter = new NodePtyAdapter(term, meta);
-	// Validate the private-fd dependency at spawn time, not handoff time.
-	adapter.getMasterFd();
-	return adapter;
+	try {
+		const adapter = new NodePtyAdapter(term, meta);
+		// Validate the private-fd dependency at spawn time, not handoff time.
+		adapter.getMasterFd();
+		return adapter;
+	} catch (error) {
+		// A private-contract mismatch happens after forkpty succeeded. Reap that
+		// newly-created shell before surfacing the incompatibility.
+		try {
+			term.kill("SIGKILL");
+		} catch {
+			// Preserve the construction error.
+		}
+		throw error;
+	}
 }
 
 /**
@@ -297,6 +524,15 @@ class AdoptedPtyReadStream extends tty.ReadStream {
 		}
 		this.destroy();
 	}
+
+	detachForHandoff(): void {
+		this.onDestroyRequested = null;
+		this.fdCloseAllowed = true;
+		this.removeAllListeners("data");
+		this.removeAllListeners("end");
+		this.removeAllListeners("error");
+		this.destroy();
+	}
 }
 
 class AdoptedPty implements Pty {
@@ -311,6 +547,10 @@ class AdoptedPty implements Pty {
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
 	private exitCallbacks: PtyOnExit[] = [];
+	private outputPausedForHandoff = false;
+	private readonly dataCallbacks: PtyOnData[] = [];
+	private readonly pausedOutput: Buffer[] = [];
+	private dataListenerAttached = false;
 
 	constructor(fd: number, pid: number, meta: SessionMeta) {
 		this.fd = fd;
@@ -371,8 +611,52 @@ class AdoptedPty implements Pty {
 		await this.writeQueue.freezeAndDrain(HANDOFF_WRITE_DRAIN_TIMEOUT_MS);
 	}
 
+	pauseOutputForHandoff(): void {
+		if (this.outputPausedForHandoff) return;
+		this.reader.pause();
+		this.outputPausedForHandoff = true;
+	}
+
+	async drainOutputForHandoff(): Promise<Buffer[]> {
+		if (!this.outputPausedForHandoff) {
+			throw new Error("adopted PTY output must be paused before handoff drain");
+		}
+		this.reader.resume();
+		await new Promise((resolve) => setImmediate(resolve));
+		this.reader.pause();
+		await new Promise((resolve) => setImmediate(resolve));
+		return this.pausedOutput.splice(0);
+	}
+
+	async sealOutputForHandoff(): Promise<Buffer[]> {
+		const chunks = await this.drainOutputForHandoff();
+		if (this.livenessTimer) clearInterval(this.livenessTimer);
+		this.livenessTimer = null;
+		this.reader.detachForHandoff();
+		await new Promise((resolve) => setImmediate(resolve));
+		chunks.push(...this.pausedOutput.splice(0));
+		return chunks;
+	}
+
 	cancelHandoff(): void {
+		if (this.outputPausedForHandoff) {
+			this.outputPausedForHandoff = false;
+			for (const chunk of this.pausedOutput.splice(0)) {
+				for (const callback of this.dataCallbacks) callback(chunk);
+			}
+			this.reader.resume();
+		}
 		this.writeQueue.unfreeze();
+	}
+
+	restoreAfterFailedHandoff(): void {
+		try {
+			setAdoptedPtyNonBlocking(this.reader);
+		} catch (error) {
+			const fatal = asError(error);
+			this.handleFatalWrite(fatal);
+			throw fatal;
+		}
 	}
 
 	resize(cols: number, rows: number): void {
@@ -397,6 +681,17 @@ class AdoptedPty implements Pty {
 			// Best-effort. If stty isn't available, the meta still
 			// reflects the requested dims; the kernel side stays stale.
 		}
+
+		// child_process duplicates the fd into the child's stdio and, while
+		// doing so, clears O_NONBLOCK on the shared open-file description.
+		// Always restore it, even when stty failed or timed out.
+		try {
+			setAdoptedPtyNonBlocking(this.reader);
+		} catch (error) {
+			const fatal = asError(error);
+			this.handleFatalWrite(fatal);
+			throw fatal;
+		}
 	}
 
 	kill(signal?: NodeJS.Signals): void {
@@ -408,8 +703,19 @@ class AdoptedPty implements Pty {
 	}
 
 	onData(cb: PtyOnData): void {
-		this.reader.on("data", (chunk) => {
-			cb(typeof chunk === "string" ? Buffer.from(chunk, "utf8") : chunk);
+		this.dataCallbacks.push(cb);
+		if (this.dataListenerAttached) return;
+		this.dataListenerAttached = true;
+		this.reader.on("data", (data) => {
+			const chunk =
+				typeof data === "string"
+					? Buffer.from(data, "utf8")
+					: Buffer.from(data);
+			if (this.outputPausedForHandoff) {
+				this.pausedOutput.push(chunk);
+				return;
+			}
+			for (const callback of this.dataCallbacks) callback(chunk);
 		});
 	}
 
@@ -480,6 +786,10 @@ function logProcessSignalError(event: ProcessSignalError): void {
 	process.stderr.write(
 		`[pty-daemon] failed to ${event.signal} ${label} ${event.id}: ${(event.error as Error).message}\n`,
 	);
+}
+
+function asError(error: unknown): Error {
+	return error instanceof Error ? error : new Error(String(error));
 }
 
 export interface AdoptOptions {

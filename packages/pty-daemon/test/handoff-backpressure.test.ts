@@ -17,6 +17,11 @@ import {
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const DAEMON_SCRIPT = path.resolve(here, "..", "src", "main.ts");
+const HANDOFF_NAK_FIXTURE = path.resolve(
+	here,
+	"fixtures",
+	"handoff-nak-before-adopt.ts",
+);
 const sockPath = path.join(
 	os.tmpdir(),
 	`pty-daemon-handoff-backpressure-${process.pid}.sock`,
@@ -40,6 +45,23 @@ function spawnDaemon(socketPath: string): childProcess.ChildProcess {
 		[...process.execArgv, DAEMON_SCRIPT, `--socket=${socketPath}`],
 		{ stdio: ["ignore", "inherit", "inherit"] },
 	);
+}
+
+function isExternalFdNonBlocking(pid: number, fd: number): boolean {
+	if (process.platform === "linux") {
+		const info = fs.readFileSync(`/proc/${pid}/fdinfo/${fd}`, "utf8");
+		const flags = /^flags:\s+([0-7]+)/m.exec(info)?.[1];
+		return Boolean(flags && (Number.parseInt(flags, 8) & 0o4000) !== 0);
+	}
+	if (process.platform === "darwin") {
+		const probe = childProcess.spawnSync(
+			"/usr/sbin/lsof",
+			["+fg", "-a", "-p", String(pid), "-d", String(fd)],
+			{ encoding: "utf8" },
+		);
+		return probe.status === 0 && /(?:^|[,;])NB(?:[,;\s]|$)/m.test(probe.stdout);
+	}
+	return true;
 }
 
 async function waitForSocket(p: string, timeoutMs = 3_000): Promise<void> {
@@ -271,5 +293,91 @@ test("four backpressured adopted PTYs do not exhaust workers or block control", 
 			successorClient?.close(),
 			controlClient?.close(),
 		]);
+	}
+});
+
+test("a child NAK before adopt restores the predecessor fd before input resumes", async () => {
+	const abortSockPath = path.join(
+		os.tmpdir(),
+		`pty-daemon-handoff-abort-${process.pid}.sock`,
+	);
+	unlinkSafe(abortSockPath);
+	let stderr = "";
+	const predecessor = childProcess.spawn(
+		process.execPath,
+		[...process.execArgv, HANDOFF_NAK_FIXTURE, `--socket=${abortSockPath}`],
+		{ stdio: ["ignore", "inherit", "pipe"] },
+	);
+	predecessor.stderr?.on("data", (chunk) => {
+		stderr += chunk.toString("utf8");
+	});
+	let client: DaemonClient | null = null;
+	let shellPid: number | null = null;
+
+	try {
+		await waitForSocket(abortSockPath);
+		client = await connectAndHello(abortSockPath);
+		const id = "failed-handoff-survivor";
+		client.send({
+			type: "open",
+			id,
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		const opened = await client.waitFor(
+			(message) => message.type === "open-ok" && message.id === id,
+		);
+		assert.equal(opened.type, "open-ok");
+		if (opened.type !== "open-ok") return;
+		shellPid = opened.pid;
+		client.send({ type: "subscribe", id, replay: false });
+
+		client.send({ type: "prepare-upgrade" });
+		const aborted = await client.waitFor(
+			(message) => message.type === "upgrade-prepared",
+			5_000,
+		);
+		assert.equal(aborted.type, "upgrade-prepared");
+		if (aborted.type !== "upgrade-prepared") return;
+		assert.equal(aborted.result.ok, false);
+		assert.match(
+			aborted.result.ok ? "" : aborted.result.reason,
+			/intentional test NAK/,
+		);
+
+		const inheritedFd = /ptyFds=(\d+)/.exec(stderr)?.[1];
+		assert.ok(inheritedFd, `missing inherited fd in daemon log:\n${stderr}`);
+		assert.equal(
+			isExternalFdNonBlocking(predecessor.pid ?? -1, Number(inheritedFd)),
+			true,
+			`predecessor fd stayed blocking after child NAK:\n${stderr}`,
+		);
+
+		const marker = "predecessor-responsive-after-handoff-nak";
+		client.send({ type: "input", id }, Buffer.from(`printf '${marker}\\n'\n`));
+		await client.waitFor(
+			(message) =>
+				message.type === "output" &&
+				message.id === id &&
+				accumulatedOutputAsString(client as DaemonClient, id).includes(marker),
+			1_000,
+		);
+		const listPromise = client.waitForNext(
+			(message) => message.type === "list-reply",
+			1_000,
+		);
+		client.send({ type: "list" });
+		const list = await listPromise;
+		assert.equal(list.type, "list-reply");
+		if (list.type === "list-reply") {
+			assert.equal(
+				list.sessions.some((session) => session.id === id),
+				true,
+			);
+		}
+	} finally {
+		await client?.close();
+		killBestEffort(shellPid);
+		killBestEffort(predecessor.pid ?? null);
+		unlinkSafe(abortSockPath);
 	}
 });

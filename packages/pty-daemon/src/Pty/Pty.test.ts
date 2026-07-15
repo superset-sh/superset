@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
-import { setAdoptedPtyNonBlocking, spawn } from "./Pty.ts";
+import {
+	requireNodePtyWriteStream,
+	setAdoptedPtyNonBlocking,
+	spawn,
+} from "./Pty.ts";
 
 // node-pty's runtime requires Node (Bun's tty.ReadStream handling is
 // incompatible with the master fd setup). The daemon ships running under
@@ -30,6 +34,32 @@ describe("Pty wrapper (validation only — spawn behavior tested under node)", (
 			},
 		});
 		expect(requestedModes).toEqual([false]);
+	});
+
+	test("asserts the pinned node-pty CustomWriteStream handoff contract", () => {
+		expect(() => requireNodePtyWriteStream({ _fd: 9 })).toThrow(
+			/CustomWriteStream contract unavailable/,
+		);
+		expect(() =>
+			requireNodePtyWriteStream({
+				_fd: 9,
+				_writeStream: {
+					_fd: 9,
+					_writeQueue: [{ buffer: Buffer.from("x"), offset: 2 }],
+					write() {},
+				},
+			}),
+		).toThrow(/queue task contract changed/);
+
+		const writeStream = {
+			_fd: 9,
+			_writeQueue: [{ buffer: Buffer.from("ok"), offset: 1 }],
+			_writeImmediate: undefined,
+			write() {},
+		};
+		expect(
+			requireNodePtyWriteStream({ _fd: 9, _writeStream: writeStream }),
+		).toBe(writeStream);
 	});
 
 	test("rejects invalid spawn dims (cols)", () => {

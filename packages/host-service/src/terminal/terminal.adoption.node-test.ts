@@ -67,6 +67,7 @@ before(async () => {
 	process.env.SUPERSET_PTY_DAEMON_SOCKET = SOCK;
 	process.env.SUPERSET_HOME_DIR = TEST_HOME;
 	process.env.HOST_SERVICE_VERSION = "0.0.0-adoption-e2e";
+	process.env.ORGANIZATION_ID = `adoption-e2e-${process.pid}`;
 	process.env.NODE_ENV = "development";
 
 	__setAccountShellForTesting("/bin/sh");
@@ -647,48 +648,70 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		if ("error" in first) return;
 
 		// Seed the daemon's ring buffer with a sentinel — that's what would
-		// be replayed on a normal adoption.
+		// be replayed on a normal adoption. Encode the sentinel as octal so the
+		// terminal's input echo cannot satisfy waitForOutput before `printf`
+		// actually runs; that race used to make this test mistake later live output
+		// for daemon replay.
 		const SENTINEL = `noreplay-sentinel-${randomUUID().slice(0, 6)}`;
-		first.pty.write(`echo ${SENTINEL}\n`);
+		const sentinelOctal = [...Buffer.from(SENTINEL, "utf8")]
+			.map((byte) => `\\${byte.toString(8).padStart(3, "0")}`)
+			.join("");
+		await first.pty.write(`printf '${sentinelOctal}\\012'\n`);
 		await waitForOutput(first.pty, SENTINEL, 3000);
+		// Freeze the shell after the sentinel was genuinely produced. During the
+		// reconnect it cannot create another live sentinel, so seeing one below can
+		// only mean the old daemon ring was replayed.
+		process.kill(first.pty.pid, "SIGSTOP");
 
-		// Simulate onDaemonDisconnect: host-service drops its in-memory
-		// sessions; the daemon (and its ring buffer) survives.
-		__resetSessionsForTesting();
-		await disposeDaemonClient();
+		let second: Awaited<
+			ReturnType<typeof createTerminalSessionInternal>
+		> | null = null;
+		try {
+			// Simulate onDaemonDisconnect: host-service drops its in-memory
+			// sessions; the daemon (and its ring buffer) survives.
+			__resetSessionsForTesting();
+			await disposeDaemonClient();
 
-		const second = await createTerminalSessionInternal({
-			terminalId,
-			workspaceId,
-			db,
-			listed: true,
-			replayOnAdoption: false,
-		});
-		assert.ok(!("error" in second));
-		if ("error" in second) return;
-		assert.equal(
-			second.pty.pid,
-			first.pty.pid,
-			"adopted session should have same shell pid",
-		);
+			const adopted = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				replayOnAdoption: false,
+			});
+			assert.ok(!("error" in adopted));
+			if ("error" in adopted) return;
+			second = adopted;
+			assert.equal(
+				adopted.pty.pid,
+				first.pty.pid,
+				"adopted session should have same shell pid",
+			);
 
-		// The shell may still produce live prompt bytes after reconnect, but
-		// the daemon ring-buffer sentinel from the previous host lifetime must
-		// not be replayed when replayOnAdoption=false.
-		await new Promise((r) => setTimeout(r, 500));
+			// The daemon ring-buffer sentinel from the previous host lifetime must
+			// not be replayed when replayOnAdoption=false.
+			await new Promise((r) => setTimeout(r, 500));
 
-		const bufferedAfterAdoption = Buffer.concat(
-			second.buffer.map((b) => Buffer.from(b)),
-		).toString("utf8");
-		assert.equal(
-			bufferedAfterAdoption.includes(SENTINEL),
-			false,
-			`adopted session replayed prior output despite replayOnAdoption=false: ${JSON.stringify(bufferedAfterAdoption.slice(0, 200))}`,
-		);
+			const bufferedAfterAdoption = Buffer.concat(
+				adopted.buffer.map((b) => Buffer.from(b)),
+			).toString("utf8");
+			assert.equal(
+				bufferedAfterAdoption.includes(SENTINEL),
+				false,
+				`adopted session replayed prior output despite replayOnAdoption=false: ${JSON.stringify(bufferedAfterAdoption.slice(0, 200))}`,
+			);
+		} finally {
+			try {
+				process.kill(first.pty.pid, "SIGCONT");
+			} catch {
+				// Preserve the original assertion/error if the shell already exited.
+			}
+		}
+		if (!second) return;
 
 		// Sanity check: live output still flows post-reattach.
 		const LIVE_SENTINEL = `live-after-reattach-${randomUUID().slice(0, 6)}`;
-		second.pty.write(`echo ${LIVE_SENTINEL}\n`);
+		await second.pty.write(`echo ${LIVE_SENTINEL}\n`);
 		await waitFor(() => {
 			const text = Buffer.concat(
 				second.buffer.map((b) => Buffer.from(b)),

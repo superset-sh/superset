@@ -41,9 +41,44 @@ export interface ServerOptions {
 	 * they can drive sessions deterministically without a real shell.
 	 */
 	spawnPty?: HandlerCtx["spawnPty"];
+	/** Override inherited-fd adoption in focused handoff tests. */
+	adoptPty?: typeof adoptFromFd;
+	/** @internal Process-boundary overrides used only by focused handoff tests. */
+	handoffRuntime?: Partial<HandoffRuntime>;
 }
 
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
+const HANDOFF_CHILD_EXIT_TIMEOUT_MS = 2_000;
+const HANDOFF_STAGED_ACTIVATION_TIMEOUT_MS = 5_000;
+
+type HandoffResult =
+	| { ok: true; successorPid: number }
+	| {
+			ok: false;
+			reason: string;
+			ownership: "predecessor" | "unresolved";
+	  };
+
+type HandoffReadyResult =
+	| { ok: true; successorPid: number }
+	| { ok: false; reason: string };
+
+/** @internal Exported only to type focused handoff tests. */
+export interface HandoffRuntime {
+	spawnSuccessor(
+		command: string,
+		args: string[],
+		options: childProcess.SpawnOptions,
+	): childProcess.ChildProcess;
+	waitForReady(child: childProcess.ChildProcess): Promise<HandoffReadyResult>;
+	commitAndWaitForListening(
+		child: childProcess.ChildProcess,
+		successorPid: number,
+	): Promise<HandoffReadyResult>;
+	terminateAndConfirm(child: childProcess.ChildProcess): Promise<boolean>;
+}
+
+type UpgradePhase = "idle" | "preparing" | "committing";
 
 interface ConnState extends Conn {
 	socket: net.Socket;
@@ -56,31 +91,94 @@ export class Server {
 	private readonly store: SessionStore;
 	private readonly conns = new Set<ConnState>();
 	private readonly opts: ServerOptions;
+	private readonly handoffRuntime: HandoffRuntime;
+	private readonly stagedSessions = new Set<Session>();
+	private stagedActivationTimer: NodeJS.Timeout | null = null;
+	private boundSocketPath: string | null = null;
+	private listenerClosePromise: Promise<void> | null = null;
+	private upgradePhase: UpgradePhase = "idle";
+	private mutationEpoch = 0;
+	private upgradeDirty = false;
 
 	constructor(opts: ServerOptions) {
 		this.opts = opts;
 		this.store = new SessionStore({ bufferCap: opts.bufferCap });
 		this.server = net.createServer((socket) => this.onConnection(socket));
+		this.handoffRuntime = {
+			spawnSuccessor: (command, args, options) =>
+				childProcess.spawn(command, args, options),
+			waitForReady: waitForHandoffReady,
+			commitAndWaitForListening,
+			terminateAndConfirm: (child) =>
+				terminateAndConfirmHandoffChild(child, HANDOFF_CHILD_EXIT_TIMEOUT_MS),
+			...opts.handoffRuntime,
+		};
 	}
 
 	async listen(): Promise<void> {
+		await this.listenAt(this.opts.socketPath);
+	}
+
+	/** Bind a private successor socket before the predecessor commits. */
+	async listenForHandoff(stagingSocketPath: string): Promise<void> {
+		if (stagingSocketPath === this.opts.socketPath) {
+			throw new Error(
+				"handoff staging socket must differ from canonical socket",
+			);
+		}
+		await this.listenAt(stagingSocketPath);
+	}
+
+	/**
+	 * Atomically publish an already-listening successor at the canonical path.
+	 * Existing predecessor connections remain valid on their unlinked listener;
+	 * every new connection reaches this successor immediately after rename.
+	 */
+	publishHandoffSocket(stagingSocketPath: string): void {
+		if (this.boundSocketPath !== stagingSocketPath) {
+			throw new Error(
+				`handoff successor is not listening on ${stagingSocketPath}`,
+			);
+		}
+		unlinkBestEffort(this.opts.socketPath);
+		fs.renameSync(stagingSocketPath, this.opts.socketPath);
+		this.boundSocketPath = this.opts.socketPath;
+	}
+
+	/**
+	 * Stop accepting and unlink the predecessor socket without dropping existing
+	 * control/data connections. `net.Server.close()` removes a Unix socket path
+	 * synchronously, while its callback waits for those connections to drain.
+	 */
+	private stopListeningForHandoff(): void {
+		if (!this.server.listening || this.listenerClosePromise) {
+			throw new Error("predecessor listener is not available for handoff");
+		}
+		this.listenerClosePromise = new Promise<void>((resolve) => {
+			this.server.close(() => resolve());
+		});
+		this.boundSocketPath = null;
+	}
+
+	private async listenAt(socketPath: string): Promise<void> {
 		const dir = path.dirname(this.opts.socketPath);
 		fs.mkdirSync(dir, { recursive: true });
 		// Stale-socket cleanup: remove any prior socket file at this path.
 		try {
-			fs.unlinkSync(this.opts.socketPath);
+			fs.unlinkSync(socketPath);
 		} catch (err) {
 			if ((err as NodeJS.ErrnoException).code !== "ENOENT") throw err;
 		}
 		await new Promise<void>((resolve, reject) => {
 			this.server.once("error", reject);
-			this.server.listen(this.opts.socketPath, () => {
+			this.server.listen(socketPath, () => {
 				this.server.off("error", reject);
+				this.boundSocketPath = socketPath;
 				resolve();
 			});
 		});
 		// Owner-only access. The socket file IS the auth boundary.
-		fs.chmodSync(this.opts.socketPath, 0o600);
+		fs.chmodSync(socketPath, 0o600);
 	}
 
 	/**
@@ -114,7 +212,7 @@ export class Server {
 	 */
 	adoptSnapshot(snapshot: HandoffSnapshot): void {
 		for (const s of snapshot.sessions) {
-			const pty = adoptFromFd({
+			const pty = (this.opts.adoptPty ?? adoptFromFd)({
 				fd: s.fdIndex,
 				pid: s.pid,
 				meta: s.meta,
@@ -129,8 +227,62 @@ export class Server {
 				session.buffer = [buf];
 				session.bufferBytes = buf.byteLength;
 			}
-			this.wireSession(session);
+			// Do not attach a data listener before commit. The predecessor still
+			// owns output until its IPC channel disconnects; a staged successor
+			// must leave bytes in the kernel PTY buffer on every abort path.
+			this.stagedSessions.add(session);
 		}
+	}
+
+	/** Replace staged replay buffers with the predecessor's final quiesced cut. */
+	refreshAdoptedSnapshot(snapshot: HandoffSnapshot): void {
+		if (snapshot.sessions.length !== this.stagedSessions.size) {
+			throw new Error(
+				`final handoff snapshot session count changed (${snapshot.sessions.length} != ${this.stagedSessions.size})`,
+			);
+		}
+		for (const serialized of snapshot.sessions) {
+			const session = this.store.get(serialized.id);
+			if (
+				!session ||
+				!this.stagedSessions.has(session) ||
+				session.pty.pid !== serialized.pid
+			) {
+				throw new Error(
+					`final handoff snapshot does not match staged session ${serialized.id}`,
+				);
+			}
+			const buffer = Buffer.from(
+				serialized.buffer.buffer,
+				serialized.buffer.byteOffset,
+				serialized.buffer.byteLength,
+			);
+			session.buffer = buffer.byteLength > 0 ? [buffer] : [];
+			session.bufferBytes = buffer.byteLength;
+		}
+	}
+
+	/**
+	 * Activate all still-staged sessions. The bounded fallback prevents an
+	 * unattended successor from leaving PTY readers paused forever when the host
+	 * does not reconnect promptly after a successful handoff.
+	 */
+	activateAdoptedSessions(): void {
+		for (const session of [...this.stagedSessions]) {
+			this.activateStagedSession(session.id);
+		}
+	}
+
+	/** Defer PTY reads until the host has had a chance to subscribe. */
+	scheduleAdoptedSessionActivation(
+		timeoutMs = HANDOFF_STAGED_ACTIVATION_TIMEOUT_MS,
+	): void {
+		if (this.stagedSessions.size === 0 || this.stagedActivationTimer) return;
+		this.stagedActivationTimer = setTimeout(() => {
+			this.stagedActivationTimer = null;
+			this.activateAdoptedSessions();
+		}, timeoutMs);
+		this.stagedActivationTimer.unref();
 	}
 
 	/**
@@ -141,24 +293,88 @@ export class Server {
 	 * a single Promise resolution (or rejection) for the supervisor to relay
 	 * back to the user.
 	 */
-	async prepareUpgrade(): Promise<
-		{ ok: true; successorPid: number } | { ok: false; reason: string }
-	> {
+	async prepareUpgrade(): Promise<HandoffResult> {
+		if (this.upgradePhase !== "idle") {
+			return {
+				ok: false,
+				reason: `upgrade already ${this.upgradePhase}`,
+				ownership: "unresolved",
+			};
+		}
+
+		// An async function executes synchronously until its first await. Set the
+		// guard before even snapshotting the store so no new mutation can sneak
+		// into the handoff candidate set.
+		this.upgradePhase = "preparing";
+		this.upgradeDirty = false;
+		const startEpoch = this.mutationEpoch;
 		const liveSessions = [...this.store.all()].filter((s) => !s.exited);
 		const preparedPtys: Session["pty"][] = [];
 		let handoffCommitted = false;
+		let predecessorMayResume = true;
+		let child: childProcess.ChildProcess | null = null;
+		let snapshotPath: string | null = null;
+		let stagingSocketPath: string | null = null;
+		let commitSent = false;
 
 		try {
 			try {
 				for (const session of liveSessions) {
-					if (!session.pty.prepareForHandoff) continue;
 					preparedPtys.push(session.pty);
 				}
-				await Promise.all(preparedPtys.map((pty) => pty.prepareForHandoff?.()));
+				await Promise.all(preparedPtys.map((pty) => pty.prepareForHandoff()));
 			} catch (err) {
 				return {
 					ok: false,
 					reason: `PTY input drain failed before handoff: ${(err as Error).message}`,
+					ownership: "predecessor",
+				};
+			}
+			if (this.upgradeWasMutated(startEpoch)) {
+				return {
+					ok: false,
+					reason:
+						"upgrade aborted: terminal mutation arrived while input was draining",
+					ownership: "predecessor",
+				};
+			}
+
+			// Establish one exact output cut before serializing replay state. From
+			// this point onward the predecessor consumes no PTY bytes: output remains
+			// in the kernel for the successor on commit, or for us after a safe abort.
+			try {
+				for (const pty of preparedPtys) pty.pauseOutputForHandoff();
+			} catch (err) {
+				return {
+					ok: false,
+					reason: `PTY output quiescence failed before handoff: ${(err as Error).message}`,
+					ownership: "predecessor",
+				};
+			}
+			// pause() reaches libuv synchronously, but a read callback already queued
+			// for this turn can still land in Node's user-space Readable buffer. Let
+			// that callback settle, drain it into the predecessor ring/broadcast, and
+			// only then serialize the exact replay boundary.
+			await new Promise((resolve) => setImmediate(resolve));
+			try {
+				for (const session of liveSessions) {
+					for (const chunk of await session.pty.drainOutputForHandoff()) {
+						this.recordSessionOutput(session, chunk);
+					}
+				}
+			} catch (err) {
+				return {
+					ok: false,
+					reason: `PTY buffered-output drain failed before handoff: ${(err as Error).message}`,
+					ownership: "predecessor",
+				};
+			}
+			if (this.upgradeWasMutated(startEpoch)) {
+				return {
+					ok: false,
+					reason:
+						"upgrade aborted: terminal mutation arrived while output was quiescing",
+					ownership: "predecessor",
 				};
 			}
 
@@ -182,7 +398,7 @@ export class Server {
 				stdio.push(session.pty.getMasterFd());
 			}
 
-			const snapshotPath = path.join(
+			snapshotPath = path.join(
 				os.tmpdir(),
 				`pty-daemon-handoff-${process.pid}-${Date.now()}.snap`,
 			);
@@ -198,6 +414,15 @@ export class Server {
 				return {
 					ok: false,
 					reason: `snapshot write failed: ${(err as Error).message}`,
+					ownership: "predecessor",
+				};
+			}
+			if (this.upgradeWasMutated(startEpoch)) {
+				return {
+					ok: false,
+					reason:
+						"upgrade aborted: terminal mutation arrived before successor spawn",
+					ownership: "predecessor",
 				};
 			}
 
@@ -210,8 +435,13 @@ export class Server {
 				return {
 					ok: false,
 					reason: "process.argv[1] empty — can't self-spawn",
+					ownership: "predecessor",
 				};
 			}
+			stagingSocketPath = path.join(
+				path.dirname(this.opts.socketPath),
+				`.ptyd-h-${process.pid}-${Date.now().toString(36)}.sock`,
+			);
 
 			// Forward process.execArgv (--experimental-strip-types etc.) so the
 			// successor loads the same way we did. In tests and dev we run TS
@@ -225,9 +455,8 @@ export class Server {
 			// package.json instead.
 			const successorEnv: NodeJS.ProcessEnv = { ...process.env };
 			delete successorEnv.SUPERSET_PTY_DAEMON_VERSION;
-			let child: childProcess.ChildProcess;
 			try {
-				child = childProcess.spawn(
+				child = this.handoffRuntime.spawnSuccessor(
 					process.execPath,
 					[
 						...process.execArgv,
@@ -235,6 +464,7 @@ export class Server {
 						"--handoff",
 						`--snapshot=${snapshotPath}`,
 						`--socket=${this.opts.socketPath}`,
+						`--handoff-socket=${stagingSocketPath}`,
 					],
 					{
 						stdio,
@@ -243,52 +473,167 @@ export class Server {
 					},
 				);
 			} catch (err) {
-				try {
-					fs.unlinkSync(snapshotPath);
-				} catch {
-					// best-effort cleanup; keep the original spawn error visible
-				}
 				return {
 					ok: false,
 					reason: `successor spawn failed: ${(err as Error).message}`,
+					ownership: "predecessor",
 				};
 			}
+			// child_process stdio inheritance has now shared the PTY open-file
+			// descriptions. Never unfreeze the predecessor until this exact child is
+			// confirmed dead, or until ownership commits to it.
+			predecessorMayResume = false;
 			child.on("exit", (code, signal) => {
 				process.stderr.write(
 					`[pty-daemon prep-upgrade pid=${process.pid}] successor exited code=${code} signal=${signal}\n`,
 				);
 			});
 
-			const result = await waitForHandoffAck(child);
-			if (!result.ok) {
-				try {
-					child.kill("SIGKILL");
-				} catch {
-					// already gone
-				}
-				// Drop the snapshot so a future handoff doesn't trip over it.
-				try {
-					fs.unlinkSync(snapshotPath);
-				} catch {
-					// already gone or never written
-				}
-				return result;
+			const ready = await this.handoffRuntime.waitForReady(child);
+			if (!ready.ok) {
+				predecessorMayResume =
+					await this.handoffRuntime.terminateAndConfirm(child);
+				return {
+					ok: false,
+					reason: predecessorMayResume
+						? ready.reason
+						: `${ready.reason}; successor exit could not be confirmed — predecessor remains frozen`,
+					ownership: predecessorMayResume ? "predecessor" : "unresolved",
+				};
 			}
 
-			// Successor adopted. Schedule close+exit AFTER the dispatcher has
-			// flushed the upgrade-prepared reply. Closing here would destroy
-			// the supervisor's connection before the reply lands. The
-			// successor is blocked on our IPC `disconnect` (process.exit closes
-			// the channel), so we want to exit promptly — but not so promptly
-			// that we beat the reply.
+			// Passing the shared fd through child_process stdio can complete one
+			// already-armed predecessor read after the initial snapshot. READY has
+			// given that read ample turns to settle; fold any such bytes into an
+			// atomic final snapshot that the successor reloads on COMMIT.
+			await new Promise((resolve) => setImmediate(resolve));
+			try {
+				for (const session of liveSessions) {
+					for (const chunk of await session.pty.drainOutputForHandoff()) {
+						this.recordSessionOutput(session, chunk);
+					}
+				}
+			} catch (error) {
+				predecessorMayResume =
+					await this.handoffRuntime.terminateAndConfirm(child);
+				return {
+					ok: false,
+					reason: `final PTY output drain failed: ${(error as Error).message}`,
+					ownership: predecessorMayResume ? "predecessor" : "unresolved",
+				};
+			}
+
+			if (this.upgradeWasMutated(startEpoch)) {
+				predecessorMayResume =
+					await this.handoffRuntime.terminateAndConfirm(child);
+				return {
+					ok: false,
+					reason: predecessorMayResume
+						? "upgrade aborted: terminal mutation arrived before commit"
+						: "upgrade aborted after mutation, but successor exit could not be confirmed — predecessor remains frozen",
+					ownership: predecessorMayResume ? "predecessor" : "unresolved",
+				};
+			}
+			// READY proves staged adoption plus a private listening socket, not
+			// ownership. No await is allowed between the final epoch check and this
+			// phase transition. From here on abort is unsafe: permanently detaching
+			// predecessor readers creates a hard byte boundary, after which COMMIT
+			// lets the successor publish its already-listening canonical socket.
+			this.upgradePhase = "committing";
+			commitSent = true;
+			predecessorMayResume = false;
+			for (const session of liveSessions) {
+				for (const chunk of await session.pty.sealOutputForHandoff()) {
+					this.recordSessionOutput(session, chunk);
+				}
+			}
+			writeSnapshot(
+				snapshotPath,
+				serializeSessions({ sessions: liveSessions, fdIndexBySessionId }),
+			);
+			this.stopListeningForHandoff();
+			const listening = await this.handoffRuntime.commitAndWaitForListening(
+				child,
+				ready.successorPid,
+			);
+			if (!listening.ok) {
+				// Once COMMIT may have reached the successor, it may already have read
+				// kernel-buffered output. Even confirmed child death cannot make replay
+				// complete again, so the predecessor must remain fail-closed.
+				predecessorMayResume = false;
+				await this.handoffRuntime.terminateAndConfirm(child).catch(() => false);
+				return {
+					ok: false,
+					reason: `${listening.reason}; successor ownership after commit is unresolved — predecessor remains frozen`,
+					ownership: "unresolved",
+				};
+			}
+
+			// The canonical socket now belongs to this exact child. Its PTY readers
+			// remain staged until the host subscribes (or the bounded fallback fires).
+			// Only now is it safe to report success and exit.
 			handoffCommitted = true;
 			setImmediate(() => {
 				void this.finalizeHandoff();
 			});
-			return { ok: true, successorPid: result.successorPid };
+			return { ok: true, successorPid: listening.successorPid };
+		} catch (error) {
+			if (child && !handoffCommitted) {
+				if (commitSent) {
+					predecessorMayResume = false;
+					await this.handoffRuntime
+						.terminateAndConfirm(child)
+						.catch(() => false);
+				} else {
+					try {
+						predecessorMayResume =
+							await this.handoffRuntime.terminateAndConfirm(child);
+					} catch {
+						predecessorMayResume = false;
+					}
+				}
+			}
+			return {
+				ok: false,
+				reason: `prepareUpgrade failed: ${(error as Error).message}${
+					predecessorMayResume
+						? ""
+						: "; successor exit could not be confirmed — predecessor remains frozen"
+				}`,
+				ownership: predecessorMayResume ? "predecessor" : "unresolved",
+			};
 		} finally {
 			if (!handoffCommitted) {
-				for (const pty of preparedPtys) pty.cancelHandoff?.();
+				if (snapshotPath) unlinkBestEffort(snapshotPath);
+				if (stagingSocketPath && predecessorMayResume) {
+					unlinkBestEffort(stagingSocketPath);
+				}
+				if (predecessorMayResume) {
+					const restored = new Set<Session["pty"]>();
+					for (const session of liveSessions) {
+						try {
+							session.pty.restoreAfterFailedHandoff();
+							restored.add(session.pty);
+						} catch (error) {
+							process.stderr.write(
+								`[pty-daemon prep-upgrade pid=${process.pid}] failed to restore PTY ${session.id} nonblocking mode: ${(error as Error).message}\n`,
+							);
+						}
+					}
+					// Restoration must happen before unfreeze. A PTY whose restore
+					// failed has already failed closed and must not accept input.
+					for (const pty of preparedPtys) {
+						if (restored.has(pty)) pty.cancelHandoff();
+					}
+					this.upgradePhase = "idle";
+				} else {
+					// Readers may have been permanently sealed. Touching their fd or
+					// resuming them here would turn a safe fail-closed state into data
+					// loss or a daemon-wide blocking read.
+					process.stderr.write(
+						`[pty-daemon prep-upgrade pid=${process.pid}] successor ownership unresolved; keeping predecessor PTY input/output frozen\n`,
+					);
+				}
 			}
 		}
 	}
@@ -302,12 +647,19 @@ export class Server {
 		// killSessions=false: the master fds are now refcounted in the
 		// successor's process; killing them here would close shells the
 		// user just successfully preserved.
-		await this.close({ killSessions: false });
+		await this.close({ killSessions: false, unlinkSocket: false });
 		setTimeout(() => process.exit(0), 50).unref();
 	}
 
-	async close(opts: { killSessions?: boolean } = {}): Promise<void> {
+	async close(
+		opts: { killSessions?: boolean; unlinkSocket?: boolean } = {},
+	): Promise<void> {
 		const killSessions = opts.killSessions ?? true;
+		const unlinkSocket = opts.unlinkSocket ?? true;
+		if (this.stagedActivationTimer) {
+			clearTimeout(this.stagedActivationTimer);
+			this.stagedActivationTimer = null;
+		}
 		for (const c of this.conns) c.socket.destroy();
 		this.conns.clear();
 		if (killSessions) {
@@ -327,12 +679,19 @@ export class Server {
 				}
 			}
 		}
-		await new Promise<void>((resolve) => this.server.close(() => resolve()));
-		try {
-			fs.unlinkSync(this.opts.socketPath);
-		} catch {
-			// ignore
+		if (this.listenerClosePromise) {
+			await this.listenerClosePromise;
+		} else if (this.server.listening) {
+			await new Promise<void>((resolve) => this.server.close(() => resolve()));
 		}
+		if (unlinkSocket && this.boundSocketPath) {
+			try {
+				fs.unlinkSync(this.boundSocketPath);
+			} catch {
+				// ignore
+			}
+		}
+		this.boundSocketPath = null;
 	}
 
 	private onConnection(socket: net.Socket): void {
@@ -414,20 +773,27 @@ export class Server {
 				return;
 			}
 			case "open": {
+				if (this.rejectMutationDuringUpgrade(conn, msg.id)) return;
 				conn.send(handleOpen(ctx, msg));
 				return;
 			}
 			case "input": {
+				if (this.rejectMutationDuringUpgrade(conn, msg.id)) return;
+				this.activateStagedSession(msg.id);
 				const reply = handleInput(ctx, msg, payload);
 				if (reply) conn.send(reply);
 				return;
 			}
 			case "resize": {
+				if (this.rejectMutationDuringUpgrade(conn, msg.id)) return;
+				this.activateStagedSession(msg.id);
 				const reply = handleResize(ctx, msg);
 				if (reply) conn.send(reply);
 				return;
 			}
 			case "close": {
+				if (this.rejectMutationDuringUpgrade(conn, msg.id)) return;
+				this.activateStagedSession(msg.id);
 				conn.send(handleClose(ctx, msg));
 				return;
 			}
@@ -436,7 +802,11 @@ export class Server {
 				return;
 			}
 			case "subscribe": {
+				// Register the subscription and send the final predecessor replay cut
+				// before attaching the successor reader. Any bytes queued in the PTY
+				// kernel buffer then arrive as live output exactly once.
 				handleSubscribe(ctx, conn, msg);
+				this.activateStagedSession(msg.id);
 				return;
 			}
 			case "unsubscribe": {
@@ -456,6 +826,7 @@ export class Server {
 							result: {
 								ok: false,
 								reason: `prepareUpgrade threw: ${(err as Error).message}`,
+								ownership: "unresolved",
 							},
 						});
 					});
@@ -473,6 +844,35 @@ export class Server {
 		}
 	}
 
+	private rejectMutationDuringUpgrade(conn: ConnState, id: string): boolean {
+		if (this.upgradePhase === "idle") return false;
+		if (this.upgradePhase === "preparing") {
+			this.mutationEpoch += 1;
+			this.upgradeDirty = true;
+		}
+		conn.send({
+			type: "error",
+			id,
+			code: "EUPGRADING",
+			message: `terminal mutation rejected while daemon upgrade is ${this.upgradePhase}; retry on the active daemon`,
+		});
+		return true;
+	}
+
+	private upgradeWasMutated(startEpoch: number): boolean {
+		return this.upgradeDirty || this.mutationEpoch !== startEpoch;
+	}
+
+	private activateStagedSession(id: string): void {
+		const session = this.store.get(id);
+		if (!session || !this.stagedSessions.delete(session)) return;
+		this.wireSession(session);
+		if (this.stagedSessions.size === 0 && this.stagedActivationTimer) {
+			clearTimeout(this.stagedActivationTimer);
+			this.stagedActivationTimer = null;
+		}
+	}
+
 	private handlerCtx(): HandlerCtx {
 		return {
 			store: this.store,
@@ -486,14 +886,7 @@ export class Server {
 	 * subscribed to this session id receives the output / exit frames.
 	 */
 	private wireSession(session: Session): void {
-		session.pty.onData((chunk) => {
-			this.store.appendOutput(session, chunk);
-			const out: ServerMessage = { type: "output", id: session.id };
-			for (const c of this.conns) {
-				if (!c.subscriptions.has(session.id)) continue;
-				c.send(out, chunk);
-			}
-		});
+		session.pty.onData((chunk) => this.recordSessionOutput(session, chunk));
 		session.pty.onExit((info) => {
 			session.exited = true;
 			session.exitCode = info.code;
@@ -524,18 +917,74 @@ export class Server {
 		});
 	}
 
+	private recordSessionOutput(session: Session, chunk: Buffer): void {
+		this.store.appendOutput(session, chunk);
+		const out: ServerMessage = { type: "output", id: session.id };
+		for (const c of this.conns) {
+			if (!c.subscriptions.has(session.id)) continue;
+			c.send(out, chunk);
+		}
+	}
+
 	private dropConn(conn: ConnState): void {
 		this.conns.delete(conn);
 	}
 }
 
-/**
- * Phase 2: wait for the successor's IPC ack. Resolves with {ok:true} on
- * `upgrade-ack`, with {ok:false} on `upgrade-nak`, child exit, IPC channel
- * close, or timeout.
- */
-const HANDOFF_ACK_TIMEOUT_MS = 5_000;
-function waitForHandoffAck(
+function unlinkBestEffort(filePath: string): void {
+	try {
+		fs.unlinkSync(filePath);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+			process.stderr.write(
+				`[pty-daemon prep-upgrade pid=${process.pid}] snapshot cleanup failed: ${(error as Error).message}\n`,
+			);
+		}
+	}
+}
+
+async function terminateAndConfirmHandoffChild(
+	child: childProcess.ChildProcess,
+	timeoutMs: number,
+): Promise<boolean> {
+	if (child.exitCode !== null || child.signalCode !== null) return true;
+
+	return await new Promise<boolean>((resolve) => {
+		let settled = false;
+		let timer: NodeJS.Timeout | null = null;
+		const settle = (confirmed: boolean) => {
+			if (settled) return;
+			settled = true;
+			if (timer) clearTimeout(timer);
+			child.removeListener("exit", onExit);
+			child.removeListener("error", onError);
+			resolve(confirmed);
+		};
+		const onExit = () => settle(true);
+		const onError = () => {
+			// An asynchronous spawn error with no pid proves that no successor
+			// process ever inherited ownership. With a pid, only exit is proof.
+			if (child.pid === undefined) settle(true);
+		};
+
+		child.once("exit", onExit);
+		child.once("error", onError);
+		timer = setTimeout(
+			() => settle(child.exitCode !== null || child.signalCode !== null),
+			timeoutMs,
+		);
+		try {
+			child.kill("SIGKILL");
+		} catch {
+			// ESRCH can race the exit event. The bounded waiter still requires the
+			// ChildProcess to report exit before predecessor input is unfrozen.
+		}
+	});
+}
+
+/** Wait until the successor has adopted every fd and bound a private socket. */
+const HANDOFF_READY_TIMEOUT_MS = 5_000;
+function waitForHandoffReady(
 	child: childProcess.ChildProcess,
 ): Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }> {
 	return new Promise((resolve) => {
@@ -554,15 +1003,16 @@ function waitForHandoffAck(
 		};
 		const onMessage = (raw: unknown) => {
 			const msg = raw as Partial<HandoffMessage>;
-			if (msg && typeof msg === "object" && msg.type === "upgrade-ack") {
+			if (msg && typeof msg === "object" && msg.type === "upgrade-ready") {
 				if (
 					typeof msg.successorPid !== "number" ||
 					!Number.isInteger(msg.successorPid) ||
-					msg.successorPid <= 0
+					msg.successorPid <= 0 ||
+					(child.pid !== undefined && msg.successorPid !== child.pid)
 				) {
 					settle({
 						ok: false,
-						reason: `successor sent invalid ack pid: ${String(msg.successorPid)}`,
+						reason: `successor sent invalid ready pid: ${String(msg.successorPid)}`,
 					});
 					return;
 				}
@@ -574,19 +1024,19 @@ function waitForHandoffAck(
 		const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
 			settle({
 				ok: false,
-				reason: `successor exited before ack (code=${code} signal=${signal})`,
+				reason: `successor exited before ready (code=${code} signal=${signal})`,
 			});
 		};
 		const onError = (err: Error) => {
 			settle({
 				ok: false,
-				reason: `successor spawn error before ack: ${err.message}`,
+				reason: `successor spawn error before ready: ${err.message}`,
 			});
 		};
 		const onDisconnect = () => {
 			settle({
 				ok: false,
-				reason: "successor IPC disconnected before ack",
+				reason: "successor IPC disconnected before ready",
 			});
 		};
 		child.on("message", onMessage);
@@ -596,9 +1046,97 @@ function waitForHandoffAck(
 		const timer = setTimeout(() => {
 			settle({
 				ok: false,
-				reason: `successor ack timed out after ${HANDOFF_ACK_TIMEOUT_MS}ms`,
+				reason: `successor ready timed out after ${HANDOFF_READY_TIMEOUT_MS}ms`,
 			});
-		}, HANDOFF_ACK_TIMEOUT_MS);
+		}, HANDOFF_READY_TIMEOUT_MS);
+	});
+}
+
+/** Send COMMIT and require proof that the exact child owns the canonical socket. */
+const HANDOFF_LISTENING_TIMEOUT_MS = 5_000;
+function commitAndWaitForListening(
+	child: childProcess.ChildProcess,
+	successorPid: number,
+): Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }> {
+	return new Promise((resolve) => {
+		let settled = false;
+		const settle = (
+			result:
+				| { ok: true; successorPid: number }
+				| { ok: false; reason: string },
+		) => {
+			if (settled) return;
+			settled = true;
+			child.removeListener("message", onMessage);
+			child.removeListener("exit", onExit);
+			child.removeListener("error", onError);
+			child.removeListener("disconnect", onDisconnect);
+			clearTimeout(timer);
+			resolve(result);
+		};
+		const onMessage = (raw: unknown) => {
+			const msg = raw as Partial<HandoffMessage>;
+			if (msg && typeof msg === "object" && msg.type === "upgrade-listening") {
+				if (msg.successorPid !== successorPid) {
+					settle({
+						ok: false,
+						reason: `successor listening pid mismatch: expected ${successorPid}, got ${String(msg.successorPid)}`,
+					});
+					return;
+				}
+				settle({ ok: true, successorPid });
+			} else if (msg && typeof msg === "object" && msg.type === "upgrade-nak") {
+				settle({ ok: false, reason: msg.reason ?? "successor sent nak" });
+			}
+		};
+		const onExit = (code: number | null, signal: NodeJS.Signals | null) => {
+			settle({
+				ok: false,
+				reason: `successor exited after commit before listening (code=${code} signal=${signal})`,
+			});
+		};
+		const onError = (error: Error) => {
+			settle({
+				ok: false,
+				reason: `successor error after commit: ${error.message}`,
+			});
+		};
+		const onDisconnect = () => {
+			settle({
+				ok: false,
+				reason: "successor IPC disconnected after commit before listening",
+			});
+		};
+
+		child.on("message", onMessage);
+		child.on("exit", onExit);
+		child.on("error", onError);
+		child.on("disconnect", onDisconnect);
+		const timer = setTimeout(
+			() =>
+				settle({
+					ok: false,
+					reason: `successor listening proof timed out after ${HANDOFF_LISTENING_TIMEOUT_MS}ms`,
+				}),
+			HANDOFF_LISTENING_TIMEOUT_MS,
+		);
+
+		try {
+			const commit: HandoffMessage = { type: "upgrade-commit" };
+			child.send(commit, (error) => {
+				if (error) {
+					settle({
+						ok: false,
+						reason: `failed to send successor commit: ${error.message}`,
+					});
+				}
+			});
+		} catch (error) {
+			settle({
+				ok: false,
+				reason: `failed to send successor commit: ${(error as Error).message}`,
+			});
+		}
 	});
 }
 

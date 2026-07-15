@@ -26,6 +26,7 @@ import {
 	probeDaemonVersion,
 	ptyDaemonSocketPath,
 	shouldKillStaleDaemonForDev,
+	upgradeFailureCanResumePredecessor,
 } from "./DaemonSupervisor.ts";
 import { readPtyDaemonManifest, writePtyDaemonManifest } from "./manifest.ts";
 
@@ -67,6 +68,31 @@ beforeEach(() => {
 
 afterEach(() => {
 	console.log = realConsoleLog;
+});
+
+describe("upgrade failure ownership compatibility", () => {
+	test("reopens only for an explicit predecessor verdict", () => {
+		expect(
+			upgradeFailureCanResumePredecessor({
+				ok: false,
+				reason: "safe abort",
+				ownership: "predecessor",
+			}),
+		).toBe(true);
+		expect(
+			upgradeFailureCanResumePredecessor({
+				ok: false,
+				reason: "commit uncertain",
+				ownership: "unresolved",
+			}),
+		).toBe(false);
+		expect(
+			upgradeFailureCanResumePredecessor({
+				ok: false,
+				reason: "legacy result without ownership",
+			}),
+		).toBe(false);
+	});
 });
 
 interface FakeDaemonOptions {
@@ -553,6 +579,86 @@ describe("DaemonSupervisor.restart", () => {
 		const result = await sup.restart("org-ok");
 		expect(result).toEqual({ success: true });
 		expect(ensureMock).toHaveBeenCalledTimes(1);
+	});
+
+	test("serializes a destructive restart behind an in-flight smooth update", async () => {
+		const deferred = createDeferred<{
+			ok: false;
+			reason: string;
+		}>();
+		const runUpdateMock = mock(() => deferred.promise);
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+		const update = sup.update("org-update-then-restart");
+		const restart = sup.restart("org-update-then-restart");
+		const stopMock = (sup as unknown as { stop: ReturnType<typeof mock> }).stop;
+		await Promise.resolve();
+		expect(stopMock).not.toHaveBeenCalled();
+
+		deferred.resolve({ ok: false, reason: "proven abort" });
+		await update;
+		await restart;
+		expect(stopMock).toHaveBeenCalledTimes(1);
+	});
+
+	test("rejects a smooth update while a destructive restart is running", async () => {
+		const stopped = createDeferred<void>();
+		(sup as unknown as { stop: typeof sup.stop }).stop = mock(
+			() => stopped.promise,
+		) as typeof sup.stop;
+		const restart = sup.restart("org-restarting");
+		await expect(sup.update("org-restarting")).resolves.toEqual({
+			ok: false,
+			reason: "pty-daemon restart is already in progress",
+		});
+		stopped.resolve();
+		await restart;
+	});
+
+	test("force restart explicitly recovers a fail-closed ambiguous mutation gate", async () => {
+		const resetAfterForceRestart = mock(async (_error: Error) => {});
+		const eliminateAmbiguousOwners = mock(async () => {});
+		const proveFreshOwner = mock(async () => {});
+		(
+			sup as unknown as {
+				eliminateAmbiguousOwners: typeof eliminateAmbiguousOwners;
+				proveFreshOwner: typeof proveFreshOwner;
+			}
+		).eliminateAmbiguousOwners = eliminateAmbiguousOwners;
+		(
+			sup as unknown as { proveFreshOwner: typeof proveFreshOwner }
+		).proveFreshOwner = proveFreshOwner;
+		(
+			sup as unknown as {
+				ambiguousUpdates: Map<
+					string,
+					{
+						lease: { resetAfterForceRestart: typeof resetAfterForceRestart };
+						predecessorPid: number;
+						successorPid: number;
+						socketPath: string;
+					}
+				>;
+			}
+		).ambiguousUpdates.set("org-ambiguous", {
+			lease: { resetAfterForceRestart },
+			predecessorPid: 111,
+			successorPid: 222,
+			socketPath: "/tmp/ambiguous.sock",
+		});
+
+		await sup.restart("org-ambiguous");
+
+		expect(resetAfterForceRestart).toHaveBeenCalledTimes(1);
+		expect(eliminateAmbiguousOwners).toHaveBeenCalledTimes(1);
+		expect(proveFreshOwner).toHaveBeenCalledTimes(1);
+		expect(
+			(
+				sup as unknown as {
+					ambiguousUpdates: Map<string, unknown>;
+				}
+			).ambiguousUpdates.has("org-ambiguous"),
+		).toBe(false);
 	});
 });
 

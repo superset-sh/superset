@@ -37,6 +37,12 @@ function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
 		},
 		onData: () => {},
 		onExit: () => {},
+		prepareForHandoff: async () => {},
+		pauseOutputForHandoff: () => {},
+		drainOutputForHandoff: async () => [],
+		sealOutputForHandoff: async () => [],
+		restoreAfterFailedHandoff: () => {},
+		cancelHandoff: () => {},
 		getMasterFd: () => -1,
 	};
 }
