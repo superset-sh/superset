@@ -275,6 +275,35 @@ describe("splitPanelWithTab", () => {
 		expect(layout.second.paneId).not.toBe("panel-b");
 	});
 
+	it("equalizes all panel shares when a new panel joins", () => {
+		// Two side-by-side panels; splitting the right one adds a third panel.
+		// Every panel should end up with an equal share (thirds), not 50/25/25.
+		const state = createState({
+			tabs: [
+				createTab("tab-1", { panelId: "panel-a" }),
+				createTab("tab-2", { panelId: "panel-b" }),
+				createTab("tab-3", { panelId: "panel-b" }),
+			],
+			panelLayout: twoPanelLayout,
+			activeTabId: "tab-1",
+		});
+
+		const result = splitPanelWithTab(state, {
+			tabId: "tab-3",
+			targetPanelId: "panel-b",
+			position: "right",
+		});
+		expect(result).not.toBeNull();
+		if (!result) return;
+
+		const layout = result.panelLayout;
+		if (layout.type !== "split") throw new Error("expected split");
+		// panel-a vs (panel-b + new): 1 of 3 leaves ≈ 33.3%
+		expect(layout.splitPercentage).toBeCloseTo(100 / 3, 1);
+		if (layout.second.type !== "split") throw new Error("expected split");
+		expect(layout.second.splitPercentage).toBe(50);
+	});
+
 	it("returns null when splitting a panel with its own only tab", () => {
 		const state = createState({
 			tabs: [createTab("tab-1")],

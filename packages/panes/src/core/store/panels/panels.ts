@@ -347,6 +347,8 @@ export function splitPanelWithTab<TData>(
 		panelLayout =
 			removePaneFromLayout(panelLayout, sourcePanelId) ?? panelLeaf(newPanelId);
 	}
+	// A new panel joins as an equal: give every panel the same share
+	panelLayout = equalizeAllSplits(panelLayout);
 
 	const stamped = stampPanelAssignments(
 		state.tabs,

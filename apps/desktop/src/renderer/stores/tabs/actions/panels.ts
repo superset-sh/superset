@@ -2,6 +2,7 @@ import type { MosaicNode } from "react-mosaic-component";
 import type { MosaicDropPosition, Tab, TabsState } from "../types";
 import {
 	cleanLayout,
+	equalizeSplitPercentages,
 	extractPaneIdsFromLayout,
 	generateId,
 	removePaneFromLayout,
@@ -375,6 +376,8 @@ export function splitPanelWithTab(
 	if (sourceRemoved) {
 		layout = removePaneFromLayout(layout, sourcePanelId) ?? newPanelId;
 	}
+	// A new panel joins as an equal: give every panel the same share
+	layout = equalizeSplitPercentages(layout);
 
 	const workspaceTabs = state.tabs.filter((t) => t.workspaceId === workspaceId);
 	const otherTabs = state.tabs.filter((t) => t.workspaceId !== workspaceId);
