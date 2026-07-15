@@ -34,8 +34,8 @@ interface ThemeState {
 	/** Theme ID to use for dark mode when "system" is active */
 	systemDarkThemeId: string;
 
-	/** Main-process view of the current OS appearance */
-	systemThemeType: SystemThemeType;
+	/** Main-process view of the current OS appearance (unknown until IPC is primed) */
+	systemThemeType: SystemThemeType | null;
 
 	/** The currently active theme object (resolved from system preference if needed) */
 	activeTheme: Theme | null;
@@ -80,10 +80,14 @@ function resolveThemeId(
 	themeId: string,
 	systemLightThemeId: string,
 	systemDarkThemeId: string,
-	systemThemeType: SystemThemeType,
+	systemThemeType: SystemThemeType | null,
 	customThemes: Theme[] = [],
-): string {
+): string | null {
 	if (themeId === SYSTEM_THEME_ID) {
+		if (systemThemeType === null) {
+			return null;
+		}
+
 		const prefersDark = systemThemeType === "dark";
 		const preferredId = prefersDark ? systemDarkThemeId : systemLightThemeId;
 		const fallbackId = prefersDark
@@ -107,6 +111,43 @@ function findTheme(themeId: string, customThemes: Theme[]): Theme | undefined {
 		builtInThemes.find((t) => t.id === themeId) ||
 		customThemes.find((t) => t.id === themeId)
 	);
+}
+
+/**
+ * Read the last theme that was actually applied by the renderer. The boot script
+ * uses the same cache, so retaining it while the main process primes the OS
+ * appearance avoids replacing a known light theme with a guessed dark theme.
+ */
+function findLastAppliedTheme(customThemes: Theme[]): Theme | undefined {
+	try {
+		const cachedThemeId = localStorage.getItem("theme-id");
+		if (cachedThemeId) {
+			const cachedTheme = findTheme(cachedThemeId, customThemes);
+			if (cachedTheme) return cachedTheme;
+		}
+
+		const cachedThemeType = localStorage.getItem("theme-type");
+		if (cachedThemeType === "light") {
+			return findTheme(DEFAULT_LIGHT_THEME_ID, customThemes);
+		}
+		if (cachedThemeType === "dark") {
+			return findTheme(DEFAULT_DARK_THEME_ID, customThemes);
+		}
+	} catch {
+		// localStorage may not be available
+	}
+
+	return undefined;
+}
+
+function getThemeStateWithoutApplying(theme: Theme): {
+	activeTheme: Theme;
+	terminalTheme: ITheme;
+} {
+	return {
+		activeTheme: theme,
+		terminalTheme: toXtermTheme(getTerminalColors(theme)),
+	};
 }
 
 const builtInThemeIds = new Set(builtInThemes.map((theme) => theme.id));
@@ -157,7 +198,7 @@ export const useThemeStore = create<ThemeState>()(
 				customThemes: [],
 				systemLightThemeId: DEFAULT_LIGHT_THEME_ID,
 				systemDarkThemeId: DEFAULT_DARK_THEME_ID,
-				systemThemeType: "dark",
+				systemThemeType: null,
 				activeTheme: null,
 				terminalTheme: null,
 
@@ -170,6 +211,10 @@ export const useThemeStore = create<ThemeState>()(
 						state.systemThemeType,
 						state.customThemes,
 					);
+					if (resolvedId === null) {
+						set({ activeThemeId: themeId });
+						return;
+					}
 					const theme = findTheme(resolvedId, state.customThemes);
 
 					if (!theme) {
@@ -212,6 +257,10 @@ export const useThemeStore = create<ThemeState>()(
 							state.systemThemeType,
 							state.customThemes,
 						);
+						if (resolvedId === null) {
+							set(prefUpdate);
+							return;
+						}
 						const theme = findTheme(resolvedId, state.customThemes);
 						if (theme) {
 							const { terminalTheme } = applyTheme(theme);
@@ -238,6 +287,10 @@ export const useThemeStore = create<ThemeState>()(
 						systemThemeType,
 						state.customThemes,
 					);
+					if (resolvedId === null) {
+						set({ systemThemeType });
+						return;
+					}
 					const theme = findTheme(resolvedId, state.customThemes);
 
 					if (!theme) {
@@ -290,6 +343,10 @@ export const useThemeStore = create<ThemeState>()(
 						state.systemThemeType,
 						customThemes,
 					);
+					if (resolvedId === null) {
+						set({ customThemes });
+						return { added, updated, skipped };
+					}
 					const resolvedTheme = findTheme(resolvedId, customThemes);
 
 					if (!resolvedTheme) {
@@ -344,6 +401,10 @@ export const useThemeStore = create<ThemeState>()(
 							state.systemThemeType,
 							customThemes,
 						);
+						if (resolvedId === null) {
+							set(baseUpdate);
+							return;
+						}
 						const theme = findTheme(resolvedId, customThemes);
 						if (theme) {
 							const { terminalTheme } = applyTheme(theme);
@@ -401,6 +462,14 @@ export const useThemeStore = create<ThemeState>()(
 						state.systemThemeType,
 						state.customThemes,
 					);
+
+					if (resolvedId === null) {
+						const lastAppliedTheme = findLastAppliedTheme(state.customThemes);
+						if (lastAppliedTheme) {
+							set(getThemeStateWithoutApplying(lastAppliedTheme));
+						}
+						return;
+					}
 					const theme = findTheme(resolvedId, state.customThemes);
 
 					if (theme) {
@@ -500,7 +569,12 @@ if (import.meta.hot) {
 // Convenience hooks
 export const useTheme = () => useThemeStore((state) => state.activeTheme);
 export const useResolvedTheme = () =>
-	useThemeStore((state) => state.activeTheme ?? darkTheme);
+	useThemeStore(
+		(state) =>
+			state.activeTheme ??
+			findLastAppliedTheme(state.customThemes) ??
+			darkTheme,
+	);
 export const useTerminalTheme = () =>
 	useThemeStore((state) => state.terminalTheme);
 export const useSetTheme = () => useThemeStore((state) => state.setTheme);
