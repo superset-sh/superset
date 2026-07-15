@@ -109,7 +109,7 @@ export function BrowserToolbar({
 	return (
 		<div className="flex h-full min-w-0 flex-1 items-center px-2">
 			<div className="flex shrink-0 items-center gap-0.5">
-				<Tooltip>
+				<Tooltip disableHoverableContent>
 					<TooltipTrigger asChild>
 						<button
 							type="button"
@@ -124,7 +124,7 @@ export function BrowserToolbar({
 						Go Back
 					</TooltipContent>
 				</Tooltip>
-				<Tooltip>
+				<Tooltip disableHoverableContent>
 					<TooltipTrigger asChild>
 						<button
 							type="button"
@@ -139,7 +139,7 @@ export function BrowserToolbar({
 						Go Forward
 					</TooltipContent>
 				</Tooltip>
-				<Tooltip>
+				<Tooltip disableHoverableContent>
 					<TooltipTrigger asChild>
 						<button
 							type="button"

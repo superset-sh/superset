@@ -87,7 +87,7 @@ export function V2PresetBarItem({
 					className={isDragging ? "opacity-40" : undefined}
 					style={{ cursor: isDragging ? "grabbing" : "grab" }}
 				>
-					<Tooltip>
+					<Tooltip disableHoverableContent>
 						<TooltipTrigger asChild>
 							<Button
 								variant="ghost"
