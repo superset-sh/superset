@@ -5,6 +5,7 @@ import { deriveWorkspacePanels } from "../../../core/store/panels";
 import type { LayoutNode, Pane, Tab as TabType } from "../../../types";
 import type { WorkspaceProps } from "../../types";
 import { Panels, type PanelsContext } from "./components/Panels";
+import { DropPreviewOverlay } from "./components/Panels/components/DropPreviewOverlay";
 import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
 
 /** Panel touching the top-right corner (hosts workspace-level controls) */
@@ -118,8 +119,9 @@ export function Workspace<TData>({
 			)}
 		>
 			{renderBelowTabBar?.()}
-			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+			<div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				<Panels node={derived.layout} path={[]} context={panelsContext} />
+				<DropPreviewOverlay store={store} />
 			</div>
 		</div>
 	);

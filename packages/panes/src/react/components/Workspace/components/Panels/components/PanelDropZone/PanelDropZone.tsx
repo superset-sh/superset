@@ -1,10 +1,11 @@
-import { useRef, useState } from "react";
+import { useRef } from "react";
 import { useDragLayer, useDrop } from "react-dnd";
 import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../../../core/store";
 import { deriveWorkspacePanels } from "../../../../../../../core/store/panels";
 import type { SplitPosition } from "../../../../../../../types";
 import { TAB_DRAG_TYPE } from "../../../TabBar/components/TabItem";
+import { useDropPreviewStore } from "../../dropPreviewStore";
 
 type PanelDropTarget = SplitPosition | "center";
 
@@ -32,23 +33,16 @@ function getDropTarget(
 	return dy < 0 ? "top" : "bottom";
 }
 
-const ZONE_STYLES: Record<PanelDropTarget, React.CSSProperties> = {
-	center: { top: 0, left: 0, width: "100%", height: "100%" },
-	top: { top: 0, left: 0, width: "100%", height: "50%" },
-	bottom: { top: "50%", left: 0, width: "100%", height: "50%" },
-	left: { top: 0, left: 0, width: "50%", height: "100%" },
-	right: { top: 0, left: "50%", width: "50%", height: "100%" },
-};
-
 interface PanelDropZoneProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
 	panelId: string;
 }
 
 /**
- * Covers a panel's content area while a tab is being dragged. Edge drops
- * split the panel into a new panel holding the dragged tab; a center drop
- * moves the tab into this panel.
+ * Invisible drop target over a panel's content area. It classifies the hover
+ * into a zone and publishes it to the shared preview store; the actual
+ * highlight is drawn once, accurately, by `DropPreviewOverlay`. Edge drops
+ * split the panel; a center drop moves the tab into it.
  */
 export function PanelDropZone<TData>({
 	store,
@@ -61,7 +55,6 @@ export function PanelDropZone<TData>({
 
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const targetRef = useRef<PanelDropTarget | null>(null);
-	const [target, setTarget] = useState<PanelDropTarget | null>(null);
 
 	const [{ isOver }, connectDrop] = useDrop(
 		() => ({
@@ -75,13 +68,13 @@ export function PanelDropZone<TData>({
 				const next = getDropTarget(offset.x, offset.y, rect);
 				if (next !== targetRef.current) {
 					targetRef.current = next;
-					setTarget(next);
+					useDropPreviewStore.getState().setPreview(panelId, next);
 				}
 			},
 			drop: (item: TabDragItem) => {
 				const dropTarget = targetRef.current ?? "center";
 				targetRef.current = null;
-				setTarget(null);
+				useDropPreviewStore.getState().clearPreview(panelId);
 
 				const state = store.getState();
 				if (dropTarget === "center") {
@@ -110,10 +103,10 @@ export function PanelDropZone<TData>({
 		[store, panelId],
 	);
 
-	// Clear the highlight when the cursor leaves this panel
+	// Clear the shared preview when the cursor leaves this panel
 	if (!isOver && targetRef.current !== null) {
 		targetRef.current = null;
-		if (target !== null) setTarget(null);
+		useDropPreviewStore.getState().clearPreview(panelId);
 	}
 
 	if (!isTabDragging) return null;
@@ -125,13 +118,6 @@ export function PanelDropZone<TData>({
 				connectDrop(node);
 			}}
 			className="absolute inset-0 z-20"
-		>
-			{isOver && target && (
-				<div
-					className="absolute rounded-sm border-2 border-primary/70 bg-primary/10"
-					style={{ ...ZONE_STYLES[target], transition: "all 150ms ease" }}
-				/>
-			)}
-		</div>
+		/>
 	);
 }
