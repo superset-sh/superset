@@ -1,9 +1,15 @@
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { Maximize2, Minimize2 } from "lucide-react";
+import {
+	ChevronsLeftRight,
+	ChevronsUpDown,
+	Columns2,
+	Rows2,
+} from "lucide-react";
 import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../../../core/store";
 import { isPanelExpanded } from "../../../../../../../core/store/panels";
+import { getPaneParentDirection } from "../../../../../../../core/store/utils";
 import type { LayoutNode } from "../../../../../../../types";
 
 interface PanelExpandToggleProps<TData> {
@@ -14,8 +20,9 @@ interface PanelExpandToggleProps<TData> {
 }
 
 /**
- * VS Code-style expand-group toggle: grows this panel to dominate the grid,
- * or restores even sizes when it's already expanded.
+ * VS Code-style expand-group toggle. The icons mirror the panel's axis and
+ * the action's result: outward chevrons grow this panel; the equal
+ * columns/rows glyph restores even sizes.
  */
 export function PanelExpandToggle<TData>({
 	store,
@@ -23,7 +30,13 @@ export function PanelExpandToggle<TData>({
 	layout,
 }: PanelExpandToggleProps<TData>) {
 	const expanded = isPanelExpanded(layout, panelId);
-	const label = expanded ? "Even panel sizes" : "Expand panel";
+	// Orient the glyphs to the panel's own split axis (side-by-side vs stacked)
+	const isVertical = getPaneParentDirection(layout, panelId) === "vertical";
+	const label = expanded ? "Equal panel sizes" : "Expand panel";
+
+	const ExpandIcon = isVertical ? ChevronsUpDown : ChevronsLeftRight;
+	const EqualizeIcon = isVertical ? Rows2 : Columns2;
+	const Icon = expanded ? EqualizeIcon : ExpandIcon;
 
 	return (
 		<Tooltip delayDuration={500}>
@@ -36,11 +49,7 @@ export function PanelExpandToggle<TData>({
 					type="button"
 					variant="ghost"
 				>
-					{expanded ? (
-						<Minimize2 className="size-3.5" />
-					) : (
-						<Maximize2 className="size-3.5" />
-					)}
+					<Icon className="size-3.5" />
 				</Button>
 			</TooltipTrigger>
 			<TooltipContent side="bottom" showArrow={false}>
