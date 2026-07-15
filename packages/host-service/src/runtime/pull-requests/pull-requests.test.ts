@@ -121,9 +121,8 @@ function getPrByNumber(db: HostDb, prNumber: number) {
 		.get();
 }
 
-// A git factory whose only answer is the remote's default branch, via the
-// `refs/remotes/origin/HEAD` symref that `resolveDefaultBranch` reads. Every
-// other git call throws — the refresh path must not depend on live git.
+// Answers only the origin/HEAD symref (default branch); every other git call
+// throws, asserting the refresh path never depends on live git.
 function defaultBranchGit(defaultBranch: string) {
 	return (async () => ({
 		raw: async (args: string[]) => {
@@ -633,15 +632,13 @@ describe("case-variant branch isolation", () => {
 	});
 });
 
-// A workspace branched off `main` keeps tracking `origin/main` until its own
-// branch is pushed, so its resolved upstream branch is `main`. Keying on `main`
-// links it to whatever open PR has head=main (e.g. a "sync main into X" PR).
+// A workspace branched off `main` still tracks `origin/main`, so its upstream
+// branch is `main`; without the guard it links to any head=main PR.
 describe("default-branch guard", () => {
 	test("does not link a workspace tracking origin/main to a head=main PR", async () => {
 		const db = createRealDb();
 		seedProject(db);
-		// The mislink as observed on screen: the workspace already points at the
-		// head=main PR. A refresh must clear it, not re-affirm it.
+		// Pre-linked like the real bug: the refresh must clear it, not re-affirm it.
 		seedPullRequest(db, {
 			id: "pr-sync-main",
 			prNumber: 1522,
@@ -707,8 +704,6 @@ describe("default-branch guard", () => {
 		);
 	});
 
-	// The guard is scoped to the base repo: a fork PR whose head branch happens
-	// to be named `main` (e.g. a `gh pr checkout` rename) must still link.
 	test("still links a fork PR whose head branch is named main", async () => {
 		const db = createRealDb();
 		seedProject(db);

@@ -223,9 +223,7 @@ interface NormalizedRepoIdentity {
 	name: string;
 	url: string;
 	remoteName: string;
-	// Repo's default branch (e.g. `main`), or null when the repo can't be
-	// opened. Used to keep workspaces that merely track `origin/<default>` from
-	// linking to whatever open PR happens to have head=<default>.
+	// Null when the repo can't be opened. Drives the default-branch link guard.
 	defaultBranch: string | null;
 }
 
@@ -763,9 +761,7 @@ export class PullRequestRuntimeManager {
 		return { ...identity, defaultBranch };
 	}
 
-	// Delegates to the shared `resolveDefaultBranchName` (the same
-	// `origin/HEAD` symref used by git status / branch search), catching a
-	// failure to open the repo so a missing worktree just disables the guard
+	// Shared origin/HEAD resolver; a repo-open failure disables the guard
 	// rather than aborting the whole refresh.
 	private async resolveDefaultBranch(repoPath: string): Promise<string | null> {
 		try {
@@ -775,16 +771,10 @@ export class PullRequestRuntimeManager {
 		}
 	}
 
-	// Dedup + link key for a workspace, with the default-branch guard applied.
-	// A workspace branched off the repo's default branch still tracks
-	// `origin/<default>` until its own branch is pushed, so its resolved
-	// upstream branch is `<default>` even though no PR has this workspace's
-	// branch as head. Keying on `<default>` would glue it to whatever open PR
-	// has head=<default> (e.g. a "sync <default> into X" PR). Only the
-	// workspace whose LOCAL branch actually is the default branch may key on
-	// it. Restricted to the base repo so fork PRs whose head happens to be
-	// named `<default>` (e.g. a `gh pr checkout` rename) still link. Branch
-	// stays case-sensitive to match `upstreamKey`.
+	// Guard: a workspace that merely tracks `origin/<default>` (branched off it,
+	// never pushed) must not key on `<default>` and grab a head=<default> PR —
+	// only its own default-branch workspace may. Base repo only, so fork /
+	// `gh pr checkout` renames whose head is `<default>` still link.
 	private effectiveUpstreamKey(
 		workspace: typeof workspaces.$inferSelect,
 		repo: NormalizedRepoIdentity,

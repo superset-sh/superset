@@ -216,8 +216,7 @@ function mapChecks(rawChecks: RawCheckEntry[] | null | undefined): CheckItem[] {
 	}));
 }
 
-// The `useQueries` result array gets a fresh identity every render, so memoize
-// the derived workspace→PR-number map on its content to keep `enriched` stable.
+// useQueries returns a fresh array each render; memoize by content to keep `enriched` stable.
 function useStableWorkspacePrNumbers(
 	entries: [string, number][],
 ): Map<string, number> {
@@ -397,13 +396,9 @@ export function useAccessibleV2Workspaces(
 		creatorRows,
 	]);
 
-	// Authoritative workspace→PR link. The host-service owns
-	// `workspace.pullRequestId` (default-branch guard and head-SHA checks
-	// applied there); re-deriving it client-side from a `repositoryId::branch`
-	// map mistracks on branch-name collisions across forks and can disagree
-	// with the sidebar. Fan `getByWorkspaces` out per host exactly as
-	// `useDashboardSidebarData` does, then key the rich PR row by the resolved
-	// (repositoryId, prNumber) — a unique pair, unlike the branch.
+	// The authoritative link lives in host.db (`workspace.pullRequestId`), not any
+	// collection, so fan `getByWorkspaces` out per host like the sidebar. A
+	// client-side `repositoryId::branch` map mistracks on fork branch collisions.
 	const pullRequestQueryTargets = useMemo(
 		() =>
 			derivePullRequestQueryTargets({
@@ -473,8 +468,7 @@ export function useAccessibleV2Workspaces(
 		[collections, activeOrganizationId],
 	);
 
-	// Keyed by the unique (repositoryId, prNumber) so the authoritative link
-	// selects an exact PR — no branch-name collisions, no first-match-wins.
+	// Unique (repositoryId, prNumber) key — no branch collisions, no first-match-wins.
 	const prByRepoNumber = useMemo(() => {
 		const map = new Map<string, V2WorkspacePrSummary>();
 		for (const row of prRows) {
