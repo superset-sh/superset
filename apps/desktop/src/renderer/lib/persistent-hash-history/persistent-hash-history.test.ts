@@ -25,6 +25,13 @@ const mockLocalStorage = {
 const mockReplaceState = mock(
 	(_state: unknown, _unused: string, _url?: string | URL | null) => {},
 );
+const hashChangeListeners = new Set<EventListener>();
+
+function dispatchHashChange() {
+	for (const listener of hashChangeListeners) {
+		listener(new Event("hashchange"));
+	}
+}
 
 // Set up globals BEFORE importing the module (the singleton runs at import time).
 // The originals MUST be restored afterAll: later test files in the same process
@@ -49,20 +56,30 @@ Object.defineProperty(globalThis, "window", {
 		location: {
 			pathname: "/",
 			search: "",
+			hash: "#/",
 		},
+		addEventListener: mock((type: string, listener: EventListener) => {
+			if (type === "hashchange") hashChangeListeners.add(listener);
+		}),
+		removeEventListener: mock((type: string, listener: EventListener) => {
+			if (type === "hashchange") hashChangeListeners.delete(listener);
+		}),
 	},
 	writable: true,
 	configurable: true,
 });
 
 // Now safe to import — the module-level singleton will find window/localStorage
-const { createPersistentHashHistory } = await import(
+const { createPersistentHashHistory, persistentHistory } = await import(
 	"./persistent-hash-history"
 );
+persistentHistory.destroy();
 
 beforeEach(() => {
 	storage.clear();
 	mockReplaceState.mockClear();
+	hashChangeListeners.clear();
+	window.location.hash = "#/";
 });
 
 afterEach(() => {
@@ -198,6 +215,90 @@ describe("createPersistentHashHistory", () => {
 			history.replace("/b");
 			expect(history.location.pathname).toBe("/b");
 			expect(history.length).toBe(2); // "/" and "/b"
+		});
+	});
+
+	describe("external hash navigation", () => {
+		it("updates subscribers and persistent history when the URL hash changes outside the router", () => {
+			const history = createPersistentHashHistory();
+			const actions: string[] = [];
+			history.subscribe(({ action }) => actions.push(action.type));
+
+			window.location.hash = "#/v2-workspace/workspace-b";
+			dispatchHashChange();
+
+			expect(history.location.pathname).toBe("/v2-workspace/workspace-b");
+			expect(actions).toEqual(["PUSH"]);
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/v2-workspace/workspace-b"],
+				index: 1,
+			});
+
+			dispatchHashChange();
+			expect(history.length).toBe(2);
+			expect(actions).toEqual(["PUSH"]);
+
+			history.destroy();
+			window.location.hash = "#/v2-workspace/workspace-c";
+			dispatchHashChange();
+			expect(history.location.pathname).toBe("/v2-workspace/workspace-b");
+		});
+
+		it("preserves the existing stack for external back and forward navigation", () => {
+			const history = createPersistentHashHistory();
+			const actions: string[] = [];
+			history.subscribe(({ action }) => actions.push(action.type));
+			history.push("/a");
+			history.push("/b");
+			actions.length = 0;
+
+			window.location.hash = "#/a";
+			dispatchHashChange();
+			expect(history.location.pathname).toBe("/a");
+			expect(history.length).toBe(3);
+			expect(actions).toEqual(["BACK"]);
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/a", "/b"],
+				index: 1,
+			});
+
+			window.location.hash = "#/b";
+			dispatchHashChange();
+			expect(history.location.pathname).toBe("/b");
+			expect(history.length).toBe(3);
+			expect(actions).toEqual(["BACK", "FORWARD"]);
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/a", "/b"],
+				index: 2,
+			});
+		});
+
+		it("keeps the router synchronized when a blocker is registered", async () => {
+			const originalDocument = globalThis.document;
+			Object.defineProperty(globalThis, "document", {
+				value: {},
+				writable: true,
+				configurable: true,
+			});
+
+			try {
+				const history = createPersistentHashHistory();
+				const blockerFn = mock(() => true);
+				history.block({ blockerFn });
+
+				window.location.hash = "#/v2-workspace/workspace-b";
+				dispatchHashChange();
+				await Promise.resolve();
+
+				expect(history.location.pathname).toBe("/v2-workspace/workspace-b");
+				expect(blockerFn).not.toHaveBeenCalled();
+			} finally {
+				Object.defineProperty(globalThis, "document", {
+					value: originalDocument,
+					writable: true,
+					configurable: true,
+				});
+			}
 		});
 	});
 

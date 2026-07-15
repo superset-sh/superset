@@ -62,6 +62,12 @@ function syncHash(path: string) {
 	window.history.replaceState(window.history.state, "", `#${path}`);
 }
 
+function getHashPath(): string {
+	const hash = window.location.hash;
+	if (!hash || hash === "#") return "/";
+	return hash.startsWith("#") ? hash.slice(1) : hash;
+}
+
 function createRandomKey(): string {
 	return (Math.random() + 1).toString(36).substring(7);
 }
@@ -126,7 +132,26 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 
 	syncHash(entries[index] ?? "/");
 
-	const history = createHistory({
+	let history: RouterHistory;
+	const handleExternalHashChange = () => {
+		const path = getHashPath();
+		if (path === (entries[index] ?? "/")) return;
+
+		// The browser URL has already changed, so a blocker cannot safely cancel
+		// this navigation without leaving the URL and router out of sync.
+		const navigateOptions = { ignoreBlocker: true };
+		if (path === entries[index - 1]) {
+			history.back(navigateOptions);
+			return;
+		}
+		if (path === entries[index + 1]) {
+			history.forward(navigateOptions);
+			return;
+		}
+		history.push(path, undefined, navigateOptions);
+	};
+
+	history = createHistory({
 		getLocation,
 		getLength: () => entries.length,
 		pushState: (path, state) => {
@@ -170,7 +195,11 @@ export function createPersistentHashHistory(): PersistentHashHistory {
 		setBlockers: (newBlockers) => {
 			blockers = newBlockers;
 		},
+		destroy: () => {
+			window.removeEventListener("hashchange", handleExternalHashChange);
+		},
 	});
+	window.addEventListener("hashchange", handleExternalHashChange);
 
 	return Object.assign(history, {
 		getEntries: (): HistoryEntry[] =>
