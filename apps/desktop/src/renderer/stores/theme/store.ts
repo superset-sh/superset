@@ -1,4 +1,5 @@
 import type { ITheme } from "@xterm/xterm";
+import type { SystemThemeType } from "lib/trpc/routers/system";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -9,6 +10,7 @@ import {
 } from "shared/themes";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
+import { electronTrpcClient } from "../../lib/trpc-client";
 import { trpcThemeStorage } from "../../lib/trpc-storage";
 import { applyUIColors, toXtermTheme, updateThemeClass } from "./utils";
 
@@ -32,6 +34,9 @@ interface ThemeState {
 	/** Theme ID to use for dark mode when "system" is active */
 	systemDarkThemeId: string;
 
+	/** Main-process view of the current OS appearance */
+	systemThemeType: SystemThemeType;
+
 	/** The currently active theme object (resolved from system preference if needed) */
 	activeTheme: Theme | null;
 
@@ -43,6 +48,9 @@ interface ThemeState {
 
 	/** Set which theme to use for a given system mode (light or dark) */
 	setSystemThemePreference: (mode: "light" | "dark", themeId: string) => void;
+
+	/** Apply an OS appearance update received from the Electron main process */
+	setSystemThemeType: (themeType: SystemThemeType) => void;
 
 	/** Add a custom theme */
 	addCustomTheme: (theme: Theme) => void;
@@ -64,16 +72,6 @@ interface ThemeState {
 }
 
 /**
- * Get the system preferred theme type (dark or light)
- */
-function getSystemPreferredThemeType(): "dark" | "light" {
-	if (typeof window === "undefined") return "dark";
-	return window.matchMedia("(prefers-color-scheme: dark)").matches
-		? "dark"
-		: "light";
-}
-
-/**
  * Resolve a theme ID to the actual theme ID to use.
  * If "system" is passed, resolves based on OS preference and user-configured system theme preferences.
  * Validates that the resolved system theme ID exists; falls back to built-in light/dark if stale.
@@ -82,10 +80,11 @@ function resolveThemeId(
 	themeId: string,
 	systemLightThemeId: string,
 	systemDarkThemeId: string,
+	systemThemeType: SystemThemeType,
 	customThemes: Theme[] = [],
 ): string {
 	if (themeId === SYSTEM_THEME_ID) {
-		const prefersDark = getSystemPreferredThemeType() === "dark";
+		const prefersDark = systemThemeType === "dark";
 		const preferredId = prefersDark ? systemDarkThemeId : systemLightThemeId;
 		const fallbackId = prefersDark
 			? DEFAULT_DARK_THEME_ID
@@ -158,6 +157,7 @@ export const useThemeStore = create<ThemeState>()(
 				customThemes: [],
 				systemLightThemeId: DEFAULT_LIGHT_THEME_ID,
 				systemDarkThemeId: DEFAULT_DARK_THEME_ID,
+				systemThemeType: "dark",
 				activeTheme: null,
 				terminalTheme: null,
 
@@ -167,6 +167,7 @@ export const useThemeStore = create<ThemeState>()(
 						themeId,
 						state.systemLightThemeId,
 						state.systemDarkThemeId,
+						state.systemThemeType,
 						state.customThemes,
 					);
 					const theme = findTheme(resolvedId, state.customThemes);
@@ -208,6 +209,7 @@ export const useThemeStore = create<ThemeState>()(
 							SYSTEM_THEME_ID,
 							newLightId,
 							newDarkId,
+							state.systemThemeType,
 							state.customThemes,
 						);
 						const theme = findTheme(resolvedId, state.customThemes);
@@ -219,6 +221,32 @@ export const useThemeStore = create<ThemeState>()(
 					}
 
 					set(prefUpdate);
+				},
+
+				setSystemThemeType: (systemThemeType: SystemThemeType) => {
+					const state = get();
+
+					if (state.activeThemeId !== SYSTEM_THEME_ID) {
+						set({ systemThemeType });
+						return;
+					}
+
+					const resolvedId = resolveThemeId(
+						SYSTEM_THEME_ID,
+						state.systemLightThemeId,
+						state.systemDarkThemeId,
+						systemThemeType,
+						state.customThemes,
+					);
+					const theme = findTheme(resolvedId, state.customThemes);
+
+					if (!theme) {
+						set({ systemThemeType });
+						return;
+					}
+
+					const { terminalTheme } = applyTheme(theme);
+					set({ systemThemeType, activeTheme: theme, terminalTheme });
 				},
 
 				addCustomTheme: (theme: Theme) => {
@@ -259,6 +287,7 @@ export const useThemeStore = create<ThemeState>()(
 						state.activeThemeId,
 						state.systemLightThemeId,
 						state.systemDarkThemeId,
+						state.systemThemeType,
 						customThemes,
 					);
 					const resolvedTheme = findTheme(resolvedId, customThemes);
@@ -312,6 +341,7 @@ export const useThemeStore = create<ThemeState>()(
 							SYSTEM_THEME_ID,
 							newLightId,
 							newDarkId,
+							state.systemThemeType,
 							customThemes,
 						);
 						const theme = findTheme(resolvedId, customThemes);
@@ -368,6 +398,7 @@ export const useThemeStore = create<ThemeState>()(
 						state.activeThemeId,
 						normalizedLightId,
 						normalizedDarkId,
+						state.systemThemeType,
 						state.customThemes,
 					);
 					const theme = findTheme(resolvedId, state.customThemes);
@@ -380,21 +411,6 @@ export const useThemeStore = create<ThemeState>()(
 						});
 					} else {
 						state.setTheme(DEFAULT_THEME_ID);
-					}
-
-					// Set up listener for OS theme preference changes
-					if (typeof window !== "undefined") {
-						const mediaQuery = window.matchMedia(
-							"(prefers-color-scheme: dark)",
-						);
-						const handleChange = () => {
-							const currentState = get();
-							// Only update if system theme is selected
-							if (currentState.activeThemeId === SYSTEM_THEME_ID) {
-								currentState.setTheme(SYSTEM_THEME_ID);
-							}
-						};
-						mediaQuery.addEventListener("change", handleChange);
 					}
 				},
 			}),
@@ -417,6 +433,69 @@ export const useThemeStore = create<ThemeState>()(
 		{ name: "ThemeStore" },
 	),
 );
+
+type SystemThemeObserver = {
+	onData: (themeType: SystemThemeType) => void;
+	onError: (error: unknown) => void;
+};
+
+type SubscribeToSystemTheme = (observer: SystemThemeObserver) => {
+	unsubscribe: () => void;
+};
+
+const RETRY_BACKOFF_MS = [1_000, 2_000, 5_000, 10_000] as const;
+
+const subscribeToSystemTheme: SubscribeToSystemTheme = (observer) =>
+	electronTrpcClient.system.themePreference.subscribe(undefined, observer);
+
+/**
+ * Keep the renderer theme store aligned with Electron's main-process view of
+ * the OS appearance. The main subscription is primed, so this also repairs an
+ * incorrect renderer value immediately after startup.
+ */
+export function startSystemThemeSync(
+	subscribe: SubscribeToSystemTheme = subscribeToSystemTheme,
+): () => void {
+	let stopped = false;
+	let retryAttempt = 0;
+	let retryTimer: ReturnType<typeof setTimeout> | undefined;
+	let subscription: ReturnType<SubscribeToSystemTheme> | undefined;
+
+	const connect = () => {
+		if (stopped) return;
+
+		subscription = subscribe({
+			onData: (themeType) => {
+				retryAttempt = 0;
+				useThemeStore.getState().setSystemThemeType(themeType);
+			},
+			onError: (error) => {
+				console.error("[themeStore] system theme subscription error:", error);
+				if (stopped) return;
+				const delay =
+					RETRY_BACKOFF_MS[
+						Math.min(retryAttempt, RETRY_BACKOFF_MS.length - 1)
+					] ?? 10_000;
+				retryAttempt++;
+				retryTimer = setTimeout(connect, delay);
+			},
+		});
+	};
+
+	connect();
+
+	return () => {
+		stopped = true;
+		if (retryTimer) clearTimeout(retryTimer);
+		subscription?.unsubscribe();
+	};
+}
+
+const stopSystemThemeSync = startSystemThemeSync();
+
+if (import.meta.hot) {
+	import.meta.hot.dispose(stopSystemThemeSync);
+}
 
 // Convenience hooks
 export const useTheme = () => useThemeStore((state) => state.activeTheme);
