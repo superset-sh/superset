@@ -145,126 +145,152 @@ export class Server {
 		{ ok: true; successorPid: number } | { ok: false; reason: string }
 	> {
 		const liveSessions = [...this.store.all()].filter((s) => !s.exited);
-		const fdIndexBySessionId = new Map<string, number>();
+		const preparedPtys: Session["pty"][] = [];
+		let handoffCommitted = false;
 
-		// stdio array layout in the successor:
-		//   [0] ignore (stdin)
-		//   [1] inherited stderr/stdout fd (re-use ours so dev-mode log piping keeps working)
-		//   [2] inherited stderr fd
-		//   [3] 'ipc' — Node-managed control channel
-		//   [4..N+3] PTY master fds, one per live session
-		const HANDOFF_STDIO_PTY_BASE = 4;
-		const stdio: Array<"ignore" | "inherit" | "ipc" | number> = [
-			"ignore",
-			"inherit",
-			"inherit",
-			"ipc",
-		];
-		for (const [i, session] of liveSessions.entries()) {
-			fdIndexBySessionId.set(session.id, HANDOFF_STDIO_PTY_BASE + i);
-			stdio.push(session.pty.getMasterFd());
-		}
-
-		const snapshotPath = path.join(
-			os.tmpdir(),
-			`pty-daemon-handoff-${process.pid}-${Date.now()}.snap`,
-		);
 		try {
-			writeSnapshot(
-				snapshotPath,
-				serializeSessions({
-					sessions: liveSessions,
-					fdIndexBySessionId,
-				}),
-			);
-		} catch (err) {
-			return {
-				ok: false,
-				reason: `snapshot write failed: ${(err as Error).message}`,
-			};
-		}
-
-		// process.argv[1] is the daemon script path. The supervisor that
-		// originally spawned us decided that path; for an upgrade, the bundle
-		// at that path has already been replaced by the desktop installer
-		// (or a dev rebuild), so spawning it again loads the new bytecode.
-		const scriptPath = process.argv[1];
-		if (!scriptPath) {
-			return { ok: false, reason: "process.argv[1] empty — can't self-spawn" };
-		}
-
-		// Forward process.execArgv (--experimental-strip-types etc.) so the
-		// successor loads the same way we did. In tests and dev we run TS
-		// directly; in production (built bundle) execArgv is typically empty.
-		process.stderr.write(
-			`[pty-daemon prep-upgrade pid=${process.pid}] spawning successor: ${process.execPath} ${[...process.execArgv, scriptPath].join(" ")} (sessions=${liveSessions.length}, ptyFds=${liveSessions.map((s) => s.pty.getMasterFd()).join(",")})\n`,
-		);
-		// Don't pass our own pinned version through to the successor — it
-		// would report it as its running version, and the supervisor would
-		// loop forever auto-updating. Successor reads its bundle's
-		// package.json instead.
-		const successorEnv: NodeJS.ProcessEnv = { ...process.env };
-		delete successorEnv.SUPERSET_PTY_DAEMON_VERSION;
-		let child: childProcess.ChildProcess;
-		try {
-			child = childProcess.spawn(
-				process.execPath,
-				[
-					...process.execArgv,
-					scriptPath,
-					"--handoff",
-					`--snapshot=${snapshotPath}`,
-					`--socket=${this.opts.socketPath}`,
-				],
-				{
-					stdio,
-					env: successorEnv,
-					detached: false,
-				},
-			);
-		} catch (err) {
 			try {
-				fs.unlinkSync(snapshotPath);
-			} catch {
-				// best-effort cleanup; keep the original spawn error visible
+				for (const session of liveSessions) {
+					if (!session.pty.prepareForHandoff) continue;
+					preparedPtys.push(session.pty);
+				}
+				await Promise.all(preparedPtys.map((pty) => pty.prepareForHandoff?.()));
+			} catch (err) {
+				return {
+					ok: false,
+					reason: `PTY input drain failed before handoff: ${(err as Error).message}`,
+				};
 			}
-			return {
-				ok: false,
-				reason: `successor spawn failed: ${(err as Error).message}`,
-			};
-		}
-		child.on("exit", (code, signal) => {
+
+			const fdIndexBySessionId = new Map<string, number>();
+
+			// stdio array layout in the successor:
+			//   [0] ignore (stdin)
+			//   [1] inherited stderr/stdout fd (re-use ours so dev-mode log piping keeps working)
+			//   [2] inherited stderr fd
+			//   [3] 'ipc' — Node-managed control channel
+			//   [4..N+3] PTY master fds, one per live session
+			const HANDOFF_STDIO_PTY_BASE = 4;
+			const stdio: Array<"ignore" | "inherit" | "ipc" | number> = [
+				"ignore",
+				"inherit",
+				"inherit",
+				"ipc",
+			];
+			for (const [i, session] of liveSessions.entries()) {
+				fdIndexBySessionId.set(session.id, HANDOFF_STDIO_PTY_BASE + i);
+				stdio.push(session.pty.getMasterFd());
+			}
+
+			const snapshotPath = path.join(
+				os.tmpdir(),
+				`pty-daemon-handoff-${process.pid}-${Date.now()}.snap`,
+			);
+			try {
+				writeSnapshot(
+					snapshotPath,
+					serializeSessions({
+						sessions: liveSessions,
+						fdIndexBySessionId,
+					}),
+				);
+			} catch (err) {
+				return {
+					ok: false,
+					reason: `snapshot write failed: ${(err as Error).message}`,
+				};
+			}
+
+			// process.argv[1] is the daemon script path. The supervisor that
+			// originally spawned us decided that path; for an upgrade, the bundle
+			// at that path has already been replaced by the desktop installer
+			// (or a dev rebuild), so spawning it again loads the new bytecode.
+			const scriptPath = process.argv[1];
+			if (!scriptPath) {
+				return {
+					ok: false,
+					reason: "process.argv[1] empty — can't self-spawn",
+				};
+			}
+
+			// Forward process.execArgv (--experimental-strip-types etc.) so the
+			// successor loads the same way we did. In tests and dev we run TS
+			// directly; in production (built bundle) execArgv is typically empty.
 			process.stderr.write(
-				`[pty-daemon prep-upgrade pid=${process.pid}] successor exited code=${code} signal=${signal}\n`,
+				`[pty-daemon prep-upgrade pid=${process.pid}] spawning successor: ${process.execPath} ${[...process.execArgv, scriptPath].join(" ")} (sessions=${liveSessions.length}, ptyFds=${liveSessions.map((s) => s.pty.getMasterFd()).join(",")})\n`,
 			);
-		});
+			// Don't pass our own pinned version through to the successor — it
+			// would report it as its running version, and the supervisor would
+			// loop forever auto-updating. Successor reads its bundle's
+			// package.json instead.
+			const successorEnv: NodeJS.ProcessEnv = { ...process.env };
+			delete successorEnv.SUPERSET_PTY_DAEMON_VERSION;
+			let child: childProcess.ChildProcess;
+			try {
+				child = childProcess.spawn(
+					process.execPath,
+					[
+						...process.execArgv,
+						scriptPath,
+						"--handoff",
+						`--snapshot=${snapshotPath}`,
+						`--socket=${this.opts.socketPath}`,
+					],
+					{
+						stdio,
+						env: successorEnv,
+						detached: false,
+					},
+				);
+			} catch (err) {
+				try {
+					fs.unlinkSync(snapshotPath);
+				} catch {
+					// best-effort cleanup; keep the original spawn error visible
+				}
+				return {
+					ok: false,
+					reason: `successor spawn failed: ${(err as Error).message}`,
+				};
+			}
+			child.on("exit", (code, signal) => {
+				process.stderr.write(
+					`[pty-daemon prep-upgrade pid=${process.pid}] successor exited code=${code} signal=${signal}\n`,
+				);
+			});
 
-		const result = await waitForHandoffAck(child);
-		if (!result.ok) {
-			try {
-				child.kill("SIGKILL");
-			} catch {
-				// already gone
+			const result = await waitForHandoffAck(child);
+			if (!result.ok) {
+				try {
+					child.kill("SIGKILL");
+				} catch {
+					// already gone
+				}
+				// Drop the snapshot so a future handoff doesn't trip over it.
+				try {
+					fs.unlinkSync(snapshotPath);
+				} catch {
+					// already gone or never written
+				}
+				return result;
 			}
-			// Drop the snapshot so a future handoff doesn't trip over it.
-			try {
-				fs.unlinkSync(snapshotPath);
-			} catch {
-				// already gone or never written
+
+			// Successor adopted. Schedule close+exit AFTER the dispatcher has
+			// flushed the upgrade-prepared reply. Closing here would destroy
+			// the supervisor's connection before the reply lands. The
+			// successor is blocked on our IPC `disconnect` (process.exit closes
+			// the channel), so we want to exit promptly — but not so promptly
+			// that we beat the reply.
+			handoffCommitted = true;
+			setImmediate(() => {
+				void this.finalizeHandoff();
+			});
+			return { ok: true, successorPid: result.successorPid };
+		} finally {
+			if (!handoffCommitted) {
+				for (const pty of preparedPtys) pty.cancelHandoff?.();
 			}
-			return result;
 		}
-
-		// Successor adopted. Schedule close+exit AFTER the dispatcher has
-		// flushed the upgrade-prepared reply. Closing here would destroy
-		// the supervisor's connection before the reply lands. The
-		// successor is blocked on our IPC `disconnect` (process.exit closes
-		// the channel), so we want to exit promptly — but not so promptly
-		// that we beat the reply.
-		setImmediate(() => {
-			void this.finalizeHandoff();
-		});
-		return { ok: true, successorPid: result.successorPid };
 	}
 
 	/** Phase 2: tear down predecessor state once the upgrade-prepared reply has flushed. */

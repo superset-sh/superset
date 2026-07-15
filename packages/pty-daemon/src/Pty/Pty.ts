@@ -9,8 +9,10 @@ import {
 	signalProcessTreeAndGroups,
 } from "../process-tree.ts";
 import type { SessionMeta } from "../protocol/index.ts";
+import { AsyncFdWriteQueue } from "./AsyncFdWriteQueue.ts";
 
 const KILL_ESCALATION_TIMEOUT_MS = 1000;
+const HANDOFF_WRITE_DRAIN_TIMEOUT_MS = 2000;
 
 export type PtyOnData = (data: Buffer) => void;
 export type PtyOnExit = (info: {
@@ -26,6 +28,15 @@ export interface Pty {
 	kill(signal?: NodeJS.Signals): void;
 	onData(cb: PtyOnData): void;
 	onExit(cb: PtyOnExit): void;
+	/**
+	 * Optional hook for adapters that own a user-space input queue. Stops new
+	 * input and drains that queue before fd handoff. NodePtyAdapter intentionally
+	 * retains node-pty's existing best-effort handoff semantics because its
+	 * private write-stream queue has no stable drain API.
+	 */
+	prepareForHandoff?(): Promise<void>;
+	/** Resume input if a handoff attempt aborts before ownership transfers. */
+	cancelHandoff?(): void;
 	/**
 	 * The kernel master fd backing this PTY. Required for daemon-upgrade
 	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
@@ -214,7 +225,7 @@ export function spawn({ meta }: SpawnOptions): Pty {
  * directly on the fd:
  *
  * - read via tty.ReadStream
- * - write via direct fs.writeSync calls
+ * - write via an async, memory-bounded per-session fd queue
  * - kill via process.kill(pid)
  * - onExit: read-stream 'end'/'error' OR PID-liveness poll (whichever first)
  *
@@ -224,12 +235,79 @@ export function spawn({ meta }: SpawnOptions): Pty {
  * size untouched. Accept the limitation; ship Phase 2; address resize
  * follow-up.
  */
+interface DeferredDestroy {
+	error: Error | null;
+	callback: (error?: Error | null) => void;
+}
+
+/** @internal Exported only so the runtime contract can be tested without a PTY. */
+export function setAdoptedPtyNonBlocking(stream: unknown): void {
+	const handle = (
+		stream as {
+			_handle?: { setBlocking?: (blocking: boolean) => number };
+		}
+	)?._handle;
+	if (!handle || typeof handle.setBlocking !== "function") {
+		throw new Error("adopted PTY TTY handle cannot set nonblocking mode");
+	}
+	const result = handle.setBlocking(false);
+	if (result !== 0) {
+		throw new Error(
+			`adopted PTY failed to enter nonblocking mode (uv error ${result})`,
+		);
+	}
+}
+
+/**
+ * tty.ReadStream normally closes its fd as soon as destroy starts. That is not
+ * safe while libuv still has an fs.write for the same numeric fd: the OS can
+ * reuse the number before the worker executes it. Defer only the underlying
+ * handle close; stream teardown and the owning session remain non-blocking.
+ */
+class AdoptedPtyReadStream extends tty.ReadStream {
+	private fdCloseAllowed = false;
+	private deferredDestroy: DeferredDestroy | null = null;
+	private onDestroyRequested: (() => void) | null = null;
+
+	setDestroyRequestedCallback(callback: () => void): void {
+		this.onDestroyRequested = callback;
+	}
+
+	override _destroy(
+		error: Error | null,
+		callback: (error?: Error | null) => void,
+	): void {
+		if (this.fdCloseAllowed) {
+			super._destroy(error, callback);
+			return;
+		}
+
+		this.deferredDestroy = { error, callback };
+		this.onDestroyRequested?.();
+	}
+
+	closeFdWhenWritesComplete(): void {
+		if (this.fdCloseAllowed) return;
+		this.fdCloseAllowed = true;
+		const deferred = this.deferredDestroy;
+		this.deferredDestroy = null;
+		if (deferred) {
+			super._destroy(deferred.error, deferred.callback);
+			return;
+		}
+		this.destroy();
+	}
+}
+
 class AdoptedPty implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private readonly fd: number;
-	private readonly reader: tty.ReadStream;
+	private readonly reader: AdoptedPtyReadStream;
+	private readonly writeQueue: AsyncFdWriteQueue;
 	private exitFired = false;
+	private exitInfo: { code: number | null; signal: number | null } | null =
+		null;
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private killEscalationTimer: NodeJS.Timeout | null = null;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -238,7 +316,27 @@ class AdoptedPty implements Pty {
 		this.fd = fd;
 		this.pid = pid;
 		this.meta = meta;
-		this.reader = new tty.ReadStream(fd);
+		this.reader = new AdoptedPtyReadStream(fd);
+		try {
+			// fd handoff through child_process stdio restores blocking mode on the
+			// inherited PTY master. A blocking fs.write can pin one libuv worker
+			// forever; four such sessions exhaust Node's default global worker pool.
+			setAdoptedPtyNonBlocking(this.reader);
+		} catch (error) {
+			// Fail closed: without nonblocking semantics the async queue cannot make
+			// the daemon-wide isolation guarantee. No writes have been submitted yet,
+			// so the fd can be closed immediately.
+			this.reader.closeFdWhenWritesComplete();
+			throw error;
+		}
+		this.writeQueue = new AsyncFdWriteQueue({
+			fd,
+			closeFd: () => this.reader.closeFdWhenWritesComplete(),
+			onFatalError: (error) => this.handleFatalWrite(error),
+		});
+		this.reader.setDestroyRequestedCallback(() =>
+			this.finishExit({ code: null, signal: null }),
+		);
 
 		// onExit signal sources:
 		//   1. read stream 'end' or 'error' — the slave-side close drives EOF
@@ -246,22 +344,14 @@ class AdoptedPty implements Pty {
 		//      (EOF) or 'error' (EIO).
 		//   2. PID-liveness poll — defense in depth for cases where the read
 		//      stream lingers without firing 'end' promptly.
-		const onExit = (info: { code: number | null; signal: number | null }) => {
-			if (this.exitFired) return;
-			this.exitFired = true;
-			if (this.livenessTimer) clearInterval(this.livenessTimer);
-			// tty.ReadStream owns the inherited fd; destroying the stream closes it.
-			try {
-				this.reader.destroy();
-			} catch {
-				// already closed
-			}
-			for (const cb of this.exitCallbacks) cb(info);
-		};
-		this.reader.on("end", () => onExit({ code: null, signal: null }));
-		this.reader.on("error", () => onExit({ code: null, signal: null }));
+		this.reader.on("end", () => this.finishExit({ code: null, signal: null }));
+		this.reader.on("error", () =>
+			this.finishExit({ code: null, signal: null }),
+		);
 		this.livenessTimer = setInterval(() => {
-			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
+			if (!isPidAlive(this.pid)) {
+				this.finishExit({ code: null, signal: null });
+			}
 		}, 1000);
 		this.livenessTimer.unref();
 	}
@@ -274,19 +364,15 @@ class AdoptedPty implements Pty {
 		if (this.exitFired) {
 			throw new Error(`session exited: ${this.pid}`);
 		}
-		let offset = 0;
-		while (offset < data.byteLength) {
-			const written = fs.writeSync(
-				this.fd,
-				data,
-				offset,
-				data.byteLength - offset,
-			);
-			if (written <= 0) {
-				throw new Error(`pty write wrote ${written} bytes`);
-			}
-			offset += written;
-		}
+		this.writeQueue.enqueue(data);
+	}
+
+	async prepareForHandoff(): Promise<void> {
+		await this.writeQueue.freezeAndDrain(HANDOFF_WRITE_DRAIN_TIMEOUT_MS);
+	}
+
+	cancelHandoff(): void {
+		this.writeQueue.unfreeze();
 	}
 
 	resize(cols: number, rows: number): void {
@@ -328,6 +414,10 @@ class AdoptedPty implements Pty {
 	}
 
 	onExit(cb: PtyOnExit): void {
+		if (this.exitInfo) {
+			cb(this.exitInfo);
+			return;
+		}
 		this.exitCallbacks.push(cb);
 	}
 
@@ -343,6 +433,33 @@ class AdoptedPty implements Pty {
 			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
 		}, KILL_ESCALATION_TIMEOUT_MS);
 		this.killEscalationTimer.unref();
+	}
+
+	private handleFatalWrite(error: Error): void {
+		process.stderr.write(
+			`[pty-daemon] adopted PTY ${this.pid} write failed: ${error.message}\n`,
+		);
+		this.finishExit({ code: null, signal: null });
+	}
+
+	private finishExit(info: {
+		code: number | null;
+		signal: number | null;
+	}): void {
+		if (this.exitFired) return;
+		this.exitFired = true;
+		this.exitInfo = info;
+		if (this.livenessTimer) clearInterval(this.livenessTimer);
+		this.livenessTimer = null;
+		// fs.write cannot be cancelled. Stop and unref reads immediately, but keep
+		// the shared descriptor alive until every submitted write callback returns.
+		// Closing it earlier lets the OS reuse the fd number for an unrelated file
+		// before a queued libuv worker executes the write.
+		this.reader.pause();
+		this.reader.removeAllListeners("data");
+		this.reader.unref();
+		this.writeQueue.dispose(new Error(`session exited: ${this.pid}`));
+		for (const cb of this.exitCallbacks) cb(info);
 	}
 }
 

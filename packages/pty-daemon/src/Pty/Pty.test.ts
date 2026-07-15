@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { spawn } from "./Pty.ts";
+import { setAdoptedPtyNonBlocking, spawn } from "./Pty.ts";
 
 // node-pty's runtime requires Node (Bun's tty.ReadStream handling is
 // incompatible with the master fd setup). The daemon ships running under
@@ -8,6 +8,30 @@ import { spawn } from "./Pty.ts";
 // logic that doesn't require spawning a real PTY.
 
 describe("Pty wrapper (validation only — spawn behavior tested under node)", () => {
+	test("requires the adopted TTY handle nonblocking contract", () => {
+		expect(() => setAdoptedPtyNonBlocking({})).toThrow(
+			/cannot set nonblocking mode/,
+		);
+		expect(() =>
+			setAdoptedPtyNonBlocking({
+				_handle: { setBlocking: () => -22 },
+			}),
+		).toThrow(/uv error -22/);
+	});
+
+	test("requests nonblocking mode and accepts only libuv success", () => {
+		const requestedModes: boolean[] = [];
+		setAdoptedPtyNonBlocking({
+			_handle: {
+				setBlocking(blocking: boolean) {
+					requestedModes.push(blocking);
+					return 0;
+				},
+			},
+		});
+		expect(requestedModes).toEqual([false]);
+	});
+
 	test("rejects invalid spawn dims (cols)", () => {
 		expect(() =>
 			spawn({
