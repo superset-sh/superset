@@ -2,7 +2,7 @@ import type { CheckItem } from "@superset/local-db";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
-import { useMemo, useRef } from "react";
+import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
@@ -216,24 +216,19 @@ function mapChecks(rawChecks: RawCheckEntry[] | null | undefined): CheckItem[] {
 	}));
 }
 
-// useQueries returns a fresh array each render; memoize by content to keep `enriched` stable.
+// useQueries returns a fresh array each render; key the map on a content
+// fingerprint so its identity only changes when the entries do.
 function useStableWorkspacePrNumbers(
 	entries: [string, number][],
 ): Map<string, number> {
-	const previousRef = useRef<{
-		fingerprint: string;
-		map: Map<string, number>;
-	} | null>(null);
-	return useMemo(() => {
-		const sorted = [...entries].sort(([a], [b]) => a.localeCompare(b));
-		const fingerprint = JSON.stringify(sorted);
-		if (previousRef.current?.fingerprint === fingerprint) {
-			return previousRef.current.map;
-		}
-		const map = new Map(sorted);
-		previousRef.current = { fingerprint, map };
-		return map;
-	}, [entries]);
+	const fingerprint = useMemo(
+		() => JSON.stringify([...entries].sort(([a], [b]) => a.localeCompare(b))),
+		[entries],
+	);
+	return useMemo<Map<string, number>>(
+		() => new Map(JSON.parse(fingerprint) as [string, number][]),
+		[fingerprint],
+	);
 }
 
 export function useAccessibleV2Workspaces(
