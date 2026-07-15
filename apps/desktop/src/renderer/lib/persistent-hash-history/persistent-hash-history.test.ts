@@ -23,13 +23,28 @@ const mockLocalStorage = {
 
 // Mock window.history.replaceState
 const mockReplaceState = mock(
-	(_state: unknown, _unused: string, _url?: string | URL | null) => {},
+	(_state: unknown, _unused: string, url?: string | URL | null) => {
+		if (typeof url !== "string") return;
+		const hashIndex = url.indexOf("#");
+		window.location.hash = hashIndex >= 0 ? url.slice(hashIndex) : "";
+	},
 );
 const hashChangeListeners = new Set<EventListener>();
+const currentEntryChangeListeners = new Set<EventListener>();
 
 function dispatchHashChange() {
 	for (const listener of hashChangeListeners) {
 		listener(new Event("hashchange"));
+	}
+}
+
+function dispatchCurrentEntryChange(navigationType: NavigationType) {
+	const event = new Event(
+		"currententrychange",
+	) as NavigationCurrentEntryChangeEvent;
+	Object.defineProperty(event, "navigationType", { value: navigationType });
+	for (const listener of currentEntryChangeListeners) {
+		listener(event);
 	}
 }
 
@@ -64,6 +79,18 @@ Object.defineProperty(globalThis, "window", {
 		removeEventListener: mock((type: string, listener: EventListener) => {
 			if (type === "hashchange") hashChangeListeners.delete(listener);
 		}),
+		navigation: {
+			addEventListener: mock((type: string, listener: EventListener) => {
+				if (type === "currententrychange") {
+					currentEntryChangeListeners.add(listener);
+				}
+			}),
+			removeEventListener: mock((type: string, listener: EventListener) => {
+				if (type === "currententrychange") {
+					currentEntryChangeListeners.delete(listener);
+				}
+			}),
+		},
 	},
 	writable: true,
 	configurable: true,
@@ -79,6 +106,7 @@ beforeEach(() => {
 	storage.clear();
 	mockReplaceState.mockClear();
 	hashChangeListeners.clear();
+	currentEntryChangeListeners.clear();
 	window.location.hash = "#/";
 });
 
@@ -225,7 +253,7 @@ describe("createPersistentHashHistory", () => {
 			history.subscribe(({ action }) => actions.push(action.type));
 
 			window.location.hash = "#/v2-workspace/workspace-b";
-			dispatchHashChange();
+			dispatchCurrentEntryChange("push");
 
 			expect(history.location.pathname).toBe("/v2-workspace/workspace-b");
 			expect(actions).toEqual(["PUSH"]);
@@ -234,13 +262,13 @@ describe("createPersistentHashHistory", () => {
 				index: 1,
 			});
 
-			dispatchHashChange();
+			dispatchCurrentEntryChange("push");
 			expect(history.length).toBe(2);
 			expect(actions).toEqual(["PUSH"]);
 
 			history.destroy();
 			window.location.hash = "#/v2-workspace/workspace-c";
-			dispatchHashChange();
+			dispatchCurrentEntryChange("push");
 			expect(history.location.pathname).toBe("/v2-workspace/workspace-b");
 		});
 
@@ -253,7 +281,7 @@ describe("createPersistentHashHistory", () => {
 			actions.length = 0;
 
 			window.location.hash = "#/a";
-			dispatchHashChange();
+			dispatchCurrentEntryChange("traverse");
 			expect(history.location.pathname).toBe("/a");
 			expect(history.length).toBe(3);
 			expect(actions).toEqual(["BACK"]);
@@ -263,7 +291,7 @@ describe("createPersistentHashHistory", () => {
 			});
 
 			window.location.hash = "#/b";
-			dispatchHashChange();
+			dispatchCurrentEntryChange("traverse");
 			expect(history.location.pathname).toBe("/b");
 			expect(history.length).toBe(3);
 			expect(actions).toEqual(["BACK", "FORWARD"]);
@@ -271,6 +299,80 @@ describe("createPersistentHashHistory", () => {
 				entries: ["/", "/a", "/b"],
 				index: 2,
 			});
+		});
+
+		it("preserves the stack for non-adjacent traversal", () => {
+			const history = createPersistentHashHistory();
+			const actions: string[] = [];
+			history.subscribe(({ action }) => actions.push(action.type));
+			history.push("/a");
+			history.push("/b");
+			history.push("/c");
+			history.push("/d");
+			actions.length = 0;
+
+			window.location.hash = "#/a";
+			dispatchCurrentEntryChange("traverse");
+			expect(history.location.pathname).toBe("/a");
+			expect(history.length).toBe(5);
+			expect(actions).toEqual(["GO"]);
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/a", "/b", "/c", "/d"],
+				index: 1,
+			});
+
+			window.location.hash = "#/d";
+			dispatchCurrentEntryChange("traverse");
+			expect(history.location.pathname).toBe("/d");
+			expect(history.length).toBe(5);
+			expect(actions).toEqual(["GO", "GO"]);
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/a", "/b", "/c", "/d"],
+				index: 4,
+			});
+		});
+
+		it("observes pushState and replaceState through the Navigation API", () => {
+			const history = createPersistentHashHistory();
+			const actions: string[] = [];
+			history.subscribe(({ action }) => actions.push(action.type));
+
+			window.location.hash = "#/pushed";
+			dispatchCurrentEntryChange("push");
+			window.location.hash = "#/replaced";
+			dispatchCurrentEntryChange("replace");
+
+			expect(history.location.pathname).toBe("/replaced");
+			expect(history.length).toBe(2);
+			expect(actions).toEqual(["PUSH", "REPLACE"]);
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/replaced"],
+				index: 1,
+			});
+		});
+
+		it("falls back to hashchange when the Navigation API is unavailable", () => {
+			const originalNavigation = window.navigation;
+			Object.defineProperty(window, "navigation", {
+				value: undefined,
+				writable: true,
+				configurable: true,
+			});
+
+			try {
+				const history = createPersistentHashHistory();
+				expect(hashChangeListeners.size).toBe(1);
+				window.location.hash = "#/fallback";
+				dispatchHashChange();
+				expect(history.location.pathname).toBe("/fallback");
+				history.destroy();
+			} finally {
+				Object.defineProperty(window, "navigation", {
+					value: originalNavigation,
+					writable: true,
+					configurable: true,
+				});
+			}
 		});
 
 		it("keeps the router synchronized when a blocker is registered", async () => {
@@ -287,7 +389,7 @@ describe("createPersistentHashHistory", () => {
 				history.block({ blockerFn });
 
 				window.location.hash = "#/v2-workspace/workspace-b";
-				dispatchHashChange();
+				dispatchCurrentEntryChange("push");
 				await Promise.resolve();
 
 				expect(history.location.pathname).toBe("/v2-workspace/workspace-b");
@@ -338,6 +440,46 @@ describe("createPersistentHashHistory", () => {
 			const history = createPersistentHashHistory();
 			expect(history.length).toBe(3);
 			expect(history.location.pathname).toBe("/tasks");
+		});
+
+		it("uses a specific initial hash as a deep link", () => {
+			storage.set(
+				"router-history",
+				JSON.stringify({
+					entries: ["/", "/previous", "/forward"],
+					index: 1,
+				}),
+			);
+			window.location.hash = "#/v2-workspace/deep-linked";
+
+			const history = createPersistentHashHistory();
+
+			expect(window.location.hash).toBe("#/v2-workspace/deep-linked");
+			expect(history.location.pathname).toBe("/v2-workspace/deep-linked");
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/previous", "/v2-workspace/deep-linked"],
+				index: 2,
+			});
+		});
+
+		it("restores an existing deep-linked entry without duplicating it", () => {
+			storage.set(
+				"router-history",
+				JSON.stringify({
+					entries: ["/", "/a", "/b", "/c"],
+					index: 3,
+				}),
+			);
+			window.location.hash = "#/a";
+
+			const history = createPersistentHashHistory();
+
+			expect(history.location.pathname).toBe("/a");
+			expect(history.length).toBe(4);
+			expect(JSON.parse(storage.get("router-history") ?? "{}")).toMatchObject({
+				entries: ["/", "/a", "/b", "/c"],
+				index: 1,
+			});
 		});
 
 		it("falls back to / when localStorage is empty", () => {
