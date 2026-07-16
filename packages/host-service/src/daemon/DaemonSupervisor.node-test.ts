@@ -57,6 +57,20 @@ function testSocketPath(organizationId: string): string {
 	);
 }
 
+function writeProtocolCompatibleRollbackBundle(destination: string): void {
+	const currentBundle = fs.readFileSync(DAEMON_BUNDLE, "utf8");
+	const currentVersionLiteral = `version: "${EXPECTED_DAEMON_VERSION}",`;
+	assert.equal(
+		currentBundle.split(currentVersionLiteral).length - 1,
+		1,
+		"expected exactly one package version literal in the daemon bundle",
+	);
+	fs.writeFileSync(
+		destination,
+		currentBundle.replace(currentVersionLiteral, 'version: "0.2.5",'),
+	);
+}
+
 if (!fs.existsSync(DAEMON_BUNDLE)) {
 	throw new Error(
 		`Daemon bundle missing at ${DAEMON_BUNDLE}. Run \`bun run build:daemon\` in packages/pty-daemon first.`,
@@ -399,7 +413,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	});
 
 	test("rollback successor fails closed and never flushes held input through the legacy owner", async () => {
-		const orgId = "org-update-rollback-successor";
+		const orgId = testOrgId("update-rollback-successor");
 		fs.mkdirSync(PTY_DAEMON_CACHE_DIR, { recursive: true });
 		const runtimeDir = fs.mkdtempSync(
 			path.join(PTY_DAEMON_CACHE_DIR, "host-rollback-successor-"),
@@ -429,10 +443,12 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 			});
 			await client.dispose();
 
-			// The predecessor has already loaded the current bundle. Its self-spawn
-			// path now resolves to the frozen 0.2.5 fixture, simulating an on-disk
-			// rollback between host publication and the committed handoff.
-			fs.copyFileSync(LEGACY_DAEMON_BUNDLE, runtimeScript);
+			// The predecessor has already loaded the current bundle. Keep the
+			// successor's handoff protocol current so it can commit, but make its
+			// reported package version stale. This deterministically reaches the host's
+			// post-commit compatibility gate. The separate legacy tests below exercise
+			// the byte-exact historical 0.2.5 bundle, which predates this protocol.
+			writeProtocolCompatibleRollbackBundle(runtimeScript);
 			let flushedThroughLegacy = false;
 			const update = sup.update(orgId);
 			const held = runDaemonMutation(
@@ -473,7 +489,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 					ambiguousUpdates: Map<
 						string,
 						{
-							successorPid?: number;
+							successor?: { pid: number };
 							lease: {
 								resetAfterForceRestart(error: Error): Promise<void>;
 							};
@@ -482,7 +498,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 				}
 			).ambiguousUpdates.get(orgId);
 			assert.ok(recovery, "expected fail-closed recovery state");
-			successorPid = recovery.successorPid;
+			successorPid = recovery.successor?.pid;
 			assert.ok(successorPid && successorPid > 0);
 			await recovery.lease.resetAfterForceRestart(
 				new Error("test cleanup reset after rollback successor"),
@@ -508,7 +524,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 					ambiguousUpdates: Map<
 						string,
 						{
-							successorPid?: number;
+							successor?: { pid: number };
 							lease: {
 								resetAfterForceRestart(error: Error): Promise<void>;
 							};
@@ -521,7 +537,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 					.resetAfterForceRestart(new Error("rollback test cleanup"))
 					.catch(() => {});
 			}
-			successorPid ??= recovery?.successorPid;
+			successorPid ??= recovery?.successor?.pid;
 			if (successorPid && isAlive(successorPid)) {
 				try {
 					process.kill(successorPid, "SIGTERM");
