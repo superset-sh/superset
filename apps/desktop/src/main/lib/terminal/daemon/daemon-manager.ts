@@ -103,7 +103,7 @@ export class DaemonTerminalManager extends EventEmitter {
 			const wasAlive = session.isAlive;
 			session.isAlive = false;
 			session.pid = null;
-			portManager.unregisterDaemonSession(paneId);
+			portManager.unregisterSession(paneId);
 			this.historyManager.closeHistoryWriter(paneId);
 			if (wasAlive) {
 				this.emit(`disconnect:${paneId}`, reason);
@@ -112,7 +112,7 @@ export class DaemonTerminalManager extends EventEmitter {
 
 		// Unregister daemon-only panes (seeded by reconcileOnStartup)
 		for (const paneId of daemonOnlyPaneIds) {
-			portManager.unregisterDaemonSession(paneId);
+			portManager.unregisterSession(paneId);
 		}
 	}
 
