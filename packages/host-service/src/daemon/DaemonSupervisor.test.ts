@@ -290,7 +290,7 @@ describe("DaemonSupervisor.tryAdopt", () => {
 		}
 	});
 
-	test("rejects and replaces a reachable daemon that cannot answer the version probe", async () => {
+	test("rejects and replaces a pid-alive daemon that stays unreachable for the whole grace window", async () => {
 		const orgId = "org-unprobeable";
 		const fake = await startFakeDaemon({ silent: true });
 		const child = childProcess.spawn(
@@ -317,18 +317,87 @@ describe("DaemonSupervisor.tryAdopt", () => {
 				organizationId: orgId,
 			});
 
-			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			const sup = new DaemonSupervisor({
+				scriptPath: "/nonexistent",
+				// Short grace so the wedged-recovery path doesn't wait the full
+				// production window; a healthy daemon is never force-killed here.
+				adoptionWedgeGraceMs: 300,
+			});
 			const adopted = await invokeTryAdopt(sup, orgId);
 			expect(adopted).toBeNull();
 			expect(
 				loggedEvents.some(
 					(e) =>
 						e.event === "pty_daemon_adopt_rejected" &&
-						e.props.reason === "version_probe_failed" &&
+						e.props.reason === "probe_failed_after_grace" &&
 						e.props.pid === childPid,
 				),
 			).toBe(true);
 			expect(await waitForProcessExit(childPid, 2500)).toBe(true);
+		} finally {
+			await fake.close();
+			if (isProcessAliveForTest(childPid)) {
+				try {
+					process.kill(childPid, "SIGKILL");
+				} catch {
+					// already gone
+				}
+			}
+			if (originalHome !== undefined) {
+				process.env.SUPERSET_HOME_DIR = originalHome;
+			} else {
+				delete process.env.SUPERSET_HOME_DIR;
+			}
+			fs.rmSync(tmpHome, { recursive: true, force: true });
+		}
+	});
+
+	test("adopts a pid-alive daemon that answers the probe without force-killing it", async () => {
+		// Regression guard for SUPER-833: a reachable, probeable daemon that
+		// owns live shells must be adopted, never terminated during adoption.
+		const child = childProcess.spawn(
+			process.execPath,
+			["-e", "setInterval(() => {}, 1000)"],
+			{ stdio: "ignore" },
+		);
+		const childPid = child.pid;
+		expect(typeof childPid).toBe("number");
+		if (!childPid) return;
+		const orgId = "org-healthy-adopt";
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			daemonPid: childPid,
+		});
+		const originalHome = process.env.SUPERSET_HOME_DIR;
+		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
+		process.env.SUPERSET_HOME_DIR = tmpHome;
+		try {
+			writePtyDaemonManifest({
+				pid: childPid,
+				socketPath: fake.socketPath,
+				protocolVersions: [2],
+				startedAt: Date.now(),
+				organizationId: orgId,
+			});
+			const sup = new DaemonSupervisor({
+				scriptPath: "/nonexistent",
+				autoUpdate: false,
+				// Even a short grace must adopt this answering daemon; it only
+				// bounds how long a genuinely wedged one is tolerated.
+				adoptionWedgeGraceMs: 300,
+			});
+			const adopted = (await invokeTryAdopt(
+				sup,
+				orgId,
+			)) as AdoptedForTest | null;
+			expect(adopted).not.toBeNull();
+			expect(adopted?.pid).toBe(childPid);
+			expect(adopted?.runningVersion).toBe("0.1.0");
+			// The live daemon must not have taken the destructive reject path.
+			expect(
+				loggedEvents.some((e) => e.event === "pty_daemon_adopt_rejected"),
+			).toBe(false);
+			expect(isProcessAliveForTest(childPid)).toBe(true);
 		} finally {
 			await fake.close();
 			if (isProcessAliveForTest(childPid)) {
