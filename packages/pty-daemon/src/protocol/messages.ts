@@ -127,6 +127,14 @@ export interface SubscribedMessage {
 	type: "subscribed";
 	id: string;
 	replayBytes: number;
+	/**
+	 * Absolute byte cursor of the first replay byte and the byte immediately
+	 * after the replay. Together these let a reconnecting host distinguish the
+	 * predecessor cut from bytes produced while an earlier successor socket was
+	 * disconnected, even when the bounded ring has evicted old chunks.
+	 */
+	replayStartBytes?: number;
+	replayEndBytes?: number;
 }
 
 export interface ExitMessage {

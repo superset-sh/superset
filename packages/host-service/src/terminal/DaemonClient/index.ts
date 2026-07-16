@@ -2,6 +2,7 @@ export type {
 	DaemonClientOptions,
 	ExitInfo,
 	OpenResult,
+	ReplayBoundary,
 	Signal,
 	SubscribeCallbacks,
 	UpgradePreparedResult,

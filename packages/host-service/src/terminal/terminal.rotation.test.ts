@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import type {
 	DaemonClient,
 	ExitInfo,
+	ReplayBoundary,
 	SubscribeCallbacks,
 } from "./DaemonClient/index.ts";
 import { __makeDaemonPtyForTesting } from "./terminal.ts";
@@ -13,36 +14,89 @@ interface BoundSubscription {
 	disposed: boolean;
 }
 
-function fakeDaemon(options: { throwOnDispose?: boolean } = {}) {
+function fakeDaemon(
+	options: {
+		throwOnDispose?: boolean;
+		replay?: Buffer;
+		replayStartBytes?: number;
+		replayEndBytes?: number;
+	} = {},
+) {
 	const subscriptions: BoundSubscription[] = [];
+	const bind = (
+		id: string,
+		replay: boolean,
+		callbacks: SubscribeCallbacks,
+	): BoundSubscription => {
+		const bound: BoundSubscription = {
+			id,
+			replay,
+			callbacks,
+			disposed: false,
+		};
+		subscriptions.push(bound);
+		return bound;
+	};
+	const dispose = (bound: BoundSubscription) => {
+		bound.disposed = true;
+		if (options.throwOnDispose) {
+			throw new Error("predecessor transport already closed");
+		}
+	};
 	const daemon = {
 		subscribe(
 			id: string,
 			{ replay }: { replay: boolean },
 			callbacks: SubscribeCallbacks,
 		) {
-			const bound: BoundSubscription = {
-				id,
-				replay,
-				callbacks,
-				disposed: false,
-			};
-			subscriptions.push(bound);
-			return () => {
-				bound.disposed = true;
-				if (options.throwOnDispose) {
-					throw new Error("predecessor transport already closed");
-				}
+			const bound = bind(id, replay, callbacks);
+			return () => dispose(bound);
+		},
+		subscribeWithReplayBoundary(
+			id: string,
+			{ replay }: { replay: boolean },
+			callbacks: SubscribeCallbacks,
+		): { unsubscribe: () => void; boundary: Promise<ReplayBoundary> } {
+			const bound = bind(id, replay, callbacks);
+			const bytes = replay
+				? (options.replay ?? Buffer.alloc(0))
+				: Buffer.alloc(0);
+			if (bytes.byteLength > 0) callbacks.onOutput(Buffer.from(bytes));
+			return {
+				unsubscribe: () => dispose(bound),
+				boundary: Promise.resolve({
+					replayBytes: bytes.byteLength,
+					replayStartBytes: options.replayStartBytes ?? 0,
+					replayEndBytes:
+						options.replayEndBytes ??
+						(options.replayStartBytes ?? 0) + bytes.byteLength,
+				}),
 			};
 		},
 	};
-	return { daemon: daemon as unknown as DaemonClient, subscriptions };
+	return {
+		daemon: daemon as unknown as DaemonClient,
+		subscriptions,
+		emitOutput(chunk: Buffer | string) {
+			const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+			for (const subscription of subscriptions) {
+				if (!subscription.disposed) {
+					subscription.callbacks.onOutput(Buffer.from(bytes));
+				}
+			}
+		},
+		emitExit(info: ExitInfo) {
+			for (const subscription of subscriptions) {
+				if (!subscription.disposed) subscription.callbacks.onExit(info);
+			}
+		},
+	};
 }
 
 describe("DaemonPty planned rotation", () => {
-	test("rebinds primary and auxiliary subscribers before held input can flush", () => {
+	test("publishes one staged successor stream to every observer only after commit", async () => {
 		const predecessor = fakeDaemon({ throwOnDispose: true });
-		const successor = fakeDaemon();
+		const successor = fakeDaemon({ replay: Buffer.from("already-rendered") });
 		const pty = __makeDaemonPtyForTesting(
 			predecessor.daemon,
 			"session-rotation",
@@ -68,42 +122,82 @@ describe("DaemonPty planned rotation", () => {
 			false,
 		]);
 
-		// A closed predecessor may make unsubscribe throw. Rotation must still
-		// bind every observer to the proven successor and must not replay the
-		// already-rendered scrollback into xterm a second time.
-		pty.rebindDaemon(successor.daemon);
+		const binding = await pty.stageDaemonRebind(successor.daemon);
+		successor.emitOutput("gap-before-activation-ack");
+		expect(primaryOutput).toEqual([]);
+		expect(auxiliaryOutput).toEqual([]);
+		expect(successor.subscriptions).toHaveLength(1);
+		expect(successor.subscriptions[0]?.replay).toBe(true);
+
+		binding.validate();
+		binding.commit();
 		expect(predecessor.subscriptions.every(({ disposed }) => disposed)).toBe(
 			true,
 		);
-		expect(successor.subscriptions).toHaveLength(3);
-		expect(
-			successor.subscriptions.map(({ id, replay }) => ({ id, replay })),
-		).toEqual([
-			{ id: "session-rotation", replay: false },
-			{ id: "session-rotation", replay: false },
-			{ id: "session-rotation", replay: false },
-		]);
+		expect(primaryOutput).toEqual(["gap-before-activation-ack"]);
+		expect(auxiliaryOutput).toEqual(["gap-before-activation-ack"]);
 
-		for (const subscription of successor.subscriptions) {
-			subscription.callbacks.onOutput(Buffer.from("after-rotation"));
-			subscription.callbacks.onExit({ code: 7, signal: 9 });
-		}
-		expect(primaryOutput).toEqual(["after-rotation"]);
-		expect(auxiliaryOutput).toEqual(["after-rotation"]);
+		successor.emitOutput("after-rotation");
+		successor.emitExit({ code: 7, signal: 9 });
+		expect(primaryOutput).toEqual([
+			"gap-before-activation-ack",
+			"after-rotation",
+		]);
+		expect(auxiliaryOutput).toEqual([
+			"gap-before-activation-ack",
+			"after-rotation",
+		]);
 		expect(primaryExit).toEqual([{ code: 7, signal: 9 }]);
 		expect(auxiliaryExit).toEqual([{ exitCode: 7, signal: 9 }]);
 
-		// Disposers returned before the rotation still own their successor-side
-		// subscriptions; teardown cannot leave hidden observers on an old client.
 		primary.dispose();
 		data.dispose();
+		expect(successor.subscriptions[0]?.disposed).toBe(false);
 		exit.dispose();
-		expect(successor.subscriptions.every(({ disposed }) => disposed)).toBe(
-			true,
-		);
+		expect(successor.subscriptions[0]?.disposed).toBe(true);
 	});
 
-	test("disposeSubscriptions tears down all rebound observers idempotently", () => {
+	test("recovers binary output produced between successor sockets exactly once", async () => {
+		const cut = Buffer.from([0x10, 0x00, 0xff, 0x41]);
+		const betweenSockets = Buffer.from([0x00, 0xfe, 0x7f, 0x42, 0x42]);
+		const predecessor = fakeDaemon();
+		const firstSuccessor = fakeDaemon({
+			replay: cut,
+			replayStartBytes: 0,
+			replayEndBytes: cut.byteLength,
+		});
+		const secondSuccessor = fakeDaemon({
+			replay: Buffer.concat([cut, betweenSockets]),
+			replayStartBytes: 0,
+			replayEndBytes: cut.byteLength + betweenSockets.byteLength,
+		});
+		const pty = __makeDaemonPtyForTesting(predecessor.daemon, "session-retry");
+		const observed: Buffer[] = [];
+		pty.subscribe(
+			{ replay: false },
+			{
+				onOutput: (chunk) => observed.push(Buffer.from(chunk)),
+				onExit: () => {},
+			},
+		);
+
+		const first = await pty.stageDaemonRebind(firstSuccessor.daemon);
+		firstSuccessor.emitOutput(betweenSockets);
+		first.discard({ final: false });
+		expect(observed).toEqual([]);
+
+		const second = await pty.stageDaemonRebind(secondSuccessor.daemon);
+		second.validate();
+		second.commit();
+
+		expect(Buffer.concat(observed)).toEqual(betweenSockets);
+		expect(
+			Buffer.concat(observed).subarray(0, betweenSockets.byteLength),
+		).toEqual(betweenSockets);
+		expect(firstSuccessor.subscriptions[0]?.disposed).toBe(true);
+	});
+
+	test("disposeSubscriptions tears down the aggregate successor observer idempotently", async () => {
 		const predecessor = fakeDaemon();
 		const successor = fakeDaemon();
 		const pty = __makeDaemonPtyForTesting(
@@ -113,13 +207,12 @@ describe("DaemonPty planned rotation", () => {
 
 		pty.onData(() => {});
 		pty.onExit(() => {});
-		pty.rebindDaemon(successor.daemon);
+		const binding = await pty.stageDaemonRebind(successor.daemon);
+		binding.commit();
 		pty.disposeSubscriptions();
 		pty.disposeSubscriptions();
 
-		expect(successor.subscriptions).toHaveLength(2);
-		expect(successor.subscriptions.every(({ disposed }) => disposed)).toBe(
-			true,
-		);
+		expect(successor.subscriptions).toHaveLength(1);
+		expect(successor.subscriptions[0]?.disposed).toBe(true);
 	});
 });

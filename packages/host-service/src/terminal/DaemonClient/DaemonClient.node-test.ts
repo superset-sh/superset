@@ -132,6 +132,10 @@ test("subscribe replay boundary reports exact bytes after output callbacks", asy
 		const replay = Buffer.concat(replayChunks);
 		assert.ok(replay.toString().includes(marker));
 		assert.equal(result.replayBytes, replay.byteLength);
+		assert.equal(
+			result.replayEndBytes,
+			(result.replayStartBytes ?? 0) + replay.byteLength,
+		);
 		assert.ok(
 			events.indexOf("output") >= 0 &&
 				events.indexOf("output") < events.indexOf("boundary"),
@@ -166,6 +170,7 @@ test("subscribe replay boundary reports zero for an empty ring", async () => {
 		unsubscribe();
 
 		assert.equal(result.replayBytes, 0);
+		assert.equal(result.replayStartBytes, result.replayEndBytes);
 		assert.equal(Buffer.concat(chunks).byteLength, 0);
 	} finally {
 		await c.close(id, "SIGTERM").catch(() => {});

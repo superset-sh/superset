@@ -24,9 +24,11 @@ import { portManager } from "../ports/port-manager.ts";
 import type {
 	DaemonClient,
 	Signal as DaemonSignal,
+	ReplayBoundary,
 	SubscribeCallbacks,
 } from "./DaemonClient/index.ts";
 import {
+	type DaemonPlannedRotationBinding,
 	getDaemonClient,
 	onDaemonDisconnect,
 	onDaemonPlannedRotation,
@@ -59,6 +61,10 @@ interface PtyDataDisposer {
 	dispose(): void;
 }
 
+interface DaemonPtyReplaySubscription extends PtyDataDisposer {
+	boundary: Promise<ReplayBoundary>;
+}
+
 export interface DaemonPty {
 	pid: number;
 	write(data: string): Promise<void>;
@@ -68,7 +74,13 @@ export interface DaemonPty {
 		opts: { replay: boolean },
 		callbacks: SubscribeCallbacks,
 	): PtyDataDisposer;
-	rebindDaemon(daemon: DaemonClient): void;
+	subscribeWithReplayBoundary(
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): DaemonPtyReplaySubscription;
+	stageDaemonRebind(
+		daemon: DaemonClient,
+	): Promise<DaemonPlannedRotationBinding>;
 	disposeSubscriptions(): void;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
@@ -89,6 +101,8 @@ function makeDaemonPty(
 
 	let currentDaemon = daemon;
 	const subscriptions = new Set<SubscriptionEntry>();
+	let rotationBaseline: { replay: Buffer; endBytes: number | null } | undefined;
+	const MAX_ROTATION_STAGING_BYTES = 8 * 1024 * 1024;
 
 	const bindSubscription = (
 		entry: SubscriptionEntry,
@@ -101,28 +115,285 @@ function makeDaemonPty(
 		);
 	};
 
-	const subscribe = (
-		opts: { replay: boolean },
-		callbacks: SubscribeCallbacks,
-	): PtyDataDisposer => {
+	const disposeEntry = (entry: SubscriptionEntry): void => {
+		if (entry.disposed) return;
+		entry.disposed = true;
+		subscriptions.delete(entry);
+		try {
+			entry.unsubscribe?.();
+		} catch {
+			// The prior transport may already be closed during rotation.
+		}
+		entry.unsubscribe = null;
+	};
+
+	const createEntry = (callbacks: SubscribeCallbacks): SubscriptionEntry => {
 		const entry: SubscriptionEntry = {
 			callbacks,
 			unsubscribe: null,
 			disposed: false,
 		};
-		bindSubscription(entry, opts.replay);
 		subscriptions.add(entry);
+		return entry;
+	};
+
+	const subscribe = (
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): PtyDataDisposer => {
+		const entry = createEntry(callbacks);
+		try {
+			bindSubscription(entry, opts.replay);
+		} catch (error) {
+			disposeEntry(entry);
+			throw error;
+		}
 		return {
-			dispose() {
-				if (entry.disposed) return;
-				entry.disposed = true;
-				subscriptions.delete(entry);
-				try {
-					entry.unsubscribe?.();
-				} catch {
-					// The prior transport may already be closed during rotation.
+			dispose: () => disposeEntry(entry),
+		};
+	};
+
+	const subscribeWithReplayBoundary = (
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): DaemonPtyReplaySubscription => {
+		const entry = createEntry(callbacks);
+		try {
+			const subscription = currentDaemon.subscribeWithReplayBoundary(
+				sessionId,
+				opts,
+				callbacks,
+			);
+			entry.unsubscribe = subscription.unsubscribe;
+			return {
+				dispose: () => disposeEntry(entry),
+				boundary: subscription.boundary,
+			};
+		} catch (error) {
+			disposeEntry(entry);
+			throw error;
+		}
+	};
+
+	type StagedEvent =
+		| { type: "output"; chunk: Buffer }
+		| { type: "exit"; info: Parameters<SubscribeCallbacks["onExit"]>[0] };
+
+	const trimOutputPrefix = (events: StagedEvent[], byteCount: number): void => {
+		let remaining = byteCount;
+		for (let index = 0; index < events.length && remaining > 0; ) {
+			const event = events[index];
+			if (!event || event.type !== "output") {
+				index += 1;
+				continue;
+			}
+			if (event.chunk.byteLength <= remaining) {
+				remaining -= event.chunk.byteLength;
+				events.splice(index, 1);
+				continue;
+			}
+			event.chunk = event.chunk.subarray(remaining);
+			remaining = 0;
+		}
+		if (remaining > 0) {
+			throw new Error(
+				`terminal ${sessionId} replay boundary exceeded staged output by ${remaining} byte(s)`,
+			);
+		}
+	};
+
+	const legacyReplayOverlap = (baseline: Buffer, replay: Buffer): number => {
+		const max = Math.min(baseline.byteLength, replay.byteLength);
+		for (let length = max; length > 0; length--) {
+			if (
+				baseline
+					.subarray(baseline.byteLength - length)
+					.equals(replay.subarray(0, length))
+			) {
+				return length;
+			}
+		}
+		return 0;
+	};
+
+	const dispatchEvent = (
+		entry: SubscriptionEntry,
+		event: StagedEvent,
+	): void => {
+		if (entry.disposed) return;
+		try {
+			if (event.type === "output") entry.callbacks.onOutput(event.chunk);
+			else entry.callbacks.onExit(event.info);
+		} catch (error) {
+			console.error(
+				`[terminal] daemon subscriber for ${sessionId} threw during rotation:`,
+				error,
+			);
+		}
+	};
+
+	const stageDaemonRebind = async (
+		nextDaemon: DaemonClient,
+	): Promise<DaemonPlannedRotationBinding> => {
+		if (nextDaemon === currentDaemon) {
+			return {
+				validate: () => {},
+				commit: () => {},
+				discard: () => {},
+			};
+		}
+
+		const stagedEvents: StagedEvent[] = [];
+		let stagedOutputBytes = 0;
+		let stagingError: Error | null = null;
+		let committed = false;
+		let candidateUnsubscribe: (() => void) | null = null;
+		const committedEntries = new Set<SubscriptionEntry>();
+
+		const stageEvent = (event: StagedEvent): void => {
+			if (committed) {
+				for (const entry of committedEntries) dispatchEvent(entry, event);
+				return;
+			}
+			stagedEvents.push(event);
+			if (event.type === "output") {
+				stagedOutputBytes += event.chunk.byteLength;
+				if (stagedOutputBytes > MAX_ROTATION_STAGING_BYTES) {
+					stagingError = new Error(
+						`terminal ${sessionId} produced more than ${MAX_ROTATION_STAGING_BYTES} staged byte(s) during daemon rotation`,
+					);
 				}
-				entry.unsubscribe = null;
+			}
+		};
+
+		let boundary: ReplayBoundary | null = null;
+		try {
+			const candidate = nextDaemon.subscribeWithReplayBoundary(
+				sessionId,
+				{ replay: true },
+				{
+					onOutput: (chunk) =>
+						stageEvent({ type: "output", chunk: Buffer.from(chunk) }),
+					onExit: (info) => stageEvent({ type: "exit", info: { ...info } }),
+				},
+			);
+			candidateUnsubscribe = candidate.unsubscribe;
+			boundary = await candidate.boundary;
+		} catch (error) {
+			stagingError = error instanceof Error ? error : new Error(String(error));
+		}
+
+		if (boundary) {
+			const replayBytes = boundary.replayBytes ?? stagedOutputBytes;
+			if (replayBytes > stagedOutputBytes) {
+				stagingError = new Error(
+					`terminal ${sessionId} received ${stagedOutputBytes} staged byte(s) before a ${replayBytes}-byte replay boundary`,
+				);
+			}
+			const replay = Buffer.concat(
+				stagedEvents
+					.filter(
+						(event): event is Extract<StagedEvent, { type: "output" }> =>
+							event.type === "output",
+					)
+					.map((event) => event.chunk),
+			).subarray(0, replayBytes);
+
+			let skipReplayBytes: number;
+			if (!rotationBaseline) {
+				rotationBaseline = {
+					replay: Buffer.from(replay),
+					endBytes: boundary.replayEndBytes ?? null,
+				};
+				skipReplayBytes = replayBytes;
+			} else if (
+				rotationBaseline.endBytes !== null &&
+				boundary.replayStartBytes != null &&
+				boundary.replayEndBytes != null
+			) {
+				skipReplayBytes = rotationBaseline.endBytes - boundary.replayStartBytes;
+				if (
+					skipReplayBytes < 0 ||
+					skipReplayBytes > replayBytes ||
+					rotationBaseline.endBytes > boundary.replayEndBytes
+				) {
+					stagingError = new Error(
+						`terminal ${sessionId} lost its daemon replay cut (${rotationBaseline.endBytes} not within ${boundary.replayStartBytes}..${boundary.replayEndBytes})`,
+					);
+				}
+			} else {
+				// Compatibility only. New daemons expose absolute cursors; older ACKs
+				// can still recover the common append-only case by matching the exact
+				// predecessor suffix against the new replay prefix.
+				skipReplayBytes = legacyReplayOverlap(rotationBaseline.replay, replay);
+			}
+
+			try {
+				trimOutputPrefix(stagedEvents, Math.max(0, skipReplayBytes));
+				stagedOutputBytes -= Math.max(0, skipReplayBytes);
+			} catch (error) {
+				stagingError =
+					error instanceof Error ? error : new Error(String(error));
+			}
+		}
+
+		const validate = (): void => {
+			if (stagingError) throw stagingError;
+		};
+
+		return {
+			validate,
+			commit() {
+				validate();
+				for (const entry of subscriptions) {
+					if (entry.disposed) continue;
+					try {
+						entry.unsubscribe?.();
+					} catch {
+						// Expected when the predecessor socket has already closed.
+					}
+					entry.unsubscribe = null;
+					committedEntries.add(entry);
+				}
+				currentDaemon = nextDaemon;
+				committed = true;
+				for (const entry of committedEntries) {
+					entry.unsubscribe = () => {
+						committedEntries.delete(entry);
+						if (committedEntries.size === 0 && candidateUnsubscribe) {
+							const unsubscribe = candidateUnsubscribe;
+							candidateUnsubscribe = null;
+							unsubscribe();
+						}
+					};
+				}
+				if (committedEntries.size === 0 && candidateUnsubscribe) {
+					const unsubscribe = candidateUnsubscribe;
+					candidateUnsubscribe = null;
+					try {
+						unsubscribe();
+					} catch {
+						// No live host observers remain; candidate cleanup is best-effort.
+					}
+				}
+				rotationBaseline = undefined;
+				for (const event of stagedEvents.splice(0)) {
+					for (const entry of committedEntries) dispatchEvent(entry, event);
+				}
+			},
+			discard({ final }) {
+				if (committed) return;
+				if (candidateUnsubscribe) {
+					const unsubscribe = candidateUnsubscribe;
+					candidateUnsubscribe = null;
+					try {
+						unsubscribe();
+					} catch {
+						// The candidate transport may already be closed.
+					}
+				}
+				stagedEvents.length = 0;
+				if (final) rotationBaseline = undefined;
 			},
 		};
 	};
@@ -157,40 +428,15 @@ function makeDaemonPty(
 			});
 		},
 		subscribe,
-		rebindDaemon(nextDaemon) {
-			if (nextDaemon === currentDaemon) return;
-			for (const entry of subscriptions) {
-				try {
-					entry.unsubscribe?.();
-				} catch {
-					// Expected when the predecessor socket has already closed.
-				}
-				entry.unsubscribe = null;
-			}
-			currentDaemon = nextDaemon;
-			// Never replay the whole ring during a live rotation: existing xterms
-			// already contain it. A handoff successor keeps each adopted PTY reader
-			// staged until its first subscribe frame, so independently-produced output
-			// remains in the kernel across the transport gap. These subscribe frames
-			// are written before activate-adopted releases orphan readers and before
-			// the gate flushes held input on the same socket, so output caused by that
-			// input is observed without a reconnect gap.
-			for (const entry of subscriptions) {
-				if (!entry.disposed) bindSubscription(entry, false);
-			}
-		},
+		subscribeWithReplayBoundary,
+		stageDaemonRebind,
 		disposeSubscriptions() {
 			for (const entry of [...subscriptions]) {
 				if (entry.disposed) continue;
-				entry.disposed = true;
-				try {
-					entry.unsubscribe?.();
-				} catch {
-					// best-effort during disconnect/dispose
-				}
-				entry.unsubscribe = null;
+				disposeEntry(entry);
 			}
 			subscriptions.clear();
+			rotationBaseline = undefined;
 		},
 		onData(cb) {
 			// StringDecoder buffers partial UTF-8 sequences across chunks.
@@ -410,10 +656,33 @@ const sessionCreations = new Map<
 // A successful fd handoff preserves the PTYs, so keep host session objects and
 // renderer WebSockets intact. Rebind every primary and auxiliary subscription
 // before the mutation gate flushes held input to this successor.
-onDaemonPlannedRotation((daemon) => {
-	for (const session of sessions.values()) {
-		session.pty.rebindDaemon(daemon);
+onDaemonPlannedRotation(async (daemon) => {
+	const bindings: DaemonPlannedRotationBinding[] = [];
+	try {
+		for (const session of sessions.values()) {
+			bindings.push(await session.pty.stageDaemonRebind(daemon));
+		}
+	} catch (error) {
+		for (const binding of bindings) {
+			try {
+				binding.discard({ final: true });
+			} catch {
+				// Best-effort rollback of already-staged sessions.
+			}
+		}
+		throw error;
 	}
+	return {
+		validate() {
+			for (const binding of bindings) binding.validate();
+		},
+		commit() {
+			for (const binding of bindings) binding.commit();
+		},
+		discard(options) {
+			for (const binding of bindings) binding.discard(options);
+		},
+	};
 });
 
 // When the daemon disconnects, close every WS socket so the renderer's
@@ -1528,12 +1797,11 @@ async function createTerminalSessionInternalDirect({
 			// survived the host restart, but `attached.full` lets it atomically
 			// replace that baseline; suppressing replay would lose bytes emitted
 			// while the WebSocket was down.
-			const subscription = daemon.subscribeWithReplayBoundary(
-				terminalId,
+			const subscription = pty.subscribeWithReplayBoundary(
 				{ replay: true },
 				daemonCallbacks,
 			);
-			session.unsubscribeDaemon = subscription.unsubscribe;
+			session.unsubscribeDaemon = () => subscription.dispose();
 			session.attachReadyPromise = subscription.boundary
 				.then(({ replayBytes }) => {
 					const effectiveReplayBytes = replayBytes ?? session.bufferBytes;
@@ -1561,11 +1829,8 @@ async function createTerminalSessionInternalDirect({
 				});
 			await session.attachReadyPromise;
 		} else {
-			session.unsubscribeDaemon = daemon.subscribe(
-				terminalId,
-				{ replay: false },
-				daemonCallbacks,
-			);
+			const subscription = pty.subscribe({ replay: false }, daemonCallbacks);
+			session.unsubscribeDaemon = () => subscription.dispose();
 		}
 	} catch (error) {
 		try {

@@ -513,6 +513,111 @@ describe("staged successor output", () => {
 		});
 	}
 
+	test("bounded recovery drains staged readers after host loss and preserves the replay=false suffix", async () => {
+		const socketPath = path.join(
+			os.tmpdir(),
+			`pty-daemon-staged-recovery-${process.pid}-${Math.random().toString(36).slice(2)}.sock`,
+		);
+		const pending: Buffer[] = [];
+		const dataCallbacks: PtyOnData[] = [];
+		const exitCallbacks: PtyOnExit[] = [];
+		const stagedPty: Pty & { emit(data: Buffer): void } = {
+			pid: 82_050,
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+			write() {},
+			resize() {},
+			kill() {},
+			onData(callback) {
+				dataCallbacks.push(callback);
+				for (const chunk of pending.splice(0)) callback(chunk);
+			},
+			onExit(callback) {
+				exitCallbacks.push(callback);
+			},
+			async prepareForHandoff() {},
+			pauseOutputForHandoff() {},
+			drainOutputForHandoff: async () => [],
+			sealOutputForHandoff: async () => [],
+			restoreAfterFailedHandoff() {},
+			cancelHandoff() {},
+			getMasterFd: () => 43,
+			emit(data) {
+				if (dataCallbacks.length === 0) {
+					pending.push(Buffer.from(data));
+					return;
+				}
+				for (const callback of dataCallbacks) callback(Buffer.from(data));
+			},
+		};
+		const server = new Server({
+			socketPath,
+			daemonVersion: "test-staged-recovery",
+			adoptPty: () => stagedPty,
+			stagedRecoveryTimeoutMs: 20,
+		});
+		const predecessorCut = Buffer.from([0x41, 0x42]);
+		const strandedSuffix = [
+			Buffer.from([0x00, 0xff, 0xc3]),
+			Buffer.from([0x28, 0x7f]),
+		];
+		server.adoptSnapshot({
+			version: SNAPSHOT_VERSION,
+			writtenAt: Date.now(),
+			sessions: [
+				{
+					id: "staged-recovery",
+					pid: stagedPty.pid,
+					meta: stagedPty.meta,
+					fdIndex: 4,
+					buffer: new Uint8Array(predecessorCut),
+				},
+			],
+		});
+		for (const chunk of strandedSuffix) stagedPty.emit(chunk);
+		await server.listen();
+		server.scheduleAdoptedSessionRecovery();
+
+		// Model the supervisor/host reaching the successor and then disappearing
+		// before it can rebind or send activate-adopted.
+		const abandoned = await connectAndHello(socketPath);
+		await abandoned.close();
+		await waitUntil(() => dataCallbacks.length === 1);
+
+		const client = await connectAndHello(socketPath);
+		try {
+			client.send({
+				type: "subscribe",
+				id: "staged-recovery",
+				replay: false,
+			});
+			const recovered = await client.waitFor(
+				(message) =>
+					message.type === "output" && message.id === "staged-recovery",
+			);
+			expect(Buffer.from(payloadOf(recovered) ?? [])).toEqual(
+				Buffer.concat(strandedSuffix),
+			);
+
+			const live = client.waitForNext(
+				(message) =>
+					message.type === "output" && message.id === "staged-recovery",
+			);
+			const afterRecovery = Buffer.from([0x55, 0xaa]);
+			stagedPty.emit(afterRecovery);
+			expect(Buffer.from(payloadOf(await live) ?? [])).toEqual(afterRecovery);
+
+			const activated = client.waitForNext(
+				(message) => message.type === "adopted-activated",
+			);
+			client.send({ type: "activate-adopted" });
+			expect(await activated).toMatchObject({ count: 0 });
+		} finally {
+			await client.close();
+			await server.close();
+		}
+		expect(exitCallbacks).toHaveLength(1);
+	});
+
 	test("explicit release follows subscription rebind and only activates orphan readers", async () => {
 		const socketPath = path.join(
 			os.tmpdir(),

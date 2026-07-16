@@ -79,6 +79,7 @@ describe("handoff snapshot", () => {
 		});
 		const buf = snapshot.sessions[0]?.buffer ?? new Uint8Array(0);
 		expect(Buffer.from(buf).toString("utf8")).toBe("hello world");
+		expect(snapshot.sessions[0]?.outputBytes).toBe(11);
 	});
 
 	test("write + read round-trips", () => {

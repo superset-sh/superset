@@ -164,6 +164,8 @@ export function handleSubscribe(
 		type: "subscribed",
 		id: msg.id,
 		replayBytes,
+		replayStartBytes: session.outputBytes - replayBytes,
+		replayEndBytes: session.outputBytes,
 	};
 	conn.send(subscribed);
 }

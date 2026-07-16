@@ -205,6 +205,8 @@ describe("handlers", () => {
 			type: "subscribed",
 			id: "s0",
 			replayBytes: 11,
+			replayStartBytes: 0,
+			replayEndBytes: 11,
 		});
 	});
 
@@ -224,7 +226,13 @@ describe("handlers", () => {
 		expect(conn.subscriptions.has("s0")).toBe(true);
 		expect(conn.sent).toEqual([
 			{
-				message: { type: "subscribed", id: "s0", replayBytes: 0 },
+				message: {
+					type: "subscribed",
+					id: "s0",
+					replayBytes: 0,
+					replayStartBytes: 11,
+					replayEndBytes: 11,
+				},
 				payload: null,
 			},
 		]);
@@ -243,7 +251,13 @@ describe("handlers", () => {
 
 		expect(conn.sent).toEqual([
 			{
-				message: { type: "subscribed", id: "s0", replayBytes: 0 },
+				message: {
+					type: "subscribed",
+					id: "s0",
+					replayBytes: 0,
+					replayStartBytes: 0,
+					replayEndBytes: 0,
+				},
 				payload: null,
 			},
 		]);

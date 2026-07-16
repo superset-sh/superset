@@ -60,6 +60,7 @@ describe("SessionStore", () => {
 		store.appendOutput(session, Buffer.from(" world"));
 		expect(store.snapshotBuffer(session).toString()).toBe("hello world");
 		expect(session.bufferBytes).toBe(11);
+		expect(session.outputBytes).toBe(11);
 	});
 
 	test("appendOutput evicts oldest chunks when exceeding cap", () => {
@@ -71,6 +72,7 @@ describe("SessionStore", () => {
 		const snap = store.snapshotBuffer(session).toString();
 		expect(snap).toBe("BBBBCCCCCC");
 		expect(session.bufferBytes).toBe(10);
+		expect(session.outputBytes).toBe(14);
 	});
 
 	test("appendOutput keeps buffer within cap across many writes", () => {

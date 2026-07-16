@@ -35,6 +35,7 @@ let cached: DaemonClient | null = null;
 let connecting: Promise<DaemonClient> | null = null;
 let handoffClient: DaemonClient | null = null;
 let handoffDisconnectSuppressed = false;
+let plannedRotationActive = false;
 
 /**
  * Subscribers notified whenever the active DaemonClient disconnects.
@@ -42,8 +43,20 @@ let handoffDisconnectSuppressed = false;
  * state — without it, sockets stay open and input/resize silently fails.
  */
 const disconnectListeners = new Set<(err?: Error) => void>();
+
+export interface DaemonPlannedRotationBinding {
+	/** Pure preflight; every listener is validated before any listener commits. */
+	validate(): void;
+	/** Publish the candidate transport and flush its staged events exactly once. */
+	commit(): void;
+	/** Drop the candidate. A retry preserves its baseline; a final drop clears it. */
+	discard(options: { final: boolean }): void;
+}
+
 const plannedRotationListeners = new Set<
-	(client: DaemonClient) => void | Promise<void>
+	(
+		client: DaemonClient,
+	) => DaemonPlannedRotationBinding | Promise<DaemonPlannedRotationBinding>
 >();
 const ADOPTED_ACTIVATION_MAX_ATTEMPTS = 2;
 
@@ -71,7 +84,9 @@ export function onDaemonDisconnect(cb: (err?: Error) => void): () => void {
  * mutation gate flushes held input to the successor.
  */
 export function onDaemonPlannedRotation(
-	cb: (client: DaemonClient) => void | Promise<void>,
+	cb: (
+		client: DaemonClient,
+	) => DaemonPlannedRotationBinding | Promise<DaemonPlannedRotationBinding>,
 ): () => void {
 	plannedRotationListeners.add(cb);
 	return () => {
@@ -79,11 +94,24 @@ export function onDaemonPlannedRotation(
 	};
 }
 
-async function rebindPlannedRotationListeners(
+async function stagePlannedRotationListeners(
 	successor: DaemonClient,
-): Promise<void> {
-	for (const listener of plannedRotationListeners) {
-		await listener(successor);
+): Promise<DaemonPlannedRotationBinding[]> {
+	const bindings: DaemonPlannedRotationBinding[] = [];
+	try {
+		for (const listener of plannedRotationListeners) {
+			bindings.push(await listener(successor));
+		}
+		return bindings;
+	} catch (error) {
+		for (const binding of bindings) {
+			try {
+				binding.discard({ final: true });
+			} catch {
+				// Best-effort rollback of listeners that staged successfully.
+			}
+		}
+		throw error;
 	}
 }
 
@@ -93,17 +121,32 @@ async function activateAdoptedWithRetry(
 	let successor = initialSuccessor;
 	let lastError: unknown;
 	for (let attempt = 1; attempt <= ADOPTED_ACTIVATION_MAX_ATTEMPTS; attempt++) {
+		let bindings: DaemonPlannedRotationBinding[] = [];
 		try {
+			bindings = await stagePlannedRotationListeners(successor);
+			for (const binding of bindings) binding.validate();
 			await successor.activateAdopted();
+			// Output can arrive while activate-adopted is awaiting its ACK. Recheck
+			// caps/invariants before atomically publishing any candidate.
+			for (const binding of bindings) binding.validate();
+			for (const binding of bindings) binding.commit();
 			return;
 		} catch (error) {
 			lastError = error;
-			if (attempt === ADOPTED_ACTIVATION_MAX_ATTEMPTS) break;
+			const final = attempt === ADOPTED_ACTIVATION_MAX_ATTEMPTS;
+			for (const binding of bindings) {
+				try {
+					binding.discard({ final });
+				} catch {
+					// Candidate teardown is best-effort after a transport failure.
+				}
+			}
+			if (final) break;
 			if (!successor.isConnected) {
-				// A lost socket also lost its subscriptions. Reconnect and bind every
-				// surviving host observer again before the idempotent release retry.
+				// A lost candidate never reached real terminal observers. Reconnect and
+				// request replay again; each binding retains the original byte cursor so
+				// the replacement can recover the socket-gap suffix exactly once.
 				successor = await getDaemonClient();
-				await rebindPlannedRotationListeners(successor);
 			}
 		}
 	}
@@ -146,10 +189,12 @@ export function getDaemonClient(): Promise<DaemonClient> {
 		client.onDisconnect((err) => {
 			const wasCached = cached === client;
 			if (wasCached) cached = null;
-			if (handoffClient === client) {
+			if (handoffClient === client || (plannedRotationActive && wasCached)) {
 				// The supervisor owns this transition. Suppress the generic failure
-				// path until it has proven either successor ownership or a safe abort;
-				// otherwise terminal.ts can clear/reconnect halfway through handoff.
+				// path until it has proven either successor ownership plus activation,
+				// or a safe abort. This includes successor sockets lost during the
+				// activate-adopted retry window; clearing host sessions there would race
+				// the rebind that the retry performs on its replacement socket.
 				handoffDisconnectSuppressed = true;
 				return;
 			}
@@ -209,6 +254,7 @@ export async function disposeDaemonClient(): Promise<void> {
 	connecting = null;
 	handoffClient = null;
 	handoffDisconnectSuppressed = false;
+	plannedRotationActive = false;
 	if (c) await c.dispose();
 	if (inFlight) {
 		const client = await inFlight.catch(() => null);
@@ -223,11 +269,14 @@ registerDaemonMutationTransportHooks({
 		const client =
 			cached ?? (inFlight ? await inFlight.catch(() => null) : null);
 		if (!client?.isConnected) return;
-		// list() is a request/reply on the same socket used by input/resize.
-		// Its reply proves every earlier fire-and-forget frame was consumed.
-		await client.list();
 		handoffClient = client;
 		handoffDisconnectSuppressed = false;
+		plannedRotationActive = true;
+		// list() is a request/reply on the same socket used by input/resize.
+		// Its reply proves every earlier fire-and-forget frame was consumed. Mark
+		// the lifecycle before awaiting it so a close racing the reply is already
+		// classified as part of this controlled rotation.
+		await client.list();
 	},
 	invalidateAfterSuccess: async (organizationId) => {
 		if (organizationId !== getOrganizationId()) return;
@@ -238,21 +287,24 @@ registerDaemonMutationTransportHooks({
 		// callback remains classified as a planned rotation.
 		if (predecessor) await predecessor.dispose().catch(() => {});
 		handoffClient = null;
-		handoffDisconnectSuppressed = false;
 
 		// Supervisor has already persisted and published the proven successor.
-		// Connect now and rebind every host subscription before release() sends
-		// any held input. This keeps live WebSockets attached and guarantees the
-		// successor processes subscribe frames before subsequent input frames on
-		// this same ordered socket.
+		// Connect now, stage every host subscription, release adopted readers, then
+		// atomically publish the candidate before release() sends held input.
 		const successor = await getDaemonClient();
-		await rebindPlannedRotationListeners(successor);
-		// Subscribe frames above and this release share one ordered Unix socket.
-		// Known terminal sessions therefore activate with a subscriber first; only
-		// orphan/hidden readers are released without one. The op is idempotent, so
-		// an ack loss can retry safely; a socket loss rebinds observers first. Await
-		// the ack before the mutation gate flushes held input.
-		await activateAdoptedWithRetry(successor);
+		try {
+			await activateAdoptedWithRetry(successor);
+			plannedRotationActive = false;
+			handoffDisconnectSuppressed = false;
+		} catch (error) {
+			plannedRotationActive = false;
+			handoffDisconnectSuppressed = false;
+			const failure = error instanceof Error ? error : new Error(String(error));
+			// Ownership already committed to the successor. If transactional rebind
+			// cannot complete, fall back to the ordinary renderer reconnect path once.
+			notifyDisconnectListeners(failure);
+			throw failure;
+		}
 	},
 	resumeAfterAbort: async (organizationId) => {
 		if (organizationId !== getOrganizationId()) return;
@@ -261,6 +313,7 @@ registerDaemonMutationTransportHooks({
 			client !== null && (handoffDisconnectSuppressed || !client.isConnected);
 		handoffClient = null;
 		handoffDisconnectSuppressed = false;
+		plannedRotationActive = false;
 		if (disconnected) {
 			// A proven-safe abort normally leaves the predecessor connected. If it
 			// did disconnect anyway, replay the suppressed generic recovery once.
@@ -278,6 +331,7 @@ registerDaemonMutationTransportHooks({
 		connecting = null;
 		handoffClient = null;
 		handoffDisconnectSuppressed = false;
+		plannedRotationActive = false;
 		if (predecessor) await predecessor.dispose().catch(() => {});
 		if (current && current !== predecessor) {
 			await current.dispose().catch(() => {});

@@ -43,12 +43,15 @@ export interface ServerOptions {
 	spawnPty?: HandlerCtx["spawnPty"];
 	/** Override inherited-fd adoption in focused handoff tests. */
 	adoptPty?: typeof adoptFromFd;
+	/** @internal Short timeout override for deterministic staged-recovery tests. */
+	stagedRecoveryTimeoutMs?: number;
 	/** @internal Process-boundary overrides used only by focused handoff tests. */
 	handoffRuntime?: Partial<HandoffRuntime>;
 }
 
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 const HANDOFF_CHILD_EXIT_TIMEOUT_MS = 2_000;
+const HANDOFF_STAGED_RECOVERY_TIMEOUT_MS = 30_000;
 
 type HandoffResult =
 	| { ok: true; successorPid: number }
@@ -85,6 +88,11 @@ interface ConnState extends Conn {
 	negotiated: number | null;
 }
 
+interface StagedRecoveryOutput {
+	chunks: Buffer[];
+	bytes: number;
+}
+
 export class Server {
 	private readonly server: net.Server;
 	private readonly store: SessionStore;
@@ -92,6 +100,11 @@ export class Server {
 	private readonly opts: ServerOptions;
 	private readonly handoffRuntime: HandoffRuntime;
 	private readonly stagedSessions = new Set<Session>();
+	private readonly stagedRecoveryOutput = new Map<
+		string,
+		StagedRecoveryOutput
+	>();
+	private stagedRecoveryTimer: NodeJS.Timeout | null = null;
 	private boundSocketPath: string | null = null;
 	private listenerClosePromise: Promise<void> | null = null;
 	private upgradePhase: UpgradePhase = "idle";
@@ -141,6 +154,7 @@ export class Server {
 		unlinkBestEffort(this.opts.socketPath);
 		fs.renameSync(stagingSocketPath, this.opts.socketPath);
 		this.boundSocketPath = this.opts.socketPath;
+		this.scheduleAdoptedSessionRecovery();
 	}
 
 	/**
@@ -225,6 +239,7 @@ export class Server {
 				session.buffer = [buf];
 				session.bufferBytes = buf.byteLength;
 			}
+			session.outputBytes = s.outputBytes ?? s.buffer.byteLength;
 			// Do not attach a data listener before commit. The predecessor still
 			// owns output until its IPC channel disconnects; a staged successor
 			// must leave bytes in the kernel PTY buffer on every abort path.
@@ -257,6 +272,8 @@ export class Server {
 			);
 			session.buffer = buffer.byteLength > 0 ? [buffer] : [];
 			session.bufferBytes = buffer.byteLength;
+			session.outputBytes =
+				serialized.outputBytes ?? serialized.buffer.byteLength;
 		}
 	}
 
@@ -267,6 +284,26 @@ export class Server {
 			this.activateStagedSession(session.id);
 		}
 		return count;
+	}
+
+	/**
+	 * A committed successor cannot leave inherited PTY readers paused forever if
+	 * host-service dies before its ordered subscribe/activate sequence. The
+	 * recovery cut contains only bytes read after this fallback activates, so a
+	 * late live-rotation subscribe (`replay:false`) receives the stranded suffix
+	 * without replaying the predecessor snapshot that its renderer already has.
+	 */
+	scheduleAdoptedSessionRecovery(): void {
+		if (this.stagedSessions.size === 0 || this.stagedRecoveryTimer) return;
+		const timeoutMs =
+			this.opts.stagedRecoveryTimeoutMs ?? HANDOFF_STAGED_RECOVERY_TIMEOUT_MS;
+		this.stagedRecoveryTimer = setTimeout(() => {
+			this.stagedRecoveryTimer = null;
+			for (const session of [...this.stagedSessions]) {
+				this.activateStagedSession(session.id, true);
+			}
+		}, timeoutMs);
+		this.stagedRecoveryTimer.unref();
 	}
 
 	/**
@@ -641,6 +678,10 @@ export class Server {
 	): Promise<void> {
 		const killSessions = opts.killSessions ?? true;
 		const unlinkSocket = opts.unlinkSocket ?? true;
+		if (this.stagedRecoveryTimer) {
+			clearTimeout(this.stagedRecoveryTimer);
+			this.stagedRecoveryTimer = null;
+		}
 		for (const c of this.conns) c.socket.destroy();
 		this.conns.clear();
 		if (killSessions) {
@@ -787,6 +828,7 @@ export class Server {
 				// before attaching the successor reader. Any bytes queued in the PTY
 				// kernel buffer then arrive as live output exactly once.
 				handleSubscribe(ctx, conn, msg);
+				this.sendStagedRecoveryOutput(conn, msg.id, msg.replay);
 				this.activateStagedSession(msg.id);
 				return;
 			}
@@ -854,10 +896,39 @@ export class Server {
 		return this.upgradeDirty || this.mutationEpoch !== startEpoch;
 	}
 
-	private activateStagedSession(id: string): void {
+	private activateStagedSession(id: string, recoverOutput = false): void {
 		const session = this.store.get(id);
 		if (!session || !this.stagedSessions.delete(session)) return;
+		if (recoverOutput) {
+			this.stagedRecoveryOutput.set(id, {
+				chunks: [],
+				bytes: 0,
+			});
+		}
 		this.wireSession(session);
+		if (this.stagedSessions.size === 0 && this.stagedRecoveryTimer) {
+			clearTimeout(this.stagedRecoveryTimer);
+			this.stagedRecoveryTimer = null;
+		}
+	}
+
+	private sendStagedRecoveryOutput(
+		conn: ConnState,
+		id: string,
+		replay: boolean,
+	): void {
+		const recovery = this.stagedRecoveryOutput.get(id);
+		if (!recovery) return;
+		// The connection is already registered as a subscriber. Delete the bounded
+		// cut before sending it; output arriving afterward is broadcast live and the
+		// recovery buffer cannot linger for the lifetime of the shell.
+		this.stagedRecoveryOutput.delete(id);
+		// replay=true already emitted the daemon's full ring, including this cut.
+		if (replay || recovery.bytes === 0) return;
+		conn.send(
+			{ type: "output", id },
+			Buffer.concat(recovery.chunks, recovery.bytes),
+		);
 	}
 
 	private handlerCtx(): HandlerCtx {
@@ -900,12 +971,23 @@ export class Server {
 			// renderer's xterm.js already has whatever was rendered before
 			// disconnect — it just loses the "Process exited with code N"
 			// footer for that narrow window.
+			this.stagedRecoveryOutput.delete(session.id);
 			this.store.delete(session.id);
 		});
 	}
 
 	private recordSessionOutput(session: Session, chunk: Buffer): void {
 		this.store.appendOutput(session, chunk);
+		const recovery = this.stagedRecoveryOutput.get(session.id);
+		if (recovery) {
+			const copy = Buffer.from(chunk);
+			recovery.chunks.push(copy);
+			recovery.bytes += copy.byteLength;
+			while (recovery.bytes > session.bufferCap && recovery.chunks.length > 0) {
+				const head = recovery.chunks.shift();
+				if (head) recovery.bytes -= head.byteLength;
+			}
+		}
 		const out: ServerMessage = { type: "output", id: session.id };
 		for (const c of this.conns) {
 			if (!c.subscriptions.has(session.id)) continue;

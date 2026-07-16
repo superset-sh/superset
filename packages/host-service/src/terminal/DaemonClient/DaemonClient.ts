@@ -57,6 +57,9 @@ export type UpgradePreparedResult =
 export interface ReplayBoundary {
 	/** Exact daemon replay size, or null when connected to a pre-ACK daemon. */
 	replayBytes: number | null;
+	/** Absolute replay cursors; null when connected to a pre-cursor daemon. */
+	replayStartBytes?: number | null;
+	replayEndBytes?: number | null;
 }
 
 interface SessionCallbacks {
@@ -301,6 +304,8 @@ export class DaemonClient {
 		cb: SubscribeCallbacks,
 	): { unsubscribe: () => void; boundary: Promise<ReplayBoundary> } {
 		let replayBytes: number | null = null;
+		let replayStartBytes: number | null = null;
+		let replayEndBytes: number | null = null;
 		let subscriptionError: Error | null = null;
 		const offAck = this.on((message) => {
 			if (message.type === "error" && message.id === id) {
@@ -317,6 +322,17 @@ export class DaemonClient {
 				message.replayBytes >= 0
 			) {
 				replayBytes = message.replayBytes;
+				if (
+					Number.isSafeInteger(message.replayStartBytes) &&
+					Number.isSafeInteger(message.replayEndBytes) &&
+					(message.replayStartBytes ?? -1) >= 0 &&
+					(message.replayEndBytes ?? -1) >= (message.replayStartBytes ?? 0) &&
+					(message.replayEndBytes ?? 0) - (message.replayStartBytes ?? 0) ===
+						message.replayBytes
+				) {
+					replayStartBytes = message.replayStartBytes ?? null;
+					replayEndBytes = message.replayEndBytes ?? null;
+				}
 			}
 		});
 
@@ -336,7 +352,7 @@ export class DaemonClient {
 						`subscribe ${id} (EEXITED): session exited before replay boundary`,
 					);
 				}
-				return { replayBytes };
+				return { replayBytes, replayStartBytes, replayEndBytes };
 			})
 			.finally(offAck);
 		return { unsubscribe, boundary };
