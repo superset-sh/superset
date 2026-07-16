@@ -78,7 +78,7 @@
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/client": "11.16.0",
 		"@trpc/server": "11.16.0",
-		"@xterm/headless": "6.1.0-beta.220",
+		"@xterm/headless": "6.1.0-beta.289",
 		"better-sqlite3": "12.6.2",
 		"drizzle-orm": "0.45.2",
 		"hono": "4.12.25",
