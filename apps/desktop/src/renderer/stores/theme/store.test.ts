@@ -260,46 +260,178 @@ describe("main-process system theme sync", () => {
 		expect(setProperty).toHaveBeenCalled();
 	});
 
-	test("refreshes a cached custom System preview edited before the IPC prime", () => {
+	test("keeps a cached custom System preview intact until the IPC prime", () => {
 		const originalTheme = createCustomDarkTheme("cached-custom", "#111111");
 		const editedTheme = createCustomDarkTheme("cached-custom", "#eeeeee");
+		const originalTerminal = JSON.stringify(getTerminalColors(originalTheme));
 		storage.set("theme-id", originalTheme.id);
 		storage.set("theme-type", originalTheme.type);
+		storage.set("theme-terminal", originalTerminal);
 		useThemeStore.setState({
 			activeThemeId: SYSTEM_THEME_ID,
 			customThemes: [originalTheme],
+			systemDarkThemeId: originalTheme.id,
 			systemThemeType: null,
-			activeTheme: originalTheme,
+			activeTheme: null,
 			terminalTheme: null,
 		});
+		useThemeStore.getState().initializeTheme();
+		setProperty.mockClear();
 
 		useThemeStore.getState().upsertCustomThemes([editedTheme]);
 
+		expect(useThemeStore.getState().activeTheme).toEqual(originalTheme);
+		expect(useThemeStore.getState().terminalTheme?.foreground).toBe("#111111");
+		expect(localStorage.getItem("theme-id")).toBe(originalTheme.id);
+		expect(localStorage.getItem("theme-terminal")).toBe(originalTerminal);
+		expect(setProperty).toHaveBeenCalledTimes(0);
+
+		useThemeStore.getState().setSystemThemeType("dark");
+
 		expect(useThemeStore.getState().activeTheme).toEqual(editedTheme);
 		expect(useThemeStore.getState().terminalTheme?.foreground).toBe("#eeeeee");
-		expect(localStorage.getItem("theme-id")).toBe(originalTheme.id);
-		expect(setProperty).toHaveBeenCalledTimes(0);
+		expect(localStorage.getItem("theme-id")).toBe(editedTheme.id);
+		expect(localStorage.getItem("theme-terminal")).toBe(
+			JSON.stringify(getTerminalColors(editedTheme)),
+		);
+		expect(setProperty).toHaveBeenCalled();
 	});
 
-	test("drops a removed cached custom System preview before the IPC prime", () => {
+	test("keeps a removed cached custom System preview intact until the IPC prime", () => {
 		const cachedTheme = createCustomDarkTheme("cached-custom", "#eeeeee");
+		const cachedTerminal = JSON.stringify(getTerminalColors(cachedTheme));
 		storage.set("theme-id", cachedTheme.id);
 		storage.set("theme-type", cachedTheme.type);
+		storage.set("theme-terminal", cachedTerminal);
 		useThemeStore.setState({
 			activeThemeId: SYSTEM_THEME_ID,
 			customThemes: [cachedTheme],
+			systemDarkThemeId: cachedTheme.id,
 			systemThemeType: null,
-			activeTheme: cachedTheme,
+			activeTheme: null,
 			terminalTheme: null,
 		});
+		useThemeStore.getState().initializeTheme();
+		setProperty.mockClear();
 
 		useThemeStore.getState().removeCustomTheme(cachedTheme.id);
 
 		expect(useThemeStore.getState().customThemes).toEqual([]);
+		expect(useThemeStore.getState().activeTheme).toEqual(cachedTheme);
+		expect(useThemeStore.getState().terminalTheme?.foreground).toBe("#eeeeee");
+		expect(localStorage.getItem("theme-id")).toBe(cachedTheme.id);
+		expect(localStorage.getItem("theme-terminal")).toBe(cachedTerminal);
+		expect(setProperty).toHaveBeenCalledTimes(0);
+
+		useThemeStore.getState().setSystemThemeType("dark");
+
 		expect(useThemeStore.getState().activeTheme?.id).toBe("dark");
 		expect(useThemeStore.getState().activeTheme?.id).not.toBe(cachedTheme.id);
-		expect(localStorage.getItem("theme-id")).toBe(cachedTheme.id);
-		expect(setProperty).toHaveBeenCalledTimes(0);
+		expect(useThemeStore.getState().terminalTheme?.foreground).not.toBe(
+			"#eeeeee",
+		);
+		expect(localStorage.getItem("theme-id")).toBe("dark");
+		expect(localStorage.getItem("theme-terminal")).toBe(
+			JSON.stringify(getTerminalColors(darkTheme)),
+		);
+		expect(setProperty).toHaveBeenCalled();
+	});
+
+	test("retries when the initial subscribe call throws synchronously", () => {
+		const originalSetTimeout = globalThis.setTimeout;
+		const originalConsoleError = console.error;
+		let runReconnect: (() => void) | undefined;
+		const consoleError = mock(() => {});
+		Object.defineProperty(globalThis, "setTimeout", {
+			configurable: true,
+			writable: true,
+			value: mock((callback: () => void) => {
+				runReconnect = callback;
+				return 1;
+			}),
+		});
+		console.error = consoleError;
+
+		try {
+			const unsubscribe = mock(() => {});
+			const subscribe = mock(() => {
+				if (subscribe.mock.calls.length === 1) {
+					throw new Error("sync subscribe failure");
+				}
+				return { unsubscribe };
+			});
+
+			const stop = startSystemThemeSync(subscribe);
+			expect(subscribe).toHaveBeenCalledTimes(1);
+			expect(consoleError).toHaveBeenCalledTimes(1);
+			expect(runReconnect).toBeDefined();
+
+			runReconnect?.();
+			expect(subscribe).toHaveBeenCalledTimes(2);
+
+			stop();
+			expect(unsubscribe).toHaveBeenCalledTimes(1);
+		} finally {
+			console.error = originalConsoleError;
+			Object.defineProperty(globalThis, "setTimeout", {
+				configurable: true,
+				writable: true,
+				value: originalSetTimeout,
+			});
+		}
+	});
+
+	test("keeps retrying when a reconnect subscribe call throws synchronously", () => {
+		const originalSetTimeout = globalThis.setTimeout;
+		const originalConsoleError = console.error;
+		let runReconnect: (() => void) | undefined;
+		const consoleError = mock(() => {});
+		Object.defineProperty(globalThis, "setTimeout", {
+			configurable: true,
+			writable: true,
+			value: mock((callback: () => void) => {
+				runReconnect = callback;
+				return 1;
+			}),
+		});
+		console.error = consoleError;
+
+		try {
+			const observers: SystemThemeObserver[] = [];
+			const unsubscribes = [mock(() => {}), mock(() => {})];
+			const subscribe = mock((observer: SystemThemeObserver) => {
+				observers.push(observer);
+				if (subscribe.mock.calls.length === 2) {
+					throw new Error("sync reconnect failure");
+				}
+				return {
+					unsubscribe:
+						unsubscribes[subscribe.mock.calls.length === 1 ? 0 : 1] ??
+						mock(() => {}),
+				};
+			});
+			const stop = startSystemThemeSync(subscribe);
+
+			observers[0]?.onComplete?.();
+			runReconnect?.();
+			expect(subscribe).toHaveBeenCalledTimes(2);
+			expect(unsubscribes[0]).toHaveBeenCalledTimes(1);
+			expect(consoleError).toHaveBeenCalledTimes(1);
+			expect(runReconnect).toBeDefined();
+
+			runReconnect?.();
+			expect(subscribe).toHaveBeenCalledTimes(3);
+
+			stop();
+			expect(unsubscribes[1]).toHaveBeenCalledTimes(1);
+		} finally {
+			console.error = originalConsoleError;
+			Object.defineProperty(globalThis, "setTimeout", {
+				configurable: true,
+				writable: true,
+				value: originalSetTimeout,
+			});
+		}
 	});
 
 	test("reconnects a gracefully completed subscription and tears down handles", () => {

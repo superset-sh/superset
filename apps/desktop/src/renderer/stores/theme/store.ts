@@ -150,16 +150,6 @@ function getThemeStateWithoutApplying(theme: Theme): {
 	};
 }
 
-function getUnresolvedSystemThemeState(customThemes: Theme[]): {
-	activeTheme: Theme | null;
-	terminalTheme: ITheme | null;
-} {
-	const lastAppliedTheme = findLastAppliedTheme(customThemes);
-	return lastAppliedTheme
-		? getThemeStateWithoutApplying(lastAppliedTheme)
-		: { activeTheme: null, terminalTheme: null };
-}
-
 const builtInThemeIds = new Set(builtInThemes.map((theme) => theme.id));
 
 /**
@@ -354,10 +344,10 @@ export const useThemeStore = create<ThemeState>()(
 						customThemes,
 					);
 					if (resolvedId === null) {
-						set({
-							customThemes,
-							...getUnresolvedSystemThemeState(customThemes),
-						});
+						// Keep the complete cached preview intact until the authoritative
+						// system appearance arrives. Updating only the derived terminal state
+						// here would split xterm colors from the still-applied UI CSS/cache.
+						set({ customThemes });
 						return { added, updated, skipped };
 					}
 					const resolvedTheme = findTheme(resolvedId, customThemes);
@@ -415,10 +405,9 @@ export const useThemeStore = create<ThemeState>()(
 							customThemes,
 						);
 						if (resolvedId === null) {
-							set({
-								...baseUpdate,
-								...getUnresolvedSystemThemeState(customThemes),
-							});
+							// Preserve the cached preview as one visual unit. The first IPC
+							// snapshot will resolve and apply the replacement theme atomically.
+							set(baseUpdate);
 							return;
 						}
 						const theme = findTheme(resolvedId, customThemes);
@@ -564,17 +553,34 @@ export function startSystemThemeSync(
 		if (stopped) return;
 
 		subscription?.unsubscribe();
-		subscription = subscribe({
-			onData: (themeType) => {
-				retryAttempt = 0;
-				useThemeStore.getState().setSystemThemeType(themeType);
-			},
-			onError: (error) => {
-				console.error("[themeStore] system theme subscription error:", error);
-				scheduleReconnect();
-			},
-			onComplete: scheduleReconnect,
-		});
+		subscription = undefined;
+		try {
+			const nextSubscription = subscribe({
+				onData: (themeType) => {
+					retryAttempt = 0;
+					useThemeStore.getState().setSystemThemeType(themeType);
+				},
+				onError: (error) => {
+					console.error("[themeStore] system theme subscription error:", error);
+					scheduleReconnect();
+				},
+				onComplete: scheduleReconnect,
+			});
+
+			// A synchronous observer callback can stop the sync before subscribe()
+			// returns. Do not retain a handle that was created after that teardown.
+			if (stopped) {
+				nextSubscription.unsubscribe();
+				return;
+			}
+			subscription = nextSubscription;
+		} catch (error) {
+			console.error(
+				"[themeStore] failed to start system theme subscription:",
+				error,
+			);
+			scheduleReconnect();
+		}
 	};
 
 	connect();
