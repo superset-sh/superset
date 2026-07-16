@@ -49,7 +49,6 @@ export interface ServerOptions {
 
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 const HANDOFF_CHILD_EXIT_TIMEOUT_MS = 2_000;
-const HANDOFF_STAGED_ACTIVATION_TIMEOUT_MS = 5_000;
 
 type HandoffResult =
 	| { ok: true; successorPid: number }
@@ -93,7 +92,6 @@ export class Server {
 	private readonly opts: ServerOptions;
 	private readonly handoffRuntime: HandoffRuntime;
 	private readonly stagedSessions = new Set<Session>();
-	private stagedActivationTimer: NodeJS.Timeout | null = null;
 	private boundSocketPath: string | null = null;
 	private listenerClosePromise: Promise<void> | null = null;
 	private upgradePhase: UpgradePhase = "idle";
@@ -262,27 +260,13 @@ export class Server {
 		}
 	}
 
-	/**
-	 * Activate all still-staged sessions. The bounded fallback prevents an
-	 * unattended successor from leaving PTY readers paused forever when the host
-	 * does not reconnect promptly after a successful handoff.
-	 */
-	activateAdoptedSessions(): void {
+	/** Activate every adopted session not already released by subscribe/mutation. */
+	activateAdoptedSessions(): number {
+		const count = this.stagedSessions.size;
 		for (const session of [...this.stagedSessions]) {
 			this.activateStagedSession(session.id);
 		}
-	}
-
-	/** Defer PTY reads until the host has had a chance to subscribe. */
-	scheduleAdoptedSessionActivation(
-		timeoutMs = HANDOFF_STAGED_ACTIVATION_TIMEOUT_MS,
-	): void {
-		if (this.stagedSessions.size === 0 || this.stagedActivationTimer) return;
-		this.stagedActivationTimer = setTimeout(() => {
-			this.stagedActivationTimer = null;
-			this.activateAdoptedSessions();
-		}, timeoutMs);
-		this.stagedActivationTimer.unref();
+		return count;
 	}
 
 	/**
@@ -570,8 +554,9 @@ export class Server {
 			}
 
 			// The canonical socket now belongs to this exact child. Its PTY readers
-			// remain staged until the host subscribes (or the bounded fallback fires).
-			// Only now is it safe to report success and exit.
+			// remain staged until the host subscribes, then explicitly releases any
+			// orphan/hidden sessions after all known rebinds. Only now is it safe to
+			// report success and exit.
 			handoffCommitted = true;
 			setImmediate(() => {
 				void this.finalizeHandoff();
@@ -656,10 +641,6 @@ export class Server {
 	): Promise<void> {
 		const killSessions = opts.killSessions ?? true;
 		const unlinkSocket = opts.unlinkSocket ?? true;
-		if (this.stagedActivationTimer) {
-			clearTimeout(this.stagedActivationTimer);
-			this.stagedActivationTimer = null;
-		}
 		for (const c of this.conns) c.socket.destroy();
 		this.conns.clear();
 		if (killSessions) {
@@ -813,6 +794,16 @@ export class Server {
 				handleUnsubscribe(conn, msg);
 				return;
 			}
+			case "activate-adopted": {
+				// This frame follows all known subscription rebinds on the same ordered
+				// socket. Subscribed sessions are already active, so only orphan/hidden
+				// readers remain for this explicit release.
+				conn.send({
+					type: "adopted-activated",
+					count: this.activateAdoptedSessions(),
+				});
+				return;
+			}
 			case "prepare-upgrade": {
 				// Run the handoff and reply once we know the result. The reply
 				// must reach the supervisor before this process exits.
@@ -867,10 +858,6 @@ export class Server {
 		const session = this.store.get(id);
 		if (!session || !this.stagedSessions.delete(session)) return;
 		this.wireSession(session);
-		if (this.stagedSessions.size === 0 && this.stagedActivationTimer) {
-			clearTimeout(this.stagedActivationTimer);
-			this.stagedActivationTimer = null;
-		}
 	}
 
 	private handlerCtx(): HandlerCtx {

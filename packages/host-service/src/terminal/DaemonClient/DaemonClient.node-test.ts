@@ -37,6 +37,13 @@ test("connect + handshake exposes daemon version", async () => {
 	await c.dispose();
 });
 
+test("activateAdopted waits for the daemon release acknowledgement", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+	assert.equal(await c.activateAdopted(), 0);
+	await c.dispose();
+});
+
 test("open + subscribe + receive output + close", async () => {
 	const c = new DaemonClient({ socketPath: sockPath });
 	await c.connect();

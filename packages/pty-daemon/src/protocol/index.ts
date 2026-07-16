@@ -8,6 +8,8 @@ export type {
 	UpgradeReadyMessage,
 } from "./handoff.ts";
 export type {
+	ActivateAdoptedMessage,
+	AdoptedActivatedMessage,
 	ClientMessage,
 	ClosedMessage,
 	CloseMessage,

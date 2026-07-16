@@ -73,6 +73,7 @@ export interface DaemonClientOptions {
 const OPEN_TIMEOUT_MS = 15_000;
 const CLOSE_TIMEOUT_MS = 5_000;
 const LIST_TIMEOUT_MS = 5_000;
+const ACTIVATE_ADOPTED_TIMEOUT_MS = 5_000;
 // Daemon-side handoff has to write a snapshot, spawn a child Node process,
 // await successor adopt-ack, then reply. The Server uses 5s for the ack
 // alone; 15s here covers spawn + ack + reply round-trip with margin.
@@ -169,6 +170,25 @@ export class DaemonClient {
 			);
 			if (reply.type === "list-reply") return reply.sessions;
 			throw new Error(`list: unexpected reply ${reply.type}`);
+		});
+	}
+
+	/**
+	 * Release adopted readers left staged after handoff. The host calls this only
+	 * after known subscriptions were rebound on this same ordered socket.
+	 */
+	async activateAdopted(): Promise<number> {
+		return this.serializeNonSession(async () => {
+			const reply = await this.requestNonSession(
+				{ type: "activate-adopted" },
+				"adopted-activated",
+				ACTIVATE_ADOPTED_TIMEOUT_MS,
+			);
+			if (reply.type === "adopted-activated") return reply.count;
+			if (reply.type === "error") {
+				throw new Error(`activate-adopted: ${reply.message}`);
+			}
+			throw new Error(`activate-adopted: unexpected reply ${reply.type}`);
 		});
 	}
 
@@ -356,8 +376,11 @@ export class DaemonClient {
 	}
 
 	private requestNonSession(
-		req: { type: "list" } | { type: "prepare-upgrade" },
-		expectType: "list-reply" | "upgrade-prepared",
+		req:
+			| { type: "list" }
+			| { type: "prepare-upgrade" }
+			| { type: "activate-adopted" },
+		expectType: "list-reply" | "upgrade-prepared" | "adopted-activated",
 		timeoutMs: number,
 	): Promise<ServerMessage> {
 		return new Promise<ServerMessage>((resolve, reject) => {

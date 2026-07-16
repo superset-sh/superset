@@ -224,7 +224,8 @@ async function runHandoffReceiver(): Promise<void> {
 		// Keep readers staged until the host has subscribed. The subscription is
 		// registered before activation, so bytes produced after the final snapshot
 		// are delivered live instead of disappearing into an unsubscribed window.
-		server.scheduleAdoptedSessionActivation();
+		// Once all known subscriptions are rebound, the host explicitly releases
+		// any orphan/hidden sessions with activate-adopted on that ordered socket.
 	} catch (err) {
 		const reason = `commit refresh/publish failed: ${(err as Error).message}`;
 		log(reason);

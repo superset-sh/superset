@@ -99,6 +99,15 @@ export interface PrepareUpgradeMessage {
 	type: "prepare-upgrade";
 }
 
+/**
+ * Release adopted readers that were intentionally left staged after handoff.
+ * The host sends this only after all known live subscriptions were rebound on
+ * the same ordered socket, so those sessions activate through subscribe first.
+ */
+export interface ActivateAdoptedMessage {
+	type: "activate-adopted";
+}
+
 // ---------- Daemon -> Client ----------
 
 export interface OpenOkMessage {
@@ -153,6 +162,11 @@ export interface UpgradePreparedMessage {
 		  };
 }
 
+export interface AdoptedActivatedMessage {
+	type: "adopted-activated";
+	count: number;
+}
+
 // ---------- Unions ----------
 
 export type ClientMessage =
@@ -164,7 +178,8 @@ export type ClientMessage =
 	| ListMessage
 	| SubscribeMessage
 	| UnsubscribeMessage
-	| PrepareUpgradeMessage;
+	| PrepareUpgradeMessage
+	| ActivateAdoptedMessage;
 
 export type ServerMessage =
 	| HelloAckMessage
@@ -174,4 +189,5 @@ export type ServerMessage =
 	| ClosedMessage
 	| ListReplyMessage
 	| ErrorMessage
-	| UpgradePreparedMessage;
+	| UpgradePreparedMessage
+	| AdoptedActivatedMessage;

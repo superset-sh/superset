@@ -45,6 +45,7 @@ const disconnectListeners = new Set<(err?: Error) => void>();
 const plannedRotationListeners = new Set<
 	(client: DaemonClient) => void | Promise<void>
 >();
+const ADOPTED_ACTIVATION_MAX_ATTEMPTS = 2;
 
 function notifyDisconnectListeners(err?: Error): void {
 	for (const listener of disconnectListeners) {
@@ -76,6 +77,39 @@ export function onDaemonPlannedRotation(
 	return () => {
 		plannedRotationListeners.delete(cb);
 	};
+}
+
+async function rebindPlannedRotationListeners(
+	successor: DaemonClient,
+): Promise<void> {
+	for (const listener of plannedRotationListeners) {
+		await listener(successor);
+	}
+}
+
+async function activateAdoptedWithRetry(
+	initialSuccessor: DaemonClient,
+): Promise<void> {
+	let successor = initialSuccessor;
+	let lastError: unknown;
+	for (let attempt = 1; attempt <= ADOPTED_ACTIVATION_MAX_ATTEMPTS; attempt++) {
+		try {
+			await successor.activateAdopted();
+			return;
+		} catch (error) {
+			lastError = error;
+			if (attempt === ADOPTED_ACTIVATION_MAX_ATTEMPTS) break;
+			if (!successor.isConnected) {
+				// A lost socket also lost its subscriptions. Reconnect and bind every
+				// surviving host observer again before the idempotent release retry.
+				successor = await getDaemonClient();
+				await rebindPlannedRotationListeners(successor);
+			}
+		}
+	}
+	throw lastError instanceof Error
+		? lastError
+		: new Error(`activate-adopted failed: ${String(lastError)}`);
 }
 
 async function ptyDaemonSocketPath(): Promise<string> {
@@ -212,9 +246,13 @@ registerDaemonMutationTransportHooks({
 		// successor processes subscribe frames before subsequent input frames on
 		// this same ordered socket.
 		const successor = await getDaemonClient();
-		for (const listener of plannedRotationListeners) {
-			await listener(successor);
-		}
+		await rebindPlannedRotationListeners(successor);
+		// Subscribe frames above and this release share one ordered Unix socket.
+		// Known terminal sessions therefore activate with a subscriber first; only
+		// orphan/hidden readers are released without one. The op is idempotent, so
+		// an ack loss can retry safely; a socket loss rebinds observers first. Await
+		// the ack before the mutation gate flushes held input.
+		await activateAdoptedWithRetry(successor);
 	},
 	resumeAfterAbort: async (organizationId) => {
 		if (organizationId !== getOrganizationId()) return;

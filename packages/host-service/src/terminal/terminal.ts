@@ -172,8 +172,9 @@ function makeDaemonPty(
 			// already contain it. A handoff successor keeps each adopted PTY reader
 			// staged until its first subscribe frame, so independently-produced output
 			// remains in the kernel across the transport gap. These subscribe frames
-			// are also written before the gate flushes held input on the same socket,
-			// so output caused by that input is observed without a reconnect gap.
+			// are written before activate-adopted releases orphan readers and before
+			// the gate flushes held input on the same socket, so output caused by that
+			// input is observed without a reconnect gap.
 			for (const entry of subscriptions) {
 				if (!entry.disposed) bindSubscription(entry, false);
 			}

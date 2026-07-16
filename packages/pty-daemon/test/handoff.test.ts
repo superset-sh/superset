@@ -148,6 +148,12 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 			daemonA.once("exit", () => resolve());
 		});
 
+		// Cross the predecessor implementation's 5s staged-reader fallback.
+		// The successor must keep readers staged until the host has rebound its
+		// subscription; otherwise this suffix lands only in the daemon ring and a
+		// replay=false host rebind skips it.
+		await new Promise((resolve) => setTimeout(resolve, 5_250));
+
 		// Reconnect — should hit the successor.
 		const reconnectStart = Date.now();
 		while (Date.now() - reconnectStart < 5_000) {
@@ -163,7 +169,7 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 		adoptedClient.send({
 			type: "subscribe",
 			id: sequenceSession,
-			replay: true,
+			replay: false,
 		});
 		await adoptedClient.waitFor(
 			(m) =>
@@ -174,22 +180,39 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 				),
 			5_000,
 		);
-		const sequence = [
+		const predecessorSequence = [
+			...accumulatedOutputAsString(c1, sequenceSession).matchAll(
+				/HANDOFFSEQ:(\d{4})/g,
+			),
+		].map((match) => Number(match[1]));
+		const successorSequence = [
 			...accumulatedOutputAsString(adoptedClient, sequenceSession).matchAll(
 				/HANDOFFSEQ:(\d{4})/g,
 			),
 		].map((match) => Number(match[1]));
-		assert.deepEqual(
-			sequence,
-			Array.from({ length: 160 }, (_, index) => index + 1),
-			`output produced across handoff must replay exactly once without gaps; predecessor saw ${JSON.stringify(
-				[
-					...accumulatedOutputAsString(c1, sequenceSession).matchAll(
-						/HANDOFFSEQ:(\d{4})/g,
-					),
-				].map((match) => Number(match[1])),
-			)}`,
+		assert.ok(
+			successorSequence.length > 0,
+			"delayed replay=false rebind must receive the post-snapshot suffix live",
 		);
+		assert.deepEqual(
+			[...predecessorSequence, ...successorSequence],
+			Array.from({ length: 160 }, (_, index) => index + 1),
+			`output across the delayed rebind must be exact once; predecessor=${JSON.stringify(predecessorSequence)} successor=${JSON.stringify(successorSequence)}`,
+		);
+
+		// Mirror the host barrier: all known rebind frames precede one explicit
+		// release on the same ordered socket. Only the still-orphaned session is
+		// released, and the ack arrives before held mutations may resume.
+		const activatedPromise = adoptedClient.waitForNext(
+			(m) => m.type === "adopted-activated",
+			2_000,
+		);
+		adoptedClient.send({ type: "activate-adopted" });
+		const activated = await activatedPromise;
+		assert.equal(activated.type, "adopted-activated");
+		if (activated.type === "adopted-activated") {
+			assert.equal(activated.count, 1);
+		}
 
 		// Successor should still know about every session and report them as
 		// alive with the original shell pids intact.

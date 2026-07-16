@@ -14,6 +14,7 @@ import {
 	connectAndHello,
 	type DaemonClient,
 	payloadAsString,
+	payloadOf,
 } from "./helpers/client.ts";
 
 type HandoffResult =
@@ -511,4 +512,145 @@ describe("staged successor output", () => {
 			expect(exitCallbacks).toHaveLength(1);
 		});
 	}
+
+	test("explicit release follows subscription rebind and only activates orphan readers", async () => {
+		const socketPath = path.join(
+			os.tmpdir(),
+			`pty-daemon-explicit-release-${process.pid}-${Math.random().toString(36).slice(2)}.sock`,
+		);
+		const makeStagedPty = (pid: number) => {
+			const pending: Buffer[] = [];
+			const dataCallbacks: PtyOnData[] = [];
+			const exitCallbacks: PtyOnExit[] = [];
+			const pty: Pty & { emit(data: Buffer): void } = {
+				pid,
+				meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+				write() {},
+				resize() {},
+				kill() {},
+				onData(callback) {
+					dataCallbacks.push(callback);
+					for (const chunk of pending.splice(0)) callback(chunk);
+				},
+				onExit(callback) {
+					exitCallbacks.push(callback);
+				},
+				async prepareForHandoff() {},
+				pauseOutputForHandoff() {},
+				drainOutputForHandoff: async () => [],
+				sealOutputForHandoff: async () => [],
+				restoreAfterFailedHandoff() {},
+				cancelHandoff() {},
+				getMasterFd: () => 44,
+				emit(data) {
+					if (dataCallbacks.length === 0) pending.push(Buffer.from(data));
+					else
+						for (const callback of dataCallbacks) callback(Buffer.from(data));
+				},
+			};
+			return { pty, dataCallbacks, exitCallbacks };
+		};
+
+		const bound = makeStagedPty(82_101);
+		const orphan = makeStagedPty(82_102);
+		const adopted = [bound.pty, orphan.pty];
+		let adoptIndex = 0;
+		const server = new Server({
+			socketPath,
+			daemonVersion: "test-explicit-release",
+			adoptPty: () => {
+				const pty = adopted[adoptIndex++];
+				if (!pty) throw new Error("unexpected adopted PTY index");
+				return pty;
+			},
+		});
+		const boundCut = Buffer.from([0xf0, 0x90, 0x80, 0x80]);
+		const boundDelta = Buffer.from([0x00, 0xff, 0xc3, 0x28]);
+		const orphanCut = Buffer.from([0x10, 0x11]);
+		const orphanDelta = Buffer.from([0x12, 0xfe, 0x13]);
+		server.adoptSnapshot({
+			version: SNAPSHOT_VERSION,
+			writtenAt: Date.now(),
+			sessions: [
+				{
+					id: "bound",
+					pid: bound.pty.pid,
+					meta: bound.pty.meta,
+					fdIndex: 4,
+					buffer: new Uint8Array(boundCut),
+				},
+				{
+					id: "orphan",
+					pid: orphan.pty.pid,
+					meta: orphan.pty.meta,
+					fdIndex: 5,
+					buffer: new Uint8Array(orphanCut),
+				},
+			],
+		});
+		bound.pty.emit(boundDelta);
+		orphan.pty.emit(orphanDelta);
+		await server.listen();
+
+		const abandoned = await connectAndHello(socketPath);
+		await abandoned.close();
+		await new Promise((resolve) => setTimeout(resolve, 30));
+		expect(bound.dataCallbacks).toHaveLength(0);
+		expect(orphan.dataCallbacks).toHaveLength(0);
+
+		const client = await connectAndHello(socketPath);
+		try {
+			client.send({ type: "subscribe", id: "bound", replay: false });
+			await client.waitFor(
+				(message) => message.type === "output" && message.id === "bound",
+			);
+			expect(bound.dataCallbacks).toHaveLength(1);
+			expect(orphan.dataCallbacks).toHaveLength(0);
+			const boundFrames = client.messages.filter(
+				(message) => message.type === "output" && message.id === "bound",
+			);
+			expect(boundFrames).toHaveLength(1);
+			const boundFrame = boundFrames[0];
+			if (!boundFrame) throw new Error("missing bound output frame");
+			expect(Buffer.from(payloadOf(boundFrame) ?? [])).toEqual(boundDelta);
+			expect(Buffer.concat([boundCut, boundDelta])).toEqual(
+				Buffer.concat([boundCut, Buffer.from(payloadOf(boundFrame) ?? [])]),
+			);
+
+			const activated = client.waitForNext(
+				(message) => message.type === "adopted-activated",
+			);
+			client.send({ type: "activate-adopted" });
+			expect(await activated).toMatchObject({
+				type: "adopted-activated",
+				count: 1,
+			});
+			expect(orphan.dataCallbacks).toHaveLength(1);
+
+			client.send({ type: "subscribe", id: "orphan", replay: true });
+			await client.waitFor(
+				(message) => message.type === "output" && message.id === "orphan",
+			);
+			const orphanFrames = client.messages.filter(
+				(message) => message.type === "output" && message.id === "orphan",
+			);
+			expect(orphanFrames).toHaveLength(1);
+			const orphanFrame = orphanFrames[0];
+			if (!orphanFrame) throw new Error("missing orphan replay frame");
+			expect(Buffer.from(payloadOf(orphanFrame) ?? [])).toEqual(
+				Buffer.concat([orphanCut, orphanDelta]),
+			);
+
+			const idempotent = client.waitForNext(
+				(message) => message.type === "adopted-activated",
+			);
+			client.send({ type: "activate-adopted" });
+			expect(await idempotent).toMatchObject({ count: 0 });
+		} finally {
+			await client.close();
+			await server.close();
+		}
+		expect(bound.exitCallbacks).toHaveLength(1);
+		expect(orphan.exitCallbacks).toHaveLength(1);
+	});
 });

@@ -9,6 +9,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { DAEMON_PACKAGE_VERSION } from "../src/index.ts";
 import type { HandoffMessage } from "../src/protocol/index.ts";
 import { SNAPSHOT_VERSION, writeSnapshot } from "../src/SessionStore/index.ts";
 import { connectAndHello } from "./helpers/client.ts";
@@ -107,6 +108,32 @@ test("legacy ACK plus IPC disconnect publishes a healthy successor", async () =>
 		// IPC is intentionally gone before the successor sends LISTENING. The
 		// published socket remains authoritative and the send failure is harmless.
 		client = await connectWithRetry(socketPath);
+		const hello = client.messages.find(
+			(message) => message.type === "hello-ack",
+		);
+		assert.equal(hello?.type, "hello-ack");
+		if (hello?.type === "hello-ack") {
+			assert.equal(hello.daemonVersion, DAEMON_PACKAGE_VERSION);
+		}
+		assert.notEqual(
+			DAEMON_PACKAGE_VERSION,
+			"0.2.5",
+			"the first live upgrade must advertise a version newer than 1.15.0's daemon",
+		);
+
+		// The legacy 0.2.5 predecessor never sees this additive v2 op. It is sent
+		// only after reconnecting to the current successor and must acknowledge the
+		// explicit staged-reader release used by the new host.
+		const activatedPromise = client.waitForNext(
+			(message) => message.type === "adopted-activated",
+		);
+		client.send({ type: "activate-adopted" });
+		const activated = await activatedPromise;
+		assert.equal(activated.type, "adopted-activated");
+		if (activated.type === "adopted-activated") {
+			assert.equal(activated.count, 0);
+		}
+
 		client.send({ type: "list" });
 		const list = await client.waitFor(
 			(message) => message.type === "list-reply",
