@@ -8,6 +8,7 @@ import { strict as assert } from "node:assert";
 import { after, test } from "node:test";
 import { type Pty, spawn as spawnPty } from "../src/Pty/Pty.ts";
 import { hasRunningForegroundProcess } from "../src/process-tree.ts";
+import { waitFor } from "./helpers/wait-for.ts";
 
 const ptys: Pty[] = [];
 
@@ -20,20 +21,6 @@ after(() => {
 		}
 	}
 });
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
-async function waitFor(
-	predicate: () => boolean,
-	timeoutMs: number,
-): Promise<boolean> {
-	const deadline = Date.now() + timeoutMs;
-	while (Date.now() < deadline) {
-		if (predicate()) return true;
-		await sleep(50);
-	}
-	return predicate();
-}
 
 test("idle prompt -> running command -> idle again", async () => {
 	const pty = spawnPty({

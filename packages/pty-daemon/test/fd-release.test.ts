@@ -18,14 +18,32 @@ import * as cp from "node:child_process";
 import * as fs from "node:fs";
 import { test } from "node:test";
 import { spawn as spawnPty } from "../src/Pty/Pty.ts";
+import { waitFor } from "./helpers/wait-for.ts";
 
-/** Count this process's open pty fds (masters and slaves), like upstream's
- * regression test for microsoft/node-pty#882 does. */
+/**
+ * Count this process's open pty fds (masters and slaves), like upstream's
+ * regression test for microsoft/node-pty#882 does. Matches macOS
+ * (/dev/ptmx, /dev/ttysNNN) and Linux (/dev/ptmx, /dev/pts/N) names.
+ * Throws when lsof yields nothing — a live process always has some open
+ * fds, so empty output means the count is broken, and returning 0 would
+ * make every assertion below pass vacuously.
+ */
 function ptyFdCount(): number {
-	const out = cp.execSync(`lsof -p ${process.pid} 2>/dev/null || true`, {
-		encoding: "utf8",
-	});
-	return out.split("\n").filter((line) => /\/dev\/(ptmx|ttys)/.test(line))
+	let out: string;
+	try {
+		out = cp.execSync(`lsof -p ${process.pid}`, {
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "ignore"],
+		});
+	} catch (err) {
+		// lsof exits non-zero for some unresolvable fds while still printing
+		// the rest — use whatever it produced.
+		out = (err as { stdout?: string }).stdout ?? "";
+	}
+	if (!out.trim()) {
+		throw new Error("lsof produced no output — cannot count pty fds");
+	}
+	return out.split("\n").filter((line) => /\/dev\/(ptmx|ttys|pts\/)/.test(line))
 		.length;
 }
 
@@ -36,18 +54,6 @@ function fdIsOpen(fd: number): boolean {
 	} catch {
 		return false;
 	}
-}
-
-async function waitUntil(
-	pred: () => boolean,
-	timeoutMs = 5_000,
-): Promise<boolean> {
-	const deadline = Date.now() + timeoutMs;
-	while (Date.now() < deadline) {
-		if (pred()) return true;
-		await new Promise((r) => setTimeout(r, 50));
-	}
-	return pred();
 }
 
 function spawnAndAwaitExit(argv: string[]): Promise<void> {
@@ -64,27 +70,31 @@ test("spawning and exiting sessions does not accumulate pty fds", async () => {
 		await spawnAndAwaitExit(["-c", "exit 0"]);
 	}
 
-	assert.equal(
-		await waitUntil(() => ptyFdCount() <= initial),
-		true,
-		`leaked ${ptyFdCount() - initial} pty fds after 10 spawn/exit cycles (initial ${initial})`,
-	);
+	const converged = await waitFor(() => ptyFdCount() <= initial);
+	if (!converged) {
+		assert.fail(
+			`leaked ${ptyFdCount() - initial} pty fds after 10 spawn/exit cycles (initial ${initial})`,
+		);
+	}
 });
 
 test("no pty fd accumulates when a background child outlives the shell", async () => {
 	// The backgrounded sleep inherits the slave tty and outlives the shell —
-	// the pattern agent/background-helper sessions hit constantly.
+	// the pattern agent/background-helper sessions hit constantly. The child
+	// holds the slave in its own process; the daemon's fd table must still
+	// return to baseline.
 	const initial = ptyFdCount();
 
 	for (let i = 0; i < 5; i++) {
-		await spawnAndAwaitExit(["-c", "sleep 30 & exit 0"]);
+		await spawnAndAwaitExit(["-c", "sleep 5 & exit 0"]);
 	}
 
-	assert.equal(
-		await waitUntil(() => ptyFdCount() <= initial),
-		true,
-		`leaked ${ptyFdCount() - initial} pty fds after 5 bg-child sessions (initial ${initial})`,
-	);
+	const converged = await waitFor(() => ptyFdCount() <= initial);
+	if (!converged) {
+		assert.fail(
+			`leaked ${ptyFdCount() - initial} pty fds after 5 bg-child sessions (initial ${initial})`,
+		);
+	}
 });
 
 test("master fd is closed after the shell exits", async () => {
@@ -97,7 +107,7 @@ test("master fd is closed after the shell exits", async () => {
 	await new Promise<void>((resolve) => pty.onExit(() => resolve()));
 
 	assert.equal(
-		await waitUntil(() => !fdIsOpen(fd)),
+		await waitFor(() => !fdIsOpen(fd)),
 		true,
 		"master fd must be closed once the session exits",
 	);
