@@ -793,69 +793,31 @@ export class DaemonSupervisor {
 				reason: "manifest_pid_dead",
 			});
 		}
-		// The pid is alive, so it still owns the user's PTYs. Adoption never
-		// kills it: `terminateProcessTreeAndGroups` would signal the daemon's
-		// whole process tree — every live shell — which is what made updates
-		// kill terminals (SUPER-833). A failed probe means we couldn't read its
-		// version, not that it's disposable. Recovering a genuinely wedged
-		// daemon stays an explicit user action (Settings > Restart daemon).
+		// The pid is alive, so it still owns the user's PTYs — adopt it. Killing
+		// it here signalled the daemon's whole process tree, taking every live
+		// shell with it (SUPER-833). A failed probe only means we couldn't read
+		// its version; a wedged daemon is recovered by an explicit user restart.
 		const probe = await probeDaemonHelloWithRetry(
 			manifest.socketPath,
 			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
 		);
-		if (probe) {
-			const runningVersion = probe.daemonVersion;
-			return {
-				pid: manifest.pid,
-				socketPath: manifest.socketPath,
-				startedAt: manifest.startedAt,
-				runningVersion,
-				expectedVersion: EXPECTED_DAEMON_VERSION,
-				updatePending: !semver.satisfies(
-					runningVersion,
-					`>=${EXPECTED_DAEMON_VERSION}`,
-				),
-			};
-		}
-
-		// Couldn't read a version off the manifest socket. If the socket path
-		// scheme changed under us, a daemon may be answering on the expected
-		// path — prefer that one.
-		if (manifest.socketPath !== expectedSocketPath) {
-			const viaSocket = await this.tryAdoptFromSocket(
-				organizationId,
-				expectedSocketPath,
-				{ reason: "manifest_probe_failed", previousManifest: manifest },
-			);
-			if (viaSocket) return viaSocket;
-		}
-
-		// Adopt unprobed. `runningVersion: "unknown"` is the documented state
-		// for a failed probe, and it leaves updatePending false so a probe
-		// failure is never mistaken for version drift.
-		logEvent("pty_daemon_adopt_unprobed", {
-			organizationId,
-			pid: manifest.pid,
-			socketPath: manifest.socketPath,
-			reason: "version_probe_failed",
-		});
+		const runningVersion = probe?.daemonVersion ?? "unknown";
 		return {
 			pid: manifest.pid,
 			socketPath: manifest.socketPath,
 			startedAt: manifest.startedAt,
-			runningVersion: "unknown",
+			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending: false,
+			updatePending:
+				probe != null &&
+				!semver.satisfies(runningVersion, `>=${EXPECTED_DAEMON_VERSION}`),
 		};
 	}
 
 	private async tryAdoptFromSocket(
 		organizationId: string,
 		socketPath: string,
-		context: {
-			reason: string;
-			previousManifest?: PtyDaemonManifest;
-		},
+		context: { reason: string },
 	): Promise<DaemonInstance | null> {
 		const reachable = await isSocketConnectable(socketPath, 1000);
 		if (!reachable) return null;
@@ -886,7 +848,7 @@ export class DaemonSupervisor {
 			return null;
 		}
 
-		const startedAt = context.previousManifest?.startedAt ?? Date.now();
+		const startedAt = Date.now();
 		writePtyDaemonManifest({
 			pid: resolvedPid,
 			socketPath,

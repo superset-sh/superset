@@ -328,12 +328,6 @@ describe("DaemonSupervisor.tryAdopt", () => {
 			expect(adopted?.runningVersion).toBe("unknown");
 			// A failed probe must not be mistaken for version drift.
 			expect(adopted?.updatePending).toBe(false);
-			expect(
-				loggedEvents.some(
-					(e) =>
-						e.event === "pty_daemon_adopt_unprobed" && e.props.pid === childPid,
-				),
-			).toBe(true);
 			// The whole point of SUPER-833: the daemon is left running.
 			expect(await waitForProcessExit(childPid, 1500)).toBe(false);
 			expect(isProcessAliveForTest(childPid)).toBe(true);
