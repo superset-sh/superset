@@ -199,10 +199,19 @@ describe("terminal minimum contrast", () => {
 			expect(parkedV1.options.theme).toBe(systemLightTheme);
 			expect(parkedV2.options.theme).toBe(systemLightTheme);
 
-			// initializeTheme's media-query listener resolves System mode through
-			// the same synchronous setTheme(SYSTEM_THEME_ID) path.
-			prefersDark = true;
-			useThemeStore.getState().setTheme(SYSTEM_THEME_ID);
+			// Newer stores receive the authoritative OS appearance from Electron
+			// main. Keep the matchMedia path for branches that predate that IPC.
+			const systemThemeState = useThemeStore.getState() as ReturnType<
+				typeof useThemeStore.getState
+			> & {
+				setSystemThemeType?: (themeType: "light" | "dark") => void;
+			};
+			if (systemThemeState.setSystemThemeType) {
+				systemThemeState.setSystemThemeType("dark");
+			} else {
+				prefersDark = true;
+				systemThemeState.setTheme(SYSTEM_THEME_ID);
+			}
 			const systemDarkTheme = getRequiredStoreTerminalTheme();
 			expect(systemDarkTheme.background).not.toBe(systemLightTheme.background);
 			expect(parkedV1.options.theme).toBe(systemDarkTheme);
