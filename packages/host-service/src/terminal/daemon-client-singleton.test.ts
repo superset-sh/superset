@@ -5,6 +5,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
 	type ClientMessage,
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
@@ -18,6 +19,7 @@ import {
 import { beginDaemonUpdate } from "./daemon-mutation-gate.ts";
 import {
 	__makeDaemonPtyForTesting,
+	__queueDirectInitialCommandForTesting,
 	__sendDirectDaemonInputForTesting,
 } from "./terminal.ts";
 
@@ -31,10 +33,12 @@ interface FakeDaemon {
 
 async function startFakeDaemon(
 	options: {
+		capabilities?: string[];
 		dropFirstActivateConnection?: boolean;
 		daemonVersions?: string[];
 		initialReplay?: Buffer;
 		appendReplayOnDroppedActivate?: Buffer;
+		rejectSequencedInput?: boolean;
 	} = {},
 ): Promise<FakeDaemon> {
 	const socketPath = path.join(
@@ -68,6 +72,7 @@ async function startFakeDaemon(
 								options.daemonVersions?.[connectionIndex] ??
 								"singleflight-test",
 							daemonPid: process.pid,
+							capabilities: options.capabilities,
 						}),
 					);
 				} else if (message.type === "list") {
@@ -108,6 +113,20 @@ async function startFakeDaemon(
 							replayBytes,
 							replayStartBytes,
 							replayEndBytes: replay.byteLength,
+						}),
+					);
+				} else if (
+					message.type === "input" &&
+					message.sequence !== undefined &&
+					options.rejectSequencedInput
+				) {
+					socket.write(
+						encodeFrame({
+							type: "error",
+							id: message.id,
+							inputSequence: message.sequence,
+							code: "EWRITE",
+							message: "direct initial input rejected",
 						}),
 					);
 				} else if (message.type === "activate-adopted") {
@@ -253,6 +272,36 @@ describe.serial("daemon client singleton", () => {
 			);
 			await lease.release("abort");
 			expect(daemon.received).not.toContain("prepare-upgrade");
+		} finally {
+			await disposeDaemonClient();
+			await daemon.close();
+		}
+	});
+
+	test("direct initial-command EWRITE is visible and resets retry state", async () => {
+		const daemon = await startFakeDaemon({
+			capabilities: [CORRELATED_INPUT_ACK_CAPABILITY],
+			rejectSequencedInput: true,
+		});
+		process.env.SUPERSET_PTY_DAEMON_SOCKET = daemon.socketPath;
+		process.env.ORGANIZATION_ID = "initial-command-ewrite-org";
+		try {
+			const client = await getDaemonClient();
+			const state = { initialCommandQueued: false, exited: false };
+			const visibleErrors: unknown[] = [];
+
+			await __queueDirectInitialCommandForTesting(
+				state,
+				client,
+				"known-session",
+				Buffer.from("initial-command\n"),
+				(error) => visibleErrors.push(error),
+			);
+
+			expect(state.initialCommandQueued).toBe(false);
+			expect(visibleErrors).toHaveLength(1);
+			expect(String(visibleErrors[0])).toMatch(/EWRITE/);
+			expect(daemon.received).toContain("input");
 		} finally {
 			await disposeDaemonClient();
 			await daemon.close();

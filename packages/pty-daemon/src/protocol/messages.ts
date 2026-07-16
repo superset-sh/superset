@@ -32,6 +32,13 @@ export interface SessionInfo {
 export const LOSSLESS_LIVE_HANDOFF_CAPABILITY =
 	"lossless-live-handoff-v1" as const;
 
+/**
+ * Advertised only by daemons that correlate every sequenced input frame with
+ * either an `input-ack` or an error carrying the same sequence.
+ */
+export const CORRELATED_INPUT_ACK_CAPABILITY =
+	"correlated-input-ack-v1" as const;
+
 export interface HelloMessage {
 	type: "hello";
 	protocols: number[];
@@ -64,6 +71,8 @@ export interface OpenMessage {
 export interface InputMessage {
 	type: "input";
 	id: string;
+	/** Optional so legacy clients keep their original wire shape. */
+	sequence?: number;
 }
 
 export interface ResizeMessage {
@@ -125,6 +134,13 @@ export interface OpenOkMessage {
 	pid: number;
 }
 
+/** Confirms that one exact input payload was accepted by the session PTY. */
+export interface InputAckMessage {
+	type: "input-ack";
+	id: string;
+	sequence: number;
+}
+
 /** Bytes ride in the frame's binary tail; this message just names the session. */
 export interface OutputMessage {
 	type: "output";
@@ -166,6 +182,8 @@ export interface ListReplyMessage {
 export interface ErrorMessage {
 	type: "error";
 	id?: string;
+	/** Present when this error rejects one exact sequenced input mutation. */
+	inputSequence?: number;
 	message: string;
 	code?: string;
 }
@@ -208,6 +226,7 @@ export type ClientMessage =
 export type ServerMessage =
 	| HelloAckMessage
 	| OpenOkMessage
+	| InputAckMessage
 	| OutputMessage
 	| SubscribedMessage
 	| ExitMessage

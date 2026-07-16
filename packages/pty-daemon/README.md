@@ -82,7 +82,9 @@ build.ts                        # Bun bundler → dist/pty-daemon.js (target: no
 - **Protocol versioned from day one.** Handshake (`hello` / `hello-ack`)
   picks the highest mutually supported version. `hello-ack.capabilities`
   separately proves additive runtime contracts; live rotation currently
-  requires `lossless-live-handoff-v1`.
+  requires both `lossless-live-handoff-v1` and
+  `correlated-input-ack-v1`. Sequenced input receives an exact `input-ack`
+  or a correlated error; legacy input keeps its original wire shape.
 - **Transactional rotation.** Input is frozen and drained before the snapshot;
   the successor stays staged until explicit commit, subscription replay is
   bounded by absolute byte cursors, and failures preserve the predecessor or

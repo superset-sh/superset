@@ -9,7 +9,10 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { adoptFromFd, spawn as spawnPty } from "../src/Pty/Pty.ts";
-import { LOSSLESS_LIVE_HANDOFF_CAPABILITY } from "../src/protocol/index.ts";
+import {
+	CORRELATED_INPUT_ACK_CAPABILITY,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+} from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
 import { connect, connectAndHello, payloadAsString } from "./helpers/client.ts";
 
@@ -33,7 +36,10 @@ test("handshake: hello → hello-ack", async () => {
 	if (ack.type === "hello-ack") {
 		assert.equal(ack.protocol, 2);
 		assert.equal(ack.daemonVersion, "0.0.0-test");
-		assert.deepEqual(ack.capabilities, [LOSSLESS_LIVE_HANDOFF_CAPABILITY]);
+		assert.deepEqual(ack.capabilities, [
+			LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+			CORRELATED_INPUT_ACK_CAPABILITY,
+		]);
 	}
 	await c.close();
 });

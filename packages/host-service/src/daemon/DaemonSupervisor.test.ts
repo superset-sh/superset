@@ -18,6 +18,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
 	type ClientMessage,
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	encodeFrame,
 	FrameDecoder,
 	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
@@ -102,11 +103,28 @@ describe("upgrade failure ownership compatibility", () => {
 
 describe("live handoff capability policy", () => {
 	test("blocks a legacy daemon only when it owns live sessions", () => {
-		expect(liveHandoffCapabilityFailure([aliveSession()], false)).toMatch(
+		expect(liveHandoffCapabilityFailure([aliveSession()], new Set())).toMatch(
 			/lacks lossless-live-handoff-v1/,
 		);
-		expect(liveHandoffCapabilityFailure([], false)).toBeNull();
-		expect(liveHandoffCapabilityFailure([aliveSession()], true)).toBeNull();
+		expect(liveHandoffCapabilityFailure([], new Set())).toBeNull();
+		expect(
+			liveHandoffCapabilityFailure(
+				[aliveSession()],
+				new Set([
+					LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+					CORRELATED_INPUT_ACK_CAPABILITY,
+				]),
+			),
+		).toBeNull();
+	});
+
+	test("blocks live rotation when only input acknowledgements are missing", () => {
+		expect(
+			liveHandoffCapabilityFailure(
+				[aliveSession()],
+				new Set([LOSSLESS_LIVE_HANDOFF_CAPABILITY]),
+			),
+		).toMatch(/lacks correlated-input-ack-v1/);
 	});
 });
 
@@ -399,7 +417,10 @@ describe("DaemonSupervisor live-handoff preflight", () => {
 	test("allows a capable daemon with live sessions to reach prepare-upgrade", async () => {
 		const { result, received } = await exercisePreflight({
 			sessions: [aliveSession("capable-live")],
-			capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
+			capabilities: [
+				LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+				CORRELATED_INPUT_ACK_CAPABILITY,
+			],
 		});
 		expect(result).toEqual({ ok: false, reason: safeAbort.reason });
 		expect(received).toEqual(["hello", "list", "prepare-upgrade"]);
@@ -1496,10 +1517,13 @@ describe("DaemonSupervisor auto-update best effort", () => {
 		}
 	});
 
-	test("allows live background update when daemon advertises lossless handoff", async () => {
+	test("allows live background update when daemon advertises lossless handoff and input ACKs", async () => {
 		const fake = await startFakeDaemon({
 			respondWithVersion: "0.0.6",
-			capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
+			capabilities: [
+				LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+				CORRELATED_INPUT_ACK_CAPABILITY,
+			],
 		});
 		const instance = {
 			...staleInstance("0.0.6"),

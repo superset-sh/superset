@@ -49,6 +49,25 @@ describe("v2 wire shape", () => {
 		expect(json).not.toContain("data");
 	});
 
+	test("input correlation is additive and preserves the legacy header", () => {
+		const legacy = decodeFrame(
+			encodeFrame({ type: "input", id: "legacy" }, Buffer.from("a")),
+		);
+		const sequenced = decodeFrame(
+			encodeFrame(
+				{ type: "input", id: "current", sequence: 7 },
+				Buffer.from("b"),
+			),
+		);
+
+		expect(legacy.message).toEqual({ type: "input", id: "legacy" });
+		expect(sequenced.message).toEqual({
+			type: "input",
+			id: "current",
+			sequence: 7,
+		});
+	});
+
 	test("control frames have jsonLen === totalLen - 4 (no payload)", () => {
 		// Control messages must NOT accidentally pick up a binary tail —
 		// that would either confuse the receiver or mask a real bug where
@@ -56,6 +75,7 @@ describe("v2 wire shape", () => {
 		const cases = [
 			{ type: "hello-ack", protocol: 2, daemonVersion: "x" },
 			{ type: "open-ok", id: "s0", pid: 123 },
+			{ type: "input-ack", id: "s0", sequence: 1 },
 			{ type: "closed", id: "s0" },
 			{ type: "exit", id: "s0", code: 0, signal: null },
 			{ type: "list-reply", sessions: [] },

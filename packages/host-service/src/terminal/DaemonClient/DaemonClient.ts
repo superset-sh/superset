@@ -17,6 +17,7 @@
 
 import * as net from "node:net";
 import {
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
@@ -70,6 +71,7 @@ interface SessionCallbacks {
 export interface DaemonClientOptions {
 	socketPath: string;
 	connectTimeoutMs?: number;
+	inputAckTimeoutMs?: number;
 }
 
 /**
@@ -88,6 +90,14 @@ const ACTIVATE_ADOPTED_TIMEOUT_MS = 5_000;
 // await successor adopt-ack, then reply. The Server uses 5s for the ack
 // alone; 15s here covers spawn + ack + reply round-trip with margin.
 const PREPARE_UPGRADE_TIMEOUT_MS = 15_000;
+const INPUT_ACK_TIMEOUT_MS = 5_000;
+
+interface PendingInput {
+	id: string;
+	resolve: () => void;
+	reject: (error: Error) => void;
+	timer: NodeJS.Timeout;
+}
 
 export class DaemonClient {
 	private readonly opts: DaemonClientOptions;
@@ -100,6 +110,9 @@ export class DaemonClient {
 	private negotiated: number | null = null;
 	private connected = false;
 	private disposePromise: Promise<void> | null = null;
+	private nextInputSequence = 1;
+	private readonly pendingInputs = new Map<number, PendingInput>();
+	private readonly inputAckTimeoutMs: number;
 	/**
 	 * Protocol v1 has no request ids for list/prepare-upgrade replies. Keep
 	 * non-session requests strictly serialized so an older concurrent list reply
@@ -109,6 +122,15 @@ export class DaemonClient {
 
 	constructor(opts: DaemonClientOptions) {
 		this.opts = opts;
+		this.inputAckTimeoutMs = opts.inputAckTimeoutMs ?? INPUT_ACK_TIMEOUT_MS;
+		if (
+			!Number.isInteger(this.inputAckTimeoutMs) ||
+			this.inputAckTimeoutMs <= 0
+		) {
+			throw new Error(
+				`DaemonClient: invalid input ACK timeout ${this.inputAckTimeoutMs}`,
+			);
+		}
 	}
 
 	async connect(): Promise<void> {
@@ -238,11 +260,42 @@ export class DaemonClient {
 		});
 	}
 
-	/** Fire-and-forget; bytes go straight to the PTY. */
-	input(id: string, data: Buffer): void {
+	/** Resolve once this exact payload is accepted, or reject its correlated error. */
+	input(id: string, data: Buffer): Promise<void> {
 		// Bytes ride in the frame's binary tail (see ../../protocol/framing.ts).
 		// No base64 hop on either side.
-		this.send({ type: "input", id }, data);
+		if (!this.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY)) {
+			// Preserve the original wire shape for a legacy daemon. A same-socket list
+			// barrier still protects rotation, but ordinary input must never wait for an
+			// ACK the peer cannot emit.
+			try {
+				this.send({ type: "input", id }, data);
+				return Promise.resolve();
+			} catch (error) {
+				return Promise.reject(
+					error instanceof Error ? error : new Error(String(error)),
+				);
+			}
+		}
+
+		const sequence = this.allocateInputSequence();
+		return new Promise<void>((resolve, reject) => {
+			const timer = setTimeout(() => {
+				this.pendingInputs.delete(sequence);
+				reject(
+					new Error(
+						`daemon input ${id} sequence ${sequence}: timed out after ${this.inputAckTimeoutMs}ms`,
+					),
+				);
+			}, this.inputAckTimeoutMs);
+			timer.unref();
+			this.pendingInputs.set(sequence, { id, resolve, reject, timer });
+			try {
+				this.send({ type: "input", id, sequence }, data);
+			} catch (error) {
+				this.settleInput(sequence, error);
+			}
+		});
 	}
 
 	/** Fire-and-forget; daemon validates dims. */
@@ -371,6 +424,9 @@ export class DaemonClient {
 	async dispose(): Promise<void> {
 		if (this.disposePromise) return this.disposePromise;
 		this.connected = false;
+		this.rejectPendingInputs(
+			new Error("DaemonClient disposed before input acknowledgement"),
+		);
 		const sock = this.socket;
 		this.socket = null;
 		if (!sock || sock.closed) return;
@@ -576,6 +632,33 @@ export class DaemonClient {
 		sock.write(encodeFrame(msg, payload));
 	}
 
+	private allocateInputSequence(): number {
+		const sequence = this.nextInputSequence;
+		if (!Number.isSafeInteger(sequence) || sequence <= 0) {
+			throw new Error("DaemonClient: input sequence exhausted");
+		}
+		this.nextInputSequence += 1;
+		return sequence;
+	}
+
+	private settleInput(sequence: number, error?: unknown): boolean {
+		const pending = this.pendingInputs.get(sequence);
+		if (!pending) return false;
+		this.pendingInputs.delete(sequence);
+		clearTimeout(pending.timer);
+		if (error === undefined) pending.resolve();
+		else {
+			pending.reject(error instanceof Error ? error : new Error(String(error)));
+		}
+		return true;
+	}
+
+	private rejectPendingInputs(error: Error): void {
+		for (const sequence of [...this.pendingInputs.keys()]) {
+			this.settleInput(sequence, error);
+		}
+	}
+
 	private onData(chunk: Buffer): void {
 		this.decoder.push(chunk);
 		let frames: ReturnType<FrameDecoder["drain"]>;
@@ -592,6 +675,34 @@ export class DaemonClient {
 		}
 		for (const frame of frames) {
 			const msg = frame.message as ServerMessage;
+			if (msg.type === "input-ack") {
+				const pending = this.pendingInputs.get(msg.sequence);
+				if (pending && pending.id !== msg.id) {
+					this.settleInput(
+						msg.sequence,
+						new Error(
+							`daemon input acknowledgement sequence ${msg.sequence} named ${msg.id}, expected ${pending.id}`,
+						),
+					);
+				} else {
+					this.settleInput(msg.sequence);
+				}
+				continue;
+			}
+			if (msg.type === "error" && msg.inputSequence !== undefined) {
+				if (this.pendingInputs.has(msg.inputSequence)) {
+					const code = msg.code ? ` (${msg.code})` : "";
+					this.settleInput(
+						msg.inputSequence,
+						new Error(
+							`input ${msg.id ?? "unknown"} sequence ${msg.inputSequence}${code}: ${msg.message}`,
+						),
+					);
+				}
+				// A late correlated error must never settle a concurrent open/close on
+				// the same session id after the input waiter timed out.
+				continue;
+			}
 			// Route session-keyed events to subscriber callbacks.
 			if (msg.type === "output" && this.callbacks.has(msg.id)) {
 				if (frame.payload) {
@@ -626,6 +737,7 @@ export class DaemonClient {
 		if (!this.connected && this.socket === null) return;
 		this.connected = false;
 		this.socket = null;
+		this.rejectPendingInputs(err ?? new Error("daemon disconnected"));
 		for (const cb of this.disconnectCbs) cb(err);
 	}
 }

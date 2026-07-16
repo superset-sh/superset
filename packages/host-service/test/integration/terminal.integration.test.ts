@@ -218,7 +218,7 @@ describe("terminal router integration", () => {
 				terminalId,
 			});
 			const daemon = await getDaemonClient();
-			daemon.input(
+			await daemon.input(
 				terminalId,
 				Buffer.from(
 					`/bin/bash -lc ${shellQuote(detachedHelperScript(pidPath))}\n`,
@@ -241,7 +241,7 @@ describe("terminal router integration", () => {
 				workspaceId: scenario.workspaceId,
 				terminalId: workspaceCleanupTerminalId,
 			});
-			daemon.input(
+			await daemon.input(
 				workspaceCleanupTerminalId,
 				Buffer.from(
 					`/bin/bash -lc ${shellQuote(detachedHelperScript(workspaceCleanupPidPath))}\n`,

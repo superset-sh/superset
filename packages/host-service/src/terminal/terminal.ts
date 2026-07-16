@@ -3,6 +3,7 @@ import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
+import { CORRELATED_INPUT_ACK_CAPABILITY } from "@superset/pty-daemon/protocol";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -665,8 +666,11 @@ function makeDaemonPty(
 				{ kind: "input", byteCost: payload.byteLength },
 				async () => {
 					const current = await getDaemonClient();
-					current.input(sessionId, payload);
-					markDaemonMutationNeedsBarrier(current);
+					const input = current.input(sessionId, payload);
+					if (!current.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY)) {
+						markDaemonMutationNeedsBarrier(current);
+					}
+					await input;
 				},
 			);
 		},
@@ -1386,29 +1390,45 @@ function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
 	directDaemon?: DaemonClient,
-): void {
-	if (session.initialCommandQueued || session.exited) return;
-	session.initialCommandQueued = true;
+): Promise<void> {
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
-	// and gating turned broken/missing markers into a guaranteed stall.
-	if (directDaemon) {
-		// createTerminalSessionInternalDirect already owns a mutation lease, so
-		// nesting another gated operation could deadlock if an update starts
-		// between the open and this initial write. The same-socket barrier in the
-		// outer lease still orders this fire-and-forget frame before handoff.
-		sendDirectDaemonInput(
-			directDaemon,
-			session.terminalId,
-			Buffer.from(cmd, "utf8"),
-		);
-		return;
+	return runInitialCommandAttempt(
+		session,
+		() => {
+			// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
+			// and gating turned broken/missing markers into a guaranteed stall.
+			if (!directDaemon) return session.pty.write(cmd);
+			// createTerminalSessionInternalDirect already owns a mutation lease, so
+			// nesting another gated operation could deadlock if an update starts
+			// between the open and this initial write. The outer lease owns this ACK.
+			return sendDirectDaemonInput(
+				directDaemon,
+				session.terminalId,
+				Buffer.from(cmd, "utf8"),
+			);
+		},
+		(error) => reportSessionMutationError(session, "initial input", error),
+	);
+}
+
+function runInitialCommandAttempt(
+	state: { initialCommandQueued: boolean; exited: boolean },
+	send: () => Promise<void>,
+	onVisibleError: (error: unknown) => void,
+): Promise<void> {
+	if (state.initialCommandQueued || state.exited) return Promise.resolve();
+	state.initialCommandQueued = true;
+	let operation: Promise<void>;
+	try {
+		operation = send();
+	} catch (error) {
+		operation = Promise.reject(error);
 	}
-	void session.pty.write(cmd).catch((error) => {
-		session.initialCommandQueued = false;
-		reportSessionMutationError(session, "initial input", error);
+	return operation.catch((error) => {
+		state.initialCommandQueued = false;
+		onVisibleError(error);
 	});
 }
 
@@ -1416,13 +1436,31 @@ function sendDirectDaemonInput(
 	daemon: DaemonClient,
 	terminalId: string,
 	payload: Buffer,
-): void {
-	daemon.input(terminalId, payload);
-	markDaemonMutationNeedsBarrier(daemon);
+): Promise<void> {
+	const input = daemon.input(terminalId, payload);
+	if (!daemon.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY)) {
+		markDaemonMutationNeedsBarrier(daemon);
+	}
+	return input;
 }
 
 /** Exact direct-initial-command transport path, exposed only for regression tests. */
 export const __sendDirectDaemonInputForTesting = sendDirectDaemonInput;
+
+/** Direct initial-command failure semantics, exposed only for regression tests. */
+export function __queueDirectInitialCommandForTesting(
+	state: { initialCommandQueued: boolean; exited: boolean },
+	daemon: DaemonClient,
+	terminalId: string,
+	payload: Buffer,
+	onVisibleError: (error: unknown) => void,
+): Promise<void> {
+	return runInitialCommandAttempt(
+		state,
+		() => sendDirectDaemonInput(daemon, terminalId, payload),
+		onVisibleError,
+	);
+}
 
 function reportSessionMutationError(
 	session: TerminalSession,
@@ -1801,7 +1839,7 @@ async function createTerminalSessionInternalDirect({
 			};
 		}
 		if (listed) existing.listed = true;
-		if (initialCommand) queueInitialCommand(existing, initialCommand);
+		if (initialCommand) void queueInitialCommand(existing, initialCommand);
 		return existing;
 	}
 
@@ -2151,7 +2189,7 @@ async function createTerminalSessionInternalDirect({
 	}
 
 	if (initialCommand) {
-		queueInitialCommand(session, initialCommand, daemon);
+		await queueInitialCommand(session, initialCommand, daemon);
 	}
 
 	return session;

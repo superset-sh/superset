@@ -16,6 +16,7 @@ import {
 import { adoptFromFd } from "../Pty/index.ts";
 import {
 	type ClientMessage,
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	encodeFrame,
 	FrameDecoder,
 	type HandoffMessage,
@@ -801,7 +802,10 @@ export class Server {
 				type: "hello-ack",
 				protocol: negotiated,
 				daemonVersion: this.opts.daemonVersion,
-				capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
+				capabilities: [
+					LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+					CORRELATED_INPUT_ACK_CAPABILITY,
+				],
 				daemonPid: process.pid,
 			});
 			return;
@@ -823,7 +827,8 @@ export class Server {
 				return;
 			}
 			case "input": {
-				if (this.rejectMutationDuringUpgrade(conn, msg.id)) return;
+				if (this.rejectMutationDuringUpgrade(conn, msg.id, msg.sequence))
+					return;
 				this.activateStagedSession(msg.id);
 				const reply = handleInput(ctx, msg, payload);
 				if (reply) conn.send(reply);
@@ -908,18 +913,26 @@ export class Server {
 		}
 	}
 
-	private rejectMutationDuringUpgrade(conn: ConnState, id: string): boolean {
+	private rejectMutationDuringUpgrade(
+		conn: ConnState,
+		id: string,
+		inputSequence?: number,
+	): boolean {
 		if (this.upgradePhase === "idle") return false;
 		if (this.upgradePhase === "preparing") {
 			this.mutationEpoch += 1;
 			this.upgradeDirty = true;
 		}
-		conn.send({
+		const error: ServerMessage = {
 			type: "error",
 			id,
 			code: "EUPGRADING",
 			message: `terminal mutation rejected while daemon upgrade is ${this.upgradePhase}; retry on the active daemon`,
-		});
+		};
+		if (inputSequence !== undefined && error.type === "error") {
+			error.inputSequence = inputSequence;
+		}
+		conn.send(error);
 		return true;
 	}
 

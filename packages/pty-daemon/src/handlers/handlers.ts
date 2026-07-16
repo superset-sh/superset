@@ -5,6 +5,7 @@ import {
 } from "../Pty/index.ts";
 import type {
 	CloseMessage,
+	InputAckMessage,
 	InputMessage,
 	ListReplyMessage,
 	OpenMessage,
@@ -84,20 +85,31 @@ export function handleInput(
 	payload: Uint8Array | null,
 ): ServerMessage | undefined {
 	const session = ctx.store.get(msg.id);
-	if (!session) return errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT");
+	if (!session)
+		return errorFor(
+			msg.id,
+			`unknown session: ${msg.id}`,
+			"ENOENT",
+			msg.sequence,
+		);
 	if (session.exited)
-		return errorFor(msg.id, `session exited: ${msg.id}`, "EEXITED");
+		return errorFor(
+			msg.id,
+			`session exited: ${msg.id}`,
+			"EEXITED",
+			msg.sequence,
+		);
 	if (!payload || payload.byteLength === 0) {
 		// Empty input is a no-op; surfacing an error would force callers
 		// to special-case zero-length writes for no real benefit.
-		return undefined;
+		return inputAckFor(msg);
 	}
 	try {
 		session.pty.write(Buffer.from(payload));
 	} catch (err) {
-		return errorFor(msg.id, (err as Error).message, "EWRITE");
+		return errorFor(msg.id, (err as Error).message, "EWRITE", msg.sequence);
 	}
-	return undefined;
+	return inputAckFor(msg);
 }
 
 export function handleResize(
@@ -181,6 +193,16 @@ function errorFor(
 	id: string | undefined,
 	message: string,
 	code?: string,
+	inputSequence?: number,
 ): ServerMessage {
-	return { type: "error", id, message, code };
+	const error: ServerMessage = { type: "error", id, message, code };
+	if (inputSequence !== undefined && error.type === "error") {
+		error.inputSequence = inputSequence;
+	}
+	return error;
+}
+
+function inputAckFor(msg: InputMessage): InputAckMessage | undefined {
+	if (msg.sequence === undefined) return undefined;
+	return { type: "input-ack", id: msg.id, sequence: msg.sequence };
 }

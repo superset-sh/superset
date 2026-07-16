@@ -29,6 +29,7 @@ import {
 	signalProcessTreeAndGroupsIfStillOwned,
 } from "@superset/pty-daemon/process-tree";
 import {
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
@@ -80,11 +81,19 @@ interface DaemonProbeResult {
 
 export function liveHandoffCapabilityFailure(
 	sessions: SessionInfo[],
-	hasLosslessCapability: boolean,
+	capabilities: ReadonlySet<string>,
 ): string | null {
 	const liveSessions = sessions.filter((session) => session.alive);
-	if (liveSessions.length === 0 || hasLosslessCapability) return null;
-	return `running daemon lacks ${LOSSLESS_LIVE_HANDOFF_CAPABILITY}; refusing to hand off ${liveSessions.length} live terminal session${liveSessions.length === 1 ? "" : "s"}`;
+	if (liveSessions.length === 0) return null;
+	const required = [
+		LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+		CORRELATED_INPUT_ACK_CAPABILITY,
+	];
+	const missing = required.filter(
+		(capability) => !capabilities.has(capability),
+	);
+	if (missing.length === 0) return null;
+	return `running daemon lacks ${missing.join(", ")}; refusing to hand off ${liveSessions.length} live terminal session${liveSessions.length === 1 ? "" : "s"}`;
 }
 
 interface AmbiguousUpdateRecovery {
@@ -391,7 +400,12 @@ export class DaemonSupervisor {
 		}
 		const capabilityFailure = liveHandoffCapabilityFailure(
 			preflightSessions,
-			client.hasCapability(LOSSLESS_LIVE_HANDOFF_CAPABILITY),
+			new Set(
+				[
+					LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+					CORRELATED_INPUT_ACK_CAPABILITY,
+				].filter((capability) => client.hasCapability(capability)),
+			),
 		);
 		if (capabilityFailure) {
 			await client.dispose().catch(() => {});
@@ -966,8 +980,9 @@ export class DaemonSupervisor {
 	 * Auto-update: best-effort opportunistic handoff when the adopted
 	 * daemon is older than the bundled binary. Runs after host-service
 	 * boot, fire-and-track, doesn't block anything. A daemon advertising the
-	 * lossless-live-handoff capability may rotate with live sessions; legacy or
-	 * unverified daemons defer until idle. This path never force-restarts.
+	 * Both lossless-live-handoff and correlated-input-ack capabilities are
+	 * required to rotate live sessions; legacy or unverified daemons defer until
+	 * idle. This path never force-restarts.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -1029,7 +1044,7 @@ export class DaemonSupervisor {
 			}
 			const capabilityFailure = liveHandoffCapabilityFailure(
 				sessions,
-				probe.capabilities.includes(LOSSLESS_LIVE_HANDOFF_CAPABILITY),
+				new Set(probe.capabilities),
 			);
 			if (capabilityFailure) {
 				this.deferAutoUpdate(

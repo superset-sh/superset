@@ -65,12 +65,14 @@ read the running daemon's `daemonVersion`, compares against
 `updatePending: true` on the instance — the renderer surfaces a
 "restart to update" affordance. `hello-ack` also advertises explicit runtime
 capabilities. A live-session update proceeds only when the daemon proves
-`lossless-live-handoff-v1`; legacy or unknown daemons defer until they are
-idle. Manual updates try fd-handoff first and only force-restart after the
-user confirms. Automatic adoption updates may hand off capable live sessions,
-but they never force-restart in the background. On failure, the predecessor
-keeps running and `updatePending` remains visible. The failure reason is exposed through
-`getUpdateStatus().autoUpdateFailure` so the desktop can show a global
+both `lossless-live-handoff-v1` and `correlated-input-ack-v1`; legacy or unknown
+daemons defer until they are idle. Legacy input remains usable without waiting
+for an ACK that daemon cannot send. Manual updates try fd-handoff first and
+only force-restart after the user confirms. Automatic adoption updates may hand
+off capable live sessions, but they never force-restart in the background. On
+failure, the predecessor keeps running and `updatePending` remains visible. The
+failure reason is exposed through `getUpdateStatus().autoUpdateFailure` so the
+desktop can show a global
 force-update dialog without the supervisor taking the destructive path itself.
 
 Probe failure ≠ stale: a transient socket issue produces

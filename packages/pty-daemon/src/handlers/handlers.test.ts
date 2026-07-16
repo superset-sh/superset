@@ -135,6 +135,50 @@ describe("handlers", () => {
 		expect(states[0]?.written.map((b) => b.toString())).toEqual(["hello"]);
 	});
 
+	test("sequenced input returns an exact acceptance acknowledgement", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		expect(
+			handleInput(
+				ctx,
+				{ type: "input", id: "s0", sequence: 41 },
+				Buffer.from("hello"),
+			),
+		).toEqual({ type: "input-ack", id: "s0", sequence: 41 });
+	});
+
+	test("sequenced input correlates EWRITE to only the rejected payload", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		const session = ctx.store.get("s0");
+		if (!session) throw new Error("missing test session");
+		session.pty.write = () => {
+			throw new Error("backlog full");
+		};
+
+		expect(
+			handleInput(
+				ctx,
+				{ type: "input", id: "s0", sequence: 42 },
+				Buffer.from("rejected"),
+			),
+		).toEqual({
+			type: "error",
+			id: "s0",
+			inputSequence: 42,
+			message: "backlog full",
+			code: "EWRITE",
+		});
+	});
+
 	test("input on missing session returns error", () => {
 		const ctx = makeCtx();
 		const result = handleInput(
@@ -143,6 +187,22 @@ describe("handlers", () => {
 			Buffer.alloc(0),
 		);
 		expect(result?.type).toBe("error");
+	});
+
+	test("missing sequenced input preserves its correlation on ENOENT", () => {
+		const ctx = makeCtx();
+		expect(
+			handleInput(
+				ctx,
+				{ type: "input", id: "missing", sequence: 43 },
+				Buffer.from("x"),
+			),
+		).toMatchObject({
+			type: "error",
+			id: "missing",
+			inputSequence: 43,
+			code: "ENOENT",
+		});
 	});
 
 	test("resize updates dims", () => {

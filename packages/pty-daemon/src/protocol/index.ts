@@ -17,6 +17,7 @@ export type {
 	ExitMessage,
 	HelloAckMessage,
 	HelloMessage,
+	InputAckMessage,
 	InputMessage,
 	ListMessage,
 	ListReplyMessage,
@@ -33,7 +34,10 @@ export type {
 	UnsubscribeMessage,
 	UpgradePreparedMessage,
 } from "./messages.ts";
-export { LOSSLESS_LIVE_HANDOFF_CAPABILITY } from "./messages.ts";
+export {
+	CORRELATED_INPUT_ACK_CAPABILITY,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+} from "./messages.ts";
 export {
 	CURRENT_PROTOCOL_VERSION,
 	SUPPORTED_PROTOCOL_VERSIONS,

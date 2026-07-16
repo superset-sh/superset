@@ -203,10 +203,10 @@ test("legacy ACK plus IPC disconnect publishes a healthy successor", async () =>
 	}
 });
 
-test("real 0.2.5 predecessor hands a live PTY to the 0.2.6 bundle", async () => {
+test("real 0.2.5 predecessor hands a live PTY to the 0.2.7 bundle", async () => {
 	assert.equal(
 		DAEMON_PACKAGE_VERSION,
-		"0.2.6",
+		"0.2.7",
 		"this compatibility boundary must move deliberately when the daemon version changes",
 	);
 	const nonce = `${process.pid}-${Math.random().toString(36).slice(2)}`;
@@ -282,7 +282,7 @@ test("real 0.2.5 predecessor hands a live PTY to the 0.2.6 bundle", async () => 
 		);
 
 		// The running 0.2.5 process keeps its loaded code, while its self-spawn
-		// path now resolves to the freshly built 0.2.6 artifact.
+		// path now resolves to the freshly built 0.2.7 artifact.
 		fs.renameSync(currentBundle, runtimeScript);
 		predecessorConnection.send({ type: "prepare-upgrade" });
 		const prepared = await predecessorConnection.waitFor(
@@ -303,7 +303,7 @@ test("real 0.2.5 predecessor hands a live PTY to the 0.2.6 bundle", async () => 
 		);
 		assert.equal(successorHello?.type, "hello-ack");
 		if (successorHello?.type === "hello-ack") {
-			assert.equal(successorHello.daemonVersion, "0.2.6");
+			assert.equal(successorHello.daemonVersion, "0.2.7");
 			assert.equal(successorHello.daemonPid, successorPid);
 		}
 

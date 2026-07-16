@@ -3,17 +3,22 @@
 // daemon spawns real PTYs via node-pty.
 
 import { strict as assert } from "node:assert";
+import * as childProcess from "node:child_process";
+import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
+import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import {
 	type ClientMessage,
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
 } from "@superset/pty-daemon/protocol";
+import { __createDaemonMutationGateForTesting } from "../daemon-mutation-gate.ts";
 import { DaemonClient } from "./DaemonClient.ts";
 
 const sockPath = path.join(
@@ -21,6 +26,10 @@ const sockPath = path.join(
 	`host-daemon-client-${process.pid}.sock`,
 );
 let server: Server;
+const DAEMON_SCRIPT = path.resolve(
+	path.dirname(fileURLToPath(import.meta.url)),
+	"../../../../pty-daemon/src/main.ts",
+);
 
 before(async () => {
 	server = new Server({
@@ -254,7 +263,7 @@ test("input is forwarded; resize updates dims", async () => {
 		},
 	);
 
-	c.input(id, Buffer.from("echo input-marker\n"));
+	await c.input(id, Buffer.from("echo input-marker\n"));
 
 	await waitFor(
 		() => Buffer.concat(chunks).toString().includes("input-marker"),
@@ -270,6 +279,122 @@ test("input is forwarded; resize updates dims", async () => {
 	unsubscribe();
 	await c.close(id, "SIGTERM");
 	await c.dispose();
+});
+
+test("held adopted-PTY input above 8 MiB settles every correlated promise", async () => {
+	const nonce = `${process.pid}-${Date.now()}`;
+	const localSocket = path.join(
+		os.tmpdir(),
+		`host-daemon-input-backpressure-${nonce}.sock`,
+	);
+	const sessionId = `host-adopted-input-backpressure-${nonce}`;
+	const predecessorProcess = spawnDaemonProcess(localSocket);
+	let predecessor: DaemonClient | null = null;
+	let successor: DaemonClient | null = null;
+	let successorPid: number | null = null;
+	let sessionPid: number | null = null;
+
+	try {
+		await waitFor(() => fs.existsSync(localSocket), 3_000);
+		predecessor = await connectEventually(localSocket);
+		const opened = await predecessor.open(sessionId, {
+			shell: process.execPath,
+			argv: [
+				"--input-type=module",
+				"--eval",
+				[
+					"process.stdin.setRawMode?.(true);",
+					"process.stdin.pause();",
+					"process.stdout.write('non-reader-ready\\n');",
+					"setInterval(() => {}, 1000);",
+				].join("\n"),
+			],
+			cols: 80,
+			rows: 24,
+		});
+		sessionPid = opened.pid;
+		const output: Buffer[] = [];
+		const unsubscribe = predecessor.subscribe(
+			sessionId,
+			{ replay: false },
+			{ onOutput: (chunk) => output.push(chunk), onExit: () => {} },
+		);
+		await waitFor(
+			() => Buffer.concat(output).includes(Buffer.from("non-reader-ready")),
+			3_000,
+		);
+		unsubscribe();
+
+		const upgrade = await predecessor.prepareUpgrade();
+		assert.equal(upgrade.ok, true, JSON.stringify(upgrade));
+		if (!upgrade.ok) return;
+		successorPid = upgrade.successorPid;
+		await waitFor(() => predecessorProcess.exitCode !== null, 5_000);
+		successor = await connectEventually(localSocket);
+		assert.equal(
+			successor.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY),
+			true,
+		);
+		await successor.activateAdopted();
+
+		process.kill(sessionPid, "SIGSTOP");
+		const chunkBytes = 2 * 1024 * 1024;
+		const chunkCount = 6;
+		assert.ok(chunkBytes < 8 * 1024 * 1024, "each frame must stay below cap");
+		const gate = __createDaemonMutationGateForTesting(
+			`host-input-backpressure-${nonce}`,
+			{ maxOperations: chunkCount, maxBytes: 16 * 1024 * 1024 },
+		);
+		const lease = gate.beginUpdate();
+		const writes = Array.from({ length: chunkCount }, (_, index) => {
+			const payload = Buffer.alloc(chunkBytes, index + 1);
+			return gate.run({ kind: "input", byteCost: payload.byteLength }, () => {
+				if (!successor) throw new Error("successor disconnected");
+				return successor.input(sessionId, payload);
+			});
+		});
+		// Attach rejection handlers before release starts: EWRITE is expected test
+		// data, never an unhandled process-level failure.
+		const outcomesPromise = Promise.allSettled(writes);
+
+		await lease.waitUntilDrained();
+		await lease.release("abort");
+		const outcomes = await outcomesPromise;
+		assert.equal(outcomes.length, chunkCount);
+		for (let index = 0; index < 4; index++) {
+			assert.equal(
+				outcomes[index]?.status,
+				"fulfilled",
+				`input sequence ${index + 1} was not explicitly acknowledged`,
+			);
+		}
+		for (let index = 4; index < chunkCount; index++) {
+			const outcome = outcomes[index];
+			assert.equal(outcome?.status, "rejected");
+			if (outcome?.status !== "rejected") continue;
+			assert.match(
+				String(outcome.reason),
+				new RegExp(`sequence ${index + 1} \\(EWRITE\\)`),
+			);
+			assert.match(String(outcome.reason), /backlog exceeded hard limit/);
+		}
+	} finally {
+		if (sessionPid) {
+			try {
+				process.kill(sessionPid, "SIGCONT");
+			} catch {
+				// Already exited.
+			}
+		}
+		if (successor && sessionPid) {
+			await successor.close(sessionId, "SIGKILL").catch(() => {});
+		}
+		await successor?.dispose().catch(() => {});
+		await predecessor?.dispose().catch(() => {});
+		killBestEffort(successorPid);
+		killBestEffort(predecessorProcess.pid ?? null);
+		unlinkSafe(localSocket);
+	}
 });
 
 test("multiple local subscribers get fanned out from one wire subscription", async () => {
@@ -502,7 +627,7 @@ test("adoption flow: client A opens, drops, client B finds + subscribes-with-rep
 		{ replay: false },
 		{ onOutput: (c) => aChunks.push(c), onExit: () => {} },
 	);
-	a.input(id, Buffer.from("echo before-host-restart\n"));
+	await a.input(id, Buffer.from("echo before-host-restart\n"));
 	await waitFor(
 		() => Buffer.concat(aChunks).toString().includes("before-host-restart"),
 		3000,
@@ -553,7 +678,7 @@ test("adoption flow: client A opens, drops, client B finds + subscribes-with-rep
 	);
 
 	// And new input through B reaches the (still-living) shell.
-	b.input(id, Buffer.from("echo after-host-restart\n"));
+	await b.input(id, Buffer.from("echo after-host-restart\n"));
 	await waitFor(
 		() => Buffer.concat(bChunks).toString().includes("after-host-restart"),
 		3000,
@@ -572,5 +697,52 @@ async function waitFor(
 	while (!(await predicate())) {
 		if (Date.now() - start > ms) throw new Error("waitFor timed out");
 		await new Promise((r) => setTimeout(r, 25));
+	}
+}
+
+function spawnDaemonProcess(socketPath: string): childProcess.ChildProcess {
+	return childProcess.spawn(
+		process.execPath,
+		[...process.execArgv, DAEMON_SCRIPT, `--socket=${socketPath}`],
+		{ stdio: ["ignore", "ignore", "inherit"] },
+	);
+}
+
+async function connectEventually(
+	socketPath: string,
+	timeoutMs = 5_000,
+): Promise<DaemonClient> {
+	const deadline = Date.now() + timeoutMs;
+	let lastError: unknown;
+	while (Date.now() < deadline) {
+		const client = new DaemonClient({ socketPath, connectTimeoutMs: 500 });
+		try {
+			await client.connect();
+			return client;
+		} catch (error) {
+			lastError = error;
+			await client.dispose().catch(() => {});
+			await new Promise((resolve) => setTimeout(resolve, 25));
+		}
+	}
+	throw lastError instanceof Error
+		? lastError
+		: new Error("timed out connecting to daemon");
+}
+
+function killBestEffort(pid: number | null): void {
+	if (!pid) return;
+	try {
+		process.kill(pid, "SIGKILL");
+	} catch {
+		// Already exited.
+	}
+}
+
+function unlinkSafe(filePath: string): void {
+	try {
+		fs.unlinkSync(filePath);
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
 }

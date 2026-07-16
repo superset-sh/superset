@@ -890,13 +890,13 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 			assert.equal(adopted.runningVersion, "0.2.5");
 
 			// The running process keeps its loaded 0.2.5 code, while its successor
-			// resolves argv[1] after the installed runtime has become 0.2.6.
+			// resolves argv[1] after the installed runtime has become 0.2.7.
 			fs.copyFileSync(DAEMON_BUNDLE, runtimeScript);
 			const result = await sup.update(orgId);
 			assert.equal(result.ok, true, JSON.stringify(result));
 			if (!result.ok) return;
 			assert.notEqual(result.successorPid, child.pid);
-			assert.equal(sup.getUpdateStatus(orgId)?.running, "0.2.6");
+			assert.equal(sup.getUpdateStatus(orgId)?.running, "0.2.7");
 		} catch (error) {
 			try {
 				if (child.pid) process.kill(child.pid, "SIGTERM");
