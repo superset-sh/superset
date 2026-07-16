@@ -194,13 +194,18 @@ describe("handlers", () => {
 		const conn = makeConn();
 		handleSubscribe(ctx, conn, { type: "subscribe", id: "s0", replay: true });
 		expect(conn.subscriptions.has("s0")).toBe(true);
-		expect(conn.sent).toHaveLength(1);
+		expect(conn.sent).toHaveLength(2);
 		const frame = conn.sent[0];
 		expect(frame?.message.type).toBe("output");
 		expect(frame?.payload).toBeTruthy();
 		if (frame?.payload) {
 			expect(Buffer.from(frame.payload).toString()).toBe("prior bytes");
 		}
+		expect(conn.sent[1]?.message).toEqual({
+			type: "subscribed",
+			id: "s0",
+			replayBytes: 11,
+		});
 	});
 
 	test("subscribe without replay does not send buffered output", () => {
@@ -217,7 +222,31 @@ describe("handlers", () => {
 		const conn = makeConn();
 		handleSubscribe(ctx, conn, { type: "subscribe", id: "s0", replay: false });
 		expect(conn.subscriptions.has("s0")).toBe(true);
-		expect(conn.sent).toHaveLength(0);
+		expect(conn.sent).toEqual([
+			{
+				message: { type: "subscribed", id: "s0", replayBytes: 0 },
+				payload: null,
+			},
+		]);
+	});
+
+	test("subscribe with an empty ring acknowledges a zero-byte replay", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+
+		const conn = makeConn();
+		handleSubscribe(ctx, conn, { type: "subscribe", id: "s0", replay: true });
+
+		expect(conn.sent).toEqual([
+			{
+				message: { type: "subscribed", id: "s0", replayBytes: 0 },
+				payload: null,
+			},
+		]);
 	});
 
 	test("unsubscribe removes from conn.subscriptions", () => {

@@ -117,9 +117,14 @@ mock.module("@superset/workspace-client/relay-socket", () => ({
 		new FakeRelaySocket(options),
 }));
 
-const { connect, createTransport, disconnect, reconnect } = await import(
-	"./terminal-ws-transport"
-);
+const {
+	connect,
+	createTransport,
+	disconnect,
+	reconnect,
+	sendResize,
+	setRenderedBaselineState,
+} = await import("./terminal-ws-transport");
 
 // `window` is aliased to `globalThis` by the xterm-env-polyfill preload, and
 // `globalThis.addEventListener` is absent on Linux CI runtimes, so the transport's
@@ -158,6 +163,19 @@ function connectAttached(url = "ws://host/terminal/t1") {
 	socket.open();
 	socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
 	return { transport, terminal, socket };
+}
+
+function withFrameStubs(run: () => void) {
+	const originalRaf = globalThis.requestAnimationFrame;
+	const originalCancelRaf = globalThis.cancelAnimationFrame;
+	globalThis.requestAnimationFrame = () => 1;
+	globalThis.cancelAnimationFrame = () => {};
+	try {
+		run();
+	} finally {
+		globalThis.requestAnimationFrame = originalRaf;
+		globalThis.cancelAnimationFrame = originalCancelRaf;
+	}
 }
 
 beforeEach(() => {
@@ -301,6 +319,186 @@ describe("terminal-ws-transport", () => {
 		expect(typeof mod.setRelaySocketTelemetry).toBe("function");
 	});
 
+	test("replaces a restored buffer when the host announces a full replay", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		const writes: string[] = [];
+		(terminal as unknown as { write: (data: Uint8Array) => void }).write = (
+			data,
+		) => writes.push(new TextDecoder().decode(data));
+		setRenderedBaselineState(transport, true);
+
+		withFrameStubs(() => {
+			connect(transport, terminal, "ws://host/terminal/t1");
+			const socket = FakeRelaySocket.instances[0];
+			if (!socket) throw new Error("expected relay socket instance");
+			socket.open();
+			socket.message(
+				JSON.stringify({
+					type: "attached",
+					terminalId: "t1",
+					replayKind: "full",
+				}),
+			);
+			socket.message(new TextEncoder().encode("prompt").buffer);
+			transport._writeCoalescer?.flushSync();
+		});
+
+		expect(writes).toEqual(["\u001bcprompt"]);
+	});
+
+	test("appends delta replay to a restored buffer without resetting it", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		const writes: string[] = [];
+		(terminal as unknown as { write: (data: Uint8Array) => void }).write = (
+			data,
+		) => writes.push(new TextDecoder().decode(data));
+		setRenderedBaselineState(transport, true);
+
+		withFrameStubs(() => {
+			connect(transport, terminal, "ws://host/terminal/t1");
+			const socket = FakeRelaySocket.instances[0];
+			if (!socket) throw new Error("expected relay socket instance");
+			socket.open();
+			socket.message(
+				JSON.stringify({
+					type: "attached",
+					terminalId: "t1",
+					replayKind: "delta",
+				}),
+			);
+			socket.message(new TextEncoder().encode("tail").buffer);
+			transport._writeCoalescer?.flushSync();
+		});
+
+		expect(writes).toEqual(["tail"]);
+	});
+
+	test("keeps a restored buffer when the host has no replay", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		setRenderedBaselineState(transport, true);
+
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const socket = FakeRelaySocket.instances[0];
+		if (!socket) throw new Error("expected relay socket instance");
+		socket.open();
+		socket.message(
+			JSON.stringify({
+				type: "attached",
+				terminalId: "t1",
+				replayKind: "none",
+			}),
+		);
+
+		expect(transport._hasRenderedBaseline).toBe(true);
+		expect(transport._pendingFullReplayReset).toBe(false);
+	});
+
+	test("does not reset a fresh terminal for a full replay", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		const writes: string[] = [];
+		(terminal as unknown as { write: (data: Uint8Array) => void }).write = (
+			data,
+		) => writes.push(new TextDecoder().decode(data));
+
+		withFrameStubs(() => {
+			connect(transport, terminal, "ws://host/terminal/t1");
+			const socket = FakeRelaySocket.instances[0];
+			if (!socket) throw new Error("expected relay socket instance");
+			socket.open();
+			socket.message(
+				JSON.stringify({
+					type: "attached",
+					terminalId: "t1",
+					replayKind: "full",
+				}),
+			);
+			socket.message(new TextEncoder().encode("prompt").buffer);
+			transport._writeCoalescer?.flushSync();
+		});
+
+		expect(writes).toEqual(["prompt"]);
+	});
+
+	test("requests full replay again when a full attach closes before bytes", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		const writes: string[] = [];
+		(terminal as unknown as { write: (data: Uint8Array) => void }).write = (
+			data,
+		) => writes.push(new TextDecoder().decode(data));
+		setRenderedBaselineState(transport, true);
+
+		withFrameStubs(() => {
+			connect(transport, terminal, "ws://host/terminal/t1");
+			const socket = FakeRelaySocket.instances[0];
+			if (!socket) throw new Error("expected relay socket instance");
+			socket.open();
+			socket.message(
+				JSON.stringify({
+					type: "attached",
+					terminalId: "t1",
+					replayKind: "full",
+				}),
+			);
+			socket.drop(1006, "host restart");
+			socket.open();
+			socket.message(
+				JSON.stringify({
+					type: "attached",
+					terminalId: "t1",
+					replayKind: "full",
+				}),
+			);
+			socket.message(new TextEncoder().encode("prompt").buffer);
+			transport._writeCoalescer?.flushSync();
+		});
+
+		expect(writes).toEqual(["\u001bcprompt"]);
+	});
+
+	test("replaces a live renderer baseline after host restart adopts a full replay", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+		const writes: string[] = [];
+		(terminal as unknown as { write: (data: Uint8Array) => void }).write = (
+			data,
+		) => writes.push(new TextDecoder().decode(data));
+
+		withFrameStubs(() => {
+			connect(transport, terminal, "ws://host/terminal/t1");
+			const socket = FakeRelaySocket.instances[0];
+			if (!socket) throw new Error("expected relay socket instance");
+			socket.open();
+			socket.message(
+				JSON.stringify({
+					type: "attached",
+					terminalId: "t1",
+					replayKind: "delta",
+				}),
+			);
+			socket.message(new TextEncoder().encode("old prompt").buffer);
+			transport._writeCoalescer?.flushSync();
+
+			socket.drop(1006, "host restart");
+			socket.open();
+			socket.message(
+				JSON.stringify({
+					type: "attached",
+					terminalId: "t1",
+					replayKind: "full",
+				}),
+			);
+			socket.message(new TextEncoder().encode("adopted replay").buffer);
+			transport._writeCoalescer?.flushSync();
+		});
+
+		expect(writes).toEqual(["old prompt", "\u001bcadopted replay"]);
+	});
+
 	test("server-sent error routes to logs, not xterm, and terminates", () => {
 		const transport = createTransport();
 		const writelnCalls: string[] = [];
@@ -357,6 +555,37 @@ describe("terminal-ws-transport", () => {
 		expect(sentMessages()).toEqual([
 			{ type: "resize", cols: 101, rows: 27 },
 			{ type: "input", data: "b" },
+		]);
+	});
+
+	test("sends exact geometry once per connection and deduplicates later resizes", () => {
+		const transport = createTransport();
+		const terminal = createMockTerminal();
+
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const socket = FakeRelaySocket.instances[0];
+		if (!socket) throw new Error("expected relay socket instance");
+		const sentMessages = () =>
+			socket.sent.map((payload) => JSON.parse(payload) as unknown);
+
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		sendResize(transport, 101, 27);
+		sendResize(transport, 102, 27);
+		expect(sentMessages()).toEqual([
+			{ type: "resize", cols: 101, rows: 27 },
+			{ type: "resize", cols: 102, rows: 27 },
+		]);
+
+		// createRelaySocket keeps one wrapper but opens a fresh underlying socket
+		// after a reconnect. The new connection must receive geometry again.
+		socket.drop(1006, "offline");
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		expect(sentMessages()).toEqual([
+			{ type: "resize", cols: 101, rows: 27 },
+			{ type: "resize", cols: 102, rows: 27 },
+			{ type: "resize", cols: 101, rows: 27 },
 		]);
 	});
 

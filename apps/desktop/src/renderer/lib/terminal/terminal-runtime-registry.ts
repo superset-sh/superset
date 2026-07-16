@@ -24,6 +24,7 @@ import {
 	sendDispose,
 	sendInput,
 	sendResize,
+	setRenderedBaselineState,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
@@ -151,6 +152,10 @@ class TerminalRuntimeRegistryImpl {
 			entry.runtime = createRuntime(terminalId, appearance, {
 				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
 			});
+			setRenderedBaselineState(
+				entry.transport,
+				entry.runtime.restoredFromBuffer,
+			);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
 				entry.linkManager.setHandlers(entry.pendingLinkHandlers);

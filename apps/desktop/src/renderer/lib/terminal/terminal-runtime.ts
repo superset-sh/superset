@@ -24,10 +24,37 @@ import { getTerminalParkingContainer } from "./terminal-parking";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
+const RECOVERY_STORAGE_KEY_PREFIX = "terminal-recovery:";
+const STATE_KEY_PREFIX = "terminal-state-v2:";
+const MIN_ATOMIC_RESTORABLE_CONTENT_SCORE = 1;
+const MIN_RESTORABLE_CONTENT_SCORE = 1000;
 const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
+const PERSIST_DEBOUNCE_MS = 250;
+// biome-ignore lint/complexity/useRegexLiterals: constructor avoids the control-character literal lint while matching serialized ANSI sequences.
+const OSC_CONTROL_SEQUENCE = new RegExp(
+	"\\x1b\\][^\\x07]*(?:\\x07|\\x1b\\\\)",
+	"g",
+);
+// biome-ignore lint/complexity/useRegexLiterals: constructor avoids the control-character literal lint while matching serialized ANSI sequences.
+const ANSI_CONTROL_SEQUENCE = new RegExp(
+	"\\x1b(?:\\[[0-?]*[ -/]*[@-~]|[@-_])",
+	"g",
+);
+
+export interface PersistedTerminalState {
+	data: string;
+	cols: number;
+	rows: number;
+}
+
+interface LivePersistence {
+	schedule: () => void;
+	flush: () => void;
+	dispose: () => void;
+}
 
 export interface TerminalRuntime {
 	terminalId: string;
@@ -43,6 +70,8 @@ export interface TerminalRuntime {
 	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
 	lastRows: number;
+	restoredFromBuffer: boolean;
+	_persistence: LivePersistence | null;
 	_disposeAddons: (() => void) | null;
 	_disposeImagePasteFallback: (() => void) | null;
 }
@@ -78,32 +107,141 @@ function createTerminal(
 	return { terminal, fitAddon, serializeAddon };
 }
 
-function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
+function encodePersistedState(
+	cols: number,
+	rows: number,
+	data: string,
+): string {
+	return `v2;${cols};${rows}\n${data}`;
+}
+
+function decodePersistedState(
+	raw: string | null,
+): PersistedTerminalState | null {
+	if (!raw?.startsWith("v2;")) return null;
+	const newline = raw.indexOf("\n");
+	if (newline < 0) return null;
+	const header = raw.slice(3, newline).split(";");
+	if (header.length !== 2) return null;
+	const cols = Number(header[0]);
+	const rows = Number(header[1]);
+	if (
+		!Number.isInteger(cols) ||
+		!Number.isInteger(rows) ||
+		cols < 2 ||
+		rows < 1
+	) {
+		return null;
+	}
+	return { cols, rows, data: raw.slice(newline + 1) };
+}
+
+function persistState(
+	terminalId: string,
+	terminal: XTerm,
+	serializeAddon: SerializeAddon,
+) {
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
+		const cols = terminal.cols;
+		const rows = terminal.rows;
+		localStorage.setItem(
+			`${STATE_KEY_PREFIX}${terminalId}`,
+			encodePersistedState(cols, rows, data),
+		);
+		// Keep the legacy keys as a rollback/fallback copy. The v2 key above is
+		// the source of truth because its buffer and dimensions are one atomic
+		// localStorage write.
 		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
+		localStorage.setItem(
+			`${DIMS_KEY_PREFIX}${terminalId}`,
+			JSON.stringify({ cols, rows }),
+		);
 	} catch {}
 }
 
-function restoreBuffer(terminalId: string, terminal: XTerm) {
+function installLivePersistence(
+	terminalId: string,
+	terminal: XTerm,
+	serializeAddon: SerializeAddon,
+): LivePersistence {
+	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	const flush = () => {
+		if (timeoutId !== null) {
+			clearTimeout(timeoutId);
+			timeoutId = null;
+		}
+		persistState(terminalId, terminal, serializeAddon);
+	};
+	const schedule = () => {
+		if (timeoutId !== null) clearTimeout(timeoutId);
+		timeoutId = setTimeout(flush, PERSIST_DEBOUNCE_MS);
+	};
+	const parsedDisposable = terminal.onWriteParsed(schedule);
+	window.addEventListener("beforeunload", flush);
+	return {
+		schedule,
+		flush,
+		dispose: () => {
+			parsedDisposable.dispose();
+			window.removeEventListener("beforeunload", flush);
+			flush();
+		},
+	};
+}
+
+function terminalContentScore(data: string): number {
+	return data
+		.replace(OSC_CONTROL_SEQUENCE, "")
+		.replace(ANSI_CONTROL_SEQUENCE, "")
+		.replace(/\s/g, "").length;
+}
+
+export function loadRestorableState(
+	terminalId: string,
+): PersistedTerminalState | null {
 	try {
-		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
-		if (data) terminal.write(data);
+		const atomicState = decodePersistedState(
+			localStorage.getItem(`${STATE_KEY_PREFIX}${terminalId}`),
+		);
+		if (
+			atomicState &&
+			terminalContentScore(atomicState.data) >=
+				MIN_ATOMIC_RESTORABLE_CONTENT_SCORE
+		) {
+			return atomicState;
+		}
+
+		const legacyData = localStorage.getItem(
+			`${STORAGE_KEY_PREFIX}${terminalId}`,
+		);
+		let data =
+			legacyData &&
+			terminalContentScore(legacyData) >= MIN_RESTORABLE_CONTENT_SCORE
+				? legacyData
+				: null;
+		if (!data) {
+			const recovery = localStorage.getItem(
+				`${RECOVERY_STORAGE_KEY_PREFIX}${terminalId}`,
+			);
+			if (recovery) data = recovery;
+		}
+		if (data) {
+			const dimensions = loadSavedDimensions(terminalId);
+			return {
+				data,
+				cols: dimensions?.cols ?? DEFAULT_COLS,
+				rows: dimensions?.rows ?? DEFAULT_ROWS,
+			};
+		}
 	} catch {}
+	return null;
 }
 
 function clearPersistedBuffer(terminalId: string) {
 	try {
 		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
-	} catch {}
-}
-
-function persistDimensions(terminalId: string, cols: number, rows: number) {
-	try {
-		localStorage.setItem(
-			`${DIMS_KEY_PREFIX}${terminalId}`,
-			JSON.stringify({ cols, rows }),
-		);
+		localStorage.removeItem(`${STATE_KEY_PREFIX}${terminalId}`);
 	} catch {}
 }
 
@@ -166,6 +304,7 @@ function measureAndResize(
 		terminal.refresh(0, Math.max(0, terminal.rows - 1));
 
 		if (terminal.cols !== prevCols || terminal.rows !== prevRows) {
+			runtime._persistence?.schedule();
 			onResize?.();
 		}
 	});
@@ -212,11 +351,30 @@ function createResizeScheduler(
 export function createRuntime(
 	terminalId: string,
 	appearance: TerminalAppearance,
-	options: { initialBuffer?: string } = {},
+	options: {
+		initialBuffer?: string;
+		initialState?: PersistedTerminalState;
+		initialCols?: number;
+		initialRows?: number;
+	} = {},
 ): TerminalRuntime {
-	const savedDims = loadSavedDimensions(terminalId);
-	const cols = savedDims?.cols ?? DEFAULT_COLS;
-	const rows = savedDims?.rows ?? DEFAULT_ROWS;
+	const restoredState =
+		options.initialState ??
+		(options.initialBuffer !== undefined
+			? {
+					data: options.initialBuffer,
+					cols:
+						options.initialCols ??
+						loadSavedDimensions(terminalId)?.cols ??
+						DEFAULT_COLS,
+					rows:
+						options.initialRows ??
+						loadSavedDimensions(terminalId)?.rows ??
+						DEFAULT_ROWS,
+				}
+			: loadRestorableState(terminalId));
+	const cols = restoredState?.cols ?? DEFAULT_COLS;
+	const rows = restoredState?.rows ?? DEFAULT_ROWS;
 
 	const { terminal, fitAddon, serializeAddon } = createTerminal(
 		cols,
@@ -239,11 +397,17 @@ export function createRuntime(
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
 	const addonsResult = loadAddons(terminal);
-	if (options.initialBuffer !== undefined) {
-		terminal.write(options.initialBuffer);
-	} else {
-		restoreBuffer(terminalId, terminal);
-	}
+	const restoredFromBuffer = Boolean(
+		restoredState?.data &&
+			terminalContentScore(restoredState.data) >=
+				MIN_ATOMIC_RESTORABLE_CONTENT_SCORE,
+	);
+	if (restoredState?.data) terminal.write(restoredState.data);
+	const persistence = installLivePersistence(
+		terminalId,
+		terminal,
+		serializeAddon,
+	);
 
 	const disposeImagePasteFallback = installImagePasteFallback(
 		terminal,
@@ -264,6 +428,8 @@ export function createRuntime(
 		_disposeResizeObserver: null,
 		lastCols: cols,
 		lastRows: rows,
+		restoredFromBuffer,
+		_persistence: persistence,
 		_disposeAddons: addonsResult.dispose,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
 	};
@@ -309,8 +475,7 @@ export function attachToContainer(
 }
 
 export function detachFromContainer(runtime: TerminalRuntime) {
-	persistBuffer(runtime.terminalId, runtime.serializeAddon);
-	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	runtime._persistence?.flush();
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
@@ -354,9 +519,10 @@ export function disposeRuntime(
 	options: { clearPersistedState?: boolean } = {},
 ) {
 	const clearPersistedState = options.clearPersistedState ?? true;
+	runtime._persistence?.dispose();
+	runtime._persistence = null;
 	if (!clearPersistedState) {
-		persistBuffer(runtime.terminalId, runtime.serializeAddon);
-		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+		persistState(runtime.terminalId, runtime.terminal, runtime.serializeAddon);
 	}
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;

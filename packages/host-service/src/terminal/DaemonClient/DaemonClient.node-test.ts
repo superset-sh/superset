@@ -81,6 +81,146 @@ test("open + subscribe + receive output + close", async () => {
 	await c.dispose();
 });
 
+test("subscribe replay boundary reports exact bytes after output callbacks", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+
+	const id = "host-test-replay-boundary";
+	const marker = "replay-boundary-marker";
+	await c.open(id, {
+		shell: "/bin/sh",
+		argv: ["-c", `printf '${marker}'; sleep 10`],
+		cols: 80,
+		rows: 24,
+	});
+
+	try {
+		// Observe the live marker first so the replay snapshot is guaranteed to
+		// contain it. Unsubscribing does not clear the daemon's ring buffer.
+		const liveChunks: Buffer[] = [];
+		const stopLive = c.subscribe(
+			id,
+			{ replay: false },
+			{ onOutput: (chunk) => liveChunks.push(chunk), onExit: () => {} },
+		);
+		await waitFor(
+			() => Buffer.concat(liveChunks).toString().includes(marker),
+			3000,
+		);
+		stopLive();
+
+		const events: string[] = [];
+		const replayChunks: Buffer[] = [];
+		const { unsubscribe, boundary } = c.subscribeWithReplayBoundary(
+			id,
+			{ replay: true },
+			{
+				onOutput: (chunk) => {
+					replayChunks.push(chunk);
+					events.push("output");
+				},
+				onExit: () => {},
+			},
+		);
+
+		const result = await boundary.then((value) => {
+			events.push("boundary");
+			return value;
+		});
+		unsubscribe();
+
+		const replay = Buffer.concat(replayChunks);
+		assert.ok(replay.toString().includes(marker));
+		assert.equal(result.replayBytes, replay.byteLength);
+		assert.ok(
+			events.indexOf("output") >= 0 &&
+				events.indexOf("output") < events.indexOf("boundary"),
+			`expected output before boundary, got ${events.join(" -> ")}`,
+		);
+	} finally {
+		await c.close(id, "SIGTERM").catch(() => {});
+		await c.dispose();
+	}
+});
+
+test("subscribe replay boundary reports zero for an empty ring", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+
+	const id = "host-test-empty-replay-boundary";
+	await c.open(id, {
+		shell: "/bin/cat",
+		argv: [],
+		cols: 80,
+		rows: 24,
+	});
+
+	try {
+		const chunks: Buffer[] = [];
+		const { unsubscribe, boundary } = c.subscribeWithReplayBoundary(
+			id,
+			{ replay: true },
+			{ onOutput: (chunk) => chunks.push(chunk), onExit: () => {} },
+		);
+		const result = await boundary;
+		unsubscribe();
+
+		assert.equal(result.replayBytes, 0);
+		assert.equal(Buffer.concat(chunks).byteLength, 0);
+	} finally {
+		await c.close(id, "SIGTERM").catch(() => {});
+		await c.dispose();
+	}
+});
+
+test("subscribe replay boundary rejects a matching ENOENT error", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+
+	const id = "host-test-missing-replay-boundary";
+	const { unsubscribe, boundary } = c.subscribeWithReplayBoundary(
+		id,
+		{ replay: true },
+		{ onOutput: () => {}, onExit: () => {} },
+	);
+
+	try {
+		await assert.rejects(boundary, /ENOENT|unknown session/);
+	} finally {
+		unsubscribe();
+		await c.dispose();
+	}
+});
+
+test("subscribe replay boundary rejects a session that exited during adoption", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+
+	const id = "host-test-exited-replay-boundary";
+	await c.open(id, {
+		shell: "/bin/sh",
+		argv: ["-c", "exit 0"],
+		cols: 80,
+		rows: 24,
+	});
+	await waitFor(
+		async () => !(await c.list()).some((s) => s.id === id && s.alive),
+		3000,
+	);
+
+	const { unsubscribe, boundary } = c.subscribeWithReplayBoundary(
+		id,
+		{ replay: true },
+		{ onOutput: () => {}, onExit: () => {} },
+	);
+	try {
+		await assert.rejects(boundary, /ENOENT|EEXITED|unknown session|exited/);
+	} finally {
+		unsubscribe();
+		await c.dispose();
+	}
+});
+
 test("input is forwarded; resize updates dims", async () => {
 	const c = new DaemonClient({ socketPath: sockPath });
 	await c.connect();
@@ -273,9 +413,12 @@ test("adoption flow: client A opens, drops, client B finds + subscribes-with-rep
 	await b.dispose();
 });
 
-async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
+async function waitFor(
+	predicate: () => boolean | Promise<boolean>,
+	ms: number,
+): Promise<void> {
 	const start = Date.now();
-	while (!predicate()) {
+	while (!(await predicate())) {
 		if (Date.now() - start > ms) throw new Error("waitFor timed out");
 		await new Promise((r) => setTimeout(r, 25));
 	}

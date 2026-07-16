@@ -12,6 +12,7 @@ import type {
 	OutputMessage,
 	ResizeMessage,
 	ServerMessage,
+	SubscribedMessage,
 	SubscribeMessage,
 	UnsubscribeMessage,
 } from "../protocol/index.ts";
@@ -150,13 +151,21 @@ export function handleSubscribe(
 		return;
 	}
 	conn.subscriptions.add(msg.id);
+	let replayBytes = 0;
 	if (msg.replay) {
 		const snap = ctx.store.snapshotBuffer(session);
+		replayBytes = snap.byteLength;
 		if (snap.byteLength > 0) {
 			const out: OutputMessage = { type: "output", id: msg.id };
 			conn.send(out, snap);
 		}
 	}
+	const subscribed: SubscribedMessage = {
+		type: "subscribed",
+		id: msg.id,
+		replayBytes,
+	};
+	conn.send(subscribed);
 }
 
 export function handleUnsubscribe(conn: Conn, msg: UnsubscribeMessage): void {

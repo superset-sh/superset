@@ -54,6 +54,11 @@ export type UpgradePreparedResult =
 			ownership?: "predecessor" | "unresolved";
 	  };
 
+export interface ReplayBoundary {
+	/** Exact daemon replay size, or null when connected to a pre-ACK daemon. */
+	replayBytes: number | null;
+}
+
 interface SessionCallbacks {
 	output: Set<(chunk: Buffer) => void>;
 	exit: Set<(info: ExitInfo) => void>;
@@ -280,6 +285,61 @@ export class DaemonClient {
 				this.send({ type: "unsubscribe", id });
 			}
 		};
+	}
+
+	/**
+	 * Subscribe and expose an ordered replay boundary. New daemons emit a
+	 * `subscribed` ACK after their optional replay frame with its exact byte
+	 * count. The immediately-following list request is a barrier on the same
+	 * socket, so by the time it resolves all replay callbacks have run. Older
+	 * daemons omit the ACK; callers receive `null` and can classify the ordered
+	 * callback bytes with a compatibility fallback.
+	 */
+	subscribeWithReplayBoundary(
+		id: string,
+		opts: { replay: boolean },
+		cb: SubscribeCallbacks,
+	): { unsubscribe: () => void; boundary: Promise<ReplayBoundary> } {
+		let replayBytes: number | null = null;
+		let subscriptionError: Error | null = null;
+		const offAck = this.on((message) => {
+			if (message.type === "error" && message.id === id) {
+				const code = message.code ? ` (${message.code})` : "";
+				subscriptionError = new Error(
+					`subscribe ${id}${code}: ${message.message}`,
+				);
+				return;
+			}
+			if (
+				message.type === "subscribed" &&
+				message.id === id &&
+				Number.isSafeInteger(message.replayBytes) &&
+				message.replayBytes >= 0
+			) {
+				replayBytes = message.replayBytes;
+			}
+		});
+
+		let unsubscribe: () => void;
+		try {
+			unsubscribe = this.subscribe(id, opts, cb);
+		} catch (error) {
+			offAck();
+			throw error;
+		}
+
+		const boundary = this.list()
+			.then((sessions) => {
+				if (subscriptionError) throw subscriptionError;
+				if (!sessions.some((session) => session.id === id && session.alive)) {
+					throw new Error(
+						`subscribe ${id} (EEXITED): session exited before replay boundary`,
+					);
+				}
+				return { replayBytes };
+			})
+			.finally(offAck);
+		return { unsubscribe, boundary };
 	}
 
 	async dispose(): Promise<void> {

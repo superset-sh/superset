@@ -122,6 +122,13 @@ export interface OutputMessage {
 	id: string;
 }
 
+/** Ordered boundary emitted after subscribe's optional replay frame. */
+export interface SubscribedMessage {
+	type: "subscribed";
+	id: string;
+	replayBytes: number;
+}
+
 export interface ExitMessage {
 	type: "exit";
 	id: string;
@@ -185,6 +192,7 @@ export type ServerMessage =
 	| HelloAckMessage
 	| OpenOkMessage
 	| OutputMessage
+	| SubscribedMessage
 	| ExitMessage
 	| ClosedMessage
 	| ListReplyMessage

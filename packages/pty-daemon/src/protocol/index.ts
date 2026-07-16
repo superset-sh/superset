@@ -28,6 +28,7 @@ export type {
 	ServerMessage,
 	SessionInfo,
 	SessionMeta,
+	SubscribedMessage,
 	SubscribeMessage,
 	UnsubscribeMessage,
 	UpgradePreparedMessage,

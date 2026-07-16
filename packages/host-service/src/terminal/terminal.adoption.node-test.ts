@@ -137,6 +137,11 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		);
 		assert.equal(daemonSession.cols, 101);
 		assert.equal(daemonSession.rows, 27);
+		assert.equal(
+			result.nextAttachReplayKind,
+			"none",
+			"a newly spawned shell must preserve renderer-restored history",
+		);
 
 		await disposeSessionAndWait(terminalId, db);
 	});
@@ -333,6 +338,23 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			"adopted session should have same shell pid",
 		);
 		assert.equal(second.terminalId, terminalId);
+		assert.equal(
+			second.nextAttachReplayKind,
+			"full",
+			"an adopted daemon session must announce its full ring replay",
+		);
+		await waitFor(
+			() => sessionBufferText(second).includes("before-host-restart"),
+			3000,
+		);
+		const replayCapture = makeCaptureSocket();
+		replayBuffer(second, replayCapture.socket);
+		assert.match(replayCapture.received(), /before-host-restart/);
+		assert.equal(
+			second.nextAttachReplayKind,
+			"delta",
+			"after full replay delivery later attaches only receive deltas",
+		);
 
 		let buf = "";
 		const disposer = second.pty.onData((d) => {
@@ -629,15 +651,89 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
-	test("replayOnAdoption: false suppresses ring-buffer replay on reconnect", async () => {
-		// Regression for the duplicated-output-on-daemon-swap bug: when the
-		// renderer's xterm scrollback survives the WS reconnect (which it
-		// does), replaying the daemon's ring buffer rewrites bytes the user
-		// has already seen and the conversation appears doubled. This test
-		// drives the createTerminalSessionInternal layer that the WS upgrade
-		// handler maps to.
-		const terminalId = `e2e-noreplay-${randomUUID().slice(0, 8)}`;
+	test("empty adopted ring stays delta when live output arrives later", async () => {
+		const terminalId = `e2e-empty-adopt-${randomUUID().slice(0, 8)}`;
+		const daemon = await getDaemonClient();
+		const opened = await daemon.open(terminalId, {
+			shell: "/bin/cat",
+			argv: [],
+			cwd: worktreePath,
+			cols: 80,
+			rows: 24,
+		});
 
+		const adopted = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			adoptOnly: true,
+		});
+		assert.ok(!("error" in adopted));
+		if ("error" in adopted) return;
+		assert.equal(adopted.pty.pid, opened.pid);
+		assert.equal(adopted.nextAttachReplayKind, "delta");
+		assert.equal(adopted.fullReplayBuffer, null);
+
+		const marker = `later-live-${randomUUID().slice(0, 6)}`;
+		adopted.pty.write(`${marker}\n`);
+		await waitFor(() => sessionBufferText(adopted).includes(marker), 3000);
+		assert.equal(
+			adopted.nextAttachReplayKind,
+			"delta",
+			"a byte produced after an empty replay boundary must append, not reset",
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("legacy daemon without replay ACK classifies ordered buffered bytes as full", async () => {
+		const terminalId = `e2e-legacy-adopt-${randomUUID().slice(0, 8)}`;
+		const marker = `legacy-replay-${randomUUID().slice(0, 6)}`;
+		const daemon = await getDaemonClient();
+		await daemon.open(terminalId, {
+			shell: "/bin/sh",
+			argv: ["-c", `printf '${marker}'; sleep 10`],
+			cwd: worktreePath,
+			cols: 80,
+			rows: 24,
+		});
+		await new Promise((resolve) => setTimeout(resolve, 100));
+
+		const subscribeWithBoundary =
+			daemon.subscribeWithReplayBoundary.bind(daemon);
+		daemon.subscribeWithReplayBoundary = (id, opts, callbacks) => {
+			const unsubscribe = daemon.subscribe(id, opts, callbacks);
+			return {
+				unsubscribe,
+				boundary: daemon.list().then(() => ({ replayBytes: null })),
+			};
+		};
+
+		let adopted: Awaited<ReturnType<typeof createTerminalSessionInternal>>;
+		try {
+			adopted = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				adoptOnly: true,
+			});
+		} finally {
+			daemon.subscribeWithReplayBoundary = subscribeWithBoundary;
+		}
+		assert.ok(!("error" in adopted));
+		if ("error" in adopted) return;
+		assert.equal(adopted.nextAttachReplayKind, "full");
+		const capture = makeCaptureSocket();
+		replayBuffer(adopted, capture.socket);
+		assert.match(capture.received(), new RegExp(marker));
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("concurrent adopters share one replay boundary", async () => {
+		const terminalId = `e2e-concurrent-adopt-${randomUUID().slice(0, 8)}`;
 		const first = await createTerminalSessionInternal({
 			terminalId,
 			workspaceId,
@@ -646,78 +742,32 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		});
 		assert.ok(!("error" in first));
 		if ("error" in first) return;
+		first.pty.write("echo concurrent-replay\n");
+		await waitForOutput(first.pty, "concurrent-replay", 3000);
 
-		// Seed the daemon's ring buffer with a sentinel — that's what would
-		// be replayed on a normal adoption. Encode the sentinel as octal so the
-		// terminal's input echo cannot satisfy waitForOutput before `printf`
-		// actually runs; that race used to make this test mistake later live output
-		// for daemon replay.
-		const SENTINEL = `noreplay-sentinel-${randomUUID().slice(0, 6)}`;
-		const sentinelOctal = [...Buffer.from(SENTINEL, "utf8")]
-			.map((byte) => `\\${byte.toString(8).padStart(3, "0")}`)
-			.join("");
-		await first.pty.write(`printf '${sentinelOctal}\\012'\n`);
-		await waitForOutput(first.pty, SENTINEL, 3000);
-		// Freeze the shell after the sentinel was genuinely produced. During the
-		// reconnect it cannot create another live sentinel, so seeing one below can
-		// only mean the old daemon ring was replayed.
-		process.kill(first.pty.pid, "SIGSTOP");
-
-		let second: Awaited<
-			ReturnType<typeof createTerminalSessionInternal>
-		> | null = null;
-		try {
-			// Simulate onDaemonDisconnect: host-service drops its in-memory
-			// sessions; the daemon (and its ring buffer) survives.
-			__resetSessionsForTesting();
-			await disposeDaemonClient();
-
-			const adopted = await createTerminalSessionInternal({
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+		const [a, b] = await Promise.all([
+			createTerminalSessionInternal({
 				terminalId,
 				workspaceId,
 				db,
 				listed: true,
-				replayOnAdoption: false,
-			});
-			assert.ok(!("error" in adopted));
-			if ("error" in adopted) return;
-			second = adopted;
-			assert.equal(
-				adopted.pty.pid,
-				first.pty.pid,
-				"adopted session should have same shell pid",
-			);
-
-			// The daemon ring-buffer sentinel from the previous host lifetime must
-			// not be replayed when replayOnAdoption=false.
-			await new Promise((r) => setTimeout(r, 500));
-
-			const bufferedAfterAdoption = Buffer.concat(
-				adopted.buffer.map((b) => Buffer.from(b)),
-			).toString("utf8");
-			assert.equal(
-				bufferedAfterAdoption.includes(SENTINEL),
-				false,
-				`adopted session replayed prior output despite replayOnAdoption=false: ${JSON.stringify(bufferedAfterAdoption.slice(0, 200))}`,
-			);
-		} finally {
-			try {
-				process.kill(first.pty.pid, "SIGCONT");
-			} catch {
-				// Preserve the original assertion/error if the shell already exited.
-			}
-		}
-		if (!second) return;
-
-		// Sanity check: live output still flows post-reattach.
-		const LIVE_SENTINEL = `live-after-reattach-${randomUUID().slice(0, 6)}`;
-		await second.pty.write(`echo ${LIVE_SENTINEL}\n`);
-		await waitFor(() => {
-			const text = Buffer.concat(
-				second.buffer.map((b) => Buffer.from(b)),
-			).toString("utf8");
-			return text.includes(LIVE_SENTINEL);
-		}, 3000);
+				adoptOnly: true,
+			}),
+			createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				adoptOnly: true,
+			}),
+		]);
+		assert.ok(!("error" in a));
+		assert.ok(!("error" in b));
+		if ("error" in a || "error" in b) return;
+		assert.equal(a, b);
+		assert.equal(a.nextAttachReplayKind, "full");
 
 		await disposeSessionAndWait(terminalId, db);
 	});
@@ -856,8 +906,14 @@ async function waitForOutput(
 	}
 }
 
-function sessionBufferText(session: { buffer: Uint8Array[] }): string {
-	return Buffer.concat(session.buffer).toString("utf8");
+function sessionBufferText(session: {
+	buffer: Uint8Array[];
+	fullReplayBuffer?: Uint8Array | null;
+}): string {
+	return Buffer.concat([
+		session.fullReplayBuffer ?? Buffer.alloc(0),
+		...session.buffer,
+	]).toString("utf8");
 }
 
 function makeCaptureSocket() {

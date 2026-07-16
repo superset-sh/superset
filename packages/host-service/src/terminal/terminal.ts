@@ -260,13 +260,19 @@ type TerminalClientMessage =
 	| { type: "resize"; cols: number; rows: number }
 	| { type: "dispose" };
 
+type TerminalReplayKind = "full" | "delta" | "none";
+
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
 // the ArrayBuffer straight into xterm.write(Uint8Array) without any UTF-8
-// decoding. Control messages stay JSON. Replay (the buffered prefix sent
-// on attach) is a binary frame too; the renderer doesn't distinguish it
-// from live data.
+// decoding. Control messages stay JSON. Replay (the buffered prefix sent on
+// attach) is a binary frame too; the preceding `attached.replayKind` tells a
+// renderer whether those bytes replace restored state or append to it.
 type TerminalServerMessage =
-	| { type: "attached"; terminalId: string }
+	| {
+			type: "attached";
+			terminalId: string;
+			replayKind: TerminalReplayKind;
+	  }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
@@ -337,6 +343,17 @@ interface TerminalSession {
 	 */
 	buffer: Uint8Array[];
 	bufferBytes: number;
+	/** Exact daemon snapshot captured during an adopted session's replay ACK. */
+	fullReplayBuffer: Uint8Array | null;
+	/**
+	 * Prevent FIFO eviction only while the daemon replay boundary is in flight.
+	 * The boundary is same-socket ordered and normally resolves in one turn.
+	 */
+	preserveBufferUntilReplayBoundary: boolean;
+	/** How the next attach's bytes relate to a renderer-restored snapshot. */
+	nextAttachReplayKind: TerminalReplayKind;
+	/** Concurrent WebSocket attaches wait until replay classification is known. */
+	attachReadyPromise: Promise<void>;
 	/**
 	 * Deliver SESSION_RESTORED_NOTICE ahead of the next replay. Kept out of
 	 * the FIFO so MAX_BUFFER_BYTES eviction can't drop it before a client
@@ -384,6 +401,11 @@ interface TerminalSession {
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
+type CreateTerminalSessionResult = TerminalSession | { error: string };
+const sessionCreations = new Map<
+	string,
+	Promise<CreateTerminalSessionResult>
+>();
 
 // A successful fd handoff preserves the PTYs, so keep host session objects and
 // renderer WebSockets intact. Rebind every primary and auxiliary subscription
@@ -633,11 +655,43 @@ function setSessionTitle(session: TerminalSession, title: string | null) {
 function bufferOutput(session: TerminalSession, data: Uint8Array) {
 	session.buffer.push(data);
 	session.bufferBytes += data.byteLength;
+	if (session.preserveBufferUntilReplayBoundary) return;
+	trimBufferedOutput(session);
+}
 
+function trimBufferedOutput(session: TerminalSession) {
 	while (session.bufferBytes > MAX_BUFFER_BYTES && session.buffer.length > 1) {
 		const removed = session.buffer.shift();
 		if (removed) session.bufferBytes -= removed.byteLength;
 	}
+}
+
+/** Remove and return exactly the first `count` bytes from the replay FIFO. */
+function takeBufferedPrefix(
+	session: TerminalSession,
+	count: number,
+): Uint8Array {
+	const prefix = new Uint8Array(count);
+	let copied = 0;
+	while (copied < count && session.buffer.length > 0) {
+		const head = session.buffer.shift();
+		if (!head) break;
+		const needed = count - copied;
+		const take = Math.min(needed, head.byteLength);
+		prefix.set(head.subarray(0, take), copied);
+		copied += take;
+		session.bufferBytes -= take;
+		if (take < head.byteLength) {
+			session.buffer.unshift(head.subarray(take));
+			break;
+		}
+	}
+	if (copied !== count) {
+		throw new Error(
+			`daemon replay boundary announced ${count} bytes, but host received ${copied}`,
+		);
+	}
+	return prefix;
 }
 
 function normalizeTerminalDimension(
@@ -694,6 +748,9 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 		socket.send(tight);
 		sent += 1;
 	}
+	if (sent > 0 && session.nextAttachReplayKind === "full") {
+		session.nextAttachReplayKind = "delta";
+	}
 	return sent;
 }
 
@@ -708,13 +765,24 @@ export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 	// FIFO is empty.
 	const preamble = session.modeTracker.buildPreamble();
 	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
+	const fullReplay = session.fullReplayBuffer;
 	let bufferTotal = 0;
 	for (const b of session.buffer) bufferTotal += b.byteLength;
 	const preambleLen = preamble?.byteLength ?? 0;
 	const noticeLen = notice?.byteLength ?? 0;
-	if (preambleLen === 0 && noticeLen === 0 && bufferTotal === 0) return;
+	const fullReplayLen = fullReplay?.byteLength ?? 0;
+	if (
+		preambleLen === 0 &&
+		noticeLen === 0 &&
+		fullReplayLen === 0 &&
+		bufferTotal === 0
+	) {
+		return;
+	}
 
-	const combined = new Uint8Array(preambleLen + noticeLen + bufferTotal);
+	const combined = new Uint8Array(
+		preambleLen + noticeLen + fullReplayLen + bufferTotal,
+	);
 	let offset = 0;
 	if (preamble) {
 		combined.set(preamble, offset);
@@ -724,14 +792,22 @@ export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 		combined.set(notice, offset);
 		offset += notice.byteLength;
 	}
+	if (fullReplay) {
+		combined.set(fullReplay, offset);
+		offset += fullReplay.byteLength;
+	}
 	for (const b of session.buffer) {
 		combined.set(b, offset);
 		offset += b.byteLength;
 	}
 	session.restoredNoticePending = false;
+	session.fullReplayBuffer = null;
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
 	sendBytes(socket, combined);
+	if (session.nextAttachReplayKind === "full") {
+		session.nextAttachReplayKind = "delta";
+	}
 }
 
 /**
@@ -1054,13 +1130,6 @@ interface CreateTerminalSessionOptions {
 	/** Only recover an already-live daemon session; never spawn a new PTY. */
 	adoptOnly?: boolean;
 	/**
-	 * Replay the daemon's ring buffer on subscribe. Default true. Pass false
-	 * when the renderer's xterm already has the scrollback — replaying then
-	 * doubles the visible output. Tradeoff: bytes the PTY produced during
-	 * the WS-down window are dropped (sub-second on a daemon swap).
-	 */
-	replayOnAdoption?: boolean;
-	/**
 	 * Deliver a "session restored" separator ahead of the first replay. Set on
 	 * the cold-restore respawn path, where the renderer paints stale scrollback
 	 * above a brand-new shell.
@@ -1102,7 +1171,7 @@ function getTerminalWorkspaceMismatchError({
 
 export function createTerminalSessionInternal(
 	options: CreateTerminalSessionOptions,
-): Promise<TerminalSession | { error: string }> {
+): Promise<CreateTerminalSessionResult> {
 	// Strings/numbers are immutable, but copy the option record itself before
 	// enqueue so a caller cannot replace fields while an update is holding it.
 	const copiedOptions: CreateTerminalSessionOptions = { ...options };
@@ -1111,8 +1180,31 @@ export function createTerminalSessionInternal(
 		Buffer.byteLength(copiedOptions.initialCommand ?? "") +
 		Buffer.byteLength(copiedOptions.cwd ?? "");
 	return runCurrentDaemonMutation({ kind: "open", byteCost }, () =>
-		createTerminalSessionInternalDirect(copiedOptions),
+		createTerminalSessionInternalQueued(copiedOptions),
 	);
+}
+
+async function createTerminalSessionInternalQueued(
+	options: CreateTerminalSessionOptions,
+): Promise<CreateTerminalSessionResult> {
+	const inFlight = sessionCreations.get(options.terminalId);
+	if (inFlight) {
+		const result = await inFlight;
+		if ("error" in result) return result;
+		// Re-enter after the first creator finishes so the existing-session path
+		// applies this caller's workspace validation, listed flag, and command.
+		return createTerminalSessionInternalDirect(options);
+	}
+
+	const creation = createTerminalSessionInternalDirect(options);
+	sessionCreations.set(options.terminalId, creation);
+	try {
+		return await creation;
+	} finally {
+		if (sessionCreations.get(options.terminalId) === creation) {
+			sessionCreations.delete(options.terminalId);
+		}
+	}
 }
 
 async function createTerminalSessionInternalDirect({
@@ -1127,9 +1219,8 @@ async function createTerminalSessionInternalDirect({
 	cols: requestedCols,
 	rows: requestedRows,
 	adoptOnly = false,
-	replayOnAdoption = true,
 	restoredNotice = false,
-}: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
+}: CreateTerminalSessionOptions): Promise<CreateTerminalSessionResult> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		const mismatchError = getTerminalWorkspaceMismatchError({
@@ -1139,6 +1230,16 @@ async function createTerminalSessionInternalDirect({
 		});
 		if (mismatchError) return { error: mismatchError };
 
+		try {
+			await existing.attachReadyPromise;
+		} catch (error) {
+			return {
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to attach terminal replay",
+			};
+		}
 		if (listed) existing.listed = true;
 		if (initialCommand) queueInitialCommand(existing, initialCommand);
 		return existing;
@@ -1312,6 +1413,10 @@ async function createTerminalSessionInternalDirect({
 		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
+		fullReplayBuffer: null,
+		preserveBufferUntilReplayBoundary: isAdopted,
+		nextAttachReplayKind: isAdopted ? "delta" : "none",
+		attachReadyPromise: Promise.resolve(),
 		// Adopted sessions kept a live shell — nothing was restored.
 		restoredNoticePending: restoredNotice && !isAdopted,
 		createdAt,
@@ -1348,81 +1453,142 @@ async function createTerminalSessionInternalDirect({
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
-	const primarySubscription = pty.subscribe(
-		{ replay: replayOnAdoption },
-		{
-			onOutput(chunk) {
-				// Bytes flow daemon → host → xterm without UTF-8 decoding;
-				// per-chunk `.toString("utf8")` here would mangle codepoints
-				// straddling chunk boundaries. (See no-encoding-hops.test.ts.)
-				const titleUpdates = scanForTerminalTitle(
-					session.titleScanState,
-					chunk,
-				);
-				for (const title of titleUpdates.updates) {
-					setSessionTitle(session, title);
+	const daemonCallbacks: SubscribeCallbacks = {
+		onOutput(chunk) {
+			// Bytes flow daemon → host → xterm without UTF-8 decoding;
+			// per-chunk `.toString("utf8")` here would mangle codepoints
+			// straddling chunk boundaries. (See no-encoding-hops.test.ts.)
+			const titleUpdates = scanForTerminalTitle(session.titleScanState, chunk);
+			for (const title of titleUpdates.updates) {
+				setSessionTitle(session, title);
+			}
+
+			let bytes: Uint8Array = chunk;
+			if (session.shellReadyState === "pending") {
+				const result = scanForShellReady(session.scanState, chunk);
+				bytes = result.output;
+				if (result.matched) {
+					resolveShellReady(session, "ready");
 				}
+			}
+			if (bytes.byteLength === 0) return;
 
-				let bytes: Uint8Array = chunk;
-				if (session.shellReadyState === "pending") {
-					const result = scanForShellReady(session.scanState, chunk);
-					bytes = result.output;
-					if (result.matched) {
-						resolveShellReady(session, "ready");
-					}
-				}
-				if (bytes.byteLength === 0) return;
+			// portManager.checkOutputForHint runs URL/port regexes on
+			// strings; the per-session StringDecoder buffers partial
+			// codepoints across chunks. This is a side branch — the
+			// transport above stays on bytes.
+			const hintText = session.portHintDecoder.write(
+				bytes instanceof Buffer
+					? bytes
+					: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+			);
+			if (hintText.length > 0) portManager.checkOutputForHint(hintText);
 
-				// portManager.checkOutputForHint runs URL/port regexes on
-				// strings; the per-session StringDecoder buffers partial
-				// codepoints across chunks. This is a side branch — the
-				// transport above stays on bytes.
-				const hintText = session.portHintDecoder.write(
-					bytes instanceof Buffer
-						? bytes
-						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
-				);
-				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
+			// Feed the tracker on every byte — broadcast skips the FIFO,
+			// so this is the only path that catches startup mode escapes.
+			session.modeTracker.feed(bytes);
 
-				// Feed the tracker on every byte — broadcast skips the FIFO,
-				// so this is the only path that catches startup mode escapes.
-				session.modeTracker.feed(bytes);
-
-				if (broadcastBytes(session, bytes) === 0) {
-					bufferOutput(session, bytes);
-				}
-			},
-			onExit({ code, signal }) {
-				session.exited = true;
-				session.exitCode = code ?? 0;
-				session.exitSignal = signal ?? 0;
-				const occurredAt = Date.now();
-
-				portManager.unregisterSession(terminalId);
-
-				db.update(terminalSessions)
-					.set({ status: "exited", endedAt: occurredAt })
-					.where(eq(terminalSessions.id, terminalId))
-					.run();
-
-				broadcastMessage(session, {
-					type: "exit",
-					exitCode: session.exitCode,
-					signal: session.exitSignal,
-				});
-
-				eventBus?.broadcastTerminalLifecycle({
-					workspaceId,
-					terminalId,
-					eventType: "exit",
-					exitCode: session.exitCode,
-					signal: session.exitSignal,
-					occurredAt,
-				});
-			},
+			if (broadcastBytes(session, bytes) === 0) {
+				bufferOutput(session, bytes);
+			}
 		},
-	);
-	session.unsubscribeDaemon = () => primarySubscription.dispose();
+		onExit({ code, signal }) {
+			session.exited = true;
+			session.exitCode = code ?? 0;
+			session.exitSignal = signal ?? 0;
+			const occurredAt = Date.now();
+
+			portManager.unregisterSession(terminalId);
+
+			db.update(terminalSessions)
+				.set({ status: "exited", endedAt: occurredAt })
+				.where(eq(terminalSessions.id, terminalId))
+				.run();
+
+			broadcastMessage(session, {
+				type: "exit",
+				exitCode: session.exitCode,
+				signal: session.exitSignal,
+			});
+
+			eventBus?.broadcastTerminalLifecycle({
+				workspaceId,
+				terminalId,
+				eventType: "exit",
+				exitCode: session.exitCode,
+				signal: session.exitSignal,
+				occurredAt,
+			});
+		},
+	};
+
+	try {
+		if (isAdopted) {
+			// Adoption must always request the daemon ring. The renderer may have
+			// survived the host restart, but `attached.full` lets it atomically
+			// replace that baseline; suppressing replay would lose bytes emitted
+			// while the WebSocket was down.
+			const subscription = daemon.subscribeWithReplayBoundary(
+				terminalId,
+				{ replay: true },
+				daemonCallbacks,
+			);
+			session.unsubscribeDaemon = subscription.unsubscribe;
+			session.attachReadyPromise = subscription.boundary
+				.then(({ replayBytes }) => {
+					const effectiveReplayBytes = replayBytes ?? session.bufferBytes;
+					if (replayBytes === null) {
+						console.warn(
+							`[terminal] adopted ${terminalId} from a pre-ACK daemon; classifying ${effectiveReplayBytes} ordered buffered bytes as a full replay`,
+						);
+					}
+					if (effectiveReplayBytes > 0) {
+						session.fullReplayBuffer = takeBufferedPrefix(
+							session,
+							effectiveReplayBytes,
+						);
+						session.nextAttachReplayKind = "full";
+					} else {
+						// Empty ring: a later live byte is a delta and must not clear the
+						// renderer. The ordered list barrier makes this true for new and
+						// legacy daemons alike.
+						session.nextAttachReplayKind = "delta";
+					}
+				})
+				.finally(() => {
+					session.preserveBufferUntilReplayBoundary = false;
+					trimBufferedOutput(session);
+				});
+			await session.attachReadyPromise;
+		} else {
+			session.unsubscribeDaemon = daemon.subscribe(
+				terminalId,
+				{ replay: false },
+				daemonCallbacks,
+			);
+		}
+	} catch (error) {
+		try {
+			session.unsubscribeDaemon?.();
+		} catch {
+			// The boundary can reject because the daemon disconnected. Cleanup must
+			// still remove the half-created host session when unsubscribe cannot send.
+		}
+		session.unsubscribeDaemon = null;
+		if (sessions.get(terminalId) === session) sessions.delete(terminalId);
+		portManager.unregisterSession(terminalId);
+		if (session.shellReadyTimeoutId) {
+			clearTimeout(session.shellReadyTimeoutId);
+			session.shellReadyTimeoutId = null;
+		}
+		session.modeTracker.dispose();
+		return {
+			error:
+				error instanceof Error
+					? error.message
+					: "Failed to subscribe to terminal",
+		};
+	}
 
 	if (initialCommand) {
 		queueInitialCommand(session, initialCommand, daemon);
@@ -1542,7 +1708,11 @@ export function registerWorkspaceTerminalRoute({
 			): boolean => {
 				if (session.sockets.has(ws)) return false;
 				session.sockets.add(ws);
-				sendMessage(ws, { type: "attached", terminalId });
+				const replayKind = session.nextAttachReplayKind;
+				sendMessage(ws, { type: "attached", terminalId, replayKind });
+				if (replayKind === "none") {
+					session.nextAttachReplayKind = "delta";
+				}
 
 				db.update(terminalSessions)
 					.set({ lastAttachedAt: Date.now() })
@@ -1572,6 +1742,16 @@ export function registerWorkspaceTerminalRoute({
 							requestedWorkspaceId,
 						});
 						if (mismatchError) return { error: mismatchError };
+					}
+					try {
+						await existing.attachReadyPromise;
+					} catch (error) {
+						return {
+							error:
+								error instanceof Error
+									? error.message
+									: "Failed to attach terminal replay",
+						};
 					}
 					return existing;
 				}
@@ -1615,8 +1795,6 @@ export function registerWorkspaceTerminalRoute({
 					db,
 					eventBus,
 					adoptOnly: true,
-					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
-					replayOnAdoption: c.req.query("replay") !== "0",
 				});
 				if (!("error" in adopted)) return adopted;
 

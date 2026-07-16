@@ -29,7 +29,11 @@ export interface TerminalLogEntry {
 // partial sequences internally). Control messages (title/error/exit) stay
 // JSON.
 type TerminalServerMessage =
-	| { type: "attached"; terminalId: string }
+	| {
+			type: "attached";
+			terminalId: string;
+			replayKind?: "full" | "delta" | "none";
+	  }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
@@ -91,12 +95,14 @@ export interface TerminalTransport {
 	 * error) or access is denied. Suppresses the auto-reconnect loop. */
 	_terminated: boolean;
 	/**
-	 * Flips true after the first PTY-output frame lands in xterm. Subsequent
-	 * dials send `?replay=0` so the server doesn't re-deliver scrollback.
-	 * Tracked on first bytes (not first open) so a WS that opens-and-closes
-	 * with no output still gets replay on the next connect.
+	 * The xterm already contains meaningful terminal output. This can come from
+	 * a persisted snapshot or from live PTY bytes rendered before a host-service
+	 * restart. A daemon `full` replay must replace either kind of baseline.
 	 */
-	_hasReceivedBytes: boolean;
+	_hasRenderedBaseline: boolean;
+	/** Prefix the next binary frame with RIS so a full daemon replay replaces,
+	 * rather than duplicates, the restored xterm state. */
+	_pendingFullReplayReset: boolean;
 	/** Internal: wall-clock-gap watchdog for laptop sleep/wake detection. */
 	_livenessTimer: ReturnType<typeof setInterval> | null;
 	/** Internal: Date.now() at the last watchdog tick. */
@@ -104,6 +110,9 @@ export interface TerminalTransport {
 	/** Internal: bound resume handler shared by the online/focus/visibility
 	 * listeners, so they can be removed on teardown. */
 	_resumeListener: (() => void) | null;
+	/** Internal: last geometry sent on the current WebSocket. */
+	_lastResizeCols: number | null;
+	_lastResizeRows: number | null;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -260,12 +269,22 @@ export function createTransport(): TerminalTransport {
 		_diagnosisLogged: false,
 		_lastProbe: null,
 		_localToken: null,
+		_hasRenderedBaseline: false,
+		_pendingFullReplayReset: false,
 		_terminated: false,
-		_hasReceivedBytes: false,
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
 		_resumeListener: null,
+		_lastResizeCols: null,
+		_lastResizeRows: null,
 	};
+}
+
+export function setRenderedBaselineState(
+	transport: TerminalTransport,
+	hasRenderedBaseline: boolean,
+) {
+	transport._hasRenderedBaseline = hasRenderedBaseline;
 }
 
 // Wall-clock watchdog cadence and the gap that counts as a suspend. A tick gap
@@ -381,18 +400,6 @@ function formatCloseDetails(event: {
 	return `code: ${code}${reason}`;
 }
 
-function appendQueryParam(url: string, key: string, value: string): string {
-	try {
-		const u = new URL(url);
-		u.searchParams.set(key, value);
-		return u.toString();
-	} catch {
-		// URL parse failed (relative url, malformed). Fall back to naive append.
-		const sep = url.includes("?") ? "&" : "?";
-		return `${url}${sep}${encodeURIComponent(key)}=${encodeURIComponent(value)}`;
-	}
-}
-
 function extractToken(url: string): string | null {
 	try {
 		return new URL(url).searchParams.get("token");
@@ -446,6 +453,7 @@ export function connect(
 	transport._writeCoalescer = createWriteCoalescer((data) =>
 		terminal.write(data),
 	);
+	transport._pendingFullReplayReset = false;
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
 
@@ -460,12 +468,7 @@ export function connect(
 		name: "desktop-terminal",
 		// buildUrl/getToken read transport state live, so a URL swap or token
 		// rotation is picked up on the next dial without recreating the socket.
-		buildUrl: () => {
-			const current = stripToken(transport.currentUrl ?? base);
-			return transport._hasReceivedBytes
-				? appendQueryParam(current, "replay", "0")
-				: current;
-		},
+		buildUrl: () => stripToken(transport.currentUrl ?? base),
 		getToken: () =>
 			isRelayHostUrl(transport.currentUrl)
 				? ensureFreshJwt()
@@ -510,22 +513,46 @@ function attachSocketListeners(
 	terminal: XTerm,
 	socket: RelaySocket,
 ): void {
+	socket.addEventListener("open", () => {
+		if (transport._socket !== socket) return;
+		// createRelaySocket reuses one wrapper across reconnects, but every open
+		// represents a fresh underlying WebSocket that needs the exact geometry.
+		transport._lastResizeCols = null;
+		transport._lastResizeRows = null;
+	});
+
 	socket.addEventListener("message", (event) => {
 		// Ignore events from a socket we've detached (teardown nulls _socket).
 		if (transport._socket !== socket) return;
 		const data = (event as { data: unknown }).data;
 
-		// Binary frame = PTY output bytes (data + replay collapsed onto one
-		// channel; renderer treats them identically). Pipe straight into xterm.
+		// Binary frame = PTY output bytes (data + replay share one channel).
+		// `attached.replayKind` decides whether the first frame replaces any
+		// existing renderer baseline; bytes still reach xterm without a decoding
+		// step.
 		if (data instanceof ArrayBuffer) {
-			// Queue PTY bytes; the coalescer batches them into one xterm.write per
-			// animation frame. There's no output ACK back to host-service:
+			const bytes = new Uint8Array(data);
+			if (bytes.byteLength === 0) return;
+			// Queue PTY bytes; the coalescer batches them into one xterm.write
+			// per animation frame. There's no output ACK back to host-service:
 			// back-pressure lives entirely on the host side, which bounds this
 			// socket's send buffer and drops us (we reconnect and replay) if we
-			// fall hopelessly behind. A slow renderer can never wedge the shell —
-			// it just loses some scrollback.
-			transport._writeCoalescer?.push(new Uint8Array(data));
-			transport._hasReceivedBytes = true;
+			// fall hopelessly behind. That means a slow/stalled renderer can
+			// never wedge the shell — it just loses some scrollback.
+			if (transport._pendingFullReplayReset && transport._hasRenderedBaseline) {
+				// RIS is parsed in-order after the existing renderer baseline and immediately
+				// before the full replay. Calling terminal.reset() here would race any
+				// snapshot bytes still queued in xterm's async parser.
+				const resetAndReplay = new Uint8Array(bytes.byteLength + 2);
+				resetAndReplay[0] = 0x1b;
+				resetAndReplay[1] = 0x63;
+				resetAndReplay.set(bytes, 2);
+				transport._writeCoalescer?.push(resetAndReplay);
+			} else {
+				transport._writeCoalescer?.push(bytes);
+			}
+			transport._hasRenderedBaseline = true;
+			transport._pendingFullReplayReset = false;
 			return;
 		}
 
@@ -544,6 +571,9 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "attached") {
+			const replayKind = message.replayKind ?? "delta";
+			transport._pendingFullReplayReset =
+				transport._hasRenderedBaseline && replayKind === "full";
 			transport.lastDiagnosis = null;
 			transport._diagnosisLogged = false;
 			setConnectionState(transport, "open");
@@ -676,10 +706,18 @@ export function sendResize(
 	cols: number,
 	rows: number,
 ) {
+	if (
+		transport._lastResizeCols === cols &&
+		transport._lastResizeRows === rows
+	) {
+		return;
+	}
 	const socket = transport._socket;
 	if (!socket || socket.readyState !== WebSocket.OPEN) return;
 	if (transport.connectionState !== "open") return;
 	socket.send(JSON.stringify({ type: "resize", cols, rows }));
+	transport._lastResizeCols = cols;
+	transport._lastResizeRows = rows;
 }
 
 export function sendInput(transport: TerminalTransport, data: string) {
