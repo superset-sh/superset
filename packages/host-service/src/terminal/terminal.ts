@@ -141,6 +141,8 @@ function makeDaemonPty(
 	let aggregateUnsubscribe: (() => void) | null = null;
 	let aggregateEpoch = 0;
 	let exitPublished = false;
+	let publishedExitInfo: Parameters<SubscribeCallbacks["onExit"]>[0] | null =
+		null;
 	const MAX_ROTATION_STAGING_BYTES = 8 * 1024 * 1024;
 
 	const addCursorBytes = (
@@ -189,6 +191,7 @@ function makeDaemonPty(
 		if (event.type === "exit") {
 			if (exitPublished) return;
 			exitPublished = true;
+			publishedExitInfo = { ...event.info };
 		}
 		for (const entry of subscriptions) dispatchEvent(entry, event);
 	};
@@ -735,6 +738,7 @@ function makeDaemonPty(
 			observedCursorError = null;
 			observedBoundaryReady = Promise.resolve();
 			exitPublished = false;
+			publishedExitInfo = null;
 		},
 		onData(cb) {
 			// StringDecoder buffers partial UTF-8 sequences across chunks.
@@ -754,6 +758,19 @@ function makeDaemonPty(
 			);
 		},
 		onExit(cb) {
+			if (publishedExitInfo) {
+				let disposed = false;
+				const { code, signal } = publishedExitInfo;
+				queueMicrotask(() => {
+					if (disposed) return;
+					cb({ exitCode: code ?? 0, signal: signal ?? 0 });
+				});
+				return {
+					dispose: () => {
+						disposed = true;
+					},
+				};
+			}
 			return subscribe(
 				{ replay: false },
 				{
@@ -802,6 +819,7 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
+	| { type: "replay-ack"; replayId: number }
 	| { type: "dispose" };
 
 type TerminalReplayKind = "full" | "delta" | "none";
@@ -816,6 +834,10 @@ type TerminalServerMessage =
 			type: "attached";
 			terminalId: string;
 			replayKind: TerminalReplayKind;
+			replayId?: number;
+			replayPrefixBytes: number;
+			replayDataBytes: number;
+			replayTruncated?: boolean;
 	  }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
@@ -889,6 +911,17 @@ interface TerminalSession {
 	bufferBytes: number;
 	/** Exact daemon snapshot captured during an adopted session's replay ACK. */
 	fullReplayBuffer: Uint8Array | null;
+	/** Bytes evicted while retaining the bounded full-recovery tail. */
+	fullReplayDiscardedBytes: number;
+	/** Monotonic version of the retained full snapshot. */
+	fullReplayGeneration: number;
+	/** Current generation durably ACKed by at least one renderer. */
+	fullReplayAcknowledgedGeneration: number | null;
+	/** Full replay attempts awaiting parser + persistence ACK. */
+	pendingReplayAcks: Map<
+		TerminalSocket,
+		{ replayId: number; generation: number }
+	>;
 	/**
 	 * Prevent FIFO eviction only while the daemon replay boundary is in flight.
 	 * The boundary is same-socket ordered and normally resolves in one turn.
@@ -948,11 +981,22 @@ interface TerminalSession {
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
+let replayDeliveryId = 0;
+let terminalLifecycleGeneration = 0;
 type CreateTerminalSessionResult = TerminalSession | { error: string };
 const sessionCreations = new Map<
 	string,
 	Promise<CreateTerminalSessionResult>
 >();
+
+function nextTerminalLifecycleGeneration(previousCreatedAt = 0): number {
+	terminalLifecycleGeneration = Math.max(
+		Date.now(),
+		terminalLifecycleGeneration + 1,
+		previousCreatedAt + 1,
+	);
+	return terminalLifecycleGeneration;
+}
 
 // A successful fd handoff preserves the PTYs, so keep host session objects and
 // renderer WebSockets intact. Rebind every primary and auxiliary subscription
@@ -1258,9 +1302,26 @@ function bufferOutput(session: TerminalSession, data: Uint8Array) {
 }
 
 function trimBufferedOutput(session: TerminalSession) {
-	while (session.bufferBytes > MAX_BUFFER_BYTES && session.buffer.length > 1) {
-		const removed = session.buffer.shift();
-		if (removed) session.bufferBytes -= removed.byteLength;
+	let overflow = Math.max(0, session.bufferBytes - MAX_BUFFER_BYTES);
+	if (overflow === 0) return;
+	if (session.nextAttachReplayKind === "full") {
+		session.fullReplayDiscardedBytes = Math.min(
+			Number.MAX_SAFE_INTEGER,
+			session.fullReplayDiscardedBytes + overflow,
+		);
+	}
+	while (overflow > 0 && session.buffer.length > 0) {
+		const head = session.buffer[0];
+		if (!head) break;
+		if (head.byteLength <= overflow) {
+			session.buffer.shift();
+			session.bufferBytes -= head.byteLength;
+			overflow -= head.byteLength;
+			continue;
+		}
+		session.buffer[0] = head.subarray(overflow);
+		session.bufferBytes -= overflow;
+		overflow = 0;
 	}
 }
 
@@ -1346,64 +1407,222 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 		socket.send(tight);
 		sent += 1;
 	}
-	if (sent > 0 && session.nextAttachReplayKind === "full") {
-		session.nextAttachReplayKind = "delta";
-	}
 	return sent;
 }
 
-export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	// sendBytes below no-ops on a non-open socket — bail before clearing the
-	// buffer/notice so the next attach can still replay them.
-	if (socket.readyState !== SOCKET_OPEN) return;
-	// Preamble first, then the restored notice, then FIFO. Mode-setting
-	// escapes (kitty keyboard, bracketed paste, focus, …) are typically
-	// emitted once at startup and broadcast away rather than buffered, so a
-	// fresh xterm needs them re-asserted on every attach — even when the
-	// FIFO is empty.
+export interface ReplayDelivery {
+	replayKind: TerminalReplayKind;
+	replayId?: number;
+	replayPrefixBytes: number;
+	replayDataBytes: number;
+	replayTruncated: boolean;
+	payload: Uint8Array | null;
+	requiresAck: boolean;
+}
+
+function buildBoundedReplayTail(chunks: readonly Uint8Array[]): {
+	bytes: Uint8Array;
+	discardedBytes: number;
+} {
+	let total = 0;
+	for (const chunk of chunks) total += chunk.byteLength;
+	const keep = Math.min(total, MAX_BUFFER_BYTES);
+	const bytes = new Uint8Array(keep);
+	let destination = keep;
+	for (
+		let index = chunks.length - 1;
+		index >= 0 && destination > 0;
+		index -= 1
+	) {
+		const chunk = chunks[index];
+		if (!chunk) continue;
+		const take = Math.min(chunk.byteLength, destination);
+		destination -= take;
+		bytes.set(chunk.subarray(chunk.byteLength - take), destination);
+	}
+	return { bytes, discardedBytes: total - keep };
+}
+
+/** Move every buffered live byte into the retained full generation. */
+function extendFullReplaySnapshot(session: TerminalSession): void {
+	if (session.bufferBytes === 0) return;
+	const previous = session.fullReplayBuffer;
+	const retained = buildBoundedReplayTail([
+		...(previous ? [previous] : []),
+		...session.buffer,
+	]);
+	session.fullReplayBuffer = retained.bytes;
+	session.fullReplayDiscardedBytes = Math.min(
+		Number.MAX_SAFE_INTEGER,
+		session.fullReplayDiscardedBytes + retained.discardedBytes,
+	);
+	session.buffer.length = 0;
+	session.bufferBytes = 0;
+	session.fullReplayGeneration += 1;
+	session.fullReplayAcknowledgedGeneration = null;
+}
+
+/** Reserve one exact full-replay attempt before attached is sent. */
+export function prepareReplayDelivery(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	requiresAck = true,
+): ReplayDelivery {
+	const replayKind = session.nextAttachReplayKind;
+	let replayId: number | undefined;
+	if (replayKind === "full") {
+		extendFullReplaySnapshot(session);
+		if (requiresAck) {
+			replayId = ++replayDeliveryId;
+			session.pendingReplayAcks.set(socket, {
+				replayId,
+				generation: session.fullReplayGeneration,
+			});
+		}
+	}
+
 	const preamble = session.modeTracker.buildPreamble();
 	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
 	const fullReplay = session.fullReplayBuffer;
 	let bufferTotal = 0;
-	for (const b of session.buffer) bufferTotal += b.byteLength;
-	const preambleLen = preamble?.byteLength ?? 0;
-	const noticeLen = notice?.byteLength ?? 0;
-	const fullReplayLen = fullReplay?.byteLength ?? 0;
+	for (const bytes of session.buffer) bufferTotal += bytes.byteLength;
+	const replayPrefixBytes =
+		(preamble?.byteLength ?? 0) + (notice?.byteLength ?? 0);
+	const replayDataBytes = (fullReplay?.byteLength ?? 0) + bufferTotal;
+	const total = replayPrefixBytes + replayDataBytes;
+	let payload: Uint8Array | null = null;
+	if (total > 0) {
+		payload = new Uint8Array(total);
+		let offset = 0;
+		if (preamble) {
+			payload.set(preamble, offset);
+			offset += preamble.byteLength;
+		}
+		if (notice) {
+			payload.set(notice, offset);
+			offset += notice.byteLength;
+		}
+		if (fullReplay) {
+			payload.set(fullReplay, offset);
+			offset += fullReplay.byteLength;
+		}
+		for (const bytes of session.buffer) {
+			payload.set(bytes, offset);
+			offset += bytes.byteLength;
+		}
+	}
+	return {
+		replayKind,
+		replayId,
+		replayPrefixBytes,
+		replayDataBytes,
+		replayTruncated:
+			replayKind === "full" && session.fullReplayDiscardedBytes > 0,
+		payload,
+		requiresAck: replayKind === "full" && requiresAck,
+	};
+}
+
+/** Retain the snapshot but invalidate a delivery whose socket disappeared. */
+export function cancelReplayDelivery(
+	session: TerminalSession,
+	socket: TerminalSocket,
+): void {
+	const pending = session.pendingReplayAcks.get(socket);
+	if (!pending) return;
+	session.pendingReplayAcks.delete(socket);
+	if (session.nextAttachReplayKind !== "full") return;
+
+	// Even with no new bytes, an ACK from another older attempt cannot release
+	// the only recovery copy after this socket reconnects.
+	session.fullReplayGeneration += 1;
+	session.fullReplayAcknowledgedGeneration = null;
+}
+
+function releaseAcknowledgedFullReplay(session: TerminalSession): boolean {
 	if (
-		preambleLen === 0 &&
-		noticeLen === 0 &&
-		fullReplayLen === 0 &&
-		bufferTotal === 0
+		session.nextAttachReplayKind !== "full" ||
+		session.pendingReplayAcks.size > 0 ||
+		session.fullReplayAcknowledgedGeneration !== session.fullReplayGeneration
 	) {
+		return false;
+	}
+
+	session.fullReplayBuffer = null;
+	session.fullReplayDiscardedBytes = 0;
+	session.fullReplayAcknowledgedGeneration = null;
+	session.restoredNoticePending = false;
+	session.nextAttachReplayKind = "delta";
+	return true;
+}
+
+/** Correlate a durable renderer ACK to its socket, id, and snapshot generation. */
+export function acknowledgeReplayDelivery(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	replayId: number,
+): boolean {
+	const pending = session.pendingReplayAcks.get(socket);
+	if (
+		!pending ||
+		pending.replayId !== replayId ||
+		session.nextAttachReplayKind !== "full"
+	) {
+		return false;
+	}
+
+	session.pendingReplayAcks.delete(socket);
+	if (pending.generation === session.fullReplayGeneration) {
+		session.fullReplayAcknowledgedGeneration = pending.generation;
+	}
+	releaseAcknowledgedFullReplay(session);
+	return true;
+}
+
+export function replayBuffer(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	delivery: ReplayDelivery = prepareReplayDelivery(session, socket, false),
+) {
+	// sendBytes below no-ops on a non-open socket — bail before clearing the
+	// buffer/notice so the next attach can still replay them.
+	if (socket.readyState !== SOCKET_OPEN) {
+		cancelReplayDelivery(session, socket);
+		return;
+	}
+	if (!delivery.payload) {
+		if (delivery.replayKind === "full") {
+			cancelReplayDelivery(session, socket);
+		} else if (session.nextAttachReplayKind === "none") {
+			session.nextAttachReplayKind = "delta";
+		}
 		return;
 	}
 
-	const combined = new Uint8Array(
-		preambleLen + noticeLen + fullReplayLen + bufferTotal,
-	);
-	let offset = 0;
-	if (preamble) {
-		combined.set(preamble, offset);
-		offset += preamble.byteLength;
+	try {
+		sendBytes(socket, delivery.payload);
+	} catch (error) {
+		cancelReplayDelivery(session, socket);
+		throw error;
 	}
-	if (notice) {
-		combined.set(notice, offset);
-		offset += notice.byteLength;
+
+	if (delivery.replayKind === "full" && delivery.requiresAck) {
+		// Snapshot + FIFO remain authoritative until every outstanding delivery
+		// ACKs and the latest generation has one durable ACK.
+		return;
 	}
-	if (fullReplay) {
-		combined.set(fullReplay, offset);
-		offset += fullReplay.byteLength;
-	}
-	for (const b of session.buffer) {
-		combined.set(b, offset);
-		offset += b.byteLength;
-	}
+
+	// Legacy renderers have no ACK. replay=0 suppresses adopted full replay when
+	// they already own a baseline; a fresh legacy renderer remains one-shot.
 	session.restoredNoticePending = false;
 	session.fullReplayBuffer = null;
+	session.fullReplayDiscardedBytes = 0;
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
-	sendBytes(socket, combined);
-	if (session.nextAttachReplayKind === "full") {
+	if (
+		session.nextAttachReplayKind === "full" ||
+		session.nextAttachReplayKind === "none"
+	) {
 		session.nextAttachReplayKind = "delta";
 	}
 }
@@ -1599,6 +1818,22 @@ function isUnknownDaemonSessionError(error: unknown): boolean {
 	return error.message.includes("unknown session:");
 }
 
+async function closeUnclaimedTerminal(
+	daemon: DaemonClient,
+	terminalId: string,
+): Promise<void> {
+	try {
+		await daemon.close(terminalId, "SIGHUP");
+	} catch (error) {
+		if (!isUnknownDaemonSessionError(error)) {
+			console.warn(
+				`[terminal] failed to close unclaimed respawn ${terminalId}`,
+				error,
+			);
+		}
+	}
+}
+
 function reachableDaemonSocketPath(): string | null {
 	const explicitSocket = process.env.SUPERSET_PTY_DAEMON_SOCKET;
 	if (explicitSocket) return explicitSocket;
@@ -1662,6 +1897,11 @@ async function disposeSessionAndWaitDirect(
 	db: HostDb,
 ): Promise<DisposeSessionResult> {
 	const session = sessions.get(terminalId);
+	const lifecycleCreatedAt =
+		session?.createdAt ??
+		db.query.terminalSessions
+			.findFirst({ where: eq(terminalSessions.id, terminalId) })
+			.sync()?.createdAt;
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
 	if (session) {
@@ -1697,16 +1937,25 @@ async function disposeSessionAndWaitDirect(
 
 	if (closeResult.succeeded) {
 		const endedAt = Date.now();
-		db.update(terminalSessions)
-			.set({ status: "disposed", endedAt })
-			.where(eq(terminalSessions.id, terminalId))
-			.run();
+		const lifecycleUpdate =
+			lifecycleCreatedAt === undefined
+				? null
+				: db
+						.update(terminalSessions)
+						.set({ status: "disposed", endedAt })
+						.where(
+							and(
+								eq(terminalSessions.id, terminalId),
+								eq(terminalSessions.createdAt, lifecycleCreatedAt),
+							),
+						)
+						.run();
 
 		// Dispose unsubscribed the daemon callbacks above, so onExit will
 		// never fire for this session — announce the exit here (after the
 		// row flips to disposed, so refetching readers see it dead). Skip
 		// sessions whose pty already exited: onExit broadcast that one.
-		if (session && !session.exited) {
+		if (lifecycleUpdate?.changes === 1 && session && !session.exited) {
 			session.eventBus?.broadcastTerminalLifecycle({
 				workspaceId: session.workspaceId,
 				terminalId,
@@ -1825,6 +2074,16 @@ interface CreateTerminalSessionOptions {
 	/** Only recover an already-live daemon session; never spawn a new PTY. */
 	adoptOnly?: boolean;
 	/**
+	 * Compare-and-swap generation used only by the failed-adoption respawn path.
+	 * A concurrently exited/disposed terminal must never be resurrected.
+	 */
+	expectedLifecycleCreatedAt?: number;
+	/**
+	 * Request the daemon ring while adopting. Legacy renderers send replay=0
+	 * after they already painted a baseline and cannot interpret replayKind.
+	 */
+	replayOnAdoption?: boolean;
+	/**
 	 * Deliver a "session restored" separator ahead of the first replay. Set on
 	 * the cold-restore respawn path, where the renderer paints stale scrollback
 	 * above a brand-new shell.
@@ -1862,6 +2121,28 @@ function getTerminalWorkspaceMismatchError({
 	}
 
 	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
+}
+
+function getExpectedLifecycleError({
+	terminalId,
+	record,
+	expectedCreatedAt,
+}: {
+	terminalId: string;
+	record: typeof terminalSessions.$inferSelect | undefined;
+	expectedCreatedAt: number;
+}): string | null {
+	if (!record) return `Terminal session "${terminalId}" no longer exists.`;
+	if (record.status === "disposed") {
+		return `Terminal session "${terminalId}" is disposed.`;
+	}
+	if (record.status === "exited") {
+		return `Terminal session "${terminalId}" has exited.`;
+	}
+	if (record.status !== "active" || record.createdAt !== expectedCreatedAt) {
+		return `Terminal session "${terminalId}" changed while reconnecting.`;
+	}
+	return null;
 }
 
 export function createTerminalSessionInternal(
@@ -1914,6 +2195,8 @@ async function createTerminalSessionInternalDirect({
 	cols: requestedCols,
 	rows: requestedRows,
 	adoptOnly = false,
+	expectedLifecycleCreatedAt,
+	replayOnAdoption = true,
 	restoredNotice = false,
 }: CreateTerminalSessionOptions): Promise<CreateTerminalSessionResult> {
 	const existing = sessions.get(terminalId);
@@ -1943,6 +2226,14 @@ async function createTerminalSessionInternalDirect({
 	const existingRecord = db.query.terminalSessions
 		.findFirst({ where: eq(terminalSessions.id, terminalId) })
 		.sync();
+	if (expectedLifecycleCreatedAt !== undefined) {
+		const lifecycleError = getExpectedLifecycleError({
+			terminalId,
+			record: existingRecord,
+			expectedCreatedAt: expectedLifecycleCreatedAt,
+		});
+		if (lifecycleError) return { error: lifecycleError };
+	}
 	const recordMismatchError = getTerminalWorkspaceMismatchError({
 		terminalId,
 		ownerWorkspaceId: existingRecord?.originWorkspaceId,
@@ -2064,25 +2355,58 @@ async function createTerminalSessionInternalDirect({
 	}
 	const pty: DaemonPty = makeDaemonPty(daemon, terminalId, openResult.pid);
 
-	const createdAt = Date.now();
+	const createdAt = nextTerminalLifecycleGeneration(existingRecord?.createdAt);
 
-	db.insert(terminalSessions)
-		.values({
-			id: terminalId,
-			originWorkspaceId: workspaceId,
-			status: "active",
-			createdAt,
-		})
-		.onConflictDoUpdate({
-			target: terminalSessions.id,
-			set: {
+	if (expectedLifecycleCreatedAt === undefined) {
+		db.insert(terminalSessions)
+			.values({
+				id: terminalId,
+				originWorkspaceId: workspaceId,
+				status: "active",
+				createdAt,
+			})
+			.onConflictDoUpdate({
+				target: terminalSessions.id,
+				set: {
+					originWorkspaceId: workspaceId,
+					status: "active",
+					createdAt,
+					endedAt: null,
+				},
+			})
+			.run();
+	} else {
+		const claim = db
+			.update(terminalSessions)
+			.set({
 				originWorkspaceId: workspaceId,
 				status: "active",
 				createdAt,
 				endedAt: null,
-			},
-		})
-		.run();
+			})
+			.where(
+				and(
+					eq(terminalSessions.id, terminalId),
+					eq(terminalSessions.status, "active"),
+					eq(terminalSessions.createdAt, expectedLifecycleCreatedAt),
+				),
+			)
+			.run();
+		if (claim.changes !== 1) {
+			await closeUnclaimedTerminal(daemon, terminalId);
+			const currentRecord = db.query.terminalSessions
+				.findFirst({ where: eq(terminalSessions.id, terminalId) })
+				.sync();
+			return {
+				error:
+					getExpectedLifecycleError({
+						terminalId,
+						record: currentRecord,
+						expectedCreatedAt: expectedLifecycleCreatedAt,
+					}) ?? `Terminal session "${terminalId}" changed while reconnecting.`,
+			};
+		}
+	}
 
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
@@ -2109,6 +2433,10 @@ async function createTerminalSessionInternalDirect({
 		buffer: [],
 		bufferBytes: 0,
 		fullReplayBuffer: null,
+		fullReplayDiscardedBytes: 0,
+		fullReplayGeneration: 0,
+		fullReplayAcknowledgedGeneration: null,
+		pendingReplayAcks: new Map(),
 		preserveBufferUntilReplayBoundary: isAdopted,
 		nextAttachReplayKind: isAdopted ? "delta" : "none",
 		attachReadyPromise: Promise.resolve(),
@@ -2185,22 +2513,34 @@ async function createTerminalSessionInternalDirect({
 			// so this is the only path that catches startup mode escapes.
 			session.modeTracker.feed(bytes);
 
-			if (broadcastBytes(session, bytes) === 0) {
+			const sent = broadcastBytes(session, bytes);
+			if (sent === 0 || session.nextAttachReplayKind === "full") {
+				// Keep the live suffix recoverable for the next full generation even
+				// while current sockets receive it. A close-before-ACK must not open a
+				// silent gap between the daemon snapshot and the next attach.
 				bufferOutput(session, bytes);
 			}
 		},
 		onExit({ code, signal }) {
+			const occurredAt = Date.now();
+			const lifecycleUpdate = db
+				.update(terminalSessions)
+				.set({ status: "exited", endedAt: occurredAt })
+				.where(
+					and(
+						eq(terminalSessions.id, terminalId),
+						eq(terminalSessions.createdAt, session.createdAt),
+						eq(terminalSessions.status, "active"),
+					),
+				)
+				.run();
+			if (lifecycleUpdate.changes !== 1) return;
+
 			session.exited = true;
 			session.exitCode = code ?? 0;
 			session.exitSignal = signal ?? 0;
-			const occurredAt = Date.now();
 
 			portManager.unregisterSession(terminalId);
-
-			db.update(terminalSessions)
-				.set({ status: "exited", endedAt: occurredAt })
-				.where(eq(terminalSessions.id, terminalId))
-				.run();
 
 			broadcastMessage(session, {
 				type: "exit",
@@ -2222,11 +2562,11 @@ async function createTerminalSessionInternalDirect({
 	try {
 		if (isAdopted) {
 			// Adoption must always request the daemon ring. The renderer may have
-			// survived the host restart, but `attached.full` lets it atomically
-			// replace that baseline; suppressing replay would lose bytes emitted
-			// while the WebSocket was down.
+			// survived the host restart, but `attached.full` lets it reconcile the
+			// daemon ring against that baseline; suppressing replay would lose bytes
+			// emitted while the WebSocket was down.
 			const subscription = pty.subscribeWithReplayBoundary(
-				{ replay: true },
+				{ replay: replayOnAdoption },
 				daemonCallbacks,
 			);
 			session.unsubscribeDaemon = () => subscription.dispose();
@@ -2239,10 +2579,14 @@ async function createTerminalSessionInternalDirect({
 						);
 					}
 					if (effectiveReplayBytes > 0) {
-						session.fullReplayBuffer = takeBufferedPrefix(
+						const daemonReplay = takeBufferedPrefix(
 							session,
 							effectiveReplayBytes,
 						);
+						const retained = buildBoundedReplayTail([daemonReplay]);
+						session.fullReplayBuffer = retained.bytes;
+						session.fullReplayDiscardedBytes = retained.discardedBytes;
+						session.fullReplayGeneration = 1;
 						session.nextAttachReplayKind = "full";
 					} else {
 						// Empty ring: a later live byte is a delta and must not clear the
@@ -2292,6 +2636,65 @@ async function createTerminalSessionInternalDirect({
 	}
 
 	return session;
+}
+
+type RespawnTerminal = (
+	options: CreateTerminalSessionOptions,
+) => Promise<CreateTerminalSessionResult>;
+
+/** Re-check the durable lifecycle after async adoption failure before respawn. */
+export async function respawnAfterFailedAdoption(
+	{
+		terminalId,
+		requestedWorkspaceId,
+		themeType,
+		db,
+		eventBus,
+	}: {
+		terminalId: string;
+		requestedWorkspaceId: string | null;
+		themeType: "dark" | "light" | undefined;
+		db: HostDb;
+		eventBus?: EventBus;
+	},
+	respawn: RespawnTerminal = createTerminalSessionInternal,
+): Promise<CreateTerminalSessionResult> {
+	const latestRecord = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	if (!latestRecord) {
+		return { error: `Terminal session "${terminalId}" no longer exists.` };
+	}
+	if (latestRecord.status === "disposed") {
+		return { error: `Terminal session "${terminalId}" is disposed.` };
+	}
+	if (latestRecord.status === "exited") {
+		return { error: `Terminal session "${terminalId}" has exited.` };
+	}
+	if (!latestRecord.originWorkspaceId) {
+		return {
+			error: `Terminal session "${terminalId}" is missing a workspace.`,
+		};
+	}
+	if (requestedWorkspaceId) {
+		const mismatchError = getTerminalWorkspaceMismatchError({
+			terminalId,
+			ownerWorkspaceId: latestRecord.originWorkspaceId,
+			requestedWorkspaceId,
+		});
+		if (mismatchError) return { error: mismatchError };
+	}
+
+	console.log(`[terminal] respawning lost session ${terminalId}`);
+	return respawn({
+		terminalId,
+		workspaceId: latestRecord.originWorkspaceId,
+		themeType,
+		db,
+		eventBus,
+		expectedLifecycleCreatedAt: latestRecord.createdAt,
+		restoredNotice: true,
+	});
 }
 
 export function registerWorkspaceTerminalRoute({
@@ -2405,34 +2808,50 @@ export function registerWorkspaceTerminalRoute({
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
 			const requestedWorkspaceId = c.req.query("workspaceId") || null;
+			const replayProtocolV1 = c.req.query("replayProtocol") === "1";
+			const replayOnAdoption =
+				replayProtocolV1 || c.req.query("replay") !== "0";
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
 			): boolean => {
 				if (session.sockets.has(ws)) return false;
+				const delivery = prepareReplayDelivery(session, ws, replayProtocolV1);
 				session.sockets.add(ws);
-				const replayKind = session.nextAttachReplayKind;
-				sendMessage(ws, { type: "attached", terminalId, replayKind });
-				if (replayKind === "none") {
-					session.nextAttachReplayKind = "delta";
-				}
-
-				db.update(terminalSessions)
-					.set({ lastAttachedAt: Date.now() })
-					.where(eq(terminalSessions.id, terminalId))
-					.run();
-
-				sendMessage(ws, { type: "title", title: session.title });
-				replayBuffer(session, ws);
-				flushPendingMutationErrors(session, ws);
-				if (session.exited) {
+				try {
 					sendMessage(ws, {
-						type: "exit",
-						exitCode: session.exitCode,
-						signal: session.exitSignal,
+						type: "attached",
+						terminalId,
+						replayKind: delivery.replayKind,
+						...(delivery.replayId !== undefined
+							? { replayId: delivery.replayId }
+							: {}),
+						replayPrefixBytes: delivery.replayPrefixBytes,
+						replayDataBytes: delivery.replayDataBytes,
+						replayTruncated: delivery.replayTruncated || undefined,
 					});
+
+					db.update(terminalSessions)
+						.set({ lastAttachedAt: Date.now() })
+						.where(eq(terminalSessions.id, terminalId))
+						.run();
+
+					sendMessage(ws, { type: "title", title: session.title });
+					replayBuffer(session, ws, delivery);
+					flushPendingMutationErrors(session, ws);
+					if (session.exited) {
+						sendMessage(ws, {
+							type: "exit",
+							exitCode: session.exitCode,
+							signal: session.exitSignal,
+						});
+					}
+					return true;
+				} catch (error) {
+					cancelReplayDelivery(session, ws);
+					session.sockets.delete(ws);
+					throw error;
 				}
-				return true;
 			};
 			const resolveSessionForAttach = async (): Promise<
 				TerminalSession | { error: string }
@@ -2499,20 +2918,18 @@ export function registerWorkspaceTerminalRoute({
 					db,
 					eventBus,
 					adoptOnly: true,
+					replayOnAdoption,
 				});
 				if (!("error" in adopted)) return adopted;
 
-				// Active row but daemon no longer owns the PTY (laptop sleep,
-				// daemon restart, machine reboot). Respawn rather than dead-end
-				// the pane — the renderer's xterm scrollback stays painted above.
-				console.log(`[terminal] respawning lost session ${terminalId}`);
-				return createTerminalSessionInternal({
+				// Adoption may fail after an async boundary while an exit/dispose
+				// changed the durable row. Re-read and claim that exact generation.
+				return respawnAfterFailedAdoption({
 					terminalId,
-					workspaceId: record.originWorkspaceId,
+					requestedWorkspaceId,
 					themeType,
 					db,
 					eventBus,
-					restoredNotice: true,
 				});
 			};
 
@@ -2563,6 +2980,11 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
+					if (message.type === "replay-ack") {
+						acknowledgeReplayDelivery(session, ws, message.replayId);
+						return;
+					}
+
 					if (session.exited) return;
 
 					if (message.type === "input") {
@@ -2598,12 +3020,18 @@ export function registerWorkspaceTerminalRoute({
 
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (session) {
+						cancelReplayDelivery(session, ws);
+						session.sockets.delete(ws);
+					}
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (session) {
+						cancelReplayDelivery(session, ws);
+						session.sockets.delete(ws);
+					}
 				},
 			};
 		}),

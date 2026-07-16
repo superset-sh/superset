@@ -33,6 +33,7 @@ const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
 const PERSIST_DEBOUNCE_MS = 250;
+export const PERSISTED_REPLAY_ANCHOR_BYTES = 4 * 1024;
 // biome-ignore lint/complexity/useRegexLiterals: constructor avoids the control-character literal lint while matching serialized ANSI sequences.
 const OSC_CONTROL_SEQUENCE = new RegExp(
 	"\\x1b\\][^\\x07]*(?:\\x07|\\x1b\\\\)",
@@ -48,11 +49,14 @@ export interface PersistedTerminalState {
 	data: string;
 	cols: number;
 	rows: number;
+	replayCheckpoint: Uint8Array;
 }
 
 interface LivePersistence {
 	schedule: () => void;
-	flush: () => void;
+	flush: () => boolean;
+	getReplayCheckpoint: () => Uint8Array;
+	setReplayCheckpoint: (checkpoint: Uint8Array) => void;
 	dispose: () => void;
 }
 
@@ -111,18 +115,34 @@ function encodePersistedState(
 	cols: number,
 	rows: number,
 	data: string,
+	replayCheckpoint: Uint8Array,
 ): string {
-	return `v2;${cols};${rows}\n${data}`;
+	const boundedCheckpoint = replayCheckpoint.subarray(
+		Math.max(0, replayCheckpoint.byteLength - PERSISTED_REPLAY_ANCHOR_BYTES),
+	);
+	let binary = "";
+	const chunkSize = 0x8000;
+	for (
+		let offset = 0;
+		offset < boundedCheckpoint.byteLength;
+		offset += chunkSize
+	) {
+		binary += String.fromCharCode(
+			...boundedCheckpoint.subarray(offset, offset + chunkSize),
+		);
+	}
+	return `v3;${cols};${rows};${btoa(binary)}\n${data}`;
 }
 
 function decodePersistedState(
 	raw: string | null,
 ): PersistedTerminalState | null {
-	if (!raw?.startsWith("v2;")) return null;
+	if (!raw?.startsWith("v2;") && !raw?.startsWith("v3;")) return null;
 	const newline = raw.indexOf("\n");
 	if (newline < 0) return null;
+	const version = raw.slice(0, 2);
 	const header = raw.slice(3, newline).split(";");
-	if (header.length !== 2) return null;
+	if (header.length !== (version === "v3" ? 3 : 2)) return null;
 	const cols = Number(header[0]);
 	const rows = Number(header[1]);
 	if (
@@ -133,45 +153,78 @@ function decodePersistedState(
 	) {
 		return null;
 	}
-	return { cols, rows, data: raw.slice(newline + 1) };
+	let replayCheckpoint = new Uint8Array();
+	if (version === "v3") {
+		try {
+			const binary = atob(header[2] ?? "");
+			replayCheckpoint = Uint8Array.from(binary, (char) => char.charCodeAt(0));
+			if (replayCheckpoint.byteLength > PERSISTED_REPLAY_ANCHOR_BYTES) {
+				replayCheckpoint = replayCheckpoint.slice(
+					replayCheckpoint.byteLength - PERSISTED_REPLAY_ANCHOR_BYTES,
+				);
+			}
+		} catch {
+			return null;
+		}
+	}
+	return { cols, rows, data: raw.slice(newline + 1), replayCheckpoint };
 }
 
-function persistState(
+export function persistState(
 	terminalId: string,
 	terminal: XTerm,
 	serializeAddon: SerializeAddon,
-) {
+	replayCheckpoint: Uint8Array = new Uint8Array(),
+): boolean {
+	let data: string;
+	let cols: number;
+	let rows: number;
 	try {
-		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
-		const cols = terminal.cols;
-		const rows = terminal.rows;
+		data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
+		cols = terminal.cols;
+		rows = terminal.rows;
 		localStorage.setItem(
 			`${STATE_KEY_PREFIX}${terminalId}`,
-			encodePersistedState(cols, rows, data),
+			encodePersistedState(cols, rows, data, replayCheckpoint),
 		);
-		// Keep the legacy keys as a rollback/fallback copy. The v2 key above is
-		// the source of truth because its buffer and dimensions are one atomic
-		// localStorage write.
+	} catch {
+		return false;
+	}
+
+	// Keep the legacy keys as rollback/fallback copies. They are best-effort:
+	// the versioned state key above is the source of truth because its buffer,
+	// dimensions, and raw replay checkpoint share one atomic localStorage write.
+	try {
 		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
+	} catch {}
+	try {
 		localStorage.setItem(
 			`${DIMS_KEY_PREFIX}${terminalId}`,
 			JSON.stringify({ cols, rows }),
 		);
 	} catch {}
+	return true;
 }
 
 function installLivePersistence(
 	terminalId: string,
 	terminal: XTerm,
 	serializeAddon: SerializeAddon,
+	initialReplayCheckpoint: Uint8Array,
 ): LivePersistence {
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	let replayCheckpoint = initialReplayCheckpoint.slice(
+		Math.max(
+			0,
+			initialReplayCheckpoint.byteLength - PERSISTED_REPLAY_ANCHOR_BYTES,
+		),
+	);
 	const flush = () => {
 		if (timeoutId !== null) {
 			clearTimeout(timeoutId);
 			timeoutId = null;
 		}
-		persistState(terminalId, terminal, serializeAddon);
+		return persistState(terminalId, terminal, serializeAddon, replayCheckpoint);
 	};
 	const schedule = () => {
 		if (timeoutId !== null) clearTimeout(timeoutId);
@@ -182,6 +235,12 @@ function installLivePersistence(
 	return {
 		schedule,
 		flush,
+		getReplayCheckpoint: () => replayCheckpoint,
+		setReplayCheckpoint: (checkpoint) => {
+			replayCheckpoint = checkpoint.slice(
+				Math.max(0, checkpoint.byteLength - PERSISTED_REPLAY_ANCHOR_BYTES),
+			);
+		},
 		dispose: () => {
 			parsedDisposable.dispose();
 			window.removeEventListener("beforeunload", flush);
@@ -232,6 +291,7 @@ export function loadRestorableState(
 				data,
 				cols: dimensions?.cols ?? DEFAULT_COLS,
 				rows: dimensions?.rows ?? DEFAULT_ROWS,
+				replayCheckpoint: new Uint8Array(),
 			};
 		}
 	} catch {}
@@ -371,6 +431,7 @@ export function createRuntime(
 						options.initialRows ??
 						loadSavedDimensions(terminalId)?.rows ??
 						DEFAULT_ROWS,
+					replayCheckpoint: new Uint8Array(),
 				}
 			: loadRestorableState(terminalId));
 	const cols = restoredState?.cols ?? DEFAULT_COLS;
@@ -407,6 +468,7 @@ export function createRuntime(
 		terminalId,
 		terminal,
 		serializeAddon,
+		restoredState?.replayCheckpoint ?? new Uint8Array(),
 	);
 
 	const disposeImagePasteFallback = installImagePasteFallback(
@@ -519,10 +581,17 @@ export function disposeRuntime(
 	options: { clearPersistedState?: boolean } = {},
 ) {
 	const clearPersistedState = options.clearPersistedState ?? true;
+	const replayCheckpoint =
+		runtime._persistence?.getReplayCheckpoint() ?? new Uint8Array();
 	runtime._persistence?.dispose();
 	runtime._persistence = null;
 	if (!clearPersistedState) {
-		persistState(runtime.terminalId, runtime.terminal, runtime.serializeAddon);
+		persistState(
+			runtime.terminalId,
+			runtime.terminal,
+			runtime.serializeAddon,
+			replayCheckpoint,
+		);
 	}
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;

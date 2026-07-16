@@ -35,7 +35,7 @@ import {
 import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { env } from "main/env.main";
-import { exitImmediately } from "main/index";
+import { exitImmediately, flushRendererStorage } from "main/index";
 import { setupSingleAgent } from "main/lib/agent-setup";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
@@ -778,11 +778,16 @@ export const createSettingsRouter = () => {
 				return { success: true };
 			}),
 
-		restartApp: publicProcedure.mutation(() => {
+		restartApp: publicProcedure.mutation(async () => {
+			await flushRendererStorage();
 			app.relaunch();
 			exitImmediately();
 			return { success: true };
 		}),
+
+		flushRendererStorage: publicProcedure.mutation(async () => ({
+			success: await flushRendererStorage(),
+		})),
 
 		getBranchPrefix: publicProcedure.query(() => {
 			const row = getSettings();

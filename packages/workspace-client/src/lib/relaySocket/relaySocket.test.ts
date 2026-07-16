@@ -8,11 +8,13 @@ import { createRelaySocket, type RelaySocket } from "./relaySocket";
 // Local WS server whose /hosts/:id/_whoowns preflight status is scriptable.
 function makeServer(getWhoownsStatus: () => number) {
 	const tokensSeen: string[] = [];
+	const preflightTokensSeen: string[] = [];
 	const server = Bun.serve({
 		port: 0,
 		fetch(req, srv) {
 			const url = new URL(req.url);
 			if (url.pathname.endsWith("/_whoowns")) {
+				preflightTokensSeen.push(url.searchParams.get("token") ?? "");
 				return new Response(
 					getWhoownsStatus() === 200 ? JSON.stringify({ ok: true }) : "{}",
 					{ status: getWhoownsStatus() },
@@ -29,7 +31,7 @@ function makeServer(getWhoownsStatus: () => number) {
 			message() {},
 		},
 	});
-	return { server, tokensSeen, port: server.port };
+	return { server, tokensSeen, preflightTokensSeen, port: server.port };
 }
 
 const HOST_PATH = "/hosts/org-1:machine-1/events";
@@ -57,6 +59,52 @@ function waitFor(cond: () => boolean, timeoutMs = 3_000): Promise<void> {
 }
 
 describe("createRelaySocket", () => {
+	it("cancels a superseded async provider before token read or preflight", async () => {
+		const { server, tokensSeen, preflightTokensSeen, port } = makeServer(
+			() => 200,
+		);
+		const telemetry: RelaySocketTelemetryEvent[] = [];
+		setRelaySocketTelemetry((event) => telemetry.push(event));
+
+		let dialCurrent = true;
+		let tokenReads = 0;
+		let markBuildStarted!: () => void;
+		const buildStarted = new Promise<void>((resolve) => {
+			markBuildStarted = resolve;
+		});
+		let releaseBuild!: () => void;
+		const buildGate = new Promise<void>((resolve) => {
+			releaseBuild = resolve;
+		});
+
+		socket = createRelaySocket({
+			buildUrl: async () => {
+				markBuildStarted();
+				await buildGate;
+				return `ws://localhost:${port}${HOST_PATH}`;
+			},
+			getToken: () => {
+				tokenReads += 1;
+				return "must-not-be-used";
+			},
+			isDialCurrent: () => dialCurrent,
+			minReconnectionDelay: 10,
+			maxReconnectionDelay: 20,
+		});
+
+		await buildStarted;
+		dialCurrent = false;
+		socket.close();
+		releaseBuild();
+		await Bun.sleep(100);
+
+		expect(tokenReads).toBe(0);
+		expect(preflightTokensSeen).toEqual([]);
+		expect(tokensSeen).toEqual([]);
+		expect(telemetry).toEqual([]);
+		server.stop(true);
+	});
+
 	it("signs every attempt with a fresh token", async () => {
 		const { server, tokensSeen, port } = makeServer(() => 200);
 		let tokenVersion = 0;

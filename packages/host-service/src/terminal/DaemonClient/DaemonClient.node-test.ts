@@ -34,7 +34,7 @@ const DAEMON_SCRIPT = path.resolve(
 before(async () => {
 	server = new Server({
 		socketPath: sockPath,
-		daemonVersion: "0.0.0-host-test",
+		daemonVersion: "0.2.7",
 	});
 	await server.listen();
 });
@@ -46,7 +46,7 @@ after(async () => {
 test("connect + handshake exposes daemon version", async () => {
 	const c = new DaemonClient({ socketPath: sockPath });
 	await c.connect();
-	assert.equal(c.version, "0.0.0-host-test");
+	assert.equal(c.version, "0.2.7");
 	assert.equal(c.protocol, CURRENT_PROTOCOL_VERSION);
 	assert.ok(c.isConnected);
 	await c.dispose();
@@ -212,6 +212,85 @@ test("subscribe replay boundary rejects a matching ENOENT error", async () => {
 	}
 });
 
+test("subscribe replay boundary survives an ordered exit after the subscribed ACK", async () => {
+	const localPath = path.join(
+		os.tmpdir(),
+		`host-daemon-client-exit-boundary-${process.pid}-${Math.random().toString(36).slice(2)}.sock`,
+	);
+	const sessionId = "exit-after-subscribed-boundary";
+	const local = net.createServer((socket) => {
+		const decoder = new FrameDecoder();
+		socket.on("data", (chunk) => {
+			decoder.push(chunk);
+			for (const frame of decoder.drain()) {
+				const message = frame.message as ClientMessage;
+				if (message.type === "hello") {
+					socket.write(
+						encodeFrame({
+							type: "hello-ack",
+							protocol: CURRENT_PROTOCOL_VERSION,
+							daemonVersion: "0.2.7",
+							daemonPid: process.pid,
+						}),
+					);
+					continue;
+				}
+				if (message.type === "subscribe" && message.id === sessionId) {
+					socket.write(
+						Buffer.concat([
+							encodeFrame({
+								type: "subscribed",
+								id: sessionId,
+								replayBytes: 0,
+								replayStartBytes: 12,
+								replayEndBytes: 12,
+							}),
+							encodeFrame({
+								type: "exit",
+								id: sessionId,
+								code: 0,
+								signal: 0,
+							}),
+						]),
+					);
+					continue;
+				}
+				if (message.type === "list") {
+					socket.write(encodeFrame({ type: "list-reply", sessions: [] }));
+				}
+			}
+		});
+	});
+	await new Promise<void>((resolve, reject) => {
+		local.once("error", reject);
+		local.listen(localPath, () => {
+			local.off("error", reject);
+			resolve();
+		});
+	});
+
+	const client = new DaemonClient({ socketPath: localPath });
+	const exits: Array<{ code: number | null; signal: number | null }> = [];
+	try {
+		await client.connect();
+		const { unsubscribe, boundary } = client.subscribeWithReplayBoundary(
+			sessionId,
+			{ replay: true },
+			{ onOutput: () => {}, onExit: (info) => exits.push(info) },
+		);
+		assert.deepEqual(await boundary, {
+			replayBytes: 0,
+			replayStartBytes: 12,
+			replayEndBytes: 12,
+		});
+		assert.deepEqual(exits, [{ code: 0, signal: 0 }]);
+		unsubscribe();
+	} finally {
+		await client.dispose();
+		await new Promise<void>((resolve) => local.close(() => resolve()));
+	}
+});
+
 test("subscribe replay boundary rejects a session that exited during adoption", async () => {
 	const c = new DaemonClient({ socketPath: sockPath });
 	await c.connect();
@@ -238,6 +317,114 @@ test("subscribe replay boundary rejects a session that exited during adoption", 
 	} finally {
 		unsubscribe();
 		await c.dispose();
+	}
+});
+
+test("legacy replay boundary ignores an older concurrent list reply", async () => {
+	const localPath = path.join(
+		os.tmpdir(),
+		`host-daemon-client-legacy-${process.pid}-${Date.now()}.sock`,
+	);
+	const id = "legacy-replay-boundary";
+	const marker = Buffer.from("legacy-replay-marker");
+	const wireEvents: string[] = [];
+	let listRequests = 0;
+	const activeSockets = new Set<net.Socket>();
+	let resolveFirstList: (() => void) | null = null;
+	const firstListSeen = new Promise<void>((resolve) => {
+		resolveFirstList = resolve;
+	});
+	let resolveSecondList: (() => void) | null = null;
+	const secondListSeen = new Promise<void>((resolve) => {
+		resolveSecondList = resolve;
+	});
+
+	const legacyServer = net.createServer((socket) => {
+		activeSockets.add(socket);
+		socket.once("close", () => activeSockets.delete(socket));
+		const decoder = new FrameDecoder();
+		socket.on("data", (chunk) => {
+			decoder.push(chunk);
+			for (const frame of decoder.drain()) {
+				const message = frame.message as ClientMessage;
+				if (message.type === "hello") {
+					socket.write(
+						encodeFrame({
+							type: "hello-ack",
+							protocol: CURRENT_PROTOCOL_VERSION,
+							daemonVersion: "0.2.5",
+							daemonPid: process.pid,
+						}),
+					);
+					continue;
+				}
+				if (message.type === "list") {
+					listRequests += 1;
+					wireEvents.push(`list-${listRequests}`);
+					if (listRequests === 1) resolveFirstList?.();
+					if (listRequests === 2) resolveSecondList?.();
+					continue;
+				}
+				if (message.type === "subscribe" && message.id === id) {
+					wireEvents.push("subscribe");
+					socket.write(encodeFrame(legacyListReply(id)));
+				}
+			}
+		});
+	});
+	await listenUnixServer(legacyServer, localPath);
+
+	const c = new DaemonClient({ socketPath: localPath });
+	try {
+		await c.connect();
+		const olderList = c.list();
+		await firstListSeen;
+		const events: string[] = [];
+		const chunks: Buffer[] = [];
+		const { unsubscribe, boundary } = c.subscribeWithReplayBoundary(
+			id,
+			{ replay: true },
+			{
+				onOutput: (chunk) => {
+					chunks.push(chunk);
+					events.push("output");
+				},
+				onExit: () => {},
+			},
+		);
+		let boundarySettled = false;
+		void boundary.then(
+			() => {
+				boundarySettled = true;
+			},
+			() => {
+				boundarySettled = true;
+			},
+		);
+
+		await olderList;
+		await secondListSeen;
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		assert.equal(boundarySettled, false);
+		assert.deepEqual(wireEvents, ["list-1", "subscribe", "list-2"]);
+
+		const socket = [...activeSockets][0];
+		assert.ok(socket);
+		socket.write(encodeFrame({ type: "output", id }, marker));
+		socket.write(encodeFrame(legacyListReply(id)));
+
+		const result = await boundary.then((value) => {
+			events.push("boundary");
+			return value;
+		});
+		unsubscribe();
+
+		assert.equal(result.replayBytes, null);
+		assert.equal(Buffer.concat(chunks).toString(), marker.toString());
+		assert.deepEqual(events, ["output", "boundary"]);
+	} finally {
+		await c.dispose();
+		await closeServer(legacyServer);
 	}
 });
 
@@ -745,4 +932,34 @@ function unlinkSafe(filePath: string): void {
 	} catch (error) {
 		if ((error as NodeJS.ErrnoException).code !== "ENOENT") throw error;
 	}
+}
+
+function legacyListReply(id: string) {
+	return {
+		type: "list-reply" as const,
+		sessions: [{ id, pid: 123, cols: 80, rows: 24, alive: true }],
+	};
+}
+
+function listenUnixServer(
+	server: net.Server,
+	socketPath: string,
+): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+		const onError = (error: Error) => reject(error);
+		server.once("error", onError);
+		server.listen(socketPath, () => {
+			server.off("error", onError);
+			resolve();
+		});
+	});
+}
+
+function closeServer(server: net.Server): Promise<void> {
+	return new Promise<void>((resolve, reject) => {
+		server.close((error) => {
+			if (error) reject(error);
+			else resolve();
+		});
+	});
 }

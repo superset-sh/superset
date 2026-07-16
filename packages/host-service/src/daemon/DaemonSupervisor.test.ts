@@ -1103,7 +1103,7 @@ describe("DaemonSupervisor.restart", () => {
 		);
 	});
 
-	test("an ACK pid recycled before probe never becomes an ambiguous signal target", async () => {
+	test("an ACK pid recycled before recovery never becomes a signal target", async () => {
 		let processTableReads = 0;
 		const unverifiedAckCandidate = {
 			pid: 222,
@@ -1133,7 +1133,7 @@ describe("DaemonSupervisor.restart", () => {
 				pid: 222,
 				ppid: 1,
 				pgid: 222,
-				startTime: unverifiedAckCandidate.startTime,
+				startTime: "recycled-after-ack",
 			},
 		];
 		const recovery = {
@@ -1143,8 +1143,7 @@ describe("DaemonSupervisor.restart", () => {
 				pgid: 111,
 				startTime: "original-predecessor",
 			},
-			// The ACK candidate is deliberately absent: only a socket-verified
-			// identity is allowed into recovery's signalisable set.
+			successor: unverifiedAckCandidate,
 			socketPath: "/tmp/ambiguous-recycled.sock",
 		};
 		const signaled = await (
@@ -1167,6 +1166,55 @@ describe("DaemonSupervisor.restart", () => {
 
 		expect(signaled).toEqual([]);
 		expect(processTableReads).toBeGreaterThanOrEqual(3);
+	});
+
+	test("a captured ACK successor keeps recovery fail closed until that exact lifetime exits", async () => {
+		const successor = {
+			pid: 987_654,
+			pgid: 987_654,
+			startTime: "ack-successor-lifetime",
+		};
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 987_653,
+				pgid: 987_653,
+				startTime: "already-exited-predecessor",
+			},
+			successor,
+			socketPath: "/tmp/ambiguous-ack-successor.sock",
+		};
+		const liveSuccessorTable = [
+			{
+				pid: successor.pid,
+				ppid: 1,
+				pgid: successor.pgid,
+				startTime: successor.startTime,
+			},
+		];
+
+		await expect(
+			(
+				sup as unknown as {
+					eliminateAmbiguousOwners(
+						candidate: unknown,
+						options: {
+							readCurrentProcessTable: () => typeof liveSuccessorTable;
+							isPidAlive: (_pid: number) => boolean;
+							identityExitTimeoutMs: number;
+							probeWindowMs: number;
+						},
+					): Promise<unknown[]>;
+				}
+			).eliminateAmbiguousOwners(recovery, {
+				readCurrentProcessTable: () => liveSuccessorTable,
+				isPidAlive: (pid: number) => pid === successor.pid,
+				identityExitTimeoutMs: 0,
+				probeWindowMs: 0,
+			}),
+		).rejects.toThrow(
+			`ambiguous pty-daemon owner ${successor.pid} survived force restart`,
+		);
 	});
 
 	test("fails closed when process-table reads are empty but the kernel reports the pid alive", async () => {

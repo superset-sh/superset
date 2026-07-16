@@ -472,11 +472,11 @@ export class DaemonSupervisor {
 			this.ambiguousUpdates.delete(organizationId);
 			return restoreError;
 		};
-		const failClosed = (reason: string, successor?: VerifiedDaemonOwner) => {
+		const failClosed = (reason: string, successor?: ProcessIdentity) => {
 			this.ambiguousUpdates.set(organizationId, {
 				lease: mutationLease,
 				predecessor: predecessorIdentity,
-				...(successor ? { successor: successor.identity } : {}),
+				...(successor ? { successor } : {}),
 				socketPath: instance.socketPath,
 			});
 			logEvent("pty_daemon_update_ownership_ambiguous", {
@@ -618,7 +618,7 @@ export class DaemonSupervisor {
 			if (!predecessorExited) {
 				return failClosed(
 					`predecessor pid ${instance.pid} did not exit within ${HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS + DAEMON_TERMINATE_TIMEOUT_MS}ms after handoff ack`,
-					verifiedSuccessorOwner,
+					successorCandidate,
 				);
 			}
 		}
@@ -638,15 +638,17 @@ export class DaemonSupervisor {
 		) {
 			return failClosed(
 				`successor pid ${result.successorPid} did not answer the ownership probe`,
+				successorCandidate,
 			);
 		}
 		verifiedSuccessorOwner = successorOwner;
-		const successorCompatibility =
-			successorCompatibilityFailure(successorOwner.probe);
+		const successorCompatibility = successorCompatibilityFailure(
+			successorOwner.probe,
+		);
 		if (successorCompatibility) {
 			return failClosed(
 				`successor pid ${result.successorPid} failed compatibility validation: ${successorCompatibility}`,
-				successorOwner,
+				successorOwner.identity,
 			);
 		}
 		const runningVersion = successorOwner.probe.daemonVersion;
@@ -681,7 +683,7 @@ export class DaemonSupervisor {
 		} catch (error) {
 			return failClosed(
 				`successor ownership was proven but its manifest could not be persisted: ${(error as Error).message}`,
-				verifiedSuccessorOwner,
+				verifiedSuccessorOwner?.identity,
 			);
 		}
 
@@ -704,7 +706,7 @@ export class DaemonSupervisor {
 		} catch (error) {
 			return failClosed(
 				`successor ownership was proven but host transport rotation failed: ${(error as Error).message}`,
-				verifiedSuccessorOwner,
+				verifiedSuccessorOwner?.identity,
 			);
 		}
 		this.ambiguousUpdates.delete(organizationId);

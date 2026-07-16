@@ -323,6 +323,44 @@ describe("DaemonPty planned rotation", () => {
 		expect(exits).toEqual([exit]);
 	});
 
+	test("delivers an already-published exit to late onExit observers", async () => {
+		const predecessor = fakeDaemon();
+		const pty = __makeDaemonPtyForTesting(
+			predecessor.daemon,
+			"session-late-exit-observer",
+		);
+		const exits: Array<{ exitCode: number; signal: number }> = [];
+
+		pty.onData(() => {});
+		predecessor.emitExit({ code: 42, signal: 9 });
+		const subscription = pty.onExit((info) => exits.push(info));
+
+		expect(exits).toEqual([]);
+		await Promise.resolve();
+		expect(exits).toEqual([{ exitCode: 42, signal: 9 }]);
+
+		subscription.dispose();
+		pty.disposeSubscriptions();
+	});
+
+	test("can dispose a late onExit observer before deferred delivery", async () => {
+		const predecessor = fakeDaemon();
+		const pty = __makeDaemonPtyForTesting(
+			predecessor.daemon,
+			"session-disposed-late-exit-observer",
+		);
+		const exits: Array<{ exitCode: number; signal: number }> = [];
+
+		pty.onData(() => {});
+		predecessor.emitExit({ code: 42, signal: 9 });
+		const subscription = pty.onExit((info) => exits.push(info));
+		subscription.dispose();
+
+		await Promise.resolve();
+		expect(exits).toEqual([]);
+		pty.disposeSubscriptions();
+	});
+
 	test("fails closed when the host-observed cursor is outside successor replay", async () => {
 		const observedPrefix = Buffer.from("observed");
 		const successorReplay = Buffer.from("later");

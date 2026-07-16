@@ -54,6 +54,7 @@ import { MainWindow } from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
+const APP_PARTITION = "persist:superset";
 
 void applyShellEnvToProcess().catch((error) => {
 	console.error("[main] Failed to apply shell environment:", error);
@@ -188,6 +189,16 @@ export function exitImmediately(): void {
 	app.exit(0);
 }
 
+export async function flushRendererStorage(): Promise<boolean> {
+	try {
+		await session.fromPartition(APP_PARTITION).flushStorageData();
+		return true;
+	} catch (error) {
+		console.error("[main] Failed to flush persistent renderer storage:", error);
+		return false;
+	}
+}
+
 function getConfirmOnQuitSetting(): boolean {
 	try {
 		const row = localDb.select().from(settings).get();
@@ -199,11 +210,12 @@ function getConfirmOnQuitSetting(): boolean {
 
 app.on("before-quit", async (event) => {
 	if (isQuitting) return;
+	// Keep Chromium's persist:superset partition alive until its DOMStorage
+	// journal is on disk. app.exit() bypasses the graceful shutdown path.
+	event.preventDefault();
 
 	const isDev = process.env.NODE_ENV === "development";
 	if (!skipQuitConfirmation && !isDev && getConfirmOnQuitSetting()) {
-		event.preventDefault();
-
 		try {
 			const { response } = await dialog.showMessageBox({
 				type: "question",
@@ -237,6 +249,7 @@ app.on("before-quit", async (event) => {
 	} finally {
 		await stopNetworkLogger();
 	}
+	await flushRendererStorage();
 	app.exit(0);
 });
 

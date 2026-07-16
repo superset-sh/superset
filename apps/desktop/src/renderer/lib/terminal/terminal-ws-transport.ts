@@ -33,6 +33,10 @@ type TerminalServerMessage =
 			type: "attached";
 			terminalId: string;
 			replayKind?: "full" | "delta" | "none";
+			replayId?: number;
+			replayPrefixBytes?: number;
+			replayDataBytes?: number;
+			replayTruncated?: boolean;
 	  }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
@@ -60,10 +64,16 @@ export interface TerminalTransport {
 	 */
 	lastDiagnosis: TerminalFailureClassification | null;
 
-	/** Internal: the shared reconnecting relay socket (partysocket). Created
-	 * once on first connect; it re-signs the URL and runs the relay preflight
-	 * before every (re)dial and retries indefinitely. */
+	/** Internal: the reconnecting relay socket (partysocket). Created on first
+	 * connect and replaced only when the base endpoint changes; it re-signs the
+	 * URL and runs the relay preflight before every (re)dial. */
 	_socket: RelaySocket | null;
+	/**
+	 * Monotonic identity for `_socket`. Endpoint changes replace the wrapper;
+	 * async provider callbacks from an older wrapper must not mutate the new
+	 * connection's state.
+	 */
+	_socketGeneration: number;
 	/** The xterm instance the socket feeds. */
 	_terminal: XTerm | null;
 	/** Internal: disposes the terminal.onData → socket.send wiring. */
@@ -97,12 +107,16 @@ export interface TerminalTransport {
 	/**
 	 * The xterm already contains meaningful terminal output. This can come from
 	 * a persisted snapshot or from live PTY bytes rendered before a host-service
-	 * restart. A daemon `full` replay must replace either kind of baseline.
+	 * restart. A daemon `full` replay must reconcile against either baseline
+	 * without erasing older xterm scrollback.
 	 */
 	_hasRenderedBaseline: boolean;
-	/** Prefix the next binary frame with RIS so a full daemon replay replaces,
-	 * rather than duplicates, the restored xterm state. */
-	_pendingFullReplayReset: boolean;
+	/** Bounded raw PTY tail represented by the serialized xterm snapshot. */
+	_replayCheckpoint: Uint8Array;
+	/** Mirror checkpoint updates into the runtime's atomic persistence record. */
+	_updateReplayCheckpoint: ((checkpoint: Uint8Array) => void) | null;
+	/** Flush the atomic snapshot + checkpoint through Chromium's partition. */
+	_flushReplayPersistence: (() => boolean | Promise<boolean>) | null;
 	/** Internal: wall-clock-gap watchdog for laptop sleep/wake detection. */
 	_livenessTimer: ReturnType<typeof setInterval> | null;
 	/** Internal: Date.now() at the last watchdog tick. */
@@ -113,6 +127,12 @@ export interface TerminalTransport {
 	/** Internal: last geometry sent on the current WebSocket. */
 	_lastResizeCols: number | null;
 	_lastResizeRows: number | null;
+}
+
+export interface TerminalReplayPersistence {
+	initialCheckpoint: Uint8Array;
+	updateCheckpoint: (checkpoint: Uint8Array) => void;
+	flush: () => boolean | Promise<boolean>;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -126,6 +146,8 @@ const MAX_RECONNECT_DELAY = 10_000;
 // inside the window (retryCount resets after a stable connection). The socket
 // keeps retrying forever regardless; this only gates the user-facing diagnosis.
 const DIAGNOSE_AFTER_ATTEMPTS = 10;
+const MAX_REPLAY_CHECKPOINT_BYTES = 64 * 1024;
+const MIN_SAFE_REPLAY_MATCH_BYTES = 256;
 
 function isWindowHidden(): boolean {
 	return typeof document !== "undefined" && document.hidden;
@@ -262,6 +284,7 @@ export function createTransport(): TerminalTransport {
 		logListeners: new Set(),
 		lastDiagnosis: null,
 		_socket: null,
+		_socketGeneration: 0,
 		_terminal: null,
 		_onDataDisposable: null,
 		_titleNotifyTimer: null,
@@ -270,7 +293,9 @@ export function createTransport(): TerminalTransport {
 		_lastProbe: null,
 		_localToken: null,
 		_hasRenderedBaseline: false,
-		_pendingFullReplayReset: false,
+		_replayCheckpoint: new Uint8Array(),
+		_updateReplayCheckpoint: null,
+		_flushReplayPersistence: null,
 		_terminated: false,
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
@@ -285,6 +310,159 @@ export function setRenderedBaselineState(
 	hasRenderedBaseline: boolean,
 ) {
 	transport._hasRenderedBaseline = hasRenderedBaseline;
+}
+
+function advanceReplayCheckpoint(
+	transport: TerminalTransport,
+	bytes: Uint8Array,
+): Uint8Array {
+	if (bytes.byteLength === 0) return transport._replayCheckpoint;
+	const previous = transport._replayCheckpoint;
+	const keep = Math.min(
+		MAX_REPLAY_CHECKPOINT_BYTES,
+		previous.byteLength + bytes.byteLength,
+	);
+	const next = new Uint8Array(keep);
+	const bytesKeep = Math.min(bytes.byteLength, keep);
+	const previousKeep = keep - bytesKeep;
+	if (previousKeep > 0) {
+		next.set(previous.subarray(previous.byteLength - previousKeep), 0);
+	}
+	if (bytesKeep > 0) {
+		next.set(bytes.subarray(bytes.byteLength - bytesKeep), previousKeep);
+	}
+	transport._replayCheckpoint = next;
+	return next;
+}
+
+/** Longest suffix(checkpoint) equal to prefix(replay), in linear time. */
+export function findReplayOverlap(
+	checkpoint: Uint8Array,
+	replay: Uint8Array,
+): number {
+	if (checkpoint.byteLength === 0 || replay.byteLength === 0) return 0;
+	const prefix = new Uint32Array(replay.byteLength);
+	for (let i = 1, matched = 0; i < replay.byteLength; i += 1) {
+		while (matched > 0 && replay[i] !== replay[matched]) {
+			matched = prefix[matched - 1] ?? 0;
+		}
+		if (replay[i] === replay[matched]) matched += 1;
+		prefix[i] = matched;
+	}
+	let matched = 0;
+	for (const byte of checkpoint) {
+		while (matched > 0 && byte !== replay[matched]) {
+			matched = prefix[matched - 1] ?? 0;
+		}
+		if (byte === replay[matched]) matched += 1;
+		if (matched === replay.byteLength) {
+			matched = prefix[matched - 1] ?? 0;
+		}
+	}
+	if (
+		checkpoint.byteLength >= replay.byteLength &&
+		checkpoint
+			.subarray(checkpoint.byteLength - replay.byteLength)
+			.every((byte, index) => byte === replay[index])
+	) {
+		return replay.byteLength;
+	}
+	return matched;
+}
+
+export interface ReplayBoundary {
+	seenBytes: number;
+	ambiguous: boolean;
+	anchorFound: boolean;
+}
+
+/** Locate the earliest lossless checkpoint boundary inside a bounded replay. */
+export function findReplayBoundary(
+	checkpoint: Uint8Array,
+	replay: Uint8Array,
+): ReplayBoundary {
+	if (checkpoint.byteLength === 0 || replay.byteLength === 0) {
+		return { seenBytes: 0, ambiguous: false, anchorFound: false };
+	}
+
+	const overlap = findReplayOverlap(checkpoint, replay);
+	const safeOverlap = overlap >= MIN_SAFE_REPLAY_MATCH_BYTES ? overlap : -1;
+	const prefix = new Uint32Array(checkpoint.byteLength);
+	for (let i = 1, matched = 0; i < checkpoint.byteLength; i += 1) {
+		while (matched > 0 && checkpoint[i] !== checkpoint[matched]) {
+			matched = prefix[matched - 1] ?? 0;
+		}
+		if (checkpoint[i] === checkpoint[matched]) matched += 1;
+		prefix[i] = matched;
+	}
+	let matched = 0;
+	let firstBoundary = -1;
+	let occurrences = 0;
+	for (let index = 0; index < replay.byteLength; index += 1) {
+		const byte = replay[index];
+		while (matched > 0 && byte !== checkpoint[matched]) {
+			matched = prefix[matched - 1] ?? 0;
+		}
+		if (byte === checkpoint[matched]) matched += 1;
+		if (matched === checkpoint.byteLength) {
+			occurrences += 1;
+			if (firstBoundary < 0) firstBoundary = index + 1;
+			matched = prefix[matched - 1] ?? 0;
+		}
+	}
+	if (firstBoundary >= 0) {
+		const seenBytes =
+			safeOverlap >= 0 ? Math.min(safeOverlap, firstBoundary) : firstBoundary;
+		return {
+			seenBytes,
+			ambiguous:
+				occurrences > 1 || (safeOverlap >= 0 && safeOverlap !== firstBoundary),
+			anchorFound: true,
+		};
+	}
+
+	if (safeOverlap >= 0) {
+		return { seenBytes: safeOverlap, ambiguous: false, anchorFound: true };
+	}
+	return { seenBytes: 0, ambiguous: false, anchorFound: false };
+}
+
+function isUtf8Continuation(byte: number | undefined): boolean {
+	return byte !== undefined && (byte & 0xc0) === 0x80;
+}
+
+function utf8SequenceLength(byte: number | undefined): number {
+	if (byte === undefined || (byte & 0x80) === 0) return 1;
+	if ((byte & 0xe0) === 0xc0) return 2;
+	if ((byte & 0xf0) === 0xe0) return 3;
+	if ((byte & 0xf8) === 0xf0) return 4;
+	return 1;
+}
+
+/** Re-feed an overlapping partial UTF-8 codepoint after snapshot restore. */
+function replayWriteStart(replay: Uint8Array, overlap: number): number {
+	if (overlap === 0) return 0;
+	let lead = overlap;
+	if (overlap < replay.byteLength && isUtf8Continuation(replay[overlap])) {
+		lead = overlap - 1;
+		while (lead > 0 && isUtf8Continuation(replay[lead])) lead -= 1;
+		return lead;
+	}
+	if (overlap === replay.byteLength) {
+		lead = overlap - 1;
+		while (lead > 0 && isUtf8Continuation(replay[lead])) lead -= 1;
+		if (lead + utf8SequenceLength(replay[lead]) > overlap) return lead;
+	}
+	return overlap;
+}
+
+function combineBytes(first: Uint8Array, second: Uint8Array): Uint8Array {
+	if (first.byteLength === 0) return second;
+	if (second.byteLength === 0) return first;
+	const combined = new Uint8Array(first.byteLength + second.byteLength);
+	combined.set(first, 0);
+	combined.set(second, first.byteLength);
+	return combined;
 }
 
 // Wall-clock watchdog cadence and the gap that counts as a suspend. A tick gap
@@ -420,12 +598,40 @@ function stripToken(url: string): string {
 	}
 }
 
+function buildTerminalSocketUrl(url: string, hasRenderedBaseline: boolean) {
+	try {
+		const parsed = new URL(url);
+		parsed.searchParams.set("replayProtocol", "1");
+		if (hasRenderedBaseline) {
+			// Old hosts understand replay=0 and avoid duplicating an adopted ring.
+			// Protocol-v1 hosts ignore that legacy hint and use replayKind/replayId.
+			parsed.searchParams.set("replay", "0");
+		} else {
+			parsed.searchParams.delete("replay");
+		}
+		return parsed.toString();
+	} catch {
+		const separator = url.includes("?") ? "&" : "?";
+		return `${url}${separator}replayProtocol=1${hasRenderedBaseline ? "&replay=0" : ""}`;
+	}
+}
+
 export function connect(
 	transport: TerminalTransport,
 	terminal: XTerm,
 	wsUrl: string,
+	replayPersistence?: TerminalReplayPersistence,
 ) {
 	const base = stripToken(wsUrl);
+	if (replayPersistence) {
+		const shouldInitializeCheckpoint =
+			transport._updateReplayCheckpoint === null;
+		if (shouldInitializeCheckpoint) {
+			transport._replayCheckpoint = replayPersistence.initialCheckpoint;
+		}
+		transport._updateReplayCheckpoint = replayPersistence.updateCheckpoint;
+		transport._flushReplayPersistence = replayPersistence.flush;
+	}
 
 	// Idempotent: a live socket already pointed at this endpoint just needs the
 	// latest token-bearing URL refreshed (the socket re-signs per dial anyway) —
@@ -447,35 +653,50 @@ export function connect(
 	transport._terminated = false;
 	transport._diagnosisLogged = false;
 	transport.lastDiagnosis = null;
+	transport._lastProbe = null;
 	// Recreate per connect so the coalescer always targets the current terminal;
 	// dispose flushes anything the previous socket left pending.
 	transport._writeCoalescer?.dispose();
-	transport._writeCoalescer = createWriteCoalescer((data) =>
-		terminal.write(data),
-	);
-	transport._pendingFullReplayReset = false;
+	transport._writeCoalescer = createWriteCoalescer((data) => {
+		const checkpoint = advanceReplayCheckpoint(transport, data);
+		terminal.write(data, () => {
+			transport._updateReplayCheckpoint?.(checkpoint);
+		});
+	});
 	setupLiveness(transport);
 	setConnectionState(transport, "connecting");
 
-	// Endpoint changed on an existing socket: re-point (buildUrl reads
-	// currentUrl live) and re-dial.
-	if (transport._socket) {
-		transport._socket.reconnect();
-		return;
-	}
+	// A URL-provider call may already have captured the previous endpoint and be
+	// waiting on token refresh / relay preflight. Calling reconnect() on that
+	// same wrapper does not guarantee a second provider call while the first is
+	// pending, so the stale dial can still win. Treat an endpoint change as an
+	// identity change: invalidate callbacks first, then close the old wrapper and
+	// create a fresh one whose provider is bound to this generation.
+	const previousSocket = transport._socket;
+	const socketGeneration = transport._socketGeneration + 1;
+	transport._socketGeneration = socketGeneration;
+	transport._socket = null;
+	previousSocket?.close();
 
-	const socket = createRelaySocket({
+	let socket: RelaySocket;
+	const endpointBase = base;
+	const endpointIsRelay = isRelayHostUrl(wsUrl);
+	const isCurrentSocket = () =>
+		transport._socketGeneration === socketGeneration &&
+		transport._socket === socket;
+	socket = createRelaySocket({
 		name: "desktop-terminal",
-		// buildUrl/getToken read transport state live, so a URL swap or token
-		// rotation is picked up on the next dial without recreating the socket.
-		buildUrl: () => stripToken(transport.currentUrl ?? base),
+		// This wrapper belongs to one endpoint generation. Token rotation still
+		// reads live state on every retry; endpoint rotation creates a new wrapper.
+		buildUrl: () =>
+			buildTerminalSocketUrl(endpointBase, transport._hasRenderedBaseline),
 		getToken: () =>
-			isRelayHostUrl(transport.currentUrl)
-				? ensureFreshJwt()
-				: transport._localToken,
+			endpointIsRelay ? ensureFreshJwt() : transport._localToken,
+		isDialCurrent: isCurrentSocket,
 		// 403 is a definitive access denial (fresh token), not transient —
 		// createRelaySocket closes the socket; record why so we stop looking.
 		onAccessDenied: () => {
+			if (!isCurrentSocket()) return;
 			transport._terminated = true;
 			const diagnosis = classifyTerminalFailure(transport._lastProbe, true);
 			transport.lastDiagnosis = diagnosis;
@@ -494,6 +715,7 @@ export function connect(
 			});
 		},
 		onProbe: (probe) => {
+			if (!isCurrentSocket()) return;
 			transport._lastProbe = probe;
 		},
 		minReconnectionDelay: BASE_RECONNECT_DELAY,
@@ -505,16 +727,34 @@ export function connect(
 	// we feed bytes synchronously into xterm.write to keep render order strict.
 	socket.binaryType = "arraybuffer";
 	transport._socket = socket;
-	attachSocketListeners(transport, terminal, socket);
+	attachSocketListeners(transport, terminal, socket, socketGeneration);
 }
 
 function attachSocketListeners(
 	transport: TerminalTransport,
 	terminal: XTerm,
 	socket: RelaySocket,
+	socketGeneration: number,
 ): void {
+	const isCurrentSocket = () =>
+		transport._socketGeneration === socketGeneration &&
+		transport._socket === socket;
+	let connectionGeneration = 0;
+	let pendingReplay: {
+		replayKind: "full" | "delta" | "none";
+		replayId?: number;
+		connectionGeneration: number;
+		prefixBytes: number;
+		/** Null only for a rolling update from a pre-length-metadata host. */
+		dataBytes: number | null;
+		truncated: boolean;
+		writeStarted: boolean;
+	} | null = null;
+
 	socket.addEventListener("open", () => {
-		if (transport._socket !== socket) return;
+		if (!isCurrentSocket()) return;
+		connectionGeneration += 1;
+		pendingReplay = null;
 		// createRelaySocket reuses one wrapper across reconnects, but every open
 		// represents a fresh underlying WebSocket that needs the exact geometry.
 		transport._lastResizeCols = null;
@@ -523,36 +763,120 @@ function attachSocketListeners(
 
 	socket.addEventListener("message", (event) => {
 		// Ignore events from a socket we've detached (teardown nulls _socket).
-		if (transport._socket !== socket) return;
+		if (!isCurrentSocket()) return;
 		const data = (event as { data: unknown }).data;
 
 		// Binary frame = PTY output bytes (data + replay share one channel).
-		// `attached.replayKind` decides whether the first frame replaces any
-		// existing renderer baseline; bytes still reach xterm without a decoding
-		// step.
+		// `attached` describes the exact replay frame so mode/notice bytes stay out
+		// of the raw PTY checkpoint and a bounded recovery tail can be reconciled.
 		if (data instanceof ArrayBuffer) {
 			const bytes = new Uint8Array(data);
 			if (bytes.byteLength === 0) return;
-			// Queue PTY bytes; the coalescer batches them into one xterm.write
-			// per animation frame. There's no output ACK back to host-service:
-			// back-pressure lives entirely on the host side, which bounds this
-			// socket's send buffer and drops us (we reconnect and replay) if we
-			// fall hopelessly behind. That means a slow/stalled renderer can
-			// never wedge the shell — it just loses some scrollback.
-			if (transport._pendingFullReplayReset && transport._hasRenderedBaseline) {
-				// RIS is parsed in-order after the existing renderer baseline and immediately
-				// before the full replay. Calling terminal.reset() here would race any
-				// snapshot bytes still queued in xterm's async parser.
-				const resetAndReplay = new Uint8Array(bytes.byteLength + 2);
-				resetAndReplay[0] = 0x1b;
-				resetAndReplay[1] = 0x63;
-				resetAndReplay.set(bytes, 2);
-				transport._writeCoalescer?.push(resetAndReplay);
-			} else {
-				transport._writeCoalescer?.push(bytes);
+			if (pendingReplay && !pendingReplay.writeStarted) {
+				pendingReplay.writeStarted = true;
+				const replayId = pendingReplay.replayId;
+				const replayKind = pendingReplay.replayKind;
+				const replayConnectionGeneration = pendingReplay.connectionGeneration;
+				const expectedBytes =
+					pendingReplay.dataBytes === null
+						? null
+						: pendingReplay.prefixBytes + pendingReplay.dataBytes;
+				if (expectedBytes !== null && bytes.byteLength !== expectedBytes) {
+					pushLog(
+						transport,
+						"warn",
+						"Terminal replay frame metadata did not match its payload; keeping the existing history and skipping the replay ACK.",
+					);
+					pendingReplay = null;
+					transport._writeCoalescer?.push(bytes);
+					transport._hasRenderedBaseline = true;
+					return;
+				}
+				transport._writeCoalescer?.flushSync();
+				const prefix = bytes.subarray(0, pendingReplay.prefixBytes);
+				const replay = bytes.subarray(pendingReplay.prefixBytes);
+				const hadCheckpoint = transport._replayCheckpoint.byteLength > 0;
+				const boundary =
+					replayKind !== "none" && transport._hasRenderedBaseline
+						? findReplayBoundary(transport._replayCheckpoint, replay)
+						: { seenBytes: 0, ambiguous: false, anchorFound: false };
+				const overlap = boundary.seenBytes;
+				const writeStart = replayWriteStart(replay, overlap);
+				const unseenReplay = replay.subarray(overlap);
+				const replayBytes = combineBytes(prefix, replay.subarray(writeStart));
+				const replayCheckpoint = advanceReplayCheckpoint(
+					transport,
+					unseenReplay,
+				);
+				if (boundary.ambiguous) {
+					pushLog(
+						transport,
+						"warn",
+						"Terminal replay matched the saved checkpoint more than once. The earliest boundary was used so no unseen output could be skipped.",
+					);
+				}
+				const checkpointGap =
+					replayKind === "full" &&
+					transport._hasRenderedBaseline &&
+					hadCheckpoint &&
+					!boundary.anchorFound;
+				if (pendingReplay.truncated || checkpointGap) {
+					pushLog(
+						transport,
+						"warn",
+						"Terminal recovery exceeded the reconnect window or no longer contained the saved checkpoint. Older rendered history was preserved; the newest bounded tail was appended.",
+					);
+				}
+				transport._hasRenderedBaseline = true;
+				terminal.write(replayBytes, () => {
+					transport._updateReplayCheckpoint?.(replayCheckpoint);
+					if (replayKind !== "full" || replayId === undefined) {
+						pendingReplay = null;
+						return;
+					}
+					void (async () => {
+						if (
+							!isCurrentSocket() ||
+							socket.readyState !== WebSocket.OPEN ||
+							connectionGeneration !== replayConnectionGeneration ||
+							pendingReplay?.connectionGeneration !==
+								replayConnectionGeneration ||
+							pendingReplay.replayId !== replayId
+						) {
+							return;
+						}
+						let persisted = false;
+						try {
+							persisted =
+								(await transport._flushReplayPersistence?.()) ?? false;
+						} catch {
+							return;
+						}
+						if (!persisted) return;
+						if (
+							!isCurrentSocket() ||
+							socket.readyState !== WebSocket.OPEN ||
+							connectionGeneration !== replayConnectionGeneration ||
+							pendingReplay?.connectionGeneration !==
+								replayConnectionGeneration ||
+							pendingReplay.replayId !== replayId
+						) {
+							return;
+						}
+						try {
+							socket.send(JSON.stringify({ type: "replay-ack", replayId }));
+							pendingReplay = null;
+						} catch {
+							// The host retains this generation for a fresh reconciliation.
+						}
+					})();
+				});
+				return;
 			}
+			// Ordinary PTY bytes update the raw checkpoint only after xterm parses
+			// the coalesced write. Replay ACK is a durability boundary, not flow control.
+			transport._writeCoalescer?.push(bytes);
 			transport._hasRenderedBaseline = true;
-			transport._pendingFullReplayReset = false;
 			return;
 		}
 
@@ -571,9 +895,44 @@ function attachSocketListeners(
 		}
 
 		if (message.type === "attached") {
-			const replayKind = message.replayKind ?? "delta";
-			transport._pendingFullReplayReset =
-				transport._hasRenderedBaseline && replayKind === "full";
+			// Missing replayKind means a pre-v1 host. The reconnect URL's replay=0
+			// is the compatibility contract; never guess that an unlabelled frame is
+			// a protocol delta/full replay.
+			const replayKind = message.replayKind ?? "none";
+			const hasLengthMetadata =
+				Number.isSafeInteger(message.replayPrefixBytes) &&
+				(message.replayPrefixBytes ?? -1) >= 0 &&
+				Number.isSafeInteger(message.replayDataBytes) &&
+				(message.replayDataBytes ?? -1) >= 0;
+			const replayPrefixBytes = hasLengthMetadata
+				? (message.replayPrefixBytes as number)
+				: 0;
+			const replayDataBytes = hasLengthMetadata
+				? (message.replayDataBytes as number)
+				: null;
+			const legacyFullReplay =
+				replayKind === "full" &&
+				Number.isSafeInteger(message.replayId) &&
+				message.replayPrefixBytes === undefined &&
+				message.replayDataBytes === undefined;
+			pendingReplay =
+				(hasLengthMetadata &&
+					replayDataBytes !== null &&
+					replayPrefixBytes + replayDataBytes > 0) ||
+				legacyFullReplay
+					? {
+							replayKind,
+							replayId:
+								replayKind === "full" && Number.isSafeInteger(message.replayId)
+									? (message.replayId as number)
+									: undefined,
+							connectionGeneration,
+							prefixBytes: replayPrefixBytes,
+							dataBytes: legacyFullReplay ? null : replayDataBytes,
+							truncated: message.replayTruncated === true,
+							writeStarted: false,
+						}
+					: null;
 			transport.lastDiagnosis = null;
 			transport._diagnosisLogged = false;
 			setConnectionState(transport, "open");
@@ -610,7 +969,7 @@ function attachSocketListeners(
 	socket.addEventListener("close", (event) => {
 		// Ignore a late close from a socket we've detached, so it can't overwrite
 		// the "disconnected" state or mutate logs after teardown.
-		if (transport._socket !== socket) return;
+		if (!isCurrentSocket()) return;
 		const closeEvent = event as { code?: unknown; reason?: unknown };
 		// Render whatever arrived before the close instead of holding it for a
 		// frame that may never come (e.g. hidden window).
@@ -639,7 +998,7 @@ function attachSocketListeners(
 	});
 
 	socket.addEventListener("error", () => {
-		if (transport._socket !== socket) return;
+		if (!isCurrentSocket()) return;
 		if (transport._terminated) return;
 		// Below the diagnosis threshold, surface the transient error; past it the
 		// header diagnosis already conveys "offline", so stop logging an identical
@@ -661,6 +1020,7 @@ function attachSocketListeners(
 
 	transport._onDataDisposable?.dispose();
 	transport._onDataDisposable = terminal.onData((data) => {
+		if (!isCurrentSocket()) return;
 		if (transport.connectionState !== "open") return;
 		if (socket.readyState !== WebSocket.OPEN) return;
 		socket.send(JSON.stringify({ type: "input", data }));
@@ -684,14 +1044,16 @@ export function reconnect(transport: TerminalTransport) {
 
 export function disconnect(transport: TerminalTransport) {
 	teardownLiveness(transport);
-	if (transport._socket) {
-		transport._socket.close();
-		transport._socket = null;
-	}
+	const socket = transport._socket;
+	transport._socket = null;
+	transport._socketGeneration += 1;
+	socket?.close();
 	transport._onDataDisposable?.dispose();
 	transport._onDataDisposable = null;
 	transport._writeCoalescer?.dispose();
 	transport._writeCoalescer = null;
+	transport._updateReplayCheckpoint = null;
+	transport._flushReplayPersistence = null;
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._diagnosisLogged = false;
@@ -735,14 +1097,16 @@ export function sendDispose(transport: TerminalTransport) {
 
 export function disposeTransport(transport: TerminalTransport) {
 	teardownLiveness(transport);
-	if (transport._socket) {
-		transport._socket.close();
-		transport._socket = null;
-	}
+	const socket = transport._socket;
+	transport._socket = null;
+	transport._socketGeneration += 1;
+	socket?.close();
 	transport._onDataDisposable?.dispose();
 	transport._onDataDisposable = null;
 	transport._writeCoalescer?.dispose();
 	transport._writeCoalescer = null;
+	transport._updateReplayCheckpoint = null;
+	transport._flushReplayPersistence = null;
 	transport.currentUrl = null;
 	transport._terminal = null;
 	transport._diagnosisLogged = false;

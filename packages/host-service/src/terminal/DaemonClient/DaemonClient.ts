@@ -25,6 +25,7 @@ import {
 	type SessionInfo,
 	type SessionMeta,
 } from "@superset/pty-daemon/protocol";
+import semver from "semver";
 
 export interface OpenResult {
 	id: string;
@@ -114,6 +115,8 @@ const OPEN_TIMEOUT_MS = 15_000;
 // escalation drain settles. Keep client-side headroom for scheduling and I/O.
 const CLOSE_TIMEOUT_MS = 7_000;
 const LIST_TIMEOUT_MS = 5_000;
+const SUBSCRIBE_TIMEOUT_MS = 5_000;
+const SUBSCRIBED_ACK_MIN_DAEMON_VERSION = "0.2.6";
 const ACTIVATE_ADOPTED_TIMEOUT_MS = 5_000;
 // Daemon-side handoff has to write a snapshot, spawn a child Node process,
 // await successor adopt-ack, then reply. The Server uses 5s for the ack
@@ -406,24 +409,39 @@ export class DaemonClient {
 		opts: { replay: boolean },
 		cb: SubscribeCallbacks,
 	): { unsubscribe: () => void; boundary: Promise<ReplayBoundary> } {
+		const expectsAck = daemonSupportsSubscribedAck(this.daemonVersion);
 		let replayBytes: number | null = null;
 		let replayStartBytes: number | null = null;
 		let replayEndBytes: number | null = null;
 		let subscriptionError: Error | null = null;
+		let resolveAck: ((value: ReplayBoundary) => void) | null = null;
+		let rejectAck: ((error: Error) => void) | null = null;
+		const ackBoundary = expectsAck
+			? new Promise<ReplayBoundary>((resolve, reject) => {
+					resolveAck = resolve;
+					rejectAck = reject;
+				})
+			: null;
 		const offAck = this.on((message) => {
 			if (message.type === "error" && message.id === id) {
 				const code = message.code ? ` (${message.code})` : "";
 				subscriptionError = new Error(
 					`subscribe ${id}${code}: ${message.message}`,
 				);
+				rejectAck?.(subscriptionError);
 				return;
 			}
-			if (
-				message.type === "subscribed" &&
-				message.id === id &&
-				Number.isSafeInteger(message.replayBytes) &&
-				message.replayBytes >= 0
-			) {
+			if (message.type === "subscribed" && message.id === id) {
+				if (
+					!Number.isSafeInteger(message.replayBytes) ||
+					message.replayBytes < 0
+				) {
+					subscriptionError = new Error(
+						`subscribe ${id}: invalid replay byte count ${message.replayBytes}`,
+					);
+					rejectAck?.(subscriptionError);
+					return;
+				}
 				replayBytes = message.replayBytes;
 				if (
 					Number.isSafeInteger(message.replayStartBytes) &&
@@ -436,19 +454,43 @@ export class DaemonClient {
 					replayStartBytes = message.replayStartBytes ?? null;
 					replayEndBytes = message.replayEndBytes ?? null;
 				}
+				resolveAck?.({ replayBytes, replayStartBytes, replayEndBytes });
 			}
 		});
+		const offDisconnect = expectsAck
+			? this.onDisconnect((error) =>
+					rejectAck?.(error ?? new Error("daemon disconnected")),
+				)
+			: null;
+		const ackTimer = expectsAck
+			? setTimeout(
+					() =>
+						rejectAck?.(
+							new Error(
+								`subscribe ${id}: timed out after ${SUBSCRIBE_TIMEOUT_MS}ms`,
+							),
+						),
+					SUBSCRIBE_TIMEOUT_MS,
+				)
+			: null;
+		ackTimer?.unref();
+		const cleanupBoundary = () => {
+			offAck();
+			offDisconnect?.();
+			if (ackTimer) clearTimeout(ackTimer);
+		};
 
 		let unsubscribe: () => void;
 		try {
 			unsubscribe = this.subscribe(id, opts, cb);
 		} catch (error) {
-			offAck();
+			cleanupBoundary();
 			throw error;
 		}
 
-		const boundary = this.list()
-			.then((sessions) => {
+		const boundary = (
+			ackBoundary ??
+			this.list().then((sessions) => {
 				if (subscriptionError) throw subscriptionError;
 				if (!sessions.some((session) => session.id === id && session.alive)) {
 					throw new Error(
@@ -457,7 +499,7 @@ export class DaemonClient {
 				}
 				return { replayBytes, replayStartBytes, replayEndBytes };
 			})
-			.finally(offAck);
+		).finally(cleanupBoundary);
 		return { unsubscribe, boundary };
 	}
 
@@ -859,4 +901,8 @@ function openSocket(opts: DaemonClientOptions): Promise<net.Socket> {
 			reject(err);
 		});
 	});
+}
+
+function daemonSupportsSubscribedAck(version: string): boolean {
+	return semver.satisfies(version, `>=${SUBSCRIBED_ACK_MIN_DAEMON_VERSION}`);
 }

@@ -1,5 +1,6 @@
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { TerminalAppearance } from "./appearance";
 import {
 	type LinkHoverInfo,
@@ -11,6 +12,7 @@ import {
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
+	type PersistedTerminalState,
 	type TerminalRuntime,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
@@ -26,6 +28,7 @@ import {
 	sendResize,
 	setRenderedBaselineState,
 	type TerminalLogEntry,
+	type TerminalReplayPersistence,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
 import type { TerminalFailureClassification } from "./terminalConnectionDiagnostics";
@@ -116,11 +119,18 @@ class TerminalRuntimeRegistryImpl {
 	private serializeExistingRuntime(
 		terminalId: string,
 		excludedInstanceId: string,
-	): string | undefined {
+	): PersistedTerminalState | undefined {
 		for (const entry of this.getEntries(terminalId)) {
 			if (entry.instanceId === excludedInstanceId || !entry.runtime) continue;
 			try {
-				return entry.runtime.serializeAddon.serialize({ scrollback: 1000 });
+				return {
+					data: entry.runtime.serializeAddon.serialize({ scrollback: 1000 }),
+					cols: entry.runtime.terminal.cols,
+					rows: entry.runtime.terminal.rows,
+					replayCheckpoint:
+						entry.runtime._persistence?.getReplayCheckpoint() ??
+						new Uint8Array(),
+				};
 			} catch {
 				return undefined;
 			}
@@ -150,7 +160,7 @@ class TerminalRuntimeRegistryImpl {
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance, {
-				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
+				initialState: this.serializeExistingRuntime(terminalId, instanceId),
 			});
 			setRenderedBaselineState(
 				entry.transport,
@@ -176,6 +186,29 @@ class TerminalRuntimeRegistryImpl {
 		);
 	}
 
+	private createReplayPersistence(
+		runtime: TerminalRuntime,
+	): TerminalReplayPersistence {
+		return {
+			initialCheckpoint:
+				runtime._persistence?.getReplayCheckpoint() ?? new Uint8Array(),
+			updateCheckpoint: (checkpoint) => {
+				runtime._persistence?.setReplayCheckpoint(checkpoint);
+				runtime._persistence?.schedule();
+			},
+			flush: async () => {
+				if (!runtime._persistence?.flush()) return false;
+				try {
+					const result =
+						await electronTrpcClient.settings.flushRendererStorage.mutate();
+					return result.success;
+				} catch {
+					return false;
+				}
+			},
+		};
+	}
+
 	/**
 	 * Open (or re-use) the WebSocket transport for this terminal.
 	 * The server session must already exist; the WebSocket route only attaches
@@ -186,7 +219,13 @@ class TerminalRuntimeRegistryImpl {
 	connect(terminalId: string, wsUrl: string, instanceId = terminalId) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		const runtime = entry.runtime;
+		connect(
+			entry.transport,
+			runtime.terminal,
+			wsUrl,
+			this.createReplayPersistence(runtime),
+		);
 	}
 
 	/**
@@ -206,7 +245,13 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 		if (entry.transport.connectionState === "disconnected") return;
 		if (entry.transport.currentUrl === wsUrl) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		const runtime = entry.runtime;
+		connect(
+			entry.transport,
+			runtime.terminal,
+			wsUrl,
+			this.createReplayPersistence(runtime),
+		);
 	}
 
 	/**
