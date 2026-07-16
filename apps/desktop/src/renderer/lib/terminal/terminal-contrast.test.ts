@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import type { ITerminalOptions, ITheme } from "@xterm/xterm";
+import { type ITheme, Terminal as XTerm } from "@xterm/xterm";
 import { TERMINAL_OPTIONS } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/config";
 import {
 	applyTerminalTheme,
@@ -32,6 +32,49 @@ function contrastRatio(foreground: Rgb, background: Rgb): number {
 	);
 }
 
+function blendRgb(background: Rgb, foreground: Rgb, opacity: number): Rgb {
+	return [
+		Math.round(background[0] + (foreground[0] - background[0]) * opacity),
+		Math.round(background[1] + (foreground[1] - background[1]) * opacity),
+		Math.round(background[2] + (foreground[2] - background[2]) * opacity),
+	];
+}
+
+function stepToward(color: Rgb, target: 0 | 255): Rgb {
+	const stepChannel = (channel: number): number =>
+		target === 0
+			? Math.max(0, channel - Math.max(1, Math.ceil(channel * 0.1)))
+			: Math.min(255, channel + Math.max(1, Math.ceil((255 - channel) * 0.1)));
+	return [stepChannel(color[0]), stepChannel(color[1]), stepChannel(color[2])];
+}
+
+/** Reference implementation of xterm's contrast adjustment for regression assertions. */
+function ensureContrastFloor(
+	background: Rgb,
+	foreground: Rgb,
+	ratio: number,
+): Rgb {
+	if (contrastRatio(foreground, background) >= ratio) return foreground;
+
+	const candidates: Rgb[] = [];
+	for (const target of [0, 255] as const) {
+		let candidate = foreground;
+		while (
+			contrastRatio(candidate, background) < ratio &&
+			candidate.some((channel) => channel !== target)
+		) {
+			candidate = stepToward(candidate, target);
+		}
+		candidates.push(candidate);
+	}
+
+	return candidates.reduce((best, candidate) =>
+		contrastRatio(candidate, background) > contrastRatio(best, background)
+			? candidate
+			: best,
+	);
+}
+
 const LIGHT_THEME: ITheme = { foreground: "#000000", background: "#ffffff" };
 const DARK_THEME: ITheme = { foreground: "#ffffff", background: "#151110" };
 
@@ -42,6 +85,22 @@ describe("terminal minimum contrast", () => {
 		expect(contrastRatio([52, 72, 60], [33, 58, 43])).toBeLessThan(1.3);
 		expect(contrastRatio([87, 50, 45], [73, 34, 29])).toBeLessThan(1.3);
 		expect(TERMINAL_MINIMUM_CONTRAST_RATIO).toBe(4.5);
+
+		const background: Rgb = [255, 255, 255];
+		const opaqueForeground: Rgb = [0, 0, 0];
+		const renderedDimForeground = blendRgb(background, opaqueForeground, 0.5);
+		expect(contrastRatio(renderedDimForeground, background)).toBeLessThan(
+			TERMINAL_MINIMUM_CONTRAST_RATIO,
+		);
+
+		const adjustedRenderedForeground = ensureContrastFloor(
+			background,
+			renderedDimForeground,
+			TERMINAL_MINIMUM_CONTRAST_RATIO,
+		);
+		expect(
+			contrastRatio(adjustedRenderedForeground, background),
+		).toBeGreaterThanOrEqual(TERMINAL_MINIMUM_CONTRAST_RATIO);
 	});
 
 	test("configures v1 terminals with the shared contrast floor", () => {
@@ -63,18 +122,25 @@ describe("terminal minimum contrast", () => {
 	});
 
 	test("restores the contrast floor across live light and dark theme changes", () => {
-		const options: ITerminalOptions = {
+		const terminal = new XTerm({
 			theme: LIGHT_THEME,
 			minimumContrastRatio: 1,
-		};
-		const terminal = { options };
+		});
 
-		applyTerminalTheme(terminal, DARK_THEME);
-		expect(options.theme).toBe(DARK_THEME);
-		expect(options.minimumContrastRatio).toBe(TERMINAL_MINIMUM_CONTRAST_RATIO);
+		try {
+			applyTerminalTheme(terminal, DARK_THEME);
+			expect(terminal.options.theme).toBe(DARK_THEME);
+			expect(terminal.options.minimumContrastRatio).toBe(
+				TERMINAL_MINIMUM_CONTRAST_RATIO,
+			);
 
-		applyTerminalTheme(terminal, LIGHT_THEME);
-		expect(options.theme).toBe(LIGHT_THEME);
-		expect(options.minimumContrastRatio).toBe(TERMINAL_MINIMUM_CONTRAST_RATIO);
+			applyTerminalTheme(terminal, LIGHT_THEME);
+			expect(terminal.options.theme).toBe(LIGHT_THEME);
+			expect(terminal.options.minimumContrastRatio).toBe(
+				TERMINAL_MINIMUM_CONTRAST_RATIO,
+			);
+		} finally {
+			terminal.dispose();
+		}
 	});
 });

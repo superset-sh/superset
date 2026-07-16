@@ -1208,8 +1208,8 @@
     "workerd",
   ],
   "patchedDependencies": {
-    "@xterm/addon-webgl@0.20.0-beta.219": "patches/@xterm%2Faddon-webgl@0.20.0-beta.219.patch",
-    "@xterm/xterm@6.1.0-beta.220": "patches/@xterm%2Fxterm@6.1.0-beta.220.patch",
+    "@xterm/xterm@6.1.0-beta.289": "patches/@xterm%2Fxterm@6.1.0-beta.289.patch",
+    "@xterm/addon-webgl@0.20.0-beta.288": "patches/@xterm%2Faddon-webgl@0.20.0-beta.288.patch",
   },
   "overrides": {
     "axios": "1.14.0",

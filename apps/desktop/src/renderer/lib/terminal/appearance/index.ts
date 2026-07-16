@@ -25,8 +25,10 @@ export function applyTerminalTheme(
 	terminal: { options: ITerminalOptions },
 	theme: ITheme,
 ): void {
-	terminal.options.minimumContrastRatio = TERMINAL_MINIMUM_CONTRAST_RATIO;
-	terminal.options.theme = theme;
+	Object.assign(terminal.options, {
+		minimumContrastRatio: TERMINAL_MINIMUM_CONTRAST_RATIO,
+		theme,
+	});
 }
 
 export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
