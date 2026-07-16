@@ -2,3 +2,20 @@
 linker = "isolated" # Prevent hoisting from resolving `path-scurry@2` to `lru-cache@6` (missing `LRUCache`), which breaks the `@superset/desktop` postinstall native rebuild.
 exact = true
 minimumReleaseAge = 259200
+# @xterm beta.288/289 (published 2026-07-13) ships the shared-atlas page-merge
+# garble fix (xtermjs/xterm.js#6042); versions are pinned exact. Safe to remove
+# this exclusion after 2026-07-16. (addon-ligatures stays on beta.220: its
+# beta.289 bundle imports node:diagnostics_channel, which breaks the vite
+# renderer build.)
+minimumReleaseAgeExcludes = [
+	"@xterm/xterm",
+	"@xterm/headless",
+	"@xterm/addon-clipboard",
+	"@xterm/addon-fit",
+	"@xterm/addon-image",
+	"@xterm/addon-progress",
+	"@xterm/addon-search",
+	"@xterm/addon-serialize",
+	"@xterm/addon-unicode11",
+	"@xterm/addon-webgl",
+]

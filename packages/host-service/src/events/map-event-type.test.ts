@@ -26,6 +26,13 @@ describe("mapEventType", () => {
 		expect(mapEventType("agent-turn-complete")).toBe("Stop");
 	});
 
+	it("routes failure events to Failed, distinct from Stop", () => {
+		expect(mapEventType("StopFailure")).toBe("Failed");
+		expect(mapEventType("stop_failure")).toBe("Failed");
+		expect(mapEventType("Failed")).toBe("Failed");
+		expect(mapEventType("Stop")).toBe("Stop");
+	});
+
 	it("routes permission events", () => {
 		expect(mapEventType("PermissionRequest")).toBe("PermissionRequest");
 		expect(mapEventType("Notification")).toBe("PermissionRequest");

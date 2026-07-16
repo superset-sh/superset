@@ -157,6 +157,37 @@ describe("notificationsRouter.hook", () => {
 		expect(binding?.lastEventType).toBe("Attached");
 	});
 
+	it("maps Claude Code's StopFailure API-error hook to a Failed event and records it", async () => {
+		const { ctx, broadcastAgentLifecycle, terminalAgentStore } =
+			createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "StopFailure",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		const failedBroadcast = broadcastAgentLifecycle.mock.calls.at(-1)?.[0];
+		expect(failedBroadcast).toMatchObject({
+			workspaceId: "workspace-1",
+			eventType: "Failed",
+			terminalId: "terminal-1",
+			// Failed keeps the agent identifiable, unlike an exit that drops it.
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.agentId).toBe("claude");
+		expect(binding?.agentSessionId).toBe("session-abc");
+	});
+
 	it("drops agent identity entirely when agentId is missing", async () => {
 		const { ctx, broadcastAgentLifecycle } = createContext("workspace-1");
 

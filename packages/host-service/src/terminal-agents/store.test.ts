@@ -77,6 +77,27 @@ describe("TerminalAgentStore", () => {
 		expect(store.listByWorkspace(WORKSPACE)).toHaveLength(0);
 	});
 
+	it("records a Failed event on the binding instead of deleting it", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.lastEventAt).toBe(200);
+		expect(store.listByWorkspace(WORKSPACE)).toHaveLength(1);
+	});
+
 	it("drops stale identity metadata on agent swap even when the new event omits it", () => {
 		store.recordEvent({
 			terminalId: "t1",

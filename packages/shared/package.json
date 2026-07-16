@@ -159,7 +159,7 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/friendly-words": "1.2.2",
-		"@xterm/xterm": "6.1.0-beta.220",
+		"@xterm/xterm": "6.1.0-beta.289",
 		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}

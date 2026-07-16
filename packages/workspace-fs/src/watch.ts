@@ -6,8 +6,10 @@ import {
 	subscribe as subscribeToFilesystem,
 } from "@parcel/watcher";
 import { toErrorMessage } from "./error-message";
+import { findNestedRepoRoots } from "./find-nested-repos";
 import { normalizeAbsolutePath } from "./paths";
 import {
+	DEFAULT_IGNORE_DIR_NAMES,
 	DEFAULT_IGNORE_PATTERNS,
 	invalidateSearchIndexesForRoot,
 	patchSearchIndexesForRoot,
@@ -44,6 +46,19 @@ const MAX_BUFFERED_EVENTS = 30_000;
 // probe file and only announces the resumed root once its event arrives.
 const PROBE_PREFIX = ".superset-watcher-probe-";
 const PROBE_TIMEOUT_MS = 4_000;
+
+// Backslash-escape every character picomatch (parcel's glob engine) treats as
+// magic, so an absolute path is matched literally when embedded in a glob.
+// Mirrors the metacharacter set `is-glob`/picomatch@2 recognize.
+function escapeGlobMagic(input: string): string {
+	return input.replace(/[\\*?{}()[\]!+@|^$]/g, (char) => `\\${char}`);
+}
+
+// Wall-clock budget for the nested-repo scan (bounds attach latency on a slow
+// or network-backed FS, where readdir latency — not directory count — is the
+// limiter). The static ignore globs still cover the known worktree conventions
+// if the scan truncates here.
+const NESTED_REPO_SCAN_DEADLINE_MS = 3_000;
 
 // Watches are always recursive — @parcel/watcher offers no shallow mode.
 export interface WatchPathOptions {
@@ -421,14 +436,24 @@ export class FsWatcherManager {
 		state.realPathDiffers = realPathDiffers;
 		const generation = ++state.generation;
 
+		// Nested git repos/worktrees (agent tools pile these up — a full repo copy
+		// each) balloon a recursive watch to millions of dirs. Discover them and
+		// hand parcel a root-relative `<relative>/**` glob per repo, which prunes
+		// the subtree from traversal (same mechanism as the `**/node_modules/**`
+		// default — stops inotify watch creation on Linux, the ENOSPC trigger).
+		const nestedRepoIgnores = await this.computeNestedRepoIgnores(realPath);
+
 		// parcel dedupes native backends by (dir, ignore-set); a wedged backend
 		// from the dead stream (its unsubscribe can hang) would be silently
 		// joined and never deliver. The pattern matches nothing real — it only
 		// forces a distinct backend identity.
-		const ignore =
-			generation === 1
-				? this.ignore
-				: [...this.ignore, `**/.superset-watch-generation-${generation}/**`];
+		const ignore = [
+			...this.ignore,
+			...(generation === 1
+				? []
+				: [`**/.superset-watch-generation-${generation}/**`]),
+			...nestedRepoIgnores,
+		];
 
 		// Subscribe to the resolved real path so kernel paths come back in a
 		// consistent form; we map them back to `state.absolutePath` in
@@ -490,6 +515,42 @@ export class FsWatcherManager {
 				ignore,
 			},
 		);
+	}
+
+	/**
+	 * Best-effort discovery of nested repo/worktree roots to prune. Never blocks
+	 * watching: on failure or a truncated scan we watch with whatever we found
+	 * (an unpruned subtree degrades to the pre-existing behavior, not a crash).
+	 */
+	private async computeNestedRepoIgnores(realPath: string): Promise<string[]> {
+		try {
+			const { roots, truncated } = await findNestedRepoRoots(realPath, {
+				pruneDirNames: DEFAULT_IGNORE_DIR_NAMES,
+				deadlineMs: NESTED_REPO_SCAN_DEADLINE_MS,
+			});
+			if (truncated) {
+				console.warn(
+					"[workspace-fs/watch] nested-repo scan hit cap — some nested repos may still be watched",
+					{ absolutePath: realPath, found: roots.length },
+				);
+			}
+			// Emit each root as a root-relative, escaped `<relative>/**` glob.
+			// parcel matches ignore globs relative to the watch root (its defaults
+			// are all `**/…`), so an absolute path never matches. Bare absolute
+			// paths aren't a safe alternative either: parcel's `is-glob` check
+			// misclassifies any path containing glob magic (e.g. a Next.js
+			// `app/[id]/` route segment) as a pattern, so it lands in the glob set
+			// too and mis-prunes. Escaping + relativizing handles both.
+			return roots.map(
+				(root) => `${escapeGlobMagic(path.relative(realPath, root))}/**`,
+			);
+		} catch (error) {
+			console.error("[workspace-fs/watch] nested-repo scan failed", {
+				absolutePath: realPath,
+				error: toErrorMessage(error),
+			});
+			return [];
+		}
 	}
 
 	/**

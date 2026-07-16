@@ -1,10 +1,6 @@
-import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { RefreshCw } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useChangeset } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useSidebarDiffRef } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useSidebarDiffRef";
@@ -149,47 +145,6 @@ export function useChangesTab({
 	const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
 	const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
 
-	const [isRefreshing, setIsRefreshing] = useState(false);
-	const handleRefresh = useCallback(async () => {
-		if (isRefreshing) return;
-		setIsRefreshing(true);
-		try {
-			await Promise.all([
-				utils.git.getStatus.invalidate({ workspaceId }),
-				utils.git.getDiff.invalidate({ workspaceId }),
-				utils.git.listCommits.invalidate({ workspaceId }),
-				utils.git.listBranches.invalidate({ workspaceId }),
-				utils.git.getBaseBranch.invalidate({ workspaceId }),
-			]);
-		} catch (error) {
-			console.warn("Failed to refresh changes tab", error);
-			toast.error(
-				error instanceof Error ? error.message : "Failed to refresh changes",
-			);
-		} finally {
-			setIsRefreshing(false);
-		}
-	}, [utils, workspaceId, isRefreshing]);
-
-	const actions = (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="size-6"
-					onClick={() => void handleRefresh()}
-					disabled={isRefreshing}
-				>
-					<RefreshCw
-						className={cn("size-3.5", isRefreshing && "animate-spin")}
-					/>
-				</Button>
-			</TooltipTrigger>
-			<TooltipContent side="bottom">Refresh changes</TooltipContent>
-		</Tooltip>
-	);
-
 	const content = (
 		<ChangesTabContent
 			workspaceId={workspaceId}
@@ -221,7 +176,6 @@ export function useChangesTab({
 		id: "changes",
 		label: "Changes",
 		badge: totalChanges > 0 ? totalChanges : undefined,
-		actions,
 		content,
 	};
 }

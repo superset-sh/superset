@@ -173,6 +173,7 @@ export function getClaudeGlobalSettingsJsonContent(
 			| "SessionEnd"
 			| "UserPromptSubmit"
 			| "Stop"
+			| "StopFailure"
 			| "PostToolUse"
 			| "PostToolUseFailure"
 			| "PermissionRequest";
@@ -192,6 +193,11 @@ export function getClaudeGlobalSettingsJsonContent(
 		},
 		{
 			eventName: "Stop",
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
+		},
+		{
+			// API-error hook; fires while the session stays alive, unlike Stop.
+			eventName: "StopFailure",
 			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{

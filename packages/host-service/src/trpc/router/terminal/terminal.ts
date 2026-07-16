@@ -7,8 +7,11 @@ import {
 	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
+	disposeSessionsByWorkspaceId,
+	disposeSessionsByWorktreePath,
 	listTerminalSessions,
 	parseThemeType,
+	sessionHasRunningProcess,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -134,6 +137,17 @@ export const terminalRouter = router({
 			}),
 		})),
 
+	hasRunningProcess: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+			}),
+		)
+		.query(({ input }) => ({
+			running: sessionHasRunningProcess(input.terminalId, input.workspaceId),
+		})),
+
 	writeInput: protectedProcedure
 		.input(
 			z.object({
@@ -194,6 +208,23 @@ export const terminalRouter = router({
 			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
+
+	// Kill every session (including backgrounded, renderer-detached ones) for a
+	// workspace. Called by delete paths that don't run the full
+	// workspaceCleanup.destroy, so their terminals don't leak in the daemon.
+	disposeWorkspaceSessions: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorkspaceId(input.workspaceId, ctx.db),
+		),
+
+	// Like disposeWorkspaceSessions but for a closed worktree, which no longer
+	// has a workspace id — resolve sessions through the shared worktree path.
+	disposeWorktreeSessions: protectedProcedure
+		.input(z.object({ worktreePath: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorktreePath(input.worktreePath, ctx.db),
+		),
 
 	daemon: daemonRouter,
 });
