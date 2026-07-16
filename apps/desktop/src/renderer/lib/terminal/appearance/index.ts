@@ -1,4 +1,4 @@
-import type { ITheme } from "@xterm/xterm";
+import type { ITerminalOptions, ITheme } from "@xterm/xterm";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
 	builtInThemes,
@@ -11,6 +11,22 @@ export interface TerminalAppearance {
 	background: string;
 	fontFamily: string;
 	fontSize: number;
+}
+
+/**
+ * WCAG AA contrast floor. The patched xterm renderers measure SGR 2 cells
+ * after their dim opacity is composited, so the same floor covers every glyph
+ * without changing ANSI bytes or buffer attributes.
+ */
+export const TERMINAL_MINIMUM_CONTRAST_RATIO = 4.5;
+
+/** Apply a theme and restore the contrast floor on already-running terminals. */
+export function applyTerminalTheme(
+	terminal: { options: ITerminalOptions },
+	theme: ITheme,
+): void {
+	terminal.options.minimumContrastRatio = TERMINAL_MINIMUM_CONTRAST_RATIO;
+	terminal.options.theme = theme;
 }
 
 export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =

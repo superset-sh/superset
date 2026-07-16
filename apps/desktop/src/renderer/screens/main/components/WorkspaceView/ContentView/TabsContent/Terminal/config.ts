@@ -2,6 +2,7 @@ import type { ITerminalOptions } from "@xterm/xterm";
 import {
 	DEFAULT_TERMINAL_FONT_FAMILY as SHARED_DEFAULT_TERMINAL_FONT_FAMILY,
 	DEFAULT_TERMINAL_FONT_SIZE as SHARED_DEFAULT_TERMINAL_FONT_SIZE,
+	TERMINAL_MINIMUM_CONTRAST_RATIO,
 } from "renderer/lib/terminal/appearance";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 
@@ -27,6 +28,7 @@ export const TERMINAL_OPTIONS: ITerminalOptions = {
 	fontSize: DEFAULT_TERMINAL_FONT_SIZE,
 	fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 	theme: TERMINAL_THEME,
+	minimumContrastRatio: TERMINAL_MINIMUM_CONTRAST_RATIO,
 	allowProposedApi: true,
 	scrollback: DEFAULT_TERMINAL_SCROLLBACK,
 	// Allow Option+key to type special characters on international keyboards (e.g., Option+2 = @)
