@@ -2,6 +2,7 @@ import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
+import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -350,6 +351,22 @@ export function __resetSessionsForTesting(): void {
 export function isLiveTerminalSession(terminalId: string): boolean {
 	const session = sessions.get(terminalId);
 	return session !== undefined && !session.exited;
+}
+
+/**
+ * Whether a live session has a foreground command running (vs. sitting at an
+ * idle shell prompt). Drives the "close anyway?" confirm on pane close. Unknown
+ * sessions, idle prompts, and sessions owned by another workspace return false.
+ */
+export function sessionHasRunningProcess(
+	terminalId: string,
+	workspaceId: string,
+): boolean {
+	const session = sessions.get(terminalId);
+	if (!session || session.exited) return false;
+	// Ownership gate: don't let one workspace probe another's terminals.
+	if (session.workspaceId !== workspaceId) return false;
+	return hasRunningForegroundProcess(session.pty.pid);
 }
 
 function pruneAndCountOpenSockets(session: TerminalSession): number {
@@ -809,8 +826,11 @@ export async function disposeSessionAndWait(
 }
 
 /**
- * Dispose every active session belonging to the given workspace.
- * Returns counts so callers (e.g. workspaceCleanup.destroy) can surface warnings.
+ * Dispose every active session belonging to the given workspace, then drop the
+ * confirmed-dead rows so the workspace's session index dies with it rather than
+ * lingering as `set null` orphans. A still-`active` row is a failed kill we keep
+ * reachable for the reaper. Returns counts so callers (e.g.
+ * workspaceCleanup.destroy) can surface warnings.
  */
 export async function disposeSessionsByWorkspaceId(
 	workspaceId: string,
@@ -840,6 +860,41 @@ export async function disposeSessionsByWorkspaceId(
 		} catch {
 			failed += 1;
 		}
+	}
+
+	db.delete(terminalSessions)
+		.where(
+			and(
+				eq(terminalSessions.originWorkspaceId, workspaceId),
+				ne(terminalSessions.status, "active"),
+			),
+		)
+		.run();
+
+	return { terminated, failed };
+}
+
+/**
+ * Dispose every active session for any workspace mapped to the given worktree
+ * path. Deleting a closed worktree has no workspace id, so we join through the
+ * workspaces table on the shared worktree path.
+ */
+export async function disposeSessionsByWorktreePath(
+	worktreePath: string,
+	db: HostDb,
+): Promise<{ terminated: number; failed: number }> {
+	const workspaceRows = db
+		.select({ id: workspaces.id })
+		.from(workspaces)
+		.where(eq(workspaces.worktreePath, worktreePath))
+		.all();
+
+	let terminated = 0;
+	let failed = 0;
+	for (const { id } of workspaceRows) {
+		const result = await disposeSessionsByWorkspaceId(id, db);
+		terminated += result.terminated;
+		failed += result.failed;
 	}
 	return { terminated, failed };
 }

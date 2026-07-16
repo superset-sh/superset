@@ -8,12 +8,15 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { disposeHostSessionsForWorktreePath } from "renderer/lib/dispose-host-sessions";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
 
 interface DeleteWorktreeDialogProps {
 	worktreeId: string;
+	/** Worktree filesystem path; used to dispose its host-service terminals. */
+	worktreePath: string;
 	worktreeName: string;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
@@ -21,11 +24,21 @@ interface DeleteWorktreeDialogProps {
 
 export function DeleteWorktreeDialog({
 	worktreeId,
+	worktreePath,
 	worktreeName,
 	open,
 	onOpenChange,
 }: DeleteWorktreeDialogProps) {
-	const deleteWorktree = useDeleteWorktree();
+	const utils = electronTrpc.useUtils();
+	const deleteWorktree = useDeleteWorktree({
+		onSuccess: (data) => {
+			// Worktree removed — dispose its host-service terminals so backgrounded
+			// sessions don't leak in the daemon.
+			if (data.success) {
+				void disposeHostSessionsForWorktreePath(utils, worktreePath);
+			}
+		},
+	});
 
 	const { data: canDeleteData, isLoading } =
 		electronTrpc.workspaces.canDeleteWorktree.useQuery(

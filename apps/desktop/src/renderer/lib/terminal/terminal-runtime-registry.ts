@@ -20,6 +20,7 @@ import {
 	connect,
 	createTransport,
 	disposeTransport,
+	reconnect,
 	sendDispose,
 	sendInput,
 	sendResize,
@@ -204,19 +205,14 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	/**
-	 * Manually re-dial the last URL after the transport stopped trying (gave
-	 * up on max attempts, access denied, fatal server error). connect() clears
-	 * the terminated flag, so this restarts a dead loop.
+	 * Manually re-dial after the transport stopped trying (access denied, fatal
+	 * server error, PTY exit). reconnect() clears the terminated flag and forces
+	 * an immediate dial, restarting a dead loop.
 	 */
 	retryConnect(terminalId: string, instanceId = terminalId) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		const url = entry.transport.currentUrl;
-		if (!url) return;
-		// Manual retry gets a full backoff budget, like reconnectNow(); the
-		// exhausted counter would otherwise block scheduling any follow-up.
-		entry.transport._reconnectAttempt = 0;
-		connect(entry.transport, entry.runtime.terminal, url);
+		reconnect(entry.transport);
 	}
 
 	/**

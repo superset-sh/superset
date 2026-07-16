@@ -1,4 +1,5 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
+import { disposeHostSessionsForWorkspace } from "renderer/lib/dispose-host-sessions";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import {
@@ -108,6 +109,9 @@ export function useCloseWorkspace(
 			await options?.onError?.(err, variables, context, ...rest);
 		},
 		onSuccess: async (data, variables, ...rest) => {
+			// Close keeps the worktree but tears down the workspace's runtime;
+			// dispose its host-service terminals so backgrounded sessions don't leak.
+			void disposeHostSessionsForWorkspace(utils, variables.id);
 			// Invalidate to ensure consistency with backend state
 			await utils.workspaces.invalidate();
 			// Invalidate project queries since close updates project metadata
