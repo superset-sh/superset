@@ -92,6 +92,11 @@ build.ts                        # Bun bundler → dist/pty-daemon.js (target: no
 
 ## Testing
 
+The native TypeScript integration suite uses
+`node --experimental-strip-types`, so run it with Node 22 or newer. Production
+still executes the bundled JavaScript daemon; this test requirement does not
+raise the runtime minimum.
+
 ```sh
 bun test                     # unit tests (protocol framing, handlers, SessionStore, Pty validation, byte-fidelity canary)
 bun run test:integration     # integration tests under `node --test`: control-plane, handoff, signal-recovery, byte-fidelity-runtime

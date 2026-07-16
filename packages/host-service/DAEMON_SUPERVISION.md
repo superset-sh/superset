@@ -218,18 +218,26 @@ Daemon-binary upgrades preserve live PTY sessions via a transactional fd handoff
 5. The supervisor proves predecessor exit and successor identity before it
    publishes the new instance and releases held mutations.
 
-If anything fails mid-handoff (snapshot write error, successor spawn
-error, successor crash on adopt, malformed ack, IPC stall) the
-supervisor's `restoreOnFailure()` path leaves the
-predecessor's instance record intact — the user's shells keep serving on
-the original daemon process. Auto-update on adopt (`kickoffAutoUpdate`)
-relies on this contract: a transient failure must never disrupt sessions.
+Before commit, a failure with explicit predecessor ownership (for example a
+snapshot write error, successor spawn error, or successor crash before adopt)
+lets `restoreOnFailure()` keep the predecessor's instance record intact and
+resume the user's shells on the original daemon. Once the handoff is
+irreversible, or whenever ownership cannot be proved, the supervisor instead
+fails closed: it keeps mutations held and does not publish or resume either
+candidate until recovery proves one exact owner. Auto-update on adopt
+(`kickoffAutoUpdate`) relies on both halves of this contract: a safe abort must
+preserve the predecessor, while an ambiguous abort must never guess.
 The old destructive auto-update fallback has been removed. Background
 auto-updates leave the predecessor running and surface the failure through
 `updatePending` plus `getUpdateStatus().autoUpdateFailure`; any destructive
 restart is an explicit user action through the desktop confirmation flow.
 Missing capability, malformed/unavailable session lists, or ambiguous socket
 ownership always defer; they are never interpreted as an idle daemon.
+
+The native TypeScript integration commands in this package use
+`node --experimental-strip-types` and therefore require Node 22 or newer. This
+is a test/development requirement only; the production daemon remains bundled
+JavaScript and its supported runtime is unchanged.
 
 Mode signal goes through argv (`--handoff`), not env: bundlers
 (Bun, esbuild via electron-vite) statically inline `process.env.X`
