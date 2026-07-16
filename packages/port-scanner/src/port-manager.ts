@@ -1,13 +1,23 @@
 import { EventEmitter } from "node:events";
 import {
 	getListeningPortsForPids,
-	getProcessTree,
+	getProcessTreesForPids,
 	type PortInfo,
 } from "./scanner.ts";
 import type { DetectedPort } from "./types.ts";
 
 /** How often to poll for port changes (in ms) */
 const SCAN_INTERVAL_MS = 2500;
+
+/** A session with no PTY output for this long is considered idle (in ms) */
+export const IDLE_AFTER_MS = 60_000;
+
+/**
+ * How often idle sessions are still scanned (in ms). Ports can appear without
+ * terminal output (a silently daemonized server), so idle sessions decay to
+ * this cadence rather than being skipped outright.
+ */
+export const IDLE_SCAN_INTERVAL_MS = 30_000;
 
 /** Delay before scanning after a port hint is detected (in ms) */
 const HINT_SCAN_DELAY_MS = 500;
@@ -91,6 +101,10 @@ interface SessionEntry {
 	workspaceId: string;
 	/** PTY process ID — null when the terminal isn't yet spawned (or has exited). */
 	pid: number | null;
+	/** Last time this session produced PTY output or was registered with a new pid. */
+	lastActivityAt: number;
+	/** Last time this session was included in a scan. */
+	lastScannedAt: number;
 }
 
 interface ScanState {
@@ -141,7 +155,19 @@ export class PortManager extends EventEmitter {
 		workspaceId: string,
 		pid: number | null,
 	): void {
-		this.sessions.set(terminalId, { workspaceId, pid });
+		const existing = this.sessions.get(terminalId);
+		if (existing && existing.pid === pid) {
+			// Re-upserts (e.g. the reaper's periodic sync of unattached daemon
+			// sessions) must not reset the idle clock.
+			existing.workspaceId = workspaceId;
+		} else {
+			this.sessions.set(terminalId, {
+				workspaceId,
+				pid,
+				lastActivityAt: Date.now(),
+				lastScannedAt: 0,
+			});
+		}
 		this.ensurePeriodicScanRunning();
 	}
 
@@ -151,10 +177,16 @@ export class PortManager extends EventEmitter {
 	unregisterSession(terminalId: string): void {
 		this.sessions.delete(terminalId);
 		this.removePortsForTerminal(terminalId);
-		this.stopPeriodicScanIfIdle();
+		this.stopPeriodicScanIfNoSessions();
 	}
 
-	checkOutputForHint(data: string): void {
+	/**
+	 * Called on every PTY output chunk: any output keeps the session on the
+	 * fast scan cadence, and server-startup phrases trigger a prompt scan.
+	 */
+	checkOutputForHint(terminalId: string, data: string): void {
+		const session = this.sessions.get(terminalId);
+		if (session) session.lastActivityAt = Date.now();
 		if (this.hintScanTimeout || this.scanRequested) return;
 		if (!containsPortHint(data)) return;
 		this.scheduleHintScan();
@@ -191,7 +223,7 @@ export class PortManager extends EventEmitter {
 		return this.scanAbort;
 	}
 
-	private stopPeriodicScanIfIdle(): void {
+	private stopPeriodicScanIfNoSessions(): void {
 		if (!this.hasAnySessions()) this.stopPeriodicScan();
 	}
 
@@ -246,44 +278,54 @@ export class PortManager extends EventEmitter {
 		};
 	}
 
-	private async collectSessionPids(scanState: ScanState): Promise<void> {
-		const tasks: Promise<void>[] = [];
-		for (const [terminalId, { workspaceId, pid }] of this.sessions) {
-			if (pid === null) continue;
-			tasks.push(
-				this.collectPidTree({
-					terminalId,
-					workspaceId,
-					pid,
-					scanState,
-				}),
-			);
-		}
-		await Promise.all(tasks);
+	/**
+	 * Active sessions (recent PTY output) are scanned on every tick; idle ones
+	 * decay to the IDLE_SCAN_INTERVAL_MS cadence. Skipped sessions keep their
+	 * previously detected ports untouched until their next scan.
+	 */
+	private isSessionDue(entry: SessionEntry, now: number): boolean {
+		if (now - entry.lastActivityAt < IDLE_AFTER_MS) return true;
+		return now - entry.lastScannedAt >= IDLE_SCAN_INTERVAL_MS;
 	}
 
-	private async collectPidTree({
-		terminalId,
-		workspaceId,
-		pid,
-		scanState,
-	}: {
-		terminalId: string;
-		workspaceId: string;
-		pid: number;
-		scanState: ScanState;
-	}): Promise<void> {
-		try {
-			const pids = await getProcessTree(pid);
-			if (pids.length === 0) {
-				scanState.emptyTreeTerminals.add(terminalId);
-				return;
-			}
+	private async collectSessionPids(
+		scanState: ScanState,
+		force: boolean,
+	): Promise<void> {
+		const now = Date.now();
+		const dueSessions: {
+			terminalId: string;
+			workspaceId: string;
+			pid: number;
+		}[] = [];
+		for (const [terminalId, entry] of this.sessions) {
+			if (entry.pid === null) continue;
+			if (!force && !this.isSessionDue(entry, now)) continue;
+			dueSessions.push({
+				terminalId,
+				workspaceId: entry.workspaceId,
+				pid: entry.pid,
+			});
+		}
+		if (dueSessions.length === 0) return;
 
+		// One system-wide table read serves every due session; per-session
+		// pidtree calls each spawned a full `ps`, scaling linearly with sessions.
+		const trees = await getProcessTreesForPids(
+			dueSessions.map((session) => session.pid),
+		);
+		for (const { terminalId, workspaceId, pid } of dueSessions) {
+			const entry = this.sessions.get(terminalId);
+			if (entry) entry.lastScannedAt = now;
+
+			const pids = trees.get(pid) ?? [];
+			if (pids.length === 0) {
+				// Root pid absent from the process table — the session exited.
+				scanState.emptyTreeTerminals.add(terminalId);
+				continue;
+			}
 			scanState.terminalPortMap.set(terminalId, { workspaceId, pids });
 			this.addTerminalPids({ terminalId, workspaceId, pids, scanState });
-		} catch {
-			// Session may have exited
 		}
 	}
 
@@ -363,7 +405,7 @@ export class PortManager extends EventEmitter {
 		}
 	}
 
-	private async scanAllSessions(): Promise<void> {
+	private async scanAllSessions(force = false): Promise<void> {
 		if (this.isScanning) {
 			// A hint or tick fired mid-scan; queue exactly one follow-up.
 			this.scanRequested = true;
@@ -374,7 +416,7 @@ export class PortManager extends EventEmitter {
 
 		try {
 			const scanState = this.createScanState();
-			await this.collectSessionPids(scanState);
+			await this.collectSessionPids(scanState, force);
 
 			const portsByTerminal = await this.buildPortsByTerminal({
 				allPids: scanState.allPids,
@@ -499,7 +541,7 @@ export class PortManager extends EventEmitter {
 	}
 
 	async forceScan(): Promise<void> {
-		await this.scanAllSessions();
+		await this.scanAllSessions(true);
 	}
 
 	/**

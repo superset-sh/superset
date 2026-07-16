@@ -1228,7 +1228,8 @@ export async function createTerminalSessionInternal({
 						? bytes
 						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
 				);
-				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
+				if (hintText.length > 0)
+					portManager.checkOutputForHint(terminalId, hintText);
 
 				// Feed the tracker on every byte — broadcast skips the FIFO,
 				// so this is the only path that catches startup mode escapes.

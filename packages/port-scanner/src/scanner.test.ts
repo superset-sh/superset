@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { getListeningPortsForPids, getProcessTreesForPids } from "./scanner.ts";
 
 /**
  * Tests for lsof output parsing logic.
@@ -84,6 +85,52 @@ function parseLsofOutput(
 
 	return ports;
 }
+
+describe("getProcessTreesForPids (real process table)", () => {
+	it("returns an empty map for no roots", async () => {
+		expect((await getProcessTreesForPids([])).size).toBe(0);
+	});
+
+	it("includes the root pid and its descendants from one table read", async () => {
+		const child = Bun.spawn(["sleep", "5"]);
+		try {
+			const trees = await getProcessTreesForPids([process.pid]);
+			const tree = trees.get(process.pid);
+			expect(tree).toContain(process.pid);
+			expect(tree).toContain(child.pid);
+		} finally {
+			child.kill();
+		}
+	});
+
+	it("omits roots that are not running", async () => {
+		// PID_MAX on macOS is 99998 and on Linux defaults to 4194304, so this
+		// pid can never exist.
+		const trees = await getProcessTreesForPids([process.pid, 99_999_999]);
+		expect(trees.has(99_999_999)).toBe(false);
+		expect(trees.has(process.pid)).toBe(true);
+	});
+});
+
+describe("getListeningPortsForPids (real sockets)", () => {
+	it("finds a genuinely listening port for our own pid", async () => {
+		const server = Bun.serve({ port: 0, fetch: () => new Response("ok") });
+		try {
+			const listeningPort = server.port;
+			if (listeningPort === undefined) throw new Error("server has no port");
+			const ports = await getListeningPortsForPids([process.pid]);
+			expect(ports.map((info) => info.port)).toContain(listeningPort);
+			expect(ports.every((info) => info.pid === process.pid)).toBe(true);
+		} finally {
+			server.stop(true);
+		}
+	});
+
+	it("returns nothing for a pid that is not running", async () => {
+		const ports = await getListeningPortsForPids([99_999_999]);
+		expect(ports).toHaveLength(0);
+	});
+});
 
 describe("port-scanner", () => {
 	describe("parseLsofOutput", () => {

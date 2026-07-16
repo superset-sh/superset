@@ -57,15 +57,49 @@ export interface PortInfo {
 }
 
 /**
- * Get all child PIDs of a process (including the process itself)
+ * Get the process tree (root + descendants) for each of the given root PIDs
+ * using a single system-wide process-table read. pidtree spawns a full
+ * `ps`/`wmic` per invocation, so calling it once per session made scan cost
+ * scale linearly with session count.
+ *
+ * Roots that are no longer running are absent from the returned map. Throws
+ * when the process table itself can't be read, so callers can keep previous
+ * state instead of treating every session as exited.
  */
-export async function getProcessTree(pid: number): Promise<number[]> {
-	try {
-		return await pidtree(pid, { root: true });
-	} catch {
-		// Process may have exited
-		return [];
+export async function getProcessTreesForPids(
+	rootPids: number[],
+): Promise<Map<number, number[]>> {
+	const trees = new Map<number, number[]>();
+	if (rootPids.length === 0) return trees;
+
+	const table = await pidtree(-1, { advanced: true });
+
+	const childrenByPpid = new Map<number, number[]>();
+	const alivePids = new Set<number>();
+	for (const { pid, ppid } of table) {
+		alivePids.add(pid);
+		const siblings = childrenByPpid.get(ppid);
+		if (siblings) siblings.push(pid);
+		else childrenByPpid.set(ppid, [pid]);
 	}
+
+	for (const rootPid of rootPids) {
+		if (!alivePids.has(rootPid)) continue;
+		const pids: number[] = [];
+		const seen = new Set<number>();
+		const stack = [rootPid];
+		while (stack.length > 0) {
+			const pid = stack.pop();
+			if (pid === undefined || seen.has(pid)) continue;
+			seen.add(pid);
+			pids.push(pid);
+			const children = childrenByPpid.get(pid);
+			if (children) stack.push(...children);
+		}
+		trees.set(rootPid, pids);
+	}
+
+	return trees;
 }
 
 /**
@@ -103,16 +137,18 @@ async function getListeningPortsLsof(
 	try {
 		const pidArg = pids.join(",");
 		const pidSet = new Set(pids);
+		// -a: AND the selectors — without it lsof ORs -p with -iTCP and
+		//     enumerates every TCP listener on the machine (walking every
+		//     process's fd table), only for the pidSet check below to
+		//     discard the lot
 		// -p: filter by PIDs
 		// -iTCP: only TCP connections
 		// -sTCP:LISTEN: only listening sockets
 		// -P: don't convert port numbers to names
 		// -n: don't resolve hostnames
-		// Note: lsof may ignore -p filter if PIDs don't exist or have no matches,
-		// so we must validate PIDs in the output against our requested set
 		const output = await runTolerant(
 			"lsof",
-			["-p", pidArg, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
+			["-a", "-p", pidArg, "-iTCP", "-sTCP:LISTEN", "-P", "-n"],
 			{ maxBuffer: 10 * 1024 * 1024, timeout: EXEC_TIMEOUT_MS, signal },
 		);
 
@@ -141,8 +177,8 @@ async function getListeningPortsLsof(
 
 			const pid = Number.parseInt(pidStr, 10);
 
-			// CRITICAL: Verify the PID is in our requested set
-			// lsof ignores -p filter when PIDs don't exist, returning all TCP listeners
+			// Defense in depth: -a should guarantee only requested PIDs appear,
+			// but a stray line must never attribute another process's port to a session
 			if (!pidSet.has(pid)) continue;
 
 			// Parse address:port from NAME column

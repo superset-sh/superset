@@ -1,5 +1,20 @@
-import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
+import {
+	afterAll,
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	it,
+	mock,
+} from "bun:test";
 import type { DetectedPort } from "./types";
+
+// mock.module leaks across test files in the same bun process — hold the real
+// module and restore it after this file so scanner.test.ts tests the real one.
+const realScanner = { ...(await import("./scanner.ts")) };
+afterAll(() => {
+	mock.module("./scanner", () => realScanner);
+});
 
 /**
  * Regression tests for #3372 ("excessive lsof spawning").
@@ -17,7 +32,8 @@ import type { DetectedPort } from "./types";
  */
 
 interface ScannerSpy {
-	getProcessTree: number;
+	getProcessTrees: number;
+	lastTreeRootPids: number[];
 	getListeningPortsForPids: number;
 	inFlight: number;
 	maxInFlight: number;
@@ -33,7 +49,8 @@ interface MockPortInfo {
 }
 
 const spy: ScannerSpy = {
-	getProcessTree: 0,
+	getProcessTrees: 0,
+	lastTreeRootPids: [],
 	getListeningPortsForPids: 0,
 	inFlight: 0,
 	maxInFlight: 0,
@@ -45,9 +62,10 @@ let lsofDelayMs = 0;
 let listeningPorts: MockPortInfo[] = [];
 
 mock.module("./scanner", () => ({
-	getProcessTree: async (pid: number) => {
-		spy.getProcessTree++;
-		return [pid, pid + 1];
+	getProcessTreesForPids: async (rootPids: number[]) => {
+		spy.getProcessTrees++;
+		spy.lastTreeRootPids = rootPids;
+		return new Map(rootPids.map((pid) => [pid, [pid, pid + 1]]));
 	},
 	getListeningPortsForPids: async (_pids: number[], signal?: AbortSignal) => {
 		spy.getListeningPortsForPids++;
@@ -74,7 +92,9 @@ mock.module("./scanner", () => ({
 	},
 }));
 
-const { PortManager } = await import("./port-manager");
+const { PortManager, IDLE_AFTER_MS, IDLE_SCAN_INTERVAL_MS } = await import(
+	"./port-manager"
+);
 
 const HINT_DEBOUNCE_MS = 500;
 const PAST_DEBOUNCE_MS = HINT_DEBOUNCE_MS + 50;
@@ -88,10 +108,21 @@ let manager: InstanceType<typeof PortManager>;
 const pmInternals = () =>
 	manager as unknown as {
 		scanInterval: ReturnType<typeof setInterval> | null;
+		sessions: Map<
+			string,
+			{
+				workspaceId: string;
+				pid: number | null;
+				lastActivityAt: number;
+				lastScannedAt: number;
+			}
+		>;
+		scanAllSessions: (force?: boolean) => Promise<void>;
 	};
 
 function resetSpy(): void {
-	spy.getProcessTree = 0;
+	spy.getProcessTrees = 0;
+	spy.lastTreeRootPids = [];
 	spy.getListeningPortsForPids = 0;
 	spy.inFlight = 0;
 	spy.maxInFlight = 0;
@@ -113,7 +144,7 @@ afterEach(() => {
 describe("PortManager — #3372 lifecycle (interval runs only with sessions)", () => {
 	it("forceScan is a no-op when no sessions are registered", async () => {
 		await manager.forceScan();
-		expect(spy.getProcessTree).toBe(0);
+		expect(spy.getProcessTrees).toBe(0);
 		expect(spy.getListeningPortsForPids).toBe(0);
 	});
 
@@ -159,18 +190,22 @@ describe("PortManager — #3372 lifecycle (interval runs only with sessions)", (
 		manager.upsertSession("p1", "ws1", null);
 		await manager.forceScan();
 		// No PID → no process-tree walk and no lsof batch.
-		expect(spy.getProcessTree).toBe(0);
+		expect(spy.getProcessTrees).toBe(0);
 		expect(spy.getListeningPortsForPids).toBe(0);
 	});
 });
 
 describe("PortManager — #3372 concurrency (at most one lsof in flight)", () => {
-	it("bulk scan batches every session into a single lsof call", async () => {
+	it("bulk scan batches every session into one tree read and one lsof call", async () => {
 		for (let i = 0; i < 10; i++) {
 			manager.upsertSession(`p${i}`, `ws${i}`, 1000 + i);
 		}
 		await manager.forceScan();
 
+		// One system-wide process-table read covers all sessions — a
+		// per-session pidtree call spawned a full `ps` each.
+		expect(spy.getProcessTrees).toBe(1);
+		expect(spy.lastTreeRootPids).toHaveLength(10);
 		expect(spy.getListeningPortsForPids).toBe(1);
 		expect(spy.maxInFlight).toBe(1);
 	});
@@ -183,7 +218,7 @@ describe("PortManager — #3372 concurrency (at most one lsof in flight)", () =>
 
 		// 100 hints while the first scan is running — all on the hot path.
 		for (let i = 0; i < 100; i++) {
-			manager.checkOutputForHint("listening on port 3000\n");
+			manager.checkOutputForHint("p1", "listening on port 3000\n");
 		}
 
 		await firstScan;
@@ -376,43 +411,47 @@ describe("PortManager — #3372 hint regex narrowing", () => {
 	});
 
 	it("does NOT scan on a bare 'port 22' (old loose pattern)", async () => {
-		manager.checkOutputForHint("connection reached port 22\n");
+		manager.checkOutputForHint("p1", "connection reached port 22\n");
 		await sleep(PAST_DEBOUNCE_MS);
 		expect(spy.getListeningPortsForPids).toBe(0);
 	});
 
 	it("does NOT scan on a trailing ':12345' (old loose pattern)", async () => {
-		manager.checkOutputForHint("commit abc123def:12345\n");
+		manager.checkOutputForHint("p1", "commit abc123def:12345\n");
 		await sleep(PAST_DEBOUNCE_MS);
 		expect(spy.getListeningPortsForPids).toBe(0);
 	});
 
 	it("DOES scan on 'listening on port 3000'", async () => {
-		manager.checkOutputForHint("listening on port 3000\n");
+		manager.checkOutputForHint("p1", "listening on port 3000\n");
 		await sleep(PAST_DEBOUNCE_MS);
 		expect(spy.getListeningPortsForPids).toBe(1);
 	});
 
 	it("DOES scan on 'server running at http://localhost:3000'", async () => {
-		manager.checkOutputForHint("server running at http://localhost:3000\n");
+		manager.checkOutputForHint(
+			"p1",
+			"server running at http://localhost:3000\n",
+		);
 		await sleep(PAST_DEBOUNCE_MS);
 		expect(spy.getListeningPortsForPids).toBe(1);
 	});
 
 	it("DOES scan on 'ready on http://localhost:5173' (Vite-style)", async () => {
-		manager.checkOutputForHint("ready on http://localhost:5173\n");
+		manager.checkOutputForHint("p1", "ready on http://localhost:5173\n");
 		await sleep(PAST_DEBOUNCE_MS);
 		expect(spy.getListeningPortsForPids).toBe(1);
 	});
 
 	it("DOES scan on Vite's 'Local:  http://localhost:5173/' banner", async () => {
-		manager.checkOutputForHint("  ➜  Local:   http://localhost:5173/\n");
+		manager.checkOutputForHint("p1", "  ➜  Local:   http://localhost:5173/\n");
 		await sleep(PAST_DEBOUNCE_MS);
 		expect(spy.getListeningPortsForPids).toBe(1);
 	});
 
 	it("DOES scan on Django's 'Starting development server at http://...'", async () => {
 		manager.checkOutputForHint(
+			"p1",
 			"Starting development server at http://127.0.0.1:8000/\n",
 		);
 		await sleep(PAST_DEBOUNCE_MS);
@@ -458,9 +497,9 @@ describe("PortManager — #3372 teardown (no orphan children)", () => {
 		// rather than passing `undefined` and losing abortability.
 		manager.upsertSession("p1", "ws1", 1000);
 
-		manager.checkOutputForHint("listening on port 3000\n");
-		// Unregister immediately — this triggers stopPeriodicScanIfIdle which
-		// clears the hint timer. If any code path regresses and the timer
+		manager.checkOutputForHint("p1", "listening on port 3000\n");
+		// Unregister immediately — this triggers stopPeriodicScanIfNoSessions
+		// which clears the hint timer. If any code path regresses and the timer
 		// survives past abort-nulling, ensureScanAbort must still produce a
 		// valid signal rather than throwing.
 		manager.unregisterSession("p1");
@@ -469,5 +508,108 @@ describe("PortManager — #3372 teardown (no orphan children)", () => {
 		manager.upsertSession("p2", "ws2", 2000);
 		await manager.forceScan();
 		expect(spy.getListeningPortsForPids).toBeGreaterThanOrEqual(1);
+	});
+});
+
+describe("PortManager — idle decay (sessions without output scan rarely)", () => {
+	const scan = () => pmInternals().scanAllSessions();
+	const session = (terminalId: string) => {
+		const entry = pmInternals().sessions.get(terminalId);
+		if (!entry) throw new Error(`session ${terminalId} not registered`);
+		return entry;
+	};
+
+	it("a freshly registered session is scanned on periodic ticks", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		await scan();
+		expect(spy.getProcessTrees).toBe(1);
+	});
+
+	it("an idle session is skipped until the slow cadence elapses", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		const entry = session("p1");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		await scan();
+		expect(spy.getProcessTrees).toBe(0);
+		expect(spy.getListeningPortsForPids).toBe(0);
+
+		entry.lastScannedAt = Date.now() - IDLE_SCAN_INTERVAL_MS - 1;
+		await scan();
+		expect(spy.getProcessTrees).toBe(1);
+	});
+
+	it("any PTY output puts a session back on the fast cadence", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		const entry = session("p1");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		// Plain output — not a port hint — still counts as activity.
+		manager.checkOutputForHint("p1", "make: nothing to be done\n");
+		await scan();
+		expect(spy.getProcessTrees).toBe(1);
+	});
+
+	it("re-upserting the same pid does not reset the idle clock", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		const entry = session("p1");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		// The reaper's periodic port-scan sync re-registers unattached
+		// sessions every pass; that must not count as activity.
+		manager.upsertSession("p1", "ws1", 1000);
+		await scan();
+		expect(spy.getProcessTrees).toBe(0);
+
+		// A new shell pid is a fresh session and is active again.
+		manager.upsertSession("p1", "ws1", 2000);
+		await scan();
+		expect(spy.getProcessTrees).toBe(1);
+	});
+
+	it("only due sessions are included in the batch", async () => {
+		manager.upsertSession("active", "ws1", 1000);
+		manager.upsertSession("idle", "ws1", 2000);
+		const entry = session("idle");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		await scan();
+		expect(spy.lastTreeRootPids).toEqual([1000]);
+	});
+
+	it("a skipped idle session keeps its previously detected ports", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 1001, address: "127.0.0.1", processName: "node" },
+		];
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(1);
+
+		const entry = session("p1");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		// The server "dies" while the session is skipped — its port must
+		// survive untouched until the session's own next scan.
+		listeningPorts = [];
+		await scan();
+		expect(manager.getAllPorts()).toHaveLength(1);
+
+		await manager.forceScan();
+		expect(manager.getAllPorts()).toHaveLength(0);
+	});
+
+	it("forceScan includes idle sessions regardless of cadence", async () => {
+		manager.upsertSession("p1", "ws1", 1000);
+		const entry = session("p1");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		await manager.forceScan();
+		expect(spy.getProcessTrees).toBe(1);
 	});
 });
