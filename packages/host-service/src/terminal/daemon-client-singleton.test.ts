@@ -95,6 +95,7 @@ async function startFakeDaemon(
 					);
 				} else if (message.type === "subscribe") {
 					const replayBytes = message.replay ? replay.byteLength : 0;
+					const replayStartBytes = message.replay ? 0 : replay.byteLength;
 					if (replayBytes > 0) {
 						socket.write(
 							encodeFrame({ type: "output", id: message.id }, replay),
@@ -105,7 +106,7 @@ async function startFakeDaemon(
 							type: "subscribed",
 							id: message.id,
 							replayBytes,
-							replayStartBytes: 0,
+							replayStartBytes,
 							replayEndBytes: replay.byteLength,
 						}),
 					);

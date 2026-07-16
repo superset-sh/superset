@@ -18,6 +18,8 @@ function fakeDaemon(
 	options: {
 		throwOnDispose?: boolean;
 		replay?: Buffer;
+		liveBeforeBoundary?: Buffer;
+		exitBeforeBoundary?: ExitInfo;
 		replayStartBytes?: number;
 		replayEndBytes?: number;
 	} = {},
@@ -62,6 +64,12 @@ function fakeDaemon(
 				? (options.replay ?? Buffer.alloc(0))
 				: Buffer.alloc(0);
 			if (bytes.byteLength > 0) callbacks.onOutput(Buffer.from(bytes));
+			if (options.liveBeforeBoundary?.byteLength) {
+				callbacks.onOutput(Buffer.from(options.liveBeforeBoundary));
+			}
+			if (options.exitBeforeBoundary) {
+				callbacks.onExit({ ...options.exitBeforeBoundary });
+			}
 			return {
 				unsubscribe: () => dispose(bound),
 				boundary: Promise.resolve({
@@ -95,8 +103,18 @@ function fakeDaemon(
 
 describe("DaemonPty planned rotation", () => {
 	test("publishes one staged successor stream to every observer only after commit", async () => {
-		const predecessor = fakeDaemon({ throwOnDispose: true });
-		const successor = fakeDaemon({ replay: Buffer.from("already-rendered") });
+		const alreadyRendered = Buffer.from("already-rendered");
+		const predecessor = fakeDaemon({
+			throwOnDispose: true,
+			replay: alreadyRendered,
+			replayStartBytes: 0,
+			replayEndBytes: alreadyRendered.byteLength,
+		});
+		const successor = fakeDaemon({
+			replay: alreadyRendered,
+			replayStartBytes: 0,
+			replayEndBytes: alreadyRendered.byteLength,
+		});
 		const pty = __makeDaemonPtyForTesting(
 			predecessor.daemon,
 			"session-rotation",
@@ -124,7 +142,7 @@ describe("DaemonPty planned rotation", () => {
 
 		const binding = await pty.stageDaemonRebind(successor.daemon);
 		successor.emitOutput("gap-before-activation-ack");
-		expect(primaryOutput).toEqual([]);
+		expect(primaryOutput).toEqual(["already-rendered"]);
 		expect(auxiliaryOutput).toEqual([]);
 		expect(successor.subscriptions).toHaveLength(1);
 		expect(successor.subscriptions[0]?.replay).toBe(true);
@@ -134,12 +152,16 @@ describe("DaemonPty planned rotation", () => {
 		expect(predecessor.subscriptions.every(({ disposed }) => disposed)).toBe(
 			true,
 		);
-		expect(primaryOutput).toEqual(["gap-before-activation-ack"]);
+		expect(primaryOutput).toEqual([
+			"already-rendered",
+			"gap-before-activation-ack",
+		]);
 		expect(auxiliaryOutput).toEqual(["gap-before-activation-ack"]);
 
 		successor.emitOutput("after-rotation");
 		successor.emitExit({ code: 7, signal: 9 });
 		expect(primaryOutput).toEqual([
+			"already-rendered",
 			"gap-before-activation-ack",
 			"after-rotation",
 		]);
@@ -157,10 +179,126 @@ describe("DaemonPty planned rotation", () => {
 		expect(successor.subscriptions[0]?.disposed).toBe(true);
 	});
 
+	test("includes live bytes received after replay but before the observed boundary", async () => {
+		const replay = Buffer.from("replay-prefix");
+		const liveBeforeBoundary = Buffer.from("live-before-boundary");
+		const successorGap = Buffer.from("successor-gap");
+		const observed = Buffer.concat([replay, liveBeforeBoundary]);
+		const predecessor = fakeDaemon({
+			replay,
+			liveBeforeBoundary,
+			replayStartBytes: 0,
+			replayEndBytes: replay.byteLength,
+		});
+		const successor = fakeDaemon({
+			replay: Buffer.concat([observed, successorGap]),
+			replayStartBytes: 0,
+			replayEndBytes: observed.byteLength + successorGap.byteLength,
+		});
+		const pty = __makeDaemonPtyForTesting(
+			predecessor.daemon,
+			"session-live-before-boundary",
+		);
+		const output: Buffer[] = [];
+		const subscription = pty.subscribeWithReplayBoundary(
+			{ replay: true },
+			{
+				onOutput: (chunk) => output.push(Buffer.from(chunk)),
+				onExit: () => {},
+			},
+		);
+		await subscription.boundary;
+
+		const binding = await pty.stageDaemonRebind(successor.daemon);
+		binding.validate();
+		binding.commit();
+
+		expect(Buffer.concat(output)).toEqual(
+			Buffer.concat([observed, successorGap]),
+		);
+	});
+
+	test("publishes the successor suffix beyond the host-observed cursor exactly once", async () => {
+		const observedPrefix = Buffer.from([0x10, 0x00, 0xff, 0x41]);
+		const socketGap = Buffer.from([0x00, 0xfe, 0x7f, 0x42, 0x42]);
+		const predecessor = fakeDaemon({
+			replay: observedPrefix,
+			replayStartBytes: 0,
+			replayEndBytes: observedPrefix.byteLength,
+		});
+		const successor = fakeDaemon({
+			replay: Buffer.concat([observedPrefix, socketGap]),
+			replayStartBytes: 0,
+			replayEndBytes: observedPrefix.byteLength + socketGap.byteLength,
+		});
+		const pty = __makeDaemonPtyForTesting(
+			predecessor.daemon,
+			"session-observed-cursor",
+		);
+		const output: Buffer[] = [];
+		const subscription = pty.subscribeWithReplayBoundary(
+			{ replay: true },
+			{
+				onOutput: (chunk) => output.push(Buffer.from(chunk)),
+				onExit: () => {},
+			},
+		);
+		await subscription.boundary;
+
+		const binding = await pty.stageDaemonRebind(successor.daemon);
+		binding.validate();
+		binding.commit();
+
+		expect(Buffer.concat(output)).toEqual(
+			Buffer.concat([observedPrefix, socketGap]),
+		);
+	});
+
+	test("fails closed when the host-observed cursor is outside successor replay", async () => {
+		const observedPrefix = Buffer.from("observed");
+		const successorReplay = Buffer.from("later");
+		const predecessor = fakeDaemon({
+			replay: observedPrefix,
+			replayStartBytes: 0,
+			replayEndBytes: observedPrefix.byteLength,
+		});
+		const successor = fakeDaemon({
+			replay: successorReplay,
+			replayStartBytes: observedPrefix.byteLength + 1,
+			replayEndBytes:
+				observedPrefix.byteLength + 1 + successorReplay.byteLength,
+		});
+		const pty = __makeDaemonPtyForTesting(
+			predecessor.daemon,
+			"session-observed-cursor-out-of-range",
+		);
+		const output: Buffer[] = [];
+		const subscription = pty.subscribeWithReplayBoundary(
+			{ replay: true },
+			{
+				onOutput: (chunk) => output.push(Buffer.from(chunk)),
+				onExit: () => {},
+			},
+		);
+		await subscription.boundary;
+
+		const binding = await pty.stageDaemonRebind(successor.daemon);
+		expect(() => binding.validate()).toThrow(
+			/host-observed cursor .* outside successor replay/,
+		);
+		binding.discard({ final: true });
+
+		expect(Buffer.concat(output)).toEqual(observedPrefix);
+		expect(successor.subscriptions[0]?.disposed).toBe(true);
+	});
+
 	test("recovers binary output produced between successor sockets exactly once", async () => {
 		const cut = Buffer.from([0x10, 0x00, 0xff, 0x41]);
 		const betweenSockets = Buffer.from([0x00, 0xfe, 0x7f, 0x42, 0x42]);
-		const predecessor = fakeDaemon();
+		const predecessor = fakeDaemon({
+			replayStartBytes: cut.byteLength,
+			replayEndBytes: cut.byteLength,
+		});
 		const firstSuccessor = fakeDaemon({
 			replay: cut,
 			replayStartBytes: 0,
@@ -195,6 +333,51 @@ describe("DaemonPty planned rotation", () => {
 			Buffer.concat(observed).subarray(0, betweenSockets.byteLength),
 		).toEqual(betweenSockets);
 		expect(firstSuccessor.subscriptions[0]?.disposed).toBe(true);
+	});
+
+	test("publishes a carried retry suffix before one replacement exit", async () => {
+		const cut = Buffer.from("observed-cut");
+		const unpublishedSuffix = Buffer.from("unpublished-suffix");
+		const exit = { code: 7, signal: 9 };
+		const predecessor = fakeDaemon({
+			replayStartBytes: cut.byteLength,
+			replayEndBytes: cut.byteLength,
+		});
+		const firstSuccessor = fakeDaemon({
+			replay: cut,
+			liveBeforeBoundary: unpublishedSuffix,
+			exitBeforeBoundary: exit,
+			replayStartBytes: 0,
+			replayEndBytes: cut.byteLength,
+		});
+		const secondSuccessor = fakeDaemon({
+			replay: Buffer.concat([cut, unpublishedSuffix]),
+			exitBeforeBoundary: exit,
+			replayStartBytes: 0,
+			replayEndBytes: cut.byteLength + unpublishedSuffix.byteLength,
+		});
+		const pty = __makeDaemonPtyForTesting(
+			predecessor.daemon,
+			"session-retry-exit",
+		);
+		const events: string[] = [];
+		pty.subscribe(
+			{ replay: false },
+			{
+				onOutput: (chunk) => events.push(`output:${chunk.toString("utf8")}`),
+				onExit: ({ code, signal }) => events.push(`exit:${code}:${signal}`),
+			},
+		);
+
+		const first = await pty.stageDaemonRebind(firstSuccessor.daemon);
+		first.discard({ final: false });
+		expect(events).toEqual([]);
+
+		const second = await pty.stageDaemonRebind(secondSuccessor.daemon);
+		second.validate();
+		second.commit();
+
+		expect(events).toEqual(["output:unpublished-suffix", "exit:7:9"]);
 	});
 
 	test("disposeSubscriptions tears down the aggregate successor observer idempotently", async () => {
