@@ -4,6 +4,7 @@
 
 import { strict as assert } from "node:assert";
 import * as childProcess from "node:child_process";
+import { createHash } from "node:crypto";
 import * as fs from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
@@ -24,6 +25,36 @@ const LEGACY_DAEMON_BUNDLE = path.resolve(
 	"fixtures",
 	"pty-daemon-0.2.5.mjs",
 );
+const LEGACY_DAEMON_PROVENANCE = path.resolve(
+	here,
+	"fixtures",
+	"pty-daemon-0.2.5.provenance.json",
+);
+const LEGACY_DAEMON_SOURCE_COMMIT = "4ea555e075ce2217a3d9d1062480c3fba68445bf";
+const LEGACY_DAEMON_SHA256 =
+	"923fbfd7e656a5d16e5d4276798f6d02b6dce9ca69e1d0fe0f6ded633b73df5a";
+
+test("0.2.5 compatibility fixture matches its release provenance", () => {
+	const provenance = JSON.parse(
+		fs.readFileSync(LEGACY_DAEMON_PROVENANCE, "utf8"),
+	) as Record<string, unknown>;
+	assert.deepEqual(provenance, {
+		artifact: path.basename(LEGACY_DAEMON_BUNDLE),
+		sourceRepository: "https://github.com/superset-sh/superset",
+		sourceCommit: LEGACY_DAEMON_SOURCE_COMMIT,
+		sourcePackageVersion: "0.2.5",
+		bunVersion: "1.3.11",
+		buildCommand: "cd packages/pty-daemon && bun run build:daemon",
+		buildOutput: "packages/pty-daemon/dist/pty-daemon.js",
+		sha256: LEGACY_DAEMON_SHA256,
+	});
+	assert.equal(
+		createHash("sha256")
+			.update(fs.readFileSync(LEGACY_DAEMON_BUNDLE))
+			.digest("hex"),
+		LEGACY_DAEMON_SHA256,
+	);
+});
 
 function unlinkSafe(filePath: string): void {
 	try {

@@ -40,6 +40,22 @@ const PTY_DAEMON_CACHE_DIR = path.resolve(
 	__dirname,
 	"../../../pty-daemon/node_modules/.cache",
 );
+const TEST_RUN_NAMESPACE = `${process.pid}-${crypto.randomUUID().slice(0, 8)}`;
+
+function testOrgId(label: string): string {
+	return `it-${TEST_RUN_NAMESPACE}-${label}`;
+}
+
+function testSocketPath(organizationId: string): string {
+	return path.join(
+		os.tmpdir(),
+		`superset-ptyd-${crypto
+			.createHash("sha256")
+			.update(organizationId)
+			.digest("hex")
+			.slice(0, 12)}.sock`,
+	);
+}
 
 if (!fs.existsSync(DAEMON_BUNDLE)) {
 	throw new Error(
@@ -93,9 +109,10 @@ afterEach(async () => {
 
 describe("DaemonSupervisor.ensure (real spawn)", () => {
 	test("spawns a fresh daemon and reports running == expected", async () => {
+		const orgId = testOrgId("spawn");
 		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
-		supervisorsToCleanup.push({ sup, orgId: "org-spawn" });
-		const inst = await sup.ensure("org-spawn");
+		supervisorsToCleanup.push({ sup, orgId });
+		const inst = await sup.ensure(orgId);
 		assert.ok(inst.pid > 0, "expected a positive pid");
 		assert.equal(inst.runningVersion, inst.expectedVersion);
 		assert.equal(inst.updatePending, false);
@@ -103,8 +120,9 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 	});
 
 	test("adopts a running daemon across supervisor instances", async () => {
+		const orgId = testOrgId("adopt");
 		const supA = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
-		const a = await supA.ensure("org-adopt");
+		const a = await supA.ensure(orgId);
 		assert.ok(a.pid > 0);
 
 		// Track the daemon for cleanup; we'll stop via supervisor B since
@@ -113,16 +131,16 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 			// Supervisor B simulates a host-service restart — fresh state,
 			// but the manifest + running daemon are still on disk/live.
 			const supB = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
-			supervisorsToCleanup.push({ sup: supB, orgId: "org-adopt" });
-			const b = await supB.ensure("org-adopt");
+			supervisorsToCleanup.push({ sup: supB, orgId });
+			const b = await supB.ensure(orgId);
 			assert.equal(b.pid, a.pid, "B should adopt A's daemon");
 			assert.equal(b.socketPath, a.socketPath);
 			assert.equal(b.runningVersion, a.expectedVersion);
 			assert.equal(b.updatePending, false);
-			dropSupervisorInstance(supA, "org-adopt");
+			dropSupervisorInstance(supA, orgId);
 		} catch (err) {
 			// On failure, make sure A still cleans up.
-			await supA.stop("org-adopt").catch(() => {});
+			await supA.stop(orgId).catch(() => {});
 			throw err;
 		}
 	});
@@ -134,15 +152,8 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		// Going through supervisor.ensure for the spawn would inject
 		// EXPECTED_DAEMON_VERSION (0.1.0) into childEnv, defeating the
 		// older-version setup.
-		const orgId = "org-stale";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const orgId = testOrgId("stale");
+		const socketPath = testSocketPath(orgId);
 		// Clean up any leftover socket from prior runs.
 		try {
 			fs.unlinkSync(socketPath);
@@ -205,15 +216,16 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 	});
 
 	test("restart() kills the old daemon and spawns a new one", async () => {
+		const orgId = testOrgId("restart");
 		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
-		supervisorsToCleanup.push({ sup, orgId: "org-restart" });
-		const a = await sup.ensure("org-restart");
+		supervisorsToCleanup.push({ sup, orgId });
+		const a = await sup.ensure(orgId);
 		const aPid = a.pid;
 
-		await sup.restart("org-restart");
+		await sup.restart(orgId);
 		const after = (
 			sup as unknown as { instances: Map<string, { pid: number }> }
-		).instances.get("org-restart");
+		).instances.get(orgId);
 		assert.ok(after, "expected an instance after restart");
 		assert.notEqual(after.pid, aPid, "expected a new pid after restart");
 		// Old PID is dead within a beat.
@@ -228,9 +240,10 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		// DaemonSupervisor.test.ts (mocked stop/ensure for determinism —
 		// killing 4 daemons in a row from this test would race with the
 		// auto-respawn loop).
+		const orgId = testOrgId("respawn");
 		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
-		supervisorsToCleanup.push({ sup, orgId: "org-respawn" });
-		const a = await sup.ensure("org-respawn");
+		supervisorsToCleanup.push({ sup, orgId });
+		const a = await sup.ensure(orgId);
 		const aPid = a.pid;
 
 		process.kill(aPid, "SIGKILL");
@@ -238,11 +251,11 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		// Wait for the on-exit handler to register the death and respawn.
 		// The supervisor's auto-respawn fires inside `child.on("exit")`.
 		const deadline = Date.now() + 8000;
-		let _next = sup.getSocketPath("org-respawn");
+		let _next = sup.getSocketPath(orgId);
 		while (Date.now() < deadline) {
 			const inst = (
 				sup as unknown as { instances: Map<string, { pid: number }> }
-			).instances.get("org-respawn");
+			).instances.get(orgId);
 			if (inst && inst.pid !== aPid) {
 				_next = inst as unknown as string;
 				break;
@@ -251,7 +264,7 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		}
 		const after = (
 			sup as unknown as { instances: Map<string, { pid: number }> }
-		).instances.get("org-respawn");
+		).instances.get(orgId);
 		assert.ok(after, "expected a respawned instance");
 		assert.notEqual(after.pid, aPid);
 	});
@@ -263,7 +276,7 @@ describe("DaemonSupervisor.ensure (real spawn)", () => {
 		// stale instance so the next ensure() respawns. Without this,
 		// host-service would keep handing out a dead socket path until
 		// something else forced a restart.
-		const orgId = "org-adopted-died";
+		const orgId = testOrgId("adopted-died");
 
 		// Supervisor A spawns the daemon. We'll then construct a
 		// supervisor B that adopts via manifest, verify the adopted
@@ -314,7 +327,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// call update(), verify the successor has the session with the
 		// original shell pid still alive. This is THE Phase 2 success
 		// criterion at the supervisor layer.
-		const orgId = "org-update";
+		const orgId = testOrgId("update");
 		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
 		supervisorsToCleanup.push({ sup, orgId });
 		const a = await sup.ensure(orgId);
@@ -524,15 +537,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// drift, kick off a handoff in the background, and the running
 		// daemon's pid should change to the successor's within a few
 		// seconds.
-		const orgId = "org-auto-update";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const orgId = testOrgId("auto-update");
+		const socketPath = testSocketPath(orgId);
 		try {
 			fs.unlinkSync(socketPath);
 		} catch {}
@@ -616,15 +622,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// or trust the env it inherited, recording the OLD version as the
 		// successor's. This test pins the predecessor at 0.0.1-stale via
 		// env and asserts post-update running != stale, pending=false.
-		const orgId = "org-update-version";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const orgId = testOrgId("update-version");
+		const socketPath = testSocketPath(orgId);
 		try {
 			fs.unlinkSync(socketPath);
 		} catch {}
@@ -705,15 +704,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	test("auto-update with zero live sessions completes cleanly", async () => {
 		// Snapshot has zero session frames; successor adopts nothing and
 		// rebinds. Easy to break under refactors that assume sessions > 0.
-		const orgId = "org-empty-handoff";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const orgId = testOrgId("empty-handoff");
+		const socketPath = testSocketPath(orgId);
 		try {
 			fs.unlinkSync(socketPath);
 		} catch {}
@@ -793,15 +785,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// The same current bundle is pinned to an old semantic version while
 		// retaining its explicit handoff capability. Auto-update may therefore
 		// rotate it in the background, but must preserve the original shell PID.
-		const orgId = "org-autoupdate-live-defer";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const orgId = testOrgId("autoupdate-live");
+		const socketPath = testSocketPath(orgId);
 		try {
 			fs.unlinkSync(socketPath);
 		} catch {}
@@ -903,15 +888,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	});
 
 	test("real 0.2.5 daemon with a live session is deferred before prepare", async () => {
-		const orgId = "org-legacy-live-defer";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const orgId = testOrgId("legacy-live-defer");
+		const socketPath = testSocketPath(orgId);
 		const runtimeScript = LEGACY_DAEMON_BUNDLE;
 		try {
 			fs.unlinkSync(socketPath);
@@ -978,15 +956,8 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	});
 
 	test("real idle 0.2.5 daemon may hand off after its runtime is replaced", async () => {
-		const orgId = "org-legacy-idle-update";
-		const socketPath = path.join(
-			os.tmpdir(),
-			`superset-ptyd-${crypto
-				.createHash("sha256")
-				.update(orgId)
-				.digest("hex")
-				.slice(0, 12)}.sock`,
-		);
+		const orgId = testOrgId("legacy-idle-update");
+		const socketPath = testSocketPath(orgId);
 		fs.mkdirSync(PTY_DAEMON_CACHE_DIR, { recursive: true });
 		const runtimeDir = fs.mkdtempSync(
 			path.join(PTY_DAEMON_CACHE_DIR, "host-legacy-idle-"),
@@ -1043,7 +1014,7 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 	});
 
 	test("update() returns ok:false and leaves predecessor alive when there's no daemon", async () => {
-		const orgId = "org-update-noop";
+		const orgId = testOrgId("update-noop");
 		const sup = new DaemonSupervisor({ scriptPath: DAEMON_BUNDLE });
 		supervisorsToCleanup.push({ sup, orgId });
 		// Don't ensure() — there's no instance.
