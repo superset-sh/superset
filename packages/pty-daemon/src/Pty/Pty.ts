@@ -5,7 +5,7 @@ import * as nodePty from "node-pty";
 import {
 	type ProcessSignalError,
 	type ProcessSignalTarget,
-	signalProcessTargets,
+	signalProcessTargetsIfStillOwned,
 	signalProcessTreeAndGroups,
 } from "../process-tree.ts";
 import type { SessionMeta } from "../protocol/index.ts";
@@ -29,6 +29,8 @@ export class KillEscalationTimer {
 	) => NodeJS.Timeout;
 	private readonly clearTimer: (timer: NodeJS.Timeout) => void;
 	private timer: NodeJS.Timeout | null = null;
+	private completion: Promise<void> | null = null;
+	private resolveCompletion: (() => void) | null = null;
 
 	constructor(options: KillEscalationTimerOptions = {}) {
 		this.timeoutMs = options.timeoutMs ?? KILL_ESCALATION_TIMEOUT_MS;
@@ -36,23 +38,40 @@ export class KillEscalationTimer {
 		this.clearTimer = options.clearTimer ?? clearTimeout;
 	}
 
-	schedule(callback: () => void): void {
-		if (this.timer) return;
+	schedule(callback: () => void): Promise<void> {
+		if (this.timer && this.completion) return this.completion;
+		let resolveCompletion!: () => void;
+		const completion = new Promise<void>((resolve) => {
+			resolveCompletion = resolve;
+		});
 		const timer = this.setTimer(() => {
 			// A cancelled callback can already be queued when a new escalation is
 			// scheduled. Only the timer that still owns this slot may signal PIDs.
 			if (this.timer !== timer) return;
 			this.timer = null;
-			callback();
+			this.completion = null;
+			this.resolveCompletion = null;
+			try {
+				callback();
+			} finally {
+				resolveCompletion();
+			}
 		}, this.timeoutMs);
 		this.timer = timer;
+		this.completion = completion;
+		this.resolveCompletion = resolveCompletion;
 		timer.unref();
+		return completion;
 	}
 
 	cancel(): void {
 		const timer = this.timer;
+		const resolveCompletion = this.resolveCompletion;
 		this.timer = null;
+		this.completion = null;
+		this.resolveCompletion = null;
 		if (timer) this.clearTimer(timer);
+		resolveCompletion?.();
 	}
 }
 
@@ -67,7 +86,8 @@ export interface Pty {
 	readonly meta: SessionMeta;
 	write(data: Buffer): void;
 	resize(cols: number, rows: number): void;
-	kill(signal?: NodeJS.Signals): void;
+	/** Resolve only after any delayed descendant-kill escalation is complete. */
+	kill(signal?: NodeJS.Signals): void | Promise<void>;
 	onData(cb: PtyOnData): void;
 	onExit(cb: PtyOnExit): void;
 	/** Stop new input synchronously and drain all previously accepted writes. */
@@ -176,14 +196,28 @@ class NodePtyAdapter implements Pty {
 		this.meta = { ...this.meta, cols, rows };
 	}
 
-	kill(signal?: NodeJS.Signals): void {
+	kill(signal?: NodeJS.Signals): Promise<void> {
 		const killSignal = signal ?? "SIGHUP";
 		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
 			includeRoot: false,
 			onSignalError: logProcessSignalError,
 		});
-		this.term.kill(killSignal);
-		this.scheduleKillEscalation(killSignal, escalationTargets);
+		// Arm the escalation before signalling the root. node-pty may report the
+		// root exit immediately, but SIGHUP-resistant descendants still belong to
+		// this daemon until the identity-witnessed escalation has fired.
+		const escalation = this.scheduleKillEscalation(
+			killSignal,
+			escalationTargets,
+		);
+		let signalError: unknown;
+		try {
+			this.term.kill(killSignal);
+		} catch (error) {
+			signalError = error;
+		}
+		return escalation.then(() => {
+			if (signalError) throw signalError;
+		});
 	}
 
 	onData(cb: PtyOnData): void {
@@ -295,15 +329,21 @@ class NodePtyAdapter implements Pty {
 	private scheduleKillEscalation(
 		signal: NodeJS.Signals,
 		targets: ProcessSignalTarget[],
-	): void {
-		if (signal === "SIGKILL" || this.exited) return;
+	): Promise<void> {
+		if (signal === "SIGKILL") return Promise.resolve();
 
-		this.killEscalation.schedule(() => {
-			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
-			try {
-				this.term.kill("SIGKILL");
-			} catch {
-				// PTY root may have already exited; detached targets still matter.
+		return this.killEscalation.schedule(() => {
+			signalProcessTargetsIfStillOwned(
+				targets,
+				"SIGKILL",
+				logProcessSignalError,
+			);
+			if (!this.exited) {
+				try {
+					this.term.kill("SIGKILL");
+				} catch {
+					// PTY root may have exited between the liveness check and signal.
+				}
 			}
 		});
 	}
@@ -734,12 +774,12 @@ class AdoptedPty implements Pty {
 		}
 	}
 
-	kill(signal?: NodeJS.Signals): void {
+	kill(signal?: NodeJS.Signals): Promise<void> {
 		const killSignal = signal ?? "SIGHUP";
 		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
 			onSignalError: logProcessSignalError,
 		});
-		this.scheduleKillEscalation(killSignal, escalationTargets);
+		return this.scheduleKillEscalation(killSignal, escalationTargets);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -770,11 +810,15 @@ class AdoptedPty implements Pty {
 	private scheduleKillEscalation(
 		signal: NodeJS.Signals,
 		targets: ProcessSignalTarget[],
-	): void {
-		if (signal === "SIGKILL" || this.exitFired) return;
+	): Promise<void> {
+		if (signal === "SIGKILL") return Promise.resolve();
 
-		this.killEscalation.schedule(() => {
-			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
+		return this.killEscalation.schedule(() => {
+			signalProcessTargetsIfStillOwned(
+				targets,
+				"SIGKILL",
+				logProcessSignalError,
+			);
 		});
 	}
 
@@ -792,7 +836,8 @@ class AdoptedPty implements Pty {
 		if (this.exitFired) return;
 		this.exitFired = true;
 		this.exitInfo = info;
-		this.killEscalation.cancel();
+		// The root can exit before a SIGHUP-ignoring descendant. Keep the delayed
+		// escalation alive; identity witnesses make it safe against pid/pgid reuse.
 		if (this.livenessTimer) clearInterval(this.livenessTimer);
 		this.livenessTimer = null;
 		// fs.write cannot be cancelled. Stop and unref reads immediately, but keep

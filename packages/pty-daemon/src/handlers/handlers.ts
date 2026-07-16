@@ -114,7 +114,10 @@ export function handleResize(
 	return undefined;
 }
 
-export function handleClose(ctx: HandlerCtx, msg: CloseMessage): ServerMessage {
+export async function handleClose(
+	ctx: HandlerCtx,
+	msg: CloseMessage,
+): Promise<ServerMessage> {
 	const session = ctx.store.get(msg.id);
 	if (!session) return errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT");
 	try {
@@ -123,7 +126,7 @@ export function handleClose(ctx: HandlerCtx, msg: CloseMessage): ServerMessage {
 		// shells (especially `zsh -l`) trap SIGTERM and stay alive, so
 		// using SIGTERM as the default leaks PTY processes on every
 		// pane close. Callers can still pass an explicit signal.
-		session.pty.kill(msg.signal ?? "SIGHUP");
+		await session.pty.kill(msg.signal ?? "SIGHUP");
 	} catch (err) {
 		return errorFor(msg.id, (err as Error).message, "EKILL");
 	}

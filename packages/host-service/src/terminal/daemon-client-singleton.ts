@@ -36,6 +36,7 @@ let connecting: Promise<DaemonClient> | null = null;
 let handoffClient: DaemonClient | null = null;
 let handoffDisconnectSuppressed = false;
 let plannedRotationActive = false;
+let unbarrieredMutationClient: DaemonClient | null = null;
 
 /**
  * Subscribers notified whenever the active DaemonClient disconnects.
@@ -246,6 +247,20 @@ export function runCurrentDaemonMutation<T>(
 	return runDaemonMutation(getOrganizationId(), descriptor, operation);
 }
 
+/**
+ * Record the exact transport that accepted an unacknowledged input/resize.
+ * Only a later request/reply barrier on this same socket may clear it.
+ */
+export function markDaemonMutationNeedsBarrier(client: DaemonClient): void {
+	if (unbarrieredMutationClient && unbarrieredMutationClient !== client) {
+		// Preserve the oldest unresolved transport. Replacing it with a newer
+		// socket would let that socket's barrier erase ambiguity about input that
+		// may or may not have reached the predecessor.
+		return;
+	}
+	unbarrieredMutationClient = client;
+}
+
 /** For tests / shutdown only. */
 export async function disposeDaemonClient(): Promise<void> {
 	const c = cached;
@@ -255,6 +270,7 @@ export async function disposeDaemonClient(): Promise<void> {
 	handoffClient = null;
 	handoffDisconnectSuppressed = false;
 	plannedRotationActive = false;
+	unbarrieredMutationClient = null;
 	if (c) await c.dispose();
 	if (inFlight) {
 		const client = await inFlight.catch(() => null);
@@ -264,11 +280,23 @@ export async function disposeDaemonClient(): Promise<void> {
 
 registerDaemonMutationTransportHooks({
 	barrier: async (organizationId) => {
-		if (organizationId !== getOrganizationId()) return;
+		if (organizationId !== process.env.ORGANIZATION_ID) return;
 		const inFlight = connecting;
 		const client =
 			cached ?? (inFlight ? await inFlight.catch(() => null) : null);
-		if (!client?.isConnected) return;
+		if (!client?.isConnected) {
+			if (unbarrieredMutationClient) {
+				throw new Error(
+					"mutation transport disconnected before its same-socket barrier; prior terminal input ownership is ambiguous",
+				);
+			}
+			return;
+		}
+		if (unbarrieredMutationClient && unbarrieredMutationClient !== client) {
+			throw new Error(
+				"mutation transport was replaced before its same-socket barrier; prior terminal input ownership is ambiguous",
+			);
+		}
 		handoffClient = client;
 		handoffDisconnectSuppressed = false;
 		plannedRotationActive = true;
@@ -277,9 +305,12 @@ registerDaemonMutationTransportHooks({
 		// the lifecycle before awaiting it so a close racing the reply is already
 		// classified as part of this controlled rotation.
 		await client.list();
+		if (unbarrieredMutationClient === client) {
+			unbarrieredMutationClient = null;
+		}
 	},
 	invalidateAfterSuccess: async (organizationId) => {
-		if (organizationId !== getOrganizationId()) return;
+		if (organizationId !== process.env.ORGANIZATION_ID) return;
 		const predecessor = handoffClient;
 		if (cached === predecessor) cached = null;
 
@@ -307,7 +338,7 @@ registerDaemonMutationTransportHooks({
 		}
 	},
 	resumeAfterAbort: async (organizationId) => {
-		if (organizationId !== getOrganizationId()) return;
+		if (organizationId !== process.env.ORGANIZATION_ID) return;
 		const client = handoffClient;
 		const disconnected =
 			client !== null && (handoffDisconnectSuppressed || !client.isConnected);
@@ -323,7 +354,7 @@ registerDaemonMutationTransportHooks({
 		}
 	},
 	resetAfterForceRestart: async (organizationId, error) => {
-		if (organizationId !== getOrganizationId()) return;
+		if (organizationId !== process.env.ORGANIZATION_ID) return;
 		const predecessor = handoffClient;
 		const current = cached;
 		const inFlight = connecting;
@@ -332,6 +363,7 @@ registerDaemonMutationTransportHooks({
 		handoffClient = null;
 		handoffDisconnectSuppressed = false;
 		plannedRotationActive = false;
+		unbarrieredMutationClient = null;
 		if (predecessor) await predecessor.dispose().catch(() => {});
 		if (current && current !== predecessor) {
 			await current.dispose().catch(() => {});

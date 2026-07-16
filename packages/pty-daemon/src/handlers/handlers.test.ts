@@ -159,14 +159,14 @@ describe("handlers", () => {
 		expect(states[0]?.rows).toBe(30);
 	});
 
-	test("close kills the pty and replies closed", () => {
+	test("close kills the pty and replies closed", async () => {
 		const ctx = makeCtx();
 		handleOpen(ctx, {
 			type: "open",
 			id: "s0",
 			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
 		});
-		const reply = handleClose(ctx, { type: "close", id: "s0" });
+		const reply = await handleClose(ctx, { type: "close", id: "s0" });
 		expect(reply.type).toBe("closed");
 		expect(states[0]?.killed).toBe(true);
 	});

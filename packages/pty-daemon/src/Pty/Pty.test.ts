@@ -1,5 +1,9 @@
 import { describe, expect, test } from "bun:test";
 import {
+	filterOwnedProcessSignalTargets,
+	type ProcessSignalTarget,
+} from "../process-tree.ts";
+import {
 	KillEscalationTimer,
 	requireNodePtyWriteStream,
 	setAdoptedPtyNonBlocking,
@@ -35,6 +39,33 @@ describe("Pty wrapper (validation only — spawn behavior tested under node)", (
 		callbacks[1]?.();
 		expect(fired).toEqual(["current"]);
 		expect(cleared).toHaveLength(1);
+	});
+
+	test("delayed escalation retains descendants but skips recycled identities", () => {
+		const pidTarget: ProcessSignalTarget = {
+			target: "pid",
+			id: 41,
+			witnesses: [{ pid: 41, pgid: 41, startTime: "old-root" }],
+		};
+		const groupTarget: ProcessSignalTarget = {
+			target: "pgid",
+			id: 41,
+			witnesses: [{ pid: 42, pgid: 41, startTime: "old-child" }],
+		};
+		const targets = [pidTarget, groupTarget];
+
+		expect(
+			filterOwnedProcessSignalTargets(targets, [
+				{ pid: 41, ppid: 1, pgid: 41, startTime: "recycled-root" },
+				{ pid: 42, ppid: 1, pgid: 41, startTime: "old-child" },
+			]),
+		).toEqual([groupTarget]);
+		expect(
+			filterOwnedProcessSignalTargets(targets, [
+				{ pid: 41, ppid: 1, pgid: 41, startTime: "recycled-root" },
+				{ pid: 42, ppid: 1, pgid: 41, startTime: "recycled-child" },
+			]),
+		).toEqual([]);
 	});
 
 	test("requires the adopted TTY handle nonblocking contract", () => {

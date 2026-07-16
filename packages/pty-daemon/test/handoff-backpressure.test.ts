@@ -100,6 +100,24 @@ function killBestEffort(pid: number | null): void {
 	}
 }
 
+async function waitForProcessGone(
+	pid: number,
+	timeoutMs = 4_000,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		const probe = childProcess.spawnSync(
+			"ps",
+			["-o", "state=", "-p", String(pid)],
+			{ encoding: "utf8" },
+		);
+		const state = probe.stdout.trim();
+		if (probe.status !== 0 || state === "" || state.startsWith("Z")) return;
+		await new Promise((resolve) => setTimeout(resolve, 50));
+	}
+	throw new Error(`process ${pid} survived delayed PTY kill escalation`);
+}
+
 before(async () => {
 	unlinkSafe(sockPath);
 	daemonA = spawnDaemon(sockPath);
@@ -295,6 +313,131 @@ test("four backpressured adopted PTYs do not exhaust workers or block control", 
 			successorClient?.close(),
 			controlClient?.close(),
 		]);
+	}
+});
+
+test("adopted PTY still escalates a SIGHUP-resistant descendant after root exit", async () => {
+	const localSocket = path.join(
+		os.tmpdir(),
+		`pty-daemon-adopted-signal-tree-${process.pid}.sock`,
+	);
+	const sessionId = "adopted-sighup-resistant-descendant";
+	unlinkSafe(localSocket);
+	const predecessor = spawnDaemon(localSocket);
+	let predecessorClient: DaemonClient | null = null;
+	let adoptedClient: DaemonClient | null = null;
+	let nextSuccessorPid: number | null = null;
+	let finalSuccessorPid: number | null = null;
+	let rootPid: number | null = null;
+	let childPid: number | null = null;
+
+	try {
+		await waitForSocket(localSocket);
+		predecessorClient = await connectAndHello(localSocket);
+		predecessorClient.send({
+			type: "open",
+			id: sessionId,
+			meta: {
+				shell: "/bin/sh",
+				argv: [
+					"-c",
+					"( trap '' HUP TERM INT; while :; do sleep 30; done ) & printf 'SIGHUP_CHILD:%s\\n' \"$!\"; while :; do sleep 30; done",
+				],
+				cols: 80,
+				rows: 24,
+			},
+		});
+		const opened = await predecessorClient.waitFor(
+			(message) => message.type === "open-ok" && message.id === sessionId,
+		);
+		assert.equal(opened.type, "open-ok");
+		if (opened.type !== "open-ok") return;
+		rootPid = opened.pid;
+		predecessorClient.send({
+			type: "subscribe",
+			id: sessionId,
+			replay: true,
+		});
+		await predecessorClient.waitFor(
+			(message) =>
+				message.type === "output" &&
+				message.id === sessionId &&
+				/SIGHUP_CHILD:\d+/.test(
+					accumulatedOutputAsString(
+						predecessorClient as DaemonClient,
+						sessionId,
+					),
+				),
+			2_000,
+		);
+		const childMatch = /SIGHUP_CHILD:(\d+)/.exec(
+			accumulatedOutputAsString(predecessorClient, sessionId),
+		);
+		assert.ok(childMatch, "background child pid marker should be present");
+		childPid = Number(childMatch[1]);
+		assert.ok(Number.isInteger(childPid) && childPid > 0);
+
+		predecessorClient.send({ type: "prepare-upgrade" });
+		const upgrade = await predecessorClient.waitFor(
+			(message) => message.type === "upgrade-prepared",
+			10_000,
+		);
+		assert.equal(upgrade.type, "upgrade-prepared");
+		if (upgrade.type !== "upgrade-prepared") return;
+		assert.equal(upgrade.result.ok, true, JSON.stringify(upgrade.result));
+		if (!upgrade.result.ok) return;
+		nextSuccessorPid = upgrade.result.successorPid;
+
+		await new Promise<void>((resolve) => {
+			if (predecessor.exitCode !== null) return resolve();
+			predecessor.once("exit", () => resolve());
+		});
+		const reconnectDeadline = Date.now() + 5_000;
+		while (Date.now() < reconnectDeadline) {
+			try {
+				adoptedClient = await connectAndHello(localSocket);
+				break;
+			} catch {
+				await new Promise((resolve) => setTimeout(resolve, 50));
+			}
+		}
+		assert.ok(adoptedClient, "successor should accept the adopted session");
+		const closeReply = adoptedClient.waitForNext(
+			(message) => message.type === "closed" && message.id === sessionId,
+			6_000,
+		);
+		const concurrentUpgrade = adoptedClient.waitForNext(
+			(message) => message.type === "upgrade-prepared",
+			10_000,
+		);
+		adoptedClient.send({ type: "close", id: sessionId, signal: "SIGHUP" });
+		// Exercise the exact race: the root exits quickly, but its detached child
+		// ignores SIGHUP and remains owned by the predecessor's delayed escalation.
+		// A prepare arriving on the next ordered frame must not let that predecessor
+		// exit until the escalation operation has settled.
+		adoptedClient.send({ type: "prepare-upgrade" });
+		await closeReply;
+		const finalUpgrade = await concurrentUpgrade;
+		assert.equal(finalUpgrade.type, "upgrade-prepared");
+		if (finalUpgrade.type !== "upgrade-prepared") return;
+		assert.equal(
+			finalUpgrade.result.ok,
+			true,
+			JSON.stringify(finalUpgrade.result),
+		);
+		if (finalUpgrade.result.ok) {
+			finalSuccessorPid = finalUpgrade.result.successorPid;
+		}
+		await waitForProcessGone(childPid);
+		childPid = null;
+	} finally {
+		await Promise.all([predecessorClient?.close(), adoptedClient?.close()]);
+		killBestEffort(childPid);
+		killBestEffort(rootPid);
+		killBestEffort(nextSuccessorPid);
+		killBestEffort(finalSuccessorPid);
+		if (predecessor.pid) killBestEffort(predecessor.pid);
+		unlinkSafe(localSocket);
 	}
 });
 

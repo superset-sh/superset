@@ -22,6 +22,7 @@ import {
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 	type ServerMessage,
 	type SessionInfo,
 } from "@superset/pty-daemon/protocol";
@@ -62,6 +63,16 @@ interface DaemonInstance {
 interface DaemonProbeResult {
 	daemonVersion: string;
 	daemonPid?: number;
+	capabilities: string[];
+}
+
+export function liveHandoffCapabilityFailure(
+	sessions: SessionInfo[],
+	hasLosslessCapability: boolean,
+): string | null {
+	const liveSessions = sessions.filter((session) => session.alive);
+	if (liveSessions.length === 0 || hasLosslessCapability) return null;
+	return `running daemon lacks ${LOSSLESS_LIVE_HANDOFF_CAPABILITY}; refusing to hand off ${liveSessions.length} live terminal session${liveSessions.length === 1 ? "" : "s"}`;
 }
 
 interface AmbiguousUpdateRecovery {
@@ -169,9 +180,10 @@ export interface DaemonSupervisorOptions {
 	/**
 	 * When true (default), opportunistically calls `update()` after
 	 * adopting a daemon whose `runningVersion < EXPECTED_DAEMON_VERSION`.
-	 * Background auto-update is best-effort only: if fd-handoff cannot
-	 * preserve the daemon's sessions, the predecessor keeps running and
-	 * the desktop UI remains the explicit place for a destructive force restart.
+	 * Background auto-update is best-effort only: a capable daemon may hand off
+	 * live sessions losslessly, while legacy/unknown daemons defer until idle.
+	 * On any failure the predecessor keeps running; only the desktop UI exposes
+	 * the explicit destructive force restart.
 	 * Set to false in integration tests that intentionally adopt a stale
 	 * daemon and assert the version-drift flag without the test racing a
 	 * real handoff.
@@ -333,6 +345,33 @@ export class DaemonSupervisor {
 			};
 		}
 
+		// Re-list on the same control socket that will send prepare-upgrade. The
+		// writer gate is already closed and the mutation socket barrier completed,
+		// so this is a stable view: opens arriving now are queued for the eventual
+		// owner instead of entering an unadvertised legacy snapshot.
+		const client = new DaemonClient({ socketPath: instance.socketPath });
+		let preflightSessions: SessionInfo[];
+		try {
+			await client.connect();
+			preflightSessions = await client.list();
+		} catch (error) {
+			await client.dispose().catch(() => {});
+			await mutationLease.release("abort");
+			return {
+				ok: false,
+				reason: `failed to verify live-handoff capability: ${(error as Error).message}`,
+			};
+		}
+		const capabilityFailure = liveHandoffCapabilityFailure(
+			preflightSessions,
+			client.hasCapability(LOSSLESS_LIVE_HANDOFF_CAPABILITY),
+		);
+		if (capabilityFailure) {
+			await client.dispose().catch(() => {});
+			await mutationLease.release("abort");
+			return { ok: false, reason: capabilityFailure };
+		}
+
 		// Suppress crash-respawn for the predecessor's imminent exit. The
 		// predecessor was either spawned by us (child.on('exit') will fire)
 		// or adopted (liveness poll); either way, marking `stopping` makes
@@ -395,6 +434,7 @@ export class DaemonSupervisor {
 			// No prepare request was sent, so predecessor ownership is certain.
 			this.stopping.delete(organizationId);
 			this.startAdoptedLivenessCheck(organizationId, instance.pid);
+			await client.dispose().catch(() => {});
 			await mutationLease.release("abort");
 			return {
 				ok: false,
@@ -402,11 +442,9 @@ export class DaemonSupervisor {
 			};
 		}
 
-		const client = new DaemonClient({ socketPath: instance.socketPath });
 		let result: UpgradePreparedResult;
 		let prepareStarted = false;
 		try {
-			await client.connect();
 			prepareStarted = true;
 			result = await client.prepareUpgrade();
 		} catch (err) {
@@ -786,10 +824,9 @@ export class DaemonSupervisor {
 	/**
 	 * Auto-update: best-effort opportunistic handoff when the adopted
 	 * daemon is older than the bundled binary. Runs after host-service
-	 * boot, fire-and-track, doesn't block anything. The background path
-	 * is intentionally conservative: live sessions keep running on the
-	 * predecessor and the foreground Settings UI remains the place for
-	 * user-approved handoff/restart.
+	 * boot, fire-and-track, doesn't block anything. A daemon advertising the
+	 * lossless-live-handoff capability may rotate with live sessions; legacy or
+	 * unverified daemons defer until idle. This path never force-restarts.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -836,10 +873,32 @@ export class DaemonSupervisor {
 		}
 		const aliveSessionCount = countAliveSessions(sessions);
 		if (aliveSessionCount > 0) {
-			this.deferAutoUpdate(organizationId, instance, "live_sessions_present", {
-				aliveSessionCount,
-			});
-			return;
+			const probe = await probeDaemonHello(
+				instance.socketPath,
+				AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS,
+			);
+			if (!probe) {
+				this.deferAutoUpdate(
+					organizationId,
+					instance,
+					"live_handoff_capability_unknown",
+					{ aliveSessionCount },
+				);
+				return;
+			}
+			const capabilityFailure = liveHandoffCapabilityFailure(
+				sessions,
+				probe.capabilities.includes(LOSSLESS_LIVE_HANDOFF_CAPABILITY),
+			);
+			if (capabilityFailure) {
+				this.deferAutoUpdate(
+					organizationId,
+					instance,
+					"live_handoff_capability_missing",
+					{ aliveSessionCount },
+				);
+				return;
+			}
 		}
 
 		const update = this.startUpdate(organizationId);
@@ -1391,6 +1450,22 @@ function countAliveSessions(sessions: SessionInfo[]): number {
 	return sessions.filter((session) => session.alive).length;
 }
 
+function isValidSessionList(value: unknown): value is SessionInfo[] {
+	return (
+		Array.isArray(value) &&
+		value.every(
+			(session) =>
+				typeof session === "object" &&
+				session !== null &&
+				typeof (session as Partial<SessionInfo>).id === "string" &&
+				Number.isInteger((session as Partial<SessionInfo>).pid) &&
+				Number.isInteger((session as Partial<SessionInfo>).cols) &&
+				Number.isInteger((session as Partial<SessionInfo>).rows) &&
+				typeof (session as Partial<SessionInfo>).alive === "boolean",
+		)
+	);
+}
+
 async function waitForSocket(
 	socketPath: string,
 	timeoutMs: number,
@@ -1473,7 +1548,7 @@ export async function listDaemonSessions(
 						continue;
 					}
 					if (msg.type === "list-reply") {
-						cleanup(msg.sessions);
+						cleanup(isValidSessionList(msg.sessions) ? msg.sessions : null);
 						return;
 					}
 					if (msg.type === "error") {
@@ -1587,6 +1662,9 @@ function probeDaemonHello(
 			settled = true;
 			clearTimeout(timer);
 			sock.removeAllListeners();
+			// Destroying a still-connecting pipe may emit another error after the
+			// first one settled the probe. Keep a sink installed through teardown.
+			sock.on("error", () => {});
 			try {
 				sock.end();
 			} catch {
@@ -1633,6 +1711,12 @@ function probeDaemonHello(
 						cleanup({
 							daemonVersion,
 							daemonPid: msg.daemonPid,
+							capabilities: Array.isArray(msg.capabilities)
+								? msg.capabilities.filter(
+										(capability): capability is string =>
+											typeof capability === "string",
+									)
+								: [],
 						});
 						return;
 					}

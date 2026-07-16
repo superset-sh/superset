@@ -4,6 +4,8 @@ export interface ProcessInfo {
 	pid: number;
 	ppid: number;
 	pgid: number;
+	/** Stable for one process lifetime; populated by readProcessTable(). */
+	startTime?: string;
 }
 
 export interface ProcessSignalError {
@@ -16,6 +18,14 @@ export interface ProcessSignalError {
 export interface ProcessSignalTarget {
 	target: "pid" | "pgid";
 	id: number;
+	/** Identities that proved ownership when this delayed target was captured. */
+	witnesses: ProcessIdentity[];
+}
+
+export interface ProcessIdentity {
+	pid: number;
+	pgid: number;
+	startTime: string;
 }
 
 export interface SignalProcessTreeAndGroupsOptions {
@@ -75,14 +85,26 @@ export function collectProcessSignalTargets(
 
 	if (signalGroups) {
 		for (const pgid of pgids) {
-			targets.push({ target: "pgid", id: pgid });
+			targets.push({
+				target: "pgid",
+				id: pgid,
+				witnesses: [...pids].flatMap((pid) => {
+					const info = infoByPid.get(pid);
+					return info?.pgid === pgid ? identityFor(info) : [];
+				}),
+			});
 		}
 	}
 
 	if (signalPids) {
 		for (const pid of pids) {
 			if (!includeRoot && pid === rootPid) continue;
-			targets.push({ target: "pid", id: pid });
+			const info = infoByPid.get(pid);
+			targets.push({
+				target: "pid",
+				id: pid,
+				witnesses: info ? identityFor(info) : [],
+			});
 		}
 	}
 
@@ -99,8 +121,49 @@ export function signalProcessTargets(
 	}
 }
 
+/**
+ * Delayed escalation is allowed only while an original process identity still
+ * owns the pid/process group. This preserves descendant cleanup after the root
+ * exits without ever signaling a recycled pid or pgid.
+ */
+export function signalProcessTargetsIfStillOwned(
+	targets: ProcessSignalTarget[],
+	signal: NodeJS.Signals,
+	onSignalError?: (error: ProcessSignalError) => void,
+): void {
+	for (const target of filterOwnedProcessSignalTargets(
+		targets,
+		readProcessTable(),
+	)) {
+		signalTarget(target.target, target.id, signal, onSignalError);
+	}
+}
+
+/** @internal Exported for deterministic ownership tests. */
+export function filterOwnedProcessSignalTargets(
+	targets: ProcessSignalTarget[],
+	currentTable: ProcessInfo[],
+): ProcessSignalTarget[] {
+	const currentByPid = new Map(currentTable.map((row) => [row.pid, row]));
+	return targets.filter((target) =>
+		target.witnesses.some((witness) => {
+			const current = currentByPid.get(witness.pid);
+			if (
+				!current?.startTime ||
+				current.startTime !== witness.startTime ||
+				current.pgid !== witness.pgid
+			) {
+				return false;
+			}
+			return target.target === "pid"
+				? current.pid === target.id
+				: current.pgid === target.id;
+		}),
+	);
+}
+
 export function readProcessTable(): ProcessInfo[] {
-	const result = spawnSync("ps", ["-axo", "pid=,ppid=,pgid="], {
+	const result = spawnSync("ps", ["-axo", "pid=,ppid=,pgid=,lstart="], {
 		encoding: "utf8",
 	});
 	if (result.error || result.status !== 0) return [];
@@ -110,7 +173,8 @@ export function readProcessTable(): ProcessInfo[] {
 		.map((line) => line.trim())
 		.filter(Boolean)
 		.flatMap((line) => {
-			const [pidText, ppidText, pgidText] = line.split(/\s+/);
+			const [pidText, ppidText, pgidText, ...startTimeParts] =
+				line.split(/\s+/);
 			if (
 				pidText === undefined ||
 				ppidText === undefined ||
@@ -125,8 +189,16 @@ export function readProcessTable(): ProcessInfo[] {
 				return [];
 			}
 			if (!isPositiveInteger(pgid)) return [];
-			return [{ pid, ppid, pgid }];
+			const startTime = startTimeParts.join(" ");
+			if (!startTime) return [];
+			return [{ pid, ppid, pgid, startTime }];
 		});
+}
+
+function identityFor(info: ProcessInfo): ProcessIdentity[] {
+	return info.startTime
+		? [{ pid: info.pid, pgid: info.pgid, startTime: info.startTime }]
+		: [];
 }
 
 /**

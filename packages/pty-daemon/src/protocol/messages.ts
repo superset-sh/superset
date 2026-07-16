@@ -25,6 +25,13 @@ export interface SessionInfo {
 
 // ---------- Handshake ----------
 
+/**
+ * Advertised only by daemons whose live-session handoff drains accepted input,
+ * establishes an exact output cut, and transfers delayed close ownership.
+ */
+export const LOSSLESS_LIVE_HANDOFF_CAPABILITY =
+	"lossless-live-handoff-v1" as const;
+
 export interface HelloMessage {
 	type: "hello";
 	protocols: number[];
@@ -35,6 +42,8 @@ export interface HelloAckMessage {
 	type: "hello-ack";
 	protocol: number;
 	daemonVersion: string;
+	/** Optional for wire compatibility with pre-capability daemons. */
+	capabilities?: string[];
 	/**
 	 * Process id of the daemon process that accepted the connection. Supervisors
 	 * use this to recover adoption state from a live socket when the manifest is

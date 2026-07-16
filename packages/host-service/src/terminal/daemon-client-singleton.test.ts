@@ -16,7 +16,10 @@ import {
 	onDaemonPlannedRotation,
 } from "./daemon-client-singleton.ts";
 import { beginDaemonUpdate } from "./daemon-mutation-gate.ts";
-import { __makeDaemonPtyForTesting } from "./terminal.ts";
+import {
+	__makeDaemonPtyForTesting,
+	__sendDirectDaemonInputForTesting,
+} from "./terminal.ts";
 
 interface FakeDaemon {
 	socketPath: string;
@@ -193,6 +196,101 @@ describe.serial("daemon client singleton", () => {
 			expect(first.some(({ id }) => id === "list-reply-2")).toBe(false);
 			expect(second.some(({ id }) => id === "list-reply-2")).toBe(true);
 			expect(daemon.receivedByConnection[0]).toEqual(["hello", "list", "list"]);
+		} finally {
+			await disposeDaemonClient();
+			await daemon.close();
+		}
+	});
+
+	test("fails update visibly when fire-and-forget input loses its barrier socket", async () => {
+		const daemon = await startFakeDaemon();
+		process.env.SUPERSET_PTY_DAEMON_SOCKET = daemon.socketPath;
+		process.env.ORGANIZATION_ID = "lost-input-barrier-org";
+		let pty: ReturnType<typeof __makeDaemonPtyForTesting> | null = null;
+		try {
+			const client = await getDaemonClient();
+			pty = __makeDaemonPtyForTesting(client, "known-session");
+			await pty.write("unacknowledged-input");
+			daemon.connections[0]?.destroy();
+			for (let attempt = 0; attempt < 50 && client.isConnected; attempt++) {
+				await new Promise((resolve) => setTimeout(resolve, 2));
+			}
+			expect(client.isConnected).toBe(false);
+
+			const lease = beginDaemonUpdate("lost-input-barrier-org");
+			await expect(lease.waitUntilDrained()).rejects.toThrow(
+				/ownership is ambiguous/,
+			);
+			await lease.release("abort");
+		} finally {
+			pty?.disposeSubscriptions();
+			await disposeDaemonClient();
+			await daemon.close();
+		}
+	});
+
+	test("fails closed when direct initial-command input loses its barrier socket", async () => {
+		const daemon = await startFakeDaemon();
+		process.env.SUPERSET_PTY_DAEMON_SOCKET = daemon.socketPath;
+		process.env.ORGANIZATION_ID = "lost-initial-command-barrier-org";
+		try {
+			const client = await getDaemonClient();
+			__sendDirectDaemonInputForTesting(
+				client,
+				"known-session",
+				Buffer.from("initial-command\n"),
+			);
+			daemon.connections[0]?.destroy();
+			for (let attempt = 0; attempt < 50 && client.isConnected; attempt++) {
+				await new Promise((resolve) => setTimeout(resolve, 2));
+			}
+			expect(client.isConnected).toBe(false);
+
+			const lease = beginDaemonUpdate("lost-initial-command-barrier-org");
+			await expect(lease.waitUntilDrained()).rejects.toThrow(
+				/ownership is ambiguous/,
+			);
+			await lease.release("abort");
+			expect(daemon.received).not.toContain("prepare-upgrade");
+		} finally {
+			await disposeDaemonClient();
+			await daemon.close();
+		}
+	});
+
+	test("a replacement socket cannot overwrite an older unresolved input marker", async () => {
+		const daemon = await startFakeDaemon();
+		process.env.SUPERSET_PTY_DAEMON_SOCKET = daemon.socketPath;
+		process.env.ORGANIZATION_ID = "sticky-input-barrier-org";
+		try {
+			const predecessor = await getDaemonClient();
+			__sendDirectDaemonInputForTesting(
+				predecessor,
+				"known-session",
+				Buffer.from("predecessor-input"),
+			);
+			daemon.connections[0]?.destroy();
+			for (
+				let attempt = 0;
+				attempt < 50 && predecessor.isConnected;
+				attempt++
+			) {
+				await new Promise((resolve) => setTimeout(resolve, 2));
+			}
+
+			const replacement = await getDaemonClient();
+			expect(replacement).not.toBe(predecessor);
+			__sendDirectDaemonInputForTesting(
+				replacement,
+				"known-session",
+				Buffer.from("replacement-input"),
+			);
+			const lease = beginDaemonUpdate("sticky-input-barrier-org");
+			await expect(lease.waitUntilDrained()).rejects.toThrow(
+				/ownership is ambiguous/,
+			);
+			await lease.release("abort");
+			expect(daemon.receivedByConnection[1]).not.toContain("list");
 		} finally {
 			await disposeDaemonClient();
 			await daemon.close();

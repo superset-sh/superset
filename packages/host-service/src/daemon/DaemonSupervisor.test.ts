@@ -20,9 +20,12 @@ import {
 	type ClientMessage,
 	encodeFrame,
 	FrameDecoder,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 } from "@superset/pty-daemon/protocol";
 import {
 	DaemonSupervisor,
+	listDaemonSessions,
+	liveHandoffCapabilityFailure,
 	probeDaemonVersion,
 	ptyDaemonSocketPath,
 	shouldKillStaleDaemonForDev,
@@ -95,9 +98,26 @@ describe("upgrade failure ownership compatibility", () => {
 	});
 });
 
+describe("live handoff capability policy", () => {
+	test("blocks a legacy daemon only when it owns live sessions", () => {
+		expect(liveHandoffCapabilityFailure([aliveSession()], false)).toMatch(
+			/lacks lossless-live-handoff-v1/,
+		);
+		expect(liveHandoffCapabilityFailure([], false)).toBeNull();
+		expect(liveHandoffCapabilityFailure([aliveSession()], true)).toBeNull();
+	});
+});
+
 interface FakeDaemonOptions {
 	socketPath?: string;
 	respondWithVersion?: string;
+	capabilities?: string[];
+	listReply?: unknown;
+	prepareResult?: {
+		ok: false;
+		reason: string;
+		ownership: "predecessor" | "unresolved";
+	};
 	daemonPid?: number;
 	respondRaw?: Buffer;
 	hangUpAfterHello?: boolean;
@@ -107,6 +127,7 @@ interface FakeDaemonOptions {
 
 async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 	socketPath: string;
+	received: ClientMessage["type"][];
 	close: () => Promise<void>;
 }> {
 	const socketPath =
@@ -115,42 +136,56 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 			os.tmpdir(),
 			`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
 		);
+	const received: ClientMessage["type"][] = [];
 	const server = net.createServer((sock) => {
 		const decoder = new FrameDecoder();
 		sock.on("data", (chunk: Buffer) => {
 			decoder.push(chunk);
 			for (const decoded of decoder.drain()) {
 				const msg = decoded.message as ClientMessage;
-				if (msg.type !== "hello") continue;
-				if (opts.silent) return;
-				if (opts.hangUpAfterHello) {
-					sock.end();
-					return;
-				}
-				if (opts.respondRaw) {
-					sock.write(opts.respondRaw);
-					return;
-				}
-				if (opts.respondWithWrongMessageFirst) {
+				received.push(msg.type);
+				if (msg.type === "hello") {
+					if (opts.silent) return;
+					if (opts.hangUpAfterHello) {
+						sock.end();
+						return;
+					}
+					if (opts.respondRaw) {
+						sock.write(opts.respondRaw);
+						return;
+					}
+					if (opts.respondWithWrongMessageFirst) {
+						sock.write(
+							encodeFrame({
+								type: "error",
+								code: "EBOGUS",
+								message: "test",
+							}),
+						);
+						return;
+					}
+					if (opts.respondWithVersion) {
+						sock.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: 1,
+								daemonVersion: opts.respondWithVersion,
+								capabilities: opts.capabilities,
+								daemonPid: opts.daemonPid,
+							}),
+						);
+					}
+				} else if (msg.type === "list" && opts.listReply !== undefined) {
+					sock.write(
+						encodeFrame({ type: "list-reply", sessions: opts.listReply }),
+					);
+				} else if (msg.type === "prepare-upgrade" && opts.prepareResult) {
 					sock.write(
 						encodeFrame({
-							type: "error",
-							code: "EBOGUS",
-							message: "test",
+							type: "upgrade-prepared",
+							result: opts.prepareResult,
 						}),
 					);
-					return;
-				}
-				if (opts.respondWithVersion) {
-					sock.write(
-						encodeFrame({
-							type: "hello-ack",
-							protocol: 1,
-							daemonVersion: opts.respondWithVersion,
-							daemonPid: opts.daemonPid,
-						}),
-					);
-					return;
 				}
 			}
 		});
@@ -159,6 +194,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 	await new Promise<void>((resolve) => server.listen(socketPath, resolve));
 	return {
 		socketPath,
+		received,
 		close: () =>
 			new Promise<void>((resolve) => {
 				server.close(() => resolve());
@@ -231,6 +267,109 @@ describe("probeDaemonVersion", () => {
 		} finally {
 			await fake.close();
 		}
+	});
+});
+
+describe("listDaemonSessions", () => {
+	test("treats a malformed list as unavailable, never as zero live sessions", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			listReply: [{ id: "missing-runtime-fields" }],
+		});
+		try {
+			expect(await listDaemonSessions(fake.socketPath, 1500)).toBeNull();
+		} finally {
+			await fake.close();
+		}
+	});
+});
+
+describe("DaemonSupervisor live-handoff preflight", () => {
+	const safeAbort = {
+		ok: false as const,
+		reason: "test predecessor retained",
+		ownership: "predecessor" as const,
+	};
+
+	async function exercisePreflight(options: {
+		sessions: unknown;
+		capabilities?: string[];
+	}): Promise<{
+		result: Awaited<ReturnType<DaemonSupervisor["update"]>>;
+		received: ClientMessage["type"][];
+	}> {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.2.5",
+			capabilities: options.capabilities,
+			listReply: options.sessions,
+			prepareResult: safeAbort,
+		});
+		const orgId = `preflight-${Math.random().toString(36).slice(2)}`;
+		const supervisor = new DaemonSupervisor({
+			scriptPath: "/nonexistent",
+			autoUpdate: false,
+		});
+		const originalOrganizationId = process.env.ORGANIZATION_ID;
+		process.env.ORGANIZATION_ID = orgId;
+		seedDaemonInstance(supervisor, orgId, {
+			...staleInstance("0.2.5"),
+			pid: 987_654,
+			socketPath: fake.socketPath,
+		});
+
+		try {
+			return {
+				result: await supervisor.update(orgId),
+				received: [...fake.received],
+			};
+		} finally {
+			(
+				supervisor as unknown as {
+					stopAdoptedLivenessCheck(organizationId: string): void;
+				}
+			).stopAdoptedLivenessCheck(orgId);
+			if (originalOrganizationId === undefined) {
+				delete process.env.ORGANIZATION_ID;
+			} else {
+				process.env.ORGANIZATION_ID = originalOrganizationId;
+			}
+			await fake.close();
+		}
+	}
+
+	test("never sends prepare-upgrade to a live legacy daemon", async () => {
+		const { result, received } = await exercisePreflight({
+			sessions: [aliveSession("legacy-live")],
+		});
+		expect(result).toEqual({
+			ok: false,
+			reason: expect.stringContaining("lacks lossless-live-handoff-v1"),
+		});
+		expect(received).toEqual(["hello", "list"]);
+	});
+
+	test("never sends prepare-upgrade after a malformed list", async () => {
+		const { result, received } = await exercisePreflight({
+			sessions: [{ id: "malformed" }],
+		});
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.reason).toMatch(/malformed session entry/);
+		expect(received).toEqual(["hello", "list"]);
+	});
+
+	test("allows an idle legacy daemon to reach prepare-upgrade", async () => {
+		const { result, received } = await exercisePreflight({ sessions: [] });
+		expect(result).toEqual({ ok: false, reason: safeAbort.reason });
+		expect(received).toEqual(["hello", "list", "prepare-upgrade"]);
+	});
+
+	test("allows a capable daemon with live sessions to reach prepare-upgrade", async () => {
+		const { result, received } = await exercisePreflight({
+			sessions: [aliveSession("capable-live")],
+			capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
+		});
+		expect(result).toEqual({ ok: false, reason: safeAbort.reason });
+		expect(received).toEqual(["hello", "list", "prepare-upgrade"]);
 	});
 });
 
@@ -899,8 +1038,12 @@ describe("DaemonSupervisor auto-update best effort", () => {
 		).toBe(true);
 	});
 
-	test("defers the background update when live sessions are present", async () => {
-		const instance = staleInstance("0.0.6");
+	test("defers live background update when capability is unknown", async () => {
+		const fake = await startFakeDaemon({ hangUpAfterHello: true });
+		const instance = {
+			...staleInstance("0.0.6"),
+			socketPath: fake.socketPath,
+		};
 		seedDaemonInstance(sup, "org-auto-live", instance);
 		mockListSessions(sup, [aliveSession()]);
 		const runUpdateMock = mock(async () => ({
@@ -910,17 +1053,108 @@ describe("DaemonSupervisor auto-update best effort", () => {
 		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
 			runUpdateMock;
 
-		invokeKickoffAutoUpdate(sup, "org-auto-live", instance);
-		await flushAutoUpdate();
+		try {
+			invokeKickoffAutoUpdate(sup, "org-auto-live", instance);
+			await waitFor(() =>
+				loggedEvents.some(
+					(e) =>
+						e.event === "pty_daemon_auto_update_deferred" &&
+						e.props.reason === "live_handoff_capability_unknown",
+				),
+			);
 
+			expect(runUpdateMock).not.toHaveBeenCalled();
+			expect(
+				loggedEvents.some(
+					(e) =>
+						e.event === "pty_daemon_auto_update_deferred" &&
+						e.props.reason === "live_handoff_capability_unknown" &&
+						e.props.aliveSessionCount === 1 &&
+						e.props.pid === instance.pid,
+				),
+			).toBe(true);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("allows live background update when daemon advertises lossless handoff", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.0.6",
+			capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
+		});
+		const instance = {
+			...staleInstance("0.0.6"),
+			socketPath: fake.socketPath,
+		};
+		seedDaemonInstance(sup, "org-auto-live-capable", instance);
+		mockListSessions(sup, [aliveSession()]);
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7778,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		try {
+			invokeKickoffAutoUpdate(sup, "org-auto-live-capable", instance);
+			await flushAutoUpdate();
+			expect(runUpdateMock).toHaveBeenCalledTimes(1);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("defers live background update for a valid legacy hello without capability", async () => {
+		const fake = await startFakeDaemon({ respondWithVersion: "0.2.5" });
+		const instance = {
+			...staleInstance("0.2.5"),
+			socketPath: fake.socketPath,
+		};
+		seedDaemonInstance(sup, "org-auto-live-legacy", instance);
+		mockListSessions(sup, [aliveSession()]);
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7779,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		try {
+			invokeKickoffAutoUpdate(sup, "org-auto-live-legacy", instance);
+			await waitFor(() =>
+				loggedEvents.some(
+					(e) =>
+						e.event === "pty_daemon_auto_update_deferred" &&
+						e.props.reason === "live_handoff_capability_missing",
+				),
+			);
+			expect(runUpdateMock).not.toHaveBeenCalled();
+			expect(fake.received).toEqual(["hello"]);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("defers when the session list is unavailable without starting update", async () => {
+		const instance = staleInstance("0.0.5");
+		seedDaemonInstance(sup, "org-auto-list-unknown", instance);
+		mockListSessions(sup, null);
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7779,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		invokeKickoffAutoUpdate(sup, "org-auto-list-unknown", instance);
+		await flushAutoUpdate();
 		expect(runUpdateMock).not.toHaveBeenCalled();
 		expect(
 			loggedEvents.some(
-				(e) =>
-					e.event === "pty_daemon_auto_update_deferred" &&
-					e.props.reason === "live_sessions_present" &&
-					e.props.aliveSessionCount === 1 &&
-					e.props.pid === instance.pid,
+				(event) =>
+					event.event === "pty_daemon_auto_update_deferred" &&
+					event.props.reason === "session_list_unavailable",
 			),
 		).toBe(true);
 	});
@@ -1065,6 +1299,19 @@ function aliveSession(id = "live") {
 async function flushAutoUpdate(): Promise<void> {
 	await new Promise((r) => setTimeout(r, 0));
 	await new Promise((r) => setTimeout(r, 0));
+}
+
+async function waitFor(
+	predicate: () => boolean,
+	timeoutMs = 1_000,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() >= deadline) {
+			throw new Error(`condition did not become true within ${timeoutMs}ms`);
+		}
+		await new Promise((resolve) => setTimeout(resolve, 5));
+	}
 }
 
 function freshInstance() {

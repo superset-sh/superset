@@ -79,7 +79,9 @@ export interface DaemonClientOptions {
  * indefinitely — a real risk if `node-pty.spawn` ever blocks.
  */
 const OPEN_TIMEOUT_MS = 15_000;
-const CLOSE_TIMEOUT_MS = 5_000;
+// The daemon intentionally holds the reply until its bounded (5s) descendant
+// escalation drain settles. Keep client-side headroom for scheduling and I/O.
+const CLOSE_TIMEOUT_MS = 7_000;
 const LIST_TIMEOUT_MS = 5_000;
 const ACTIVATE_ADOPTED_TIMEOUT_MS = 5_000;
 // Daemon-side handoff has to write a snapshot, spawn a child Node process,
@@ -94,6 +96,7 @@ export class DaemonClient {
 	private readonly callbacks = new Map<string, SessionCallbacks>();
 	private readonly disconnectCbs = new Set<(err?: Error) => void>();
 	private daemonVersion = "";
+	private daemonCapabilities = new Set<string>();
 	private negotiated: number | null = null;
 	private connected = false;
 	/**
@@ -139,6 +142,10 @@ export class DaemonClient {
 		return this.negotiated ?? CURRENT_PROTOCOL_VERSION;
 	}
 
+	hasCapability(capability: string): boolean {
+		return this.daemonCapabilities.has(capability);
+	}
+
 	onDisconnect(cb: (err?: Error) => void): () => void {
 		this.disconnectCbs.add(cb);
 		return () => {
@@ -176,7 +183,9 @@ export class DaemonClient {
 				"list-reply",
 				LIST_TIMEOUT_MS,
 			);
-			if (reply.type === "list-reply") return reply.sessions;
+			if (reply.type === "list-reply") {
+				return validateSessionList((reply as { sessions?: unknown }).sessions);
+			}
 			throw new Error(`list: unexpected reply ${reply.type}`);
 		});
 	}
@@ -399,6 +408,14 @@ export class DaemonClient {
 			throw new Error(`daemon handshake unexpected reply: ${ack.type}`);
 		}
 		this.daemonVersion = ack.daemonVersion;
+		this.daemonCapabilities = new Set(
+			Array.isArray(ack.capabilities)
+				? ack.capabilities.filter(
+						(capability): capability is string =>
+							typeof capability === "string",
+					)
+				: [],
+		);
 		this.negotiated = ack.protocol;
 	}
 
@@ -590,6 +607,26 @@ export class DaemonClient {
 		this.socket = null;
 		for (const cb of this.disconnectCbs) cb(err);
 	}
+}
+
+function validateSessionList(value: unknown): SessionInfo[] {
+	if (!Array.isArray(value)) {
+		throw new Error("list: daemon returned a malformed session list");
+	}
+	for (const session of value) {
+		if (
+			typeof session !== "object" ||
+			session === null ||
+			typeof (session as Partial<SessionInfo>).id !== "string" ||
+			!Number.isInteger((session as Partial<SessionInfo>).pid) ||
+			!Number.isInteger((session as Partial<SessionInfo>).cols) ||
+			!Number.isInteger((session as Partial<SessionInfo>).rows) ||
+			typeof (session as Partial<SessionInfo>).alive !== "boolean"
+		) {
+			throw new Error("list: daemon returned a malformed session entry");
+		}
+	}
+	return value as SessionInfo[];
 }
 
 function openSocket(opts: DaemonClientOptions): Promise<net.Socket> {

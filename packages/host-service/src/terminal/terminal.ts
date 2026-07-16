@@ -30,6 +30,7 @@ import type {
 import {
 	type DaemonPlannedRotationBinding,
 	getDaemonClient,
+	markDaemonMutationNeedsBarrier,
 	onDaemonDisconnect,
 	onDaemonPlannedRotation,
 	runCurrentDaemonMutation,
@@ -409,6 +410,7 @@ function makeDaemonPty(
 				async () => {
 					const current = await getDaemonClient();
 					current.input(sessionId, payload);
+					markDaemonMutationNeedsBarrier(current);
 				},
 			);
 		},
@@ -418,6 +420,7 @@ function makeDaemonPty(
 			return runCurrentDaemonMutation({ kind: "resize" }, async () => {
 				const current = await getDaemonClient();
 				current.resize(sessionId, nextCols, nextRows);
+				markDaemonMutationNeedsBarrier(current);
 			});
 		},
 		kill(signal) {
@@ -1124,7 +1127,11 @@ function queueInitialCommand(
 		// nesting another gated operation could deadlock if an update starts
 		// between the open and this initial write. The same-socket barrier in the
 		// outer lease still orders this fire-and-forget frame before handoff.
-		directDaemon.input(session.terminalId, Buffer.from(cmd, "utf8"));
+		sendDirectDaemonInput(
+			directDaemon,
+			session.terminalId,
+			Buffer.from(cmd, "utf8"),
+		);
 		return;
 	}
 	void session.pty.write(cmd).catch((error) => {
@@ -1132,6 +1139,18 @@ function queueInitialCommand(
 		reportSessionMutationError(session, "initial input", error);
 	});
 }
+
+function sendDirectDaemonInput(
+	daemon: DaemonClient,
+	terminalId: string,
+	payload: Buffer,
+): void {
+	daemon.input(terminalId, payload);
+	markDaemonMutationNeedsBarrier(daemon);
+}
+
+/** Exact direct-initial-command transport path, exposed only for regression tests. */
+export const __sendDirectDaemonInputForTesting = sendDirectDaemonInput;
 
 function reportSessionMutationError(
 	session: TerminalSession,

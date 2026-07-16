@@ -80,7 +80,13 @@ build.ts                        # Bun bundler → dist/pty-daemon.js (target: no
   daemon does), but never persisted to disk. No SQLite, no scrollback files.
   v1's `HistoryManager` is explicitly out of scope.
 - **Protocol versioned from day one.** Handshake (`hello` / `hello-ack`)
-  picks the highest mutually supported version.
+  picks the highest mutually supported version. `hello-ack.capabilities`
+  separately proves additive runtime contracts; live rotation currently
+  requires `lossless-live-handoff-v1`.
+- **Transactional rotation.** Input is frozen and drained before the snapshot;
+  the successor stays staged until explicit commit, subscription replay is
+  bounded by absolute byte cursors, and failures preserve the predecessor or
+  fail closed when ownership cannot be proven.
 
 ## Testing
 
@@ -114,6 +120,5 @@ by host-service with stdout reserved for protocol or kept dark).
 ## Out of scope
 
 - Windows ConPTY — not in the protocol; defer until Windows users justify it.
-- "since byte N" replay cursor — would close the gap where bytes the PTY
-  produced during a WS-down window are dropped on reconnect (sub-second on
-  a daemon swap; longer on host-service restart). Not built.
+- Persistent scrollback across daemon process loss. Replay cursors cover live
+  rotation and host reconnects, but the ring buffer remains memory-only.

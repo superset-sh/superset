@@ -63,11 +63,13 @@ On adoption, `probeDaemonVersion` does a one-shot `hello`/`hello-ack` to
 read the running daemon's `daemonVersion`, compares against
 `EXPECTED_DAEMON_VERSION` via `semver.satisfies(>=)`. Mismatch sets
 `updatePending: true` on the instance — the renderer surfaces a
-"restart to update" affordance. Manual updates try fd-handoff first and
-only force-restart after the user confirms. Automatic adoption updates
-also try fd-handoff first, but they never force-restart in the background;
-on failure, the predecessor keeps running and `updatePending` remains
-visible for an explicit user action. The failure reason is exposed through
+"restart to update" affordance. `hello-ack` also advertises explicit runtime
+capabilities. A live-session update proceeds only when the daemon proves
+`lossless-live-handoff-v1`; legacy or unknown daemons defer until they are
+idle. Manual updates try fd-handoff first and only force-restart after the
+user confirms. Automatic adoption updates may hand off capable live sessions,
+but they never force-restart in the background. On failure, the predecessor
+keeps running and `updatePending` remains visible. The failure reason is exposed through
 `getUpdateStatus().autoUpdateFailure` so the desktop can show a global
 force-update dialog without the supervisor taking the destructive path itself.
 
@@ -197,19 +199,22 @@ SIGTERMs+respawns anything older.
 
 ## Phase 2 — daemon-upgrade fd-handoff (shipped, PR #3971)
 
-Daemon-binary upgrades preserve live PTY sessions via fd inheritance:
+Daemon-binary upgrades preserve live PTY sessions via a transactional fd handoff:
 
-1. Supervisor's `update(orgId)` sends `prepare-upgrade` to the running daemon.
-2. Predecessor writes a snapshot (session ids, metadata, ring buffers) and
+1. The supervisor closes the mutation gate, drains accepted operations, and
+   performs a request/reply barrier on the exact socket that carried prior
+   fire-and-forget input. A separate control socket performs `hello`, `list`,
+   the capability check, and `prepare-upgrade` in that order.
+2. The predecessor freezes input, drains output and pending close escalation,
+   writes a snapshot (session ids, metadata, ring buffers and replay cursors), and
    spawns the new bundle with PTY master fds in its stdio array, stdio
    `'ipc'` channel for the upgrade-ack handshake, and `--handoff` argv.
-3. Successor reads the snapshot, adopts each session via `adoptFromFd`
-   (reads from the inherited fd and writes input directly back to that fd),
-   sends `upgrade-ack` over IPC, waits for the predecessor's `disconnect`
-   event, then binds the socket via `listenWithRetry`.
-4. Supervisor waits for the predecessor PID to exit, retries the version
-   probe through the bind window (`probeDaemonVersionWithRetry`), and
-   updates `instances` + the manifest with the successor's pid + version.
+3. The successor adopts the fds in a staged state. The predecessor remains
+   authoritative until the explicit commit transfers the canonical listener.
+4. Host subscriptions rebind against absolute replay boundaries before staged
+   readers activate, preserving socket-gap output exactly once.
+5. The supervisor proves predecessor exit and successor identity before it
+   publishes the new instance and releases held mutations.
 
 If anything fails mid-handoff (snapshot write error, successor spawn
 error, successor crash on adopt, malformed ack, IPC stall) the
@@ -221,6 +226,8 @@ The old destructive auto-update fallback has been removed. Background
 auto-updates leave the predecessor running and surface the failure through
 `updatePending` plus `getUpdateStatus().autoUpdateFailure`; any destructive
 restart is an explicit user action through the desktop confirmation flow.
+Missing capability, malformed/unavailable session lists, or ambiguous socket
+ownership always defer; they are never interpreted as an idle daemon.
 
 Mode signal goes through argv (`--handoff`), not env: bundlers
 (Bun, esbuild via electron-vite) statically inline `process.env.X`

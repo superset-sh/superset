@@ -20,6 +20,7 @@ import {
 	FrameDecoder,
 	type HandoffMessage,
 	type HelloMessage,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 	type ServerMessage,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "../protocol/index.ts";
@@ -52,6 +53,7 @@ export interface ServerOptions {
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 const HANDOFF_CHILD_EXIT_TIMEOUT_MS = 2_000;
 const HANDOFF_STAGED_RECOVERY_TIMEOUT_MS = 30_000;
+const HANDOFF_CLOSE_DRAIN_TIMEOUT_MS = 5_000;
 
 type HandoffResult =
 	| { ok: true; successorPid: number }
@@ -110,6 +112,7 @@ export class Server {
 	private upgradePhase: UpgradePhase = "idle";
 	private mutationEpoch = 0;
 	private upgradeDirty = false;
+	private readonly pendingCloseOperations = new Set<Promise<ServerMessage>>();
 
 	constructor(opts: ServerOptions) {
 		this.opts = opts;
@@ -329,7 +332,7 @@ export class Server {
 		this.upgradePhase = "preparing";
 		this.upgradeDirty = false;
 		const startEpoch = this.mutationEpoch;
-		const liveSessions = [...this.store.all()].filter((s) => !s.exited);
+		let liveSessions: Session[] = [];
 		const preparedPtys: Session["pty"][] = [];
 		let handoffCommitted = false;
 		let predecessorMayResume = true;
@@ -339,6 +342,23 @@ export class Server {
 		let commitSent = false;
 
 		try {
+			if (!(await this.waitForPendingCloseOperations())) {
+				return {
+					ok: false,
+					reason:
+						"upgrade deferred: terminal close escalation did not settle in time",
+					ownership: "predecessor",
+				};
+			}
+			if (this.upgradeWasMutated(startEpoch)) {
+				return {
+					ok: false,
+					reason:
+						"upgrade aborted: terminal mutation arrived while a close was settling",
+					ownership: "predecessor",
+				};
+			}
+			liveSessions = [...this.store.all()].filter((s) => !s.exited);
 			try {
 				for (const session of liveSessions) {
 					preparedPtys.push(session.pty);
@@ -693,13 +713,15 @@ export class Server {
 			// Phase 2 handoff exit sets killSessions=false: the master fds are
 			// being inherited by a successor process, so we must NOT close
 			// them here.
+			const kills: Promise<void>[] = [];
 			for (const session of this.store.all()) {
 				try {
-					session.pty.kill("SIGKILL");
+					kills.push(Promise.resolve(session.pty.kill("SIGKILL")));
 				} catch {
 					// already dead, ignore
 				}
 			}
+			await Promise.allSettled(kills);
 		}
 		if (this.listenerClosePromise) {
 			await this.listenerClosePromise;
@@ -779,6 +801,7 @@ export class Server {
 				type: "hello-ack",
 				protocol: negotiated,
 				daemonVersion: this.opts.daemonVersion,
+				capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
 				daemonPid: process.pid,
 			});
 			return;
@@ -816,7 +839,15 @@ export class Server {
 			case "close": {
 				if (this.rejectMutationDuringUpgrade(conn, msg.id)) return;
 				this.activateStagedSession(msg.id);
-				conn.send(handleClose(ctx, msg));
+				const operation = handleClose(ctx, msg);
+				this.pendingCloseOperations.add(operation);
+				void operation
+					.then((reply) => conn.send(reply))
+					.catch(() => {
+						// The request operation is tracked separately; a peer disappearing
+						// while its delayed close ACK is sent must not become unhandled.
+					})
+					.finally(() => this.pendingCloseOperations.delete(operation));
 				return;
 			}
 			case "list": {
@@ -894,6 +925,27 @@ export class Server {
 
 	private upgradeWasMutated(startEpoch: number): boolean {
 		return this.upgradeDirty || this.mutationEpoch !== startEpoch;
+	}
+
+	private async waitForPendingCloseOperations(): Promise<boolean> {
+		const pending = [...this.pendingCloseOperations];
+		if (pending.length === 0) return true;
+
+		let timeout: NodeJS.Timeout | null = null;
+		try {
+			return await Promise.race([
+				Promise.allSettled(pending).then(() => true),
+				new Promise<false>((resolve) => {
+					timeout = setTimeout(
+						() => resolve(false),
+						HANDOFF_CLOSE_DRAIN_TIMEOUT_MS,
+					);
+					timeout.unref();
+				}),
+			]);
+		} finally {
+			if (timeout) clearTimeout(timeout);
+		}
 	}
 
 	private activateStagedSession(id: string, recoverOutput = false): void {
