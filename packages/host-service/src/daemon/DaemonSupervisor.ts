@@ -50,6 +50,19 @@ interface DaemonInstance {
 	updatePending: boolean;
 	/** Last failed background update attempt for this still-running daemon. */
 	autoUpdateFailure?: DaemonAutoUpdateFailure;
+	/**
+	 * When the daemon first stopped answering probes; null while reachable.
+	 * Drives the UI's "terminals aren't responding" state, which waits for a
+	 * sustained silence so a transient stall doesn't prompt a destructive
+	 * restart of shells that were about to come back.
+	 */
+	unreachableSince: number | null;
+}
+
+export interface DaemonHealth {
+	reachable: boolean;
+	/** 0 while reachable. */
+	unreachableForMs: number;
 }
 
 interface DaemonProbeResult {
@@ -365,6 +378,7 @@ export class DaemonSupervisor {
 			updatePending:
 				!!probedVersion &&
 				!semver.satisfies(probedVersion, `>=${EXPECTED_DAEMON_VERSION}`),
+			unreachableSince: probedVersion ? null : Date.now(),
 		};
 		this.instances.set(organizationId, successorInstance);
 		this.stopping.delete(organizationId);
@@ -505,20 +519,98 @@ export class DaemonSupervisor {
 	 * `ensure()` call respawns.
 	 */
 	private startAdoptedLivenessCheck(organizationId: string, pid: number): void {
-		this.stopAdoptedLivenessCheck(organizationId);
-		const timer = setInterval(() => {
-			if (isProcessAlive(pid)) return;
+		this.startHealthPoll(organizationId, pid, () => {
 			console.log(
 				`[pty-daemon:${organizationId}] adopted process ${pid} died — clearing instance for next-ensure respawn`,
 			);
-			this.stopAdoptedLivenessCheck(organizationId);
 			const current = this.instances.get(organizationId);
 			if (current?.pid === pid) {
 				this.instances.delete(organizationId);
 				removePtyDaemonManifest(organizationId);
 			}
+		});
+	}
+
+	/**
+	 * Poll a daemon's health. Reachability is tracked for every daemon — one
+	 * can wedge no matter how we came by it — but death handling differs:
+	 * adopted daemons have no child handle, so `onDeath` cleans up for them,
+	 * while spawned ones pass null because `child.on("exit")` already owns
+	 * that (and the crash-respawn that goes with it). Clearing the instance
+	 * from here for a spawned daemon would make its exit handler no-op and
+	 * silently disable respawn.
+	 */
+	private startHealthPoll(
+		organizationId: string,
+		pid: number,
+		onDeath: (() => void) | null,
+	): void {
+		this.stopAdoptedLivenessCheck(organizationId);
+		let probing = false;
+		const timer = setInterval(() => {
+			if (!isProcessAlive(pid)) {
+				// Never keep polling a dead pid, whoever handles the death.
+				this.stopAdoptedLivenessCheck(organizationId);
+				onDeath?.();
+				return;
+			}
+			// A probe can outlast the interval; don't stack them.
+			if (probing) return;
+			probing = true;
+			void this.refreshReachability(organizationId, pid).finally(() => {
+				probing = false;
+			});
 		}, ADOPTED_LIVENESS_INTERVAL_MS);
 		this.adoptedLivenessTimers.set(organizationId, timer);
+	}
+
+	/**
+	 * Track whether the daemon is still answering. An alive pid says nothing
+	 * about whether the socket works — a wedged daemon holds its shells but
+	 * serves nobody. Recording *when* it went quiet lets the UI wait out a
+	 * stall instead of offering a restart that would kill recoverable shells.
+	 *
+	 * Doubles as the retry for a version we couldn't read at adoption time.
+	 */
+	private async refreshReachability(
+		organizationId: string,
+		pid: number,
+	): Promise<void> {
+		const instance = this.instances.get(organizationId);
+		if (!instance || instance.pid !== pid) return;
+		const probe = await probeDaemonHello(
+			instance.socketPath,
+			VERSION_PROBE_TIMEOUT_MS,
+		);
+		// Re-read: the instance can be replaced while the probe is in flight.
+		const current = this.instances.get(organizationId);
+		if (!current || current.pid !== pid) return;
+		if (!probe) {
+			current.unreachableSince ??= Date.now();
+			return;
+		}
+		current.unreachableSince = null;
+		if (current.runningVersion === "unknown") {
+			current.runningVersion = probe.daemonVersion;
+			current.updatePending = !semver.satisfies(
+				probe.daemonVersion,
+				`>=${EXPECTED_DAEMON_VERSION}`,
+			);
+		}
+	}
+
+	/**
+	 * Daemon reachability for the UI. Null when there's no daemon for the org.
+	 */
+	getHealth(organizationId: string): DaemonHealth | null {
+		const instance = this.instances.get(organizationId);
+		if (!instance) return null;
+		const { unreachableSince } = instance;
+		return {
+			reachable: unreachableSince === null,
+			unreachableForMs:
+				unreachableSince === null ? 0 : Date.now() - unreachableSince,
+		};
 	}
 
 	private stopAdoptedLivenessCheck(organizationId: string): void {
@@ -811,6 +903,9 @@ export class DaemonSupervisor {
 			updatePending:
 				probe != null &&
 				!semver.satisfies(runningVersion, `>=${EXPECTED_DAEMON_VERSION}`),
+			// Start the clock here when it didn't answer: the liveness poll
+			// clears it the moment it does.
+			unreachableSince: probe ? null : Date.now(),
 		};
 	}
 
@@ -875,6 +970,7 @@ export class DaemonSupervisor {
 				probe.daemonVersion,
 				`>=${EXPECTED_DAEMON_VERSION}`,
 			),
+			unreachableSince: null,
 		};
 	}
 
@@ -1065,8 +1161,11 @@ export class DaemonSupervisor {
 			runningVersion: EXPECTED_DAEMON_VERSION,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: false,
+			unreachableSince: null,
 		};
 		this.instances.set(organizationId, instance);
+		// Reachability only — `child.on("exit")` above owns death + respawn.
+		this.startHealthPoll(organizationId, childPid, null);
 		console.log(
 			`[pty-daemon:${organizationId}] spawned pid=${childPid} socket=${socketPath}`,
 		);

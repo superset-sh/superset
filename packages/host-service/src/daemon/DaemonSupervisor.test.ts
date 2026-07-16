@@ -411,6 +411,87 @@ describe("DaemonSupervisor.tryAdopt", () => {
 	});
 });
 
+describe("DaemonSupervisor daemon health", () => {
+	test("returns null when there's no daemon for the org", () => {
+		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		expect(sup.getHealth("org-none")).toBeNull();
+	});
+
+	test("reports reachable while the daemon is answering", () => {
+		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		seedInstance(sup, "org-ok", {
+			runningVersion: "0.1.0",
+			expectedVersion: "0.1.0",
+			updatePending: false,
+			unreachableSince: null,
+		});
+		expect(sup.getHealth("org-ok")).toEqual({
+			reachable: true,
+			unreachableForMs: 0,
+		});
+	});
+
+	test("reports how long the daemon has been silent", () => {
+		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		seedInstance(sup, "org-quiet", {
+			runningVersion: "unknown",
+			expectedVersion: "0.1.0",
+			updatePending: false,
+			unreachableSince: Date.now() - 12_000,
+		});
+		const health = sup.getHealth("org-quiet");
+		expect(health?.reachable).toBe(false);
+		// The UI's warn threshold keys off this, so it has to be a real duration.
+		expect(health?.unreachableForMs).toBeGreaterThanOrEqual(12_000);
+	});
+
+	test("starts the clock when a live daemon stops answering", async () => {
+		const fake = await startFakeDaemon({ silent: true });
+		try {
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			seedInstance(sup, "org-goes-quiet", {
+				runningVersion: "0.1.0",
+				expectedVersion: "0.1.0",
+				updatePending: false,
+				unreachableSince: null,
+				pid: process.pid,
+				socketPath: fake.socketPath,
+			});
+			await invokeRefreshReachability(sup, "org-goes-quiet", process.pid);
+			expect(sup.getHealth("org-goes-quiet")?.reachable).toBe(false);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("clears the silence and backfills the version once it answers again", async () => {
+		const fake = await startFakeDaemon({ respondWithVersion: "0.1.0" });
+		try {
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			// An adopt-unprobed instance: alive, version unknown, gone quiet.
+			seedInstance(sup, "org-recovers", {
+				runningVersion: "unknown",
+				expectedVersion: "0.1.0",
+				updatePending: false,
+				unreachableSince: Date.now() - 30_000,
+				pid: process.pid,
+				socketPath: fake.socketPath,
+			});
+			await invokeRefreshReachability(sup, "org-recovers", process.pid);
+			// Recovery must clear itself so the UI's warning disappears without
+			// the user destroying shells that came back on their own.
+			expect(sup.getHealth("org-recovers")).toEqual({
+				reachable: true,
+				unreachableForMs: 0,
+			});
+			// And the version we couldn't read at adoption is now resolved.
+			expect(sup.getUpdateStatus("org-recovers")?.running).toBe("0.1.0");
+		} finally {
+			await fake.close();
+		}
+	});
+});
+
 describe("DaemonSupervisor.getUpdateStatus", () => {
 	let sup: DaemonSupervisor;
 
@@ -945,6 +1026,9 @@ interface SeededFields {
 	runningVersion: string;
 	expectedVersion: string;
 	updatePending: boolean;
+	unreachableSince?: number | null;
+	pid?: number;
+	socketPath?: string;
 }
 
 function seedPredecessor(
@@ -985,6 +1069,7 @@ function seedInstance(
 		pid: 9999,
 		socketPath: "/tmp/seeded.sock",
 		startedAt: Date.now(),
+		unreachableSince: null,
 		...fields,
 	});
 }
@@ -1032,6 +1117,7 @@ function freshInstance() {
 		runningVersion: "0.1.0",
 		expectedVersion: "0.1.0",
 		updatePending: false,
+		unreachableSince: null,
 	};
 }
 
@@ -1068,6 +1154,18 @@ function invokeKickoffAutoUpdate(
 			kickoffAutoUpdate: (id: string, inst: typeof instance) => void;
 		}
 	).kickoffAutoUpdate(organizationId, instance);
+}
+
+function invokeRefreshReachability(
+	sup: DaemonSupervisor,
+	organizationId: string,
+	pid: number,
+): Promise<void> {
+	return (
+		sup as unknown as {
+			refreshReachability: (id: string, pid: number) => Promise<void>;
+		}
+	).refreshReachability(organizationId, pid);
 }
 
 function invokeTryAdopt(
