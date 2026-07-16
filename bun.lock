@@ -1207,6 +1207,9 @@
     "bufferutil",
     "workerd",
   ],
+  "patchedDependencies": {
+    "node-pty@1.1.0": "patches/node-pty@1.1.0.patch",
+  },
   "overrides": {
     "axios": "1.14.0",
     "hono": "4.12.25",

@@ -1,0 +1,26 @@
+diff --git a/src/unix/pty.cc b/src/unix/pty.cc
+index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..b75e54fd541968619f1c5507e93e019f702af5fc 100644
+--- a/src/unix/pty.cc
++++ b/src/unix/pty.cc
+@@ -778,8 +778,19 @@ done:
+   posix_spawn_file_actions_destroy(&acts);
+   posix_spawnattr_destroy(&attrs);
+ 
+-  for (; count > 0; count--) {
+-    close(low_fds[count]);
++  // The child received the slave via posix_spawn file actions; close the
++  // parent's copy. Backported from microsoft/node-pty#882.
++  close(slave);
++
++  // Close every probe fd opened by the low-fd workaround above. The
++  // original loop (`for (; count > 0; count--)`) never closed low_fds[0],
++  // leaking one /dev/ptmx master per spawn — which counts against the
++  // system-wide kern.tty.ptmx_max cap until the process exits.
++  // Backported from microsoft/node-pty#882.
++  for (size_t i = 0; i <= count && i < 3; i++) {
++    if (low_fds[i] >= 0) {
++      close(low_fds[i]);
++    }
+   }
+ }
+ #endif
