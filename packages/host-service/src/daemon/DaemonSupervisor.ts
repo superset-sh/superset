@@ -60,6 +60,8 @@ interface DaemonInstance {
 	pid: number;
 	socketPath: string;
 	startedAt: number;
+	/** Exact lifetime captured from a child spawned for ambiguous recovery. */
+	spawnIdentity?: ProcessIdentity;
 	/** Version reported by the running daemon's hello-ack. "unknown" if probe failed. */
 	runningVersion: string;
 	/** Bundled-binary version we expect — i.e. EXPECTED_DAEMON_VERSION at spawn time. */
@@ -222,6 +224,8 @@ export class DaemonSupervisor {
 	private readonly crashTimes = new Map<string, number[]>();
 	/** Orgs we've explicitly stopped — exit isn't a crash, don't respawn. */
 	private readonly stopping = new Set<string>();
+	/** Ambiguous recovery must spawn a new child and may never adopt a late binder. */
+	private readonly spawnOnlyOrganizations = new Set<string>();
 	/** Orgs that tripped the circuit breaker — refuse respawn until cleared. */
 	private readonly circuitOpen = new Set<string>();
 	/**
@@ -716,6 +720,17 @@ export class DaemonSupervisor {
 			}
 		}
 
+		const logRestart = () => {
+			logEvent(log.event, {
+				organizationId,
+				hadCircuitOpen,
+				previousRunningVersion: prev?.runningVersion ?? null,
+				previousExpectedVersion: prev?.expectedVersion ?? null,
+				previousUpdatePending: prev?.updatePending ?? null,
+				...log.props,
+			});
+		};
+
 		if (ambiguous) {
 			// `stop()` accepts only the mutable numeric PID stored on the instance.
 			// Once handoff ownership is ambiguous, using it could signal a recycled
@@ -724,51 +739,65 @@ export class DaemonSupervisor {
 			this.instances.delete(organizationId);
 			this.stopAdoptedLivenessCheck(organizationId);
 			this.stopping.add(organizationId);
+			this.spawnOnlyOrganizations.add(organizationId);
 			try {
 				removePtyDaemonManifest(organizationId);
 				await this.eliminateAmbiguousOwners(ambiguous);
+				this.clearCrashCircuit(organizationId);
+				logRestart();
+
+				// `ensure()` remains the single-flight start gate, but the spawn-only
+				// marker makes start() skip every manifest/socket adoption path. A
+				// successor that binds after the elimination scan can therefore never be
+				// mistaken for the deliberately spawned replacement.
+				const fresh = await this.ensure(organizationId);
+				await this.proveFreshOwner(fresh);
+				await ambiguous.lease.resetAfterForceRestart(
+					new Error(
+						"Terminal mutation was cancelled because force restart replaced the pty-daemon and its sessions",
+					),
+				);
+				this.ambiguousUpdates.delete(organizationId);
+				return { success: true };
 			} finally {
 				// The old instance was deliberately removed before signaling, so its
-				// child exit callback cannot consume this marker. Clear it even when
-				// elimination fails closed; otherwise a later retry/crash is masked.
-				// The thrown elimination error still prevents ensure() from starting.
+				// child exit callback cannot consume this marker. Clear both guards even
+				// when elimination/proof fails closed; otherwise a later retry or crash
+				// would be masked. Throws still prevent the mutation lease from reopening.
 				this.stopping.delete(organizationId);
+				this.spawnOnlyOrganizations.delete(organizationId);
 			}
-		} else {
-			await this.stop(organizationId);
 		}
+
+		await this.stop(organizationId);
 		this.clearCrashCircuit(organizationId);
-
-		logEvent(log.event, {
-			organizationId,
-			hadCircuitOpen,
-			previousRunningVersion: prev?.runningVersion ?? null,
-			previousExpectedVersion: prev?.expectedVersion ?? null,
-			previousUpdatePending: prev?.updatePending ?? null,
-			...log.props,
-		});
-
-		const fresh = await this.ensure(organizationId);
-		if (ambiguous) {
-			await this.proveFreshOwner(fresh);
-			await ambiguous.lease.resetAfterForceRestart(
-				new Error(
-					"Terminal mutation was cancelled because force restart replaced the pty-daemon and its sessions",
-				),
-			);
-			this.ambiguousUpdates.delete(organizationId);
-		}
+		logRestart();
+		await this.ensure(organizationId);
 		return { success: true };
 	}
 
-	private async proveFreshOwner(instance: DaemonInstance): Promise<void> {
-		const owner = await probeVerifiedDaemonOwnerWithRetry(
+	private async proveFreshOwner(
+		instance: DaemonInstance,
+		probeOwner: (
+			socketPath: string,
+			totalTimeoutMs: number,
+		) => Promise<VerifiedDaemonOwner | null> = probeVerifiedDaemonOwnerWithRetry,
+	): Promise<void> {
+		if (!instance.spawnIdentity) {
+			throw new Error(
+				`force restart did not capture spawned daemon identity ${instance.pid}`,
+			);
+		}
+		const owner = await probeOwner(
 			instance.socketPath,
 			HANDOFF_PROBE_TOTAL_TIMEOUT_MS,
 		);
-		if (owner?.identity.pid !== instance.pid) {
+		if (
+			!owner ||
+			!sameProcessIdentity(owner.identity, instance.spawnIdentity)
+		) {
 			throw new Error(
-				`force restart could not prove unique fresh daemon owner ${instance.pid}`,
+				`force restart could not prove exact fresh daemon owner ${instance.pid}`,
 			);
 		}
 	}
@@ -1133,17 +1162,18 @@ export class DaemonSupervisor {
 	}
 
 	private async start(organizationId: string): Promise<DaemonInstance> {
+		const spawnOnly = this.spawnOnlyOrganizations.has(organizationId);
 		// Dev mode: never adopt. A leftover detached daemon from a previous
 		// `bun dev` session would mask code changes — devs hit Update or
 		// open a session and see stale-bundle behavior with no obvious
 		// reason. Kill any running daemon for the org and spawn fresh.
 		// Production keeps the adopt path so PTY sessions survive
 		// host-service restarts (the original Phase 1 promise).
-		if (shouldKillStaleDaemonForDev()) {
+		if (!spawnOnly && shouldKillStaleDaemonForDev()) {
 			await this.killStaleDaemonForDev(organizationId);
 		}
 
-		const adopted = await this.tryAdopt(organizationId);
+		const adopted = spawnOnly ? null : await this.tryAdopt(organizationId);
 		if (adopted) {
 			this.instances.set(organizationId, adopted);
 			console.log(
@@ -1169,7 +1199,9 @@ export class DaemonSupervisor {
 			return adopted;
 		}
 
-		const instance = await this.spawn(organizationId);
+		const instance = await this.spawn(organizationId, {
+			requireProcessIdentity: spawnOnly,
+		});
 		logEvent("pty_daemon_spawn", {
 			organizationId,
 			pid: instance.pid,
@@ -1336,7 +1368,10 @@ export class DaemonSupervisor {
 		};
 	}
 
-	private async spawn(organizationId: string): Promise<DaemonInstance> {
+	private async spawn(
+		organizationId: string,
+		options: { requireProcessIdentity?: boolean } = {},
+	): Promise<DaemonInstance> {
 		const dir = ptyDaemonManifestDir(organizationId);
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -1415,6 +1450,19 @@ export class DaemonSupervisor {
 		const childPid = child.pid;
 		if (!childPid) {
 			throw new Error(`[pty-daemon:${organizationId}] failed to spawn`);
+		}
+		const spawnIdentity = options.requireProcessIdentity
+			? ((await captureProcessIdentityWithRetry(childPid)) ?? undefined)
+			: undefined;
+		if (options.requireProcessIdentity && !spawnIdentity) {
+			try {
+				child.kill("SIGKILL");
+			} catch {
+				// best-effort; recovery remains fail-closed
+			}
+			throw new Error(
+				`[pty-daemon:${organizationId}] could not capture spawned process identity ${childPid}`,
+			);
 		}
 
 		// Dev: fan daemon stdout/stderr up to host-service stdout (which
@@ -1520,6 +1568,7 @@ export class DaemonSupervisor {
 			pid: childPid,
 			socketPath,
 			startedAt,
+			spawnIdentity,
 			runningVersion: EXPECTED_DAEMON_VERSION,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: false,
@@ -1749,6 +1798,7 @@ async function probeVerifiedDaemonOwnerWithRetry(
 export async function probeVerifiedDaemonOwner(
 	socketPath: string,
 	timeoutMs: number,
+	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
 ): Promise<VerifiedDaemonOwner | null> {
 	const deadline = Date.now() + timeoutMs;
 	const first = await probeDaemonHello(
@@ -1761,19 +1811,48 @@ export async function probeVerifiedDaemonOwner(
 			"pty-daemon answered without a verifiable process identity",
 		);
 	}
-	const identity = captureProcessIdentity(first.daemonPid);
-	if (!identity) return null;
+	const identity = captureProcessIdentity(
+		first.daemonPid,
+		readCurrentProcessTable(),
+	);
+	if (!identity) {
+		throw new Error(
+			`pty-daemon ${first.daemonPid} answered but its process identity could not be verified`,
+		);
+	}
 
 	const remaining = deadline - Date.now();
-	if (remaining <= 0) return null;
+	if (remaining <= 0) {
+		throw new Error("pty-daemon identity recheck timed out");
+	}
 	const second = await probeDaemonHello(socketPath, remaining);
-	if (!second) return null;
+	if (!second) {
+		throw new Error("pty-daemon identity recheck did not answer");
+	}
 	if (!isPositiveInteger(second.daemonPid)) {
 		throw new Error("pty-daemon identity recheck omitted its process id");
 	}
-	if (second.daemonPid !== identity.pid) return null;
-	if (!processIdentityMatches(identity)) return null;
+	if (second.daemonPid !== identity.pid) {
+		throw new Error("pty-daemon identity changed between rechecks");
+	}
+	if (!processIdentityMatches(identity, readCurrentProcessTable())) {
+		throw new Error("pty-daemon process identity changed after recheck");
+	}
 	return { probe: second, identity };
+}
+
+async function captureProcessIdentityWithRetry(
+	pid: number,
+	timeoutMs = DAEMON_TERMINATE_TIMEOUT_MS,
+): Promise<ProcessIdentity | null> {
+	const deadline = Date.now() + timeoutMs;
+	do {
+		const identity = captureProcessIdentity(pid);
+		if (identity) return identity;
+		if (!isProcessAlive(pid)) return null;
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	} while (Date.now() < deadline);
+	return captureProcessIdentity(pid);
 }
 
 function processIdentityKey(identity: ProcessIdentity): string {

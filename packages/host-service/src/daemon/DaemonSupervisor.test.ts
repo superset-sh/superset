@@ -292,9 +292,9 @@ describe("probeDaemonVersion", () => {
 			daemonPids: [process.pid, process.pid + 1],
 		});
 		try {
-			expect(
-				await probeVerifiedDaemonOwner(changed.socketPath, 1500),
-			).toBeNull();
+			await expect(
+				probeVerifiedDaemonOwner(changed.socketPath, 1500),
+			).rejects.toThrow("pty-daemon identity changed between rechecks");
 			expect(changed.received).toEqual(["hello", "hello"]);
 		} finally {
 			await changed.close();
@@ -901,6 +901,11 @@ describe("DaemonSupervisor.restart", () => {
 			),
 		).toBe(false);
 		expect(
+			(
+				sup as unknown as { spawnOnlyOrganizations: Set<string> }
+			).spawnOnlyOrganizations.has("org-ambiguous-elimination-failure"),
+		).toBe(false);
+		expect(
 			(sup as unknown as { ensure: ReturnType<typeof mock> }).ensure,
 		).not.toHaveBeenCalled();
 		expect(
@@ -908,6 +913,126 @@ describe("DaemonSupervisor.restart", () => {
 				sup as unknown as { ambiguousUpdates: Map<string, unknown> }
 			).ambiguousUpdates.has("org-ambiguous-elimination-failure"),
 		).toBe(true);
+	});
+
+	test("a successor that binds after the scan cannot be adopted as the fresh replacement", async () => {
+		const localSup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		const organizationId = "org-late-binder-after-scan";
+		const resetAfterForceRestart = mock(async (_error: Error) => {});
+		const lateBinder = {
+			...freshInstance(),
+			pid: 881,
+			socketPath: "/tmp/late-binder.sock",
+		};
+		const spawnIdentity = {
+			pid: 882,
+			pgid: 882,
+			startTime: "deliberately-spawned-lifetime",
+		};
+		const deliberatelySpawned = {
+			...freshInstance(),
+			pid: spawnIdentity.pid,
+			socketPath: lateBinder.socketPath,
+			spawnIdentity,
+		};
+		const eliminateAmbiguousOwners = mock(async () => {
+			// The scan is now over. If normal adoption runs next, it observes the
+			// old successor represented by lateBinder and mislabels it as fresh.
+		});
+		const tryAdopt = mock(async () => lateBinder);
+		const spawn = mock(
+			async (
+				_organizationId: string,
+				_options: { requireProcessIdentity?: boolean },
+			) => deliberatelySpawned,
+		);
+		const proveFreshOwner = mock(
+			async (instance: typeof deliberatelySpawned) => {
+				expect(instance).toBe(deliberatelySpawned);
+			},
+		);
+		(
+			localSup as unknown as {
+				eliminateAmbiguousOwners: typeof eliminateAmbiguousOwners;
+				tryAdopt: typeof tryAdopt;
+				spawn: typeof spawn;
+				proveFreshOwner: typeof proveFreshOwner;
+			}
+		).eliminateAmbiguousOwners = eliminateAmbiguousOwners;
+		(localSup as unknown as { tryAdopt: typeof tryAdopt }).tryAdopt = tryAdopt;
+		(localSup as unknown as { spawn: typeof spawn }).spawn = spawn;
+		(
+			localSup as unknown as { proveFreshOwner: typeof proveFreshOwner }
+		).proveFreshOwner = proveFreshOwner;
+		(
+			localSup as unknown as {
+				ambiguousUpdates: Map<
+					string,
+					{
+						lease: { resetAfterForceRestart: typeof resetAfterForceRestart };
+						predecessor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
+						socketPath: string;
+					}
+				>;
+			}
+		).ambiguousUpdates.set(organizationId, {
+			lease: { resetAfterForceRestart },
+			predecessor: {
+				pid: 880,
+				pgid: 880,
+				startTime: "predecessor-lifetime",
+			},
+			socketPath: lateBinder.socketPath,
+		});
+
+		await localSup.restart(organizationId);
+
+		expect(eliminateAmbiguousOwners).toHaveBeenCalledTimes(1);
+		expect(tryAdopt).not.toHaveBeenCalled();
+		expect(spawn).toHaveBeenCalledWith(organizationId, {
+			requireProcessIdentity: true,
+		});
+		expect(proveFreshOwner).toHaveBeenCalledWith(deliberatelySpawned);
+		expect(resetAfterForceRestart).toHaveBeenCalledTimes(1);
+	});
+
+	test("fresh-owner proof requires the exact spawned process lifetime", async () => {
+		const localSup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		const spawnIdentity = {
+			pid: 991,
+			pgid: 991,
+			startTime: "spawned-lifetime",
+		};
+		const instance = {
+			...freshInstance(),
+			pid: spawnIdentity.pid,
+			spawnIdentity,
+		};
+		const samePidDifferentLifetime = mock(async () => ({
+			probe: {
+				daemonVersion: instance.runningVersion,
+				daemonPid: instance.pid,
+				capabilities: [],
+			},
+			identity: { ...spawnIdentity, startTime: "late-binder-lifetime" },
+		}));
+
+		await expect(
+			(
+				localSup as unknown as {
+					proveFreshOwner(
+						candidate: typeof instance,
+						probeOwner: typeof samePidDifferentLifetime,
+					): Promise<void>;
+				}
+			).proveFreshOwner(instance, samePidDifferentLifetime),
+		).rejects.toThrow(
+			`force restart could not prove exact fresh daemon owner ${instance.pid}`,
+		);
 	});
 
 	test("an ACK pid recycled before probe never becomes an ambiguous signal target", async () => {
@@ -1044,6 +1169,53 @@ describe("DaemonSupervisor.restart", () => {
 			}),
 		).resolves.toEqual([]);
 		expect(isPidAlive).toHaveBeenCalled();
+	});
+
+	test("an answering socket with an unverifiable process identity keeps ambiguous recovery fail closed", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			daemonPid: process.pid,
+		});
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 777,
+				pgid: 777,
+				startTime: "already-exited-predecessor",
+			},
+			socketPath: fake.socketPath,
+		};
+
+		try {
+			await expect(
+				(
+					sup as unknown as {
+						eliminateAmbiguousOwners(
+							candidate: unknown,
+							options: {
+								readCurrentProcessTable: () => [];
+								isPidAlive: (_pid: number) => boolean;
+								identityExitTimeoutMs: number;
+								probeOwner: typeof probeVerifiedDaemonOwner;
+								probeWindowMs: number;
+							},
+						): Promise<unknown[]>;
+					}
+				).eliminateAmbiguousOwners(recovery, {
+					readCurrentProcessTable: () => [],
+					isPidAlive: (_pid: number) => false,
+					identityExitTimeoutMs: 0,
+					probeOwner: (socketPath, timeoutMs) =>
+						probeVerifiedDaemonOwner(socketPath, timeoutMs, () => []),
+					probeWindowMs: 1000,
+				}),
+			).rejects.toThrow(
+				`pty-daemon ${process.pid} answered but its process identity could not be verified`,
+			);
+			expect(fake.received).toEqual(["hello"]);
+		} finally {
+			await fake.close();
+		}
 	});
 });
 
