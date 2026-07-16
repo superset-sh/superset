@@ -12,6 +12,7 @@ import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	applyTerminalFontFamilyCssVariable,
 	applyTerminalTheme,
+	registerTerminalThemeTarget,
 	TERMINAL_MINIMUM_CONTRAST_RATIO,
 	type TerminalAppearance,
 } from "./appearance";
@@ -51,6 +52,7 @@ export interface TerminalRuntime {
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
 	_disposeImagePasteFallback: (() => void) | null;
+	_disposeThemeSync: (() => void) | null;
 }
 
 export function buildTerminalOptions(
@@ -264,6 +266,7 @@ export function createRuntime(
 		terminal,
 		wrapper,
 	);
+	const disposeThemeSync = registerTerminalThemeTarget(terminal);
 
 	return {
 		terminalId,
@@ -281,6 +284,7 @@ export function createRuntime(
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
+		_disposeThemeSync: disposeThemeSync,
 	};
 }
 
@@ -375,6 +379,8 @@ export function disposeRuntime(
 	}
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
+	runtime._disposeThemeSync?.();
+	runtime._disposeThemeSync = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime._disposeResizeObserver?.();

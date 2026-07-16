@@ -12,7 +12,10 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
+import {
+	applyTerminalFontFamilyCssVariable,
+	registerTerminalThemeTarget,
+} from "renderer/lib/terminal/appearance";
 import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import {
@@ -217,6 +220,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	});
 
 	xterm.unicode.activeVersion = "11";
+	const unregisterTerminalTheme = registerTerminalThemeTarget(xterm);
 
 	return {
 		xterm,
@@ -227,6 +231,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 		linkManager,
 		cleanup: () => {
 			disposed = true;
+			unregisterTerminalTheme();
 			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
 			uninstallWheelHandler();

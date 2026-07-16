@@ -1,4 +1,5 @@
 import type { ITerminalOptions, ITheme } from "@xterm/xterm";
+import { useThemeStore } from "renderer/stores/theme/store";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
 	builtInThemes,
@@ -20,6 +21,38 @@ export interface TerminalAppearance {
  */
 export const TERMINAL_MINIMUM_CONTRAST_RATIO = 4.5;
 
+type TerminalThemeTarget = { options: ITerminalOptions };
+
+// Preserve live target references across Vite HMR. V1 and v2 keep their xterm
+// instances alive across module reloads, so recreating this set would strand
+// those terminals on their previous inline colors.
+const terminalThemeTargets =
+	(import.meta.hot?.data?.terminalThemeTargets as
+		| Set<TerminalThemeTarget>
+		| undefined) ?? new Set<TerminalThemeTarget>();
+
+if (import.meta.hot) {
+	import.meta.hot.data.terminalThemeTargets = terminalThemeTargets;
+}
+
+const unsubscribeTerminalTheme = useThemeStore.subscribe(
+	(state, previousState) => {
+		const theme = state.terminalTheme;
+		if (!theme || theme === previousState.terminalTheme) return;
+
+		// Zustand notifies subscribers synchronously. Updating every live target
+		// here keeps parked wrappers current before either React terminal tree can
+		// reattach, without touching focus, dimensions, or transport state.
+		for (const terminal of terminalThemeTargets) {
+			applyTerminalTheme(terminal, theme);
+		}
+	},
+);
+
+if (import.meta.hot) {
+	import.meta.hot.dispose(unsubscribeTerminalTheme);
+}
+
 /** Apply a theme and restore the contrast floor on already-running terminals. */
 export function applyTerminalTheme(
 	terminal: { options: ITerminalOptions },
@@ -29,6 +62,22 @@ export function applyTerminalTheme(
 		minimumContrastRatio: TERMINAL_MINIMUM_CONTRAST_RATIO,
 		theme,
 	});
+}
+
+/**
+ * Track an xterm instance for store-driven theme updates while it is mounted
+ * or parked outside React. Registration itself also closes the gap between
+ * terminal construction and the next component effect.
+ */
+export function registerTerminalThemeTarget(
+	terminal: TerminalThemeTarget,
+): () => void {
+	terminalThemeTargets.add(terminal);
+	const currentTheme = useThemeStore.getState().terminalTheme;
+	if (currentTheme) {
+		applyTerminalTheme(terminal, currentTheme);
+	}
+	return () => terminalThemeTargets.delete(terminal);
 }
 
 export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
