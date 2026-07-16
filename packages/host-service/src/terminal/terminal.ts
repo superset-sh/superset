@@ -96,7 +96,6 @@ function makeDaemonPty(
 ): DaemonPty {
 	interface SubscriptionEntry {
 		callbacks: SubscribeCallbacks;
-		unsubscribe: (() => void) | null;
 		disposed: boolean;
 	}
 	type StagedEvent =
@@ -121,9 +120,11 @@ function makeDaemonPty(
 	let observedEndBytes: number | null = null;
 	let observedCursorError: Error | null = null;
 	let observedBoundaryReady: Promise<void> = Promise.resolve();
-	let observedEntry: SubscriptionEntry | null = null;
 	let pendingObservedBoundary: PendingObservedBoundary | null = null;
-	let aggregateCursorActive = false;
+	let aggregateBoundary: Promise<ReplayBoundary> | null = null;
+	let aggregateUnsubscribe: (() => void) | null = null;
+	let aggregateEpoch = 0;
+	let exitPublished = false;
 	const MAX_ROTATION_STAGING_BYTES = 8 * 1024 * 1024;
 
 	const addCursorBytes = (
@@ -148,11 +149,7 @@ function makeDaemonPty(
 		return normalized;
 	};
 
-	const recordObservedOutput = (
-		entry: SubscriptionEntry,
-		chunk: Buffer,
-	): void => {
-		if (aggregateCursorActive || observedEntry !== entry) return;
+	const recordObservedOutput = (chunk: Buffer): void => {
 		try {
 			if (pendingObservedBoundary) {
 				pendingObservedBoundary.receivedBytes = addCursorBytes(
@@ -172,22 +169,27 @@ function makeDaemonPty(
 		}
 	};
 
-	const observedCallbacks = (entry: SubscriptionEntry): SubscribeCallbacks => ({
-		onOutput: (chunk) => {
-			recordObservedOutput(entry, chunk);
-			entry.callbacks.onOutput(chunk);
-		},
-		onExit: (info) => entry.callbacks.onExit(info),
-	});
+	const publishEvent = (event: StagedEvent): void => {
+		if (event.type === "exit") {
+			if (exitPublished) return;
+			exitPublished = true;
+		}
+		for (const entry of subscriptions) dispatchEvent(entry, event);
+	};
+
+	const publishAggregateEvent = (event: StagedEvent): void => {
+		if (event.type === "output") recordObservedOutput(event.chunk);
+		publishEvent(event);
+	};
 
 	const trackObservedBoundary = (
-		entry: SubscriptionEntry,
 		boundary: Promise<ReplayBoundary>,
 		tracker: PendingObservedBoundary,
+		epoch: number,
 	): Promise<ReplayBoundary> => {
 		const tracked = boundary.then(
 			(value) => {
-				if (pendingObservedBoundary !== tracker || observedEntry !== entry) {
+				if (pendingObservedBoundary !== tracker || aggregateEpoch !== epoch) {
 					return value;
 				}
 				try {
@@ -233,12 +235,15 @@ function makeDaemonPty(
 		return tracked;
 	};
 
-	const bindObservedSubscription = (
-		entry: SubscriptionEntry,
+	const bindAggregateSubscription = (
 		replay: boolean,
 	): Promise<ReplayBoundary> => {
-		observedEntry = entry;
-		aggregateCursorActive = false;
+		if (aggregateUnsubscribe) {
+			throw new Error(
+				`terminal ${sessionId} already owns an aggregate daemon subscription`,
+			);
+		}
+		const epoch = ++aggregateEpoch;
 		observedEndBytes = null;
 		observedCursorError = null;
 		const tracker: PendingObservedBoundary = { receivedBytes: 0 };
@@ -246,54 +251,60 @@ function makeDaemonPty(
 		const subscription = currentDaemon.subscribeWithReplayBoundary(
 			sessionId,
 			{ replay },
-			observedCallbacks(entry),
+			{
+				onOutput: (chunk) => {
+					if (aggregateEpoch !== epoch) return;
+					publishAggregateEvent({
+						type: "output",
+						chunk: Buffer.from(chunk),
+					});
+				},
+				onExit: (info) => {
+					if (aggregateEpoch !== epoch) return;
+					publishAggregateEvent({ type: "exit", info: { ...info } });
+				},
+			},
 		);
-		entry.unsubscribe = subscription.unsubscribe;
-		return trackObservedBoundary(entry, subscription.boundary, tracker);
+		aggregateUnsubscribe = subscription.unsubscribe;
+		aggregateBoundary = trackObservedBoundary(
+			subscription.boundary,
+			tracker,
+			epoch,
+		);
+		return aggregateBoundary;
 	};
 
-	const bindSubscription = (
-		entry: SubscriptionEntry,
+	const existingAggregateBoundary = async (): Promise<ReplayBoundary> => {
+		await observedBoundaryReady;
+		if (observedCursorError) throw observedCursorError;
+		return {
+			replayBytes: 0,
+			replayStartBytes: observedEndBytes,
+			replayEndBytes: observedEndBytes,
+		};
+	};
+
+	const ensureAggregateSubscription = (
 		replay: boolean,
-	): Promise<ReplayBoundary> | null => {
-		if (!observedEntry && !aggregateCursorActive && subscriptions.size === 1) {
-			return bindObservedSubscription(entry, replay);
+	): Promise<ReplayBoundary> => {
+		if (!aggregateUnsubscribe) return bindAggregateSubscription(replay);
+		if (replay) {
+			throw new Error(
+				`terminal ${sessionId}: replay is not available after the aggregate daemon subscription has started`,
+			);
 		}
-		entry.unsubscribe = currentDaemon.subscribe(
-			sessionId,
-			{ replay },
-			entry.callbacks,
-		);
-		return null;
+		return existingAggregateBoundary();
 	};
 
 	const disposeEntry = (entry: SubscriptionEntry): void => {
 		if (entry.disposed) return;
 		entry.disposed = true;
 		subscriptions.delete(entry);
-		try {
-			entry.unsubscribe?.();
-		} catch {
-			// The prior transport may already be closed during rotation.
-		}
-		entry.unsubscribe = null;
-		if (observedEntry === entry && !aggregateCursorActive) {
-			observedEntry = null;
-			pendingObservedBoundary = null;
-			observedEndBytes = null;
-			observedCursorError =
-				subscriptions.size > 0
-					? new Error(
-							`terminal ${sessionId} lost its ordered cursor observer before daemon rotation`,
-						)
-					: null;
-		}
 	};
 
 	const createEntry = (callbacks: SubscribeCallbacks): SubscriptionEntry => {
 		const entry: SubscriptionEntry = {
 			callbacks,
-			unsubscribe: null,
 			disposed: false,
 		};
 		subscriptions.add(entry);
@@ -306,7 +317,10 @@ function makeDaemonPty(
 	): PtyDataDisposer => {
 		const entry = createEntry(callbacks);
 		try {
-			bindSubscription(entry, opts.replay);
+			// This legacy shape cannot surface the async replay boundary. Keep its
+			// rejection observed; the cursor error remains recorded for a later
+			// rotation to fail closed.
+			void ensureAggregateSubscription(opts.replay).catch(() => {});
 		} catch (error) {
 			disposeEntry(entry);
 			throw error;
@@ -322,18 +336,7 @@ function makeDaemonPty(
 	): DaemonPtyReplaySubscription => {
 		const entry = createEntry(callbacks);
 		try {
-			const boundary =
-				!observedEntry && !aggregateCursorActive && subscriptions.size === 1
-					? bindObservedSubscription(entry, opts.replay)
-					: (() => {
-							const subscription = currentDaemon.subscribeWithReplayBoundary(
-								sessionId,
-								opts,
-								callbacks,
-							);
-							entry.unsubscribe = subscription.unsubscribe;
-							return subscription.boundary;
-						})();
+			const boundary = ensureAggregateSubscription(opts.replay);
 			return {
 				dispose: () => disposeEntry(entry),
 				boundary,
@@ -429,10 +432,13 @@ function makeDaemonPty(
 		let rawCandidateOutputBytes = 0;
 		let stagingError: Error | null = null;
 		let committed = false;
+		let discarded = false;
 		let candidateUnsubscribe: (() => void) | null = null;
-		const committedEntries = new Set<SubscriptionEntry>();
 		let boundary: ReplayBoundary | null = null;
 		let candidateReplayBytes: number | null = null;
+		let legacySkipBytes: number | null = null;
+		let appliedSkipBytes = 0;
+		let candidateEpoch: number | null = null;
 
 		const candidateStreamEndBytes = (): number | null => {
 			if (candidateReplayBytes === null || boundary?.replayEndBytes == null) {
@@ -453,19 +459,11 @@ function makeDaemonPty(
 		};
 
 		const stageEvent = (event: StagedEvent): void => {
+			if (discarded) return;
 			if (committed) {
-				if (event.type === "output" && observedEndBytes !== null) {
-					try {
-						observedEndBytes = addCursorBytes(
-							observedEndBytes,
-							event.chunk.byteLength,
-							"rotated observed",
-						);
-					} catch (error) {
-						failObservedCursor(error);
-					}
-				}
-				for (const entry of committedEntries) dispatchEvent(entry, event);
+				if (candidateEpoch === null || aggregateEpoch !== candidateEpoch)
+					return;
+				publishAggregateEvent(event);
 				return;
 			}
 			stagedEvents.push(event);
@@ -509,118 +507,111 @@ function makeDaemonPty(
 				);
 			}
 			const replay = Buffer.concat(rawCandidateOutput).subarray(0, replayBytes);
-
-			let skipReplayBytes: number;
-			if (
-				retryBaseline?.endBytes !== null &&
-				retryBaseline?.endBytes !== undefined &&
-				boundary.replayStartBytes != null &&
-				boundary.replayEndBytes != null
-			) {
-				skipReplayBytes = retryBaseline.endBytes - boundary.replayStartBytes;
-				if (
-					skipReplayBytes < 0 ||
-					skipReplayBytes > replayBytes ||
-					retryBaseline.endBytes > boundary.replayEndBytes
-				) {
-					stagingError = new Error(
-						`terminal ${sessionId} lost its daemon replay cut (${retryBaseline.endBytes} not within ${boundary.replayStartBytes}..${boundary.replayEndBytes})`,
-					);
-				}
-			} else if (retryBaseline) {
+			if (retryBaseline && retryBaseline.endBytes === null) {
 				// Compatibility only. New daemons expose absolute cursors; older ACKs
 				// can still recover the common append-only case by matching the exact
 				// prior candidate suffix against the replacement replay prefix.
-				skipReplayBytes = legacyReplayOverlap(retryBaseline.replay, replay);
-			} else if (
-				observedEndBytes !== null &&
-				boundary.replayStartBytes != null &&
-				boundary.replayEndBytes != null
-			) {
-				skipReplayBytes = observedEndBytes - boundary.replayStartBytes;
-				if (
-					skipReplayBytes < 0 ||
-					skipReplayBytes > replayBytes ||
-					observedEndBytes > boundary.replayEndBytes
-				) {
-					stagingError = new Error(
-						`terminal ${sessionId} host-observed cursor ${observedEndBytes} is outside successor replay ${boundary.replayStartBytes}..${boundary.replayEndBytes}`,
-					);
-				}
-			} else {
-				skipReplayBytes = 0;
-				stagingError = new Error(
-					`terminal ${sessionId} cannot prove an absolute host-observed replay cursor`,
-				);
-			}
-
-			if (!stagingError) {
-				try {
-					trimOutputPrefix(stagedEvents, skipReplayBytes);
-					stagedOutputBytes -= skipReplayBytes;
-				} catch (error) {
-					stagingError =
-						error instanceof Error ? error : new Error(String(error));
-				}
+				legacySkipBytes = legacyReplayOverlap(retryBaseline.replay, replay);
 			}
 		}
 
-		const validate = (): void => {
+		const targetSkipBytes = (): number => {
 			if (stagingError) throw stagingError;
+			if (!boundary || candidateReplayBytes === null) {
+				throw new Error(
+					`terminal ${sessionId} did not receive a successor replay boundary`,
+				);
+			}
+
+			const replayStartBytes = boundary.replayStartBytes;
+			const absoluteCut = retryBaseline
+				? retryBaseline.endBytes
+				: observedEndBytes;
+			if (absoluteCut !== null && replayStartBytes != null) {
+				const streamEndBytes = candidateStreamEndBytes();
+				const skipBytes = absoluteCut - replayStartBytes;
+				if (
+					streamEndBytes === null ||
+					skipBytes < 0 ||
+					skipBytes > rawCandidateOutputBytes ||
+					absoluteCut > streamEndBytes
+				) {
+					if (retryBaseline) {
+						throw new Error(
+							`terminal ${sessionId} lost its daemon replay cut (${absoluteCut} not within ${replayStartBytes}..${streamEndBytes ?? "unknown"})`,
+						);
+					}
+					throw new Error(
+						`terminal ${sessionId} host-observed cursor ${absoluteCut} is outside successor replay/stream ${replayStartBytes}..${streamEndBytes ?? "unknown"}`,
+					);
+				}
+				return skipBytes;
+			}
+
+			if (retryBaseline && legacySkipBytes !== null) return legacySkipBytes;
+			throw new Error(
+				`terminal ${sessionId} cannot prove an absolute host-observed replay cursor`,
+			);
+		};
+
+		const reconcileStagedEvents = (): void => {
+			const target = targetSkipBytes();
+			if (target < appliedSkipBytes) {
+				throw new Error(
+					`terminal ${sessionId} host-observed cursor moved backwards during daemon rotation (${target} < ${appliedSkipBytes})`,
+				);
+			}
+			const additionalSkipBytes = target - appliedSkipBytes;
+			if (additionalSkipBytes > 0) {
+				trimOutputPrefix(stagedEvents, additionalSkipBytes);
+				stagedOutputBytes -= additionalSkipBytes;
+				appliedSkipBytes = target;
+			}
 			candidateStreamEndBytes();
 		};
+
+		const validate = (): void => reconcileStagedEvents();
 
 		return {
 			validate,
 			commit() {
 				validate();
 				const committedEndBytes = candidateStreamEndBytes();
-				for (const entry of subscriptions) {
-					if (entry.disposed) continue;
+				const predecessorUnsubscribe = aggregateUnsubscribe;
+				candidateEpoch = ++aggregateEpoch;
+				currentDaemon = nextDaemon;
+				committed = true;
+				aggregateUnsubscribe = candidateUnsubscribe;
+				candidateUnsubscribe = null;
+				aggregateBoundary = Promise.resolve(
+					boundary ?? {
+						replayBytes: candidateReplayBytes,
+						replayStartBytes: committedEndBytes,
+						replayEndBytes: committedEndBytes,
+					},
+				);
+				observedBoundaryReady = Promise.resolve();
+				pendingObservedBoundary = null;
+				observedCursorError = null;
+				observedEndBytes = committedEndBytes;
+				if (predecessorUnsubscribe) {
 					try {
-						entry.unsubscribe?.();
+						predecessorUnsubscribe();
 					} catch {
 						// Expected when the predecessor socket has already closed.
 					}
-					entry.unsubscribe = null;
-					committedEntries.add(entry);
-				}
-				currentDaemon = nextDaemon;
-				committed = true;
-				aggregateCursorActive = true;
-				observedEntry = null;
-				pendingObservedBoundary = null;
-				observedCursorError = null;
-				for (const entry of committedEntries) {
-					entry.unsubscribe = () => {
-						committedEntries.delete(entry);
-						if (committedEntries.size === 0 && candidateUnsubscribe) {
-							const unsubscribe = candidateUnsubscribe;
-							candidateUnsubscribe = null;
-							unsubscribe();
-						}
-					};
-				}
-				if (committedEntries.size === 0 && candidateUnsubscribe) {
-					const unsubscribe = candidateUnsubscribe;
-					candidateUnsubscribe = null;
-					try {
-						unsubscribe();
-					} catch {
-						// No live host observers remain; candidate cleanup is best-effort.
-					}
 				}
 				rotationBaseline = undefined;
-				observedEndBytes = committedEndBytes;
 				for (const event of [
 					...carriedEvents.splice(0),
 					...stagedEvents.splice(0),
 				]) {
-					for (const entry of committedEntries) dispatchEvent(entry, event);
+					publishEvent(event);
 				}
 			},
 			discard({ final }) {
 				if (committed) return;
+				discarded = true;
 				if (candidateUnsubscribe) {
 					const unsubscribe = candidateUnsubscribe;
 					candidateUnsubscribe = null;
@@ -632,8 +623,9 @@ function makeDaemonPty(
 				}
 				if (final) {
 					rotationBaseline = undefined;
-				} else if (!stagingError && boundary && candidateReplayBytes !== null) {
+				} else if (boundary && candidateReplayBytes !== null) {
 					try {
+						reconcileStagedEvents();
 						rotationBaseline = {
 							replay: Buffer.concat(rawCandidateOutput),
 							endBytes: candidateStreamEndBytes(),
@@ -703,12 +695,23 @@ function makeDaemonPty(
 				disposeEntry(entry);
 			}
 			subscriptions.clear();
+			++aggregateEpoch;
+			if (aggregateUnsubscribe) {
+				const unsubscribe = aggregateUnsubscribe;
+				aggregateUnsubscribe = null;
+				try {
+					unsubscribe();
+				} catch {
+					// The transport may already be closed during host shutdown.
+				}
+			}
+			aggregateBoundary = null;
 			rotationBaseline = undefined;
-			observedEntry = null;
 			pendingObservedBoundary = null;
 			observedEndBytes = null;
 			observedCursorError = null;
-			aggregateCursorActive = false;
+			observedBoundaryReady = Promise.resolve();
+			exitPublished = false;
 		},
 		onData(cb) {
 			// StringDecoder buffers partial UTF-8 sequences across chunks.
@@ -2127,6 +2130,10 @@ async function createTerminalSessionInternalDirect({
 			// The boundary can reject because the daemon disconnected. Cleanup must
 			// still remove the half-created host session when unsubscribe cannot send.
 		}
+		// Local subscription disposal deliberately leaves the permanent aggregate
+		// observer alive across subscriber churn. A failed session creation has no
+		// owner left, so tear that observer down explicitly.
+		session.pty.disposeSubscriptions();
 		session.unsubscribeDaemon = null;
 		if (sessions.get(terminalId) === session) sessions.delete(terminalId);
 		portManager.unregisterSession(terminalId);

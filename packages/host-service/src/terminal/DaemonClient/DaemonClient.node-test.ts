@@ -3,11 +3,17 @@
 // daemon spawns real PTYs via node-pty.
 
 import { strict as assert } from "node:assert";
+import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { Server } from "@superset/pty-daemon";
-import { CURRENT_PROTOCOL_VERSION } from "@superset/pty-daemon/protocol";
+import {
+	type ClientMessage,
+	CURRENT_PROTOCOL_VERSION,
+	encodeFrame,
+	FrameDecoder,
+} from "@superset/pty-daemon/protocol";
 import { DaemonClient } from "./DaemonClient.ts";
 
 const sockPath = path.join(
@@ -333,6 +339,146 @@ test("disconnect callback fires when daemon goes away", async () => {
 	await disc;
 	assert.equal(c.isConnected, false);
 	await c.dispose();
+});
+
+test("dispose resolves only after the socket can no longer deliver callbacks", async () => {
+	const localPath = path.join(
+		os.tmpdir(),
+		`host-daemon-client-dispose-${process.pid}-${Math.random().toString(36).slice(2)}.sock`,
+	);
+	const sessionId = "dispose-close-fence";
+	const local = net.createServer({ allowHalfOpen: true }, (socket) => {
+		const decoder = new FrameDecoder();
+		socket.on("data", (chunk) => {
+			decoder.push(chunk);
+			for (const frame of decoder.drain()) {
+				const message = frame.message as ClientMessage;
+				if (message.type === "hello") {
+					socket.write(
+						encodeFrame({
+							type: "hello-ack",
+							protocol: CURRENT_PROTOCOL_VERSION,
+							daemonVersion: "dispose-close-fence-test",
+							daemonPid: process.pid,
+						}),
+					);
+				}
+			}
+		});
+		socket.on("end", () => {
+			socket.write(
+				encodeFrame(
+					{ type: "output", id: sessionId },
+					Buffer.from("late-output"),
+				),
+			);
+			socket.write(
+				encodeFrame({
+					type: "exit",
+					id: sessionId,
+					code: 0,
+					signal: 0,
+				}),
+			);
+			setTimeout(() => socket.end(), 20);
+		});
+	});
+	await new Promise<void>((resolve, reject) => {
+		local.once("error", reject);
+		local.listen(localPath, () => {
+			local.off("error", reject);
+			resolve();
+		});
+	});
+
+	const c = new DaemonClient({ socketPath: localPath });
+	const events: string[] = [];
+	try {
+		await c.connect();
+		c.subscribe(
+			sessionId,
+			{ replay: false },
+			{
+				onOutput: (chunk) => events.push(`output:${chunk.toString("utf8")}`),
+				onExit: ({ code, signal }) => events.push(`exit:${code}:${signal}`),
+			},
+		);
+
+		const firstDispose = c
+			.dispose()
+			.then(() => events.push("dispose-resolved:first"));
+		const secondDispose = c
+			.dispose()
+			.then(() => events.push("dispose-resolved:second"));
+		await Promise.all([firstDispose, secondDispose]);
+		await new Promise((resolve) => setTimeout(resolve, 30));
+
+		assert.deepEqual(events.slice(0, 2), ["output:late-output", "exit:0:0"]);
+		assert.deepEqual(
+			new Set(events.slice(2)),
+			new Set(["dispose-resolved:first", "dispose-resolved:second"]),
+		);
+	} finally {
+		await c.dispose();
+		await new Promise<void>((resolve) => local.close(() => resolve()));
+	}
+});
+
+test("dispose force-destroys a peer that never completes its close", async () => {
+	const localPath = path.join(
+		os.tmpdir(),
+		`host-daemon-client-force-dispose-${process.pid}-${Math.random().toString(36).slice(2)}.sock`,
+	);
+	const accepted = new Set<net.Socket>();
+	const local = net.createServer({ allowHalfOpen: true }, (socket) => {
+		accepted.add(socket);
+		socket.once("close", () => accepted.delete(socket));
+		const decoder = new FrameDecoder();
+		socket.on("data", (chunk) => {
+			decoder.push(chunk);
+			for (const frame of decoder.drain()) {
+				const message = frame.message as ClientMessage;
+				if (message.type === "hello") {
+					socket.write(
+						encodeFrame({
+							type: "hello-ack",
+							protocol: CURRENT_PROTOCOL_VERSION,
+							daemonVersion: "dispose-force-close-test",
+							daemonPid: process.pid,
+						}),
+					);
+				}
+			}
+		});
+		// Deliberately keep the writable half open after the client's FIN. The
+		// client's bounded destroy fallback must turn this into a real close.
+		socket.on("end", () => {});
+	});
+	await new Promise<void>((resolve, reject) => {
+		local.once("error", reject);
+		local.listen(localPath, () => {
+			local.off("error", reject);
+			resolve();
+		});
+	});
+
+	const c = new DaemonClient({ socketPath: localPath });
+	try {
+		await c.connect();
+		const startedAt = performance.now();
+		await c.dispose();
+		const elapsedMs = performance.now() - startedAt;
+		assert.ok(
+			elapsedMs >= 150,
+			`dispose resolved too early after ${elapsedMs}ms`,
+		);
+		assert.ok(elapsedMs < 1500, `dispose force-close took ${elapsedMs}ms`);
+		assert.equal(c.isConnected, false);
+	} finally {
+		await c.dispose();
+		for (const socket of accepted) socket.destroy();
+		await new Promise<void>((resolve) => local.close(() => resolve()));
+	}
 });
 
 test("adoption flow: client A opens, drops, client B finds + subscribes-with-replay", async () => {

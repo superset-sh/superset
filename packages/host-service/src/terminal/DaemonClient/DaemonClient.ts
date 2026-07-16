@@ -99,6 +99,7 @@ export class DaemonClient {
 	private daemonCapabilities = new Set<string>();
 	private negotiated: number | null = null;
 	private connected = false;
+	private disposePromise: Promise<void> | null = null;
 	/**
 	 * Protocol v1 has no request ids for list/prepare-upgrade replies. Keep
 	 * non-session requests strictly serialized so an older concurrent list reply
@@ -368,17 +369,37 @@ export class DaemonClient {
 	}
 
 	async dispose(): Promise<void> {
+		if (this.disposePromise) return this.disposePromise;
 		this.connected = false;
 		const sock = this.socket;
 		this.socket = null;
-		if (!sock || sock.destroyed) return;
-		await new Promise<void>((resolve) => {
-			sock.end(() => resolve());
-			setTimeout(() => {
-				if (!sock.destroyed) sock.destroy();
+		if (!sock || sock.closed) return;
+		const closePromise = new Promise<void>((resolve) => {
+			let settled = false;
+			let forceDestroyTimer: ReturnType<typeof setTimeout> | null = null;
+			const settleAfterClose = () => {
+				if (settled) return;
+				settled = true;
+				if (forceDestroyTimer) clearTimeout(forceDestroyTimer);
+				sock.off("close", settleAfterClose);
 				resolve();
+			};
+			sock.once("close", settleAfterClose);
+			if (sock.closed) {
+				settleAfterClose();
+				return;
+			}
+			forceDestroyTimer = setTimeout(() => {
+				if (!sock.closed) sock.destroy();
 			}, 200);
+			if (!sock.destroyed) sock.end();
 		});
+		this.disposePromise = closePromise;
+		try {
+			await closePromise;
+		} finally {
+			if (this.disposePromise === closePromise) this.disposePromise = null;
+		}
 	}
 
 	// ---- Internals ----
