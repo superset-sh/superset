@@ -74,6 +74,35 @@ export interface DaemonClientOptions {
 	inputAckTimeoutMs?: number;
 }
 
+export type DaemonInputFailureOutcome = "definitive-reject" | "outcome-unknown";
+
+/**
+ * A typed input failure. Only `definitive-reject` proves the daemon rejected
+ * this exact payload before PTY enqueue; `outcome-unknown` means it may have
+ * reached the PTY before transport certainty was lost.
+ */
+export class DaemonInputError extends Error {
+	readonly outcome: DaemonInputFailureOutcome;
+	readonly inputId: string;
+	readonly sequence: number;
+	readonly code?: string;
+
+	constructor(options: {
+		message: string;
+		outcome: DaemonInputFailureOutcome;
+		inputId: string;
+		sequence: number;
+		code?: string;
+	}) {
+		super(options.message);
+		this.name = "DaemonInputError";
+		this.outcome = options.outcome;
+		this.inputId = options.inputId;
+		this.sequence = options.sequence;
+		this.code = options.code;
+	}
+}
+
 /**
  * Per-request timeouts. The daemon should respond within milliseconds for
  * close/list, and within a few seconds for open (PTY spawn includes shell
@@ -283,9 +312,12 @@ export class DaemonClient {
 			const timer = setTimeout(() => {
 				this.pendingInputs.delete(sequence);
 				reject(
-					new Error(
-						`daemon input ${id} sequence ${sequence}: timed out after ${this.inputAckTimeoutMs}ms`,
-					),
+					new DaemonInputError({
+						message: `daemon input ${id} sequence ${sequence}: timed out after ${this.inputAckTimeoutMs}ms; payload outcome is unknown`,
+						outcome: "outcome-unknown",
+						inputId: id,
+						sequence,
+					}),
 				);
 			}, this.inputAckTimeoutMs);
 			timer.unref();
@@ -293,7 +325,15 @@ export class DaemonClient {
 			try {
 				this.send({ type: "input", id, sequence }, data);
 			} catch (error) {
-				this.settleInput(sequence, error);
+				this.settleInput(
+					sequence,
+					new DaemonInputError({
+						message: `daemon input ${id} sequence ${sequence}: transport failed before acknowledgement: ${error instanceof Error ? error.message : String(error)}; payload outcome is unknown`,
+						outcome: "outcome-unknown",
+						inputId: id,
+						sequence,
+					}),
+				);
 			}
 		});
 	}
@@ -424,8 +464,8 @@ export class DaemonClient {
 	async dispose(): Promise<void> {
 		if (this.disposePromise) return this.disposePromise;
 		this.connected = false;
-		this.rejectPendingInputs(
-			new Error("DaemonClient disposed before input acknowledgement"),
+		this.rejectPendingInputsUnknown(
+			"DaemonClient disposed before input acknowledgement",
 		);
 		const sock = this.socket;
 		this.socket = null;
@@ -653,9 +693,17 @@ export class DaemonClient {
 		return true;
 	}
 
-	private rejectPendingInputs(error: Error): void {
-		for (const sequence of [...this.pendingInputs.keys()]) {
-			this.settleInput(sequence, error);
+	private rejectPendingInputsUnknown(message: string): void {
+		for (const [sequence, pending] of [...this.pendingInputs.entries()]) {
+			this.settleInput(
+				sequence,
+				new DaemonInputError({
+					message: `${message}; daemon input ${pending.id} sequence ${sequence} may have reached the PTY`,
+					outcome: "outcome-unknown",
+					inputId: pending.id,
+					sequence,
+				}),
+			);
 		}
 	}
 
@@ -680,9 +728,12 @@ export class DaemonClient {
 				if (pending && pending.id !== msg.id) {
 					this.settleInput(
 						msg.sequence,
-						new Error(
-							`daemon input acknowledgement sequence ${msg.sequence} named ${msg.id}, expected ${pending.id}`,
-						),
+						new DaemonInputError({
+							message: `daemon input acknowledgement protocol mismatch: sequence ${msg.sequence} named ${msg.id}, expected ${pending.id}; payload outcome is unknown`,
+							outcome: "outcome-unknown",
+							inputId: pending.id,
+							sequence: msg.sequence,
+						}),
 					);
 				} else {
 					this.settleInput(msg.sequence);
@@ -690,14 +741,43 @@ export class DaemonClient {
 				continue;
 			}
 			if (msg.type === "error" && msg.inputSequence !== undefined) {
-				if (this.pendingInputs.has(msg.inputSequence)) {
+				const pending = this.pendingInputs.get(msg.inputSequence);
+				if (pending) {
 					const code = msg.code ? ` (${msg.code})` : "";
-					this.settleInput(
-						msg.inputSequence,
-						new Error(
-							`input ${msg.id ?? "unknown"} sequence ${msg.inputSequence}${code}: ${msg.message}`,
-						),
-					);
+					if (msg.id !== pending.id) {
+						this.settleInput(
+							msg.inputSequence,
+							new DaemonInputError({
+								message: `daemon input error protocol mismatch: sequence ${msg.inputSequence} named ${msg.id ?? "unknown"}, expected ${pending.id}; payload outcome is unknown`,
+								outcome: "outcome-unknown",
+								inputId: pending.id,
+								sequence: msg.inputSequence,
+								code: msg.code,
+							}),
+						);
+					} else if (msg.inputOutcome === "not-enqueued") {
+						this.settleInput(
+							msg.inputSequence,
+							new DaemonInputError({
+								message: `input ${msg.id} sequence ${msg.inputSequence}${code}: ${msg.message}`,
+								outcome: "definitive-reject",
+								inputId: pending.id,
+								sequence: msg.inputSequence,
+								code: msg.code,
+							}),
+						);
+					} else {
+						this.settleInput(
+							msg.inputSequence,
+							new DaemonInputError({
+								message: `input ${msg.id} sequence ${msg.inputSequence}${code}: ${msg.message}; daemon did not prove the payload was not enqueued`,
+								outcome: "outcome-unknown",
+								inputId: pending.id,
+								sequence: msg.inputSequence,
+								code: msg.code,
+							}),
+						);
+					}
 				}
 				// A late correlated error must never settle a concurrent open/close on
 				// the same session id after the input waiter timed out.
@@ -737,7 +817,7 @@ export class DaemonClient {
 		if (!this.connected && this.socket === null) return;
 		this.connected = false;
 		this.socket = null;
-		this.rejectPendingInputs(err ?? new Error("daemon disconnected"));
+		this.rejectPendingInputsUnknown(err?.message ?? "daemon disconnected");
 		for (const cb of this.disconnectCbs) cb(err);
 	}
 }

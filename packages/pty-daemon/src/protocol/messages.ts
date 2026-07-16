@@ -184,6 +184,8 @@ export interface ErrorMessage {
 	id?: string;
 	/** Present when this error rejects one exact sequenced input mutation. */
 	inputSequence?: number;
+	/** Proof that the correlated payload was rejected before PTY enqueue. */
+	inputOutcome?: "not-enqueued";
 	message: string;
 	code?: string;
 }

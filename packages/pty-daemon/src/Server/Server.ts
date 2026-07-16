@@ -931,6 +931,7 @@ export class Server {
 		};
 		if (inputSequence !== undefined && error.type === "error") {
 			error.inputSequence = inputSequence;
+			error.inputOutcome = "not-enqueued";
 		}
 		conn.send(error);
 		return true;

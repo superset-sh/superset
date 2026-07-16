@@ -79,17 +79,35 @@ interface DaemonProbeResult {
 	capabilities: string[];
 }
 
+const REQUIRED_LIVE_SUCCESSOR_CAPABILITIES = [
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+	CORRELATED_INPUT_ACK_CAPABILITY,
+] as const;
+
+export function successorCompatibilityFailure(
+	probe: Pick<DaemonProbeResult, "daemonVersion" | "capabilities">,
+	expectedVersion = EXPECTED_DAEMON_VERSION,
+): string | null {
+	if (!semver.satisfies(probe.daemonVersion, `>=${expectedVersion}`)) {
+		return `successor daemon version ${probe.daemonVersion} does not satisfy >=${expectedVersion}`;
+	}
+	const capabilities = new Set(probe.capabilities);
+	const missing = REQUIRED_LIVE_SUCCESSOR_CAPABILITIES.filter(
+		(capability) => !capabilities.has(capability),
+	);
+	if (missing.length > 0) {
+		return `successor daemon lacks ${missing.join(", ")}`;
+	}
+	return null;
+}
+
 export function liveHandoffCapabilityFailure(
 	sessions: SessionInfo[],
 	capabilities: ReadonlySet<string>,
 ): string | null {
 	const liveSessions = sessions.filter((session) => session.alive);
 	if (liveSessions.length === 0) return null;
-	const required = [
-		LOSSLESS_LIVE_HANDOFF_CAPABILITY,
-		CORRELATED_INPUT_ACK_CAPABILITY,
-	];
-	const missing = required.filter(
+	const missing = REQUIRED_LIVE_SUCCESSOR_CAPABILITIES.filter(
 		(capability) => !capabilities.has(capability),
 	);
 	if (missing.length === 0) return null;
@@ -623,6 +641,14 @@ export class DaemonSupervisor {
 			);
 		}
 		verifiedSuccessorOwner = successorOwner;
+		const successorCompatibility =
+			successorCompatibilityFailure(successorOwner.probe);
+		if (successorCompatibility) {
+			return failClosed(
+				`successor pid ${result.successorPid} failed compatibility validation: ${successorCompatibility}`,
+				successorOwner,
+			);
+		}
 		const runningVersion = successorOwner.probe.daemonVersion;
 
 		// Single capture so the in-memory instance and the manifest agree.

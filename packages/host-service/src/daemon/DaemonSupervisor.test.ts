@@ -32,6 +32,7 @@ import {
 	promoteVerifiedSuccessorIdentity,
 	ptyDaemonSocketPath,
 	shouldKillStaleDaemonForDev,
+	successorCompatibilityFailure,
 	upgradeFailureCanResumePredecessor,
 } from "./DaemonSupervisor.ts";
 import { readPtyDaemonManifest, writePtyDaemonManifest } from "./manifest.ts";
@@ -125,6 +126,52 @@ describe("live handoff capability policy", () => {
 				new Set([LOSSLESS_LIVE_HANDOFF_CAPABILITY]),
 			),
 		).toMatch(/lacks correlated-input-ack-v1/);
+	});
+});
+
+describe("successor publication compatibility", () => {
+	const bothCapabilities = [
+		LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+		CORRELATED_INPUT_ACK_CAPABILITY,
+	];
+
+	test("rejects a rollback successor even when it advertises modern capabilities", () => {
+		expect(
+			successorCompatibilityFailure(
+				{ daemonVersion: "1.9.9", capabilities: bothCapabilities },
+				"2.0.0",
+			),
+		).toMatch(/does not satisfy >=2\.0\.0/);
+	});
+
+	test("rejects a successor missing either mandatory live-handoff capability", () => {
+		expect(
+			successorCompatibilityFailure(
+				{
+					daemonVersion: "2.0.0",
+					capabilities: [CORRELATED_INPUT_ACK_CAPABILITY],
+				},
+				"2.0.0",
+			),
+		).toMatch(/lacks lossless-live-handoff-v1/);
+		expect(
+			successorCompatibilityFailure(
+				{
+					daemonVersion: "2.0.0",
+					capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
+				},
+				"2.0.0",
+			),
+		).toMatch(/lacks correlated-input-ack-v1/);
+	});
+
+	test("accepts the expected version only with both mandatory capabilities", () => {
+		expect(
+			successorCompatibilityFailure(
+				{ daemonVersion: "2.0.0", capabilities: bothCapabilities },
+				"2.0.0",
+			),
+		).toBeNull();
 	});
 });
 

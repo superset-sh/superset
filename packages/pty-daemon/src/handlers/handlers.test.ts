@@ -174,6 +174,7 @@ describe("handlers", () => {
 			type: "error",
 			id: "s0",
 			inputSequence: 42,
+			inputOutcome: "not-enqueued",
 			message: "backlog full",
 			code: "EWRITE",
 		});
@@ -201,6 +202,7 @@ describe("handlers", () => {
 			type: "error",
 			id: "missing",
 			inputSequence: 43,
+			inputOutcome: "not-enqueued",
 			code: "ENOENT",
 		});
 	});

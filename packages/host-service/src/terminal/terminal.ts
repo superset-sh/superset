@@ -22,11 +22,12 @@ import type { HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
-import type {
-	DaemonClient,
-	Signal as DaemonSignal,
-	ReplayBoundary,
-	SubscribeCallbacks,
+import {
+	type DaemonClient,
+	DaemonInputError,
+	type Signal as DaemonSignal,
+	type ReplayBoundary,
+	type SubscribeCallbacks,
 } from "./DaemonClient/index.ts";
 import {
 	type DaemonPlannedRotationBinding,
@@ -69,7 +70,7 @@ interface DaemonPtyReplaySubscription extends PtyDataDisposer {
 
 export interface DaemonPty {
 	pid: number;
-	write(data: string): Promise<void>;
+	write(data: string): Promise<TerminalInputAcceptance>;
 	resize(cols: number, rows: number): Promise<void>;
 	kill(signal?: NodeJS.Signals): Promise<void>;
 	subscribe(
@@ -88,6 +89,20 @@ export interface DaemonPty {
 	onExit(
 		cb: (info: { exitCode: number; signal: number }) => void,
 	): PtyDataDisposer;
+}
+
+export type TerminalInputAcceptance = "accepted" | "sent-unconfirmed";
+
+export type InitialCommandDeliveryStatus =
+	| TerminalInputAcceptance
+	| "pending"
+	| "rejected"
+	| "outcome-unknown"
+	| "already-queued";
+
+export interface InitialCommandDeliveryResult {
+	status: InitialCommandDeliveryStatus;
+	warning?: string;
 }
 
 function makeDaemonPty(
@@ -664,13 +679,17 @@ function makeDaemonPty(
 			const payload = Buffer.from(data, "utf8");
 			return runCurrentDaemonMutation(
 				{ kind: "input", byteCost: payload.byteLength },
-				async () => {
+				async (): Promise<TerminalInputAcceptance> => {
 					const current = await getDaemonClient();
+					const correlated = current.hasCapability(
+						CORRELATED_INPUT_ACK_CAPABILITY,
+					);
 					const input = current.input(sessionId, payload);
-					if (!current.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY)) {
+					if (!correlated) {
 						markDaemonMutationNeedsBarrier(current);
 					}
 					await input;
+					return correlated ? "accepted" : "sent-unconfirmed";
 				},
 			);
 		},
@@ -906,6 +925,9 @@ interface TerminalSession {
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
 	scanState: ShellReadyScanState;
 	initialCommandQueued: boolean;
+	initialCommandResult: InitialCommandDeliveryResult | null;
+	/** Detached mutation failures delivered once to the first real WS attach. */
+	pendingMutationErrors: string[];
 
 	/**
 	 * Side-channel UTF-8 decoder. portManager.checkOutputForHint takes a
@@ -1194,6 +1216,34 @@ function broadcastMessage(
 	return sent;
 }
 
+const MAX_PENDING_MUTATION_ERRORS = 32;
+
+function reportSessionMutationMessage(
+	session: TerminalSession,
+	message: string,
+): void {
+	console.error(`[terminal] ${message}`, { terminalId: session.terminalId });
+	if (broadcastMessage(session, { type: "error", message }) > 0) return;
+	session.pendingMutationErrors.push(message);
+	if (session.pendingMutationErrors.length > MAX_PENDING_MUTATION_ERRORS) {
+		session.pendingMutationErrors.splice(
+			0,
+			session.pendingMutationErrors.length - MAX_PENDING_MUTATION_ERRORS,
+		);
+	}
+}
+
+function flushPendingMutationErrors(
+	session: TerminalSession,
+	socket: TerminalSocket,
+): void {
+	if (socket.readyState !== SOCKET_OPEN) return;
+	const pending = session.pendingMutationErrors.splice(0);
+	for (const message of pending) {
+		sendMessage(socket, { type: "error", message });
+	}
+}
+
 function setSessionTitle(session: TerminalSession, title: string | null) {
 	if (session.title === title) return;
 	session.title = title;
@@ -1390,7 +1440,7 @@ function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
 	directDaemon?: DaemonClient,
-): Promise<void> {
+): Promise<InitialCommandDeliveryResult> {
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
@@ -1409,39 +1459,83 @@ function queueInitialCommand(
 				Buffer.from(cmd, "utf8"),
 			);
 		},
-		(error) => reportSessionMutationError(session, "initial input", error),
+		(message) => reportSessionMutationMessage(session, message),
 	);
 }
 
 function runInitialCommandAttempt(
-	state: { initialCommandQueued: boolean; exited: boolean },
-	send: () => Promise<void>,
-	onVisibleError: (error: unknown) => void,
-): Promise<void> {
-	if (state.initialCommandQueued || state.exited) return Promise.resolve();
+	state: {
+		initialCommandQueued: boolean;
+		exited: boolean;
+		initialCommandResult?: InitialCommandDeliveryResult | null;
+	},
+	send: () => Promise<TerminalInputAcceptance>,
+	onVisibleError: (message: string) => void,
+): Promise<InitialCommandDeliveryResult> {
+	if (state.initialCommandQueued || state.exited) {
+		const result = state.initialCommandResult ?? {
+			status: "already-queued" as const,
+			warning: state.exited
+				? "Initial command was not sent because the terminal has exited."
+				: "Initial command was not sent because this session already attempted one.",
+		};
+		state.initialCommandResult = result;
+		return Promise.resolve(result);
+	}
 	state.initialCommandQueued = true;
-	let operation: Promise<void>;
+	state.initialCommandResult = { status: "pending" };
+	let operation: Promise<TerminalInputAcceptance>;
 	try {
 		operation = send();
 	} catch (error) {
 		operation = Promise.reject(error);
 	}
-	return operation.catch((error) => {
-		state.initialCommandQueued = false;
-		onVisibleError(error);
-	});
+	return operation.then(
+		(status) => {
+			const result: InitialCommandDeliveryResult =
+				status === "accepted"
+					? { status }
+					: {
+							status,
+							warning:
+								"Initial command was sent to a legacy terminal without correlated acknowledgement.",
+						};
+			state.initialCommandResult = result;
+			return result;
+		},
+		(error) => {
+			const detail = error instanceof Error ? error.message : String(error);
+			const definitive =
+				error instanceof DaemonInputError &&
+				error.outcome === "definitive-reject";
+			if (definitive) state.initialCommandQueued = false;
+			const result: InitialCommandDeliveryResult = definitive
+				? {
+						status: "rejected",
+						warning: `Initial command was rejected before terminal enqueue: ${detail}`,
+					}
+				: {
+						status: "outcome-unknown",
+						warning: `Initial command delivery could not be confirmed and may have run: ${detail}`,
+					};
+			state.initialCommandResult = result;
+			onVisibleError(`Terminal ${result.warning}`);
+			return result;
+		},
+	);
 }
 
 function sendDirectDaemonInput(
 	daemon: DaemonClient,
 	terminalId: string,
 	payload: Buffer,
-): Promise<void> {
+): Promise<TerminalInputAcceptance> {
+	const correlated = daemon.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY);
 	const input = daemon.input(terminalId, payload);
-	if (!daemon.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY)) {
+	if (!correlated) {
 		markDaemonMutationNeedsBarrier(daemon);
 	}
-	return input;
+	return input.then(() => (correlated ? "accepted" : "sent-unconfirmed"));
 }
 
 /** Exact direct-initial-command transport path, exposed only for regression tests. */
@@ -1449,12 +1543,16 @@ export const __sendDirectDaemonInputForTesting = sendDirectDaemonInput;
 
 /** Direct initial-command failure semantics, exposed only for regression tests. */
 export function __queueDirectInitialCommandForTesting(
-	state: { initialCommandQueued: boolean; exited: boolean },
+	state: {
+		initialCommandQueued: boolean;
+		exited: boolean;
+		initialCommandResult?: InitialCommandDeliveryResult | null;
+	},
 	daemon: DaemonClient,
 	terminalId: string,
 	payload: Buffer,
-	onVisibleError: (error: unknown) => void,
-): Promise<void> {
+	onVisibleError: (message: string) => void,
+): Promise<InitialCommandDeliveryResult> {
 	return runInitialCommandAttempt(
 		state,
 		() => sendDirectDaemonInput(daemon, terminalId, payload),
@@ -1469,8 +1567,7 @@ function reportSessionMutationError(
 ): void {
 	const detail = error instanceof Error ? error.message : String(error);
 	const message = `Terminal ${operation} failed: ${detail}`;
-	console.error(`[terminal] ${message}`, { terminalId: session.terminalId });
-	broadcastMessage(session, { type: "error", message });
+	reportSessionMutationMessage(session, message);
 }
 
 interface DaemonCloseResult {
@@ -2037,6 +2134,8 @@ async function createTerminalSessionInternalDirect({
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
+		initialCommandResult: null,
+		pendingMutationErrors: [],
 		portHintDecoder: new StringDecoder("utf8"),
 		modeTracker: createModeTracker(cols, rows),
 	};
@@ -2232,7 +2331,13 @@ export function registerWorkspaceTerminalRoute({
 			return c.json({ error: result.error }, 500);
 		}
 
-		return c.json({ terminalId: result.terminalId, status: "active" });
+		return c.json({
+			terminalId: result.terminalId,
+			status: "active",
+			...(body.initialCommand && {
+				initialCommand: result.initialCommandResult ?? { status: "pending" },
+			}),
+		});
 	});
 
 	// REST dispose — does not require an open WebSocket
@@ -2319,6 +2424,7 @@ export function registerWorkspaceTerminalRoute({
 
 				sendMessage(ws, { type: "title", title: session.title });
 				replayBuffer(session, ws);
+				flushPendingMutationErrors(session, ws);
 				if (session.exited) {
 					sendMessage(ws, {
 						type: "exit",

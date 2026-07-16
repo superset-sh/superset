@@ -10,6 +10,7 @@ import {
 	encodeFrame,
 	FrameDecoder,
 } from "@superset/pty-daemon/protocol";
+import { DaemonClient } from "./DaemonClient/index.ts";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -39,6 +40,7 @@ async function startFakeDaemon(
 		initialReplay?: Buffer;
 		appendReplayOnDroppedActivate?: Buffer;
 		rejectSequencedInput?: boolean;
+		dropSequencedInputConnection?: boolean;
 	} = {},
 ): Promise<FakeDaemon> {
 	const socketPath = path.join(
@@ -118,6 +120,12 @@ async function startFakeDaemon(
 				} else if (
 					message.type === "input" &&
 					message.sequence !== undefined &&
+					options.dropSequencedInputConnection
+				) {
+					socket.destroy();
+				} else if (
+					message.type === "input" &&
+					message.sequence !== undefined &&
 					options.rejectSequencedInput
 				) {
 					socket.write(
@@ -125,6 +133,7 @@ async function startFakeDaemon(
 							type: "error",
 							id: message.id,
 							inputSequence: message.sequence,
+							inputOutcome: "not-enqueued",
 							code: "EWRITE",
 							message: "direct initial input rejected",
 						}),
@@ -144,6 +153,7 @@ async function startFakeDaemon(
 			}
 		});
 	});
+
 	await new Promise<void>((resolve, reject) => {
 		server.once("error", reject);
 		server.listen(socketPath, () => {
@@ -287,10 +297,14 @@ describe.serial("daemon client singleton", () => {
 		process.env.ORGANIZATION_ID = "initial-command-ewrite-org";
 		try {
 			const client = await getDaemonClient();
-			const state = { initialCommandQueued: false, exited: false };
-			const visibleErrors: unknown[] = [];
+			const state = {
+				initialCommandQueued: false,
+				exited: false,
+				initialCommandResult: null,
+			};
+			const visibleErrors: string[] = [];
 
-			await __queueDirectInitialCommandForTesting(
+			const result = await __queueDirectInitialCommandForTesting(
 				state,
 				client,
 				"known-session",
@@ -299,11 +313,93 @@ describe.serial("daemon client singleton", () => {
 			);
 
 			expect(state.initialCommandQueued).toBe(false);
+			expect(result.status).toBe("rejected");
+			expect(result.warning).toMatch(/EWRITE/);
 			expect(visibleErrors).toHaveLength(1);
-			expect(String(visibleErrors[0])).toMatch(/EWRITE/);
+			expect(visibleErrors[0]).toMatch(/EWRITE/);
 			expect(daemon.received).toContain("input");
 		} finally {
 			await disposeDaemonClient();
+			await daemon.close();
+		}
+	});
+
+	test("initial-command ACK timeout remains sticky and cannot duplicate the payload", async () => {
+		const daemon = await startFakeDaemon({
+			capabilities: [CORRELATED_INPUT_ACK_CAPABILITY],
+		});
+		const client = new DaemonClient({
+			socketPath: daemon.socketPath,
+			inputAckTimeoutMs: 20,
+		});
+		try {
+			await client.connect();
+			const state = {
+				initialCommandQueued: false,
+				exited: false,
+				initialCommandResult: null,
+			};
+			const visibleErrors: string[] = [];
+
+			const first = await __queueDirectInitialCommandForTesting(
+				state,
+				client,
+				"known-session",
+				Buffer.from("initial-command\n"),
+				(message) => visibleErrors.push(message),
+			);
+			const second = await __queueDirectInitialCommandForTesting(
+				state,
+				client,
+				"known-session",
+				Buffer.from("initial-command\n"),
+				(message) => visibleErrors.push(message),
+			);
+
+			expect(first.status).toBe("outcome-unknown");
+			expect(first.warning).toMatch(/may have run/);
+			expect(second).toEqual(first);
+			expect(state.initialCommandQueued).toBe(true);
+			expect(visibleErrors).toHaveLength(1);
+			expect(visibleErrors[0]).toMatch(/may have run/);
+			expect(daemon.received.filter((type) => type === "input")).toHaveLength(
+				1,
+			);
+		} finally {
+			await client.dispose();
+			await daemon.close();
+		}
+	});
+
+	test("initial-command disconnect remains sticky and cannot retry an unknown outcome", async () => {
+		const daemon = await startFakeDaemon({
+			capabilities: [CORRELATED_INPUT_ACK_CAPABILITY],
+			dropSequencedInputConnection: true,
+		});
+		const client = new DaemonClient({ socketPath: daemon.socketPath });
+		try {
+			await client.connect();
+			const state = {
+				initialCommandQueued: false,
+				exited: false,
+				initialCommandResult: null,
+			};
+			const visibleErrors: string[] = [];
+
+			const result = await __queueDirectInitialCommandForTesting(
+				state,
+				client,
+				"known-session",
+				Buffer.from("initial-command\n"),
+				(message) => visibleErrors.push(message),
+			);
+
+			expect(result.status).toBe("outcome-unknown");
+			expect(result.warning).toMatch(/may have run/);
+			expect(state.initialCommandQueued).toBe(true);
+			expect(visibleErrors[0]).toMatch(/may have run/);
+		} finally {
+			await client.dispose();
 			await daemon.close();
 		}
 	});

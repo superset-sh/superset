@@ -57,6 +57,11 @@ async function createTerminalSessionFromInput({
 	return {
 		terminalId: result.terminalId,
 		status: "active" as const,
+		...(input.initialCommand && {
+			initialCommand: result.initialCommandResult ?? {
+				status: "pending" as const,
+			},
+		}),
 	};
 }
 

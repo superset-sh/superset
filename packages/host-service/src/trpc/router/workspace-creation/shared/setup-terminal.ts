@@ -79,7 +79,7 @@ export async function startSetupTerminalIfPresent(
 			role: "setup",
 			label: "Workspace Setup",
 		},
-		warning: null,
+		warning: result.initialCommandResult?.warning ?? null,
 	};
 }
 

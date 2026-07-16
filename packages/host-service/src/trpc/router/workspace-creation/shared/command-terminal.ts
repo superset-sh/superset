@@ -38,6 +38,6 @@ export async function startCommandTerminal(
 
 	return {
 		terminal: { id: terminalId, role: "command", label: "Command" },
-		warning: null,
+		warning: result.initialCommandResult?.warning ?? null,
 	};
 }

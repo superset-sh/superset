@@ -47,6 +47,7 @@ export interface TestHostOptions {
 
 export interface TestHost {
 	app: CreateAppResult["app"];
+	injectWebSocket: CreateAppResult["injectWebSocket"];
 	api: CreateAppResult["api"];
 	db: HostDb;
 	dispose: () => Promise<void>;
@@ -177,6 +178,7 @@ export async function createTestHost(
 
 	return {
 		app: result.app,
+		injectWebSocket: result.injectWebSocket,
 		api: fakeApi.client,
 		db: db as unknown as HostDb,
 		dispose,

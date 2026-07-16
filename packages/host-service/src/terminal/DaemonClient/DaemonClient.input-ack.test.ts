@@ -11,7 +11,7 @@ import {
 	FrameDecoder,
 	type InputMessage,
 } from "@superset/pty-daemon/protocol";
-import { DaemonClient } from "./DaemonClient.ts";
+import { DaemonClient, DaemonInputError } from "./DaemonClient.ts";
 
 interface ReceivedInput {
 	message: InputMessage;
@@ -59,6 +59,7 @@ describe("DaemonClient correlated input acknowledgements", () => {
 						type: "error",
 						id: first.id,
 						inputSequence: first.sequence,
+						inputOutcome: "not-enqueued",
 						code: "EWRITE",
 						message: "pty backlog full",
 					}),
@@ -74,6 +75,10 @@ describe("DaemonClient correlated input acknowledgements", () => {
 		expect(results[0]?.status).toBe("rejected");
 		if (results[0]?.status === "rejected") {
 			expect(String(results[0].reason)).toMatch(/sequence 1 \(EWRITE\)/);
+			expect(results[0].reason).toBeInstanceOf(DaemonInputError);
+			expect((results[0].reason as DaemonInputError).outcome).toBe(
+				"definitive-reject",
+			);
 		}
 		expect(results[1]).toEqual({ status: "fulfilled", value: undefined });
 		expect(daemon.inputs.map(({ payload }) => payload.toString())).toEqual([
@@ -107,9 +112,12 @@ describe("DaemonClient correlated input acknowledgements", () => {
 		});
 		const client = await connectClient(daemon.socketPath);
 
-		await expect(
-			client.input("disconnect-session", Buffer.from("pending")),
-		).rejects.toThrow(/daemon disconnected/);
+		const result = await client
+			.input("disconnect-session", Buffer.from("pending"))
+			.catch((error: unknown) => error);
+		expect(result).toBeInstanceOf(DaemonInputError);
+		expect((result as DaemonInputError).outcome).toBe("outcome-unknown");
+		expect(String(result)).toMatch(/daemon disconnected/);
 	});
 
 	test("mismatched session id rejects instead of resolving another input", async () => {
@@ -128,9 +136,67 @@ describe("DaemonClient correlated input acknowledgements", () => {
 		});
 		const client = await connectClient(daemon.socketPath);
 
-		await expect(
-			client.input("expected-session", Buffer.from("payload")),
-		).rejects.toThrow(/named different-session, expected expected-session/);
+		const result = await client
+			.input("expected-session", Buffer.from("payload"))
+			.catch((error: unknown) => error);
+		expect(result).toBeInstanceOf(DaemonInputError);
+		expect((result as DaemonInputError).outcome).toBe("outcome-unknown");
+		expect(String(result)).toMatch(
+			/named different-session, expected expected-session/,
+		);
+	});
+
+	test("mismatched correlated error is a protocol mismatch with unknown outcome", async () => {
+		const daemon = await startFakeInputDaemon({
+			capabilities: [CORRELATED_INPUT_ACK_CAPABILITY],
+			onInput(socket, { message }) {
+				if (message.sequence === undefined) throw new Error("missing sequence");
+				socket.write(
+					encodeFrame({
+						type: "error",
+						id: "different-session",
+						inputSequence: message.sequence,
+						inputOutcome: "not-enqueued",
+						code: "EWRITE",
+						message: "wrong session",
+					}),
+				);
+			},
+		});
+		const client = await connectClient(daemon.socketPath);
+
+		const result = await client
+			.input("expected-session", Buffer.from("payload"))
+			.catch((error: unknown) => error);
+		expect(result).toBeInstanceOf(DaemonInputError);
+		expect((result as DaemonInputError).outcome).toBe("outcome-unknown");
+		expect(String(result)).toMatch(/input error protocol mismatch/);
+	});
+
+	test("correlated error without no-enqueue proof has unknown outcome", async () => {
+		const daemon = await startFakeInputDaemon({
+			capabilities: [CORRELATED_INPUT_ACK_CAPABILITY],
+			onInput(socket, { message }) {
+				if (message.sequence === undefined) throw new Error("missing sequence");
+				socket.write(
+					encodeFrame({
+						type: "error",
+						id: message.id,
+						inputSequence: message.sequence,
+						code: "EWRITE",
+						message: "ambiguous legacy rejection",
+					}),
+				);
+			},
+		});
+		const client = await connectClient(daemon.socketPath);
+
+		const result = await client
+			.input("expected-session", Buffer.from("payload"))
+			.catch((error: unknown) => error);
+		expect(result).toBeInstanceOf(DaemonInputError);
+		expect((result as DaemonInputError).outcome).toBe("outcome-unknown");
+		expect(String(result)).toMatch(/did not prove/);
 	});
 
 	test("unknown sequence cannot resolve a pending input", async () => {
@@ -175,9 +241,12 @@ describe("DaemonClient correlated input acknowledgements", () => {
 		clients.add(client);
 		await client.connect();
 
-		await expect(
-			client.input("timeout-session", Buffer.from("payload")),
-		).rejects.toThrow(/timed out after 20ms/);
+		const result = await client
+			.input("timeout-session", Buffer.from("payload"))
+			.catch((error: unknown) => error);
+		expect(result).toBeInstanceOf(DaemonInputError);
+		expect((result as DaemonInputError).outcome).toBe("outcome-unknown");
+		expect(String(result)).toMatch(/timed out after 20ms/);
 	});
 });
 

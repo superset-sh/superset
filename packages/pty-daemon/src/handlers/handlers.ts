@@ -198,6 +198,7 @@ function errorFor(
 	const error: ServerMessage = { type: "error", id, message, code };
 	if (inputSequence !== undefined && error.type === "error") {
 		error.inputSequence = inputSequence;
+		error.inputOutcome = "not-enqueued";
 	}
 	return error;
 }

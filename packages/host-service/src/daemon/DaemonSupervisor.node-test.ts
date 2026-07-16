@@ -17,7 +17,9 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import { runDaemonMutation } from "../terminal/daemon-mutation-gate.ts";
 import { DaemonSupervisor } from "./DaemonSupervisor.ts";
+import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import {
 	type PtyDaemonManifest,
 	ptyDaemonManifestDir,
@@ -381,6 +383,139 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		// Cleanup: the surviving session.
 		await client2.close("upd-0", "SIGKILL").catch(() => {});
 		await client2.dispose();
+	});
+
+	test("rollback successor fails closed and never flushes held input through the legacy owner", async () => {
+		const orgId = "org-update-rollback-successor";
+		fs.mkdirSync(PTY_DAEMON_CACHE_DIR, { recursive: true });
+		const runtimeDir = fs.mkdtempSync(
+			path.join(PTY_DAEMON_CACHE_DIR, "host-rollback-successor-"),
+		);
+		const runtimeScript = path.join(runtimeDir, "pty-daemon.mjs");
+		fs.copyFileSync(DAEMON_BUNDLE, runtimeScript);
+		const sup = new DaemonSupervisor({
+			scriptPath: runtimeScript,
+			autoUpdate: false,
+		});
+		supervisorsToCleanup.push({ sup, orgId });
+		let successorPid: number | undefined;
+		let heldReset = false;
+
+		try {
+			const predecessor = await sup.ensure(orgId);
+			const { DaemonClient } = await import(
+				"../terminal/DaemonClient/index.ts"
+			);
+			const client = new DaemonClient({ socketPath: predecessor.socketPath });
+			await client.connect();
+			await client.open("rollback-survivor", {
+				shell: "/bin/sh",
+				argv: ["-c", "sleep 30"],
+				cols: 80,
+				rows: 24,
+			});
+			await client.dispose();
+
+			// The predecessor has already loaded the current bundle. Its self-spawn
+			// path now resolves to the frozen 0.2.5 fixture, simulating an on-disk
+			// rollback between host publication and the committed handoff.
+			fs.copyFileSync(LEGACY_DAEMON_BUNDLE, runtimeScript);
+			let flushedThroughLegacy = false;
+			const update = sup.update(orgId);
+			const held = runDaemonMutation(
+				orgId,
+				{ kind: "input", byteCost: 17 },
+				async () => {
+					flushedThroughLegacy = true;
+					return "flushed";
+				},
+			);
+			const heldResult = held.then(
+				(value) => ({ ok: true as const, value }),
+				(error: unknown) => ({ ok: false as const, error }),
+			);
+
+			const result = await update;
+			assert.equal(result.ok, false, JSON.stringify(result));
+			if (result.ok) return;
+			assert.match(result.reason, /failed compatibility validation/);
+			assert.ok(
+				result.reason.includes(`does not satisfy >=${EXPECTED_DAEMON_VERSION}`),
+				result.reason,
+			);
+			assert.match(result.reason, /mutations remain paused/);
+			assert.equal(flushedThroughLegacy, false);
+			assert.equal(
+				await Promise.race([
+					heldResult.then(() => "settled"),
+					new Promise<string>((resolve) =>
+						setTimeout(() => resolve("still-held"), 50),
+					),
+				]),
+				"still-held",
+			);
+
+			const recovery = (
+				sup as unknown as {
+					ambiguousUpdates: Map<
+						string,
+						{
+							successorPid?: number;
+							lease: {
+								resetAfterForceRestart(error: Error): Promise<void>;
+							};
+						}
+					>;
+				}
+			).ambiguousUpdates.get(orgId);
+			assert.ok(recovery, "expected fail-closed recovery state");
+			successorPid = recovery.successorPid;
+			assert.ok(successorPid && successorPid > 0);
+			await recovery.lease.resetAfterForceRestart(
+				new Error("test cleanup reset after rollback successor"),
+			);
+			heldReset = true;
+			(
+				sup as unknown as { ambiguousUpdates: Map<string, unknown> }
+			).ambiguousUpdates.delete(orgId);
+			const cancelled = await heldResult;
+			assert.equal(cancelled.ok, false);
+			assert.equal(flushedThroughLegacy, false);
+
+			const cleanupClient = new DaemonClient({
+				socketPath: predecessor.socketPath,
+			});
+			await cleanupClient.connect();
+			assert.equal(cleanupClient.version, "0.2.5");
+			await cleanupClient.close("rollback-survivor", "SIGKILL").catch(() => {});
+			await cleanupClient.dispose();
+		} finally {
+			const recovery = (
+				sup as unknown as {
+					ambiguousUpdates: Map<
+						string,
+						{
+							successorPid?: number;
+							lease: {
+								resetAfterForceRestart(error: Error): Promise<void>;
+							};
+						}
+					>;
+				}
+			).ambiguousUpdates.get(orgId);
+			if (recovery && !heldReset) {
+				await recovery.lease
+					.resetAfterForceRestart(new Error("rollback test cleanup"))
+					.catch(() => {});
+			}
+			successorPid ??= recovery?.successorPid;
+			if (successorPid && isAlive(successorPid)) {
+				try {
+					process.kill(successorPid, "SIGTERM");
+				} catch {}
+			}
+			fs.rmSync(runtimeDir, { recursive: true, force: true });
+		}
 	});
 
 	test("auto-update on adopt opportunistically swaps in the bundled binary", async () => {

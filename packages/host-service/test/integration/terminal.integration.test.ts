@@ -8,9 +8,11 @@ import {
 	rmSync,
 	writeFileSync,
 } from "node:fs";
+import type { AddressInfo } from "node:net";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { type ServerType, serve } from "@hono/node-server";
 import { Server } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
 import {
@@ -30,10 +32,13 @@ import { __setAccountShellForTesting } from "../../src/terminal/user-shell.ts";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 import { seedTerminalSession } from "../helpers/seed";
 
+const originalOrganizationId = process.env.ORGANIZATION_ID;
+
 describe("terminal router integration", () => {
 	let scenario: BasicScenario;
 
 	beforeEach(async () => {
+		process.env.ORGANIZATION_ID = "00000000-0000-0000-0000-000000000001";
 		initTerminalBaseEnv({
 			PATH: process.env.PATH ?? "/usr/bin:/bin",
 			HOME: process.env.HOME ?? tmpdir(),
@@ -49,6 +54,11 @@ describe("terminal router integration", () => {
 		__setAccountShellForTesting(undefined);
 		delete process.env.SUPERSET_PTY_DAEMON_SOCKET;
 		delete process.env.SUPERSET_HOME_DIR;
+		if (originalOrganizationId === undefined) {
+			delete process.env.ORGANIZATION_ID;
+		} else {
+			process.env.ORGANIZATION_ID = originalOrganizationId;
+		}
 		await scenario?.dispose();
 	});
 
@@ -153,6 +163,85 @@ describe("terminal router integration", () => {
 				.catch(() => {});
 			await disposeDaemonClient();
 			await server.close();
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	});
+
+	test("launchSession persists an initial-command EWRITE until a real later WebSocket attach", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "host-service-terminal-ewrite-"));
+		const socketPath = join(tmp, "pty-daemon.sock");
+		const terminalId = randomUUID();
+		const daemon = new Server({
+			socketPath,
+			daemonVersion: "0.0.0-terminal-ewrite-test",
+			spawnPty: ({ meta }) =>
+				createFakePty(4300, meta, () => {
+					throw new Error("forced initial-command backlog full");
+				}),
+		});
+		let httpServer: ServerType | null = null;
+		let ws: WebSocket | null = null;
+
+		try {
+			await daemon.listen();
+			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+			process.env.SUPERSET_HOME_DIR = tmp;
+
+			const created = await scenario.host.trpc.terminal.launchSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId,
+				initialCommand: "echo should-not-enqueue",
+			});
+			expect(created.status).toBe("active");
+			expect(created.initialCommand.status).toBe("rejected");
+			expect(created.initialCommand.warning).toMatch(
+				/forced initial-command backlog full/,
+			);
+
+			httpServer = await new Promise<ServerType>((resolve) => {
+				const instance = serve(
+					{ fetch: scenario.host.app.fetch, port: 0 },
+					() => resolve(instance),
+				);
+			});
+			scenario.host.injectWebSocket(httpServer);
+			const { port } = httpServer.address() as AddressInfo;
+			const messages: Array<Record<string, unknown>> = [];
+			ws = new WebSocket(
+				`ws://127.0.0.1:${port}/terminal/${terminalId}?workspaceId=${scenario.workspaceId}&token=${scenario.host.psk}`,
+			);
+			ws.addEventListener("message", (event) => {
+				const text =
+					typeof event.data === "string"
+						? event.data
+						: Buffer.from(event.data as ArrayBuffer).toString("utf8");
+				messages.push(JSON.parse(text) as Record<string, unknown>);
+			});
+
+			await waitFor(
+				() =>
+					messages.some(
+						(message) =>
+							message.type === "error" &&
+							String(message.message).includes(
+								"forced initial-command backlog full",
+							),
+					),
+				2000,
+				() =>
+					`durable mutation error not received: ${JSON.stringify(messages)}`,
+			);
+			expect(messages.some((message) => message.type === "attached")).toBe(
+				true,
+			);
+		} finally {
+			ws?.close();
+			await scenario.host.trpc.terminal.killSession
+				.mutate({ workspaceId: scenario.workspaceId, terminalId })
+				.catch(() => {});
+			if (httpServer) await closeHttpServer(httpServer);
+			await disposeDaemonClient();
+			await daemon.close();
 			rmSync(tmp, { recursive: true, force: true });
 		}
 	});
@@ -413,6 +502,7 @@ function createFakePty(
 		cols: number;
 		rows: number;
 	},
+	onWrite?: () => void,
 ) {
 	let currentMeta = meta;
 	const exitCallbacks: Array<
@@ -424,7 +514,9 @@ function createFakePty(
 		get meta() {
 			return currentMeta;
 		},
-		write() {},
+		write() {
+			onWrite?.();
+		},
 		resize(cols: number, rows: number) {
 			currentMeta = { ...currentMeta, cols, rows };
 		},
@@ -443,6 +535,13 @@ function createFakePty(
 			return 0;
 		},
 	};
+}
+
+async function closeHttpServer(server: ServerType): Promise<void> {
+	(
+		server as unknown as { closeAllConnections?: () => void }
+	).closeAllConnections?.();
+	await new Promise<void>((resolve) => server.close(() => resolve()));
 }
 
 function ensureDaemonBundle(bundlePath: string): void {
