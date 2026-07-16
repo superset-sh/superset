@@ -16,6 +16,7 @@ import {
 import { adoptFromFd } from "../Pty/index.ts";
 import {
 	type ClientMessage,
+	CONDITIONAL_CLOSE_PID_CAPABILITY,
 	CORRELATED_INPUT_ACK_CAPABILITY,
 	encodeFrame,
 	FrameDecoder,
@@ -805,6 +806,7 @@ export class Server {
 				capabilities: [
 					LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 					CORRELATED_INPUT_ACK_CAPABILITY,
+					CONDITIONAL_CLOSE_PID_CAPABILITY,
 				],
 				daemonPid: process.pid,
 			});

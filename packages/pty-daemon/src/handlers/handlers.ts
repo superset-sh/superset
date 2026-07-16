@@ -132,6 +132,18 @@ export async function handleClose(
 ): Promise<ServerMessage> {
 	const session = ctx.store.get(msg.id);
 	if (!session) return errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT");
+	if (
+		msg.expectedPid !== undefined &&
+		(!Number.isSafeInteger(msg.expectedPid) ||
+			msg.expectedPid <= 0 ||
+			session.pty.pid !== msg.expectedPid)
+	) {
+		return errorFor(
+			msg.id,
+			`session ${msg.id} no longer belongs to pid ${msg.expectedPid}`,
+			"ESTALE",
+		);
+	}
 	try {
 		// SIGHUP is the right signal for "your terminal is going away" —
 		// what the kernel sends when a TTY actually closes. Interactive

@@ -17,6 +17,7 @@
 
 import * as net from "node:net";
 import {
+	CONDITIONAL_CLOSE_PID_CAPABILITY,
 	CORRELATED_INPUT_ACK_CAPABILITY,
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
@@ -38,6 +39,8 @@ export interface ExitInfo {
 }
 
 export type Signal = "SIGINT" | "SIGTERM" | "SIGKILL" | "SIGHUP";
+
+export type ConditionalCloseResult = "closed" | "not-owner" | "unsupported";
 
 export interface SubscribeCallbacks {
 	onOutput: (chunk: Buffer) => void;
@@ -228,6 +231,37 @@ export class DaemonClient {
 		if (reply.type === "closed") return;
 		if (reply.type === "error")
 			throw new Error(`close ${id}: ${reply.message}`);
+		throw new Error(`close ${id}: unexpected reply ${reply.type}`);
+	}
+
+	/**
+	 * Close only the PTY process returned by the caller's earlier open. Legacy
+	 * daemons must not receive this field because they may ignore it and close a
+	 * newer same-id session.
+	 */
+	async closeIfPid(
+		id: string,
+		expectedPid: number,
+		signal: Signal = "SIGHUP",
+	): Promise<ConditionalCloseResult> {
+		if (!this.hasCapability(CONDITIONAL_CLOSE_PID_CAPABILITY)) {
+			return "unsupported";
+		}
+		const reply = await this.requestSession(
+			id,
+			{ type: "close", id, signal, expectedPid },
+			CLOSE_TIMEOUT_MS,
+		);
+		if (reply.type === "closed") return "closed";
+		if (
+			reply.type === "error" &&
+			(reply.code === "ESTALE" || reply.code === "ENOENT")
+		) {
+			return "not-owner";
+		}
+		if (reply.type === "error") {
+			throw new Error(`close ${id}: ${reply.message}`);
+		}
 		throw new Error(`close ${id}: unexpected reply ${reply.type}`);
 	}
 
@@ -582,7 +616,12 @@ export class DaemonClient {
 		id: string,
 		req:
 			| { type: "open"; id: string; meta: SessionMeta }
-			| { type: "close"; id: string; signal: Signal },
+			| {
+					type: "close";
+					id: string;
+					signal: Signal;
+					expectedPid?: number;
+			  },
 		timeoutMs: number,
 	): Promise<ServerMessage> {
 		return new Promise<ServerMessage>((resolve, reject) => {

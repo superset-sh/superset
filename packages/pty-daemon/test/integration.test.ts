@@ -10,6 +10,7 @@ import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { adoptFromFd, spawn as spawnPty } from "../src/Pty/Pty.ts";
 import {
+	CONDITIONAL_CLOSE_PID_CAPABILITY,
 	CORRELATED_INPUT_ACK_CAPABILITY,
 	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 } from "../src/protocol/index.ts";
@@ -39,6 +40,7 @@ test("handshake: hello → hello-ack", async () => {
 		assert.deepEqual(ack.capabilities, [
 			LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 			CORRELATED_INPUT_ACK_CAPABILITY,
+			CONDITIONAL_CLOSE_PID_CAPABILITY,
 		]);
 	}
 	await c.close();

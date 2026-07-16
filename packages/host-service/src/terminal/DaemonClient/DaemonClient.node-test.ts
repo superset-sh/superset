@@ -13,6 +13,7 @@ import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import {
 	type ClientMessage,
+	CONDITIONAL_CLOSE_PID_CAPABILITY,
 	CORRELATED_INPUT_ACK_CAPABILITY,
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
@@ -48,8 +49,76 @@ test("connect + handshake exposes daemon version", async () => {
 	await c.connect();
 	assert.equal(c.version, "0.2.7");
 	assert.equal(c.protocol, CURRENT_PROTOCOL_VERSION);
+	assert.equal(c.hasCapability(CONDITIONAL_CLOSE_PID_CAPABILITY), true);
 	assert.ok(c.isConnected);
 	await c.dispose();
+});
+
+test("conditional close cannot kill a newer same-id PTY", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+	const id = "host-test-conditional-close";
+	const opened = await c.open(id, {
+		shell: "/bin/sh",
+		argv: ["-c", "sleep 10"],
+		cols: 80,
+		rows: 24,
+	});
+
+	try {
+		assert.equal(await c.closeIfPid(id, opened.pid + 1), "not-owner");
+		assert.equal(
+			(await c.list()).some(
+				(session) =>
+					session.id === id && session.pid === opened.pid && session.alive,
+			),
+			true,
+		);
+		assert.equal(await c.closeIfPid(id, opened.pid), "closed");
+	} finally {
+		await c.close(id, "SIGKILL").catch(() => {});
+		await c.dispose();
+	}
+});
+
+test("conditional close sends no close frame to a legacy daemon", async () => {
+	const localPath = path.join(
+		os.tmpdir(),
+		`host-daemon-client-legacy-close-${process.pid}-${Date.now()}.sock`,
+	);
+	let closeMessages = 0;
+	const legacyServer = net.createServer((socket) => {
+		const decoder = new FrameDecoder();
+		socket.on("data", (chunk) => {
+			decoder.push(chunk);
+			for (const frame of decoder.drain()) {
+				const message = frame.message as ClientMessage;
+				if (message.type === "hello") {
+					socket.write(
+						encodeFrame({
+							type: "hello-ack",
+							protocol: CURRENT_PROTOCOL_VERSION,
+							daemonVersion: "0.2.5",
+						}),
+					);
+				} else if (message.type === "close") {
+					closeMessages += 1;
+				}
+			}
+		});
+	});
+	await listenUnixServer(legacyServer, localPath);
+
+	const c = new DaemonClient({ socketPath: localPath });
+	try {
+		await c.connect();
+		assert.equal(await c.closeIfPid("recycled-id", 123), "unsupported");
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		assert.equal(closeMessages, 0);
+	} finally {
+		await c.dispose();
+		await closeServer(legacyServer);
+	}
 });
 
 test("activateAdopted waits for the daemon release acknowledgement", async () => {

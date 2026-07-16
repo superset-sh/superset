@@ -1095,7 +1095,13 @@ export function sendDispose(transport: TerminalTransport) {
 	}
 }
 
-export function disposeTransport(transport: TerminalTransport) {
+export async function disposeTransport(
+	transport: TerminalTransport,
+	options: {
+		waitForParserIdle?: () => Promise<boolean>;
+		shouldFinalize?: () => boolean;
+	} = {},
+): Promise<boolean> {
 	teardownLiveness(transport);
 	const socket = transport._socket;
 	transport._socket = null;
@@ -1105,6 +1111,16 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport._onDataDisposable = null;
 	transport._writeCoalescer?.dispose();
 	transport._writeCoalescer = null;
+	// The coalescer's final flush only enqueues xterm.write(). Keep persistence
+	// callbacks alive until that parser callback (and any earlier direct replay
+	// write) has fully unwound, otherwise release can serialize a stale buffer
+	// and drop the matching raw checkpoint update.
+	if (options.waitForParserIdle) {
+		if (!(await options.waitForParserIdle())) return false;
+	}
+	// A rapid remount may have reused this transport while the old parser drain
+	// was pending. In that case the new connection owns every field below.
+	if (options.shouldFinalize && !options.shouldFinalize()) return false;
 	transport._updateReplayCheckpoint = null;
 	transport._flushReplayPersistence = null;
 	transport.currentUrl = null;
@@ -1121,4 +1137,5 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport.titleListeners.clear();
 	transport.logs = [];
 	transport.logListeners.clear();
+	return true;
 }

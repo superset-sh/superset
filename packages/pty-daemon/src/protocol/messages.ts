@@ -39,6 +39,13 @@ export const LOSSLESS_LIVE_HANDOFF_CAPABILITY =
 export const CORRELATED_INPUT_ACK_CAPABILITY =
 	"correlated-input-ack-v1" as const;
 
+/**
+ * Advertised only by daemons that compare a close request's expected PID with
+ * the currently registered PTY before delivering the signal.
+ */
+export const CONDITIONAL_CLOSE_PID_CAPABILITY =
+	"conditional-close-pid-v1" as const;
+
 export interface HelloMessage {
 	type: "hello";
 	protocols: number[];
@@ -86,6 +93,8 @@ export interface CloseMessage {
 	type: "close";
 	id: string;
 	signal?: "SIGINT" | "SIGTERM" | "SIGKILL" | "SIGHUP";
+	/** Kill only when the session id still belongs to this exact PTY process. */
+	expectedPid?: number;
 }
 
 export interface ListMessage {

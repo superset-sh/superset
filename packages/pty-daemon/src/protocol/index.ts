@@ -35,6 +35,7 @@ export type {
 	UpgradePreparedMessage,
 } from "./messages.ts";
 export {
+	CONDITIONAL_CLOSE_PID_CAPABILITY,
 	CORRELATED_INPUT_ACK_CAPABILITY,
 	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 } from "./messages.ts";

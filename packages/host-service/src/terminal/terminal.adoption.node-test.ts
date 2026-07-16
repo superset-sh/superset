@@ -545,6 +545,60 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("legacy replay cannot release a snapshot reserved by modern sockets", async () => {
+		const terminalId = `e2e-replay-mixed-protocol-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		const marker = `mixed-replay-${randomUUID().slice(0, 6)}`;
+		result.buffer.length = 0;
+		result.bufferBytes = 0;
+		result.fullReplayBuffer = Buffer.from(marker);
+		result.fullReplayGeneration = 1;
+		result.fullReplayAcknowledgedGeneration = null;
+		result.nextAttachReplayKind = "full";
+
+		const modernA = makeCaptureSocket();
+		const deliveryA = prepareReplayDelivery(result, modernA.socket, true);
+		replayBuffer(result, modernA.socket, deliveryA);
+		const modernB = makeCaptureSocket();
+		const deliveryB = prepareReplayDelivery(result, modernB.socket, true);
+		replayBuffer(result, modernB.socket, deliveryB);
+		const legacy = makeCaptureSocket();
+		const legacyDelivery = prepareReplayDelivery(result, legacy.socket, false);
+		replayBuffer(result, legacy.socket, legacyDelivery);
+
+		assert.match(legacy.received(), new RegExp(marker));
+		assert.ok(result.fullReplayBuffer?.byteLength);
+		assert.equal(result.pendingReplayAcks.size, 2);
+		assert.ok(deliveryA.replayId !== undefined);
+		assert.ok(deliveryB.replayId !== undefined);
+		assert.equal(
+			acknowledgeReplayDelivery(result, modernA.socket, deliveryA.replayId),
+			true,
+		);
+		assert.ok(
+			result.fullReplayBuffer?.byteLength,
+			"the second modern socket still owns the snapshot",
+		);
+		assert.equal(result.pendingReplayAcks.size, 1);
+		assert.equal(
+			acknowledgeReplayDelivery(result, modernB.socket, deliveryB.replayId),
+			true,
+		);
+		assert.equal(result.fullReplayBuffer, null);
+		assert.equal(result.pendingReplayAcks.size, 0);
+		assert.equal(result.nextAttachReplayKind, "delta");
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
 	test("full recovery stays bounded across oversized daemon and post-boundary tails", async () => {
 		const terminalId = `e2e-replay-bounded-${randomUUID().slice(0, 8)}`;
 		const result = await createTerminalSessionInternal({
@@ -1307,6 +1361,131 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		assert.deepEqual(result, {
 			error: `Terminal session "${terminalId}" is disposed.`,
 		});
+		await waitForDaemonSessionStopped(daemon, terminalId, 3000);
+	});
+
+	test("lost respawn ownership cannot close a newer same-id shell", async () => {
+		const terminalId = `e2e-respawn-recycled-id-${randomUUID().slice(0, 8)}`;
+		db.insert(terminalSessions)
+			.values({
+				id: terminalId,
+				originWorkspaceId: workspaceId,
+				status: "active",
+				createdAt: Date.now(),
+			})
+			.run();
+
+		const daemon = await getDaemonClient();
+		const originalOpen = daemon.open.bind(daemon);
+		let newerPid = 0;
+		daemon.open = async (id, meta) => {
+			const staleOpen = await originalOpen(id, meta);
+			await daemon.close(id, "SIGKILL");
+			await waitForDaemonSessionStopped(daemon, id, 3000);
+			const newerOpen = await originalOpen(id, meta);
+			newerPid = newerOpen.pid;
+			db.update(terminalSessions)
+				.set({ status: "disposed", endedAt: Date.now() })
+				.where(eq(terminalSessions.id, terminalId))
+				.run();
+			return staleOpen;
+		};
+
+		let result: Awaited<ReturnType<typeof respawnAfterFailedAdoption>>;
+		try {
+			result = await respawnAfterFailedAdoption({
+				terminalId,
+				requestedWorkspaceId: workspaceId,
+				themeType: "dark",
+				db,
+			});
+		} finally {
+			daemon.open = originalOpen;
+		}
+
+		assert.deepEqual(result, {
+			error: `Terminal session "${terminalId}" is disposed.`,
+		});
+		assert.ok(newerPid > 0);
+		assert.equal(
+			(await daemon.list()).some(
+				(entry) =>
+					entry.id === terminalId && entry.pid === newerPid && entry.alive,
+			),
+			true,
+			"conditional cleanup must leave the newer same-id shell alive",
+		);
+		await daemon.closeIfPid(terminalId, newerPid, "SIGKILL");
+		await waitForDaemonSessionStopped(daemon, terminalId, 3000);
+	});
+
+	test("lost respawn claim never closes an EEXIST-adopted shell", async () => {
+		const terminalId = `e2e-respawn-adopted-cas-${randomUUID().slice(0, 8)}`;
+		const createdAt = Date.now();
+		db.insert(terminalSessions)
+			.values({
+				id: terminalId,
+				originWorkspaceId: workspaceId,
+				status: "active",
+				createdAt,
+			})
+			.run();
+
+		const daemon = await getDaemonClient();
+		const existing = await daemon.open(terminalId, {
+			shell: "/bin/sh",
+			argv: ["-c", "sleep 10"],
+			cwd: worktreePath,
+			cols: 80,
+			rows: 24,
+		});
+		const originalList = daemon.list.bind(daemon);
+		let lifecycleFlipped = false;
+		daemon.list = async () => {
+			const listed = await originalList();
+			if (
+				!lifecycleFlipped &&
+				listed.some(
+					(entry) =>
+						entry.id === terminalId &&
+						entry.pid === existing.pid &&
+						entry.alive,
+				)
+			) {
+				lifecycleFlipped = true;
+				db.update(terminalSessions)
+					.set({ status: "disposed", endedAt: Date.now() })
+					.where(eq(terminalSessions.id, terminalId))
+					.run();
+			}
+			return listed;
+		};
+
+		let result: Awaited<ReturnType<typeof respawnAfterFailedAdoption>>;
+		try {
+			result = await respawnAfterFailedAdoption({
+				terminalId,
+				requestedWorkspaceId: workspaceId,
+				themeType: "dark",
+				db,
+			});
+		} finally {
+			daemon.list = originalList;
+		}
+
+		assert.equal(lifecycleFlipped, true);
+		assert.deepEqual(result, {
+			error: `Terminal session "${terminalId}" is disposed.`,
+		});
+		assert.equal(
+			(await daemon.list()).some(
+				(entry) =>
+					entry.id === terminalId && entry.pid === existing.pid && entry.alive,
+			),
+			true,
+			"the CAS loser adopted this shell and must never claim cleanup ownership",
+		);
+		await daemon.closeIfPid(terminalId, existing.pid, "SIGKILL");
 		await waitForDaemonSessionStopped(daemon, terminalId, 3000);
 	});
 

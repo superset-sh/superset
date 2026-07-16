@@ -1611,6 +1611,11 @@ export function replayBuffer(
 		// ACKs and the latest generation has one durable ACK.
 		return;
 	}
+	if (delivery.replayKind === "full" && session.pendingReplayAcks.size > 0) {
+		// A legacy renderer can consume its copy without ACK support, but it must
+		// not retire the authoritative snapshot reserved by modern renderers.
+		return;
+	}
 
 	// Legacy renderers have no ACK. replay=0 suppresses adopted full replay when
 	// they already own a baseline; a fresh legacy renderer remains one-shot.
@@ -1821,16 +1826,20 @@ function isUnknownDaemonSessionError(error: unknown): boolean {
 async function closeUnclaimedTerminal(
 	daemon: DaemonClient,
 	terminalId: string,
+	expectedPid: number,
 ): Promise<void> {
 	try {
-		await daemon.close(terminalId, "SIGHUP");
-	} catch (error) {
-		if (!isUnknownDaemonSessionError(error)) {
+		const result = await daemon.closeIfPid(terminalId, expectedPid, "SIGHUP");
+		if (result === "unsupported") {
 			console.warn(
-				`[terminal] failed to close unclaimed respawn ${terminalId}`,
-				error,
+				`[terminal] leaving unclaimed respawn ${terminalId} pid=${expectedPid} alive because the daemon cannot close it conditionally`,
 			);
 		}
+	} catch (error) {
+		console.warn(
+			`[terminal] failed to close unclaimed respawn ${terminalId} pid=${expectedPid}`,
+			error,
+		);
 	}
 }
 
@@ -2393,7 +2402,11 @@ async function createTerminalSessionInternalDirect({
 			)
 			.run();
 		if (claim.changes !== 1) {
-			await closeUnclaimedTerminal(daemon, terminalId);
+			// EEXIST/adoptOnly means this attempt never spawned the PTY. A lost
+			// lifecycle claim must not close the legitimate daemon-owned session.
+			if (!isAdopted) {
+				await closeUnclaimedTerminal(daemon, terminalId, openResult.pid);
+			}
 			const currentRecord = db.query.terminalSessions
 				.findFirst({ where: eq(terminalSessions.id, terminalId) })
 				.sync();

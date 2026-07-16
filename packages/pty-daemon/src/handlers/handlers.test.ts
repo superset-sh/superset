@@ -233,6 +233,32 @@ describe("handlers", () => {
 		expect(states[0]?.killed).toBe(true);
 	});
 
+	test("conditional close rejects a stale pid without killing the current pty", async () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+
+		const staleReply = await handleClose(ctx, {
+			type: "close",
+			id: "s0",
+			expectedPid: 1001,
+		});
+		expect(staleReply.type).toBe("error");
+		if (staleReply.type === "error") expect(staleReply.code).toBe("ESTALE");
+		expect(states[0]?.killed).toBe(false);
+
+		const ownedReply = await handleClose(ctx, {
+			type: "close",
+			id: "s0",
+			expectedPid: 1000,
+		});
+		expect(ownedReply.type).toBe("closed");
+		expect(states[0]?.killed).toBe(true);
+	});
+
 	test("list returns all sessions", () => {
 		const ctx = makeCtx();
 		const meta = { shell: "/bin/sh", argv: [], cols: 80, rows: 24 };

@@ -3,6 +3,7 @@ import {
 	cancelParserIdleWork,
 	createParserIdleGate,
 	runWhenParserIdle,
+	waitForParserIdle,
 	wrapWrite,
 } from "./parser-idle-gate";
 
@@ -169,5 +170,23 @@ describe("runWhenParserIdle", () => {
 		});
 		fake.drain();
 		expect(called).toBe(true);
+	});
+
+	test("a cancelled idle waiter does not wait for a new owner's writes", async () => {
+		const gate = createParserIdleGate();
+		const fake = fakeWrite();
+		const write = wrapWrite(gate, fake.raw);
+		const controller = new AbortController();
+		write("old-owner");
+		const idle = waitForParserIdle(gate, controller.signal);
+
+		controller.abort();
+		write("new-owner");
+
+		expect(await idle).toBe(false);
+		expect(gate.pending).toBe(2);
+		fake.drain();
+		await flushMicrotasks();
+		expect(gate.pending).toBe(0);
 	});
 });
