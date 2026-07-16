@@ -856,6 +856,60 @@ describe("DaemonSupervisor.restart", () => {
 		).toBe(false);
 	});
 
+	test("clears the stopping marker but does not spawn when ambiguous elimination fails", async () => {
+		const eliminationError = new Error("owner identity still ambiguous");
+		const eliminateAmbiguousOwners = mock(async () => {
+			throw eliminationError;
+		});
+		(
+			sup as unknown as {
+				eliminateAmbiguousOwners: typeof eliminateAmbiguousOwners;
+			}
+		).eliminateAmbiguousOwners = eliminateAmbiguousOwners;
+		(
+			sup as unknown as {
+				ambiguousUpdates: Map<
+					string,
+					{
+						lease: { resetAfterForceRestart: (_error: Error) => Promise<void> };
+						predecessor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
+						socketPath: string;
+					}
+				>;
+			}
+		).ambiguousUpdates.set("org-ambiguous-elimination-failure", {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 333,
+				pgid: 333,
+				startTime: "ambiguous-predecessor-lifetime",
+			},
+			socketPath: "/tmp/ambiguous-elimination-failure.sock",
+		});
+
+		await expect(sup.restart("org-ambiguous-elimination-failure")).rejects.toBe(
+			eliminationError,
+		);
+
+		expect(
+			(sup as unknown as { stopping: Set<string> }).stopping.has(
+				"org-ambiguous-elimination-failure",
+			),
+		).toBe(false);
+		expect(
+			(sup as unknown as { ensure: ReturnType<typeof mock> }).ensure,
+		).not.toHaveBeenCalled();
+		expect(
+			(
+				sup as unknown as { ambiguousUpdates: Map<string, unknown> }
+			).ambiguousUpdates.has("org-ambiguous-elimination-failure"),
+		).toBe(true);
+	});
+
 	test("an ACK pid recycled before probe never becomes an ambiguous signal target", async () => {
 		let processTableReads = 0;
 		const unverifiedAckCandidate = {
@@ -920,6 +974,76 @@ describe("DaemonSupervisor.restart", () => {
 
 		expect(signaled).toEqual([]);
 		expect(processTableReads).toBeGreaterThanOrEqual(3);
+	});
+
+	test("fails closed when process-table reads are empty but the kernel reports the pid alive", async () => {
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 444,
+				pgid: 444,
+				startTime: "live-but-unreadable-lifetime",
+			},
+			socketPath: "/tmp/ambiguous-empty-process-table.sock",
+		};
+		const isPidAlive = mock((_pid: number) => true);
+
+		await expect(
+			(
+				sup as unknown as {
+					eliminateAmbiguousOwners(
+						candidate: unknown,
+						options: {
+							readCurrentProcessTable: () => [];
+							isPidAlive: typeof isPidAlive;
+							identityExitTimeoutMs: number;
+							probeWindowMs: number;
+						},
+					): Promise<unknown[]>;
+				}
+			).eliminateAmbiguousOwners(recovery, {
+				readCurrentProcessTable: () => [],
+				isPidAlive,
+				identityExitTimeoutMs: 0,
+				probeWindowMs: 0,
+			}),
+		).rejects.toThrow("ambiguous pty-daemon owner 444 survived force restart");
+		expect(isPidAlive).toHaveBeenCalled();
+	});
+
+	test("accepts an empty process table only when the kernel reports the pid gone", async () => {
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 555,
+				pgid: 555,
+				startTime: "exited-lifetime",
+			},
+			socketPath: "/tmp/ambiguous-gone-process.sock",
+		};
+		const isPidAlive = mock((_pid: number) => false);
+
+		await expect(
+			(
+				sup as unknown as {
+					eliminateAmbiguousOwners(
+						candidate: unknown,
+						options: {
+							readCurrentProcessTable: () => [];
+							isPidAlive: typeof isPidAlive;
+							identityExitTimeoutMs: number;
+							probeWindowMs: number;
+						},
+					): Promise<unknown[]>;
+				}
+			).eliminateAmbiguousOwners(recovery, {
+				readCurrentProcessTable: () => [],
+				isPidAlive,
+				identityExitTimeoutMs: 0,
+				probeWindowMs: 0,
+			}),
+		).resolves.toEqual([]);
+		expect(isPidAlive).toHaveBeenCalled();
 	});
 });
 

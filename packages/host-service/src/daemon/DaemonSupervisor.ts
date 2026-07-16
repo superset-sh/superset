@@ -94,6 +94,8 @@ interface AmbiguousUpdateRecovery {
 
 interface AmbiguousOwnerEliminationOptions {
 	readCurrentProcessTable?: () => ProcessInfo[];
+	isPidAlive?: (pid: number) => boolean;
+	identityExitTimeoutMs?: number;
 	probeOwner?: (
 		socketPath: string,
 		timeoutMs: number,
@@ -722,12 +724,16 @@ export class DaemonSupervisor {
 			this.instances.delete(organizationId);
 			this.stopAdoptedLivenessCheck(organizationId);
 			this.stopping.add(organizationId);
-			removePtyDaemonManifest(organizationId);
-			await this.eliminateAmbiguousOwners(ambiguous);
-			// The old instance was deliberately removed before signaling, so its
-			// child exit callback cannot consume this marker. Do not let it mask the
-			// first real crash of the fresh daemon.
-			this.stopping.delete(organizationId);
+			try {
+				removePtyDaemonManifest(organizationId);
+				await this.eliminateAmbiguousOwners(ambiguous);
+			} finally {
+				// The old instance was deliberately removed before signaling, so its
+				// child exit callback cannot consume this marker. Clear it even when
+				// elimination fails closed; otherwise a later retry/crash is masked.
+				// The thrown elimination error still prevents ensure() from starting.
+				this.stopping.delete(organizationId);
+			}
 		} else {
 			await this.stop(organizationId);
 		}
@@ -773,6 +779,9 @@ export class DaemonSupervisor {
 	): Promise<ProcessSignalTarget[]> {
 		const readCurrentProcessTable =
 			options.readCurrentProcessTable ?? readProcessTable;
+		const isPidAlive = options.isPidAlive ?? isProcessAlive;
+		const identityExitTimeoutMs =
+			options.identityExitTimeoutMs ?? DAEMON_TERMINATE_TIMEOUT_MS;
 		const probeOwner = options.probeOwner ?? probeVerifiedDaemonOwner;
 		const now = options.now ?? Date.now;
 		const sleep =
@@ -792,6 +801,8 @@ export class DaemonSupervisor {
 					identity,
 					"SIGKILL",
 					readCurrentProcessTable,
+					isPidAlive,
+					identityExitTimeoutMs,
 				)),
 			);
 		}
@@ -815,6 +826,8 @@ export class DaemonSupervisor {
 						owner.identity,
 						"SIGKILL",
 						readCurrentProcessTable,
+						isPidAlive,
+						identityExitTimeoutMs,
 					)),
 				);
 			}
@@ -822,7 +835,9 @@ export class DaemonSupervisor {
 		}
 
 		for (const identity of candidates.values()) {
-			if (processIdentityMatches(identity, readCurrentProcessTable())) {
+			if (
+				!processIdentityHasExited(identity, readCurrentProcessTable, isPidAlive)
+			) {
 				throw new Error(
 					`ambiguous pty-daemon owner ${identity.pid} survived force restart`,
 				);
@@ -1769,6 +1784,8 @@ async function terminateProcessIdentityTreeAndGroups(
 	identity: ProcessIdentity,
 	signal: NodeJS.Signals,
 	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
+	isPidAlive: (pid: number) => boolean = isProcessAlive,
+	timeoutMs = DAEMON_TERMINATE_TIMEOUT_MS,
 ): Promise<ProcessSignalTarget[]> {
 	const signaled = signalProcessTreeAndGroupsIfStillOwned(
 		identity,
@@ -1779,8 +1796,9 @@ async function terminateProcessIdentityTreeAndGroups(
 	if (
 		await waitForProcessIdentityExit(
 			identity,
-			DAEMON_TERMINATE_TIMEOUT_MS,
+			timeoutMs,
 			readCurrentProcessTable,
+			isPidAlive,
 		)
 	) {
 		return signaled;
@@ -1795,8 +1813,9 @@ async function terminateProcessIdentityTreeAndGroups(
 	);
 	await waitForProcessIdentityExit(
 		identity,
-		DAEMON_TERMINATE_TIMEOUT_MS,
+		timeoutMs,
 		readCurrentProcessTable,
+		isPidAlive,
 	);
 	return signaled;
 }
@@ -1840,19 +1859,41 @@ async function waitForPidExit(
 	return false;
 }
 
-/** PID reuse counts as exit of the captured process lifetime. */
+/**
+ * PID reuse counts as exit of the captured process lifetime. An absent row is
+ * only conclusive when the kernel also reports the PID gone: `ps` can fail or
+ * yield an incomplete table, which must not turn recovery into fail-open.
+ */
+function processIdentityHasExited(
+	identity: ProcessIdentity,
+	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
+	isPidAlive: (pid: number) => boolean = isProcessAlive,
+): boolean {
+	const currentTable = readCurrentProcessTable();
+	const currentPid = currentTable.find((row) => row.pid === identity.pid);
+	if (currentPid?.startTime) {
+		return !processIdentityMatches(identity, currentTable);
+	}
+	return !isPidAlive(identity.pid);
+}
+
 async function waitForProcessIdentityExit(
 	identity: ProcessIdentity,
 	timeoutMs: number,
 	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
+	isPidAlive: (pid: number) => boolean = isProcessAlive,
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
-		if (!processIdentityMatches(identity, readCurrentProcessTable()))
+		if (processIdentityHasExited(identity, readCurrentProcessTable, isPidAlive))
 			return true;
 		await new Promise((resolve) => setTimeout(resolve, 25));
 	}
-	return !processIdentityMatches(identity, readCurrentProcessTable());
+	return processIdentityHasExited(
+		identity,
+		readCurrentProcessTable,
+		isPidAlive,
+	);
 }
 
 /**
