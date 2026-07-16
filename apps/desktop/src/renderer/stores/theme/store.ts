@@ -1,5 +1,7 @@
 import type { ITheme } from "@xterm/xterm";
 import type { SystemThemeType } from "lib/trpc/routers/system";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { trpcThemeStorage } from "renderer/lib/trpc-storage";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -10,8 +12,6 @@ import {
 } from "shared/themes";
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
-import { electronTrpcClient } from "../../lib/trpc-client";
-import { trpcThemeStorage } from "../../lib/trpc-storage";
 import { applyUIColors, toXtermTheme, updateThemeClass } from "./utils";
 
 /** Special theme ID for system preference (follows OS dark/light mode) */
@@ -148,6 +148,16 @@ function getThemeStateWithoutApplying(theme: Theme): {
 		activeTheme: theme,
 		terminalTheme: toXtermTheme(getTerminalColors(theme)),
 	};
+}
+
+function getUnresolvedSystemThemeState(customThemes: Theme[]): {
+	activeTheme: Theme | null;
+	terminalTheme: ITheme | null;
+} {
+	const lastAppliedTheme = findLastAppliedTheme(customThemes);
+	return lastAppliedTheme
+		? getThemeStateWithoutApplying(lastAppliedTheme)
+		: { activeTheme: null, terminalTheme: null };
 }
 
 const builtInThemeIds = new Set(builtInThemes.map((theme) => theme.id));
@@ -344,7 +354,10 @@ export const useThemeStore = create<ThemeState>()(
 						customThemes,
 					);
 					if (resolvedId === null) {
-						set({ customThemes });
+						set({
+							customThemes,
+							...getUnresolvedSystemThemeState(customThemes),
+						});
 						return { added, updated, skipped };
 					}
 					const resolvedTheme = findTheme(resolvedId, customThemes);
@@ -402,7 +415,10 @@ export const useThemeStore = create<ThemeState>()(
 							customThemes,
 						);
 						if (resolvedId === null) {
-							set(baseUpdate);
+							set({
+								...baseUpdate,
+								...getUnresolvedSystemThemeState(customThemes),
+							});
 							return;
 						}
 						const theme = findTheme(resolvedId, customThemes);
@@ -506,6 +522,7 @@ export const useThemeStore = create<ThemeState>()(
 type SystemThemeObserver = {
 	onData: (themeType: SystemThemeType) => void;
 	onError: (error: unknown) => void;
+	onComplete: () => void;
 };
 
 type SubscribeToSystemTheme = (observer: SystemThemeObserver) => {
@@ -530,9 +547,23 @@ export function startSystemThemeSync(
 	let retryTimer: ReturnType<typeof setTimeout> | undefined;
 	let subscription: ReturnType<SubscribeToSystemTheme> | undefined;
 
+	const scheduleReconnect = () => {
+		if (stopped || retryTimer) return;
+
+		const delay =
+			RETRY_BACKOFF_MS[Math.min(retryAttempt, RETRY_BACKOFF_MS.length - 1)] ??
+			10_000;
+		retryAttempt++;
+		retryTimer = setTimeout(() => {
+			retryTimer = undefined;
+			connect();
+		}, delay);
+	};
+
 	const connect = () => {
 		if (stopped) return;
 
+		subscription?.unsubscribe();
 		subscription = subscribe({
 			onData: (themeType) => {
 				retryAttempt = 0;
@@ -540,14 +571,9 @@ export function startSystemThemeSync(
 			},
 			onError: (error) => {
 				console.error("[themeStore] system theme subscription error:", error);
-				if (stopped) return;
-				const delay =
-					RETRY_BACKOFF_MS[
-						Math.min(retryAttempt, RETRY_BACKOFF_MS.length - 1)
-					] ?? 10_000;
-				retryAttempt++;
-				retryTimer = setTimeout(connect, delay);
+				scheduleReconnect();
 			},
+			onComplete: scheduleReconnect,
 		});
 	};
 
@@ -555,8 +581,12 @@ export function startSystemThemeSync(
 
 	return () => {
 		stopped = true;
-		if (retryTimer) clearTimeout(retryTimer);
+		if (retryTimer) {
+			clearTimeout(retryTimer);
+			retryTimer = undefined;
+		}
 		subscription?.unsubscribe();
+		subscription = undefined;
 	};
 }
 

@@ -1,9 +1,11 @@
 import { afterAll, beforeEach, describe, expect, mock, test } from "bun:test";
 import type { SystemThemeType } from "lib/trpc/routers/system";
+import { darkTheme, getTerminalColors, type Theme } from "shared/themes";
 
 type SystemThemeObserver = {
 	onData: (themeType: SystemThemeType) => void;
 	onError: (error: unknown) => void;
+	onComplete?: () => void;
 };
 
 const originalDocument = (globalThis as { document?: unknown }).document;
@@ -75,7 +77,7 @@ const defaultSubscribe = mock(
 // The store starts its Electron subscription at module load. Mock both eager
 // renderer dependencies before importing it so this test also runs from the
 // repository root without the desktop test preload.
-mock.module("../../lib/trpc-client", () => ({
+mock.module("renderer/lib/trpc-client", () => ({
 	electronTrpcClient: {
 		system: {
 			themePreference: {
@@ -84,7 +86,7 @@ mock.module("../../lib/trpc-client", () => ({
 		},
 	},
 }));
-mock.module("../../lib/trpc-storage", () => ({
+mock.module("renderer/lib/trpc-storage", () => ({
 	trpcThemeStorage: {
 		getItem: mock(async () => null),
 		setItem: mock(async () => {}),
@@ -112,6 +114,23 @@ function createThemeSubscription(initialThemeType?: SystemThemeType) {
 		unsubscribe,
 		emit(themeType: SystemThemeType) {
 			observer?.onData(themeType);
+		},
+		complete() {
+			observer?.onComplete?.();
+		},
+	};
+}
+
+function createCustomDarkTheme(id: string, foreground: string): Theme {
+	return {
+		...darkTheme,
+		id,
+		name: id,
+		isBuiltIn: false,
+		isCustom: true,
+		terminal: {
+			...getTerminalColors(darkTheme),
+			foreground,
 		},
 	};
 }
@@ -239,5 +258,88 @@ describe("main-process system theme sync", () => {
 		expect(useThemeStore.getState().systemThemeType).toBeNull();
 		expect(localStorage.getItem("theme-id")).toBe("monokai");
 		expect(setProperty).toHaveBeenCalled();
+	});
+
+	test("refreshes a cached custom System preview edited before the IPC prime", () => {
+		const originalTheme = createCustomDarkTheme("cached-custom", "#111111");
+		const editedTheme = createCustomDarkTheme("cached-custom", "#eeeeee");
+		storage.set("theme-id", originalTheme.id);
+		storage.set("theme-type", originalTheme.type);
+		useThemeStore.setState({
+			activeThemeId: SYSTEM_THEME_ID,
+			customThemes: [originalTheme],
+			systemThemeType: null,
+			activeTheme: originalTheme,
+			terminalTheme: null,
+		});
+
+		useThemeStore.getState().upsertCustomThemes([editedTheme]);
+
+		expect(useThemeStore.getState().activeTheme).toEqual(editedTheme);
+		expect(useThemeStore.getState().terminalTheme?.foreground).toBe("#eeeeee");
+		expect(localStorage.getItem("theme-id")).toBe(originalTheme.id);
+		expect(setProperty).toHaveBeenCalledTimes(0);
+	});
+
+	test("drops a removed cached custom System preview before the IPC prime", () => {
+		const cachedTheme = createCustomDarkTheme("cached-custom", "#eeeeee");
+		storage.set("theme-id", cachedTheme.id);
+		storage.set("theme-type", cachedTheme.type);
+		useThemeStore.setState({
+			activeThemeId: SYSTEM_THEME_ID,
+			customThemes: [cachedTheme],
+			systemThemeType: null,
+			activeTheme: cachedTheme,
+			terminalTheme: null,
+		});
+
+		useThemeStore.getState().removeCustomTheme(cachedTheme.id);
+
+		expect(useThemeStore.getState().customThemes).toEqual([]);
+		expect(useThemeStore.getState().activeTheme?.id).toBe("dark");
+		expect(useThemeStore.getState().activeTheme?.id).not.toBe(cachedTheme.id);
+		expect(localStorage.getItem("theme-id")).toBe(cachedTheme.id);
+		expect(setProperty).toHaveBeenCalledTimes(0);
+	});
+
+	test("reconnects a gracefully completed subscription and tears down handles", () => {
+		const originalSetTimeout = globalThis.setTimeout;
+		let runReconnect: (() => void) | undefined;
+		Object.defineProperty(globalThis, "setTimeout", {
+			configurable: true,
+			writable: true,
+			value: mock((callback: () => void) => {
+				runReconnect = callback;
+				return 1;
+			}),
+		});
+
+		try {
+			const observers: SystemThemeObserver[] = [];
+			const unsubscribes = [mock(() => {}), mock(() => {})];
+			const subscribe = mock((observer: SystemThemeObserver) => {
+				observers.push(observer);
+				return {
+					unsubscribe: unsubscribes[observers.length - 1] ?? mock(() => {}),
+				};
+			});
+			const stop = startSystemThemeSync(subscribe);
+
+			observers[0]?.onComplete?.();
+			expect(runReconnect).toBeDefined();
+			runReconnect?.();
+
+			expect(subscribe).toHaveBeenCalledTimes(2);
+			expect(unsubscribes[0]).toHaveBeenCalledTimes(1);
+
+			stop();
+			expect(unsubscribes[1]).toHaveBeenCalledTimes(1);
+		} finally {
+			Object.defineProperty(globalThis, "setTimeout", {
+				configurable: true,
+				writable: true,
+				value: originalSetTimeout,
+			});
+		}
 	});
 });

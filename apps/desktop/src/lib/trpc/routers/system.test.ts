@@ -78,6 +78,20 @@ describe("system theme preference", () => {
 		).toBe("light");
 	});
 
+	test("does not consult the macOS fallback on other platforms", () => {
+		const { nativeTheme } = createNativeThemeSource(false);
+		const getUserDefault = mock(() => "Dark");
+
+		expect(
+			getSystemThemeType({
+				nativeTheme,
+				systemPreferences: { getUserDefault },
+				platform: "linux",
+			}),
+		).toBe("light");
+		expect(getUserDefault).toHaveBeenCalledTimes(0);
+	});
+
 	test("primes subscribers with current state and forwards runtime changes", () => {
 		const source = createNativeThemeSource(true);
 		const dependencies: SystemThemeDependencies = {
