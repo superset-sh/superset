@@ -2,9 +2,11 @@ import { describe, expect, test } from "bun:test";
 import {
 	filterOwnedProcessSignalTargets,
 	type ProcessSignalTarget,
+	signalProcessTargetsIfStillOwned,
 } from "../process-tree.ts";
 import {
 	KillEscalationTimer,
+	NodePtyAdapter,
 	requireNodePtyWriteStream,
 	setAdoptedPtyNonBlocking,
 	spawn,
@@ -66,6 +68,94 @@ describe("Pty wrapper (validation only — spawn behavior tested under node)", (
 				{ pid: 42, ppid: 1, pgid: 41, startTime: "recycled-child" },
 			]),
 		).toEqual([]);
+	});
+
+	test("identity-fenced batches re-read before every individual signal", () => {
+		const targets: ProcessSignalTarget[] = [
+			{
+				target: "pid",
+				id: 41,
+				witnesses: [{ pid: 41, pgid: 41, startTime: "old-root" }],
+			},
+			{
+				target: "pid",
+				id: 42,
+				witnesses: [{ pid: 42, pgid: 42, startTime: "old-child" }],
+			},
+		];
+		let reads = 0;
+		const attempted = signalProcessTargetsIfStillOwned(
+			targets,
+			"SIGKILL",
+			undefined,
+			() => {
+				reads++;
+				return [
+					{ pid: 41, ppid: 1, pgid: 41, startTime: "recycled-root" },
+					{ pid: 42, ppid: 1, pgid: 42, startTime: "recycled-child" },
+				];
+			},
+		);
+
+		expect(attempted).toEqual([]);
+		expect(reads).toBe(2);
+	});
+
+	test("NodePty delayed root escalation skips a recycled pid and pgid lifetime", async () => {
+		const callbacks: Array<() => void> = [];
+		const requestedSignals: NodeJS.Signals[] = [];
+		const timer = new KillEscalationTimer({
+			setTimer(callback) {
+				callbacks.push(callback);
+				return { unref() {} } as NodeJS.Timeout;
+			},
+		});
+		const term = {
+			pid: 41,
+			_fd: 9,
+			_writeStream: {
+				_fd: 9,
+				_writeQueue: [],
+				write() {},
+			},
+			onData() {},
+			onExit() {},
+			kill(signal: NodeJS.Signals) {
+				requestedSignals.push(signal);
+			},
+		};
+		const adapter = new NodePtyAdapter(
+			term as never,
+			{ shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+			{
+				killEscalation: timer,
+				captureProcessIdentity: () => ({
+					pid: 41,
+					pgid: 41,
+					startTime: "original-lifetime",
+				}),
+				signalProcessTreeAndGroups: () => [],
+				// Both numeric identifiers were recycled. Only startTime proves this
+				// is not the root that scheduled the delayed escalation.
+				readCurrentProcessTable: () => [
+					{
+						pid: 41,
+						ppid: 1,
+						pgid: 41,
+						startTime: "recycled-lifetime",
+					},
+				],
+			},
+		);
+
+		const completion = adapter.kill("SIGTERM");
+		expect(requestedSignals).toEqual(["SIGTERM"]);
+		callbacks[0]?.();
+		await completion;
+
+		// Immediate semantics stay unchanged, but the delayed path never calls
+		// raw term.kill(SIGKILL) against the recycled numeric PID.
+		expect(requestedSignals).toEqual(["SIGTERM"]);
 	});
 
 	test("requires the adopted TTY handle nonblocking contract", () => {

@@ -27,6 +27,8 @@ import {
 	listDaemonSessions,
 	liveHandoffCapabilityFailure,
 	probeDaemonVersion,
+	probeVerifiedDaemonOwner,
+	promoteVerifiedSuccessorIdentity,
 	ptyDaemonSocketPath,
 	shouldKillStaleDaemonForDev,
 	upgradeFailureCanResumePredecessor,
@@ -119,6 +121,7 @@ interface FakeDaemonOptions {
 		ownership: "predecessor" | "unresolved";
 	};
 	daemonPid?: number;
+	daemonPids?: number[];
 	respondRaw?: Buffer;
 	hangUpAfterHello?: boolean;
 	respondWithWrongMessageFirst?: boolean;
@@ -137,6 +140,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 			`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
 		);
 	const received: ClientMessage["type"][] = [];
+	let helloCount = 0;
 	const server = net.createServer((sock) => {
 		const decoder = new FrameDecoder();
 		sock.on("data", (chunk: Buffer) => {
@@ -165,13 +169,14 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 						return;
 					}
 					if (opts.respondWithVersion) {
+						const daemonPid = opts.daemonPids?.[helloCount++] ?? opts.daemonPid;
 						sock.write(
 							encodeFrame({
 								type: "hello-ack",
 								protocol: 1,
 								daemonVersion: opts.respondWithVersion,
 								capabilities: opts.capabilities,
-								daemonPid: opts.daemonPid,
+								daemonPid,
 							}),
 						);
 					}
@@ -268,6 +273,33 @@ describe("probeDaemonVersion", () => {
 			await fake.close();
 		}
 	});
+
+	test("verified owner requires two stable hello pid claims", async () => {
+		const stable = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			daemonPid: process.pid,
+		});
+		try {
+			const owner = await probeVerifiedDaemonOwner(stable.socketPath, 1500);
+			expect(owner?.identity.pid).toBe(process.pid);
+			expect(stable.received).toEqual(["hello", "hello"]);
+		} finally {
+			await stable.close();
+		}
+
+		const changed = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			daemonPids: [process.pid, process.pid + 1],
+		});
+		try {
+			expect(
+				await probeVerifiedDaemonOwner(changed.socketPath, 1500),
+			).toBeNull();
+			expect(changed.received).toEqual(["hello", "hello"]);
+		} finally {
+			await changed.close();
+		}
+	});
 });
 
 describe("listDaemonSessions", () => {
@@ -300,6 +332,7 @@ describe("DaemonSupervisor live-handoff preflight", () => {
 	}> {
 		const fake = await startFakeDaemon({
 			respondWithVersion: "0.2.5",
+			daemonPid: process.pid,
 			capabilities: options.capabilities,
 			listReply: options.sessions,
 			prepareResult: safeAbort,
@@ -313,7 +346,7 @@ describe("DaemonSupervisor live-handoff preflight", () => {
 		process.env.ORGANIZATION_ID = orgId;
 		seedDaemonInstance(supervisor, orgId, {
 			...staleInstance("0.2.5"),
-			pid: 987_654,
+			pid: process.pid,
 			socketPath: fake.socketPath,
 		});
 
@@ -773,24 +806,47 @@ describe("DaemonSupervisor.restart", () => {
 					string,
 					{
 						lease: { resetAfterForceRestart: typeof resetAfterForceRestart };
-						predecessorPid: number;
-						successorPid: number;
+						predecessor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
+						successor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
 						socketPath: string;
 					}
 				>;
 			}
 		).ambiguousUpdates.set("org-ambiguous", {
 			lease: { resetAfterForceRestart },
-			predecessorPid: 111,
-			successorPid: 222,
+			predecessor: {
+				pid: 111,
+				pgid: 111,
+				startTime: "predecessor-lifetime",
+			},
+			successor: {
+				pid: 222,
+				pgid: 222,
+				startTime: "successor-lifetime",
+			},
 			socketPath: "/tmp/ambiguous.sock",
 		});
 
 		await sup.restart("org-ambiguous");
 
+		const stopMock = (sup as unknown as { stop: ReturnType<typeof mock> }).stop;
+		expect(stopMock).not.toHaveBeenCalled();
 		expect(resetAfterForceRestart).toHaveBeenCalledTimes(1);
 		expect(eliminateAmbiguousOwners).toHaveBeenCalledTimes(1);
 		expect(proveFreshOwner).toHaveBeenCalledTimes(1);
+		expect(
+			(sup as unknown as { stopping: Set<string> }).stopping.has(
+				"org-ambiguous",
+			),
+		).toBe(false);
 		expect(
 			(
 				sup as unknown as {
@@ -798,6 +854,72 @@ describe("DaemonSupervisor.restart", () => {
 				}
 			).ambiguousUpdates.has("org-ambiguous"),
 		).toBe(false);
+	});
+
+	test("an ACK pid recycled before probe never becomes an ambiguous signal target", async () => {
+		let processTableReads = 0;
+		const unverifiedAckCandidate = {
+			pid: 222,
+			pgid: 222,
+			startTime: "recycled-before-probe",
+		};
+		expect(
+			promoteVerifiedSuccessorIdentity(unverifiedAckCandidate, null),
+		).toBeNull();
+		expect(
+			promoteVerifiedSuccessorIdentity(unverifiedAckCandidate, {
+				probe: {
+					daemonVersion: "0.2.6",
+					daemonPid: 222,
+					capabilities: [],
+				},
+				identity: {
+					pid: 222,
+					pgid: 222,
+					startTime: "different-socket-owner",
+				},
+			}),
+		).toBeNull();
+		const recycledTable = [
+			{ pid: 111, ppid: 1, pgid: 111, startTime: "recycled-predecessor" },
+			{
+				pid: 222,
+				ppid: 1,
+				pgid: 222,
+				startTime: unverifiedAckCandidate.startTime,
+			},
+		];
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 111,
+				pgid: 111,
+				startTime: "original-predecessor",
+			},
+			// The ACK candidate is deliberately absent: only a socket-verified
+			// identity is allowed into recovery's signalisable set.
+			socketPath: "/tmp/ambiguous-recycled.sock",
+		};
+		const signaled = await (
+			sup as unknown as {
+				eliminateAmbiguousOwners(
+					candidate: unknown,
+					options: {
+						readCurrentProcessTable: () => typeof recycledTable;
+						probeWindowMs: number;
+					},
+				): Promise<unknown[]>;
+			}
+		).eliminateAmbiguousOwners(recovery, {
+			readCurrentProcessTable: () => {
+				processTableReads++;
+				return recycledTable;
+			},
+			probeWindowMs: 0,
+		});
+
+		expect(signaled).toEqual([]);
+		expect(processTableReads).toBeGreaterThanOrEqual(3);
 	});
 });
 

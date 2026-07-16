@@ -3,8 +3,12 @@ import * as fs from "node:fs";
 import * as tty from "node:tty";
 import * as nodePty from "node-pty";
 import {
+	captureProcessIdentity,
+	type ProcessInfo,
 	type ProcessSignalError,
 	type ProcessSignalTarget,
+	processIdentitySignalTarget,
+	readProcessTable,
 	signalProcessTargetsIfStillOwned,
 	signalProcessTreeAndGroups,
 } from "../process-tree.ts";
@@ -124,12 +128,24 @@ export interface SpawnOptions {
 	meta: SessionMeta;
 }
 
-class NodePtyAdapter implements Pty {
+/** @internal Dependency seams for deterministic process-recycling tests. */
+export interface NodePtyAdapterDependencies {
+	killEscalation?: KillEscalationTimer;
+	captureProcessIdentity?: typeof captureProcessIdentity;
+	signalProcessTreeAndGroups?: typeof signalProcessTreeAndGroups;
+	readCurrentProcessTable?: () => ProcessInfo[];
+}
+
+/** @internal Exported so the real delayed root-escalation path is testable. */
+export class NodePtyAdapter implements Pty {
 	readonly pid: number;
 	meta: SessionMeta;
 	private term: nodePty.IPty;
 	private exited = false;
-	private readonly killEscalation = new KillEscalationTimer();
+	private readonly killEscalation: KillEscalationTimer;
+	private readonly captureIdentity: typeof captureProcessIdentity;
+	private readonly signalTree: typeof signalProcessTreeAndGroups;
+	private readonly readCurrentProcessTable: () => ProcessInfo[];
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -139,10 +155,22 @@ class NodePtyAdapter implements Pty {
 	private readonly dataCallbacks: PtyOnData[] = [];
 	private readonly pausedOutput: Buffer[] = [];
 
-	constructor(term: nodePty.IPty, meta: SessionMeta) {
+	constructor(
+		term: nodePty.IPty,
+		meta: SessionMeta,
+		dependencies: NodePtyAdapterDependencies = {},
+	) {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
+		this.killEscalation =
+			dependencies.killEscalation ?? new KillEscalationTimer();
+		this.captureIdentity =
+			dependencies.captureProcessIdentity ?? captureProcessIdentity;
+		this.signalTree =
+			dependencies.signalProcessTreeAndGroups ?? signalProcessTreeAndGroups;
+		this.readCurrentProcessTable =
+			dependencies.readCurrentProcessTable ?? readProcessTable;
 		// node-pty is pinned to 1.1.0. Validate every private field needed by
 		// handoff at spawn time, while a broken dependency contract is still
 		// attributable to this session instead of surfacing during an upgrade.
@@ -198,10 +226,14 @@ class NodePtyAdapter implements Pty {
 
 	kill(signal?: NodeJS.Signals): Promise<void> {
 		const killSignal = signal ?? "SIGHUP";
-		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
+		const rootIdentity = this.captureIdentity(this.pid);
+		const escalationTargets = this.signalTree(this.pid, killSignal, {
 			includeRoot: false,
 			onSignalError: logProcessSignalError,
 		});
+		if (rootIdentity) {
+			escalationTargets.push(processIdentitySignalTarget(rootIdentity));
+		}
 		// Arm the escalation before signalling the root. node-pty may report the
 		// root exit immediately, but SIGHUP-resistant descendants still belong to
 		// this daemon until the identity-witnessed escalation has fired.
@@ -337,14 +369,8 @@ class NodePtyAdapter implements Pty {
 				targets,
 				"SIGKILL",
 				logProcessSignalError,
+				this.readCurrentProcessTable,
 			);
-			if (!this.exited) {
-				try {
-					this.term.kill("SIGKILL");
-				} catch {
-					// PTY root may have exited between the liveness check and signal.
-				}
-			}
 		});
 	}
 }

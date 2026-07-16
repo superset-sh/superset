@@ -56,12 +56,80 @@ export function collectProcessSignalTargets(
 	options: SignalProcessTreeAndGroupsOptions = {},
 ): ProcessSignalTarget[] {
 	if (!isPositiveInteger(rootPid)) return [];
+	return collectProcessSignalTargetsFromTable(
+		rootPid,
+		options,
+		readProcessTable(),
+	);
+}
 
+/** Capture the kernel-observable identity for one process lifetime. */
+export function captureProcessIdentity(
+	pid: number,
+	currentTable: ProcessInfo[] = readProcessTable(),
+): ProcessIdentity | null {
+	if (!isPositiveInteger(pid)) return null;
+	const info = currentTable.find((row) => row.pid === pid);
+	if (!info?.startTime) return null;
+	return { pid: info.pid, pgid: info.pgid, startTime: info.startTime };
+}
+
+/** Exact identity comparison; PID equality alone is intentionally insufficient. */
+export function processIdentityMatches(
+	identity: ProcessIdentity,
+	currentTable: ProcessInfo[] = readProcessTable(),
+): boolean {
+	const current = captureProcessIdentity(identity.pid, currentTable);
+	return (
+		current !== null &&
+		current.pgid === identity.pgid &&
+		current.startTime === identity.startTime
+	);
+}
+
+export function sameProcessIdentity(
+	left: ProcessIdentity,
+	right: ProcessIdentity,
+): boolean {
+	return (
+		left.pid === right.pid &&
+		left.pgid === right.pgid &&
+		left.startTime === right.startTime
+	);
+}
+
+export function processIdentitySignalTarget(
+	identity: ProcessIdentity,
+): ProcessSignalTarget {
+	return { target: "pid", id: identity.pid, witnesses: [identity] };
+}
+
+/**
+ * Capture a process tree only when the root still has the expected lifetime.
+ * The returned targets retain per-process identity witnesses for a later signal.
+ */
+export function collectProcessSignalTargetsForIdentity(
+	identity: ProcessIdentity,
+	options: SignalProcessTreeAndGroupsOptions = {},
+	currentTable: ProcessInfo[] = readProcessTable(),
+): ProcessSignalTarget[] {
+	if (!processIdentityMatches(identity, currentTable)) return [];
+	return collectProcessSignalTargetsFromTable(
+		identity.pid,
+		options,
+		currentTable,
+	);
+}
+
+function collectProcessSignalTargetsFromTable(
+	rootPid: number,
+	options: SignalProcessTreeAndGroupsOptions,
+	table: ProcessInfo[],
+): ProcessSignalTarget[] {
 	const includeRoot = options.includeRoot ?? true;
 	const signalGroups = options.signalGroups ?? true;
 	const signalPids = options.signalPids ?? true;
 	const excludeCurrentProcessGroup = options.excludeCurrentProcessGroup ?? true;
-	const table = readProcessTable();
 	const currentPgid = excludeCurrentProcessGroup
 		? getProcessGroupId(process.pid, table)
 		: null;
@@ -130,13 +198,44 @@ export function signalProcessTargetsIfStillOwned(
 	targets: ProcessSignalTarget[],
 	signal: NodeJS.Signals,
 	onSignalError?: (error: ProcessSignalError) => void,
-): void {
-	for (const target of filterOwnedProcessSignalTargets(
-		targets,
-		readProcessTable(),
-	)) {
+	readCurrentTable: () => ProcessInfo[] = readProcessTable,
+): ProcessSignalTarget[] {
+	const signaled: ProcessSignalTarget[] = [];
+	for (const target of targets) {
+		// Re-read immediately before every individual signal. A single snapshot
+		// for the whole batch leaves later targets exposed to PID/PGID recycling.
+		if (
+			filterOwnedProcessSignalTargets([target], readCurrentTable()).length === 0
+		) {
+			continue;
+		}
 		signalTarget(target.target, target.id, signal, onSignalError);
+		signaled.push(target);
 	}
+	return signaled;
+}
+
+/**
+ * Identity-fenced process-tree signal. Both capture and every actual signal
+ * require an exact `(pid, pgid, startTime)` witness match.
+ */
+export function signalProcessTreeAndGroupsIfStillOwned(
+	identity: ProcessIdentity,
+	signal: NodeJS.Signals,
+	options: SignalProcessTreeAndGroupsOptions = {},
+	readCurrentTable: () => ProcessInfo[] = readProcessTable,
+): ProcessSignalTarget[] {
+	const targets = collectProcessSignalTargetsForIdentity(
+		identity,
+		options,
+		readCurrentTable(),
+	);
+	return signalProcessTargetsIfStillOwned(
+		targets,
+		signal,
+		options.onSignalError,
+		readCurrentTable,
+	);
 }
 
 /** @internal Exported for deterministic ownership tests. */
