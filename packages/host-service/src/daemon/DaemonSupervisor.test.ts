@@ -290,7 +290,7 @@ describe("DaemonSupervisor.tryAdopt", () => {
 		}
 	});
 
-	test("rejects and replaces a pid-alive daemon that stays unreachable for the whole grace window", async () => {
+	test("adopts an unprobeable but pid-alive daemon instead of killing its shells", async () => {
 		const orgId = "org-unprobeable";
 		const fake = await startFakeDaemon({ silent: true });
 		const child = childProcess.spawn(
@@ -317,23 +317,26 @@ describe("DaemonSupervisor.tryAdopt", () => {
 				organizationId: orgId,
 			});
 
-			const sup = new DaemonSupervisor({
-				scriptPath: "/nonexistent",
-				// Short grace so the wedged-recovery path doesn't wait the full
-				// production window; a healthy daemon is never force-killed here.
-				adoptionWedgeGraceMs: 300,
-			});
-			const adopted = await invokeTryAdopt(sup, orgId);
-			expect(adopted).toBeNull();
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			const adopted = (await invokeTryAdopt(
+				sup,
+				orgId,
+			)) as AdoptedForTest | null;
+			// Adopted, not rejected: the pid is alive so it still owns PTYs.
+			expect(adopted).not.toBeNull();
+			expect(adopted?.pid).toBe(childPid);
+			expect(adopted?.runningVersion).toBe("unknown");
+			// A failed probe must not be mistaken for version drift.
+			expect(adopted?.updatePending).toBe(false);
 			expect(
 				loggedEvents.some(
 					(e) =>
-						e.event === "pty_daemon_adopt_rejected" &&
-						e.props.reason === "probe_failed_after_grace" &&
-						e.props.pid === childPid,
+						e.event === "pty_daemon_adopt_unprobed" && e.props.pid === childPid,
 				),
 			).toBe(true);
-			expect(await waitForProcessExit(childPid, 2500)).toBe(true);
+			// The whole point of SUPER-833: the daemon is left running.
+			expect(await waitForProcessExit(childPid, 1500)).toBe(false);
+			expect(isProcessAliveForTest(childPid)).toBe(true);
 		} finally {
 			await fake.close();
 			if (isProcessAliveForTest(childPid)) {
@@ -382,9 +385,6 @@ describe("DaemonSupervisor.tryAdopt", () => {
 			const sup = new DaemonSupervisor({
 				scriptPath: "/nonexistent",
 				autoUpdate: false,
-				// Even a short grace must adopt this answering daemon; it only
-				// bounds how long a genuinely wedged one is tolerated.
-				adoptionWedgeGraceMs: 300,
 			});
 			const adopted = (await invokeTryAdopt(
 				sup,

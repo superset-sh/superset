@@ -77,16 +77,6 @@ const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 const DAEMON_TERMINATE_TIMEOUT_MS = 1_000;
 const AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS = 1_500;
 const ADOPTION_PROBE_TOTAL_TIMEOUT_MS = 3_000;
-/**
- * How long to keep retrying to reach a pid-alive daemon during adoption before
- * treating it as wedged. A daemon that owns live shells must never be
- * force-killed for a transient stall: post-update relaunch spikes (Squirrel
- * finishing + every org's host-service booting at once) can make a healthy
- * daemon miss a 1-3s probe, and terminating it SIGKILLs the user's shells
- * (SUPER-833). Long enough to ride out that spike before escalating to a
- * destructive respawn.
- */
-const ADOPTION_WEDGE_GRACE_MS = 15_000;
 
 /**
  * Crash supervision parameters. If the daemon for an organization crashes
@@ -162,13 +152,6 @@ export interface DaemonSupervisorOptions {
 	 * real handoff.
 	 */
 	autoUpdate?: boolean;
-	/**
-	 * Grace window (ms) to keep retrying a pid-alive daemon's adoption probe
-	 * before treating it as wedged and force-respawning. Defaults to
-	 * {@link ADOPTION_WEDGE_GRACE_MS}; tests override it to a small value so the
-	 * wedged-recovery path doesn't take the full production window.
-	 */
-	adoptionWedgeGraceMs?: number;
 }
 
 export class DaemonSupervisor {
@@ -810,14 +793,16 @@ export class DaemonSupervisor {
 				reason: "manifest_pid_dead",
 			});
 		}
-		// PID alive: probe the daemon patiently before doing anything
-		// destructive. `terminateProcessTreeAndGroups` here would SIGKILL the
-		// daemon's whole process tree — i.e. every live user shell — so a
-		// transient stall (post-update relaunch load spike) must not reach it.
-		// Retry across the grace window; only treat the daemon as wedged once
-		// it stays unreachable the entire time (SUPER-833).
-		const graceMs = this.opts.adoptionWedgeGraceMs ?? ADOPTION_WEDGE_GRACE_MS;
-		const probe = await probeDaemonHelloWithRetry(manifest.socketPath, graceMs);
+		// The pid is alive, so it still owns the user's PTYs. Adoption never
+		// kills it: `terminateProcessTreeAndGroups` would signal the daemon's
+		// whole process tree — every live shell — which is what made updates
+		// kill terminals (SUPER-833). A failed probe means we couldn't read its
+		// version, not that it's disposable. Recovering a genuinely wedged
+		// daemon stays an explicit user action (Settings > Restart daemon).
+		const probe = await probeDaemonHelloWithRetry(
+			manifest.socketPath,
+			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
+		);
 		if (probe) {
 			const runningVersion = probe.daemonVersion;
 			return {
@@ -833,34 +818,35 @@ export class DaemonSupervisor {
 			};
 		}
 
-		// Daemon exited on its own during the grace window — nothing to kill;
-		// fall through to a socket adopt / fresh spawn.
-		if (!isProcessAlive(manifest.pid)) {
-			removePtyDaemonManifest(organizationId);
-			return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
-				reason: "manifest_pid_dead",
-			});
+		// Couldn't read a version off the manifest socket. If the socket path
+		// scheme changed under us, a daemon may be answering on the expected
+		// path — prefer that one.
+		if (manifest.socketPath !== expectedSocketPath) {
+			const viaSocket = await this.tryAdoptFromSocket(
+				organizationId,
+				expectedSocketPath,
+				{ reason: "manifest_probe_failed", previousManifest: manifest },
+			);
+			if (viaSocket) return viaSocket;
 		}
 
-		// Pid stayed alive but never answered across the whole grace window:
-		// genuinely wedged. Recover by force-respawning — destructive, but only
-		// after we're convinced it isn't merely slow.
-		logEvent("pty_daemon_adopt_rejected", {
+		// Adopt unprobed. `runningVersion: "unknown"` is the documented state
+		// for a failed probe, and it leaves updatePending false so a probe
+		// failure is never mistaken for version drift.
+		logEvent("pty_daemon_adopt_unprobed", {
 			organizationId,
 			pid: manifest.pid,
 			socketPath: manifest.socketPath,
-			reason: "probe_failed_after_grace",
-			graceMs,
+			reason: "version_probe_failed",
 		});
-		await terminateProcessTreeAndGroups(manifest.pid, "SIGTERM");
-		removePtyDaemonManifest(organizationId);
-		if (manifest.socketPath !== expectedSocketPath) {
-			return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
-				reason: "manifest_probe_failed_after_grace",
-				previousManifest: manifest,
-			});
-		}
-		return null;
+		return {
+			pid: manifest.pid,
+			socketPath: manifest.socketPath,
+			startedAt: manifest.startedAt,
+			runningVersion: "unknown",
+			expectedVersion: EXPECTED_DAEMON_VERSION,
+			updatePending: false,
+		};
 	}
 
 	private async tryAdoptFromSocket(
