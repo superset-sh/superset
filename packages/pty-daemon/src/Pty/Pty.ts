@@ -14,6 +14,48 @@ import { AsyncFdWriteQueue } from "./AsyncFdWriteQueue.ts";
 const KILL_ESCALATION_TIMEOUT_MS = 1000;
 const HANDOFF_WRITE_DRAIN_TIMEOUT_MS = 2000;
 
+interface KillEscalationTimerOptions {
+	timeoutMs?: number;
+	setTimer?: (callback: () => void, timeoutMs: number) => NodeJS.Timeout;
+	clearTimer?: (timer: NodeJS.Timeout) => void;
+}
+
+/** Owns one escalation callback and makes cancel/reschedule races explicit. */
+export class KillEscalationTimer {
+	private readonly timeoutMs: number;
+	private readonly setTimer: (
+		callback: () => void,
+		timeoutMs: number,
+	) => NodeJS.Timeout;
+	private readonly clearTimer: (timer: NodeJS.Timeout) => void;
+	private timer: NodeJS.Timeout | null = null;
+
+	constructor(options: KillEscalationTimerOptions = {}) {
+		this.timeoutMs = options.timeoutMs ?? KILL_ESCALATION_TIMEOUT_MS;
+		this.setTimer = options.setTimer ?? setTimeout;
+		this.clearTimer = options.clearTimer ?? clearTimeout;
+	}
+
+	schedule(callback: () => void): void {
+		if (this.timer) return;
+		const timer = this.setTimer(() => {
+			// A cancelled callback can already be queued when a new escalation is
+			// scheduled. Only the timer that still owns this slot may signal PIDs.
+			if (this.timer !== timer) return;
+			this.timer = null;
+			callback();
+		}, this.timeoutMs);
+		this.timer = timer;
+		timer.unref();
+	}
+
+	cancel(): void {
+		const timer = this.timer;
+		this.timer = null;
+		if (timer) this.clearTimer(timer);
+	}
+}
+
 export type PtyOnData = (data: Buffer) => void;
 export type PtyOnExit = (info: {
 	code: number | null;
@@ -67,7 +109,7 @@ class NodePtyAdapter implements Pty {
 	meta: SessionMeta;
 	private term: nodePty.IPty;
 	private exited = false;
-	private killEscalationTimer: NodeJS.Timeout | null = null;
+	private readonly killEscalation = new KillEscalationTimer();
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -254,18 +296,16 @@ class NodePtyAdapter implements Pty {
 		signal: NodeJS.Signals,
 		targets: ProcessSignalTarget[],
 	): void {
-		if (signal === "SIGKILL" || this.exited || this.killEscalationTimer) return;
+		if (signal === "SIGKILL" || this.exited) return;
 
-		this.killEscalationTimer = setTimeout(() => {
-			this.killEscalationTimer = null;
+		this.killEscalation.schedule(() => {
 			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
 			try {
 				this.term.kill("SIGKILL");
 			} catch {
 				// PTY root may have already exited; detached targets still matter.
 			}
-		}, KILL_ESCALATION_TIMEOUT_MS);
-		this.killEscalationTimer.unref();
+		});
 	}
 }
 
@@ -545,7 +585,7 @@ class AdoptedPty implements Pty {
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private livenessTimer: NodeJS.Timeout | null = null;
-	private killEscalationTimer: NodeJS.Timeout | null = null;
+	private readonly killEscalation = new KillEscalationTimer();
 	private exitCallbacks: PtyOnExit[] = [];
 	private outputPausedForHandoff = false;
 	private readonly dataCallbacks: PtyOnData[] = [];
@@ -731,14 +771,11 @@ class AdoptedPty implements Pty {
 		signal: NodeJS.Signals,
 		targets: ProcessSignalTarget[],
 	): void {
-		if (signal === "SIGKILL" || this.exitFired || this.killEscalationTimer)
-			return;
+		if (signal === "SIGKILL" || this.exitFired) return;
 
-		this.killEscalationTimer = setTimeout(() => {
-			this.killEscalationTimer = null;
+		this.killEscalation.schedule(() => {
 			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
-		}, KILL_ESCALATION_TIMEOUT_MS);
-		this.killEscalationTimer.unref();
+		});
 	}
 
 	private handleFatalWrite(error: Error): void {
@@ -755,6 +792,7 @@ class AdoptedPty implements Pty {
 		if (this.exitFired) return;
 		this.exitFired = true;
 		this.exitInfo = info;
+		this.killEscalation.cancel();
 		if (this.livenessTimer) clearInterval(this.livenessTimer);
 		this.livenessTimer = null;
 		// fs.write cannot be cancelled. Stop and unref reads immediately, but keep

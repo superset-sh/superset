@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	KillEscalationTimer,
 	requireNodePtyWriteStream,
 	setAdoptedPtyNonBlocking,
 	spawn,
@@ -12,6 +13,30 @@ import {
 // logic that doesn't require spawning a real PTY.
 
 describe("Pty wrapper (validation only — spawn behavior tested under node)", () => {
+	test("cancelled kill escalation cannot fire after a new timer takes ownership", () => {
+		const callbacks: Array<() => void> = [];
+		const cleared: NodeJS.Timeout[] = [];
+		const timer = new KillEscalationTimer({
+			setTimer(callback) {
+				callbacks.push(callback);
+				return { unref() {} } as NodeJS.Timeout;
+			},
+			clearTimer(handle) {
+				cleared.push(handle);
+			},
+		});
+		const fired: string[] = [];
+
+		timer.schedule(() => fired.push("stale"));
+		timer.cancel();
+		timer.schedule(() => fired.push("current"));
+		callbacks[0]?.();
+		expect(fired).toEqual([]);
+		callbacks[1]?.();
+		expect(fired).toEqual(["current"]);
+		expect(cleared).toHaveLength(1);
+	});
+
 	test("requires the adopted TTY handle nonblocking contract", () => {
 		expect(() => setAdoptedPtyNonBlocking({})).toThrow(
 			/cannot set nonblocking mode/,

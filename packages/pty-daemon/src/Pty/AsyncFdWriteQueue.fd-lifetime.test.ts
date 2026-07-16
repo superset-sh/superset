@@ -65,12 +65,20 @@ test("a submitted write cannot escape into a reused fd after disposal", async ()
 		// until its already-submitted write callback. B therefore cannot reuse A.
 		const safeA = fs.openSync(safeAPath, "w+");
 		let safeClosed = false;
+		let resolveSafeWriteSubmitted;
+		const safeWriteSubmitted = new Promise((resolve) => {
+			resolveSafeWriteSubmitted = resolve;
+		});
 		let resolveSafeClosed;
 		const safeClose = new Promise((resolve) => {
 			resolveSafeClosed = resolve;
 		});
 		const queue = new AsyncFdWriteQueue({
 			fd: safeA,
+			write(fd, buffer, offset, length, position, callback) {
+				resolveSafeWriteSubmitted();
+				fs.write(fd, buffer, offset, length, position, callback);
+			},
 			closeFd(fd) {
 				fs.closeSync(fd);
 				safeClosed = true;
@@ -78,7 +86,7 @@ test("a submitted write cannot escape into a reused fd after disposal", async ()
 			},
 		});
 		queue.enqueue(Buffer.from("LEAK"));
-		await new Promise((resolve) => setImmediate(resolve));
+		await safeWriteSubmitted;
 		assert.equal(blockerDone, false, "PBKDF2 did not hold the sole worker");
 		queue.dispose();
 		assert.equal(safeClosed, false, "fd closed before submitted write callback");

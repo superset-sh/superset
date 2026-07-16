@@ -21,6 +21,18 @@ export type FdWrite = (
 
 export type FdClose = (fd: number) => void;
 
+/** Fatal queue state with an exact accounting of accepted, undelivered input. */
+export class AsyncFdWriteFailure extends Error {
+	readonly undeliveredBytes: number;
+
+	constructor(cause: Error, undeliveredBytes: number) {
+		super(`${cause.message} (${undeliveredBytes} bytes undelivered)`);
+		this.name = "AsyncFdWriteFailure";
+		this.cause = cause;
+		this.undeliveredBytes = undeliveredBytes;
+	}
+}
+
 interface PendingWrite {
 	buffer: Buffer;
 	offset: number;
@@ -39,7 +51,7 @@ export interface AsyncFdWriteQueueOptions {
 	maxBackoffMs?: number;
 	write?: FdWrite;
 	/**
-	 * When provided, the queue owns `fd` and closes it after disposal/failure.
+	 * When provided, the queue owns `fd` and closes it after disposal.
 	 * An fd with a submitted fs.write is kept open until that write's callback:
 	 * closing it earlier lets the OS reuse the number while libuv still holds it.
 	 */
@@ -268,15 +280,16 @@ export class AsyncFdWriteQueue {
 
 	private fail(error: Error): void {
 		if (this.failure || this.disposed) return;
-		this.failure = error;
+		const failure = new AsyncFdWriteFailure(error, this.queuedBytes);
+		this.failure = failure;
 		this.generation += 1;
 		this.clearScheduledWork();
-		this.queue.length = 0;
-		this.queuedBytes = 0;
-		this.inFlight = false;
-		this.rejectDrainWaiters(error);
-		this.closeOwnedFdIfIdle();
-		this.onFatalError?.(error);
+		// Keep every accepted, undelivered buffer and its byte count observable in
+		// the failed state. Only explicit disposal may discard that evidence.
+		// Every call site reaches fail() only after the submitted write callback (or
+		// synchronous throw) has cleared inFlight, preserving fd lifetime safety.
+		this.rejectDrainWaiters(failure);
+		this.onFatalError?.(failure);
 	}
 
 	private isDrained(): boolean {

@@ -41,21 +41,15 @@ for (const scenario of scenarios) {
 			let adopter = null;
 
 			const blockedScript = [
-				"import os, signal, time, tty",
-				"tty.setraw(0)",
-				"os.write(1, b'READY\\\\n')",
-				"os.kill(os.getpid(), signal.SIGSTOP)",
-				"time.sleep(60)",
+				"process.stdin.setRawMode?.(true);",
+				"process.stdout.write('READY\\\\n', () => process.kill(process.pid, 'SIGSTOP'));",
+				"setInterval(() => {}, 60_000);",
 			].join("\\n");
 			const healthyScript = [
-				"import os, tty",
-				"tty.setraw(0)",
-				"os.write(1, b'READY\\\\n')",
-				"while True:",
-				"    data = os.read(0, 4096)",
-				"    if not data:",
-				"        break",
-				"    os.write(1, b'HEALTHY:' + data)",
+				"process.stdin.setRawMode?.(true);",
+				"process.stdin.on('data', (data) => process.stdout.write(Buffer.concat([Buffer.from('HEALTHY:'), data])));",
+				"process.stdin.resume();",
+				"process.stdout.write('READY\\\\n');",
 			].join("\\n");
 
 			function killBestEffort(pid) {
@@ -84,8 +78,8 @@ for (const scenario of scenarios) {
 			(async () => {
 				for (let index = 0; index < 5; index += 1) {
 					const term = nodePty.spawn(
-						"/usr/bin/python3",
-						["-c", index < 4 ? blockedScript : healthyScript],
+						process.execPath,
+						["--eval", index < 4 ? blockedScript : healthyScript],
 						{ cols: 80, rows: 24 },
 					);
 					terms.push(term);
@@ -102,7 +96,7 @@ for (const scenario of scenarios) {
 					const ptys = pids.map((pid, index) => adoptFromFd({
 						fd: 3 + index,
 						pid,
-						meta: { shell: "/usr/bin/python3", argv: [], cols: 80, rows: 24 },
+						meta: { shell: process.execPath, argv: [], cols: 80, rows: 24 },
 					}));
 					const scenario = process.env.NONBLOCKING_SCENARIO;
 					const assertNonBlocking = (fd, label) => {
@@ -223,6 +217,8 @@ for (const scenario of scenarios) {
 
 				// The adopter now owns inherited copies. Stop the launcher's readers so
 				// they cannot consume the healthy child's response first.
+				// These fields are node-pty 1.1.0 internals; the package pin and the
+				// production spawn-time assertion must be updated together.
 				for (const term of terms) {
 					term._writeStream.dispose();
 					term._socket.destroy();
@@ -406,27 +402,36 @@ test("spawned NodePtyAdapter freezes and drains pending input exactly once", asy
 			// benchmark on a saturated host; the test checks ordering and exactness.
 			const inputBytes = 1024 * 1024;
 			const readerSource = [
-				"import hashlib, os, select, termios, tty",
-				"tty.setraw(0, termios.TCSANOW)",
-				"os.write(1, b'READER_READY\\\\n')",
-				"remaining = " + inputBytes,
-				"digest = hashlib.sha256()",
-				"total = 0",
-				"while remaining:",
-				"    chunk = os.read(0, min(65536, remaining))",
-				"    if not chunk: break",
-				"    digest.update(chunk)",
-				"    total += len(chunk)",
-				"    remaining -= len(chunk)",
-				"readable, _, _ = select.select([0], [], [], 0.25)",
-				"extra = os.read(0, 65536) if readable else b''",
-				"result = f'DRAIN_RESULT:{total}:{digest.hexdigest()}:{len(extra)}\\\\n'",
-				"os.write(1, result.encode())",
+				"const { createHash } = require('node:crypto');",
+				"process.stdin.setRawMode?.(true);",
+				"process.stdout.write('READER_READY\\\\n');",
+				"let remaining = " + inputBytes + ";",
+				"const digest = createHash('sha256');",
+				"let total = 0;",
+				"let extra = 0;",
+				"process.stdin.on('data', (data) => {",
+				"  let chunk = Buffer.from(data);",
+				"  if (remaining > 0) {",
+				"    const accepted = chunk.subarray(0, remaining);",
+				"    digest.update(accepted);",
+				"    total += accepted.byteLength;",
+				"    remaining -= accepted.byteLength;",
+				"    chunk = chunk.subarray(accepted.byteLength);",
+				"    if (remaining === 0) {",
+				"      setTimeout(() => {",
+				"        process.stdout.write('DRAIN_RESULT:' + total + ':' + digest.digest('hex') + ':' + extra + '\\\\n');",
+				"        process.stdin.pause();",
+				"      }, 250);",
+				"    }",
+				"  }",
+				"  extra += chunk.byteLength;",
+				"});",
+				"process.stdin.resume();",
 			].join("\\n");
 			const pty = spawnPty({
 				meta: {
-					shell: "/usr/bin/python3",
-					argv: ["-c", readerSource],
+					shell: process.execPath,
+					argv: ["--eval", readerSource],
 					cols: 80,
 					rows: 24,
 				},

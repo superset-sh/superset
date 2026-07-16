@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	AsyncFdWriteFailure,
 	AsyncFdWriteQueue,
 	type FdWrite,
 	type FdWriteCallback,
@@ -16,12 +17,20 @@ function deferredWriter(): {
 	write: FdWrite;
 	calls: PendingCall[];
 	active: () => number;
+	waitForCall: (count: number) => Promise<void>;
 } {
 	const calls: PendingCall[] = [];
+	const waiters: Array<{ count: number; resolve: () => void }> = [];
 	let active = 0;
 	return {
 		calls,
 		active: () => active,
+		waitForCall(count) {
+			if (calls.length >= count) return Promise.resolve();
+			return new Promise<void>((resolve) => {
+				waiters.push({ count, resolve });
+			});
+		},
 		write(_fd, buffer, offset, length, _position, callback) {
 			active += 1;
 			calls.push({
@@ -33,16 +42,14 @@ function deferredWriter(): {
 					callback(err, bytesWritten, returnedBuffer);
 				},
 			});
+			for (let index = waiters.length - 1; index >= 0; index -= 1) {
+				const waiter = waiters[index];
+				if (!waiter || calls.length < waiter.count) continue;
+				waiters.splice(index, 1);
+				waiter.resolve();
+			}
 		},
 	};
-}
-
-async function waitForCall(calls: PendingCall[], count: number): Promise<void> {
-	const deadline = Date.now() + 1_000;
-	while (calls.length < count && Date.now() < deadline) {
-		await new Promise((resolve) => setTimeout(resolve, 1));
-	}
-	expect(calls).toHaveLength(count);
 }
 
 function complete(
@@ -69,7 +76,7 @@ describe("AsyncFdWriteQueue", () => {
 		first.fill(0x7a);
 		queue.enqueue(Buffer.from("ef"));
 
-		await waitForCall(writer.calls, 1);
+		await writer.waitForCall(1);
 		expect(writer.active()).toBe(1);
 		complete(
 			writer.calls[0] as PendingCall,
@@ -77,14 +84,14 @@ describe("AsyncFdWriteQueue", () => {
 			0,
 		);
 
-		await waitForCall(writer.calls, 2);
+		await writer.waitForCall(2);
 		const output: Buffer[] = [];
 		output.push(complete(writer.calls[1] as PendingCall, null, 2));
-		await waitForCall(writer.calls, 3);
+		await writer.waitForCall(3);
 		complete(writer.calls[2] as PendingCall, null, 0);
-		await waitForCall(writer.calls, 4);
+		await writer.waitForCall(4);
 		output.push(complete(writer.calls[3] as PendingCall, null, 2));
-		await waitForCall(writer.calls, 5);
+		await writer.waitForCall(5);
 		output.push(complete(writer.calls[4] as PendingCall, null, 2));
 
 		await new Promise((resolve) => setImmediate(resolve));
@@ -106,7 +113,7 @@ describe("AsyncFdWriteQueue", () => {
 		);
 		expect(queue.pendingBytes).toBe(4);
 
-		await waitForCall(writer.calls, 1);
+		await writer.waitForCall(1);
 		expect(writer.calls[0]?.length).toBe(4);
 	});
 
@@ -119,19 +126,19 @@ describe("AsyncFdWriteQueue", () => {
 			/input is frozen for daemon handoff/,
 		);
 
-		await waitForCall(writer.calls, 1);
+		await writer.waitForCall(1);
 		complete(writer.calls[0] as PendingCall, null, 3);
 		await drained;
 		queue.unfreeze();
 		queue.enqueue(Buffer.from("d"));
-		await waitForCall(writer.calls, 2);
+		await writer.waitForCall(2);
 	});
 
 	test("ignores a late callback after disposal", async () => {
 		const writer = deferredWriter();
 		const queue = new AsyncFdWriteQueue({ fd: 7, write: writer.write });
 		queue.enqueue(Buffer.from("abc"));
-		await waitForCall(writer.calls, 1);
+		await writer.waitForCall(1);
 		queue.dispose();
 		expect(queue.pendingBytes).toBe(0);
 		expect(() => queue.enqueue(Buffer.from("d"))).toThrow(/disposed/);
@@ -150,6 +157,10 @@ describe("AsyncFdWriteQueue", () => {
 		const contents = { A: "", B: "" };
 		const calls: Array<() => void> = [];
 		const closed: number[] = [];
+		let markSubmitted!: () => void;
+		const submitted = new Promise<void>((resolve) => {
+			markSubmitted = resolve;
+		});
 		const write: FdWrite = (
 			fd,
 			buffer,
@@ -171,6 +182,7 @@ describe("AsyncFdWriteQueue", () => {
 				contents[owner] += buffer.subarray(offset, offset + length).toString();
 				callback(null, length, buffer);
 			});
+			markSubmitted();
 		};
 		const queue = new AsyncFdWriteQueue({
 			fd: 7,
@@ -182,10 +194,7 @@ describe("AsyncFdWriteQueue", () => {
 		});
 
 		queue.enqueue(Buffer.from("LEAK"));
-		const deadline = Date.now() + 1_000;
-		while (calls.length < 1 && Date.now() < deadline) {
-			await new Promise((resolve) => setTimeout(resolve, 1));
-		}
+		await submitted;
 		expect(calls).toHaveLength(1);
 		queue.dispose();
 
@@ -205,16 +214,22 @@ describe("AsyncFdWriteQueue", () => {
 		expect(closed).toEqual([7]);
 	});
 
-	test("stops safely on a closed fd error", async () => {
+	test("retains exact undelivered input on fatal error until disposal", async () => {
 		const writer = deferredWriter();
 		const fatalErrors: Error[] = [];
+		const closed: number[] = [];
 		const queue = new AsyncFdWriteQueue({
 			fd: 7,
 			write: writer.write,
+			closeFd: (fd) => closed.push(fd),
 			onFatalError: (error) => fatalErrors.push(error),
 		});
 		queue.enqueue(Buffer.from("abc"));
-		await waitForCall(writer.calls, 1);
+		const drained = queue.freezeAndDrain(1_000).then(
+			() => null,
+			(error: Error) => error,
+		);
+		await writer.waitForCall(1);
 		complete(
 			writer.calls[0] as PendingCall,
 			Object.assign(new Error("bad file descriptor"), { code: "EBADF" }),
@@ -222,9 +237,34 @@ describe("AsyncFdWriteQueue", () => {
 		);
 
 		expect(fatalErrors).toHaveLength(1);
-		expect(queue.pendingBytes).toBe(0);
-		expect(() => queue.enqueue(Buffer.from("d"))).toThrow(
-			/bad file descriptor/,
+		const failure = fatalErrors[0];
+		if (!failure)
+			throw new Error("fatal callback did not receive queue failure");
+		expect(failure).toBeInstanceOf(AsyncFdWriteFailure);
+		expect((failure as AsyncFdWriteFailure).undeliveredBytes).toBe(3);
+		expect(failure?.message).toMatch(
+			/bad file descriptor \(3 bytes undelivered\)/,
 		);
+		expect(await drained).toBe(failure);
+		expect(queue.pendingBytes).toBe(3);
+		let enqueueFailure: unknown;
+		try {
+			queue.enqueue(Buffer.from("d"));
+		} catch (error) {
+			enqueueFailure = error;
+		}
+		expect(enqueueFailure).toBe(failure);
+		const repeatedDrainFailure = await queue.freezeAndDrain(1_000).then(
+			() => null,
+			(error: Error) => error,
+		);
+		expect(repeatedDrainFailure).toBe(failure);
+		await new Promise((resolve) => setImmediate(resolve));
+		expect(writer.calls).toHaveLength(1);
+		expect(closed).toEqual([]);
+
+		queue.dispose();
+		expect(queue.pendingBytes).toBe(0);
+		expect(closed).toEqual([7]);
 	});
 });
