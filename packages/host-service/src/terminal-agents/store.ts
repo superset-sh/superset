@@ -117,6 +117,29 @@ export class TerminalAgentStore extends EventEmitter {
 		this.deleteTerminal(terminalId);
 	}
 
+	/**
+	 * Escape hatch for wedged working/permission state (an agent whose final
+	 * Stop hook never fired — interrupts fire no hook at all). Forces the
+	 * workspace's bindings (or just `terminalId`'s) to `Stop`, keeping
+	 * lastEventAt so seen-gating still resolves to idle. Live agents
+	 * re-assert within seconds via their next hook event, so clearing a
+	 * genuinely working agent self-corrects.
+	 */
+	clearWorkspaceStatuses(workspaceId: string, onlyTerminalId?: string): void {
+		let changed = false;
+		for (const [terminalId, binding] of this.byTerminal) {
+			if (binding.workspaceId !== workspaceId) continue;
+			if (onlyTerminalId !== undefined && terminalId !== onlyTerminalId)
+				continue;
+			if (binding.lastEventType === "Stop") continue;
+			const next: TerminalAgentBinding = { ...binding, lastEventType: "Stop" };
+			this.byTerminal.set(terminalId, next);
+			this.persistence?.upsert(next);
+			changed = true;
+		}
+		if (changed) this.emit("change", workspaceId);
+	}
+
 	get(terminalId: string): TerminalAgentBinding | undefined {
 		return this.byTerminal.get(terminalId);
 	}

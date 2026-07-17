@@ -143,17 +143,17 @@ export function ProjectLocationSection({
 	return (
 		<>
 			{currentPath ? (
-				<div className="relative w-96">
-					<div className="flex h-9 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 pr-9 dark:bg-input/30">
+				<div className="flex w-[28rem] max-w-full items-center gap-2">
+					<div className="flex h-9 min-w-0 flex-1 items-center overflow-x-auto whitespace-nowrap rounded-md border bg-transparent px-3 dark:bg-input/30">
 						<ClickablePath path={currentPath} className="max-w-none shrink-0" />
 					</div>
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
 								type="button"
-								variant="ghost"
+								variant="outline"
 								size="icon"
-								className="absolute right-1 top-1 size-7 text-muted-foreground hover:text-foreground"
+								className="size-9 shrink-0"
 								onClick={handleChange}
 								disabled={selectDirectory.isPending || isSubmitting}
 								aria-label="Change location"
