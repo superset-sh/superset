@@ -77,6 +77,18 @@ export const terminalAgentsRouter = router({
 		}),
 
 	/**
+	 * "Clear status" escape hatch: force the workspace's bindings to `Stop` so
+	 * a wedged working/permission indicator resets. Safe on live agents — their
+	 * next hook event re-asserts the real state.
+	 */
+	clearWorkspaceStatuses: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) => {
+			ctx.terminalAgentStore.clearWorkspaceStatuses(input.workspaceId);
+			return { success: true };
+		}),
+
+	/**
 	 * Reuse-or-launch primitive. Returns an existing active binding for the
 	 * `(workspaceId, agentId, definitionId)` triple, or spawns a fresh
 	 * terminal and waits up to 10s for the agent's hook to register.

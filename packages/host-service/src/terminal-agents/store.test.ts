@@ -204,6 +204,39 @@ describe("TerminalAgentStore", () => {
 		expect(events).toEqual([WORKSPACE, WORKSPACE]);
 	});
 
+	it("clearWorkspaceStatuses forces non-Stop bindings to Stop, keeping lastEventAt", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t2",
+			workspaceId: "other",
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 200,
+		});
+
+		const events: string[] = [];
+		store.on("change", (workspaceId: string) => {
+			events.push(workspaceId);
+		});
+
+		store.clearWorkspaceStatuses(WORKSPACE);
+
+		expect(store.get("t1")?.lastEventType).toBe("Stop");
+		expect(store.get("t1")?.lastEventAt).toBe(100);
+		expect(store.get("t2")?.lastEventType).toBe("Start");
+		expect(events).toEqual([WORKSPACE]);
+
+		// Everything already Stop → no-op, no change event.
+		store.clearWorkspaceStatuses(WORKSPACE);
+		expect(events).toEqual([WORKSPACE]);
+	});
+
 	it("filters listByWorkspace by agentId and definitionId", () => {
 		store.recordEvent({
 			terminalId: "t1",
