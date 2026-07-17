@@ -7,7 +7,14 @@ import {
 	isBuiltinAgentId,
 	isTerminalAgentDefinition,
 } from "@superset/shared/agent-catalog";
-import { quoteSingleShell } from "@superset/shared/agent-prompt-launch";
+import {
+	buildAgentModelArgs,
+	buildAgentModelEnv,
+} from "@superset/shared/agent-models";
+import {
+	envOverlayPrefix,
+	quoteSingleShell,
+} from "@superset/shared/agent-prompt-launch";
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
@@ -100,6 +107,15 @@ export interface WorkspaceNamingAgentContext {
 	agent: string;
 }
 
+// Small/fast model per agent for the naming call, validated against the
+// curated catalog in agent-models.ts. Only presets whose small tier is
+// unambiguous are listed — the rest run their default model.
+const NAMING_SMALL_MODELS: Record<string, string> = {
+	claude: "haiku",
+	gemini: "gemini-2.5-flash",
+	vibe: "devstral-small",
+};
+
 function resolveNonInteractiveCommand(
 	db: HostDb,
 	agent: string,
@@ -108,7 +124,20 @@ function resolveNonInteractiveCommand(
 	if (!isBuiltinAgentId(presetId)) return null;
 	const definition = getBuiltinAgentDefinition(presetId);
 	if (!isTerminalAgentDefinition(definition)) return null;
-	return definition.nonInteractiveCommand ?? null;
+	const base = definition.nonInteractiveCommand;
+	if (!base) return null;
+
+	const smallModel = NAMING_SMALL_MODELS[presetId];
+	// Model args go right after the binary: trailing flags like gemini's
+	// `-p` consume the next token, so appending would swallow the prompt.
+	const modelArgs = buildAgentModelArgs(presetId, smallModel);
+	const [bin, ...flags] = base.split(" ");
+	const command = [
+		bin,
+		...modelArgs.map(quoteSingleShell),
+		...flags,
+	].join(" ");
+	return `${envOverlayPrefix(buildAgentModelEnv(presetId, smallModel))}${command}`;
 }
 
 function extractNamesJson(
