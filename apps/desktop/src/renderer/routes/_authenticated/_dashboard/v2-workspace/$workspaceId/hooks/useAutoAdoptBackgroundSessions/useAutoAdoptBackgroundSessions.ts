@@ -23,11 +23,10 @@ interface UseAutoAdoptBackgroundSessionsArgs {
  * that have no pane get their panes created automatically instead of sitting
  * behind the background-terminals dropdown.
  *
- * Runs exactly one adoption pass per workspace open, after the persisted pane
- * layout has hydrated (adopting earlier would double-create panes the layout
- * already has, or get clobbered by hydration). Sessions the user deliberately
- * backgrounded (marker set) are skipped, and the one-shot guard means a
- * session backgrounded after the pass is never re-adopted.
+ * One pass per workspace open, gated on pane-layout hydration (adopting
+ * earlier would duplicate panes the persisted layout already has, or get
+ * clobbered by it). Deliberately backgrounded sessions (marker set) are
+ * skipped and never re-adopted mid-session.
  */
 export function useAutoAdoptBackgroundSessions({
 	store,
@@ -40,10 +39,8 @@ export function useAutoAdoptBackgroundSessions({
 		{ enabled: isLayoutReady, refetchOnWindowFocus: false },
 	);
 	const sessions = sessionsQuery.data?.sessions;
-	// While a (re)fetch is in flight, `data` may be a cached list from a
-	// previous open — wait for it so the one-shot pass doesn't latch on stale
-	// sessions. If the refetch errors, isFetching clears and the cached list is
-	// still used as a fallback.
+	// While a refetch is in flight, data may be a stale cached list from a
+	// previous open — don't let the one-shot pass latch on it.
 	const isFetchingSessions = sessionsQuery.isFetching;
 
 	useEffect(() => {
@@ -63,8 +60,8 @@ export function useAutoAdoptBackgroundSessions({
 		).filter((session) => !marked.has(session.terminalId));
 		if (toAdopt.length === 0) return;
 
-		// Adopt oldest→newest so tabs read chronologically, then restore focus so
-		// adoption never steals the active tab from an already-open workspace.
+		// Oldest→newest so tabs read chronologically; restore the active tab so
+		// adoption never steals focus.
 		const restoreActiveTabId = state.tabs.length > 0 ? state.activeTabId : null;
 		for (const session of toAdopt.reverse()) {
 			focusOrAddTerminalPane(store, session.terminalId);
