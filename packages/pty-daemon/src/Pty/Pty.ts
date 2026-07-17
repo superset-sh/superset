@@ -57,105 +57,133 @@ export async function drainPendingKills(timeoutMs: number): Promise<void> {
 }
 
 /**
- * The session root's durable coordinates: controlling tty plus every process
- * group ever observed for it. A ppid walk can't rediscover either once the
- * intermediate parents die, so kill passes target through these too.
+ * Kill orchestration shared by both adapters, which differ only in how they
+ * signal the root and how they know it's dead.
+ *
+ * Owns the session root's durable coordinates — controlling tty plus every
+ * process group ever observed (a ppid walk can't rediscover either once the
+ * intermediate parents die) — and the SIGKILL escalation chain: each round
+ * takes a fresh process-table snapshot, because the initial volley's target
+ * list goes stale the moment a descendant forks. Timers stay ref'd on
+ * purpose: a naturally-exiting daemon must not drop a half-finished kill.
  */
-interface RootIdentity {
-	ttyName: string | null;
-	knownPgids: Set<number>;
-}
+class TreeKiller {
+	private ttyName: string | null = null;
+	private readonly knownPgids = new Set<number>();
+	private killChain: Promise<void> | null = null;
+	private readonly rootPid: number;
+	private readonly isRootAlive: () => boolean;
+	/** Best-effort signal to the root process itself; must not throw. */
+	private readonly signalRoot: (signal: NodeJS.Signals) => void;
 
-/**
- * One kill pass: collect the current tree + known-group members + same-tty
- * stragglers, record the root's and any newly seen groups, signal everything.
- * The root pid itself is excluded — each adapter signals its root its own way.
- * Pass a pre-read `table` from async paths; the sync fallback (one ps, same
- * cost as the pre-hardening kill) is for the synchronous kill() entrypoint.
- */
-function killVolley(
-	rootPid: number,
-	signal: NodeJS.Signals,
-	identity: RootIdentity,
-	table?: ProcessInfo[],
-): { survivors: boolean } {
-	const psTable = table ?? readProcessTable();
-	const rootRow = psTable.find((r) => r.pid === rootPid);
-	if (rootRow) {
-		if (rootRow.tty !== null) identity.ttyName = rootRow.tty;
-		identity.knownPgids.add(rootRow.pgid);
+	// No parameter properties: the daemon runs under node's strip-only TS
+	// mode, which rejects them.
+	constructor(
+		rootPid: number,
+		isRootAlive: () => boolean,
+		signalRoot: (signal: NodeJS.Signals) => void,
+	) {
+		this.rootPid = rootPid;
+		this.isRootAlive = isRootAlive;
+		this.signalRoot = signalRoot;
 	}
-	const targets = collectProcessSignalTargets(rootPid, {
-		includeRoot: false,
-		// tty targeting only while the root is alive in this same snapshot:
-		// the kernel recycles the pty slot the moment the master fd closes,
-		// so after root death a tty match can only ever hit a NEW session
-		// that inherited the slot (legit stragglers show "??" by then).
-		ttyName: rootRow ? identity.ttyName : null,
-		knownPgids: identity.knownPgids,
-		table: psTable,
-		onSignalError: logProcessSignalError,
-	});
-	for (const t of targets) {
-		if (t.target === "pgid") identity.knownPgids.add(t.id);
+
+	/**
+	 * Record the root's pgid + tty. Called at construction (if the shell exits
+	 * before the first kill, nothing else can rediscover them) and refreshed
+	 * by every volley from its own table. Async — session-open path.
+	 */
+	async captureIdentity(): Promise<void> {
+		const { pgid, tty } = await getProcessGroupAndTty(this.rootPid);
+		if (tty !== null) this.ttyName = tty;
+		if (pgid !== null) this.knownPgids.add(pgid);
 	}
-	signalProcessTargets(targets, signal, logProcessSignalError);
-	return { survivors: targets.some((t) => t.target === "pid") };
-}
 
-interface KillEscalationOptions {
-	rootPid: number;
-	identity: RootIdentity;
-	isRootAlive: () => boolean;
-	/** Best-effort SIGKILL to the root process itself. */
-	killRoot: () => void;
-}
+	kill(signal: NodeJS.Signals): void {
+		this.volley(signal);
+		this.signalRoot(signal);
+		if (signal === "SIGKILL" || this.killChain) return;
+		const chain = registerPendingKill(this.runEscalation());
+		this.killChain = chain;
+		// Reset when done so a retried close can escalate again.
+		void chain.then(() => {
+			if (this.killChain === chain) this.killChain = null;
+		});
+	}
 
-/**
- * SIGKILL escalation with a fresh process-table snapshot each round: the
- * initial volley's target list goes stale the moment a descendant forks, so
- * every pass re-collects (tree walk + known pgids + tty) and repeats until
- * nothing is left or the round budget runs out. Timers stay ref'd on purpose:
- * a naturally-exiting daemon must not drop a half-finished kill.
- */
-async function runKillEscalation(opts: KillEscalationOptions): Promise<void> {
-	const { rootPid, identity, isRootAlive, killRoot } = opts;
-	await delay(KILL_ESCALATION_TIMEOUT_MS);
-	for (let round = 0; ; round++) {
-		const table = await readProcessTableAsync();
-		const rootAlive = isRootAlive();
-		if (table !== null) {
-			const { survivors } = killVolley(rootPid, "SIGKILL", identity, table);
-			if (!survivors && !rootAlive) return;
+	/**
+	 * One kill pass: collect the current tree + known-group members + same-tty
+	 * stragglers, record the root's and any newly seen groups, signal all of
+	 * it (root excluded — signalRoot handles that). Pass a pre-read `table`
+	 * from async paths; the sync fallback (one ps, same cost as the
+	 * pre-hardening kill) is for the synchronous kill() entrypoint.
+	 */
+	private volley(
+		signal: NodeJS.Signals,
+		table?: ProcessInfo[],
+	): { survivors: boolean } {
+		const psTable = table ?? readProcessTable();
+		const rootRow = psTable.find((r) => r.pid === this.rootPid);
+		if (rootRow) {
+			if (rootRow.tty !== null) this.ttyName = rootRow.tty;
+			this.knownPgids.add(rootRow.pgid);
 		}
-		// A null table means ps failed — state unknown; keep the root kill
-		// and burn a round rather than concluding the kill is complete.
-		if (rootAlive) killRoot();
-		const nextDelay = KILL_VERIFY_DELAYS_MS[round];
-		if (nextDelay === undefined) break;
-		await delay(nextDelay);
+		const targets = collectProcessSignalTargets(this.rootPid, {
+			includeRoot: false,
+			// tty targeting only while the root is alive in this same snapshot:
+			// the kernel recycles the pty slot the moment the master fd closes,
+			// so after root death a tty match can only ever hit a NEW session
+			// that inherited the slot (legit stragglers show "??" by then).
+			ttyName: rootRow ? this.ttyName : null,
+			knownPgids: this.knownPgids,
+			table: psTable,
+			onSignalError: logProcessSignalError,
+		});
+		for (const t of targets) {
+			if (t.target === "pgid") this.knownPgids.add(t.id);
+		}
+		signalProcessTargets(targets, signal, logProcessSignalError);
+		return { survivors: targets.some((t) => t.target === "pid") };
 	}
-	// Let the final volley's SIGKILLs land before declaring survivors.
-	await delay(300);
-	const finalTable = await readProcessTableAsync();
-	if (finalTable === null) {
-		process.stderr.write(
-			`[pty-daemon] kill escalation for pid ${rootPid}: final ps failed, survivor state unknown\n`,
-		);
-		return;
-	}
-	const finalRootRow = finalTable.find((r) => r.pid === rootPid);
-	const leftovers = collectProcessSignalTargets(rootPid, {
-		includeRoot: false,
-		ttyName: finalRootRow ? identity.ttyName : null,
-		knownPgids: identity.knownPgids,
-		table: finalTable,
-	}).filter((t) => t.target === "pid");
-	if (leftovers.length > 0 || isRootAlive()) {
-		process.stderr.write(
-			`[pty-daemon] kill escalation for pid ${rootPid} left survivors: ` +
-				`root=${isRootAlive()} pids=[${leftovers.map((t) => t.id).join(",")}]\n`,
-		);
+
+	private async runEscalation(): Promise<void> {
+		await delay(KILL_ESCALATION_TIMEOUT_MS);
+		for (let round = 0; ; round++) {
+			const table = await readProcessTableAsync();
+			const rootAlive = this.isRootAlive();
+			if (table !== null) {
+				const { survivors } = this.volley("SIGKILL", table);
+				if (!survivors && !rootAlive) return;
+			}
+			// A null table means ps failed — state unknown; keep the root kill
+			// and burn a round rather than concluding the kill is complete.
+			if (rootAlive) this.signalRoot("SIGKILL");
+			const nextDelay = KILL_VERIFY_DELAYS_MS[round];
+			if (nextDelay === undefined) break;
+			await delay(nextDelay);
+		}
+		// Let the final volley's SIGKILLs land before declaring survivors.
+		await delay(300);
+		const finalTable = await readProcessTableAsync();
+		if (finalTable === null) {
+			process.stderr.write(
+				`[pty-daemon] kill escalation for pid ${this.rootPid}: final ps failed, survivor state unknown\n`,
+			);
+			return;
+		}
+		const finalRootRow = finalTable.find((r) => r.pid === this.rootPid);
+		const leftovers = collectProcessSignalTargets(this.rootPid, {
+			includeRoot: false,
+			ttyName: finalRootRow ? this.ttyName : null,
+			knownPgids: this.knownPgids,
+			table: finalTable,
+		}).filter((t) => t.target === "pid");
+		if (leftovers.length > 0 || this.isRootAlive()) {
+			process.stderr.write(
+				`[pty-daemon] kill escalation for pid ${this.rootPid} left survivors: ` +
+					`root=${this.isRootAlive()} pids=[${leftovers.map((t) => t.id).join(",")}]\n`,
+			);
+		}
 	}
 }
 
@@ -193,11 +221,7 @@ class NodePtyAdapter implements Pty {
 	meta: SessionMeta;
 	private term: nodePty.IPty;
 	private exited = false;
-	private readonly identity: RootIdentity = {
-		ttyName: null,
-		knownPgids: new Set(),
-	};
-	private killChain: Promise<void> | null = null;
+	private readonly killer: TreeKiller;
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -206,16 +230,24 @@ class NodePtyAdapter implements Pty {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
-		// Capture the group + tty: if the shell exits before the first kill,
-		// a ppid walk can't rediscover either, and orphans reparented to
-		// pid 1 keep the root pgid. Async — this is the session-open path.
+		this.killer = new TreeKiller(
+			this.pid,
+			() => !this.exited,
+			(sig) => {
+				try {
+					this.term.kill(sig);
+				} catch {
+					// PTY root may have already exited; detached targets still matter.
+				}
+			},
+		);
 		// The immediate capture races the child's setsid/login_tty (it may
 		// still show the daemon's own pgid — collect's current-pgid guard
 		// covers that — and no tty), so re-capture once the child has
-		// certainly run; kill volleys refresh again from their own table.
-		void this.captureRootIdentity();
+		// certainly run.
+		void this.killer.captureIdentity();
 		setTimeout(() => {
-			if (!this.exited) void this.captureRootIdentity();
+			if (!this.exited) void this.killer.captureIdentity();
 		}, 100).unref();
 		this.term.onExit(({ exitCode, signal }) => {
 			if (this.exited) return;
@@ -253,20 +285,7 @@ class NodePtyAdapter implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		const killSignal = signal ?? "SIGHUP";
-		killVolley(this.pid, killSignal, this.identity);
-		try {
-			this.term.kill(killSignal);
-		} catch {
-			// PTY root may have already exited; detached targets still matter.
-		}
-		this.startKillEscalation(killSignal);
-	}
-
-	private async captureRootIdentity(): Promise<void> {
-		const { pgid, tty: ttyName } = await getProcessGroupAndTty(this.pid);
-		if (ttyName !== null) this.identity.ttyName = ttyName;
-		if (pgid !== null) this.identity.knownPgids.add(pgid);
+		this.killer.kill(signal ?? "SIGHUP");
 	}
 
 	onData(cb: PtyOnData): void {
@@ -281,29 +300,6 @@ class NodePtyAdapter implements Pty {
 			return;
 		}
 		this.exitCallbacks.push(cb);
-	}
-
-	private startKillEscalation(signal: NodeJS.Signals): void {
-		if (signal === "SIGKILL" || this.killChain) return;
-		const chain = registerPendingKill(
-			runKillEscalation({
-				rootPid: this.pid,
-				identity: this.identity,
-				isRootAlive: () => !this.exited,
-				killRoot: () => {
-					try {
-						this.term.kill("SIGKILL");
-					} catch {
-						// already exited
-					}
-				},
-			}),
-		);
-		this.killChain = chain;
-		// Reset when done so a retried close can escalate again.
-		void chain.then(() => {
-			if (this.killChain === chain) this.killChain = null;
-		});
 	}
 }
 
@@ -405,18 +401,26 @@ class AdoptedPty implements Pty {
 	private readonly reader: tty.ReadStream;
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
-	private readonly identity: RootIdentity = {
-		ttyName: null,
-		knownPgids: new Set(),
-	};
-	private killChain: Promise<void> | null = null;
+	private readonly killer: TreeKiller;
 	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(fd: number, pid: number, meta: SessionMeta) {
 		this.fd = fd;
 		this.pid = pid;
 		this.meta = meta;
-		void this.captureRootIdentity();
+		this.killer = new TreeKiller(
+			pid,
+			() => !this.exitFired && isPidAlive(pid),
+			(sig) => {
+				// No node-pty here — signal the adopted root directly.
+				try {
+					process.kill(pid, sig);
+				} catch {
+					// already dead
+				}
+			},
+		);
+		void this.killer.captureIdentity();
 		this.reader = new tty.ReadStream(fd);
 
 		// onExit signal sources:
@@ -493,21 +497,7 @@ class AdoptedPty implements Pty {
 	}
 
 	kill(signal?: NodeJS.Signals): void {
-		const killSignal = signal ?? "SIGHUP";
-		killVolley(this.pid, killSignal, this.identity);
-		// No node-pty here — signal the adopted root directly.
-		try {
-			process.kill(this.pid, killSignal);
-		} catch {
-			// already dead
-		}
-		this.startKillEscalation(killSignal);
-	}
-
-	private async captureRootIdentity(): Promise<void> {
-		const { pgid, tty: ttyName } = await getProcessGroupAndTty(this.pid);
-		if (ttyName !== null) this.identity.ttyName = ttyName;
-		if (pgid !== null) this.identity.knownPgids.add(pgid);
+		this.killer.kill(signal ?? "SIGHUP");
 	}
 
 	onData(cb: PtyOnData): void {
@@ -518,29 +508,6 @@ class AdoptedPty implements Pty {
 
 	onExit(cb: PtyOnExit): void {
 		this.exitCallbacks.push(cb);
-	}
-
-	private startKillEscalation(signal: NodeJS.Signals): void {
-		if (signal === "SIGKILL" || this.killChain) return;
-		const chain = registerPendingKill(
-			runKillEscalation({
-				rootPid: this.pid,
-				identity: this.identity,
-				isRootAlive: () => !this.exitFired && isPidAlive(this.pid),
-				killRoot: () => {
-					try {
-						process.kill(this.pid, "SIGKILL");
-					} catch {
-						// already dead
-					}
-				},
-			}),
-		);
-		this.killChain = chain;
-		// Reset when done so a retried close can escalate again.
-		void chain.then(() => {
-			if (this.killChain === chain) this.killChain = null;
-		});
 	}
 }
 
