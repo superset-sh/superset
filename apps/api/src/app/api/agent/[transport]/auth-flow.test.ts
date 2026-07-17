@@ -44,9 +44,12 @@ describe("verifyToken cross-tenant organization guard", () => {
 		expect(authInfo).toBeUndefined();
 	});
 
-	it("accepts a token whose organizationId is one of the subject's memberships", async () => {
+	it("accepts a member's token, including a third-party client's (azp is not gated)", async () => {
+		// A legitimate third-party MCP client (Claude Code, OpenCode, ...) acting
+		// for its own authenticated user must pass — azp is deliberately not gated.
 		const deps = makeDeps({
 			sub: "user-1",
+			azp: "some-dynamically-registered-client-id",
 			organizationId: "org-1",
 			organizationIds: ["org-1", "org-2"],
 			scope: "mcp:full",
@@ -70,24 +73,5 @@ describe("verifyToken cross-tenant organization guard", () => {
 		const authInfo = await verifyToken(makeRequest(), deps);
 
 		expect(authInfo).toBeUndefined();
-	});
-
-	it("still accepts a third-party client's token (azp is not gated)", async () => {
-		// Regression guard: a legitimate third-party MCP client (Claude Code,
-		// OpenCode, etc.) acting for its own authenticated user must pass.
-		const deps = makeDeps({
-			sub: "user-1",
-			azp: "some-dynamically-registered-client-id",
-			organizationId: "org-1",
-			organizationIds: ["org-1"],
-			scope: "mcp:full",
-		});
-
-		const authInfo = await verifyToken(makeRequest(), deps);
-
-		expect(authInfo?.extra?.mcpContext).toEqual({
-			userId: "user-1",
-			organizationId: "org-1",
-		});
 	});
 });

@@ -169,17 +169,13 @@ function buildOAuthAuthInfo(
 		return undefined;
 	}
 
-	// Cross-tenant guard (parity with the v2 boundary's membership check): the
-	// `organizationId` claim is only honored when it is one of the user's own
-	// memberships. Both claims are server-signed, so `organizationIds` is the
-	// authoritative membership list minted at token issuance. Without this, a
-	// token could name an organization the subject never belonged to.
-	const organizationIds = Array.isArray(payload.organizationIds)
-		? payload.organizationIds.filter(
-				(id): id is string => typeof id === "string",
-			)
-		: [];
-	if (!organizationIds.includes(payload.organizationId)) {
+	// Cross-tenant guard (parity with v2): only honor `organizationId` when it
+	// is one of the subject's own memberships. Both claims are server-signed, so
+	// `organizationIds` is the authoritative membership list at token issuance.
+	if (
+		!Array.isArray(payload.organizationIds) ||
+		!payload.organizationIds.includes(payload.organizationId)
+	) {
 		console.error(
 			"[mcp/auth] Access token organizationId is not one of the subject's memberships",
 		);
