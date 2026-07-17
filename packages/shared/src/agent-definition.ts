@@ -35,6 +35,14 @@ export interface TerminalAgentDefinition extends BaseAgentDefinition {
 	promptCommand: string;
 	promptCommandSuffix?: string;
 	promptTransport: PromptTransport;
+	/**
+	 * Command for one-shot headless runs: the CLI executes the prompt and
+	 * exits without a TUI. The prompt is appended as the final argument.
+	 * Includes flags the CLI needs to run unattended in a fresh worktree
+	 * (trust / repo-check bypasses) and mirrors the interactive command's
+	 * permission posture. Omitted when the CLI has no headless mode.
+	 */
+	nonInteractiveCommand?: string;
 }
 
 export interface TerminalAgentDefinitionInput

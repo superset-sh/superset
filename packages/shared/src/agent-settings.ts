@@ -112,6 +112,7 @@ function toUserTerminalAgentDefinition(
 		promptCommand: customDefinition.promptCommand,
 		promptCommandSuffix: customDefinition.promptCommandSuffix,
 		promptTransport: customDefinition.promptTransport,
+		nonInteractiveCommand: customDefinition.nonInteractiveCommand,
 		taskPromptTemplate: customDefinition.taskPromptTemplate,
 		contextPromptTemplateSystem: customDefinition.contextPromptTemplateSystem,
 		contextPromptTemplateUser: customDefinition.contextPromptTemplateUser,
