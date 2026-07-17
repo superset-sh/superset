@@ -5,6 +5,7 @@ import {
 } from "../Pty/index.ts";
 import type {
 	CloseMessage,
+	InputAckMessage,
 	InputMessage,
 	ListReplyMessage,
 	OpenMessage,
@@ -12,6 +13,7 @@ import type {
 	OutputMessage,
 	ResizeMessage,
 	ServerMessage,
+	SubscribedMessage,
 	SubscribeMessage,
 	UnsubscribeMessage,
 } from "../protocol/index.ts";
@@ -83,20 +85,31 @@ export function handleInput(
 	payload: Uint8Array | null,
 ): ServerMessage | undefined {
 	const session = ctx.store.get(msg.id);
-	if (!session) return errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT");
+	if (!session)
+		return errorFor(
+			msg.id,
+			`unknown session: ${msg.id}`,
+			"ENOENT",
+			msg.sequence,
+		);
 	if (session.exited)
-		return errorFor(msg.id, `session exited: ${msg.id}`, "EEXITED");
+		return errorFor(
+			msg.id,
+			`session exited: ${msg.id}`,
+			"EEXITED",
+			msg.sequence,
+		);
 	if (!payload || payload.byteLength === 0) {
 		// Empty input is a no-op; surfacing an error would force callers
 		// to special-case zero-length writes for no real benefit.
-		return undefined;
+		return inputAckFor(msg);
 	}
 	try {
 		session.pty.write(Buffer.from(payload));
 	} catch (err) {
-		return errorFor(msg.id, (err as Error).message, "EWRITE");
+		return errorFor(msg.id, (err as Error).message, "EWRITE", msg.sequence);
 	}
-	return undefined;
+	return inputAckFor(msg);
 }
 
 export function handleResize(
@@ -113,16 +126,31 @@ export function handleResize(
 	return undefined;
 }
 
-export function handleClose(ctx: HandlerCtx, msg: CloseMessage): ServerMessage {
+export async function handleClose(
+	ctx: HandlerCtx,
+	msg: CloseMessage,
+): Promise<ServerMessage> {
 	const session = ctx.store.get(msg.id);
 	if (!session) return errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT");
+	if (
+		msg.expectedPid !== undefined &&
+		(!Number.isSafeInteger(msg.expectedPid) ||
+			msg.expectedPid <= 0 ||
+			session.pty.pid !== msg.expectedPid)
+	) {
+		return errorFor(
+			msg.id,
+			`session ${msg.id} no longer belongs to pid ${msg.expectedPid}`,
+			"ESTALE",
+		);
+	}
 	try {
 		// SIGHUP is the right signal for "your terminal is going away" —
 		// what the kernel sends when a TTY actually closes. Interactive
 		// shells (especially `zsh -l`) trap SIGTERM and stay alive, so
 		// using SIGTERM as the default leaks PTY processes on every
 		// pane close. Callers can still pass an explicit signal.
-		session.pty.kill(msg.signal ?? "SIGHUP");
+		await session.pty.kill(msg.signal ?? "SIGHUP");
 	} catch (err) {
 		return errorFor(msg.id, (err as Error).message, "EKILL");
 	}
@@ -150,13 +178,23 @@ export function handleSubscribe(
 		return;
 	}
 	conn.subscriptions.add(msg.id);
+	let replayBytes = 0;
 	if (msg.replay) {
 		const snap = ctx.store.snapshotBuffer(session);
+		replayBytes = snap.byteLength;
 		if (snap.byteLength > 0) {
 			const out: OutputMessage = { type: "output", id: msg.id };
 			conn.send(out, snap);
 		}
 	}
+	const subscribed: SubscribedMessage = {
+		type: "subscribed",
+		id: msg.id,
+		replayBytes,
+		replayStartBytes: session.outputBytes - replayBytes,
+		replayEndBytes: session.outputBytes,
+	};
+	conn.send(subscribed);
 }
 
 export function handleUnsubscribe(conn: Conn, msg: UnsubscribeMessage): void {
@@ -167,6 +205,17 @@ function errorFor(
 	id: string | undefined,
 	message: string,
 	code?: string,
+	inputSequence?: number,
 ): ServerMessage {
-	return { type: "error", id, message, code };
+	const error: ServerMessage = { type: "error", id, message, code };
+	if (inputSequence !== undefined && error.type === "error") {
+		error.inputSequence = inputSequence;
+		error.inputOutcome = "not-enqueued";
+	}
+	return error;
+}
+
+function inputAckFor(msg: InputMessage): InputAckMessage | undefined {
+	if (msg.sequence === undefined) return undefined;
+	return { type: "input-ack", id: msg.id, sequence: msg.sequence };
 }

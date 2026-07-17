@@ -21,6 +21,12 @@ function fakePty(pid: number, meta: { cols: number; rows: number }): Pty {
 		kill: () => {},
 		onData: () => {},
 		onExit: () => {},
+		prepareForHandoff: async () => {},
+		pauseOutputForHandoff: () => {},
+		drainOutputForHandoff: async () => [],
+		sealOutputForHandoff: async () => [],
+		restoreAfterFailedHandoff: () => {},
+		cancelHandoff: () => {},
 		getMasterFd: () => -1,
 	};
 }
@@ -73,6 +79,7 @@ describe("handoff snapshot", () => {
 		});
 		const buf = snapshot.sessions[0]?.buffer ?? new Uint8Array(0);
 		expect(Buffer.from(buf).toString("utf8")).toBe("hello world");
+		expect(snapshot.sessions[0]?.outputBytes).toBe(11);
 	});
 
 	test("write + read round-trips", () => {

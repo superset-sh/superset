@@ -45,6 +45,8 @@ interface HandoffSessionMessage {
 	 * fd was placed. Successor uses this to map sessions → inherited fds.
 	 */
 	fdIndex: number;
+	/** Optional for snapshots written by pty-daemon <= 0.2.5. */
+	outputBytes?: number;
 }
 
 export interface SerializedSession {
@@ -54,6 +56,8 @@ export interface SerializedSession {
 	fdIndex: number;
 	/** Live ring buffer bytes — empty Uint8Array when there's no replay. */
 	buffer: Uint8Array;
+	/** Optional for snapshots written by pty-daemon <= 0.2.5. */
+	outputBytes?: number;
 }
 
 export interface HandoffSnapshot {
@@ -88,6 +92,7 @@ export function serializeSessions(opts: SerializeOptions): HandoffSnapshot {
 			meta: s.pty.meta,
 			fdIndex,
 			buffer: Buffer.concat(s.buffer),
+			outputBytes: s.outputBytes,
 		});
 	}
 	return {
@@ -117,6 +122,7 @@ export function writeSnapshot(path: string, snapshot: HandoffSnapshot): void {
 			pid: s.pid,
 			meta: s.meta,
 			fdIndex: s.fdIndex,
+			outputBytes: s.outputBytes,
 		};
 		parts.push(
 			encodeFrame(msg, s.buffer.byteLength > 0 ? s.buffer : undefined),
@@ -181,6 +187,12 @@ export function readSnapshot(path: string): HandoffSnapshot {
 			meta: m.meta as SessionMeta,
 			fdIndex: m.fdIndex,
 			buffer: frame.payload ?? new Uint8Array(0),
+			outputBytes:
+				typeof m.outputBytes === "number" &&
+				Number.isSafeInteger(m.outputBytes) &&
+				m.outputBytes >= (frame.payload?.byteLength ?? 0)
+					? m.outputBytes
+					: (frame.payload?.byteLength ?? 0),
 		});
 	}
 

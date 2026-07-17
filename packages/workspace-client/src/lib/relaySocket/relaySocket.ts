@@ -13,6 +13,13 @@ export interface RelaySocketOptions {
 	/** Fresh token per attempt (user JWT for relay hosts, PSK for local). */
 	getToken: () => string | null | Promise<string | null>;
 	/**
+	 * Optional ownership fence for consumers that replace the whole socket when
+	 * its endpoint identity changes. Returning false aborts an in-flight async
+	 * provider before it can combine a stale URL with a newer token or publish a
+	 * stale preflight result.
+	 */
+	isDialCurrent?: () => boolean;
+	/**
 	 * Definitive access denial: the `_whoowns` preflight returned 403 (the
 	 * relay only 403s a verified-valid token, so retrying with a fresher one
 	 * can't change the answer; expired tokens surface as 401 and self-heal via
@@ -51,6 +58,18 @@ function signUrl(url: string, token: string | null): string {
 }
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
+const SUPERSEDED_DIAL_ERROR = "relay socket dial superseded";
+
+function assertDialCurrent(opts: RelaySocketOptions): void {
+	if (opts.isDialCurrent?.() === false) {
+		throw new Error(SUPERSEDED_DIAL_ERROR);
+	}
+}
+
+function isSupersededDialError(event: Event): boolean {
+	const message = (event as unknown as { message?: unknown }).message;
+	return message === SUPERSEDED_DIAL_ERROR;
+}
 
 /**
  * Reconnecting WebSocket for host-service endpoints (direct or relay-fronted).
@@ -76,8 +95,14 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 
 	const provider = async (): Promise<string> => {
 		const epoch = ++probeEpoch;
-		const url = signUrl(await opts.buildUrl(), await opts.getToken());
+		assertDialCurrent(opts);
+		const baseUrl = await opts.buildUrl();
+		assertDialCurrent(opts);
+		const token = await opts.getToken();
+		assertDialCurrent(opts);
+		const url = signUrl(baseUrl, token);
 		const probe = await primeRelayAffinity(url);
+		assertDialCurrent(opts);
 		reporter.attempt(url, probe);
 		if (epoch === probeEpoch) opts.onProbe?.(probe);
 		if (probe?.status === 403) {
@@ -87,6 +112,7 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 				socket?.close(1000, "relay access denied");
 			} else {
 				await sleep(opts.accessDeniedRetryMs);
+				assertDialCurrent(opts);
 			}
 			// Rejecting aborts this attempt; partysocket surfaces it as an error
 			// event and re-enters its backoff loop (no-op once close() was called).
@@ -116,7 +142,13 @@ export function createRelaySocket(opts: RelaySocketOptions): RelaySocket {
 			reason: typeof event.reason === "string" ? event.reason : "",
 		});
 	});
-	socket.addEventListener("error", () => reporter.failed(failuresSoFar()));
+	socket.addEventListener("error", (event) => {
+		// A consumer deliberately superseded this wrapper while its async URL
+		// provider was pending. This is cancellation, not an outage.
+		if (opts.isDialCurrent?.() === false || isSupersededDialError(event))
+			return;
+		reporter.failed(failuresSoFar());
+	});
 	socket.addEventListener("open", () =>
 		reporter.opened(socket?.retryCount ?? 0),
 	);

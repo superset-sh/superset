@@ -25,6 +25,27 @@ export interface SessionInfo {
 
 // ---------- Handshake ----------
 
+/**
+ * Advertised only by daemons whose live-session handoff drains accepted input,
+ * establishes an exact output cut, and transfers delayed close ownership.
+ */
+export const LOSSLESS_LIVE_HANDOFF_CAPABILITY =
+	"lossless-live-handoff-v1" as const;
+
+/**
+ * Advertised only by daemons that correlate every sequenced input frame with
+ * either an `input-ack` or an error carrying the same sequence.
+ */
+export const CORRELATED_INPUT_ACK_CAPABILITY =
+	"correlated-input-ack-v1" as const;
+
+/**
+ * Advertised only by daemons that compare a close request's expected PID with
+ * the currently registered PTY before delivering the signal.
+ */
+export const CONDITIONAL_CLOSE_PID_CAPABILITY =
+	"conditional-close-pid-v1" as const;
+
 export interface HelloMessage {
 	type: "hello";
 	protocols: number[];
@@ -35,6 +56,8 @@ export interface HelloAckMessage {
 	type: "hello-ack";
 	protocol: number;
 	daemonVersion: string;
+	/** Optional for wire compatibility with pre-capability daemons. */
+	capabilities?: string[];
 	/**
 	 * Process id of the daemon process that accepted the connection. Supervisors
 	 * use this to recover adoption state from a live socket when the manifest is
@@ -55,6 +78,8 @@ export interface OpenMessage {
 export interface InputMessage {
 	type: "input";
 	id: string;
+	/** Optional so legacy clients keep their original wire shape. */
+	sequence?: number;
 }
 
 export interface ResizeMessage {
@@ -68,6 +93,8 @@ export interface CloseMessage {
 	type: "close";
 	id: string;
 	signal?: "SIGINT" | "SIGTERM" | "SIGKILL" | "SIGHUP";
+	/** Kill only when the session id still belongs to this exact PTY process. */
+	expectedPid?: number;
 }
 
 export interface ListMessage {
@@ -99,6 +126,15 @@ export interface PrepareUpgradeMessage {
 	type: "prepare-upgrade";
 }
 
+/**
+ * Release adopted readers that were intentionally left staged after handoff.
+ * The host sends this only after all known live subscriptions were rebound on
+ * the same ordered socket, so those sessions activate through subscribe first.
+ */
+export interface ActivateAdoptedMessage {
+	type: "activate-adopted";
+}
+
 // ---------- Daemon -> Client ----------
 
 export interface OpenOkMessage {
@@ -107,10 +143,32 @@ export interface OpenOkMessage {
 	pid: number;
 }
 
+/** Confirms that one exact input payload was accepted by the session PTY. */
+export interface InputAckMessage {
+	type: "input-ack";
+	id: string;
+	sequence: number;
+}
+
 /** Bytes ride in the frame's binary tail; this message just names the session. */
 export interface OutputMessage {
 	type: "output";
 	id: string;
+}
+
+/** Ordered boundary emitted after subscribe's optional replay frame. */
+export interface SubscribedMessage {
+	type: "subscribed";
+	id: string;
+	replayBytes: number;
+	/**
+	 * Absolute byte cursor of the first replay byte and the byte immediately
+	 * after the replay. Together these let a reconnecting host distinguish the
+	 * predecessor cut from bytes produced while an earlier successor socket was
+	 * disconnected, even when the bounded ring has evicted old chunks.
+	 */
+	replayStartBytes?: number;
+	replayEndBytes?: number;
 }
 
 export interface ExitMessage {
@@ -133,6 +191,10 @@ export interface ListReplyMessage {
 export interface ErrorMessage {
 	type: "error";
 	id?: string;
+	/** Present when this error rejects one exact sequenced input mutation. */
+	inputSequence?: number;
+	/** Proof that the correlated payload was rejected before PTY enqueue. */
+	inputOutcome?: "not-enqueued";
 	message: string;
 	code?: string;
 }
@@ -144,7 +206,18 @@ export interface ErrorMessage {
  */
 export interface UpgradePreparedMessage {
 	type: "upgrade-prepared";
-	result: { ok: true; successorPid: number } | { ok: false; reason: string };
+	result:
+		| { ok: true; successorPid: number }
+		| {
+				ok: false;
+				reason: string;
+				ownership: "predecessor" | "unresolved";
+		  };
+}
+
+export interface AdoptedActivatedMessage {
+	type: "adopted-activated";
+	count: number;
 }
 
 // ---------- Unions ----------
@@ -158,14 +231,18 @@ export type ClientMessage =
 	| ListMessage
 	| SubscribeMessage
 	| UnsubscribeMessage
-	| PrepareUpgradeMessage;
+	| PrepareUpgradeMessage
+	| ActivateAdoptedMessage;
 
 export type ServerMessage =
 	| HelloAckMessage
 	| OpenOkMessage
+	| InputAckMessage
 	| OutputMessage
+	| SubscribedMessage
 	| ExitMessage
 	| ClosedMessage
 	| ListReplyMessage
 	| ErrorMessage
-	| UpgradePreparedMessage;
+	| UpgradePreparedMessage
+	| AdoptedActivatedMessage;

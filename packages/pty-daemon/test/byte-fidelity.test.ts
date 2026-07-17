@@ -64,6 +64,12 @@ function makeDriveablePty(meta: SpawnOptions["meta"]): DriveablePty {
 		resize: () => {},
 		kill: () => {},
 		getMasterFd: () => -1,
+		prepareForHandoff: async () => {},
+		pauseOutputForHandoff: () => {},
+		drainOutputForHandoff: async () => [],
+		sealOutputForHandoff: async () => [],
+		restoreAfterFailedHandoff: () => {},
+		cancelHandoff: () => {},
 		onData: (cb: PtyOnData) => {
 			onDataCbs.push(cb);
 		},

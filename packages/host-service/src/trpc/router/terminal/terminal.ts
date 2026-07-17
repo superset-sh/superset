@@ -57,6 +57,11 @@ async function createTerminalSessionFromInput({
 	return {
 		terminalId: result.terminalId,
 		status: "active" as const,
+		...(input.initialCommand && {
+			initialCommand: result.initialCommandResult ?? {
+				status: "pending" as const,
+			},
+		}),
 	};
 }
 
@@ -166,11 +171,16 @@ export const terminalRouter = router({
 				data: z.string(),
 			}),
 		)
-		.mutation(({ input }) => {
-			const result = writeInputToSession(input);
+		.mutation(async ({ input }) => {
+			const result = await writeInputToSession(input);
 			if ("error" in result) {
 				throw new TRPCError({
-					code: "NOT_FOUND",
+					code:
+						result.code === "QUEUE_FULL"
+							? "TOO_MANY_REQUESTS"
+							: result.code === "WRITE_FAILED"
+								? "SERVICE_UNAVAILABLE"
+								: "NOT_FOUND",
 					message: result.error,
 				});
 			}

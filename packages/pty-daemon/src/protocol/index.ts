@@ -2,9 +2,14 @@ export { decodeFrame, encodeFrame, FrameDecoder } from "./framing.ts";
 export type {
 	HandoffMessage,
 	UpgradeAckMessage,
+	UpgradeCommitMessage,
+	UpgradeListeningMessage,
 	UpgradeNakMessage,
+	UpgradeReadyMessage,
 } from "./handoff.ts";
 export type {
+	ActivateAdoptedMessage,
+	AdoptedActivatedMessage,
 	ClientMessage,
 	ClosedMessage,
 	CloseMessage,
@@ -12,6 +17,7 @@ export type {
 	ExitMessage,
 	HelloAckMessage,
 	HelloMessage,
+	InputAckMessage,
 	InputMessage,
 	ListMessage,
 	ListReplyMessage,
@@ -23,9 +29,15 @@ export type {
 	ServerMessage,
 	SessionInfo,
 	SessionMeta,
+	SubscribedMessage,
 	SubscribeMessage,
 	UnsubscribeMessage,
 	UpgradePreparedMessage,
+} from "./messages.ts";
+export {
+	CONDITIONAL_CLOSE_PID_CAPABILITY,
+	CORRELATED_INPUT_ACK_CAPABILITY,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 } from "./messages.ts";
 export {
 	CURRENT_PROTOCOL_VERSION,

@@ -1,6 +1,8 @@
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { TerminalAppearance } from "./appearance";
+import { cancelParserIdleWork, waitForParserIdle } from "./parser-idle-gate";
 import {
 	type LinkHoverInfo,
 	type TerminalLinkHandlers,
@@ -11,6 +13,7 @@ import {
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
+	type PersistedTerminalState,
 	type TerminalRuntime,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
@@ -24,10 +27,54 @@ import {
 	sendDispose,
 	sendInput,
 	sendResize,
+	setRenderedBaselineState,
 	type TerminalLogEntry,
+	type TerminalReplayPersistence,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
 import type { TerminalFailureClassification } from "./terminalConnectionDiagnostics";
+
+type ReleasableTerminalRuntime = Pick<TerminalRuntime, "gate" | "_persistence">;
+type RuntimeReleaseDrainResult = "durable" | "cancelled" | "not-durable";
+
+async function flushChromiumRendererStorage(): Promise<boolean> {
+	try {
+		const result =
+			await electronTrpcClient.settings.flushRendererStorage.mutate();
+		return result.success;
+	} catch {
+		return false;
+	}
+}
+
+/**
+ * Quiesce live PTY delivery, wait until xterm has parsed the final coalesced
+ * batch, then persist that exact buffer/checkpoint pair before releasing it.
+ */
+export async function drainRuntimeForRelease(
+	transport: TerminalTransport,
+	runtime: ReleasableTerminalRuntime,
+	flushRendererStorage: () => Promise<boolean> = flushChromiumRendererStorage,
+	shouldContinue: () => boolean = () => true,
+	releaseSignal?: AbortSignal,
+): Promise<RuntimeReleaseDrainResult> {
+	// A pending resize/refit is irrelevant once the view is being released and
+	// must not compete with the release waiter for the parser-idle boundary.
+	cancelParserIdleWork(runtime.gate);
+	const finalized = await disposeTransport(transport, {
+		waitForParserIdle: () => waitForParserIdle(runtime.gate, releaseSignal),
+		shouldFinalize: shouldContinue,
+	});
+	if (!finalized || !shouldContinue()) return "cancelled";
+	if (!runtime._persistence?.flush()) return "not-durable";
+	try {
+		const durable = await flushRendererStorage();
+		if (!shouldContinue()) return "cancelled";
+		return durable ? "durable" : "not-durable";
+	} catch {
+		return shouldContinue() ? "not-durable" : "cancelled";
+	}
+}
 
 interface RegistryEntry {
 	terminalId: string;
@@ -37,11 +84,19 @@ interface RegistryEntry {
 	linkManager: TerminalLinkManager | null;
 	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
+	/** Monotonic fence for release attempts and rapid remount cancellation. */
+	releaseGeneration: number;
+	releasePromise: Promise<void> | null;
+	releaseAbortController: AbortController | null;
 }
 
-class TerminalRuntimeRegistryImpl {
+export class TerminalRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private entryKeysByTerminalId = new Map<string, Set<string>>();
+
+	constructor(
+		private readonly flushRendererStorage: () => Promise<boolean> = flushChromiumRendererStorage,
+	) {}
 
 	private getEntryKey(terminalId: string, instanceId = terminalId): string {
 		return `${terminalId}\u0000${instanceId}`;
@@ -53,7 +108,15 @@ class TerminalRuntimeRegistryImpl {
 	): RegistryEntry {
 		const key = this.getEntryKey(terminalId, instanceId);
 		let entry = this.entries.get(key);
-		if (entry) return entry;
+		if (entry) {
+			// Reusing an entry is an active ownership claim. Any older background
+			// release must stop before persistence/disposal.
+			if (entry.releasePromise) {
+				entry.releaseGeneration += 1;
+				entry.releaseAbortController?.abort();
+			}
+			return entry;
+		}
 
 		entry = {
 			terminalId,
@@ -62,6 +125,9 @@ class TerminalRuntimeRegistryImpl {
 			transport: createTransport(),
 			linkManager: null,
 			pendingLinkHandlers: null,
+			releaseGeneration: 0,
+			releasePromise: null,
+			releaseAbortController: null,
 		};
 
 		this.entries.set(key, entry);
@@ -115,11 +181,18 @@ class TerminalRuntimeRegistryImpl {
 	private serializeExistingRuntime(
 		terminalId: string,
 		excludedInstanceId: string,
-	): string | undefined {
+	): PersistedTerminalState | undefined {
 		for (const entry of this.getEntries(terminalId)) {
 			if (entry.instanceId === excludedInstanceId || !entry.runtime) continue;
 			try {
-				return entry.runtime.serializeAddon.serialize({ scrollback: 1000 });
+				return {
+					data: entry.runtime.serializeAddon.serialize({ scrollback: 1000 }),
+					cols: entry.runtime.terminal.cols,
+					rows: entry.runtime.terminal.rows,
+					replayCheckpoint:
+						entry.runtime._persistence?.getReplayCheckpoint() ??
+						new Uint8Array(),
+				};
 			} catch {
 				return undefined;
 			}
@@ -149,8 +222,12 @@ class TerminalRuntimeRegistryImpl {
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance, {
-				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
+				initialState: this.serializeExistingRuntime(terminalId, instanceId),
 			});
+			setRenderedBaselineState(
+				entry.transport,
+				entry.runtime.restoredFromBuffer,
+			);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
 				entry.linkManager.setHandlers(entry.pendingLinkHandlers);
@@ -171,6 +248,29 @@ class TerminalRuntimeRegistryImpl {
 		);
 	}
 
+	private createReplayPersistence(
+		runtime: TerminalRuntime,
+	): TerminalReplayPersistence {
+		return {
+			initialCheckpoint:
+				runtime._persistence?.getReplayCheckpoint() ?? new Uint8Array(),
+			updateCheckpoint: (checkpoint) => {
+				runtime._persistence?.setReplayCheckpoint(checkpoint);
+				runtime._persistence?.schedule();
+			},
+			flush: async () => {
+				if (!runtime._persistence?.flush()) return false;
+				try {
+					const result =
+						await electronTrpcClient.settings.flushRendererStorage.mutate();
+					return result.success;
+				} catch {
+					return false;
+				}
+			},
+		};
+	}
+
 	/**
 	 * Open (or re-use) the WebSocket transport for this terminal.
 	 * The server session must already exist; the WebSocket route only attaches
@@ -181,7 +281,13 @@ class TerminalRuntimeRegistryImpl {
 	connect(terminalId: string, wsUrl: string, instanceId = terminalId) {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		const runtime = entry.runtime;
+		connect(
+			entry.transport,
+			runtime.terminal,
+			wsUrl,
+			this.createReplayPersistence(runtime),
+		);
 	}
 
 	/**
@@ -201,7 +307,13 @@ class TerminalRuntimeRegistryImpl {
 		if (!entry?.runtime) return;
 		if (entry.transport.connectionState === "disconnected") return;
 		if (entry.transport.currentUrl === wsUrl) return;
-		connect(entry.transport, entry.runtime.terminal, wsUrl);
+		const runtime = entry.runtime;
+		connect(
+			entry.transport,
+			runtime.terminal,
+			wsUrl,
+			this.createReplayPersistence(runtime),
+		);
 	}
 
 	/**
@@ -266,11 +378,53 @@ class TerminalRuntimeRegistryImpl {
 		options: { clearPersistedState?: boolean } = {},
 	) {
 		entry.linkManager?.dispose();
-		disposeTransport(entry.transport);
+		void disposeTransport(entry.transport).catch((error) => {
+			console.error(
+				`[terminal] failed to dispose transport ${entry.terminalId}/${entry.instanceId}`,
+				error,
+			);
+		});
 		if (entry.runtime) {
 			disposeRuntime(entry.runtime, options);
 		}
 		this.deleteEntry(entry);
+	}
+
+	private async releaseEntry(
+		entry: RegistryEntry,
+		generation: number,
+		releaseSignal: AbortSignal,
+	): Promise<void> {
+		const key = this.getEntryKey(entry.terminalId, entry.instanceId);
+		const isCurrent = () =>
+			entry.releaseGeneration === generation && this.entries.get(key) === entry;
+		if (!entry.runtime) {
+			if (
+				await disposeTransport(entry.transport, { shouldFinalize: isCurrent })
+			) {
+				if (isCurrent()) this.deleteEntry(entry);
+			}
+			return;
+		}
+
+		const result = await drainRuntimeForRelease(
+			entry.transport,
+			entry.runtime,
+			this.flushRendererStorage,
+			isCurrent,
+			releaseSignal,
+		);
+		if (result === "cancelled") return;
+		if (result === "not-durable") {
+			console.warn(
+				`[terminal] retaining runtime ${entry.terminalId}/${entry.instanceId}: release persistence was not durable`,
+			);
+			return;
+		}
+		if (!isCurrent()) return;
+		entry.linkManager?.dispose();
+		disposeRuntime(entry.runtime, { clearPersistedState: false });
+		if (isCurrent()) this.deleteEntry(entry);
 	}
 
 	/**
@@ -278,15 +432,41 @@ class TerminalRuntimeRegistryImpl {
 	 * view and closes the WebSocket, but it does not tell host-service to kill
 	 * the underlying PTY. Use this for pane/sidebar lifecycle cleanup.
 	 */
-	release(terminalId: string, instanceId?: string) {
+	async release(terminalId: string, instanceId?: string): Promise<void> {
 		const entries = instanceId
 			? [this.getEntry(terminalId, instanceId)].filter(
 					(entry): entry is RegistryEntry => Boolean(entry),
 				)
 			: this.getEntries(terminalId);
-		for (const entry of entries) {
-			this.disposeEntry(entry, { clearPersistedState: false });
-		}
+		const releases = entries.map((entry) => {
+			const generation = entry.releaseGeneration + 1;
+			entry.releaseGeneration = generation;
+			const previous = entry.releasePromise;
+			entry.releaseAbortController?.abort();
+			const abortController = new AbortController();
+			entry.releaseAbortController = abortController;
+			let release: Promise<void>;
+			release = (async () => {
+				if (previous) await previous;
+				if (entry.releaseGeneration !== generation) return;
+				try {
+					await this.releaseEntry(entry, generation, abortController.signal);
+				} catch (error) {
+					console.error(
+						`[terminal] failed to release runtime ${entry.terminalId}/${entry.instanceId}`,
+						error,
+					);
+				}
+			})().finally(() => {
+				if (entry.releasePromise === release) entry.releasePromise = null;
+				if (entry.releaseAbortController === abortController) {
+					entry.releaseAbortController = null;
+				}
+			});
+			entry.releasePromise = release;
+			return release;
+		});
+		await Promise.all(releases);
 	}
 
 	/**

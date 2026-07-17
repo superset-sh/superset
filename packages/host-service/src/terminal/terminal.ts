@@ -3,6 +3,7 @@ import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
+import { CORRELATED_INPUT_ACK_CAPABILITY } from "@superset/pty-daemon/protocol";
 import {
 	createScanState,
 	SHELLS_WITH_READY_MARKER,
@@ -22,13 +23,21 @@ import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import {
-	DaemonClient,
+	type DaemonClient,
+	DaemonInputError,
 	type Signal as DaemonSignal,
+	type ReplayBoundary,
+	type SubscribeCallbacks,
 } from "./DaemonClient/index.ts";
 import {
+	type DaemonPlannedRotationBinding,
 	getDaemonClient,
+	markDaemonMutationNeedsBarrier,
 	onDaemonDisconnect,
+	onDaemonPlannedRotation,
+	runCurrentDaemonMutation,
 } from "./daemon-client-singleton.ts";
+import { DaemonMutationQueueOverflowError } from "./daemon-mutation-gate.ts";
 import {
 	buildV2TerminalEnv,
 	getShellLaunchArgs,
@@ -55,15 +64,45 @@ interface PtyDataDisposer {
 	dispose(): void;
 }
 
-interface DaemonPty {
+interface DaemonPtyReplaySubscription extends PtyDataDisposer {
+	boundary: Promise<ReplayBoundary>;
+}
+
+export interface DaemonPty {
 	pid: number;
-	write(data: string): void;
-	resize(cols: number, rows: number): void;
+	write(data: string): Promise<TerminalInputAcceptance>;
+	resize(cols: number, rows: number): Promise<void>;
 	kill(signal?: NodeJS.Signals): Promise<void>;
+	subscribe(
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): PtyDataDisposer;
+	subscribeWithReplayBoundary(
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): DaemonPtyReplaySubscription;
+	stageDaemonRebind(
+		daemon: DaemonClient,
+	): Promise<DaemonPlannedRotationBinding>;
+	disposeSubscriptions(): void;
 	onData(cb: (data: string) => void): PtyDataDisposer;
 	onExit(
 		cb: (info: { exitCode: number; signal: number }) => void,
 	): PtyDataDisposer;
+}
+
+export type TerminalInputAcceptance = "accepted" | "sent-unconfirmed";
+
+export type InitialCommandDeliveryStatus =
+	| TerminalInputAcceptance
+	| "pending"
+	| "rejected"
+	| "outcome-unknown"
+	| "already-queued";
+
+export interface InitialCommandDeliveryResult {
+	status: InitialCommandDeliveryStatus;
+	warning?: string;
 }
 
 function makeDaemonPty(
@@ -71,20 +110,635 @@ function makeDaemonPty(
 	sessionId: string,
 	pid: number,
 ): DaemonPty {
+	interface SubscriptionEntry {
+		callbacks: SubscribeCallbacks;
+		disposed: boolean;
+	}
+	type StagedEvent =
+		| { type: "output"; chunk: Buffer }
+		| { type: "exit"; info: Parameters<SubscribeCallbacks["onExit"]>[0] };
+	type StagedOutputEvent = Extract<StagedEvent, { type: "output" }>;
+	interface RotationBaseline {
+		/** Raw candidate stream through the last received byte, for legacy retry overlap. */
+		replay: Buffer;
+		/** Absolute end of that raw stream when cursor-aware ACKs are available. */
+		endBytes: number | null;
+		/** Output bytes not yet published to host observers across a candidate retry. */
+		pendingOutput: StagedOutputEvent[];
+	}
+	interface PendingObservedBoundary {
+		receivedBytes: number;
+	}
+
+	let currentDaemon = daemon;
+	const subscriptions = new Set<SubscriptionEntry>();
+	let rotationBaseline: RotationBaseline | undefined;
+	let observedEndBytes: number | null = null;
+	let observedCursorError: Error | null = null;
+	let observedBoundaryReady: Promise<void> = Promise.resolve();
+	let pendingObservedBoundary: PendingObservedBoundary | null = null;
+	let aggregateBoundary: Promise<ReplayBoundary> | null = null;
+	let aggregateUnsubscribe: (() => void) | null = null;
+	let aggregateEpoch = 0;
+	let exitPublished = false;
+	let publishedExitInfo: Parameters<SubscribeCallbacks["onExit"]>[0] | null =
+		null;
+	const MAX_ROTATION_STAGING_BYTES = 8 * 1024 * 1024;
+
+	const addCursorBytes = (
+		cursor: number,
+		byteCount: number,
+		label: string,
+	): number => {
+		const next = cursor + byteCount;
+		if (!Number.isSafeInteger(next) || next < cursor) {
+			throw new Error(
+				`terminal ${sessionId} ${label} cursor overflow (${cursor} + ${byteCount})`,
+			);
+		}
+		return next;
+	};
+
+	const failObservedCursor = (error: unknown): Error => {
+		const normalized =
+			error instanceof Error ? error : new Error(String(error));
+		observedEndBytes = null;
+		observedCursorError = normalized;
+		return normalized;
+	};
+
+	const recordObservedOutput = (chunk: Buffer): void => {
+		try {
+			if (pendingObservedBoundary) {
+				pendingObservedBoundary.receivedBytes = addCursorBytes(
+					pendingObservedBoundary.receivedBytes,
+					chunk.byteLength,
+					"pre-boundary",
+				);
+			} else if (observedEndBytes !== null) {
+				observedEndBytes = addCursorBytes(
+					observedEndBytes,
+					chunk.byteLength,
+					"observed",
+				);
+			}
+		} catch (error) {
+			failObservedCursor(error);
+		}
+	};
+
+	const publishEvent = (event: StagedEvent): void => {
+		if (event.type === "exit") {
+			if (exitPublished) return;
+			exitPublished = true;
+			publishedExitInfo = { ...event.info };
+		}
+		for (const entry of subscriptions) dispatchEvent(entry, event);
+	};
+
+	const publishAggregateEvent = (event: StagedEvent): void => {
+		if (event.type === "output") recordObservedOutput(event.chunk);
+		publishEvent(event);
+	};
+
+	const trackObservedBoundary = (
+		boundary: Promise<ReplayBoundary>,
+		tracker: PendingObservedBoundary,
+		epoch: number,
+	): Promise<ReplayBoundary> => {
+		const tracked = boundary.then(
+			(value) => {
+				if (pendingObservedBoundary !== tracker || aggregateEpoch !== epoch) {
+					return value;
+				}
+				try {
+					pendingObservedBoundary = null;
+					if (
+						value.replayBytes === null ||
+						value.replayStartBytes == null ||
+						value.replayEndBytes == null
+					) {
+						observedEndBytes = null;
+						return value;
+					}
+					if (tracker.receivedBytes < value.replayBytes) {
+						throw new Error(
+							`terminal ${sessionId} observed ${tracker.receivedBytes} byte(s) before a ${value.replayBytes}-byte initial replay boundary`,
+						);
+					}
+					const liveBytesAfterReplay =
+						tracker.receivedBytes - value.replayBytes;
+					observedEndBytes = addCursorBytes(
+						value.replayEndBytes,
+						liveBytesAfterReplay,
+						"initial observed",
+					);
+					observedCursorError = null;
+				} catch (error) {
+					throw failObservedCursor(error);
+				}
+				return value;
+			},
+			(error) => {
+				if (pendingObservedBoundary === tracker) {
+					pendingObservedBoundary = null;
+					failObservedCursor(error);
+				}
+				throw error;
+			},
+		);
+		observedBoundaryReady = tracked.then(
+			() => {},
+			() => {},
+		);
+		return tracked;
+	};
+
+	const bindAggregateSubscription = (
+		replay: boolean,
+	): Promise<ReplayBoundary> => {
+		if (aggregateUnsubscribe) {
+			throw new Error(
+				`terminal ${sessionId} already owns an aggregate daemon subscription`,
+			);
+		}
+		const epoch = ++aggregateEpoch;
+		observedEndBytes = null;
+		observedCursorError = null;
+		const tracker: PendingObservedBoundary = { receivedBytes: 0 };
+		pendingObservedBoundary = tracker;
+		const subscription = currentDaemon.subscribeWithReplayBoundary(
+			sessionId,
+			{ replay },
+			{
+				onOutput: (chunk) => {
+					if (aggregateEpoch !== epoch) return;
+					publishAggregateEvent({
+						type: "output",
+						chunk: Buffer.from(chunk),
+					});
+				},
+				onExit: (info) => {
+					if (aggregateEpoch !== epoch) return;
+					publishAggregateEvent({ type: "exit", info: { ...info } });
+				},
+			},
+		);
+		aggregateUnsubscribe = subscription.unsubscribe;
+		aggregateBoundary = trackObservedBoundary(
+			subscription.boundary,
+			tracker,
+			epoch,
+		);
+		return aggregateBoundary;
+	};
+
+	const existingAggregateBoundary = async (): Promise<ReplayBoundary> => {
+		await observedBoundaryReady;
+		if (observedCursorError) throw observedCursorError;
+		return {
+			replayBytes: 0,
+			replayStartBytes: observedEndBytes,
+			replayEndBytes: observedEndBytes,
+		};
+	};
+
+	const ensureAggregateSubscription = (
+		replay: boolean,
+	): Promise<ReplayBoundary> => {
+		if (!aggregateUnsubscribe) return bindAggregateSubscription(replay);
+		if (replay) {
+			throw new Error(
+				`terminal ${sessionId}: replay is not available after the aggregate daemon subscription has started`,
+			);
+		}
+		return existingAggregateBoundary();
+	};
+
+	const disposeEntry = (entry: SubscriptionEntry): void => {
+		if (entry.disposed) return;
+		entry.disposed = true;
+		subscriptions.delete(entry);
+	};
+
+	const createEntry = (callbacks: SubscribeCallbacks): SubscriptionEntry => {
+		const entry: SubscriptionEntry = {
+			callbacks,
+			disposed: false,
+		};
+		subscriptions.add(entry);
+		return entry;
+	};
+
+	const subscribe = (
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): PtyDataDisposer => {
+		const entry = createEntry(callbacks);
+		try {
+			// This legacy shape cannot surface the async replay boundary. Keep its
+			// rejection observed; the cursor error remains recorded for a later
+			// rotation to fail closed.
+			void ensureAggregateSubscription(opts.replay).catch(() => {});
+		} catch (error) {
+			disposeEntry(entry);
+			throw error;
+		}
+		return {
+			dispose: () => disposeEntry(entry),
+		};
+	};
+
+	const subscribeWithReplayBoundary = (
+		opts: { replay: boolean },
+		callbacks: SubscribeCallbacks,
+	): DaemonPtyReplaySubscription => {
+		const entry = createEntry(callbacks);
+		try {
+			const boundary = ensureAggregateSubscription(opts.replay);
+			return {
+				dispose: () => disposeEntry(entry),
+				boundary,
+			};
+		} catch (error) {
+			disposeEntry(entry);
+			throw error;
+		}
+	};
+
+	const trimOutputPrefix = (events: StagedEvent[], byteCount: number): void => {
+		let remaining = byteCount;
+		for (let index = 0; index < events.length && remaining > 0; ) {
+			const event = events[index];
+			if (!event || event.type !== "output") {
+				index += 1;
+				continue;
+			}
+			if (event.chunk.byteLength <= remaining) {
+				remaining -= event.chunk.byteLength;
+				events.splice(index, 1);
+				continue;
+			}
+			event.chunk = event.chunk.subarray(remaining);
+			remaining = 0;
+		}
+		if (remaining > 0) {
+			throw new Error(
+				`terminal ${sessionId} replay boundary exceeded staged output by ${remaining} byte(s)`,
+			);
+		}
+	};
+
+	const legacyReplayOverlap = (baseline: Buffer, replay: Buffer): number => {
+		const max = Math.min(baseline.byteLength, replay.byteLength);
+		for (let length = max; length > 0; length--) {
+			if (
+				baseline
+					.subarray(baseline.byteLength - length)
+					.equals(replay.subarray(0, length))
+			) {
+				return length;
+			}
+		}
+		return 0;
+	};
+
+	const dispatchEvent = (
+		entry: SubscriptionEntry,
+		event: StagedEvent,
+	): void => {
+		if (entry.disposed) return;
+		try {
+			if (event.type === "output") entry.callbacks.onOutput(event.chunk);
+			else entry.callbacks.onExit(event.info);
+		} catch (error) {
+			console.error(
+				`[terminal] daemon subscriber for ${sessionId} threw during rotation:`,
+				error,
+			);
+		}
+	};
+
+	const cloneStagedEvent = (event: StagedEvent): StagedEvent =>
+		event.type === "output"
+			? { type: "output", chunk: Buffer.from(event.chunk) }
+			: { type: "exit", info: { ...event.info } };
+
+	const stageDaemonRebind = async (
+		nextDaemon: DaemonClient,
+	): Promise<DaemonPlannedRotationBinding> => {
+		if (nextDaemon === currentDaemon) {
+			return {
+				validate: () => {},
+				commit: () => {},
+				discard: () => {},
+			};
+		}
+		await observedBoundaryReady;
+		if (observedCursorError) throw observedCursorError;
+
+		const retryBaseline = rotationBaseline;
+		const carriedEvents =
+			retryBaseline?.pendingOutput.map(cloneStagedEvent) ?? [];
+		const carriedOutputBytes = carriedEvents.reduce(
+			(total, event) =>
+				event.type === "output" ? total + event.chunk.byteLength : total,
+			0,
+		);
+		const stagedEvents: StagedEvent[] = [];
+		let stagedOutputBytes = 0;
+		const rawCandidateOutput: Buffer[] = [];
+		let rawCandidateOutputBytes = 0;
+		let stagingError: Error | null = null;
+		let committed = false;
+		let discarded = false;
+		let candidateUnsubscribe: (() => void) | null = null;
+		let boundary: ReplayBoundary | null = null;
+		let candidateReplayBytes: number | null = null;
+		let legacySkipBytes: number | null = null;
+		let appliedSkipBytes = 0;
+		let candidateEpoch: number | null = null;
+
+		const candidateStreamEndBytes = (): number | null => {
+			if (candidateReplayBytes === null || boundary?.replayEndBytes == null) {
+				return null;
+			}
+			const liveBytesAfterReplay =
+				rawCandidateOutputBytes - candidateReplayBytes;
+			if (liveBytesAfterReplay < 0) {
+				throw new Error(
+					`terminal ${sessionId} received ${rawCandidateOutputBytes} candidate byte(s) before a ${candidateReplayBytes}-byte replay boundary`,
+				);
+			}
+			return addCursorBytes(
+				boundary.replayEndBytes,
+				liveBytesAfterReplay,
+				"candidate stream",
+			);
+		};
+
+		const stageEvent = (event: StagedEvent): void => {
+			if (discarded) return;
+			if (committed) {
+				if (candidateEpoch === null || aggregateEpoch !== candidateEpoch)
+					return;
+				publishAggregateEvent(event);
+				return;
+			}
+			stagedEvents.push(event);
+			if (event.type === "output") {
+				rawCandidateOutput.push(event.chunk);
+				rawCandidateOutputBytes += event.chunk.byteLength;
+				stagedOutputBytes += event.chunk.byteLength;
+				if (
+					carriedOutputBytes + stagedOutputBytes >
+					MAX_ROTATION_STAGING_BYTES
+				) {
+					stagingError = new Error(
+						`terminal ${sessionId} produced more than ${MAX_ROTATION_STAGING_BYTES} staged byte(s) during daemon rotation`,
+					);
+				}
+			}
+		};
+
+		try {
+			const candidate = nextDaemon.subscribeWithReplayBoundary(
+				sessionId,
+				{ replay: true },
+				{
+					onOutput: (chunk) =>
+						stageEvent({ type: "output", chunk: Buffer.from(chunk) }),
+					onExit: (info) => stageEvent({ type: "exit", info: { ...info } }),
+				},
+			);
+			candidateUnsubscribe = candidate.unsubscribe;
+			boundary = await candidate.boundary;
+		} catch (error) {
+			stagingError = error instanceof Error ? error : new Error(String(error));
+		}
+
+		if (boundary) {
+			const replayBytes = boundary.replayBytes ?? stagedOutputBytes;
+			candidateReplayBytes = replayBytes;
+			if (replayBytes > stagedOutputBytes) {
+				stagingError = new Error(
+					`terminal ${sessionId} received ${stagedOutputBytes} staged byte(s) before a ${replayBytes}-byte replay boundary`,
+				);
+			}
+			const replay = Buffer.concat(rawCandidateOutput).subarray(0, replayBytes);
+			if (retryBaseline && retryBaseline.endBytes === null) {
+				// Compatibility only. New daemons expose absolute cursors; older ACKs
+				// can still recover the common append-only case by matching the exact
+				// prior candidate suffix against the replacement replay prefix.
+				legacySkipBytes = legacyReplayOverlap(retryBaseline.replay, replay);
+			}
+		}
+
+		const targetSkipBytes = (): number => {
+			if (stagingError) throw stagingError;
+			if (!boundary || candidateReplayBytes === null) {
+				throw new Error(
+					`terminal ${sessionId} did not receive a successor replay boundary`,
+				);
+			}
+
+			const replayStartBytes = boundary.replayStartBytes;
+			const absoluteCut = retryBaseline
+				? retryBaseline.endBytes
+				: observedEndBytes;
+			if (absoluteCut !== null && replayStartBytes != null) {
+				const streamEndBytes = candidateStreamEndBytes();
+				const skipBytes = absoluteCut - replayStartBytes;
+				if (
+					streamEndBytes === null ||
+					skipBytes < 0 ||
+					skipBytes > rawCandidateOutputBytes ||
+					absoluteCut > streamEndBytes
+				) {
+					if (retryBaseline) {
+						throw new Error(
+							`terminal ${sessionId} lost its daemon replay cut (${absoluteCut} not within ${replayStartBytes}..${streamEndBytes ?? "unknown"})`,
+						);
+					}
+					throw new Error(
+						`terminal ${sessionId} host-observed cursor ${absoluteCut} is outside successor replay/stream ${replayStartBytes}..${streamEndBytes ?? "unknown"}`,
+					);
+				}
+				return skipBytes;
+			}
+
+			if (retryBaseline && legacySkipBytes !== null) return legacySkipBytes;
+			throw new Error(
+				`terminal ${sessionId} cannot prove an absolute host-observed replay cursor`,
+			);
+		};
+
+		const reconcileStagedEvents = (): void => {
+			const target = targetSkipBytes();
+			if (target < appliedSkipBytes) {
+				throw new Error(
+					`terminal ${sessionId} host-observed cursor moved backwards during daemon rotation (${target} < ${appliedSkipBytes})`,
+				);
+			}
+			const additionalSkipBytes = target - appliedSkipBytes;
+			if (additionalSkipBytes > 0) {
+				trimOutputPrefix(stagedEvents, additionalSkipBytes);
+				stagedOutputBytes -= additionalSkipBytes;
+				appliedSkipBytes = target;
+			}
+			candidateStreamEndBytes();
+		};
+
+		const validate = (): void => reconcileStagedEvents();
+
+		return {
+			validate,
+			commit() {
+				validate();
+				const committedEndBytes = candidateStreamEndBytes();
+				const predecessorUnsubscribe = aggregateUnsubscribe;
+				candidateEpoch = ++aggregateEpoch;
+				currentDaemon = nextDaemon;
+				committed = true;
+				aggregateUnsubscribe = candidateUnsubscribe;
+				candidateUnsubscribe = null;
+				aggregateBoundary = Promise.resolve(
+					boundary ?? {
+						replayBytes: candidateReplayBytes,
+						replayStartBytes: committedEndBytes,
+						replayEndBytes: committedEndBytes,
+					},
+				);
+				observedBoundaryReady = Promise.resolve();
+				pendingObservedBoundary = null;
+				observedCursorError = null;
+				observedEndBytes = committedEndBytes;
+				if (predecessorUnsubscribe) {
+					try {
+						predecessorUnsubscribe();
+					} catch {
+						// Expected when the predecessor socket has already closed.
+					}
+				}
+				rotationBaseline = undefined;
+				for (const event of [
+					...carriedEvents.splice(0),
+					...stagedEvents.splice(0),
+				]) {
+					publishEvent(event);
+				}
+			},
+			discard({ final }) {
+				if (committed) return;
+				discarded = true;
+				if (candidateUnsubscribe) {
+					const unsubscribe = candidateUnsubscribe;
+					candidateUnsubscribe = null;
+					try {
+						unsubscribe();
+					} catch {
+						// The candidate transport may already be closed.
+					}
+				}
+				if (final) {
+					rotationBaseline = undefined;
+				} else if (boundary && candidateReplayBytes !== null) {
+					try {
+						reconcileStagedEvents();
+						rotationBaseline = {
+							replay: Buffer.concat(rawCandidateOutput),
+							endBytes: candidateStreamEndBytes(),
+							// A replacement subscription deterministically re-emits terminal
+							// events. Carry only unpublished output or exit would be delivered
+							// once from the discarded candidate and once from its retry.
+							pendingOutput: [...carriedEvents, ...stagedEvents]
+								.filter(
+									(event): event is StagedOutputEvent =>
+										event.type === "output",
+								)
+								.map((event) => ({
+									type: "output",
+									chunk: Buffer.from(event.chunk),
+								})),
+						};
+					} catch (error) {
+						stagingError =
+							error instanceof Error ? error : new Error(String(error));
+						rotationBaseline = undefined;
+					}
+				}
+				carriedEvents.length = 0;
+				stagedEvents.length = 0;
+				rawCandidateOutput.length = 0;
+			},
+		};
+	};
+
 	return {
 		pid,
 		write(data) {
-			daemon.input(sessionId, Buffer.from(data, "utf8"));
+			// Copy before enqueue. The caller may reuse its source storage while a
+			// daemon update holds this closure.
+			const payload = Buffer.from(data, "utf8");
+			return runCurrentDaemonMutation(
+				{ kind: "input", byteCost: payload.byteLength },
+				async (): Promise<TerminalInputAcceptance> => {
+					const current = await getDaemonClient();
+					const correlated = current.hasCapability(
+						CORRELATED_INPUT_ACK_CAPABILITY,
+					);
+					const input = current.input(sessionId, payload);
+					if (!correlated) {
+						markDaemonMutationNeedsBarrier(current);
+					}
+					await input;
+					return correlated ? "accepted" : "sent-unconfirmed";
+				},
+			);
 		},
 		resize(cols, rows) {
-			try {
-				daemon.resize(sessionId, cols, rows);
-			} catch {
-				// Daemon may have disconnected; surface via the next op.
-			}
+			const nextCols = cols;
+			const nextRows = rows;
+			return runCurrentDaemonMutation({ kind: "resize" }, async () => {
+				const current = await getDaemonClient();
+				current.resize(sessionId, nextCols, nextRows);
+				markDaemonMutationNeedsBarrier(current);
+			});
 		},
 		kill(signal) {
-			return daemon.close(sessionId, toDaemonSignal(signal));
+			const daemonSignal = toDaemonSignal(signal);
+			return runCurrentDaemonMutation({ kind: "close" }, async () => {
+				const current = await getDaemonClient();
+				await current.close(sessionId, daemonSignal);
+			});
+		},
+		subscribe,
+		subscribeWithReplayBoundary,
+		stageDaemonRebind,
+		disposeSubscriptions() {
+			for (const entry of [...subscriptions]) {
+				if (entry.disposed) continue;
+				disposeEntry(entry);
+			}
+			subscriptions.clear();
+			++aggregateEpoch;
+			if (aggregateUnsubscribe) {
+				const unsubscribe = aggregateUnsubscribe;
+				aggregateUnsubscribe = null;
+				try {
+					unsubscribe();
+				} catch {
+					// The transport may already be closed during host shutdown.
+				}
+			}
+			aggregateBoundary = null;
+			rotationBaseline = undefined;
+			pendingObservedBoundary = null;
+			observedEndBytes = null;
+			observedCursorError = null;
+			observedBoundaryReady = Promise.resolve();
+			exitPublished = false;
+			publishedExitInfo = null;
 		},
 		onData(cb) {
 			// StringDecoder buffers partial UTF-8 sequences across chunks.
@@ -92,8 +746,7 @@ function makeDaemonPty(
 			// 1–3 bytes of any codepoint that straddles a boundary with U+FFFD —
 			// the same bug we ripped out of the primary data path.
 			const decoder = new StringDecoder("utf8");
-			const unsub = daemon.subscribe(
-				sessionId,
+			return subscribe(
 				{ replay: false },
 				{
 					onOutput: (chunk) => {
@@ -103,11 +756,22 @@ function makeDaemonPty(
 					onExit: () => {},
 				},
 			);
-			return { dispose: unsub };
 		},
 		onExit(cb) {
-			const unsub = daemon.subscribe(
-				sessionId,
+			if (publishedExitInfo) {
+				let disposed = false;
+				const { code, signal } = publishedExitInfo;
+				queueMicrotask(() => {
+					if (disposed) return;
+					cb({ exitCode: code ?? 0, signal: signal ?? 0 });
+				});
+				return {
+					dispose: () => {
+						disposed = true;
+					},
+				};
+			}
+			return subscribe(
 				{ replay: false },
 				{
 					onOutput: () => {},
@@ -115,9 +779,17 @@ function makeDaemonPty(
 						cb({ exitCode: code ?? 0, signal: signal ?? 0 }),
 				},
 			);
-			return { dispose: unsub };
 		},
 	};
+}
+
+/** Test-only constructor for the rebindable daemon subscription adapter. */
+export function __makeDaemonPtyForTesting(
+	daemon: DaemonClient,
+	sessionId: string,
+	pid = 1,
+): DaemonPty {
+	return makeDaemonPty(daemon, sessionId, pid);
 }
 
 interface RegisterWorkspaceTerminalRouteOptions {
@@ -147,15 +819,26 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
+	| { type: "replay-ack"; replayId: number }
 	| { type: "dispose" };
+
+type TerminalReplayKind = "full" | "delta" | "none";
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
 // the ArrayBuffer straight into xterm.write(Uint8Array) without any UTF-8
-// decoding. Control messages stay JSON. Replay (the buffered prefix sent
-// on attach) is a binary frame too; the renderer doesn't distinguish it
-// from live data.
+// decoding. Control messages stay JSON. Replay (the buffered prefix sent on
+// attach) is a binary frame too; the preceding `attached.replayKind` tells a
+// renderer whether those bytes replace restored state or append to it.
 type TerminalServerMessage =
-	| { type: "attached"; terminalId: string }
+	| {
+			type: "attached";
+			terminalId: string;
+			replayKind: TerminalReplayKind;
+			replayId?: number;
+			replayPrefixBytes: number;
+			replayDataBytes: number;
+			replayTruncated?: boolean;
+	  }
 	| { type: "error"; message: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
@@ -226,6 +909,28 @@ interface TerminalSession {
 	 */
 	buffer: Uint8Array[];
 	bufferBytes: number;
+	/** Exact daemon snapshot captured during an adopted session's replay ACK. */
+	fullReplayBuffer: Uint8Array | null;
+	/** Bytes evicted while retaining the bounded full-recovery tail. */
+	fullReplayDiscardedBytes: number;
+	/** Monotonic version of the retained full snapshot. */
+	fullReplayGeneration: number;
+	/** Current generation durably ACKed by at least one renderer. */
+	fullReplayAcknowledgedGeneration: number | null;
+	/** Full replay attempts awaiting parser + persistence ACK. */
+	pendingReplayAcks: Map<
+		TerminalSocket,
+		{ replayId: number; generation: number }
+	>;
+	/**
+	 * Prevent FIFO eviction only while the daemon replay boundary is in flight.
+	 * The boundary is same-socket ordered and normally resolves in one turn.
+	 */
+	preserveBufferUntilReplayBoundary: boolean;
+	/** How the next attach's bytes relate to a renderer-restored snapshot. */
+	nextAttachReplayKind: TerminalReplayKind;
+	/** Concurrent WebSocket attaches wait until replay classification is known. */
+	attachReadyPromise: Promise<void>;
 	/**
 	 * Deliver SESSION_RESTORED_NOTICE ahead of the next replay. Kept out of
 	 * the FIFO so MAX_BUFFER_BYTES eviction can't drop it before a client
@@ -253,6 +958,9 @@ interface TerminalSession {
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
 	scanState: ShellReadyScanState;
 	initialCommandQueued: boolean;
+	initialCommandResult: InitialCommandDeliveryResult | null;
+	/** Detached mutation failures delivered once to the first real WS attach. */
+	pendingMutationErrors: string[];
 
 	/**
 	 * Side-channel UTF-8 decoder. portManager.checkOutputForHint takes a
@@ -273,6 +981,54 @@ interface TerminalSession {
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
 const sessions = new Map<string, TerminalSession>();
+let replayDeliveryId = 0;
+let terminalLifecycleGeneration = 0;
+type CreateTerminalSessionResult = TerminalSession | { error: string };
+const sessionCreations = new Map<
+	string,
+	Promise<CreateTerminalSessionResult>
+>();
+
+function nextTerminalLifecycleGeneration(previousCreatedAt = 0): number {
+	terminalLifecycleGeneration = Math.max(
+		Date.now(),
+		terminalLifecycleGeneration + 1,
+		previousCreatedAt + 1,
+	);
+	return terminalLifecycleGeneration;
+}
+
+// A successful fd handoff preserves the PTYs, so keep host session objects and
+// renderer WebSockets intact. Rebind every primary and auxiliary subscription
+// before the mutation gate flushes held input to this successor.
+onDaemonPlannedRotation(async (daemon) => {
+	const bindings: DaemonPlannedRotationBinding[] = [];
+	try {
+		for (const session of sessions.values()) {
+			bindings.push(await session.pty.stageDaemonRebind(daemon));
+		}
+	} catch (error) {
+		for (const binding of bindings) {
+			try {
+				binding.discard({ final: true });
+			} catch {
+				// Best-effort rollback of already-staged sessions.
+			}
+		}
+		throw error;
+	}
+	return {
+		validate() {
+			for (const binding of bindings) binding.validate();
+		},
+		commit() {
+			for (const binding of bindings) binding.commit();
+		},
+		discard(options) {
+			for (const binding of bindings) binding.discard(options);
+		},
+	};
+});
 
 // When the daemon disconnects, close every WS socket so the renderer's
 // existing exponential-backoff reconnect kicks in. On reconnect, host-service
@@ -298,14 +1054,8 @@ onDaemonDisconnect((err) => {
 			}
 		}
 		session.sockets.clear();
-		if (session.unsubscribeDaemon) {
-			try {
-				session.unsubscribeDaemon();
-			} catch {
-				// best-effort
-			}
-			session.unsubscribeDaemon = null;
-		}
+		session.pty.disposeSubscriptions();
+		session.unsubscribeDaemon = null;
 		try {
 			session.modeTracker.dispose();
 		} catch {
@@ -325,13 +1075,8 @@ onDaemonDisconnect((err) => {
  */
 export function __resetSessionsForTesting(): void {
 	for (const session of sessions.values()) {
-		if (session.unsubscribeDaemon) {
-			try {
-				session.unsubscribeDaemon();
-			} catch {
-				// best-effort
-			}
-		}
+		session.pty.disposeSubscriptions();
+		session.unsubscribeDaemon = null;
 		try {
 			session.modeTracker.dispose();
 		} catch {
@@ -447,7 +1192,7 @@ export function countTerminalSessions(
 	return count;
 }
 
-export function writeInputToSession({
+export async function writeInputToSession({
 	terminalId,
 	workspaceId,
 	data,
@@ -455,7 +1200,9 @@ export function writeInputToSession({
 	terminalId: string;
 	workspaceId: string;
 	data: string;
-}): { success: true } | { error: string } {
+}): Promise<
+	{ success: true } | { error: string; code?: "QUEUE_FULL" | "WRITE_FAILED" }
+> {
 	const session = sessions.get(terminalId);
 	if (!session) {
 		return { error: "Terminal session not found" };
@@ -467,7 +1214,20 @@ export function writeInputToSession({
 		return { error: "Terminal session has exited" };
 	}
 
-	session.pty.write(data);
+	try {
+		await session.pty.write(data);
+	} catch (error) {
+		return {
+			error:
+				error instanceof Error
+					? error.message
+					: "Failed to write terminal input",
+			code:
+				error instanceof DaemonMutationQueueOverflowError
+					? "QUEUE_FULL"
+					: "WRITE_FAILED",
+		};
+	}
 	return { success: true };
 }
 
@@ -500,6 +1260,34 @@ function broadcastMessage(
 	return sent;
 }
 
+const MAX_PENDING_MUTATION_ERRORS = 32;
+
+function reportSessionMutationMessage(
+	session: TerminalSession,
+	message: string,
+): void {
+	console.error(`[terminal] ${message}`, { terminalId: session.terminalId });
+	if (broadcastMessage(session, { type: "error", message }) > 0) return;
+	session.pendingMutationErrors.push(message);
+	if (session.pendingMutationErrors.length > MAX_PENDING_MUTATION_ERRORS) {
+		session.pendingMutationErrors.splice(
+			0,
+			session.pendingMutationErrors.length - MAX_PENDING_MUTATION_ERRORS,
+		);
+	}
+}
+
+function flushPendingMutationErrors(
+	session: TerminalSession,
+	socket: TerminalSocket,
+): void {
+	if (socket.readyState !== SOCKET_OPEN) return;
+	const pending = session.pendingMutationErrors.splice(0);
+	for (const message of pending) {
+		sendMessage(socket, { type: "error", message });
+	}
+}
+
 function setSessionTitle(session: TerminalSession, title: string | null) {
 	if (session.title === title) return;
 	session.title = title;
@@ -509,11 +1297,60 @@ function setSessionTitle(session: TerminalSession, title: string | null) {
 function bufferOutput(session: TerminalSession, data: Uint8Array) {
 	session.buffer.push(data);
 	session.bufferBytes += data.byteLength;
+	if (session.preserveBufferUntilReplayBoundary) return;
+	trimBufferedOutput(session);
+}
 
-	while (session.bufferBytes > MAX_BUFFER_BYTES && session.buffer.length > 1) {
-		const removed = session.buffer.shift();
-		if (removed) session.bufferBytes -= removed.byteLength;
+function trimBufferedOutput(session: TerminalSession) {
+	let overflow = Math.max(0, session.bufferBytes - MAX_BUFFER_BYTES);
+	if (overflow === 0) return;
+	if (session.nextAttachReplayKind === "full") {
+		session.fullReplayDiscardedBytes = Math.min(
+			Number.MAX_SAFE_INTEGER,
+			session.fullReplayDiscardedBytes + overflow,
+		);
 	}
+	while (overflow > 0 && session.buffer.length > 0) {
+		const head = session.buffer[0];
+		if (!head) break;
+		if (head.byteLength <= overflow) {
+			session.buffer.shift();
+			session.bufferBytes -= head.byteLength;
+			overflow -= head.byteLength;
+			continue;
+		}
+		session.buffer[0] = head.subarray(overflow);
+		session.bufferBytes -= overflow;
+		overflow = 0;
+	}
+}
+
+/** Remove and return exactly the first `count` bytes from the replay FIFO. */
+function takeBufferedPrefix(
+	session: TerminalSession,
+	count: number,
+): Uint8Array {
+	const prefix = new Uint8Array(count);
+	let copied = 0;
+	while (copied < count && session.buffer.length > 0) {
+		const head = session.buffer.shift();
+		if (!head) break;
+		const needed = count - copied;
+		const take = Math.min(needed, head.byteLength);
+		prefix.set(head.subarray(0, take), copied);
+		copied += take;
+		session.bufferBytes -= take;
+		if (take < head.byteLength) {
+			session.buffer.unshift(head.subarray(take));
+			break;
+		}
+	}
+	if (copied !== count) {
+		throw new Error(
+			`daemon replay boundary announced ${count} bytes, but host received ${copied}`,
+		);
+	}
+	return prefix;
 }
 
 function normalizeTerminalDimension(
@@ -573,41 +1410,226 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	return sent;
 }
 
-export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	// sendBytes below no-ops on a non-open socket — bail before clearing the
-	// buffer/notice so the next attach can still replay them.
-	if (socket.readyState !== SOCKET_OPEN) return;
-	// Preamble first, then the restored notice, then FIFO. Mode-setting
-	// escapes (kitty keyboard, bracketed paste, focus, …) are typically
-	// emitted once at startup and broadcast away rather than buffered, so a
-	// fresh xterm needs them re-asserted on every attach — even when the
-	// FIFO is empty.
-	const preamble = session.modeTracker.buildPreamble();
-	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
-	let bufferTotal = 0;
-	for (const b of session.buffer) bufferTotal += b.byteLength;
-	const preambleLen = preamble?.byteLength ?? 0;
-	const noticeLen = notice?.byteLength ?? 0;
-	if (preambleLen === 0 && noticeLen === 0 && bufferTotal === 0) return;
+export interface ReplayDelivery {
+	replayKind: TerminalReplayKind;
+	replayId?: number;
+	replayPrefixBytes: number;
+	replayDataBytes: number;
+	replayTruncated: boolean;
+	payload: Uint8Array | null;
+	requiresAck: boolean;
+}
 
-	const combined = new Uint8Array(preambleLen + noticeLen + bufferTotal);
-	let offset = 0;
-	if (preamble) {
-		combined.set(preamble, offset);
-		offset += preamble.byteLength;
+function buildBoundedReplayTail(chunks: readonly Uint8Array[]): {
+	bytes: Uint8Array;
+	discardedBytes: number;
+} {
+	let total = 0;
+	for (const chunk of chunks) total += chunk.byteLength;
+	const keep = Math.min(total, MAX_BUFFER_BYTES);
+	const bytes = new Uint8Array(keep);
+	let destination = keep;
+	for (
+		let index = chunks.length - 1;
+		index >= 0 && destination > 0;
+		index -= 1
+	) {
+		const chunk = chunks[index];
+		if (!chunk) continue;
+		const take = Math.min(chunk.byteLength, destination);
+		destination -= take;
+		bytes.set(chunk.subarray(chunk.byteLength - take), destination);
 	}
-	if (notice) {
-		combined.set(notice, offset);
-		offset += notice.byteLength;
-	}
-	for (const b of session.buffer) {
-		combined.set(b, offset);
-		offset += b.byteLength;
-	}
-	session.restoredNoticePending = false;
+	return { bytes, discardedBytes: total - keep };
+}
+
+/** Move every buffered live byte into the retained full generation. */
+function extendFullReplaySnapshot(session: TerminalSession): void {
+	if (session.bufferBytes === 0) return;
+	const previous = session.fullReplayBuffer;
+	const retained = buildBoundedReplayTail([
+		...(previous ? [previous] : []),
+		...session.buffer,
+	]);
+	session.fullReplayBuffer = retained.bytes;
+	session.fullReplayDiscardedBytes = Math.min(
+		Number.MAX_SAFE_INTEGER,
+		session.fullReplayDiscardedBytes + retained.discardedBytes,
+	);
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
-	sendBytes(socket, combined);
+	session.fullReplayGeneration += 1;
+	session.fullReplayAcknowledgedGeneration = null;
+}
+
+/** Reserve one exact full-replay attempt before attached is sent. */
+export function prepareReplayDelivery(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	requiresAck = true,
+): ReplayDelivery {
+	const replayKind = session.nextAttachReplayKind;
+	let replayId: number | undefined;
+	if (replayKind === "full") {
+		extendFullReplaySnapshot(session);
+		if (requiresAck) {
+			replayId = ++replayDeliveryId;
+			session.pendingReplayAcks.set(socket, {
+				replayId,
+				generation: session.fullReplayGeneration,
+			});
+		}
+	}
+
+	const preamble = session.modeTracker.buildPreamble();
+	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
+	const fullReplay = session.fullReplayBuffer;
+	let bufferTotal = 0;
+	for (const bytes of session.buffer) bufferTotal += bytes.byteLength;
+	const replayPrefixBytes =
+		(preamble?.byteLength ?? 0) + (notice?.byteLength ?? 0);
+	const replayDataBytes = (fullReplay?.byteLength ?? 0) + bufferTotal;
+	const total = replayPrefixBytes + replayDataBytes;
+	let payload: Uint8Array | null = null;
+	if (total > 0) {
+		payload = new Uint8Array(total);
+		let offset = 0;
+		if (preamble) {
+			payload.set(preamble, offset);
+			offset += preamble.byteLength;
+		}
+		if (notice) {
+			payload.set(notice, offset);
+			offset += notice.byteLength;
+		}
+		if (fullReplay) {
+			payload.set(fullReplay, offset);
+			offset += fullReplay.byteLength;
+		}
+		for (const bytes of session.buffer) {
+			payload.set(bytes, offset);
+			offset += bytes.byteLength;
+		}
+	}
+	return {
+		replayKind,
+		replayId,
+		replayPrefixBytes,
+		replayDataBytes,
+		replayTruncated:
+			replayKind === "full" && session.fullReplayDiscardedBytes > 0,
+		payload,
+		requiresAck: replayKind === "full" && requiresAck,
+	};
+}
+
+/** Retain the snapshot but invalidate a delivery whose socket disappeared. */
+export function cancelReplayDelivery(
+	session: TerminalSession,
+	socket: TerminalSocket,
+): void {
+	const pending = session.pendingReplayAcks.get(socket);
+	if (!pending) return;
+	session.pendingReplayAcks.delete(socket);
+	if (session.nextAttachReplayKind !== "full") return;
+
+	// Even with no new bytes, an ACK from another older attempt cannot release
+	// the only recovery copy after this socket reconnects.
+	session.fullReplayGeneration += 1;
+	session.fullReplayAcknowledgedGeneration = null;
+}
+
+function releaseAcknowledgedFullReplay(session: TerminalSession): boolean {
+	if (
+		session.nextAttachReplayKind !== "full" ||
+		session.pendingReplayAcks.size > 0 ||
+		session.fullReplayAcknowledgedGeneration !== session.fullReplayGeneration
+	) {
+		return false;
+	}
+
+	session.fullReplayBuffer = null;
+	session.fullReplayDiscardedBytes = 0;
+	session.fullReplayAcknowledgedGeneration = null;
+	session.restoredNoticePending = false;
+	session.nextAttachReplayKind = "delta";
+	return true;
+}
+
+/** Correlate a durable renderer ACK to its socket, id, and snapshot generation. */
+export function acknowledgeReplayDelivery(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	replayId: number,
+): boolean {
+	const pending = session.pendingReplayAcks.get(socket);
+	if (
+		!pending ||
+		pending.replayId !== replayId ||
+		session.nextAttachReplayKind !== "full"
+	) {
+		return false;
+	}
+
+	session.pendingReplayAcks.delete(socket);
+	if (pending.generation === session.fullReplayGeneration) {
+		session.fullReplayAcknowledgedGeneration = pending.generation;
+	}
+	releaseAcknowledgedFullReplay(session);
+	return true;
+}
+
+export function replayBuffer(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	delivery: ReplayDelivery = prepareReplayDelivery(session, socket, false),
+) {
+	// sendBytes below no-ops on a non-open socket — bail before clearing the
+	// buffer/notice so the next attach can still replay them.
+	if (socket.readyState !== SOCKET_OPEN) {
+		cancelReplayDelivery(session, socket);
+		return;
+	}
+	if (!delivery.payload) {
+		if (delivery.replayKind === "full") {
+			cancelReplayDelivery(session, socket);
+		} else if (session.nextAttachReplayKind === "none") {
+			session.nextAttachReplayKind = "delta";
+		}
+		return;
+	}
+
+	try {
+		sendBytes(socket, delivery.payload);
+	} catch (error) {
+		cancelReplayDelivery(session, socket);
+		throw error;
+	}
+
+	if (delivery.replayKind === "full" && delivery.requiresAck) {
+		// Snapshot + FIFO remain authoritative until every outstanding delivery
+		// ACKs and the latest generation has one durable ACK.
+		return;
+	}
+	if (delivery.replayKind === "full" && session.pendingReplayAcks.size > 0) {
+		// A legacy renderer can consume its copy without ACK support, but it must
+		// not retire the authoritative snapshot reserved by modern renderers.
+		return;
+	}
+
+	// Legacy renderers have no ACK. replay=0 suppresses adopted full replay when
+	// they already own a baseline; a fresh legacy renderer remains one-shot.
+	session.restoredNoticePending = false;
+	session.fullReplayBuffer = null;
+	session.fullReplayDiscardedBytes = 0;
+	session.buffer.length = 0;
+	session.bufferBytes = 0;
+	if (
+		session.nextAttachReplayKind === "full" ||
+		session.nextAttachReplayKind === "none"
+	) {
+		session.nextAttachReplayKind = "delta";
+	}
 }
 
 /**
@@ -641,15 +1663,135 @@ function resolveShellReady(
 function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
-): void {
-	if (session.initialCommandQueued || session.exited) return;
-	session.initialCommandQueued = true;
+	directDaemon?: DaemonClient,
+): Promise<InitialCommandDeliveryResult> {
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
-	// and gating turned broken/missing markers into a guaranteed stall.
-	session.pty.write(cmd);
+	return runInitialCommandAttempt(
+		session,
+		() => {
+			// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
+			// and gating turned broken/missing markers into a guaranteed stall.
+			if (!directDaemon) return session.pty.write(cmd);
+			// createTerminalSessionInternalDirect already owns a mutation lease, so
+			// nesting another gated operation could deadlock if an update starts
+			// between the open and this initial write. The outer lease owns this ACK.
+			return sendDirectDaemonInput(
+				directDaemon,
+				session.terminalId,
+				Buffer.from(cmd, "utf8"),
+			);
+		},
+		(message) => reportSessionMutationMessage(session, message),
+	);
+}
+
+function runInitialCommandAttempt(
+	state: {
+		initialCommandQueued: boolean;
+		exited: boolean;
+		initialCommandResult?: InitialCommandDeliveryResult | null;
+	},
+	send: () => Promise<TerminalInputAcceptance>,
+	onVisibleError: (message: string) => void,
+): Promise<InitialCommandDeliveryResult> {
+	if (state.initialCommandQueued || state.exited) {
+		const result = state.initialCommandResult ?? {
+			status: "already-queued" as const,
+			warning: state.exited
+				? "Initial command was not sent because the terminal has exited."
+				: "Initial command was not sent because this session already attempted one.",
+		};
+		state.initialCommandResult = result;
+		return Promise.resolve(result);
+	}
+	state.initialCommandQueued = true;
+	state.initialCommandResult = { status: "pending" };
+	let operation: Promise<TerminalInputAcceptance>;
+	try {
+		operation = send();
+	} catch (error) {
+		operation = Promise.reject(error);
+	}
+	return operation.then(
+		(status) => {
+			const result: InitialCommandDeliveryResult =
+				status === "accepted"
+					? { status }
+					: {
+							status,
+							warning:
+								"Initial command was sent to a legacy terminal without correlated acknowledgement.",
+						};
+			state.initialCommandResult = result;
+			return result;
+		},
+		(error) => {
+			const detail = error instanceof Error ? error.message : String(error);
+			const definitive =
+				error instanceof DaemonInputError &&
+				error.outcome === "definitive-reject";
+			if (definitive) state.initialCommandQueued = false;
+			const result: InitialCommandDeliveryResult = definitive
+				? {
+						status: "rejected",
+						warning: `Initial command was rejected before terminal enqueue: ${detail}`,
+					}
+				: {
+						status: "outcome-unknown",
+						warning: `Initial command delivery could not be confirmed and may have run: ${detail}`,
+					};
+			state.initialCommandResult = result;
+			onVisibleError(`Terminal ${result.warning}`);
+			return result;
+		},
+	);
+}
+
+function sendDirectDaemonInput(
+	daemon: DaemonClient,
+	terminalId: string,
+	payload: Buffer,
+): Promise<TerminalInputAcceptance> {
+	const correlated = daemon.hasCapability(CORRELATED_INPUT_ACK_CAPABILITY);
+	const input = daemon.input(terminalId, payload);
+	if (!correlated) {
+		markDaemonMutationNeedsBarrier(daemon);
+	}
+	return input.then(() => (correlated ? "accepted" : "sent-unconfirmed"));
+}
+
+/** Exact direct-initial-command transport path, exposed only for regression tests. */
+export const __sendDirectDaemonInputForTesting = sendDirectDaemonInput;
+
+/** Direct initial-command failure semantics, exposed only for regression tests. */
+export function __queueDirectInitialCommandForTesting(
+	state: {
+		initialCommandQueued: boolean;
+		exited: boolean;
+		initialCommandResult?: InitialCommandDeliveryResult | null;
+	},
+	daemon: DaemonClient,
+	terminalId: string,
+	payload: Buffer,
+	onVisibleError: (message: string) => void,
+): Promise<InitialCommandDeliveryResult> {
+	return runInitialCommandAttempt(
+		state,
+		() => sendDirectDaemonInput(daemon, terminalId, payload),
+		onVisibleError,
+	);
+}
+
+function reportSessionMutationError(
+	session: TerminalSession,
+	operation: string,
+	error: unknown,
+): void {
+	const detail = error instanceof Error ? error.message : String(error);
+	const message = `Terminal ${operation} failed: ${detail}`;
+	reportSessionMutationMessage(session, message);
 }
 
 interface DaemonCloseResult {
@@ -681,6 +1823,26 @@ function isUnknownDaemonSessionError(error: unknown): boolean {
 	return error.message.includes("unknown session:");
 }
 
+async function closeUnclaimedTerminal(
+	daemon: DaemonClient,
+	terminalId: string,
+	expectedPid: number,
+): Promise<void> {
+	try {
+		const result = await daemon.closeIfPid(terminalId, expectedPid, "SIGHUP");
+		if (result === "unsupported") {
+			console.warn(
+				`[terminal] leaving unclaimed respawn ${terminalId} pid=${expectedPid} alive because the daemon cannot close it conditionally`,
+			);
+		}
+	} catch (error) {
+		console.warn(
+			`[terminal] failed to close unclaimed respawn ${terminalId} pid=${expectedPid}`,
+			error,
+		);
+	}
+}
+
 function reachableDaemonSocketPath(): string | null {
 	const explicitSocket = process.env.SUPERSET_PTY_DAEMON_SOCKET;
 	if (explicitSocket) return explicitSocket;
@@ -693,16 +1855,22 @@ function reachableDaemonSocketPath(): string | null {
 	return manifest.socketPath;
 }
 
-async function closeDaemonSessionById(
+async function closeDaemonSessionByIdDirect(
 	terminalId: string,
 	signal: DaemonSignal = "SIGHUP",
+	knownInMemorySession = false,
 ): Promise<DaemonCloseResult> {
-	const socketPath = reachableDaemonSocketPath();
-	if (!socketPath) return { attempted: false, succeeded: true };
-
-	const daemon = new DaemonClient({ socketPath, connectTimeoutMs: 1000 });
+	// Preserve stale-row/reaper semantics: when there is no known live session
+	// and no reachable owner, there is nothing to kill and the DB row may be
+	// disposed. A known in-memory session still gets a close attempt even if a
+	// manifest disappeared between checks.
+	if (!knownInMemorySession && !reachableDaemonSocketPath()) {
+		return { attempted: false, succeeded: true };
+	}
 	try {
-		await daemon.connect();
+		// Resolve inside the mutation lease. After a successful handoff this is
+		// the successor singleton; after an abort it is still the predecessor.
+		const daemon = await getDaemonClient();
 		await daemon.close(terminalId, signal);
 		return { attempted: true, succeeded: true };
 	} catch (error) {
@@ -710,8 +1878,6 @@ async function closeDaemonSessionById(
 			return { attempted: true, succeeded: true };
 		}
 		return { attempted: true, succeeded: false, error };
-	} finally {
-		await daemon.dispose().catch(() => {});
 	}
 }
 
@@ -735,11 +1901,16 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		});
 }
 
-export async function disposeSessionAndWait(
+async function disposeSessionAndWaitDirect(
 	terminalId: string,
 	db: HostDb,
 ): Promise<DisposeSessionResult> {
 	const session = sessions.get(terminalId);
+	const lifecycleCreatedAt =
+		session?.createdAt ??
+		db.query.terminalSessions
+			.findFirst({ where: eq(terminalSessions.id, terminalId) })
+			.sync()?.createdAt;
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
 	if (session) {
@@ -752,33 +1923,11 @@ export async function disposeSessionAndWait(
 		}
 		session.sockets.clear();
 		if (!session.exited) {
-			try {
-				closePromise = session.pty.kill().then(
-					() =>
-						({ attempted: true, succeeded: true }) satisfies DaemonCloseResult,
-					(error) => ({
-						attempted: true,
-						succeeded: isUnknownDaemonSessionError(error),
-						error,
-					}),
-				);
-			} catch (error) {
-				closePromise = Promise.resolve({
-					attempted: true,
-					succeeded: isUnknownDaemonSessionError(error),
-					error,
-				});
-			}
+			closePromise = closeDaemonSessionByIdDirect(terminalId, "SIGHUP", true);
 		}
 		// Stop receiving daemon callbacks for this session.
-		if (session.unsubscribeDaemon) {
-			try {
-				session.unsubscribeDaemon();
-			} catch {
-				// best-effort
-			}
-			session.unsubscribeDaemon = null;
-		}
+		session.pty.disposeSubscriptions();
+		session.unsubscribeDaemon = null;
 		try {
 			session.modeTracker.dispose();
 		} catch {
@@ -786,7 +1935,7 @@ export async function disposeSessionAndWait(
 		}
 		sessions.delete(terminalId);
 	} else {
-		closePromise = closeDaemonSessionById(terminalId, "SIGHUP");
+		closePromise = closeDaemonSessionByIdDirect(terminalId, "SIGHUP");
 	}
 
 	portManager.unregisterSession(terminalId);
@@ -797,16 +1946,25 @@ export async function disposeSessionAndWait(
 
 	if (closeResult.succeeded) {
 		const endedAt = Date.now();
-		db.update(terminalSessions)
-			.set({ status: "disposed", endedAt })
-			.where(eq(terminalSessions.id, terminalId))
-			.run();
+		const lifecycleUpdate =
+			lifecycleCreatedAt === undefined
+				? null
+				: db
+						.update(terminalSessions)
+						.set({ status: "disposed", endedAt })
+						.where(
+							and(
+								eq(terminalSessions.id, terminalId),
+								eq(terminalSessions.createdAt, lifecycleCreatedAt),
+							),
+						)
+						.run();
 
 		// Dispose unsubscribed the daemon callbacks above, so onExit will
 		// never fire for this session — announce the exit here (after the
 		// row flips to disposed, so refetching readers see it dead). Skip
 		// sessions whose pty already exited: onExit broadcast that one.
-		if (session && !session.exited) {
+		if (lifecycleUpdate?.changes === 1 && session && !session.exited) {
 			session.eventBus?.broadcastTerminalLifecycle({
 				workspaceId: session.workspaceId,
 				terminalId,
@@ -823,6 +1981,17 @@ export async function disposeSessionAndWait(
 		daemonCloseAttempted: closeResult.attempted,
 		daemonCloseSucceeded: closeResult.succeeded,
 	};
+}
+
+export function disposeSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
+	const copiedTerminalId = `${terminalId}`;
+	return runCurrentDaemonMutation(
+		{ kind: "dispose", byteCost: Buffer.byteLength(copiedTerminalId) },
+		() => disposeSessionAndWaitDirect(copiedTerminalId, db),
+	);
 }
 
 /**
@@ -914,10 +2083,13 @@ interface CreateTerminalSessionOptions {
 	/** Only recover an already-live daemon session; never spawn a new PTY. */
 	adoptOnly?: boolean;
 	/**
-	 * Replay the daemon's ring buffer on subscribe. Default true. Pass false
-	 * when the renderer's xterm already has the scrollback — replaying then
-	 * doubles the visible output. Tradeoff: bytes the PTY produced during
-	 * the WS-down window are dropped (sub-second on a daemon swap).
+	 * Compare-and-swap generation used only by the failed-adoption respawn path.
+	 * A concurrently exited/disposed terminal must never be resurrected.
+	 */
+	expectedLifecycleCreatedAt?: number;
+	/**
+	 * Request the daemon ring while adopting. Legacy renderers send replay=0
+	 * after they already painted a baseline and cannot interpret replayKind.
 	 */
 	replayOnAdoption?: boolean;
 	/**
@@ -960,7 +2132,67 @@ function getTerminalWorkspaceMismatchError({
 	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
 }
 
-export async function createTerminalSessionInternal({
+function getExpectedLifecycleError({
+	terminalId,
+	record,
+	expectedCreatedAt,
+}: {
+	terminalId: string;
+	record: typeof terminalSessions.$inferSelect | undefined;
+	expectedCreatedAt: number;
+}): string | null {
+	if (!record) return `Terminal session "${terminalId}" no longer exists.`;
+	if (record.status === "disposed") {
+		return `Terminal session "${terminalId}" is disposed.`;
+	}
+	if (record.status === "exited") {
+		return `Terminal session "${terminalId}" has exited.`;
+	}
+	if (record.status !== "active" || record.createdAt !== expectedCreatedAt) {
+		return `Terminal session "${terminalId}" changed while reconnecting.`;
+	}
+	return null;
+}
+
+export function createTerminalSessionInternal(
+	options: CreateTerminalSessionOptions,
+): Promise<CreateTerminalSessionResult> {
+	// Strings/numbers are immutable, but copy the option record itself before
+	// enqueue so a caller cannot replace fields while an update is holding it.
+	const copiedOptions: CreateTerminalSessionOptions = { ...options };
+	const byteCost =
+		Buffer.byteLength(copiedOptions.terminalId) +
+		Buffer.byteLength(copiedOptions.initialCommand ?? "") +
+		Buffer.byteLength(copiedOptions.cwd ?? "");
+	return runCurrentDaemonMutation({ kind: "open", byteCost }, () =>
+		createTerminalSessionInternalQueued(copiedOptions),
+	);
+}
+
+async function createTerminalSessionInternalQueued(
+	options: CreateTerminalSessionOptions,
+): Promise<CreateTerminalSessionResult> {
+	const inFlight = sessionCreations.get(options.terminalId);
+	if (inFlight) {
+		const result = await inFlight;
+		if ("error" in result) return result;
+		// Re-enter after the first creator finishes so the existing-session path
+		// applies this caller's workspace validation, listed flag, and command.
+		return createTerminalSessionInternalDirect(options);
+	}
+
+	const creation = createTerminalSessionInternalDirect(options);
+	sessionCreations.set(options.terminalId, creation);
+	try {
+		return await creation;
+	} finally {
+		if (sessionCreations.get(options.terminalId) === creation) {
+			sessionCreations.delete(options.terminalId);
+		}
+	}
+}
+
+async function createTerminalSessionInternalDirect({
 	terminalId,
 	workspaceId,
 	themeType,
@@ -972,9 +2204,10 @@ export async function createTerminalSessionInternal({
 	cols: requestedCols,
 	rows: requestedRows,
 	adoptOnly = false,
+	expectedLifecycleCreatedAt,
 	replayOnAdoption = true,
 	restoredNotice = false,
-}: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
+}: CreateTerminalSessionOptions): Promise<CreateTerminalSessionResult> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		const mismatchError = getTerminalWorkspaceMismatchError({
@@ -984,14 +2217,32 @@ export async function createTerminalSessionInternal({
 		});
 		if (mismatchError) return { error: mismatchError };
 
+		try {
+			await existing.attachReadyPromise;
+		} catch (error) {
+			return {
+				error:
+					error instanceof Error
+						? error.message
+						: "Failed to attach terminal replay",
+			};
+		}
 		if (listed) existing.listed = true;
-		if (initialCommand) queueInitialCommand(existing, initialCommand);
+		if (initialCommand) void queueInitialCommand(existing, initialCommand);
 		return existing;
 	}
 
 	const existingRecord = db.query.terminalSessions
 		.findFirst({ where: eq(terminalSessions.id, terminalId) })
 		.sync();
+	if (expectedLifecycleCreatedAt !== undefined) {
+		const lifecycleError = getExpectedLifecycleError({
+			terminalId,
+			record: existingRecord,
+			expectedCreatedAt: expectedLifecycleCreatedAt,
+		});
+		if (lifecycleError) return { error: lifecycleError };
+	}
 	const recordMismatchError = getTerminalWorkspaceMismatchError({
 		terminalId,
 		ownerWorkspaceId: existingRecord?.originWorkspaceId,
@@ -1113,25 +2364,62 @@ export async function createTerminalSessionInternal({
 	}
 	const pty: DaemonPty = makeDaemonPty(daemon, terminalId, openResult.pid);
 
-	const createdAt = Date.now();
+	const createdAt = nextTerminalLifecycleGeneration(existingRecord?.createdAt);
 
-	db.insert(terminalSessions)
-		.values({
-			id: terminalId,
-			originWorkspaceId: workspaceId,
-			status: "active",
-			createdAt,
-		})
-		.onConflictDoUpdate({
-			target: terminalSessions.id,
-			set: {
+	if (expectedLifecycleCreatedAt === undefined) {
+		db.insert(terminalSessions)
+			.values({
+				id: terminalId,
+				originWorkspaceId: workspaceId,
+				status: "active",
+				createdAt,
+			})
+			.onConflictDoUpdate({
+				target: terminalSessions.id,
+				set: {
+					originWorkspaceId: workspaceId,
+					status: "active",
+					createdAt,
+					endedAt: null,
+				},
+			})
+			.run();
+	} else {
+		const claim = db
+			.update(terminalSessions)
+			.set({
 				originWorkspaceId: workspaceId,
 				status: "active",
 				createdAt,
 				endedAt: null,
-			},
-		})
-		.run();
+			})
+			.where(
+				and(
+					eq(terminalSessions.id, terminalId),
+					eq(terminalSessions.status, "active"),
+					eq(terminalSessions.createdAt, expectedLifecycleCreatedAt),
+				),
+			)
+			.run();
+		if (claim.changes !== 1) {
+			// EEXIST/adoptOnly means this attempt never spawned the PTY. A lost
+			// lifecycle claim must not close the legitimate daemon-owned session.
+			if (!isAdopted) {
+				await closeUnclaimedTerminal(daemon, terminalId, openResult.pid);
+			}
+			const currentRecord = db.query.terminalSessions
+				.findFirst({ where: eq(terminalSessions.id, terminalId) })
+				.sync();
+			return {
+				error:
+					getExpectedLifecycleError({
+						terminalId,
+						record: currentRecord,
+						expectedCreatedAt: expectedLifecycleCreatedAt,
+					}) ?? `Terminal session "${terminalId}" changed while reconnecting.`,
+			};
+		}
+	}
 
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
@@ -1157,6 +2445,14 @@ export async function createTerminalSessionInternal({
 		sockets: new Set(),
 		buffer: [],
 		bufferBytes: 0,
+		fullReplayBuffer: null,
+		fullReplayDiscardedBytes: 0,
+		fullReplayGeneration: 0,
+		fullReplayAcknowledgedGeneration: null,
+		pendingReplayAcks: new Map(),
+		preserveBufferUntilReplayBoundary: isAdopted,
+		nextAttachReplayKind: isAdopted ? "delta" : "none",
+		attachReadyPromise: Promise.resolve(),
 		// Adopted sessions kept a live shell — nothing was restored.
 		restoredNoticePending: restoredNotice && !isAdopted,
 		createdAt,
@@ -1179,6 +2475,8 @@ export async function createTerminalSessionInternal({
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
+		initialCommandResult: null,
+		pendingMutationErrors: [],
 		portHintDecoder: new StringDecoder("utf8"),
 		modeTracker: createModeTracker(cols, rows),
 	};
@@ -1193,89 +2491,225 @@ export async function createTerminalSessionInternal({
 		}, SHELL_READY_TIMEOUT_MS);
 	}
 
-	session.unsubscribeDaemon = daemon.subscribe(
-		terminalId,
-		{ replay: replayOnAdoption },
-		{
-			onOutput(chunk) {
-				// Bytes flow daemon → host → xterm without UTF-8 decoding;
-				// per-chunk `.toString("utf8")` here would mangle codepoints
-				// straddling chunk boundaries. (See no-encoding-hops.test.ts.)
-				const titleUpdates = scanForTerminalTitle(
-					session.titleScanState,
-					chunk,
-				);
-				for (const title of titleUpdates.updates) {
-					setSessionTitle(session, title);
+	const daemonCallbacks: SubscribeCallbacks = {
+		onOutput(chunk) {
+			// Bytes flow daemon → host → xterm without UTF-8 decoding;
+			// per-chunk `.toString("utf8")` here would mangle codepoints
+			// straddling chunk boundaries. (See no-encoding-hops.test.ts.)
+			const titleUpdates = scanForTerminalTitle(session.titleScanState, chunk);
+			for (const title of titleUpdates.updates) {
+				setSessionTitle(session, title);
+			}
+
+			let bytes: Uint8Array = chunk;
+			if (session.shellReadyState === "pending") {
+				const result = scanForShellReady(session.scanState, chunk);
+				bytes = result.output;
+				if (result.matched) {
+					resolveShellReady(session, "ready");
 				}
+			}
+			if (bytes.byteLength === 0) return;
 
-				let bytes: Uint8Array = chunk;
-				if (session.shellReadyState === "pending") {
-					const result = scanForShellReady(session.scanState, chunk);
-					bytes = result.output;
-					if (result.matched) {
-						resolveShellReady(session, "ready");
-					}
-				}
-				if (bytes.byteLength === 0) return;
+			// portManager.checkOutputForHint runs URL/port regexes on
+			// strings; the per-session StringDecoder buffers partial
+			// codepoints across chunks. This is a side branch — the
+			// transport above stays on bytes.
+			const hintText = session.portHintDecoder.write(
+				bytes instanceof Buffer
+					? bytes
+					: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
+			);
+			// Runs even when the decoder buffers a partial codepoint into "" — the
+			// chunk is still output and must refresh this session's idle clock.
+			portManager.checkOutputForHint(terminalId, hintText);
 
-				// portManager.checkOutputForHint runs URL/port regexes on
-				// strings; the per-session StringDecoder buffers partial
-				// codepoints across chunks. This is a side branch — the
-				// transport above stays on bytes.
-				const hintText = session.portHintDecoder.write(
-					bytes instanceof Buffer
-						? bytes
-						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
-				);
-				// Runs even when the decoder buffers a partial codepoint into ""
-				// — the chunk is still output and must refresh the idle clock.
-				portManager.checkOutputForHint(terminalId, hintText);
+			// Feed the tracker on every byte — broadcast skips the FIFO,
+			// so this is the only path that catches startup mode escapes.
+			session.modeTracker.feed(bytes);
 
-				// Feed the tracker on every byte — broadcast skips the FIFO,
-				// so this is the only path that catches startup mode escapes.
-				session.modeTracker.feed(bytes);
-
-				if (broadcastBytes(session, bytes) === 0) {
-					bufferOutput(session, bytes);
-				}
-			},
-			onExit({ code, signal }) {
-				session.exited = true;
-				session.exitCode = code ?? 0;
-				session.exitSignal = signal ?? 0;
-				const occurredAt = Date.now();
-
-				portManager.unregisterSession(terminalId);
-
-				db.update(terminalSessions)
-					.set({ status: "exited", endedAt: occurredAt })
-					.where(eq(terminalSessions.id, terminalId))
-					.run();
-
-				broadcastMessage(session, {
-					type: "exit",
-					exitCode: session.exitCode,
-					signal: session.exitSignal,
-				});
-
-				eventBus?.broadcastTerminalLifecycle({
-					workspaceId,
-					terminalId,
-					eventType: "exit",
-					exitCode: session.exitCode,
-					signal: session.exitSignal,
-					occurredAt,
-				});
-			},
+			const sent = broadcastBytes(session, bytes);
+			if (sent === 0 || session.nextAttachReplayKind === "full") {
+				// Keep the live suffix recoverable for the next full generation even
+				// while current sockets receive it. A close-before-ACK must not open a
+				// silent gap between the daemon snapshot and the next attach.
+				bufferOutput(session, bytes);
+			}
 		},
-	);
+		onExit({ code, signal }) {
+			const occurredAt = Date.now();
+			const lifecycleUpdate = db
+				.update(terminalSessions)
+				.set({ status: "exited", endedAt: occurredAt })
+				.where(
+					and(
+						eq(terminalSessions.id, terminalId),
+						eq(terminalSessions.createdAt, session.createdAt),
+						eq(terminalSessions.status, "active"),
+					),
+				)
+				.run();
+			if (lifecycleUpdate.changes !== 1) return;
+
+			session.exited = true;
+			session.exitCode = code ?? 0;
+			session.exitSignal = signal ?? 0;
+
+			portManager.unregisterSession(terminalId);
+
+			broadcastMessage(session, {
+				type: "exit",
+				exitCode: session.exitCode,
+				signal: session.exitSignal,
+			});
+
+			eventBus?.broadcastTerminalLifecycle({
+				workspaceId,
+				terminalId,
+				eventType: "exit",
+				exitCode: session.exitCode,
+				signal: session.exitSignal,
+				occurredAt,
+			});
+		},
+	};
+
+	try {
+		if (isAdopted) {
+			// Adoption must always request the daemon ring. The renderer may have
+			// survived the host restart, but `attached.full` lets it reconcile the
+			// daemon ring against that baseline; suppressing replay would lose bytes
+			// emitted while the WebSocket was down.
+			const subscription = pty.subscribeWithReplayBoundary(
+				{ replay: replayOnAdoption },
+				daemonCallbacks,
+			);
+			session.unsubscribeDaemon = () => subscription.dispose();
+			session.attachReadyPromise = subscription.boundary
+				.then(({ replayBytes }) => {
+					const effectiveReplayBytes = replayBytes ?? session.bufferBytes;
+					if (replayBytes === null) {
+						console.warn(
+							`[terminal] adopted ${terminalId} from a pre-ACK daemon; classifying ${effectiveReplayBytes} ordered buffered bytes as a full replay`,
+						);
+					}
+					if (effectiveReplayBytes > 0) {
+						const daemonReplay = takeBufferedPrefix(
+							session,
+							effectiveReplayBytes,
+						);
+						const retained = buildBoundedReplayTail([daemonReplay]);
+						session.fullReplayBuffer = retained.bytes;
+						session.fullReplayDiscardedBytes = retained.discardedBytes;
+						session.fullReplayGeneration = 1;
+						session.nextAttachReplayKind = "full";
+					} else {
+						// Empty ring: a later live byte is a delta and must not clear the
+						// renderer. The ordered list barrier makes this true for new and
+						// legacy daemons alike.
+						session.nextAttachReplayKind = "delta";
+					}
+				})
+				.finally(() => {
+					session.preserveBufferUntilReplayBoundary = false;
+					trimBufferedOutput(session);
+				});
+			await session.attachReadyPromise;
+		} else {
+			const subscription = pty.subscribe({ replay: false }, daemonCallbacks);
+			session.unsubscribeDaemon = () => subscription.dispose();
+		}
+	} catch (error) {
+		try {
+			session.unsubscribeDaemon?.();
+		} catch {
+			// The boundary can reject because the daemon disconnected. Cleanup must
+			// still remove the half-created host session when unsubscribe cannot send.
+		}
+		// Local subscription disposal deliberately leaves the permanent aggregate
+		// observer alive across subscriber churn. A failed session creation has no
+		// owner left, so tear that observer down explicitly.
+		session.pty.disposeSubscriptions();
+		session.unsubscribeDaemon = null;
+		if (sessions.get(terminalId) === session) sessions.delete(terminalId);
+		portManager.unregisterSession(terminalId);
+		if (session.shellReadyTimeoutId) {
+			clearTimeout(session.shellReadyTimeoutId);
+			session.shellReadyTimeoutId = null;
+		}
+		session.modeTracker.dispose();
+		return {
+			error:
+				error instanceof Error
+					? error.message
+					: "Failed to subscribe to terminal",
+		};
+	}
 
 	if (initialCommand) {
-		queueInitialCommand(session, initialCommand);
+		await queueInitialCommand(session, initialCommand, daemon);
 	}
 
 	return session;
+}
+
+type RespawnTerminal = (
+	options: CreateTerminalSessionOptions,
+) => Promise<CreateTerminalSessionResult>;
+
+/** Re-check the durable lifecycle after async adoption failure before respawn. */
+export async function respawnAfterFailedAdoption(
+	{
+		terminalId,
+		requestedWorkspaceId,
+		themeType,
+		db,
+		eventBus,
+	}: {
+		terminalId: string;
+		requestedWorkspaceId: string | null;
+		themeType: "dark" | "light" | undefined;
+		db: HostDb;
+		eventBus?: EventBus;
+	},
+	respawn: RespawnTerminal = createTerminalSessionInternal,
+): Promise<CreateTerminalSessionResult> {
+	const latestRecord = db.query.terminalSessions
+		.findFirst({ where: eq(terminalSessions.id, terminalId) })
+		.sync();
+	if (!latestRecord) {
+		return { error: `Terminal session "${terminalId}" no longer exists.` };
+	}
+	if (latestRecord.status === "disposed") {
+		return { error: `Terminal session "${terminalId}" is disposed.` };
+	}
+	if (latestRecord.status === "exited") {
+		return { error: `Terminal session "${terminalId}" has exited.` };
+	}
+	if (!latestRecord.originWorkspaceId) {
+		return {
+			error: `Terminal session "${terminalId}" is missing a workspace.`,
+		};
+	}
+	if (requestedWorkspaceId) {
+		const mismatchError = getTerminalWorkspaceMismatchError({
+			terminalId,
+			ownerWorkspaceId: latestRecord.originWorkspaceId,
+			requestedWorkspaceId,
+		});
+		if (mismatchError) return { error: mismatchError };
+	}
+
+	console.log(`[terminal] respawning lost session ${terminalId}`);
+	return respawn({
+		terminalId,
+		workspaceId: latestRecord.originWorkspaceId,
+		themeType,
+		db,
+		eventBus,
+		expectedLifecycleCreatedAt: latestRecord.createdAt,
+		restoredNotice: true,
+	});
 }
 
 export function registerWorkspaceTerminalRoute({
@@ -1315,11 +2749,17 @@ export function registerWorkspaceTerminalRoute({
 			return c.json({ error: result.error }, 500);
 		}
 
-		return c.json({ terminalId: result.terminalId, status: "active" });
+		return c.json({
+			terminalId: result.terminalId,
+			status: "active",
+			...(body.initialCommand && {
+				initialCommand: result.initialCommandResult ?? { status: "pending" },
+			}),
+		});
 	});
 
 	// REST dispose — does not require an open WebSocket
-	app.delete("/terminal/sessions/:terminalId", (c) => {
+	app.delete("/terminal/sessions/:terminalId", async (c) => {
 		const terminalId = c.req.param("terminalId");
 		if (!terminalId) {
 			return c.json({ error: "Missing terminalId" }, 400);
@@ -1330,8 +2770,22 @@ export function registerWorkspaceTerminalRoute({
 			return c.json({ error: "Session not found" }, 404);
 		}
 
-		disposeSession(terminalId, db);
-		return c.json({ terminalId, status: "disposed" });
+		try {
+			const result = await disposeSessionAndWait(terminalId, db);
+			if (!result.daemonCloseSucceeded) {
+				return c.json({ error: "Failed to close terminal session" }, 503);
+			}
+			return c.json({ terminalId, status: "disposed" });
+		} catch (error) {
+			const message =
+				error instanceof Error
+					? error.message
+					: "Failed to dispose terminal session";
+			return c.json(
+				{ error: message },
+				error instanceof DaemonMutationQueueOverflowError ? 429 : 503,
+			);
+		}
 	});
 
 	// REST list — enumerate live terminal sessions
@@ -1369,29 +2823,50 @@ export function registerWorkspaceTerminalRoute({
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
 			const requestedWorkspaceId = c.req.query("workspaceId") || null;
+			const replayProtocolV1 = c.req.query("replayProtocol") === "1";
+			const replayOnAdoption =
+				replayProtocolV1 || c.req.query("replay") !== "0";
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
 			): boolean => {
 				if (session.sockets.has(ws)) return false;
+				const delivery = prepareReplayDelivery(session, ws, replayProtocolV1);
 				session.sockets.add(ws);
-				sendMessage(ws, { type: "attached", terminalId });
-
-				db.update(terminalSessions)
-					.set({ lastAttachedAt: Date.now() })
-					.where(eq(terminalSessions.id, terminalId))
-					.run();
-
-				sendMessage(ws, { type: "title", title: session.title });
-				replayBuffer(session, ws);
-				if (session.exited) {
+				try {
 					sendMessage(ws, {
-						type: "exit",
-						exitCode: session.exitCode,
-						signal: session.exitSignal,
+						type: "attached",
+						terminalId,
+						replayKind: delivery.replayKind,
+						...(delivery.replayId !== undefined
+							? { replayId: delivery.replayId }
+							: {}),
+						replayPrefixBytes: delivery.replayPrefixBytes,
+						replayDataBytes: delivery.replayDataBytes,
+						replayTruncated: delivery.replayTruncated || undefined,
 					});
+
+					db.update(terminalSessions)
+						.set({ lastAttachedAt: Date.now() })
+						.where(eq(terminalSessions.id, terminalId))
+						.run();
+
+					sendMessage(ws, { type: "title", title: session.title });
+					replayBuffer(session, ws, delivery);
+					flushPendingMutationErrors(session, ws);
+					if (session.exited) {
+						sendMessage(ws, {
+							type: "exit",
+							exitCode: session.exitCode,
+							signal: session.exitSignal,
+						});
+					}
+					return true;
+				} catch (error) {
+					cancelReplayDelivery(session, ws);
+					session.sockets.delete(ws);
+					throw error;
 				}
-				return true;
 			};
 			const resolveSessionForAttach = async (): Promise<
 				TerminalSession | { error: string }
@@ -1405,6 +2880,16 @@ export function registerWorkspaceTerminalRoute({
 							requestedWorkspaceId,
 						});
 						if (mismatchError) return { error: mismatchError };
+					}
+					try {
+						await existing.attachReadyPromise;
+					} catch (error) {
+						return {
+							error:
+								error instanceof Error
+									? error.message
+									: "Failed to attach terminal replay",
+						};
 					}
 					return existing;
 				}
@@ -1448,22 +2933,18 @@ export function registerWorkspaceTerminalRoute({
 					db,
 					eventBus,
 					adoptOnly: true,
-					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
-					replayOnAdoption: c.req.query("replay") !== "0",
+					replayOnAdoption,
 				});
 				if (!("error" in adopted)) return adopted;
 
-				// Active row but daemon no longer owns the PTY (laptop sleep,
-				// daemon restart, machine reboot). Respawn rather than dead-end
-				// the pane — the renderer's xterm scrollback stays painted above.
-				console.log(`[terminal] respawning lost session ${terminalId}`);
-				return createTerminalSessionInternal({
+				// Adoption may fail after an async boundary while an exit/dispose
+				// changed the durable row. Re-read and claim that exact generation.
+				return respawnAfterFailedAdoption({
 					terminalId,
-					workspaceId: record.originWorkspaceId,
+					requestedWorkspaceId,
 					themeType,
 					db,
 					eventBus,
-					restoredNotice: true,
 				});
 			};
 
@@ -1514,10 +2995,17 @@ export function registerWorkspaceTerminalRoute({
 						return;
 					}
 
+					if (message.type === "replay-ack") {
+						acknowledgeReplayDelivery(session, ws, message.replayId);
+						return;
+					}
+
 					if (session.exited) return;
 
 					if (message.type === "input") {
-						session.pty.write(message.data);
+						void session.pty.write(message.data).catch((error) => {
+							reportSessionMutationError(session, "input", error);
+						});
 						return;
 					}
 
@@ -1532,21 +3020,33 @@ export function registerWorkspaceTerminalRoute({
 							MIN_TERMINAL_ROWS,
 							DEFAULT_TERMINAL_ROWS,
 						);
-						session.pty.resize(cols, rows);
-						session.modeTracker.resize(cols, rows);
-						session.cols = cols;
-						session.rows = rows;
+						void session.pty
+							.resize(cols, rows)
+							.then(() => {
+								session.modeTracker.resize(cols, rows);
+								session.cols = cols;
+								session.rows = rows;
+							})
+							.catch((error) => {
+								reportSessionMutationError(session, "resize", error);
+							});
 					}
 				},
 
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (session) {
+						cancelReplayDelivery(session, ws);
+						session.sockets.delete(ws);
+					}
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (session) {
+						cancelReplayDelivery(session, ws);
+						session.sockets.delete(ws);
+					}
 				},
 			};
 		}),

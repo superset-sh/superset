@@ -37,6 +37,12 @@ function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
 		},
 		onData: () => {},
 		onExit: () => {},
+		prepareForHandoff: async () => {},
+		pauseOutputForHandoff: () => {},
+		drainOutputForHandoff: async () => [],
+		sealOutputForHandoff: async () => [],
+		restoreAfterFailedHandoff: () => {},
+		cancelHandoff: () => {},
 		getMasterFd: () => -1,
 	};
 }
@@ -129,6 +135,51 @@ describe("handlers", () => {
 		expect(states[0]?.written.map((b) => b.toString())).toEqual(["hello"]);
 	});
 
+	test("sequenced input returns an exact acceptance acknowledgement", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		expect(
+			handleInput(
+				ctx,
+				{ type: "input", id: "s0", sequence: 41 },
+				Buffer.from("hello"),
+			),
+		).toEqual({ type: "input-ack", id: "s0", sequence: 41 });
+	});
+
+	test("sequenced input correlates EWRITE to only the rejected payload", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		const session = ctx.store.get("s0");
+		if (!session) throw new Error("missing test session");
+		session.pty.write = () => {
+			throw new Error("backlog full");
+		};
+
+		expect(
+			handleInput(
+				ctx,
+				{ type: "input", id: "s0", sequence: 42 },
+				Buffer.from("rejected"),
+			),
+		).toEqual({
+			type: "error",
+			id: "s0",
+			inputSequence: 42,
+			inputOutcome: "not-enqueued",
+			message: "backlog full",
+			code: "EWRITE",
+		});
+	});
+
 	test("input on missing session returns error", () => {
 		const ctx = makeCtx();
 		const result = handleInput(
@@ -137,6 +188,23 @@ describe("handlers", () => {
 			Buffer.alloc(0),
 		);
 		expect(result?.type).toBe("error");
+	});
+
+	test("missing sequenced input preserves its correlation on ENOENT", () => {
+		const ctx = makeCtx();
+		expect(
+			handleInput(
+				ctx,
+				{ type: "input", id: "missing", sequence: 43 },
+				Buffer.from("x"),
+			),
+		).toMatchObject({
+			type: "error",
+			id: "missing",
+			inputSequence: 43,
+			inputOutcome: "not-enqueued",
+			code: "ENOENT",
+		});
 	});
 
 	test("resize updates dims", () => {
@@ -153,15 +221,41 @@ describe("handlers", () => {
 		expect(states[0]?.rows).toBe(30);
 	});
 
-	test("close kills the pty and replies closed", () => {
+	test("close kills the pty and replies closed", async () => {
 		const ctx = makeCtx();
 		handleOpen(ctx, {
 			type: "open",
 			id: "s0",
 			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
 		});
-		const reply = handleClose(ctx, { type: "close", id: "s0" });
+		const reply = await handleClose(ctx, { type: "close", id: "s0" });
 		expect(reply.type).toBe("closed");
+		expect(states[0]?.killed).toBe(true);
+	});
+
+	test("conditional close rejects a stale pid without killing the current pty", async () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+
+		const staleReply = await handleClose(ctx, {
+			type: "close",
+			id: "s0",
+			expectedPid: 1001,
+		});
+		expect(staleReply.type).toBe("error");
+		if (staleReply.type === "error") expect(staleReply.code).toBe("ESTALE");
+		expect(states[0]?.killed).toBe(false);
+
+		const ownedReply = await handleClose(ctx, {
+			type: "close",
+			id: "s0",
+			expectedPid: 1000,
+		});
+		expect(ownedReply.type).toBe("closed");
 		expect(states[0]?.killed).toBe(true);
 	});
 
@@ -188,13 +282,20 @@ describe("handlers", () => {
 		const conn = makeConn();
 		handleSubscribe(ctx, conn, { type: "subscribe", id: "s0", replay: true });
 		expect(conn.subscriptions.has("s0")).toBe(true);
-		expect(conn.sent).toHaveLength(1);
+		expect(conn.sent).toHaveLength(2);
 		const frame = conn.sent[0];
 		expect(frame?.message.type).toBe("output");
 		expect(frame?.payload).toBeTruthy();
 		if (frame?.payload) {
 			expect(Buffer.from(frame.payload).toString()).toBe("prior bytes");
 		}
+		expect(conn.sent[1]?.message).toEqual({
+			type: "subscribed",
+			id: "s0",
+			replayBytes: 11,
+			replayStartBytes: 0,
+			replayEndBytes: 11,
+		});
 	});
 
 	test("subscribe without replay does not send buffered output", () => {
@@ -211,7 +312,43 @@ describe("handlers", () => {
 		const conn = makeConn();
 		handleSubscribe(ctx, conn, { type: "subscribe", id: "s0", replay: false });
 		expect(conn.subscriptions.has("s0")).toBe(true);
-		expect(conn.sent).toHaveLength(0);
+		expect(conn.sent).toEqual([
+			{
+				message: {
+					type: "subscribed",
+					id: "s0",
+					replayBytes: 0,
+					replayStartBytes: 11,
+					replayEndBytes: 11,
+				},
+				payload: null,
+			},
+		]);
+	});
+
+	test("subscribe with an empty ring acknowledges a zero-byte replay", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+
+		const conn = makeConn();
+		handleSubscribe(ctx, conn, { type: "subscribe", id: "s0", replay: true });
+
+		expect(conn.sent).toEqual([
+			{
+				message: {
+					type: "subscribed",
+					id: "s0",
+					replayBytes: 0,
+					replayStartBytes: 0,
+					replayEndBytes: 0,
+				},
+				payload: null,
+			},
+		]);
 	});
 
 	test("unsubscribe removes from conn.subscriptions", () => {

@@ -15,18 +15,37 @@ import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import {
+	captureProcessIdentity,
 	isPositiveInteger,
+	type ProcessIdentity,
+	type ProcessInfo,
+	type ProcessSignalTarget,
+	processIdentityMatches,
+	processIdentitySignalTarget,
+	readProcessTable,
+	sameProcessIdentity,
+	signalProcessTargetsIfStillOwned,
 	signalProcessTreeAndGroups,
+	signalProcessTreeAndGroupsIfStillOwned,
 } from "@superset/pty-daemon/process-tree";
 import {
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 	type ServerMessage,
 	type SessionInfo,
 } from "@superset/pty-daemon/protocol";
 import semver from "semver";
-import { DaemonClient } from "../terminal/DaemonClient/index.ts";
+import {
+	DaemonClient,
+	type UpgradePreparedResult,
+} from "../terminal/DaemonClient/index.ts";
+import {
+	beginDaemonUpdate,
+	type DaemonUpdateMutationLease,
+} from "../terminal/daemon-mutation-gate.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import { MAX_DAEMON_LOG_BYTES, openRotatingLogFd } from "./log-fd.ts";
 import {
@@ -42,6 +61,8 @@ interface DaemonInstance {
 	pid: number;
 	socketPath: string;
 	startedAt: number;
+	/** Exact lifetime captured from a child spawned for ambiguous recovery. */
+	spawnIdentity?: ProcessIdentity;
 	/** Version reported by the running daemon's hello-ack. "unknown" if probe failed. */
 	runningVersion: string;
 	/** Bundled-binary version we expect — i.e. EXPECTED_DAEMON_VERSION at spawn time. */
@@ -68,6 +89,73 @@ export interface DaemonHealth {
 interface DaemonProbeResult {
 	daemonVersion: string;
 	daemonPid?: number;
+	capabilities: string[];
+}
+
+const REQUIRED_LIVE_SUCCESSOR_CAPABILITIES = [
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+	CORRELATED_INPUT_ACK_CAPABILITY,
+] as const;
+
+export function successorCompatibilityFailure(
+	probe: Pick<DaemonProbeResult, "daemonVersion" | "capabilities">,
+	expectedVersion = EXPECTED_DAEMON_VERSION,
+): string | null {
+	if (!semver.satisfies(probe.daemonVersion, `>=${expectedVersion}`)) {
+		return `successor daemon version ${probe.daemonVersion} does not satisfy >=${expectedVersion}`;
+	}
+	const capabilities = new Set(probe.capabilities);
+	const missing = REQUIRED_LIVE_SUCCESSOR_CAPABILITIES.filter(
+		(capability) => !capabilities.has(capability),
+	);
+	if (missing.length > 0) {
+		return `successor daemon lacks ${missing.join(", ")}`;
+	}
+	return null;
+}
+
+export function liveHandoffCapabilityFailure(
+	sessions: SessionInfo[],
+	capabilities: ReadonlySet<string>,
+): string | null {
+	const liveSessions = sessions.filter((session) => session.alive);
+	if (liveSessions.length === 0) return null;
+	const missing = REQUIRED_LIVE_SUCCESSOR_CAPABILITIES.filter(
+		(capability) => !capabilities.has(capability),
+	);
+	if (missing.length === 0) return null;
+	return `running daemon lacks ${missing.join(", ")}; refusing to hand off ${liveSessions.length} live terminal session${liveSessions.length === 1 ? "" : "s"}`;
+}
+
+interface AmbiguousUpdateRecovery {
+	lease: DaemonUpdateMutationLease;
+	predecessor: ProcessIdentity;
+	successor?: ProcessIdentity;
+	socketPath: string;
+}
+
+interface AmbiguousOwnerEliminationOptions {
+	readCurrentProcessTable?: () => ProcessInfo[];
+	isPidAlive?: (pid: number) => boolean;
+	identityExitTimeoutMs?: number;
+	probeOwner?: (
+		socketPath: string,
+		timeoutMs: number,
+	) => Promise<VerifiedDaemonOwner | null>;
+	now?: () => number;
+	sleep?: (timeoutMs: number) => Promise<void>;
+	probeWindowMs?: number;
+}
+
+/**
+ * Only a new daemon's explicit predecessor verdict can reopen the mutation
+ * gate. Legacy daemons omit `ownership`; that outcome is intentionally
+ * ambiguous because the failure reply may race a committed successor.
+ */
+export function upgradeFailureCanResumePredecessor(
+	result: Extract<UpgradePreparedResult, { ok: false }>,
+): boolean {
+	return result.ownership === "predecessor";
 }
 
 export interface DaemonAutoUpdateFailure {
@@ -170,9 +258,10 @@ export interface DaemonSupervisorOptions {
 	/**
 	 * When true (default), opportunistically calls `update()` after
 	 * adopting a daemon whose `runningVersion < EXPECTED_DAEMON_VERSION`.
-	 * Background auto-update is best-effort only: if fd-handoff cannot
-	 * preserve the daemon's sessions, the predecessor keeps running and
-	 * the desktop UI remains the explicit place for a destructive force restart.
+	 * Background auto-update is best-effort only: a capable daemon may hand off
+	 * live sessions losslessly, while legacy/unknown daemons defer until idle.
+	 * On any failure the predecessor keeps running; only the desktop UI exposes
+	 * the explicit destructive force restart.
 	 * Set to false in integration tests that intentionally adopt a stale
 	 * daemon and assert the version-drift flag without the test racing a
 	 * real handoff.
@@ -188,6 +277,8 @@ export class DaemonSupervisor {
 	private readonly crashTimes = new Map<string, number[]>();
 	/** Orgs we've explicitly stopped — exit isn't a crash, don't respawn. */
 	private readonly stopping = new Set<string>();
+	/** Ambiguous recovery must spawn a new child and may never adopt a late binder. */
+	private readonly spawnOnlyOrganizations = new Set<string>();
 	/** Orgs that tripped the circuit breaker — refuse respawn until cleared. */
 	private readonly circuitOpen = new Set<string>();
 	/**
@@ -215,6 +306,16 @@ export class DaemonSupervisor {
 	private readonly updateInFlight = new Map<
 		string,
 		Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }>
+	>();
+	/** Held fail-closed when prepare-upgrade ownership could not be proven. */
+	private readonly ambiguousUpdates = new Map<
+		string,
+		AmbiguousUpdateRecovery
+	>();
+	/** Destructive restarts serialize with smooth updates for the same org. */
+	private readonly restartInFlight = new Map<
+		string,
+		Promise<{ success: true }>
 	>();
 
 	constructor(opts: DaemonSupervisorOptions) {
@@ -277,6 +378,15 @@ export class DaemonSupervisor {
 		>;
 		started: boolean;
 	} {
+		if (this.restartInFlight.has(organizationId)) {
+			return {
+				promise: Promise.resolve({
+					ok: false,
+					reason: "pty-daemon restart is already in progress",
+				}),
+				started: false,
+			};
+		}
 		// Coalesce concurrent calls. Auto-update (on adopt with version
 		// drift) and a manual click of the Update button can race —
 		// without this guard, both would try to handoff the same daemon.
@@ -300,6 +410,64 @@ export class DaemonSupervisor {
 		if (!instance) {
 			return { ok: false, reason: "no daemon running for this org" };
 		}
+		const mutationLease = beginDaemonUpdate(organizationId);
+		try {
+			// beginDaemonUpdate() closed the writer gate synchronously. Waiting
+			// here drains operations already in flight and performs a request/reply
+			// barrier on the cached mutation socket before the supervisor's
+			// separate control-plane socket asks for a snapshot.
+			await mutationLease.waitUntilDrained();
+		} catch (error) {
+			await mutationLease.release("abort");
+			return {
+				ok: false,
+				reason: `failed to quiesce terminal mutations: ${(error as Error).message}`,
+			};
+		}
+
+		// Re-list on the same control socket that will send prepare-upgrade. The
+		// writer gate is already closed and the mutation socket barrier completed,
+		// so this is a stable view: opens arriving now are queued for the eventual
+		// owner instead of entering an unadvertised legacy snapshot.
+		const client = new DaemonClient({ socketPath: instance.socketPath });
+		let preflightSessions: SessionInfo[];
+		try {
+			await client.connect();
+			preflightSessions = await client.list();
+		} catch (error) {
+			await client.dispose().catch(() => {});
+			await mutationLease.release("abort");
+			return {
+				ok: false,
+				reason: `failed to verify live-handoff capability: ${(error as Error).message}`,
+			};
+		}
+		const capabilityFailure = liveHandoffCapabilityFailure(
+			preflightSessions,
+			new Set(
+				[
+					LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+					CORRELATED_INPUT_ACK_CAPABILITY,
+				].filter((capability) => client.hasCapability(capability)),
+			),
+		);
+		if (capabilityFailure) {
+			await client.dispose().catch(() => {});
+			await mutationLease.release("abort");
+			return { ok: false, reason: capabilityFailure };
+		}
+		// A numeric PID is not a durable ownership proof across the asynchronous
+		// handoff window. Capture the predecessor lifetime immediately before the
+		// first state transition that can commit ownership elsewhere.
+		const predecessorIdentity = captureProcessIdentity(instance.pid);
+		if (!predecessorIdentity) {
+			await client.dispose().catch(() => {});
+			await mutationLease.release("abort");
+			return {
+				ok: false,
+				reason: `failed to capture predecessor process identity ${instance.pid}`,
+			};
+		}
 
 		// Suppress crash-respawn for the predecessor's imminent exit. The
 		// predecessor was either spawned by us (child.on('exit') will fire)
@@ -311,46 +479,151 @@ export class DaemonSupervisor {
 		// Mark the manifest so a host-service crash mid-handoff is
 		// debuggable. We restore on failure or replace on success.
 		const existingManifest = readPtyDaemonManifest(organizationId);
-		if (existingManifest) {
-			writePtyDaemonManifest({
-				...existingManifest,
-				handoffInProgress: true,
-			});
-		}
-
 		const restoreOnFailure = () => {
 			this.stopping.delete(organizationId);
-			if (existingManifest) writePtyDaemonManifest(existingManifest);
 			// Re-arm liveness for the (still-living) predecessor.
 			this.startAdoptedLivenessCheck(organizationId, instance.pid);
+			if (existingManifest) writePtyDaemonManifest(existingManifest);
 		};
 
-		const client = new DaemonClient({ socketPath: instance.socketPath });
-		let result:
-			| { ok: true; successorPid: number }
-			| { ok: false; reason: string };
+		const abortAndRelease = async (): Promise<Error | null> => {
+			let restoreError: Error | null = null;
+			try {
+				restoreOnFailure();
+			} catch (error) {
+				restoreError =
+					error instanceof Error ? error : new Error(String(error));
+			}
+			await mutationLease.release("abort");
+			this.ambiguousUpdates.delete(organizationId);
+			return restoreError;
+		};
+		const failClosed = (reason: string, successor?: ProcessIdentity) => {
+			this.ambiguousUpdates.set(organizationId, {
+				lease: mutationLease,
+				predecessor: predecessorIdentity,
+				...(successor ? { successor } : {}),
+				socketPath: instance.socketPath,
+			});
+			logEvent("pty_daemon_update_ownership_ambiguous", {
+				organizationId,
+				predecessorPid: instance.pid,
+				reason,
+			});
+			// Deliberately do not restore the old manifest, liveness watcher, or
+			// mutation gate. Once prepare-upgrade may have committed, replaying
+			// held operations to the predecessor could duplicate them in a
+			// successor. A force restart can establish a new known owner.
+			return {
+				ok: false as const,
+				reason: `${reason}; terminal mutations remain paused until daemon ownership is recovered`,
+			};
+		};
+
 		try {
-			await client.connect();
-			result = await client.prepareUpgrade();
-		} catch (err) {
-			restoreOnFailure();
+			if (existingManifest) {
+				writePtyDaemonManifest({
+					...existingManifest,
+					handoffInProgress: true,
+				});
+			}
+		} catch (error) {
+			// No prepare request was sent, so predecessor ownership is certain.
+			this.stopping.delete(organizationId);
+			this.startAdoptedLivenessCheck(organizationId, instance.pid);
+			await client.dispose().catch(() => {});
+			await mutationLease.release("abort");
 			return {
 				ok: false,
-				reason: `prepareUpgrade transport: ${(err as Error).message}`,
+				reason: `failed to mark daemon handoff manifest: ${(error as Error).message}`,
 			};
+		}
+
+		let result: UpgradePreparedResult;
+		let successorCandidate: ProcessIdentity | undefined;
+		let verifiedSuccessorOwner: VerifiedDaemonOwner | undefined;
+		let prepareStarted = false;
+		try {
+			prepareStarted = true;
+			result = await client.prepareUpgrade();
+			if (result.ok) {
+				if (result.successorPid === predecessorIdentity.pid) {
+					return failClosed(
+						`handoff ack reused predecessor pid ${result.successorPid}`,
+					);
+				}
+				successorCandidate =
+					captureProcessIdentity(result.successorPid) ?? undefined;
+				if (!successorCandidate) {
+					return failClosed(
+						`handoff ack named successor ${result.successorPid} without a capturable process identity`,
+					);
+				}
+			}
+		} catch (err) {
+			if (!prepareStarted) {
+				const restoreError = await abortAndRelease();
+				return {
+					ok: false,
+					reason: `prepareUpgrade connect: ${(err as Error).message}${restoreError ? `; manifest restore failed: ${restoreError.message}` : ""}`,
+				};
+			}
+
+			// A transport failure after the request was sent is an ambiguous
+			// commit: the successor may have adopted the fds and the predecessor
+			// may have exited before its reply reached us. Only promote to success
+			// when process exit + successor hello prove the new owner. Never replay
+			// held mutations to an assumed predecessor.
+			const predecessorExited = await waitForProcessIdentityExit(
+				predecessorIdentity,
+				HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
+			);
+			if (!predecessorExited) {
+				return failClosed(
+					`prepareUpgrade transport failed: ${(err as Error).message}`,
+				);
+			}
+			const successorOwner = await probeVerifiedDaemonOwnerWithRetry(
+				instance.socketPath,
+				HANDOFF_PROBE_TOTAL_TIMEOUT_MS,
+			);
+			if (
+				!successorOwner ||
+				successorOwner.identity.pid === predecessorIdentity.pid
+			) {
+				return failClosed(
+					`prepareUpgrade transport failed and no successor owner could be proven: ${(err as Error).message}`,
+				);
+			}
+			successorCandidate = successorOwner.identity;
+			verifiedSuccessorOwner = successorOwner;
+			result = { ok: true, successorPid: successorOwner.identity.pid };
 		} finally {
 			await client.dispose();
 		}
 
 		if (!result.ok) {
-			restoreOnFailure();
-			return result;
+			if (!upgradeFailureCanResumePredecessor(result)) {
+				const compatibilityDetail = result.ownership
+					? ""
+					: " (legacy daemon did not report ownership)";
+				return failClosed(
+					`prepareUpgrade could not prove a unique PTY owner${compatibilityDetail}: ${result.reason}`,
+				);
+			}
+			const restoreError = await abortAndRelease();
+			return {
+				ok: false,
+				reason: restoreError
+					? `${result.reason}; manifest restore failed: ${restoreError.message}`
+					: result.reason,
+			};
 		}
 
 		// Gate the probe on predecessor exit — see waitForPidExit's docstring
 		// for the race it guards against.
-		let predecessorExited = await waitForPidExit(
-			instance.pid,
+		let predecessorExited = await waitForProcessIdentityExit(
+			predecessorIdentity,
 			HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
 		);
 		if (!predecessorExited) {
@@ -360,25 +633,51 @@ export class DaemonSupervisor {
 				successorPid: result.successorPid,
 				timeoutMs: HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS,
 			});
-			terminatePidOnly(instance.pid, "SIGKILL");
-			predecessorExited = await waitForPidExit(
-				instance.pid,
+			signalProcessTargetsIfStillOwned(
+				[processIdentitySignalTarget(predecessorIdentity)],
+				"SIGKILL",
+			);
+			predecessorExited = await waitForProcessIdentityExit(
+				predecessorIdentity,
 				DAEMON_TERMINATE_TIMEOUT_MS,
 			);
 			if (!predecessorExited) {
-				restoreOnFailure();
-				return {
-					ok: false,
-					reason: `predecessor pid ${instance.pid} did not exit within ${HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS + DAEMON_TERMINATE_TIMEOUT_MS}ms after handoff ack`,
-				};
+				return failClosed(
+					`predecessor pid ${instance.pid} did not exit within ${HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS + DAEMON_TERMINATE_TIMEOUT_MS}ms after handoff ack`,
+					successorCandidate,
+				);
 			}
 		}
 
-		const probedVersion = await probeDaemonVersionWithRetry(
+		if (!successorCandidate) {
+			return failClosed(
+				`successor pid ${result.successorPid} has no captured process identity`,
+			);
+		}
+		const successorOwner = await probeVerifiedDaemonOwnerWithRetry(
 			instance.socketPath,
 			HANDOFF_PROBE_TOTAL_TIMEOUT_MS,
 		);
-		const runningVersion = probedVersion ?? "unknown";
+		if (
+			!successorOwner ||
+			!promoteVerifiedSuccessorIdentity(successorCandidate, successorOwner)
+		) {
+			return failClosed(
+				`successor pid ${result.successorPid} did not answer the ownership probe`,
+				successorCandidate,
+			);
+		}
+		verifiedSuccessorOwner = successorOwner;
+		const successorCompatibility = successorCompatibilityFailure(
+			successorOwner.probe,
+		);
+		if (successorCompatibility) {
+			return failClosed(
+				`successor pid ${result.successorPid} failed compatibility validation: ${successorCompatibility}`,
+				successorOwner.identity,
+			);
+		}
+		const runningVersion = successorOwner.probe.daemonVersion;
 
 		// Single capture so the in-memory instance and the manifest agree.
 		const successorStartedAt = Date.now();
@@ -388,21 +687,28 @@ export class DaemonSupervisor {
 			startedAt: successorStartedAt,
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending: isVersionUpdatePending(probedVersion),
-			unreachableSince: probedVersion ? null : Date.now(),
+			updatePending: isVersionUpdatePending(runningVersion),
+			unreachableSince: null,
 		};
 		this.instances.set(organizationId, successorInstance);
 		this.stopping.delete(organizationId);
 		this.lastUpdatePendingPair.delete(organizationId);
 
-		if (existingManifest) {
+		try {
 			writePtyDaemonManifest({
 				pid: result.successorPid,
 				socketPath: instance.socketPath,
-				protocolVersions: existingManifest.protocolVersions,
+				protocolVersions: existingManifest?.protocolVersions ?? [
+					CURRENT_PROTOCOL_VERSION,
+				],
 				startedAt: successorStartedAt,
 				organizationId,
 			});
+		} catch (error) {
+			return failClosed(
+				`successor ownership was proven but its manifest could not be persisted: ${(error as Error).message}`,
+				verifiedSuccessorOwner?.identity,
+			);
 		}
 
 		// Successor wasn't spawned as our child — start liveness polling.
@@ -416,6 +722,18 @@ export class DaemonSupervisor {
 			successorVersion: runningVersion,
 		});
 
+		// The instance and durable manifest now agree on the successor. Rotate
+		// the cached mutation transport, then drain held work serially; each
+		// queued closure resolves getDaemonClient() only at execution time.
+		try {
+			await mutationLease.release("success");
+		} catch (error) {
+			return failClosed(
+				`successor ownership was proven but host transport rotation failed: ${(error as Error).message}`,
+				verifiedSuccessorOwner?.identity,
+			);
+		}
+		this.ambiguousUpdates.delete(organizationId);
 		return { ok: true, successorPid: result.successorPid };
 	}
 
@@ -428,7 +746,23 @@ export class DaemonSupervisor {
 	 * Awaits any in-flight spawn before stopping so we never SIGTERM a
 	 * partially-initialized child.
 	 */
-	async restart(organizationId: string): Promise<{ success: true }> {
+	restart(organizationId: string): Promise<{ success: true }> {
+		const existing = this.restartInFlight.get(organizationId);
+		if (existing) return existing;
+		const promise = this.runSerializedRestart(organizationId).finally(() => {
+			this.restartInFlight.delete(organizationId);
+		});
+		this.restartInFlight.set(organizationId, promise);
+		return promise;
+	}
+
+	private async runSerializedRestart(
+		organizationId: string,
+	): Promise<{ success: true }> {
+		// A restart is destructive, but it still must not interleave with a smooth
+		// handoff that may later publish a successor and release its writer gate.
+		const update = this.updateInFlight.get(organizationId);
+		if (update) await update.catch(() => {});
 		return this.forceRestart(organizationId, {
 			event: "pty_daemon_user_restart",
 			props: {},
@@ -441,6 +775,7 @@ export class DaemonSupervisor {
 	): Promise<{ success: true }> {
 		const prev = this.instances.get(organizationId);
 		const hadCircuitOpen = this.circuitOpen.has(organizationId);
+		const ambiguous = this.ambiguousUpdates.get(organizationId);
 
 		const pending = this.pendingStarts.get(organizationId);
 		if (pending) {
@@ -451,20 +786,159 @@ export class DaemonSupervisor {
 			}
 		}
 
+		const logRestart = () => {
+			logEvent(log.event, {
+				organizationId,
+				hadCircuitOpen,
+				previousRunningVersion: prev?.runningVersion ?? null,
+				previousExpectedVersion: prev?.expectedVersion ?? null,
+				previousUpdatePending: prev?.updatePending ?? null,
+				...log.props,
+			});
+		};
+
+		if (ambiguous) {
+			// `stop()` accepts only the mutable numeric PID stored on the instance.
+			// Once handoff ownership is ambiguous, using it could signal a recycled
+			// unrelated process. Forget local tracking without signaling, then recover
+			// exclusively through the captured identity witnesses below.
+			this.instances.delete(organizationId);
+			this.stopHealthPoll(organizationId);
+			this.stopping.add(organizationId);
+			this.spawnOnlyOrganizations.add(organizationId);
+			try {
+				removePtyDaemonManifest(organizationId);
+				await this.eliminateAmbiguousOwners(ambiguous);
+				this.clearCrashCircuit(organizationId);
+				logRestart();
+
+				// `ensure()` remains the single-flight start gate, but the spawn-only
+				// marker makes start() skip every manifest/socket adoption path. A
+				// successor that binds after the elimination scan can therefore never be
+				// mistaken for the deliberately spawned replacement.
+				const fresh = await this.ensure(organizationId);
+				await this.proveFreshOwner(fresh);
+				await ambiguous.lease.resetAfterForceRestart(
+					new Error(
+						"Terminal mutation was cancelled because force restart replaced the pty-daemon and its sessions",
+					),
+				);
+				this.ambiguousUpdates.delete(organizationId);
+				return { success: true };
+			} finally {
+				// The old instance was deliberately removed before signaling, so its
+				// child exit callback cannot consume this marker. Clear both guards even
+				// when elimination/proof fails closed; otherwise a later retry or crash
+				// would be masked. Throws still prevent the mutation lease from reopening.
+				this.stopping.delete(organizationId);
+				this.spawnOnlyOrganizations.delete(organizationId);
+			}
+		}
+
 		await this.stop(organizationId);
 		this.clearCrashCircuit(organizationId);
-
-		logEvent(log.event, {
-			organizationId,
-			hadCircuitOpen,
-			previousRunningVersion: prev?.runningVersion ?? null,
-			previousExpectedVersion: prev?.expectedVersion ?? null,
-			previousUpdatePending: prev?.updatePending ?? null,
-			...log.props,
-		});
-
+		logRestart();
 		await this.ensure(organizationId);
 		return { success: true };
+	}
+
+	private async proveFreshOwner(
+		instance: DaemonInstance,
+		probeOwner: (
+			socketPath: string,
+			totalTimeoutMs: number,
+		) => Promise<VerifiedDaemonOwner | null> = probeVerifiedDaemonOwnerWithRetry,
+	): Promise<void> {
+		if (!instance.spawnIdentity) {
+			throw new Error(
+				`force restart did not capture spawned daemon identity ${instance.pid}`,
+			);
+		}
+		const owner = await probeOwner(
+			instance.socketPath,
+			HANDOFF_PROBE_TOTAL_TIMEOUT_MS,
+		);
+		if (
+			!owner ||
+			!sameProcessIdentity(owner.identity, instance.spawnIdentity)
+		) {
+			throw new Error(
+				`force restart could not prove exact fresh daemon owner ${instance.pid}`,
+			);
+		}
+	}
+
+	private async eliminateAmbiguousOwners(
+		recovery: AmbiguousUpdateRecovery,
+		options: AmbiguousOwnerEliminationOptions = {},
+	): Promise<ProcessSignalTarget[]> {
+		const readCurrentProcessTable =
+			options.readCurrentProcessTable ?? readProcessTable;
+		const isPidAlive = options.isPidAlive ?? isProcessAlive;
+		const identityExitTimeoutMs =
+			options.identityExitTimeoutMs ?? DAEMON_TERMINATE_TIMEOUT_MS;
+		const probeOwner = options.probeOwner ?? probeVerifiedDaemonOwner;
+		const now = options.now ?? Date.now;
+		const sleep =
+			options.sleep ??
+			((timeoutMs: number) =>
+				new Promise((resolve) => setTimeout(resolve, timeoutMs)));
+		const signaled: ProcessSignalTarget[] = [];
+		const candidates = new Map<string, ProcessIdentity>();
+		const remember = (identity: ProcessIdentity) => {
+			candidates.set(processIdentityKey(identity), identity);
+		};
+		remember(recovery.predecessor);
+		if (recovery.successor) remember(recovery.successor);
+		for (const identity of candidates.values()) {
+			signaled.push(
+				...(await terminateProcessIdentityTreeAndGroups(
+					identity,
+					"SIGKILL",
+					readCurrentProcessTable,
+					isPidAlive,
+					identityExitTimeoutMs,
+				)),
+			);
+		}
+
+		// A successor whose ACK/reply was lost may bind only after the predecessor
+		// IPC channel closes. Scan the complete post-handoff bind window and kill
+		// every responder before starting a fresh daemon; returning on the first
+		// quiet probe would reopen a race with a late binder.
+		const deadline =
+			now() + (options.probeWindowMs ?? HANDOFF_PROBE_TOTAL_TIMEOUT_MS);
+		while (now() < deadline) {
+			const remaining = deadline - now();
+			const owner = await probeOwner(
+				recovery.socketPath,
+				Math.min(remaining, 250),
+			);
+			if (owner) {
+				remember(owner.identity);
+				signaled.push(
+					...(await terminateProcessIdentityTreeAndGroups(
+						owner.identity,
+						"SIGKILL",
+						readCurrentProcessTable,
+						isPidAlive,
+						identityExitTimeoutMs,
+					)),
+				);
+			}
+			await sleep(50);
+		}
+
+		for (const identity of candidates.values()) {
+			if (
+				!processIdentityHasExited(identity, readCurrentProcessTable, isPidAlive)
+			) {
+				throw new Error(
+					`ambiguous pty-daemon owner ${identity.pid} survived force restart`,
+				);
+			}
+		}
+		return signaled;
 	}
 
 	/**
@@ -641,10 +1115,10 @@ export class DaemonSupervisor {
 	/**
 	 * Auto-update: best-effort opportunistic handoff when the adopted
 	 * daemon is older than the bundled binary. Runs after host-service
-	 * boot, fire-and-track, doesn't block anything. The background path
-	 * is intentionally conservative: live sessions keep running on the
-	 * predecessor and the foreground Settings UI remains the place for
-	 * user-approved handoff/restart.
+	 * boot, fire-and-track, doesn't block anything. A daemon advertising the
+	 * Both lossless-live-handoff and correlated-input-ack capabilities are
+	 * required to rotate live sessions; legacy or unverified daemons defer until
+	 * idle. This path never force-restarts.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -691,10 +1165,32 @@ export class DaemonSupervisor {
 		}
 		const aliveSessionCount = countAliveSessions(sessions);
 		if (aliveSessionCount > 0) {
-			this.deferAutoUpdate(organizationId, instance, "live_sessions_present", {
-				aliveSessionCount,
-			});
-			return;
+			const probe = await probeDaemonHello(
+				instance.socketPath,
+				AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS,
+			);
+			if (!probe) {
+				this.deferAutoUpdate(
+					organizationId,
+					instance,
+					"live_handoff_capability_unknown",
+					{ aliveSessionCount },
+				);
+				return;
+			}
+			const capabilityFailure = liveHandoffCapabilityFailure(
+				sessions,
+				new Set(probe.capabilities),
+			);
+			if (capabilityFailure) {
+				this.deferAutoUpdate(
+					organizationId,
+					instance,
+					"live_handoff_capability_missing",
+					{ aliveSessionCount },
+				);
+				return;
+			}
 		}
 
 		const update = this.startUpdate(organizationId);
@@ -817,17 +1313,18 @@ export class DaemonSupervisor {
 	}
 
 	private async start(organizationId: string): Promise<DaemonInstance> {
+		const spawnOnly = this.spawnOnlyOrganizations.has(organizationId);
 		// Dev mode: never adopt. A leftover detached daemon from a previous
 		// `bun dev` session would mask code changes — devs hit Update or
 		// open a session and see stale-bundle behavior with no obvious
 		// reason. Kill any running daemon for the org and spawn fresh.
 		// Production keeps the adopt path so PTY sessions survive
 		// host-service restarts (the original Phase 1 promise).
-		if (shouldKillStaleDaemonForDev()) {
+		if (!spawnOnly && shouldKillStaleDaemonForDev()) {
 			await this.killStaleDaemonForDev(organizationId);
 		}
 
-		const adopted = await this.tryAdopt(organizationId);
+		const adopted = spawnOnly ? null : await this.tryAdopt(organizationId);
 		if (adopted) {
 			this.instances.set(organizationId, adopted);
 			console.log(
@@ -853,7 +1350,9 @@ export class DaemonSupervisor {
 			return adopted;
 		}
 
-		const instance = await this.spawn(organizationId);
+		const instance = await this.spawn(organizationId, {
+			requireProcessIdentity: spawnOnly,
+		});
 		logEvent("pty_daemon_spawn", {
 			organizationId,
 			pid: instance.pid,
@@ -1004,7 +1503,10 @@ export class DaemonSupervisor {
 		};
 	}
 
-	private async spawn(organizationId: string): Promise<DaemonInstance> {
+	private async spawn(
+		organizationId: string,
+		options: { requireProcessIdentity?: boolean } = {},
+	): Promise<DaemonInstance> {
 		const dir = ptyDaemonManifestDir(organizationId);
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -1083,6 +1585,19 @@ export class DaemonSupervisor {
 		const childPid = child.pid;
 		if (!childPid) {
 			throw new Error(`[pty-daemon:${organizationId}] failed to spawn`);
+		}
+		const spawnIdentity = options.requireProcessIdentity
+			? ((await captureProcessIdentityWithRetry(childPid)) ?? undefined)
+			: undefined;
+		if (options.requireProcessIdentity && !spawnIdentity) {
+			try {
+				child.kill("SIGKILL");
+			} catch {
+				// best-effort; recovery remains fail-closed
+			}
+			throw new Error(
+				`[pty-daemon:${organizationId}] could not capture spawned process identity ${childPid}`,
+			);
 		}
 
 		// Dev: fan daemon stdout/stderr up to host-service stdout (which
@@ -1188,6 +1703,7 @@ export class DaemonSupervisor {
 			pid: childPid,
 			socketPath,
 			startedAt,
+			spawnIdentity,
 			runningVersion: EXPECTED_DAEMON_VERSION,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: false,
@@ -1231,6 +1747,22 @@ function pipeWithPrefix(
 
 function countAliveSessions(sessions: SessionInfo[]): number {
 	return sessions.filter((session) => session.alive).length;
+}
+
+function isValidSessionList(value: unknown): value is SessionInfo[] {
+	return (
+		Array.isArray(value) &&
+		value.every(
+			(session) =>
+				typeof session === "object" &&
+				session !== null &&
+				typeof (session as Partial<SessionInfo>).id === "string" &&
+				Number.isInteger((session as Partial<SessionInfo>).pid) &&
+				Number.isInteger((session as Partial<SessionInfo>).cols) &&
+				Number.isInteger((session as Partial<SessionInfo>).rows) &&
+				typeof (session as Partial<SessionInfo>).alive === "boolean",
+		)
+	);
 }
 
 /**
@@ -1328,7 +1860,7 @@ export async function listDaemonSessions(
 						continue;
 					}
 					if (msg.type === "list-reply") {
-						cleanup(msg.sessions);
+						cleanup(isValidSessionList(msg.sessions) ? msg.sessions : null);
 						return;
 					}
 					if (msg.type === "error") {
@@ -1367,23 +1899,155 @@ async function probeDaemonHelloWithRetry(
 	return null;
 }
 
-async function probeDaemonVersionWithRetry(
-	socketPath: string,
-	totalTimeoutMs: number,
-): Promise<string | null> {
-	return (
-		(await probeDaemonHelloWithRetry(socketPath, totalTimeoutMs))
-			?.daemonVersion ?? null
-	);
+/** @internal Exported for deterministic socket identity-recheck tests. */
+export interface VerifiedDaemonOwner {
+	probe: DaemonProbeResult;
+	identity: ProcessIdentity;
 }
 
-function terminatePidOnly(pid: number, signal: NodeJS.Signals): void {
-	if (!isPositiveInteger(pid)) return;
-	try {
-		process.kill(pid, signal);
-	} catch {
-		// Already dead or not ours.
+/**
+ * An ACK PID is only a candidate. It becomes safe for later recovery signals
+ * after the socket responder independently proves the exact same lifetime.
+ */
+export function promoteVerifiedSuccessorIdentity(
+	candidate: ProcessIdentity,
+	owner: VerifiedDaemonOwner | null,
+): ProcessIdentity | null {
+	return owner && sameProcessIdentity(candidate, owner.identity)
+		? owner.identity
+		: null;
+}
+
+async function probeVerifiedDaemonOwnerWithRetry(
+	socketPath: string,
+	totalTimeoutMs: number,
+): Promise<VerifiedDaemonOwner | null> {
+	const deadline = Date.now() + totalTimeoutMs;
+	while (Date.now() < deadline) {
+		const remaining = deadline - Date.now();
+		try {
+			const owner = await probeVerifiedDaemonOwner(
+				socketPath,
+				Math.min(remaining, VERSION_PROBE_TIMEOUT_MS * 2),
+			);
+			if (owner) return owner;
+		} catch {
+			// Invalid identity claims are not ownership proofs. The caller will
+			// remain fail-closed if no later responder can be verified.
+			return null;
+		}
+		await new Promise((resolve) => setTimeout(resolve, 50));
 	}
+	return null;
+}
+
+/**
+ * A hello PID becomes an ownership witness only after a second hello reports
+ * the same PID and the exact process identity still matches after that reply.
+ */
+/** @internal Exported for deterministic socket identity-recheck tests. */
+export async function probeVerifiedDaemonOwner(
+	socketPath: string,
+	timeoutMs: number,
+	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
+): Promise<VerifiedDaemonOwner | null> {
+	const deadline = Date.now() + timeoutMs;
+	const first = await probeDaemonHello(
+		socketPath,
+		Math.max(1, Math.floor(timeoutMs / 2)),
+	);
+	if (!first) return null;
+	if (!isPositiveInteger(first.daemonPid)) {
+		throw new Error(
+			"pty-daemon answered without a verifiable process identity",
+		);
+	}
+	const identity = captureProcessIdentity(
+		first.daemonPid,
+		readCurrentProcessTable(),
+	);
+	if (!identity) {
+		throw new Error(
+			`pty-daemon ${first.daemonPid} answered but its process identity could not be verified`,
+		);
+	}
+
+	const remaining = deadline - Date.now();
+	if (remaining <= 0) {
+		throw new Error("pty-daemon identity recheck timed out");
+	}
+	const second = await probeDaemonHello(socketPath, remaining);
+	if (!second) {
+		throw new Error("pty-daemon identity recheck did not answer");
+	}
+	if (!isPositiveInteger(second.daemonPid)) {
+		throw new Error("pty-daemon identity recheck omitted its process id");
+	}
+	if (second.daemonPid !== identity.pid) {
+		throw new Error("pty-daemon identity changed between rechecks");
+	}
+	if (!processIdentityMatches(identity, readCurrentProcessTable())) {
+		throw new Error("pty-daemon process identity changed after recheck");
+	}
+	return { probe: second, identity };
+}
+
+async function captureProcessIdentityWithRetry(
+	pid: number,
+	timeoutMs = DAEMON_TERMINATE_TIMEOUT_MS,
+): Promise<ProcessIdentity | null> {
+	const deadline = Date.now() + timeoutMs;
+	do {
+		const identity = captureProcessIdentity(pid);
+		if (identity) return identity;
+		if (!isProcessAlive(pid)) return null;
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	} while (Date.now() < deadline);
+	return captureProcessIdentity(pid);
+}
+
+function processIdentityKey(identity: ProcessIdentity): string {
+	return `${identity.pid}:${identity.pgid}:${identity.startTime}`;
+}
+
+async function terminateProcessIdentityTreeAndGroups(
+	identity: ProcessIdentity,
+	signal: NodeJS.Signals,
+	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
+	isPidAlive: (pid: number) => boolean = isProcessAlive,
+	timeoutMs = DAEMON_TERMINATE_TIMEOUT_MS,
+): Promise<ProcessSignalTarget[]> {
+	const signaled = signalProcessTreeAndGroupsIfStillOwned(
+		identity,
+		signal,
+		{},
+		readCurrentProcessTable,
+	);
+	if (
+		await waitForProcessIdentityExit(
+			identity,
+			timeoutMs,
+			readCurrentProcessTable,
+			isPidAlive,
+		)
+	) {
+		return signaled;
+	}
+	signaled.push(
+		...signalProcessTreeAndGroupsIfStillOwned(
+			identity,
+			"SIGKILL",
+			{},
+			readCurrentProcessTable,
+		),
+	);
+	await waitForProcessIdentityExit(
+		identity,
+		timeoutMs,
+		readCurrentProcessTable,
+		isPidAlive,
+	);
+	return signaled;
 }
 
 async function terminateProcessTreeAndGroups(
@@ -1426,6 +2090,43 @@ async function waitForPidExit(
 }
 
 /**
+ * PID reuse counts as exit of the captured process lifetime. An absent row is
+ * only conclusive when the kernel also reports the PID gone: `ps` can fail or
+ * yield an incomplete table, which must not turn recovery into fail-open.
+ */
+function processIdentityHasExited(
+	identity: ProcessIdentity,
+	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
+	isPidAlive: (pid: number) => boolean = isProcessAlive,
+): boolean {
+	const currentTable = readCurrentProcessTable();
+	const currentPid = currentTable.find((row) => row.pid === identity.pid);
+	if (currentPid?.startTime) {
+		return !processIdentityMatches(identity, currentTable);
+	}
+	return !isPidAlive(identity.pid);
+}
+
+async function waitForProcessIdentityExit(
+	identity: ProcessIdentity,
+	timeoutMs: number,
+	readCurrentProcessTable: () => ProcessInfo[] = readProcessTable,
+	isPidAlive: (pid: number) => boolean = isProcessAlive,
+): Promise<boolean> {
+	const deadline = Date.now() + timeoutMs;
+	while (Date.now() < deadline) {
+		if (processIdentityHasExited(identity, readCurrentProcessTable, isPidAlive))
+			return true;
+		await new Promise((resolve) => setTimeout(resolve, 25));
+	}
+	return processIdentityHasExited(
+		identity,
+		readCurrentProcessTable,
+		isPidAlive,
+	);
+}
+
+/**
  * One-shot version probe: connect, send `hello`, read framed `hello-ack`,
  * close, return `daemonVersion`. Returns null on any failure.
  *
@@ -1452,6 +2153,9 @@ function probeDaemonHello(
 			settled = true;
 			clearTimeout(timer);
 			sock.removeAllListeners();
+			// Destroying a still-connecting pipe may emit another error after the
+			// first one settled the probe. Keep a sink installed through teardown.
+			sock.on("error", () => {});
 			try {
 				sock.end();
 			} catch {
@@ -1498,6 +2202,12 @@ function probeDaemonHello(
 						cleanup({
 							daemonVersion,
 							daemonPid: msg.daemonPid,
+							capabilities: Array.isArray(msg.capabilities)
+								? msg.capabilities.filter(
+										(capability): capability is string =>
+											typeof capability === "string",
+									)
+								: [],
 						});
 						return;
 					}

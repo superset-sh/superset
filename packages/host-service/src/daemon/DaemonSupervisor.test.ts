@@ -18,14 +18,22 @@ import * as os from "node:os";
 import * as path from "node:path";
 import {
 	type ClientMessage,
+	CORRELATED_INPUT_ACK_CAPABILITY,
 	encodeFrame,
 	FrameDecoder,
+	LOSSLESS_LIVE_HANDOFF_CAPABILITY,
 } from "@superset/pty-daemon/protocol";
 import {
 	DaemonSupervisor,
+	listDaemonSessions,
+	liveHandoffCapabilityFailure,
 	probeDaemonVersion,
+	probeVerifiedDaemonOwner,
+	promoteVerifiedSuccessorIdentity,
 	ptyDaemonSocketPath,
 	shouldKillStaleDaemonForDev,
+	successorCompatibilityFailure,
+	upgradeFailureCanResumePredecessor,
 } from "./DaemonSupervisor.ts";
 import { readPtyDaemonManifest, writePtyDaemonManifest } from "./manifest.ts";
 
@@ -69,10 +77,116 @@ afterEach(() => {
 	console.log = realConsoleLog;
 });
 
+describe("upgrade failure ownership compatibility", () => {
+	test("reopens only for an explicit predecessor verdict", () => {
+		expect(
+			upgradeFailureCanResumePredecessor({
+				ok: false,
+				reason: "safe abort",
+				ownership: "predecessor",
+			}),
+		).toBe(true);
+		expect(
+			upgradeFailureCanResumePredecessor({
+				ok: false,
+				reason: "commit uncertain",
+				ownership: "unresolved",
+			}),
+		).toBe(false);
+		expect(
+			upgradeFailureCanResumePredecessor({
+				ok: false,
+				reason: "legacy result without ownership",
+			}),
+		).toBe(false);
+	});
+});
+
+describe("live handoff capability policy", () => {
+	test("blocks a legacy daemon only when it owns live sessions", () => {
+		expect(liveHandoffCapabilityFailure([aliveSession()], new Set())).toMatch(
+			/lacks lossless-live-handoff-v1/,
+		);
+		expect(liveHandoffCapabilityFailure([], new Set())).toBeNull();
+		expect(
+			liveHandoffCapabilityFailure(
+				[aliveSession()],
+				new Set([
+					LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+					CORRELATED_INPUT_ACK_CAPABILITY,
+				]),
+			),
+		).toBeNull();
+	});
+
+	test("blocks live rotation when only input acknowledgements are missing", () => {
+		expect(
+			liveHandoffCapabilityFailure(
+				[aliveSession()],
+				new Set([LOSSLESS_LIVE_HANDOFF_CAPABILITY]),
+			),
+		).toMatch(/lacks correlated-input-ack-v1/);
+	});
+});
+
+describe("successor publication compatibility", () => {
+	const bothCapabilities = [
+		LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+		CORRELATED_INPUT_ACK_CAPABILITY,
+	];
+
+	test("rejects a rollback successor even when it advertises modern capabilities", () => {
+		expect(
+			successorCompatibilityFailure(
+				{ daemonVersion: "1.9.9", capabilities: bothCapabilities },
+				"2.0.0",
+			),
+		).toMatch(/does not satisfy >=2\.0\.0/);
+	});
+
+	test("rejects a successor missing either mandatory live-handoff capability", () => {
+		expect(
+			successorCompatibilityFailure(
+				{
+					daemonVersion: "2.0.0",
+					capabilities: [CORRELATED_INPUT_ACK_CAPABILITY],
+				},
+				"2.0.0",
+			),
+		).toMatch(/lacks lossless-live-handoff-v1/);
+		expect(
+			successorCompatibilityFailure(
+				{
+					daemonVersion: "2.0.0",
+					capabilities: [LOSSLESS_LIVE_HANDOFF_CAPABILITY],
+				},
+				"2.0.0",
+			),
+		).toMatch(/lacks correlated-input-ack-v1/);
+	});
+
+	test("accepts the expected version only with both mandatory capabilities", () => {
+		expect(
+			successorCompatibilityFailure(
+				{ daemonVersion: "2.0.0", capabilities: bothCapabilities },
+				"2.0.0",
+			),
+		).toBeNull();
+	});
+});
+
 interface FakeDaemonOptions {
 	socketPath?: string;
 	respondWithVersion?: string;
+	capabilities?: string[];
+	listReply?: unknown;
+	prepareResult?: {
+		ok: false;
+		reason: string;
+		ownership: "predecessor" | "unresolved";
+	};
 	daemonPid?: number;
+	daemonPids?: number[];
 	respondRaw?: Buffer;
 	hangUpAfterHello?: boolean;
 	respondWithWrongMessageFirst?: boolean;
@@ -81,6 +195,7 @@ interface FakeDaemonOptions {
 
 async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 	socketPath: string;
+	received: ClientMessage["type"][];
 	close: () => Promise<void>;
 }> {
 	const socketPath =
@@ -89,42 +204,58 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 			os.tmpdir(),
 			`fake-pty-daemon-${process.pid}-${Math.random().toString(36).slice(2, 8)}.sock`,
 		);
+	const received: ClientMessage["type"][] = [];
+	let helloCount = 0;
 	const server = net.createServer((sock) => {
 		const decoder = new FrameDecoder();
 		sock.on("data", (chunk: Buffer) => {
 			decoder.push(chunk);
 			for (const decoded of decoder.drain()) {
 				const msg = decoded.message as ClientMessage;
-				if (msg.type !== "hello") continue;
-				if (opts.silent) return;
-				if (opts.hangUpAfterHello) {
-					sock.end();
-					return;
-				}
-				if (opts.respondRaw) {
-					sock.write(opts.respondRaw);
-					return;
-				}
-				if (opts.respondWithWrongMessageFirst) {
+				received.push(msg.type);
+				if (msg.type === "hello") {
+					if (opts.silent) return;
+					if (opts.hangUpAfterHello) {
+						sock.end();
+						return;
+					}
+					if (opts.respondRaw) {
+						sock.write(opts.respondRaw);
+						return;
+					}
+					if (opts.respondWithWrongMessageFirst) {
+						sock.write(
+							encodeFrame({
+								type: "error",
+								code: "EBOGUS",
+								message: "test",
+							}),
+						);
+						return;
+					}
+					if (opts.respondWithVersion) {
+						const daemonPid = opts.daemonPids?.[helloCount++] ?? opts.daemonPid;
+						sock.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: 1,
+								daemonVersion: opts.respondWithVersion,
+								capabilities: opts.capabilities,
+								daemonPid,
+							}),
+						);
+					}
+				} else if (msg.type === "list" && opts.listReply !== undefined) {
+					sock.write(
+						encodeFrame({ type: "list-reply", sessions: opts.listReply }),
+					);
+				} else if (msg.type === "prepare-upgrade" && opts.prepareResult) {
 					sock.write(
 						encodeFrame({
-							type: "error",
-							code: "EBOGUS",
-							message: "test",
+							type: "upgrade-prepared",
+							result: opts.prepareResult,
 						}),
 					);
-					return;
-				}
-				if (opts.respondWithVersion) {
-					sock.write(
-						encodeFrame({
-							type: "hello-ack",
-							protocol: 1,
-							daemonVersion: opts.respondWithVersion,
-							daemonPid: opts.daemonPid,
-						}),
-					);
-					return;
 				}
 			}
 		});
@@ -133,6 +264,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 	await new Promise<void>((resolve) => server.listen(socketPath, resolve));
 	return {
 		socketPath,
+		received,
 		close: () =>
 			new Promise<void>((resolve) => {
 				server.close(() => resolve());
@@ -205,6 +337,140 @@ describe("probeDaemonVersion", () => {
 		} finally {
 			await fake.close();
 		}
+	});
+
+	test("verified owner requires two stable hello pid claims", async () => {
+		const stable = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			daemonPid: process.pid,
+		});
+		try {
+			const owner = await probeVerifiedDaemonOwner(stable.socketPath, 1500);
+			expect(owner?.identity.pid).toBe(process.pid);
+			expect(stable.received).toEqual(["hello", "hello"]);
+		} finally {
+			await stable.close();
+		}
+
+		const changed = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			daemonPids: [process.pid, process.pid + 1],
+		});
+		try {
+			await expect(
+				probeVerifiedDaemonOwner(changed.socketPath, 1500),
+			).rejects.toThrow("pty-daemon identity changed between rechecks");
+			expect(changed.received).toEqual(["hello", "hello"]);
+		} finally {
+			await changed.close();
+		}
+	});
+});
+
+describe("listDaemonSessions", () => {
+	test("treats a malformed list as unavailable, never as zero live sessions", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			listReply: [{ id: "missing-runtime-fields" }],
+		});
+		try {
+			expect(await listDaemonSessions(fake.socketPath, 1500)).toBeNull();
+		} finally {
+			await fake.close();
+		}
+	});
+});
+
+describe("DaemonSupervisor live-handoff preflight", () => {
+	const safeAbort = {
+		ok: false as const,
+		reason: "test predecessor retained",
+		ownership: "predecessor" as const,
+	};
+
+	async function exercisePreflight(options: {
+		sessions: unknown;
+		capabilities?: string[];
+	}): Promise<{
+		result: Awaited<ReturnType<DaemonSupervisor["update"]>>;
+		received: ClientMessage["type"][];
+	}> {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.2.5",
+			daemonPid: process.pid,
+			capabilities: options.capabilities,
+			listReply: options.sessions,
+			prepareResult: safeAbort,
+		});
+		const orgId = `preflight-${Math.random().toString(36).slice(2)}`;
+		const supervisor = new DaemonSupervisor({
+			scriptPath: "/nonexistent",
+			autoUpdate: false,
+		});
+		const originalOrganizationId = process.env.ORGANIZATION_ID;
+		process.env.ORGANIZATION_ID = orgId;
+		seedDaemonInstance(supervisor, orgId, {
+			...staleInstance("0.2.5"),
+			pid: process.pid,
+			socketPath: fake.socketPath,
+		});
+
+		try {
+			return {
+				result: await supervisor.update(orgId),
+				received: [...fake.received],
+			};
+		} finally {
+			(
+				supervisor as unknown as {
+					stopHealthPoll(organizationId: string): void;
+				}
+			).stopHealthPoll(orgId);
+			if (originalOrganizationId === undefined) {
+				delete process.env.ORGANIZATION_ID;
+			} else {
+				process.env.ORGANIZATION_ID = originalOrganizationId;
+			}
+			await fake.close();
+		}
+	}
+
+	test("never sends prepare-upgrade to a live legacy daemon", async () => {
+		const { result, received } = await exercisePreflight({
+			sessions: [aliveSession("legacy-live")],
+		});
+		expect(result).toEqual({
+			ok: false,
+			reason: expect.stringContaining("lacks lossless-live-handoff-v1"),
+		});
+		expect(received).toEqual(["hello", "list"]);
+	});
+
+	test("never sends prepare-upgrade after a malformed list", async () => {
+		const { result, received } = await exercisePreflight({
+			sessions: [{ id: "malformed" }],
+		});
+		expect(result.ok).toBe(false);
+		if (!result.ok) expect(result.reason).toMatch(/malformed session entry/);
+		expect(received).toEqual(["hello", "list"]);
+	});
+
+	test("allows an idle legacy daemon to reach prepare-upgrade", async () => {
+		const { result, received } = await exercisePreflight({ sessions: [] });
+		expect(result).toEqual({ ok: false, reason: safeAbort.reason });
+		expect(received).toEqual(["hello", "list", "prepare-upgrade"]);
+	});
+
+	test("allows a capable daemon with live sessions to reach prepare-upgrade", async () => {
+		const { result, received } = await exercisePreflight({
+			sessions: [aliveSession("capable-live")],
+			capabilities: [
+				LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+				CORRELATED_INPUT_ACK_CAPABILITY,
+			],
+		});
+		expect(result).toEqual({ ok: false, reason: safeAbort.reason });
+		expect(received).toEqual(["hello", "list", "prepare-upgrade"]);
 	});
 });
 
@@ -809,6 +1075,519 @@ describe("DaemonSupervisor.restart", () => {
 		expect(result).toEqual({ success: true });
 		expect(ensureMock).toHaveBeenCalledTimes(1);
 	});
+
+	test("serializes a destructive restart behind an in-flight smooth update", async () => {
+		const deferred = createDeferred<{
+			ok: false;
+			reason: string;
+		}>();
+		const runUpdateMock = mock(() => deferred.promise);
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+		const update = sup.update("org-update-then-restart");
+		const restart = sup.restart("org-update-then-restart");
+		const stopMock = (sup as unknown as { stop: ReturnType<typeof mock> }).stop;
+		await Promise.resolve();
+		expect(stopMock).not.toHaveBeenCalled();
+
+		deferred.resolve({ ok: false, reason: "proven abort" });
+		await update;
+		await restart;
+		expect(stopMock).toHaveBeenCalledTimes(1);
+	});
+
+	test("rejects a smooth update while a destructive restart is running", async () => {
+		const stopped = createDeferred<void>();
+		(sup as unknown as { stop: typeof sup.stop }).stop = mock(
+			() => stopped.promise,
+		) as typeof sup.stop;
+		const restart = sup.restart("org-restarting");
+		await expect(sup.update("org-restarting")).resolves.toEqual({
+			ok: false,
+			reason: "pty-daemon restart is already in progress",
+		});
+		stopped.resolve();
+		await restart;
+	});
+
+	test("force restart explicitly recovers a fail-closed ambiguous mutation gate", async () => {
+		const resetAfterForceRestart = mock(async (_error: Error) => {});
+		const eliminateAmbiguousOwners = mock(async () => {});
+		const proveFreshOwner = mock(async () => {});
+		(
+			sup as unknown as {
+				eliminateAmbiguousOwners: typeof eliminateAmbiguousOwners;
+				proveFreshOwner: typeof proveFreshOwner;
+			}
+		).eliminateAmbiguousOwners = eliminateAmbiguousOwners;
+		(
+			sup as unknown as { proveFreshOwner: typeof proveFreshOwner }
+		).proveFreshOwner = proveFreshOwner;
+		(
+			sup as unknown as {
+				ambiguousUpdates: Map<
+					string,
+					{
+						lease: { resetAfterForceRestart: typeof resetAfterForceRestart };
+						predecessor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
+						successor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
+						socketPath: string;
+					}
+				>;
+			}
+		).ambiguousUpdates.set("org-ambiguous", {
+			lease: { resetAfterForceRestart },
+			predecessor: {
+				pid: 111,
+				pgid: 111,
+				startTime: "predecessor-lifetime",
+			},
+			successor: {
+				pid: 222,
+				pgid: 222,
+				startTime: "successor-lifetime",
+			},
+			socketPath: "/tmp/ambiguous.sock",
+		});
+
+		await sup.restart("org-ambiguous");
+
+		const stopMock = (sup as unknown as { stop: ReturnType<typeof mock> }).stop;
+		expect(stopMock).not.toHaveBeenCalled();
+		expect(resetAfterForceRestart).toHaveBeenCalledTimes(1);
+		expect(eliminateAmbiguousOwners).toHaveBeenCalledTimes(1);
+		expect(proveFreshOwner).toHaveBeenCalledTimes(1);
+		expect(
+			(sup as unknown as { stopping: Set<string> }).stopping.has(
+				"org-ambiguous",
+			),
+		).toBe(false);
+		expect(
+			(
+				sup as unknown as {
+					ambiguousUpdates: Map<string, unknown>;
+				}
+			).ambiguousUpdates.has("org-ambiguous"),
+		).toBe(false);
+	});
+
+	test("clears the stopping marker but does not spawn when ambiguous elimination fails", async () => {
+		const eliminationError = new Error("owner identity still ambiguous");
+		const eliminateAmbiguousOwners = mock(async () => {
+			throw eliminationError;
+		});
+		(
+			sup as unknown as {
+				eliminateAmbiguousOwners: typeof eliminateAmbiguousOwners;
+			}
+		).eliminateAmbiguousOwners = eliminateAmbiguousOwners;
+		(
+			sup as unknown as {
+				ambiguousUpdates: Map<
+					string,
+					{
+						lease: { resetAfterForceRestart: (_error: Error) => Promise<void> };
+						predecessor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
+						socketPath: string;
+					}
+				>;
+			}
+		).ambiguousUpdates.set("org-ambiguous-elimination-failure", {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 333,
+				pgid: 333,
+				startTime: "ambiguous-predecessor-lifetime",
+			},
+			socketPath: "/tmp/ambiguous-elimination-failure.sock",
+		});
+
+		await expect(sup.restart("org-ambiguous-elimination-failure")).rejects.toBe(
+			eliminationError,
+		);
+
+		expect(
+			(sup as unknown as { stopping: Set<string> }).stopping.has(
+				"org-ambiguous-elimination-failure",
+			),
+		).toBe(false);
+		expect(
+			(
+				sup as unknown as { spawnOnlyOrganizations: Set<string> }
+			).spawnOnlyOrganizations.has("org-ambiguous-elimination-failure"),
+		).toBe(false);
+		expect(
+			(sup as unknown as { ensure: ReturnType<typeof mock> }).ensure,
+		).not.toHaveBeenCalled();
+		expect(
+			(
+				sup as unknown as { ambiguousUpdates: Map<string, unknown> }
+			).ambiguousUpdates.has("org-ambiguous-elimination-failure"),
+		).toBe(true);
+	});
+
+	test("a successor that binds after the scan cannot be adopted as the fresh replacement", async () => {
+		const localSup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		const organizationId = "org-late-binder-after-scan";
+		const resetAfterForceRestart = mock(async (_error: Error) => {});
+		const lateBinder = {
+			...freshInstance(),
+			pid: 881,
+			socketPath: "/tmp/late-binder.sock",
+		};
+		const spawnIdentity = {
+			pid: 882,
+			pgid: 882,
+			startTime: "deliberately-spawned-lifetime",
+		};
+		const deliberatelySpawned = {
+			...freshInstance(),
+			pid: spawnIdentity.pid,
+			socketPath: lateBinder.socketPath,
+			spawnIdentity,
+		};
+		const eliminateAmbiguousOwners = mock(async () => {
+			// The scan is now over. If normal adoption runs next, it observes the
+			// old successor represented by lateBinder and mislabels it as fresh.
+		});
+		const tryAdopt = mock(async () => lateBinder);
+		const spawn = mock(
+			async (
+				_organizationId: string,
+				_options: { requireProcessIdentity?: boolean },
+			) => deliberatelySpawned,
+		);
+		const proveFreshOwner = mock(
+			async (instance: typeof deliberatelySpawned) => {
+				expect(instance).toBe(deliberatelySpawned);
+			},
+		);
+		(
+			localSup as unknown as {
+				eliminateAmbiguousOwners: typeof eliminateAmbiguousOwners;
+				tryAdopt: typeof tryAdopt;
+				spawn: typeof spawn;
+				proveFreshOwner: typeof proveFreshOwner;
+			}
+		).eliminateAmbiguousOwners = eliminateAmbiguousOwners;
+		(localSup as unknown as { tryAdopt: typeof tryAdopt }).tryAdopt = tryAdopt;
+		(localSup as unknown as { spawn: typeof spawn }).spawn = spawn;
+		(
+			localSup as unknown as { proveFreshOwner: typeof proveFreshOwner }
+		).proveFreshOwner = proveFreshOwner;
+		(
+			localSup as unknown as {
+				ambiguousUpdates: Map<
+					string,
+					{
+						lease: { resetAfterForceRestart: typeof resetAfterForceRestart };
+						predecessor: {
+							pid: number;
+							pgid: number;
+							startTime: string;
+						};
+						socketPath: string;
+					}
+				>;
+			}
+		).ambiguousUpdates.set(organizationId, {
+			lease: { resetAfterForceRestart },
+			predecessor: {
+				pid: 880,
+				pgid: 880,
+				startTime: "predecessor-lifetime",
+			},
+			socketPath: lateBinder.socketPath,
+		});
+
+		await localSup.restart(organizationId);
+
+		expect(eliminateAmbiguousOwners).toHaveBeenCalledTimes(1);
+		expect(tryAdopt).not.toHaveBeenCalled();
+		expect(spawn).toHaveBeenCalledWith(organizationId, {
+			requireProcessIdentity: true,
+		});
+		expect(proveFreshOwner).toHaveBeenCalledWith(deliberatelySpawned);
+		expect(resetAfterForceRestart).toHaveBeenCalledTimes(1);
+	});
+
+	test("fresh-owner proof requires the exact spawned process lifetime", async () => {
+		const localSup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		const spawnIdentity = {
+			pid: 991,
+			pgid: 991,
+			startTime: "spawned-lifetime",
+		};
+		const instance = {
+			...freshInstance(),
+			pid: spawnIdentity.pid,
+			spawnIdentity,
+		};
+		const samePidDifferentLifetime = mock(async () => ({
+			probe: {
+				daemonVersion: instance.runningVersion,
+				daemonPid: instance.pid,
+				capabilities: [],
+			},
+			identity: { ...spawnIdentity, startTime: "late-binder-lifetime" },
+		}));
+
+		await expect(
+			(
+				localSup as unknown as {
+					proveFreshOwner(
+						candidate: typeof instance,
+						probeOwner: typeof samePidDifferentLifetime,
+					): Promise<void>;
+				}
+			).proveFreshOwner(instance, samePidDifferentLifetime),
+		).rejects.toThrow(
+			`force restart could not prove exact fresh daemon owner ${instance.pid}`,
+		);
+	});
+
+	test("an ACK pid recycled before recovery never becomes a signal target", async () => {
+		let processTableReads = 0;
+		const unverifiedAckCandidate = {
+			pid: 222,
+			pgid: 222,
+			startTime: "recycled-before-probe",
+		};
+		expect(
+			promoteVerifiedSuccessorIdentity(unverifiedAckCandidate, null),
+		).toBeNull();
+		expect(
+			promoteVerifiedSuccessorIdentity(unverifiedAckCandidate, {
+				probe: {
+					daemonVersion: "0.2.6",
+					daemonPid: 222,
+					capabilities: [],
+				},
+				identity: {
+					pid: 222,
+					pgid: 222,
+					startTime: "different-socket-owner",
+				},
+			}),
+		).toBeNull();
+		const recycledTable = [
+			{ pid: 111, ppid: 1, pgid: 111, startTime: "recycled-predecessor" },
+			{
+				pid: 222,
+				ppid: 1,
+				pgid: 222,
+				startTime: "recycled-after-ack",
+			},
+		];
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 111,
+				pgid: 111,
+				startTime: "original-predecessor",
+			},
+			successor: unverifiedAckCandidate,
+			socketPath: "/tmp/ambiguous-recycled.sock",
+		};
+		const signaled = await (
+			sup as unknown as {
+				eliminateAmbiguousOwners(
+					candidate: unknown,
+					options: {
+						readCurrentProcessTable: () => typeof recycledTable;
+						probeWindowMs: number;
+					},
+				): Promise<unknown[]>;
+			}
+		).eliminateAmbiguousOwners(recovery, {
+			readCurrentProcessTable: () => {
+				processTableReads++;
+				return recycledTable;
+			},
+			probeWindowMs: 0,
+		});
+
+		expect(signaled).toEqual([]);
+		expect(processTableReads).toBeGreaterThanOrEqual(3);
+	});
+
+	test("a captured ACK successor keeps recovery fail closed until that exact lifetime exits", async () => {
+		const successor = {
+			pid: 987_654,
+			pgid: 987_654,
+			startTime: "ack-successor-lifetime",
+		};
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 987_653,
+				pgid: 987_653,
+				startTime: "already-exited-predecessor",
+			},
+			successor,
+			socketPath: "/tmp/ambiguous-ack-successor.sock",
+		};
+		const liveSuccessorTable = [
+			{
+				pid: successor.pid,
+				ppid: 1,
+				pgid: successor.pgid,
+				startTime: successor.startTime,
+			},
+		];
+
+		await expect(
+			(
+				sup as unknown as {
+					eliminateAmbiguousOwners(
+						candidate: unknown,
+						options: {
+							readCurrentProcessTable: () => typeof liveSuccessorTable;
+							isPidAlive: (_pid: number) => boolean;
+							identityExitTimeoutMs: number;
+							probeWindowMs: number;
+						},
+					): Promise<unknown[]>;
+				}
+			).eliminateAmbiguousOwners(recovery, {
+				readCurrentProcessTable: () => liveSuccessorTable,
+				isPidAlive: (pid: number) => pid === successor.pid,
+				identityExitTimeoutMs: 0,
+				probeWindowMs: 0,
+			}),
+		).rejects.toThrow(
+			`ambiguous pty-daemon owner ${successor.pid} survived force restart`,
+		);
+	});
+
+	test("fails closed when process-table reads are empty but the kernel reports the pid alive", async () => {
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 444,
+				pgid: 444,
+				startTime: "live-but-unreadable-lifetime",
+			},
+			socketPath: "/tmp/ambiguous-empty-process-table.sock",
+		};
+		const isPidAlive = mock((_pid: number) => true);
+
+		await expect(
+			(
+				sup as unknown as {
+					eliminateAmbiguousOwners(
+						candidate: unknown,
+						options: {
+							readCurrentProcessTable: () => [];
+							isPidAlive: typeof isPidAlive;
+							identityExitTimeoutMs: number;
+							probeWindowMs: number;
+						},
+					): Promise<unknown[]>;
+				}
+			).eliminateAmbiguousOwners(recovery, {
+				readCurrentProcessTable: () => [],
+				isPidAlive,
+				identityExitTimeoutMs: 0,
+				probeWindowMs: 0,
+			}),
+		).rejects.toThrow("ambiguous pty-daemon owner 444 survived force restart");
+		expect(isPidAlive).toHaveBeenCalled();
+	});
+
+	test("accepts an empty process table only when the kernel reports the pid gone", async () => {
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 555,
+				pgid: 555,
+				startTime: "exited-lifetime",
+			},
+			socketPath: "/tmp/ambiguous-gone-process.sock",
+		};
+		const isPidAlive = mock((_pid: number) => false);
+
+		await expect(
+			(
+				sup as unknown as {
+					eliminateAmbiguousOwners(
+						candidate: unknown,
+						options: {
+							readCurrentProcessTable: () => [];
+							isPidAlive: typeof isPidAlive;
+							identityExitTimeoutMs: number;
+							probeWindowMs: number;
+						},
+					): Promise<unknown[]>;
+				}
+			).eliminateAmbiguousOwners(recovery, {
+				readCurrentProcessTable: () => [],
+				isPidAlive,
+				identityExitTimeoutMs: 0,
+				probeWindowMs: 0,
+			}),
+		).resolves.toEqual([]);
+		expect(isPidAlive).toHaveBeenCalled();
+	});
+
+	test("an answering socket with an unverifiable process identity keeps ambiguous recovery fail closed", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.1.0",
+			daemonPid: process.pid,
+		});
+		const recovery = {
+			lease: { resetAfterForceRestart: async (_error: Error) => {} },
+			predecessor: {
+				pid: 777,
+				pgid: 777,
+				startTime: "already-exited-predecessor",
+			},
+			socketPath: fake.socketPath,
+		};
+
+		try {
+			await expect(
+				(
+					sup as unknown as {
+						eliminateAmbiguousOwners(
+							candidate: unknown,
+							options: {
+								readCurrentProcessTable: () => [];
+								isPidAlive: (_pid: number) => boolean;
+								identityExitTimeoutMs: number;
+								probeOwner: typeof probeVerifiedDaemonOwner;
+								probeWindowMs: number;
+							},
+						): Promise<unknown[]>;
+					}
+				).eliminateAmbiguousOwners(recovery, {
+					readCurrentProcessTable: () => [],
+					isPidAlive: (_pid: number) => false,
+					identityExitTimeoutMs: 0,
+					probeOwner: (socketPath, timeoutMs) =>
+						probeVerifiedDaemonOwner(socketPath, timeoutMs, () => []),
+					probeWindowMs: 1000,
+				}),
+			).rejects.toThrow(
+				`pty-daemon ${process.pid} answered but its process identity could not be verified`,
+			);
+			expect(fake.received).toEqual(["hello"]);
+		} finally {
+			await fake.close();
+		}
+	});
 });
 
 describe("DaemonSupervisor.update concurrency guard", () => {
@@ -1048,8 +1827,12 @@ describe("DaemonSupervisor auto-update best effort", () => {
 		).toBe(true);
 	});
 
-	test("defers the background update when live sessions are present", async () => {
-		const instance = staleInstance("0.0.6");
+	test("defers live background update when capability is unknown", async () => {
+		const fake = await startFakeDaemon({ hangUpAfterHello: true });
+		const instance = {
+			...staleInstance("0.0.6"),
+			socketPath: fake.socketPath,
+		};
 		seedDaemonInstance(sup, "org-auto-live", instance);
 		mockListSessions(sup, [aliveSession()]);
 		const runUpdateMock = mock(async () => ({
@@ -1059,17 +1842,111 @@ describe("DaemonSupervisor auto-update best effort", () => {
 		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
 			runUpdateMock;
 
-		invokeKickoffAutoUpdate(sup, "org-auto-live", instance);
-		await flushAutoUpdate();
+		try {
+			invokeKickoffAutoUpdate(sup, "org-auto-live", instance);
+			await waitFor(() =>
+				loggedEvents.some(
+					(e) =>
+						e.event === "pty_daemon_auto_update_deferred" &&
+						e.props.reason === "live_handoff_capability_unknown",
+				),
+			);
 
+			expect(runUpdateMock).not.toHaveBeenCalled();
+			expect(
+				loggedEvents.some(
+					(e) =>
+						e.event === "pty_daemon_auto_update_deferred" &&
+						e.props.reason === "live_handoff_capability_unknown" &&
+						e.props.aliveSessionCount === 1 &&
+						e.props.pid === instance.pid,
+				),
+			).toBe(true);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("allows live background update when daemon advertises lossless handoff and input ACKs", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.0.6",
+			capabilities: [
+				LOSSLESS_LIVE_HANDOFF_CAPABILITY,
+				CORRELATED_INPUT_ACK_CAPABILITY,
+			],
+		});
+		const instance = {
+			...staleInstance("0.0.6"),
+			socketPath: fake.socketPath,
+		};
+		seedDaemonInstance(sup, "org-auto-live-capable", instance);
+		mockListSessions(sup, [aliveSession()]);
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7778,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		try {
+			invokeKickoffAutoUpdate(sup, "org-auto-live-capable", instance);
+			await flushAutoUpdate();
+			expect(runUpdateMock).toHaveBeenCalledTimes(1);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("defers live background update for a valid legacy hello without capability", async () => {
+		const fake = await startFakeDaemon({ respondWithVersion: "0.2.5" });
+		const instance = {
+			...staleInstance("0.2.5"),
+			socketPath: fake.socketPath,
+		};
+		seedDaemonInstance(sup, "org-auto-live-legacy", instance);
+		mockListSessions(sup, [aliveSession()]);
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7779,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		try {
+			invokeKickoffAutoUpdate(sup, "org-auto-live-legacy", instance);
+			await waitFor(() =>
+				loggedEvents.some(
+					(e) =>
+						e.event === "pty_daemon_auto_update_deferred" &&
+						e.props.reason === "live_handoff_capability_missing",
+				),
+			);
+			expect(runUpdateMock).not.toHaveBeenCalled();
+			expect(fake.received).toEqual(["hello"]);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("defers when the session list is unavailable without starting update", async () => {
+		const instance = staleInstance("0.0.5");
+		seedDaemonInstance(sup, "org-auto-list-unknown", instance);
+		mockListSessions(sup, null);
+		const runUpdateMock = mock(async () => ({
+			ok: true as const,
+			successorPid: 7779,
+		}));
+		(sup as unknown as { runUpdate: typeof runUpdateMock }).runUpdate =
+			runUpdateMock;
+
+		invokeKickoffAutoUpdate(sup, "org-auto-list-unknown", instance);
+		await flushAutoUpdate();
 		expect(runUpdateMock).not.toHaveBeenCalled();
 		expect(
 			loggedEvents.some(
-				(e) =>
-					e.event === "pty_daemon_auto_update_deferred" &&
-					e.props.reason === "live_sessions_present" &&
-					e.props.aliveSessionCount === 1 &&
-					e.props.pid === instance.pid,
+				(event) =>
+					event.event === "pty_daemon_auto_update_deferred" &&
+					event.props.reason === "session_list_unavailable",
 			),
 		).toBe(true);
 	});
@@ -1218,6 +2095,19 @@ function aliveSession(id = "live") {
 async function flushAutoUpdate(): Promise<void> {
 	await new Promise((r) => setTimeout(r, 0));
 	await new Promise((r) => setTimeout(r, 0));
+}
+
+async function waitFor(
+	predicate: () => boolean,
+	timeoutMs = 1_000,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!predicate()) {
+		if (Date.now() >= deadline) {
+			throw new Error(`condition did not become true within ${timeoutMs}ms`);
+		}
+		await new Promise((resolve) => setTimeout(resolve, 5));
+	}
 }
 
 function freshInstance() {

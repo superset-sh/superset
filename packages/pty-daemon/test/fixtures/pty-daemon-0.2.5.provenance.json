@@ -1,0 +1,10 @@
+{
+	"artifact": "pty-daemon-0.2.5.mjs",
+	"sourceRepository": "https://github.com/superset-sh/superset",
+	"sourceCommit": "4ea555e075ce2217a3d9d1062480c3fba68445bf",
+	"sourcePackageVersion": "0.2.5",
+	"bunVersion": "1.3.11",
+	"buildCommand": "cd packages/pty-daemon && bun run build:daemon",
+	"buildOutput": "packages/pty-daemon/dist/pty-daemon.js",
+	"sha256": "923fbfd7e656a5d16e5d4276798f6d02b6dce9ca69e1d0fe0f6ded633b73df5a"
+}

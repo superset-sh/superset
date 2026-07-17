@@ -9,6 +9,8 @@ export interface Session {
 	/** ring buffer for replay-on-attach; in-memory only, never persisted. */
 	buffer: Buffer[];
 	bufferBytes: number;
+	/** Monotonic count of every output byte recorded for this live PTY. */
+	outputBytes: number;
 	bufferCap: number;
 	exited: boolean;
 	exitCode: number | null;
@@ -45,6 +47,7 @@ export class SessionStore {
 			pty,
 			buffer: [],
 			bufferBytes: 0,
+			outputBytes: 0,
 			bufferCap: this.bufferCap,
 			exited: false,
 			exitCode: null,
@@ -88,6 +91,7 @@ export class SessionStore {
 	appendOutput(session: Session, chunk: Buffer): void {
 		session.buffer.push(chunk);
 		session.bufferBytes += chunk.byteLength;
+		session.outputBytes += chunk.byteLength;
 		while (
 			session.bufferBytes > session.bufferCap &&
 			session.buffer.length > 0

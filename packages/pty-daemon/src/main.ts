@@ -16,6 +16,7 @@
 // Logs go to stderr; nothing on stdout.
 
 import * as os from "node:os";
+import * as path from "node:path";
 import packageJson from "../package.json" with { type: "json" };
 import type { HandoffMessage } from "./protocol/index.ts";
 import { Server } from "./Server/index.ts";
@@ -101,19 +102,31 @@ async function runHandoffReceiver(): Promise<void> {
 	// aren't.
 	let snapshotPath: string | undefined;
 	let socketPath: string | undefined;
+	let handoffSocketPath: string | undefined;
 	for (const arg of process.argv) {
 		if (arg.startsWith("--snapshot=")) {
 			snapshotPath = arg.slice("--snapshot=".length);
 		} else if (arg.startsWith("--socket=")) {
 			socketPath = arg.slice("--socket=".length);
+		} else if (arg.startsWith("--handoff-socket=")) {
+			handoffSocketPath = arg.slice("--handoff-socket=".length);
 		}
 	}
 	if (!snapshotPath) throw new Error("--snapshot=PATH not set in argv");
 	if (!socketPath) throw new Error("--socket=PATH not set in argv");
+	const legacyPredecessor = handoffSocketPath === undefined;
+	// Legacy predecessors did not pass a staging path. Derive one in the same
+	// directory so rename-to-canonical remains atomic for the first old→new hop.
+	handoffSocketPath ??= path.join(
+		path.dirname(socketPath),
+		`.ptyd-h-${process.pid}-${Date.now().toString(36)}.sock`,
+	);
 	if (typeof process.send !== "function") {
 		throw new Error("handoff receiver requires an IPC channel (process.send)");
 	}
-	log(`snapshotPath=${snapshotPath} socketPath=${socketPath}`);
+	log(
+		`snapshotPath=${snapshotPath} socketPath=${socketPath} handoffSocketPath=${handoffSocketPath}`,
+	);
 
 	// Ignore env in handoff mode: an old-bundle predecessor won't strip
 	// SUPERSET_PTY_DAEMON_VERSION when spawning us, and trusting it
@@ -131,7 +144,7 @@ async function runHandoffReceiver(): Promise<void> {
 			type: "upgrade-nak",
 			reason: `snapshot read failed: ${reason}`,
 		};
-		process.send?.(nak);
+		sendHandoffMessage(nak, log);
 		setTimeout(() => process.exit(1), 50).unref();
 		return;
 	}
@@ -149,45 +162,168 @@ async function runHandoffReceiver(): Promise<void> {
 			type: "upgrade-nak",
 			reason: `adopt failed: ${(err as Error).message}`,
 		};
-		process.send?.(nak);
+		sendHandoffMessage(nak, log);
 		// Give Node a moment to flush the IPC frame, then exit non-zero.
 		setTimeout(() => process.exit(1), 50).unref();
 		return;
 	}
 
-	// Tell predecessor we adopted; it will close its socket + exit.
-	log(`sending upgrade-ack`);
-	const ack: HandoffMessage = {
+	// Prove that the successor can listen before the predecessor commits. This
+	// private socket is atomically renamed to the canonical path after COMMIT.
+	try {
+		await server.listenForHandoff(handoffSocketPath);
+	} catch (err) {
+		const reason = `staging socket bind failed: ${(err as Error).message}`;
+		log(reason);
+		const nak: HandoffMessage = { type: "upgrade-nak", reason };
+		sendHandoffMessage(nak, log);
+		setTimeout(() => process.exit(1), 50).unref();
+		return;
+	}
+
+	// Install the COMMIT waiter before READY is sent so a fast predecessor can
+	// never beat our message listener.
+	const commitPromise = waitForUpgradeCommit({ legacyPredecessor });
+	log(`sending upgrade-ready`);
+	const ready: HandoffMessage = {
+		type: "upgrade-ready",
+		successorPid: process.pid,
+	};
+	const readySent = sendHandoffMessage(ready, log);
+	// Pre-two-phase predecessors ignore READY and wait specifically for ACK.
+	// Sending both is safe: new predecessors ignore this compatibility frame.
+	const legacyAck: HandoffMessage = {
 		type: "upgrade-ack",
 		successorPid: process.pid,
 	};
-	process.send?.(ack);
+	const legacyAckSent = sendHandoffMessage(legacyAck, log);
+	if (!readySent && !legacyAckSent) {
+		log("handoff IPC channel unavailable before READY");
+		await server.close({ killSessions: false });
+		process.exit(1);
+		return;
+	}
 
-	// Wait for the predecessor to fully exit before we bind. Without this
-	// wait, the predecessor's `server.close()` (which unlinks the socket
-	// path) can race our `listen()` call: we'd bind successfully but then
-	// the predecessor's unlink removes the path entry under us, and the
-	// follow-up chmod hits ENOENT. Predecessor exit closes its IPC channel
-	// — Node delivers that as the 'disconnect' event on our side.
-	log(`waiting for predecessor disconnect`);
-	await new Promise<void>((resolve) => {
-		if (process.connected !== true) return resolve();
-		process.once("disconnect", () => resolve());
-		// Defense in depth: if disconnect doesn't arrive (unexpected), bind
-		// anyway after a short bound. The retry-on-EADDRINUSE handles any
-		// remaining race.
-		setTimeout(() => resolve(), 1_000).unref();
-	});
-	log(`predecessor disconnected, binding socket`);
+	let commitMode: "explicit" | "legacy-disconnect";
+	try {
+		commitMode = await commitPromise;
+	} catch (err) {
+		log(`handoff aborted before commit: ${(err as Error).message}`);
+		await server.close({ killSessions: false });
+		process.exit(1);
+		return;
+	}
 
-	await server.listenWithRetry();
-	log(`bound and listening`);
+	log(`${commitMode} commit received, publishing staged successor`);
+	try {
+		// New predecessors atomically rewrite this file with bytes that reached
+		// their paused user-space stream after fd inheritance. Legacy predecessors
+		// leave the original snapshot unchanged, so the same refresh is harmless.
+		server.refreshAdoptedSnapshot(readSnapshot(snapshotPath));
+		server.publishHandoffSocket(handoffSocketPath);
+		// Keep readers staged until the host has subscribed. The subscription is
+		// registered before activation, so bytes produced after the final snapshot
+		// are delivered live instead of disappearing into an unsubscribed window.
+		// Once all known subscriptions are rebound, the host explicitly releases
+		// any orphan/hidden sessions with activate-adopted on that ordered socket.
+	} catch (err) {
+		const reason = `commit refresh/publish failed: ${(err as Error).message}`;
+		log(reason);
+		const nak: HandoffMessage = { type: "upgrade-nak", reason };
+		sendHandoffMessage(nak, log);
+		setTimeout(() => process.exit(1), 50).unref();
+		return;
+	}
+
+	log(`canonical socket published and listening`);
+	const listening: HandoffMessage = {
+		type: "upgrade-listening",
+		successorPid: process.pid,
+	};
+	// The canonical socket is authoritative now. Losing predecessor IPC at this
+	// point must not crash a healthy successor or strand every terminal session.
+	sendHandoffMessage(listening, log);
 	process.stderr.write(
 		`[pty-daemon] (handoff successor) listening on ${socketPath} (v${daemonVersion}, host=${os.hostname()}, sessions=${snapshot.sessions.length})\n`,
 	);
 
-	clearSnapshot(snapshotPath);
+	try {
+		clearSnapshot(snapshotPath);
+	} catch (error) {
+		// The canonical socket is already published. Snapshot cleanup is no longer
+		// part of ownership correctness and must never kill the active successor.
+		log(`snapshot cleanup failed after publish: ${(error as Error).message}`);
+	}
 	wireShutdown(server);
+}
+
+const HANDOFF_COMMIT_TIMEOUT_MS = 10_000;
+function waitForUpgradeCommit(opts: {
+	legacyPredecessor: boolean;
+}): Promise<"explicit" | "legacy-disconnect"> {
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		let timer: NodeJS.Timeout | null = null;
+		const settle = (
+			result?: "explicit" | "legacy-disconnect",
+			error?: Error,
+		) => {
+			if (settled) return;
+			settled = true;
+			process.off("message", onMessage);
+			process.off("disconnect", onDisconnect);
+			if (timer) clearTimeout(timer);
+			if (error) reject(error);
+			else resolve(result ?? "explicit");
+		};
+		const onMessage = (raw: unknown) => {
+			const message = raw as Partial<HandoffMessage>;
+			if (message?.type === "upgrade-commit") settle("explicit");
+		};
+		const onDisconnect = () => {
+			if (opts.legacyPredecessor) settle("legacy-disconnect");
+			else
+				settle(
+					undefined,
+					new Error("predecessor IPC disconnected before COMMIT"),
+				);
+		};
+		process.on("message", onMessage);
+		process.once("disconnect", onDisconnect);
+		if (process.connected !== true) {
+			onDisconnect();
+			return;
+		}
+		timer = setTimeout(
+			() =>
+				settle(
+					undefined,
+					new Error(
+						`predecessor commit timed out after ${HANDOFF_COMMIT_TIMEOUT_MS}ms`,
+					),
+				),
+			HANDOFF_COMMIT_TIMEOUT_MS,
+		);
+	});
+}
+
+function sendHandoffMessage(
+	message: HandoffMessage,
+	log: (message: string) => void,
+): boolean {
+	if (typeof process.send !== "function" || process.connected !== true) {
+		log(`IPC send skipped for ${message.type}: channel is disconnected`);
+		return false;
+	}
+	try {
+		process.send(message, (error) => {
+			if (error) log(`IPC send failed for ${message.type}: ${error.message}`);
+		});
+		return true;
+	} catch (error) {
+		log(`IPC send threw for ${message.type}: ${(error as Error).message}`);
+		return false;
+	}
 }
 
 function wireShutdown(server: Server): void {

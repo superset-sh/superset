@@ -14,6 +14,7 @@
 			"!**/*.template.ts",
 			"!**/plans",
 			"!apps/mobile/uniwind-types.d.ts",
+			"!packages/pty-daemon/test/fixtures/pty-daemon-0.2.5.mjs",
 			"!packages/sdk/src"
 		]
 	},
