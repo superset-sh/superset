@@ -14,7 +14,11 @@ import { protectedProcedure, router } from "../../index";
 const promptTransportSchema = z.enum(["argv", "stdin"]);
 
 const argvSchema = z.array(z.string());
-const envSchema = z.record(z.string(), z.string());
+// Input hygiene (not an auth control): keys are interpolated into launch command strings, so constrain them to POSIX env-var names.
+const envSchema = z.record(
+	z.string().regex(/^[A-Za-z_][A-Za-z0-9_]*$/),
+	z.string(),
+);
 
 export interface HostAgentConfig {
 	id: string;

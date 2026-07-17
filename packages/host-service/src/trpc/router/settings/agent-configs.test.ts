@@ -125,6 +125,16 @@ describe("agentConfigsRouter", () => {
 			);
 		});
 
+		it("rejects env keys that are not valid POSIX names", async () => {
+			const caller = createCaller();
+			await expect(
+				caller.add({
+					...presetBody("claude"),
+					env: { "PATH=$(id)": "x" },
+				}),
+			).rejects.toThrow();
+		});
+
 		it("allows duplicate presetId tags with distinct ids", async () => {
 			const caller = createCaller();
 			await caller.list();
