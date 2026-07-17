@@ -6,7 +6,6 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useMemo } from "react";
 import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -32,11 +31,12 @@ const STEPS = [
 	},
 ] as const;
 
+const chatServiceIpcClient = createChatServiceIpcClient();
+
 function OnboardingFlowLayout() {
 	const { data: session, isPending } = authClient.useSession();
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === undefined || platform === "darwin";
-	const chatClient = useMemo(() => createChatServiceIpcClient(), []);
 	const location = useLocation();
 	const navigate = useNavigate();
 
@@ -64,7 +64,10 @@ function OnboardingFlowLayout() {
 		: null;
 
 	return (
-		<ChatServiceProvider client={chatClient} queryClient={electronQueryClient}>
+		<ChatServiceProvider
+			client={chatServiceIpcClient}
+			queryClient={electronQueryClient}
+		>
 			<div className="flex h-full w-full flex-col bg-background">
 				<div
 					className="drag h-12 w-full shrink-0"
