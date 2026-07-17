@@ -2,10 +2,7 @@ import { Agent } from "@mastra/core/agent";
 import { getSmallModel } from "@superset/chat/server/shared";
 import { z } from "zod";
 import type { HostServiceContext } from "../../../../types";
-import {
-	markWorkspaceCloudSynced,
-	updateLocalWorkspace,
-} from "../../../../workspaces/local-workspace-store";
+import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -200,21 +197,5 @@ export async function applyAiWorkspaceRename(
 			{ workspaceId, patch },
 		);
 		return;
-	}
-
-	try {
-		await ctx.api.v2Workspace.updateNameFromHost.mutate({
-			id: workspaceId,
-			...patch,
-			...(titleChanged ? { expectedCurrentName: oldWorkspaceName } : {}),
-		});
-		markWorkspaceCloudSynced(ctx.db, workspaceId, {
-			expectedUpdatedAt: updated.updatedAt,
-		});
-	} catch (err) {
-		console.warn(
-			"[applyAiWorkspaceRename] cloud mirror push failed; reconciler will retry",
-			{ workspaceId, err },
-		);
 	}
 }

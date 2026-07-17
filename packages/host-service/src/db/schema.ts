@@ -70,6 +70,11 @@ export const projects = sqliteTable(
 		// "fall back to the host-wide default" in `host_settings`.
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		// Empty string means "not yet backfilled" — the startup sweep targets
+		// these rows (name from cloud legacy row if reachable, else basename).
+		name: text().notNull().default(""),
+		// 0 means "predates local ownership"; write paths always set it.
+		updatedAt: integer("updated_at").notNull().default(0),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),

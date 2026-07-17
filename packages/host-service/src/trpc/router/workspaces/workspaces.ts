@@ -12,10 +12,6 @@ import {
 	resolveRef,
 	resolveUpstream,
 } from "../../../runtime/git/refs";
-import {
-	ensureHostRegistered,
-	pushWorkspaceCreateToCloud,
-} from "../../../runtime/workspace-cloud-sync";
 import type { HostServiceContext } from "../../../types";
 import {
 	getLocalWorkspace,
@@ -430,24 +426,10 @@ async function recordBaseBranchConfig(args: {
 }
 
 /**
- * Kicks off `host.ensure` so the cloud round-trip overlaps with the
- * git work in `workspaces.create`. Shares the sync module's cached
- * registration, so the later `pushWorkspaceCreateToCloud` reuses this
- * result instead of re-registering.
+ * Fully local registration: the host mints the id and commits the local
+ * row — the authoritative and only record; workspaces have no cloud mirror.
  */
-function startHostEnsure(
-	ctx: HostServiceContext,
-): Promise<{ machineId: string }> {
-	return ensureHostRegistered(ctx);
-}
-
-/**
- * Local-first registration: the host mints the id and commits the local row
- * (the authoritative record), then mirrors to the cloud best-effort. Cloud
- * unavailability no longer fails the create or rolls back the worktree —
- * the row stays cloud-dirty and the reconciler pushes it later.
- */
-async function registerCloudAndLocal(args: {
+async function registerLocalWorkspace(args: {
 	ctx: HostServiceContext;
 	id: string | undefined;
 	projectId: string;
@@ -456,7 +438,6 @@ async function registerCloudAndLocal(args: {
 	worktreePath: string;
 	taskId: string | undefined;
 	rollbackWorktree: () => Promise<void>;
-	hostPromise: Promise<{ machineId: string }>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
 
@@ -478,22 +459,7 @@ async function registerCloudAndLocal(args: {
 		});
 	}
 
-	// The pre-warmed host.ensure keeps registration latency off this path;
-	// pushWorkspaceCreateToCloud runs its own ensure, so failures here are
-	// non-fatal and already suppressed at the creation site.
-	await args.hostPromise.catch(() => {});
-
-	const cloudRow = await pushWorkspaceCreateToCloud(
-		{
-			api: ctx.api,
-			db: ctx.db,
-			eventBus: ctx.eventBus,
-			organizationId: ctx.organizationId,
-			clientMachineId: ctx.clientMachineId,
-		},
-		localRow,
-	);
-	return cloudRow ?? toCloudShape(localRow, ctx.organizationId);
+	return toCloudShape(localRow, ctx.organizationId);
 }
 
 async function dispatchSugarAgents(
@@ -529,13 +495,6 @@ export const workspacesRouter = router({
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			const localProject = requireLocalProject(ctx, input.projectId);
-
-			// Kick off host.ensure immediately so the cloud round-trip
-			// overlaps with the git work below. Suppressing unhandled
-			// rejection here — the await in registerCloudAndLocal turns
-			// the promise rejection into a TRPCError with rollback.
-			const hostPromise = startHostEnsure(ctx);
-			hostPromise.catch(() => {});
 
 			// Kick off AI naming in parallel when the user supplied a prompt
 			// but left at least one of (name, branch) blank. The LLM call
@@ -669,7 +628,6 @@ export const workspacesRouter = router({
 								baseBranch: prMetadata.baseRefName,
 								idempotencyId: input.id,
 								taskId: input.taskId,
-								hostPromise,
 							});
 							workspaceRow = result.workspace;
 							alreadyExists = result.alreadyExists;
@@ -767,7 +725,7 @@ export const workspacesRouter = router({
 								}
 							}
 
-							workspaceRow = await registerCloudAndLocal({
+							workspaceRow = await registerLocalWorkspace({
 								ctx,
 								id: input.id,
 								projectId: input.projectId,
@@ -776,7 +734,6 @@ export const workspacesRouter = router({
 								worktreePath,
 								taskId: input.taskId,
 								rollbackWorktree: rollbackCreatedWorktree,
-								hostPromise,
 							});
 
 							if (prMetadata.baseRefName) {
@@ -818,7 +775,6 @@ export const workspacesRouter = router({
 					baseBranch: input.baseBranch,
 					idempotencyId: input.id,
 					taskId: input.taskId,
-					hostPromise,
 				});
 				workspaceRow = result.workspace;
 				alreadyExists = result.alreadyExists;
@@ -925,7 +881,6 @@ export const workspacesRouter = router({
 							baseBranch: baseShortName,
 							idempotencyId: input.id,
 							taskId: input.taskId,
-							hostPromise,
 						});
 						workspaceRow = result.workspace;
 						alreadyExists = result.alreadyExists;
@@ -985,7 +940,6 @@ export const workspacesRouter = router({
 										baseBranch: baseShortName,
 										idempotencyId: input.id,
 										taskId: input.taskId,
-										hostPromise,
 									});
 									adoptedRow = result.workspace;
 									alreadyExists = result.alreadyExists;
@@ -1027,7 +981,7 @@ export const workspacesRouter = router({
 									});
 							}
 
-							workspaceRow = await registerCloudAndLocal({
+							workspaceRow = await registerLocalWorkspace({
 								ctx,
 								id: input.id,
 								projectId: input.projectId,
@@ -1036,7 +990,6 @@ export const workspacesRouter = router({
 								worktreePath,
 								taskId: input.taskId,
 								rollbackWorktree,
-								hostPromise,
 							});
 						}
 					}

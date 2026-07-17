@@ -1,7 +1,6 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { TRPCClientError } from "@trpc/client";
-import { cloudOk } from "../helpers/cloud-fakes";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
 import { createProjectScenario } from "../helpers/scenarios";
@@ -111,15 +110,8 @@ describe("project router integration", () => {
 		expect(result.candidates).toEqual([]);
 	});
 
-	test("findByPath falls back to cloud when no local project + parseable remote", async () => {
-		const host = await createTestHost({
-			apiOverrides: {
-				"v2Project.findByGitHubRemote.query":
-					cloudOk.v2ProjectFindByGitHubRemote([
-						{ id: "cloud-project-id", name: "octocat/hello" },
-					]),
-			},
-		});
+	test("findByPath never consults the cloud — unknown repo means create fresh", async () => {
+		const host = await createTestHost();
 		const repo = await createGitFixture();
 		await repo.git.addRemote("origin", "https://github.com/octocat/hello.git");
 		dispose = async () => {
@@ -130,15 +122,11 @@ describe("project router integration", () => {
 		const result = await host.trpc.project.findByPath.query({
 			repoPath: repo.repoPath,
 		});
-		expect(result.candidates).toHaveLength(1);
-		expect(result.candidates[0]).toMatchObject({
-			id: "cloud-project-id",
-			name: "octocat/hello",
-		});
+		expect(result.candidates).toEqual([]);
 		expect(
 			host.apiCalls.some(
 				(c) => c.path === "v2Project.findByGitHubRemote.query",
 			),
-		).toBe(true);
+		).toBe(false);
 	});
 });
