@@ -23,6 +23,7 @@ import {
 	type CreateCustomAgentInput,
 	NewCustomAgentDetail,
 } from "./components/NewCustomAgentDetail";
+import { useAutoAddAgentPreset } from "./hooks/useAutoAddAgentPreset";
 
 const KNOWN_PRESETS: HostAgentPreset[] = HOST_AGENT_PRESETS.map((preset) => ({
 	...preset,
@@ -68,6 +69,7 @@ export function V2AgentsSettings({
 	};
 
 	const setupAgentMutation = electronTrpc.settings.setupAgent.useMutation();
+	const autoAddAgentPreset = useAutoAddAgentPreset();
 
 	const addMutation = useMutation({
 		mutationFn: async (preset: HostAgentPreset) => {
@@ -100,7 +102,10 @@ export function V2AgentsSettings({
 		onSuccess: (added) => {
 			setIsCreating(false);
 			invalidate();
-			if (added?.id) setSelectedAgentId(added.id);
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				autoAddAgentPreset(added);
+			}
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
@@ -122,7 +127,10 @@ export function V2AgentsSettings({
 		onSuccess: (added) => {
 			setIsCreating(false);
 			invalidate();
-			if (added?.id) setSelectedAgentId(added.id);
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				autoAddAgentPreset(added);
+			}
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
