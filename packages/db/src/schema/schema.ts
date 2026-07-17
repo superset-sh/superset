@@ -776,11 +776,7 @@ export const automations = pgTable(
 		v2ProjectId: uuid("v2_project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
-		// set-null so a deleted workspace reverts the automation to
-		// fresh-workspace-per-run instead of a dead pin failing every dispatch
-		v2WorkspaceId: uuid("v2_workspace_id").references(() => v2Workspaces.id, {
-			onDelete: "set null",
-		}),
+		v2WorkspaceId: uuid("v2_workspace_id"),
 
 		rrule: text().notNull(),
 		dtstart: timestamp("dtstart", { withTimezone: true }).notNull(),
@@ -804,8 +800,6 @@ export const automations = pgTable(
 		index("automations_dispatcher_idx").on(t.enabled, t.nextRunAt),
 		index("automations_owner_idx").on(t.ownerUserId),
 		index("automations_organization_idx").on(t.organizationId),
-		// backs the set-null FK so workspace deletes don't seq-scan automations
-		index("automations_v2_workspace_id_idx").on(t.v2WorkspaceId),
 	],
 );
 

@@ -1,2 +1,0 @@
-ALTER TABLE "automations" ADD CONSTRAINT "automations_v2_workspace_id_v2_workspaces_id_fk" FOREIGN KEY ("v2_workspace_id") REFERENCES "public"."v2_workspaces"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
-CREATE INDEX "automations_v2_workspace_id_idx" ON "automations" USING btree ("v2_workspace_id");
