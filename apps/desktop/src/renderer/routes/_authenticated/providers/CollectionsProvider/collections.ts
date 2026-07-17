@@ -30,6 +30,7 @@ import type {
 } from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
+import { toast } from "@superset/ui/sonner";
 import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
@@ -47,6 +48,7 @@ import {
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { getAuthToken, getJwt } from "renderer/lib/auth-client";
 import { refreshJwtAfterUnauthorized } from "renderer/lib/jwt-refresh";
 import superjson from "superjson";
@@ -246,6 +248,15 @@ const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 	// a 4xx that does is terminal — return void to stop the stream instead of
 	// looping the same doomed request until Electric's 50-retry guard trips.
 	console.error("[collections] Electric sync stopped", error);
+	const status = error instanceof FetchError ? error.status : undefined;
+	track("electric_sync_stopped", {
+		status,
+		message: error instanceof Error ? error.message.slice(0, 200) : undefined,
+	});
+	toast.error("Cloud sync stopped", {
+		description: "Synced data may be stale until Superset reconnects.",
+		action: { label: "Reload", onClick: () => window.location.reload() },
+	});
 	return;
 };
 

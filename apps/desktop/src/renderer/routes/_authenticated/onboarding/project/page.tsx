@@ -5,6 +5,7 @@ import { toast } from "@superset/ui/sonner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
 import { LuFolderOpen, LuGitBranch, LuLayoutTemplate } from "react-icons/lu";
+import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -32,6 +33,7 @@ function OnboardingProjectPage() {
 	const { refetch: refetchSession } = authClient.useSession();
 	const { activeHostUrl } = useLocalHostService();
 	const hostReady = !isV2CloudEnabled || activeHostUrl !== null;
+	const hostConnectTimedOut = useDelayElapsed(!hostReady, 15_000);
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
@@ -203,6 +205,20 @@ function OnboardingProjectPage() {
 					{hostReady ? "Browse…" : "Connecting…"}
 				</Button>
 			</Card>
+
+			{hostConnectTimedOut && (
+				<p className="text-xs text-muted-foreground text-center select-text cursor-text">
+					Still connecting to the local host service.{" "}
+					<button
+						type="button"
+						className="underline hover:text-foreground transition-colors"
+						onClick={() => window.location.reload()}
+					>
+						Reload
+					</button>{" "}
+					if this persists.
+				</p>
+			)}
 
 			<TemplateGalleryModal
 				open={templateOpen}

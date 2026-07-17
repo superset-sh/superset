@@ -63,6 +63,15 @@ export function LocalHostServiceProvider({
 		[organizations],
 	);
 
+	// Local capability must never wait on cloud sync: the active org's host
+	// service starts straight from the session; the Electric-synced list below
+	// only adds any remaining orgs.
+	useEffect(() => {
+		if (activeOrganizationId) {
+			startHostService({ organizationId: activeOrganizationId });
+		}
+	}, [activeOrganizationId, startHostService]);
+
 	useEffect(() => {
 		for (const organizationId of organizationIds) {
 			startHostService({ organizationId });
