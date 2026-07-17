@@ -1,4 +1,4 @@
-import type { LayoutNode } from "../../../../../../types";
+import type { PanelLayoutNode } from "../../../../../../types";
 
 /** A rectangle in container-relative percentages (0–100). */
 export interface PanelRect {
@@ -14,7 +14,7 @@ export interface PanelRect {
  * is resolution-independent and maps directly to CSS `%`.
  */
 export function computePanelRects(
-	node: LayoutNode,
+	node: PanelLayoutNode,
 	rect: PanelRect = { left: 0, top: 0, width: 100, height: 100 },
 	out: Map<string, PanelRect> = new Map(),
 ): Map<string, PanelRect> {

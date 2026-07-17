@@ -4,13 +4,13 @@ import {
 	ResizablePanelGroup,
 } from "@superset/ui/resizable";
 import { useEffect, useRef } from "react";
-import type { LayoutNode, SplitPath } from "../../../../../types";
+import type { PanelLayoutNode, SplitPath } from "../../../../../types";
 import { PanelSection } from "./components/PanelSection";
 import type { PanelsContext } from "./types";
 
 interface PanelsProps<TData> {
 	/** Panel split tree (leaves carry panel ids) */
-	node: LayoutNode;
+	node: PanelLayoutNode;
 	path: SplitPath;
 	context: PanelsContext<TData>;
 }
@@ -20,7 +20,7 @@ function PanelSplit<TData>({
 	path,
 	context,
 }: {
-	node: Extract<LayoutNode, { type: "split" }>;
+	node: Extract<PanelLayoutNode, { type: "split" }>;
 	path: SplitPath;
 	context: PanelsContext<TData>;
 }) {

@@ -76,6 +76,15 @@ describe("deriveWorkspacePanels", () => {
 		expect(derived.activeTabIdByPanel[IMPLICIT_PANEL_ID]).toBeNull();
 	});
 
+	it("collapses a multi-panel layout to one panel when no tabs remain", () => {
+		// e.g. the last tab was closed while a two-panel layout was persisted
+		const derived = deriveWorkspacePanels(
+			createState({ panelLayout: twoPanelLayout }),
+		);
+		expect(derived.panelIds).toHaveLength(1);
+		expect(derived.activeTabIdByPanel[derived.panelIds[0] as string]).toBeNull();
+	});
+
 	it("assigns tabs with unknown panelId to the first panel", () => {
 		const state = createState({
 			tabs: [

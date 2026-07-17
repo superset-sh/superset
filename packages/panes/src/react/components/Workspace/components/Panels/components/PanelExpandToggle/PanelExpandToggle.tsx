@@ -10,13 +10,13 @@ import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../../../core/store";
 import { isPanelExpanded } from "../../../../../../../core/store/panels";
 import { getPaneParentDirection } from "../../../../../../../core/store/utils";
-import type { LayoutNode } from "../../../../../../../types";
+import type { PanelLayoutNode } from "../../../../../../../types";
 
 interface PanelExpandToggleProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
 	panelId: string;
 	/** Current (derived) panel layout, used to reflect the expanded state */
-	layout: LayoutNode;
+	layout: PanelLayoutNode;
 }
 
 /**

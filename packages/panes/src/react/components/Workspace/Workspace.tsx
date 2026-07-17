@@ -2,14 +2,14 @@ import { cn } from "@superset/ui/utils";
 import { useEffect, useMemo, useRef } from "react";
 import { useStore } from "zustand";
 import { deriveWorkspacePanels } from "../../../core/store/panels";
-import type { LayoutNode, Pane, Tab as TabType } from "../../../types";
+import type { Pane, PanelLayoutNode, Tab as TabType } from "../../../types";
 import type { WorkspaceProps } from "../../types";
 import { Panels, type PanelsContext } from "./components/Panels";
 import { DropPreviewOverlay } from "./components/Panels/components/DropPreviewOverlay";
 import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
 
 /** Panel touching the top-right corner (hosts workspace-level controls) */
-function findTopRightPanelId(node: LayoutNode): string {
+function findTopRightPanelId(node: PanelLayoutNode): string {
 	if (node.type === "pane") {
 		return node.paneId;
 	}

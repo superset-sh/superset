@@ -16,6 +16,14 @@ export type LayoutNode =
 			splitPercentage?: number;
 	  };
 
+/**
+ * The panel (editor group) split tree. Structurally a `LayoutNode` so the
+ * tree utilities apply, but leaves carry a **panel id** in `paneId` — both in
+ * memory and in persisted JSON. Use this alias wherever a tree of panels (not
+ * panes) is meant.
+ */
+export type PanelLayoutNode = LayoutNode;
+
 export interface Pane<TData> {
 	id: string;
 	kind: string;
@@ -43,11 +51,10 @@ export interface WorkspaceState<TData> {
 	tabs: Tab<TData>[];
 	activeTabId: string | null;
 	/**
-	 * Panel split tree. Reuses LayoutNode — leaves are `{ type: "pane" }`
-	 * nodes whose `paneId` carries a *panel* id. Missing/null means a single
-	 * implicit panel holding all tabs.
+	 * Panel split tree; missing/null means a single implicit panel holding
+	 * all tabs. See `PanelLayoutNode` for the leaf semantics.
 	 */
-	panelLayout?: LayoutNode | null;
+	panelLayout?: PanelLayoutNode | null;
 	/** Active (visible) tab per panel. Stale entries are ignored on read. */
 	panelActiveTabIds?: Record<string, string>;
 }

@@ -1,5 +1,6 @@
 import type {
 	LayoutNode,
+	PanelLayoutNode,
 	SplitPosition,
 	Tab,
 	WorkspaceState,
@@ -34,14 +35,14 @@ import {
 /** Panel id used when no layout has been stored yet (single-panel workspace) */
 export const IMPLICIT_PANEL_ID = "panel-main";
 
-const panelLeaf = (panelId: string): LayoutNode => ({
+const panelLeaf = (panelId: string): PanelLayoutNode => ({
 	type: "pane",
 	paneId: panelId,
 });
 
 export interface DerivedPanels {
 	/** Panel split tree; leaves carry panel ids. Always has ≥ 1 leaf. */
-	layout: LayoutNode;
+	layout: PanelLayoutNode;
 	/** Panel ids in visual order */
 	panelIds: string[];
 	/** Ordered tab ids per panel (order follows the tabs array) */
@@ -103,7 +104,7 @@ const splitSizesMatch = (a: LayoutNode, b: LayoutNode): boolean => {
 };
 
 /** Whether every panel currently has an equal share ("equal mode") */
-const isLayoutEqualized = (layout: LayoutNode): boolean =>
+const isLayoutEqualized = (layout: PanelLayoutNode): boolean =>
 	splitSizesMatch(layout, equalizeAllSplits(layout));
 
 export function deriveWorkspacePanels<TData>(
@@ -137,7 +138,15 @@ export function deriveWorkspacePanels<TData>(
 	const nonEmpty = new Set(
 		leafIds.filter((id) => (tabIdsByPanel[id]?.length ?? 0) > 0),
 	);
-	if (nonEmpty.size > 0 && nonEmpty.size !== leafIds.length) {
+	if (nonEmpty.size === 0) {
+		// No tabs at all: collapse the whole grid to a single empty panel
+		layout = panelLeaf(defaultPanelId);
+		for (const leafId of leafIds) {
+			if (leafId !== defaultPanelId) {
+				delete tabIdsByPanel[leafId];
+			}
+		}
+	} else if (nonEmpty.size !== leafIds.length) {
 		// Equal mode stays equal: survivors re-share the space evenly. Custom
 		// ratios are preserved (the pruned leaf's sibling absorbs its space).
 		const wasEqualized = isLayoutEqualized(layout);
@@ -189,7 +198,7 @@ export function deriveWorkspacePanels<TData>(
 
 export interface PanelsMutation<TData> {
 	tabs: Tab<TData>[];
-	panelLayout: LayoutNode;
+	panelLayout: PanelLayoutNode;
 	panelActiveTabIds: Record<string, string>;
 	activeTabId: string | null;
 }
@@ -430,9 +439,9 @@ const EXPANDED_PANEL_SHARE = 75;
  * Returns null when the panel isn't in the tree.
  */
 export function buildExpandedPanelLayout(
-	layout: LayoutNode,
+	layout: PanelLayoutNode,
 	panelId: string,
-): LayoutNode | null {
+): PanelLayoutNode | null {
 	if (layout.type === "pane") {
 		return layout.paneId === panelId ? layout : null;
 	}
@@ -458,7 +467,10 @@ export function buildExpandedPanelLayout(
 }
 
 /** Whether the layout already matches the expanded arrangement for `panelId` */
-export function isPanelExpanded(layout: LayoutNode, panelId: string): boolean {
+export function isPanelExpanded(
+	layout: PanelLayoutNode,
+	panelId: string,
+): boolean {
 	if (layout.type === "pane") return false;
 	const expanded = buildExpandedPanelLayout(layout, panelId);
 	return expanded !== null && splitSizesMatch(layout, expanded);

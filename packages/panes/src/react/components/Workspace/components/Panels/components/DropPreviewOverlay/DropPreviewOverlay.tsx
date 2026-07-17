@@ -8,7 +8,7 @@ import {
 	splitPanelWithTab,
 } from "../../../../../../../core/store/panels";
 import { getPaneIdsInLayout } from "../../../../../../../core/store/utils";
-import type { LayoutNode } from "../../../../../../../types";
+import type { PanelLayoutNode } from "../../../../../../../types";
 import { TAB_DRAG_TYPE } from "../../../TabBar/components/TabItem";
 import { useDropPreviewStore } from "../../dropPreviewStore";
 import { computePanelRects, type PanelRect } from "../../utils/layoutRects";
@@ -48,7 +48,7 @@ export function DropPreviewOverlay<TData>({
 		const state = store.getState();
 		const current = deriveWorkspacePanels(state);
 
-		let resultingLayout: LayoutNode = current.layout;
+		let resultingLayout: PanelLayoutNode = current.layout;
 		let destinationPanelId = targetPanelId;
 
 		if (target === "center") {
