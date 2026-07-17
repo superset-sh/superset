@@ -263,6 +263,36 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/**
+	 * Start host services for every org this machine has hosted before
+	 * ($SUPERSET_HOME_DIR/host/*). Runs at boot and on sign-in so background
+	 * reachability and port detection never wait for a renderer or cloud sync
+	 * to name orgs; a brand-new org (no dir yet) is started by the renderer
+	 * from its session.
+	 */
+	async startAllKnown(config: SpawnConfig): Promise<void> {
+		const hostRoot = path.join(SUPERSET_HOME_DIR, "host");
+		let entries: fs.Dirent[];
+		try {
+			entries = fs.readdirSync(hostRoot, { withFileTypes: true });
+		} catch {
+			return;
+		}
+		const orgIdPattern = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
+		await Promise.allSettled(
+			entries
+				.filter((e) => e.isDirectory() && orgIdPattern.test(e.name))
+				.map((e) =>
+					this.start(e.name, config).catch((error) => {
+						log.warn(
+							`[host-service-coordinator] boot start failed for org ${e.name}:`,
+							error,
+						);
+					}),
+				),
+		);
+	}
+
+	/**
 	 * Dev-only: watch the built host-service bundle and restart running
 	 * instances when it changes. Gives a fast edit→reload loop for code
 	 * under packages/host-service and src/main/host-service without

@@ -1,5 +1,4 @@
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createContext,
 	type ReactNode,
@@ -16,7 +15,6 @@ import {
 } from "renderer/lib/host-service-auth";
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
 import { MOCK_ORG_ID } from "shared/constants";
-import { useCollections } from "../CollectionsProvider";
 
 interface LocalHostServiceContextValue {
 	machineId: string;
@@ -35,7 +33,7 @@ export function LocalHostServiceProvider({
 	children: ReactNode;
 }) {
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
+	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const { mutate: startHostService } =
 		electronTrpc.hostServiceCoordinator.start.useMutation({
 			onError: (error) => {
@@ -53,30 +51,14 @@ export function LocalHostServiceProvider({
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 
-	const { data: organizations } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
-
-	const organizationIds = useMemo(
-		() => organizations?.map((organization) => organization.id) ?? [],
-		[organizations],
-	);
-
-	// Local capability must never wait on cloud sync: the active org's host
-	// service starts straight from the session; the Electric-synced list below
-	// only adds any remaining orgs.
+	// Local capability must never wait on cloud sync: main starts services for
+	// every previously-hosted org at boot; this covers a brand-new active org
+	// (no host dir yet) straight from the session.
 	useEffect(() => {
 		if (activeOrganizationId) {
 			startHostService({ organizationId: activeOrganizationId });
 		}
 	}, [activeOrganizationId, startHostService]);
-
-	useEffect(() => {
-		for (const organizationId of organizationIds) {
-			startHostService({ organizationId });
-		}
-	}, [organizationIds, startHostService]);
 
 	const { data: machineIdData } = electronTrpc.device.getMachineId.useQuery(
 		undefined,
@@ -104,13 +86,7 @@ export function LocalHostServiceProvider({
 			},
 		);
 
-	const activeOrganizationName = useMemo(
-		() =>
-			organizations?.find(
-				(organization) => organization.id === activeOrganizationId,
-			)?.name ?? null,
-		[organizations, activeOrganizationId],
-	);
+	const activeOrganizationName = activeOrganization?.name ?? null;
 
 	const value = useMemo<LocalHostServiceContextValue | null>(() => {
 		if (!machineIdData) return null;
