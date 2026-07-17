@@ -878,6 +878,47 @@ export const customersRouter = {
 			};
 		}),
 
+	/** Single-user version of the activity matrix, for the user page. */
+	userActivityMatrix: adminProcedure
+		.input(
+			z.object({
+				userId: z.string().uuid(),
+				days: z.number().int().min(14).max(120).default(90),
+			}),
+		)
+		.query(async ({ input }) => {
+			const user = await db.query.users.findFirst({
+				where: eq(users.id, input.userId),
+				columns: { id: true, createdAt: true },
+			});
+			if (!user) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+			}
+
+			const dayMs = 24 * 60 * 60 * 1000;
+			const startMs =
+				Math.floor(Date.now() / dayMs) * dayMs - (input.days - 1) * dayMs;
+			const dayIndex = (date: Date) =>
+				Math.floor((date.getTime() - startMs) / dayMs);
+
+			const cellsByUser = await fetchActivityMatrix([user.id], input.days);
+			const firstDay = dayIndex(user.createdAt);
+			return {
+				start: new Date(startMs),
+				days: input.days,
+				firstDayIndex: firstDay >= 0 && firstDay < input.days ? firstDay : null,
+				cells: (cellsByUser.get(user.id.toLowerCase()) ?? [])
+					.map((cell) => ({
+						d: dayIndex(new Date(`${cell.day}T00:00:00Z`)),
+						terminal: cell.terminal,
+						chat: cell.chat,
+						workspace: cell.workspace,
+						created: cell.created,
+					}))
+					.filter((cell) => cell.d >= 0 && cell.d < input.days),
+			};
+		}),
+
 	userDetail: adminProcedure
 		.input(z.object({ userId: z.string().uuid() }))
 		.query(async ({ input }) => {

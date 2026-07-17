@@ -22,6 +22,7 @@ import { TrendCell } from "@/components/TrendCell";
 import { WeeksPicker } from "@/components/WeeksPicker";
 import { useTRPC } from "@/trpc/react";
 
+import { UserActivityMatrix } from "./components/UserActivityMatrix";
 import { UserRoleLine } from "./components/UserRoleLine";
 
 export const Route = createFileRoute("/users/$userId/")({
@@ -207,6 +208,8 @@ function UserDetailPage() {
 				error={timeseries.error}
 				headerAction={<WeeksPicker value={weeks} onChange={setWeeks} />}
 			/>
+
+			<UserActivityMatrix userId={userId} />
 		</div>
 	);
 }
