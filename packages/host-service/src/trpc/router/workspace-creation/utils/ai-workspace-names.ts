@@ -137,11 +137,7 @@ function resolveNonInteractiveCommand(
 	// `-p` consume the next token, so appending would swallow the prompt.
 	const modelArgs = buildAgentModelArgs(presetId, smallModel);
 	const [bin, ...flags] = base.split(" ");
-	const command = [
-		bin,
-		...modelArgs.map(quoteSingleShell),
-		...flags,
-	].join(" ");
+	const command = [bin, ...modelArgs.map(quoteSingleShell), ...flags].join(" ");
 	return `${envOverlayPrefix(buildAgentModelEnv(presetId, smallModel))}${command}`;
 }
 
