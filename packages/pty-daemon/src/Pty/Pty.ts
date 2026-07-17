@@ -3,14 +3,138 @@ import * as fs from "node:fs";
 import * as tty from "node:tty";
 import * as nodePty from "node-pty";
 import {
+	collectProcessSignalTargets,
+	getProcessGroupAndTty,
+	type ProcessInfo,
 	type ProcessSignalError,
-	type ProcessSignalTarget,
+	readProcessTable,
+	readProcessTableAsync,
 	signalProcessTargets,
-	signalProcessTreeAndGroups,
 } from "../process-tree.ts";
 import type { SessionMeta } from "../protocol/index.ts";
 
 const KILL_ESCALATION_TIMEOUT_MS = 1000;
+/**
+ * Verify-round backoff after the SIGKILL escalation. The long tail exists
+ * for loaded machines: a SIGHUP-trapping shell that only gets scheduled
+ * seconds after the volley can still fork (agent MCP spawn bursts) — a
+ * short fixed window would hand those forks eternal life. Rounds stop
+ * early the moment nothing is left, so a clean kill never pays the tail.
+ */
+const KILL_VERIFY_DELAYS_MS = [300, 700, 1500, 2500];
+
+const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
+
+/**
+ * Kill chains still running (SIGKILL escalation + verify rounds). The daemon
+ * exits via explicit process.exit(), which would silently drop a chain mid
+ * kill — shutdown awaits this first so a requested close always finishes.
+ */
+const pendingKills = new Set<Promise<void>>();
+
+function registerPendingKill(chain: Promise<void>): void {
+	pendingKills.add(chain);
+	void chain.finally(() => pendingKills.delete(chain));
+}
+
+export async function drainPendingKills(timeoutMs: number): Promise<void> {
+	if (pendingKills.size === 0) return;
+	let timer: NodeJS.Timeout | undefined;
+	await Promise.race([
+		Promise.allSettled([...pendingKills]),
+		new Promise<void>((r) => {
+			timer = setTimeout(r, timeoutMs);
+		}),
+	]);
+	clearTimeout(timer);
+}
+
+/**
+ * The session root's durable coordinates: controlling tty plus every process
+ * group ever observed for it. A ppid walk can't rediscover either once the
+ * intermediate parents die, so kill passes target through these too.
+ */
+interface RootIdentity {
+	ttyName: string | null;
+	knownPgids: Set<number>;
+}
+
+/**
+ * One kill pass: collect the current tree + known-group members + same-tty
+ * stragglers, record the root's and any newly seen groups, signal everything.
+ * The root pid itself is excluded — each adapter signals its root its own way.
+ * Pass a pre-read `table` from async paths; the sync fallback (one ps, same
+ * cost as the pre-hardening kill) is for the synchronous kill() entrypoint.
+ */
+function killVolley(
+	rootPid: number,
+	signal: NodeJS.Signals,
+	identity: RootIdentity,
+	table?: ProcessInfo[],
+): { survivors: boolean } {
+	const psTable = table ?? readProcessTable();
+	const rootRow = psTable.find((r) => r.pid === rootPid);
+	if (rootRow) {
+		if (rootRow.tty !== null) identity.ttyName = rootRow.tty;
+		identity.knownPgids.add(rootRow.pgid);
+	}
+	const targets = collectProcessSignalTargets(rootPid, {
+		includeRoot: false,
+		ttyName: identity.ttyName,
+		knownPgids: identity.knownPgids,
+		table: psTable,
+		onSignalError: logProcessSignalError,
+	});
+	for (const t of targets) {
+		if (t.target === "pgid") identity.knownPgids.add(t.id);
+	}
+	signalProcessTargets(targets, signal, logProcessSignalError);
+	return { survivors: targets.some((t) => t.target === "pid") };
+}
+
+interface KillEscalationOptions {
+	rootPid: number;
+	identity: RootIdentity;
+	isRootAlive: () => boolean;
+	/** Best-effort SIGKILL to the root process itself. */
+	killRoot: () => void;
+}
+
+/**
+ * SIGKILL escalation with a fresh process-table snapshot each round: the
+ * initial volley's target list goes stale the moment a descendant forks, so
+ * every pass re-collects (tree walk + known pgids + tty) and repeats until
+ * nothing is left or the round budget runs out. Timers stay ref'd on purpose:
+ * a naturally-exiting daemon must not drop a half-finished kill.
+ */
+async function runKillEscalation(opts: KillEscalationOptions): Promise<void> {
+	const { rootPid, identity, isRootAlive, killRoot } = opts;
+	await delay(KILL_ESCALATION_TIMEOUT_MS);
+	for (let round = 0; ; round++) {
+		const table = await readProcessTableAsync();
+		const rootAlive = isRootAlive();
+		const { survivors } = killVolley(rootPid, "SIGKILL", identity, table);
+		if (!survivors && !rootAlive) return;
+		if (rootAlive) killRoot();
+		const nextDelay = KILL_VERIFY_DELAYS_MS[round];
+		if (nextDelay === undefined) break;
+		await delay(nextDelay);
+	}
+	// Let the final volley's SIGKILLs land before declaring survivors.
+	await delay(300);
+	const leftovers = collectProcessSignalTargets(rootPid, {
+		includeRoot: false,
+		ttyName: identity.ttyName,
+		knownPgids: identity.knownPgids,
+		table: await readProcessTableAsync(),
+	}).filter((t) => t.target === "pid");
+	if (leftovers.length > 0 || isRootAlive()) {
+		process.stderr.write(
+			`[pty-daemon] kill escalation for pid ${rootPid} left survivors: ` +
+				`root=${isRootAlive()} pids=[${leftovers.map((t) => t.id).join(",")}]\n`,
+		);
+	}
+}
 
 export type PtyOnData = (data: Buffer) => void;
 export type PtyOnExit = (info: {
@@ -46,7 +170,11 @@ class NodePtyAdapter implements Pty {
 	meta: SessionMeta;
 	private term: nodePty.IPty;
 	private exited = false;
-	private killEscalationTimer: NodeJS.Timeout | null = null;
+	private readonly identity: RootIdentity = {
+		ttyName: null,
+		knownPgids: new Set(),
+	};
+	private killChain: Promise<void> | null = null;
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -55,6 +183,17 @@ class NodePtyAdapter implements Pty {
 		this.term = term;
 		this.pid = term.pid;
 		this.meta = meta;
+		// Capture the group + tty: if the shell exits before the first kill,
+		// a ppid walk can't rediscover either, and orphans reparented to
+		// pid 1 keep the root pgid. Async — this is the session-open path.
+		// The immediate capture races the child's setsid/login_tty (it may
+		// still show the daemon's own pgid — collect's current-pgid guard
+		// covers that — and no tty), so re-capture once the child has
+		// certainly run; kill volleys refresh again from their own table.
+		void this.captureRootIdentity();
+		setTimeout(() => {
+			if (!this.exited) void this.captureRootIdentity();
+		}, 100).unref();
 		this.term.onExit(({ exitCode, signal }) => {
 			if (this.exited) return;
 			this.exited = true;
@@ -92,12 +231,19 @@ class NodePtyAdapter implements Pty {
 
 	kill(signal?: NodeJS.Signals): void {
 		const killSignal = signal ?? "SIGHUP";
-		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
-			includeRoot: false,
-			onSignalError: logProcessSignalError,
-		});
-		this.term.kill(killSignal);
-		this.scheduleKillEscalation(killSignal, escalationTargets);
+		killVolley(this.pid, killSignal, this.identity);
+		try {
+			this.term.kill(killSignal);
+		} catch {
+			// PTY root may have already exited; detached targets still matter.
+		}
+		this.startKillEscalation(killSignal);
+	}
+
+	private async captureRootIdentity(): Promise<void> {
+		const { pgid, tty: ttyName } = await getProcessGroupAndTty(this.pid);
+		if (ttyName !== null) this.identity.ttyName = ttyName;
+		if (pgid !== null) this.identity.knownPgids.add(pgid);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -114,22 +260,21 @@ class NodePtyAdapter implements Pty {
 		this.exitCallbacks.push(cb);
 	}
 
-	private scheduleKillEscalation(
-		signal: NodeJS.Signals,
-		targets: ProcessSignalTarget[],
-	): void {
-		if (signal === "SIGKILL" || this.exited || this.killEscalationTimer) return;
-
-		this.killEscalationTimer = setTimeout(() => {
-			this.killEscalationTimer = null;
-			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
-			try {
-				this.term.kill("SIGKILL");
-			} catch {
-				// PTY root may have already exited; detached targets still matter.
-			}
-		}, KILL_ESCALATION_TIMEOUT_MS);
-		this.killEscalationTimer.unref();
+	private startKillEscalation(signal: NodeJS.Signals): void {
+		if (signal === "SIGKILL" || this.killChain) return;
+		this.killChain = runKillEscalation({
+			rootPid: this.pid,
+			identity: this.identity,
+			isRootAlive: () => !this.exited,
+			killRoot: () => {
+				try {
+					this.term.kill("SIGKILL");
+				} catch {
+					// already exited
+				}
+			},
+		});
+		registerPendingKill(this.killChain);
 	}
 }
 
@@ -231,13 +376,18 @@ class AdoptedPty implements Pty {
 	private readonly reader: tty.ReadStream;
 	private exitFired = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
-	private killEscalationTimer: NodeJS.Timeout | null = null;
+	private readonly identity: RootIdentity = {
+		ttyName: null,
+		knownPgids: new Set(),
+	};
+	private killChain: Promise<void> | null = null;
 	private exitCallbacks: PtyOnExit[] = [];
 
 	constructor(fd: number, pid: number, meta: SessionMeta) {
 		this.fd = fd;
 		this.pid = pid;
 		this.meta = meta;
+		void this.captureRootIdentity();
 		this.reader = new tty.ReadStream(fd);
 
 		// onExit signal sources:
@@ -315,10 +465,20 @@ class AdoptedPty implements Pty {
 
 	kill(signal?: NodeJS.Signals): void {
 		const killSignal = signal ?? "SIGHUP";
-		const escalationTargets = signalProcessTreeAndGroups(this.pid, killSignal, {
-			onSignalError: logProcessSignalError,
-		});
-		this.scheduleKillEscalation(killSignal, escalationTargets);
+		killVolley(this.pid, killSignal, this.identity);
+		// No node-pty here — signal the adopted root directly.
+		try {
+			process.kill(this.pid, killSignal);
+		} catch {
+			// already dead
+		}
+		this.startKillEscalation(killSignal);
+	}
+
+	private async captureRootIdentity(): Promise<void> {
+		const { pgid, tty: ttyName } = await getProcessGroupAndTty(this.pid);
+		if (ttyName !== null) this.identity.ttyName = ttyName;
+		if (pgid !== null) this.identity.knownPgids.add(pgid);
 	}
 
 	onData(cb: PtyOnData): void {
@@ -331,18 +491,21 @@ class AdoptedPty implements Pty {
 		this.exitCallbacks.push(cb);
 	}
 
-	private scheduleKillEscalation(
-		signal: NodeJS.Signals,
-		targets: ProcessSignalTarget[],
-	): void {
-		if (signal === "SIGKILL" || this.exitFired || this.killEscalationTimer)
-			return;
-
-		this.killEscalationTimer = setTimeout(() => {
-			this.killEscalationTimer = null;
-			signalProcessTargets(targets, "SIGKILL", logProcessSignalError);
-		}, KILL_ESCALATION_TIMEOUT_MS);
-		this.killEscalationTimer.unref();
+	private startKillEscalation(signal: NodeJS.Signals): void {
+		if (signal === "SIGKILL" || this.killChain) return;
+		this.killChain = runKillEscalation({
+			rootPid: this.pid,
+			identity: this.identity,
+			isRootAlive: () => !this.exitFired && isPidAlive(this.pid),
+			killRoot: () => {
+				try {
+					process.kill(this.pid, "SIGKILL");
+				} catch {
+					// already dead
+				}
+			},
+		});
+		registerPendingKill(this.killChain);
 	}
 }
 
