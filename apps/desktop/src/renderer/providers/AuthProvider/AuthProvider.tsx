@@ -1,5 +1,10 @@
 import { type ReactNode, useEffect, useState } from "react";
-import { authClient, setAuthToken, setJwt } from "renderer/lib/auth-client";
+import {
+	authClient,
+	getAuthToken,
+	setAuthToken,
+	setJwt,
+} from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
 
@@ -20,7 +25,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		let cancelled = false;
 
-		async function fetchSessionAndJwt() {
+		async function fetchSessionAndJwt(tokenAtStart: string) {
 			try {
 				await refetchSession();
 			} catch (err) {
@@ -31,7 +36,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 			}
 			try {
 				const res = await authClient.token();
-				if (res.data?.token) {
+				// A response outliving the hydration timeout must not resurrect a
+				// JWT after sign-out or a token change.
+				if (res.data?.token && getAuthToken() === tokenAtStart) {
 					setJwt(res.data.token);
 				}
 			} catch (err) {
@@ -47,7 +54,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 					// A hung session fetch must not hold boot on the splash forever —
 					// proceed after a bound; the routes show session-pending UI (#5729).
 					await Promise.race([
-						fetchSessionAndJwt(),
+						fetchSessionAndJwt(storedToken.token),
 						new Promise((resolve) =>
 							window.setTimeout(resolve, HYDRATION_TIMEOUT_MS),
 						),

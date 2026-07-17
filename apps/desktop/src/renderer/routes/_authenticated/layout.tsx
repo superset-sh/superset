@@ -8,7 +8,7 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
@@ -17,6 +17,7 @@ import { env } from "renderer/env.renderer";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
+import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -86,7 +87,8 @@ function AuthenticatedLayout() {
 		isAuthPending,
 		SESSION_PENDING_TIMEOUT_MS,
 	);
-	const signOutMutation = electronTrpc.auth.signOut.useMutation();
+	const signOut = useSignOut();
+	const [isSigningOut, setIsSigningOut] = useState(false);
 
 	useAgentHookListener();
 
@@ -202,13 +204,15 @@ function AuthenticatedLayout() {
 							<Button
 								variant="outline"
 								size="sm"
-								disabled={signOutMutation.isPending}
-								onClick={() =>
-									signOutMutation.mutate(undefined, {
-										onSuccess: () =>
-											void navigate({ to: "/sign-in", replace: true }),
-									})
-								}
+								disabled={isSigningOut}
+								onClick={async () => {
+									setIsSigningOut(true);
+									try {
+										await signOut();
+									} finally {
+										void navigate({ to: "/sign-in", replace: true });
+									}
+								}}
 							>
 								Sign out
 							</Button>
