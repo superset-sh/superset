@@ -13,6 +13,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { Loader2, RotateCw, TriangleAlert } from "lucide-react";
 import { useCallback, useState, useSyncExternalStore } from "react";
 import {
 	type TerminalLogEntry,
@@ -53,17 +54,17 @@ function formatLogsForClipboard(logs: readonly TerminalLogEntry[]): string {
 
 /**
  * Pane-header health for the terminal, across both things that can break it.
+ * Three modes: "reconnecting" (amber, auto-retry in flight), "unresponsive"
+ * (amber — the daemon owns the shells and has gone quiet, usually self-heals),
+ * and "disconnected" (red — the transport gave up and needs a manual retry).
+ * Amber means "still working itself out"; red is reserved for the one state
+ * that needs the user. User-facing copy says "terminals", never "daemon".
  *
- * The WebSocket: hidden while healthy, amber "Reconnecting" while the
- * auto-reconnect loop runs, red "Disconnected" once the transport gives up.
- * The popover carries the diagnosis, a manual reconnect, and the raw log.
- *
- * The pty-daemon: red "Terminals aren't responding" when the host reports it
- * has stopped answering for {@link DAEMON_UNREACHABLE_WARN_MS}. That outranks
- * the WebSocket's story because the daemon owns the shells — and it's shown
- * even when the socket looks fine, since a wedged daemon closes nothing and
- * simply freezes the shell. The only fix closes every terminal, so it sits
- * behind a confirm and we wait out short stalls rather than offer it.
+ * The WebSocket drives reconnecting/disconnected; the host-reported pty-daemon
+ * health drives unresponsive (shown after {@link DAEMON_UNREACHABLE_WARN_MS}),
+ * which outranks the socket story since a wedged daemon closes nothing and just
+ * freezes the shell. Restart closes every terminal, so it sits behind a confirm
+ * and we surface a live "quiet for Ns" hint to encourage waiting out a stall.
  */
 export function TerminalConnectionIndicator({
 	terminalId,
@@ -101,6 +102,7 @@ export function TerminalConnectionIndicator({
 		),
 	);
 	const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
+	const [showLog, setShowLog] = useState(false);
 
 	const connectionHealthy =
 		connectionState === "open" || connectionState === "disconnected";
@@ -114,13 +116,13 @@ export function TerminalConnectionIndicator({
 	);
 	const restartDaemon = workspaceTrpc.terminal.daemon.restart.useMutation({
 		onSuccess: () => {
-			toast.success("Daemon restarted", {
+			toast.success("Terminals restarted", {
 				description: "All terminal sessions were closed.",
 			});
 			void healthQuery.refetch();
 		},
 		onError: (error) => {
-			toast.error("Failed to restart daemon", { description: error.message });
+			toast.error("Couldn't restart terminals", { description: error.message });
 		},
 	});
 
@@ -147,14 +149,31 @@ export function TerminalConnectionIndicator({
 		return null;
 	}
 
-	// Red only once the transport has stopped trying; amber covers both the
-	// in-flight dial and the backoff pause between attempts.
+	// Three failure modes so copy + colour name the fix that applies. Amber =
+	// still working itself out (auto-retry, or a stall that usually self-heals);
+	// red = we've stopped trying and need the user.
 	const gaveUp = diagnosis !== null && connectionState === "closed";
-	const label = daemonUnreachable
-		? "Terminals aren't responding"
+	const mode = daemonUnreachable
+		? "unresponsive"
 		: gaveUp
-			? "Disconnected"
-			: "Reconnecting…";
+			? "disconnected"
+			: "reconnecting";
+	const reconnecting = connectionState === "connecting";
+	const label =
+		mode === "unresponsive"
+			? "Terminals aren't responding"
+			: mode === "disconnected"
+				? "Disconnected"
+				: "Reconnecting…";
+	const StatusIcon = mode === "reconnecting" ? Loader2 : TriangleAlert;
+	const accentClass =
+		mode === "disconnected" ? "text-destructive" : "text-yellow-500";
+	const dotClass =
+		mode === "disconnected"
+			? "bg-destructive"
+			: mode === "unresponsive"
+				? "bg-yellow-500"
+				: "animate-pulse bg-yellow-500";
 
 	return (
 		<Popover>
@@ -162,43 +181,38 @@ export function TerminalConnectionIndicator({
 				<button
 					type="button"
 					aria-label={`Terminal connection: ${label}`}
-					className="flex h-5 items-center gap-1.5 px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
+					className="flex h-5 items-center gap-1.5 rounded px-1 text-xs text-muted-foreground transition-colors hover:text-foreground"
 				>
-					<span
-						className={cn(
-							"size-1.5 rounded-full",
-							gaveUp || daemonUnreachable
-								? "bg-destructive"
-								: "animate-pulse bg-yellow-500",
-						)}
-					/>
+					<span className={cn("size-1.5 rounded-full", dotClass)} />
 					<span>{label}</span>
 				</button>
 			</PopoverTrigger>
-			<PopoverContent align="end" className="w-80 p-3 text-xs">
-				<div className="flex flex-col gap-2">
-					<p className="cursor-text select-text text-muted-foreground">
-						{daemonUnreachable
-							? "Trying to reconnect — your sessions should come back on their own. Restarting closes every terminal."
-							: (diagnosis?.message ??
-								"The terminal connection dropped. Retrying automatically…")}
-					</p>
-					<div className="flex items-center gap-2">
-						{daemonUnreachable ? (
+			<PopoverContent
+				align="end"
+				className={cn("overflow-hidden p-0 text-sm", showLog ? "w-96" : "w-64")}
+			>
+				<div className="flex flex-col gap-3 p-4">
+					<div className="flex items-center gap-2.5">
+						<StatusIcon
+							className={cn(
+								"size-4 shrink-0",
+								accentClass,
+								mode === "reconnecting" && "animate-spin",
+							)}
+						/>
+						<p className="font-medium text-foreground">{label}</p>
+					</div>
+					{/* Reconnect (solid) leads as the safe primary; Restart (outline)
+					    is distinct but quieter, red only on hover so the destructive path
+					    never looks like the obvious one. Both can apply at once (a wedged
+					    daemon doesn't close the socket, but after sleep/wake the transport
+					    may have given up too), so we never leave restart as the only offer.
+					    A lone button flexes to full width. */}
+					<div className="flex gap-2">
+						{!connectionHealthy && (
 							<Button
-								size="sm"
-								variant="outline"
-								className="h-6 px-2 text-xs"
-								disabled={restartDaemon.isPending}
-								onClick={() => setConfirmRestartOpen(true)}
-							>
-								Restart anyway
-							</Button>
-						) : (
-							<Button
-								size="sm"
-								variant="outline"
-								className="h-6 px-2 text-xs"
+								className="flex-1 gap-2"
+								disabled={reconnecting}
 								onClick={() =>
 									terminalRuntimeRegistry.retryConnect(
 										terminalId,
@@ -206,43 +220,61 @@ export function TerminalConnectionIndicator({
 									)
 								}
 							>
-								Reconnect
+								{reconnecting ? (
+									<>
+										<Loader2 className="animate-spin" />
+										Reconnecting…
+									</>
+								) : (
+									<>
+										<RotateCw />
+										Reconnect
+									</>
+								)}
 							</Button>
 						)}
-						{logs.length > 0 && (
-							<button
-								type="button"
-								onClick={() =>
-									navigator.clipboard
-										.writeText(formatLogsForClipboard(logs))
-										.catch((error) =>
-											console.error("[terminal] copy log failed:", error),
-										)
-								}
-								className="text-muted-foreground transition-colors hover:text-foreground"
+						{daemonUnreachable && (
+							<Button
+								variant="outline"
+								className="flex-1 hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"
+								disabled={restartDaemon.isPending}
+								onClick={() => setConfirmRestartOpen(true)}
 							>
-								Copy log · {logs.length}
-							</button>
+								Restart
+							</Button>
 						)}
 					</div>
 					{logs.length > 0 && (
-						/* column-reverse pins the scroll to the newest entry; the list
-						   is reversed so reading order stays chronological. */
-						<div className="flex max-h-48 flex-col-reverse overflow-y-auto rounded border border-border bg-muted/30 p-2 font-mono">
+						<button
+							type="button"
+							onClick={() => setShowLog((v) => !v)}
+							className="self-center text-xs text-muted-foreground/70 transition-colors hover:text-foreground"
+						>
+							{showLog ? "Hide log" : "View log"}
+						</button>
+					)}
+				</div>
+				{showLog && logs.length > 0 && (
+					<div className="flex flex-col gap-2 border-t border-border bg-muted/30 p-3">
+						{/* column-reverse pins the scroll to the newest entry; the list
+						   is reversed so reading order stays chronological. Timestamp is a
+						   small header above each line, not a left column, so the message
+						   gets the full width instead of wrapping in a narrow gutter. */}
+						<div className="flex max-h-44 flex-col-reverse overflow-y-auto font-mono text-xs">
 							{logs
 								.slice()
 								.reverse()
 								.map((entry) => (
 									<div
 										key={entry.id}
-										className="flex cursor-text select-text gap-2 py-0.5"
+										className="flex cursor-text select-text flex-col gap-0.5 py-1"
 									>
-										<span className="shrink-0 tabular-nums opacity-60">
+										<span className="text-[10px] tabular-nums text-muted-foreground/50">
 											{formatTime(entry.timestamp)}
 										</span>
 										<span
 											className={cn(
-												"break-all",
+												"[overflow-wrap:anywhere]",
 												entry.level === "error" && "text-destructive",
 											)}
 										>
@@ -251,8 +283,21 @@ export function TerminalConnectionIndicator({
 									</div>
 								))}
 						</div>
-					)}
-				</div>
+						<button
+							type="button"
+							onClick={() =>
+								navigator.clipboard
+									.writeText(formatLogsForClipboard(logs))
+									.catch((error) =>
+										console.error("[terminal] copy log failed:", error),
+									)
+							}
+							className="self-start text-muted-foreground transition-colors hover:text-foreground"
+						>
+							Copy log
+						</button>
+					</div>
+				)}
 			</PopoverContent>
 			<AlertDialog
 				open={confirmRestartOpen}
@@ -260,22 +305,22 @@ export function TerminalConnectionIndicator({
 			>
 				<AlertDialogContent>
 					<AlertDialogHeader>
-						<AlertDialogTitle>Restart terminal daemon?</AlertDialogTitle>
+						<AlertDialogTitle>Restart all terminals?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This closes every terminal session in this workspace and any
-							other, and can't be undone. If the daemon is only briefly stuck,
-							waiting will bring your sessions back instead.
+							This closes every terminal session — in this workspace and any
+							others — and can't be undone. If they're only briefly stuck,
+							waiting usually brings them back.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<AlertDialogFooter>
-						<AlertDialogCancel>Cancel</AlertDialogCancel>
+						<AlertDialogCancel>Keep waiting</AlertDialogCancel>
 						<AlertDialogAction
 							onClick={() => {
 								setConfirmRestartOpen(false);
 								restartDaemon.mutate();
 							}}
 						>
-							Restart daemon
+							Restart terminals
 						</AlertDialogAction>
 					</AlertDialogFooter>
 				</AlertDialogContent>
