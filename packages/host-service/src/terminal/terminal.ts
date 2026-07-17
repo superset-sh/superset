@@ -1228,9 +1228,8 @@ export async function createTerminalSessionInternal({
 						? bytes
 						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
 				);
-				// Called even when the decoder buffers a partial codepoint and
-				// returns "" — the chunk is still real output and must refresh
-				// the session's idle clock (hint matching on "" is a no-op).
+				// Runs even when the decoder buffers a partial codepoint into ""
+				// — the chunk is still output and must refresh the idle clock.
 				portManager.checkOutputForHint(terminalId, hintText);
 
 				// Feed the tracker on every byte — broadcast skips the FIFO,

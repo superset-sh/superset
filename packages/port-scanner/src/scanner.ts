@@ -138,9 +138,7 @@ async function getListeningPortsLsof(
 		const pidArg = pids.join(",");
 		const pidSet = new Set(pids);
 		// -a: AND the selectors — without it lsof ORs -p with -iTCP and
-		//     enumerates every TCP listener on the machine (walking every
-		//     process's fd table), only for the pidSet check below to
-		//     discard the lot
+		//     walks every process on the machine, only to be filtered below
 		// -p: filter by PIDs
 		// -iTCP: only TCP connections
 		// -sTCP:LISTEN: only listening sockets

@@ -312,8 +312,6 @@ export class PortManager extends EventEmitter {
 		}
 		if (dueSessions.length === 0) return;
 
-		// One system-wide table read serves every due session; per-session
-		// pidtree calls each spawned a full `ps`, scaling linearly with sessions.
 		const trees = await getProcessTreesForPids(
 			dueSessions.map((session) => session.pid),
 		);
