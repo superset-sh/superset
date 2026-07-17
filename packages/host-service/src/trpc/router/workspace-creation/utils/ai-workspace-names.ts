@@ -108,12 +108,16 @@ export interface WorkspaceNamingAgentContext {
 }
 
 // Small/fast model per agent for the naming call, validated against the
-// curated catalog in agent-models.ts. Only presets whose small tier is
-// unambiguous are listed — the rest run their default model.
+// curated catalog in agent-models.ts. Only presets with an unambiguous
+// cheap tier are listed — the rest run their default model (opencode's
+// model ids are provider-scoped and copilot's catalog has no small tier,
+// so forcing one could break naming for those users).
 const NAMING_SMALL_MODELS: Record<string, string> = {
 	claude: "haiku",
+	codex: "gpt-5.6-luna",
 	gemini: "gemini-2.5-flash",
 	vibe: "devstral-small",
+	"cursor-agent": "composer-1",
 };
 
 function resolveNonInteractiveCommand(
