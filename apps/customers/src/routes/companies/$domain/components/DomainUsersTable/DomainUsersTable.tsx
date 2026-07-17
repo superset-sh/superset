@@ -10,6 +10,13 @@ import {
 	CardTitle,
 } from "@superset/ui/card";
 import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue,
+} from "@superset/ui/select";
+import {
 	Table,
 	TableBody,
 	TableCell,
@@ -19,6 +26,7 @@ import {
 } from "@superset/ui/table";
 import { Link } from "@tanstack/react-router";
 import { formatDistanceToNow } from "date-fns";
+import { useState } from "react";
 import type { IconType } from "react-icons";
 import { LuMessageSquare, LuMonitor, LuTerminal } from "react-icons/lu";
 
@@ -40,6 +48,19 @@ const numberFormat = new Intl.NumberFormat("en-US", {
 	maximumFractionDigits: 1,
 });
 
+const SENIORITY_LABELS: Record<string, string> = {
+	founder: "Founder",
+	exec: "Exec",
+	manager: "Manager",
+	ic: "IC",
+	unknown: "Unknown",
+};
+const SENIORITY_ORDER = ["founder", "exec", "manager", "ic", "unknown"];
+
+function seniorityOf(user: DomainUser): string {
+	return user.research?.seniority ?? "unknown";
+}
+
 export interface DomainUsersTableProps {
 	users: DomainUser[];
 	totalUsers: number;
@@ -51,17 +72,52 @@ export function DomainUsersTable({
 	totalUsers,
 	domain,
 }: DomainUsersTableProps) {
+	const [seniority, setSeniority] = useState("all");
+
+	const counts = new Map<string, number>();
+	for (const user of users) {
+		const bucket = seniorityOf(user);
+		counts.set(bucket, (counts.get(bucket) ?? 0) + 1);
+	}
+	const shown =
+		seniority === "all"
+			? users
+			: users.filter((user) => seniorityOf(user) === seniority);
+
 	return (
 		<Card>
-			<CardHeader>
-				<CardTitle>Users</CardTitle>
-				<CardDescription>
-					{users.length < totalUsers
-						? `Showing the ${users.length} most recently active of ${totalUsers.toLocaleString()} users`
-						: `${totalUsers} user${totalUsers === 1 ? "" : "s"}, sorted by recent activity`}
-				</CardDescription>
+			<CardHeader className="flex flex-row items-start justify-between space-y-0">
+				<div className="space-y-1.5">
+					<CardTitle>Users</CardTitle>
+					<CardDescription>
+						{seniority !== "all"
+							? `${shown.length} of ${users.length} users match`
+							: users.length < totalUsers
+								? `Showing the ${users.length} most recently active of ${totalUsers.toLocaleString()} users`
+								: `${totalUsers} user${totalUsers === 1 ? "" : "s"}, sorted by recent activity`}
+					</CardDescription>
+				</div>
+				<Select value={seniority} onValueChange={setSeniority}>
+					<SelectTrigger className="w-44">
+						<SelectValue />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">All seniorities</SelectItem>
+						{SENIORITY_ORDER.map((bucket) => (
+							<SelectItem key={bucket} value={bucket}>
+								{SENIORITY_LABELS[bucket]} ({counts.get(bucket) ?? 0})
+							</SelectItem>
+						))}
+					</SelectContent>
+				</Select>
 			</CardHeader>
 			<CardContent>
+				{shown.length === 0 && (
+					<p className="text-muted-foreground py-6 text-center text-sm">
+						No users match this seniority — research may not have run for
+						everyone yet.
+					</p>
+				)}
 				<Table>
 					<TableHeader>
 						<TableRow>
@@ -75,7 +131,7 @@ export function DomainUsersTable({
 						</TableRow>
 					</TableHeader>
 					<TableBody>
-						{users.map((user) => {
+						{shown.map((user) => {
 							const surface = user.topSurface
 								? SURFACE_ICONS[user.topSurface]
 								: null;
@@ -108,6 +164,19 @@ export function DomainUsersTable({
 													<span className="text-muted-foreground flex items-center gap-2 text-xs">
 														{user.research.title ?? (
 															<span className="italic">Role unknown</span>
+														)}
+														{user.research.seniority && (
+															<Badge
+																variant="outline"
+																className={
+																	user.research.seniority === "founder" ||
+																	user.research.seniority === "exec"
+																		? "border-sky-500/40 text-sky-400"
+																		: undefined
+																}
+															>
+																{SENIORITY_LABELS[user.research.seniority]}
+															</Badge>
 														)}
 														<SocialLinks {...user.research} />
 													</span>
