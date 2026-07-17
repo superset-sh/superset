@@ -130,12 +130,19 @@ export async function dispatchAutomation(
 		try {
 			result = await runAgent(workspaceId);
 		} catch (err) {
+			// Fall back only when the host says the pinned workspace is gone:
+			// tRPC NOT_FOUND (404) naming the pinned id. Other NOT_FOUNDs
+			// (agent config, attachments) rethrow.
 			const stalePin = automation.v2WorkspaceId;
-			if (!stalePin || !isPinnedWorkspaceGone(err, automation, workspaceId)) {
-				throw err;
-			}
-			// Pinned workspace is gone: clear the pin (CAS so a concurrent repin
-			// is never erased) and fall back to a fresh workspace from here on.
+			const pinGone =
+				stalePin !== null &&
+				stalePin === workspaceId &&
+				err instanceof RelayDispatchError &&
+				err.status === 404 &&
+				err.message.includes(stalePin);
+			if (!pinGone) throw err;
+			// Clear the pin (CAS so a concurrent repin is never erased) and use
+			// a fresh workspace from here on.
 			await dbWs
 				.update(automations)
 				.set({ v2WorkspaceId: null })
@@ -332,25 +339,6 @@ async function runAgentOnHost(args: {
 			agent: args.agent,
 			prompt: args.prompt,
 		},
-	);
-}
-
-/**
- * True when `agents.run` failed because the pinned workspace no longer exists
- * on the host. Matching the workspace id in the message keeps other NOT_FOUNDs
- * (agent config, attachments) from triggering the fresh-create fallback.
- */
-function isPinnedWorkspaceGone(
-	err: unknown,
-	automation: SelectAutomation,
-	workspaceId: string | null,
-): boolean {
-	return (
-		workspaceId !== null &&
-		automation.v2WorkspaceId === workspaceId &&
-		err instanceof RelayDispatchError &&
-		err.trpcCode === "NOT_FOUND" &&
-		(err.trpcMessage?.includes(workspaceId) ?? false)
 	);
 }
 
