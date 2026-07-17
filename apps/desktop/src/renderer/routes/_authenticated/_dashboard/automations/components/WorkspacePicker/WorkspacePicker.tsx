@@ -78,15 +78,17 @@ export function WorkspacePicker({
 	// A pinned value we can't resolve yet (live query still hydrating) is loading,
 	// not an empty "New workspace" selection — don't flash the wrong label/warning.
 	const resolving = !!value && !selected && !isReady;
-	// Pinned to a workspace that no longer exists (deleted). Rendering this as
-	// "New workspace" would hide the broken pin while dispatch keeps failing.
+	// Pinned to a workspace no host list resolves — usually deleted, possibly
+	// an unreachable host with no cached snapshot. "Not found" stays truthful
+	// in both cases; rendering it as "New workspace" would hide the broken pin
+	// while dispatch keeps failing.
 	const missing = !!value && !selected && isReady;
 	const label = selected
 		? selected.name
 		: resolving
 			? "Loading…"
 			: missing
-				? "Deleted workspace"
+				? "Workspace not found"
 				: "New workspace";
 
 	return (
@@ -136,10 +138,10 @@ export function WorkspacePicker({
 									className="text-amber-500"
 								>
 									<LuTriangleAlert className="size-4" />
-									<span className="flex min-w-0 flex-col">
-										<span className="truncate">Deleted workspace</span>
+									<span className="flex min-w-0 flex-col select-text cursor-text">
+										<span className="truncate">Workspace not found</span>
 										<span className="truncate text-[10px] text-amber-500/70">
-											no longer exists — pick another
+											deleted or unavailable — pick another
 										</span>
 									</span>
 									<HiCheck className="ml-auto size-4" />

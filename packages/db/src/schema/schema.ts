@@ -805,6 +805,8 @@ export const automations = pgTable(
 		index("automations_dispatcher_idx").on(t.enabled, t.nextRunAt),
 		index("automations_owner_idx").on(t.ownerUserId),
 		index("automations_organization_idx").on(t.organizationId),
+		// backs the set-null FK so workspace deletes don't seq-scan automations
+		index("automations_v2_workspace_id_idx").on(t.v2WorkspaceId),
 	],
 );
 

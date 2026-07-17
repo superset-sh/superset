@@ -127,14 +127,25 @@ export async function dispatchAutomation(
 				prompt: automation.prompt,
 			});
 		} catch (err) {
-			if (!isPinnedWorkspaceGone(err, automation, workspaceId)) throw err;
+			const stalePin = automation.v2WorkspaceId;
+			if (!stalePin || !isPinnedWorkspaceGone(err, automation, workspaceId)) {
+				throw err;
+			}
 			// The pinned workspace was deleted on the host. Clear the stale pin
 			// (so the automation and its UI reflect reality) and fall back to a
-			// fresh workspace for this and future runs.
+			// fresh workspace for this and future runs. Compare-and-set on the
+			// stale id so a concurrent repin is never erased.
 			await dbWs
 				.update(automations)
 				.set({ v2WorkspaceId: null })
-				.where(eq(automations.id, automation.id));
+				.where(
+					and(
+						eq(automations.id, automation.id),
+						eq(automations.v2WorkspaceId, stalePin),
+					),
+				);
+			// Don't let the outer catch record the dead id if fresh-create throws.
+			workspaceId = null;
 			workspaceId = await createFreshWorkspace();
 			result = await runAgentOnHost({
 				relayUrl,
@@ -332,9 +343,10 @@ async function runAgentOnHost(args: {
 
 /**
  * True when `agents.run` on a pinned workspace failed because that workspace
- * no longer exists on the host (deleted after the automation pinned it). The
- * "Workspace" prefix check keeps other NOT_FOUNDs from the same procedure
- * (agent config, attachments) from triggering the fresh-create fallback.
+ * no longer exists on the host (deleted after the automation pinned it).
+ * Matching the workspace id in the message keeps other NOT_FOUNDs from the
+ * same procedure (agent config, attachments) from triggering the fallback,
+ * without coupling to the host's error wording.
  */
 function isPinnedWorkspaceGone(
 	err: unknown,
@@ -342,11 +354,11 @@ function isPinnedWorkspaceGone(
 	workspaceId: string | null,
 ): boolean {
 	return (
-		!!automation.v2WorkspaceId &&
+		workspaceId !== null &&
 		automation.v2WorkspaceId === workspaceId &&
 		err instanceof RelayDispatchError &&
 		err.trpcCode === "NOT_FOUND" &&
-		(err.trpcMessage?.startsWith("Workspace") ?? false)
+		(err.trpcMessage?.includes(workspaceId) ?? false)
 	);
 }
 
