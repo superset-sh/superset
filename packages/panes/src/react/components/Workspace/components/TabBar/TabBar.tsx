@@ -35,6 +35,11 @@ interface TabBarProps<TData> {
 	onBarMouseDown?: () => void;
 	/** Double-click on the bar's empty space (not a tab or control) */
 	onBarDoubleClick?: () => void;
+	/**
+	 * Title of a tab about to combine into this bar (center drop hover);
+	 * renders a ghost tab at the append position.
+	 */
+	incomingTabTitle?: string | null;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
 	renderTabBarTrailing?: () => ReactNode;
@@ -87,6 +92,7 @@ export function TabBar<TData>({
 	onMovePaneToNewTab,
 	onBarMouseDown,
 	onBarDoubleClick,
+	incomingTabTitle,
 	renderTabIcon,
 	renderAddTabMenu,
 	renderTabBarTrailing,
@@ -239,6 +245,18 @@ export function TabBar<TData>({
 							/>
 						</div>
 					))}
+					{incomingTabTitle != null && (
+						<div
+							className="pointer-events-none h-full shrink-0 py-1.5 pr-1 pl-0.5"
+							style={{ width: TAB_WIDTH }}
+						>
+							<div className="flex h-full items-center rounded border border-dashed border-primary/60 bg-primary/10 px-2">
+								<span className="truncate text-xs text-muted-foreground">
+									{incomingTabTitle}
+								</span>
+							</div>
+						</div>
+					)}
 					{insertLineLeft !== null && (
 						<div
 							className="pointer-events-none absolute top-0 z-10 h-full w-0.5 bg-primary opacity-85"

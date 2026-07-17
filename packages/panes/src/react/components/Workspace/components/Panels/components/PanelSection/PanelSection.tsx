@@ -1,6 +1,10 @@
+import { useDragLayer } from "react-dnd";
 import type { Tab as TabType } from "../../../../../../../types";
+import { resolveTabTitle } from "../../../../utils/resolveTabTitle";
 import { Tab } from "../../../Tab";
 import { TabBar } from "../../../TabBar";
+import { TAB_DRAG_TYPE } from "../../../TabBar/components/TabItem";
+import { useDropPreviewStore } from "../../dropPreviewStore";
 import type { PanelsContext } from "../../types";
 import { PanelDropZone } from "../PanelDropZone";
 import { PanelExpandToggle } from "../PanelExpandToggle";
@@ -26,6 +30,26 @@ export function PanelSection<TData>({
 		.filter((tab): tab is TabType<TData> => tab !== undefined);
 	const activeTabId = derived.activeTabIdByPanel[panelId] ?? null;
 	const activeTab = activeTabId ? (tabsById.get(activeTabId) ?? null) : null;
+
+	// While a combine (center) drop hovers this panel, ghost the incoming tab
+	// at the end of the bar — exactly where moveTabToPanel will append it.
+	const previewTargetPanelId = useDropPreviewStore((s) => s.targetPanelId);
+	const previewTarget = useDropPreviewStore((s) => s.target);
+	const draggedTabId = useDragLayer((monitor) =>
+		monitor.isDragging() && monitor.getItemType() === TAB_DRAG_TYPE
+			? ((monitor.getItem() as { tabId?: string } | null)?.tabId ?? null)
+			: null,
+	);
+	const incomingTab =
+		previewTargetPanelId === panelId &&
+		previewTarget === "center" &&
+		draggedTabId &&
+		derived.panelIdByTabId[draggedTabId] !== panelId
+			? (tabsById.get(draggedTabId) ?? null)
+			: null;
+	const incomingTabTitle = incomingTab
+		? resolveTabTitle(incomingTab, [...tabsById.values()], context.registry)
+		: null;
 
 	// Interacting with a panel's bar selects the panel (VS Code: focusing a
 	// group), so panel-relative actions (new tab, presets) target it.
@@ -99,6 +123,7 @@ export function PanelSection<TData>({
 				}
 				renderTabBarTrailing={renderTrailing}
 				renderTabAccessory={context.renderTabAccessory}
+				incomingTabTitle={incomingTabTitle}
 			/>
 			<div className="relative flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				{activeTab ? (
