@@ -8,8 +8,10 @@ import {
 	isTerminalAgentDefinition,
 } from "@superset/shared/agent-catalog";
 import { quoteSingleShell } from "@superset/shared/agent-prompt-launch";
+import { asc } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
+import { hostAgentConfigs } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import {
 	markWorkspaceCloudSynced,
@@ -79,9 +81,13 @@ const INSTRUCTIONS = [
 ].join("\n");
 
 // Agent CLIs cold-start (~2-4s) before the model call, so they get a much
-// longer budget than the direct small-model path. Workspace creation blocks
-// on naming, so this is also the worst-case added create latency.
+// longer budget than the direct small-model path. The total budget spans
+// all candidate attempts; workspace creation blocks on naming, so it is
+// also the worst-case added create latency. Attempts shorter than the
+// floor aren't worth a CLI cold-start — skip straight to the fallback.
 const AGENT_GENERATE_TIMEOUT_MS = 20_000;
+const AGENT_NAMING_TOTAL_BUDGET_MS = 25_000;
+const AGENT_NAMING_MIN_ATTEMPT_MS = 2_000;
 
 const AGENT_JSON_INSTRUCTIONS = [
 	INSTRUCTIONS,
@@ -90,25 +96,50 @@ const AGENT_JSON_INSTRUCTIONS = [
 ].join("\n");
 
 /**
- * The agent context used to name via the workspace's own agent CLI:
- * the launch's agent id (instance id or preset id) resolves through
- * `hostAgentConfigs` to a builtin preset whose `nonInteractiveCommand`
- * runs the naming prompt headlessly with the agent's own credentials.
+ * The agent context used to name via an agent CLI: candidate agents
+ * resolve to builtin presets whose `nonInteractiveCommand` runs the
+ * naming prompt headlessly with the agent's own credentials. `agent`
+ * (the launch's instance id or preset id) is tried first when present;
+ * the host's other configured agents follow in display order.
  */
 export interface WorkspaceNamingAgentContext {
 	db: HostDb;
-	agent: string;
+	agent?: string;
 }
 
-function resolveNonInteractiveCommand(
-	db: HostDb,
-	agent: string,
-): string | null {
-	const presetId = resolveHostAgentConfig(db, agent)?.presetId ?? agent;
-	if (!isBuiltinAgentId(presetId)) return null;
-	const definition = getBuiltinAgentDefinition(presetId);
-	if (!isTerminalAgentDefinition(definition)) return null;
-	return definition.nonInteractiveCommand ?? null;
+function listConfiguredPresetIds(db: HostDb): string[] {
+	return db
+		.select({ presetId: hostAgentConfigs.presetId })
+		.from(hostAgentConfigs)
+		.orderBy(asc(hostAgentConfigs.displayOrder))
+		.all()
+		.map((row) => row.presetId);
+}
+
+/**
+ * Orders naming candidates: the preferred preset first, then the
+ * remaining configured presets, deduplicated, keeping only builtin
+ * terminal agents that have a headless mode.
+ */
+export function orderNamingCandidates(
+	configuredPresetIds: string[],
+	preferredPresetId?: string,
+): Array<{ presetId: string; command: string }> {
+	const seen = new Set<string>();
+	const candidates: Array<{ presetId: string; command: string }> = [];
+	const ordered = preferredPresetId
+		? [preferredPresetId, ...configuredPresetIds]
+		: configuredPresetIds;
+	for (const presetId of ordered) {
+		if (seen.has(presetId)) continue;
+		seen.add(presetId);
+		if (!isBuiltinAgentId(presetId)) continue;
+		const definition = getBuiltinAgentDefinition(presetId);
+		if (!isTerminalAgentDefinition(definition)) continue;
+		if (!definition.nonInteractiveCommand) continue;
+		candidates.push({ presetId, command: definition.nonInteractiveCommand });
+	}
+	return candidates;
 }
 
 function extractNamesJson(
@@ -141,6 +172,7 @@ function extractNamesJson(
 async function generateNamesViaAgentCli(
 	command: string,
 	prompt: string,
+	timeoutMs: number,
 ): Promise<GeneratedWorkspaceNames | null> {
 	const shell =
 		process.env.SHELL ||
@@ -168,11 +200,9 @@ async function generateNamesViaAgentCli(
 		};
 		const timer = setTimeout(() => {
 			child.kill("SIGKILL");
-			console.warn(
-				`[generateNamesViaAgentCli] timed out after ${AGENT_GENERATE_TIMEOUT_MS}ms`,
-			);
+			console.warn(`[generateNamesViaAgentCli] timed out after ${timeoutMs}ms`);
 			settle(null);
-		}, AGENT_GENERATE_TIMEOUT_MS);
+		}, timeoutMs);
 		child.stdout.on("data", (chunk: Buffer) => {
 			stdout += chunk.toString();
 		});
@@ -208,10 +238,12 @@ async function generateNamesViaAgentCli(
 
 /**
  * Generates both a workspace title and a git branch name from a prompt.
- * When the caller supplies the launch's agent context and that agent has a
- * headless mode, the agent CLI does the naming with its own credentials —
- * covering users with no Anthropic/OpenAI keys. Falls back to a single
- * structured-output small-model call (`getSmallModel`) otherwise.
+ * With an agent context, configured agent CLIs with a headless mode do
+ * the naming with their own credentials — covering users with no
+ * Anthropic/OpenAI keys. The launch's agent goes first, then the host's
+ * other configured agents, under one total budget. Falls back to a
+ * structured-output small-model call (`getSmallModel`), and returns null
+ * when that fails too (callers then keep their friendly-random name).
  */
 export async function generateWorkspaceNamesFromPrompt(
 	prompt: string,
@@ -221,27 +253,45 @@ export async function generateWorkspaceNamesFromPrompt(
 	if (!cleaned) return null;
 
 	if (agentContext) {
-		const command = resolveNonInteractiveCommand(
-			agentContext.db,
-			agentContext.agent,
+		const preferredPresetId = agentContext.agent
+			? (resolveHostAgentConfig(agentContext.db, agentContext.agent)
+					?.presetId ?? agentContext.agent)
+			: undefined;
+		const candidates = orderNamingCandidates(
+			listConfiguredPresetIds(agentContext.db),
+			preferredPresetId,
 		);
-		if (command) {
+		const deadline = Date.now() + AGENT_NAMING_TOTAL_BUDGET_MS;
+		for (const candidate of candidates) {
+			const remaining = deadline - Date.now();
+			if (remaining < AGENT_NAMING_MIN_ATTEMPT_MS) {
+				console.warn(
+					"[generateWorkspaceNamesFromPrompt] agent naming budget exhausted",
+				);
+				break;
+			}
 			try {
-				const names = await generateNamesViaAgentCli(command, cleaned);
+				const names = await generateNamesViaAgentCli(
+					candidate.command,
+					cleaned,
+					Math.min(AGENT_GENERATE_TIMEOUT_MS, remaining),
+				);
 				if (names) {
 					console.log(
-						`[generateWorkspaceNamesFromPrompt] named via agent CLI (${agentContext.agent})`,
+						`[generateWorkspaceNamesFromPrompt] named via agent CLI (${candidate.presetId})`,
 					);
 					return names;
 				}
 			} catch (error) {
 				console.warn(
-					"[generateWorkspaceNamesFromPrompt] agent CLI naming failed:",
+					`[generateWorkspaceNamesFromPrompt] agent CLI (${candidate.presetId}) naming failed:`,
 					error,
 				);
 			}
+		}
+		if (candidates.length > 0) {
 			console.warn(
-				`[generateWorkspaceNamesFromPrompt] agent CLI (${agentContext.agent}) returned no names; falling back to small model`,
+				"[generateWorkspaceNamesFromPrompt] no agent CLI produced names; falling back to small model",
 			);
 		}
 	}
@@ -321,7 +371,9 @@ export async function applyAiWorkspaceRename(
 
 	if (!renameTitle && !renameBranch) return;
 
-	const aiNames = await generateWorkspaceNamesFromPrompt(prompt);
+	const aiNames = await generateWorkspaceNamesFromPrompt(prompt, {
+		db: ctx.db,
+	});
 	if (!aiNames) return;
 
 	const titleChanged =
