@@ -469,6 +469,18 @@ export const projectRouter = router({
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
+				/**
+				 * Repo coordinates supplied by the caller (from the host
+				 * fan-out) so a local-first project created on ANOTHER host —
+				 * which has no cloud row — can be set up on this device. When
+				 * present, the legacy cloud lookup is skipped entirely.
+				 */
+				origin: z
+					.object({
+						repoCloneUrl: z.string().nullish(),
+						name: z.string().min(1).optional(),
+					})
+					.optional(),
 				mode: z.discriminatedUnion("kind", [
 					z.object({
 						kind: z.literal("clone"),
@@ -489,15 +501,23 @@ export const projectRouter = router({
 				.where(eq(projects.id, input.projectId))
 				.get();
 
-			// Local-first rows complete setup without any cloud round-trip;
-			// the cloud lookup only serves adopting a legacy cloud-created
-			// project onto this device.
-			const cloudProject = existing
-				? null
-				: await ctx.api.v2Project.get.query({
-						organizationId: ctx.organizationId,
-						id: input.projectId,
-					});
+			// Local-first rows complete setup without any cloud round-trip.
+			// Caller-supplied origin coordinates come next (cross-host setup
+			// of local-first projects); the legacy cloud lookup only serves
+			// old clients adopting a cloud-created project.
+			const cloudProject =
+				existing || input.origin
+					? null
+					: await ctx.api.v2Project.get.query({
+							organizationId: ctx.organizationId,
+							id: input.projectId,
+						});
+			const origin = cloudProject
+				? { repoCloneUrl: cloudProject.repoCloneUrl, name: cloudProject.name }
+				: {
+						repoCloneUrl: input.origin?.repoCloneUrl ?? null,
+						name: input.origin?.name,
+					};
 
 			const allowRelocate =
 				input.mode.kind === "import" && input.mode.allowRelocate;
@@ -530,27 +550,27 @@ export const projectRouter = router({
 							mainWorkspaceId: mainWorkspace?.id ?? null,
 						};
 					}
-					if (!cloudProject?.repoCloneUrl) {
+					if (!origin.repoCloneUrl) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message:
 								"Project has no linked GitHub repository — cannot clone. Import an existing local folder instead.",
 						});
 					}
-					const expectedParsed = parseGitHubRemote(cloudProject.repoCloneUrl);
+					const expectedParsed = parseGitHubRemote(origin.repoCloneUrl);
 					if (!expectedParsed) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
-							message: `Could not parse GitHub remote from ${cloudProject.repoCloneUrl}`,
+							message: `Could not parse GitHub remote from ${origin.repoCloneUrl}`,
 						});
 					}
 					const resolved = await cloneRepoInto(
-						cloudProject.repoCloneUrl,
+						origin.repoCloneUrl,
 						input.mode.parentDir,
 						ctx.credentials,
 					);
 					persistLocalProject(ctx, input.projectId, resolved, {
-						name: cloudProject.name,
+						name: origin.name,
 					});
 					const mainWorkspace = await ensureMainWorkspace(
 						ctx,
@@ -564,12 +584,12 @@ export const projectRouter = router({
 				}
 				case "import": {
 					let resolved: ResolvedRepo;
-					if (cloudProject?.repoCloneUrl) {
-						const parsed = parseGitHubRemote(cloudProject.repoCloneUrl);
+					if (origin.repoCloneUrl) {
+						const parsed = parseGitHubRemote(origin.repoCloneUrl);
 						if (!parsed) {
 							throw new TRPCError({
 								code: "BAD_REQUEST",
-								message: `Could not parse GitHub remote from ${cloudProject.repoCloneUrl}`,
+								message: `Could not parse GitHub remote from ${origin.repoCloneUrl}`,
 							});
 						}
 						resolved = await resolveMatchingSlug(
@@ -621,7 +641,7 @@ export const projectRouter = router({
 						});
 					}
 					persistLocalProject(ctx, input.projectId, resolved, {
-						name: cloudProject?.name,
+						name: origin.name,
 					});
 					const mainWorkspace = await ensureMainWorkspace(
 						ctx,
@@ -638,18 +658,21 @@ export const projectRouter = router({
 
 	/**
 	 * Project-delete saga. Local is reality — the local deletes are the
-	 * commit point and always run, fully offline-capable:
+	 * commit point, run first, and are fully offline-capable:
 	 *
 	 *   1. Ownership check: an id this host doesn't serve is a no-op —
 	 *      never a legacy cloud delete.
 	 *
-	 *   2. Best-effort legacy-cloud v2Project.delete (cascades old cloud
-	 *      workspace mirrors). Failure/offline never blocks.
-	 *
-	 *   3. Best-effort `git worktree remove` for each non-main local
+	 *   2. Best-effort `git worktree remove` for each non-main local
 	 *      workspace so subsequent worktree commands aren't confused.
 	 *
-	 *   4. Local DB rows (workspaces + project).
+	 *   3. Local DB rows (workspaces + project). A failure here surfaces as
+	 *      an error — the local table is what the UI lists from, so a
+	 *      swallowed failure would toast "Deleted" over a surviving row.
+	 *
+	 *   4. Fire-and-forget legacy-cloud v2Project.delete (cascades old cloud
+	 *      workspace mirrors). Never awaited — a blackholed network must not
+	 *      stall the local commit point.
 	 *
 	 * The on-disk repo directory is NEVER auto-removed. The user's code is
 	 * their code; deletion of the working tree must be an explicit action,
@@ -663,18 +686,6 @@ export const projectRouter = router({
 				.findFirst({ where: eq(projects.id, input.projectId) })
 				.sync();
 			if (!localProject) return { success: true, repoPath: null };
-
-			try {
-				await ctx.api.v2Project.delete.mutate({
-					organizationId: ctx.organizationId,
-					id: input.projectId,
-				});
-			} catch (err) {
-				console.warn(
-					"[project.remove] legacy cloud delete failed; continuing locally",
-					{ projectId: input.projectId, err },
-				);
-			}
 
 			const localWorkspaces = ctx.db
 				.select()
@@ -697,19 +708,30 @@ export const projectRouter = router({
 			}
 
 			try {
-				// Per-row so each deletion broadcasts. The legacy cloud delete
-				// above cascades old cloud mirrors when it succeeds.
+				// Per-row so each deletion broadcasts.
 				for (const ws of localWorkspaces) {
 					deleteLocalWorkspace({ db: ctx.db, eventBus: ctx.eventBus }, ws.id);
 				}
 				ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
 				emitProjectChanged(ctx.eventBus, "deleted", input.projectId);
 			} catch (err) {
-				console.warn("[project.remove] failed to delete local rows", {
-					projectId: input.projectId,
-					err,
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: `Failed to delete project locally: ${err instanceof Error ? err.message : String(err)}`,
 				});
 			}
+
+			void ctx.api.v2Project.delete
+				.mutate({
+					organizationId: ctx.organizationId,
+					id: input.projectId,
+				})
+				.catch((err) => {
+					console.warn(
+						"[project.remove] legacy cloud cleanup failed; frozen mirror row may remain",
+						{ projectId: input.projectId, err },
+					);
+				});
 
 			return { success: true, repoPath: localProject.repoPath };
 		}),

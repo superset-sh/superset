@@ -70,11 +70,18 @@ export function deriveHostProjectsQueryTargets({
 	hosts,
 	machineId,
 	relayUrl,
+	fallbackOrganizationId,
 }: {
 	activeHostUrl: string | null;
 	hosts: HostRowForTargets[];
 	machineId: string | null;
 	relayUrl: string;
+	/**
+	 * Org id for the local-host fallback target when the hosts collection
+	 * hasn't loaded yet — without it the persisted snapshot can't hydrate
+	 * in exactly the cold-start window it exists for.
+	 */
+	fallbackOrganizationId?: string | null;
 }): HostProjectsQueryTarget[] {
 	const targets: HostProjectsQueryTarget[] = hosts.map((host) => {
 		const isLocal = host.machineId === machineId;
@@ -98,7 +105,7 @@ export function deriveHostProjectsQueryTargets({
 	) {
 		targets.push({
 			machineId,
-			organizationId: hosts[0]?.organizationId ?? "",
+			organizationId: hosts[0]?.organizationId ?? fallbackOrganizationId ?? "",
 			hostUrl: activeHostUrl,
 			isLocal: true,
 		});

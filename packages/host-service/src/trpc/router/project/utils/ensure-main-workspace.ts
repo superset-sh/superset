@@ -9,7 +9,7 @@ import {
 
 export type EnsureMainWorkspaceContext = Pick<
 	HostServiceContext,
-	"api" | "db" | "git" | "organizationId" | "clientMachineId" | "eventBus"
+	"db" | "git" | "eventBus"
 >;
 
 async function getCurrentBranchName(

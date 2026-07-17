@@ -7,6 +7,7 @@ import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import type { DashboardSidebarProject } from "../../../../types";
 
@@ -20,13 +21,17 @@ export function useDashboardSidebarProjectSectionActions({
 	const openModal = useOpenNewWorkspaceModal();
 	const navigate = useNavigate();
 	// Renames commit on a host serving the project — host.db owns the name.
+	// Prefer the local host when it serves the project (always reachable);
+	// hostIds order is arbitrary and may lead with an offline remote.
 	const { projects: hostProjects } = useHostProjects();
-	const servingHostId = useMemo(
-		() =>
-			hostProjects.find((item) => item.projectKey === project.id)?.hostIds[0] ??
-			null,
-		[hostProjects, project.id],
-	);
+	const { machineId } = useLocalHostService();
+	const servingHostId = useMemo(() => {
+		const hostIds =
+			hostProjects.find((item) => item.projectKey === project.id)?.hostIds ??
+			[];
+		if (machineId && hostIds.includes(machineId)) return machineId;
+		return hostIds[0] ?? null;
+	}, [hostProjects, machineId, project.id]);
 	// undefined (not null) when no host serves it — null would resolve to
 	// the local host and rename the wrong replica.
 	const servingHostUrl = useHostUrl(servingHostId ?? undefined);

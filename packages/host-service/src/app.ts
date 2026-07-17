@@ -216,11 +216,9 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// this column shipped. Idempotent — only does real work the first
 		// time after upgrade.
 		await runMainWorkspaceSweep({
-			api,
 			db,
 			git,
 			eventBus,
-			organizationId: config.organizationId,
 		}).catch((err) => {
 			console.warn("[host-service] main-workspace sweep failed:", err);
 		});

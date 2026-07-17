@@ -2,11 +2,14 @@ import { getEventBus } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { env } from "renderer/env.renderer";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { MOCK_ORG_ID } from "shared/constants";
 import {
 	applyProjectChangedEvent,
 	deriveHostProjectsQueryTargets,
@@ -46,6 +49,10 @@ export function useHostProjects(): UseHostProjectsResult {
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
+	const { data: session } = authClient.useSession();
+	const fallbackOrganizationId = env.SKIP_ENV_VALIDATION
+		? MOCK_ORG_ID
+		: (session?.session?.activeOrganizationId ?? null);
 
 	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
@@ -64,8 +71,9 @@ export function useHostProjects(): UseHostProjectsResult {
 				hosts,
 				machineId,
 				relayUrl,
+				fallbackOrganizationId,
 			}),
-		[activeHostUrl, hosts, machineId, relayUrl],
+		[activeHostUrl, hosts, machineId, relayUrl, fallbackOrganizationId],
 	);
 
 	// Last-seen snapshots hydrate once per (org, host); live data always wins.
@@ -189,13 +197,17 @@ export function useHostProjects(): UseHostProjectsResult {
 		[targets, queries, snapshots],
 	);
 
-	const isReady = queries.every(
-		(query, index) =>
-			query.isSuccess ||
-			query.isError ||
-			targets[index]?.hostUrl === null ||
-			snapshots.has(targets[index]?.machineId ?? ""),
-	);
+	// Never vacuously ready: zero targets means host discovery hasn't run
+	// yet (cold start), not "no projects exist".
+	const isReady =
+		targets.length > 0 &&
+		queries.every(
+			(query, index) =>
+				query.isSuccess ||
+				query.isError ||
+				targets[index]?.hostUrl === null ||
+				snapshots.has(targets[index]?.machineId ?? ""),
+		);
 
 	return { projects, isReady };
 }

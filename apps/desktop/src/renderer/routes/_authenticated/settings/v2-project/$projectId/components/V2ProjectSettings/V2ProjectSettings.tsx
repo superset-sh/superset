@@ -172,6 +172,7 @@ export function V2ProjectSettings({
 					<SettingsRow label="Location">
 						<ProjectLocationSection
 							projectId={projectId}
+							projectName={project.name}
 							currentPath={hostProject?.repoPath ?? null}
 							repoCloneUrl={project.repoUrl}
 							hostId={targetHostId ?? null}
@@ -214,6 +215,7 @@ export function V2ProjectSettings({
 					<DeleteProjectSection
 						projectId={projectId}
 						projectName={project.name}
+						hostIds={project.hostIds}
 					/>
 				</section>
 			</div>

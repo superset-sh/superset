@@ -370,7 +370,7 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(result.cloudDeleted).toBe(false);
 		expect(result.worktreeRemoved).toBe(true);
 		expect(
-			result.warnings.some((w) => w.includes("Cloud delete deferred")),
+			result.warnings.some((w) => w.includes("Legacy cloud cleanup failed")),
 		).toBe(true);
 		expect(cloudDeleteCalls).toBe(1);
 		expect(existsSync(scenario.worktreePath)).toBe(false);

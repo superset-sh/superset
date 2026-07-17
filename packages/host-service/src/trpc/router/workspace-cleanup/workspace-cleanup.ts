@@ -352,7 +352,7 @@ async function runDestroy(
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		warnings.push(
-			`Cloud delete deferred (will retry in background): ${message}`,
+			`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
 		);
 	}
 
