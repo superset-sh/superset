@@ -296,28 +296,23 @@ export class PortManager extends EventEmitter {
 		force: boolean,
 	): Promise<void> {
 		const now = Date.now();
-		const dueSessions: {
-			terminalId: string;
-			workspaceId: string;
-			pid: number;
-		}[] = [];
+		const dueSessions: { terminalId: string; pid: number }[] = [];
 		for (const [terminalId, entry] of this.sessions) {
 			if (entry.pid === null) continue;
 			if (!force && !this.isSessionDue(entry, now)) continue;
-			dueSessions.push({
-				terminalId,
-				workspaceId: entry.workspaceId,
-				pid: entry.pid,
-			});
+			dueSessions.push({ terminalId, pid: entry.pid });
 		}
 		if (dueSessions.length === 0) return;
 
 		const trees = await getProcessTreesForPids(
 			dueSessions.map((session) => session.pid),
 		);
-		for (const { terminalId, workspaceId, pid } of dueSessions) {
+		for (const { terminalId, pid } of dueSessions) {
 			const entry = this.sessions.get(terminalId);
-			if (entry) entry.lastScannedAt = now;
+			// The session may have been replaced (new pid) or unregistered while
+			// the table read was in flight; its tree is stale — don't apply it.
+			if (!entry || entry.pid !== pid) continue;
+			entry.lastScannedAt = now;
 
 			const pids = trees.get(pid) ?? [];
 			if (pids.length === 0) {
@@ -325,6 +320,7 @@ export class PortManager extends EventEmitter {
 				scanState.emptyTreeTerminals.add(terminalId);
 				continue;
 			}
+			const { workspaceId } = entry;
 			scanState.terminalPortMap.set(terminalId, { workspaceId, pids });
 			this.addTerminalPids({ terminalId, workspaceId, pids, scanState });
 		}

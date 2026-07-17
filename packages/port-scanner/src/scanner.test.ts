@@ -92,7 +92,12 @@ describe("getProcessTreesForPids (real process table)", () => {
 	});
 
 	it("includes the root pid and its descendants from one table read", async () => {
-		const child = Bun.spawn(["sleep", "5"]);
+		// Not `sleep` — this package supports win32, where that binary is absent.
+		const child = Bun.spawn([
+			process.execPath,
+			"-e",
+			"setTimeout(() => {}, 5000)",
+		]);
 		try {
 			const trees = await getProcessTreesForPids([process.pid]);
 			const tree = trees.get(process.pid);

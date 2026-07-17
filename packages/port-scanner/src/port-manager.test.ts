@@ -60,11 +60,14 @@ const spy: ScannerSpy = {
 
 let lsofDelayMs = 0;
 let listeningPorts: MockPortInfo[] = [];
+/** When set, the tree mock blocks until the test resolves this promise. */
+let treeGate: Promise<void> | null = null;
 
 mock.module("./scanner", () => ({
 	getProcessTreesForPids: async (rootPids: number[]) => {
 		spy.getProcessTrees++;
 		spy.lastTreeRootPids = rootPids;
+		if (treeGate) await treeGate;
 		return new Map(rootPids.map((pid) => [pid, [pid, pid + 1]]));
 	},
 	getListeningPortsForPids: async (_pids: number[], signal?: AbortSignal) => {
@@ -130,6 +133,7 @@ function resetSpy(): void {
 	spy.aborted = 0;
 	lsofDelayMs = 0;
 	listeningPorts = [];
+	treeGate = null;
 }
 
 beforeEach(() => {
@@ -614,23 +618,41 @@ describe("PortManager — idle decay (sessions without output scan rarely)", () 
 	});
 
 	it("forceScan arriving mid-scan keeps its bypass in the coalesced follow-up", async () => {
-		lsofDelayMs = 50;
 		manager.upsertSession("active", "ws1", 1000);
 		manager.upsertSession("idle", "ws1", 2000);
 		const entry = session("idle");
 		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
 		entry.lastScannedAt = Date.now();
 
-		// Periodic (non-forced) scan picks up only the active session…
+		// scanAllSessions marks itself in-flight synchronously, so with no await
+		// in between the force scan is guaranteed to coalesce — and the follow-up
+		// is awaited inside the periodic promise, so no timers are needed.
 		const periodic = scan();
-		await sleep(10);
-		// …and a force scan lands while it is still in flight.
 		await manager.forceScan();
-
 		await periodic;
-		await sleep(100); // let the coalesced follow-up finish
 
 		// The follow-up must run forced: the idle session's pid is included.
 		expect(spy.lastTreeRootPids).toContain(2000);
+	});
+
+	it("discards results for a session whose pid changed during the table read", async () => {
+		let release!: () => void;
+		treeGate = new Promise((resolve) => {
+			release = resolve;
+		});
+		manager.upsertSession("p1", "ws1", 1000);
+		listeningPorts = [
+			{ port: 3000, pid: 1000, address: "127.0.0.1", processName: "node" },
+		];
+
+		const scanPromise = scan();
+		// The shell is replaced (new pid) while the table read is blocked — the
+		// stale tree for pid 1000 must not be attributed to the new session.
+		manager.upsertSession("p1", "ws1", 9999);
+		release();
+		await scanPromise;
+
+		expect(manager.getAllPorts()).toHaveLength(0);
+		expect(session("p1").lastScannedAt).toBe(0);
 	});
 });
