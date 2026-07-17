@@ -1,1 +1,0 @@
-CREATE INDEX "automations_v2_workspace_id_idx" ON "automations" USING btree ("v2_workspace_id");

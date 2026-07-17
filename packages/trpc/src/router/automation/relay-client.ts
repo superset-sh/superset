@@ -31,9 +31,8 @@ export class RelayDispatchError extends Error {
 }
 
 /**
- * Pull the human-readable message and code out of a tRPC error envelope
- * (`{"error":{"json":{"message","data":{"code"}}}}`) so automation run rows
- * store "agents.run: Workspace … not found" instead of the raw JSON blob.
+ * Extract message/code from a tRPC error envelope so callers store
+ * "agents.run: Workspace … not found" instead of the raw JSON blob.
  */
 function parseTrpcError(
 	rawBody: string,

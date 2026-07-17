@@ -1,6 +1,6 @@
 {
-  "id": "6a8820f7-6d97-49ba-933f-6f7d01430c29",
-  "prevId": "3d0998ba-87bb-4824-a66c-dd3e4337c226",
+  "id": "622f176e-73b9-408e-b0f4-e61fde6387b9",
+  "prevId": "06845861-dbda-4c9e-abd1-e9e63bb2b1d9",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -3394,6 +3394,21 @@
           "columns": [
             {
               "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "automations_v2_workspace_id_idx": {
+          "name": "automations_v2_workspace_id_idx",
+          "columns": [
+            {
+              "expression": "v2_workspace_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"

@@ -114,27 +114,28 @@ export async function dispatchAutomation(
 			return created.workspaceId;
 		};
 
+		const runAgent = (targetWorkspaceId: string) =>
+			runAgentOnHost({
+				relayUrl,
+				hostId: routingKey,
+				jwt,
+				workspaceId: targetWorkspaceId,
+				agent: automation.agent,
+				prompt: automation.prompt,
+			});
+
 		workspaceId = automation.v2WorkspaceId ?? (await createFreshWorkspace());
 
 		let result: AgentRunResult;
 		try {
-			result = await runAgentOnHost({
-				relayUrl,
-				hostId: routingKey,
-				jwt,
-				workspaceId,
-				agent: automation.agent,
-				prompt: automation.prompt,
-			});
+			result = await runAgent(workspaceId);
 		} catch (err) {
 			const stalePin = automation.v2WorkspaceId;
 			if (!stalePin || !isPinnedWorkspaceGone(err, automation, workspaceId)) {
 				throw err;
 			}
-			// The pinned workspace was deleted on the host. Clear the stale pin
-			// (so the automation and its UI reflect reality) and fall back to a
-			// fresh workspace for this and future runs. Compare-and-set on the
-			// stale id so a concurrent repin is never erased.
+			// Pinned workspace is gone: clear the pin (CAS so a concurrent repin
+			// is never erased) and fall back to a fresh workspace from here on.
 			await dbWs
 				.update(automations)
 				.set({ v2WorkspaceId: null })
@@ -147,14 +148,7 @@ export async function dispatchAutomation(
 			// Don't let the outer catch record the dead id if fresh-create throws.
 			workspaceId = null;
 			workspaceId = await createFreshWorkspace();
-			result = await runAgentOnHost({
-				relayUrl,
-				hostId: routingKey,
-				jwt,
-				workspaceId,
-				agent: automation.agent,
-				prompt: automation.prompt,
-			});
+			result = await runAgent(workspaceId);
 		}
 
 		await dbWs
@@ -342,11 +336,9 @@ async function runAgentOnHost(args: {
 }
 
 /**
- * True when `agents.run` on a pinned workspace failed because that workspace
- * no longer exists on the host (deleted after the automation pinned it).
- * Matching the workspace id in the message keeps other NOT_FOUNDs from the
- * same procedure (agent config, attachments) from triggering the fallback,
- * without coupling to the host's error wording.
+ * True when `agents.run` failed because the pinned workspace no longer exists
+ * on the host. Matching the workspace id in the message keeps other NOT_FOUNDs
+ * (agent config, attachments) from triggering the fresh-create fallback.
  */
 function isPinnedWorkspaceGone(
 	err: unknown,

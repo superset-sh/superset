@@ -439,22 +439,15 @@
     {
       "idx": 62,
       "version": "7",
-      "when": 1784308037659,
+      "when": 1784320552462,
       "tag": "0062_null_dangling_automation_workspace_pins",
       "breakpoints": true
     },
     {
       "idx": 63,
       "version": "7",
-      "when": 1784308058081,
+      "when": 1784320558403,
       "tag": "0063_automations_workspace_fk_set_null",
-      "breakpoints": true
-    },
-    {
-      "idx": 64,
-      "version": "7",
-      "when": 1784319431852,
-      "tag": "0064_automations_v2_workspace_id_idx",
       "breakpoints": true
     }
   ]
