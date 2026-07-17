@@ -17,6 +17,8 @@ function fakePty(meta: { cols: number; rows: number }): Pty {
 		onData: () => {},
 		onExit: () => {},
 		getMasterFd: () => -1,
+		pause: () => {},
+		resume: () => {},
 	};
 }
 

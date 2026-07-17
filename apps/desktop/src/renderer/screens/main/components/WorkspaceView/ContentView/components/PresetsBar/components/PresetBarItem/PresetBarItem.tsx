@@ -7,13 +7,12 @@ import {
 	ContextMenuSeparator,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useEffect, useRef } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
 import type { HotkeyId } from "renderer/hotkeys";
-import { HotkeyLabel } from "renderer/hotkeys";
+import { HotkeyTooltip } from "renderer/hotkeys";
 
 const PRESET_BAR_ITEM_TYPE = "PRESET_BAR_ITEM";
 
@@ -50,7 +49,6 @@ export function PresetBarItem({
 }: PresetBarItemProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
 	const icon = getPresetIcon(preset.name, isDark);
-	const label = preset.description || preset.name || "default";
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({
@@ -94,28 +92,23 @@ export function PresetBarItem({
 					className={isDragging ? "opacity-40" : undefined}
 					style={{ cursor: isDragging ? "grabbing" : "grab" }}
 				>
-					<Tooltip>
-						<TooltipTrigger asChild>
-							<Button
-								variant="ghost"
-								size="sm"
-								className="h-6 px-2 gap-1.5 text-xs shrink-0"
-								onClick={() => onOpenDefault(preset)}
-							>
-								{icon ? (
-									<img src={icon} alt="" className="size-3.5 object-contain" />
-								) : (
-									<HiMiniCommandLine className="size-3.5" />
-								)}
-								<span className="truncate max-w-[120px]">
-									{preset.name || "default"}
-								</span>
-							</Button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" sideOffset={4}>
-							<HotkeyLabel label={label} id={hotkeyId} />
-						</TooltipContent>
-					</Tooltip>
+					<HotkeyTooltip id={hotkeyId}>
+						<Button
+							variant="ghost"
+							size="sm"
+							className="h-6 px-2 gap-1.5 text-xs shrink-0"
+							onClick={() => onOpenDefault(preset)}
+						>
+							{icon ? (
+								<img src={icon} alt="" className="size-3.5 object-contain" />
+							) : (
+								<HiMiniCommandLine className="size-3.5" />
+							)}
+							<span className="truncate max-w-[120px]">
+								{preset.name || "default"}
+							</span>
+						</Button>
+					</HotkeyTooltip>
 				</div>
 			</ContextMenuTrigger>
 			<ContextMenuContent>
