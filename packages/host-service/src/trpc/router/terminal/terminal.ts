@@ -71,6 +71,16 @@ const daemonRouter = router({
 		getSupervisor().getUpdateStatus(ctx.organizationId),
 	),
 
+	/**
+	 * Whether the daemon is still answering, and for how long it hasn't.
+	 * Deliberately does not `waitForDaemonReady` — this is polled by the
+	 * terminal UI to decide whether a stall is worth surfacing, so it has to
+	 * answer immediately rather than block on the thing that may be wedged.
+	 */
+	getHealth: protectedProcedure.query(({ ctx }) =>
+		getSupervisor().getHealth(ctx.organizationId),
+	),
+
 	listSessions: protectedProcedure.query(async ({ ctx }) => {
 		// Wait for the bootstrap so the supervisor has a socket path.
 		await waitForDaemonReady(ctx.organizationId);
