@@ -1,11 +1,8 @@
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
+import { Collapsible, CollapsibleTrigger } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { VscChevronRight } from "react-icons/vsc";
+import { PlainCollapsibleContent } from "../PlainCollapsibleContent";
 
 interface CollapsibleRowProps {
 	isExpanded: boolean;
@@ -28,6 +25,8 @@ export function CollapsibleRow({
 	triggerClassName,
 	contentClassName,
 }: CollapsibleRowProps) {
+	const contentId = useId();
+
 	return (
 		<Collapsible
 			open={isExpanded}
@@ -35,6 +34,7 @@ export function CollapsibleRow({
 			className={cn("min-w-0", className)}
 		>
 			<CollapsibleTrigger
+				aria-controls={contentId}
 				className={cn(
 					"w-full flex items-center gap-1.5 px-1.5 py-1 text-left rounded-sm",
 					"hover:bg-accent/50 cursor-pointer transition-colors",
@@ -51,9 +51,13 @@ export function CollapsibleRow({
 				)}
 				{header}
 			</CollapsibleTrigger>
-			<CollapsibleContent className={cn("min-w-0", contentClassName)}>
+			<PlainCollapsibleContent
+				id={contentId}
+				isOpen={isExpanded}
+				className={cn("min-w-0", contentClassName)}
+			>
 				{children}
-			</CollapsibleContent>
+			</PlainCollapsibleContent>
 		</Collapsible>
 	);
 }
