@@ -1,11 +1,21 @@
+import { spawn } from "node:child_process";
+import { tmpdir } from "node:os";
 import { Agent } from "@mastra/core/agent";
 import { getSmallModel } from "@superset/chat/server/shared";
+import {
+	getBuiltinAgentDefinition,
+	isBuiltinAgentId,
+	isTerminalAgentDefinition,
+} from "@superset/shared/agent-catalog";
+import { quoteSingleShell } from "@superset/shared/agent-prompt-launch";
 import { z } from "zod";
+import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
 import {
 	markWorkspaceCloudSynced,
 	updateLocalWorkspace,
 } from "../../../../workspaces/local-workspace-store";
+import { resolveHostAgentConfig } from "../../agents/agents";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
 
@@ -68,16 +78,173 @@ const INSTRUCTIONS = [
 	"Both fields must describe the same underlying task; the branch is just a compact slug of the title.",
 ].join("\n");
 
+// Agent CLIs cold-start (~2-4s) before the model call, so they get a much
+// longer budget than the direct small-model path. Workspace creation blocks
+// on naming, so this is also the worst-case added create latency.
+const AGENT_GENERATE_TIMEOUT_MS = 20_000;
+
+const AGENT_JSON_INSTRUCTIONS = [
+	INSTRUCTIONS,
+	"",
+	'Respond with ONLY a JSON object on a single line: {"title": "...", "branchName": "..."}. No prose, no code fences, no tool use.',
+].join("\n");
+
 /**
- * Generates both a workspace title and a git branch name from a prompt
- * using a single structured-output LLM call. Shares the same credentials
- * path as `generateTitleFromMessage` (small model via `getSmallModel`).
+ * The agent context used to name via the workspace's own agent CLI:
+ * the launch's agent id (instance id or preset id) resolves through
+ * `hostAgentConfigs` to a builtin preset whose `nonInteractiveCommand`
+ * runs the naming prompt headlessly with the agent's own credentials.
+ */
+export interface WorkspaceNamingAgentContext {
+	db: HostDb;
+	agent: string;
+}
+
+function resolveNonInteractiveCommand(
+	db: HostDb,
+	agent: string,
+): string | null {
+	const presetId = resolveHostAgentConfig(db, agent)?.presetId ?? agent;
+	if (!isBuiltinAgentId(presetId)) return null;
+	const definition = getBuiltinAgentDefinition(presetId);
+	if (!isTerminalAgentDefinition(definition)) return null;
+	return definition.nonInteractiveCommand ?? null;
+}
+
+function extractNamesJson(
+	output: string,
+): { title: string; branchName: string } | null {
+	// Agent CLIs may prepend banners (skill/hook load lines) or wrap the
+	// object in fences; take the last flat JSON object with both fields.
+	const candidates = output.match(/\{[^{}]*\}/g);
+	if (!candidates) return null;
+	for (const candidate of candidates.reverse()) {
+		try {
+			const parsed: unknown = JSON.parse(candidate);
+			if (
+				typeof parsed === "object" &&
+				parsed !== null &&
+				"title" in parsed &&
+				"branchName" in parsed &&
+				typeof parsed.title === "string" &&
+				typeof parsed.branchName === "string"
+			) {
+				return { title: parsed.title, branchName: parsed.branchName };
+			}
+		} catch {
+			// not JSON — keep scanning earlier candidates
+		}
+	}
+	return null;
+}
+
+async function generateNamesViaAgentCli(
+	command: string,
+	prompt: string,
+): Promise<GeneratedWorkspaceNames | null> {
+	const shell =
+		process.env.SHELL ||
+		(process.platform === "darwin" ? "/bin/zsh" : "/bin/bash");
+	const namingPrompt = `${AGENT_JSON_INSTRUCTIONS}\n\nUser prompt:\n${prompt}`;
+	// Login shell so the agent binary resolves like it does in the user's
+	// terminal (nvm/bun-global paths a GUI-launched host-service lacks).
+	// cwd is a scratch dir: naming runs before the worktree exists and the
+	// agent must not pick up repo context or act on files.
+	const shellCommand = `${command} ${quoteSingleShell(namingPrompt)}`;
+
+	const output = await new Promise<string | null>((resolve) => {
+		const child = spawn(shell, ["-lc", shellCommand], {
+			cwd: tmpdir(),
+			stdio: ["ignore", "pipe", "pipe"],
+		});
+		let stdout = "";
+		let stderr = "";
+		let settled = false;
+		const settle = (value: string | null) => {
+			if (settled) return;
+			settled = true;
+			clearTimeout(timer);
+			resolve(value);
+		};
+		const timer = setTimeout(() => {
+			child.kill("SIGKILL");
+			console.warn(
+				`[generateNamesViaAgentCli] timed out after ${AGENT_GENERATE_TIMEOUT_MS}ms`,
+			);
+			settle(null);
+		}, AGENT_GENERATE_TIMEOUT_MS);
+		child.stdout.on("data", (chunk: Buffer) => {
+			stdout += chunk.toString();
+		});
+		child.stderr.on("data", (chunk: Buffer) => {
+			stderr += chunk.toString();
+		});
+		child.on("error", (error) => {
+			console.warn("[generateNamesViaAgentCli] spawn failed:", error);
+			settle(null);
+		});
+		child.on("close", (code) => {
+			if (code !== 0) {
+				console.warn(
+					`[generateNamesViaAgentCli] exit ${code}; stderr tail: ${stderr.slice(-500)}; stdout tail: ${stdout.slice(-200)}`,
+				);
+			}
+			settle(code === 0 ? stdout : null);
+		});
+	});
+	if (output === null) return null;
+
+	const names = extractNamesJson(output);
+	if (!names) {
+		console.warn(
+			`[generateNamesViaAgentCli] no JSON names in output tail: ${output.slice(-300)}`,
+		);
+		return null;
+	}
+	const parsed = workspaceNamesSchema.parse(names);
+	if (parsed.title === "" && parsed.branchName === "") return null;
+	return parsed;
+}
+
+/**
+ * Generates both a workspace title and a git branch name from a prompt.
+ * When the caller supplies the launch's agent context and that agent has a
+ * headless mode, the agent CLI does the naming with its own credentials —
+ * covering users with no Anthropic/OpenAI keys. Falls back to a single
+ * structured-output small-model call (`getSmallModel`) otherwise.
  */
 export async function generateWorkspaceNamesFromPrompt(
 	prompt: string,
+	agentContext?: WorkspaceNamingAgentContext,
 ): Promise<GeneratedWorkspaceNames | null> {
 	const cleaned = prompt.trim();
 	if (!cleaned) return null;
+
+	if (agentContext) {
+		const command = resolveNonInteractiveCommand(
+			agentContext.db,
+			agentContext.agent,
+		);
+		if (command) {
+			try {
+				const names = await generateNamesViaAgentCli(command, cleaned);
+				if (names) {
+					console.log(
+						`[generateWorkspaceNamesFromPrompt] named via agent CLI (${agentContext.agent})`,
+					);
+					return names;
+				}
+			} catch (error) {
+				console.warn(
+					"[generateWorkspaceNamesFromPrompt] agent CLI naming failed:",
+					error,
+				);
+			}
+			console.warn(
+				`[generateWorkspaceNamesFromPrompt] agent CLI (${agentContext.agent}) returned no names; falling back to small model`,
+			);
+		}
+	}
 
 	const model = await getSmallModel();
 	if (!model) return null;
