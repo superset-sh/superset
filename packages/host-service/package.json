@@ -28,6 +28,10 @@
 			"types": "./src/trpc/index.ts",
 			"default": "./src/trpc/index.ts"
 		},
+		"./host-worker": {
+			"types": "./src/workers/host-worker.ts",
+			"default": "./src/workers/host-worker.ts"
+		},
 		"./terminal-env": {
 			"types": "./src/terminal/env.ts",
 			"default": "./src/terminal/env.ts"
