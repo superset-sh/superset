@@ -77,14 +77,22 @@ export const terminalAgentsRouter = router({
 		}),
 
 	/**
-	 * "Clear status" escape hatch: force the workspace's bindings to `Stop` so
-	 * a wedged working/permission indicator resets. Safe on live agents — their
-	 * next hook event re-asserts the real state.
+	 * Status-clearing escape hatch: force the workspace's bindings (or just
+	 * `terminalId`'s) to `Stop` so a wedged working/permission indicator
+	 * resets. Used by sidebar "Clear Status" and the pane interrupt handler
+	 * (agents fire no hook on Esc/Ctrl+C). Deliberately not a hook event —
+	 * it must not broadcast a completion chime/notification. Safe on live
+	 * agents: their next hook event re-asserts the real state.
 	 */
 	clearWorkspaceStatuses: protectedProcedure
-		.input(z.object({ workspaceId: z.string() }))
+		.input(
+			z.object({ workspaceId: z.string(), terminalId: z.string().optional() }),
+		)
 		.mutation(({ ctx, input }) => {
-			ctx.terminalAgentStore.clearWorkspaceStatuses(input.workspaceId);
+			ctx.terminalAgentStore.clearWorkspaceStatuses(
+				input.workspaceId,
+				input.terminalId,
+			);
 			return { success: true };
 		}),
 

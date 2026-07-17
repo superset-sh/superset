@@ -237,6 +237,23 @@ describe("TerminalAgentStore", () => {
 		expect(events).toEqual([WORKSPACE]);
 	});
 
+	it("clearWorkspaceStatuses scoped to a terminalId leaves siblings alone", () => {
+		for (const terminalId of ["t1", "t2"]) {
+			store.recordEvent({
+				terminalId,
+				workspaceId: WORKSPACE,
+				eventType: "Start",
+				agentId: "claude",
+				occurredAt: 100,
+			});
+		}
+
+		store.clearWorkspaceStatuses(WORKSPACE, "t1");
+
+		expect(store.get("t1")?.lastEventType).toBe("Stop");
+		expect(store.get("t2")?.lastEventType).toBe("Start");
+	});
+
 	it("filters listByWorkspace by agentId and definitionId", () => {
 		store.recordEvent({
 			terminalId: "t1",
