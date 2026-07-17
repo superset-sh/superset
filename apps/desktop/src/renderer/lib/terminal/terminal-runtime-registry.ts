@@ -1,5 +1,6 @@
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
+import { DEFAULT_TERMINAL_PARKED_RUNTIME_CAP } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
 import {
 	type LinkHoverInfo,
@@ -37,11 +38,29 @@ interface RegistryEntry {
 	linkManager: TerminalLinkManager | null;
 	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
+	/** Monotonic use counter; bumped on mount/detach, drives parked-LRU eviction. */
+	lastUsedAt: number;
 }
 
 class TerminalRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private entryKeysByTerminalId = new Map<string, Set<string>>();
+	private useSeq = 0;
+	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
+	/**
+	 * Cap on parked (hidden) xterm runtimes. Each live runtime holds its full
+	 * scrollback and a WebGL context (~55–70 MB RSS measured), so parked
+	 * instances beyond this are released — buffer persisted to localStorage,
+	 * PTY untouched — and rebuilt from the persisted buffer on next mount.
+	 * User-configurable via settings.setTerminalParkedRuntimeCap. (SUPER-1545)
+	 */
+	private parkedRuntimeCap = DEFAULT_TERMINAL_PARKED_RUNTIME_CAP;
+
+	setParkedRuntimeCap(cap: number) {
+		if (!Number.isFinite(cap) || cap < 1) return;
+		this.parkedRuntimeCap = Math.floor(cap);
+		this.scheduleParkedEviction();
+	}
 
 	private getEntryKey(terminalId: string, instanceId = terminalId): string {
 		return `${terminalId}\u0000${instanceId}`;
@@ -62,6 +81,7 @@ class TerminalRuntimeRegistryImpl {
 			transport: createTransport(),
 			linkManager: null,
 			pendingLinkHandlers: null,
+			lastUsedAt: 0,
 		};
 
 		this.entries.set(key, entry);
@@ -146,6 +166,7 @@ class TerminalRuntimeRegistryImpl {
 		instanceId = terminalId,
 	) {
 		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.lastUsedAt = ++this.useSeq;
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance, {
@@ -241,7 +262,33 @@ class TerminalRuntimeRegistryImpl {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
 
+		entry.lastUsedAt = ++this.useSeq;
 		detachFromContainer(entry.runtime);
+		this.scheduleParkedEviction();
+	}
+
+	/**
+	 * Deferred so a workspace switch (detach batch, then mount batch in the
+	 * next effect pass) re-adopts parked runtimes before eviction counts them.
+	 */
+	private scheduleParkedEviction() {
+		if (this.pendingEviction !== null) return;
+		this.pendingEviction = setTimeout(() => {
+			this.pendingEviction = null;
+			this.evictExcessParkedRuntimes();
+		}, 0);
+	}
+
+	private evictExcessParkedRuntimes() {
+		const parked = Array.from(this.entries.values()).filter(
+			(entry) => entry.runtime !== null && entry.runtime.container === null,
+		);
+		if (parked.length <= this.parkedRuntimeCap) return;
+		parked.sort((a, b) => a.lastUsedAt - b.lastUsedAt);
+		const excess = parked.length - this.parkedRuntimeCap;
+		for (const entry of parked.slice(0, excess)) {
+			this.disposeEntry(entry, { clearPersistedState: false });
+		}
 	}
 
 	updateAppearance(
