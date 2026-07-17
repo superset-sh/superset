@@ -120,7 +120,7 @@ The CPU gap is structural: eviction closes the WebSocket of released terminals, 
 
 **Effect:** every ms the host-service loop is busy is added latency for everything it serves — terminal relay, WS, all tRPC for the org — so git churn in big repos (branch storms, watcher-triggered refresh bursts) is felt as whole-app sluggishness, not as "git is slow". Offloading bounds loop occupancy so those stay flat. Port-scan/`ps` parsing measured trivial (per the companion plan's load test) — leave it.
 
-**Priority caveat:** the companion plan's flood test found the daemon↔host-service transport dies (org-wide terminal drop via the 8 MiB `writableLength` destroy in `Server.ts`) before loop contention even becomes measurable — fix that transport first, then re-measure whether/where the pool pays.
+**Priority caveat:** the companion plan's flood test found the daemon↔host-service transport dies (org-wide terminal drop via the 8 MiB `writableLength` destroy in `Server.ts`) before loop contention even becomes measurable. That transport fix landed as PR #5747 (pause flooding PTYs on backpressure instead of destroying the shared socket) — re-measure loop contention on top of it before sizing the pool work.
 
 ### 5. Host-service: async process probes + search worker
 
