@@ -64,7 +64,8 @@ function formatLogsForClipboard(logs: readonly TerminalLogEntry[]): string {
  * health drives unresponsive (shown after {@link DAEMON_UNREACHABLE_WARN_MS}),
  * which outranks the socket story since a wedged daemon closes nothing and just
  * freezes the shell. Restart closes every terminal, so it sits behind a confirm
- * and we surface a live "quiet for Ns" hint to encourage waiting out a stall.
+ * (with a "Keep waiting" cancel) and we wait out short stalls rather than offer
+ * it eagerly — a transient stall usually clears on its own.
  */
 export function TerminalConnectionIndicator({
 	terminalId,
