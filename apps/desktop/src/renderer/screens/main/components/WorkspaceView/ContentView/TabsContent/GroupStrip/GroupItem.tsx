@@ -13,27 +13,29 @@ import { useDrag, useDrop } from "react-dnd";
 import { getEmptyImage } from "react-dnd-html5-backend";
 import { HiMiniXMark } from "react-icons/hi2";
 import { LuEyeOff, LuPencil } from "react-icons/lu";
+import type { MosaicBranch } from "react-mosaic-component";
 import { MosaicDragType } from "react-mosaic-component";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
-import { useDragTabStore } from "renderer/stores/drag-tab-store";
-import type { PaneStatus, Tab } from "renderer/stores/tabs/types";
-import { getTabDisplayName } from "renderer/stores/tabs/utils";
+import { useTabsStore } from "renderer/stores/tabs/store";
+import type {
+	MosaicDropPosition,
+	PaneStatus,
+	Tab,
+} from "renderer/stores/tabs/types";
+import {
+	getTabDisplayName,
+	resolveActiveTabIdForWorkspace,
+} from "renderer/stores/tabs/utils";
+import { MOSAIC_ID } from "../TabView";
 
-/**
- * Sentinel mosaicId that never matches a real mosaic tree. Tab drags use the
- * Mosaic WINDOW drag type (so existing pane/strip drop targets stay
- * compatible) but must not activate react-mosaic's built-in split targets —
- * panel drops are handled by PanelDropOverlay and the strips.
- */
 const TAB_DRAG_NO_MATCH_ID = "__tab-drag-no-match__";
 
-export interface TabDragItem {
+interface TabDragItem {
 	mosaicId: string;
 	hideTimer: number;
 	tabId: string;
-	panelId: string;
 	index: number;
 	isTabDrag: true;
 }
@@ -41,8 +43,6 @@ export interface TabDragItem {
 interface GroupItemProps {
 	tab: Tab;
 	index: number;
-	/** Panel (editor group) this tab is rendered in */
-	panelId: string;
 	isActive: boolean;
 	status: PaneStatus | null;
 	onSelect: () => void;
@@ -50,14 +50,12 @@ interface GroupItemProps {
 	onRename: (newName: string) => void;
 	onMarkAsUnread: () => void;
 	onPaneDrop?: (paneId: string) => void;
-	/** Move/reorder a dragged tab to this panel at the given strip index */
-	onTabDrop?: (tabId: string, index: number) => void;
+	onReorder?: (fromIndex: number, toIndex: number) => void;
 }
 
 export function GroupItem({
 	tab,
 	index,
-	panelId,
 	isActive,
 	status,
 	onSelect,
@@ -65,46 +63,71 @@ export function GroupItem({
 	onRename,
 	onMarkAsUnread,
 	onPaneDrop,
-	onTabDrop,
+	onReorder,
 }: GroupItemProps) {
 	const displayName = getTabDisplayName(tab);
 	const [isEditing, setIsEditing] = useState(false);
 	const [editValue, setEditValue] = useState("");
+	const activeTabId = useTabsStore((s) =>
+		resolveActiveTabIdForWorkspace({
+			workspaceId: tab.workspaceId,
+			tabs: s.tabs,
+			activeTabIds: s.activeTabIds,
+			tabHistoryStacks: s.tabHistoryStacks,
+		}),
+	);
 
+	// Use MosaicDragType.WINDOW so Mosaic's built-in drop targets (blue split indicators) activate
 	const [{ isDragging }, drag, preview] = useDrag<
 		TabDragItem,
-		unknown,
+		{ path?: MosaicBranch[]; position?: string; handled?: true },
 		{ isDragging: boolean }
-	>(
-		() => ({
+	>(() => {
+		// Only show Mosaic split indicators when dragging onto a different (active) tab
+		const canDropOntoActiveTab = activeTabId != null && activeTabId !== tab.id;
+		return {
 			type: MosaicDragType.WINDOW,
-			item: () => {
-				useDragTabStore.getState().setDragging(tab.id, panelId);
-				return {
-					mosaicId: TAB_DRAG_NO_MATCH_ID,
-					hideTimer: 0,
-					tabId: tab.id,
-					panelId,
-					index,
-					isTabDrag: true,
-				};
+			item: {
+				mosaicId: canDropOntoActiveTab ? MOSAIC_ID : TAB_DRAG_NO_MATCH_ID,
+				hideTimer: 0,
+				tabId: tab.id,
+				index,
+				isTabDrag: true,
 			},
-			end: () => {
-				useDragTabStore.getState().clearDragging();
+			end: (item, monitor) => {
+				const dropResult = monitor.getDropResult();
+				if (!dropResult?.position || !dropResult?.path) return;
+
+				const state = useTabsStore.getState();
+				const sourceTab = state.tabs.find((t) => t.id === item.tabId);
+				if (!sourceTab) return;
+				const freshActiveTabId = resolveActiveTabIdForWorkspace({
+					workspaceId: sourceTab.workspaceId,
+					tabs: state.tabs,
+					activeTabIds: state.activeTabIds,
+					tabHistoryStacks: state.tabHistoryStacks,
+				});
+				if (!freshActiveTabId || freshActiveTabId === item.tabId) return;
+
+				state.mergeTabIntoTab(
+					item.tabId,
+					freshActiveTabId,
+					dropResult.path as MosaicBranch[],
+					dropResult.position as MosaicDropPosition,
+				);
 			},
 			collect: (monitor) => ({
 				isDragging: monitor.isDragging(),
 			}),
-		}),
-		[tab.id, panelId, index],
-	);
+		};
+	}, [tab.id, index, activeTabId]);
 
 	// Hide the default browser drag preview to prevent snap-back animation
 	useEffect(() => {
 		preview(getEmptyImage(), { captureDraggingState: true });
 	}, [preview]);
 
-	// Drop target for pane drops, tab reordering, and cross-panel tab moves
+	// Drop target for pane drops AND tab reordering
 	const [{ isOver, canDrop }, drop] = useDrop<
 		TabDragItem,
 		{ handled: true },
@@ -114,6 +137,7 @@ export function GroupItem({
 			accept: MosaicDragType.WINDOW,
 			canDrop: (item) => {
 				if (item.isTabDrag) {
+					// Tab reordering - can drop on any other tab
 					return item.tabId !== tab.id;
 				}
 				// Pane drop from Mosaic
@@ -126,22 +150,18 @@ export function GroupItem({
 				);
 			},
 			hover: (item) => {
-				// Live reorder within the same panel's strip
 				if (
 					item.isTabDrag &&
-					item.panelId === panelId &&
+					item.index !== undefined &&
 					item.index !== index
 				) {
-					onTabDrop?.(item.tabId, index);
+					onReorder?.(item.index, index);
 					item.index = index;
 				}
 			},
 			drop: (item) => {
 				if (item.isTabDrag) {
-					// Same-panel reorder already happened in hover
-					if (item.panelId !== panelId) {
-						onTabDrop?.(item.tabId, index);
-					}
+					// Tab reorder is handled in hover
 					return { handled: true };
 				}
 				// Pane drop
@@ -162,7 +182,7 @@ export function GroupItem({
 				canDrop: monitor.canDrop(),
 			}),
 		}),
-		[onPaneDrop, onTabDrop, tab.id, panelId, index],
+		[onPaneDrop, onReorder, tab.id, index],
 	);
 
 	const tabStyles = cn(

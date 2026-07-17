@@ -32,8 +32,6 @@ function createState(overrides: Partial<TabsState> = {}): TabsState {
 		focusedPaneIds: {},
 		tabHistoryStacks: {},
 		closedTabsStack: [],
-		panelLayouts: {},
-		panelActiveTabIds: {},
 		...overrides,
 	};
 }

@@ -219,8 +219,6 @@ export function movePaneToNewTab(
 		workspaceId,
 		layout: paneId as MosaicNode<string>,
 		createdAt: Date.now(),
-		// Keep the extracted pane in the same panel as its source tab
-		panelId: sourceTab.panelId,
 	};
 
 	const newTabs = state.tabs.map((t) =>

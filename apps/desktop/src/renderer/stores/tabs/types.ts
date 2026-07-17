@@ -36,11 +36,6 @@ export interface ClosedTabEntry {
  */
 export interface Tab extends BaseTab {
 	layout: MosaicNode<string>; // Always defined, leaves are paneIds
-	/**
-	 * Panel (VS Code-style editor group) this tab lives in. Optional: tabs with
-	 * a missing/unknown panelId resolve to the workspace's first panel.
-	 */
-	panelId?: string;
 }
 
 /**
@@ -50,13 +45,6 @@ export interface Tab extends BaseTab {
 export interface TabsState extends Omit<BaseTabsState, "tabs"> {
 	tabs: Tab[];
 	closedTabsStack: ClosedTabEntry[];
-	/**
-	 * Panel split tree per workspace. Leaves are panelIds. Null/missing means a
-	 * single implicit panel holding all of the workspace's tabs.
-	 */
-	panelLayouts: Record<string, MosaicNode<string> | null>;
-	/** Active (visible) tab per panel. Stale entries are ignored on read. */
-	panelActiveTabIds: Record<string, string>;
 }
 
 /**
@@ -64,8 +52,6 @@ export interface TabsState extends Omit<BaseTabsState, "tabs"> {
  */
 export interface AddTabOptions {
 	initialCwd?: string;
-	/** Panel to place the new tab in (defaults to the focused panel) */
-	panelId?: string;
 }
 
 export interface SplitPaneOptions {
@@ -75,8 +61,6 @@ export interface SplitPaneOptions {
 
 export interface AddChatTabOptions {
 	launchConfig?: ChatLaunchConfig | null;
-	/** Panel to place the new tab in (defaults to the focused panel) */
-	panelId?: string;
 }
 
 export interface AddTabWithMultiplePanesOptions {
@@ -219,28 +203,6 @@ export interface TabsStore extends TabsState {
 		position: MosaicDropPosition,
 	) => void;
 
-	// Panel (editor group) operations
-	/** Persist the panel split tree for a workspace (resize/rearrange) */
-	updatePanelLayout: (workspaceId: string, layout: MosaicNode<string>) => void;
-	/**
-	 * Move a tab into an existing panel. `targetIndex` positions the tab within
-	 * the panel's strip; omitted = append. Same-panel moves are reorders.
-	 */
-	moveTabToPanel: (
-		tabId: string,
-		targetPanelId: string,
-		targetIndex?: number,
-	) => void;
-	/**
-	 * Create a new panel next to `destinationPanelId` (VS Code-style edge drop)
-	 * and move the tab into it.
-	 */
-	splitPanelWithTab: (
-		tabId: string,
-		destinationPanelId: string,
-		position: MosaicDropPosition,
-	) => void;
-
 	// Comment operations
 	/**
 	 * Open a PR/review comment in a pane. Reuses an existing comment pane in
@@ -256,7 +218,6 @@ export interface TabsStore extends TabsState {
 	addBrowserTab: (
 		workspaceId: string,
 		url?: string,
-		options?: { panelId?: string },
 	) => { tabId: string; paneId: string };
 	openInBrowserPane: (workspaceId: string, url: string) => void;
 	updateBrowserUrl: (

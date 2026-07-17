@@ -27,7 +27,7 @@ import { DevToolsPane } from "./DevToolsPane";
 import { FileViewerPane } from "./FileViewerPane";
 import { TabPane } from "./TabPane";
 
-const MOSAIC_ID = "superset-mosaic";
+export const MOSAIC_ID = "superset-mosaic";
 
 interface TabViewProps {
 	tab: Tab;
@@ -309,10 +309,8 @@ export function TabView({ tab }: TabViewProps) {
 
 	return (
 		<div className="relative w-full h-full mosaic-container">
-			{/* Per-tab mosaicId: multiple TabViews render at once (one per panel),
-			    and pane drops must not cross into another tab's mosaic tree */}
 			<Mosaic<string>
-				mosaicId={`${MOSAIC_ID}:${tab.id}`}
+				mosaicId={MOSAIC_ID}
 				renderTile={renderPane}
 				value={cleanedLayout}
 				onChange={handleLayoutChange}
