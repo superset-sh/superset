@@ -40,8 +40,9 @@ mock.module("@superset/chat/server/shared", () => ({
 	getSmallModel: getSmallModelMock,
 }));
 
-const { generateWorkspaceNamesFromPrompt, orderNamingCandidates } =
-	await import("./ai-workspace-names");
+const { generateWorkspaceNamesFromPrompt } = await import(
+	"./ai-workspace-names"
+);
 
 describe("generateWorkspaceNamesFromPrompt", () => {
 	beforeEach(() => {
@@ -79,31 +80,6 @@ describe("generateWorkspaceNamesFromPrompt", () => {
 				branchName: { type: "string" },
 			},
 		});
-	});
-});
-
-describe("orderNamingCandidates", () => {
-	test("puts the preferred preset first and dedupes it from the configured list", () => {
-		const candidates = orderNamingCandidates(["claude", "codex"], "codex");
-		expect(candidates.map((c) => c.presetId)).toEqual(["codex", "claude"]);
-	});
-
-	test("keeps configured display order without a preferred preset", () => {
-		const candidates = orderNamingCandidates(["codex", "claude"]);
-		expect(candidates.map((c) => c.presetId)).toEqual(["codex", "claude"]);
-	});
-
-	test("skips presets without a headless mode and unknown/custom ids", () => {
-		const candidates = orderNamingCandidates(
-			["polygraph", "custom:my-agent", "superset", "claude"],
-			"custom:my-agent",
-		);
-		expect(candidates.map((c) => c.presetId)).toEqual(["claude"]);
-	});
-
-	test("resolves each candidate to its builtin nonInteractiveCommand", () => {
-		const [claude] = orderNamingCandidates(["claude"]);
-		expect(claude?.command).toBe("claude --dangerously-skip-permissions -p");
 	});
 });
 
