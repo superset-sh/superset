@@ -19,6 +19,7 @@ import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
@@ -70,6 +71,15 @@ function AuthenticatedLayout() {
 		: session?.session?.activeOrganizationId;
 
 	useAgentHookListener();
+
+	// Seed the parked-terminal eviction cap from settings (SUPER-1545).
+	const { data: parkedRuntimeCap } =
+		electronTrpc.settings.getTerminalParkedRuntimeCap.useQuery();
+	useEffect(() => {
+		if (parkedRuntimeCap !== undefined) {
+			terminalRuntimeRegistry.setParkedRuntimeCap(parkedRuntimeCap);
+		}
+	}, [parkedRuntimeCap]);
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {

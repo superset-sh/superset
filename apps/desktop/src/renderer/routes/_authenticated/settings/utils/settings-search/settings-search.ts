@@ -41,6 +41,7 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_BACKGROUND_LIMIT: "terminal-background-limit",
 
 	LINKS_FILE: "links-file",
 	LINKS_URL: "links-url",
@@ -154,6 +155,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.TERMINAL_QUICK_ADD]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_SESSIONS]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR]: "v1",
+	[SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT]: "v2",
 
 	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_URL]: "v2",
@@ -748,6 +750,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"stop",
 			"manage",
 			"pty",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT,
+		section: "terminal",
+		title: "Background terminal memory",
+		description: "How many hidden terminals stay fully loaded",
+		keywords: [
+			"terminal",
+			"memory",
+			"background",
+			"hidden",
+			"parked",
+			"limit",
+			"cap",
+			"performance",
+			"ram",
+			"scrollback",
 		],
 	},
 	{

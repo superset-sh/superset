@@ -225,6 +225,7 @@ export const settings = sqliteTable("settings", {
 	}),
 	terminalFontFamily: text("terminal_font_family"),
 	terminalFontSize: integer("terminal_font_size"),
+	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
