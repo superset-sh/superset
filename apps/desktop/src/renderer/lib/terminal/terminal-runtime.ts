@@ -137,6 +137,7 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 function measureAndResize(
 	runtime: TerminalRuntime,
 	onResize?: () => void,
+	options: { forceNotify?: boolean } = {},
 ): void {
 	if (!hostIsVisible(runtime.container)) return;
 	const { terminal } = runtime;
@@ -165,7 +166,11 @@ function measureAndResize(
 
 		terminal.refresh(0, Math.max(0, terminal.rows - 1));
 
-		if (terminal.cols !== prevCols || terminal.rows !== prevRows) {
+		if (
+			options.forceNotify ||
+			terminal.cols !== prevCols ||
+			terminal.rows !== prevRows
+		) {
 			onResize?.();
 		}
 	});
@@ -179,6 +184,9 @@ function createResizeScheduler(
 	dispose: () => void;
 } {
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
+	// On reveal after a zero-size hide, re-send PTY dims even when unchanged
+	// (VS Code setVisible parity) — resyncs a PTY resized elsewhere meanwhile.
+	let revealPending = false;
 
 	const dispose = () => {
 		if (timeoutId !== null) {
@@ -189,7 +197,9 @@ function createResizeScheduler(
 
 	const run = () => {
 		timeoutId = null;
-		measureAndResize(runtime, onResize);
+		const forceNotify = revealPending;
+		revealPending = false;
+		measureAndResize(runtime, onResize, { forceNotify });
 	};
 
 	const observe: ResizeObserverCallback = (entries) => {
@@ -199,6 +209,7 @@ function createResizeScheduler(
 					entry.contentRect.width <= 0 || entry.contentRect.height <= 0,
 			)
 		) {
+			revealPending = true;
 			dispose();
 			return;
 		}
