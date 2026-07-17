@@ -62,6 +62,25 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
 		expect(command).not.toContain("pi -p");
 	});
+
+	it("adds Kimi's prompt flag after yolo mode", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "kimi-1234",
+			agent: "kimi",
+		});
+
+		expect(command).toStartWith(
+			"kimi --yolo --prompt \"$(cat <<'SUPERSET_PROMPT_kimi1234'",
+		);
+	});
+});
+
+describe("Kimi agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("kimi");
+		expect(AGENT_LABELS.kimi).toBe("Kimi");
+	});
 });
 
 describe("vibe agent registration", () => {

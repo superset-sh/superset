@@ -93,6 +93,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "kimi",
+		label: "Kimi",
+		description:
+			"Moonshot AI's coding agent for terminal-based software engineering workflows.",
+		command: "kimi --yolo",
+		promptCommand: "kimi --yolo --prompt",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "mastracode",
 		label: "Mastracode",
 		description:

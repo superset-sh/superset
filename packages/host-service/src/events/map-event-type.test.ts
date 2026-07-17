@@ -18,9 +18,11 @@ describe("mapEventType", () => {
 		expect(mapEventType("UserPromptSubmit")).toBe("Start");
 		expect(mapEventType("BeforeAgent")).toBe("Start");
 		expect(mapEventType("PostToolUse")).toBe("Start");
+		expect(mapEventType("PermissionResult")).toBe("Start");
 		expect(mapEventType("task_started")).toBe("Start");
 
 		expect(mapEventType("Stop")).toBe("Stop");
+		expect(mapEventType("Interrupt")).toBe("Stop");
 		expect(mapEventType("AfterAgent")).toBe("Stop");
 		expect(mapEventType("task_complete")).toBe("Stop");
 		expect(mapEventType("agent-turn-complete")).toBe("Stop");
