@@ -573,7 +573,7 @@ export const v2Workspaces = pgTable(
 			columns: [table.organizationId, table.hostId],
 			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
 			name: "v2_workspaces_host_fk",
-		}),
+		}).onDelete("cascade"),
 		index("v2_workspaces_project_id_idx").on(table.projectId),
 		index("v2_workspaces_organization_id_idx").on(table.organizationId),
 		index("v2_workspaces_host_id_idx").on(table.hostId),

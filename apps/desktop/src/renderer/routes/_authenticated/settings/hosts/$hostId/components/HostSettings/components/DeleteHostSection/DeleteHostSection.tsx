@@ -79,8 +79,8 @@ export function DeleteHostSection({
 					id={deleteHostDescriptionId}
 					className="mt-0.5 text-xs text-muted-foreground"
 				>
-					Deletes this host and access. Workspaces, files, conversations, and
-					automations stay.
+					Deletes this host, its access, and its workspaces. Files on the
+					machine stay.
 				</p>
 				{isLocalHost ? (
 					<p
@@ -114,9 +114,9 @@ export function DeleteHostSection({
 					<AlertDialogHeader>
 						<AlertDialogTitle>Delete "{hostName}"?</AlertDialogTitle>
 						<AlertDialogDescription>
-							This removes only the host and its access. Workspaces, files,
-							conversations, and automations stay. A running host may reappear.
-							This can’t be undone.
+							This removes the host, its access, and its workspaces. Files on
+							the machine stay. A running host may reappear. This can’t be
+							undone.
 						</AlertDialogDescription>
 					</AlertDialogHeader>
 					<div className="space-y-2">
