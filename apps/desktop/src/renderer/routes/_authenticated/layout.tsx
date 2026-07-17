@@ -14,6 +14,7 @@ import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { env } from "renderer/env.renderer";
+import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
@@ -55,6 +56,8 @@ const createOrganizationRedirect = (
 );
 const onboardingRedirect = <Navigate to="/onboarding" replace />;
 
+const SESSION_PENDING_TIMEOUT_MS = 15_000;
+
 function AuthenticatedLayout() {
 	const {
 		data: session,
@@ -75,6 +78,15 @@ function AuthenticatedLayout() {
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
+
+	const isAuthPending =
+		(isPending || (isRefetching && !session?.user && hasLocalToken)) &&
+		!env.SKIP_ENV_VALIDATION;
+	const authPendingTimedOut = useDelayElapsed(
+		isAuthPending,
+		SESSION_PENDING_TIMEOUT_MS,
+	);
+	const signOutMutation = electronTrpc.auth.signOut.useMutation();
 
 	useAgentHookListener();
 
@@ -169,13 +181,40 @@ function AuthenticatedLayout() {
 
 	// Never redirect while the session is unresolved — a redirect held open
 	// across re-renders loops the router until the renderer OOMs (#5729).
-	if (
-		(isPending || (isRefetching && !session?.user && hasLocalToken)) &&
-		!env.SKIP_ENV_VALIDATION
-	) {
+	if (isAuthPending) {
 		return (
-			<div className="flex h-screen w-screen items-center justify-center bg-background">
+			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
 				<Spinner className="size-8" />
+				{authPendingTimedOut && (
+					<>
+						<div className="text-center select-text cursor-text">
+							<h2 className="text-lg font-medium">
+								Still restoring your session
+							</h2>
+							<p className="text-sm text-muted-foreground">
+								Superset can't confirm your sign-in with the server.
+							</p>
+						</div>
+						<div className="flex gap-2">
+							<Button variant="outline" size="sm" onClick={() => refetch()}>
+								Retry
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={signOutMutation.isPending}
+								onClick={() =>
+									signOutMutation.mutate(undefined, {
+										onSuccess: () =>
+											void navigate({ to: "/sign-in", replace: true }),
+									})
+								}
+							>
+								Sign out
+							</Button>
+						</div>
+					</>
+				)}
 			</div>
 		);
 	}

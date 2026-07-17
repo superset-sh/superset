@@ -3,6 +3,8 @@ import { authClient, setAuthToken, setJwt } from "renderer/lib/auth-client";
 import { SupersetLogo } from "renderer/routes/sign-in/components/SupersetLogo/SupersetLogo";
 import { electronTrpc } from "../../lib/electron-trpc";
 
+const HYDRATION_TIMEOUT_MS = 15_000;
+
 export function AuthProvider({ children }: { children: ReactNode }) {
 	const [isHydrated, setIsHydrated] = useState(false);
 	const { refetch: refetchSession } = authClient.useSession();
@@ -18,30 +20,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 		let cancelled = false;
 
+		async function fetchSessionAndJwt() {
+			try {
+				await refetchSession();
+			} catch (err) {
+				console.warn(
+					"[AuthProvider] session refetch failed during hydration",
+					err,
+				);
+			}
+			try {
+				const res = await authClient.token();
+				if (res.data?.token) {
+					setJwt(res.data.token);
+				}
+			} catch (err) {
+				console.warn("[AuthProvider] JWT fetch failed during hydration", err);
+			}
+		}
+
 		async function hydrate() {
 			if (storedToken?.token && storedToken?.expiresAt) {
 				const isExpired = new Date(storedToken.expiresAt) < new Date();
 				if (!isExpired) {
 					setAuthToken(storedToken.token);
-					try {
-						await refetchSession();
-					} catch (err) {
-						console.warn(
-							"[AuthProvider] session refetch failed during hydration",
-							err,
-						);
-					}
-					try {
-						const res = await authClient.token();
-						if (res.data?.token) {
-							setJwt(res.data.token);
-						}
-					} catch (err) {
-						console.warn(
-							"[AuthProvider] JWT fetch failed during hydration",
-							err,
-						);
-					}
+					// A hung session fetch must not hold boot on the splash forever —
+					// proceed after a bound; the routes show session-pending UI (#5729).
+					await Promise.race([
+						fetchSessionAndJwt(),
+						new Promise((resolve) =>
+							window.setTimeout(resolve, HYDRATION_TIMEOUT_MS),
+						),
+					]);
 				}
 			}
 			if (!cancelled) {
