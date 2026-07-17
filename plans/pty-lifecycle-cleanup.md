@@ -4,8 +4,8 @@ User report: M1 Max hits the macOS PTY-master limit (509/511) after 4–7 parall
 
 ## Progress (2026-07-17)
 
-- [x] **PR 1 — daemon kill hardening**: implemented + verified on branch `pty-lifecycle-diagnosis` (uncommitted). Full `test:integration` 3/3 green, unit 61/61, lint/typecheck clean; each new kill-tree test proven to fail on the old implementation. Details in the PR 1 section below.
-- [ ] **PR 2 — reliable dispose** (renderer awaits + `disposeRequestedAt` retry): not started.
+- [x] **PR 1 — daemon kill hardening**: MERGED as #5748 (2026-07-17). Includes bot-review fixes (tty-reuse guard, ps-failure handling, killChain reset, desktop entrypoint drain) and the TreeKiller dedupe. Verified: unit, per-scenario kill-tree tests (mutation-checked), 54-test integration suite, end-to-end old-vs-new daemon repro (3 leaked → 0).
+- [x] **PR 2 — reliable dispose**: implemented (renderer awaits + failure toast w/ Retry; `disposeRequestedAt` stamp + reaper retry; migration 0010). CDP verification pending.
 - [ ] **Backstops** (liveness reaping, idle TTL + cap, renderer park=disconnect, registry reconcile): deferred until PR 1+2 are measured in the wild.
 
 ## Root cause (TLDR)

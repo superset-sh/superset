@@ -291,7 +291,10 @@ describe("terminal router integration", () => {
 			await stopDaemonProcess(daemonProcess);
 			rmSync(tmp, { recursive: true, force: true });
 		}
-	});
+		// Two full kill sequences, each blocking on the ~1s SIGKILL escalation,
+		// plus daemon boot and two login-shell starts — the 5s default budget
+		// is marginal under load.
+	}, 20_000);
 
 	test("resource sessions are daemon-sourced and joined to active DB rows", () => {
 		const activeTerminalId = randomUUID();
