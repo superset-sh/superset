@@ -82,7 +82,9 @@ describe("deriveWorkspacePanels", () => {
 			createState({ panelLayout: twoPanelLayout }),
 		);
 		expect(derived.panelIds).toHaveLength(1);
-		expect(derived.activeTabIdByPanel[derived.panelIds[0] as string]).toBeNull();
+		expect(
+			derived.activeTabIdByPanel[derived.panelIds[0] as string],
+		).toBeNull();
 	});
 
 	it("assigns tabs with unknown panelId to the first panel", () => {

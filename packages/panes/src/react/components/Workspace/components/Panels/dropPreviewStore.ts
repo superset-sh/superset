@@ -1,7 +1,7 @@
 import { create } from "zustand";
-import type { SplitPosition } from "../../../../../types";
+import type { PanelDropTarget } from "./utils/dropTarget";
 
-export type PanelDropTarget = SplitPosition | "center";
+export type { PanelDropTarget };
 
 interface DropPreviewState {
 	/** Panel currently under the dragged tab, or null when none */

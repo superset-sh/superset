@@ -3,35 +3,11 @@ import { useDragLayer, useDrop } from "react-dnd";
 import type { StoreApi } from "zustand/vanilla";
 import type { WorkspaceStore } from "../../../../../../../core/store";
 import { deriveWorkspacePanels } from "../../../../../../../core/store/panels";
-import type { SplitPosition } from "../../../../../../../types";
 import { TAB_DRAG_TYPE } from "../../../TabBar/components/TabItem";
 import { useDropPreviewStore } from "../../dropPreviewStore";
-
-type PanelDropTarget = SplitPosition | "center";
+import { getDropTarget, type PanelDropTarget } from "../../utils/dropTarget";
 
 type TabDragItem = { tabId: string };
-
-/**
- * VS Code-style drop zones: the inner half of the panel means "move the tab
- * into this panel", the outer bands mean "split this panel on that edge".
- */
-function getDropTarget(
-	clientX: number,
-	clientY: number,
-	rect: DOMRect,
-): PanelDropTarget {
-	const x = (clientX - rect.left) / rect.width;
-	const y = (clientY - rect.top) / rect.height;
-	if (x >= 0.25 && x <= 0.75 && y >= 0.25 && y <= 0.75) {
-		return "center";
-	}
-	const dx = x - 0.5;
-	const dy = y - 0.5;
-	if (Math.abs(dx) >= Math.abs(dy)) {
-		return dx < 0 ? "left" : "right";
-	}
-	return dy < 0 ? "top" : "bottom";
-}
 
 interface PanelDropZoneProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
