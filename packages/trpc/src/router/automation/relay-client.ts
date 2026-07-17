@@ -20,10 +20,39 @@ export class RelayDispatchError extends Error {
 		message: string,
 		public readonly status: number,
 		public readonly body: string,
+		/** tRPC error code from the host (e.g. "NOT_FOUND"), when parseable. */
+		public readonly trpcCode?: string,
+		/** Raw host-side error message, without the procedure prefix. */
+		public readonly trpcMessage?: string,
 	) {
 		super(message);
 		this.name = "RelayDispatchError";
 	}
+}
+
+/**
+ * Pull the human-readable message and code out of a tRPC error envelope
+ * (`{"error":{"json":{"message","data":{"code"}}}}`) so automation run rows
+ * store "agents.run: Workspace … not found" instead of the raw JSON blob.
+ */
+function parseTrpcError(
+	rawBody: string,
+): { message: string; code?: string } | null {
+	try {
+		const parsed = JSON.parse(rawBody) as {
+			error?: { json?: { message?: unknown; data?: { code?: unknown } } };
+		};
+		const err = parsed.error?.json;
+		if (err && typeof err.message === "string") {
+			return {
+				message: err.message,
+				code: typeof err.data?.code === "string" ? err.data.code : undefined,
+			};
+		}
+	} catch {
+		// fall through to the raw-body error below
+	}
+	return null;
 }
 
 /**
@@ -64,10 +93,15 @@ export async function relayMutation<TInput, TOutput>(
 
 	const rawBody = await response.text();
 	if (!response.ok) {
+		const trpcError = parseTrpcError(rawBody);
 		throw new RelayDispatchError(
-			`relay ${response.status}: ${rawBody.slice(0, 500)}`,
+			trpcError
+				? `${procedure}: ${trpcError.message}`
+				: `relay ${response.status}: ${rawBody.slice(0, 500)}`,
 			response.status,
 			rawBody,
+			trpcError?.code,
+			trpcError?.message,
 		);
 	}
 

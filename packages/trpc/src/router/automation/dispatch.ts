@@ -2,6 +2,7 @@ import { mintUserJwt } from "@superset/auth/server";
 import { dbWs } from "@superset/db/client";
 import {
 	automationRuns,
+	automations,
 	type SelectAutomation,
 	users,
 	v2Hosts,
@@ -101,9 +102,7 @@ export async function dispatchAutomation(
 			host.machineId,
 		);
 
-		if (automation.v2WorkspaceId) {
-			workspaceId = automation.v2WorkspaceId;
-		} else {
+		const createFreshWorkspace = async () => {
 			const created = await createWorkspaceOnHost({
 				relayUrl,
 				hostId: routingKey,
@@ -112,17 +111,40 @@ export async function dispatchAutomation(
 				automation,
 				runId: run.id,
 			});
-			workspaceId = created.workspaceId;
-		}
+			return created.workspaceId;
+		};
 
-		const result = await runAgentOnHost({
-			relayUrl,
-			hostId: routingKey,
-			jwt,
-			workspaceId,
-			agent: automation.agent,
-			prompt: automation.prompt,
-		});
+		workspaceId = automation.v2WorkspaceId ?? (await createFreshWorkspace());
+
+		let result: AgentRunResult;
+		try {
+			result = await runAgentOnHost({
+				relayUrl,
+				hostId: routingKey,
+				jwt,
+				workspaceId,
+				agent: automation.agent,
+				prompt: automation.prompt,
+			});
+		} catch (err) {
+			if (!isPinnedWorkspaceGone(err, automation, workspaceId)) throw err;
+			// The pinned workspace was deleted on the host. Clear the stale pin
+			// (so the automation and its UI reflect reality) and fall back to a
+			// fresh workspace for this and future runs.
+			await dbWs
+				.update(automations)
+				.set({ v2WorkspaceId: null })
+				.where(eq(automations.id, automation.id));
+			workspaceId = await createFreshWorkspace();
+			result = await runAgentOnHost({
+				relayUrl,
+				hostId: routingKey,
+				jwt,
+				workspaceId,
+				agent: automation.agent,
+				prompt: automation.prompt,
+			});
+		}
 
 		await dbWs
 			.update(automationRuns)
@@ -305,6 +327,26 @@ async function runAgentOnHost(args: {
 			agent: args.agent,
 			prompt: args.prompt,
 		},
+	);
+}
+
+/**
+ * True when `agents.run` on a pinned workspace failed because that workspace
+ * no longer exists on the host (deleted after the automation pinned it). The
+ * "Workspace" prefix check keeps other NOT_FOUNDs from the same procedure
+ * (agent config, attachments) from triggering the fresh-create fallback.
+ */
+function isPinnedWorkspaceGone(
+	err: unknown,
+	automation: SelectAutomation,
+	workspaceId: string | null,
+): boolean {
+	return (
+		!!automation.v2WorkspaceId &&
+		automation.v2WorkspaceId === workspaceId &&
+		err instanceof RelayDispatchError &&
+		err.trpcCode === "NOT_FOUND" &&
+		(err.trpcMessage?.startsWith("Workspace") ?? false)
 	);
 }
 

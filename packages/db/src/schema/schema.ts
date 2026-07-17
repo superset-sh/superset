@@ -776,7 +776,12 @@ export const automations = pgTable(
 		v2ProjectId: uuid("v2_project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
-		v2WorkspaceId: uuid("v2_workspace_id"),
+		// set null so deleting a workspace reverts the automation to
+		// fresh-workspace-per-run instead of leaving a dead pin that fails
+		// every dispatch with "Workspace not found".
+		v2WorkspaceId: uuid("v2_workspace_id").references(() => v2Workspaces.id, {
+			onDelete: "set null",
+		}),
 
 		rrule: text().notNull(),
 		dtstart: timestamp("dtstart", { withTimezone: true }).notNull(),
