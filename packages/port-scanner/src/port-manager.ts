@@ -136,6 +136,8 @@ export class PortManager extends EventEmitter {
 	private isScanning = false;
 	/** Set when a hint arrives during a scan; triggers one follow-up scan. */
 	private scanRequested = false;
+	/** Set when a force scan arrives mid-scan; the follow-up keeps the bypass. */
+	private forceRequested = false;
 	/** Aborts any in-flight scan children (lsof/netstat) on teardown. */
 	private scanAbort: AbortController | null = null;
 	private readonly killFn: KillFn;
@@ -245,6 +247,7 @@ export class PortManager extends EventEmitter {
 		}
 
 		this.scanRequested = false;
+		this.forceRequested = false;
 	}
 
 	/**
@@ -409,6 +412,7 @@ export class PortManager extends EventEmitter {
 		if (this.isScanning) {
 			// A hint or tick fired mid-scan; queue exactly one follow-up.
 			this.scanRequested = true;
+			if (force) this.forceRequested = true;
 			return;
 		}
 		if (!this.hasAnySessions()) return;
@@ -438,7 +442,9 @@ export class PortManager extends EventEmitter {
 
 		if (this.scanRequested && this.hasAnySessions()) {
 			this.scanRequested = false;
-			await this.scanAllSessions();
+			const followUpForce = this.forceRequested;
+			this.forceRequested = false;
+			await this.scanAllSessions(followUpForce);
 		}
 	}
 

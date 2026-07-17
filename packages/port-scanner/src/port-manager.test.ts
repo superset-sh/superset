@@ -612,4 +612,25 @@ describe("PortManager — idle decay (sessions without output scan rarely)", () 
 		await manager.forceScan();
 		expect(spy.getProcessTrees).toBe(1);
 	});
+
+	it("forceScan arriving mid-scan keeps its bypass in the coalesced follow-up", async () => {
+		lsofDelayMs = 50;
+		manager.upsertSession("active", "ws1", 1000);
+		manager.upsertSession("idle", "ws1", 2000);
+		const entry = session("idle");
+		entry.lastActivityAt = Date.now() - IDLE_AFTER_MS - 1;
+		entry.lastScannedAt = Date.now();
+
+		// Periodic (non-forced) scan picks up only the active session…
+		const periodic = scan();
+		await sleep(10);
+		// …and a force scan lands while it is still in flight.
+		await manager.forceScan();
+
+		await periodic;
+		await sleep(100); // let the coalesced follow-up finish
+
+		// The follow-up must run forced: the idle session's pid is included.
+		expect(spy.lastTreeRootPids).toContain(2000);
+	});
 });
