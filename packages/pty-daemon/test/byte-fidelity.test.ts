@@ -64,6 +64,8 @@ function makeDriveablePty(meta: SpawnOptions["meta"]): DriveablePty {
 		resize: () => {},
 		kill: () => {},
 		getMasterFd: () => -1,
+		pause: () => {},
+		resume: () => {},
 		onData: (cb: PtyOnData) => {
 			onDataCbs.push(cb);
 		},
