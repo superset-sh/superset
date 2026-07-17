@@ -24,6 +24,9 @@ export const Route = createFileRoute("/sign-in/")({
 
 const LAST_USED_METHOD_KEY = "superset-last-auth-method";
 
+// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
+const workspaceRedirect = <Navigate to="/workspace" replace />;
+
 type AuthMethod = AuthProvider | "dev";
 
 function readLastUsedMethod(): AuthMethod | null {
@@ -44,7 +47,7 @@ function SignInPage() {
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
 
 	// Show loading while session is being fetched
@@ -58,7 +61,7 @@ function SignInPage() {
 
 	// If already signed in, redirect to workspace
 	if (session?.user) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
 
 	const rememberLastUsedMethod = (method: AuthMethod) => {

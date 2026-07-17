@@ -48,6 +48,13 @@ export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
 });
 
+// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
+const signInRedirect = <Navigate to="/sign-in" replace />;
+const createOrganizationRedirect = (
+	<Navigate to="/create-organization" replace />
+);
+const onboardingRedirect = <Navigate to="/onboarding" replace />;
+
 function AuthenticatedLayout() {
 	const {
 		data: session,
@@ -160,9 +167,8 @@ function AuthenticatedLayout() {
 		},
 	});
 
-	if (isPending && !hasLocalToken && !env.SKIP_ENV_VALIDATION) {
-		return <Navigate to="/sign-in" replace />;
-	}
+	// Never redirect while the session is unresolved — a redirect held open
+	// across re-renders loops the router until the renderer OOMs (#5729).
 	if (
 		(isPending || (isRefetching && !session?.user && hasLocalToken)) &&
 		!env.SKIP_ENV_VALIDATION
@@ -192,11 +198,11 @@ function AuthenticatedLayout() {
 	}
 
 	if (!isSignedIn) {
-		return <Navigate to="/sign-in" replace />;
+		return signInRedirect;
 	}
 
 	if (!activeOrganizationId) {
-		return <Navigate to="/create-organization" replace />;
+		return createOrganizationRedirect;
 	}
 
 	if (
@@ -204,7 +210,7 @@ function AuthenticatedLayout() {
 		!session.user.onboardedAt &&
 		!location.pathname.startsWith("/onboarding")
 	) {
-		return <Navigate to="/onboarding" replace />;
+		return onboardingRedirect;
 	}
 
 	return (
