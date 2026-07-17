@@ -32,9 +32,16 @@ const delay = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
  */
 const pendingKills = new Set<Promise<void>>();
 
-function registerPendingKill(chain: Promise<void>): void {
-	pendingKills.add(chain);
-	void chain.finally(() => pendingKills.delete(chain));
+/** Returns a never-rejecting wrapper so callers can chain without leaks. */
+function registerPendingKill(chain: Promise<void>): Promise<void> {
+	const tracked = chain.catch((err) => {
+		process.stderr.write(
+			`[pty-daemon] kill escalation crashed: ${(err as Error)?.stack ?? err}\n`,
+		);
+	});
+	pendingKills.add(tracked);
+	void tracked.then(() => pendingKills.delete(tracked));
+	return tracked;
 }
 
 export async function drainPendingKills(timeoutMs: number): Promise<void> {
@@ -80,7 +87,11 @@ function killVolley(
 	}
 	const targets = collectProcessSignalTargets(rootPid, {
 		includeRoot: false,
-		ttyName: identity.ttyName,
+		// tty targeting only while the root is alive in this same snapshot:
+		// the kernel recycles the pty slot the moment the master fd closes,
+		// so after root death a tty match can only ever hit a NEW session
+		// that inherited the slot (legit stragglers show "??" by then).
+		ttyName: rootRow ? identity.ttyName : null,
 		knownPgids: identity.knownPgids,
 		table: psTable,
 		onSignalError: logProcessSignalError,
@@ -113,8 +124,12 @@ async function runKillEscalation(opts: KillEscalationOptions): Promise<void> {
 	for (let round = 0; ; round++) {
 		const table = await readProcessTableAsync();
 		const rootAlive = isRootAlive();
-		const { survivors } = killVolley(rootPid, "SIGKILL", identity, table);
-		if (!survivors && !rootAlive) return;
+		if (table !== null) {
+			const { survivors } = killVolley(rootPid, "SIGKILL", identity, table);
+			if (!survivors && !rootAlive) return;
+		}
+		// A null table means ps failed — state unknown; keep the root kill
+		// and burn a round rather than concluding the kill is complete.
 		if (rootAlive) killRoot();
 		const nextDelay = KILL_VERIFY_DELAYS_MS[round];
 		if (nextDelay === undefined) break;
@@ -122,11 +137,19 @@ async function runKillEscalation(opts: KillEscalationOptions): Promise<void> {
 	}
 	// Let the final volley's SIGKILLs land before declaring survivors.
 	await delay(300);
+	const finalTable = await readProcessTableAsync();
+	if (finalTable === null) {
+		process.stderr.write(
+			`[pty-daemon] kill escalation for pid ${rootPid}: final ps failed, survivor state unknown\n`,
+		);
+		return;
+	}
+	const finalRootRow = finalTable.find((r) => r.pid === rootPid);
 	const leftovers = collectProcessSignalTargets(rootPid, {
 		includeRoot: false,
-		ttyName: identity.ttyName,
+		ttyName: finalRootRow ? identity.ttyName : null,
 		knownPgids: identity.knownPgids,
-		table: await readProcessTableAsync(),
+		table: finalTable,
 	}).filter((t) => t.target === "pid");
 	if (leftovers.length > 0 || isRootAlive()) {
 		process.stderr.write(
@@ -262,19 +285,25 @@ class NodePtyAdapter implements Pty {
 
 	private startKillEscalation(signal: NodeJS.Signals): void {
 		if (signal === "SIGKILL" || this.killChain) return;
-		this.killChain = runKillEscalation({
-			rootPid: this.pid,
-			identity: this.identity,
-			isRootAlive: () => !this.exited,
-			killRoot: () => {
-				try {
-					this.term.kill("SIGKILL");
-				} catch {
-					// already exited
-				}
-			},
+		const chain = registerPendingKill(
+			runKillEscalation({
+				rootPid: this.pid,
+				identity: this.identity,
+				isRootAlive: () => !this.exited,
+				killRoot: () => {
+					try {
+						this.term.kill("SIGKILL");
+					} catch {
+						// already exited
+					}
+				},
+			}),
+		);
+		this.killChain = chain;
+		// Reset when done so a retried close can escalate again.
+		void chain.then(() => {
+			if (this.killChain === chain) this.killChain = null;
 		});
-		registerPendingKill(this.killChain);
 	}
 }
 
@@ -493,19 +522,25 @@ class AdoptedPty implements Pty {
 
 	private startKillEscalation(signal: NodeJS.Signals): void {
 		if (signal === "SIGKILL" || this.killChain) return;
-		this.killChain = runKillEscalation({
-			rootPid: this.pid,
-			identity: this.identity,
-			isRootAlive: () => !this.exitFired && isPidAlive(this.pid),
-			killRoot: () => {
-				try {
-					process.kill(this.pid, "SIGKILL");
-				} catch {
-					// already dead
-				}
-			},
+		const chain = registerPendingKill(
+			runKillEscalation({
+				rootPid: this.pid,
+				identity: this.identity,
+				isRootAlive: () => !this.exitFired && isPidAlive(this.pid),
+				killRoot: () => {
+					try {
+						process.kill(this.pid, "SIGKILL");
+					} catch {
+						// already dead
+					}
+				},
+			}),
+		);
+		this.killChain = chain;
+		// Reset when done so a retried close can escalate again.
+		void chain.then(() => {
+			if (this.killChain === chain) this.killChain = null;
 		});
-		registerPendingKill(this.killChain);
 	}
 }
 

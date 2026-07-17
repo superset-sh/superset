@@ -128,18 +128,34 @@ export function signalProcessTargets(
 }
 
 const PS_TABLE_ARGS = ["-axo", "pid=,ppid=,pgid=,tty=,stat="];
+// Bound every ps: a hung ps (stale NFS mount, kernel proc stalls) must fail
+// the read, not wedge the kill chain or the daemon shutdown drain.
+const PS_TIMEOUT_MS = 5_000;
 
 export function readProcessTable(): ProcessInfo[] {
-	const result = spawnSync("ps", PS_TABLE_ARGS, { encoding: "utf8" });
+	const result = spawnSync("ps", PS_TABLE_ARGS, {
+		encoding: "utf8",
+		timeout: PS_TIMEOUT_MS,
+	});
 	if (result.error || result.status !== 0) return [];
 	return parseProcessTable(result.stdout);
 }
 
-export function readProcessTableAsync(): Promise<ProcessInfo[]> {
+/**
+ * Resolves null when ps itself fails — callers making liveness decisions
+ * (e.g. "no survivors, stop escalating") must treat null as unknown, never
+ * as an empty table.
+ */
+export function readProcessTableAsync(): Promise<ProcessInfo[] | null> {
 	return new Promise((resolve) => {
-		execFile("ps", PS_TABLE_ARGS, { encoding: "utf8" }, (error, stdout) => {
-			resolve(error ? [] : parseProcessTable(stdout));
-		});
+		execFile(
+			"ps",
+			PS_TABLE_ARGS,
+			{ encoding: "utf8", timeout: PS_TIMEOUT_MS },
+			(error, stdout) => {
+				resolve(error ? null : parseProcessTable(stdout));
+			},
+		);
 	});
 }
 
@@ -189,7 +205,7 @@ export function getProcessGroupAndTty(
 		execFile(
 			"ps",
 			["-o", "pgid=,tty=", "-p", String(pid)],
-			{ encoding: "utf8" },
+			{ encoding: "utf8", timeout: PS_TIMEOUT_MS },
 			(error, stdout) => {
 				if (error) return resolve({ pgid: null, tty: null });
 				const [pgidText, ttyText] = stdout.trim().split(/\s+/);
