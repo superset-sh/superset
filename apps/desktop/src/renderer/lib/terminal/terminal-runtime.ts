@@ -184,9 +184,6 @@ function createResizeScheduler(
 	dispose: () => void;
 } {
 	let timeoutId: ReturnType<typeof setTimeout> | null = null;
-	// On reveal after a zero-size hide, re-send PTY dims even when unchanged
-	// (VS Code setVisible parity) — resyncs a PTY resized elsewhere meanwhile.
-	let revealPending = false;
 
 	const dispose = () => {
 		if (timeoutId !== null) {
@@ -197,9 +194,10 @@ function createResizeScheduler(
 
 	const run = () => {
 		timeoutId = null;
-		const forceNotify = revealPending;
-		revealPending = false;
-		measureAndResize(runtime, onResize, { forceNotify });
+		// Notify unconditionally (VS Code parity): a reveal after a zero-size
+		// hide re-sends PTY dims even when unchanged, resyncing a PTY resized
+		// elsewhere meanwhile. Same-size re-sends are kernel no-ops.
+		measureAndResize(runtime, onResize, { forceNotify: true });
 	};
 
 	const observe: ResizeObserverCallback = (entries) => {
@@ -209,7 +207,6 @@ function createResizeScheduler(
 					entry.contentRect.width <= 0 || entry.contentRect.height <= 0,
 			)
 		) {
-			revealPending = true;
 			dispose();
 			return;
 		}
