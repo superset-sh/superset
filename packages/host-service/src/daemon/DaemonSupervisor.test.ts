@@ -229,11 +229,26 @@ describe("shouldKillStaleDaemonForDev", () => {
 });
 
 describe("DaemonSupervisor.tryAdopt", () => {
+	let originalHome: string | undefined;
+	let tmpHome: string;
+
+	beforeEach(() => {
+		originalHome = process.env.SUPERSET_HOME_DIR;
+		tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
+		process.env.SUPERSET_HOME_DIR = tmpHome;
+	});
+
+	afterEach(() => {
+		if (originalHome !== undefined) {
+			process.env.SUPERSET_HOME_DIR = originalHome;
+		} else {
+			delete process.env.SUPERSET_HOME_DIR;
+		}
+		fs.rmSync(tmpHome, { recursive: true, force: true });
+	});
+
 	test("recovers adoption from a live expected socket when the manifest is missing", async () => {
 		const orgId = "org-socket-fallback";
-		const originalHome = process.env.SUPERSET_HOME_DIR;
-		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
-		process.env.SUPERSET_HOME_DIR = tmpHome;
 		const socketPath = ptyDaemonSocketPath(orgId);
 		try {
 			try {
@@ -276,12 +291,6 @@ describe("DaemonSupervisor.tryAdopt", () => {
 				await fake.close();
 			}
 		} finally {
-			if (originalHome !== undefined) {
-				process.env.SUPERSET_HOME_DIR = originalHome;
-			} else {
-				delete process.env.SUPERSET_HOME_DIR;
-			}
-			fs.rmSync(tmpHome, { recursive: true, force: true });
 			try {
 				fs.unlinkSync(socketPath);
 			} catch {
@@ -292,22 +301,10 @@ describe("DaemonSupervisor.tryAdopt", () => {
 
 	test("adopts an unprobeable but pid-alive daemon instead of killing its shells", async () => {
 		const orgId = "org-unprobeable";
+		// Silent but listening: connects succeed, hello never answered —
+		// a wedged/overloaded daemon, not a dead one.
 		const fake = await startFakeDaemon({ silent: true });
-		const child = childProcess.spawn(
-			process.execPath,
-			["-e", "setInterval(() => {}, 1000)"],
-			{ stdio: "ignore" },
-		);
-		const childPid = child.pid;
-		expect(typeof childPid).toBe("number");
-		if (!childPid) {
-			await fake.close();
-			return;
-		}
-
-		const originalHome = process.env.SUPERSET_HOME_DIR;
-		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
-		process.env.SUPERSET_HOME_DIR = tmpHome;
+		const childPid = spawnIdleChild();
 		try {
 			writePtyDaemonManifest({
 				pid: childPid,
@@ -333,41 +330,19 @@ describe("DaemonSupervisor.tryAdopt", () => {
 			expect(isProcessAliveForTest(childPid)).toBe(true);
 		} finally {
 			await fake.close();
-			if (isProcessAliveForTest(childPid)) {
-				try {
-					process.kill(childPid, "SIGKILL");
-				} catch {
-					// already gone
-				}
-			}
-			if (originalHome !== undefined) {
-				process.env.SUPERSET_HOME_DIR = originalHome;
-			} else {
-				delete process.env.SUPERSET_HOME_DIR;
-			}
-			fs.rmSync(tmpHome, { recursive: true, force: true });
+			killIfAlive(childPid);
 		}
-	});
+	}, 15_000);
 
 	test("adopts a pid-alive daemon that answers the probe without force-killing it", async () => {
 		// Regression guard for SUPER-833: a reachable, probeable daemon that
 		// owns live shells must be adopted, never terminated during adoption.
-		const child = childProcess.spawn(
-			process.execPath,
-			["-e", "setInterval(() => {}, 1000)"],
-			{ stdio: "ignore" },
-		);
-		const childPid = child.pid;
-		expect(typeof childPid).toBe("number");
-		if (!childPid) return;
+		const childPid = spawnIdleChild();
 		const orgId = "org-healthy-adopt";
 		const fake = await startFakeDaemon({
 			respondWithVersion: "0.1.0",
 			daemonPid: childPid,
 		});
-		const originalHome = process.env.SUPERSET_HOME_DIR;
-		const tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-unit-"));
-		process.env.SUPERSET_HOME_DIR = tmpHome;
 		try {
 			writePtyDaemonManifest({
 				pid: childPid,
@@ -394,21 +369,91 @@ describe("DaemonSupervisor.tryAdopt", () => {
 			expect(isProcessAliveForTest(childPid)).toBe(true);
 		} finally {
 			await fake.close();
-			if (isProcessAliveForTest(childPid)) {
-				try {
-					process.kill(childPid, "SIGKILL");
-				} catch {
-					// already gone
-				}
-			}
-			if (originalHome !== undefined) {
-				process.env.SUPERSET_HOME_DIR = originalHome;
-			} else {
-				delete process.env.SUPERSET_HOME_DIR;
-			}
-			fs.rmSync(tmpHome, { recursive: true, force: true });
+			killIfAlive(childPid);
 		}
 	});
+
+	test("refuses to adopt a recycled pid whose socket has no listener", async () => {
+		// After a reboot the manifest's pid can belong to an unrelated live
+		// process while the daemon (and its socket) are gone. Adopting it
+		// would wedge terminals behind a phantom instance forever.
+		const orgId = "org-recycled-pid";
+		const childPid = spawnIdleChild();
+		try {
+			writePtyDaemonManifest({
+				pid: childPid,
+				socketPath: path.join(os.tmpdir(), `dead-${process.pid}.sock`),
+				protocolVersions: [1],
+				startedAt: Date.now(),
+				organizationId: orgId,
+			});
+
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			const adopted = await invokeTryAdopt(sup, orgId);
+			// No listener anywhere → not adoptable; the caller spawns fresh.
+			expect(adopted).toBeNull();
+			// The stale manifest is gone so the next boot doesn't re-trip.
+			expect(readPtyDaemonManifest(orgId)).toBeNull();
+			expect(
+				loggedEvents.some((e) => e.event === "pty_daemon_manifest_stale"),
+			).toBe(true);
+			// The unrelated process must never be signalled.
+			expect(isProcessAliveForTest(childPid)).toBe(true);
+		} finally {
+			killIfAlive(childPid);
+		}
+	}, 15_000);
+
+	test("falls back to the expected socket when the manifest socket is dead", async () => {
+		// A stale manifest can point at a dead socket while a healthy daemon
+		// answers at the expected path — adopt the healthy one.
+		const orgId = "org-manifest-socket-dead";
+		const socketPath = ptyDaemonSocketPath(orgId);
+		const childPid = spawnIdleChild();
+		try {
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort cleanup from a failed prior run
+			}
+			const fake = await startFakeDaemon({
+				socketPath,
+				respondWithVersion: "0.1.0",
+				daemonPid: process.pid,
+			});
+			try {
+				writePtyDaemonManifest({
+					pid: childPid,
+					socketPath: path.join(os.tmpdir(), `dead-${process.pid}.sock`),
+					protocolVersions: [1],
+					startedAt: Date.now(),
+					organizationId: orgId,
+				});
+
+				const sup = new DaemonSupervisor({
+					scriptPath: "/nonexistent",
+					autoUpdate: false,
+				});
+				const adopted = (await invokeTryAdopt(
+					sup,
+					orgId,
+				)) as AdoptedForTest | null;
+				expect(adopted).not.toBeNull();
+				expect(adopted?.pid).toBe(process.pid);
+				expect(adopted?.socketPath).toBe(socketPath);
+				expect(isProcessAliveForTest(childPid)).toBe(true);
+			} finally {
+				await fake.close();
+			}
+		} finally {
+			killIfAlive(childPid);
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort
+			}
+		}
+	}, 15_000);
 });
 
 describe("DaemonSupervisor daemon health", () => {
@@ -467,7 +512,10 @@ describe("DaemonSupervisor daemon health", () => {
 	test("clears the silence and backfills the version once it answers again", async () => {
 		const fake = await startFakeDaemon({ respondWithVersion: "0.1.0" });
 		try {
-			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			const sup = new DaemonSupervisor({
+				scriptPath: "/nonexistent",
+				autoUpdate: false,
+			});
 			// An adopt-unprobed instance: alive, version unknown, gone quiet.
 			seedInstance(sup, "org-recovers", {
 				runningVersion: "unknown",
@@ -486,6 +534,69 @@ describe("DaemonSupervisor daemon health", () => {
 			});
 			// And the version we couldn't read at adoption is now resolved.
 			expect(sup.getUpdateStatus("org-recovers")?.running).toBe("0.1.0");
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("kicks off auto-update when the late probe reveals a stale version", async () => {
+		// The adopt-time probe failed (version "unknown"), so the adopt path
+		// skipped auto-update. The late read is the same discovery and must
+		// take the same action — this is exactly the post-update-load boot
+		// the adoption change is for.
+		const fake = await startFakeDaemon({ respondWithVersion: "0.0.1" });
+		try {
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			const kickoffMock = mock(() => {});
+			(
+				sup as unknown as { kickoffAutoUpdate: typeof kickoffMock }
+			).kickoffAutoUpdate = kickoffMock;
+			seedInstance(sup, "org-late-stale", {
+				runningVersion: "unknown",
+				expectedVersion: "0.2.5",
+				updatePending: false,
+				unreachableSince: Date.now() - 5_000,
+				pid: process.pid,
+				socketPath: fake.socketPath,
+			});
+			await invokeRefreshReachability(sup, "org-late-stale", process.pid);
+			expect(sup.getUpdateStatus("org-late-stale")?.pending).toBe(true);
+			expect(kickoffMock).toHaveBeenCalledTimes(1);
+			expect(
+				loggedEvents.some((e) => e.event === "pty_daemon_update_pending"),
+			).toBe(true);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("late stale-version discovery respects autoUpdate: false", async () => {
+		const fake = await startFakeDaemon({ respondWithVersion: "0.0.1" });
+		try {
+			const sup = new DaemonSupervisor({
+				scriptPath: "/nonexistent",
+				autoUpdate: false,
+			});
+			const kickoffMock = mock(() => {});
+			(
+				sup as unknown as { kickoffAutoUpdate: typeof kickoffMock }
+			).kickoffAutoUpdate = kickoffMock;
+			seedInstance(sup, "org-late-stale-noauto", {
+				runningVersion: "unknown",
+				expectedVersion: "0.2.5",
+				updatePending: false,
+				unreachableSince: Date.now() - 5_000,
+				pid: process.pid,
+				socketPath: fake.socketPath,
+			});
+			await invokeRefreshReachability(
+				sup,
+				"org-late-stale-noauto",
+				process.pid,
+			);
+			// Still flagged for the UI, but no background handoff.
+			expect(sup.getUpdateStatus("org-late-stale-noauto")?.pending).toBe(true);
+			expect(kickoffMock).not.toHaveBeenCalled();
 		} finally {
 			await fake.close();
 		}
@@ -1177,6 +1288,28 @@ function invokeTryAdopt(
 			tryAdopt: (id: string) => Promise<unknown | null>;
 		}
 	).tryAdopt(organizationId);
+}
+
+/** A live pid that is definitely not a pty-daemon. */
+function spawnIdleChild(): number {
+	const child = childProcess.spawn(
+		process.execPath,
+		["-e", "setInterval(() => {}, 1000)"],
+		{ stdio: "ignore" },
+	);
+	const childPid = child.pid;
+	expect(typeof childPid).toBe("number");
+	if (!childPid) throw new Error("failed to spawn idle child");
+	return childPid;
+}
+
+function killIfAlive(pid: number): void {
+	if (!isProcessAliveForTest(pid)) return;
+	try {
+		process.kill(pid, "SIGKILL");
+	} catch {
+		// already gone
+	}
 }
 
 async function waitForProcessExit(

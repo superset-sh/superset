@@ -99,8 +99,21 @@ const ADOPTION_PROBE_TOTAL_TIMEOUT_MS = 3_000;
  */
 const CRASH_BUDGET = 3;
 const CRASH_WINDOW_MS = 60_000;
-/** How often to poll an adopted daemon's PID for liveness. */
-const ADOPTED_LIVENESS_INTERVAL_MS = 2_000;
+/** How often to poll a daemon's PID for liveness. */
+const PID_LIVENESS_INTERVAL_MS = 2_000;
+/**
+ * How often to probe the daemon socket for reachability. Slower than the
+ * pid poll: a probe is a full connect+hello handshake, and the UI only
+ * samples health every 5s anyway.
+ */
+const REACHABILITY_PROBE_INTERVAL_MS = 5_000;
+/**
+ * Total retry budget for a steady-state reachability probe. A daemon
+ * relaying heavy PTY output can miss a single 1.5s deadline while still
+ * healthy; retrying across 3s keeps a busy daemon from being reported
+ * unreachable (which would offer the user a destructive restart).
+ */
+const REACHABILITY_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 const ADOPT_IN_DEV_ENV = "SUPERSET_PTY_DAEMON_ADOPT_IN_DEV";
 
 export function shouldKillStaleDaemonForDev(
@@ -183,12 +196,12 @@ export class DaemonSupervisor {
 	 */
 	private readonly lastUpdatePendingPair = new Map<string, string>();
 	/**
-	 * Liveness pollers per org. We only attach a `child.on("exit")` handler
-	 * to daemons we *spawned* — adopted daemons (PIDs from a manifest) have
-	 * no child handle, so we'd never notice if they died externally. This
-	 * timer polls `process.kill(pid, 0)` to bridge that gap.
+	 * Health pollers per org, for every daemon however we came by it: pid
+	 * liveness each tick, plus a slower socket reachability probe. For
+	 * adopted daemons (no child handle) this is also how we notice death;
+	 * spawned daemons get death handling from `child.on("exit")`.
 	 */
-	private readonly adoptedLivenessTimers = new Map<
+	private readonly healthPollTimers = new Map<
 		string,
 		ReturnType<typeof setInterval>
 	>();
@@ -293,7 +306,7 @@ export class DaemonSupervisor {
 		// or adopted (liveness poll); either way, marking `stopping` makes
 		// the exit handler treat it as expected.
 		this.stopping.add(organizationId);
-		this.stopAdoptedLivenessCheck(organizationId);
+		this.stopHealthPoll(organizationId);
 
 		// Mark the manifest so a host-service crash mid-handoff is
 		// debuggable. We restore on failure or replace on success.
@@ -375,9 +388,7 @@ export class DaemonSupervisor {
 			startedAt: successorStartedAt,
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending:
-				!!probedVersion &&
-				!semver.satisfies(probedVersion, `>=${EXPECTED_DAEMON_VERSION}`),
+			updatePending: isVersionUpdatePending(probedVersion),
 			unreachableSince: probedVersion ? null : Date.now(),
 		};
 		this.instances.set(organizationId, successorInstance);
@@ -500,7 +511,7 @@ export class DaemonSupervisor {
 	async stop(organizationId: string): Promise<void> {
 		const instance = this.instances.get(organizationId);
 		this.instances.delete(organizationId);
-		this.stopAdoptedLivenessCheck(organizationId);
+		this.stopHealthPoll(organizationId);
 		if (!instance) return;
 		this.stopping.add(organizationId);
 		await terminateProcessTreeAndGroups(instance.pid, "SIGTERM");
@@ -545,23 +556,26 @@ export class DaemonSupervisor {
 		pid: number,
 		onDeath: (() => void) | null,
 	): void {
-		this.stopAdoptedLivenessCheck(organizationId);
+		this.stopHealthPoll(organizationId);
 		let probing = false;
+		let lastProbeAt = 0;
 		const timer = setInterval(() => {
 			if (!isProcessAlive(pid)) {
 				// Never keep polling a dead pid, whoever handles the death.
-				this.stopAdoptedLivenessCheck(organizationId);
+				this.stopHealthPoll(organizationId);
 				onDeath?.();
 				return;
 			}
-			// A probe can outlast the interval; don't stack them.
-			if (probing) return;
+			// The socket probe runs on its own slower cadence, one at a time.
+			if (probing || Date.now() - lastProbeAt < REACHABILITY_PROBE_INTERVAL_MS)
+				return;
 			probing = true;
+			lastProbeAt = Date.now();
 			void this.refreshReachability(organizationId, pid).finally(() => {
 				probing = false;
 			});
-		}, ADOPTED_LIVENESS_INTERVAL_MS);
-		this.adoptedLivenessTimers.set(organizationId, timer);
+		}, PID_LIVENESS_INTERVAL_MS);
+		this.healthPollTimers.set(organizationId, timer);
 	}
 
 	/**
@@ -578,9 +592,9 @@ export class DaemonSupervisor {
 	): Promise<void> {
 		const instance = this.instances.get(organizationId);
 		if (!instance || instance.pid !== pid) return;
-		const probe = await probeDaemonHello(
+		const probe = await probeDaemonHelloWithRetry(
 			instance.socketPath,
-			VERSION_PROBE_TIMEOUT_MS,
+			REACHABILITY_PROBE_TOTAL_TIMEOUT_MS,
 		);
 		// Re-read: the instance can be replaced while the probe is in flight.
 		const current = this.instances.get(organizationId);
@@ -592,10 +606,13 @@ export class DaemonSupervisor {
 		current.unreachableSince = null;
 		if (current.runningVersion === "unknown") {
 			current.runningVersion = probe.daemonVersion;
-			current.updatePending = !semver.satisfies(
-				probe.daemonVersion,
-				`>=${EXPECTED_DAEMON_VERSION}`,
-			);
+			current.updatePending = isVersionUpdatePending(probe.daemonVersion);
+			// The adopt path couldn't see the version, so it skipped these —
+			// this late read is the same "adopted a stale daemon" discovery.
+			this.maybeFireUpdatePending(organizationId, current);
+			if (current.updatePending && this.opts.autoUpdate !== false) {
+				this.kickoffAutoUpdate(organizationId, current);
+			}
 		}
 	}
 
@@ -613,11 +630,11 @@ export class DaemonSupervisor {
 		};
 	}
 
-	private stopAdoptedLivenessCheck(organizationId: string): void {
-		const timer = this.adoptedLivenessTimers.get(organizationId);
+	private stopHealthPoll(organizationId: string): void {
+		const timer = this.healthPollTimers.get(organizationId);
 		if (timer) {
 			clearInterval(timer);
-			this.adoptedLivenessTimers.delete(organizationId);
+			this.healthPollTimers.delete(organizationId);
 		}
 	}
 
@@ -885,14 +902,32 @@ export class DaemonSupervisor {
 				reason: "manifest_pid_dead",
 			});
 		}
-		// The pid is alive, so it still owns the user's PTYs — adopt it. Killing
-		// it here signalled the daemon's whole process tree, taking every live
-		// shell with it (SUPER-833). A failed probe only means we couldn't read
-		// its version; a wedged daemon is recovered by an explicit user restart.
+		// The pid is alive, so it may still own the user's PTYs — adopt it.
+		// Killing it here signalled the daemon's whole process tree, taking
+		// every live shell with it (SUPER-833). A failed probe only means we
+		// couldn't read its version; a wedged daemon is recovered by an
+		// explicit user restart.
 		const probe = await probeDaemonHelloWithRetry(
 			manifest.socketPath,
 			ADOPTION_PROBE_TOTAL_TIMEOUT_MS,
 		);
+		if (!probe && !(await isSocketConnectable(manifest.socketPath, 1000))) {
+			// Nothing is even accepting on the socket. A live daemon keeps its
+			// listener no matter how overloaded it is, so this pid isn't our
+			// daemon — most likely recycled after a reboot. Adopting it would
+			// wedge terminals behind a phantom instance and aim a later user
+			// restart at an innocent process. Never signal it; drop the manifest
+			// and fall back to socket adoption / a fresh spawn.
+			logEvent("pty_daemon_manifest_stale", {
+				organizationId,
+				pid: manifest.pid,
+				socketPath: manifest.socketPath,
+			});
+			removePtyDaemonManifest(organizationId);
+			return this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+				reason: "manifest_socket_unreachable",
+			});
+		}
 		const runningVersion = probe?.daemonVersion ?? "unknown";
 		return {
 			pid: manifest.pid,
@@ -900,9 +935,7 @@ export class DaemonSupervisor {
 			startedAt: manifest.startedAt,
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending:
-				probe != null &&
-				!semver.satisfies(runningVersion, `>=${EXPECTED_DAEMON_VERSION}`),
+			updatePending: isVersionUpdatePending(probe?.daemonVersion ?? null),
 			// Start the clock here when it didn't answer: the liveness poll
 			// clears it the moment it does.
 			unreachableSince: probe ? null : Date.now(),
@@ -966,10 +999,7 @@ export class DaemonSupervisor {
 			startedAt,
 			runningVersion: probe.daemonVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
-			updatePending: !semver.satisfies(
-				probe.daemonVersion,
-				`>=${EXPECTED_DAEMON_VERSION}`,
-			),
+			updatePending: isVersionUpdatePending(probe.daemonVersion),
 			unreachableSince: null,
 		};
 	}
@@ -1201,6 +1231,19 @@ function pipeWithPrefix(
 
 function countAliveSessions(sessions: SessionInfo[]): number {
 	return sessions.filter((session) => session.alive).length;
+}
+
+/**
+ * "Running < expected" per semver. An unreadable version (probe failed)
+ * is never pending — probe failure ≠ stale.
+ */
+function isVersionUpdatePending(
+	probedVersion: string | null | undefined,
+): boolean {
+	return (
+		probedVersion != null &&
+		!semver.satisfies(probedVersion, `>=${EXPECTED_DAEMON_VERSION}`)
+	);
 }
 
 async function waitForSocket(
