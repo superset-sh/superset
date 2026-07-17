@@ -40,9 +40,14 @@ export function useAutoAdoptBackgroundSessions({
 		{ enabled: isLayoutReady, refetchOnWindowFocus: false },
 	);
 	const sessions = sessionsQuery.data?.sessions;
+	// While a (re)fetch is in flight, `data` may be a cached list from a
+	// previous open — wait for it so the one-shot pass doesn't latch on stale
+	// sessions. If the refetch errors, isFetching clears and the cached list is
+	// still used as a fallback.
+	const isFetchingSessions = sessionsQuery.isFetching;
 
 	useEffect(() => {
-		if (!isLayoutReady || !sessions) return;
+		if (!isLayoutReady || !sessions || isFetchingSessions) return;
 		if (adoptedForWorkspaceIdRef.current === workspaceId) return;
 		adoptedForWorkspaceIdRef.current = workspaceId;
 
@@ -71,5 +76,5 @@ export function useAutoAdoptBackgroundSessions({
 			count: toAdopt.length,
 			workspaceId,
 		});
-	}, [isLayoutReady, sessions, store, workspaceId]);
+	}, [isLayoutReady, isFetchingSessions, sessions, store, workspaceId]);
 }
