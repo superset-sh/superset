@@ -7,6 +7,11 @@ export type {
 export { createWorkspaceStore } from "./core/store";
 export type { DerivedPanels } from "./core/store/panels";
 export { deriveWorkspacePanels, IMPLICIT_PANEL_ID } from "./core/store/panels";
+export type { PersistedWorkspaceState } from "./core/store/persistence";
+export {
+	sanitizeWorkspaceState,
+	toWorkspaceState,
+} from "./core/store/persistence";
 export type { FocusDirection } from "./core/store/utils";
 export {
 	getActiveIdAfterRemoval,
@@ -29,6 +34,7 @@ export { resolveTabTitle, useTabTitle, Workspace } from "./react";
 export type {
 	LayoutNode,
 	Pane,
+	PanelLayoutNode,
 	SplitBranch,
 	SplitDirection,
 	SplitPath,
