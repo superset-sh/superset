@@ -1,12 +1,11 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	HostSelect,
@@ -15,7 +14,6 @@ import {
 import { SettingsRow } from "../../../../components/SettingsRow";
 import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
-import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
@@ -32,20 +30,17 @@ export function V2ProjectSettings({
 	hostId,
 }: V2ProjectSettingsProps) {
 	const navigate = useNavigate();
-	const collections = useCollections();
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
 		useWorkspaceHostOptions();
 	const targetHostUrl = useHostUrl(hostId);
 	const targetHostId = hostId ?? machineId;
 
-	const { data: v2Project, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) => eq(projects.id, projectId))
-				.select(({ projects }) => ({ ...projects })),
-		[collections, projectId],
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects, isReady } = useHostProjects();
+	const project = useMemo(
+		() => hostProjects.find((item) => item.projectKey === projectId) ?? null,
+		[hostProjects, projectId],
 	);
 
 	const hostOptions = useMemo<HostSelectOption[]>(() => {
@@ -101,7 +96,6 @@ export function V2ProjectSettings({
 		},
 	});
 
-	const project = v2Project?.[0];
 	if (!project) {
 		if (!isReady) return null;
 		return (
@@ -111,15 +105,18 @@ export function V2ProjectSettings({
 		);
 	}
 
+	const iconUrl = project.repoOwner
+		? `https://github.com/${project.repoOwner}.png?size=64`
+		: null;
+	const canRename = Boolean(
+		targetHostUrl && targetHostId && project.hostIds.includes(targetHostId),
+	);
+
 	return (
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<header className="mb-8 flex items-center justify-between gap-4">
 				<div className="flex min-w-0 items-center gap-3">
-					<IconUploadField
-						projectId={projectId}
-						iconUrl={project.iconUrl ?? null}
-						hasGitHubRepo={project.repoCloneUrl != null}
-					/>
+					<ProjectThumbnail projectName={project.name} iconUrl={iconUrl} />
 					<h2 className="truncate text-xl font-semibold">{project.name}</h2>
 				</div>
 				{hasMultipleHosts && targetHostId ? (
@@ -141,13 +138,15 @@ export function V2ProjectSettings({
 			<div className="space-y-10">
 				<section>
 					<SettingsRow label="Name" htmlFor="project-name">
-						<NameSection projectId={projectId} currentName={project.name} />
+						<NameSection
+							projectId={projectId}
+							currentName={project.name}
+							hostUrl={targetHostUrl}
+							canRename={canRename}
+						/>
 					</SettingsRow>
 					<SettingsRow label="Repository" htmlFor="project-repo">
-						<RepositorySection
-							projectId={projectId}
-							currentRepoCloneUrl={project.repoCloneUrl}
-						/>
+						<RepositorySection repoUrl={project.repoUrl} />
 					</SettingsRow>
 					{targetHostUrl && hostProject && (
 						<SettingsRow
@@ -170,7 +169,7 @@ export function V2ProjectSettings({
 						<ProjectLocationSection
 							projectId={projectId}
 							currentPath={hostProject?.repoPath ?? null}
-							repoCloneUrl={project.repoCloneUrl}
+							repoCloneUrl={project.repoUrl}
 							hostId={targetHostId ?? null}
 							hostUrl={targetHostUrl}
 							hostName={targetHostName}

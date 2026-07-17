@@ -2,67 +2,30 @@ import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 
 interface RepositorySectionProps {
-	projectId: string;
-	currentRepoCloneUrl: string | null;
+	repoUrl: string | null;
 }
 
-export function RepositorySection({
-	projectId,
-	currentRepoCloneUrl,
-}: RepositorySectionProps) {
-	const { v2Projects: projectActions } = useOptimisticCollectionActions();
-	const [value, setValue] = useState(currentRepoCloneUrl ?? "");
-	const isFocusedRef = useRef(false);
+/**
+ * Read-only: the repository URL is derived from the repo's git remote by
+ * the host and re-resolved on every import/setup — edit the remote in git
+ * to change it.
+ */
+export function RepositorySection({ repoUrl }: RepositorySectionProps) {
 	const openUrl = electronTrpc.external.openUrl.useMutation();
-
-	useEffect(() => {
-		if (!isFocusedRef.current) {
-			setValue(currentRepoCloneUrl ?? "");
-		}
-	}, [currentRepoCloneUrl]);
-
-	const commit = () => {
-		const trimmed = value.trim();
-		const next = trimmed === "" ? null : trimmed;
-		if (next === (currentRepoCloneUrl ?? null)) return;
-		projectActions.updateRepository(projectId, next);
-	};
-
-	const parsed = currentRepoCloneUrl
-		? parseGitHubRemote(currentRepoCloneUrl)
-		: null;
+	const parsed = repoUrl ? parseGitHubRemote(repoUrl) : null;
 
 	return (
 		<div className="relative w-96">
 			<Input
 				id="project-repo"
-				value={value}
-				onChange={(e) => setValue(e.target.value)}
-				onFocus={() => {
-					isFocusedRef.current = true;
-				}}
-				onBlur={() => {
-					isFocusedRef.current = false;
-					commit();
-				}}
-				onKeyDown={(e) => {
-					if (e.key === "Enter") {
-						e.preventDefault();
-						(e.target as HTMLInputElement).blur();
-					}
-					if (e.key === "Escape") {
-						e.preventDefault();
-						setValue(currentRepoCloneUrl ?? "");
-						(e.target as HTMLInputElement).blur();
-					}
-				}}
-				placeholder="https://github.com/owner/repo"
+				value={repoUrl ?? ""}
+				readOnly
+				disabled
+				placeholder="No git remote detected"
 				className="w-full font-mono text-sm pr-9"
 			/>
 			{parsed && (

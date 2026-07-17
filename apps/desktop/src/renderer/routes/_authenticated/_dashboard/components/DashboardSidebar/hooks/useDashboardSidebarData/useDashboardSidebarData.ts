@@ -1,7 +1,7 @@
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -150,44 +150,48 @@ export function useDashboardSidebarData() {
 		[hosts],
 	);
 
-	const { data: rawSidebarProjects = [] } = useLiveQuery(
+	// Placement (order/collapse) is local; project identity comes from the
+	// host fan-out (useHostProjects) — projects are fully local, so the
+	// sidebar joins the two in JS on the project id.
+	const { data: sidebarProjectRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarProjects: collections.v2SidebarProjects })
-				.innerJoin(
-					{ projects: collections.v2Projects },
-					({ sidebarProjects, projects }) =>
-						eq(sidebarProjects.projectId, projects.id),
-				)
-				.leftJoin(
-					{ repos: collections.githubRepositories },
-					({ projects, repos }) => eq(projects.githubRepositoryId, repos.id),
-				)
 				.orderBy(({ sidebarProjects }) => sidebarProjects.tabOrder, "asc")
-				.select(({ sidebarProjects, projects, repos }) => ({
-					id: projects.id,
-					name: projects.name,
-					slug: projects.slug,
-					githubRepositoryId: projects.githubRepositoryId,
-					githubOwner: repos?.owner ?? null,
-					githubRepoName: repos?.name ?? null,
-					iconUrl: projects.iconUrl,
-					createdAt: projects.createdAt,
-					updatedAt: projects.updatedAt,
+				.select(({ sidebarProjects }) => ({
+					projectId: sidebarProjects.projectId,
 					isCollapsed: sidebarProjects.isCollapsed,
 				})),
 		[collections],
 	);
 
-	const sidebarProjects = useMemo(
-		() =>
-			rawSidebarProjects.map((project) => ({
-				...project,
-				githubOwner: project.githubOwner ?? null,
-				githubRepoName: project.githubRepoName ?? null,
-			})),
-		[rawSidebarProjects],
-	);
+	const { projects: hostProjects } = useHostProjects();
+
+	const sidebarProjects = useMemo(() => {
+		const projectsByKey = new Map(
+			hostProjects.map((project) => [project.projectKey, project]),
+		);
+		return sidebarProjectRows.flatMap((row) => {
+			const project = projectsByKey.get(row.projectId);
+			// No host serves it: stale placement row (deleted project) — drop
+			// it, same as the old inner join did.
+			if (!project) return [];
+			return [
+				{
+					id: project.projectKey,
+					name: project.name,
+					githubOwner: project.repoOwner,
+					githubRepoName: project.repoName,
+					iconUrl: project.repoOwner
+						? `https://github.com/${project.repoOwner}.png?size=64`
+						: null,
+					createdAt: new Date(project.createdAt),
+					updatedAt: new Date(project.updatedAt),
+					isCollapsed: row.isCollapsed,
+				},
+			];
+		});
+	}, [sidebarProjectRows, hostProjects]);
 
 	const { data: sidebarSections = [] } = useLiveQuery(
 		(q) =>
