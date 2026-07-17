@@ -27,6 +27,13 @@ export interface Pty {
 	onData(cb: PtyOnData): void;
 	onExit(cb: PtyOnExit): void;
 	/**
+	 * Flow control: stop reading from the PTY master. The kernel PTY buffer
+	 * (~64KB) fills and the foreground process blocks on write, throttling
+	 * itself — same mechanism as VS Code's ptyHost pause/resume.
+	 */
+	pause(): void;
+	resume(): void;
+	/**
 	 * The kernel master fd backing this PTY. Required for daemon-upgrade
 	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
 	 * via stdio so the slave-side shell stays alive across the binary swap.
@@ -112,6 +119,16 @@ class NodePtyAdapter implements Pty {
 			return;
 		}
 		this.exitCallbacks.push(cb);
+	}
+
+	pause(): void {
+		if (this.exited) return;
+		this.term.pause();
+	}
+
+	resume(): void {
+		if (this.exited) return;
+		this.term.resume();
 	}
 
 	private scheduleKillEscalation(
@@ -329,6 +346,16 @@ class AdoptedPty implements Pty {
 
 	onExit(cb: PtyOnExit): void {
 		this.exitCallbacks.push(cb);
+	}
+
+	pause(): void {
+		if (this.exitFired) return;
+		this.reader.pause();
+	}
+
+	resume(): void {
+		if (this.exitFired) return;
+		this.reader.resume();
 	}
 
 	private scheduleKillEscalation(
