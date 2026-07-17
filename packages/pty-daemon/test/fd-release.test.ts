@@ -10,6 +10,11 @@
 // reboot. Fixed upstream in microsoft/node-pty#882 (unreleased as of 1.1.0);
 // backported via patches/node-pty@1.1.0.patch.
 //
+// The same macOS path also leaks one kqueue fd per spawn (`SetupExitCallback`
+// opens a kqueue to wait on NOTE_EXIT and never closes it) — that one counts
+// against the process's RLIMIT_NOFILE rather than the pty cap. Fixed upstream
+// in microsoft/node-pty#931 and backported in the same patch.
+//
 // These tests spawn real shells, so they run under Node with the rest of the
 // integration suite.
 
@@ -45,6 +50,24 @@ function ptyFdCount(): number {
 	}
 	return out.split("\n").filter((line) => /\/dev\/(ptmx|ttys|pts\/)/.test(line))
 		.length;
+}
+
+/** Count this process's open kqueue fds, like upstream's regression test
+ * for microsoft/node-pty#931 does. macOS-only (lsof TYPE column). */
+function kqueueFdCount(): number {
+	let out: string;
+	try {
+		out = cp.execSync(`lsof -p ${process.pid}`, {
+			encoding: "utf8",
+			stdio: ["ignore", "pipe", "ignore"],
+		});
+	} catch (err) {
+		out = (err as { stdout?: string }).stdout ?? "";
+	}
+	if (!out.trim()) {
+		throw new Error("lsof produced no output — cannot count kqueue fds");
+	}
+	return out.split("\n").filter((line) => line.includes("KQUEUE")).length;
 }
 
 function fdIsOpen(fd: number): boolean {
@@ -93,6 +116,26 @@ test("no pty fd accumulates when a background child outlives the shell", async (
 	if (!converged) {
 		assert.fail(
 			`leaked ${ptyFdCount() - initial} pty fds after 5 bg-child sessions (initial ${initial})`,
+		);
+	}
+});
+
+test("spawning and exiting sessions does not accumulate kqueue fds", async (t) => {
+	if (process.platform !== "darwin") {
+		// The kqueue exit-watcher only exists on the macOS native path.
+		t.skip("kqueue exit-watcher is macOS-only");
+		return;
+	}
+	const initial = kqueueFdCount();
+
+	for (let i = 0; i < 10; i++) {
+		await spawnAndAwaitExit(["-c", "exit 0"]);
+	}
+
+	const converged = await waitFor(() => kqueueFdCount() <= initial);
+	if (!converged) {
+		assert.fail(
+			`leaked ${kqueueFdCount() - initial} kqueue fds after 10 spawn/exit cycles (initial ${initial})`,
 		);
 	}
 });

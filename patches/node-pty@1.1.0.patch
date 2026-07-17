@@ -1,8 +1,19 @@
 diff --git a/src/unix/pty.cc b/src/unix/pty.cc
-index 7b4b9e1f990fbf95b51528bb56dc9717f5b87532..b75e54fd541968619f1c5507e93e019f702af5fc 100644
+index 7b4b9e1..0f3375b 100644
 --- a/src/unix/pty.cc
 +++ b/src/unix/pty.cc
-@@ -778,8 +778,19 @@ done:
+@@ -167,6 +167,10 @@ void SetupExitCallback(Napi::Env env, Napi::Function cb, pid_t pid) {
+         }
+       }
+     }
++    // The kqueue opened above waits on NOTE_EXIT once per spawned pty and
++    // was never closed, leaking one fd per session against the process's
++    // RLIMIT_NOFILE. Backported from microsoft/node-pty#931.
++    close(kq);
+ #else
+     while (true) {
+       errno = 0;
+@@ -778,8 +782,19 @@ done:
    posix_spawn_file_actions_destroy(&acts);
    posix_spawnattr_destroy(&attrs);
  
