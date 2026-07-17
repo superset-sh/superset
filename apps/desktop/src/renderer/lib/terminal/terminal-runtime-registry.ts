@@ -16,6 +16,10 @@ import {
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
 import {
+	normalizeParkedRuntimeCap,
+	selectRuntimesToEvict,
+} from "./terminal-runtime-eviction";
+import {
 	type ConnectionState,
 	clearLogs,
 	connect,
@@ -57,8 +61,9 @@ class TerminalRuntimeRegistryImpl {
 	private parkedRuntimeCap = DEFAULT_TERMINAL_PARKED_RUNTIME_CAP;
 
 	setParkedRuntimeCap(cap: number) {
-		if (!Number.isFinite(cap) || cap < 1) return;
-		this.parkedRuntimeCap = Math.floor(cap);
+		const normalized = normalizeParkedRuntimeCap(cap);
+		if (normalized === null) return;
+		this.parkedRuntimeCap = normalized;
 		this.scheduleParkedEviction();
 	}
 
@@ -280,13 +285,11 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	private evictExcessParkedRuntimes() {
-		const parked = Array.from(this.entries.values()).filter(
-			(entry) => entry.runtime !== null && entry.runtime.container === null,
+		const victims = selectRuntimesToEvict(
+			this.entries.values(),
+			this.parkedRuntimeCap,
 		);
-		if (parked.length <= this.parkedRuntimeCap) return;
-		parked.sort((a, b) => a.lastUsedAt - b.lastUsedAt);
-		const excess = parked.length - this.parkedRuntimeCap;
-		for (const entry of parked.slice(0, excess)) {
+		for (const entry of victims) {
 			this.disposeEntry(entry, { clearPersistedState: false });
 		}
 	}
