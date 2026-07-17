@@ -3,6 +3,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
+import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
@@ -30,6 +31,7 @@ export function ProjectsSettingsSidebar({
 }: ProjectsSettingsSidebarProps) {
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
+	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -54,32 +56,24 @@ export function ProjectsSettingsSidebar({
 	);
 
 	const listGroups = useMemo<Array<SettingsListGroup<ProjectRow>>>(() => {
-		const loadedV2Ids = new Set(v2Projects.map((p) => p.id));
-
-		const v2Rows: ProjectRow[] = v2Projects.map((p) => ({
-			kind: "v2",
-			id: p.id,
-			name: p.name,
-			iconUrl: p.iconUrl ?? null,
-		}));
-
-		const v1Rows: ProjectRow[] = groups
-			.filter(
-				(g) =>
-					!g.project.neonProjectId || !loadedV2Ids.has(g.project.neonProjectId),
-			)
-			.map((g) => ({
-				kind: "v1",
-				id: g.project.id,
-				name: g.project.name,
-				iconUrl: g.project.iconUrl,
+		if (isV2CloudEnabled) {
+			const v2Rows: ProjectRow[] = v2Projects.map((p) => ({
+				kind: "v2",
+				id: p.id,
+				name: p.name,
+				iconUrl: p.iconUrl ?? null,
 			}));
+			return [{ id: "v2", title: "v2", rows: v2Rows }];
+		}
 
-		return [
-			{ id: "v2", title: "v2", rows: v2Rows },
-			{ id: "v1", title: "v1", rows: v1Rows },
-		];
-	}, [groups, v2Projects]);
+		const v1Rows: ProjectRow[] = groups.map((g) => ({
+			kind: "v1",
+			id: g.project.id,
+			name: g.project.name,
+			iconUrl: g.project.iconUrl,
+		}));
+		return [{ id: "v1", title: "v1", rows: v1Rows }];
+	}, [groups, v2Projects, isV2CloudEnabled]);
 
 	return (
 		<SettingsListSidebar

@@ -35,6 +35,8 @@ export interface ServerOptions {
 	daemonVersion: string;
 	bufferCap?: number;
 	outboundBufferCap?: number;
+	/** Pause producing PTYs when a subscriber buffers past this (flow control). */
+	outboundPauseThreshold?: number;
 	/**
 	 * Override for the PTY-spawn factory. Production leaves this unset;
 	 * `defaultSpawn` (real node-pty) is used. Tests inject a fake here so
@@ -45,10 +47,20 @@ export interface ServerOptions {
 
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 
+// Flow control: when a subscriber's socket buffers more than this, pause the
+// producing PTYs instead of letting the buffer grow toward the destroy cap.
+// The kernel PTY buffer then fills and the foreground process blocks on
+// write — the flood throttles itself at the source (VS Code ptyHost does the
+// same via pause/resume; our congestion signal is local writableLength
+// instead of renderer ACKs). Resume on socket 'drain'.
+const DEFAULT_OUTBOUND_PAUSE_THRESHOLD_BYTES = 1 * 1024 * 1024;
+
 interface ConnState extends Conn {
 	socket: net.Socket;
 	decoder: FrameDecoder;
 	negotiated: number | null;
+	/** Session ids whose PTYs we paused because this conn was congested. */
+	pausedSessions: Set<string>;
 }
 
 export class Server {
@@ -317,10 +329,16 @@ export class Server {
 			decoder: new FrameDecoder(),
 			negotiated: null,
 			subscriptions: new Set(),
+			pausedSessions: new Set(),
 			send: (msg, payload) =>
 				writeMessage(socket, msg, payload, outboundBufferCap),
 		};
 		this.conns.add(conn);
+
+		// Flow control: the buffer only reaches the pause threshold after
+		// write() has returned false, so a 'drain' (buffer fully flushed) is
+		// guaranteed to follow and is our resume signal.
+		socket.on("drain", () => this.resumePausedSessions(conn));
 
 		socket.on("data", (chunk) => {
 			try {
@@ -460,13 +478,24 @@ export class Server {
 	 * subscribed to this session id receives the output / exit frames.
 	 */
 	private wireSession(session: Session): void {
+		const pauseThreshold =
+			this.opts.outboundPauseThreshold ??
+			DEFAULT_OUTBOUND_PAUSE_THRESHOLD_BYTES;
 		session.pty.onData((chunk) => {
 			this.store.appendOutput(session, chunk);
 			const out: ServerMessage = { type: "output", id: session.id };
+			let congested = false;
 			for (const c of this.conns) {
 				if (!c.subscriptions.has(session.id)) continue;
 				c.send(out, chunk);
+				if (!c.socket.destroyed && c.socket.writableLength > pauseThreshold) {
+					c.pausedSessions.add(session.id);
+					congested = true;
+				}
 			}
+			// Paused PTYs emit no further onData, so this fires at most once
+			// per congestion episode; the conn's 'drain' resumes us.
+			if (congested) session.pty.pause();
 		});
 		session.pty.onExit((info) => {
 			session.exited = true;
@@ -483,6 +512,7 @@ export class Server {
 					c.send(ev);
 					c.subscriptions.delete(session.id);
 				}
+				c.pausedSessions.delete(session.id);
 			}
 			// Delete the session immediately. Without this, every closed
 			// terminal pane left a row in the store forever — list-reply
@@ -500,6 +530,28 @@ export class Server {
 
 	private dropConn(conn: ConnState): void {
 		this.conns.delete(conn);
+		// A destroyed socket never drains — release its paused producers here.
+		this.resumePausedSessions(conn);
+	}
+
+	/**
+	 * Resume every PTY paused on behalf of `conn`, unless another congested
+	 * conn still holds it paused. Called on socket 'drain' and on conn drop.
+	 */
+	private resumePausedSessions(conn: ConnState): void {
+		for (const id of conn.pausedSessions) {
+			conn.pausedSessions.delete(id);
+			let heldElsewhere = false;
+			for (const other of this.conns) {
+				if (other !== conn && other.pausedSessions.has(id)) {
+					heldElsewhere = true;
+					break;
+				}
+			}
+			if (heldElsewhere) continue;
+			const session = this.store.get(id);
+			if (session && !session.exited) session.pty.resume();
+		}
 	}
 }
 
