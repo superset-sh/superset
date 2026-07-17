@@ -68,7 +68,7 @@ function ProjectsIndexPage() {
 		? v2Projects.length === 0
 		: groups.length === 0;
 	if (isEmpty) {
-		if (!isReady || groupsLoading) return null;
+		if (isV2CloudEnabled ? !isReady : groupsLoading) return null;
 		return (
 			<div className="flex items-center justify-center h-full p-6 text-sm text-muted-foreground">
 				No projects yet.
