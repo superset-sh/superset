@@ -79,6 +79,19 @@ workspace precedent (`offline-first-workspace-table-reference.md`).
 - **`useEnsureV2Project`**: candidate → local setup; no candidate → local
   create. Dead NOT_FOUND fallthrough removed.
 
+## Known gap — offline COLD BOOT (P0 follow-up, own PR)
+
+Everything below verifies against a **running** app. A cold boot with
+connections off never reaches the local-first world — the auth gate in
+`routes/_authenticated/layout.tsx` blocks in all three offline flavors
+(CDP-confirmed): blackholed API → `useSession` never resolves → splash
+forever; interface down → the explicit "You're offline" wall; API down but
+network up → redirect to /sign-in. Fix shape: persist
+`lastActiveOrganizationId`, bounded session wait, proceed with cached
+identity when a local token exists — risky (sign-in-loop history, #5729),
+and many components read the org from `authClient.useSession` directly, so
+it needs its own careful PR.
+
 ## Verification (2026-07-17)
 
 885 host-service tests green (3 rewritten to the local contracts); tsc +
