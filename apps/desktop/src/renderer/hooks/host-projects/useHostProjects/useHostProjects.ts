@@ -1,7 +1,7 @@
 import { getEventBus } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
@@ -80,6 +80,9 @@ export function useHostProjects(): UseHostProjectsResult {
 	const [snapshots, setSnapshots] = useState<Map<string, HostProjectRow[]>>(
 		() => new Map(),
 	);
+	// Deletes observed this session, so an in-flight snapshot load (which
+	// read the pre-delete value) can't resurrect a deleted project.
+	const deletedIdsRef = useRef<Set<string>>(new Set());
 	useEffect(() => {
 		let cancelled = false;
 		for (const target of targets) {
@@ -89,10 +92,11 @@ export function useHostProjects(): UseHostProjectsResult {
 				target.machineId,
 			).then((rows) => {
 				if (cancelled || !rows) return;
+				const fresh = rows.filter((row) => !deletedIdsRef.current.has(row.id));
 				setSnapshots((prev) => {
 					if (prev.has(target.machineId)) return prev;
 					const next = new Map(prev);
-					next.set(target.machineId, rows);
+					next.set(target.machineId, fresh);
 					return next;
 				});
 			});
@@ -138,11 +142,17 @@ export function useHostProjects(): UseHostProjectsResult {
 						// Also purge hydrated/persisted snapshots — a deleted event
 						// arriving before the query cache hydrates must not let a
 						// stale snapshot resurrect the project.
+						deletedIdsRef.current.add(projectId);
 						void removeFromHostProjectsSnapshot(
 							target.organizationId,
 							target.machineId,
 							projectId,
-						);
+						).catch((err) => {
+							console.warn("[useHostProjects] snapshot purge failed", {
+								projectId,
+								err,
+							});
+						});
 						setSnapshots((prev) => {
 							const rows = prev.get(target.machineId);
 							if (!rows?.some((row) => row.id === projectId)) return prev;

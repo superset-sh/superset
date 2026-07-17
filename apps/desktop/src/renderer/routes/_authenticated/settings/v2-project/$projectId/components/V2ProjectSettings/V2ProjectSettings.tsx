@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -95,6 +95,13 @@ export function V2ProjectSettings({
 			return client.project.get.query({ projectId });
 		},
 	});
+	// External renames land on the merged fan-out item via project:changed;
+	// re-pull the targeted host's row so host-sourced fields (Name) follow.
+	const mergedUpdatedAt = project?.updatedAt;
+	useEffect(() => {
+		if (mergedUpdatedAt === undefined) return;
+		void refetchHostProject();
+	}, [mergedUpdatedAt, refetchHostProject]);
 
 	if (!project) {
 		if (!isReady) return null;

@@ -152,22 +152,36 @@ export function clearHostProjectsSnapshot(
 	void idbDel(snapshotKey(organizationId, machineId)).catch(() => {});
 }
 
+// Serialize read-modify-write per snapshot key so rapid deletes can't
+// interleave and lose a removal to a stale concurrent write.
+const snapshotWriteChains = new Map<string, Promise<void>>();
+
 /**
  * Drop one project from the persisted snapshot. Needed for deleted events
  * that arrive before the query cache hydrates — without this, the stale
  * snapshot would resurrect the deleted project on the next launch.
  */
-export async function removeFromHostProjectsSnapshot(
+export function removeFromHostProjectsSnapshot(
 	organizationId: string,
 	machineId: string,
 	projectId: string,
 ): Promise<void> {
-	const rows = await loadHostProjectsSnapshot(organizationId, machineId);
-	if (!rows) return;
-	const next = rows.filter((row) => row.id !== projectId);
-	if (next.length !== rows.length) {
-		saveHostProjectsSnapshot(organizationId, machineId, next);
-	}
+	const key = snapshotKey(organizationId, machineId);
+	const chained = (snapshotWriteChains.get(key) ?? Promise.resolve()).then(
+		async () => {
+			const rows = await loadHostProjectsSnapshot(organizationId, machineId);
+			if (!Array.isArray(rows)) return;
+			const next = rows.filter((row) => row.id !== projectId);
+			if (next.length !== rows.length) {
+				saveHostProjectsSnapshot(organizationId, machineId, next);
+			}
+		},
+	);
+	snapshotWriteChains.set(
+		key,
+		chained.catch(() => {}),
+	);
+	return chained;
 }
 
 /**
