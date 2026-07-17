@@ -335,6 +335,7 @@ function hostIsVisible(container: HTMLDivElement | null): boolean {
 function measureAndResize(
 	runtime: TerminalRuntime,
 	onResize?: () => void,
+	options: { forceNotify?: boolean } = {},
 ): void {
 	if (!hostIsVisible(runtime.container)) return;
 	const { terminal } = runtime;
@@ -363,8 +364,12 @@ function measureAndResize(
 
 		terminal.refresh(0, Math.max(0, terminal.rows - 1));
 
-		if (terminal.cols !== prevCols || terminal.rows !== prevRows) {
+		const dimensionsChanged =
+			terminal.cols !== prevCols || terminal.rows !== prevRows;
+		if (dimensionsChanged) {
 			runtime._persistence?.schedule();
+		}
+		if (options.forceNotify || dimensionsChanged) {
 			onResize?.();
 		}
 	});
@@ -388,7 +393,10 @@ function createResizeScheduler(
 
 	const run = () => {
 		timeoutId = null;
-		measureAndResize(runtime, onResize);
+		// Notify unconditionally (VS Code parity): a reveal after a zero-size
+		// hide re-sends PTY dims even when unchanged, resyncing a PTY resized
+		// elsewhere meanwhile. Same-size re-sends are kernel no-ops.
+		measureAndResize(runtime, onResize, { forceNotify: true });
 	};
 
 	const observe: ResizeObserverCallback = (entries) => {

@@ -37,8 +37,8 @@ Releases are cut on a **dedicated release branch**, not on `main` and not on you
 feature branch. Two ways:
 
 **A — release a specific commit (canary-style).** Provisions an ephemeral release
-branch from the commit in a worktree, applies the version bump there, tags, and
-pushes; your working tree is untouched:
+branch from the commit in a worktree, applies the version bump there, tags,
+pushes, and opens the bump PR; your working tree is untouched:
 
 ```bash
 bun run release desktop 1.15.0 <commit-sha>   # commit to release (e.g. a main SHA)
@@ -52,9 +52,11 @@ git switch -c release-1.15.0
 bun run release desktop 1.15.0
 ```
 
-Either way, the `desktop-v<version>` tag triggers `release-desktop.yml`. The
-version-bump commit lives on the release branch/tag; merge it however you
-normally do.
+Either way, the `desktop-v<version>` tag triggers `release-desktop.yml`, and both
+open a `chore(desktop): bump version to <version>` PR into `main` — merge it (or
+pass `--merge`) so `main` carries the released version. Leaving it unmerged only
+drifts `main`'s `package.json`: the next release reads the latest `desktop-v` tag,
+not `package.json`.
 
 ## Desktop: draft → publish
 
