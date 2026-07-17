@@ -17,12 +17,16 @@ import { fileURLToPath } from "node:url";
 import type { WorkerTaskDefinition } from "./define-worker-task.ts";
 import {
 	WORKER_CRASH_ERROR_NAME,
+	WorkerTaskAbortedError,
 	WorkerTaskError,
 	type WorkerTaskOptions,
 	WorkerTaskRunner,
 } from "./WorkerTaskRunner.ts";
 
-const DEFAULT_CONCURRENCY = Math.max(1, Math.min(4, cpus().length - 1));
+// min(4, cpus−1) matches gitStatusRefreshLimiter, +2 headroom so occasional
+// non-limiter tasks (getCommitFiles) can't occupy every worker ahead of
+// status refreshes. Idle reaping keeps the extra threads free when unused.
+const DEFAULT_CONCURRENCY = Math.max(1, Math.min(4, cpus().length - 1)) + 2;
 
 const IDLE_TIMEOUT_MS = 30_000;
 const CRASH_BUDGET = 3;
@@ -58,6 +62,9 @@ export class HostWorkerPool {
 	private inlineOnly = false;
 	private warnedInline = false;
 	private crashTimestamps: number[] = [];
+	private readonly seenCrashErrors = new WeakSet<WorkerTaskError>();
+	/** Runners detached at circuit-open; disposed with the pool. */
+	private readonly drainingRunners: WorkerTaskRunner[] = [];
 	private readonly scriptPathResolver: () => string | null;
 	private readonly concurrency: number;
 	private readonly idleTimeoutMs: number;
@@ -108,7 +115,7 @@ export class HostWorkerPool {
 		options?: WorkerTaskOptions,
 	): Promise<TResult> {
 		const runner = this.getRunner();
-		if (!runner) return def.handler(input);
+		if (!runner) return this.runInline(def, input, options);
 
 		try {
 			return await runner.runTask<TResult>(def.type, input, options);
@@ -117,22 +124,74 @@ export class HostWorkerPool {
 				error instanceof WorkerTaskError &&
 				error.name === WORKER_CRASH_ERROR_NAME
 			) {
-				this.recordCrash();
+				this.recordCrash(error);
 				// The task died with the worker, not on its own merits — run it
 				// inline so the caller sees a real result or a real error.
-				return def.handler(input);
+				return this.runInline(def, input, options);
 			}
 			throw error;
 		}
 	}
 
-	async dispose(): Promise<void> {
-		const runner = this.runner;
-		this.runner = null;
-		await runner?.dispose();
+	/**
+	 * Inline execution with the same caller-visible timeout/abort semantics as
+	 * the worker path. The handler itself is not cancellable — like a worker
+	 * task, it may keep running after the caller's promise settles.
+	 */
+	private async runInline<TInput, TResult>(
+		def: WorkerTaskDefinition<TInput, TResult>,
+		input: TInput,
+		options?: WorkerTaskOptions,
+	): Promise<TResult> {
+		if (options?.signal?.aborted) throw new WorkerTaskAbortedError();
+
+		return new Promise<TResult>((resolve, reject) => {
+			let settled = false;
+			const settle = (fn: () => void) => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				fn();
+			};
+			const onAbort = () => settle(() => reject(new WorkerTaskAbortedError()));
+			const timeoutHandle = options?.timeoutMs
+				? setTimeout(
+						() =>
+							settle(() =>
+								reject(
+									new WorkerTaskError(
+										`[host-worker] Task "${def.type}" timed out after ${options.timeoutMs}ms (inline)`,
+									),
+								),
+							),
+						options.timeoutMs,
+					)
+				: null;
+			const cleanup = () => {
+				if (timeoutHandle) clearTimeout(timeoutHandle);
+				options?.signal?.removeEventListener("abort", onAbort);
+			};
+			options?.signal?.addEventListener("abort", onAbort, { once: true });
+
+			def
+				.handler(input)
+				.then((result) => settle(() => resolve(result)))
+				.catch((error) => settle(() => reject(error)));
+		});
 	}
 
-	private recordCrash(): void {
+	async dispose(): Promise<void> {
+		const runners = [this.runner, ...this.drainingRunners.splice(0)];
+		this.runner = null;
+		await Promise.all(runners.map((r) => r?.dispose()));
+	}
+
+	private recordCrash(error: WorkerTaskError): void {
+		// Coalesced callers all reject with the SAME error instance for one
+		// worker death — count each underlying crash once, not per caller.
+		if (this.seenCrashErrors.has(error)) return;
+		this.seenCrashErrors.add(error);
+
 		const now = Date.now();
 		this.crashTimestamps = this.crashTimestamps.filter(
 			(t) => now - t < CRASH_WINDOW_MS,
@@ -143,9 +202,12 @@ export class HostWorkerPool {
 			this.warnInlineOnce(
 				`host-worker crashed ${CRASH_BUDGET}x within ${CRASH_WINDOW_MS / 1000}s — falling back to inline execution for the rest of this process`,
 			);
-			const runner = this.runner;
+			// Do NOT dispose the old runner: dispose() would reject its
+			// outstanding tasks with abort errors that bypass the inline
+			// retry. Detach it instead — in-flight tasks settle on their own
+			// merits and the idle reaper terminates its workers afterward.
+			if (this.runner) this.drainingRunners.push(this.runner);
 			this.runner = null;
-			void runner?.dispose();
 		}
 	}
 

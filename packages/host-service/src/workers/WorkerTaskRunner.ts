@@ -292,7 +292,19 @@ export class WorkerTaskRunner {
 					taskType: task.taskType,
 					payload: task.payload,
 				};
-				slot.worker.postMessage(request);
+				try {
+					slot.worker.postMessage(request);
+				} catch (error) {
+					// Non-cloneable payload: reject THIS task and free the slot —
+					// otherwise the slot stays occupied until the task timeout.
+					slot.activeTaskId = null;
+					this.rejectTask(
+						task.taskId,
+						new WorkerTaskError(
+							`postMessage failed for task "${task.taskType}": ${(error as Error).message}`,
+						),
+					);
+				}
 			}
 		}
 		this.scheduleIdleReaping();

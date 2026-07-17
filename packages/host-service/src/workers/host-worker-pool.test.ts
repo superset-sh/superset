@@ -116,4 +116,66 @@ describe("HostWorkerPool", () => {
 		// Circuit open: no worker involved anymore, still correct results.
 		expect(await pool.run(echo, { v: 4 })).toBe(4);
 	});
+
+	test("one crash with coalesced callers counts once toward the budget", async () => {
+		const pool = makePool({ scriptPathResolver: () => CRASH_WORKER });
+		const echo = defineWorkerTask<{ v: number }, number>({
+			type: "test/echo",
+			handler: async ({ v }) => v,
+		});
+
+		// Three callers coalesced onto one worker task; the single crash must
+		// be recorded once — per-caller counting would consume the whole
+		// budget (3) and open the circuit off a single worker death.
+		const opts = { strategy: "coalesce" as const, dedupeKey: "same" };
+		const [a, b, c] = await Promise.all([
+			pool.run(echo, { v: 7 }, opts),
+			pool.run(echo, { v: 7 }, opts),
+			pool.run(echo, { v: 7 }, opts),
+		]);
+		expect(a).toBe(7);
+		expect(b).toBe(7);
+		expect(c).toBe(7);
+		expect(pool.getMode()).toBe("worker");
+	});
+
+	test("inline fallback honors abort signal and timeout", async () => {
+		const pool = makePool({ scriptPathResolver: () => null });
+		const slow = defineWorkerTask<Record<string, never>, string>({
+			type: "test/slow",
+			handler: () => new Promise((r) => setTimeout(() => r("done"), 5_000)),
+		});
+
+		const aborted = new AbortController();
+		aborted.abort();
+		await expect(
+			pool.run(slow, {}, { signal: aborted.signal }),
+		).rejects.toThrow("Worker task aborted");
+
+		const t0 = performance.now();
+		await expect(pool.run(slow, {}, { timeoutMs: 200 })).rejects.toThrow(
+			"timed out after 200ms",
+		);
+		expect(performance.now() - t0).toBeLessThan(2_000);
+	});
+
+	test("non-cloneable payload rejects without wedging the worker slot", async () => {
+		const pool = makePool();
+		const echo = defineWorkerTask<{ v: number; fn?: unknown }, number>({
+			type: "test/echo-clone",
+			handler: async ({ v }) => v,
+		});
+
+		await expect(
+			pool.run(echo, { v: 1, fn: () => 1 }, { timeoutMs: 10_000 }),
+		).rejects.toThrow("postMessage failed");
+		// The slot must be free again: a valid task completes promptly via the
+		// worker path (registry rejects the unknown type — still a worker round
+		// trip, which is what proves the slot isn't wedged).
+		const t0 = performance.now();
+		await expect(pool.run(echo, { v: 2 })).rejects.toThrow(
+			"unknown worker task type",
+		);
+		expect(performance.now() - t0).toBeLessThan(5_000);
+	});
 });
