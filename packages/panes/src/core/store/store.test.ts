@@ -507,17 +507,54 @@ describe("openPane", () => {
 		).toBe(true);
 	});
 
-	it("splits the active pane right when no unpinned match", () => {
+	it("opens a new tab when the only candidate is pinned", () => {
 		const store = makeStore();
 		store.getState().addTab({
 			id: "t1",
 			panes: [{ ...tp("p1", "pinned"), pinned: true }],
 		});
 
-		store.getState().openPane({ pane: tp("p2", "split") });
+		store.getState().openPane({ pane: tp("p2", "fresh") });
 
-		const layout = store.getState().tabs[0]?.layout;
-		expect(layout?.type).toBe("split");
+		const tabs = store.getState().tabs;
+		expect(tabs).toHaveLength(2);
+		// The pinned tab is untouched; the new pane lives in its own tab
+		expect(tabs[0]?.layout?.type).toBe("pane");
+		expect(store.getState().getActivePane()?.pane.data.label).toBe("fresh");
+	});
+
+	it("never hijacks a multi-pane (split) tab as a preview", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1", "keep")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2", "also-keep"),
+		});
+
+		store.getState().openPane({ pane: tp("p3", "fresh") });
+
+		const tabs = store.getState().tabs;
+		expect(tabs).toHaveLength(2);
+		expect(tabs[0]?.panes.p1).toBeDefined();
+		expect(tabs[0]?.panes.p2).toBeDefined();
+	});
+
+	it("prefers the visible tab as the preview to replace", () => {
+		const store = makeStore();
+		// Two same-kind unpinned preview candidates; t2 is the visible tab
+		store.getState().addTab({ id: "t1", panes: [tp("p1", "first")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2", "visible")] });
+
+		store.getState().openPane({ pane: tp("p3", "next") });
+
+		const tabs = store.getState().tabs;
+		expect(tabs).toHaveLength(2);
+		// t2 (the tab being looked at) was replaced, t1 untouched
+		expect(store.getState().activeTabId).toBe("t2");
+		expect(tabs[0]?.panes.p1).toBeDefined();
+		expect(store.getState().getActivePane()?.pane.data.label).toBe("next");
 	});
 });
 

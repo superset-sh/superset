@@ -1,4 +1,4 @@
-import type { WorkspaceStore } from "@superset/panes";
+import { deriveWorkspacePanels, type WorkspaceStore } from "@superset/panes";
 import { useCallback } from "react";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import type { StoreApi } from "zustand/vanilla";
@@ -75,28 +75,39 @@ export function useWorkspacePaneOpeners({
 				});
 				return;
 			}
-			for (const tab of state.tabs) {
-				for (const pane of Object.values(tab.panes)) {
-					if (pane.kind !== "diff") continue;
-					const prev = pane.data as DiffPaneData;
-					state.setPaneData({
-						paneId: pane.id,
-						data: {
-							...prev,
-							path: filePath,
-							changeKey,
-							// Only the navigated file's key can be pruned; without a
-							// change key we can't identify it, so leave the set intact.
-							collapsedFiles: changeKey
-								? (prev.collapsedFiles ?? []).filter((key) => key !== changeKey)
-								: (prev.collapsedFiles ?? []),
-							...focusFields,
-						} as PaneViewerData,
-					});
-					state.setActiveTab(tab.id);
-					state.setActivePane({ tabId: tab.id, paneId: pane.id });
-					return;
-				}
+			// Reuse an unpinned single-pane diff "preview" tab in the focused
+			// panel (same scope as openPane), updating its data in place so
+			// per-changeKey collapse state survives file switches.
+			const derived = deriveWorkspacePanels(state);
+			const panelTabIds = derived.tabIdsByPanel[derived.focusedPanelId] ?? [];
+			const visibleTabId = derived.activeTabIdByPanel[derived.focusedPanelId];
+			const candidates = visibleTabId
+				? [visibleTabId, ...panelTabIds.filter((id) => id !== visibleTabId)]
+				: panelTabIds;
+			for (const tabId of candidates) {
+				const tab = state.tabs.find((t) => t.id === tabId);
+				if (!tab) continue;
+				const panes = Object.values(tab.panes);
+				const pane = panes.length === 1 ? panes[0] : undefined;
+				if (!pane || pane.kind !== "diff" || pane.pinned) continue;
+				const prev = pane.data as DiffPaneData;
+				state.setPaneData({
+					paneId: pane.id,
+					data: {
+						...prev,
+						path: filePath,
+						changeKey,
+						// Only the navigated file's key can be pruned; without a
+						// change key we can't identify it, so leave the set intact.
+						collapsedFiles: changeKey
+							? (prev.collapsedFiles ?? []).filter((key) => key !== changeKey)
+							: (prev.collapsedFiles ?? []),
+						...focusFields,
+					} as PaneViewerData,
+				});
+				state.setActiveTab(tab.id);
+				state.setActivePane({ tabId: tab.id, paneId: pane.id });
+				return;
 			}
 			state.openPane({
 				pane: {

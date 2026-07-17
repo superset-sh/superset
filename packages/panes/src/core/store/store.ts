@@ -149,6 +149,11 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 		newPane: CreatePaneInput<TData>;
 	}) => void;
 
+	/**
+	 * Open a viewer as a tab in the focused panel. Reuses an unpinned
+	 * single-pane "preview" tab of the same kind (replacing its content);
+	 * otherwise opens a new tab.
+	 */
 	openPane: (args: { pane: CreatePaneInput<TData> }) => void;
 
 	splitPane: (args: {
@@ -497,54 +502,36 @@ export function createWorkspaceStore<TData>(
 			},
 
 			openPane: (args) => {
+				// Viewer opens are tab-based (VS Code-style): reuse an unpinned
+				// "preview" tab of the same kind in the focused panel — a
+				// single-pane tab, so deliberate splits are never hijacked — else
+				// open a new tab in that panel.
 				const s = get();
-				const activeTabId = s.activeTabId;
-				const tab = activeTabId
-					? s.tabs.find((t) => t.id === activeTabId)
-					: null;
-
-				// No tab → create one
-				if (!tab || !activeTabId) {
-					get().addTab({
-						panes: [args.pane],
-					});
-					return;
+				const derived = deriveWorkspacePanels(s);
+				const panelTabIds = derived.tabIdsByPanel[derived.focusedPanelId] ?? [];
+				// Prefer the panel's visible tab: replacing what the user is
+				// looking at beats jumping to an earlier preview in the strip
+				const visibleTabId = derived.activeTabIdByPanel[derived.focusedPanelId];
+				const candidates = visibleTabId
+					? [visibleTabId, ...panelTabIds.filter((id) => id !== visibleTabId)]
+					: panelTabIds;
+				for (const tabId of candidates) {
+					const tab = s.tabs.find((t) => t.id === tabId);
+					if (!tab) continue;
+					const panes = Object.values(tab.panes);
+					const preview = panes.length === 1 ? panes[0] : undefined;
+					if (preview && preview.kind === args.pane.kind && !preview.pinned) {
+						get().replacePane({
+							tabId,
+							paneId: preview.id,
+							newPane: args.pane,
+						});
+						get().setActiveTab(tabId);
+						return;
+					}
 				}
 
-				// Find unpinned pane of same kind → replace
-				const unpinned = Object.values(tab.panes).find(
-					(p) => p.kind === args.pane.kind && !p.pinned,
-				);
-				if (unpinned) {
-					get().replacePane({
-						tabId: activeTabId,
-						paneId: unpinned.id,
-						newPane: args.pane,
-					});
-					return;
-				}
-
-				// Split the active pane right
-				const activePane = tab.activePaneId;
-				if (
-					activePane &&
-					tab.layout &&
-					findPaneInLayout(tab.layout, activePane)
-				) {
-					get().splitPane({
-						tabId: activeTabId,
-						paneId: activePane,
-						position: "right",
-						newPane: args.pane,
-					});
-					return;
-				}
-
-				// Fallback: add to tab
-				get().addPane({
-					tabId: activeTabId,
-					pane: args.pane,
-				});
+				get().addTab({ panes: [args.pane] });
 			},
 
 			splitPane: (args) => {
