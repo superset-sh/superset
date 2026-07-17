@@ -82,22 +82,24 @@ export const projectRouter = router({
 	get: protectedProcedure
 		.input(z.object({ projectId: z.string().uuid() }))
 		.query(({ ctx, input }) => {
-			return (
-				ctx.db
-					.select({
-						id: projects.id,
-						repoPath: projects.repoPath,
-						repoOwner: projects.repoOwner,
-						repoName: projects.repoName,
-						repoUrl: projects.repoUrl,
-						worktreeBaseDir: projects.worktreeBaseDir,
-						branchPrefixMode: projects.branchPrefixMode,
-						branchPrefixCustom: projects.branchPrefixCustom,
-					})
-					.from(projects)
-					.where(eq(projects.id, input.projectId))
-					.get() ?? null
-			);
+			const row = ctx.db
+				.select()
+				.from(projects)
+				.where(eq(projects.id, input.projectId))
+				.get();
+			if (!row) return null;
+			return {
+				id: row.id,
+				// Same fallback rule as project.list / toProjectSnapshot.
+				name: row.name || basename(row.repoPath),
+				repoPath: row.repoPath,
+				repoOwner: row.repoOwner,
+				repoName: row.repoName,
+				repoUrl: row.repoUrl,
+				worktreeBaseDir: row.worktreeBaseDir,
+				branchPrefixMode: row.branchPrefixMode,
+				branchPrefixCustom: row.branchPrefixCustom,
+			};
 		}),
 
 	setWorktreeBaseDir: protectedProcedure
@@ -638,14 +640,16 @@ export const projectRouter = router({
 	 * Project-delete saga. Local is reality — the local deletes are the
 	 * commit point and always run, fully offline-capable:
 	 *
-	 *   1. Best-effort legacy-cloud v2Project.delete (cascades old cloud
-	 *      workspace mirrors). Failure/offline never blocks; workspace
-	 *      tombstones then clean up the mirrors when connectivity returns.
+	 *   1. Ownership check: an id this host doesn't serve is a no-op —
+	 *      never a legacy cloud delete.
 	 *
-	 *   2. Best-effort `git worktree remove` for each non-main local
+	 *   2. Best-effort legacy-cloud v2Project.delete (cascades old cloud
+	 *      workspace mirrors). Failure/offline never blocks.
+	 *
+	 *   3. Best-effort `git worktree remove` for each non-main local
 	 *      workspace so subsequent worktree commands aren't confused.
 	 *
-	 *   3. Local DB rows (workspaces + project).
+	 *   4. Local DB rows (workspaces + project).
 	 *
 	 * The on-disk repo directory is NEVER auto-removed. The user's code is
 	 * their code; deletion of the working tree must be an explicit action,
@@ -655,25 +659,22 @@ export const projectRouter = router({
 	remove: protectedProcedure
 		.input(z.object({ projectId: z.string().uuid() }))
 		.mutation(async ({ ctx, input }) => {
-			let _cloudDeleted = false;
+			const localProject = ctx.db.query.projects
+				.findFirst({ where: eq(projects.id, input.projectId) })
+				.sync();
+			if (!localProject) return { success: true, repoPath: null };
+
 			try {
 				await ctx.api.v2Project.delete.mutate({
 					organizationId: ctx.organizationId,
 					id: input.projectId,
 				});
-				_cloudDeleted = true;
 			} catch (err) {
 				console.warn(
 					"[project.remove] legacy cloud delete failed; continuing locally",
 					{ projectId: input.projectId, err },
 				);
 			}
-
-			const localProject = ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, input.projectId) })
-				.sync();
-
-			if (!localProject) return { success: true, repoPath: null };
 
 			const localWorkspaces = ctx.db
 				.select()

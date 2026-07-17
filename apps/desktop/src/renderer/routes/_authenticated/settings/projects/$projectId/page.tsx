@@ -22,7 +22,7 @@ function ProjectDetailPage() {
 	const { hostId } = Route.useSearch();
 	const searchQuery = useSettingsSearchQuery();
 
-	const { projects: hostProjects } = useHostProjects();
+	const { projects: hostProjects, isReady } = useHostProjects();
 	const v2Match = useMemo(
 		() => hostProjects.filter((project) => project.projectKey === projectId),
 		[hostProjects, projectId],
@@ -38,5 +38,8 @@ function ProjectDetailPage() {
 	if (v2Match.length > 0) {
 		return <V2ProjectSettings projectId={projectId} hostId={hostId ?? null} />;
 	}
+	// Cache-first rule: no match + hosts not settled = loading, not the v1
+	// fallback — otherwise every v2 project flashes the legacy settings page.
+	if (!isReady) return null;
 	return <ProjectSettings projectId={projectId} visibleItems={visibleItems} />;
 }

@@ -89,7 +89,10 @@ export interface ProjectSnapshot {
 	id: string;
 	name: string;
 	repoPath: string;
+	repoOwner: string | null;
+	repoName: string | null;
 	repoUrl: string | null;
+	worktreeBaseDir: string | null;
 	createdAt: number;
 	updatedAt: number;
 }

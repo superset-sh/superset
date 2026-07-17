@@ -15,6 +15,7 @@ import {
 	type HostProjectRow,
 	loadHostProjectsSnapshot,
 	mergeHostProjects,
+	removeFromHostProjectsSnapshot,
 	saveHostProjectsSnapshot,
 } from "./useHostProjects.utils";
 
@@ -125,6 +126,26 @@ export function useHostProjects(): UseHostProjectsResult {
 				"project:changed",
 				"*",
 				(projectId, event) => {
+					if (event.eventType === "deleted") {
+						// Also purge hydrated/persisted snapshots — a deleted event
+						// arriving before the query cache hydrates must not let a
+						// stale snapshot resurrect the project.
+						void removeFromHostProjectsSnapshot(
+							target.organizationId,
+							target.machineId,
+							projectId,
+						);
+						setSnapshots((prev) => {
+							const rows = prev.get(target.machineId);
+							if (!rows?.some((row) => row.id === projectId)) return prev;
+							const next = new Map(prev);
+							next.set(
+								target.machineId,
+								rows.filter((row) => row.id !== projectId),
+							);
+							return next;
+						});
+					}
 					queryClient.setQueryData<HostProjectRow[] | undefined>(
 						getHostProjectsQueryKey(target),
 						(rows) => {

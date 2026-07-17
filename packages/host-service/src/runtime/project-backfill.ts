@@ -1,5 +1,5 @@
 import { basename } from "node:path";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { projects } from "../db/schema";
 import type { EventBus } from "../events";
@@ -63,11 +63,14 @@ export async function runProjectBackfill(
 			name = basename(row.repoPath);
 		}
 
-		ctx.db
+		// CAS on the empty-name sentinel: a rename that landed while the
+		// cloud lookup was in flight must not be clobbered by a stale name.
+		const result = ctx.db
 			.update(projects)
 			.set({ name, updatedAt: Date.now() })
-			.where(eq(projects.id, row.id))
+			.where(and(eq(projects.id, row.id), eq(projects.name, "")))
 			.run();
+		if (result.changes === 0) continue;
 		const updated = getLocalProject(ctx.db, row.id);
 		if (updated) emitProjectChanged(ctx.eventBus, "updated", updated);
 		filled++;

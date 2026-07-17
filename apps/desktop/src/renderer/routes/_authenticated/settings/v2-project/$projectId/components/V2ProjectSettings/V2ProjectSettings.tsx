@@ -140,9 +140,13 @@ export function V2ProjectSettings({
 					<SettingsRow label="Name" htmlFor="project-name">
 						<NameSection
 							projectId={projectId}
-							currentName={project.name}
+							// The targeted host's own name, not the cross-host merged
+							// one — the rename commits to that host, so a newer name
+							// from another replica must not seed (and overwrite) it.
+							currentName={hostProject?.name ?? project.name}
 							hostUrl={targetHostUrl}
 							canRename={canRename}
+							onRenamed={() => refetchHostProject()}
 						/>
 					</SettingsRow>
 					<SettingsRow label="Repository" htmlFor="project-repo">

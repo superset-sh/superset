@@ -146,6 +146,24 @@ export function clearHostProjectsSnapshot(
 }
 
 /**
+ * Drop one project from the persisted snapshot. Needed for deleted events
+ * that arrive before the query cache hydrates — without this, the stale
+ * snapshot would resurrect the deleted project on the next launch.
+ */
+export async function removeFromHostProjectsSnapshot(
+	organizationId: string,
+	machineId: string,
+	projectId: string,
+): Promise<void> {
+	const rows = await loadHostProjectsSnapshot(organizationId, machineId);
+	if (!rows) return;
+	const next = rows.filter((row) => row.id !== projectId);
+	if (next.length !== rows.length) {
+		saveHostProjectsSnapshot(organizationId, machineId, next);
+	}
+}
+
+/**
  * Apply a project:changed event to a host's cached list. Created/updated
  * upsert from the event's snapshot payload; deleted removes the row.
  */
@@ -169,10 +187,10 @@ export function applyProjectChangedEvent(
 		id: snapshot.id,
 		name: snapshot.name,
 		repoPath: snapshot.repoPath,
-		repoOwner: existing?.repoOwner ?? null,
-		repoName: existing?.repoName ?? null,
+		repoOwner: snapshot.repoOwner,
+		repoName: snapshot.repoName,
 		repoUrl: snapshot.repoUrl,
-		worktreeBaseDir: existing?.worktreeBaseDir ?? null,
+		worktreeBaseDir: snapshot.worktreeBaseDir,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
 	};

@@ -9,6 +9,8 @@ interface NameSectionProps {
 	hostUrl: string | null;
 	/** False when no reachable host serves the project — rename disabled. */
 	canRename: boolean;
+	/** Called after the host commit so the caller can refresh its host row. */
+	onRenamed?: () => void;
 }
 
 export function NameSection({
@@ -16,6 +18,7 @@ export function NameSection({
 	currentName,
 	hostUrl,
 	canRename,
+	onRenamed,
 }: NameSectionProps) {
 	const [value, setValue] = useState(currentName);
 
@@ -35,6 +38,7 @@ export function NameSection({
 		// project:changed event updates every open surface.
 		void getHostServiceClientByUrl(hostUrl)
 			.project.update.mutate({ projectId, name: trimmed })
+			.then(() => onRenamed?.())
 			.catch((err) => {
 				console.warn("[project-rename] host commit failed", err);
 				setValue(currentName);

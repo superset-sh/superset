@@ -1,3 +1,4 @@
+import { basename } from "node:path";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { projects } from "../db/schema";
@@ -16,9 +17,12 @@ export function toProjectSnapshot(row: HostProjectRow): ProjectSnapshot {
 		id: row.id,
 		// Rows that predate local ownership have an empty name until the
 		// backfill sweep fills it; the folder name is the honest fallback.
-		name: row.name || row.repoPath.split("/").pop() || row.id,
+		name: row.name || basename(row.repoPath) || row.id,
 		repoPath: row.repoPath,
+		repoOwner: row.repoOwner,
+		repoName: row.repoName,
 		repoUrl: row.repoUrl,
+		worktreeBaseDir: row.worktreeBaseDir,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 	};
