@@ -142,6 +142,10 @@ export const chatRouter = router({
 			return ctx.runtime.chat.getSlashCommands(input);
 		}),
 
+	listClaudeModels: protectedProcedure.query(({ ctx }) => {
+		return ctx.runtime.chat.listClaudeModels();
+	}),
+
 	resolveSlashCommand: protectedProcedure
 		.input(
 			workspaceSlashInput.extend({

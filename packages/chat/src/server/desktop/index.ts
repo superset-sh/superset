@@ -14,6 +14,8 @@ export {
 	getOpenAICredentialsFromAuthStorage,
 } from "./auth/openai";
 export { ChatService } from "./chat-service";
+export type { ClaudeModelOption } from "./models/claude-models";
+export { listClaudeModels } from "./models/claude-models";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";
 export type { SlashCommand } from "./slash-commands";

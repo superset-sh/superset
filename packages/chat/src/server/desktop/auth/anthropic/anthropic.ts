@@ -135,6 +135,34 @@ export function getCredentialsFromKeychain(): ClaudeCredentials | null {
 		return null;
 	}
 
+	// Modern Claude Code stores an OAuth credential JSON under this service
+	// (same shape as ~/.claude/.credentials.json on non-mac platforms).
+	// Checked first: it is what current installs actually write.
+	try {
+		const result = execSync(
+			'security find-generic-password -s "Claude Code-credentials" -w 2>/dev/null',
+			{ encoding: "utf-8" },
+		).trim();
+
+		if (result) {
+			const parsed = JSON.parse(result) as ClaudeConfigFile;
+			const oauth = parsed.claudeAiOauth;
+			if (oauth?.accessToken) {
+				console.log(
+					"[claude/auth] Found Claude Code OAuth credentials in macOS Keychain",
+				);
+				return {
+					apiKey: oauth.accessToken,
+					source: "keychain",
+					kind: "oauth",
+					expiresAt: oauth.expiresAt,
+				};
+			}
+		}
+	} catch {
+		// Not found or unparsable — fall through to legacy service names.
+	}
+
 	try {
 		const result = execSync(
 			'security find-generic-password -s "claude-cli" -a "api-key" -w 2>/dev/null',

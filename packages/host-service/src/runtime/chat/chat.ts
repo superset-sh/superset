@@ -3,7 +3,9 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { Memory } from "@mastra/memory";
 import {
+	type ClaudeModelOption,
 	getSlashCommands as getSlashCommandsFromCwd,
+	listClaudeModels,
 	resolveSlashCommand as resolveSlashCommandFromCwd,
 } from "@superset/chat/server/desktop";
 import { eq } from "drizzle-orm";
@@ -783,6 +785,10 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			source: command.source,
 			origin: command.origin,
 		}));
+	}
+
+	async listClaudeModels(): Promise<ClaudeModelOption[]> {
+		return listClaudeModels();
 	}
 
 	async resolveSlashCommand(input: { workspaceId: string; text: string }) {

@@ -7,7 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useQuery } from "@tanstack/react-query";
+import { workspaceTrpc } from "@superset/workspace-client";
 import {
 	BrainIcon,
 	CheckIcon,
@@ -16,11 +16,6 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { PILL_BUTTON_CLASS } from "renderer/components/Chat/ChatInterface/styles";
-import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import {
-	getDesktopChatModelOptions,
-	isDesktopChatDevMode,
-} from "renderer/lib/dev-chat";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 
 interface TerminalComposerControlsProps {
@@ -38,43 +33,86 @@ interface SelectOption {
 	description?: string;
 }
 
+interface ModelOptionEntry extends SelectOption {
+	/** Matches auto-detected model ids from session hooks to this option. */
+	detect: RegExp;
+}
+
+const FAMILY_DESCRIPTIONS: Record<string, string> = {
+	opus: "Best for everyday, complex tasks",
+	fable: "Most capable for the hardest tasks",
+	sonnet: "Efficient for routine tasks",
+	haiku: "Fastest for quick answers",
+};
+
 /**
- * Fallback when the model catalog hasn't loaded: Claude Code aliases, family
- * names only — the CLI resolves an alias to the account's current version, so
- * pinning versions in these labels would go stale.
+ * Offline fallback mirroring Claude Code's /model picker. Alias values are
+ * resolved by the CLI itself, so a stale label can never select the wrong
+ * model. The live list (below) replaces this whenever the Anthropic models
+ * API is reachable with the user's Claude credentials.
  */
-const FALLBACK_MODEL_OPTIONS: SelectOption[] = [
-	{ value: "fable", label: "Fable", description: "Most capable" },
-	{ value: "opus", label: "Opus", description: "Deep reasoning" },
-	{ value: "sonnet", label: "Sonnet", description: "Balanced" },
-	{ value: "haiku", label: "Haiku", description: "Fastest" },
+const FALLBACK_MODEL_OPTIONS: ModelOptionEntry[] = [
+	{
+		value: "opus",
+		label: "Opus 4.8",
+		description: FAMILY_DESCRIPTIONS.opus,
+		detect: /^claude-opus-4-8/,
+	},
+	{
+		value: "fable",
+		label: "Fable 5",
+		description: FAMILY_DESCRIPTIONS.fable,
+		detect: /^claude-fable-5/,
+	},
+	{
+		value: "sonnet",
+		label: "Sonnet 5",
+		description: FAMILY_DESCRIPTIONS.sonnet,
+		detect: /^claude-sonnet-5/,
+	},
+	{
+		value: "haiku",
+		label: "Haiku 4.5",
+		description: FAMILY_DESCRIPTIONS.haiku,
+		detect: /^claude-haiku-4-5/,
+	},
 ];
 
-const ANTHROPIC_ID_PREFIX = "anthropic/";
+/**
+ * Model options from the Anthropic /v1/models API (latest release per
+ * family, fetched host-side with the user's Claude credentials) — new
+ * releases show up without a code change. Option values are exact model
+ * ids, which /model accepts directly. Falls back to the static picker
+ * mirror when no credentials are available or the request fails.
+ */
+function useClaudeModelOptions(): ModelOptionEntry[] {
+	const { data } = workspaceTrpc.chat.listClaudeModels.useQuery(undefined, {
+		staleTime: 30 * 60 * 1000,
+		retry: 1,
+	});
+	if (!data || data.length === 0) return FALLBACK_MODEL_OPTIONS;
+	return data.map((model) => ({
+		value: model.id,
+		label: model.label,
+		description: FAMILY_DESCRIPTIONS[model.family],
+		detect: new RegExp(`^${model.id}`),
+	}));
+}
 
 /**
- * Model options from the shared chat catalog (same query key as the chat
- * composer, so the fetch is deduped and new models arrive with the catalog —
- * nothing hardcoded). Catalog ids are gateway-style ("anthropic/claude-x");
- * the bare id after the prefix is a valid `/model` argument, and the catalog
- * name ("Opus 4.8") becomes the label.
+ * Fallback display for detected model ids outside MODEL_OPTIONS (older
+ * versions, future releases): "claude-sonnet-4-6" → "Sonnet 4.6". Numeric
+ * date suffixes (snapshot ids) are dropped.
  */
-function useModelOptions(): SelectOption[] {
-	const localModels = getDesktopChatModelOptions();
-	const { data } = useQuery({
-		queryKey: ["chat", "models"],
-		queryFn: () => apiTrpcClient.chat.getModels.query(),
-		enabled: !isDesktopChatDevMode(),
-		staleTime: Number.POSITIVE_INFINITY,
-	});
-	const catalog = localModels.length > 0 ? localModels : (data?.models ?? []);
-	const options = catalog
-		.filter((model) => model.id.startsWith(ANTHROPIC_ID_PREFIX))
-		.map((model) => ({
-			value: model.id.slice(ANTHROPIC_ID_PREFIX.length),
-			label: model.name,
-		}));
-	return options.length > 0 ? options : FALLBACK_MODEL_OPTIONS;
+function prettifyModelId(modelId: string): string {
+	const parts = modelId
+		.replace(/^claude-/, "")
+		.split("-")
+		.filter((part) => !/^\d{8}$/.test(part));
+	const family = parts[0] ?? modelId;
+	const version = parts.slice(1).join(".");
+	const familyLabel = family.charAt(0).toUpperCase() + family.slice(1);
+	return version ? `${familyLabel} ${version}` : familyLabel;
 }
 
 /** Claude Code `/effort <level>` values; `auto` resets to the model default. */
@@ -114,7 +152,7 @@ export function TerminalComposerControls({
 	detectedModel,
 	detectedEffort,
 }: TerminalComposerControlsProps) {
-	const modelOptions = useModelOptions();
+	const modelOptions = useClaudeModelOptions();
 	const [selections, setSelections] = useState(
 		() => selectionsByTerminalId.get(terminalId) ?? {},
 	);
@@ -132,17 +170,21 @@ export function TerminalComposerControls({
 
 	// A pick from the chips wins until the next session hook updates the
 	// binding; otherwise the auto-detected session config drives the labels.
-	const effectiveModel = selections.model ?? detectedModel;
+	// Picks store alias values; detected values are full model ids matched
+	// via each option's detect pattern, with a prettified id as fallback for
+	// versions outside the current picker lineup.
+	const selectedModel = selections.model
+		? modelOptions.find((option) => option.value === selections.model)
+		: detectedModel
+			? modelOptions.find((option) => option.detect.test(detectedModel))
+			: undefined;
+	const modelLabel =
+		selectedModel?.label ??
+		(detectedModel ? prettifyModelId(detectedModel) : "Model");
 	const effectiveEffort = selections.effort ?? detectedEffort;
-	const selectedModel = modelOptions.find(
-		(option) => option.value === effectiveModel,
-	);
 	const selectedEffort = EFFORT_OPTIONS.find(
 		(option) => option.value === effectiveEffort,
 	);
-	// Detected values may not be in the catalog (e.g. an alias or a model
-	// newer than the catalog) — fall back to showing the raw value.
-	const modelLabel = selectedModel?.label ?? effectiveModel ?? "Model";
 	const effortLabel = selectedEffort?.label ?? effectiveEffort ?? "Effort";
 
 	return (
@@ -197,7 +239,7 @@ export function TerminalComposerControls({
 									</span>
 								)}
 							</div>
-							{option.value === effectiveModel && (
+							{option.value === selectedModel?.value && (
 								<CheckIcon className="size-4 shrink-0" />
 							)}
 						</DropdownMenuItem>

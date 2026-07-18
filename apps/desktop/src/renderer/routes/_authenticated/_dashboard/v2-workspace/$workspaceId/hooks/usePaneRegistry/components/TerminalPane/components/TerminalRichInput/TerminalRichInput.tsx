@@ -214,6 +214,20 @@ function TerminalRichInputInner({
 			// Bracketed paste keeps the multiline block literal (CLI agents enable
 			// the mode); the trailing "\r" then submits it as one prompt.
 			terminalRuntimeRegistry.paste(terminalId, prompt, terminalInstanceId);
+			if (pathSuffix) {
+				// Claude Code converts pasted image paths into [Image #N] tokens
+				// asynchronously; a CR that arrives while that conversion is in
+				// flight is swallowed and the prompt sits unsubmitted. Verified
+				// empirically against the real CLI in a PTY: swallow reproduces
+				// out past 100ms with jitter, submits reliably from ~200ms — so
+				// 400ms buys ~2x margin. There is no readable TUI state to
+				// await. Multiline pastes were tested too and submit fine with
+				// an immediate CR, so only attachment sends pay the delay. The
+				// terminal ids are captured above, so the CR still targets the
+				// terminal this prompt was composed for even if the pane is
+				// re-pointed or unmounted meanwhile.
+				await new Promise((resolve) => setTimeout(resolve, 400));
+			}
 			terminalRuntimeRegistry.writeInput(terminalId, "\r", terminalInstanceId);
 			terminalRuntimeRegistry.scrollToBottom(terminalId, terminalInstanceId);
 		},
