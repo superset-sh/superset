@@ -48,6 +48,7 @@ export const terminalAgentBindings = sqliteTable(
 		// payload); drives the terminal composer's model/effort chips.
 		model: text("model"),
 		effortLevel: text("effort_level"),
+		contextUsedTokens: integer("context_used_tokens"),
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),
 		lastEventType: text("last_event_type").notNull(),

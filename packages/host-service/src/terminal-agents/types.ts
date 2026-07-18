@@ -20,6 +20,11 @@ export interface TerminalAgentBinding {
 	model?: string;
 	/** Reasoning effort reported by the agent's session hooks (e.g. "high"). */
 	effortLevel?: string;
+	/**
+	 * Context tokens in use, computed from the session transcript on each
+	 * hook event.
+	 */
+	contextUsedTokens?: number;
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;

@@ -3,6 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions } from "../../../db/schema";
 import { mapEventType } from "../../../events";
+import { readTranscriptContextTokens } from "../../../terminal-agents/transcript-context";
 import { publicProcedure, router } from "../../index";
 
 // Hook scripts emit "" for unset env vars; we coerce to undefined so the
@@ -21,6 +22,11 @@ const hookInput = z.object({
 	terminalId: z.string().optional(),
 	eventType: z.string().optional(),
 	agent: agentIdentityInput,
+	/**
+	 * Session transcript path from the agent's hook payload. Hooks carry no
+	 * usage data themselves, so the host reads context tokens from here.
+	 */
+	transcriptPath: z.string().optional(),
 });
 
 function trimOrUndefined(value: string | undefined): string | undefined {
@@ -80,6 +86,11 @@ export const notificationsRouter = router({
 		const agent = normalizeAgentIdentity(input.agent);
 		const occurredAt = Date.now();
 
+		const transcriptPath = trimOrUndefined(input.transcriptPath);
+		const contextUsedTokens = transcriptPath
+			? readTranscriptContextTokens(transcriptPath)
+			: undefined;
+
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
 			eventType,
@@ -97,6 +108,7 @@ export const notificationsRouter = router({
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			...(agent?.model ? { model: agent.model } : {}),
 			...(agent?.effortLevel ? { effortLevel: agent.effortLevel } : {}),
+			...(contextUsedTokens !== undefined ? { contextUsedTokens } : {}),
 			occurredAt,
 		});
 

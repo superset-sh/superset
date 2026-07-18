@@ -23,6 +23,9 @@ SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 # CLAUDE_EFFORT env var (low|medium|high|xhigh|max, unset when the model
 # has no effort parameter). Other agents simply leave both empty.
 AGENT_MODEL=$(echo "$INPUT" | grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+# Transcript path lets the host service compute context-window usage (hooks
+# carry no usage fields themselves).
+TRANSCRIPT_PATH=$(echo "$INPUT" | grep -oE '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 AGENT_EFFORT="${CLAUDE_EFFORT:-}"
 # Interactive Claude spawns session-open hooks before CLAUDE_EFFORT is set,
 # so a fresh session would report no effort until its first completed turn.
@@ -88,7 +91,7 @@ json_escape() {
 }
 
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"model\":\"$(json_escape "$AGENT_MODEL")\",\"effortLevel\":\"$(json_escape "$AGENT_EFFORT")\"}}}"
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"transcriptPath\":\"$(json_escape "$TRANSCRIPT_PATH")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"model\":\"$(json_escape "$AGENT_MODEL")\",\"effortLevel\":\"$(json_escape "$AGENT_EFFORT")\"}}}"
 
   STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
     --connect-timeout 2 --max-time 5 \

@@ -11,6 +11,7 @@ interface RecordEventInput {
 	definitionId?: AgentDefinitionId;
 	model?: string;
 	effortLevel?: string;
+	contextUsedTokens?: number;
 	occurredAt: number;
 }
 
@@ -72,6 +73,7 @@ export class TerminalAgentStore extends EventEmitter {
 			definitionId,
 			model,
 			effortLevel,
+			contextUsedTokens,
 			occurredAt,
 		} = input;
 
@@ -110,6 +112,9 @@ export class TerminalAgentStore extends EventEmitter {
 			model: model ?? (sessionChanged ? undefined : prior?.model),
 			effortLevel:
 				effortLevel ?? (sessionChanged ? undefined : prior?.effortLevel),
+			contextUsedTokens:
+				contextUsedTokens ??
+				(sessionChanged ? undefined : prior?.contextUsedTokens),
 			startedAt:
 				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,

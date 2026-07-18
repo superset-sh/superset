@@ -19,6 +19,7 @@ import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
 import { CLAUDE_CODE_BUILTIN_SLASH_COMMANDS } from "./claudeCodeBuiltinSlashCommands";
 import { TerminalComposerControls } from "./components/TerminalComposerControls";
+import { TerminalContextUsage } from "./components/TerminalContextUsage";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
 
 interface TerminalRichInputProps {
@@ -282,9 +283,17 @@ function TerminalRichInputInner({
 									/>
 								</span>
 							)}
-							<PromptInputSubmit className="size-[23px] rounded-full border border-transparent bg-foreground/10 p-[5px] shadow-none hover:bg-foreground/20">
-								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
-							</PromptInputSubmit>
+							<span className="flex items-center gap-1.5">
+								{agentBinding?.contextUsedTokens !== undefined && (
+									<TerminalContextUsage
+										usedTokens={agentBinding.contextUsedTokens}
+										model={agentBinding.model}
+									/>
+								)}
+								<PromptInputSubmit className="size-[23px] rounded-full border border-transparent bg-foreground/10 p-[5px] shadow-none hover:bg-foreground/20">
+									<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+								</PromptInputSubmit>
+							</span>
 						</PromptInputFooter>
 					</PromptInput>
 				</div>

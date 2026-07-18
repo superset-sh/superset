@@ -64,6 +64,13 @@
       "when": 1784364516813,
       "tag": "0008_terminal_agent_binding_model_effort",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1784377619910,
+      "tag": "0009_terminal_agent_binding_context_tokens",
+      "breakpoints": true
     }
   ]
 }
