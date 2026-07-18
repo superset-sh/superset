@@ -26,7 +26,6 @@ interface TerminalRichInputProps {
 	terminalId: string;
 	terminalInstanceId: string;
 	isOpen: boolean;
-	onClose: () => void;
 }
 
 /**
@@ -55,7 +54,6 @@ const selectTerminalSlashCommands = (
 		.map((command) => ({
 			...command,
 			kind: "custom" as const,
-			source: "project" as const,
 		}));
 
 /**
@@ -91,7 +89,6 @@ function TerminalRichInputInner({
 	terminalId,
 	terminalInstanceId,
 	isOpen,
-	onClose,
 }: TerminalRichInputProps) {
 	const controller = usePromptInputController();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
@@ -238,9 +235,13 @@ function TerminalRichInputInner({
 						className="rounded-[13px] bg-background [&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 						onSubmit={handleSubmit}
 						onKeyDown={(e) => {
+							// Escape backs out of editor context (slash menu, mention
+							// popover, chip selection) — it must never close the panel,
+							// or dismissing a menu also hides the composer. The hotkey
+							// (⌘I) is the only way to hide. stopPropagation keeps
+							// pane-level Escape handlers from firing while typing.
 							if (e.key === "Escape") {
 								e.stopPropagation();
-								onClose();
 							}
 						}}
 					>

@@ -13,6 +13,7 @@ export function getSlashCommands(cwd: string): SlashCommand[] {
 		argumentHint: command.argumentHint,
 		kind: command.kind,
 		source: command.source,
+		origin: command.origin,
 		action: command.action,
 	}));
 }

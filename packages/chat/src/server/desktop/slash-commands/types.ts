@@ -17,6 +17,8 @@ export interface SlashCommand {
 	argumentHint: string;
 	kind: SlashCommandKind;
 	source: SlashCommandSource;
+	/** How a custom entry was discovered; absent for builtins. */
+	origin?: "command" | "skill";
 	action?: SlashCommandActionDefinition;
 }
 

@@ -55,14 +55,20 @@ export function SlashCommandMenu({
 								<span className="font-mono text-muted-foreground">/</span>
 								{cmd.name}
 							</span>
-							{cmd.kind === "builtin" && (
-								<span className="rounded-sm border border-border/70 bg-muted/40 px-1 py-0.5 font-mono text-[10px] text-muted-foreground uppercase leading-none">
-									builtin
-								</span>
-							)}
 							{cmd.argumentHint && (
 								<span className="text-muted-foreground">
 									{cmd.argumentHint}
+								</span>
+							)}
+							{/* Origin label, mirroring Claude Code's menu: builtins are
+							    unlabeled; custom entries show where they came from. */}
+							{cmd.origin && (
+								<span className="ml-auto pl-2 text-[10px] text-muted-foreground/70">
+									{cmd.origin === "skill"
+										? "skill"
+										: cmd.source === "global"
+											? "user"
+											: "project"}
 								</span>
 							)}
 						</div>

@@ -276,10 +276,6 @@ export function ChatPaneInterface({
 					command.kind === "builtin"
 						? ("builtin" as const)
 						: ("custom" as const),
-				source:
-					command.kind === "builtin"
-						? ("builtin" as const)
-						: ("project" as const),
 			})),
 		[],
 	);

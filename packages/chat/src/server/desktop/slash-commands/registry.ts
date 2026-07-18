@@ -286,6 +286,7 @@ export function buildSlashCommandRegistry(
 					description: metadata.description,
 					argumentHint: metadata.argumentHint,
 					kind: "custom",
+					origin: "command",
 					filePath,
 					source,
 				});
@@ -327,6 +328,7 @@ export function buildSlashCommandRegistry(
 					description: metadata.description,
 					argumentHint: metadata.argumentHint,
 					kind: "custom",
+					origin: "skill",
 					filePath: skillFilePath,
 					source,
 				});

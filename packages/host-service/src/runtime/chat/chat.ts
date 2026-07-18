@@ -769,6 +769,8 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			description: string;
 			argumentHint: string;
 			kind: "builtin" | "custom";
+			source: "project" | "global" | "builtin";
+			origin?: "command" | "skill";
 		}>
 	> {
 		const cwd = this.resolveWorkspaceCwd(input.workspaceId);
@@ -778,6 +780,8 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 			description: command.description,
 			argumentHint: command.argumentHint,
 			kind: command.kind,
+			source: command.source,
+			origin: command.origin,
 		}));
 	}
 

@@ -277,9 +277,11 @@ Body`,
 		const deploy = commands.find((command) => command.name === "deploy");
 		expect(deploy?.description).toBe("Ship the current branch");
 		expect(deploy?.source).toBe("project");
+		expect(deploy?.origin).toBe("skill");
 		const land = commands.find((command) => command.name === "land");
 		expect(land?.description).toBe("Persist session state");
 		expect(land?.source).toBe("global");
+		expect(land?.origin).toBe("skill");
 	});
 
 	it("prefers a command file over a skill with the same name", () => {
@@ -297,6 +299,7 @@ Body`,
 		const review = commands.filter((command) => command.name === "review");
 		expect(review).toHaveLength(1);
 		expect(review[0]?.description).toBe("command review");
+		expect(review[0]?.origin).toBe("command");
 	});
 
 	it("ignores skill directories without SKILL.md", () => {

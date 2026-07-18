@@ -361,13 +361,6 @@ export function TerminalPane({
 		{ enabled: ctx.isActive, preventDefault: true },
 	);
 
-	const closeRichInput = useCallback(() => {
-		terminalRichInputOpenStore.close(terminalId);
-		terminalRuntimeRegistry
-			.getTerminal(terminalId, terminalInstanceId)
-			?.focus();
-	}, [terminalId, terminalInstanceId]);
-
 	// connectionState in deps ensures terminal ref re-derives after connect/disconnect
 	// biome-ignore lint/correctness/useExhaustiveDependencies: connectionState is intentionally included to trigger re-derive
 	const terminal = useMemo(
@@ -457,7 +450,6 @@ export function TerminalPane({
 				terminalId={terminalId}
 				terminalInstanceId={terminalInstanceId}
 				isOpen={isRichInputOpen}
-				onClose={closeRichInput}
 			/>
 			<div
 				className={cn(
