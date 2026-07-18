@@ -125,14 +125,19 @@ describe("HostWorkerPool", () => {
 
 	test("one crash with coalesced callers counts once toward the budget", async () => {
 		const pool = makePool({ scriptPathResolver: () => CRASH_WORKER });
+		let handlerRuns = 0;
 		const echo = defineWorkerTask<{ v: number }, number>({
 			type: "test/echo",
-			handler: async ({ v }) => v,
+			handler: async ({ v }) => {
+				handlerRuns++;
+				return v;
+			},
 		});
 
 		// Three callers coalesced onto one worker task; the single crash must
 		// be recorded once — per-caller counting would consume the whole
-		// budget (3) and open the circuit off a single worker death.
+		// budget (3) and open the circuit off a single worker death — and the
+		// inline retry must also be shared, not run once per caller.
 		const opts = { strategy: "coalesce" as const, dedupeKey: "same" };
 		const [a, b, c] = await Promise.all([
 			pool.run(echo, { v: 7 }, opts),
@@ -142,6 +147,7 @@ describe("HostWorkerPool", () => {
 		expect(a).toBe(7);
 		expect(b).toBe(7);
 		expect(c).toBe(7);
+		expect(handlerRuns).toBe(1);
 		expect(pool.getMode()).toBe("worker");
 	});
 

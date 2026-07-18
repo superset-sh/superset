@@ -14,6 +14,7 @@ import {
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
+	ChangedFile,
 	CheckConclusionState,
 	CheckRun,
 	CheckStatusState,
@@ -54,6 +55,23 @@ async function withCommitFilesSlot<T>(fn: () => Promise<T>): Promise<T> {
 		activeCommitFileTasks--;
 		commitFileWaiters.shift()?.();
 	}
+}
+
+// Identical requests share one slot AND one task — deduping outside the
+// semaphore keeps same-commit bursts from consuming both cap slots or
+// re-running a task that finished while they waited for a slot.
+const inFlightCommitFiles = new Map<string, Promise<ChangedFile[]>>();
+function runCommitFilesDeduped(
+	key: string,
+	fn: () => Promise<ChangedFile[]>,
+): Promise<ChangedFile[]> {
+	const existing = inFlightCommitFiles.get(key);
+	if (existing) return existing;
+	const task = withCommitFilesSlot(fn).finally(() => {
+		inFlightCommitFiles.delete(key);
+	});
+	inFlightCommitFiles.set(key, task);
+	return task;
 }
 
 /** Credential env for a worker git task, resolved in-process (the provider
@@ -204,7 +222,8 @@ export const gitRouter = router({
 		.query(async ({ ctx, input }) => {
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
-			const files = await withCommitFilesSlot(() =>
+			const dedupeKey = `${input.workspaceId}:commit-files:${input.fromHash ?? ""}:${input.commitHash}`;
+			const files = await runCommitFilesDeduped(dedupeKey, () =>
 				getHostWorkerPool().run(
 					gitCommitFilesTask,
 					{
@@ -216,7 +235,7 @@ export const gitRouter = router({
 					{
 						timeoutMs: 15_000,
 						strategy: "coalesce",
-						dedupeKey: `${input.workspaceId}:commit-files:${input.fromHash ?? ""}:${input.commitHash}`,
+						dedupeKey,
 					},
 				),
 			);

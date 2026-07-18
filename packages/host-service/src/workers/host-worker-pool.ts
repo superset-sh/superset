@@ -64,6 +64,9 @@ export class HostWorkerPool {
 	private warnedInline = false;
 	private crashTimestamps: number[] = [];
 	private readonly seenCrashErrors = new WeakSet<WorkerTaskError>();
+	/** Coalesced callers share one inline crash-retry per dedupe key —
+	 * otherwise a single worker death fans out into N duplicate inline runs. */
+	private readonly inlineRetryByKey = new Map<string, Promise<unknown>>();
 	/** Runners detached at circuit-open; disposed with the pool. */
 	private readonly drainingRunners: WorkerTaskRunner[] = [];
 	private readonly scriptPathResolver: () => string | null;
@@ -128,6 +131,19 @@ export class HostWorkerPool {
 				this.recordCrash(error);
 				// The task died with the worker, not on its own merits — run it
 				// inline so the caller sees a real result or a real error.
+				const key =
+					options?.strategy === "coalesce" && options.dedupeKey
+						? options.dedupeKey
+						: null;
+				if (key) {
+					const existing = this.inlineRetryByKey.get(key);
+					if (existing) return existing as Promise<TResult>;
+					const retry = this.runInline(def, input, options).finally(() => {
+						this.inlineRetryByKey.delete(key);
+					});
+					this.inlineRetryByKey.set(key, retry);
+					return retry;
+				}
 				return this.runInline(def, input, options);
 			}
 			throw error;
@@ -174,8 +190,10 @@ export class HostWorkerPool {
 			};
 			options?.signal?.addEventListener("abort", onAbort, { once: true });
 
-			def
-				.handler(input)
+			// Promise.resolve() wrapper: a synchronously-throwing handler must
+			// route through settle() too, or the timer and abort listener leak.
+			Promise.resolve()
+				.then(() => def.handler(input))
 				.then((result) => settle(() => resolve(result)))
 				.catch((error) => settle(() => reject(error)));
 		});
