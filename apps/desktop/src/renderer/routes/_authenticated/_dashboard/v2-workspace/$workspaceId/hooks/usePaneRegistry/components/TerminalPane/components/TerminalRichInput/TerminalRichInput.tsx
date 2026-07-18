@@ -1,5 +1,4 @@
 import type { AppRouter } from "@superset/host-service";
-import { formatAttachedFilesBlock } from "@superset/shared/agent-prompt-launch";
 import {
 	PromptInput,
 	PromptInputAttachment,
@@ -174,20 +173,28 @@ function TerminalRichInputInner({
 
 			// Attachments arrive as data URLs (PromptInput converts blobs before
 			// onSubmit). Upload each to per-org host storage, resolve to host
-			// paths, and append the same "# Attached files" block the agent
-			// launch flow uses — CLI agents read the files from disk. A thrown
-			// upload error propagates so PromptInput restores the composer.
+			// paths, and append the bare paths to the prompt — CLI agents read
+			// files whose paths appear in the message, and keeping it inline
+			// (no prose block, no newlines) keeps the terminal clean and the
+			// submission single-line so the trailing CR submits instead of
+			// being absorbed by multiline-paste handling. A thrown upload error
+			// propagates so PromptInput restores the composer.
 			const files = (message.files ?? []).filter((file) =>
 				file.url?.startsWith("data:"),
 			);
-			let attachmentBlock = "";
+			let pathSuffix = "";
 			if (files.length > 0) {
 				const attachmentIds = await Promise.all(
 					files.map(async (file) => {
 						const base64 = file.url.slice(file.url.indexOf(",") + 1);
+						// Clipboard images can arrive with an empty mediaType; the
+						// data-URL header still names the real mime, and using it
+						// keeps the stored extension meaningful (.png over .bin).
+						const dataUrlMime = file.url.slice(5, file.url.indexOf(";"));
 						const uploaded = await trpcUtils.client.attachments.upload.mutate({
 							data: { kind: "base64", data: base64 },
-							mediaType: file.mediaType ?? "application/octet-stream",
+							mediaType:
+								file.mediaType || dataUrlMime || "application/octet-stream",
 							originalFilename: file.filename,
 						});
 						return uploaded.attachmentId;
@@ -197,12 +204,12 @@ function TerminalRichInputInner({
 					await trpcUtils.client.attachments.resolveForPrompt.mutate({
 						attachmentIds,
 					});
-				attachmentBlock = formatAttachedFilesBlock(
-					resolved.map((item) => item.path),
-				);
+				pathSuffix = resolved
+					.map(({ path }) => (path.includes(" ") ? `"${path}"` : path))
+					.join(" ");
 			}
 
-			const prompt = `${text}${attachmentBlock}`;
+			const prompt = pathSuffix ? `${text} ${pathSuffix}`.trim() : text;
 			if (prompt.trim().length === 0) return;
 			// Bracketed paste keeps the multiline block literal (CLI agents enable
 			// the mode); the trailing "\r" then submits it as one prompt.
