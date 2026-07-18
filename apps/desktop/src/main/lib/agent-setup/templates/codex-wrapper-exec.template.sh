@@ -79,6 +79,11 @@ _superset_exit_trap() {
 trap _superset_exit_trap EXIT HUP INT TERM
 
 if [ "$_superset_has_superset_context" = "1" ] && [ -f "$_superset_notify_path" ]; then
+  # Announce the agent immediately: codex has no session-start hook, so
+  # without this the terminal's agent binding (pane icon, composer footer)
+  # waits for the first turn-complete notify callback.
+  bash "$_superset_notify_path" '{"hook_event_name":"SessionStart"}' >/dev/null 2>&1 || true
+
   export CODEX_TUI_RECORD_SESSION="${CODEX_TUI_RECORD_SESSION:-1}"
   export CODEX_TUI_SESSION_LOG_PATH="${TMPDIR:-/tmp}/superset-codex-session-$$_$(date +%s).jsonl"
   _superset_debug "session watcher starting terminalId=$SUPERSET_TERMINAL_ID tabId=$SUPERSET_TAB_ID paneId=$SUPERSET_PANE_ID log=$CODEX_TUI_SESSION_LOG_PATH notify=$_superset_notify_path"
