@@ -18,13 +18,12 @@ if [ -z "$RESOURCE_ID" ]; then
 fi
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 
-# Session config (Claude Code includes these in hook payloads as flat
-# strings; other agents simply won't match and the fields stay empty).
+# Session config. Claude Code's hook payload carries "model" as a flat
+# string; effort is NOT in the JSON — hook processes get it via the
+# CLAUDE_EFFORT env var (low|medium|high|xhigh|max, unset when the model
+# has no effort parameter). Other agents simply leave both empty.
 AGENT_MODEL=$(echo "$INPUT" | grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-AGENT_EFFORT=$(echo "$INPUT" | grep -oE '"effortLevel"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-if [ -z "$AGENT_EFFORT" ]; then
-  AGENT_EFFORT=$(echo "$INPUT" | grep -oE '"effort_level"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-fi
+AGENT_EFFORT="${CLAUDE_EFFORT:-}"
 
 # Claude/Mastra/Droid use "hook_event_name"; Codex uses "type".
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
