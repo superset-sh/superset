@@ -6,7 +6,7 @@
 
 | Item | Ticket | Status |
 |---|---|---|
-| Parked-terminal LRU eviction (terminal half) | SUPER-1545 | **Implemented**, uncommitted. Cap defaults to 12 parked, user-configurable (Settings → Terminal → "Background terminal memory"; local-db `terminal_parked_runtime_cap`, migration 0042, zod-clamped 2–64, live-applied via `terminalRuntimeRegistry.setParkedRuntimeCap`). CDP-verified: default seeds at boot, 16-tab cycle parks exactly 12, lowering to 6 sweeps immediately, persists, out-of-range rejected. Two controlled A/Bs below (18-terminal fill, 24-terminal live-stream; both measured at cap 5 — savings scale down as the cap rises) |
+| Parked-terminal LRU eviction (terminal half) | SUPER-1545 | **Shipped** in PR #5751. Cap defaults to 12 parked, user-configurable (Settings → Terminal → "Background terminal memory"; local-db `terminal_parked_runtime_cap`, migration 0042, zod-clamped 2–64, live-applied via `terminalRuntimeRegistry.setParkedRuntimeCap`). CDP-verified: default seeds at boot, 16-tab cycle parks exactly 12, lowering to 6 sweeps immediately, persists, out-of-range rejected. Two controlled A/Bs below (18-terminal fill, 24-terminal live-stream; both measured at cap 5 — savings scale down as the cap rises) |
 | Parked-webview eviction + alt-screen exemption + quota guard | SUPER-1545 | **Implemented** (hidden-webview LRU cap 3 in `browserRuntimeRegistry`; alternate-screen TUIs exempt from terminal eviction; eviction skipped when the buffer cannot persist). CDP-verified 2026-07-18 |
 | Chat shiki off main thread | SUPER-1546 | Not started |
 | Collections preload/window/evict | SUPER-1547 | Not started |
