@@ -103,14 +103,17 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "cursor-agent",
 		modelFlag: "--model",
 		models: [
-			// cursor-agent has no effort flag, so Fable's thinking level is
-			// baked into the model id (`--list-models` exposes high and xhigh).
+			// cursor-agent has no effort flag, so effort/thinking levels are
+			// baked into the model ids. Ids verified against a live account's
+			// `--list-models` (2026-07-17); the list is account-dependent and
+			// unknown ids are rejected by the CLI, not silently ignored.
 			{ id: "claude-fable-5-thinking-high", label: "Fable 5" },
 			{ id: "claude-fable-5-thinking-xhigh", label: "Fable 5 xHigh" },
-			{ id: "opus", label: "Opus" },
-			{ id: "sonnet-4.5", label: "Sonnet 4.5" },
-			{ id: "gpt-5", label: "GPT-5" },
-			{ id: "composer-1", label: "Composer 1" },
+			{ id: "claude-opus-4-8-high", label: "Opus 4.8" },
+			{ id: "claude-4.6-sonnet-medium", label: "Sonnet 4.6" },
+			{ id: "gpt-5.6-sol-medium", label: "GPT-5.6 Sol" },
+			{ id: "gpt-5.3-codex", label: "Codex 5.3" },
+			{ id: "composer-2.5", label: "Composer 2.5" },
 		],
 	},
 	{
