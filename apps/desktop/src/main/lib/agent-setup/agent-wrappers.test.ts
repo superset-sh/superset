@@ -2,7 +2,6 @@ import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { execFileSync } from "node:child_process";
 import {
 	chmodSync,
-	existsSync,
 	mkdirSync,
 	readFileSync,
 	rmSync,
@@ -491,7 +490,10 @@ exit 0
 			encoding: "utf-8",
 		});
 
-		expect(existsSync(notifyCapturePath)).toBe(false);
+		// The launch announcement is the only permitted event — nothing may be
+		// derived from the unrelated rollout file.
+		const events = readFileSync(notifyCapturePath, "utf-8").trim().split("\n");
+		expect(events).toEqual(['{"hook_event_name":"SessionStart"}']);
 		expect(readFileSync(debugLogPath, "utf-8")).toContain("watching session=");
 	});
 
