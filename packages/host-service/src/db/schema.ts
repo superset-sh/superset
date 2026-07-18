@@ -48,6 +48,7 @@ export const terminalAgentBindings = sqliteTable(
 		// payload); drives the terminal composer's model/effort chips.
 		model: text("model"),
 		effortLevel: text("effort_level"),
+		permissionMode: text("permission_mode"),
 		contextUsedTokens: integer("context_used_tokens"),
 		// Effective context window from the session transcript (Codex rollouts
 		// report it; Claude transcripts do not).

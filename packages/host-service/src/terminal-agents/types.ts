@@ -20,6 +20,8 @@ export interface TerminalAgentBinding {
 	model?: string;
 	/** Reasoning effort reported by the agent's session hooks (e.g. "high"). */
 	effortLevel?: string;
+	/** Live permission/approval mode from hook payloads (CLI-specific values). */
+	permissionMode?: string;
 	/**
 	 * Context tokens in use, computed from the session transcript on each
 	 * hook event.

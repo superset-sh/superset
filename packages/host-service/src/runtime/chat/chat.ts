@@ -4,8 +4,10 @@ import { join } from "node:path";
 import { Memory } from "@mastra/memory";
 import {
 	type ClaudeModelOption,
+	type CodexModelOption,
 	getSlashCommands as getSlashCommandsFromCwd,
 	listClaudeModels,
+	listCodexModels,
 	resolveSlashCommand as resolveSlashCommandFromCwd,
 } from "@superset/chat/server/desktop";
 import { eq } from "drizzle-orm";
@@ -789,6 +791,10 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 
 	async listClaudeModels(): Promise<ClaudeModelOption[]> {
 		return listClaudeModels();
+	}
+
+	async listCodexModels(): Promise<CodexModelOption[]> {
+		return listCodexModels();
 	}
 
 	async resolveSlashCommand(input: { workspaceId: string; text: string }) {

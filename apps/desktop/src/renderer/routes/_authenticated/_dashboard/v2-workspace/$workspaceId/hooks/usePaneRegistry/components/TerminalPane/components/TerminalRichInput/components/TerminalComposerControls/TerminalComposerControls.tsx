@@ -18,6 +18,8 @@ import { useEffect, useState } from "react";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { PILL_BUTTON_CLASS } from "renderer/components/Chat/ChatInterface/styles";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { driveCodexModelPicker } from "../../driveCodexModelPicker";
+import { planCodexPickerSelection } from "../../planCodexPickerSelection";
 import { typeCommandIntoPty } from "../../typeCommandIntoPty";
 
 interface TerminalComposerControlsProps {
@@ -29,6 +31,8 @@ interface TerminalComposerControlsProps {
 	detectedModel?: string;
 	/** Effort level auto-detected from the agent's session hooks. */
 	detectedEffort?: string;
+	/** Live permission/approval mode from the agent's session hooks. */
+	detectedPermissionMode?: string;
 }
 
 type AgentControlsProps = Omit<TerminalComposerControlsProps, "agentId">;
@@ -132,6 +136,40 @@ const EFFORT_OPTIONS: SelectOption[] = [
 ];
 
 /**
+ * Chip labels for detected permission modes, in each CLI's own terminology
+ * (the chat composer's Auto/Semi-auto naming is a different product surface).
+ * Unknown values prettify rather than hide — the mode string is still truth.
+ */
+const PERMISSION_MODE_LABELS: Record<string, string> = {
+	// Claude Code
+	default: "Default",
+	acceptEdits: "Accept Edits",
+	plan: "Plan",
+	bypassPermissions: "Bypass",
+	dontAsk: "Don't Ask",
+	// Codex sandbox/approval presets
+	"read-only": "Read Only",
+	"workspace-write": "Agent",
+	"danger-full-access": "Full Access",
+	"on-request": "Ask",
+	untrusted: "Untrusted",
+	never: "Full Access",
+	auto: "Auto",
+};
+
+function permissionModeLabel(mode: string | undefined): string | undefined {
+	if (!mode) return undefined;
+	const known = PERMISSION_MODE_LABELS[mode];
+	if (known) return known;
+	// "some-mode" / "someMode" → "Some Mode"
+	return mode
+		.replace(/([a-z])([A-Z])/g, "$1 $2")
+		.split(/[-_\s]+/)
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
+}
+
+/**
  * Last-sent selections keyed by terminalId, module-scoped so the optimistic
  * labels survive the pane being re-pointed at another terminal and back.
  * Session hooks report model/effort at session start (the detected props);
@@ -144,12 +182,50 @@ const selectionsByTerminalId = new Map<
 >();
 
 /**
+ * Optimistic model/effort labels for one terminal's chips. A pick only
+ * bridges the gap until the binding reports fresh session config (hooks fire
+ * on session start and turn end) — new detected values are ground truth and
+ * must invalidate the optimistic label, otherwise a single manual pick would
+ * shadow auto-detection for this terminal for the app's lifetime.
+ */
+function useOptimisticSelections(
+	terminalId: string,
+	detectedModel: string | undefined,
+	detectedEffort: string | undefined,
+) {
+	const [selections, setSelections] = useState(
+		() => selectionsByTerminalId.get(terminalId) ?? {},
+	);
+
+	useEffect(() => {
+		setSelections((prev) => {
+			if (prev.model === undefined && prev.effort === undefined) return prev;
+			const next = { ...prev };
+			if (detectedModel !== undefined) next.model = undefined;
+			if (detectedEffort !== undefined) next.effort = undefined;
+			if (next.model === prev.model && next.effort === prev.effort) return prev;
+			selectionsByTerminalId.set(terminalId, next);
+			return next;
+		});
+	}, [detectedModel, detectedEffort, terminalId]);
+
+	const updateSelection = (patch: { model?: string; effort?: string }) => {
+		const next = { ...selectionsByTerminalId.get(terminalId), ...patch };
+		selectionsByTerminalId.set(terminalId, next);
+		setSelections(next);
+	};
+
+	return { selections, updateSelection };
+}
+
+/**
  * Agent-flavoured composer controls for the terminal rich input, styled
  * after the chat composer's pill row. Selections are not app state — each
  * chip drives the CLI in the PTY and the CLI applies the change itself. The
- * chip set differs per agent because the CLIs differ: Claude Code accepts
- * non-interactive /model and /effort commands (so chips can be pickers),
- * while Codex only offers interactive pickers (so chips open them).
+ * mechanism differs per agent because the CLIs differ: Claude Code accepts
+ * non-interactive /model and /effort commands (a pick submits one), while
+ * Codex only has an interactive /model picker — its digit-driven rows let a
+ * pick drive the picker with scripted keystrokes (driveCodexModelPicker).
  */
 export function TerminalComposerControls({
 	agentId,
@@ -172,38 +248,18 @@ function ClaudeComposerControls({
 	terminalInstanceId,
 	detectedModel,
 	detectedEffort,
+	detectedPermissionMode,
 }: AgentControlsProps) {
 	const modelOptions = useClaudeModelOptions();
-	const [selections, setSelections] = useState(
-		() => selectionsByTerminalId.get(terminalId) ?? {},
+	const { selections, updateSelection } = useOptimisticSelections(
+		terminalId,
+		detectedModel,
+		detectedEffort,
 	);
-
-	// A pick only bridges the gap until the binding reports fresh session
-	// config (hooks fire on session start and turn end) — new detected values
-	// are ground truth and must invalidate the optimistic label, otherwise a
-	// single manual pick would shadow auto-detection for this terminal for
-	// the app's lifetime.
-	useEffect(() => {
-		setSelections((prev) => {
-			if (prev.model === undefined && prev.effort === undefined) return prev;
-			const next = { ...prev };
-			if (detectedModel !== undefined) next.model = undefined;
-			if (detectedEffort !== undefined) next.effort = undefined;
-			if (next.model === prev.model && next.effort === prev.effort) return prev;
-			selectionsByTerminalId.set(terminalId, next);
-			return next;
-		});
-	}, [detectedModel, detectedEffort, terminalId]);
 
 	const sendCommand = (command: string) => {
 		terminalRuntimeRegistry.paste(terminalId, command, terminalInstanceId);
 		terminalRuntimeRegistry.writeInput(terminalId, "\r", terminalInstanceId);
-	};
-
-	const updateSelection = (patch: { model?: string; effort?: string }) => {
-		const next = { ...selectionsByTerminalId.get(terminalId), ...patch };
-		selectionsByTerminalId.set(terminalId, next);
-		setSelections(next);
 	};
 
 	// A pick from the chips wins until the next session hook updates the
@@ -241,7 +297,7 @@ function ClaudeComposerControls({
 						}
 					>
 						<ShieldIcon className="size-3.5 opacity-60" />
-						<span>Mode</span>
+						<span>{permissionModeLabel(detectedPermissionMode) ?? "Mode"}</span>
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="top">
@@ -338,33 +394,122 @@ function prettifyCodexModelId(modelId: string): string {
 	return suffix ? `${base} ${suffix}` : base;
 }
 
+/** Chip labels for Codex reasoning levels (picker rows say "Extra high"). */
+const CODEX_EFFORT_LABELS: Record<string, string> = {
+	low: "Low",
+	medium: "Medium",
+	high: "High",
+	xhigh: "XHigh",
+	max: "Max",
+	ultra: "Ultra",
+};
+
+/**
+ * Codex model lineup from the host (Codex's own models cache / `codex debug
+ * models`), in the CLI's /model picker row order — the driver depends on
+ * that order to pick by row number. Empty while loading or when the host
+ * can't reach either source; the chips then fall back to opening the picker.
+ */
+function useCodexModelOptions() {
+	const { data } = workspaceTrpc.chat.listCodexModels.useQuery(undefined, {
+		staleTime: 30 * 60 * 1000,
+		retry: 1,
+	});
+	return data ?? [];
+}
+
 /**
  * Codex chips. Codex has no non-interactive commands for these settings —
- * "/model gpt-5.5 high" as text becomes a chat message, there is no /effort,
- * and Shift+Tab cycles collaboration modes rather than permissions — so
- * every chip opens the CLI's own picker in the terminal by typing the
- * command (Codex ignores bracket-pasted slash commands; see
- * typeCommandIntoPty). Model and effort labels are display-only: both are
- * chosen in the /model picker (effort is its second step), and the session
- * hooks refresh the detected values afterwards.
+ * "/model gpt-5.5 high" as text becomes a chat message and there is no
+ * /effort — but its /model picker is digit-driven, so a dropdown pick can
+ * drive the picker itself (see driveCodexModelPicker). The picker always
+ * sets model AND effort in one pass, so a model pick re-asserts the current
+ * effort (or the target model's default when unsupported) and an effort pick
+ * re-asserts the current model. When the model list is unavailable, or the
+ * current model can't be resolved for the effort menu, the chips fall back
+ * to opening the picker in the terminal (Codex ignores bracket-pasted slash
+ * commands; see typeCommandIntoPty). Shift+Tab cycles collaboration modes
+ * rather than permissions, so the Permissions chip opens /permissions.
  */
 function CodexComposerControls({
 	terminalId,
 	terminalInstanceId,
 	detectedModel,
 	detectedEffort,
+	detectedPermissionMode,
 }: AgentControlsProps) {
 	const codexIcon = usePresetIcon("codex");
+	const models = useCodexModelOptions();
+	const { selections, updateSelection } = useOptimisticSelections(
+		terminalId,
+		detectedModel,
+		detectedEffort,
+	);
+
+	const currentModel = selections.model
+		? models.find((model) => model.id === selections.model)
+		: detectedModel
+			? models.find((model) => model.id === detectedModel)
+			: undefined;
+	const modelLabel =
+		currentModel?.label ??
+		(detectedModel ? prettifyCodexModelId(detectedModel) : "Model");
+	const effectiveEffort = selections.effort ?? detectedEffort;
+	const effortLabel = effectiveEffort
+		? (CODEX_EFFORT_LABELS[effectiveEffort] ?? effectiveEffort)
+		: "Effort";
+
 	const openModelPicker = () => {
 		void typeCommandIntoPty(terminalId, "/model", terminalInstanceId);
 	};
-	const modelLabel = detectedModel
-		? prettifyCodexModelId(detectedModel)
-		: "Model";
-	const effortLabel = detectedEffort
-		? (EFFORT_OPTIONS.find((option) => option.value === detectedEffort)
-				?.label ?? detectedEffort)
-		: "Effort";
+
+	const pickModel = (modelId: string) => {
+		const target = models.find((model) => model.id === modelId);
+		if (!target) return;
+		const effort =
+			effectiveEffort &&
+			target.supportedReasoningLevels.some(
+				(level) => level.effort === effectiveEffort,
+			)
+				? effectiveEffort
+				: target.defaultReasoningLevel;
+		const plan = planCodexPickerSelection(models, modelId, effort);
+		if (!plan) return;
+		void driveCodexModelPicker(terminalId, plan, terminalInstanceId);
+		updateSelection({ model: modelId, effort });
+	};
+
+	const pickEffort = (effort: string) => {
+		if (!currentModel) return;
+		const plan = planCodexPickerSelection(models, currentModel.id, effort);
+		if (!plan) return;
+		void driveCodexModelPicker(terminalId, plan, terminalInstanceId);
+		updateSelection({ model: currentModel.id, effort });
+	};
+
+	const modelChip = (
+		<PromptInputButton
+			className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
+			onClick={models.length === 0 ? openModelPicker : undefined}
+		>
+			{codexIcon && <img alt="Codex" className="size-3" src={codexIcon} />}
+			<span>{modelLabel}</span>
+			{models.length > 0 && <ChevronDownIcon className="size-2.5 opacity-50" />}
+		</PromptInputButton>
+	);
+
+	const effortChip = (
+		<PromptInputButton
+			className={`${PILL_BUTTON_CLASS} px-2 gap-1 text-xs text-foreground`}
+			onClick={currentModel === undefined ? openModelPicker : undefined}
+		>
+			<BrainIcon className="size-3.5 opacity-60" />
+			<span>{effortLabel}</span>
+			{currentModel !== undefined && (
+				<ChevronDownIcon className="size-2.5 opacity-50" />
+			)}
+		</PromptInputButton>
+	);
 
 	return (
 		<div className="flex items-center gap-1.5">
@@ -381,7 +526,9 @@ function CodexComposerControls({
 						}}
 					>
 						<ShieldIcon className="size-3.5 opacity-60" />
-						<span>Permissions</span>
+						<span>
+							{permissionModeLabel(detectedPermissionMode) ?? "Permissions"}
+						</span>
 					</PromptInputButton>
 				</TooltipTrigger>
 				<TooltipContent side="top">
@@ -389,37 +536,75 @@ function CodexComposerControls({
 				</TooltipContent>
 			</Tooltip>
 
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<PromptInputButton
-						className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
-						onClick={openModelPicker}
-					>
-						{codexIcon && (
-							<img alt="Codex" className="size-3" src={codexIcon} />
-						)}
-						<span>{modelLabel}</span>
-					</PromptInputButton>
-				</TooltipTrigger>
-				<TooltipContent side="top">
-					Open Codex's model picker (/model)
-				</TooltipContent>
-			</Tooltip>
+			{models.length === 0 ? (
+				<Tooltip>
+					<TooltipTrigger asChild>{modelChip}</TooltipTrigger>
+					<TooltipContent side="top">
+						Open Codex's model picker (/model)
+					</TooltipContent>
+				</Tooltip>
+			) : (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>{modelChip}</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="w-64">
+						{models.map((model) => (
+							<DropdownMenuItem
+								key={model.id}
+								onClick={() => pickModel(model.id)}
+								className="flex items-center gap-2"
+							>
+								<div className="flex flex-1 flex-col gap-0.5">
+									<span className="text-sm font-medium">{model.label}</span>
+									{model.description && (
+										<span className="text-xs text-muted-foreground">
+											{model.description}
+										</span>
+									)}
+								</div>
+								{model.id === currentModel?.id && (
+									<CheckIcon className="size-4 shrink-0" />
+								)}
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			)}
 
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<PromptInputButton
-						className={`${PILL_BUTTON_CLASS} px-2 gap-1 text-xs text-foreground`}
-						onClick={openModelPicker}
-					>
-						<BrainIcon className="size-3.5 opacity-60" />
-						<span>{effortLabel}</span>
-					</PromptInputButton>
-				</TooltipTrigger>
-				<TooltipContent side="top">
-					Reasoning effort — chosen in the /model picker
-				</TooltipContent>
-			</Tooltip>
+			{currentModel === undefined ? (
+				<Tooltip>
+					<TooltipTrigger asChild>{effortChip}</TooltipTrigger>
+					<TooltipContent side="top">
+						Reasoning effort — chosen in the /model picker
+					</TooltipContent>
+				</Tooltip>
+			) : (
+				<DropdownMenu>
+					<DropdownMenuTrigger asChild>{effortChip}</DropdownMenuTrigger>
+					<DropdownMenuContent align="start" className="w-64">
+						{currentModel.supportedReasoningLevels.map((level) => (
+							<DropdownMenuItem
+								key={level.effort}
+								onClick={() => pickEffort(level.effort)}
+								className="flex items-center gap-2"
+							>
+								<div className="flex flex-1 flex-col gap-0.5">
+									<span className="text-sm font-medium">
+										{CODEX_EFFORT_LABELS[level.effort] ?? level.effort}
+									</span>
+									{level.description && (
+										<span className="text-xs text-muted-foreground">
+											{level.description}
+										</span>
+									)}
+								</div>
+								{level.effort === effectiveEffort && (
+									<CheckIcon className="size-4 shrink-0" />
+								)}
+							</DropdownMenuItem>
+						))}
+					</DropdownMenuContent>
+				</DropdownMenu>
+			)}
 		</div>
 	);
 }

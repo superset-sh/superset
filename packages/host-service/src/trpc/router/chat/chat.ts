@@ -146,6 +146,10 @@ export const chatRouter = router({
 		return ctx.runtime.chat.listClaudeModels();
 	}),
 
+	listCodexModels: protectedProcedure.query(({ ctx }) => {
+		return ctx.runtime.chat.listCodexModels();
+	}),
+
 	resolveSlashCommand: protectedProcedure
 		.input(
 			workspaceSlashInput.extend({

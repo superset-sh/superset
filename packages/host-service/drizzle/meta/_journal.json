@@ -78,6 +78,13 @@
       "when": 1784380748703,
       "tag": "0010_terminal_agent_binding_context_window",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1784382533619,
+      "tag": "0011_terminal_agent_binding_permission_mode",
+      "breakpoints": true
     }
   ]
 }

@@ -19,4 +19,6 @@ export interface AgentIdentity {
 	model?: string;
 	/** Reasoning effort from the agent's session hook payload (e.g. "high"). */
 	effortLevel?: string;
+	/** Live permission/approval mode from the hook payload (CLI-specific values). */
+	permissionMode?: string;
 }

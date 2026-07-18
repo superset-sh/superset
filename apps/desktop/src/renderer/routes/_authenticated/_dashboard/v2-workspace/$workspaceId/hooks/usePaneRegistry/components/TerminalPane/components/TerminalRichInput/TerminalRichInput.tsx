@@ -364,6 +364,7 @@ function TerminalRichInputInner({
 									terminalInstanceId={terminalInstanceId}
 									detectedModel={agentBinding?.model}
 									detectedEffort={agentBinding?.effortLevel}
+									detectedPermissionMode={agentBinding?.permissionMode}
 								/>
 							) : (
 								<span className="flex items-center pl-1">

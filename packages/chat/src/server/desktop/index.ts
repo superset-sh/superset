@@ -16,6 +16,11 @@ export {
 export { ChatService } from "./chat-service";
 export type { ClaudeModelOption } from "./models/claude-models";
 export { listClaudeModels } from "./models/claude-models";
+export type {
+	CodexModelOption,
+	CodexReasoningLevel,
+} from "./models/codex-models";
+export { listCodexModels } from "./models/codex-models";
 export type { ChatServiceRouter } from "./router";
 export { createChatServiceRouter } from "./router";
 export type { SlashCommand } from "./slash-commands";

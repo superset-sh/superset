@@ -15,6 +15,7 @@ const agentIdentityInput = z
 		definitionId: z.string().optional(),
 		model: z.string().optional(),
 		effortLevel: z.string().optional(),
+		permissionMode: z.string().optional(),
 	})
 	.optional();
 
@@ -43,6 +44,7 @@ function normalizeAgentIdentity(
 	const definitionId = trimOrUndefined(agent?.definitionId);
 	const model = trimOrUndefined(agent?.model);
 	const effortLevel = trimOrUndefined(agent?.effortLevel);
+	const permissionMode = trimOrUndefined(agent?.permissionMode);
 	return {
 		agentId: agentId as AgentIdentity["agentId"],
 		...(sessionId ? { sessionId } : {}),
@@ -51,6 +53,7 @@ function normalizeAgentIdentity(
 			: {}),
 		...(model ? { model } : {}),
 		...(effortLevel ? { effortLevel } : {}),
+		...(permissionMode ? { permissionMode } : {}),
 	};
 }
 

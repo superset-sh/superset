@@ -11,6 +11,7 @@ interface RecordEventInput {
 	definitionId?: AgentDefinitionId;
 	model?: string;
 	effortLevel?: string;
+	permissionMode?: string;
 	contextUsedTokens?: number;
 	contextWindowTokens?: number;
 	occurredAt: number;
@@ -74,6 +75,7 @@ export class TerminalAgentStore extends EventEmitter {
 			definitionId,
 			model,
 			effortLevel,
+			permissionMode,
 			contextUsedTokens,
 			contextWindowTokens,
 			occurredAt,
@@ -114,6 +116,8 @@ export class TerminalAgentStore extends EventEmitter {
 			model: model ?? (sessionChanged ? undefined : prior?.model),
 			effortLevel:
 				effortLevel ?? (sessionChanged ? undefined : prior?.effortLevel),
+			permissionMode:
+				permissionMode ?? (sessionChanged ? undefined : prior?.permissionMode),
 			contextUsedTokens:
 				contextUsedTokens ??
 				(sessionChanged ? undefined : prior?.contextUsedTokens),
