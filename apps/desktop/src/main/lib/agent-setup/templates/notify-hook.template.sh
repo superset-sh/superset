@@ -24,6 +24,13 @@ SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 # has no effort parameter). Other agents simply leave both empty.
 AGENT_MODEL=$(echo "$INPUT" | grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 AGENT_EFFORT="${CLAUDE_EFFORT:-}"
+# Interactive Claude spawns session-open hooks before CLAUDE_EFFORT is set,
+# so a fresh session would report no effort until its first completed turn.
+# Fall back to the user's configured default; later Stop-class hooks carry
+# the live value and overwrite it.
+if [ -z "$AGENT_EFFORT" ] && [ "$SUPERSET_AGENT_ID" = "claude" ] && [ -f "$HOME/.claude/settings.json" ]; then
+  AGENT_EFFORT=$(grep -oE '"effortLevel"[[:space:]]*:[[:space:]]*"[^"]*"' "$HOME/.claude/settings.json" | grep -oE '"[^"]*"$' | tr -d '"')
+fi
 
 # Claude/Mastra/Droid use "hook_event_name"; Codex uses "type".
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
