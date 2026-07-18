@@ -71,6 +71,25 @@ export interface TiptapPromptEditorProps {
 	placeholder?: string;
 	className?: string;
 	focusShortcutText?: string;
+	/**
+	 * Called when Escape is pressed with no suggestion popover open. Needed
+	 * because ProseMirror preventDefaults every Escape (captureKeyDown), so
+	 * parents can't distinguish "menu dismissed" from "nothing happened" via
+	 * DOM events.
+	 */
+	onEscape?: () => void;
+	/**
+	 * Claude Code's rule: a slash command only fires as the first thing in
+	 * the message — "/" typed after other text is plain text, and the menu
+	 * must not open there.
+	 */
+	slashOnlyAtStart?: boolean;
+	/**
+	 * Submit the form as soon as an argument-less command is picked from the
+	 * menu (Claude Code executes such a pick immediately); commands with an
+	 * argument hint still insert a chip and wait for input.
+	 */
+	submitCommandOnSelect?: boolean;
 }
 
 function getDirectoryPath(relativePath: string): string {
@@ -88,6 +107,9 @@ export function TiptapPromptEditor({
 	placeholder = "Ask to make changes, @mention files, run /commands",
 	className,
 	focusShortcutText,
+	onEscape,
+	slashOnlyAtStart = false,
+	submitCommandOnSelect = false,
 }: TiptapPromptEditorProps) {
 	const controller = usePromptInputController();
 	const attachments = usePromptInputAttachments();
@@ -101,6 +123,12 @@ export function TiptapPromptEditor({
 	attachmentsRef.current = attachments;
 	const controllerRef = useRef(controller);
 	controllerRef.current = controller;
+	const onEscapeRef = useRef(onEscape);
+	onEscapeRef.current = onEscape;
+	const slashOnlyAtStartRef = useRef(slashOnlyAtStart);
+	slashOnlyAtStartRef.current = slashOnlyAtStart;
+	const submitCommandOnSelectRef = useRef(submitCommandOnSelect);
+	submitCommandOnSelectRef.current = submitCommandOnSelect;
 
 	// Track value last set FROM the editor → controller to break feedback loops
 	const lastEditorSyncedValue = useRef("");
@@ -226,6 +254,18 @@ export function TiptapPromptEditor({
 							return this.editor.commands.setHardBreak();
 						},
 
+						Escape: () => {
+							// Guard: a suggestion popover is open — its own handleKeyDown
+							// dismisses it (Suggestion plugins precede this keymap in the
+							// plugin order, so this is a backstop for that assumption).
+							if (isSlashOpenRef.current) return false;
+							if (mentionStateRef.current !== null) return false;
+							const handler = onEscapeRef.current;
+							if (!handler) return false;
+							handler();
+							return true;
+						},
+
 						Backspace: () => {
 							const { state } = this.editor;
 							// Only remove attachment when editor is completely empty
@@ -258,8 +298,12 @@ export function TiptapPromptEditor({
 							allowSpaces: false,
 
 							// Allow "/" at the start of a paragraph or after whitespace/atom
-							// (same logic as the @ mention) — but never mid-word.
+							// (same logic as the @ mention) — but never mid-word. With
+							// slashOnlyAtStart, only the very start of the message counts.
 							allow: ({ state, range }) => {
+								if (slashOnlyAtStartRef.current) {
+									return range.from === 1;
+								}
 								const $pos = state.doc.resolve(range.from);
 								if ($pos.parentOffset === 0) return true;
 								const textBefore = $pos.parent.textBetween(
@@ -394,6 +438,19 @@ export function TiptapPromptEditor({
 										},
 									})
 									.run();
+								// An argument-less pick submits right away. Deferred a
+								// frame: the form's submit handler reads the controller's
+								// React state, which only commits after this event handler
+								// (the editor's onUpdate → setInput hasn't flushed yet).
+								if (
+									submitCommandOnSelectRef.current &&
+									!cmd.argumentHint.trim()
+								) {
+									const form = ed.view.dom.closest("form");
+									if (form) {
+										requestAnimationFrame(() => form.requestSubmit());
+									}
+								}
 							},
 						}),
 					];

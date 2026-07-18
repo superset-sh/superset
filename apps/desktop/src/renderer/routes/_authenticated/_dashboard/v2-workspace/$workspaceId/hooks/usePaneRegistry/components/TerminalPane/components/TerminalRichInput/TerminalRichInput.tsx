@@ -236,20 +236,11 @@ function TerminalRichInputInner({
 						onSubmit={handleSubmit}
 						onKeyDown={(e) => {
 							// Escape never closes the panel (⌘I is the only way to hide).
-							// With a composer popover open (slash menu, mention), the
-							// editor consumes Escape to dismiss it — ProseMirror marks
-							// that with preventDefault, so we do nothing more. Otherwise
-							// forward ESC to the PTY so it acts like Escape typed in the
-							// terminal: interrupts the running agent, exits CLI menus.
+							// PTY forwarding can't key off defaultPrevented here:
+							// ProseMirror preventDefaults every Escape whether or not a
+							// popover consumed it, so that happens via onEscape below.
 							if (e.key === "Escape") {
 								e.stopPropagation();
-								if (!e.defaultPrevented) {
-									terminalRuntimeRegistry.writeInput(
-										terminalId,
-										"\x1b",
-										terminalInstanceId,
-									);
-								}
 							}
 						}}
 					>
@@ -258,6 +249,22 @@ function TerminalRichInputInner({
 							searchFiles={searchFiles}
 							slashCommands={mergedSlashCommands}
 							placeholder="Ask to make changes"
+							// Claude Code's command semantics: a command only fires as the
+							// first thing in the message, and picking an argument-less
+							// command from the menu executes it immediately.
+							slashOnlyAtStart
+							submitCommandOnSelect
+							// Fires only when no slash/mention popover was open to consume
+							// Escape. Forward ESC so it acts like Escape typed in the
+							// terminal (interrupts the agent, exits CLI menus); the panel
+							// stays open and focused.
+							onEscape={() => {
+								terminalRuntimeRegistry.writeInput(
+									terminalId,
+									"\x1b",
+									terminalInstanceId,
+								);
+							}}
 						/>
 						<PromptInputFooter>
 							{isClaudeAgent ? (
