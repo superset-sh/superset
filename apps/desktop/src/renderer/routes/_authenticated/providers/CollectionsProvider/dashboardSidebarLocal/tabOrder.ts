@@ -1,10 +1,2 @@
-/**
- * Lower tabOrder = appears earlier in the sidebar (queries sort ASC).
- */
-export function getNextTabOrder(items: Array<{ tabOrder: number }>): number {
-	const maxTabOrder = items.reduce(
-		(maxValue, item) => Math.max(maxValue, item.tabOrder),
-		0,
-	);
-	return maxTabOrder + 1;
-}
+// Re-exported from the shared module so all surfaces share one ordering policy.
+export { getNextTabOrder } from "@superset/shared/sidebar-order";

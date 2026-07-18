@@ -95,6 +95,16 @@ function listSectionMembers(db: HostDb, sectionId: string): HostWorkspaceRow[] {
 		.all();
 }
 
+/** This host's member workspace ids for a section (for membership checks). */
+export function getSectionMemberIds(db: HostDb, sectionId: string): string[] {
+	return db
+		.select({ id: workspaces.id })
+		.from(workspaces)
+		.where(eq(workspaces.sectionId, sectionId))
+		.all()
+		.map((row) => row.id);
+}
+
 function emitSectionChanged(
 	ctx: WorkspaceStoreContext,
 	eventType: "created" | "updated" | "deleted",
@@ -344,9 +354,15 @@ export function reorderWorkspacesInSection(
 	const now = Date.now();
 	ctx.db.transaction((tx) => {
 		workspaceIds.forEach((workspaceId, index) => {
+			// Constrain to existing members so a stray id can't be relocated in.
 			tx.update(workspaces)
-				.set({ sectionId, tabOrder: index + 1, updatedAt: now })
-				.where(eq(workspaces.id, workspaceId))
+				.set({ tabOrder: index + 1, updatedAt: now })
+				.where(
+					and(
+						eq(workspaces.id, workspaceId),
+						eq(workspaces.sectionId, sectionId),
+					),
+				)
 				.run();
 		});
 	});
@@ -354,4 +370,47 @@ export function reorderWorkspacesInSection(
 		.map((id) => getLocalWorkspace(ctx.db, id))
 		.filter((row): row is HostWorkspaceRow => row !== undefined);
 	emitWorkspacesChanged(ctx, touched);
+}
+
+export interface LaneWrites {
+	sections?: Array<{ id: string; tabOrder: number }>;
+	workspaces?: Array<{
+		workspaceId: string;
+		sectionId: string | null;
+		tabOrder: number;
+	}>;
+}
+
+/**
+ * Apply section-order and workspace-placement writes for this host in a single
+ * transaction (no half-applied reorder). Callers own validation.
+ */
+export function applyLaneWrites(
+	ctx: WorkspaceStoreContext,
+	writes: LaneWrites,
+): void {
+	const now = Date.now();
+	ctx.db.transaction((tx) => {
+		for (const section of writes.sections ?? []) {
+			tx.update(sidebarSections)
+				.set({ tabOrder: section.tabOrder, updatedAt: now })
+				.where(eq(sidebarSections.id, section.id))
+				.run();
+		}
+		for (const workspace of writes.workspaces ?? []) {
+			tx.update(workspaces)
+				.set({
+					sectionId: workspace.sectionId,
+					tabOrder: workspace.tabOrder,
+					updatedAt: now,
+				})
+				.where(eq(workspaces.id, workspace.workspaceId))
+				.run();
+		}
+	});
+	const touched = (writes.workspaces ?? [])
+		.map((write) => getLocalWorkspace(ctx.db, write.workspaceId))
+		.filter((row): row is HostWorkspaceRow => row !== undefined);
+	if (touched.length > 0) emitWorkspacesChanged(ctx, touched);
+	if ((writes.sections ?? []).length > 0) emitSectionChanged(ctx, "updated");
 }

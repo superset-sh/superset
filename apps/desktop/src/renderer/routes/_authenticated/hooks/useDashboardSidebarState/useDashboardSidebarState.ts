@@ -163,6 +163,30 @@ export function useDashboardSidebarState() {
 		[hostWorkspacesById, hostWorkspacesCache],
 	);
 
+	// Restore a host's rows to their pre-optimistic values — its query is
+	// disabled while offline, so invalidate can't refetch to undo the patch.
+	const rollbackHostPlan = useCallback(
+		(hostPlan: SectionWritePlan) => {
+			for (const write of hostPlan.workspaceWrites) {
+				const original = hostWorkspacesById.get(write.workspaceId);
+				if (!original) continue;
+				hostWorkspacesCache.upsertWorkspace({
+					...original,
+					worktreePath: original.worktreePath ?? "",
+					worktreeExists: original.worktreeExists ?? true,
+					sectionId: original.sectionId ?? null,
+					tabOrder: original.tabOrder ?? 0,
+				});
+			}
+			for (const write of hostPlan.sectionWrites) {
+				const original = hostSectionsById.get(write.sectionId);
+				if (!original) continue;
+				sectionsCache.upsertSection(original);
+			}
+		},
+		[hostSectionsById, hostWorkspacesById, hostWorkspacesCache, sectionsCache],
+	);
+
 	// Optimistic cache patches first, then per-host tRPC writes; host
 	// broadcasts converge the caches, failures invalidate + toast.
 	const executePlan = useCallback(
@@ -182,42 +206,37 @@ export function useDashboardSidebarState() {
 					toast.error(
 						"A host is offline — sidebar changes there couldn't be saved",
 					);
+					rollbackHostPlan(hostPlan);
 					hostWorkspacesCache.invalidateHost(hostId);
 					sectionsCache.invalidateHost(hostId);
 					continue;
 				}
 				const client = getHostServiceClientByUrl(hostUrl);
-				const writes: Promise<unknown>[] = [];
-				if (hostPlan.sectionWrites.length > 0) {
-					writes.push(
-						client.sections.reorder.mutate({
-							items: hostPlan.sectionWrites.map((write) => ({
-								id: write.sectionId,
-								tabOrder: write.tabOrder,
-							})),
-						}),
-					);
-				}
-				for (const write of hostPlan.workspaceWrites) {
-					writes.push(
-						client.sections.moveWorkspace.mutate({
+				// One transactional write per host.
+				void client.sections.reorderLane
+					.mutate({
+						sections: hostPlan.sectionWrites.map((write) => ({
+							id: write.sectionId,
+							tabOrder: write.tabOrder,
+						})),
+						workspaces: hostPlan.workspaceWrites.map((write) => ({
 							workspaceId: write.workspaceId,
 							sectionId: write.sectionId,
 							tabOrder: write.tabOrder,
-						}),
-					);
-				}
-				void Promise.all(writes).catch((error: unknown) => {
-					hostWorkspacesCache.invalidateHost(hostId);
-					sectionsCache.invalidateHost(hostId);
-					toast.error("Failed to update sidebar", {
-						description: getErrorMessage(error),
+						})),
+					})
+					.catch((error: unknown) => {
+						hostWorkspacesCache.invalidateHost(hostId);
+						sectionsCache.invalidateHost(hostId);
+						toast.error("Failed to update sidebar", {
+							description: getErrorMessage(error),
+						});
 					});
-				});
 			}
 		},
 		[
 			patchWorkspacePlacement,
+			rollbackHostPlan,
 			hostSectionsById,
 			hostWorkspacesCache,
 			sectionsCache,
@@ -285,10 +304,24 @@ export function useDashboardSidebarState() {
 		[executePlan, hostWorkspacesById, plannerData],
 	);
 
-	// Created on the local host; returns the client-minted id synchronously
-	// so callers can chain a move right after.
+	// Persist a section's full member order in one plan. Callers pass the
+	// complete ordered id list.
+	const reorderSectionMembers = useCallback(
+		(sectionId: string, orderedWorkspaceIds: string[]) => {
+			executePlan(
+				planSectionMembersOrder(plannerData, sectionId, orderedWorkspaceIds),
+			);
+		},
+		[executePlan, plannerData],
+	);
+
+	// Created on the local host. Returns the id synchronously (for inline
+	// rename) plus `created`, the in-flight write — chained moves must await it.
 	const createSection = useCallback(
-		(projectId: string, options: { name?: string } = {}) => {
+		(
+			projectId: string,
+			options: { name?: string } = {},
+		): { sectionId: string; created: Promise<unknown> } | null => {
 			const { name = "New group" } = options;
 			ensureSidebarProjectRecord(collections, projectId);
 
@@ -316,22 +349,25 @@ export function useDashboardSidebarState() {
 				createdAt: Date.now(),
 				updatedAt: Date.now(),
 			});
-			getHostServiceClientByUrl(activeHostUrl)
-				.sections.create.mutate({
-					id: sectionId,
-					projectId,
-					name,
-					color,
-					tabOrder,
-				})
-				.catch((error: unknown) => {
-					sectionsCache.invalidateHost(machineId);
-					toast.error("Failed to create group", {
-						description: getErrorMessage(error),
-					});
+			const created = getHostServiceClientByUrl(
+				activeHostUrl,
+			).sections.create.mutate({
+				id: sectionId,
+				projectId,
+				name,
+				color,
+				tabOrder,
+			});
+			// Handle rejection for callers that don't await `created` (no
+			// unhandled rejection); the promise stays rejectable for those that do.
+			created.catch((error: unknown) => {
+				sectionsCache.invalidateHost(machineId);
+				toast.error("Failed to create group", {
+					description: getErrorMessage(error),
 				});
+			});
 
-			return sectionId;
+			return { sectionId, created };
 		},
 		[activeHostUrl, collections, machineId, plannerData, sectionsCache],
 	);
@@ -461,23 +497,28 @@ export function useDashboardSidebarState() {
 				),
 			};
 
-			sectionsCache.removeSection(section.hostId, sectionId);
-			for (const write of plan.workspaceWrites) {
-				patchWorkspacePlacement(write);
-			}
-
-			executePlan(crossHostPlan);
-
+			// Preflight the owner before touching caches or ungrouping members
+			// elsewhere, else an offline owner detaches members on other hosts.
 			const hostUrl = hostWorkspacesCache.resolveHostUrl(section.hostId);
 			if (!hostUrl) {
 				toast.error(
 					"The group's host is offline — try again when it reconnects",
 				);
-				sectionsCache.invalidateHost(section.hostId);
 				return;
 			}
+
+			sectionsCache.removeSection(section.hostId, sectionId);
+			for (const write of plan.workspaceWrites) {
+				patchWorkspacePlacement(write);
+			}
+
+			// Delete on the owner first (it ungroups its own members), then fan
+			// out the cross-host ungroups.
 			getHostServiceClientByUrl(hostUrl)
 				.sections.delete.mutate({ id: sectionId })
+				.then(() => {
+					executePlan(crossHostPlan);
+				})
 				.catch((error: unknown) => {
 					sectionsCache.invalidateHost(section.hostId);
 					hostWorkspacesCache.invalidateHost(section.hostId);
@@ -544,6 +585,7 @@ export function useDashboardSidebarState() {
 		hideWorkspaceInSidebar,
 		moveWorkspaceToSection,
 		moveWorkspaceToSectionAtIndex,
+		reorderSectionMembers,
 		removeProjectFromSidebar,
 		reorderProjectChildren,
 		removeWorkspaceFromSidebar,

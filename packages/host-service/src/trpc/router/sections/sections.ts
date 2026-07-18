@@ -2,9 +2,11 @@ import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { getLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import {
+	applyLaneWrites,
 	createSection,
 	deleteSection,
 	getSection,
+	getSectionMemberIds,
 	listSections,
 	moveWorkspaceToSection,
 	reorderSections,
@@ -148,6 +150,25 @@ export const sectionsRouter = router({
 			}),
 		)
 		.mutation(({ ctx, input }) => {
+			// Every id must exist and share one project — a mixed-project payload
+			// would scramble two lanes' absolute tab-orders.
+			const rows = input.items.map((item) => {
+				const section = getSection(ctx.db, item.id);
+				if (!section) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace group not found: ${item.id}`,
+					});
+				}
+				return section;
+			});
+			const projectId = rows[0]?.projectId;
+			if (rows.some((row) => row.projectId !== projectId)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Cannot reorder groups from different projects together",
+				});
+			}
 			reorderSections(ctx, input.items);
 			return { success: true as const };
 		}),
@@ -167,7 +188,85 @@ export const sectionsRouter = router({
 					message: "Workspace group not found",
 				});
 			}
+			// Payload must be this host's exact current membership: no duplicates,
+			// no foreign ids (cross-project), no omissions (colliding tabOrders).
+			const ids = input.workspaceIds;
+			if (new Set(ids).size !== ids.length) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "workspaceIds contains duplicates",
+				});
+			}
+			const memberIds = new Set(getSectionMemberIds(ctx.db, input.sectionId));
+			const foreign = ids.find((id) => !memberIds.has(id));
+			if (foreign) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Workspace ${foreign} is not a member of this group`,
+				});
+			}
+			if (ids.length !== memberIds.size) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "workspaceIds must list every member of the group",
+				});
+			}
 			reorderWorkspacesInSection(ctx, input.sectionId, input.workspaceIds);
+			return { success: true as const };
+		}),
+
+	/**
+	 * Apply a whole lane reorder (section orders + workspace placements) for
+	 * this host in one transaction, so a partial failure can't half-write it.
+	 */
+	reorderLane: protectedProcedure
+		.input(
+			z.object({
+				sections: z
+					.array(
+						z.object({ id: z.string().uuid(), tabOrder: z.number().int() }),
+					)
+					.optional(),
+				workspaces: z
+					.array(
+						z.object({
+							workspaceId: z.string().uuid(),
+							sectionId: z.string().uuid().nullable(),
+							tabOrder: z.number().int(),
+						}),
+					)
+					.optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			for (const section of input.sections ?? []) {
+				if (!getSection(ctx.db, section.id)) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace group not found: ${section.id}`,
+					});
+				}
+			}
+			for (const write of input.workspaces ?? []) {
+				const workspace = getLocalWorkspace(ctx.db, write.workspaceId);
+				if (!workspace) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace not found: ${write.workspaceId}`,
+					});
+				}
+				if (write.sectionId !== null) {
+					const section = getSection(ctx.db, write.sectionId);
+					if (section && section.projectId !== workspace.projectId) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message:
+								"Cannot move a workspace to a group from a different project",
+						});
+					}
+				}
+			}
+			applyLaneWrites(ctx, input);
 			return { success: true as const };
 		}),
 });

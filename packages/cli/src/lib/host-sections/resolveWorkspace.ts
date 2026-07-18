@@ -15,7 +15,7 @@ export async function resolveProjectWorkspace(
 		(row) => row.projectId === projectId,
 	);
 	return resolveByIdOrName(rows, nameOrId, {
-		entity: "--after workspace",
+		entity: "Workspace",
 		ambiguousHint: "Pass the workspace id instead",
 	});
 }

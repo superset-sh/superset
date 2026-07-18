@@ -12,6 +12,7 @@ import {
 	useSensors,
 } from "@dnd-kit/core";
 import { arrayMove, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { toast } from "@superset/ui/sonner";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import type {
@@ -35,6 +36,22 @@ export const parseId = (id: UniqueIdentifier) => {
 		return { type: "workspace" as const, realId: s.slice(WS.length) };
 	if (s.startsWith(SEC))
 		return { type: "section" as const, realId: s.slice(SEC.length) };
+	return null;
+};
+
+/** Section id a workspace sort-id sits under in a flat lane, or null if ungrouped. */
+const sectionIdContaining = (
+	items: UniqueIdentifier[],
+	workspaceSortId: UniqueIdentifier,
+): string | null => {
+	let currentSectionId: string | null = null;
+	for (const id of items) {
+		if (isSec(id)) {
+			currentSectionId = parseId(id)?.realId ?? null;
+		} else if (id === workspaceSortId) {
+			return currentSectionId;
+		}
+	}
 	return null;
 };
 
@@ -100,7 +117,7 @@ interface UseSidebarDndOptions {
 }
 
 export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
-	const { reorderProjectChildren, moveWorkspaceToSectionAtIndex } =
+	const { reorderProjectChildren, reorderSectionMembers } =
 		useDashboardSidebarState();
 
 	const sensors = useSensors(
@@ -247,14 +264,12 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 			// Top-level order (ungrouped workspaces + sections interleaved)
 			reorderProjectChildren(parsed.topLevel);
 
-			// Each section's workspace order
+			// One plan per section from the complete id list.
 			for (const [sectionId, wsIds] of Object.entries(parsed.sections)) {
-				for (let i = 0; i < wsIds.length; i++) {
-					moveWorkspaceToSectionAtIndex(wsIds[i], sectionId, i);
-				}
+				reorderSectionMembers(sectionId, wsIds);
 			}
 		},
-		[reorderProjectChildren, moveWorkspaceToSectionAtIndex],
+		[reorderProjectChildren, reorderSectionMembers],
 	);
 
 	// ── Handlers ─────────────────────────────────────────────────────
@@ -323,11 +338,27 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 					return;
 
 				const newItems = arrayMove(flatItems, oldIndex, overIndex);
+
+				// A workspace can only join a group on its own host — reject a
+				// cross-host drop and snap back.
+				const targetSectionId = sectionIdContaining(newItems, active.id);
+				if (targetSectionId) {
+					const wsHostId = workspacesById.get(
+						parseId(active.id)?.realId ?? "",
+					)?.hostId;
+					const sectionHostId = sectionsById.get(targetSectionId)?.hostId;
+					if (wsHostId && sectionHostId && wsHostId !== sectionHostId) {
+						setFlatItems(clonedRef.current ?? flatItems);
+						toast.error("A workspace can only join a group on its own host");
+						return;
+					}
+				}
+
 				setFlatItems(newItems);
 				commitToDb(newItems);
 			}
 		},
-		[flatItems, commitToDb],
+		[flatItems, commitToDb, workspacesById, sectionsById],
 	);
 
 	const onDragCancel = useCallback(() => {

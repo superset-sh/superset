@@ -19,7 +19,9 @@ export function resolveByIdOrName<T extends { id: string; name: string }>(
 	},
 ): T {
 	if (isUuid(nameOrId)) {
-		const byId = items.find((item) => item.id === nameOrId);
+		// UUIDs are case-insensitive.
+		const wantedId = nameOrId.toLowerCase();
+		const byId = items.find((item) => item.id.toLowerCase() === wantedId);
 		if (!byId) {
 			throw new CLIError(
 				`${labels.entity} not found: ${nameOrId}`,

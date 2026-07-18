@@ -16,6 +16,7 @@ import {
 	type HostSectionRow,
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
+	isMissingSectionsRouter,
 	loadHostSectionsSnapshot,
 	loadHostWorkspacesSnapshot,
 	mergeHostSections,
@@ -196,10 +197,15 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 			queryFn: async (): Promise<HostSectionRow[]> => {
 				if (!target.hostUrl) return [];
 				const client = getHostServiceClientByUrl(target.hostUrl);
-				// Old hosts have no sections router — degrade to "no groups".
-				const rows = (await client.sections.list
-					.query()
-					.catch(() => [])) as HostSectionRow[];
+				let rows: HostSectionRow[];
+				try {
+					rows = (await client.sections.list.query()) as HostSectionRow[];
+				} catch (error) {
+					// Old host (no sections router) → no groups. Rethrow anything
+					// else so React Query keeps the last snapshot instead of [].
+					if (isMissingSectionsRouter(error)) return [];
+					throw error;
+				}
 				saveHostSectionsSnapshot(target.organizationId, target.machineId, rows);
 				return rows;
 			},

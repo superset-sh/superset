@@ -30,6 +30,8 @@ import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebar
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	projectId: string;
+	/** A workspace can only join groups on its own host. */
+	workspaceHostId: string;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
 	isPinned?: boolean;
@@ -51,6 +53,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 
 export function DashboardSidebarWorkspaceContextMenu({
 	projectId,
+	workspaceHostId,
 	isInSection,
 	isLocalWorkspace,
 	isPinned = false,
@@ -77,14 +80,19 @@ export function DashboardSidebarWorkspaceContextMenu({
 	const sections = useMemo(
 		() =>
 			hostSections
-				.filter((section) => section.projectId === projectId)
+				// Same host only.
+				.filter(
+					(section) =>
+						section.projectId === projectId &&
+						section.hostId === workspaceHostId,
+				)
 				.sort((left, right) => left.tabOrder - right.tabOrder)
 				.map((section) => ({
 					id: section.id,
 					name: section.name,
 					color: section.color,
 				})),
-		[hostSections, projectId],
+		[hostSections, projectId, workspaceHostId],
 	);
 
 	return (

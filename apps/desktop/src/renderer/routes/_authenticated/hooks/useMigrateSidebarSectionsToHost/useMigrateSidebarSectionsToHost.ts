@@ -28,11 +28,13 @@ export function useMigrateSidebarSectionsToHost(): void {
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
-	const startedRef = useRef(false);
+	// Org this session already started migrating (not a bare boolean, so an org
+	// switch without a remount still migrates the new one).
+	const startedOrgRef = useRef<string | null>(null);
 
 	useEffect(() => {
-		if (startedRef.current) return;
 		if (!organizationId || !machineId || !activeHostUrl || !isReady) return;
+		if (startedOrgRef.current === organizationId) return;
 		const flagKey = migrationFlagKey(organizationId);
 		if (localStorage.getItem(flagKey)) return;
 
@@ -44,14 +46,15 @@ export function useMigrateSidebarSectionsToHost(): void {
 			return;
 		}
 
-		// Another device (or a previous run) already migrated — don't duplicate.
+		// Skip only when EVERY legacy section already exists (another device
+		// fully migrated). Partial overlap still runs the idempotent creates.
 		const hostSectionIds = new Set(hostSections.map((section) => section.id));
-		if (legacySections.some((row) => hostSectionIds.has(row.sectionId))) {
+		if (legacySections.every((row) => hostSectionIds.has(row.sectionId))) {
 			localStorage.setItem(flagKey, "adopted");
 			return;
 		}
 
-		startedRef.current = true;
+		startedOrgRef.current = organizationId;
 
 		const legacyPlacements = Array.from(
 			collections.v2WorkspaceLocalState.state.values(),
@@ -112,19 +115,22 @@ export function useMigrateSidebarSectionsToHost(): void {
 					});
 			}
 
-			localStorage.setItem(flagKey, "migrated");
-			sectionsCache.invalidateHost(machineId);
-			cache.invalidateHost(machineId);
-			if (skipped > 0) {
+			// Only mark complete when every placement landed; otherwise leave the
+			// flag unset to retry next launch (startedOrgRef blocks a re-run now).
+			if (skipped === 0) {
+				localStorage.setItem(flagKey, "migrated");
+			} else {
 				console.warn(
-					`[sections-migration] ${skipped} workspace placements skipped (host unreachable)`,
+					`[sections-migration] ${skipped} workspace placements skipped (host unreachable); will retry next launch`,
 				);
 			}
+			sectionsCache.invalidateHost(machineId);
+			cache.invalidateHost(machineId);
 		};
 
 		run().catch((error: unknown) => {
 			// No flag on failure — retried on next launch.
-			startedRef.current = false;
+			startedOrgRef.current = null;
 			console.error("[sections-migration] failed; will retry", error);
 		});
 	}, [

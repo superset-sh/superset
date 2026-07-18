@@ -99,11 +99,17 @@ export function useDashboardSidebarWorkspaceItemActions({
 		});
 	};
 
-	const handleCreateSection = () => {
-		const sectionId = createSection(projectId);
-		if (!sectionId) return;
-		moveWorkspaceToSection(workspaceId, projectId, sectionId);
-		requestSectionRename(sectionId);
+	const handleCreateSection = async () => {
+		const result = createSection(projectId);
+		if (!result) return;
+		requestSectionRename(result.sectionId);
+		try {
+			// The move must not race ahead of the create.
+			await result.created;
+		} catch {
+			return; // createSection already toasted + rolled back.
+		}
+		moveWorkspaceToSection(workspaceId, projectId, result.sectionId);
 	};
 
 	const resolveWorktreePath = async (): Promise<string | null> => {

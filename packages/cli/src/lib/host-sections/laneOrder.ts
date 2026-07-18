@@ -174,29 +174,20 @@ export async function applyProjectLaneOrder(
 	client: HostServiceClient,
 	lane: LaneItem[],
 ): Promise<void> {
-	const sectionItems: Array<{ id: string; tabOrder: number }> = [];
-	const workspaceItems: Array<{ workspaceId: string; tabOrder: number }> = [];
+	const sections: Array<{ id: string; tabOrder: number }> = [];
+	const workspaces: Array<{
+		workspaceId: string;
+		sectionId: string | null;
+		tabOrder: number;
+	}> = [];
 	lane.forEach((item, index) => {
 		const tabOrder = index + 1;
 		if (item.type === "section") {
-			sectionItems.push({ id: item.id, tabOrder });
+			sections.push({ id: item.id, tabOrder });
 		} else {
-			workspaceItems.push({ workspaceId: item.id, tabOrder });
+			workspaces.push({ workspaceId: item.id, sectionId: null, tabOrder });
 		}
 	});
-	// Absolute tabOrders are independent — fire the writes concurrently.
-	const writes: Array<Promise<unknown>> = [];
-	if (sectionItems.length > 0) {
-		writes.push(client.sections.reorder.mutate({ items: sectionItems }));
-	}
-	for (const item of workspaceItems) {
-		writes.push(
-			client.sections.moveWorkspace.mutate({
-				workspaceId: item.workspaceId,
-				sectionId: null,
-				tabOrder: item.tabOrder,
-			}),
-		);
-	}
-	await Promise.all(writes);
+	// One transactional write so a mid-reorder failure can't half-apply.
+	await client.sections.reorderLane.mutate({ sections, workspaces });
 }

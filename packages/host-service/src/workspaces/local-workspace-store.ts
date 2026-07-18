@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { getHostId } from "@superset/shared/host-info";
-import { getPrependTabOrder } from "@superset/shared/sidebar-order";
+import {
+	getNextTabOrder,
+	getPrependTabOrder,
+} from "@superset/shared/sidebar-order";
 import { and, eq, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
 import {
@@ -115,6 +118,16 @@ function getDefaultTabOrder(db: HostDb, projectId: string): number {
 	return getPrependTabOrder(laneItems);
 }
 
+/** New grouped workspaces append after the section's existing members. */
+function getDefaultMemberTabOrder(db: HostDb, sectionId: string): number {
+	const members = db
+		.select({ tabOrder: workspaces.tabOrder })
+		.from(workspaces)
+		.where(eq(workspaces.sectionId, sectionId))
+		.all();
+	return getNextTabOrder(members);
+}
+
 /**
  * Insert a fully-populated local workspace row (host mints the id when the
  * caller didn't) and broadcast `workspace:changed`. The row starts
@@ -139,7 +152,9 @@ export function insertLocalWorkspace(
 			sectionId: values.sectionId ?? null,
 			tabOrder:
 				values.tabOrder ??
-				(values.sectionId ? 0 : getDefaultTabOrder(ctx.db, values.projectId)),
+				(values.sectionId
+					? getDefaultMemberTabOrder(ctx.db, values.sectionId)
+					: getDefaultTabOrder(ctx.db, values.projectId)),
 			createdByUserId: values.createdByUserId ?? null,
 			createdAt: now,
 			updatedAt: now,

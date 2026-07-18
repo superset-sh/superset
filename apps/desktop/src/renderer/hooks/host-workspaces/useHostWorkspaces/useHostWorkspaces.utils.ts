@@ -1,7 +1,13 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
+import { TRPCClientError } from "@trpc/client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
+
+/** Old host with no `sections` router (tRPC NOT_FOUND) vs. a transient error. */
+export function isMissingSectionsRouter(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data?.code === "NOT_FOUND";
+}
 
 /**
  * A workspace row as served by a host (`workspace.list`) — the cloud row
@@ -198,7 +204,8 @@ export async function loadHostSectionsSnapshot(
 		return await idbGet<HostSectionRow[]>(
 			sectionsSnapshotKey(organizationId, machineId),
 		);
-	} catch {
+	} catch (error) {
+		console.warn("[host-sections] failed to load snapshot", error);
 		return undefined;
 	}
 }
@@ -210,7 +217,9 @@ export function saveHostSectionsSnapshot(
 ): void {
 	if (!organizationId) return;
 	void idbSet(sectionsSnapshotKey(organizationId, machineId), rows).catch(
-		() => {},
+		(error: unknown) => {
+			console.warn("[host-sections] failed to persist snapshot", error);
+		},
 	);
 }
 

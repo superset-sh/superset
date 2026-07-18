@@ -235,6 +235,7 @@ export function useDashboardSidebarData() {
 					workspaceId: sidebarWorkspaces.workspaceId,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
+					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 				})),
 		[collections],
 	);
@@ -254,7 +255,9 @@ export function useDashboardSidebarData() {
 						taskId: workspace.taskId,
 						createdAt: workspace.createdAt,
 						updatedAt: workspace.updatedAt,
-						tabOrder: workspace.tabOrder ?? 0,
+						// Fall back to local order for hosts/snapshots predating
+						// host-served placement, instead of collapsing to 0.
+						tabOrder: workspace.tabOrder ?? localState.tabOrder ?? 0,
 						sectionId: workspace.sectionId ?? null,
 						isHidden: localState.isHidden,
 					},

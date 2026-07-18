@@ -1,5 +1,6 @@
 import { CLIError } from "@superset/cli-framework";
 import { getHostId } from "@superset/shared/host-info";
+import { TRPCClientError } from "@trpc/client";
 import type { ApiClient } from "../api-client";
 import { isProcessAlive, readManifest } from "../host/manifest";
 import { type HostServiceClient, resolveHostTarget } from "../host-target";
@@ -38,6 +39,11 @@ export interface HostWorkspacesResult {
 
 function describeError(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
+}
+
+/** Old host with no `sections` router (tRPC NOT_FOUND) vs. a transient error. */
+function isMissingSectionsRouter(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data?.code === "NOT_FOUND";
 }
 
 /**
@@ -100,15 +106,30 @@ export async function listHostWorkspaces(
 				organizationId: options.organizationId,
 				userJwt: options.userJwt,
 			});
-			const [workspaces, sections] = await Promise.all([
+			const [workspaces, sectionsSettled] = await Promise.all([
 				target.client.workspace.list.query(),
-				// Hosts predating workspace groups have no sections router;
-				// degrade to "no groups" rather than failing the whole host.
-				target.client.sections.list
-					.query()
-					.catch(() => [] as Array<Omit<HostSectionRow, "hostId">>),
+				target.client.sections.list.query().then(
+					(rows) => ({ ok: true as const, rows }),
+					(error: unknown) => ({ ok: false as const, error }),
+				),
 			]);
-			return { workspaces, sections };
+			if (sectionsSettled.ok) {
+				return {
+					workspaces,
+					sections: sectionsSettled.rows,
+					sectionsError: undefined,
+				};
+			}
+			// Old host: expected "no groups". Otherwise keep the workspaces and
+			// report the group-load failure.
+			const sectionsError = isMissingSectionsRouter(sectionsSettled.error)
+				? undefined
+				: sectionsSettled.error;
+			return {
+				workspaces,
+				sections: [] as Array<Omit<HostSectionRow, "hostId">>,
+				sectionsError,
+			};
 		}),
 	);
 
@@ -122,6 +143,11 @@ export async function listHostWorkspaces(
 			sections.push(
 				...result.value.sections.map((section) => ({ ...section, hostId })),
 			);
+			if (result.value.sectionsError) {
+				warnings.push(
+					`Host ${describeHost(hostId)}: failed to load workspace groups: ${describeError(result.value.sectionsError)}`,
+				);
+			}
 		} else {
 			warnings.push(
 				`Host ${describeHost(hostId)} unreachable: ${describeError(result.reason)}`,

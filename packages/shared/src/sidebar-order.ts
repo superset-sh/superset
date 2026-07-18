@@ -20,9 +20,11 @@ export function getPrependTabOrder(items: TabOrdered[]): number {
 }
 
 export function getNextTabOrder(items: TabOrdered[]): number {
+	// Seed with -Infinity, not 0, so an all-negative lane appends after its max.
+	if (items.length === 0) return 1;
 	const maxTabOrder = items.reduce(
 		(maxValue, item) => Math.max(maxValue, item.tabOrder),
-		0,
+		Number.NEGATIVE_INFINITY,
 	);
 	return maxTabOrder + 1;
 }
