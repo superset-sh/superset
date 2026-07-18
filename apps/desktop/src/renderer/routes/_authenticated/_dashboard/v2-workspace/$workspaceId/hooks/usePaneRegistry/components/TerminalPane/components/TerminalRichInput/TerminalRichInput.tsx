@@ -235,13 +235,21 @@ function TerminalRichInputInner({
 						className="rounded-[13px] bg-background [&>[data-slot=input-group]]:rounded-[13px] [&>[data-slot=input-group]]:border-[0.5px] [&>[data-slot=input-group]]:shadow-none [&>[data-slot=input-group]]:bg-foreground/[0.02]"
 						onSubmit={handleSubmit}
 						onKeyDown={(e) => {
-							// Escape backs out of editor context (slash menu, mention
-							// popover, chip selection) — it must never close the panel,
-							// or dismissing a menu also hides the composer. The hotkey
-							// (⌘I) is the only way to hide. stopPropagation keeps
-							// pane-level Escape handlers from firing while typing.
+							// Escape never closes the panel (⌘I is the only way to hide).
+							// With a composer popover open (slash menu, mention), the
+							// editor consumes Escape to dismiss it — ProseMirror marks
+							// that with preventDefault, so we do nothing more. Otherwise
+							// forward ESC to the PTY so it acts like Escape typed in the
+							// terminal: interrupts the running agent, exits CLI menus.
 							if (e.key === "Escape") {
 								e.stopPropagation();
+								if (!e.defaultPrevented) {
+									terminalRuntimeRegistry.writeInput(
+										terminalId,
+										"\x1b",
+										terminalInstanceId,
+									);
+								}
 							}
 						}}
 					>
