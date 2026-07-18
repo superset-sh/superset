@@ -14,18 +14,24 @@ import {
 	ChevronDownIcon,
 	ShieldIcon,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { PILL_BUTTON_CLASS } from "renderer/components/Chat/ChatInterface/styles";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { typeCommandIntoPty } from "../../typeCommandIntoPty";
 
 interface TerminalComposerControlsProps {
 	terminalId: string;
 	terminalInstanceId: string;
+	/** Detected CLI agent driving the terminal; selects the chip set. */
+	agentId: "claude" | "codex";
 	/** Model id auto-detected from the agent's session hooks. */
 	detectedModel?: string;
 	/** Effort level auto-detected from the agent's session hooks. */
 	detectedEffort?: string;
 }
+
+type AgentControlsProps = Omit<TerminalComposerControlsProps, "agentId">;
 
 interface SelectOption {
 	value: string;
@@ -138,24 +144,56 @@ const selectionsByTerminalId = new Map<
 >();
 
 /**
- * Claude-flavoured composer controls for the terminal rich input, styled
+ * Agent-flavoured composer controls for the terminal rich input, styled
  * after the chat composer's pill row. Selections are not app state — each
- * pick submits the corresponding slash command straight into the PTY
- * (bracketed paste + CR, the same path the rich input uses), and Claude Code
- * applies it. Permission modes have no settable command or readable state
- * (Shift+Tab cycling is the CLI's only mid-session mechanism), so that chip
- * sends the cycle keystroke and the terminal displays the resulting mode.
+ * chip drives the CLI in the PTY and the CLI applies the change itself. The
+ * chip set differs per agent because the CLIs differ: Claude Code accepts
+ * non-interactive /model and /effort commands (so chips can be pickers),
+ * while Codex only offers interactive pickers (so chips open them).
  */
 export function TerminalComposerControls({
+	agentId,
+	...props
+}: TerminalComposerControlsProps) {
+	if (agentId === "codex") return <CodexComposerControls {...props} />;
+	return <ClaudeComposerControls {...props} />;
+}
+
+/**
+ * Claude Code chips. Each pick submits the corresponding slash command
+ * straight into the PTY (bracketed paste + CR, the same path the rich input
+ * uses), and Claude Code applies it. Permission modes have no settable
+ * command or readable state (Shift+Tab cycling is the CLI's only mid-session
+ * mechanism), so that chip sends the cycle keystroke and the terminal
+ * displays the resulting mode.
+ */
+function ClaudeComposerControls({
 	terminalId,
 	terminalInstanceId,
 	detectedModel,
 	detectedEffort,
-}: TerminalComposerControlsProps) {
+}: AgentControlsProps) {
 	const modelOptions = useClaudeModelOptions();
 	const [selections, setSelections] = useState(
 		() => selectionsByTerminalId.get(terminalId) ?? {},
 	);
+
+	// A pick only bridges the gap until the binding reports fresh session
+	// config (hooks fire on session start and turn end) — new detected values
+	// are ground truth and must invalidate the optimistic label, otherwise a
+	// single manual pick would shadow auto-detection for this terminal for
+	// the app's lifetime.
+	useEffect(() => {
+		setSelections((prev) => {
+			if (prev.model === undefined && prev.effort === undefined) return prev;
+			const next = { ...prev };
+			if (detectedModel !== undefined) next.model = undefined;
+			if (detectedEffort !== undefined) next.effort = undefined;
+			if (next.model === prev.model && next.effort === prev.effort) return prev;
+			selectionsByTerminalId.set(terminalId, next);
+			return next;
+		});
+	}, [detectedModel, detectedEffort, terminalId]);
 
 	const sendCommand = (command: string) => {
 		terminalRuntimeRegistry.paste(terminalId, command, terminalInstanceId);
@@ -280,6 +318,108 @@ export function TerminalComposerControls({
 					))}
 				</DropdownMenuContent>
 			</DropdownMenu>
+		</div>
+	);
+}
+
+/**
+ * Display label for detected Codex model ids: "gpt-5.6-terra" → "GPT-5.6
+ * Terra". Display-only — model changes go through Codex's own /model picker,
+ * so an unrecognized shape safely falls back to the raw id.
+ */
+function prettifyCodexModelId(modelId: string): string {
+	const parts = modelId.split("-");
+	if (parts[0] !== "gpt") return modelId;
+	const [, version, ...rest] = parts;
+	const base = version ? `GPT-${version}` : "GPT";
+	const suffix = rest
+		.map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+		.join(" ");
+	return suffix ? `${base} ${suffix}` : base;
+}
+
+/**
+ * Codex chips. Codex has no non-interactive commands for these settings —
+ * "/model gpt-5.5 high" as text becomes a chat message, there is no /effort,
+ * and Shift+Tab cycles collaboration modes rather than permissions — so
+ * every chip opens the CLI's own picker in the terminal by typing the
+ * command (Codex ignores bracket-pasted slash commands; see
+ * typeCommandIntoPty). Model and effort labels are display-only: both are
+ * chosen in the /model picker (effort is its second step), and the session
+ * hooks refresh the detected values afterwards.
+ */
+function CodexComposerControls({
+	terminalId,
+	terminalInstanceId,
+	detectedModel,
+	detectedEffort,
+}: AgentControlsProps) {
+	const codexIcon = usePresetIcon("codex");
+	const openModelPicker = () => {
+		void typeCommandIntoPty(terminalId, "/model", terminalInstanceId);
+	};
+	const modelLabel = detectedModel
+		? prettifyCodexModelId(detectedModel)
+		: "Model";
+	const effortLabel = detectedEffort
+		? (EFFORT_OPTIONS.find((option) => option.value === detectedEffort)
+				?.label ?? detectedEffort)
+		: "Effort";
+
+	return (
+		<div className="flex items-center gap-1.5">
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} px-2 gap-1 text-xs text-foreground`}
+						onClick={() => {
+							void typeCommandIntoPty(
+								terminalId,
+								"/permissions",
+								terminalInstanceId,
+							);
+						}}
+					>
+						<ShieldIcon className="size-3.5 opacity-60" />
+						<span>Permissions</span>
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="top">
+					Open the permissions picker (/permissions)
+				</TooltipContent>
+			</Tooltip>
+
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
+						onClick={openModelPicker}
+					>
+						{codexIcon && (
+							<img alt="Codex" className="size-3" src={codexIcon} />
+						)}
+						<span>{modelLabel}</span>
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="top">
+					Open Codex's model picker (/model)
+				</TooltipContent>
+			</Tooltip>
+
+			<Tooltip>
+				<TooltipTrigger asChild>
+					<PromptInputButton
+						className={`${PILL_BUTTON_CLASS} px-2 gap-1 text-xs text-foreground`}
+						onClick={openModelPicker}
+					>
+						<BrainIcon className="size-3.5 opacity-60" />
+						<span>{effortLabel}</span>
+					</PromptInputButton>
+				</TooltipTrigger>
+				<TooltipContent side="top">
+					Reasoning effort — chosen in the /model picker
+				</TooltipContent>
+			</Tooltip>
 		</div>
 	);
 }

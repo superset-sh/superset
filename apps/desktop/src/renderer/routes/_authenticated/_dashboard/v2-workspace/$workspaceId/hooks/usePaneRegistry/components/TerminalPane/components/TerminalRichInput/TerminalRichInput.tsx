@@ -3,18 +3,16 @@ import {
 	PromptInput,
 	PromptInputAttachment,
 	PromptInputAttachments,
-	PromptInputButton,
 	PromptInputFooter,
 	type PromptInputMessage,
 	PromptInputProvider,
 	PromptInputSubmit,
-	usePromptInputAttachments,
 	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
-import { ArrowUpIcon, PaperclipIcon } from "lucide-react";
+import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor/TiptapPromptEditor";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
@@ -22,9 +20,12 @@ import { useHotkeyDisplay } from "renderer/hotkeys";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
 import { CLAUDE_CODE_BUILTIN_SLASH_COMMANDS } from "./claudeCodeBuiltinSlashCommands";
+import { CODEX_BUILTIN_SLASH_COMMANDS } from "./codexBuiltinSlashCommands";
+import { AttachFileButton } from "./components/AttachFileButton";
 import { TerminalComposerControls } from "./components/TerminalComposerControls";
 import { TerminalContextUsage } from "./components/TerminalContextUsage";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
+import { typeCommandIntoPty } from "./typeCommandIntoPty";
 
 interface TerminalRichInputProps {
 	workspaceId: string;
@@ -60,24 +61,6 @@ const selectTerminalSlashCommands = (
 			...command,
 			kind: "custom" as const,
 		}));
-
-/**
- * Paperclip mirroring the chat composer's attach affordance: opens the file
- * dialog wired up by PromptInput's hidden input. Paste and drag-drop feed
- * the same attachments context.
- */
-function AttachFileButton() {
-	const attachments = usePromptInputAttachments();
-	return (
-		<PromptInputButton
-			aria-label="Attach files"
-			className="size-[23px] rounded-full border border-transparent bg-foreground/10 p-[5px] shadow-none hover:bg-foreground/20"
-			onClick={() => attachments.openFileDialog()}
-		>
-			<PaperclipIcon className="size-3.5 text-muted-foreground" />
-		</PromptInputButton>
-	);
-}
 
 /**
  * Warp-style rich input overlay for a v2 terminal pane. Reuses the chat
@@ -116,10 +99,13 @@ function TerminalRichInputInner({
 	const controller = usePromptInputController();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
 
-	// When Claude Code is the detected agent, the footer swaps the pane icon
-	// for chat-composer-style controls that drive the CLI via slash commands.
+	// When a known CLI agent (Claude Code, Codex) is detected, the footer
+	// swaps the pane icon for chat-composer-style controls that drive the CLI
+	// via slash commands.
 	const agentBinding = useTerminalAgentBinding(workspaceId, terminalId);
-	const isClaudeAgent = agentBinding?.agentId === "claude";
+	const agentId = agentBinding?.agentId;
+	const isClaudeAgent = agentId === "claude";
+	const isCodexAgent = agentId === "codex";
 
 	// Deduped with the page-level workspace.get query; provides the cwd the
 	// mention popover uses to shorten paths.
@@ -135,19 +121,22 @@ function TerminalRichInputInner({
 			{ select: selectTerminalSlashCommands },
 		);
 
-	// Claude Code's own builtins join the discovered commands when Claude is
-	// the detected agent; discovered names win a collision so a project
-	// command can shadow a builtin, mirroring the CLI's own precedence.
+	// The detected CLI's own builtins join the discovered commands; discovered
+	// names win a collision so a project command can shadow a builtin,
+	// mirroring the CLIs' own precedence.
 	const mergedSlashCommands = useMemo(() => {
-		if (!isClaudeAgent) return slashCommands;
+		const builtins = isClaudeAgent
+			? CLAUDE_CODE_BUILTIN_SLASH_COMMANDS
+			: isCodexAgent
+				? CODEX_BUILTIN_SLASH_COMMANDS
+				: null;
+		if (!builtins) return slashCommands;
 		const discoveredNames = new Set(slashCommands.map((c) => c.name));
 		return [
 			...slashCommands,
-			...CLAUDE_CODE_BUILTIN_SLASH_COMMANDS.filter(
-				(command) => !discoveredNames.has(command.name),
-			),
+			...builtins.filter((command) => !discoveredNames.has(command.name)),
 		];
-	}, [slashCommands, isClaudeAgent]);
+	}, [slashCommands, isClaudeAgent, isCodexAgent]);
 
 	const trpcUtils = workspaceTrpc.useUtils();
 	const searchFiles = useCallback(
@@ -211,6 +200,25 @@ function TerminalRichInputInner({
 
 			const prompt = pathSuffix ? `${text} ${pathSuffix}`.trim() : text;
 			if (prompt.trim().length === 0) return;
+			// Codex only executes slash commands that arrive as typed input — a
+			// bracket-pasted "/command" submits as a plain chat message and burns
+			// a model turn — so single-line slash input is typed into the PTY
+			// (throttled; see typeCommandIntoPty) instead of pasted. Everything
+			// else keeps the paste path: bracketed paste is what keeps a
+			// multiline block literal, and plain chat text pastes fine. The
+			// command shape is checked (lowercase name, e.g. "/model",
+			// "/prompts:draftpr") because Codex ERRORS on unknown typed slash
+			// input — an attachment-only submit whose prompt is a bare path
+			// ("/Users/…/x.png") must paste as chat, not type as a command.
+			if (
+				agentId === "codex" &&
+				/^\/[a-z][a-z0-9:_-]*(\s|$)/.test(prompt) &&
+				!prompt.includes("\n")
+			) {
+				await typeCommandIntoPty(terminalId, prompt, terminalInstanceId);
+				terminalRuntimeRegistry.scrollToBottom(terminalId, terminalInstanceId);
+				return;
+			}
 			// Bracketed paste keeps the multiline block literal (CLI agents enable
 			// the mode); the trailing "\r" then submits it as one prompt.
 			terminalRuntimeRegistry.paste(terminalId, prompt, terminalInstanceId);
@@ -231,7 +239,7 @@ function TerminalRichInputInner({
 			terminalRuntimeRegistry.writeInput(terminalId, "\r", terminalInstanceId);
 			terminalRuntimeRegistry.scrollToBottom(terminalId, terminalInstanceId);
 		},
-		[terminalId, terminalInstanceId, trpcUtils],
+		[terminalId, terminalInstanceId, trpcUtils, agentId],
 	);
 
 	// Persist the draft as it changes. terminalId is stable for this provider
@@ -349,8 +357,9 @@ function TerminalRichInputInner({
 							}}
 						/>
 						<PromptInputFooter>
-							{isClaudeAgent ? (
+							{isClaudeAgent || isCodexAgent ? (
 								<TerminalComposerControls
+									agentId={isClaudeAgent ? "claude" : "codex"}
 									terminalId={terminalId}
 									terminalInstanceId={terminalInstanceId}
 									detectedModel={agentBinding?.model}
@@ -369,6 +378,7 @@ function TerminalRichInputInner({
 									<TerminalContextUsage
 										usedTokens={agentBinding.contextUsedTokens}
 										model={agentBinding.model}
+										windowTokens={agentBinding.contextWindowTokens}
 									/>
 								)}
 								<AttachFileButton />

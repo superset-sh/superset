@@ -9,6 +9,12 @@ interface TerminalContextUsageProps {
 	usedTokens: number;
 	/** Model id from the agent binding, used to pick the window size. */
 	model?: string;
+	/**
+	 * Exact context-window size reported by the agent's session (e.g. Codex
+	 * session metadata). When present it wins over the curated per-model map,
+	 * which stays as the fallback for agents that don't report one (Claude).
+	 */
+	windowTokens?: number;
 }
 
 /**
@@ -38,9 +44,13 @@ function contextWindowFor(model: string | undefined): number {
 export function TerminalContextUsage({
 	usedTokens,
 	model,
+	windowTokens,
 }: TerminalContextUsageProps) {
 	return (
-		<Context usedTokens={usedTokens} maxTokens={contextWindowFor(model)}>
+		<Context
+			usedTokens={usedTokens}
+			maxTokens={windowTokens ?? contextWindowFor(model)}
+		>
 			<ContextTrigger className="h-[23px] gap-1 rounded-md px-1.5 text-xs" />
 			<ContextContent side="top" align="end">
 				<ContextContentHeader />
