@@ -11,12 +11,13 @@ import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { ArrowUpIcon } from "lucide-react";
-import { useCallback, useEffect, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor/TiptapPromptEditor";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
+import { CLAUDE_CODE_BUILTIN_SLASH_COMMANDS } from "./claudeCodeBuiltinSlashCommands";
 import { TerminalComposerControls } from "./components/TerminalComposerControls";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
 
@@ -113,6 +114,20 @@ function TerminalRichInputInner({
 			{ workspaceId },
 			{ select: selectTerminalSlashCommands },
 		);
+
+	// Claude Code's own builtins join the discovered commands when Claude is
+	// the detected agent; discovered names win a collision so a project
+	// command can shadow a builtin, mirroring the CLI's own precedence.
+	const mergedSlashCommands = useMemo(() => {
+		if (!isClaudeAgent) return slashCommands;
+		const discoveredNames = new Set(slashCommands.map((c) => c.name));
+		return [
+			...slashCommands,
+			...CLAUDE_CODE_BUILTIN_SLASH_COMMANDS.filter(
+				(command) => !discoveredNames.has(command.name),
+			),
+		];
+	}, [slashCommands, isClaudeAgent]);
 
 	const trpcUtils = workspaceTrpc.useUtils();
 	const searchFiles = useCallback(
@@ -232,7 +247,7 @@ function TerminalRichInputInner({
 						<TiptapPromptEditor
 							cwd={cwd}
 							searchFiles={searchFiles}
-							slashCommands={slashCommands}
+							slashCommands={mergedSlashCommands}
 							placeholder="Ask to make changes"
 						/>
 						<PromptInputFooter>
