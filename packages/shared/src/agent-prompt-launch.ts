@@ -40,6 +40,17 @@ function resolveDelimiter(prompt: string, randomId: string): string {
 	return delimiter;
 }
 
+/**
+ * Prompt suffix pointing an agent at attachment files materialized on this
+ * host. Shared between the agent-launch flow and the terminal composer so
+ * every surface hands agents the same block shape. Empty input → "".
+ */
+export function formatAttachedFilesBlock(paths: string[]): string {
+	if (paths.length === 0) return "";
+	const lines = paths.map((path) => `- ${path}`);
+	return `\n\n# Attached files\n\nThe user attached these files. They are available on this host at:\n\n${lines.join("\n")}`;
+}
+
 export function quoteSingleShell(value: string): string {
 	return `'${value.replaceAll("'", "'\\''")}'`;
 }

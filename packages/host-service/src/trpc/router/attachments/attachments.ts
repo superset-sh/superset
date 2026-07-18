@@ -7,6 +7,7 @@ import { MAX_ATTACHMENT_BYTES } from "./constants";
 import {
 	type AttachmentMetadata,
 	deleteAttachment,
+	resolveAttachmentPath,
 	writeAttachment,
 } from "./storage";
 
@@ -91,6 +92,28 @@ export const attachmentsRouter = router({
 		.mutation(({ input }) => {
 			deleteAttachment(input.attachmentId);
 			return { success: true as const };
+		}),
+
+	/**
+	 * Resolve uploaded attachments to host filesystem paths for inclusion in
+	 * a prompt typed into a PTY. Unlike agents.run — where the host builds
+	 * the full command and paths stay server-side — the terminal composer
+	 * assembles the prompt in the renderer, and the paths end up visible in
+	 * the terminal anyway once submitted.
+	 */
+	resolveForPrompt: protectedProcedure
+		.input(z.object({ attachmentIds: z.array(z.string().uuid()).max(20) }))
+		.mutation(({ input }) => {
+			return input.attachmentIds.map((attachmentId) => {
+				const resolved = resolveAttachmentPath(attachmentId);
+				if (!resolved) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Attachment not found: ${attachmentId}`,
+					});
+				}
+				return { attachmentId, path: resolved.path };
+			});
 		}),
 });
 
