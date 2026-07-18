@@ -25,6 +25,11 @@ export interface TerminalAgentBinding {
 	 * hook event.
 	 */
 	contextUsedTokens?: number;
+	/**
+	 * Effective context window reported by the session transcript (Codex
+	 * rollouts carry it; Claude transcripts do not).
+	 */
+	contextWindowTokens?: number;
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;

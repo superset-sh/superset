@@ -12,6 +12,7 @@ interface RecordEventInput {
 	model?: string;
 	effortLevel?: string;
 	contextUsedTokens?: number;
+	contextWindowTokens?: number;
 	occurredAt: number;
 }
 
@@ -74,6 +75,7 @@ export class TerminalAgentStore extends EventEmitter {
 			model,
 			effortLevel,
 			contextUsedTokens,
+			contextWindowTokens,
 			occurredAt,
 		} = input;
 
@@ -115,6 +117,9 @@ export class TerminalAgentStore extends EventEmitter {
 			contextUsedTokens:
 				contextUsedTokens ??
 				(sessionChanged ? undefined : prior?.contextUsedTokens),
+			contextWindowTokens:
+				contextWindowTokens ??
+				(sessionChanged ? undefined : prior?.contextWindowTokens),
 			startedAt:
 				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,

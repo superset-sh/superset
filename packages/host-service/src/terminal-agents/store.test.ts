@@ -126,6 +126,45 @@ describe("TerminalAgentStore", () => {
 		expect(binding?.startedAt).toBe(300);
 	});
 
+	it("inherits session config within a session and drops it on session change", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "codex",
+			agentSessionId: "s1",
+			effortLevel: "xhigh",
+			contextUsedTokens: 1_000,
+			contextWindowTokens: 258_400,
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			occurredAt: 200,
+		});
+
+		let binding = store.get("t1");
+		expect(binding?.effortLevel).toBe("xhigh");
+		expect(binding?.contextUsedTokens).toBe(1_000);
+		expect(binding?.contextWindowTokens).toBe(258_400);
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "codex",
+			agentSessionId: "s2",
+			occurredAt: 300,
+		});
+
+		binding = store.get("t1");
+		expect(binding?.effortLevel).toBeUndefined();
+		expect(binding?.contextUsedTokens).toBeUndefined();
+		expect(binding?.contextWindowTokens).toBeUndefined();
+	});
+
 	it("findActive tie-breaks on latest lastEventAt", () => {
 		store.recordEvent({
 			terminalId: "t1",

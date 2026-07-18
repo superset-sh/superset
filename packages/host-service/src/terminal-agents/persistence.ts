@@ -17,6 +17,7 @@ const bindingColumns = {
 	model: terminalAgentBindings.model,
 	effortLevel: terminalAgentBindings.effortLevel,
 	contextUsedTokens: terminalAgentBindings.contextUsedTokens,
+	contextWindowTokens: terminalAgentBindings.contextWindowTokens,
 	startedAt: terminalAgentBindings.startedAt,
 	lastEventAt: terminalAgentBindings.lastEventAt,
 	lastEventType: terminalAgentBindings.lastEventType,
@@ -31,6 +32,7 @@ interface BindingRow {
 	model: string | null;
 	effortLevel: string | null;
 	contextUsedTokens: number | null;
+	contextWindowTokens: number | null;
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;
@@ -47,6 +49,9 @@ function rowToBinding(row: BindingRow): TerminalAgentBinding {
 		...(row.effortLevel ? { effortLevel: row.effortLevel } : {}),
 		...(row.contextUsedTokens != null
 			? { contextUsedTokens: row.contextUsedTokens }
+			: {}),
+		...(row.contextWindowTokens != null
+			? { contextWindowTokens: row.contextWindowTokens }
 			: {}),
 		startedAt: row.startedAt,
 		lastEventAt: row.lastEventAt,
@@ -187,6 +192,7 @@ export class SqliteTerminalAgentBindingPersistence
 				model: binding.model ?? null,
 				effortLevel: binding.effortLevel ?? null,
 				contextUsedTokens: binding.contextUsedTokens ?? null,
+				contextWindowTokens: binding.contextWindowTokens ?? null,
 				startedAt: binding.startedAt,
 				lastEventAt: binding.lastEventAt,
 				lastEventType: binding.lastEventType,
@@ -201,6 +207,7 @@ export class SqliteTerminalAgentBindingPersistence
 					model: binding.model ?? null,
 					effortLevel: binding.effortLevel ?? null,
 					contextUsedTokens: binding.contextUsedTokens ?? null,
+					contextWindowTokens: binding.contextWindowTokens ?? null,
 					startedAt: binding.startedAt,
 					lastEventAt: binding.lastEventAt,
 					lastEventType: binding.lastEventType,

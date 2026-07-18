@@ -49,6 +49,9 @@ export const terminalAgentBindings = sqliteTable(
 		model: text("model"),
 		effortLevel: text("effort_level"),
 		contextUsedTokens: integer("context_used_tokens"),
+		// Effective context window from the session transcript (Codex rollouts
+		// report it; Claude transcripts do not).
+		contextWindowTokens: integer("context_window_tokens"),
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),
 		lastEventType: text("last_event_type").notNull(),

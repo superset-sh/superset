@@ -3,7 +3,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { terminalSessions } from "../../../db/schema";
 import { mapEventType } from "../../../events";
-import { readTranscriptContextTokens } from "../../../terminal-agents/transcript-context";
+import { readTranscriptSessionInfo } from "../../../terminal-agents/transcript-session-info";
 import { publicProcedure, router } from "../../index";
 
 // Hook scripts emit "" for unset env vars; we coerce to undefined so the
@@ -87,9 +87,11 @@ export const notificationsRouter = router({
 		const occurredAt = Date.now();
 
 		const transcriptPath = trimOrUndefined(input.transcriptPath);
-		const contextUsedTokens = transcriptPath
-			? readTranscriptContextTokens(transcriptPath)
+		const sessionInfo = transcriptPath
+			? readTranscriptSessionInfo(transcriptPath)
 			: undefined;
+		// Codex hooks omit effort; the rollout's turn_context is the only source.
+		const effortLevel = agent?.effortLevel ?? sessionInfo?.effortLevel;
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
@@ -107,8 +109,13 @@ export const notificationsRouter = router({
 			...(agent?.sessionId ? { agentSessionId: agent.sessionId } : {}),
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			...(agent?.model ? { model: agent.model } : {}),
-			...(agent?.effortLevel ? { effortLevel: agent.effortLevel } : {}),
-			...(contextUsedTokens !== undefined ? { contextUsedTokens } : {}),
+			...(effortLevel ? { effortLevel } : {}),
+			...(sessionInfo?.contextUsedTokens !== undefined
+				? { contextUsedTokens: sessionInfo.contextUsedTokens }
+				: {}),
+			...(sessionInfo?.contextWindowTokens !== undefined
+				? { contextWindowTokens: sessionInfo.contextWindowTokens }
+				: {}),
 			occurredAt,
 		});
 
