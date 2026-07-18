@@ -85,9 +85,10 @@ export interface TiptapPromptEditorProps {
 	 */
 	slashOnlyAtStart?: boolean;
 	/**
-	 * Submit the form as soon as an argument-less command is picked from the
-	 * menu (Claude Code executes such a pick immediately); commands with an
-	 * argument hint still insert a chip and wait for input.
+	 * Submit the form as soon as an argument-less BUILTIN command is picked
+	 * from the menu (Claude Code executes such a pick immediately). Custom
+	 * commands and skills always insert a chip and wait — users often add
+	 * context after them — as do builtins with an argument hint.
 	 */
 	submitCommandOnSelect?: boolean;
 }
@@ -438,12 +439,14 @@ export function TiptapPromptEditor({
 										},
 									})
 									.run();
-								// An argument-less pick submits right away. Deferred a
+								// An argument-less BUILTIN pick submits right away; customs
+								// and skills wait so the user can add context. Deferred a
 								// frame: the form's submit handler reads the controller's
 								// React state, which only commits after this event handler
 								// (the editor's onUpdate → setInput hasn't flushed yet).
 								if (
 									submitCommandOnSelectRef.current &&
+									cmd.kind === "builtin" &&
 									!cmd.argumentHint.trim()
 								) {
 									const form = ed.view.dom.closest("form");
