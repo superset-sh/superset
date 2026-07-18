@@ -1,5 +1,8 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
+import { existsSync, mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { projects } from "../../src/db/schema";
 import { createTestHost, type TestHost } from "../helpers/createTestHost";
@@ -96,5 +99,91 @@ describe("project.setup error paths", () => {
 			projectId: randomUUID(),
 		});
 		expect(result).toEqual({ success: true, repoPath: null });
+	});
+});
+
+describe("project.setup with caller-supplied origin (cross-host local-first)", () => {
+	let host: TestHost;
+	let repo: GitFixture;
+
+	beforeEach(async () => {
+		repo = await createGitFixture();
+	});
+
+	afterEach(async () => {
+		if (host) await host.dispose();
+		repo.dispose();
+	});
+
+	test("import with origin never consults the cloud and applies the origin name", async () => {
+		// No apiOverrides: any cloud call throws "unmocked procedure".
+		host = await createTestHost();
+		const projectId = randomUUID();
+
+		const result = await host.trpc.project.setup.mutate({
+			projectId,
+			origin: { repoCloneUrl: null, name: "From Host B" },
+			mode: { kind: "import", repoPath: repo.repoPath, allowRelocate: false },
+		});
+		expect(result.repoPath).toBe(repo.repoPath);
+
+		const row = host.db
+			.select()
+			.from(projects)
+			.all()
+			.find((p) => p.id === projectId);
+		expect(row?.name).toBe("From Host B");
+		expect(
+			host.apiCalls.filter((c) => c.path.startsWith("v2Project.")),
+		).toEqual([]);
+	});
+
+	test("clone with an unparseable origin repoCloneUrl fails without cloud calls", async () => {
+		host = await createTestHost();
+
+		await expect(
+			host.trpc.project.setup.mutate({
+				projectId: randomUUID(),
+				origin: { repoCloneUrl: "/not/a/github/remote", name: "X" },
+				mode: { kind: "clone", parentDir: "/tmp/parent-does-not-matter" },
+			}),
+		).rejects.toThrow(/Could not parse GitHub remote/i);
+		expect(
+			host.apiCalls.filter((c) => c.path.startsWith("v2Project.")),
+		).toEqual([]);
+	});
+});
+
+describe("project.create empty mode is fully local", () => {
+	let host: TestHost;
+
+	afterEach(async () => {
+		if (host) await host.dispose();
+	});
+
+	test("creates repo dir, named row, and main workspace with zero cloud calls", async () => {
+		host = await createTestHost();
+		const parentDir = mkdtempSync(join(tmpdir(), "empty-mode-parent-"));
+
+		const created = await host.trpc.project.create.mutate({
+			name: "Fresh Local",
+			mode: { kind: "empty", parentDir },
+		});
+		expect(created.repoPath.startsWith(parentDir)).toBe(true);
+		expect(created.mainWorkspaceId).toBeTruthy();
+		expect(existsSync(join(created.repoPath, ".git"))).toBe(true);
+
+		const row = host.db
+			.select()
+			.from(projects)
+			.all()
+			.find((p) => p.id === created.projectId);
+		expect(row?.name).toBe("Fresh Local");
+		expect(row?.updatedAt).toBeGreaterThan(0);
+		expect(
+			host.apiCalls.filter((c) => c.path.startsWith("v2Project.")),
+		).toEqual([]);
+
+		rmSync(parentDir, { recursive: true, force: true });
 	});
 });
