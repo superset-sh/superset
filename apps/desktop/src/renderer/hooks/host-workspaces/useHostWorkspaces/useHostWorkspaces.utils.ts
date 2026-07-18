@@ -1,25 +1,54 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
+import { TRPCClientError } from "@trpc/client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
+
+/** Old host with no `sections` router (tRPC NOT_FOUND) vs. a transient error. */
+export function isMissingSectionsRouter(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data?.code === "NOT_FOUND";
+}
 
 /**
  * A workspace row as served by a host (`workspace.list`) — the cloud row
- * shape plus the host-only extras.
+ * shape plus the host-only extras. Sidebar placement fields are optional:
+ * hosts predating workspace groups (and old snapshots) don't serve them.
  */
 export interface HostWorkspaceRow extends SelectV2Workspace {
 	worktreePath: string;
 	worktreeExists: boolean;
+	sectionId?: string | null;
+	tabOrder?: number;
 }
 
 /** Merged item returned by useHostWorkspaces. */
 export interface HostWorkspaceItem extends SelectV2Workspace {
 	worktreePath?: string;
 	worktreeExists?: boolean;
+	sectionId?: string | null;
+	tabOrder?: number;
 	/** False when the row came from a snapshot/cloud and the host didn't answer. */
 	hostReachable: boolean;
 	/** "host" = served by a host (live or last-seen); "cloud" = Electric fallback. */
 	source: "host" | "cloud";
+}
+
+/** A sidebar section (workspace group) as served by a host. */
+export interface HostSectionRow {
+	id: string;
+	projectId: string;
+	name: string;
+	color: string | null;
+	tabOrder: number;
+	createdAt: number;
+	updatedAt: number;
+}
+
+/** Merged section item returned by useHostWorkspaces. */
+export interface HostSectionItem extends HostSectionRow {
+	hostId: string;
+	/** False when the list came from a snapshot and the host didn't answer. */
+	hostReachable: boolean;
 }
 
 export interface HostWorkspacesQueryTarget {
@@ -42,6 +71,18 @@ export function getHostWorkspacesQueryKey(
 	return [
 		"host-service",
 		"workspaces",
+		"list",
+		target.machineId,
+		target.hostUrl,
+	] as const;
+}
+
+export function getHostSectionsQueryKey(
+	target: Pick<HostWorkspacesQueryTarget, "machineId" | "hostUrl">,
+) {
+	return [
+		"host-service",
+		"sections",
 		"list",
 		target.machineId,
 		target.hostUrl,
@@ -141,6 +182,47 @@ export function clearHostWorkspacesSnapshot(
 	void idbDel(snapshotKey(organizationId, machineId)).catch(() => {});
 }
 
+const SECTIONS_SNAPSHOT_KEY_PREFIX = "host-sections:v1";
+
+function sectionsSnapshotKey(
+	organizationId: string,
+	machineId: string,
+): string {
+	return `${SECTIONS_SNAPSHOT_KEY_PREFIX}:${organizationId}:${machineId}`;
+}
+
+/**
+ * Without this snapshot, an offline remote host's workspaces would render
+ * with dangling sectionIds and fall into the orphan lane.
+ */
+export async function loadHostSectionsSnapshot(
+	organizationId: string,
+	machineId: string,
+): Promise<HostSectionRow[] | undefined> {
+	if (!organizationId) return undefined;
+	try {
+		return await idbGet<HostSectionRow[]>(
+			sectionsSnapshotKey(organizationId, machineId),
+		);
+	} catch (error) {
+		console.warn("[host-sections] failed to load snapshot", error);
+		return undefined;
+	}
+}
+
+export function saveHostSectionsSnapshot(
+	organizationId: string,
+	machineId: string,
+	rows: HostSectionRow[],
+): void {
+	if (!organizationId) return;
+	void idbSet(sectionsSnapshotKey(organizationId, machineId), rows).catch(
+		(error: unknown) => {
+			console.warn("[host-sections] failed to persist snapshot", error);
+		},
+	);
+}
+
 /**
  * Apply a workspace:changed event to a host's cached list. Created/updated
  * upsert from the event's snapshot payload; deleted removes the row.
@@ -175,6 +257,10 @@ export function applyWorkspaceChangedEvent(
 		createdAt: new Date(snapshot.createdAt),
 		updatedAt: new Date(snapshot.updatedAt),
 		worktreePath: snapshot.worktreePath,
+		// Rebuilt field-by-field: omitting these would silently reset a
+		// workspace's group membership on every rename event.
+		sectionId: snapshot.sectionId ?? null,
+		tabOrder: snapshot.tabOrder ?? 0,
 		// A host broadcasting created/updated just acted on the worktree;
 		// keep a known value over assuming.
 		worktreeExists: existing?.worktreeExists ?? true,
@@ -231,5 +317,29 @@ export function mergeHostWorkspaces({
 		});
 	}
 
+	return items;
+}
+
+export function mergeHostSections(
+	hostResults: Array<{
+		target: HostWorkspacesQueryTarget;
+		rows: HostSectionRow[] | undefined;
+		reachable: boolean;
+	}>,
+): HostSectionItem[] {
+	const items: HostSectionItem[] = [];
+	const seenIds = new Set<string>();
+	for (const result of hostResults) {
+		if (!result.rows) continue;
+		for (const row of result.rows) {
+			if (seenIds.has(row.id)) continue;
+			seenIds.add(row.id);
+			items.push({
+				...row,
+				hostId: result.target.machineId,
+				hostReachable: result.reachable,
+			});
+		}
+	}
 	return items;
 }

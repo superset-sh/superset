@@ -122,7 +122,6 @@ export function DashboardSidebarProjectSection({
 						className="overflow-hidden"
 					>
 						<DashboardSidebarExpandedProjectContent
-							projectId={project.id}
 							isCollapsed={project.isCollapsed}
 							projectChildren={project.children}
 							workspaceShortcutLabels={workspaceShortcutLabels}

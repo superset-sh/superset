@@ -15,7 +15,8 @@ type EventType =
 	| "agent:lifecycle"
 	| "terminal:lifecycle"
 	| "port:changed"
-	| "workspace:changed";
+	| "workspace:changed"
+	| "section:changed";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -70,6 +71,20 @@ export interface WorkspaceChangedPayload {
 	occurredAt: number;
 }
 
+type SectionChangedMessage = Extract<
+	ServerMessage,
+	{ type: "section:changed" }
+>;
+
+export type SectionSnapshotPayload = SectionChangedMessage["sections"][number];
+
+export interface SectionChangedPayload {
+	eventType: SectionChangedMessage["eventType"];
+	/** The host's FULL sections list — replace the cache, don't patch. */
+	sections: SectionChangedMessage["sections"];
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -82,7 +97,9 @@ type EventListener<T extends EventType> = T extends "fs:events"
 					? (workspaceId: string, payload: PortChangedPayload) => void
 					: T extends "workspace:changed"
 						? (workspaceId: string, payload: WorkspaceChangedPayload) => void
-						: never;
+						: T extends "section:changed"
+							? (workspaceId: null, payload: SectionChangedPayload) => void
+							: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -193,6 +210,12 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					occurredAt: message.occurredAt,
 				},
 			);
+		} else if (message.type === "section:changed") {
+			(entry.callback as EventListener<"section:changed">)(null, {
+				eventType: message.eventType,
+				sections: message.sections,
+				occurredAt: message.occurredAt,
+			});
 		}
 	}
 }

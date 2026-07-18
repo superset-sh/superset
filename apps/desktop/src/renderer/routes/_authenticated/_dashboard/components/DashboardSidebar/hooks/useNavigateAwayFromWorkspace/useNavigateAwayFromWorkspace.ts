@@ -21,7 +21,7 @@ export function useNavigateAwayFromWorkspace() {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const collections = useCollections();
-	const { workspaces } = useHostWorkspaces();
+	const { workspaces, sections } = useHostWorkspaces();
 	const workspaceIds = useMemo(
 		() => new Set(workspaces.map((workspace) => workspace.id)),
 		[workspaces],
@@ -39,7 +39,10 @@ export function useNavigateAwayFromWorkspace() {
 			const target = resolveWorkspaceRemovalNavigationTarget({
 				activeWorkspaceId,
 				removedWorkspaceId: workspaceId,
-				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections),
+				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections, {
+					workspaces,
+					sections,
+				}),
 				isWorkspaceValid: (id) => workspaceIds.has(id),
 				isWorkspaceDeleting: (id) => isDeleting(id),
 			});
@@ -55,7 +58,15 @@ export function useNavigateAwayFromWorkspace() {
 				reportRemovalNavigationError,
 			);
 		},
-		[collections, workspaceIds, isDeleting, matchRoute, navigate],
+		[
+			collections,
+			workspaces,
+			sections,
+			workspaceIds,
+			isDeleting,
+			matchRoute,
+			navigate,
+		],
 	);
 
 	return { navigateAwayFromWorkspace };

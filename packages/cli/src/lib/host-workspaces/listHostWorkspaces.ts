@@ -1,5 +1,6 @@
 import { CLIError } from "@superset/cli-framework";
 import { getHostId } from "@superset/shared/host-info";
+import { TRPCClientError } from "@trpc/client";
 import type { ApiClient } from "../api-client";
 import { isProcessAlive, readManifest } from "../host/manifest";
 import { type HostServiceClient, resolveHostTarget } from "../host-target";
@@ -14,6 +15,10 @@ export type HostWorkspaceRow = Awaited<
 	ReturnType<HostServiceClient["workspace"]["list"]["query"]>
 >[number];
 
+export type HostSectionRow = Awaited<
+	ReturnType<HostServiceClient["sections"]["list"]["query"]>
+>[number] & { hostId: string };
+
 export interface ListHostWorkspacesOptions {
 	api: ApiClient;
 	organizationId: string;
@@ -24,6 +29,8 @@ export interface ListHostWorkspacesOptions {
 
 export interface HostWorkspacesResult {
 	workspaces: HostWorkspaceRow[];
+	/** Workspace groups (sidebar sections) merged across the same hosts. */
+	sections: HostSectionRow[];
 	/** Org hosts from cloud discovery (empty when the cloud is unreachable). */
 	hosts: HostInfo[];
 	/** Per-host problems (unreachable host, failed cloud discovery, ...). */
@@ -32,6 +39,11 @@ export interface HostWorkspacesResult {
 
 function describeError(error: unknown): string {
 	return error instanceof Error ? error.message : String(error);
+}
+
+/** Old host with no `sections` router (tRPC NOT_FOUND) vs. a transient error. */
+function isMissingSectionsRouter(error: unknown): boolean {
+	return error instanceof TRPCClientError && error.data?.code === "NOT_FOUND";
 }
 
 /**
@@ -94,16 +106,48 @@ export async function listHostWorkspaces(
 				organizationId: options.organizationId,
 				userJwt: options.userJwt,
 			});
-			return target.client.workspace.list.query();
+			const [workspaces, sectionsSettled] = await Promise.all([
+				target.client.workspace.list.query(),
+				target.client.sections.list.query().then(
+					(rows) => ({ ok: true as const, rows }),
+					(error: unknown) => ({ ok: false as const, error }),
+				),
+			]);
+			if (sectionsSettled.ok) {
+				return {
+					workspaces,
+					sections: sectionsSettled.rows,
+					sectionsError: undefined,
+				};
+			}
+			// Old host: expected "no groups". Otherwise keep the workspaces and
+			// report the group-load failure.
+			const sectionsError = isMissingSectionsRouter(sectionsSettled.error)
+				? undefined
+				: sectionsSettled.error;
+			return {
+				workspaces,
+				sections: [] as Array<Omit<HostSectionRow, "hostId">>,
+				sectionsError,
+			};
 		}),
 	);
 
 	const workspaces: HostWorkspaceRow[] = [];
+	const sections: HostSectionRow[] = [];
 	settled.forEach((result, index) => {
 		const hostId = targetHostIds[index];
 		if (!hostId) return;
 		if (result.status === "fulfilled") {
-			workspaces.push(...result.value);
+			workspaces.push(...result.value.workspaces);
+			sections.push(
+				...result.value.sections.map((section) => ({ ...section, hostId })),
+			);
+			if (result.value.sectionsError) {
+				warnings.push(
+					`Host ${describeHost(hostId)}: failed to load workspace groups: ${describeError(result.value.sectionsError)}`,
+				);
+			}
 		} else {
 			warnings.push(
 				`Host ${describeHost(hostId)} unreachable: ${describeError(result.reason)}`,
@@ -111,11 +155,13 @@ export async function listHostWorkspaces(
 		}
 	});
 
-	return { workspaces, hosts, warnings };
+	return { workspaces, sections, hosts, warnings };
 }
 
 export interface FindHostWorkspaceResult {
 	workspace: HostWorkspaceRow | undefined;
+	/** Groups merged across the same hosts (for section-name lookups). */
+	sections: HostSectionRow[];
 	warnings: string[];
 }
 
@@ -124,9 +170,10 @@ export async function findHostWorkspace(
 	options: Omit<ListHostWorkspacesOptions, "hostId">,
 	workspaceId: string,
 ): Promise<FindHostWorkspaceResult> {
-	const { workspaces, warnings } = await listHostWorkspaces(options);
+	const { workspaces, sections, warnings } = await listHostWorkspaces(options);
 	return {
 		workspace: workspaces.find((workspace) => workspace.id === workspaceId),
+		sections,
 		warnings,
 	};
 }

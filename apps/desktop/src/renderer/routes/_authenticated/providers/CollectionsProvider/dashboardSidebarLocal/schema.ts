@@ -172,6 +172,10 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 	>,
 };
 
+/**
+ * @deprecated Only parses legacy rows for useMigrateSidebarSectionsToHost;
+ * delete both together.
+ */
 export const dashboardSidebarSectionSchema = z.object({
 	sectionId: z.string().uuid(),
 	projectId: z.string().uuid(),
@@ -180,6 +184,15 @@ export const dashboardSidebarSectionSchema = z.object({
 	tabOrder: z.number().int().default(0),
 	isCollapsed: z.boolean().default(false),
 	color: z.string().nullable().default(null),
+});
+
+/**
+ * Per-client collapse state for host-owned sections; deliberately not
+ * synced through the host. Missing row = expanded.
+ */
+export const sectionUiStateSchema = z.object({
+	sectionId: z.string().uuid(),
+	isCollapsed: z.boolean().default(false),
 });
 
 const v2ExecutionModeSchema = z.enum([
@@ -223,6 +236,7 @@ export type WorkspaceRunTerminalState = z.infer<
 export type DashboardSidebarSectionRow = z.infer<
 	typeof dashboardSidebarSectionSchema
 >;
+export type SectionUiStateRow = z.infer<typeof sectionUiStateSchema>;
 export type V2TerminalPresetRow = z.infer<typeof v2TerminalPresetSchema>;
 
 /**

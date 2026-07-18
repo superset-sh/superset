@@ -2,6 +2,7 @@ export {
 	type FindHostWorkspaceResult,
 	findHostWorkspace,
 	type HostInfo,
+	type HostSectionRow,
 	type HostWorkspaceRow,
 	type HostWorkspacesResult,
 	type ListHostWorkspacesOptions,

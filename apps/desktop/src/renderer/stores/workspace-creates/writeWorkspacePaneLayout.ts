@@ -4,10 +4,6 @@ import type {
 	AppCollections,
 	WorkspaceCreateMutationMetadata,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
-import {
-	getPrependTabOrder,
-	isSidebarWorkspaceVisible,
-} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { appendLaunchesToPaneLayout } from "./appendLaunchesToPaneLayout";
 
 type HostWorkspacesCreateResult = NonNullable<
@@ -42,26 +38,13 @@ export function writeWorkspacePaneLayout(
 		return;
 	}
 
-	const projectId = workspace.projectId;
-	const topLevelItems = [
-		...Array.from(collections.v2WorkspaceLocalState.state.values())
-			.filter(
-				(item) =>
-					item.sidebarState.projectId === projectId &&
-					item.sidebarState.sectionId === null &&
-					isSidebarWorkspaceVisible(item),
-			)
-			.map((item) => ({ tabOrder: item.sidebarState.tabOrder })),
-		...Array.from(collections.v2SidebarSections.state.values())
-			.filter((item) => item.projectId === projectId)
-			.map((item) => ({ tabOrder: item.tabOrder })),
-	];
+	// Placement is host-owned; this row only carries membership.
 	collections.v2WorkspaceLocalState.insert({
 		workspaceId: workspace.id,
 		createdAt: new Date(),
 		sidebarState: {
-			projectId,
-			tabOrder: getPrependTabOrder(topLevelItems),
+			projectId: workspace.projectId,
+			tabOrder: 0,
 			sectionId: null,
 			changesFilter: { kind: "all" },
 			activeTab: "changes",

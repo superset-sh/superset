@@ -13,6 +13,8 @@ export type {
 	FsWatchCommand,
 	GitChangedMessage,
 	PortChangedMessage,
+	SectionChangedMessage,
 	ServerMessage,
+	SidebarSectionSnapshot,
 	TerminalLifecycleMessage,
 } from "./types.ts";

@@ -22,6 +22,10 @@ import {
 	insertLocalWorkspace,
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
+import {
+	getSection,
+	moveWorkspaceToSection,
+} from "../../../workspaces/sidebar-sections-store";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
@@ -91,6 +95,7 @@ const createInputSchema = z
 		pr: z.number().int().positive().optional(),
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
+		sectionId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
 		command: z.string().min(1).optional(),
 		namingPrompt: z.string().min(1).optional(),
@@ -529,6 +534,18 @@ export const workspacesRouter = router({
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			const localProject = requireLocalProject(ctx, input.projectId);
+
+			if (input.sectionId !== undefined) {
+				// Cross-host groups: only validate sections this host can see.
+				const section = getSection(ctx.db, input.sectionId);
+				if (section && section.projectId !== input.projectId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Cannot place the workspace in a group from a different project",
+					});
+				}
+			}
 
 			// Kick off host.ensure immediately so the cloud round-trip
 			// overlaps with the git work below. Suppressing unhandled
@@ -1045,6 +1062,14 @@ export const workspacesRouter = router({
 						}
 					}
 				}
+			}
+
+			// Idempotent re-creates keep whatever grouping the workspace has.
+			if (!alreadyExists && input.sectionId !== undefined) {
+				moveWorkspaceToSection(ctx, {
+					workspaceId: workspaceRow.id,
+					sectionId: input.sectionId,
+				});
 			}
 
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];

@@ -1,5 +1,10 @@
 import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import {
+	applyWorkspaceLaneMove,
+	resolveProjectWorkspace,
+	resolveSection,
+} from "../../../lib/host-sections";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
 
@@ -14,6 +19,12 @@ export default command({
 		pr: number().desc("PR number — checks out the verified PR head"),
 		baseBranch: string().desc(
 			"Branch to fork from when `branch` does not exist (defaults to project default)",
+		),
+		group: string().desc(
+			"Workspace group (name or id) to place the new workspace in",
+		),
+		after: string().desc(
+			"Place the new workspace directly under this workspace (name or id), inheriting its group",
 		),
 		agent: string().desc(
 			"Agent to spawn after creation. Preset id (`claude`, `codex`, …), HostAgentConfig instance UUID, or `superset`",
@@ -61,6 +72,12 @@ export default command({
 				"Attachments are only meaningful when launching an agent",
 			);
 		}
+		if (options.group && options.after) {
+			throw new CLIError(
+				"Cannot combine --group and --after",
+				"--after places the workspace under another one, inheriting its group",
+			);
+		}
 
 		const hostId = requireHostTarget({
 			host: options.host ?? undefined,
@@ -72,6 +89,17 @@ export default command({
 			organizationId,
 			userJwt: ctx.bearer,
 		});
+
+		const section = options.group
+			? await resolveSection(target.client, options.group, options.project)
+			: undefined;
+		const afterWorkspace = options.after
+			? await resolveProjectWorkspace(
+					target.client,
+					options.project,
+					options.after,
+				)
+			: undefined;
 
 		const attachmentIds = options.attachment
 			? await uploadAttachments(target.client, options.attachment)
@@ -94,9 +122,28 @@ export default command({
 			branch: options.branch,
 			pr: options.pr,
 			baseBranch: options.baseBranch,
+			sectionId: section?.id ?? afterWorkspace?.sectionId ?? undefined,
 			agents,
 			command: options.command ?? undefined,
 		});
+
+		if (afterWorkspace && !result.alreadyExists) {
+			// Place the new workspace directly under `--after`, in its list.
+			const [workspaces, sections] = await Promise.all([
+				target.client.workspace.list.query(),
+				target.client.sections.list.query(),
+			]);
+			await applyWorkspaceLaneMove(
+				target.client,
+				{ workspaces, sections },
+				{
+					workspaceId: result.workspace.id,
+					sectionId: afterWorkspace.sectionId ?? null,
+					projectId: afterWorkspace.projectId,
+					target: { afterId: afterWorkspace.id },
+				},
+			);
+		}
 
 		return {
 			data: result,

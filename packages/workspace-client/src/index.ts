@@ -7,6 +7,8 @@ export {
 	type GitChangedPayload,
 	getEventBus,
 	type PortChangedPayload,
+	type SectionChangedPayload,
+	type SectionSnapshotPayload,
 	type TerminalLifecyclePayload,
 	type WorkspaceChangedPayload,
 	type WorkspaceSnapshotPayload,

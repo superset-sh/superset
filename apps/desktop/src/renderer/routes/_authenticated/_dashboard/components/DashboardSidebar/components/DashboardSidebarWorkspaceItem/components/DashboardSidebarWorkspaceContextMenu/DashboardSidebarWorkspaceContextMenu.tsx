@@ -9,8 +9,7 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -26,11 +25,13 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	projectId: string;
+	/** A workspace can only join groups on its own host. */
+	workspaceHostId: string;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
 	isPinned?: boolean;
@@ -52,6 +53,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 
 export function DashboardSidebarWorkspaceContextMenu({
 	projectId,
+	workspaceHostId,
 	isInSection,
 	isLocalWorkspace,
 	isPinned = false,
@@ -70,25 +72,27 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onClearStatus,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
-	const collections = useCollections();
 	const { setContextMenuOpen } = useDashboardSidebarHover();
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
-	const { data: sections = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sidebarSections: collections.v2SidebarSections })
-				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId),
+	const { sections: hostSections } = useHostWorkspaces();
+	const sections = useMemo(
+		() =>
+			hostSections
+				// Same host only.
+				.filter(
+					(section) =>
+						section.projectId === projectId &&
+						section.hostId === workspaceHostId,
 				)
-				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
-				.select(({ sidebarSections }) => ({
-					id: sidebarSections.sectionId,
-					name: sidebarSections.name,
-					color: sidebarSections.color,
+				.sort((left, right) => left.tabOrder - right.tabOrder)
+				.map((section) => ({
+					id: section.id,
+					name: section.name,
+					color: section.color,
 				})),
-		[collections, projectId],
+		[hostSections, projectId, workspaceHostId],
 	);
 
 	return (

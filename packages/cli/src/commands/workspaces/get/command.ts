@@ -31,18 +31,19 @@ export default command({
 
 		// Workspace records are host-owned: resolve the id across the org's
 		// reachable hosts, then enrich project/host ids with cloud names.
-		const [{ workspace, warnings }, projects, hosts] = await Promise.all([
-			findHostWorkspace(
-				{ api: ctx.api, organizationId, userJwt: ctx.bearer },
-				id,
-			),
-			ctx.api.v2Project.list
-				.query({ organizationId })
-				.catch(() => [] as Array<{ id: string; name: string }>),
-			ctx.api.host.list
-				.query({ organizationId })
-				.catch(() => [] as Array<{ id: string; name: string }>),
-		]);
+		const [{ workspace, sections, warnings }, projects, hosts] =
+			await Promise.all([
+				findHostWorkspace(
+					{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+					id,
+				),
+				ctx.api.v2Project.list
+					.query({ organizationId })
+					.catch(() => [] as Array<{ id: string; name: string }>),
+				ctx.api.host.list
+					.query({ organizationId })
+					.catch(() => [] as Array<{ id: string; name: string }>),
+			]);
 		for (const warning of warnings) {
 			process.stderr.write(`Warning: ${warning}\n`);
 		}
@@ -60,6 +61,11 @@ export default command({
 			hosts.find((host) => host.id === workspace.hostId)?.name ??
 			workspace.hostId;
 
+		const groupName = workspace.sectionId
+			? (sections.find((section) => section.id === workspace.sectionId)?.name ??
+				workspace.sectionId)
+			: null;
+
 		const detail = {
 			id: workspace.id,
 			name: workspace.name,
@@ -67,6 +73,8 @@ export default command({
 			type: workspace.type,
 			projectId: workspace.projectId,
 			projectName,
+			groupId: workspace.sectionId,
+			groupName,
 			hostId: workspace.hostId,
 			hostName,
 			taskId: workspace.taskId,

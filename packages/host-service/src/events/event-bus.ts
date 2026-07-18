@@ -196,6 +196,12 @@ export class EventBus {
 		this.broadcast({ type: "workspace:changed", ...message });
 	}
 
+	broadcastSectionChanged(
+		message: Omit<Extract<ServerMessage, { type: "section:changed" }>, "type">,
+	): void {
+		this.broadcast({ type: "section:changed", ...message });
+	}
+
 	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while

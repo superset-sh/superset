@@ -90,6 +90,30 @@ export const hostSettings = sqliteTable("host_settings", {
 	branchPrefixCustom: text("branch_prefix_custom"),
 });
 
+/**
+ * Workspace groups ("sections") shown in client sidebars. Collapse state is
+ * deliberately absent — it's per-client UI preference.
+ */
+export const sidebarSections = sqliteTable(
+	"sidebar_sections",
+	{
+		id: text().primaryKey(),
+		projectId: text("project_id")
+			.notNull()
+			.references(() => projects.id, { onDelete: "cascade" }),
+		name: text().notNull(),
+		color: text(),
+		tabOrder: integer("tab_order").notNull().default(0),
+		createdAt: integer("created_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [index("sidebar_sections_project_id_idx").on(table.projectId)],
+);
+
 export const pullRequests = sqliteTable(
 	"pull_requests",
 	{
@@ -185,6 +209,10 @@ export const workspaces = sqliteTable(
 		name: text().notNull().default(""),
 		type: text().$type<"main" | "worktree">().notNull().default("worktree"),
 		taskId: text("task_id"),
+		// Deliberately NOT a foreign key: the section may be owned by another
+		// host. Null = ungrouped.
+		sectionId: text("section_id"),
+		tabOrder: integer("tab_order").notNull().default(0),
 		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
 			.notNull()
@@ -203,6 +231,7 @@ export const workspaces = sqliteTable(
 			table.upstreamBranch,
 		),
 		index("workspaces_pull_request_id_idx").on(table.pullRequestId),
+		index("workspaces_section_id_idx").on(table.sectionId),
 		uniqueIndex("workspaces_one_main_per_project")
 			.on(table.projectId)
 			.where(sql`type = 'main'`),

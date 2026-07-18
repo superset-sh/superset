@@ -26,6 +26,8 @@ export interface SidebarProjectInput {
 export interface SidebarSectionInput {
 	id: string;
 	projectId: string;
+	/** Host that owns the section row — mutations route to it. */
+	hostId: string;
 	name: string;
 	createdAt: Date;
 	isCollapsed: boolean;
