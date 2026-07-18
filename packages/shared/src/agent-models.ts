@@ -107,6 +107,10 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// baked into the model ids. Ids verified against a live account's
 			// `--list-models` (2026-07-17); the list is account-dependent and
 			// unknown ids are rejected by the CLI, not silently ignored.
+			// "auto" is the only id free-plan accounts can use (besides
+			// composer) — named models fail there with "Named models
+			// unavailable", so keep an explicit working choice in the picker.
+			{ id: "auto", label: "Auto" },
 			{ id: "claude-fable-5-thinking-high", label: "Fable 5" },
 			{ id: "claude-fable-5-thinking-xhigh", label: "Fable 5 xHigh" },
 			{ id: "claude-opus-4-8-high", label: "Opus 4.8" },
