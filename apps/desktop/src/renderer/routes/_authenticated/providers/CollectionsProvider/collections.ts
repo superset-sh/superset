@@ -254,6 +254,7 @@ const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 		message: error instanceof Error ? error.message.slice(0, 200) : undefined,
 	});
 	toast.error("Cloud sync stopped", {
+		id: "electric-sync-stopped",
 		description: "Synced data may be stale until Superset reconnects.",
 		action: { label: "Reload", onClick: () => window.location.reload() },
 	});

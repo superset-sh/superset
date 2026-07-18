@@ -273,8 +273,15 @@ export class HostServiceCoordinator extends EventEmitter {
 		const hostRoot = path.join(SUPERSET_HOME_DIR, "host");
 		let entries: fs.Dirent[];
 		try {
-			entries = fs.readdirSync(hostRoot, { withFileTypes: true });
-		} catch {
+			entries = await fs.promises.readdir(hostRoot, { withFileTypes: true });
+		} catch (error) {
+			// No dir yet = nothing hosted before; anything else is worth seeing.
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+				log.warn(
+					`[host-service-coordinator] cannot read host root ${hostRoot}:`,
+					error,
+				);
+			}
 			return;
 		}
 		const orgIdPattern = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
