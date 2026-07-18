@@ -24,12 +24,18 @@ function makePool(options?: ConstructorParameters<typeof HostWorkerPool>[0]) {
 	return pool;
 }
 
+const fixtureDirs: string[] = [];
+
 afterEach(async () => {
 	await Promise.all(pools.splice(0).map((p) => p.dispose()));
+	for (const dir of fixtureDirs.splice(0)) {
+		fs.rmSync(dir, { recursive: true, force: true });
+	}
 });
 
 function makeFixtureRepo(): string {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "host-worker-git-"));
+	fixtureDirs.push(dir);
 	const git = (...args: string[]) =>
 		execFileSync("git", args, { cwd: dir, stdio: "pipe" });
 	git("init", "-q", "-b", "main");
@@ -157,6 +163,69 @@ describe("HostWorkerPool", () => {
 			"timed out after 200ms",
 		);
 		expect(performance.now() - t0).toBeLessThan(2_000);
+	});
+
+	test("a task queued behind a poison payload still completes", async () => {
+		const pool = makePool({ concurrency: 1 });
+		const echo = defineWorkerTask<{ v: number; fn?: unknown }, number>({
+			type: "test/echo-drain",
+			handler: async ({ v }) => v,
+		});
+
+		// One slot: t1 occupies it (worker round trip), t2's payload fails
+		// postMessage at dispatch, t3 sits behind it. Without a re-drain, t3
+		// strands with no timeout armed and only settles via t3's own timeout.
+		const t1 = pool.run(echo, { v: 1 }).catch((e: Error) => e.message);
+		const t2 = pool
+			.run(echo, { v: 2, fn: () => 2 })
+			.catch((e: Error) => e.message);
+		const t3 = pool.run(echo, { v: 3 }).catch((e: Error) => e.message);
+
+		const results = await Promise.race([
+			Promise.all([t1, t2, t3]),
+			new Promise<"stranded">((r) => setTimeout(() => r("stranded"), 5_000)),
+		]);
+		expect(results).not.toBe("stranded");
+		const [r1, r2, r3] = results as string[];
+		expect(r1).toContain("unknown worker task type");
+		expect(r2).toContain("postMessage failed");
+		expect(r3).toContain("unknown worker task type");
+	});
+
+	test("circuit-open rejects the queued backlog into the inline retry", async () => {
+		const marker = path.join(
+			fs.mkdtempSync(path.join(os.tmpdir(), "host-worker-crash-")),
+			"spawns",
+		);
+		fixtureDirs.push(path.dirname(marker));
+		process.env.CRASH_MARKER_FILE = marker;
+		try {
+			const pool = makePool({
+				scriptPathResolver: () => CRASH_WORKER,
+				concurrency: 1,
+			});
+			const echo = defineWorkerTask<{ v: number }, number>({
+				type: "test/echo-backlog",
+				handler: async ({ v }) => v,
+			});
+
+			// Distinct payloads (no dedupe): serial crashes burn the budget while
+			// the rest queue. At circuit-open the queued tasks must reject into
+			// the inline retry instead of each feeding a fresh crashing worker.
+			const results = await Promise.race([
+				Promise.all([1, 2, 3, 4, 5].map((v) => pool.run(echo, { v }))),
+				new Promise<"stranded">((r) => setTimeout(() => r("stranded"), 15_000)),
+			]);
+			expect(results).toEqual([1, 2, 3, 4, 5]);
+			expect(pool.getMode()).toBe("inline");
+			// Budget is 3; one more task may already be mid-dispatch when the
+			// circuit opens. Without the queued-backlog rejection, every task
+			// spawns its own crashing worker (5 here).
+			const spawns = fs.readFileSync(marker, "utf8").length;
+			expect(spawns).toBeLessThanOrEqual(4);
+		} finally {
+			delete process.env.CRASH_MARKER_FILE;
+		}
 	});
 
 	test("non-cloneable payload rejects without wedging the worker slot", async () => {

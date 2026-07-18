@@ -37,6 +37,25 @@ import {
 } from "./utils/graphql";
 import { resolveWorktreePath } from "./utils/resolve-worktree";
 
+// Front-door cap for commit-file diffs. Statuses are admitted by
+// gitStatusRefreshLimiter; without a cap here, a burst of distinct-commit
+// diffs could occupy every pool worker ahead of limiter-admitted statuses.
+const MAX_CONCURRENT_COMMIT_FILE_TASKS = 2;
+let activeCommitFileTasks = 0;
+const commitFileWaiters: (() => void)[] = [];
+async function withCommitFilesSlot<T>(fn: () => Promise<T>): Promise<T> {
+	if (activeCommitFileTasks >= MAX_CONCURRENT_COMMIT_FILE_TASKS) {
+		await new Promise<void>((resolve) => commitFileWaiters.push(resolve));
+	}
+	activeCommitFileTasks++;
+	try {
+		return await fn();
+	} finally {
+		activeCommitFileTasks--;
+		commitFileWaiters.shift()?.();
+	}
+}
+
 /** Credential env for a worker git task, resolved in-process (the provider
  * can't cross the thread boundary) and passed to the worker as plain data. */
 function resolveGitTaskEnv(
@@ -185,19 +204,21 @@ export const gitRouter = router({
 		.query(async ({ ctx, input }) => {
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
-			const files = await getHostWorkerPool().run(
-				gitCommitFilesTask,
-				{
-					worktreePath,
-					commitHash: input.commitHash,
-					fromHash: input.fromHash,
-					gitEnv,
-				},
-				{
-					timeoutMs: 15_000,
-					strategy: "coalesce",
-					dedupeKey: `${input.workspaceId}:commit-files:${input.fromHash ?? ""}:${input.commitHash}`,
-				},
+			const files = await withCommitFilesSlot(() =>
+				getHostWorkerPool().run(
+					gitCommitFilesTask,
+					{
+						worktreePath,
+						commitHash: input.commitHash,
+						fromHash: input.fromHash,
+						gitEnv,
+					},
+					{
+						timeoutMs: 15_000,
+						strategy: "coalesce",
+						dedupeKey: `${input.workspaceId}:commit-files:${input.fromHash ?? ""}:${input.commitHash}`,
+					},
+				),
 			);
 
 			return { files };

@@ -16,6 +16,7 @@ import * as path from "node:path";
 import { fileURLToPath } from "node:url";
 import type { WorkerTaskDefinition } from "./define-worker-task.ts";
 import {
+	DEFAULT_TIMEOUT_MS,
 	WORKER_CRASH_ERROR_NAME,
 	WorkerTaskAbortedError,
 	WorkerTaskError,
@@ -154,21 +155,21 @@ export class HostWorkerPool {
 				fn();
 			};
 			const onAbort = () => settle(() => reject(new WorkerTaskAbortedError()));
-			const timeoutHandle = options?.timeoutMs
-				? setTimeout(
-						() =>
-							settle(() =>
-								reject(
-									new WorkerTaskError(
-										`[host-worker] Task "${def.type}" timed out after ${options.timeoutMs}ms (inline)`,
-									),
-								),
+			// Same default and zero-means-instant semantics as the worker path.
+			const timeoutMs = options?.timeoutMs ?? DEFAULT_TIMEOUT_MS;
+			const timeoutHandle = setTimeout(
+				() =>
+					settle(() =>
+						reject(
+							new WorkerTaskError(
+								`[host-worker] Task "${def.type}" timed out after ${timeoutMs}ms (inline)`,
 							),
-						options.timeoutMs,
-					)
-				: null;
+						),
+					),
+				timeoutMs,
+			);
 			const cleanup = () => {
-				if (timeoutHandle) clearTimeout(timeoutHandle);
+				clearTimeout(timeoutHandle);
 				options?.signal?.removeEventListener("abort", onAbort);
 			};
 			options?.signal?.addEventListener("abort", onAbort, { once: true });
@@ -206,7 +207,13 @@ export class HostWorkerPool {
 			// outstanding tasks with abort errors that bypass the inline
 			// retry. Detach it instead — in-flight tasks settle on their own
 			// merits and the idle reaper terminates its workers afterward.
-			if (this.runner) this.drainingRunners.push(this.runner);
+			// Queued tasks WOULD keep feeding fresh crashing workers, so
+			// reject them with this same crash error: their callers take the
+			// inline retry and seenCrashErrors keeps the accounting at one.
+			if (this.runner) {
+				this.drainingRunners.push(this.runner);
+				this.runner.rejectQueuedTasks(error);
+			}
 			this.runner = null;
 		}
 	}

@@ -78,7 +78,7 @@ interface QueuedTask {
 	slotId?: number;
 }
 
-const DEFAULT_TIMEOUT_MS = 60_000;
+export const DEFAULT_TIMEOUT_MS = 60_000;
 
 export class WorkerTaskRunner {
 	private readonly workerScriptPath: string;
@@ -190,6 +190,15 @@ export class WorkerTaskRunner {
 		});
 	}
 
+	/** Reject every queued (not yet dispatched) task; active tasks keep
+	 * running. Used at circuit-open so queued work stops feeding crashing
+	 * workers and callers take their own fallback path. */
+	rejectQueuedTasks(reason: unknown): void {
+		for (const taskId of [...this.queue]) {
+			this.rejectTask(taskId, reason);
+		}
+	}
+
 	async dispose(): Promise<void> {
 		this.disposed = true;
 
@@ -269,41 +278,47 @@ export class WorkerTaskRunner {
 				if (slot.activeTaskId || slot.terminating) continue;
 				if (this.queue.length === 0) break;
 
-				const nextTaskId = this.queue.shift();
-				if (!nextTaskId) continue;
-				const task = this.tasks.get(nextTaskId);
-				if (!task) continue;
+				// Keep pulling until this slot actually dispatches or the queue
+				// drains — rejection paths (pre-aborted signal, non-cloneable
+				// payload) must not strand tasks behind a slot the iteration
+				// already passed.
+				while (this.queue.length > 0 && !slot.activeTaskId) {
+					const nextTaskId = this.queue.shift();
+					if (!nextTaskId) continue;
+					const task = this.tasks.get(nextTaskId);
+					if (!task) continue;
 
-				if (task.abortSignal?.aborted) {
-					this.rejectTask(task.taskId, new WorkerTaskAbortedError());
-					continue;
-				}
+					if (task.abortSignal?.aborted) {
+						this.rejectTask(task.taskId, new WorkerTaskAbortedError());
+						continue;
+					}
 
-				this.clearIdleTimer(slot);
-				slot.activeTaskId = task.taskId;
-				task.slotId = slot.id;
-				task.timeoutHandle = setTimeout(() => {
-					this.handleTaskTimeout(task.taskId);
-				}, task.timeoutMs);
+					this.clearIdleTimer(slot);
+					slot.activeTaskId = task.taskId;
+					task.slotId = slot.id;
+					task.timeoutHandle = setTimeout(() => {
+						this.handleTaskTimeout(task.taskId);
+					}, task.timeoutMs);
 
-				const request: WorkerTaskRequestMessage = {
-					kind: "task",
-					taskId: task.taskId,
-					taskType: task.taskType,
-					payload: task.payload,
-				};
-				try {
-					slot.worker.postMessage(request);
-				} catch (error) {
-					// Non-cloneable payload: reject THIS task and free the slot —
-					// otherwise the slot stays occupied until the task timeout.
-					slot.activeTaskId = null;
-					this.rejectTask(
-						task.taskId,
-						new WorkerTaskError(
-							`postMessage failed for task "${task.taskType}": ${(error as Error).message}`,
-						),
-					);
+					const request: WorkerTaskRequestMessage = {
+						kind: "task",
+						taskId: task.taskId,
+						taskType: task.taskType,
+						payload: task.payload,
+					};
+					try {
+						slot.worker.postMessage(request);
+					} catch (error) {
+						// Non-cloneable payload: reject THIS task and free the slot —
+						// otherwise the slot stays occupied until the task timeout.
+						slot.activeTaskId = null;
+						this.rejectTask(
+							task.taskId,
+							new WorkerTaskError(
+								`postMessage failed for task "${task.taskType}": ${(error as Error).message}`,
+							),
+						);
+					}
 				}
 			}
 		}
