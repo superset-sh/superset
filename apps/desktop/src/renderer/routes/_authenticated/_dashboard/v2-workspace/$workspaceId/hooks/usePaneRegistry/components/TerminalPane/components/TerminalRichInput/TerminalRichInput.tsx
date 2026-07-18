@@ -121,17 +121,24 @@ function TerminalRichInputInner({
 	// Autofocus on open. A single focus() call can land before the Tiptap
 	// editor exists (it is created asynchronously — immediatelyRender: false),
 	// so retry across frames until focus is actually inside the overlay.
+	//
+	// The controller is read through a ref: its identity changes on every
+	// keystroke (the provider rebuilds it whenever the input value changes),
+	// and focus() moves the caret to the end of the editor — re-running this
+	// effect per keystroke would yank the cursor to the end while editing
+	// mid-text. Only isOpen may retrigger it.
 	const rootRef = useRef<HTMLDivElement | null>(null);
+	const controllerRef = useRef(controller);
+	controllerRef.current = controller;
 	useEffect(() => {
 		if (!isOpen) return;
 		let cancelled = false;
 		const attempt = (triesLeft: number) => {
 			if (cancelled || triesLeft <= 0) return;
-			controller.textInput.focus();
+			if (rootRef.current?.contains(document.activeElement)) return;
+			controllerRef.current.textInput.focus();
 			requestAnimationFrame(() => {
 				if (cancelled) return;
-				const root = rootRef.current;
-				if (root?.contains(document.activeElement)) return;
 				attempt(triesLeft - 1);
 			});
 		};
@@ -139,7 +146,7 @@ function TerminalRichInputInner({
 		return () => {
 			cancelled = true;
 		};
-	}, [isOpen, controller]);
+	}, [isOpen]);
 
 	return (
 		// Docked below the terminal rather than floating over it: opening adds
