@@ -199,4 +199,57 @@ describe("readTranscriptSessionInfo", () => {
 			});
 		});
 	});
+
+	it("reads the latest Claude permission-mode entry alongside usage", () => {
+		const path = writeTranscript([
+			JSON.stringify({
+				type: "permission-mode",
+				permissionMode: "plan",
+				sessionId: "s1",
+			}),
+			JSON.stringify({
+				type: "assistant",
+				message: { usage: { input_tokens: 5, cache_read_input_tokens: 50 } },
+			}),
+			JSON.stringify({
+				type: "permission-mode",
+				permissionMode: "bypassPermissions",
+				sessionId: "s1",
+			}),
+		]);
+		expect(readTranscriptSessionInfo(path)).toEqual({
+			contextUsedTokens: 55,
+			permissionMode: "bypassPermissions",
+		});
+	});
+
+	it("reads Codex sandbox mode from the latest turn_context", () => {
+		const path = writeTranscript([
+			JSON.stringify({
+				type: "turn_context",
+				payload: {
+					model: "gpt-5.6-sol",
+					effort: "xhigh",
+					sandbox_policy: { type: "danger-full-access" },
+					approval_policy: "never",
+				},
+			}),
+		]);
+		expect(readTranscriptSessionInfo(path)).toEqual({
+			effortLevel: "xhigh",
+			permissionMode: "danger-full-access",
+		});
+	});
+
+	it("falls back to Codex approval_policy when sandbox_policy is absent", () => {
+		const path = writeTranscript([
+			JSON.stringify({
+				type: "turn_context",
+				payload: { model: "gpt-5.5", approval_policy: "on-request" },
+			}),
+		]);
+		expect(readTranscriptSessionInfo(path)).toEqual({
+			permissionMode: "on-request",
+		});
+	});
 });

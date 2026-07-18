@@ -50,6 +50,15 @@ if [ "$SUPERSET_AGENT_ID" = "codex" ] && [ -f "$HOME/.codex/config.toml" ]; then
   if [ -z "$AGENT_EFFORT" ]; then
     AGENT_EFFORT=$(grep -E '^model_reasoning_effort[[:space:]]*=' "$HOME/.codex/config.toml" | head -1 | sed -E 's/^model_reasoning_effort[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/')
   fi
+  if [ -z "$PERMISSION_MODE" ]; then
+    PERMISSION_MODE=$(grep -E '^sandbox_mode[[:space:]]*=' "$HOME/.codex/config.toml" | head -1 | sed -E 's/^sandbox_mode[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/')
+  fi
+fi
+# Claude's hook JSON carries no permission mode; the transcript's
+# permission-mode entries are the live source (read host-side), and the
+# settings default covers session open before any entry exists.
+if [ -z "$PERMISSION_MODE" ] && [ "$SUPERSET_AGENT_ID" = "claude" ] && [ -f "$HOME/.claude/settings.json" ]; then
+  PERMISSION_MODE=$(grep -oE '"defaultMode"[[:space:]]*:[[:space:]]*"[^"]*"' "$HOME/.claude/settings.json" | grep -oE '"[^"]*"$' | tr -d '"')
 fi
 
 # Claude/Mastra/Droid use "hook_event_name"; Codex uses "type".

@@ -24,6 +24,13 @@ export interface TranscriptSessionInfo {
 	contextWindowTokens?: number;
 	/** Reasoning effort (Codex rollouts carry it; Claude hooks send it directly). */
 	effortLevel?: string;
+	/**
+	 * Permission/approval mode. Claude transcripts record dedicated
+	 * {"type":"permission-mode"} entries on every change (Shift+Tab included);
+	 * Codex rollouts carry sandbox_policy/approval_policy on each
+	 * turn_context.
+	 */
+	permissionMode?: string;
 }
 
 /**
@@ -66,6 +73,9 @@ export function readTranscriptSessionInfo(
 	// `effort` means "default", and must not inherit an older turn's value.
 	let sawTurnContext = false;
 	let codexEffort: string | undefined;
+	let codexPermissionMode: string | undefined;
+	let claudeUsage: number | undefined;
+	let claudePermissionMode: string | undefined;
 
 	for (let i = lines.length - 1; i >= 0; i--) {
 		const line = lines[i];
@@ -78,22 +88,59 @@ export function readTranscriptSessionInfo(
 			if (parsed !== undefined) {
 				sawTurnContext = true;
 				codexEffort = parsed.effortLevel;
+				codexPermissionMode = parsed.permissionMode;
 			}
-		} else if (line.includes('"usage"')) {
-			const contextUsedTokens = parseClaudeUsage(line);
-			if (contextUsedTokens !== undefined) {
-				return { contextUsedTokens };
-			}
+		} else if (
+			claudePermissionMode === undefined &&
+			line.includes('"permission-mode"')
+		) {
+			claudePermissionMode = parseClaudePermissionMode(line);
+		} else if (claudeUsage === undefined && line.includes('"usage"')) {
+			claudeUsage = parseClaudeUsage(line);
 		}
 
 		if (codexUsage !== undefined && sawTurnContext) break;
+		if (claudeUsage !== undefined && claudePermissionMode !== undefined) break;
 	}
 
-	if (codexUsage === undefined && codexEffort === undefined) return undefined;
+	if (claudeUsage !== undefined || claudePermissionMode !== undefined) {
+		return {
+			...(claudeUsage !== undefined ? { contextUsedTokens: claudeUsage } : {}),
+			...(claudePermissionMode !== undefined
+				? { permissionMode: claudePermissionMode }
+				: {}),
+		};
+	}
+
+	if (
+		codexUsage === undefined &&
+		codexEffort === undefined &&
+		codexPermissionMode === undefined
+	) {
+		return undefined;
+	}
 	return {
 		...codexUsage,
 		...(codexEffort !== undefined ? { effortLevel: codexEffort } : {}),
+		...(codexPermissionMode !== undefined
+			? { permissionMode: codexPermissionMode }
+			: {}),
 	};
+}
+
+function parseClaudePermissionMode(line: string): string | undefined {
+	try {
+		const entry = JSON.parse(line) as {
+			type?: string;
+			permissionMode?: string;
+		};
+		if (entry.type !== "permission-mode") return undefined;
+		return typeof entry.permissionMode === "string"
+			? entry.permissionMode
+			: undefined;
+	} catch {
+		return undefined;
+	}
 }
 
 function parseClaudeUsage(line: string): number | undefined {
@@ -149,13 +196,15 @@ function parseCodexTokenCount(line: string): TranscriptSessionInfo | undefined {
 
 function parseCodexTurnContext(
 	line: string,
-): { effortLevel?: string } | undefined {
+): { effortLevel?: string; permissionMode?: string } | undefined {
 	try {
 		const entry = JSON.parse(line) as {
 			type?: string;
 			payload?: {
 				effort?: string;
 				collaboration_mode?: { settings?: { reasoning_effort?: string } };
+				sandbox_policy?: { type?: string };
+				approval_policy?: string;
 			};
 		};
 		if (entry.type !== "turn_context") return undefined;
@@ -164,7 +213,14 @@ function parseCodexTurnContext(
 		const effort =
 			entry.payload?.effort ??
 			entry.payload?.collaboration_mode?.settings?.reasoning_effort;
-		return typeof effort === "string" ? { effortLevel: effort } : {};
+		// sandbox_policy.type (read-only | workspace-write | danger-full-access)
+		// is the user-facing mode; approval_policy is the fallback signal.
+		const permissionMode =
+			entry.payload?.sandbox_policy?.type ?? entry.payload?.approval_policy;
+		return {
+			...(typeof effort === "string" ? { effortLevel: effort } : {}),
+			...(typeof permissionMode === "string" ? { permissionMode } : {}),
+		};
 	} catch {
 		return undefined;
 	}
