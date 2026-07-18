@@ -34,6 +34,19 @@ AGENT_EFFORT="${CLAUDE_EFFORT:-}"
 if [ -z "$AGENT_EFFORT" ] && [ "$SUPERSET_AGENT_ID" = "claude" ] && [ -f "$HOME/.claude/settings.json" ]; then
   AGENT_EFFORT=$(grep -oE '"effortLevel"[[:space:]]*:[[:space:]]*"[^"]*"' "$HOME/.claude/settings.json" | grep -oE '"[^"]*"$' | tr -d '"')
 fi
+# Codex's launch announcement (and any pre-first-turn event) carries no
+# model/effort — the rollout only gains turn_context entries once a turn
+# runs. Fall back to the configured defaults, which are what a fresh
+# session starts with; later hook/transcript data overwrites them. The
+# `^model` anchor must not match model_reasoning_effort / model_provider.
+if [ "$SUPERSET_AGENT_ID" = "codex" ] && [ -f "$HOME/.codex/config.toml" ]; then
+  if [ -z "$AGENT_MODEL" ]; then
+    AGENT_MODEL=$(grep -E '^model[[:space:]]*=' "$HOME/.codex/config.toml" | head -1 | sed -E 's/^model[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/')
+  fi
+  if [ -z "$AGENT_EFFORT" ]; then
+    AGENT_EFFORT=$(grep -E '^model_reasoning_effort[[:space:]]*=' "$HOME/.codex/config.toml" | head -1 | sed -E 's/^model_reasoning_effort[[:space:]]*=[[:space:]]*"([^"]*)".*/\1/')
+  fi
+fi
 
 # Claude/Mastra/Droid use "hook_event_name"; Codex uses "type".
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
