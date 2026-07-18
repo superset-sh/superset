@@ -28,6 +28,20 @@ function writeCommandFile(
 	writeFileSync(commandFilePath, body);
 }
 
+function writeSkillFile(
+	root: string,
+	name: string,
+	description: string,
+	skillRoot: ".claude" | ".agents" = ".agents",
+): void {
+	const skillFilePath = join(root, skillRoot, "skills", name, "SKILL.md");
+	mkdirSync(dirname(skillFilePath), { recursive: true });
+	writeFileSync(
+		skillFilePath,
+		`---\nname: ${name}\ndescription: ${description}\n---\nBody`,
+	);
+}
+
 afterEach(() => {
 	clearSlashCommandRegistryCache();
 	for (const directory of testDirectories.splice(0)) {
@@ -246,6 +260,59 @@ Body`,
 		expect(review?.source).toBe("project");
 		expect(review?.kind).toBe("custom");
 		expect(review?.description).toBe("custom review");
+	});
+
+	it("loads skills as commands from project and global skill roots", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		writeSkillFile(cwd, "deploy", "Ship the current branch", ".agents");
+		writeSkillFile(home, "land", "Persist session state", ".claude");
+
+		const commands = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
+
+		const deploy = commands.find((command) => command.name === "deploy");
+		expect(deploy?.description).toBe("Ship the current branch");
+		expect(deploy?.source).toBe("project");
+		const land = commands.find((command) => command.name === "land");
+		expect(land?.description).toBe("Persist session state");
+		expect(land?.source).toBe("global");
+	});
+
+	it("prefers a command file over a skill with the same name", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		writeCommandFile(cwd, "review", "---\ndescription: command review\n---");
+		writeSkillFile(cwd, "review", "skill review", ".agents");
+
+		const commands = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
+
+		const review = commands.filter((command) => command.name === "review");
+		expect(review).toHaveLength(1);
+		expect(review[0]?.description).toBe("command review");
+	});
+
+	it("ignores skill directories without SKILL.md", () => {
+		const cwd = makeTempDirectory("slash-cwd-");
+		const home = makeTempDirectory("slash-home-");
+
+		mkdirSync(join(cwd, ".agents", "skills", "not-a-skill"), {
+			recursive: true,
+		});
+
+		const commands = buildSlashCommandRegistry(cwd, {
+			homeDirectory: home,
+			includeBuiltIns: false,
+		});
+
+		expect(commands).toHaveLength(0);
 	});
 
 	it("uses cache for repeated lookups with the same options", () => {

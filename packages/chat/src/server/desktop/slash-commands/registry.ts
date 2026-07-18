@@ -162,6 +162,36 @@ function getCommandDirectoryEntries(options: ResolvedRegistryOptions): Array<{
 	];
 }
 
+/**
+ * Skill roots, scanned after command roots. Skills are directories holding a
+ * SKILL.md whose frontmatter carries the description — Claude Code exposes
+ * them as slash commands, so surfacing them here keeps the composer's "/"
+ * menu in parity with what the CLI itself would accept.
+ */
+function getSkillDirectoryEntries(options: ResolvedRegistryOptions): Array<{
+	directory: string;
+	source: SlashCommandSource;
+}> {
+	return [
+		{
+			directory: join(options.projectDirectory, ".claude", "skills"),
+			source: "project",
+		},
+		{
+			directory: join(options.projectDirectory, ".agents", "skills"),
+			source: "project",
+		},
+		{
+			directory: join(options.homeDirectory, ".claude", "skills"),
+			source: "global",
+		},
+		{
+			directory: join(options.homeDirectory, ".agents", "skills"),
+			source: "global",
+		},
+	];
+}
+
 function listMarkdownFiles(directory: string): string[] {
 	const markdownFiles: string[] = [];
 
@@ -263,6 +293,47 @@ export function buildSlashCommandRegistry(
 		} catch (error) {
 			console.warn(
 				`[slash-commands] Failed to read commands from ${directory}:`,
+				error,
+			);
+		}
+	}
+
+	for (const { directory, source } of getSkillDirectoryEntries(
+		resolvedOptions,
+	)) {
+		if (!existsSync(directory)) continue;
+
+		try {
+			const entries = readdirSync(directory, { withFileTypes: true }).sort(
+				(a, b) => a.name.localeCompare(b.name),
+			);
+			for (const entry of entries) {
+				// Probe for SKILL.md rather than entry.isDirectory(): skill roots
+				// are commonly symlinked (.claude/skills → ../.agents/skills), and
+				// symlinked directories report isDirectory() === false.
+				const skillFilePath = join(directory, entry.name, "SKILL.md");
+				if (!existsSync(skillFilePath)) continue;
+
+				const name = entry.name;
+				if (seenNames.has(name)) continue;
+
+				seenNames.add(name);
+				const raw = readFileSync(skillFilePath, "utf-8");
+				const metadata = parseSlashCommandFrontmatter(raw);
+
+				commands.push({
+					name,
+					aliases: normalizeAliases(name, metadata.aliases),
+					description: metadata.description,
+					argumentHint: metadata.argumentHint,
+					kind: "custom",
+					filePath: skillFilePath,
+					source,
+				});
+			}
+		} catch (error) {
+			console.warn(
+				`[slash-commands] Failed to read skills from ${directory}:`,
 				error,
 			);
 		}
