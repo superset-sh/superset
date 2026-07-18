@@ -81,6 +81,7 @@ export function useDashboardSidebarProjectSectionActions({
 
 	const handleNewSection = () => {
 		const sectionId = createSection(project.id);
+		if (!sectionId) return;
 		requestSectionRename(sectionId);
 		if (project.isCollapsed) {
 			toggleProjectCollapsed(project.id);

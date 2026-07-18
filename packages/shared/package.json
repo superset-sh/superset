@@ -143,6 +143,10 @@
 		"./rrule": {
 			"types": "./src/rrule.ts",
 			"default": "./src/rrule.ts"
+		},
+		"./sidebar-order": {
+			"types": "./src/sidebar-order.ts",
+			"default": "./src/sidebar-order.ts"
 		}
 	},
 	"scripts": {

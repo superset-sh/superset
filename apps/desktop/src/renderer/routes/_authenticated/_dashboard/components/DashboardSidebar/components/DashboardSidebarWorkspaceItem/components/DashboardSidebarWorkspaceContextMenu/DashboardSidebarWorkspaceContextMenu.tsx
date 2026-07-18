@@ -9,8 +9,7 @@ import {
 	ContextMenuSubTrigger,
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -26,7 +25,7 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
@@ -70,25 +69,22 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onClearStatus,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
-	const collections = useCollections();
 	const { setContextMenuOpen } = useDashboardSidebarHover();
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
-	const { data: sections = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sidebarSections: collections.v2SidebarSections })
-				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId),
-				)
-				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
-				.select(({ sidebarSections }) => ({
-					id: sidebarSections.sectionId,
-					name: sidebarSections.name,
-					color: sidebarSections.color,
+	const { sections: hostSections } = useHostWorkspaces();
+	const sections = useMemo(
+		() =>
+			hostSections
+				.filter((section) => section.projectId === projectId)
+				.sort((left, right) => left.tabOrder - right.tabOrder)
+				.map((section) => ({
+					id: section.id,
+					name: section.name,
+					color: section.color,
 				})),
-		[collections, projectId],
+		[hostSections, projectId],
 	);
 
 	return (

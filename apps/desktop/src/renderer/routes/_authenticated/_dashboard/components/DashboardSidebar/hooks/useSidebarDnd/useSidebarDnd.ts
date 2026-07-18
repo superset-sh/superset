@@ -96,14 +96,10 @@ function parseFlatItems(items: UniqueIdentifier[]): ParsedFlatItems {
 // ── Hook ─────────────────────────────────────────────────────────────
 
 interface UseSidebarDndOptions {
-	projectId: string;
 	projectChildren: DashboardSidebarProjectChild[];
 }
 
-export function useSidebarDnd({
-	projectId,
-	projectChildren,
-}: UseSidebarDndOptions) {
+export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 	const { reorderProjectChildren, moveWorkspaceToSectionAtIndex } =
 		useDashboardSidebarState();
 
@@ -249,16 +245,16 @@ export function useSidebarDnd({
 			const parsed = parseFlatItems(items);
 
 			// Top-level order (ungrouped workspaces + sections interleaved)
-			reorderProjectChildren(projectId, parsed.topLevel);
+			reorderProjectChildren(parsed.topLevel);
 
 			// Each section's workspace order
 			for (const [sectionId, wsIds] of Object.entries(parsed.sections)) {
 				for (let i = 0; i < wsIds.length; i++) {
-					moveWorkspaceToSectionAtIndex(wsIds[i], projectId, sectionId, i);
+					moveWorkspaceToSectionAtIndex(wsIds[i], sectionId, i);
 				}
 			}
 		},
-		[projectId, reorderProjectChildren, moveWorkspaceToSectionAtIndex],
+		[reorderProjectChildren, moveWorkspaceToSectionAtIndex],
 	);
 
 	// ── Handlers ─────────────────────────────────────────────────────

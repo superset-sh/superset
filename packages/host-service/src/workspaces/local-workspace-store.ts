@@ -1,8 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { getHostId } from "@superset/shared/host-info";
+import { getPrependTabOrder } from "@superset/shared/sidebar-order";
 import { and, eq, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
-import { workspaceCloudDeletes, workspaces } from "../db/schema";
+import {
+	sidebarSections,
+	workspaceCloudDeletes,
+	workspaces,
+} from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
 
@@ -42,6 +47,8 @@ export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
 		type: row.type,
 		worktreePath: row.worktreePath,
 		taskId: row.taskId,
+		sectionId: row.sectionId,
+		tabOrder: row.tabOrder,
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
@@ -84,7 +91,28 @@ export interface InsertLocalWorkspaceValues {
 	name: string;
 	type?: "main" | "worktree";
 	taskId?: string | null;
+	sectionId?: string | null;
+	tabOrder?: number;
 	createdByUserId?: string | null;
+}
+
+/** New ungrouped workspaces prepend to the project's top-level lane. */
+function getDefaultTabOrder(db: HostDb, projectId: string): number {
+	const laneItems = [
+		...db
+			.select({ tabOrder: workspaces.tabOrder })
+			.from(workspaces)
+			.where(
+				and(eq(workspaces.projectId, projectId), isNull(workspaces.sectionId)),
+			)
+			.all(),
+		...db
+			.select({ tabOrder: sidebarSections.tabOrder })
+			.from(sidebarSections)
+			.where(eq(sidebarSections.projectId, projectId))
+			.all(),
+	];
+	return getPrependTabOrder(laneItems);
 }
 
 /**
@@ -108,6 +136,10 @@ export function insertLocalWorkspace(
 			name: values.name,
 			type: values.type ?? "worktree",
 			taskId: values.taskId ?? null,
+			sectionId: values.sectionId ?? null,
+			tabOrder:
+				values.tabOrder ??
+				(values.sectionId ? 0 : getDefaultTabOrder(ctx.db, values.projectId)),
 			createdByUserId: values.createdByUserId ?? null,
 			createdAt: now,
 			updatedAt: now,
@@ -126,6 +158,10 @@ export interface UpdateLocalWorkspacePatch {
 	worktreePath?: string;
 	taskId?: string | null;
 	projectId?: string;
+	// Not mirrored to the cloud — writes touching only these should pass
+	// `cloudDirty: false`.
+	sectionId?: string | null;
+	tabOrder?: number;
 }
 
 /**
@@ -259,6 +295,8 @@ export function relinkLocalWorkspaceId(
 				name: existing.name || existing.branch,
 				type: existing.type,
 				taskId: existing.taskId,
+				sectionId: existing.sectionId,
+				tabOrder: existing.tabOrder,
 				createdByUserId: existing.createdByUserId,
 				createdAt: now,
 				updatedAt: now,

@@ -10,15 +10,24 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import {
 	applyWorkspaceChangedEvent,
 	deriveHostWorkspacesQueryTargets,
+	getHostSectionsQueryKey,
 	getHostWorkspacesQueryKey,
+	type HostSectionItem,
+	type HostSectionRow,
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
+	loadHostSectionsSnapshot,
 	loadHostWorkspacesSnapshot,
+	mergeHostSections,
 	mergeHostWorkspaces,
+	saveHostSectionsSnapshot,
 	saveHostWorkspacesSnapshot,
 } from "./useHostWorkspaces.utils";
 
-export type { HostWorkspaceItem } from "./useHostWorkspaces.utils";
+export type {
+	HostSectionItem,
+	HostWorkspaceItem,
+} from "./useHostWorkspaces.utils";
 
 const WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
 
@@ -37,14 +46,22 @@ export interface HostWorkspacesCacheOps {
 	invalidateHost: (hostId: string) => void;
 }
 
+export interface HostSectionsCacheOps {
+	upsertSection: (row: HostSectionRow & { hostId: string }) => void;
+	removeSection: (hostId: string, sectionId: string) => void;
+	invalidateHost: (hostId: string) => void;
+}
+
 export interface UseHostWorkspacesResult {
 	workspaces: HostWorkspaceItem[];
+	sections: HostSectionItem[];
 	/**
 	 * True once every host answered, failed, or served a snapshot. Gates
 	 * empty states only — existing rows always render (cache-first rule).
 	 */
 	isReady: boolean;
 	cache: HostWorkspacesCacheOps;
+	sectionsCache: HostSectionsCacheOps;
 }
 
 /**
@@ -96,27 +113,45 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 	const [snapshots, setSnapshots] = useState<Map<string, HostWorkspaceRow[]>>(
 		() => new Map(),
 	);
+	const [sectionSnapshots, setSectionSnapshots] = useState<
+		Map<string, HostSectionRow[]>
+	>(() => new Map());
 	useEffect(() => {
 		let cancelled = false;
 		for (const target of targets) {
-			if (snapshots.has(target.machineId)) continue;
-			void loadHostWorkspacesSnapshot(
-				target.organizationId,
-				target.machineId,
-			).then((rows) => {
-				if (cancelled || !rows) return;
-				setSnapshots((prev) => {
-					if (prev.has(target.machineId)) return prev;
-					const next = new Map(prev);
-					next.set(target.machineId, rows);
-					return next;
+			if (!snapshots.has(target.machineId)) {
+				void loadHostWorkspacesSnapshot(
+					target.organizationId,
+					target.machineId,
+				).then((rows) => {
+					if (cancelled || !rows) return;
+					setSnapshots((prev) => {
+						if (prev.has(target.machineId)) return prev;
+						const next = new Map(prev);
+						next.set(target.machineId, rows);
+						return next;
+					});
 				});
-			});
+			}
+			if (!sectionSnapshots.has(target.machineId)) {
+				void loadHostSectionsSnapshot(
+					target.organizationId,
+					target.machineId,
+				).then((rows) => {
+					if (cancelled || !rows) return;
+					setSectionSnapshots((prev) => {
+						if (prev.has(target.machineId)) return prev;
+						const next = new Map(prev);
+						next.set(target.machineId, rows);
+						return next;
+					});
+				});
+			}
 		}
 		return () => {
 			cancelled = true;
 		};
-	}, [targets, snapshots]);
+	}, [targets, snapshots, sectionSnapshots]);
 
 	const queries = useQueries({
 		queries: targets.map((target) => ({
@@ -145,6 +180,27 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 					target.machineId,
 					rows,
 				);
+				return rows;
+			},
+		})),
+	});
+
+	const sectionQueries = useQueries({
+		queries: targets.map((target) => ({
+			queryKey: getHostSectionsQueryKey(target),
+			enabled: target.hostUrl !== null,
+			refetchInterval: WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS,
+			networkMode: "always" as const,
+			refetchIntervalInBackground: true,
+			retry: 1,
+			queryFn: async (): Promise<HostSectionRow[]> => {
+				if (!target.hostUrl) return [];
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				// Old hosts have no sections router — degrade to "no groups".
+				const rows = (await client.sections.list
+					.query()
+					.catch(() => [])) as HostSectionRow[];
+				saveHostSectionsSnapshot(target.organizationId, target.machineId, rows);
 				return rows;
 			},
 		})),
@@ -186,9 +242,26 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 					);
 				},
 			);
+			const removeSectionListener = bus.on(
+				"section:changed",
+				"*",
+				(_workspaceId, event) => {
+					// Full-list snapshot: replace, never patch.
+					queryClient.setQueryData<HostSectionRow[]>(
+						getHostSectionsQueryKey(target),
+						event.sections,
+					);
+					saveHostSectionsSnapshot(
+						target.organizationId,
+						target.machineId,
+						event.sections,
+					);
+				},
+			);
 			const releaseBus = bus.retain();
 			cleanups.push(() => {
 				removeListener();
+				removeSectionListener();
 				releaseBus();
 			});
 		}
@@ -212,6 +285,22 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 				cloudRows,
 			}),
 		[targets, queries, snapshots, cloudRows],
+	);
+
+	const sections = useMemo(
+		() =>
+			mergeHostSections(
+				targets.map((target, index) => {
+					const query = sectionQueries[index];
+					const live = query?.data;
+					return {
+						target,
+						rows: live ?? sectionSnapshots.get(target.machineId),
+						reachable: live !== undefined && !query?.isError,
+					};
+				}),
+			),
+		[targets, sectionQueries, sectionSnapshots],
 	);
 
 	// Readiness reflects host-query settlement only. The Electric collection
@@ -266,5 +355,46 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 		};
 	}, [targets, queryClient]);
 
-	return { workspaces, isReady, cache };
+	const sectionsCache = useMemo<HostSectionsCacheOps>(() => {
+		const targetFor = (hostId: string) =>
+			targets.find((target) => target.machineId === hostId);
+		return {
+			upsertSection: (row) => {
+				const target = targetFor(row.hostId);
+				if (!target) return;
+				const { hostId: _hostId, ...section } = row;
+				queryClient.setQueryData<HostSectionRow[] | undefined>(
+					getHostSectionsQueryKey(target),
+					(rows) => {
+						if (!rows) return [section];
+						const exists = rows.some((existing) => existing.id === section.id);
+						return exists
+							? rows.map((existing) =>
+									existing.id === section.id
+										? { ...existing, ...section }
+										: existing,
+								)
+							: [...rows, section];
+					},
+				);
+			},
+			removeSection: (hostId, sectionId) => {
+				const target = targetFor(hostId);
+				if (!target) return;
+				queryClient.setQueryData<HostSectionRow[] | undefined>(
+					getHostSectionsQueryKey(target),
+					(rows) => rows?.filter((row) => row.id !== sectionId),
+				);
+			},
+			invalidateHost: (hostId) => {
+				const target = targetFor(hostId);
+				if (!target) return;
+				void queryClient.invalidateQueries({
+					queryKey: getHostSectionsQueryKey(target),
+				});
+			},
+		};
+	}, [targets, queryClient]);
+
+	return { workspaces, sections, isReady, cache, sectionsCache };
 }

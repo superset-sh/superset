@@ -43,6 +43,8 @@ export const workspaceRouter = router({
 			...toCloudShape(row, ctx.organizationId),
 			worktreePath: row.worktreePath,
 			worktreeExists: existsSync(row.worktreePath),
+			sectionId: row.sectionId,
+			tabOrder: row.tabOrder,
 		}));
 	}),
 

@@ -19,9 +19,9 @@ export default command({
 	display: (data) =>
 		table(
 			data as Record<string, unknown>[],
-			["name", "branch", "projectName", "hostName", "id"],
-			["NAME", "BRANCH", "PROJECT", "HOST", "ID"],
-			[30, 30, 30, 30, 36],
+			["name", "branch", "projectName", "groupName", "hostName", "id"],
+			["NAME", "BRANCH", "PROJECT", "GROUP", "HOST", "ID"],
+			[30, 30, 30, 20, 30, 36],
 		),
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -36,17 +36,18 @@ export default command({
 
 		// Workspace records are host-owned: fan out to each online host's
 		// workspace.list and merge (the cloud only supplies host/project names).
-		const [{ workspaces, hosts, warnings }, projects] = await Promise.all([
-			listHostWorkspaces({
-				api: ctx.api,
-				organizationId,
-				userJwt: ctx.bearer,
-				hostId,
-			}),
-			ctx.api.v2Project.list
-				.query({ organizationId })
-				.catch(() => [] as Array<{ id: string; name: string }>),
-		]);
+		const [{ workspaces, sections, hosts, warnings }, projects] =
+			await Promise.all([
+				listHostWorkspaces({
+					api: ctx.api,
+					organizationId,
+					userJwt: ctx.bearer,
+					hostId,
+				}),
+				ctx.api.v2Project.list
+					.query({ organizationId })
+					.catch(() => [] as Array<{ id: string; name: string }>),
+			]);
 		for (const warning of warnings) {
 			process.stderr.write(`Warning: ${warning}\n`);
 		}
@@ -75,6 +76,9 @@ export default command({
 
 		const search = options.search?.toLowerCase();
 		const hostNameById = new Map(hosts.map((host) => [host.id, host.name]));
+		const sectionNameById = new Map(
+			sections.map((section) => [section.id, section.name]),
+		);
 		return workspaces
 			.filter((workspace) => !projectId || workspace.projectId === projectId)
 			.filter(
@@ -87,6 +91,9 @@ export default command({
 				...workspace,
 				projectName:
 					projectNameById.get(workspace.projectId) ?? workspace.projectId,
+				groupName: workspace.sectionId
+					? (sectionNameById.get(workspace.sectionId) ?? workspace.sectionId)
+					: "",
 				hostName: hostNameById.get(workspace.hostId) ?? workspace.hostId,
 			}));
 	},

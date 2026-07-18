@@ -520,14 +520,16 @@ than silently falling through to the cloud.
   branch: string;
   projectId: string;
   projectName: string;
+  groupName: string;
   hostId: string;
   hostName: string;
 }>`}
-	humanColumns={["NAME", "BRANCH", "PROJECT", "HOST"]}
+	humanColumns={["NAME", "BRANCH", "PROJECT", "GROUP", "HOST"]}
 	quiet="workspace IDs"
 >
 List workspaces accessible to the active organization. With neither
-`--host` nor `--local`, the list is organization-wide.
+`--host` nor `--local`, the list is organization-wide. `GROUP` is the
+workspace's sidebar group, or empty when it's ungrouped.
 </Command>
 
 <Command
@@ -540,6 +542,8 @@ List workspaces accessible to the active organization. With neither
 		{ flag: "--base-branch <branch>", description: "Branch to fork from when `--branch` does not exist. Defaults to the project default branch." },
 		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
+		{ flag: "--group <name|id>", description: "Place the new workspace in a sidebar group (name or id). Mutually exclusive with `--after`." },
+		{ flag: "--after <name|id>", description: "Place the new workspace directly under another workspace, inheriting its group. Mutually exclusive with `--group`." },
 		{ flag: "--agent <preset|uuid|superset>", description: "Agent to spawn after creation." },
 		{ flag: "--prompt <text>", description: "Initial prompt. Required when `--agent` is set." },
 		{ flag: "--command <cmd>", description: "Shell command to run in the new workspace after creation." },
@@ -550,7 +554,8 @@ List workspaces accessible to the active organization. With neither
 Create a workspace on the target host. Specify exactly one of `--branch`
 or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
-`--agent`/`--prompt`. Pass either or both.
+`--agent`/`--prompt`. Pass either or both. Use `--group` or `--after` to
+place the workspace in a sidebar group as it's created.
 
 ```bash
 superset workspaces create \
@@ -628,6 +633,30 @@ superset workspaces open ws_… --print
 ```
 </Command>
 
+<Command
+	name="superset workspaces move <id>"
+	args={[
+		{ name: "id", required: true, description: "Workspace UUID." },
+	]}
+	options={[
+		{ flag: "--up", description: "Move one position up." },
+		{ flag: "--down", description: "Move one position down." },
+		{ flag: "--top", description: "Move to the top." },
+		{ flag: "--bottom", description: "Move to the bottom." },
+		{ flag: "--after <name|id>", description: "Place directly under another workspace in the same list." },
+	]}
+	output={`{ id: string }`}
+>
+Reorder a workspace within its sidebar list — its group if it's grouped,
+otherwise the project's top-level order. Specify exactly one position. The
+host is derived from the workspace, so no `--host`/`--local` is needed.
+
+```bash
+superset workspaces move ws_… --top
+superset workspaces move ws_… --after ws_other
+```
+</Command>
+
 #### Opening a specific session
 
 `workspaces open` targets a workspace, not a session. A session started with
@@ -660,6 +689,125 @@ Append `&focusRequestId=<unique>` to force a re-focus when opening the same link
 more than once. The session must belong to the workspace in the URL. On
 Linux/Windows substitute your platform's URL opener (`xdg-open`, `start`) for
 `open`.
+
+#### Workspace groups (alias: `group`)
+
+Groups are the named sidebar sections that organize a project's workspaces.
+They're owned by the host, so they show up the same in the desktop app and
+across your devices. Group commands take `--host`/`--local` to pick the host;
+`add`/`remove` derive the host from the workspace instead. Deleting a group
+never deletes workspaces — they just become ungrouped.
+
+<Command
+	name="superset workspaces groups list"
+	options={[
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine." },
+		{ flag: "--project <name|id>", description: "Filter by project name (case-insensitive) or id." },
+	]}
+	output={`Array<{
+  id: string;
+  name: string;
+  projectName: string;
+  workspaceCount: number;
+}>`}
+	humanColumns={["NAME", "PROJECT", "WORKSPACES", "ID"]}
+>
+List the groups on a host.
+</Command>
+
+<Command
+	name="superset workspaces groups create <name>"
+	args={[
+		{ name: "name", required: true, description: "Group name." },
+	]}
+	options={[
+		{ flag: "--project <name|id>", required: true, description: "Project the group belongs to (name or id)." },
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine." },
+		{ flag: "--color <hex>", description: "Group color, shown in the desktop sidebar." },
+	]}
+	output="Group"
+>
+Create a group in a project.
+
+```bash
+superset workspaces groups create "Bugs" --project prj_… --local
+```
+</Command>
+
+<Command
+	name="superset workspaces groups rename <group> <name>"
+	args={[
+		{ name: "group", required: true, description: "Group name or id." },
+		{ name: "name", required: true, description: "New group name." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine." },
+		{ flag: "--project <name|id>", description: "Scope group-name resolution to a project." },
+	]}
+	output="Group"
+>
+Rename a group.
+</Command>
+
+<Command
+	name="superset workspaces groups delete <group>"
+	args={[
+		{ name: "group", required: true, description: "Group name or id." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine." },
+		{ flag: "--project <name|id>", description: "Scope group-name resolution to a project." },
+	]}
+	output={`{ success: true }`}
+>
+Delete a group. Its workspaces are ungrouped, not deleted.
+</Command>
+
+<Command
+	name="superset workspaces groups add <workspaceId> <group>"
+	args={[
+		{ name: "workspaceId", required: true, description: "Workspace UUID." },
+		{ name: "group", required: true, description: "Group name or id (resolved within the workspace's project)." },
+	]}
+	output="Workspace"
+>
+Move a workspace into a group. The host is derived from the workspace.
+</Command>
+
+<Command
+	name="superset workspaces groups remove <workspaceId>"
+	args={[
+		{ name: "workspaceId", required: true, description: "Workspace UUID." },
+	]}
+	output="Workspace"
+>
+Move a workspace out of its group. No-op if it's already ungrouped.
+</Command>
+
+<Command
+	name="superset workspaces groups move <group>"
+	args={[
+		{ name: "group", required: true, description: "Group name or id." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Target host machineId." },
+		{ flag: "--local", description: "Target this machine." },
+		{ flag: "--project <name|id>", description: "Scope group-name resolution to a project." },
+		{ flag: "--up", description: "Move one position up." },
+		{ flag: "--down", description: "Move one position down." },
+		{ flag: "--top", description: "Move to the top." },
+		{ flag: "--bottom", description: "Move to the bottom." },
+		{ flag: "--after <name|id>", description: "Place directly under another group in the same project." },
+	]}
+	output={`{ id: string }`}
+>
+Reorder a group within its project's sidebar order. Specify exactly one
+position.
+</Command>
 
 ---
 

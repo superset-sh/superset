@@ -60,6 +60,8 @@ import {
 	failedWorkspaceCreateSchema,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
+	type SectionUiStateRow,
+	sectionUiStateSchema,
 	type V2TerminalPresetRow,
 	type V2UserPreferencesRow,
 	v2TerminalPresetSchema,
@@ -174,12 +176,20 @@ export interface OrgCollections {
 		typeof workspaceLocalStateSchema,
 		z.input<typeof workspaceLocalStateSchema>
 	>;
+	/** @deprecated Read only by useMigrateSidebarSectionsToHost. */
 	v2SidebarSections: Collection<
 		DashboardSidebarSectionRow,
 		string,
 		LocalStorageCollectionUtils,
 		typeof dashboardSidebarSectionSchema,
 		z.input<typeof dashboardSidebarSectionSchema>
+	>;
+	v2SectionUiState: Collection<
+		SectionUiStateRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof sectionUiStateSchema,
+		z.input<typeof sectionUiStateSchema>
 	>;
 	v2TerminalPresets: Collection<
 		V2TerminalPresetRow,
@@ -819,13 +829,14 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			getKey: (item) => item.sectionId,
 		}),
 	);
-	v2SidebarSections.createIndex(
-		(section) => section.projectId,
-		basicIndexConfig,
-	);
-	v2SidebarSections.createIndex(
-		(section) => section.tabOrder,
-		basicIndexConfig,
+
+	const v2SectionUiState = createIndexedCollection(
+		localStorageCollectionOptions({
+			id: `v2_section_ui_state-${organizationId}`,
+			storageKey: `v2-section-ui-state-${organizationId}`,
+			schema: sectionUiStateSchema,
+			getKey: (item) => item.sectionId,
+		}),
 	);
 
 	const v2TerminalPresets = createIndexedCollection(
@@ -891,6 +902,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2SidebarProjects,
 		v2WorkspaceLocalState,
 		v2SidebarSections,
+		v2SectionUiState,
 		v2TerminalPresets,
 		v2UserPreferences,
 		failedWorkspaceCreates,

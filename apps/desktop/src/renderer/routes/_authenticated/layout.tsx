@@ -36,6 +36,7 @@ import { AgentHooks } from "./components/AgentHooks";
 import { DockBadgeController } from "./components/DockBadgeController";
 import { FileMenuListener } from "./components/FileMenuListener";
 import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
+import { SidebarSectionsMigration } from "./components/SidebarSectionsMigration";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
 import { createPierreWorker } from "./lib/pierreWorker";
@@ -220,6 +221,7 @@ function AuthenticatedLayout() {
 							>
 								<DiffThemeSync />
 								<AgentHooks />
+								<SidebarSectionsMigration />
 								<FileMenuListener />
 								<V2NotificationController />
 								<DockBadgeController />

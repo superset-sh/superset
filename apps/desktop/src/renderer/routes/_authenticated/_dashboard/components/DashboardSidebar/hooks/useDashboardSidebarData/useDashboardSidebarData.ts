@@ -189,42 +189,51 @@ export function useDashboardSidebarData() {
 		[rawSidebarProjects],
 	);
 
-	const { data: sidebarSections = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sidebarSections: collections.v2SidebarSections })
-				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
-				.select(({ sidebarSections }) => ({
-					id: sidebarSections.sectionId,
-					projectId: sidebarSections.projectId,
-					name: sidebarSections.name,
-					createdAt: sidebarSections.createdAt,
-					isCollapsed: sidebarSections.isCollapsed,
-					tabOrder: sidebarSections.tabOrder,
-					color: sidebarSections.color,
-				})),
+	const { workspaces: hostWorkspaces, sections: hostSections } =
+		useHostWorkspaces();
+
+	// Collapse state is per-client; everything else comes from the host.
+	const { data: sectionUiRows = [] } = useLiveQuery(
+		(q) => q.from({ sectionUi: collections.v2SectionUiState }),
 		[collections],
 	);
-
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const sidebarSections = useMemo(() => {
+		const collapsedIds = new Set(
+			sectionUiRows
+				.filter((row) => row.isCollapsed)
+				.map((row) => row.sectionId),
+		);
+		return [...hostSections]
+			.sort(
+				(left, right) =>
+					left.tabOrder - right.tabOrder ||
+					left.createdAt - right.createdAt ||
+					left.id.localeCompare(right.id),
+			)
+			.map((section) => ({
+				id: section.id,
+				projectId: section.projectId,
+				hostId: section.hostId,
+				name: section.name,
+				createdAt: new Date(section.createdAt),
+				isCollapsed: collapsedIds.has(section.id),
+				tabOrder: section.tabOrder,
+				color: section.color,
+			}));
+	}, [hostSections, sectionUiRows]);
 	const hostWorkspacesById = useMemo(
 		() => new Map(hostWorkspaces.map((workspace) => [workspace.id, workspace])),
 		[hostWorkspaces],
 	);
 
+	// Local state owns membership/visibility; placement comes from the host.
 	const { data: sidebarLocalStateRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
-				.orderBy(
-					({ sidebarWorkspaces }) => sidebarWorkspaces.sidebarState.tabOrder,
-					"asc",
-				)
 				.select(({ sidebarWorkspaces }) => ({
 					workspaceId: sidebarWorkspaces.workspaceId,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
-					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
-					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 				})),
 		[collections],
@@ -245,8 +254,8 @@ export function useDashboardSidebarData() {
 						taskId: workspace.taskId,
 						createdAt: workspace.createdAt,
 						updatedAt: workspace.updatedAt,
-						tabOrder: localState.tabOrder,
-						sectionId: localState.sectionId,
+						tabOrder: workspace.tabOrder ?? 0,
+						sectionId: workspace.sectionId ?? null,
 						isHidden: localState.isHidden,
 					},
 				];

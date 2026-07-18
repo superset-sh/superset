@@ -101,6 +101,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	const handleCreateSection = () => {
 		const sectionId = createSection(projectId);
+		if (!sectionId) return;
 		moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		requestSectionRename(sectionId);
 	};

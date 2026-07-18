@@ -13,7 +13,6 @@ import { SortableSectionHeader } from "../../../SortableSectionHeader";
 import { SortableWorkspaceItem } from "../../../SortableWorkspaceItem";
 
 interface DashboardSidebarExpandedProjectContentProps {
-	projectId: string;
 	isCollapsed: boolean;
 	projectChildren: DashboardSidebarProjectChild[];
 	workspaceShortcutLabels: Map<string, string>;
@@ -24,7 +23,6 @@ interface DashboardSidebarExpandedProjectContentProps {
 }
 
 export function DashboardSidebarExpandedProjectContent({
-	projectId,
 	isCollapsed,
 	projectChildren,
 	workspaceShortcutLabels,
@@ -48,7 +46,7 @@ export function DashboardSidebarExpandedProjectContent({
 		workspacesById,
 		sectionsById,
 		handlers,
-	} = useSidebarDnd({ projectId, projectChildren });
+	} = useSidebarDnd({ projectChildren });
 
 	return (
 		<AnimatePresence initial={false}>
