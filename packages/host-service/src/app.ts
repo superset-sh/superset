@@ -2,6 +2,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/chat/server/desktop";
+import { SESSIONS_SYNC_PATH } from "@superset/host-service-sync/protocol";
 import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -15,7 +16,6 @@ import type { HostAuthProvider } from "./providers/host-auth";
 import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 import {
 	AcpSessionManager,
-	registerAcpSessionStreamRoute,
 	SqliteAcpSessionPersistence,
 } from "./runtime/acp-sessions";
 import { ChatRuntimeManager } from "./runtime/chat";
@@ -24,6 +24,12 @@ import type { GitCredentialProvider } from "./runtime/git";
 import { createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import {
+	CanonicalSessionsRuntime,
+	registerSessionsSyncRoute,
+	SessionsSyncHub,
+	SqliteSessionMetaStore,
+} from "./runtime/sessions";
 import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
 import { startWorkspaceCloudSync } from "./runtime/workspace-cloud-sync";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
@@ -122,7 +128,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
 	// auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
-	// ACP session harness (docs/acp-sessions.md) — owns Claude Code
+	// ACP session harness (legacy ACP surface; target: plans/host-sessions-sync.md) — owns Claude Code
 	// adapter child processes. Fully parallel to the mastra chat runtime.
 	// Pre-release, so internal-channel only: the desktop coordinator spawns
 	// hosts with SUPERSET_ACP_SESSIONS=1 on canary/dev builds, never on
@@ -150,13 +156,43 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			persistence: new SqliteAcpSessionPersistence(db),
 		});
 
+	// Canonical Host Sessions projection over the ACP manager: serves the
+	// `sessions.*` router and /sessions/sync. Constructing it is inert —
+	// it only tracks a session once a canonical call touches it — so it is
+	// safe to build even when the gate is off; the router gate keeps it idle.
+	// The meta store persists top-level session metadata (title/archive/
+	// close) only — conversation content stays in the vendor's own
+	// transcript, resumed via the native session id in the registry.
+	const canonicalSessions = new CanonicalSessionsRuntime({
+		port: acpSessions,
+		metaStore: new SqliteSessionMetaStore(db),
+	});
+	// The hub attaches live listeners to the runtime, so gate its existence
+	// too — an idle runtime with listeners would still schedule flush work.
+	const sessionsSyncHub = acpSessionsEnabled
+		? new SessionsSyncHub({
+				runtime: canonicalSessions,
+				hostId: config.organizationId,
+			})
+		: null;
+	if (acpSessionsEnabled) {
+		// The delete side of the metadata store: drop rows whose session left
+		// the registry. Hygiene only — a failure must not block startup.
+		try {
+			canonicalSessions.sweepOrphanedSessionMeta();
+		} catch (error) {
+			console.warn("[sessions] failed to sweep orphaned session meta", error);
+		}
+	}
+
 	const runtime = {
-		acpSessions,
 		acpSessionsEnabled,
 		auth: chatService,
 		chat: chatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,
+		sessions: canonicalSessions,
+		sessionsSyncHub,
 	};
 	const app = new Hono();
 	const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
@@ -237,7 +273,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	};
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
-	app.use("/acp-sessions/*", wsAuth);
+	app.use(SESSIONS_SYNC_PATH, wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
@@ -246,10 +282,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		eventBus,
 		upgradeWebSocket,
 	});
-	if (acpSessionsEnabled) {
-		registerAcpSessionStreamRoute({
+	if (sessionsSyncHub) {
+		registerSessionsSyncRoute({
 			app,
-			sessions: acpSessions,
+			hub: sessionsSyncHub,
 			upgradeWebSocket,
 		});
 	}
@@ -293,6 +329,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			sessionsSyncHub?.dispose();
+		} catch (err) {
+			console.warn("[host-service] sessionsSyncHub.dispose failed:", err);
+		}
+		try {
+			canonicalSessions.dispose();
+		} catch (err) {
+			console.warn("[host-service] canonicalSessions.dispose failed:", err);
 		}
 		try {
 			await acpSessions.dispose();

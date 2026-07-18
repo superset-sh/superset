@@ -1,10 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-
-const DEFAULT_MODEL_ID =
-	SUPERSET_CHAT_MODELS[0]?.id ?? "anthropic/claude-opus-4-8";
+import { DEFAULT_CHAT_MODEL_ID } from "@/screens/(authenticated)/(home)/utils/chatModels";
 
 interface NewChatPreferencesStore {
 	modelId: string;
@@ -20,7 +17,7 @@ interface NewChatPreferencesStore {
 export const useNewChatPreferencesStore = create<NewChatPreferencesStore>()(
 	persist(
 		(set) => ({
-			modelId: DEFAULT_MODEL_ID,
+			modelId: DEFAULT_CHAT_MODEL_ID,
 			targetKey: null,
 			baseBranch: null,
 			setModelId: (modelId) => set({ modelId }),

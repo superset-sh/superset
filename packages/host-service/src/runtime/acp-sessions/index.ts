@@ -11,7 +11,3 @@ export {
 	type AcpSessionRecord,
 	SqliteAcpSessionPersistence,
 } from "./persistence";
-export {
-	type AcpSessionStreamSource,
-	registerAcpSessionStreamRoute,
-} from "./stream";

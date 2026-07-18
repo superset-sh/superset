@@ -1,19 +1,28 @@
 import { prompt } from "@superset/alert-prompt";
+import { useQueryClient } from "@tanstack/react-query";
 import { Link } from "expo-router";
 import type { ReactNode } from "react";
 import { Alert } from "react-native";
-import { apiClient } from "@/lib/trpc/client";
+import { updateSession } from "@/lib/host/client";
 
 export function SessionRowMenu({
 	sessionId,
 	title,
+	routingKey,
 	children,
 }: {
 	sessionId: string;
 	title: string;
+	/** Sessions host for menu actions; null renders the row without a menu. */
+	routingKey: string | null;
 	children: ReactNode;
 }) {
+	const queryClient = useQueryClient();
+	const refreshList = () =>
+		void queryClient.invalidateQueries({ queryKey: ["sessions", "list"] });
+
 	const renameSession = async () => {
+		if (!routingKey) return;
 		const name = await prompt({
 			title: "Rename chat",
 			defaultValue: title,
@@ -23,29 +32,32 @@ export function SessionRowMenu({
 		const trimmed = name?.trim();
 		if (!trimmed || trimmed === title) return;
 		try {
-			await apiClient.chat.updateSession.mutate({
-				sessionId,
-				title: trimmed,
-			});
+			await updateSession(routingKey, { sessionId, title: trimmed });
+			refreshList();
 		} catch {
 			Alert.alert("Rename failed");
 		}
 	};
 
-	const deleteSession = () => {
-		Alert.alert("Delete chat?", title, [
+	// The canonical surface has no hard delete; archiving removes the session
+	// from every list while the host keeps the transcript.
+	const archiveSession = () => {
+		if (!routingKey) return;
+		Alert.alert("Archive chat?", title, [
 			{ style: "cancel", text: "Cancel" },
 			{
 				style: "destructive",
-				text: "Delete",
+				text: "Archive",
 				onPress: () => {
-					apiClient.chat.deleteSession
-						.mutate({ sessionId })
-						.catch(() => Alert.alert("Delete failed"));
+					updateSession(routingKey, { sessionId, archived: true })
+						.then(refreshList)
+						.catch(() => Alert.alert("Archive failed"));
 				},
 			},
 		]);
 	};
+
+	if (!routingKey) return <>{children}</>;
 
 	// The Link exists solely because Link.Menu must be a direct child of
 	// Link; navigation is prevented and taps fall through to the row.
@@ -60,17 +72,9 @@ export function SessionRowMenu({
 				<Link.MenuAction icon="pencil" onPress={() => void renameSession()}>
 					Rename
 				</Link.MenuAction>
-				<Link.MenuAction icon="trash" onPress={deleteSession}>
-					Delete
+				<Link.MenuAction icon="archivebox" onPress={archiveSession}>
+					Archive
 				</Link.MenuAction>
-				<Link.Menu inline>
-					<Link.MenuAction
-						icon="arrow.branch"
-						onPress={() => Alert.alert("Forking is not available yet")}
-					>
-						Fork
-					</Link.MenuAction>
-				</Link.Menu>
 			</Link.Menu>
 		</Link>
 	);

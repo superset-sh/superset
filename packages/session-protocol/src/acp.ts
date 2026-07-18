@@ -1,7 +1,7 @@
 /**
- * The single source of ACP typing for both sides of the wire (Decision D7 in
- * packages/host-service/docs/acp-sessions.md): host-service and every client import ACP
- * types ONLY through this file — the ENTIRE generated surface, never a
+ * The single source of ACP typing for both sides of the wire (legacy ACP
+ * surface; being replaced by plans/host-sessions-sync.md): host-service and
+ * every client import ACP types ONLY through this file — the ENTIRE generated surface, never a
  * hand-picked subset.
  *
  * Type-only on purpose. Runtime connection machinery (client(), ndJsonStream)

@@ -1,3 +1,4 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { GlassView, isLiquidGlassAvailable } from "expo-glass-effect";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
 import { GitPullRequestArrow } from "lucide-react-native";
@@ -11,7 +12,7 @@ import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import { cn } from "@/lib/utils";
 import { NewChatWidget } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget";
 import { SessionRow } from "@/screens/(authenticated)/(home)/home/components/SessionRow";
-import { useHostAcpSessions } from "@/screens/(authenticated)/(home)/home/hooks/useHostAcpSessions";
+import { useHostSessions } from "@/screens/(authenticated)/(home)/home/hooks/useHostSessions";
 import { buildSessionRows } from "@/screens/(authenticated)/(home)/home/utils/sessionRows";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
@@ -39,7 +40,10 @@ export function WorkspaceScreen() {
 	const insets = useSafeAreaInsets();
 
 	const { workspace, host } = useWorkspaceHost(id ?? null);
-	const { sessionsByWorkspace, isReady } = useHostAcpSessions(host);
+	const { sessionsByWorkspace, isReady } = useHostSessions(host);
+	const routingKey = host
+		? buildHostRoutingKey(host.organizationId, host.machineId)
+		: null;
 	const { renameWorkspace, deleteWorkspace, copyId, shareWorkspace } =
 		useWorkspaceHeaderActions(workspace, host);
 	const changeset = useWorkspaceChangeset(id ?? null);
@@ -123,11 +127,10 @@ export function WorkspaceScreen() {
 						{index > 0 && <View className="border-border/40 ml-12 border-t" />}
 						<SessionRow
 							row={row}
+							routingKey={routingKey}
 							className="px-4 py-3"
 							onPress={() =>
-								router.push(
-									`/(authenticated)/workspace/${id}/chat/acp/${row.id}`,
-								)
+								router.push(`/(authenticated)/workspace/${id}/chat/${row.id}`)
 							}
 						/>
 					</View>

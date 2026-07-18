@@ -1,11 +1,11 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import * as Crypto from "expo-crypto";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
-import { createAcpSession, createAcpSessionsApi } from "@/lib/host/client";
+import { createSession, submitTurn } from "@/lib/host/client";
+import { resolveChatModelId } from "@/screens/(authenticated)/(home)/utils/chatModels";
 import type { ChatTarget } from "../../../../stores/chatTargetStore";
 
 export function useStartWorkspaceChat(workspaces: HostWorkspaceItem[]) {
@@ -15,9 +15,12 @@ export function useStartWorkspaceChat(workspaces: HostWorkspaceItem[]) {
 	return useMutation({
 		mutationFn: async ({
 			target,
+			modelId,
 			message,
 		}: {
 			target: ChatTarget;
+			/** Chat-model alias; omitted (file-comment flows) = harness default. */
+			modelId?: string;
 			message: PromptInputMessage;
 		}) => {
 			const workspace = workspaces.find(
@@ -31,23 +34,24 @@ export function useStartWorkspaceChat(workspaces: HostWorkspaceItem[]) {
 				workspace.organizationId,
 				target.hostId,
 			);
-			const sessionId = Crypto.randomUUID();
-			await createAcpSession(routingKey, {
-				sessionId,
+			// The host mints the session id (sessions.create result carries it).
+			const created = await createSession(routingKey, {
 				workspaceId: target.workspaceId,
+				activeModel: modelId ? resolveChatModelId(modelId) : null,
 			});
-			await createAcpSessionsApi(routingKey).prompt({
-				sessionId,
-				prompt: [{ type: "text", text: message.text.trim() }],
+			await submitTurn(routingKey, {
+				sessionId: created.session.id,
+				threadId: created.session.mainThreadId,
+				content: [{ type: "text", text: message.text.trim() }],
 			});
-			return { workspaceId: target.workspaceId, sessionId };
+			return { workspaceId: target.workspaceId, sessionId: created.session.id };
 		},
 		onSuccess: ({ workspaceId, sessionId }) => {
 			void queryClient.invalidateQueries({
-				queryKey: ["acp-sessions", "list"],
+				queryKey: ["sessions", "list"],
 			});
 			router.push(
-				`/(authenticated)/workspace/${workspaceId}/chat/acp/${sessionId}`,
+				`/(authenticated)/workspace/${workspaceId}/chat/${sessionId}`,
 			);
 		},
 		onError: (error) => {

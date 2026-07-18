@@ -1,1 +1,1 @@
-export { ChatThreadScreen } from "./ChatThreadScreen";
+export { SessionThreadScreen } from "./SessionThreadScreen";

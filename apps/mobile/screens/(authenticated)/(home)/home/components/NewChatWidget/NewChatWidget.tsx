@@ -35,7 +35,6 @@ import {
 	tint,
 	truncationMode,
 } from "@expo/ui/swift-ui/modifiers";
-import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import { useQuery } from "@tanstack/react-query";
 import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
@@ -54,6 +53,7 @@ import { usePromptInputController } from "@/components/ai-elements/prompt-input"
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
 import { useAfterTransitionEnd } from "@/screens/(authenticated)/(home)/hooks/useAfterTransitionEnd";
+import { CHAT_MODELS } from "@/screens/(authenticated)/(home)/utils/chatModels";
 import {
 	type ChatTarget,
 	useChatTargetStore,
@@ -127,9 +127,7 @@ export function NewChatWidget({
 	});
 
 	const createChatWorkspace = useCreateChatWorkspace();
-	const selectedModel = SUPERSET_CHAT_MODELS.find(
-		(model) => model.id === modelId,
-	);
+	const selectedModel = CHAT_MODELS.find((model) => model.id === modelId);
 	const branchLabel = baseBranch ?? branchData?.defaultBranch ?? "default";
 	const draftRef = useRef("");
 	const [hasText, setHasText] = useState(false);
@@ -222,7 +220,11 @@ export function NewChatWidget({
 		if (text.trim().length === 0 && attachments.length === 0) return;
 		if (chatTarget) {
 			startWorkspaceChat
-				.mutateAsync({ target: chatTarget, message: { text, attachments } })
+				.mutateAsync({
+					target: chatTarget,
+					modelId,
+					message: { text, attachments },
+				})
 				.then(() => {
 					clearChatTarget();
 					clearComposer();
@@ -241,8 +243,7 @@ export function NewChatWidget({
 				modelId,
 				message: { text, attachments },
 			})
-			.then((result) => {
-				if (!result.agents[0]?.ok) return;
+			.then(() => {
 				setBaseBranch(null);
 				clearComposer();
 			})

@@ -1,3 +1,4 @@
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
 import { compareDesc } from "date-fns";
@@ -19,6 +20,8 @@ export interface NewChatTarget {
 	machineId: string;
 	hostName: string;
 	hostUrl: string;
+	/** `${organizationId}:${machineId}` — the canonical sessions relay key. */
+	routingKey: string;
 }
 
 export function targetKeyFor(projectId: string, machineId: string) {
@@ -60,6 +63,7 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 					machineId: host.machineId,
 					name: host.name,
 					hostUrl: buildRelayHostUrl(host.organizationId, host.machineId),
+					routingKey: buildHostRoutingKey(host.organizationId, host.machineId),
 				})),
 		[hosts],
 	);
@@ -92,6 +96,7 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 					machineId: host.machineId,
 					hostName: host.name,
 					hostUrl: host.hostUrl,
+					routingKey: host.routingKey,
 				});
 			}
 		});

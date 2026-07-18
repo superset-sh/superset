@@ -1,0 +1,29 @@
+# Scroll-discipline regression suite. The lab screen
+# (screens/(authenticated)/debug/conversation-lab) runs scripted
+# stream/dip/overlay/keyboard/send-anchor interactions against the REAL
+# Conversation component and self-asserts each invariant; this flow just
+# drives it and fails if any scenario reports FAIL. Run on a signed-in
+# dev-client sim:
+#   maestro test .maestro/flows/conversation-lab.yml
+#
+# Known gaps (add scenarios before touching the related code paths):
+# pagination prepend while parked/anchored, empty-thread first send,
+# rotation reflow (content can dip far beyond SPACER_SLACK), tool-sheet
+# row expansion above the viewport.
+appId: sh.superset.mobile
+---
+- openLink: "superset://debug/conversation-lab"
+- extendedWaitUntil:
+    visible: "lab-run-all"
+    timeout: 30000
+- tapOn: "lab-run-all"
+- extendedWaitUntil:
+    visible: "state: done"
+    timeout: 120000
+- assertVisible: "followPin: PASS"
+- assertVisible: "noMoveUnpinned: PASS"
+- assertVisible: "overlayResolve: PASS"
+- assertVisible: "keyboardPinned: PASS"
+- assertVisible: "keyboardUnpinned: PASS"
+- assertVisible: "sendAnchor: PASS"
+- assertVisible: "sendAnchorFromHistory: PASS"
