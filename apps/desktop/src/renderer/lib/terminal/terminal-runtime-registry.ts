@@ -13,6 +13,7 @@ import {
 	detachFromContainer,
 	disposeRuntime,
 	type TerminalRuntime,
+	tryPersistRuntimeState,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
 import {
@@ -288,8 +289,14 @@ class TerminalRuntimeRegistryImpl {
 		const victims = selectRuntimesToEvict(
 			this.entries.values(),
 			this.parkedRuntimeCap,
+			// Alternate-screen TUIs restore as a garbled static snapshot — never evict them.
+			(entry) => entry.runtime?.terminal.buffer.active.type === "alternate",
 		);
 		for (const entry of victims) {
+			if (!entry.runtime || !tryPersistRuntimeState(entry.runtime)) {
+				warnPersistFailureOnce(entry.terminalId);
+				continue;
+			}
 			this.disposeEntry(entry, { clearPersistedState: false });
 		}
 	}
@@ -503,6 +510,15 @@ class TerminalRuntimeRegistryImpl {
 			entry.transport.logListeners.delete(listener);
 		};
 	}
+}
+
+let persistFailureWarned = false;
+function warnPersistFailureOnce(terminalId: string) {
+	if (persistFailureWarned) return;
+	persistFailureWarned = true;
+	console.warn(
+		`[terminal-registry] buffer persist failed for ${terminalId}; keeping runtime alive (localStorage quota?)`,
+	);
 }
 
 // Stable empty reference so useSyncExternalStore on a missing entry doesn't

@@ -57,6 +57,26 @@ describe("selectRuntimesToEvict", () => {
 		expect(selectRuntimesToEvict(entries, 2)).toEqual([]);
 		expect(ids(selectRuntimesToEvict(entries, 1))).toEqual(["a"]);
 	});
+
+	it("never selects exempt entries, even when they are the oldest", () => {
+		const entries = [parked("tui", 1), parked("a", 2), parked("b", 3)];
+		const isExempt = (e: { id: string }) => e.id === "tui";
+		expect(ids(selectRuntimesToEvict(entries, 2, isExempt))).toEqual(["a"]);
+	});
+
+	it("stops early when only exempt entries remain over the cap", () => {
+		const entries = [parked("tui1", 1), parked("tui2", 2), parked("a", 3)];
+		const isExempt = (e: { id: string }) => e.id.startsWith("tui");
+		// excess is 2 but only one evictable entry exists
+		expect(ids(selectRuntimesToEvict(entries, 1, isExempt))).toEqual(["a"]);
+	});
+
+	it("exempt entries still occupy the parked count", () => {
+		const entries = [parked("tui", 1), parked("a", 2)];
+		const isExempt = (e: { id: string }) => e.id === "tui";
+		// cap 1: tui fills the single slot, so "a" must go despite being newer
+		expect(ids(selectRuntimesToEvict(entries, 1, isExempt))).toEqual(["a"]);
+	});
 });
 
 describe("normalizeParkedRuntimeCap", () => {

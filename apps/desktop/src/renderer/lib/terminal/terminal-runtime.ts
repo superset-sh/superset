@@ -92,6 +92,24 @@ function restoreBuffer(terminalId: string, terminal: XTerm) {
 	} catch {}
 }
 
+/**
+ * Persist buffer + dims, reporting success. Eviction must not proceed when
+ * the buffer cannot be saved (e.g. localStorage quota) or scrollback would
+ * be silently lost.
+ */
+export function tryPersistRuntimeState(runtime: TerminalRuntime): boolean {
+	try {
+		const data = runtime.serializeAddon.serialize({
+			scrollback: SERIALIZE_SCROLLBACK,
+		});
+		localStorage.setItem(`${STORAGE_KEY_PREFIX}${runtime.terminalId}`, data);
+	} catch {
+		return false;
+	}
+	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
+	return true;
+}
+
 function clearPersistedBuffer(terminalId: string) {
 	try {
 		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
