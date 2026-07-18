@@ -13,9 +13,11 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor/TiptapPromptEditor";
+import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
+import { TerminalComposerControls } from "./components/TerminalComposerControls";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
 
 interface TerminalRichInputProps {
@@ -92,6 +94,11 @@ function TerminalRichInputInner({
 }: TerminalRichInputProps) {
 	const controller = usePromptInputController();
 	const hotkeyText = useHotkeyDisplay("TOGGLE_TERMINAL_RICH_INPUT").text;
+
+	// When Claude Code is the detected agent, the footer swaps the pane icon
+	// for chat-composer-style controls that drive the CLI via slash commands.
+	const agentBinding = useTerminalAgentBinding(workspaceId, terminalId);
+	const isClaudeAgent = agentBinding?.agentId === "claude";
 
 	// Deduped with the page-level workspace.get query; provides the cwd the
 	// mention popover uses to shorten paths.
@@ -229,12 +236,19 @@ function TerminalRichInputInner({
 							placeholder="Ask to make changes"
 						/>
 						<PromptInputFooter>
-							<span className="flex items-center pl-1">
-								<TerminalPaneIcon
-									workspaceId={workspaceId}
+							{isClaudeAgent ? (
+								<TerminalComposerControls
 									terminalId={terminalId}
+									terminalInstanceId={terminalInstanceId}
 								/>
-							</span>
+							) : (
+								<span className="flex items-center pl-1">
+									<TerminalPaneIcon
+										workspaceId={workspaceId}
+										terminalId={terminalId}
+									/>
+								</span>
+							)}
 							<PromptInputSubmit className="size-[23px] rounded-full border border-transparent bg-foreground/10 p-[5px] shadow-none hover:bg-foreground/20">
 								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 							</PromptInputSubmit>
