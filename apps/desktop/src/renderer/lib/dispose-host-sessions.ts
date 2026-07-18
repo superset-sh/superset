@@ -11,6 +11,11 @@ export interface DisposeHostSessionsResult {
 	failed: number;
 	/** Hosts that errored before reporting counts — nothing stamped, nothing retrying. */
 	unreachableHosts: number;
+	/**
+	 * The coordinator lookup itself failed, so we don't even know which hosts
+	 * to ask — the dispose never happened and nothing was stamped.
+	 */
+	coordinatorUnavailable: boolean;
 }
 
 /**
@@ -18,11 +23,21 @@ export interface DisposeHostSessionsResult {
  * org). Disposal is broadcast to all of them because the electron delete path
  * doesn't know which org owns the workspace; each host no-ops for workspaces it
  * doesn't own, so this is safe and covers non-active-org workspaces too.
+ *
+ * Returns null (not []) when the coordinator lookup FAILS — the caller must
+ * distinguish "no hosts running" (safe: nothing to dispose) from "couldn't ask"
+ * (a real failure that would otherwise masquerade as success).
  */
 async function localHostClients(utils: ElectronTrpcUtils) {
-	const connections = await utils.hostServiceCoordinator.getConnections
-		.fetch(undefined, { staleTime: 0 })
-		.catch(() => []);
+	let connections: { port: number; secret: string }[];
+	try {
+		connections = await utils.hostServiceCoordinator.getConnections.fetch(
+			undefined,
+			{ staleTime: 0 },
+		);
+	} catch {
+		return null;
+	}
 	return (connections ?? []).map(({ port, secret }) => {
 		const url = `http://127.0.0.1:${port}`;
 		setHostServiceSecret(url, secret);
@@ -37,8 +52,20 @@ async function disposeViaHosts(
 	) => Promise<{ terminated: number; failed: number }>,
 	logContext: Record<string, string>,
 ): Promise<DisposeHostSessionsResult> {
+	const result: DisposeHostSessionsResult = {
+		terminated: 0,
+		failed: 0,
+		unreachableHosts: 0,
+		coordinatorUnavailable: false,
+	};
+	const clients = await localHostClients(utils);
+	if (clients === null) {
+		console.warn("Failed to enumerate host services for dispose", logContext);
+		result.coordinatorUnavailable = true;
+		return result;
+	}
 	const outcomes = await Promise.all(
-		(await localHostClients(utils)).map((client) =>
+		clients.map((client) =>
 			run(client).catch((error) => {
 				console.warn("Failed to dispose host sessions", {
 					...logContext,
@@ -48,11 +75,6 @@ async function disposeViaHosts(
 			}),
 		),
 	);
-	const result: DisposeHostSessionsResult = {
-		terminated: 0,
-		failed: 0,
-		unreachableHosts: 0,
-	};
 	for (const outcome of outcomes) {
 		if (!outcome) {
 			result.unreachableHosts += 1;
@@ -102,27 +124,43 @@ export function disposeHostSessionsForWorktreePath(
 /**
  * Surface a failed dispose with a Retry action. Failed kills the host
  * confirmed are stamped (`disposeRequestedAt`) and its reaper retries them;
- * an unreachable host wrote no stamp, so the renderer retry is the only
- * recovery path there.
+ * an unreachable host (or an unavailable coordinator) wrote no stamp, so the
+ * renderer retry is the only recovery path there.
  */
 export function toastDisposeFailures(
 	result: DisposeHostSessionsResult,
 	retry: () => Promise<DisposeHostSessionsResult>,
 ): void {
-	if (result.failed === 0 && result.unreachableHosts === 0) return;
+	const unreached =
+		result.unreachableHosts > 0 || result.coordinatorUnavailable;
+	if (result.failed === 0 && !unreached) return;
+
 	const retryAction = {
 		label: "Retry",
 		onClick: () => {
-			void retry().then((next) => toastDisposeFailures(next, retry));
+			retry()
+				.then((next) => toastDisposeFailures(next, retry))
+				.catch((error) => {
+					console.warn("Retry of host session dispose failed", { error });
+				});
 		},
 	};
-	if (result.unreachableHosts > 0) {
+
+	// A no-stamp failure (couldn't reach a host, or couldn't even enumerate
+	// them) is the more urgent line: those sessions have no background retry,
+	// so lead with that even when confirmed failures also exist.
+	if (unreached) {
+		const alsoFailed =
+			result.failed > 0
+				? ` ${result.failed} more will be retried in the background.`
+				: "";
 		toast.error("Couldn't reach the host to close terminal sessions", {
-			description: "Its terminal processes may keep running.",
+			description: `Its terminal processes may keep running.${alsoFailed}`,
 			action: retryAction,
 		});
 		return;
 	}
+
 	toast.error(
 		`Failed to close ${result.failed} terminal session${result.failed === 1 ? "" : "s"}`,
 		{
