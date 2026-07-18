@@ -95,6 +95,11 @@ export const notificationsRouter = router({
 			: undefined;
 		// Codex hooks omit effort; the rollout's turn_context is the only source.
 		const effortLevel = agent?.effortLevel ?? sessionInfo?.effortLevel;
+		// Neither CLI sends permission mode in hook JSON, so the script-side
+		// value is only ever a config-file default (Codex sandbox_mode / Claude
+		// settings defaultMode). The transcript carries the live per-session
+		// mode (Shift+Tab / /approvals changes included), so it wins.
+		const permissionMode = sessionInfo?.permissionMode ?? agent?.permissionMode;
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
@@ -113,6 +118,7 @@ export const notificationsRouter = router({
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			...(agent?.model ? { model: agent.model } : {}),
 			...(effortLevel ? { effortLevel } : {}),
+			...(permissionMode ? { permissionMode } : {}),
 			...(sessionInfo?.contextUsedTokens !== undefined
 				? { contextUsedTokens: sessionInfo.contextUsedTokens }
 				: {}),

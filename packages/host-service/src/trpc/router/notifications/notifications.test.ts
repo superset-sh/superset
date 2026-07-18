@@ -1,4 +1,7 @@
 import { describe, expect, it, mock } from "bun:test";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { AgentLifecycleEventType } from "../../../events";
 import { TerminalAgentStore } from "../../../terminal-agents";
@@ -155,6 +158,51 @@ describe("notificationsRouter.hook", () => {
 		expect(binding?.agentSessionId).toBe("session-abc");
 		expect(binding?.workspaceId).toBe("workspace-1");
 		expect(binding?.lastEventType).toBe("Attached");
+	});
+
+	it("records the hook's permission mode onto the store binding", async () => {
+		const { ctx, terminalAgentStore } = createContext("workspace-1");
+
+		await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "codex", permissionMode: "danger-full-access" },
+		});
+
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.permissionMode).toBe("danger-full-access");
+	});
+
+	it("prefers the transcript's live permission mode over the hook's config default", async () => {
+		const dir = mkdtempSync(join(tmpdir(), "notifications-hook-"));
+		try {
+			const transcriptPath = join(dir, "session.jsonl");
+			writeFileSync(
+				transcriptPath,
+				`${JSON.stringify({
+					type: "permission-mode",
+					permissionMode: "acceptEdits",
+					sessionId: "session-abc",
+				})}\n`,
+			);
+
+			const { ctx, terminalAgentStore } = createContext("workspace-1");
+			await notificationsRouter.createCaller(ctx).hook({
+				terminalId: "terminal-1",
+				eventType: "Stop",
+				transcriptPath,
+				agent: {
+					agentId: "claude",
+					sessionId: "session-abc",
+					permissionMode: "default",
+				},
+			});
+
+			const binding = terminalAgentStore.get("terminal-1");
+			expect(binding?.permissionMode).toBe("acceptEdits");
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+		}
 	});
 
 	it("drops agent identity entirely when agentId is missing", async () => {
