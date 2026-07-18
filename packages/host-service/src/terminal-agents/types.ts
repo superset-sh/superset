@@ -16,6 +16,10 @@ export interface TerminalAgentBinding {
 	agentId: TerminalAgentId;
 	agentSessionId?: string;
 	definitionId?: AgentDefinitionId;
+	/** Model id reported by the agent's session hooks (e.g. "claude-opus-4-8"). */
+	model?: string;
+	/** Reasoning effort reported by the agent's session hooks (e.g. "high"). */
+	effortLevel?: string;
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;

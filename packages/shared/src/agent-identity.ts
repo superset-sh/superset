@@ -15,4 +15,8 @@ export interface AgentIdentity {
 	agentId: BuiltinAgentId;
 	sessionId?: string;
 	definitionId?: AgentDefinitionId;
+	/** Model id from the agent's session hook payload (e.g. "claude-opus-4-8"). */
+	model?: string;
+	/** Reasoning effort from the agent's session hook payload (e.g. "high"). */
+	effortLevel?: string;
 }

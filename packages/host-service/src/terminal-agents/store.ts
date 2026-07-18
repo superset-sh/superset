@@ -9,6 +9,8 @@ interface RecordEventInput {
 	agentId?: TerminalAgentId;
 	agentSessionId?: string;
 	definitionId?: AgentDefinitionId;
+	model?: string;
+	effortLevel?: string;
 	occurredAt: number;
 }
 
@@ -68,6 +70,8 @@ export class TerminalAgentStore extends EventEmitter {
 			agentId,
 			agentSessionId,
 			definitionId,
+			model,
+			effortLevel,
 			occurredAt,
 		} = input;
 
@@ -101,6 +105,11 @@ export class TerminalAgentStore extends EventEmitter {
 			agentId: nextAgentId,
 			agentSessionId: agentSessionId ?? prior?.agentSessionId,
 			definitionId: definitionId ?? prior?.definitionId,
+			// Session config only carries within the same session — a new
+			// session's first event must not inherit the old session's model.
+			model: model ?? (sessionChanged ? undefined : prior?.model),
+			effortLevel:
+				effortLevel ?? (sessionChanged ? undefined : prior?.effortLevel),
 			startedAt:
 				prior !== undefined && !sessionChanged ? prior.startedAt : occurredAt,
 			lastEventAt: occurredAt,

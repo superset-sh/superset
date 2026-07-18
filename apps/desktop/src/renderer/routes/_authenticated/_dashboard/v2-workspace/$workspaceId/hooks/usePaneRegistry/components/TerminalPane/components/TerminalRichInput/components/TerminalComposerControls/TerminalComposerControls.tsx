@@ -26,6 +26,10 @@ import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-
 interface TerminalComposerControlsProps {
 	terminalId: string;
 	terminalInstanceId: string;
+	/** Model id auto-detected from the agent's session hooks. */
+	detectedModel?: string;
+	/** Effort level auto-detected from the agent's session hooks. */
+	detectedEffort?: string;
 }
 
 interface SelectOption {
@@ -86,10 +90,9 @@ const EFFORT_OPTIONS: SelectOption[] = [
 /**
  * Last-sent selections keyed by terminalId, module-scoped so the optimistic
  * labels survive the pane being re-pointed at another terminal and back.
- * Claude Code has no readable mid-session state surface (statusline sync is
- * a future enhancement), so the chips show what was last sent from here —
- * "Model"/"Effort" until first use — and the terminal itself remains the
- * source of truth.
+ * Session hooks report model/effort at session start (the detected props);
+ * these picks cover the gap between sending a /model or /effort command and
+ * the next hook event, since Claude Code emits none on mid-session changes.
  */
 const selectionsByTerminalId = new Map<
 	string,
@@ -108,6 +111,8 @@ const selectionsByTerminalId = new Map<
 export function TerminalComposerControls({
 	terminalId,
 	terminalInstanceId,
+	detectedModel,
+	detectedEffort,
 }: TerminalComposerControlsProps) {
 	const modelOptions = useModelOptions();
 	const [selections, setSelections] = useState(
@@ -125,12 +130,20 @@ export function TerminalComposerControls({
 		setSelections(next);
 	};
 
+	// A pick from the chips wins until the next session hook updates the
+	// binding; otherwise the auto-detected session config drives the labels.
+	const effectiveModel = selections.model ?? detectedModel;
+	const effectiveEffort = selections.effort ?? detectedEffort;
 	const selectedModel = modelOptions.find(
-		(option) => option.value === selections.model,
+		(option) => option.value === effectiveModel,
 	);
 	const selectedEffort = EFFORT_OPTIONS.find(
-		(option) => option.value === selections.effort,
+		(option) => option.value === effectiveEffort,
 	);
+	// Detected values may not be in the catalog (e.g. an alias or a model
+	// newer than the catalog) — fall back to showing the raw value.
+	const modelLabel = selectedModel?.label ?? effectiveModel ?? "Model";
+	const effortLabel = selectedEffort?.label ?? effectiveEffort ?? "Effort";
 
 	return (
 		<div className="flex items-center gap-1.5">
@@ -162,7 +175,7 @@ export function TerminalComposerControls({
 						className={`${PILL_BUTTON_CLASS} px-2 gap-1.5 text-xs text-foreground`}
 					>
 						<img alt="Claude" className="size-3" src={claudeIcon} />
-						<span>{selectedModel?.label ?? "Model"}</span>
+						<span>{modelLabel}</span>
 						<ChevronDownIcon className="size-2.5 opacity-50" />
 					</PromptInputButton>
 				</DropdownMenuTrigger>
@@ -184,7 +197,7 @@ export function TerminalComposerControls({
 									</span>
 								)}
 							</div>
-							{option.value === selections.model && (
+							{option.value === effectiveModel && (
 								<CheckIcon className="size-4 shrink-0" />
 							)}
 						</DropdownMenuItem>
@@ -198,7 +211,7 @@ export function TerminalComposerControls({
 						className={`${PILL_BUTTON_CLASS} px-2 gap-1 text-xs text-foreground`}
 					>
 						<BrainIcon className="size-3.5 opacity-60" />
-						<span>{selectedEffort?.label ?? "Effort"}</span>
+						<span>{effortLabel}</span>
 						<ChevronDownIcon className="size-2.5 opacity-50" />
 					</PromptInputButton>
 				</DropdownMenuTrigger>
@@ -218,7 +231,7 @@ export function TerminalComposerControls({
 									{option.description}
 								</span>
 							</div>
-							{option.value === selections.effort && (
+							{option.value === effectiveEffort && (
 								<CheckIcon className="size-4 shrink-0" />
 							)}
 						</DropdownMenuItem>

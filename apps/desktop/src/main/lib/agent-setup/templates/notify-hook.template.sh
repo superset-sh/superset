@@ -18,6 +18,14 @@ if [ -z "$RESOURCE_ID" ]; then
 fi
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 
+# Session config (Claude Code includes these in hook payloads as flat
+# strings; other agents simply won't match and the fields stay empty).
+AGENT_MODEL=$(echo "$INPUT" | grep -oE '"model"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+AGENT_EFFORT=$(echo "$INPUT" | grep -oE '"effortLevel"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+if [ -z "$AGENT_EFFORT" ]; then
+  AGENT_EFFORT=$(echo "$INPUT" | grep -oE '"effort_level"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
+
 # Claude/Mastra/Droid use "hook_event_name"; Codex uses "type".
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$EVENT_TYPE" ]; then
@@ -74,7 +82,7 @@ json_escape() {
 }
 
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\",\"model\":\"$(json_escape "$AGENT_MODEL")\",\"effortLevel\":\"$(json_escape "$AGENT_EFFORT")\"}}}"
 
   STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
     --connect-timeout 2 --max-time 5 \

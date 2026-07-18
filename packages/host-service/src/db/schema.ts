@@ -44,6 +44,10 @@ export const terminalAgentBindings = sqliteTable(
 		agentId: text("agent_id").notNull().$type<BuiltinAgentId>(),
 		agentSessionId: text("agent_session_id"),
 		definitionId: text("definition_id").$type<AgentDefinitionId>(),
+		// Session config reported by agent hooks (Claude Code's SessionStart
+		// payload); drives the terminal composer's model/effort chips.
+		model: text("model"),
+		effortLevel: text("effort_level"),
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),
 		lastEventType: text("last_event_type").notNull(),

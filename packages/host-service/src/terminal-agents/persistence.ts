@@ -14,6 +14,8 @@ const bindingColumns = {
 	agentId: terminalAgentBindings.agentId,
 	agentSessionId: terminalAgentBindings.agentSessionId,
 	definitionId: terminalAgentBindings.definitionId,
+	model: terminalAgentBindings.model,
+	effortLevel: terminalAgentBindings.effortLevel,
 	startedAt: terminalAgentBindings.startedAt,
 	lastEventAt: terminalAgentBindings.lastEventAt,
 	lastEventType: terminalAgentBindings.lastEventType,
@@ -25,6 +27,8 @@ interface BindingRow {
 	agentId: TerminalAgentId;
 	agentSessionId: string | null;
 	definitionId: AgentDefinitionId | null;
+	model: string | null;
+	effortLevel: string | null;
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;
@@ -37,6 +41,8 @@ function rowToBinding(row: BindingRow): TerminalAgentBinding {
 		agentId: row.agentId,
 		...(row.agentSessionId ? { agentSessionId: row.agentSessionId } : {}),
 		...(row.definitionId ? { definitionId: row.definitionId } : {}),
+		...(row.model ? { model: row.model } : {}),
+		...(row.effortLevel ? { effortLevel: row.effortLevel } : {}),
 		startedAt: row.startedAt,
 		lastEventAt: row.lastEventAt,
 		lastEventType: row.lastEventType,
@@ -173,6 +179,8 @@ export class SqliteTerminalAgentBindingPersistence
 				agentId: binding.agentId,
 				agentSessionId: binding.agentSessionId ?? null,
 				definitionId: binding.definitionId ?? null,
+				model: binding.model ?? null,
+				effortLevel: binding.effortLevel ?? null,
 				startedAt: binding.startedAt,
 				lastEventAt: binding.lastEventAt,
 				lastEventType: binding.lastEventType,
@@ -184,6 +192,8 @@ export class SqliteTerminalAgentBindingPersistence
 					agentId: binding.agentId,
 					agentSessionId: binding.agentSessionId ?? null,
 					definitionId: binding.definitionId ?? null,
+					model: binding.model ?? null,
+					effortLevel: binding.effortLevel ?? null,
 					startedAt: binding.startedAt,
 					lastEventAt: binding.lastEventAt,
 					lastEventType: binding.lastEventType,

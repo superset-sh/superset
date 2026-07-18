@@ -12,6 +12,8 @@ const agentIdentityInput = z
 		agentId: z.string().optional(),
 		sessionId: z.string().optional(),
 		definitionId: z.string().optional(),
+		model: z.string().optional(),
+		effortLevel: z.string().optional(),
 	})
 	.optional();
 
@@ -33,12 +35,16 @@ function normalizeAgentIdentity(
 	if (!agentId) return undefined;
 	const sessionId = trimOrUndefined(agent?.sessionId);
 	const definitionId = trimOrUndefined(agent?.definitionId);
+	const model = trimOrUndefined(agent?.model);
+	const effortLevel = trimOrUndefined(agent?.effortLevel);
 	return {
 		agentId: agentId as AgentIdentity["agentId"],
 		...(sessionId ? { sessionId } : {}),
 		...(definitionId
 			? { definitionId: definitionId as AgentIdentity["definitionId"] }
 			: {}),
+		...(model ? { model } : {}),
+		...(effortLevel ? { effortLevel } : {}),
 	};
 }
 
@@ -89,6 +95,8 @@ export const notificationsRouter = router({
 			...(agent?.agentId ? { agentId: agent.agentId } : {}),
 			...(agent?.sessionId ? { agentSessionId: agent.sessionId } : {}),
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
+			...(agent?.model ? { model: agent.model } : {}),
+			...(agent?.effortLevel ? { effortLevel: agent.effortLevel } : {}),
 			occurredAt,
 		});
 

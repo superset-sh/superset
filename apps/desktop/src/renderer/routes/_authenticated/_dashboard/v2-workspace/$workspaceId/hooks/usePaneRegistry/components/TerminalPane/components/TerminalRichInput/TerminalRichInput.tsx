@@ -264,6 +264,8 @@ function TerminalRichInputInner({
 								<TerminalComposerControls
 									terminalId={terminalId}
 									terminalInstanceId={terminalInstanceId}
+									detectedModel={agentBinding?.model}
+									detectedEffort={agentBinding?.effortLevel}
 								/>
 							) : (
 								<span className="flex items-center pl-1">
