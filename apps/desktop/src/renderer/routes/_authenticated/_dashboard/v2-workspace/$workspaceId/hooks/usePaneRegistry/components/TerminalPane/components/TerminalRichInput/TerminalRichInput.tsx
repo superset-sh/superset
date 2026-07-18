@@ -1,3 +1,4 @@
+import type { AppRouter } from "@superset/host-service";
 import {
 	PromptInput,
 	PromptInputFooter,
@@ -8,6 +9,7 @@ import {
 } from "@superset/ui/ai-elements/prompt-input";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
+import type { inferRouterOutputs } from "@trpc/server";
 import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor/TiptapPromptEditor";
@@ -31,6 +33,27 @@ interface TerminalRichInputProps {
  * small strings; no eviction needed for a session's lifetime.
  */
 const draftsByTerminalId = new Map<string, string>();
+
+/**
+ * Module-scoped select mapper (stable identity, so React Query preserves the
+ * result across polls). Superset-chat builtins (e.g. /model) carry app
+ * actions that only the chat layer can execute — in a PTY they'd submit as
+ * meaningless text, so only file-discovered commands (.claude/commands,
+ * .agents/commands) are surfaced; the CLI agent in the terminal resolves
+ * those itself from the serialized "/name args" text.
+ */
+const selectTerminalSlashCommands = (
+	commands: NonNullable<
+		inferRouterOutputs<AppRouter>["chat"]["getSlashCommands"]
+	>,
+) =>
+	commands
+		.filter((command) => command.kind !== "builtin")
+		.map((command) => ({
+			...command,
+			kind: "custom" as const,
+			source: "project" as const,
+		}));
 
 /**
  * Warp-style rich input overlay for a v2 terminal pane. Reuses the chat
@@ -77,6 +100,12 @@ function TerminalRichInputInner({
 		{ refetchOnWindowFocus: false, retry: false },
 	);
 	const cwd = workspaceStatus?.worktreePath ?? "";
+
+	const { data: slashCommands = [] } =
+		workspaceTrpc.chat.getSlashCommands.useQuery(
+			{ workspaceId },
+			{ select: selectTerminalSlashCommands },
+		);
 
 	const trpcUtils = workspaceTrpc.useUtils();
 	const searchFiles = useCallback(
@@ -179,7 +208,7 @@ function TerminalRichInputInner({
 				    the mx-auto max-w keeps the card centered like the chat composer. */}
 				<div className="relative mx-auto w-full max-w-[680px] pt-2">
 					{hotkeyText !== "Unassigned" && (
-						<span className="pointer-events-none absolute top-5 right-3 z-10 text-xs text-muted-foreground/50">
+						<span className="pointer-events-none absolute top-5 right-3 z-10 text-xs text-muted-foreground/50 [:focus-within>&]:hidden">
 							{hotkeyText} to hide
 						</span>
 					)}
@@ -196,7 +225,7 @@ function TerminalRichInputInner({
 						<TiptapPromptEditor
 							cwd={cwd}
 							searchFiles={searchFiles}
-							slashCommands={[]}
+							slashCommands={slashCommands}
 							placeholder="Ask to make changes"
 						/>
 						<PromptInputFooter>
