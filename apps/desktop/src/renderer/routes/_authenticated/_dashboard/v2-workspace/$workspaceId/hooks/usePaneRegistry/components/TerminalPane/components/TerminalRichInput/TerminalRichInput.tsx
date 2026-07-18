@@ -162,11 +162,16 @@ function TerminalRichInputInner({
 				isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
 			)}
 		>
+			{/* overflow-clip (not hidden) with a clip margin: the card's border and
+			    3px focus ring paint right at this wrapper's bottom/side edges, and a
+			    hard clip shaves them off — leaving the glow visible only on top,
+			    unlike the chat composer. The margin gives the ring room while still
+			    containing the collapse animation. */}
 			<div
 				ref={rootRef}
 				inert={!isOpen || undefined}
 				className={cn(
-					"min-h-0 overflow-hidden transition-opacity duration-150 ease-out",
+					"min-h-0 overflow-clip [overflow-clip-margin:6px] transition-opacity duration-150 ease-out",
 					isOpen ? "opacity-100" : "pointer-events-none opacity-0",
 				)}
 			>
