@@ -7,6 +7,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { claudeIcon } from "@superset/ui/icons/preset-icons";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useQuery } from "@tanstack/react-query";
 import {
 	BrainIcon,
 	CheckIcon,
@@ -15,6 +16,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { PILL_BUTTON_CLASS } from "renderer/components/Chat/ChatInterface/styles";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import {
+	getDesktopChatModelOptions,
+	isDesktopChatDevMode,
+} from "renderer/lib/dev-chat";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 
 interface TerminalComposerControlsProps {
@@ -25,20 +31,47 @@ interface TerminalComposerControlsProps {
 interface SelectOption {
 	value: string;
 	label: string;
-	description: string;
+	description?: string;
 }
 
 /**
- * Claude Code model aliases (`/model <alias>`), family names only — the CLI
- * resolves an alias to the account's current version, so pinning versions in
- * labels here would go stale.
+ * Fallback when the model catalog hasn't loaded: Claude Code aliases, family
+ * names only — the CLI resolves an alias to the account's current version, so
+ * pinning versions in these labels would go stale.
  */
-const MODEL_OPTIONS: SelectOption[] = [
+const FALLBACK_MODEL_OPTIONS: SelectOption[] = [
 	{ value: "fable", label: "Fable", description: "Most capable" },
 	{ value: "opus", label: "Opus", description: "Deep reasoning" },
 	{ value: "sonnet", label: "Sonnet", description: "Balanced" },
 	{ value: "haiku", label: "Haiku", description: "Fastest" },
 ];
+
+const ANTHROPIC_ID_PREFIX = "anthropic/";
+
+/**
+ * Model options from the shared chat catalog (same query key as the chat
+ * composer, so the fetch is deduped and new models arrive with the catalog —
+ * nothing hardcoded). Catalog ids are gateway-style ("anthropic/claude-x");
+ * the bare id after the prefix is a valid `/model` argument, and the catalog
+ * name ("Opus 4.8") becomes the label.
+ */
+function useModelOptions(): SelectOption[] {
+	const localModels = getDesktopChatModelOptions();
+	const { data } = useQuery({
+		queryKey: ["chat", "models"],
+		queryFn: () => apiTrpcClient.chat.getModels.query(),
+		enabled: !isDesktopChatDevMode(),
+		staleTime: Number.POSITIVE_INFINITY,
+	});
+	const catalog = localModels.length > 0 ? localModels : (data?.models ?? []);
+	const options = catalog
+		.filter((model) => model.id.startsWith(ANTHROPIC_ID_PREFIX))
+		.map((model) => ({
+			value: model.id.slice(ANTHROPIC_ID_PREFIX.length),
+			label: model.name,
+		}));
+	return options.length > 0 ? options : FALLBACK_MODEL_OPTIONS;
+}
 
 /** Claude Code `/effort <level>` values; `auto` resets to the model default. */
 const EFFORT_OPTIONS: SelectOption[] = [
@@ -76,6 +109,7 @@ export function TerminalComposerControls({
 	terminalId,
 	terminalInstanceId,
 }: TerminalComposerControlsProps) {
+	const modelOptions = useModelOptions();
 	const [selections, setSelections] = useState(
 		() => selectionsByTerminalId.get(terminalId) ?? {},
 	);
@@ -91,7 +125,7 @@ export function TerminalComposerControls({
 		setSelections(next);
 	};
 
-	const selectedModel = MODEL_OPTIONS.find(
+	const selectedModel = modelOptions.find(
 		(option) => option.value === selections.model,
 	);
 	const selectedEffort = EFFORT_OPTIONS.find(
@@ -133,7 +167,7 @@ export function TerminalComposerControls({
 					</PromptInputButton>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent align="start" className="w-56">
-					{MODEL_OPTIONS.map((option) => (
+					{modelOptions.map((option) => (
 						<DropdownMenuItem
 							key={option.value}
 							onClick={() => {
@@ -144,9 +178,11 @@ export function TerminalComposerControls({
 						>
 							<div className="flex flex-1 flex-col gap-0.5">
 								<span className="text-sm font-medium">{option.label}</span>
-								<span className="text-xs text-muted-foreground">
-									{option.description}
-								</span>
+								{option.description && (
+									<span className="text-xs text-muted-foreground">
+										{option.description}
+									</span>
+								)}
 							</div>
 							{option.value === selections.model && (
 								<CheckIcon className="size-4 shrink-0" />
