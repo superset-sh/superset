@@ -12,9 +12,11 @@ import {
 	V2_AGENT_CONFIGS_QUERY_KEY as QUERY_KEY,
 	useV2AgentConfigs,
 } from "renderer/hooks/useV2AgentConfigs";
+import { getAgentCommandText } from "renderer/lib/agent-launch-command";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useScrollReset } from "renderer/routes/_authenticated/settings/hooks/useScrollReset";
 import { AgentDetail } from "./components/AgentDetail";
@@ -34,6 +36,33 @@ const KNOWN_PRESETS: HostAgentPreset[] = HOST_AGENT_PRESETS.map((preset) => ({
 const DESCRIPTION_BY_PRESET_ID = new Map(
 	KNOWN_PRESETS.map((preset) => [preset.presetId, preset.description]),
 );
+
+/** Auto-creates a linked terminal preset for a newly added agent config
+ * (same row shape as the Settings → Terminal "Import agent" flow). */
+function insertLinkedTerminalPreset(
+	collections: ReturnType<typeof useCollections>,
+	agent: HostAgentConfig,
+): void {
+	if (agent.command.trim().length === 0) return;
+	const presets = [...collections.v2TerminalPresets.values()];
+	if (presets.some((preset) => preset.agentId === agent.id)) return;
+	const maxTabOrder = presets.reduce(
+		(max, preset) => Math.max(max, preset.tabOrder),
+		-1,
+	);
+	collections.v2TerminalPresets.insert({
+		id: crypto.randomUUID(),
+		name: agent.label,
+		description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId),
+		cwd: "",
+		commands: [getAgentCommandText(agent)],
+		projectIds: null,
+		executionMode: "new-tab",
+		tabOrder: maxTabOrder + 1,
+		createdAt: new Date(),
+		agentId: agent.id,
+	});
+}
 
 interface V2AgentsSettingsProps {
 	/**
@@ -68,6 +97,7 @@ export function V2AgentsSettings({
 	};
 
 	const setupAgentMutation = electronTrpc.settings.setupAgent.useMutation();
+	const collections = useCollections();
 
 	const addMutation = useMutation({
 		mutationFn: async (preset: HostAgentPreset) => {
@@ -100,7 +130,10 @@ export function V2AgentsSettings({
 		onSuccess: (added) => {
 			setIsCreating(false);
 			invalidate();
-			if (added?.id) setSelectedAgentId(added.id);
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				insertLinkedTerminalPreset(collections, added);
+			}
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
@@ -122,7 +155,10 @@ export function V2AgentsSettings({
 		onSuccess: (added) => {
 			setIsCreating(false);
 			invalidate();
-			if (added?.id) setSelectedAgentId(added.id);
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				insertLinkedTerminalPreset(collections, added);
+			}
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),

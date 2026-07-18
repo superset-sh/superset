@@ -27,6 +27,13 @@ export const terminalSessions = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		lastAttachedAt: integer("last_attached_at"),
 		endedAt: integer("ended_at"),
+		/**
+		 * Set the moment a dispose is requested — durable intent-to-kill. A
+		 * failed kill leaves the row `active` with this stamp, and the reaper
+		 * retries it regardless of workspace liveness (a one-shot renderer
+		 * broadcast must not be the only chance to kill a session).
+		 */
+		disposeRequestedAt: integer("dispose_requested_at"),
 	},
 	(table) => [
 		index("terminal_sessions_origin_workspace_id_idx").on(

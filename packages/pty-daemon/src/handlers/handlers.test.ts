@@ -38,6 +38,8 @@ function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
 		onData: () => {},
 		onExit: () => {},
 		getMasterFd: () => -1,
+		pause: () => {},
+		resume: () => {},
 	};
 }
 

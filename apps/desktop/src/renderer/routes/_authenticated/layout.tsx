@@ -8,17 +8,20 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
 import { env } from "renderer/env.renderer";
+import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useOnlineStatus } from "renderer/hooks/useOnlineStatus";
+import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient, getAuthToken } from "renderer/lib/auth-client";
 import { dragDropManager } from "renderer/lib/dnd";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
@@ -48,6 +51,15 @@ export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
 });
 
+// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
+const signInRedirect = <Navigate to="/sign-in" replace />;
+const createOrganizationRedirect = (
+	<Navigate to="/create-organization" replace />
+);
+const onboardingRedirect = <Navigate to="/onboarding" replace />;
+
+const SESSION_PENDING_TIMEOUT_MS = 15_000;
+
 function AuthenticatedLayout() {
 	const {
 		data: session,
@@ -69,7 +81,26 @@ function AuthenticatedLayout() {
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
 
+	const isAuthPending =
+		(isPending || (isRefetching && !session?.user && hasLocalToken)) &&
+		!env.SKIP_ENV_VALIDATION;
+	const authPendingTimedOut = useDelayElapsed(
+		isAuthPending,
+		SESSION_PENDING_TIMEOUT_MS,
+	);
+	const signOut = useSignOut();
+	const [isSigningOut, setIsSigningOut] = useState(false);
+
 	useAgentHookListener();
+
+	// Seed the parked-terminal eviction cap from settings (SUPER-1545).
+	const { data: parkedRuntimeCap } =
+		electronTrpc.settings.getTerminalParkedRuntimeCap.useQuery();
+	useEffect(() => {
+		if (parkedRuntimeCap !== undefined) {
+			terminalRuntimeRegistry.setParkedRuntimeCap(parkedRuntimeCap);
+		}
+	}, [parkedRuntimeCap]);
 
 	// Update workspace-run pane state on terminal exit
 	electronTrpc.notifications.subscribe.useSubscription(undefined, {
@@ -160,16 +191,44 @@ function AuthenticatedLayout() {
 		},
 	});
 
-	if (isPending && !hasLocalToken && !env.SKIP_ENV_VALIDATION) {
-		return <Navigate to="/sign-in" replace />;
-	}
-	if (
-		(isPending || (isRefetching && !session?.user && hasLocalToken)) &&
-		!env.SKIP_ENV_VALIDATION
-	) {
+	// Never redirect while the session is unresolved — a redirect held open
+	// across re-renders loops the router until the renderer OOMs (#5729).
+	if (isAuthPending) {
 		return (
-			<div className="flex h-screen w-screen items-center justify-center bg-background">
+			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
 				<Spinner className="size-8" />
+				{authPendingTimedOut && (
+					<>
+						<div className="text-center select-text cursor-text">
+							<h2 className="text-lg font-medium">
+								Still restoring your session
+							</h2>
+							<p className="text-sm text-muted-foreground">
+								Superset can't confirm your sign-in with the server.
+							</p>
+						</div>
+						<div className="flex gap-2">
+							<Button variant="outline" size="sm" onClick={() => refetch()}>
+								Retry
+							</Button>
+							<Button
+								variant="outline"
+								size="sm"
+								disabled={isSigningOut}
+								onClick={async () => {
+									setIsSigningOut(true);
+									try {
+										await signOut();
+									} finally {
+										void navigate({ to: "/sign-in", replace: true });
+									}
+								}}
+							>
+								Sign out
+							</Button>
+						</div>
+					</>
+				)}
 			</div>
 		);
 	}
@@ -192,11 +251,11 @@ function AuthenticatedLayout() {
 	}
 
 	if (!isSignedIn) {
-		return <Navigate to="/sign-in" replace />;
+		return signInRedirect;
 	}
 
 	if (!activeOrganizationId) {
-		return <Navigate to="/create-organization" replace />;
+		return createOrganizationRedirect;
 	}
 
 	if (
@@ -204,7 +263,7 @@ function AuthenticatedLayout() {
 		!session.user.onboardedAt &&
 		!location.pathname.startsWith("/onboarding")
 	) {
-		return <Navigate to="/onboarding" replace />;
+		return onboardingRedirect;
 	}
 
 	return (

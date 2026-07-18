@@ -549,9 +549,13 @@ export const workspacesRouter = router({
 				input.pr === undefined &&
 				(input.branch === undefined || input.name === undefined) &&
 				!!composerPrompt;
+			const namingAgent = input.agents?.[0]?.agent;
 			const aiNamesPromise: Promise<GeneratedWorkspaceNames | null> | null =
 				wantAi
-					? generateWorkspaceNamesFromPrompt(composerPrompt).catch((err) => {
+					? generateWorkspaceNamesFromPrompt(
+							composerPrompt,
+							namingAgent ? { db: ctx.db, agent: namingAgent } : undefined,
+						).catch((err) => {
 							console.warn("[workspaces.create] AI naming failed", err);
 							return null;
 						})
