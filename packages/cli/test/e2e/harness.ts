@@ -276,12 +276,14 @@ export class CliE2EHarness {
 	readonly commands: CommandEvidence[] = [];
 	readonly assertions: AssertionEvidence[] = [];
 	readonly organizationId = "10000000-0000-4000-8000-000000000001";
+	readonly projectId = "20000000-0000-4000-8000-000000000001";
 	readonly workspaceId = "30000000-0000-4000-8000-000000000001";
 	readonly secret = "e2e-host-secret";
 	readonly capturePath: string;
 	readonly dbPath: string;
 	readonly homeDir: string;
 	readonly workspacePath: string;
+	readonly worktreeBasePath: string;
 	private daemon?: ManagedProcess;
 	private host?: ManagedProcess;
 	private endpoint = "";
@@ -297,8 +299,38 @@ export class CliE2EHarness {
 		this.dbPath = join(this.tempRoot, "host.db");
 		this.homeDir = join(this.tempRoot, "home");
 		this.workspacePath = join(this.tempRoot, "workspace");
+		this.worktreeBasePath = join(this.tempRoot, "worktrees");
 		mkdirSync(this.workspacePath, { recursive: true });
+		mkdirSync(this.worktreeBasePath, { recursive: true });
 		mkdirSync(this.homeDir, { recursive: true, mode: 0o700 });
+		this.initializeFixtureRepository();
+	}
+
+	private initializeFixtureRepository(): void {
+		const gitEnv = {
+			...process.env,
+			GIT_AUTHOR_NAME: "Superset CLI E2E",
+			GIT_AUTHOR_EMAIL: "cli-e2e@superset.invalid",
+			GIT_COMMITTER_NAME: "Superset CLI E2E",
+			GIT_COMMITTER_EMAIL: "cli-e2e@superset.invalid",
+		};
+		writeFileSync(join(this.workspacePath, "README.md"), "# E2E fixture\n");
+		for (const args of [
+			["init", "--initial-branch=main"],
+			["add", "README.md"],
+			["commit", "-m", "test: initialize CLI E2E fixture"],
+		]) {
+			const result = spawnSync("git", args, {
+				cwd: this.workspacePath,
+				env: gitEnv,
+				encoding: "utf8",
+			});
+			if (result.status !== 0) {
+				throw new Error(
+					`Failed to initialize fixture repository: ${result.stderr.trim()}`,
+				);
+			}
+		}
 	}
 
 	private commonEnv(): NodeJS.ProcessEnv {
@@ -386,6 +418,7 @@ export class CliE2EHarness {
 				),
 				HOST_SERVICE_SECRET: this.secret,
 				SUPERSET_E2E_WORKSPACE_PATH: this.workspacePath,
+				SUPERSET_E2E_WORKTREE_BASE_PATH: this.worktreeBasePath,
 				SUPERSET_E2E_AGENT_PATH: join(
 					this.repoRoot,
 					"packages",

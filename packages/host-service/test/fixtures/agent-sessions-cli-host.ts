@@ -29,6 +29,7 @@ const dbPath = required("HOST_DB_PATH");
 const migrationsFolder = required("HOST_MIGRATIONS_FOLDER");
 const secret = required("HOST_SERVICE_SECRET");
 const workspacePath = required("SUPERSET_E2E_WORKSPACE_PATH");
+const worktreeBasePath = required("SUPERSET_E2E_WORKTREE_BASE_PATH");
 const fakeAgentPath = required("SUPERSET_E2E_AGENT_PATH");
 const capturePath = required("SUPERSET_E2E_CAPTURE_PATH");
 const agentRuntimePath = required("SUPERSET_E2E_AGENT_RUNTIME_PATH");
@@ -49,7 +50,11 @@ const db = drizzle(sqlite, { schema });
 migrate(db, { migrationsFolder });
 
 db.insert(schema.projects)
-	.values({ id: projectId, repoPath: workspacePath })
+	.values({
+		id: projectId,
+		repoPath: workspacePath,
+		worktreeBaseDir: worktreeBasePath,
+	})
 	.onConflictDoNothing()
 	.run();
 db.insert(schema.workspaces)
@@ -57,9 +62,9 @@ db.insert(schema.workspaces)
 		id: workspaceId,
 		projectId,
 		worktreePath: workspacePath,
-		branch: "e2e-agent-sessions",
+		branch: "main",
 		name: "e2e-agent-sessions",
-		type: "worktree",
+		type: "main",
 		createdAt: Date.now(),
 		updatedAt: Date.now(),
 	})
@@ -103,13 +108,17 @@ db.insert(schema.hostAgentConfigs)
 
 const fakeApi = createFakeApiClient({
 	"host.ensure.mutate": () => ({ machineId: "e2e-host" }),
-	"v2Workspace.create.mutate": () => ({
-		id: workspaceId,
-		name: "e2e-agent-sessions",
-		branch: "e2e-agent-sessions",
-		taskId: null,
-		updatedAt: new Date(),
-	}),
+	"v2Workspace.create.mutate": (input) => {
+		const row = input as {
+			id: string;
+			name: string;
+			branch: string;
+			projectId: string;
+			hostId: string;
+			type: string;
+		};
+		return { ...row, taskId: null, updatedAt: new Date() };
+	},
 	"v2Workspace.list.query": () => [],
 });
 

@@ -52,6 +52,12 @@ interface SessionWait {
 	status: string;
 }
 
+interface WorkspaceLaunch {
+	workspace: { id: string; branch: string };
+	alreadyExists: boolean;
+	agents: Array<{ ok: boolean; sessionId?: string; error?: string }>;
+}
+
 const harness = new CliE2EHarness({ repoRoot, artifactsDir });
 let failure: unknown;
 
@@ -144,12 +150,17 @@ try {
 	writeFileSync(attachmentPath, attachmentContents);
 	const attachmentPrompt = "Inspect the attached markdown file.";
 	const attachmentLaunchCommand = await harness.cli({
-		name: "launch with a workspace-readable attachment",
+		name: "create a workspace and launch an agent with an attachment",
 		args: [
-			"agents",
+			"workspaces",
 			"create",
-			"--workspace",
-			harness.workspaceId,
+			"--local",
+			"--project",
+			harness.projectId,
+			"--name",
+			"e2e-attached-workspace",
+			"--branch",
+			"e2e-attached-workspace",
 			"--agent",
 			"e2e",
 			"--prompt",
@@ -158,10 +169,15 @@ try {
 			attachmentPath,
 		],
 		displayArgs: [
-			"agents",
+			"workspaces",
 			"create",
-			"--workspace",
-			harness.workspaceId,
+			"--local",
+			"--project",
+			harness.projectId,
+			"--name",
+			"e2e-attached-workspace",
+			"--branch",
+			"e2e-attached-workspace",
 			"--agent",
 			"e2e",
 			"--prompt",
@@ -170,7 +186,7 @@ try {
 			"$E2E_ROOT/attachment.md",
 		],
 	});
-	json<SessionLaunch>(attachmentLaunchCommand);
+	const attachmentLaunch = json<WorkspaceLaunch>(attachmentLaunchCommand);
 	await harness.waitForCaptureCount(2);
 	const attachmentCapture = harness.readCapture()[1]?.prompt ?? "";
 	const resolvedAttachmentPath = attachmentCapture
@@ -178,12 +194,14 @@ try {
 		.find((line) => line.startsWith("- "))
 		?.slice(2);
 	harness.check(
-		"attachment upload expands into a real host-readable prompt path",
-		attachmentCapture.startsWith(attachmentPrompt) &&
+		"workspaces create forwards attachment bytes into its inline agent",
+		attachmentLaunch.workspace.branch === "e2e-attached-workspace" &&
+			attachmentLaunch.agents[0]?.ok === true &&
+			attachmentCapture.startsWith(attachmentPrompt) &&
 			Boolean(resolvedAttachmentPath) &&
 			existsSync(resolvedAttachmentPath ?? "") &&
 			readFileSync(resolvedAttachmentPath ?? "", "utf8") === attachmentContents,
-		"uploaded bytes and the prompt-resolved host path agree",
+		"workspace, inline agent result, uploaded bytes, and resolved host path agree",
 	);
 
 	await harness.cli({
