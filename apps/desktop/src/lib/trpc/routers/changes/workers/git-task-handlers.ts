@@ -9,6 +9,7 @@ import type { SimpleGit, StatusResult } from "simple-git";
 import { getStatusNoLock } from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
 import { applyNumstatToFiles } from "../utils/apply-numstat";
+import { resolveEffectiveBaseBranch } from "../utils/git-base-branch";
 import {
 	parseGitLog,
 	parseGitStatus,
@@ -248,14 +249,22 @@ async function getTrackingBranchStatus(
 async function computeStatus({
 	worktreePath,
 	defaultBranch,
+	persistedWorktree,
 }: GitTaskPayloadMap["getStatus"]): Promise<GitChangesStatus> {
 	const git = await getSimpleGitWithShellPath(worktreePath);
 
 	const status: StatusResult = await getStatusNoLock(worktreePath);
 	const parsed = parseGitStatus(status);
+	const effectiveBaseBranch =
+		defaultBranch ||
+		(await resolveEffectiveBaseBranch({
+			git,
+			currentBranch: parsed.branch === "HEAD" ? null : parsed.branch,
+			persistedWorktree,
+		}));
 
 	const [branchComparison, trackingStatus] = await Promise.all([
-		getBranchComparison(git, defaultBranch),
+		getBranchComparison(git, effectiveBaseBranch),
 		getTrackingBranchStatus(git),
 		applyNumstatToFiles(git, parsed.staged, ["diff", "--cached", "--numstat"]),
 		applyNumstatToFiles(git, parsed.unstaged, ["diff", "--numstat"]),
@@ -264,7 +273,7 @@ async function computeStatus({
 
 	return {
 		branch: parsed.branch,
-		defaultBranch,
+		defaultBranch: effectiveBaseBranch,
 		againstBase: branchComparison.againstBase,
 		commits: branchComparison.commits,
 		staged: parsed.staged,

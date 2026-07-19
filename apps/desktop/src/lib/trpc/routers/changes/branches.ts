@@ -1,3 +1,6 @@
+import { worktrees } from "@superset/local-db";
+import { eq } from "drizzle-orm";
+import { localDb } from "main/lib/local-db";
 import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -12,10 +15,8 @@ import {
 	assertRegisteredWorktree,
 	getRegisteredWorktree,
 } from "./security/path-validation";
-import {
-	getDefaultBranch,
-	getWorktreeBaseBranch,
-} from "./utils/effective-base-branch";
+import { getWorktreeBaseBranch } from "./utils/effective-base-branch";
+import { getDefaultBranch } from "./utils/git-base-branch";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export const createBranchesRouter = () => {

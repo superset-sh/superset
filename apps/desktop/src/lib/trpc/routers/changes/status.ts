@@ -3,14 +3,12 @@ import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { assertRegisteredWorktree } from "./security/path-validation";
-import { resolveEffectiveBaseBranch } from "./utils/effective-base-branch";
+import { getPersistedWorktreeBaseBranch } from "./utils/effective-base-branch";
 import {
 	clearInFlightStatus,
-	getCachedEffectiveBaseBranch,
 	getCachedStatus,
 	getInFlightStatus,
 	makeStatusCacheKey,
-	setCachedEffectiveBaseBranch,
 	setCachedStatus,
 	setInFlightStatus,
 } from "./utils/status-cache";
@@ -28,16 +26,7 @@ export const createStatusRouter = () => {
 			.query(async ({ input }): Promise<GitChangesStatus> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const cachedEffectiveBaseBranch = getCachedEffectiveBaseBranch(
-					input.worktreePath,
-				);
-				const defaultBranch =
-					input.defaultBranch ||
-					cachedEffectiveBaseBranch ||
-					(await resolveEffectiveBaseBranch(input.worktreePath));
-				if (!input.defaultBranch && !cachedEffectiveBaseBranch) {
-					setCachedEffectiveBaseBranch(input.worktreePath, defaultBranch);
-				}
+				const defaultBranch = input.defaultBranch || undefined;
 				const cacheKey = makeStatusCacheKey(input.worktreePath, defaultBranch);
 				const cached = getCachedStatus(cacheKey);
 				if (cached) {
@@ -57,6 +46,9 @@ export const createStatusRouter = () => {
 							{
 								worktreePath: input.worktreePath,
 								defaultBranch,
+								persistedWorktree: getPersistedWorktreeBaseBranch(
+									input.worktreePath,
+								),
 							},
 							{
 								dedupeKey: cacheKey,
