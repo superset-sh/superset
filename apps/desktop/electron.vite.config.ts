@@ -114,6 +114,9 @@ export default defineConfig({
 					// pty-daemon - long-lived per-org Unix-socket server that owns PTYs.
 					// Spawned by PtyDaemonCoordinator; survives host-service restarts.
 					"pty-daemon": resolve("src/main/pty-daemon/index.ts"),
+					// host-service worker thread — emitted side-by-side with
+					// host-service.js so the pool's script resolution finds it.
+					"host-worker": resolve("src/main/host-worker/index.ts"),
 				},
 				output: {
 					dir: resolve(devPath, "main"),
