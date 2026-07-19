@@ -56,6 +56,7 @@ class TerminalRuntimeRegistryImpl {
 	private entryKeysByTerminalId = new Map<string, Set<string>>();
 	private useSeq = 0;
 	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
+	private persistFailureWarnedTerminalIds = new Set<string>();
 	/**
 	 * Cap on parked (hidden) xterm runtimes. Each live runtime holds its full
 	 * scrollback and a WebGL context (~55–70 MB RSS measured), so parked
@@ -339,9 +340,10 @@ class TerminalRuntimeRegistryImpl {
 		);
 		for (const entry of victims) {
 			if (!entry.runtime || !tryPersistRuntimeState(entry.runtime)) {
-				warnPersistFailureOnce(entry.terminalId);
+				this.warnPersistFailureOnce(entry.terminalId);
 				continue;
 			}
+			this.clearPersistFailureWarning(entry.terminalId);
 			// tryPersistRuntimeState already wrote the snapshot. Preserve it while
 			// disposing instead of serializing and writing the same buffer twice.
 			this.disposeEntry(entry, { persistedState: "preserve" });
@@ -367,7 +369,7 @@ class TerminalRuntimeRegistryImpl {
 
 	private disposeEntry(
 		entry: RegistryEntry,
-		options: { persistedState?: "clear" | "persist" | "preserve" } = {},
+		options: { persistedState?: "clear" | "preserve" } = {},
 	) {
 		entry.disposeBufferChangeListener?.();
 		entry.disposeBufferChangeListener = null;
@@ -391,8 +393,28 @@ class TerminalRuntimeRegistryImpl {
 				)
 			: this.getEntries(terminalId);
 		for (const entry of entries) {
-			this.disposeEntry(entry, { persistedState: "persist" });
+			if (entry.runtime && !tryPersistRuntimeState(entry.runtime)) {
+				this.warnPersistFailureOnce(entry.terminalId);
+				continue;
+			}
+			this.clearPersistFailureWarning(entry.terminalId);
+			// Persistence succeeded before any runtime or transport cleanup began.
+			this.disposeEntry(entry, { persistedState: "preserve" });
 		}
+	}
+
+	private warnPersistFailureOnce(terminalId: string) {
+		// HMR can preserve a registry instance created before this field existed.
+		this.persistFailureWarnedTerminalIds ??= new Set<string>();
+		if (this.persistFailureWarnedTerminalIds.has(terminalId)) return;
+		this.persistFailureWarnedTerminalIds.add(terminalId);
+		console.warn(
+			`[terminal-registry] state persist failed for ${terminalId}; keeping runtime alive (localStorage quota?)`,
+		);
+	}
+
+	private clearPersistFailureWarning(terminalId: string) {
+		this.persistFailureWarnedTerminalIds?.delete(terminalId);
 	}
 
 	/**
@@ -562,15 +584,6 @@ class TerminalRuntimeRegistryImpl {
 			entry.transport.logListeners.delete(listener);
 		};
 	}
-}
-
-let persistFailureWarned = false;
-function warnPersistFailureOnce(terminalId: string) {
-	if (persistFailureWarned) return;
-	persistFailureWarned = true;
-	console.warn(
-		`[terminal-registry] state persist failed for ${terminalId}; keeping runtime alive (localStorage quota?)`,
-	);
 }
 
 // Stable empty reference so useSyncExternalStore on a missing entry doesn't
