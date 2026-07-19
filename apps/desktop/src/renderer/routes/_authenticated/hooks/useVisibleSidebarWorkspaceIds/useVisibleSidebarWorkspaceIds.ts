@@ -1,6 +1,6 @@
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	getSidebarWorkspaceIsHidden,
@@ -22,18 +22,22 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
 
-	const { data: sidebarProjects = [] } = useLiveQuery(
+	// Placement rows joined against live host-served projects (projects are
+	// fully local; the old inner join against the cloud collection is gone).
+	const { data: sidebarPlacementRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarProjects: collections.v2SidebarProjects })
-				.innerJoin(
-					{ projects: collections.v2Projects },
-					({ sidebarProjects, projects }) =>
-						eq(sidebarProjects.projectId, projects.id),
-				)
-				.select(({ projects }) => ({ id: projects.id })),
+				.select(({ sidebarProjects }) => ({
+					projectId: sidebarProjects.projectId,
+				})),
 		[collections],
 	);
+	const { projects: hostProjects } = useHostProjects();
+	const sidebarProjects = useMemo(() => {
+		const known = new Set(hostProjects.map((project) => project.projectKey));
+		return sidebarPlacementRows.filter((row) => known.has(row.projectId));
+	}, [sidebarPlacementRows, hostProjects]);
 
 	const { data: localStateRows = [] } = useLiveQuery(
 		(q) =>
@@ -59,7 +63,7 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 			workspaceIds.has(workspace.id),
 		);
 		const sidebarProjectIds = new Set(
-			sidebarProjects.map((project) => project.id),
+			sidebarProjects.map((project) => project.projectId),
 		);
 		const localStateWorkspaceIds = new Set(
 			localStateWorkspaces.map((workspace) => workspace.id),
