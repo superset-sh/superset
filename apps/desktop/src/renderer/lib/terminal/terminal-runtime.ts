@@ -45,6 +45,8 @@ export interface TerminalRuntime {
 	lastCols: number;
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
+	_setLigaturesEnabled: ((enabled: boolean) => void) | null;
+	ligaturesEnabled: boolean;
 	_disposeImagePasteFallback: (() => void) | null;
 }
 
@@ -62,14 +64,18 @@ function createTerminal(
 	const terminal = new XTerm({
 		cols,
 		rows,
-		cursorBlink: true,
+		cursorBlink: appearance.cursorBlink,
 		fontFamily: appearance.fontFamily,
 		fontSize: appearance.fontSize,
+		lineHeight: appearance.lineHeight,
+		letterSpacing: appearance.letterSpacing,
+		fontWeight: appearance.fontWeight,
+		minimumContrastRatio: appearance.minimumContrastRatio,
 		theme: appearance.theme,
 		allowProposedApi: true,
 		scrollback: DEFAULT_TERMINAL_SCROLLBACK,
 		macOptionIsMeta: false,
-		cursorStyle: "block",
+		cursorStyle: appearance.cursorStyle,
 		cursorInactiveStyle: "outline",
 		vtExtensions: { kittyKeyboard: true },
 		scrollbar: { showScrollbar: false },
@@ -285,7 +291,9 @@ export function createRuntime(
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
-	const addonsResult = loadAddons(terminal);
+	const addonsResult = loadAddons(terminal, {
+		ligatures: appearance.ligatures,
+	});
 	if (options.initialBuffer !== undefined) {
 		terminal.write(options.initialBuffer);
 	} else {
@@ -312,6 +320,8 @@ export function createRuntime(
 		lastCols: cols,
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
+		_setLigaturesEnabled: addonsResult.setLigaturesEnabled,
+		ligaturesEnabled: appearance.ligatures,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
 	};
 }
@@ -377,15 +387,18 @@ export function updateRuntimeAppearance(
 	const { terminal } = runtime;
 	terminal.options.theme = appearance.theme;
 
-	const fontChanged =
-		terminal.options.fontFamily !== appearance.fontFamily ||
-		terminal.options.fontSize !== appearance.fontSize;
+	const measurementsChanged = terminalMeasurementsChanged(runtime, appearance);
+	runtime._setLigaturesEnabled?.(appearance.ligatures);
+	runtime.ligaturesEnabled = appearance.ligatures;
 
-	if (fontChanged) {
+	if (measurementsChanged) {
 		applyTerminalFontFamilyCssVariable(runtime.wrapper, appearance.fontFamily);
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
-		measureAndResize(runtime, onResize);
+		terminal.options.lineHeight = appearance.lineHeight;
+		terminal.options.letterSpacing = appearance.letterSpacing;
+		terminal.options.fontWeight = appearance.fontWeight;
+		measureAndResize(runtime, onResize, { forceNotify: true });
 		// The freshly-selected font may still be loading — schedule a follow-up
 		// refit once it resolves so dimensions track the rendered glyphs.
 		scheduleFontSettleRefit(
@@ -394,6 +407,28 @@ export function updateRuntimeAppearance(
 			() => measureAndResize(runtime, onResize),
 		);
 	}
+
+	terminal.options.minimumContrastRatio = appearance.minimumContrastRatio;
+	terminal.options.cursorStyle = appearance.cursorStyle;
+	terminal.options.cursorBlink = appearance.cursorBlink;
+	if (!measurementsChanged) {
+		terminal.refresh(0, Math.max(0, terminal.rows - 1));
+	}
+}
+
+export function terminalMeasurementsChanged(
+	runtime: Pick<TerminalRuntime, "terminal" | "ligaturesEnabled">,
+	appearance: TerminalAppearance,
+): boolean {
+	const { terminal } = runtime;
+	return (
+		terminal.options.fontFamily !== appearance.fontFamily ||
+		terminal.options.fontSize !== appearance.fontSize ||
+		terminal.options.lineHeight !== appearance.lineHeight ||
+		terminal.options.letterSpacing !== appearance.letterSpacing ||
+		terminal.options.fontWeight !== appearance.fontWeight ||
+		runtime.ligaturesEnabled !== appearance.ligatures
+	);
 }
 
 export function disposeRuntime(
@@ -407,6 +442,7 @@ export function disposeRuntime(
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
+	runtime._setLigaturesEnabled = null;
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();

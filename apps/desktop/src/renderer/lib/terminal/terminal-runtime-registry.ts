@@ -367,6 +367,22 @@ class TerminalRuntimeRegistryImpl {
 		});
 	}
 
+	/** Apply settings changes to every live runtime, including parked runtimes. */
+	updateAllAppearances(appearance: TerminalAppearance) {
+		for (const entry of this.entries.values()) {
+			if (!entry.runtime) continue;
+			updateRuntimeAppearance(entry.runtime, appearance, () => {
+				const runtime = entry.runtime;
+				if (!runtime) return;
+				sendResize(
+					entry.transport,
+					runtime.terminal.cols,
+					runtime.terminal.rows,
+				);
+			});
+		}
+	}
+
 	private disposeEntry(
 		entry: RegistryEntry,
 		options: { persistedState?: "clear" | "preserve" } = {},

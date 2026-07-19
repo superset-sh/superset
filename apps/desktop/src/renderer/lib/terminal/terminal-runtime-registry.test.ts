@@ -17,7 +17,9 @@ mock.module("renderer/lib/trpc-client", () => ({
 }));
 
 const { terminalRuntimeRegistry } = await import("./terminal-runtime-registry");
-const { tryPersistRuntimeState } = await import("./terminal-runtime");
+const { terminalMeasurementsChanged, tryPersistRuntimeState } = await import(
+	"./terminal-runtime"
+);
 
 interface FakeStorageState {
 	values: Map<string, string>;
@@ -58,6 +60,128 @@ afterEach(() => {
 });
 
 describe("terminalRuntimeRegistry eviction cleanup", () => {
+	test("refits for every cell-measurement typography change", () => {
+		const appearance = {
+			theme: {},
+			background: "#000",
+			fontFamily: "monospace",
+			fontSize: 14,
+			lineHeight: 1,
+			letterSpacing: 0,
+			fontWeight: "normal" as const,
+			ligatures: true,
+			minimumContrastRatio: 1,
+			cursorStyle: "block" as const,
+			cursorBlink: true,
+		};
+		const runtime = {
+			terminal: {
+				options: {
+					fontFamily: appearance.fontFamily,
+					fontSize: appearance.fontSize,
+					lineHeight: appearance.lineHeight,
+					letterSpacing: appearance.letterSpacing,
+					fontWeight: appearance.fontWeight,
+				},
+			},
+			ligaturesEnabled: appearance.ligatures,
+		} as Parameters<typeof terminalMeasurementsChanged>[0];
+
+		expect(terminalMeasurementsChanged(runtime, appearance)).toBe(false);
+		for (const change of [
+			{ fontSize: 15.5 },
+			{ lineHeight: 1.2 },
+			{ letterSpacing: 0.5 },
+			{ fontWeight: 500 },
+			{ ligatures: false },
+		]) {
+			expect(
+				terminalMeasurementsChanged(runtime, { ...appearance, ...change }),
+			).toBe(true);
+		}
+	});
+
+	test("updates active and parked runtime appearance overrides", () => {
+		const entries = (
+			terminalRuntimeRegistry as unknown as {
+				entries: Map<string, unknown>;
+			}
+		).entries;
+		const addedKeys: string[] = [];
+		const setLigatures = mock(() => {});
+
+		for (const [index, container] of [
+			[0, {} as HTMLDivElement],
+			[1, null],
+		] as const) {
+			const terminalId = `appearance-${index}`;
+			const key = `${terminalId}\u0000${terminalId}`;
+			addedKeys.push(key);
+			entries.set(key, {
+				terminalId,
+				instanceId: terminalId,
+				runtime: {
+					container,
+					wrapper: {
+						style: { setProperty: mock(() => {}) },
+					} as unknown as HTMLDivElement,
+					terminal: {
+						options: {
+							fontFamily: "monospace",
+							fontSize: 14,
+							lineHeight: 1,
+							letterSpacing: 0,
+							fontWeight: "normal",
+						},
+						rows: 24,
+						refresh: mock(() => {}),
+					},
+					ligaturesEnabled: true,
+					_setLigaturesEnabled: setLigatures,
+				},
+				transport: {},
+			});
+		}
+
+		try {
+			terminalRuntimeRegistry.updateAllAppearances({
+				theme: { background: "#000" },
+				background: "#000",
+				fontFamily: "monospace",
+				fontSize: 15.5,
+				lineHeight: 1.2,
+				letterSpacing: 0.5,
+				fontWeight: 500,
+				ligatures: false,
+				minimumContrastRatio: 4.5,
+				cursorStyle: "bar",
+				cursorBlink: false,
+			});
+
+			for (const key of addedKeys) {
+				const entry = entries.get(key) as {
+					runtime: {
+						terminal: { options: Record<string, unknown> };
+						ligaturesEnabled: boolean;
+					};
+				};
+				expect(entry.runtime.terminal.options).toMatchObject({
+					fontSize: 15.5,
+					lineHeight: 1.2,
+					letterSpacing: 0.5,
+					fontWeight: 500,
+					minimumContrastRatio: 4.5,
+					cursorStyle: "bar",
+					cursorBlink: false,
+				});
+				expect(entry.runtime.ligaturesEnabled).toBe(false);
+			}
+			expect(setLigatures).toHaveBeenCalledTimes(2);
+		} finally {
+			for (const key of addedKeys) entries.delete(key);
+		}
+	});
+
 	test("keeps a runtime when dimensions fail to persist", () => {
 		const terminalId = "dimensions-write-failure";
 		const setItem = fakeStorage.storage.setItem.bind(fakeStorage.storage);

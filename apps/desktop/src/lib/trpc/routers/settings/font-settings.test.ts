@@ -56,9 +56,17 @@ describe("font settings validation", () => {
 			expect(result.success).toBe(false);
 		});
 
-		it("rejects non-integer font sizes", () => {
+		it("accepts half-pixel font sizes", () => {
 			const result = setFontSettingsSchema.safeParse({
-				terminalFontSize: 14.5,
+				terminalFontSize: 15.5,
+				editorFontSize: 14.5,
+			});
+			expect(result.success).toBe(true);
+		});
+
+		it("rejects font sizes outside half-pixel increments", () => {
+			const result = setFontSettingsSchema.safeParse({
+				terminalFontSize: 15.25,
 			});
 			expect(result.success).toBe(false);
 		});
@@ -69,6 +77,68 @@ describe("font settings validation", () => {
 				editorFontSize: null,
 			});
 			expect(result.success).toBe(true);
+		});
+	});
+
+	describe("secondary typography validation", () => {
+		it("accepts decimal steps without floating-point precision failures", () => {
+			for (const value of [1.1, 1.3, 1.9]) {
+				expect(
+					setFontSettingsSchema.safeParse({
+						editorLineHeight: value,
+						terminalLineHeight: value,
+						editorLetterSpacing: value,
+						terminalLetterSpacing: value,
+					}).success,
+				).toBe(true);
+			}
+		});
+
+		it("accepts independent editor and terminal controls", () => {
+			const result = setFontSettingsSchema.safeParse({
+				editorLineHeight: 1.4,
+				editorLetterSpacing: -0.2,
+				editorFontWeight: 500,
+				editorLigatures: false,
+				terminalLineHeight: 1.2,
+				terminalLetterSpacing: 1,
+				terminalFontWeight: 600,
+				terminalLigatures: true,
+				terminalMinimumContrast: 4.5,
+				terminalCursorStyle: "bar",
+				terminalCursorBlink: false,
+			});
+			expect(result.success).toBe(true);
+		});
+
+		it("accepts every supported terminal contrast ratio", () => {
+			for (const contrast of [1, 3, 4.5, 7]) {
+				expect(
+					setFontSettingsSchema.safeParse({
+						terminalMinimumContrast: contrast,
+					}).success,
+				).toBe(true);
+			}
+		});
+
+		it("rejects invalid steps, weights, contrast, and cursor styles", () => {
+			expect(
+				setFontSettingsSchema.safeParse({ editorLineHeight: 1.25 }).success,
+			).toBe(false);
+			expect(
+				setFontSettingsSchema.safeParse({ terminalLetterSpacing: 0.55 })
+					.success,
+			).toBe(false);
+			expect(
+				setFontSettingsSchema.safeParse({ editorFontWeight: 450 }).success,
+			).toBe(false);
+			expect(
+				setFontSettingsSchema.safeParse({ terminalMinimumContrast: 2 }).success,
+			).toBe(false);
+			expect(
+				setFontSettingsSchema.safeParse({ terminalCursorStyle: "beam" })
+					.success,
+			).toBe(false);
 		});
 	});
 
@@ -147,6 +217,36 @@ describe("font settings validation", () => {
 	});
 
 	describe("partial updates", () => {
+		it("preserves half-pixel values and every secondary override", () => {
+			const input = setFontSettingsSchema.parse({
+				editorFontSize: 15.5,
+				editorLineHeight: 1.6,
+				editorLetterSpacing: 0.2,
+				editorFontWeight: 500,
+				editorLigatures: false,
+				terminalMinimumContrast: 7,
+				terminalCursorStyle: "underline",
+				terminalCursorBlink: false,
+			});
+			expect(transformFontSettings(input)).toEqual(input);
+		});
+
+		it("retains nulls so reset clears every override", () => {
+			const input = setFontSettingsSchema.parse({
+				editorLineHeight: null,
+				editorLetterSpacing: null,
+				editorFontWeight: null,
+				editorLigatures: null,
+				terminalLineHeight: null,
+				terminalLetterSpacing: null,
+				terminalFontWeight: null,
+				terminalLigatures: null,
+				terminalMinimumContrast: null,
+				terminalCursorStyle: null,
+				terminalCursorBlink: null,
+			});
+			expect(transformFontSettings(input)).toEqual(input);
+		});
 		it("only includes provided fields in the result", () => {
 			const input = setFontSettingsSchema.parse({
 				terminalFontFamily: "Fira Code",
