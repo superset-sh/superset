@@ -101,8 +101,38 @@ export function getTerminalBaseEnv(): Record<string, string> {
 	return { ..._terminalBaseEnv };
 }
 
+let _terminalBaseEnvReady: Promise<void> | null = null;
+
+/**
+ * Kick off the shell-env snapshot in the background and stash it once resolved.
+ *
+ * Startup must NOT await this. The login-shell probe can take up to
+ * SHELL_ENV_TIMEOUT_MS (8s) — often the full budget when the user's shell is
+ * slow (e.g. a wedged powerlevel10k/gitstatus init) — and gating the HTTP
+ * listen on it pushes cold starts past the desktop coordinator's health-check
+ * window, especially when every org boots at once. PTY creation awaits
+ * `waitForTerminalBaseEnv()` instead, so terminals still get the preserved
+ * snapshot without blocking the server from becoming reachable.
+ */
+export function startTerminalBaseEnvResolution(): void {
+	if (_terminalBaseEnvReady) return;
+	_terminalBaseEnvReady = resolveTerminalBaseEnv().then((baseEnv) => {
+		initTerminalBaseEnv(baseEnv);
+	});
+}
+
+/**
+ * Await the background shell-env snapshot before reading getTerminalBaseEnv().
+ * Resolves immediately when resolution was never started (tests and helpers
+ * that call initTerminalBaseEnv() directly).
+ */
+export async function waitForTerminalBaseEnv(): Promise<void> {
+	if (_terminalBaseEnvReady) await _terminalBaseEnvReady;
+}
+
 export function resetTerminalBaseEnvForTests(): void {
 	_terminalBaseEnv = null;
+	_terminalBaseEnvReady = null;
 	cachedMacosSystemCertAvailable = null;
 	clearStrictShellEnvCache();
 }

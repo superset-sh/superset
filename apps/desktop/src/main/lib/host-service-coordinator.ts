@@ -454,7 +454,9 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		instance.pid = childPid;
+		let childExited = false;
 		child.on("exit", (code, signal) => {
+			childExited = true;
 			log.info(
 				`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
 			);
@@ -478,12 +480,19 @@ export class HostServiceCoordinator extends EventEmitter {
 		child.unref();
 
 		const endpoint = `http://127.0.0.1:${port}`;
-		const healthy = await pollHealthCheck(endpoint, secret);
+		const healthy = await pollHealthCheck(
+			endpoint,
+			secret,
+			HEALTH_POLL_TIMEOUT_MS,
+			() => childExited,
+		);
 		if (!healthy) {
-			child.kill("SIGTERM");
+			if (!childExited) child.kill("SIGTERM");
 			this.instances.delete(organizationId);
 			throw new Error(
-				`Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
+				childExited
+					? "Host service process exited during startup"
+					: `Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
 			);
 		}
 
