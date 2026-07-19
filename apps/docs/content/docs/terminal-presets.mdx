@@ -46,7 +46,8 @@ Pre-configured presets for popular AI agents. Defaults mirror the bundled Supers
 - **amp** - `amp` (built-in permission rules auto-deny destructive ops)
 - **claude** - `claude --dangerously-skip-permissions`
 - **codex** - `codex --dangerously-bypass-approvals-and-sandbox` (most permissive)
-- **gemini** - `gemini --approval-mode=auto_edit`
+- **gemini** - `gemini --approval-mode=auto_edit` (deprecated upstream; Google is retiring the Gemini CLI in favour of Antigravity)
+- **agy** - `agy --mode accept-edits` (Google's Antigravity CLI, the Gemini CLI's replacement)
 - **copilot** - `copilot --allow-tool=write`
 - **cursor-agent** - `cursor-agent` (prompts for every action)
 - **mastracode** - Mastra's coding agent (opt-in: auto-approves all actions by default at the CLI; no startup flag to restrict)
