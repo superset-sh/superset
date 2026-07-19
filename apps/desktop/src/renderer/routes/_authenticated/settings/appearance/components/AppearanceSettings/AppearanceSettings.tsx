@@ -6,6 +6,7 @@ import {
 } from "../../../utils/settings-search";
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
+import { SidebarNavSection } from "./components/SidebarNavSection";
 import { ThemeSection } from "./components/ThemeSection";
 
 /**
@@ -49,6 +50,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showSidebarNav = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_SIDEBAR_NAV,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -69,6 +74,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				{showTerminalFont && (
 					<FontSettingSection key="terminal-font" variant="terminal" />
 				)}
+				{showSidebarNav && <SidebarNavSection key="sidebar-nav" />}
 			</SectionList>
 		</div>
 	);

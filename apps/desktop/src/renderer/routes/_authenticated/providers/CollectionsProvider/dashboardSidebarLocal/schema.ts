@@ -287,6 +287,21 @@ const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
 // in-app tab, "external" = system browser.
 const DEFAULT_PORT_OPEN_ACTION: LinkAction = "external";
 
+const sidebarNavVisibilitySchema = z.object({
+	workspaces: z.boolean().default(true),
+	automations: z.boolean().default(true),
+	tasks: z.boolean().default(true),
+});
+
+export type SidebarNavVisibility = z.infer<typeof sidebarNavVisibilitySchema>;
+export type SidebarNavItem = keyof SidebarNavVisibility;
+
+const DEFAULT_SIDEBAR_NAV_VISIBILITY: SidebarNavVisibility = {
+	workspaces: true,
+	automations: true,
+	tasks: true,
+};
+
 function isSameLinkTierMap(a: LinkTierMap, b: LinkTierMap): boolean {
 	return (
 		a.plain === b.plain &&
@@ -319,6 +334,9 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
+	sidebarNavVisibility: sidebarNavVisibilitySchema.default(
+		DEFAULT_SIDEBAR_NAV_VISIBILITY,
+	),
 });
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
@@ -337,6 +355,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 	showPresetsBar: true,
+	sidebarNavVisibility: DEFAULT_SIDEBAR_NAV_VISIBILITY,
 };
 
 /**
@@ -402,6 +421,10 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		sidebarFileLinks: shouldMigrateLegacySidebarFileLinks
 			? DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks
 			: sidebarFileLinks,
+		sidebarNavVisibility: {
+			...DEFAULT_V2_USER_PREFERENCES.sidebarNavVisibility,
+			...r.sidebarNavVisibility,
+		},
 	};
 }
 

@@ -19,6 +19,7 @@ import {
 } from "react-icons/lu";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { ZoomStable } from "renderer/components/ZoomStable";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -79,6 +80,10 @@ export function DashboardSidebarHeader({
 	const zoomFactor = useZoomFactor();
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
+	const { preferences } = useV2UserPreferences();
+	const showWorkspaces = preferences.sidebarNavVisibility.workspaces;
+	const showAutomations = preferences.sidebarNavVisibility.automations;
+	const showTasks = preferences.sidebarNavVisibility.tasks;
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
@@ -122,74 +127,80 @@ export function DashboardSidebarHeader({
 			<div className="flex flex-col items-center gap-2 border-b border-border py-2">
 				<OrganizationDropdown variant="collapsed" />
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleWorkspacesClick}
-							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
-								isWorkspacesListOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<LuLayers className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Workspaces</TooltipContent>
-				</Tooltip>
+				{showWorkspaces && (
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleWorkspacesClick}
+								className={cn(
+									"flex size-8 items-center justify-center rounded-md transition-colors",
+									isWorkspacesListOpen
+										? "bg-accent text-foreground"
+										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+								)}
+							>
+								<LuLayers className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">Workspaces</TooltipContent>
+					</Tooltip>
+				)}
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleAutomationsClick}
-							aria-label={
-								myFailedCount > 0
-									? `Automations, ${myFailedCount} failing`
-									: "Automations"
-							}
-							className={cn(
-								"relative flex size-8 items-center justify-center rounded-md transition-colors",
-								isAutomationsOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<LuClock className="size-4" />
-							{myFailedCount > 0 && (
-								<span
-									aria-hidden="true"
-									className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
-								/>
-							)}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">
-						{myFailedCount > 0
-							? `Automations (${myFailedCount} failing)`
-							: "Automations"}
-					</TooltipContent>
-				</Tooltip>
+				{showAutomations && (
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleAutomationsClick}
+								aria-label={
+									myFailedCount > 0
+										? `Automations, ${myFailedCount} failing`
+										: "Automations"
+								}
+								className={cn(
+									"relative flex size-8 items-center justify-center rounded-md transition-colors",
+									isAutomationsOpen
+										? "bg-accent text-foreground"
+										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+								)}
+							>
+								<LuClock className="size-4" />
+								{myFailedCount > 0 && (
+									<span
+										aria-hidden="true"
+										className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
+									/>
+								)}
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">
+							{myFailedCount > 0
+								? `Automations (${myFailedCount} failing)`
+								: "Automations"}
+						</TooltipContent>
+					</Tooltip>
+				)}
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleTasksClick}
-							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
-								isTasksOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<HiOutlineClipboardDocumentList className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Tasks & PRs</TooltipContent>
-				</Tooltip>
+				{showTasks && (
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleTasksClick}
+								className={cn(
+									"flex size-8 items-center justify-center rounded-md transition-colors",
+									isTasksOpen
+										? "bg-accent text-foreground"
+										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+								)}
+							>
+								<HiOutlineClipboardDocumentList className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">Tasks & PRs</TooltipContent>
+					</Tooltip>
+				)}
 
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
@@ -279,55 +290,61 @@ export function DashboardSidebarHeader({
 			</div>
 			<OrganizationDropdown variant="expanded" />
 
-			<button
-				type="button"
-				onClick={handleWorkspacesClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isWorkspacesListOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<LuLayers className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Workspaces</span>
-			</button>
+			{showWorkspaces && (
+				<button
+					type="button"
+					onClick={handleWorkspacesClick}
+					className={cn(
+						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+						isWorkspacesListOpen
+							? "bg-accent text-foreground"
+							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+					)}
+				>
+					<LuLayers className="size-4 shrink-0" />
+					<span className="flex-1 text-left">Workspaces</span>
+				</button>
+			)}
 
-			<button
-				type="button"
-				onClick={handleAutomationsClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isAutomationsOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<LuClock className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Automations</span>
-				{myFailedCount > 0 && (
-					<span
-						title={`${myFailedCount} of your automations failed their last run`}
-						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
-					>
-						{myFailedCount > 9 ? "9+" : myFailedCount}
-					</span>
-				)}
-			</button>
+			{showAutomations && (
+				<button
+					type="button"
+					onClick={handleAutomationsClick}
+					className={cn(
+						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+						isAutomationsOpen
+							? "bg-accent text-foreground"
+							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+					)}
+				>
+					<LuClock className="size-4 shrink-0" />
+					<span className="flex-1 text-left">Automations</span>
+					{myFailedCount > 0 && (
+						<span
+							title={`${myFailedCount} of your automations failed their last run`}
+							className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
+						>
+							{myFailedCount > 9 ? "9+" : myFailedCount}
+						</span>
+					)}
+				</button>
+			)}
 
-			<button
-				type="button"
-				onClick={handleTasksClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isTasksOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Tasks & PRs</span>
-			</button>
+			{showTasks && (
+				<button
+					type="button"
+					onClick={handleTasksClick}
+					className={cn(
+						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+						isTasksOpen
+							? "bg-accent text-foreground"
+							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+					)}
+				>
+					<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
+					<span className="flex-1 text-left">Tasks & PRs</span>
+				</button>
+			)}
 
 			<div className="flex items-center gap-1">
 				<button
