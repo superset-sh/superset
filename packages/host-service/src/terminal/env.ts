@@ -116,9 +116,18 @@ let _terminalBaseEnvReady: Promise<void> | null = null;
  */
 export function startTerminalBaseEnvResolution(): void {
 	if (_terminalBaseEnvReady) return;
-	_terminalBaseEnvReady = resolveTerminalBaseEnv().then((baseEnv) => {
-		initTerminalBaseEnv(baseEnv);
+	const promise = resolveTerminalBaseEnv().then((baseEnv) => {
+		// Ignore a stale resolution whose gate was already reset (tests) so it
+		// can't clobber fresh state.
+		if (_terminalBaseEnvReady === promise) initTerminalBaseEnv(baseEnv);
 	});
+	// Fire-and-forget: nothing awaits the gate until the first PTY is created,
+	// so swallow a background failure rather than crash on an unhandled
+	// rejection. resolveTerminalBaseEnv already falls back internally.
+	promise.catch((err) => {
+		console.warn("[host-service] terminal base env resolution failed:", err);
+	});
+	_terminalBaseEnvReady = promise;
 }
 
 /**

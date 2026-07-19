@@ -5,12 +5,13 @@ import path from "node:path";
 /** Rotate per-org host-service.log once it exceeds this size. */
 export const MAX_HOST_LOG_BYTES = 5 * 1024 * 1024;
 
-// Startup must clear the shell-env snapshot (up to SHELL_ENV_TIMEOUT_MS = 8s,
-// awaited before the server listens) plus DB migrate and daemon bootstrap. At
-// boot every known org starts at once, and multiple app instances sharing one
-// $SUPERSET_HOME_DIR compound the contention, so a healthy-but-slow child can
-// need well over 10s. Give it generous headroom; a genuinely dead child is
-// detected early via the poll's abort hook rather than by this deadline.
+// Before the server becomes reachable, startup must still clear DB migrate and
+// the daemon bootstrap (the shell-env snapshot now runs in the background, off
+// the critical path). At boot every known org starts at once, and multiple app
+// instances sharing one $SUPERSET_HOME_DIR compound the contention, so a
+// healthy-but-slow child can need well over 10s. Give it generous headroom; a
+// genuinely dead child is detected early via the poll's abort hook rather than
+// by this deadline.
 export const HEALTH_POLL_TIMEOUT_MS = 30_000;
 
 const HEALTH_POLL_INTERVAL_MS = 200;
