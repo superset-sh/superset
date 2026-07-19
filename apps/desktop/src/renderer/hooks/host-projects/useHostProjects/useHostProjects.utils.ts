@@ -114,6 +114,28 @@ export function deriveHostProjectsQueryTargets({
 	return targets;
 }
 
+/**
+ * Normalize a project.list row from any host version. Hosts running
+ * pre-local-first builds (not-yet-updated desktops, standalone headless
+ * hosts) don't serve `name`/`createdAt`/`updatedAt` — fall back the same
+ * way the new host does (folder basename; both path separators).
+ */
+export function normalizeHostProjectRow(
+	row: Partial<HostProjectRow> & { id: string; repoPath: string },
+): HostProjectRow {
+	return {
+		id: row.id,
+		name: row.name || row.repoPath.split(/[\\/]/).pop() || row.id,
+		repoPath: row.repoPath,
+		repoOwner: row.repoOwner ?? null,
+		repoName: row.repoName ?? null,
+		repoUrl: row.repoUrl ?? null,
+		worktreeBaseDir: row.worktreeBaseDir ?? null,
+		createdAt: row.createdAt ?? 0,
+		updatedAt: row.updatedAt ?? row.createdAt ?? 0,
+	};
+}
+
 const SNAPSHOT_KEY_PREFIX = "host-projects:v1";
 
 function snapshotKey(organizationId: string, machineId: string): string {
