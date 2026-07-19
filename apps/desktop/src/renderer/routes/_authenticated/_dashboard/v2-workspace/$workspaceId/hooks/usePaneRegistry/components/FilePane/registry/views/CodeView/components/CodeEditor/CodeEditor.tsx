@@ -50,6 +50,11 @@ interface CodeEditorProps {
 	editorRef?: MutableRefObject<CodeEditorAdapter | null>;
 	onChange?: (value: string) => void;
 	onSave?: () => void;
+	initialScrollPosition?: { scrollTop: number; scrollLeft: number };
+	onScrollPositionChange?: (position: {
+		scrollTop: number;
+		scrollLeft: number;
+	}) => void;
 }
 
 export function CodeEditor({
@@ -61,6 +66,8 @@ export function CodeEditor({
 	editorRef,
 	onChange,
 	onSave,
+	initialScrollPosition,
+	onScrollPositionChange,
 }: CodeEditorProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -69,6 +76,8 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
+	const onScrollPositionChangeRef = useRef(onScrollPositionChange);
+	const initialScrollPositionRef = useRef(initialScrollPosition);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
@@ -82,6 +91,7 @@ export function CodeEditor({
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
+	onScrollPositionChangeRef.current = onScrollPositionChange;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Editor instance is created once and reconfigured via dedicated effects below
 	useEffect(() => {
@@ -155,6 +165,25 @@ export function CodeEditor({
 			parent: containerRef.current,
 		});
 		const adapter = createCodeMirrorAdapter(view);
+		const reportScrollPosition = () => {
+			onScrollPositionChangeRef.current?.({
+				scrollTop: view.scrollDOM.scrollTop,
+				scrollLeft: view.scrollDOM.scrollLeft,
+			});
+		};
+		view.scrollDOM.addEventListener("scroll", reportScrollPosition, {
+			passive: true,
+		});
+		const savedScrollPosition = initialScrollPositionRef.current;
+		if (savedScrollPosition) {
+			view.requestMeasure({
+				read: () => savedScrollPosition,
+				write: (position) => {
+					view.scrollDOM.scrollTop = position.scrollTop;
+					view.scrollDOM.scrollLeft = position.scrollLeft;
+				},
+			});
+		}
 
 		viewRef.current = view;
 		if (editorRef) {
@@ -162,6 +191,10 @@ export function CodeEditor({
 		}
 
 		return () => {
+			// The passive effect cleanup can run after the editor DOM has been
+			// detached and its scroll offset clamped to zero. The scroll listener
+			// already saved the last real position, so do not overwrite it here.
+			view.scrollDOM.removeEventListener("scroll", reportScrollPosition);
 			if (editorRef?.current === adapter) {
 				editorRef.current = null;
 			}
