@@ -679,7 +679,7 @@ export function ChangesView({
 		!status.untracked
 	) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
+			<div className="flex-1 flex select-text cursor-text items-center justify-center text-muted-foreground text-sm p-4">
 				Unable to load changes
 			</div>
 		);
