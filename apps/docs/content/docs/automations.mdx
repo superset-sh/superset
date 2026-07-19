@@ -52,6 +52,10 @@ Each time an automation fires, a **run** is recorded. Runs show up on the automa
 
 When a run dispatches in "new workspace" mode, a fresh workspace is created from the project's repo for that run. Open it from the run row to see the agent's work.
 
+The automations list shows a **Last run** column (ran / running / failed) so you can spot problems without opening each automation, and the sidebar Automations tab badges a count of automations whose last run failed.
+
+If **Run now** or a scheduled run is skipped because the target device isn't connected to the relay, Superset shows a dialog explaining why and, if the target is this device, an inline **Enable relay access…** shortcut to Settings → Security.
+
 ## Pause, Run Now, Delete
 
 From the automation's detail page:
@@ -64,7 +68,7 @@ From the automation's detail page:
 
 - **At-least-once delivery**: Automations may dispatch more than once in rare cases (e.g. dispatcher retries). Design prompts that are safe to re-run.
 - **No completion tracking (v1)**: Runs land at `dispatched`; the detail page doesn't show success/failure of the agent itself. Open the workspace to see what happened.
-- **Offline hosts skip silently**: If your device is offline at fire time, the run is marked `skipped_offline` and the next occurrence is scheduled normally.
+- **Offline hosts skip**: If your device is offline at fire time, the run is marked `skipped_offline` and the next occurrence is scheduled normally. The automation's Last run status and run-history tooltip surface this so it isn't silent.
 - **One prompt per automation**: Each automation has one prompt. To run multiple prompts on a schedule, create multiple automations.
 
 ## CLI

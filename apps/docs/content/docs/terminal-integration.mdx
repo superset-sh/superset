@@ -48,6 +48,23 @@ Hold `Cmd` (macOS) or `Ctrl` and click links in terminal output:
 - File paths open in the built-in file viewer by default
 - Change file-path behavior in **Settings → Terminal**
 
+## Rich Input
+
+Press **⌘I** (Ctrl+Shift+M on Windows/Linux) over a terminal running a CLI coding agent to compose in a full multiline editor instead of the raw TTY line — the same composer used by workspace chat, including @file mentions.
+
+- **Enter** sends, **Shift+Enter** adds a newline, **Esc** closes the overlay and refocuses the terminal
+- Multiline prompts submit as a single block, not line-by-line
+- The on/off state is global — toggling from any pane switches it for every terminal pane — and persists across app restarts
+
+## Connection Status
+
+When a terminal's connection drops, a status indicator appears next to the Terminal dropdown in the pane header:
+
+- **Amber pulsing dot** ("Reconnecting…") while auto-reconnect is in progress
+- **Red dot** ("Disconnected") once reconnect attempts stop
+
+Click the indicator for a popover with a plain-English diagnosis, a **Reconnect** button, and **Copy log** to grab a timestamped transport log for bug reports.
+
 ## Environment Variables
 
 | Variable | Description |

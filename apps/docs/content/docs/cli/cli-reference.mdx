@@ -494,6 +494,50 @@ superset hosts list
 ```
 </Command>
 
+<Command
+	name="superset hosts set-wake <host> <command>"
+	args={[
+		{ name: "host", required: true, description: "Host name or id." },
+		{ name: "command", required: true, description: "Shell command that turns this host on. Omit and pass `--clear` to remove it." },
+	]}
+	options={[
+		{ flag: "--clear", description: "Remove the stored wake command instead of setting one." },
+	]}
+	output={`{ hostId: string; wakeCommand: string | null }`}
+>
+Store (or clear) the command used to wake this host — resuming a cloud
+sandbox, `fly machine start`, an `ssh … systemctl start`, a script, or
+anything else that turns the machine back on. Superset doesn't run this
+automatically; it's whatever [`hosts wake`](#superset-hosts-wake-host)
+executes on demand.
+
+```bash
+superset hosts set-wake my-box "fly machine start abc123"
+superset hosts set-wake my-box --clear
+```
+</Command>
+
+<Command
+	name="superset hosts wake <host>"
+	args={[
+		{ name: "host", required: true, description: "Host name or id." },
+	]}
+	options={[
+		{ flag: "--yes", description: "Skip the confirmation prompt." },
+	]}
+	output={`{ hostId: string; exitCode: number }`}
+>
+Run the stored wake command **on this machine** — not on the host being
+woken, and not via the server — since the credentials and CLIs needed to
+start a remote box live wherever you set the wake command up. Shows the
+command, asks for confirmation, and streams its output.
+
+```bash
+superset hosts wake my-box
+superset hosts wake my-box --yes
+```
+</Command>
+
 ---
 
 ### workspaces (alias: `ws`)
@@ -528,6 +572,40 @@ than silently falling through to the cloud.
 >
 List workspaces accessible to the active organization. With neither
 `--host` nor `--local`, the list is organization-wide.
+</Command>
+
+<Command
+	name="superset workspaces get [id]"
+	args={[
+		{ name: "id", required: false, description: "Workspace UUID. Defaults to `$SUPERSET_WORKSPACE_ID` when omitted." },
+	]}
+	options={[
+		{ flag: "--field <name>, -f", description: "Print a single field's raw value instead of the full object — e.g. `name` or `worktreePath`, with no `jq` needed." },
+	]}
+	output={`{
+  id: string;
+  name: string;
+  branch: string;
+  type: string;
+  projectId: string;
+  projectName: string;
+  hostId: string;
+  hostName: string;
+  taskId: string | null;
+  worktreePath: string;
+  worktreeExists: boolean;
+  createdAt: string;
+}`}
+>
+Look up a single workspace by id. Run with no arguments inside a setup
+script to resolve the current workspace from `$SUPERSET_WORKSPACE_ID`.
+
+```bash
+superset workspaces get ws_…
+superset ws get                 # inside a setup script, uses $SUPERSET_WORKSPACE_ID
+superset ws get -f name          # print just the name
+name="$(superset ws get -f name)"
+```
 </Command>
 
 <Command
