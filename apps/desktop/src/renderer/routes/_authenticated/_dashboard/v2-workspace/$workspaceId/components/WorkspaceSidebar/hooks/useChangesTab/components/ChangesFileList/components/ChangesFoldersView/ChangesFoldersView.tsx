@@ -1,3 +1,4 @@
+import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	type ChangesetFile,
@@ -9,6 +10,8 @@ import { FolderHeader } from "./components/FolderHeader";
 
 const ROOT_FOLDER_KEY = "";
 const ROOT_FOLDER_LABEL = "Root Path";
+const ESTIMATED_ROW_HEIGHT = 28;
+const OVERSCAN = 8;
 
 interface ChangesFoldersViewProps {
 	files: ChangesetFile[];
@@ -29,6 +32,10 @@ interface FolderGroup {
 	folderPath: string;
 	files: ChangesetFile[];
 }
+
+type FolderRow =
+	| { kind: "folder"; key: string; group: FolderGroup }
+	| { kind: "file"; key: string; file: ChangesetFile };
 
 /**
  * Render a flat list of changed files grouped by their immediate parent
@@ -52,6 +59,7 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesFoldersViewProps) {
+	const listRef = useRef<HTMLDivElement>(null);
 	const groups = useMemo(() => groupFilesByFolder(files), [files]);
 	const [closedFolders, setClosedFolders] = useState<Set<string>>(new Set());
 
@@ -79,26 +87,71 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 		);
 	}, [foldSignal, groups]);
 
+	const rows = useMemo(() => {
+		const nextRows: FolderRow[] = [];
+		for (const group of groups) {
+			nextRows.push({
+				kind: "folder",
+				key: `folder:${group.folderPath || "__root__"}`,
+				group,
+			});
+			if (closedFolders.has(group.folderPath)) continue;
+			for (const file of group.files) {
+				nextRows.push({
+					kind: "file",
+					key: `file:${getChangesetFileKey(file)}`,
+					file,
+				});
+			}
+		}
+		return nextRows;
+	}, [closedFolders, groups]);
+
+	const virtualizer = useVirtualizer({
+		count: rows.length,
+		getScrollElement: () =>
+			listRef.current?.closest(
+				"[data-changes-scroll-container]",
+			) as HTMLElement | null,
+		estimateSize: () => ESTIMATED_ROW_HEIGHT,
+		rangeExtractor: defaultRangeExtractor,
+		overscan: OVERSCAN,
+		scrollMargin: listRef.current?.offsetTop ?? 0,
+	});
+
 	return (
-		<div>
-			{groups.map((group) => {
-				const isRoot = group.folderPath === ROOT_FOLDER_KEY;
-				const isOpen = !closedFolders.has(group.folderPath);
-				// `folderPath` ("" for the root group) is already the unique
-				// per-group discriminator — `groupFilesByFolder` keys a Map by it.
-				return (
-					<div key={group.folderPath}>
-						<FolderHeader
-							label={isRoot ? ROOT_FOLDER_LABEL : group.folderPath}
-							fileCount={group.files.length}
-							isOpen={isOpen}
-							onToggle={() => toggleFolder(group.folderPath)}
-						/>
-						{isOpen &&
-							group.files.map((file) => (
+		<div ref={listRef}>
+			<div
+				className="relative w-full"
+				style={{ height: virtualizer.getTotalSize() }}
+			>
+				{virtualizer.getVirtualItems().map((virtualRow) => {
+					const row = rows[virtualRow.index];
+					if (!row) return null;
+					return (
+						<div
+							key={row.key}
+							data-index={virtualRow.index}
+							ref={virtualizer.measureElement}
+							className="absolute left-0 w-full"
+							style={{
+								top: virtualRow.start - (virtualizer.options.scrollMargin ?? 0),
+							}}
+						>
+							{row.kind === "folder" ? (
+								<FolderHeader
+									label={
+										row.group.folderPath === ROOT_FOLDER_KEY
+											? ROOT_FOLDER_LABEL
+											: row.group.folderPath
+									}
+									fileCount={row.group.files.length}
+									isOpen={!closedFolders.has(row.group.folderPath)}
+									onToggle={() => toggleFolder(row.group.folderPath)}
+								/>
+							) : (
 								<FileRow
-									key={getChangesetFileKey(file)}
-									file={file}
+									file={row.file}
 									workspaceId={workspaceId}
 									worktreePath={worktreePath}
 									hideDir
@@ -106,10 +159,11 @@ export const ChangesFoldersView = memo(function ChangesFoldersView({
 									onOpenFile={onOpenFile}
 									onOpenInEditor={onOpenInEditor}
 								/>
-							))}
-					</div>
-				);
-			})}
+							)}
+						</div>
+					);
+				})}
+			</div>
 		</div>
 	);
 });

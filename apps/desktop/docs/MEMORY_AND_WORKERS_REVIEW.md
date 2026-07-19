@@ -13,13 +13,15 @@ Initial review 2026-07-18; progress and the large-repository rerun updated 2026-
 | Async process-tree probes | SUPER-1548 | Not started |
 | Search pinned worker | SUPER-1549 | Not started (measurement-gated on SUPER-1544) |
 | Memory telemetry | SUPER-1550 | **Shipped** in PR #5777. Production-only, privacy-allowlisted `resource_snapshot` every 5–6 minutes; Electron process-class RSS/counts plus main-process heap/RSS, uptime, window count, and web-contents count |
-| Host-service git worker pool | SUPER-1544 | **Shipped** in PR #5750; watcher batches bounded in PR #5746. Git status and commit-file work run in the generic `worker_threads` pool; draft PR #5776 contains unmerged base-ref fetch coordination follow-ups |
+| Host-service git worker pool | SUPER-1544 | **Shipped** in PR #5750; watcher batches bounded in PR #5746. Git status and commit-file work run in the generic `worker_threads` pool; base-ref fetch coordination shipped in PR #5776 |
+| Large Changes-list renderer churn | — | **Fix measured in draft PR #5782.** Latest-main reproduction identified eager `FileRow` mounting as the renderer hot path; the folder view now virtualizes rows. Same-workload before/after is below |
 
 ## Bottom line
 
 - Fleet memory telemetry shipped in PR #5777 after the original sweep. It is disabled in development, so the "over time" profile and the rerun below remain direct measurements rather than PostHog data; production fleet percentiles will only exist after rollout and sample accumulation.
 - The biggest memory growth over a session is **retention, not thread-shaped work**. Parked xterm/webview caps and prior-org Electric collection eviction have shipped; active-org table windowing remains open.
 - Three worker systems now exist: desktop main's `WorkerTaskRunner` (v1 git status), the host-service generic pool (v2 git status + commit-file reads), and the pierre renderer pool (8 workers, diffs). Extend the matching system before inventing another request/response pool.
+- The latest-main 8-workspace/20k-file test now reproduces the reported renderer freeze. The profile points to eager changed-file-row mounting, not another worker-pool gap; virtualizing that existing list removed the measured timeouts and cut peak churn RSS from 1,727.9 to 915.8 MiB.
 
 ## Pre-fix measured memory profile (dev app, CDP)
 
@@ -36,9 +38,55 @@ This was the pre-#5751 baseline: nothing was reclaimed on workspace switch, so w
 
 ## Latest-main 8-workspace / 20k-file churn rerun (2026-07-19)
 
+### Production-shaped visible lifecycle follow-up
+
+The lifecycle was rerun after merging the latest `origin/main`. The included upstream commit was `637aa9ec79078c60c4fe8179a5f67a137740236b`; the tested merge commit was `e4bf24c7b5f5c3ec51471ddd1ceaef10f860ea07`. That upstream state moved projects to the local-first host-service database, so this run used one local host-owned project with eight adopted synthetic workspaces instead of the now-stale cloud-project procedure.
+
+The reusable setup, measurement, evidence, and cleanup procedure is recorded in [`RENDERER_CHURN_UI_PROFILE_RUNBOOK.md`](./RENDERER_CHURN_UI_PROFILE_RUNBOOK.md). The [checkpoint video](./artifacts/renderer-churn-visible-lifecycle-checkpoints.mp4) shows the matched baseline, active-churn workspace lifecycle, and loaded post-fix Changes state.
+
+| Gate | Verified value |
+|---|---|
+| Worktree | `/Users/kietho/.superset/worktrees/1c99c8eb-1b31-4f04-9ac4-61a2760c74b6/agent/renderer-churn-current-main` |
+| Branch / tested commit | `agent/renderer-churn-current-main` / `e4bf24c7b5f5c3ec51471ddd1ceaef10f860ea07` |
+| Included `origin/main` | `637aa9ec79078c60c4fe8179a5f67a137740236b` |
+| API / renderer | `7501` / `7505` |
+| Dedicated CDP | `127.0.0.1:9520`; before-fix page `5620DCD39260716999F6ECB3FFBF7F60`, renderer PID `67316`; after-fix page `FA23F5E2F933E4E68B0F2DFB63B19751`, renderer PID `7813` |
+| Auth / data boundary | Authenticated local-dev session; project/workspace rows only in this worktree's local host-service DB. Synthetic Git roots only; no production database, migration, repository, or credential literal |
+| Visible lifecycle | Local/main plus `renderer-ui-1` through `renderer-ui-7`, v2 Workspaces list, and return to local/main, driven through real CDP pointer input on the dedicated renderer |
+
+Each workspace contained 20,000 tracked files and started with the same 600-file mix: 360 modified, 150 untracked, and 90 deleted. A separate mutator ran 120 ticks at 500 ms, appending to 200 existing tracked files in every workspace per tick: 1,600 writes/tick and 192,000 writes total. Measurements used a 10 s baseline, 60 s churn, and 10 s cooldown; CDP sampled about every 100 ms with a 2 s timeout, timer drift at 50 ms, and renderer RSS about every 500 ms.
+
+#### Reproduction and profile
+
+The latest-main before run **did reproduce the renderer freeze**. During churn there were three 2 s CDP timeouts, a 6,644 ms maximum timer delay, and visible workspace interactions taking up to 6.8 s. The renderer CPU profile covered another identical 192,000-write wave (69.5 s, 15,243 samples). Its application-frame hot path was `ChangesFoldersView` eagerly mapping every file to `FileRow`; `FileRow.tsx:51` and its per-row hooks/policy work were the leading inclusive application frames, surrounded by React element/DOM creation and garbage collection.
+
+That evidence supported one narrow change: reuse `@tanstack/react-virtual` to flatten folder headers and file entries into one virtual row list, using the existing Changes scroller and an eight-row overscan. File behavior, grouping, folding, and status computation are unchanged. With 600 logical file entries, the loaded post-fix surface exposed a 16,752 px virtual scroll range while mounting only the bounded visible/overscan slice (121 buttons total inside the scroller, including row actions), rather than every file row.
+
+#### Before/after results
+
+| Renderer metric | Before baseline p50 / p95 / max | Before churn p50 / p95 / max | Before cooldown p50 / p95 / max |
+|---|---:|---:|---:|
+| Dedicated-CDP round trip | 0.85 / 1.14 / 16.32 ms | 2.72 / 43.80 / 1,563.21 ms | 7.08 / 49.27 / 124.97 ms |
+| Renderer event-loop delay | 0.00 / 1.20 / 26.10 ms | 0.00 / 1.20 / 6,644.00 ms | 0.10 / 1.30 / 205.30 ms |
+| Renderer RSS | 1,573.45 / 1,578.42 / 1,578.42 MiB | 1,561.66 / 1,709.66 / 1,727.89 MiB | 1,826.31 / 1,826.81 / 1,826.81 MiB |
+
+Before-fix CDP timeouts were 0 / **3** / 0 across baseline/churn/cooldown.
+
+| Renderer metric | After baseline p50 / p95 / max | After churn p50 / p95 / max | After cooldown p50 / p95 / max |
+|---|---:|---:|---:|
+| Dedicated-CDP round trip | 0.55 / 1.84 / 2.47 ms | 0.42 / 1.19 / 198.44 ms | 0.33 / 0.56 / 1.24 ms |
+| Renderer event-loop delay | 0.00 / 1.10 / 1.70 ms | 0.00 / 0.90 / 265.70 ms | 0.00 / 0.80 / 1.60 ms |
+| Renderer RSS | 860.89 / 862.36 / 862.36 MiB | 895.44 / 914.89 / 915.83 MiB | 916.38 / 917.22 / 917.22 MiB |
+
+After-fix CDP timeouts were **0 / 0 / 0**. The mutator completed in 59.525 s after the fix versus 62.230 s before. The after-run used a fresh renderer launch, so the absolute RSS delta includes launch-state variation; the identical workload, bounded mounted-row count, timeout removal, and profile-to-fix match are the stronger causal evidence.
+
+The real-input during screenshot shows a cold workspace immediately accepting the route change and displaying `Loading changes…` while its backend status populated. That status-completion wait is distinct from the reproduced renderer freeze: CDP round trips and timer sampling remained responsive. The remaining risk is full-tree status freshness/completion latency on unwarmed workspaces; this renderer fix does not change git status scheduling or the cache-first behavior.
+
+### Earlier renderer-IPC diagnostic rerun
+
 ### Target and safety gate
 
-The final fetch moved twice during the investigation, so the measurements below were rerun after fast-forwarding to the then-current `origin/main`; the earlier `d383394b` and `ba78b917` samples are intentionally not used as the latest-main result.
+The final fetch moved twice during the earlier diagnostic investigation, so those measurements were rerun after fast-forwarding to the then-current `origin/main`; the earlier `d383394b` and `ba78b917` samples are intentionally not used as its result.
 
 | Gate | Verified value |
 |---|---|
@@ -68,7 +116,7 @@ The freeze did **not** reproduce. There were zero 5 s CDP timeouts, zero 10 s st
 
 The worker-mode host harness completed the measured portion in 5.321 s: 44 `git:changed` events coalesced to 25 refreshes, maximum active refreshes stayed at 4, and event-loop delay was 1.5 ms p50 / 11.4 ms p99 / 42.8 ms max. `/usr/bin/time -l` reported 509,984,768 bytes (486.4 MiB) maximum RSS for the harness process. The harness exposes p99 rather than p95 for its Node event-loop histogram.
 
-RSS did not show runaway growth in this run: churn maxed at 771.1 MiB and fell to 712.7 MiB after a 10 s cooldown plus explicit GC. JS heap was 125.0 MiB at churn end, 104.4 MiB before that GC, and 104.1 MiB after it; event listeners remained roughly flat (1,049 before GC, 1,061 after). Repeated forced invalidation and full eight-way status result transfer is intentionally harsher than the visible large-change UI's 10 s refetch floor, but the missing result-render and workspace-switch lifecycle means a production-shaped follow-up is still needed before closing the freeze report.
+RSS did not show runaway growth in this run: churn maxed at 771.1 MiB and fell to 712.7 MiB after a 10 s cooldown plus explicit GC. JS heap was 125.0 MiB at churn end, 104.4 MiB before that GC, and 104.1 MiB after it; event listeners remained roughly flat (1,049 before GC, 1,061 after). Repeated forced invalidation and full eight-way status result transfer is intentionally harsher than the visible large-change UI's 10 s refetch floor. The production-shaped follow-up above now covers the missing result-render and workspace-switch lifecycle; its remaining caveat is background status freshness after full-tree churn.
 
 ### Controlled A/B — parked-terminal LRU eviction (SUPER-1545; measured at cap = 5, shipped default is 12 + configurable)
 

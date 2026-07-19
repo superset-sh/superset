@@ -86,7 +86,10 @@ export const ChangesFileList = memo(function ChangesFileList({
 	}
 
 	return (
-		<div className="min-h-0 flex-1 space-y-2 overflow-y-auto pt-1">
+		<div
+			className="min-h-0 flex-1 space-y-2 overflow-y-auto pt-1"
+			data-changes-scroll-container
+		>
 			{GROUP_ORDER.map((key) => {
 				const groupFiles = grouped[key];
 				if (groupFiles.length === 0) return null;
