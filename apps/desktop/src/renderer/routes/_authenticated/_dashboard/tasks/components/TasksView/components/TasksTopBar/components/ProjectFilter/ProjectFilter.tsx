@@ -12,7 +12,6 @@ import { useMemo, useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineFolder } from "react-icons/hi2";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 interface ProjectFilterProps {
 	value: string | null;
@@ -20,7 +19,6 @@ interface ProjectFilterProps {
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
-	const _collections = useCollections();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 

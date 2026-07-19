@@ -375,8 +375,8 @@ export function useAccessibleV2Workspaces(
 					hostId: workspace.hostId,
 					hostName: host.name,
 					hostIsOnline: host.isOnline,
-					sidebarProjectId: sidebarProjectIds.has(project.id)
-						? project.id
+					sidebarProjectId: sidebarProjectIds.has(project.projectKey)
+						? project.projectKey
 						: null,
 					sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
 					sidebarIsHidden: sidebarState?.isHidden ?? false,
