@@ -15,6 +15,7 @@ const LARGE_CHANGESET_THRESHOLD = 200;
 const LARGE_CHANGESET_REFETCH_INTERVAL_MS = 10_000;
 const STATUS_QUERY_STALE_TIME_MS = 2_000;
 const BRANCH_QUERY_STALE_TIME_MS = 10_000;
+export const GIT_CHANGES_QUERY_GC_TIME_MS = 30 * 60_000;
 
 export function useGitChangesStatus({
 	worktreePath,
@@ -29,26 +30,24 @@ export function useGitChangesStatus({
 		{ worktreePath: worktreePath || "" },
 		{
 			enabled: enabled && !!worktreePath,
+			gcTime: GIT_CHANGES_QUERY_GC_TIME_MS,
 			refetchInterval: branchRefetchInterval,
 			refetchOnWindowFocus: branchRefetchOnWindowFocus,
 			staleTime: BRANCH_QUERY_STALE_TIME_MS,
 		},
 	);
 
-	const effectiveBaseBranch =
-		branchData?.worktreeBaseBranch ?? branchData?.defaultBranch ?? "main";
-
 	const {
 		data: status,
-		isLoading,
+		isLoading: isStatusLoading,
 		refetch,
 	} = electronTrpc.changes.getStatus.useQuery(
 		{
 			worktreePath: worktreePath || "",
-			defaultBranch: effectiveBaseBranch,
 		},
 		{
-			enabled: enabled && !!worktreePath && !!branchData,
+			enabled: enabled && !!worktreePath,
+			gcTime: GIT_CHANGES_QUERY_GC_TIME_MS,
 			refetchInterval: (query) => {
 				if (!refetchInterval) return false;
 				const data = query.state.data as GitChangesStatus | undefined;
@@ -70,6 +69,17 @@ export function useGitChangesStatus({
 			staleTime: staleTime ?? STATUS_QUERY_STALE_TIME_MS,
 		},
 	);
+	const effectiveBaseBranch =
+		status?.defaultBranch ??
+		branchData?.worktreeBaseBranch ??
+		branchData?.defaultBranch ??
+		"main";
 
-	return { status, isLoading, effectiveBaseBranch, branchData, refetch };
+	return {
+		status,
+		isLoading: !status && isStatusLoading,
+		effectiveBaseBranch,
+		branchData,
+		refetch,
+	};
 }

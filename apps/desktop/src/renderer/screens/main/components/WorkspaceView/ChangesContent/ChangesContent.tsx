@@ -32,7 +32,7 @@ export function ChangesContent() {
 		);
 	}
 
-	if (isLoading) {
+	if (!status && isLoading) {
 		return (
 			<div className="h-full flex items-center justify-center text-muted-foreground">
 				Loading changes...

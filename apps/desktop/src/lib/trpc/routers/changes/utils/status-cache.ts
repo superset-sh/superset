@@ -3,12 +3,17 @@ import type { GitChangesStatus } from "shared/changes-types";
 // Keep status cached slightly longer than the UI poll interval so repeated
 // passive refreshes reuse the same result instead of spawning git twice.
 export const STATUS_CACHE_TTL_MS = 3_000;
+export const EFFECTIVE_BASE_BRANCH_CACHE_TTL_MS = 10_000;
 
 const statusCache = new Map<
 	string,
 	{ result: GitChangesStatus; timestamp: number }
 >();
 const inFlightStatus = new Map<string, Promise<GitChangesStatus>>();
+const effectiveBaseBranchCache = new Map<
+	string,
+	{ branch: string; timestamp: number }
+>();
 
 export function makeStatusCacheKey(
 	worktreePath: string,
@@ -51,8 +56,31 @@ export function clearInFlightStatus(cacheKey: string): void {
 	inFlightStatus.delete(cacheKey);
 }
 
+export function getCachedEffectiveBaseBranch(
+	worktreePath: string,
+): string | null {
+	const cached = effectiveBaseBranchCache.get(worktreePath);
+	if (!cached) return null;
+	if (Date.now() - cached.timestamp >= EFFECTIVE_BASE_BRANCH_CACHE_TTL_MS) {
+		effectiveBaseBranchCache.delete(worktreePath);
+		return null;
+	}
+	return cached.branch;
+}
+
+export function setCachedEffectiveBaseBranch(
+	worktreePath: string,
+	branch: string,
+): void {
+	effectiveBaseBranchCache.set(worktreePath, {
+		branch,
+		timestamp: Date.now(),
+	});
+}
+
 export function clearStatusCacheForWorktree(worktreePath: string): void {
 	const prefix = `${worktreePath}:`;
+	effectiveBaseBranchCache.delete(worktreePath);
 
 	for (const key of statusCache.keys()) {
 		if (key.startsWith(prefix)) {

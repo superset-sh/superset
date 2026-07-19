@@ -1,11 +1,7 @@
-import { worktrees } from "@superset/local-db";
-import { eq } from "drizzle-orm";
-import { localDb } from "main/lib/local-db";
 import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
-	getBranchBaseConfig,
 	setBranchBaseConfig,
 	unsetBranchBaseConfig,
 } from "../workspaces/utils/base-branch-config";
@@ -16,6 +12,10 @@ import {
 	assertRegisteredWorktree,
 	getRegisteredWorktree,
 } from "./security/path-validation";
+import {
+	getDefaultBranch,
+	getWorktreeBaseBranch,
+} from "./utils/effective-base-branch";
 import { clearStatusCacheForWorktree } from "./utils/status-cache";
 
 export const createBranchesRouter = () => {
@@ -39,26 +39,10 @@ export const createBranchesRouter = () => {
 
 					const branchSummary = await git.branch(["-a"]);
 					const currentBranch = await getCurrentBranch(input.worktreePath);
-					const { compareBaseBranch: configuredCompareBaseBranch } =
-						currentBranch
-							? await getBranchBaseConfig({
-									repoPath: input.worktreePath,
-									branch: currentBranch,
-								})
-							: { compareBaseBranch: null };
-					const persistedWorktree = localDb
-						.select({
-							branch: worktrees.branch,
-							baseBranch: worktrees.baseBranch,
-						})
-						.from(worktrees)
-						.where(eq(worktrees.path, input.worktreePath))
-						.get();
-					const persistedBaseBranch =
-						persistedWorktree &&
-						(!currentBranch || persistedWorktree.branch === currentBranch)
-							? (persistedWorktree.baseBranch?.trim() ?? null)
-							: null;
+					const worktreeBaseBranch = await getWorktreeBaseBranch(
+						input.worktreePath,
+						currentBranch,
+					);
 
 					const localBranches: string[] = [];
 					const remote: string[] = [];
@@ -85,8 +69,7 @@ export const createBranchesRouter = () => {
 						remote: remote.sort(),
 						defaultBranch,
 						checkedOutBranches,
-						worktreeBaseBranch:
-							configuredCompareBaseBranch ?? persistedBaseBranch,
+						worktreeBaseBranch,
 						currentBranch,
 					};
 				},
@@ -191,24 +174,6 @@ async function getLocalBranchesWithDates(
 	} catch {
 		return localBranches.map((branch) => ({ branch, lastCommitDate: 0 }));
 	}
-}
-
-async function getDefaultBranch(
-	git: SimpleGit,
-	remoteBranches: string[],
-): Promise<string> {
-	try {
-		const headRef = await git.raw(["symbolic-ref", "refs/remotes/origin/HEAD"]);
-		const match = headRef.match(/refs\/remotes\/origin\/(.+)/);
-		if (match) {
-			return match[1].trim();
-		}
-	} catch {
-		if (remoteBranches.includes("master") && !remoteBranches.includes("main")) {
-			return "master";
-		}
-	}
-	return "main";
 }
 
 async function getCheckedOutBranches(
