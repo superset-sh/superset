@@ -14,7 +14,7 @@ import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
-import { hostAgentConfigs } from "../../../db/schema";
+import { hostAgentConfigs, workspaces } from "../../../db/schema";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
@@ -288,6 +288,17 @@ export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
+	const workspace = ctx.db.query.workspaces
+		.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+		.sync();
+	if (!workspace) {
+		// NOT_FOUND (not a 500) so callers like automation dispatch can tell a
+		// dead workspace pin apart from a host-side failure.
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
+		});
+	}
 	if (input.agent === SUPERSET_AGENT_ID) {
 		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
 	}

@@ -78,11 +78,17 @@ function createTerminal(
 	return { terminal, fitAddon, serializeAddon };
 }
 
-function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
+function persistBuffer(
+	terminalId: string,
+	serializeAddon: SerializeAddon,
+): boolean {
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
 		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
-	} catch {}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function restoreBuffer(terminalId: string, terminal: XTerm) {
@@ -92,19 +98,41 @@ function restoreBuffer(terminalId: string, terminal: XTerm) {
 	} catch {}
 }
 
+/**
+ * Persist buffer + dims, reporting success. Eviction must not proceed when
+ * either write fails or the runtime could not be restored faithfully.
+ */
+export function tryPersistRuntimeState(runtime: TerminalRuntime): boolean {
+	if (!persistBuffer(runtime.terminalId, runtime.serializeAddon)) {
+		return false;
+	}
+	return persistDimensions(
+		runtime.terminalId,
+		runtime.lastCols,
+		runtime.lastRows,
+	);
+}
+
 function clearPersistedBuffer(terminalId: string) {
 	try {
 		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
 	} catch {}
 }
 
-function persistDimensions(terminalId: string, cols: number, rows: number) {
+function persistDimensions(
+	terminalId: string,
+	cols: number,
+	rows: number,
+): boolean {
 	try {
 		localStorage.setItem(
 			`${DIMS_KEY_PREFIX}${terminalId}`,
 			JSON.stringify({ cols, rows }),
 		);
-	} catch {}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function loadSavedDimensions(
@@ -127,6 +155,12 @@ function clearPersistedDimensions(terminalId: string) {
 	try {
 		localStorage.removeItem(`${DIMS_KEY_PREFIX}${terminalId}`);
 	} catch {}
+}
+
+/** Clear persisted renderer state even when no live runtime entry remains. */
+export function clearPersistedRuntimeState(terminalId: string): void {
+	clearPersistedBuffer(terminalId);
+	clearPersistedDimensions(terminalId);
 }
 
 function hostIsVisible(container: HTMLDivElement | null): boolean {
@@ -359,13 +393,11 @@ export function updateRuntimeAppearance(
 
 export function disposeRuntime(
 	runtime: TerminalRuntime,
-	options: { clearPersistedState?: boolean } = {},
+	options: {
+		persistedState?: "clear" | "preserve";
+	} = {},
 ) {
-	const clearPersistedState = options.clearPersistedState ?? true;
-	if (!clearPersistedState) {
-		persistBuffer(runtime.terminalId, runtime.serializeAddon);
-		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
-	}
+	const persistedState = options.persistedState ?? "clear";
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
@@ -378,8 +410,7 @@ export function disposeRuntime(
 	runtime.container = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
-	if (clearPersistedState) {
-		clearPersistedBuffer(runtime.terminalId);
-		clearPersistedDimensions(runtime.terminalId);
+	if (persistedState === "clear") {
+		clearPersistedRuntimeState(runtime.terminalId);
 	}
 }

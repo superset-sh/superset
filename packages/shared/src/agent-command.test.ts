@@ -5,6 +5,7 @@ import {
 	buildAgentFileCommand,
 	buildAgentPromptCommand,
 } from "./agent-command";
+import { getPresetById } from "./host-agent-presets";
 
 describe("buildAgentPromptCommand", () => {
 	it("adds `--` before codex prompt payload", () => {
@@ -68,5 +69,30 @@ describe("vibe agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("vibe");
 		expect(AGENT_LABELS.vibe).toBe("Mistral Vibe");
+	});
+});
+
+describe("kimi agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("kimi");
+		expect(AGENT_LABELS.kimi).toBe("Kimi Code");
+	});
+
+	it("runs prompt launches headlessly and resumes them in the TUI", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "kimi-1234",
+			agent: "kimi",
+		});
+
+		expect(command).toStartWith("kimi -p \"$(cat <<'SUPERSET_PROMPT_kimi1234'");
+		expect(command).toEndWith('\n)" ; kimi --auto --continue');
+	});
+
+	it("derives the host prompt flag from the distinct prompt command", () => {
+		const preset = getPresetById("kimi");
+		expect(preset?.command).toBe("kimi");
+		expect(preset?.args).toEqual([]);
+		expect(preset?.promptArgs).toEqual(["-p"]);
 	});
 });

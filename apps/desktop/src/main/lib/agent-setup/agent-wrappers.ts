@@ -70,6 +70,15 @@ export {
 	getGeminiSettingsJsonPath,
 } from "./agent-wrappers-gemini";
 export {
+	createKimiConfigToml,
+	createKimiWrapper,
+	getKimiConfigTomlContent,
+	getKimiConfigTomlPath,
+	getKimiWrapperScript,
+	KIMI_HOOKS_MARKER_END,
+	KIMI_HOOKS_MARKER_START,
+} from "./agent-wrappers-kimi";
+export {
 	createMastraHooksJson,
 	createMastraWrapper,
 	getMastraGlobalHooksJsonPath,

@@ -8,7 +8,10 @@ import {
 } from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { disposeHostSessionsForWorktreePath } from "renderer/lib/dispose-host-sessions";
+import {
+	disposeHostSessionsForWorktreePath,
+	toastDisposeFailures,
+} from "renderer/lib/dispose-host-sessions";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDeleteWorktree } from "renderer/react-query/workspaces/useDeleteWorktree";
 import { deleteWithToast } from "renderer/routes/_authenticated/components/TeardownLogsDialog";
@@ -35,7 +38,11 @@ export function DeleteWorktreeDialog({
 			// Worktree removed — dispose its host-service terminals so backgrounded
 			// sessions don't leak in the daemon.
 			if (data.success) {
-				void disposeHostSessionsForWorktreePath(utils, worktreePath);
+				const retryDispose = () =>
+					disposeHostSessionsForWorktreePath(utils, worktreePath);
+				void retryDispose().then((result) =>
+					toastDisposeFailures(result, retryDispose),
+				);
 			}
 		},
 	});

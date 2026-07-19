@@ -49,6 +49,7 @@ export function mapEventType(
 		eventType === "UserPromptSubmit" ||
 		eventType === "PostToolUse" ||
 		eventType === "PostToolUseFailure" ||
+		eventType === "PermissionResult" ||
 		eventType === "BeforeAgent" ||
 		eventType === "AfterTool" ||
 		eventType === "userPromptSubmitted" ||
@@ -82,6 +83,7 @@ export function mapEventType(
 	}
 	if (
 		eventType === "Stop" ||
+		eventType === "Interrupt" ||
 		eventType === "stop" ||
 		eventType === "agent-turn-complete" ||
 		eventType === "AfterAgent" ||

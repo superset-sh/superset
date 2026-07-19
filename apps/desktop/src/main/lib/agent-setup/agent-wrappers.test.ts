@@ -1701,6 +1701,82 @@ describe("vibe hooks.toml", () => {
 	});
 });
 
+import {
+	getKimiConfigTomlContent,
+	getKimiWrapperScript,
+	KIMI_HOOKS_MARKER_END,
+	KIMI_HOOKS_MARKER_START,
+} from "./agent-wrappers-kimi";
+
+describe("kimi wrapper", () => {
+	it("stamps the agent id and forwards arguments to the real binary", () => {
+		const script = getKimiWrapperScript();
+		expect(script).toContain('export SUPERSET_AGENT_ID="kimi"');
+		expect(script).toContain('exec "$REAL_BIN" "$@"');
+	});
+});
+
+describe("kimi config.toml", () => {
+	it("registers the lifecycle hooks Kimi exposes", () => {
+		const out = getKimiConfigTomlContent("");
+		expect(out).toContain(KIMI_HOOKS_MARKER_START);
+		expect(out).toContain(KIMI_HOOKS_MARKER_END);
+		for (const event of [
+			"SessionStart",
+			"UserPromptSubmit",
+			"PostToolUse",
+			"PostToolUseFailure",
+			"PermissionRequest",
+			"PermissionResult",
+			"StopFailure",
+			"Interrupt",
+			"Stop",
+			"SessionEnd",
+		]) {
+			expect(out).toContain(`event = "${event}"`);
+		}
+		expect(out).toContain("SUPERSET_AGENT_ID=kimi");
+	});
+
+	it("preserves user config and replaces the managed block idempotently", () => {
+		const user = [
+			'default_model = "my-model"',
+			"",
+			"[[hooks]]",
+			'event = "Notification"',
+			'command = "show-my-notification"',
+			"",
+		].join("\n");
+		const once = getKimiConfigTomlContent(user);
+		const twice = getKimiConfigTomlContent(once);
+
+		expect(twice).toContain('default_model = "my-model"');
+		expect(twice).toContain('command = "show-my-notification"');
+		expect(twice.split(KIMI_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(twice.split(KIMI_HOOKS_MARKER_END).length - 1).toBe(1);
+	});
+
+	it("preserves user hooks after an orphaned managed block", () => {
+		const partial = [
+			KIMI_HOOKS_MARKER_START,
+			"[[hooks]]",
+			'event = "SessionStart"',
+			"command = 'SUPERSET_AGENT_ID=kimi true'",
+			"",
+			"# user hook",
+			"[[hooks]]",
+			'event = "Notification"',
+			'command = "show-my-notification"',
+		].join("\n");
+		const out = getKimiConfigTomlContent(partial);
+
+		expect(out).toContain("# user hook");
+		expect(out).toContain('command = "show-my-notification"');
+		expect(out.split(KIMI_HOOKS_MARKER_START).length - 1).toBe(1);
+		expect(out.split(KIMI_HOOKS_MARKER_END).length - 1).toBe(1);
+	});
+});
+
 describe("agent-wrappers pi", () => {
 	beforeEach(() => {
 		mockedHomeDir = path.join(TEST_ROOT, "home");

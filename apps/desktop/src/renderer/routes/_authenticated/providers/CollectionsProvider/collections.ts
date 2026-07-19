@@ -30,6 +30,7 @@ import type {
 } from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
+import { toast } from "@superset/ui/sonner";
 import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
@@ -47,6 +48,7 @@ import {
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { getAuthToken, getJwt } from "renderer/lib/auth-client";
 import { refreshJwtAfterUnauthorized } from "renderer/lib/jwt-refresh";
 import superjson from "superjson";
@@ -68,6 +70,7 @@ import {
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { evictInactiveOrgs } from "./evictInactiveOrgs";
 import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
@@ -246,6 +249,16 @@ const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 	// a 4xx that does is terminal — return void to stop the stream instead of
 	// looping the same doomed request until Electric's 50-retry guard trips.
 	console.error("[collections] Electric sync stopped", error);
+	const status = error instanceof FetchError ? error.status : undefined;
+	track("electric_sync_stopped", {
+		status,
+		message: error instanceof Error ? error.message.slice(0, 200) : undefined,
+	});
+	toast.error("Cloud sync stopped", {
+		id: "electric-sync-stopped",
+		description: "Synced data may be stale until Superset reconnects.",
+		action: { label: "Reload", onClick: () => window.location.reload() },
+	});
 	return;
 };
 
@@ -937,6 +950,32 @@ export function getCollections(organizationId: string) {
 		...orgCollections,
 		organizations: organizationsCollection,
 	};
+}
+
+/**
+ * Evict the collection sets of every cached org except `activeOrganizationId`,
+ * stopping their Electric/localStorage sync, clearing their in-memory rows, and
+ * dropping them from the cache. Call this when the active org changes so prior
+ * orgs stop holding entire synced tables in the heap.
+ *
+ * The shared `organizationsCollection` singleton lives outside `collectionsCache`
+ * and is never touched. Recovery is handled by `getCollections`, which rebuilds
+ * fresh instances (rehydrating cache-first from the untouched on-disk rows) when
+ * an evicted org is re-entered.
+ */
+export function evictInactiveOrgCollections(
+	activeOrganizationId: string,
+): void {
+	evictInactiveOrgs(
+		collectionsCache as unknown as Map<string, Record<string, unknown>>,
+		getCollectionsCacheKey(activeOrganizationId),
+		(orgKey, collectionName, error) => {
+			console.error(
+				`[collections] Failed to clean up evicted collection ${collectionName} for org ${orgKey}`,
+				error,
+			);
+		},
+	);
 }
 
 export type AppCollections = ReturnType<typeof getCollections>;

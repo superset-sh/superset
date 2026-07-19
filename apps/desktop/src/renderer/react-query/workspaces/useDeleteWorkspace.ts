@@ -1,5 +1,8 @@
 import { useNavigate, useParams } from "@tanstack/react-router";
-import { disposeHostSessionsForWorkspace } from "renderer/lib/dispose-host-sessions";
+import {
+	disposeHostSessionsForWorkspace,
+	toastDisposeFailures,
+} from "renderer/lib/dispose-host-sessions";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import {
@@ -91,7 +94,9 @@ export function useDeleteWorkspace(
 			// Delete succeeded on the electron path — dispose the workspace's
 			// host-service terminals so backgrounded sessions don't leak.
 			if (data.success) {
-				void disposeHostSessionsForWorkspace(utils, variables.id);
+				const retryDispose = () =>
+					disposeHostSessionsForWorkspace(utils, variables.id);
+				toastDisposeFailures(await retryDispose(), retryDispose);
 			}
 			// tRPC treats { success: false } as a successful response, so roll back optimistic updates
 			if (!data.success) {
