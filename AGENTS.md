@@ -46,7 +46,7 @@ When a user asks for UI verification through the Chrome DevTools Protocol (CDP):
 3. **Capture visual and numeric evidence** - take before/after screenshots and pair them with relevant CDP measurements (for example, `scrollTop`, focused element, route, or persisted state). Confirm that the screenshot and measured state agree.
 4. **Exercise the relevant lifecycle** - include the actual route change, workspace/pane/file switch, remount, close/reopen, or other teardown boundary from the report. A narrower synthetic flow cannot substitute for the reported interaction.
 5. **Treat a mismatch as an incomplete reproduction** - if the test passes but the user still observes the bug, re-check the target instance, exact steps, input method, persisted keys, and lifecycle timing. Reproduce the failure before changing code; do not assume the report is disproven by a synthetic smoke test.
-6. **Use a before-fix/after-fix gate** - do not claim the bug is verified until the original interaction demonstrably fails before the fix and passes after it under the same observations. State clearly which checks were end-to-end, which were synthetic, and whether screenshots were actually captured.
+6. **Use an evidence gate** - for a reported bug or regression, do not claim it is verified until the original interaction demonstrably fails before the fix and passes after it under the same observations. For a new feature, record equivalent baseline evidence and demonstrate the expected behavior. In all cases, state clearly which checks were end-to-end, which were synthetic, and whether screenshots were actually captured.
 
 ## Agent Rules
 1. **Type safety** - avoid `any` unless necessary
