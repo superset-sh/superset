@@ -13,6 +13,7 @@ export const AGENT_ICON_OPTIONS: readonly AgentIconOption[] = [
 	{ id: "codex", label: "Codex" },
 	{ id: "cursor-agent", label: "Cursor" },
 	{ id: "gemini", label: "Gemini" },
+	{ id: "agy", label: "Antigravity" },
 	{ id: "copilot", label: "Copilot" },
 	{ id: "amp", label: "Amp" },
 	{ id: "opencode", label: "OpenCode" },

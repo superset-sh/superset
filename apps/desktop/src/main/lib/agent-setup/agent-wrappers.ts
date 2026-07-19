@@ -7,6 +7,18 @@ export {
 	getAmpPluginContent,
 } from "./agent-wrappers-amp";
 export {
+	ANTIGRAVITY_HOOK_MARKER,
+	ANTIGRAVITY_HOOK_NAME,
+	ANTIGRAVITY_HOOK_SCRIPT_NAME,
+	createAntigravityHookScript,
+	createAntigravityHooksJson,
+	createAntigravityWrapper,
+	getAntigravityHookScriptContent,
+	getAntigravityHookScriptPath,
+	getAntigravityHooksJsonContent,
+	getAntigravityHooksJsonPath,
+} from "./agent-wrappers-antigravity";
+export {
 	buildCodexWrapperExecLine,
 	cleanupGlobalOpenCodePlugin,
 	createClaudeSettingsJson,

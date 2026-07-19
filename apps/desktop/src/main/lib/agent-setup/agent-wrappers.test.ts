@@ -58,8 +58,12 @@ mock.module("node:os", () => ({
 
 const {
 	AMP_PLUGIN_MARKER,
+	ANTIGRAVITY_HOOK_NAME,
 	createAmpPlugin,
 	createAmpWrapper,
+	createAntigravityWrapper,
+	getAntigravityHooksJsonContent,
+	getAntigravityHooksJsonPath,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
@@ -1740,5 +1744,111 @@ describe("agent-wrappers pi", () => {
 		const installed = readFileSync(extensionPath, "utf-8");
 		expect(installed).toContain(PI_EXTENSION_MARKER);
 		expect(installed).toContain("export default function");
+	});
+});
+
+describe("antigravity wrapper", () => {
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("wraps the agy binary and stamps the agent id", () => {
+		createAntigravityWrapper();
+		const script = readFileSync(path.join(TEST_BIN_DIR, "agy"), "utf-8");
+		expect(script).toContain('export SUPERSET_AGENT_ID="agy"');
+		expect(script).toContain('find_real_binary "agy"');
+		expect(script).toContain('exec "$REAL_BIN" "$@"');
+	});
+});
+
+describe("antigravity hooks.json", () => {
+	const hookPath = "/tmp/.superset/hooks/antigravity-hook.sh";
+
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("targets the ~/.gemini/config customization root", () => {
+		expect(getAntigravityHooksJsonPath()).toBe(
+			path.join(mockedHomeDir, ".gemini", "config", "hooks.json"),
+		);
+	});
+
+	it("passes the Superset event as argv, since the payload omits it", () => {
+		const parsed = JSON.parse(
+			getAntigravityHooksJsonContent(hookPath),
+		) as Record<string, Record<string, unknown[]>>;
+		const block = parsed[ANTIGRAVITY_HOOK_NAME];
+
+		// PreInvocation/Stop take a flat handler list.
+		expect(block.PreInvocation).toEqual([
+			{ type: "command", command: `"${hookPath}" Start` },
+		]);
+		expect(block.Stop).toEqual([
+			{ type: "command", command: `"${hookPath}" Stop` },
+		]);
+		// PostToolUse is tool-matched and must be wrapped in a matcher group.
+		expect(block.PostToolUse).toEqual([
+			{
+				matcher: "*",
+				hooks: [{ type: "command", command: `"${hookPath}" Start` }],
+			},
+		]);
+	});
+
+	it("never registers PreToolUse, whose contract requires a decision field", () => {
+		const block = JSON.parse(getAntigravityHooksJsonContent(hookPath))[
+			ANTIGRAVITY_HOOK_NAME
+		] as Record<string, unknown>;
+		expect(block.PreToolUse).toBeUndefined();
+	});
+
+	it("preserves foreign hook blocks and is idempotent", () => {
+		const hooksPath = getAntigravityHooksJsonPath();
+		mkdirSync(path.dirname(hooksPath), { recursive: true });
+		writeFileSync(
+			hooksPath,
+			JSON.stringify({
+				"lint-checker": {
+					PostToolUse: [
+						{
+							matcher: "run_command",
+							hooks: [{ type: "command", command: "./scripts/lint.sh" }],
+						},
+					],
+				},
+			}),
+		);
+
+		const once = getAntigravityHooksJsonContent(hookPath);
+		writeFileSync(hooksPath, once);
+		const twice = getAntigravityHooksJsonContent(hookPath);
+
+		expect(twice).toBe(once);
+		const parsed = JSON.parse(twice) as Record<string, unknown>;
+		expect(parsed["lint-checker"]).toBeDefined();
+		expect(parsed[ANTIGRAVITY_HOOK_NAME]).toBeDefined();
+	});
+
+	it("rewrites only our block when the existing file is unparseable", () => {
+		const hooksPath = getAntigravityHooksJsonPath();
+		mkdirSync(path.dirname(hooksPath), { recursive: true });
+		writeFileSync(hooksPath, "{ not json");
+
+		const parsed = JSON.parse(
+			getAntigravityHooksJsonContent(hookPath),
+		) as Record<string, unknown>;
+		expect(parsed[ANTIGRAVITY_HOOK_NAME]).toBeDefined();
 	});
 });
