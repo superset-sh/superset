@@ -35,6 +35,7 @@ import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarH
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
+import { DashboardSidebarStatusSection } from "./components/DashboardSidebarStatusSection";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
@@ -98,8 +99,14 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 export function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
-	const { groups, refreshWorkspacePullRequest, toggleProjectCollapsed } =
-		useDashboardSidebarData();
+	const {
+		groups,
+		groupMode,
+		sidebarProjects,
+		refreshWorkspacePullRequest,
+		toggleProjectCollapsed,
+	} = useDashboardSidebarData();
+	const isStatusMode = groupMode === "status";
 	const { reorderProjects } = useDashboardSidebarState();
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -140,7 +147,9 @@ export function DashboardSidebar({
 
 	const workspaceShortcutLabels = useDashboardSidebarShortcuts(orderedGroups);
 
-	const activeV2Project = useMemo(() => {
+	// Resolve the active workspace's REAL project id from its row (never a
+	// group id — in status mode the group is a synthetic `status:*` bucket).
+	const activeWorkspaceProjectId = useMemo(() => {
 		if (!activeV2WorkspaceId) return null;
 		for (const project of groups) {
 			for (const child of project.children) {
@@ -148,17 +157,25 @@ export function DashboardSidebar({
 					child.type === "workspace" &&
 					child.workspace.id === activeV2WorkspaceId
 				) {
-					return project;
+					return child.workspace.projectId;
 				}
 				if (child.type === "section") {
 					for (const ws of child.section.workspaces) {
-						if (ws.id === activeV2WorkspaceId) return project;
+						if (ws.id === activeV2WorkspaceId) return ws.projectId;
 					}
 				}
 			}
 		}
 		return null;
 	}, [groups, activeV2WorkspaceId]);
+
+	const activeV2Project = useMemo(() => {
+		if (!activeWorkspaceProjectId) return null;
+		const project = sidebarProjects.find(
+			(candidate) => candidate.id === activeWorkspaceProjectId,
+		);
+		return project ? { id: project.id, name: project.name } : null;
+	}, [activeWorkspaceProjectId, sidebarProjects]);
 
 	const handleDragEnd = useCallback(
 		({ active, over }: DragEndEvent) => {
@@ -185,54 +202,71 @@ export function DashboardSidebar({
 							<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
 							<div className="flex-1 overflow-y-auto hide-scrollbar">
-								<DndContext
-									sensors={sensors}
-									collisionDetection={closestCenter}
-									measuring={{
-										droppable: { strategy: MeasuringStrategy.Always },
-									}}
-									onDragStart={({ active }) => {
-										const project = groups.find((p) => p.id === active.id);
-										setActiveProject(project ?? null);
-									}}
-									onDragEnd={handleDragEnd}
-									onDragCancel={() => setActiveProject(null)}
-								>
-									<SortableContext
-										items={projectOrder}
-										strategy={verticalListSortingStrategy}
+								{isStatusMode ? (
+									// Status buckets carry their own canonical order from the
+									// builder and aren't drag-reorderable, so render `groups`
+									// directly — `orderedGroups` lags a render behind on the
+									// `projectOrder` effect and would briefly drop the new
+									// `status:*` ids, blanking the rail on a mode/bucket change.
+									groups.map((group) => (
+										<DashboardSidebarStatusSection
+											key={group.id}
+											project={group}
+											isSidebarCollapsed={isCollapsed}
+											workspaceShortcutLabels={workspaceShortcutLabels}
+											onWorkspaceHover={refreshWorkspacePullRequest}
+										/>
+									))
+								) : (
+									<DndContext
+										sensors={sensors}
+										collisionDetection={closestCenter}
+										measuring={{
+											droppable: { strategy: MeasuringStrategy.Always },
+										}}
+										onDragStart={({ active }) => {
+											const project = groups.find((p) => p.id === active.id);
+											setActiveProject(project ?? null);
+										}}
+										onDragEnd={handleDragEnd}
+										onDragCancel={() => setActiveProject(null)}
 									>
-										{orderedGroups.map((project) => (
-											<SortableProjectWrapper
-												key={project.id}
-												project={project}
-												isCollapsed={isCollapsed}
-												isDraggingProject={activeProject != null}
-												workspaceShortcutLabels={workspaceShortcutLabels}
-												onWorkspaceHover={refreshWorkspacePullRequest}
-												onToggleCollapse={toggleProjectCollapsed}
-											/>
-										))}
-									</SortableContext>
+										<SortableContext
+											items={projectOrder}
+											strategy={verticalListSortingStrategy}
+										>
+											{orderedGroups.map((project) => (
+												<SortableProjectWrapper
+													key={project.id}
+													project={project}
+													isCollapsed={isCollapsed}
+													isDraggingProject={activeProject != null}
+													workspaceShortcutLabels={workspaceShortcutLabels}
+													onWorkspaceHover={refreshWorkspacePullRequest}
+													onToggleCollapse={toggleProjectCollapsed}
+												/>
+											))}
+										</SortableContext>
 
-									{createPortal(
-										<DragOverlay dropAnimation={null}>
-											{activeProject && (
-												<div className="bg-background shadow-lg border-b border-border">
-													<DashboardSidebarProjectSection
-														project={activeProject}
-														isSidebarCollapsed={isCollapsed}
-														isDraggingProject
-														workspaceShortcutLabels={workspaceShortcutLabels}
-														onWorkspaceHover={() => {}}
-														onToggleCollapse={() => {}}
-													/>
-												</div>
-											)}
-										</DragOverlay>,
-										document.body,
-									)}
-								</DndContext>
+										{createPortal(
+											<DragOverlay dropAnimation={null}>
+												{activeProject && (
+													<div className="bg-background shadow-lg border-b border-border">
+														<DashboardSidebarProjectSection
+															project={activeProject}
+															isSidebarCollapsed={isCollapsed}
+															isDraggingProject
+															workspaceShortcutLabels={workspaceShortcutLabels}
+															onWorkspaceHover={() => {}}
+															onToggleCollapse={() => {}}
+														/>
+													</div>
+												)}
+											</DragOverlay>,
+											document.body,
+										)}
+									</DndContext>
+								)}
 							</div>
 							{!isCollapsed && !inlineWorkspacePortsEnabled && (
 								<DashboardSidebarPortsList />

@@ -30,6 +30,19 @@ const PR_STATE_LABEL: Record<
 	queued: "Queued",
 };
 
+/**
+ * Deterministic dot color for the status-mode repo chip. Derived from the
+ * project id so a repo keeps the same hue across rows and sessions.
+ */
+function repoChipDotColor(seed: string): string {
+	let hash = 0;
+	for (let i = 0; i < seed.length; i++) {
+		hash = (hash * 31 + seed.charCodeAt(i)) | 0;
+	}
+	const hue = Math.abs(hash) % 360;
+	return `hsl(${hue} 55% 55%)`;
+}
+
 interface DashboardSidebarExpandedWorkspaceRowProps
 	extends ComponentPropsWithoutRef<"div"> {
 	workspace: DashboardSidebarWorkspace;
@@ -84,7 +97,12 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			branch,
 			pullRequest,
 			pendingTransaction,
+			repoLabel,
+			projectId,
 		} = workspace;
+		// `repoLabel` is only populated when building status-grouped rows, so its
+		// presence alone means "we're in status mode and should show the repo."
+		const showRepoChip = !!repoLabel;
 		const isPending = pendingTransaction?.type === "insert";
 		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
@@ -244,14 +262,30 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)}
 							/>
 						) : (
-							<span
-								className={cn(
-									"truncate text-[13px] leading-tight transition-colors",
-									isActive ? "text-foreground" : "text-foreground/80",
+							<div className="flex min-w-0 items-center gap-1.5">
+								<span
+									className={cn(
+										"truncate text-[13px] leading-tight transition-colors",
+										isActive ? "text-foreground" : "text-foreground/80",
+									)}
+								>
+									{name || branch}
+								</span>
+								{showRepoChip && (
+									<span
+										className="flex shrink-0 items-center gap-1 rounded-full bg-muted/60 px-1.5 py-0.5"
+										title={repoLabel ?? undefined}
+									>
+										<span
+											className="size-1.5 shrink-0 rounded-full"
+											style={{ backgroundColor: repoChipDotColor(projectId) }}
+										/>
+										<span className="max-w-[84px] truncate text-[10px] leading-none text-muted-foreground">
+											{repoLabel}
+										</span>
+									</span>
 								)}
-							>
-								{name || branch}
-							</span>
+							</div>
 						)}
 
 						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
