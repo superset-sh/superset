@@ -15,6 +15,8 @@ A/B on one build, 16 background terminals each filled with ~5,000 lines, togglin
 
 ![Renderer memory with 16 terminals open drops from 1,127 MB to 838 MB, a 26% reduction](/changelog/2026-07-19-terminal-memory-ab.png)
 
+![Live GPU contexts held in memory drop from 16 to 4 with 16 terminals open, 4 times fewer](/changelog/2026-07-19-terminal-gpu-contexts-ab.png)
+
 The limit is yours to set in **Settings → Terminal → Background terminal memory** (default 12). Active terminals and in-place TUIs like vim or a running agent are never touched, and hidden in-app browser tabs get the same treatment.
 
 ## Smoother While Git Churns in Big Repos <PRBadge url="https://github.com/superset-sh/superset/pull/5750" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5746" />
@@ -27,6 +29,8 @@ A/B profiling 8 workspaces churning a 20,000-file repo (600 dirty files), at the
 
 ![Worst-case main-thread stall under heavy git load drops from 82.3 ms to 28.0 ms](/changelog/2026-07-19-git-worker-pool-ab.png)
 
+![Typical main-thread stall (p99) under heavy git load drops from 24.5 ms to 9.5 ms](/changelog/2026-07-19-git-typical-stall-ab.png)
+
 Lower numbers mean the thread that keeps your terminals and UI responsive spends far less time blocked. No setting to flip, it is on for everyone.
 
 ## Lighter Background CPU From Port Detection <PRBadge url="https://github.com/superset-sh/superset/pull/5723" />
@@ -38,5 +42,7 @@ A/B running the real scanner with 15 terminals registered, counting every `ps` s
 <table><thead><tr><th>Metric</th><th>Before (per terminal)</th><th>After (shared)</th></tr></thead><tbody><tr><td><code>ps</code> process spawns per scan cycle</td><td>15</td><td><strong>1</strong></td></tr><tr><td>Total <code>ps</code> spawns over 6 cycles</td><td>90</td><td><strong>6</strong></td></tr></tbody></table>
 
 ![Port detection with 15 terminals open drops from 15 background process scans per cycle to 1](/changelog/2026-07-19-port-scanner-ab.png)
+
+![Idle terminals scan every 30 seconds instead of every 2.5 seconds, 12 times less often](/changelog/2026-07-19-port-idle-cadence-ab.png)
 
 Idle terminals also back off from a scan every 2.5s to every 30s and speed back up the moment they produce output, so a machine full of quiet terminals stops scanning almost entirely.
