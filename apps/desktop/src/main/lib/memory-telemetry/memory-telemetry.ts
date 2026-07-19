@@ -21,7 +21,6 @@ import { DEFAULT_TELEMETRY_ENABLED } from "shared/constants";
  */
 export const RESOURCE_SNAPSHOT_EVENT = "resource_snapshot";
 
-// ~5 minutes between samples.
 export const SAMPLE_INTERVAL_MS = 5 * 60_000;
 // Up to 60s of extra delay per tick so the fleet never emits in lockstep.
 export const SAMPLE_JITTER_MS = 60_000;
@@ -97,10 +96,7 @@ const defaultDeps: MemoryTelemetryDeps = {
 	random: Math.random,
 };
 
-/**
- * Build the aggregate snapshot. Electron reports `workingSetSize` in KB;
- * everything here is bytes/seconds/counts and nothing else.
- */
+// Electron reports `workingSetSize` in KB, hence the `* 1024`.
 export function buildResourceSnapshot(
 	deps: MemoryTelemetryDeps,
 ): ResourceSnapshot {
