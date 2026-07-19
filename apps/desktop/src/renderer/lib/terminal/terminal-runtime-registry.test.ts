@@ -1,4 +1,12 @@
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import {
+	afterEach,
+	beforeEach,
+	describe,
+	expect,
+	mock,
+	spyOn,
+	test,
+} from "bun:test";
 
 mock.module("renderer/lib/trpc-client", () => ({
 	electronTrpcClient: {
@@ -75,6 +83,127 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 			"serialized scrollback",
 		);
 		expect(fakeStorage.values.has(`terminal-dims:${terminalId}`)).toBe(false);
+	});
+
+	test("release keeps runtimes on persist failure and warns once per terminal", () => {
+		const terminalIds = ["release-failure-a", "release-failure-b"];
+		const warnSpy = spyOn(console, "warn").mockImplementation(() => {});
+		const entries = terminalIds.map((terminalId) => ({
+			terminalId,
+			instanceId: terminalId,
+			runtime: {
+				terminalId,
+				serializeAddon: { serialize: () => "serialized scrollback" },
+				lastCols: 120,
+				lastRows: 32,
+			},
+			transport: {},
+			linkManager: null,
+			pendingLinkHandlers: null,
+			disposeBufferChangeListener: null,
+			lastUsedAt: 1,
+		}));
+		const registryInternals = terminalRuntimeRegistry as unknown as {
+			entries: Map<string, (typeof entries)[number]>;
+			entryKeysByTerminalId: Map<string, Set<string>>;
+			persistFailureWarnedTerminalIds: Set<string>;
+		};
+		fakeStorage.storage.setItem = () => {
+			throw new Error("storage unavailable");
+		};
+
+		for (const entry of entries) {
+			const key = `${entry.terminalId}\u0000${entry.instanceId}`;
+			registryInternals.entries.set(key, entry);
+			registryInternals.entryKeysByTerminalId.set(
+				entry.terminalId,
+				new Set([key]),
+			);
+		}
+
+		try {
+			terminalRuntimeRegistry.release(terminalIds[0]);
+			terminalRuntimeRegistry.release(terminalIds[0]);
+			terminalRuntimeRegistry.release(terminalIds[1]);
+
+			expect(terminalRuntimeRegistry.has(terminalIds[0])).toBe(true);
+			expect(terminalRuntimeRegistry.has(terminalIds[1])).toBe(true);
+			expect(warnSpy).toHaveBeenCalledTimes(2);
+			expect(warnSpy.mock.calls.map((call) => call[0])).toEqual([
+				`[terminal-registry] state persist failed for ${terminalIds[0]}; keeping runtime alive (localStorage quota?)`,
+				`[terminal-registry] state persist failed for ${terminalIds[1]}; keeping runtime alive (localStorage quota?)`,
+			]);
+		} finally {
+			for (const entry of entries) {
+				const key = `${entry.terminalId}\u0000${entry.instanceId}`;
+				registryInternals.entries.delete(key);
+				registryInternals.entryKeysByTerminalId.delete(entry.terminalId);
+				registryInternals.persistFailureWarnedTerminalIds.delete(
+					entry.terminalId,
+				);
+			}
+			warnSpy.mockRestore();
+		}
+	});
+
+	test("release persists once before disposing a runtime", () => {
+		const terminalId = "release-success";
+		const entry = {
+			terminalId,
+			instanceId: terminalId,
+			runtime: {
+				terminalId,
+				serializeAddon: { serialize: () => "serialized scrollback" },
+				lastCols: 120,
+				lastRows: 32,
+			},
+			transport: {},
+			linkManager: null,
+			pendingLinkHandlers: null,
+			disposeBufferChangeListener: null,
+			lastUsedAt: 1,
+		};
+		const registryInternals = terminalRuntimeRegistry as unknown as {
+			entries: Map<string, typeof entry>;
+			entryKeysByTerminalId: Map<string, Set<string>>;
+			persistFailureWarnedTerminalIds: Set<string>;
+			disposeEntry: (
+				disposedEntry: typeof entry,
+				options: { persistedState?: "clear" | "preserve" },
+			) => void;
+		};
+		const entryKey = `${terminalId}\u0000${terminalId}`;
+		const disposeCalls: { persistedState?: "clear" | "preserve" }[] = [];
+		registryInternals.entries.set(entryKey, entry);
+		registryInternals.entryKeysByTerminalId.set(
+			terminalId,
+			new Set([entryKey]),
+		);
+		registryInternals.persistFailureWarnedTerminalIds.add(terminalId);
+		registryInternals.disposeEntry = (_entry, options) => {
+			disposeCalls.push(options);
+		};
+
+		try {
+			terminalRuntimeRegistry.release(terminalId);
+
+			expect(fakeStorage.values.get(`terminal-buffer:${terminalId}`)).toBe(
+				"serialized scrollback",
+			);
+			expect(fakeStorage.values.get(`terminal-dims:${terminalId}`)).toBe(
+				JSON.stringify({ cols: 120, rows: 32 }),
+			);
+			expect(disposeCalls).toEqual([{ persistedState: "preserve" }]);
+			expect(
+				registryInternals.persistFailureWarnedTerminalIds.has(terminalId),
+			).toBe(false);
+		} finally {
+			delete (terminalRuntimeRegistry as unknown as { disposeEntry?: unknown })
+				.disposeEntry;
+			registryInternals.entries.delete(entryKey);
+			registryInternals.entryKeysByTerminalId.delete(terminalId);
+			registryInternals.persistFailureWarnedTerminalIds.delete(terminalId);
+		}
 	});
 
 	test("dispose clears persisted state even when eviction already removed the entry", () => {

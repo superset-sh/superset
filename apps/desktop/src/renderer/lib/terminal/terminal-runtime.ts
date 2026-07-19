@@ -78,11 +78,17 @@ function createTerminal(
 	return { terminal, fitAddon, serializeAddon };
 }
 
-function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
+function persistBuffer(
+	terminalId: string,
+	serializeAddon: SerializeAddon,
+): boolean {
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
 		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
-	} catch {}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function restoreBuffer(terminalId: string, terminal: XTerm) {
@@ -97,12 +103,7 @@ function restoreBuffer(terminalId: string, terminal: XTerm) {
  * either write fails or the runtime could not be restored faithfully.
  */
 export function tryPersistRuntimeState(runtime: TerminalRuntime): boolean {
-	try {
-		const data = runtime.serializeAddon.serialize({
-			scrollback: SERIALIZE_SCROLLBACK,
-		});
-		localStorage.setItem(`${STORAGE_KEY_PREFIX}${runtime.terminalId}`, data);
-	} catch {
+	if (!persistBuffer(runtime.terminalId, runtime.serializeAddon)) {
 		return false;
 	}
 	return persistDimensions(
@@ -393,14 +394,10 @@ export function updateRuntimeAppearance(
 export function disposeRuntime(
 	runtime: TerminalRuntime,
 	options: {
-		persistedState?: "clear" | "persist" | "preserve";
+		persistedState?: "clear" | "preserve";
 	} = {},
 ) {
 	const persistedState = options.persistedState ?? "clear";
-	if (persistedState === "persist") {
-		persistBuffer(runtime.terminalId, runtime.serializeAddon);
-		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
-	}
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
