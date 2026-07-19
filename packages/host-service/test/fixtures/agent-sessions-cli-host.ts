@@ -37,6 +37,7 @@ const port = Number(required("PORT"));
 const projectId = "20000000-0000-4000-8000-000000000001";
 const workspaceId = "30000000-0000-4000-8000-000000000001";
 const agentConfigId = "40000000-0000-4000-8000-000000000001";
+const missingAgentConfigId = "40000000-0000-4000-8000-000000000002";
 
 initTerminalBaseEnv(await resolveTerminalBaseEnv());
 
@@ -85,6 +86,20 @@ db.insert(schema.hostAgentConfigs)
 		},
 	})
 	.run();
+db.insert(schema.hostAgentConfigs)
+	.values({
+		id: missingAgentConfigId,
+		presetId: "e2e-missing",
+		label: "E2E missing agent",
+		command: "/definitely/missing/superset-e2e-agent",
+		argsJson: "[]",
+		promptTransport: "argv",
+		promptArgsJson: "[]",
+		envJson: "{}",
+		displayOrder: 1,
+	})
+	.onConflictDoNothing()
+	.run();
 
 const fakeApi = createFakeApiClient({
 	"host.ensure.mutate": () => ({ machineId: "e2e-host" }),
@@ -124,6 +139,9 @@ const server = Bun.serve({
 	port,
 	fetch: result.app.fetch,
 });
+// `PORT=0` asks Bun for an ephemeral port. Terminal env construction happens
+// after the server starts and must advertise the resolved port to agent hooks.
+process.env.HOST_SERVICE_PORT = String(server.port);
 
 console.log(`E2E_HOST_READY ${server.url}`);
 
@@ -135,6 +153,7 @@ async function stop(): Promise<void> {
 	try {
 		await result.dispose();
 	} finally {
+		sqlite.exec("PRAGMA wal_checkpoint(TRUNCATE)");
 		sqlite.close();
 	}
 	process.exit(0);
