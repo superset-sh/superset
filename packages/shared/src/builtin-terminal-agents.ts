@@ -97,6 +97,19 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		// Google's replacement for the deprecated Gemini CLI. The id matches the
+		// binary name (`agy`) because SUPERSET_MANAGED_BINARIES derives the shell
+		// shim name from the agent id.
+		id: "agy",
+		label: "Antigravity",
+		description:
+			"Google's terminal agent harness for reasoning, editing, and running code from the terminal.",
+		command: "agy --mode accept-edits",
+		promptCommand: "agy --mode accept-edits",
+		nonInteractiveCommand: "agy -p",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "mastracode",
 		label: "Mastracode",
 		description:

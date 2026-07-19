@@ -63,6 +63,7 @@ describe("per-agent hook scripts dispatch to v2", () => {
 		"cursor-hook.template.sh",
 		"copilot-hook.template.sh",
 		"gemini-hook.template.sh",
+		"antigravity-hook.template.sh",
 	]) {
 		it(`${template} posts v2 first and falls back to v1`, () => {
 			const script = readFileSync(
