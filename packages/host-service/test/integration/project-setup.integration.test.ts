@@ -162,6 +162,18 @@ describe("project.create empty mode is fully local", () => {
 	test("creates repo dir, named row, and main workspace with zero cloud calls", async () => {
 		host = await createTestHost();
 		const parentDir = mkdtempSync(join(tmpdir(), "empty-mode-parent-"));
+		// initEmptyRepo makes an initial commit; CI runners have no global
+		// git identity, so provide one via env for this process's git spawns.
+		const savedEnv = {
+			GIT_AUTHOR_NAME: process.env.GIT_AUTHOR_NAME,
+			GIT_AUTHOR_EMAIL: process.env.GIT_AUTHOR_EMAIL,
+			GIT_COMMITTER_NAME: process.env.GIT_COMMITTER_NAME,
+			GIT_COMMITTER_EMAIL: process.env.GIT_COMMITTER_EMAIL,
+		};
+		process.env.GIT_AUTHOR_NAME = "Test Runner";
+		process.env.GIT_AUTHOR_EMAIL = "test@superset.sh";
+		process.env.GIT_COMMITTER_NAME = "Test Runner";
+		process.env.GIT_COMMITTER_EMAIL = "test@superset.sh";
 		try {
 			const created = await host.trpc.project.create.mutate({
 				name: "Fresh Local",
@@ -182,6 +194,10 @@ describe("project.create empty mode is fully local", () => {
 				host.apiCalls.filter((c) => c.path.startsWith("v2Project.")),
 			).toEqual([]);
 		} finally {
+			for (const [key, value] of Object.entries(savedEnv)) {
+				if (value === undefined) delete process.env[key];
+				else process.env[key] = value;
+			}
 			rmSync(parentDir, { recursive: true, force: true });
 		}
 	});
