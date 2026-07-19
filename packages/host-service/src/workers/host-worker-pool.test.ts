@@ -33,6 +33,23 @@ afterEach(async () => {
 	}
 });
 
+async function withTimeout<T>(promise: Promise<T>, timeoutMs = 5_000) {
+	let timeout: ReturnType<typeof setTimeout> | undefined;
+	try {
+		return await Promise.race([
+			promise,
+			new Promise<never>((_, reject) => {
+				timeout = setTimeout(
+					() => reject(new Error(`test timed out after ${timeoutMs}ms`)),
+					timeoutMs,
+				);
+			}),
+		]);
+	} finally {
+		if (timeout) clearTimeout(timeout);
+	}
+}
+
 function makeFixtureRepo(): string {
 	const dir = fs.mkdtempSync(path.join(os.tmpdir(), "host-worker-git-"));
 	fixtureDirs.push(dir);
@@ -84,14 +101,14 @@ describe("HostWorkerPool", () => {
 
 	test("idle workers are reaped after idleTimeoutMs", async () => {
 		const worktreePath = makeFixtureRepo();
-		const pool = makePool({ idleTimeoutMs: 250 });
+		const pool = makePool({ idleTimeoutMs: 0 });
 		await pool.run(gitStatusSnapshotTask, {
 			worktreePath,
 			gitEnv: { GIT_OPTIONAL_LOCKS: "0" },
 		});
 		const runner = pool.getRunner();
 		expect(runner?.getWorkerCount()).toBe(1);
-		await new Promise((r) => setTimeout(r, 600));
+		await new Promise<void>((resolve) => setTimeout(resolve, 0));
 		expect(runner?.getWorkerCount()).toBe(0);
 	});
 
@@ -155,7 +172,7 @@ describe("HostWorkerPool", () => {
 		const pool = makePool({ scriptPathResolver: () => null });
 		const slow = defineWorkerTask<Record<string, never>, string>({
 			type: "test/slow",
-			handler: () => new Promise((r) => setTimeout(() => r("done"), 5_000)),
+			handler: () => new Promise(() => {}),
 		});
 
 		const aborted = new AbortController();
@@ -164,11 +181,9 @@ describe("HostWorkerPool", () => {
 			pool.run(slow, {}, { signal: aborted.signal }),
 		).rejects.toThrow("Worker task aborted");
 
-		const t0 = performance.now();
-		await expect(pool.run(slow, {}, { timeoutMs: 200 })).rejects.toThrow(
-			"timed out after 200ms",
+		await expect(pool.run(slow, {}, { timeoutMs: 0 })).rejects.toThrow(
+			"timed out after 0ms",
 		);
-		expect(performance.now() - t0).toBeLessThan(2_000);
 	});
 
 	test("a task queued behind a poison payload still completes", async () => {
@@ -187,12 +202,7 @@ describe("HostWorkerPool", () => {
 			.catch((e: Error) => e.message);
 		const t3 = pool.run(echo, { v: 3 }).catch((e: Error) => e.message);
 
-		const results = await Promise.race([
-			Promise.all([t1, t2, t3]),
-			new Promise<"stranded">((r) => setTimeout(() => r("stranded"), 5_000)),
-		]);
-		expect(results).not.toBe("stranded");
-		const [r1, r2, r3] = results as string[];
+		const [r1, r2, r3] = await withTimeout(Promise.all([t1, t2, t3]));
 		expect(r1).toContain("unknown worker task type");
 		expect(r2).toContain("postMessage failed");
 		expect(r3).toContain("unknown worker task type");
@@ -218,10 +228,9 @@ describe("HostWorkerPool", () => {
 			// Distinct payloads (no dedupe): serial crashes burn the budget while
 			// the rest queue. At circuit-open the queued tasks must reject into
 			// the inline retry instead of each feeding a fresh crashing worker.
-			const results = await Promise.race([
+			const results = await withTimeout(
 				Promise.all([1, 2, 3, 4, 5].map((v) => pool.run(echo, { v }))),
-				new Promise<"stranded">((r) => setTimeout(() => r("stranded"), 15_000)),
-			]);
+			);
 			expect(results).toEqual([1, 2, 3, 4, 5]);
 			expect(pool.getMode()).toBe("inline");
 			// Budget is 3; one more task may already be mid-dispatch when the
@@ -247,10 +256,8 @@ describe("HostWorkerPool", () => {
 		// The slot must be free again: a valid task completes promptly via the
 		// worker path (registry rejects the unknown type — still a worker round
 		// trip, which is what proves the slot isn't wedged).
-		const t0 = performance.now();
-		await expect(pool.run(echo, { v: 2 })).rejects.toThrow(
+		await expect(withTimeout(pool.run(echo, { v: 2 }))).rejects.toThrow(
 			"unknown worker task type",
 		);
-		expect(performance.now() - t0).toBeLessThan(5_000);
 	});
 });

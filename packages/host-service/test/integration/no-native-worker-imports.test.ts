@@ -8,7 +8,7 @@ import { describe, expect, test } from "bun:test";
 import * as fs from "node:fs";
 import * as path from "node:path";
 
-const WORKERS_DIR = path.resolve(import.meta.dirname);
+const WORKERS_DIR = path.resolve(import.meta.dirname, "../../src/workers");
 
 const FORBIDDEN = [
 	/from\s+["']better-sqlite3["']/,
