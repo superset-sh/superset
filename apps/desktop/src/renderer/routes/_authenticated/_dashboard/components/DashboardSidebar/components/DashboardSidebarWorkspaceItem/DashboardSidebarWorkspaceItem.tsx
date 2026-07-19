@@ -152,6 +152,7 @@ export function DashboardSidebarWorkspaceItem({
 						content
 					) : (
 						<DashboardSidebarWorkspaceContextMenu
+							workspaceId={id}
 							projectId={projectId}
 							isInSection={isInSection}
 							isUnread={isUnread}
@@ -248,6 +249,7 @@ export function DashboardSidebarWorkspaceItem({
 					expandedContent
 				) : (
 					<DashboardSidebarWorkspaceContextMenu
+						workspaceId={id}
 						projectId={projectId}
 						isInSection={isInSection}
 						isUnread={isUnread}
