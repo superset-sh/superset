@@ -61,6 +61,7 @@ const {
 	ANTIGRAVITY_HOOK_NAME,
 	createAmpPlugin,
 	createAmpWrapper,
+	createAntigravityHooksJson,
 	createAntigravityWrapper,
 	getAntigravityHooksJsonContent,
 	getAntigravityHooksJsonPath,
@@ -1787,31 +1788,37 @@ describe("antigravity hooks.json", () => {
 
 	it("passes the Superset event as argv, since the payload omits it", () => {
 		const parsed = JSON.parse(
-			getAntigravityHooksJsonContent(hookPath),
+			getAntigravityHooksJsonContent(hookPath) ?? "",
 		) as Record<string, Record<string, unknown[]>>;
 		const block = parsed[ANTIGRAVITY_HOOK_NAME];
 
-		// PreInvocation/Stop take a flat handler list.
+		// Every registered event takes a flat handler list.
 		expect(block.PreInvocation).toEqual([
+			{ type: "command", command: `"${hookPath}" Start` },
+		]);
+		expect(block.PostInvocation).toEqual([
 			{ type: "command", command: `"${hookPath}" Start` },
 		]);
 		expect(block.Stop).toEqual([
 			{ type: "command", command: `"${hookPath}" Stop` },
 		]);
-		// PostToolUse is tool-matched and must be wrapped in a matcher group.
-		expect(block.PostToolUse).toEqual([
-			{
-				matcher: "*",
-				hooks: [{ type: "command", command: `"${hookPath}" Start` }],
-			},
-		]);
 	});
 
 	it("never registers PreToolUse, whose contract requires a decision field", () => {
-		const block = JSON.parse(getAntigravityHooksJsonContent(hookPath))[
+		const block = JSON.parse(getAntigravityHooksJsonContent(hookPath) ?? "")[
 			ANTIGRAVITY_HOOK_NAME
 		] as Record<string, unknown>;
 		expect(block.PreToolUse).toBeUndefined();
+	});
+
+	// Antigravity dispatches a trailing PostToolUse ~1s AFTER Stop on turns that
+	// end without a tool call. Registering it would make Start the last event
+	// Superset sees and pin the terminal to "working" forever.
+	it("never registers PostToolUse, which can fire after Stop", () => {
+		const block = JSON.parse(getAntigravityHooksJsonContent(hookPath) ?? "")[
+			ANTIGRAVITY_HOOK_NAME
+		] as Record<string, unknown>;
+		expect(block.PostToolUse).toBeUndefined();
 	});
 
 	it("preserves foreign hook blocks and is idempotent", () => {
@@ -1832,23 +1839,32 @@ describe("antigravity hooks.json", () => {
 		);
 
 		const once = getAntigravityHooksJsonContent(hookPath);
-		writeFileSync(hooksPath, once);
+		writeFileSync(hooksPath, once ?? "");
 		const twice = getAntigravityHooksJsonContent(hookPath);
 
 		expect(twice).toBe(once);
-		const parsed = JSON.parse(twice) as Record<string, unknown>;
+		const parsed = JSON.parse(twice ?? "") as Record<string, unknown>;
 		expect(parsed["lint-checker"]).toBeDefined();
 		expect(parsed[ANTIGRAVITY_HOOK_NAME]).toBeDefined();
 	});
 
-	it("rewrites only our block when the existing file is unparseable", () => {
-		const hooksPath = getAntigravityHooksJsonPath();
-		mkdirSync(path.dirname(hooksPath), { recursive: true });
-		writeFileSync(hooksPath, "{ not json");
+	// ~/.gemini/config/ is shared by the CLI, Antigravity 2.0 and the IDE, so
+	// rewriting a file we could not read would take out every surface's hooks.
+	for (const [label, contents] of [
+		["unparseable", "{ not json"],
+		["a top-level array", '[{"nope": true}]'],
+		["JSON null", "null"],
+	] as const) {
+		it(`leaves hooks.json untouched when it contains ${label}`, () => {
+			const hooksPath = getAntigravityHooksJsonPath();
+			mkdirSync(path.dirname(hooksPath), { recursive: true });
+			writeFileSync(hooksPath, contents);
 
-		const parsed = JSON.parse(
-			getAntigravityHooksJsonContent(hookPath),
-		) as Record<string, unknown>;
-		expect(parsed[ANTIGRAVITY_HOOK_NAME]).toBeDefined();
-	});
+			expect(getAntigravityHooksJsonContent(hookPath)).toBeNull();
+
+			// The writer must skip entirely rather than clobber the file.
+			createAntigravityHooksJson();
+			expect(readFileSync(hooksPath, "utf-8")).toBe(contents);
+		});
+	}
 });

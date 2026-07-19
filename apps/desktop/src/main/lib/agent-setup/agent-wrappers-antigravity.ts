@@ -35,14 +35,12 @@ interface AntigravityHookHandler {
 	[key: string]: unknown;
 }
 
-interface AntigravityHookGroup {
-	matcher?: string;
-	hooks: AntigravityHookHandler[];
-	[key: string]: unknown;
-}
-
 interface AntigravityHooksJson {
 	[hookName: string]: unknown;
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
 export function getAntigravityHookScriptPath(): string {
@@ -71,8 +69,18 @@ export function getAntigravityHookScriptContent(): string {
  *
  * Event choice is deliberate:
  * - `PreInvocation` fires before each model call -> Start.
- * - `PostToolUse` keeps the terminal marked busy across long tool loops -> Start.
+ * - `PostInvocation` fires after each loop iteration -> Start, keeping the
+ *   terminal marked busy across long tool loops.
  * - `Stop` fires when the execution loop terminates -> Stop.
+ *
+ * `PostToolUse` is deliberately NOT used as the busy keepalive even though it
+ * looks like the natural fit. Antigravity dispatches a trailing `PostToolUse`
+ * for the final step ~1s AFTER `Stop` on any turn that ends without a tool
+ * call, so registering it makes `Start` the last event Superset sees and pins
+ * the terminal to "working" forever (status is last-write-wins and the Start
+ * branch has no staleness gate). `PostInvocation` always precedes `Stop`.
+ * Note also that `matcher: "*"` matches every step type, not just tool calls --
+ * those trailing steps carry `toolCall: null`.
  *
  * `PreToolUse` is intentionally not registered: its contract requires a
  * `decision` field ("allow" | "deny" | "ask" | "force_ask"), and emitting an
@@ -89,16 +97,12 @@ function buildSupersetHookBlock(
 		type: "command",
 		command: `"${hookScriptPath}" Stop`,
 	};
-	const postToolUseGroup: AntigravityHookGroup = {
-		matcher: "*",
-		hooks: [startCommand],
-	};
 
-	// PreInvocation/Stop take a flat handler list; PostToolUse is tool-matched
-	// and must be wrapped in a matcher group.
+	// Every event we register takes a flat handler list; only the tool-matched
+	// events (PreToolUse/PostToolUse) would need a `matcher` group wrapper.
 	return {
 		PreInvocation: [startCommand],
-		PostToolUse: [postToolUseGroup],
+		PostInvocation: [startCommand],
 		Stop: [stopCommand],
 	};
 }
@@ -106,22 +110,36 @@ function buildSupersetHookBlock(
 /**
  * Reads existing ~/.gemini/config/hooks.json, replaces our own named block, and
  * preserves every other hook the user (or a plugin) defined.
+ *
+ * Returns `null` when the existing file cannot be parsed as a JSON object, so
+ * the caller skips the write rather than clobbering hooks it failed to read.
+ * This root is shared by the CLI, Antigravity 2.0 and the IDE, so a blind
+ * rewrite would take out every surface's hooks at once.
  */
-export function getAntigravityHooksJsonContent(hookScriptPath: string): string {
+export function getAntigravityHooksJsonContent(
+	hookScriptPath: string,
+): string | null {
 	const globalPath = getAntigravityHooksJsonPath();
 
 	let existing: AntigravityHooksJson = {};
-	try {
-		if (fs.existsSync(globalPath)) {
-			const parsed: unknown = JSON.parse(fs.readFileSync(globalPath, "utf-8"));
-			if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
-				existing = parsed as AntigravityHooksJson;
-			}
+	if (fs.existsSync(globalPath)) {
+		let parsed: unknown;
+		try {
+			parsed = JSON.parse(fs.readFileSync(globalPath, "utf-8"));
+		} catch (error) {
+			console.warn(
+				"[agent-setup] Could not parse existing ~/.gemini/config/hooks.json; skipping Antigravity hook merge:",
+				error,
+			);
+			return null;
 		}
-	} catch {
-		console.warn(
-			"[agent-setup] Could not parse existing ~/.gemini/config/hooks.json, rewriting Superset block only",
-		);
+		if (!isPlainObject(parsed)) {
+			console.warn(
+				"[agent-setup] Expected ~/.gemini/config/hooks.json to contain a JSON object; skipping Antigravity hook merge",
+			);
+			return null;
+		}
+		existing = parsed;
 	}
 
 	existing[ANTIGRAVITY_HOOK_NAME] = buildSupersetHookBlock(hookScriptPath);
@@ -149,6 +167,7 @@ export function createAntigravityHooksJson(): void {
 	const hookScriptPath = getAntigravityHookScriptPath();
 	const globalPath = getAntigravityHooksJsonPath();
 	const content = getAntigravityHooksJsonContent(hookScriptPath);
+	if (content === null) return;
 
 	const dir = path.dirname(globalPath);
 	fs.mkdirSync(dir, { recursive: true });
