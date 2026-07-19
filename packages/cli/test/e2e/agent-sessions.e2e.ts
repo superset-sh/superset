@@ -59,6 +59,39 @@ interface WorkspaceLaunch {
 }
 
 const harness = new CliE2EHarness({ repoRoot, artifactsDir });
+
+async function assertStateTransition(
+	sessionId: string,
+	prompt: string,
+	status: "working" | "permission" | "failed",
+): Promise<void> {
+	await harness.cli({
+		name: `send a prompt that enters ${status} state`,
+		args: ["agents", "sessions", "send", sessionId, prompt, "--local"],
+	});
+	const observed = json<SessionWait>(
+		await harness.cli({
+			name: `wait for ${status} state`,
+			args: [
+				"agents",
+				"sessions",
+				"wait",
+				sessionId,
+				"--local",
+				"--for",
+				status,
+				"--timeout",
+				"5s",
+			],
+		}),
+	);
+	harness.check(
+		`wait observes ${status}`,
+		observed.status === status,
+		`observed ${observed.status}`,
+	);
+}
+
 let failure: unknown;
 
 try {
@@ -204,104 +237,13 @@ try {
 		"workspace, inline agent result, uploaded bytes, and resolved host path agree",
 	);
 
-	await harness.cli({
-		name: "send a prompt that enters working state",
-		args: [
-			"agents",
-			"sessions",
-			"send",
-			largeLaunch.sessionId,
-			"WORKING",
-			"--local",
-		],
-	});
-	const working = json<SessionWait>(
-		await harness.cli({
-			name: "wait for working state",
-			args: [
-				"agents",
-				"sessions",
-				"wait",
-				largeLaunch.sessionId,
-				"--local",
-				"--for",
-				"working",
-				"--timeout",
-				"5s",
-			],
-		}),
+	await assertStateTransition(largeLaunch.sessionId, "WORKING", "working");
+	await assertStateTransition(
+		largeLaunch.sessionId,
+		"PERMISSION",
+		"permission",
 	);
-	harness.check(
-		"wait observes working",
-		working.status === "working",
-		`observed ${working.status}`,
-	);
-
-	await harness.cli({
-		name: "send a prompt that requests permission",
-		args: [
-			"agents",
-			"sessions",
-			"send",
-			largeLaunch.sessionId,
-			"PERMISSION",
-			"--local",
-		],
-	});
-	const permission = json<SessionWait>(
-		await harness.cli({
-			name: "wait for permission state",
-			args: [
-				"agents",
-				"sessions",
-				"wait",
-				largeLaunch.sessionId,
-				"--local",
-				"--for",
-				"permission",
-				"--timeout",
-				"5s",
-			],
-		}),
-	);
-	harness.check(
-		"wait observes permission",
-		permission.status === "permission",
-		`observed ${permission.status}`,
-	);
-
-	await harness.cli({
-		name: "send a prompt that fails",
-		args: [
-			"agents",
-			"sessions",
-			"send",
-			largeLaunch.sessionId,
-			"FAIL",
-			"--local",
-		],
-	});
-	const failed = json<SessionWait>(
-		await harness.cli({
-			name: "wait for failed state",
-			args: [
-				"agents",
-				"sessions",
-				"wait",
-				largeLaunch.sessionId,
-				"--local",
-				"--for",
-				"failed",
-				"--timeout",
-				"5s",
-			],
-		}),
-	);
-	harness.check(
-		"wait observes failed",
-		failed.status === "failed",
-		`observed ${failed.status}`,
-	);
+	await assertStateTransition(largeLaunch.sessionId, "FAIL", "failed");
 
 	const multilinePrompt = "first line\nsecond line with 雪\nthird line";
 	const multilineResult = json<{

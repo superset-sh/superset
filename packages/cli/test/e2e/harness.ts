@@ -16,7 +16,6 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, join, relative, resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 
 export interface CommandEvidence {
 	name: string;
@@ -168,104 +167,6 @@ function findElectronBinary(repoRoot: string): string {
 		if (candidate) return candidate;
 	}
 	throw new Error("Electron binary not found; run `bun install` first");
-}
-
-function findChromeBinary(): string | null {
-	const candidates = [
-		"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-		"/Applications/Chromium.app/Contents/MacOS/Chromium",
-	];
-	return candidates.find(existsSync) ?? null;
-}
-
-function escapeHtml(value: string): string {
-	return value
-		.replaceAll("&", "&amp;")
-		.replaceAll("<", "&lt;")
-		.replaceAll(">", "&gt;")
-		.replaceAll('"', "&quot;");
-}
-
-function excerpt(value: string, max = 900): string {
-	if (value.length <= max) return value;
-	return `${value.slice(0, max)}\n… (${value.length - max} more characters)`;
-}
-
-function renderReport(
-	assertions: AssertionEvidence[],
-	commands: CommandEvidence[],
-	metadata: Record<string, string>,
-): string {
-	const passed = assertions.filter((assertion) => assertion.passed).length;
-	const assertionCards = assertions
-		.map(
-			(
-				assertion,
-			) => `<article class="assertion ${assertion.passed ? "pass" : "fail"}">
-<strong>${assertion.passed ? "PASS" : "FAIL"} · ${escapeHtml(assertion.name)}</strong>
-<span>${escapeHtml(assertion.detail)}</span>
-</article>`,
-		)
-		.join("\n");
-	const commandCards = commands
-		.map(
-			(command) => `<details ${command.exitCode === 0 ? "" : "open"}>
-<summary><span class="exit ${command.exitCode === 0 ? "ok" : "bad"}">exit ${command.exitCode}</span> ${escapeHtml(command.name)} <small>${command.durationMs} ms</small></summary>
-<pre class="command">$ ${escapeHtml(command.command)}</pre>
-${command.stdout ? `<h4>stdout</h4><pre>${escapeHtml(excerpt(command.stdout))}</pre>` : ""}
-${command.stderr ? `<h4>stderr</h4><pre>${escapeHtml(excerpt(command.stderr))}</pre>` : ""}
-</details>`,
-		)
-		.join("\n");
-	const metadataRows = Object.entries(metadata)
-		.map(
-			([key, value]) =>
-				`<dt>${escapeHtml(key)}</dt><dd>${escapeHtml(value)}</dd>`,
-		)
-		.join("\n");
-	return `<!doctype html>
-<html lang="en"><head><meta charset="utf-8"><title>Superset CLI E2E evidence</title>
-<style>
-:root{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#e7e9ee;background:#0b0d12}body{margin:0;padding:40px}main{max-width:1320px;margin:auto}h1{font:700 30px system-ui;margin:0 0 8px}.subtitle{color:#9ba3b4;margin-bottom:24px}.summary{display:flex;gap:16px;margin:20px 0}.metric{background:#151923;border:1px solid #293040;border-radius:10px;padding:16px 20px}.metric strong{font-size:28px;display:block}.metric span,small{color:#9ba3b4}dl{display:grid;grid-template-columns:max-content 1fr;gap:7px 16px;background:#11151d;padding:16px;border-radius:10px}dt{color:#8e98aa}dd{margin:0}.assertions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.assertion{display:flex;flex-direction:column;gap:6px;border:1px solid #293040;border-left-width:5px;background:#11151d;padding:12px 14px;border-radius:8px}.assertion.pass{border-left-color:#41d17d}.assertion.fail{border-left-color:#ff667a}.assertion span{color:#b6bdca;font-size:12px}details{background:#11151d;border:1px solid #293040;border-radius:8px;margin:10px 0;padding:12px}summary{cursor:pointer;font-weight:700}.exit{display:inline-block;padding:3px 7px;border-radius:5px;margin-right:6px}.exit.ok{background:#163c29;color:#64e69b}.exit.bad{background:#461c26;color:#ff8c9b}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#090b10;border-radius:6px;padding:12px;color:#cdd3df}.command{color:#82b6ff}h2{font:700 20px system-ui;margin-top:30px}h4{margin-bottom:-4px;color:#9ba3b4}@media(max-width:800px){.assertions{grid-template-columns:1fr}body{padding:20px}}
-</style></head><body><main>
-<h1>Superset CLI agent-session E2E</h1><div class="subtitle">Generated from real CLI subprocesses, host HTTP calls, and a production-ABI PTY daemon.</div>
-<div class="summary"><div class="metric"><strong>${passed}/${assertions.length}</strong><span>assertions passed</span></div><div class="metric"><strong>${commands.length}</strong><span>CLI commands recorded</span></div></div>
-<dl>${metadataRows}</dl><h2>Assertions</h2><section class="assertions">${assertionCards}</section>
-<h2>Command transcript</h2>${commandCards}</main></body></html>`;
-}
-
-function renderMarkdown(
-	assertions: AssertionEvidence[],
-	commands: CommandEvidence[],
-	metadata: Record<string, string>,
-): string {
-	const lines = [
-		"# Superset CLI agent-session E2E transcript",
-		"",
-		...Object.entries(metadata).map(([key, value]) => `- ${key}: ${value}`),
-		"",
-		"## Assertions",
-		"",
-		...assertions.map(
-			(assertion) =>
-				`- [${assertion.passed ? "x" : " "}] ${assertion.name} — ${assertion.detail}`,
-		),
-		"",
-		"## Commands",
-	];
-	for (const command of commands) {
-		lines.push(
-			"",
-			`### ${command.name} (exit ${command.exitCode}, ${command.durationMs} ms)`,
-			"",
-			"```console",
-			`$ ${command.command}`,
-		);
-		if (command.stdout) lines.push(command.stdout);
-		if (command.stderr) lines.push("[stderr]", command.stderr);
-		lines.push("```");
-	}
-	return `${lines.join("\n")}\n`;
 }
 
 export class CliE2EHarness {
@@ -560,9 +461,6 @@ export class CliE2EHarness {
 		if (existsSync(this.capturePath)) {
 			copyFileSync(this.capturePath, join(this.artifactsDir, "capture.jsonl"));
 		}
-		if (existsSync(this.dbPath)) {
-			copyFileSync(this.dbPath, join(this.artifactsDir, "host.db"));
-		}
 		writeFileSync(
 			join(this.artifactsDir, "host.log"),
 			this.scrub(hostLogs.join("\n\n--- host restart ---\n\n")),
@@ -597,32 +495,6 @@ export class CliE2EHarness {
 			join(this.artifactsDir, "results.json"),
 			`${JSON.stringify(result, null, 2)}\n`,
 		);
-		writeFileSync(
-			join(this.artifactsDir, "transcript.md"),
-			renderMarkdown(this.assertions, this.commands, metadata),
-		);
-		const reportPath = join(this.artifactsDir, "report.html");
-		writeFileSync(
-			reportPath,
-			renderReport(this.assertions, this.commands, metadata),
-		);
-
-		const chrome = findChromeBinary();
-		if (chrome) {
-			spawnSync(
-				chrome,
-				[
-					"--headless=new",
-					"--disable-gpu",
-					"--hide-scrollbars",
-					"--no-first-run",
-					"--window-size=1440,1800",
-					`--screenshot=${join(this.artifactsDir, "report.png")}`,
-					pathToFileURL(reportPath).href,
-				],
-				{ stdio: "ignore" },
-			);
-		}
 		rmSync(this.tempRoot, { recursive: true, force: true });
 	}
 }

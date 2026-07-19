@@ -50,16 +50,9 @@ When a user asks for UI verification through the Chrome DevTools Protocol (CDP):
 
 ## CLI End-to-End Verification
 
-When a CLI change crosses process or service boundaries, unit tests and screenshots of the desktop shell are not sufficient evidence.
+Cross-process CLI changes need an isolated command-level test, not a desktop screenshot. Invoke the real CLI and backing services with a temporary home, database, manifest, attachment root, and fixture workspace; never use live user state. Terminal tests must run the PTY daemon under Electron-as-Node so `node-pty` uses the production ABI. Record scrubbed commands, exit codes, output, and behavior assertions under ignored `test-results/`.
 
-1. **Invoke the real command surface** - exercise the CLI parser, middleware, authentication/target resolution, transport, and backing service in subprocesses. Do not substitute direct router calls for command-level coverage.
-2. **Isolate the run** - use a temporary `SUPERSET_HOME_DIR`, host database, manifest, attachment root, and fixture workspace. Never point an E2E harness at the normal desktop host database or a user's live sessions.
-3. **Exercise the production boundary** - terminal flows must run the PTY daemon under Electron-as-Node so `node-pty` uses the production native ABI. A Bun-only fake is useful for unit tests but is not terminal E2E evidence.
-4. **Record commands and outcomes** - preserve the abbreviated command, exit code, stdout, stderr, and machine-readable assertions. Large prompts and secrets must be represented by byte counts/digests rather than copied into reports.
-5. **Prove behavior, not boot** - evidence must show the feature's externally observable result (for example, exact received prompt bytes, session state transitions, or restart continuity). A healthy shell, route, or mounted component is compatibility evidence only.
-6. **Keep artifacts reproducible** - generated reports belong under ignored `test-results/` by default. Commit a task-specific snapshot under `plans/evidence/` only when requested, together with the exact regeneration command and commit SHA.
-
-For headless agent-session control, run `bun run test:cli-e2e`. It writes a JSON result, Markdown transcript, HTML report, optional PNG report, raw fake-agent capture, isolated host database, and service logs to `test-results/cli-agent-sessions/`. Pass `--artifacts <repo-relative-directory>` through the package script to retain a review artifact elsewhere.
+Run the headless agent-session acceptance test with `bun run test:cli-e2e`.
 
 ## Agent Rules
 1. **Type safety** - avoid `any` unless necessary
