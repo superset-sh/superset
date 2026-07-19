@@ -70,10 +70,7 @@ import {
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
-import {
-	type EvictableCollection,
-	evictInactiveOrgs,
-} from "./evictInactiveOrgs";
+import { evictInactiveOrgs } from "./evictInactiveOrgs";
 import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
@@ -970,15 +967,11 @@ export function evictInactiveOrgCollections(
 	activeOrganizationId: string,
 ): void {
 	evictInactiveOrgs(
-		// OrgCollections values are all `Collection`s exposing `cleanup()`.
-		collectionsCache as unknown as Map<
-			string,
-			Record<string, EvictableCollection>
-		>,
+		collectionsCache as unknown as Map<string, Record<string, unknown>>,
 		getCollectionsCacheKey(activeOrganizationId),
-		(orgKey, error) => {
+		(orgKey, collectionName, error) => {
 			console.error(
-				`[collections] Failed to clean up evicted collection for org ${orgKey}`,
+				`[collections] Failed to clean up evicted collection ${collectionName} for org ${orgKey}`,
 				error,
 			);
 		},
