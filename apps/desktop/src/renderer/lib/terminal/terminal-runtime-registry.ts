@@ -2,6 +2,7 @@ import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { DEFAULT_TERMINAL_PARKED_RUNTIME_CAP } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
+import { runWhenParserIdle } from "./parser-idle-gate";
 import {
 	type LinkHoverInfo,
 	type TerminalLinkHandlers,
@@ -9,10 +10,12 @@ import {
 } from "./terminal-link-manager";
 import {
 	attachToContainer,
+	clearPersistedRuntimeState,
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
 	type TerminalRuntime,
+	tryPersistRuntimeState,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
 import {
@@ -42,6 +45,8 @@ interface RegistryEntry {
 	linkManager: TerminalLinkManager | null;
 	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
+	/** Stops the alternate/normal buffer observer installed with the runtime. */
+	disposeBufferChangeListener: (() => void) | null;
 	/** Monotonic use counter; bumped on mount/detach, drives parked-LRU eviction. */
 	lastUsedAt: number;
 }
@@ -86,6 +91,7 @@ class TerminalRuntimeRegistryImpl {
 			transport: createTransport(),
 			linkManager: null,
 			pendingLinkHandlers: null,
+			disposeBufferChangeListener: null,
 			lastUsedAt: 0,
 		};
 
@@ -177,6 +183,7 @@ class TerminalRuntimeRegistryImpl {
 			entry.runtime = createRuntime(terminalId, appearance, {
 				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
 			});
+			this.observeBufferChanges(entry);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
 				entry.linkManager.setHandlers(entry.pendingLinkHandlers);
@@ -195,6 +202,22 @@ class TerminalRuntimeRegistryImpl {
 			},
 			{ focus: false },
 		);
+	}
+
+	private observeBufferChanges(entry: RegistryEntry) {
+		entry.disposeBufferChangeListener?.();
+		entry.disposeBufferChangeListener = null;
+		const runtime = entry.runtime;
+		if (!runtime) return;
+
+		const subscription = runtime.terminal.buffer.onBufferChange(() => {
+			// Exempt alternate-screen TUIs may put the registry over cap. As soon as
+			// a parked TUI returns to its normal buffer, reconsider it for eviction.
+			if (entry.runtime?.container === null) {
+				this.scheduleParkedEviction();
+			}
+		});
+		entry.disposeBufferChangeListener = () => subscription.dispose();
 	}
 
 	/**
@@ -285,12 +308,43 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	private evictExcessParkedRuntimes() {
+		const parkedEntries = Array.from(this.entries.values()).filter(
+			(entry) => entry.runtime?.container === null,
+		);
+
+		// A pane can detach before the animation-frame output batch has reached
+		// xterm. Flush it, then wait for xterm's parser callback before checking
+		// alternate-screen mode or serializing the buffer.
+		for (const entry of parkedEntries) {
+			entry.transport._writeCoalescer?.flushSync();
+		}
+		const parsingEntries = parkedEntries.filter(
+			(entry) => (entry.runtime?.gate.pending ?? 0) > 0,
+		);
+		if (parsingEntries.length > 0) {
+			for (const entry of parsingEntries) {
+				const gate = entry.runtime?.gate;
+				if (gate) {
+					runWhenParserIdle(gate, () => this.scheduleParkedEviction());
+				}
+			}
+			return;
+		}
+
 		const victims = selectRuntimesToEvict(
 			this.entries.values(),
 			this.parkedRuntimeCap,
+			// Alternate-screen TUIs restore as a garbled static snapshot — never evict them.
+			(entry) => entry.runtime?.terminal.buffer.active.type === "alternate",
 		);
 		for (const entry of victims) {
-			this.disposeEntry(entry, { clearPersistedState: false });
+			if (!entry.runtime || !tryPersistRuntimeState(entry.runtime)) {
+				warnPersistFailureOnce(entry.terminalId);
+				continue;
+			}
+			// tryPersistRuntimeState already wrote the snapshot. Preserve it while
+			// disposing instead of serializing and writing the same buffer twice.
+			this.disposeEntry(entry, { persistedState: "preserve" });
 		}
 	}
 
@@ -313,8 +367,10 @@ class TerminalRuntimeRegistryImpl {
 
 	private disposeEntry(
 		entry: RegistryEntry,
-		options: { clearPersistedState?: boolean } = {},
+		options: { persistedState?: "clear" | "persist" | "preserve" } = {},
 	) {
+		entry.disposeBufferChangeListener?.();
+		entry.disposeBufferChangeListener = null;
 		entry.linkManager?.dispose();
 		disposeTransport(entry.transport);
 		if (entry.runtime) {
@@ -335,7 +391,7 @@ class TerminalRuntimeRegistryImpl {
 				)
 			: this.getEntries(terminalId);
 		for (const entry of entries) {
-			this.disposeEntry(entry, { clearPersistedState: false });
+			this.disposeEntry(entry, { persistedState: "persist" });
 		}
 	}
 
@@ -348,6 +404,9 @@ class TerminalRuntimeRegistryImpl {
 			sendDispose(entry.transport);
 			this.disposeEntry(entry);
 		}
+		// Eviction deletes the live registry entry but deliberately leaves its
+		// snapshot behind. Closing that pane must still clear the orphaned keys.
+		clearPersistedRuntimeState(terminalId);
 	}
 
 	getSelection(terminalId: string, instanceId?: string): string {
@@ -503,6 +562,15 @@ class TerminalRuntimeRegistryImpl {
 			entry.transport.logListeners.delete(listener);
 		};
 	}
+}
+
+let persistFailureWarned = false;
+function warnPersistFailureOnce(terminalId: string) {
+	if (persistFailureWarned) return;
+	persistFailureWarned = true;
+	console.warn(
+		`[terminal-registry] state persist failed for ${terminalId}; keeping runtime alive (localStorage quota?)`,
+	);
 }
 
 // Stable empty reference so useSyncExternalStore on a missing entry doesn't

@@ -1,13 +1,13 @@
 # Memory Profile & Worker Offload Review
 
-2026-07-17. Code sweep across renderer / Electron main / host-service / pty-daemon, then every load-bearing claim verified against the live dev app over CDP (18-terminal stress, heap + RSS sampling, process-table spawn sampling). Claims marked **CDP** were observed at runtime; **code** means verified at the cited line but not behaviorally driven.
+2026-07-18. Code sweep across renderer / Electron main / host-service / pty-daemon, then every load-bearing claim verified against the live dev app over CDP (18-terminal stress, heap + RSS sampling, process-table spawn sampling). Claims marked **CDP** were observed at runtime; **code** means verified at the cited line but not behaviorally driven.
 
 ## Progress
 
 | Item | Ticket | Status |
 |---|---|---|
-| Parked-terminal LRU eviction (terminal half) | SUPER-1545 | **Implemented**, uncommitted. Cap defaults to 12 parked, user-configurable (Settings → Terminal → "Background terminal memory"; local-db `terminal_parked_runtime_cap`, migration 0042, zod-clamped 2–64, live-applied via `terminalRuntimeRegistry.setParkedRuntimeCap`). CDP-verified: default seeds at boot, 16-tab cycle parks exactly 12, lowering to 6 sweeps immediately, persists, out-of-range rejected. Two controlled A/Bs below (18-terminal fill, 24-terminal live-stream; both measured at cap 5 — savings scale down as the cap rises) |
-| Parked-webview eviction (second half) | SUPER-1545 | Not started |
+| Parked-terminal LRU eviction (terminal half) | SUPER-1545 | **Shipped** in PR #5751. Cap defaults to 12 parked, user-configurable (Settings → Terminal → "Background terminal memory"; local-db `terminal_parked_runtime_cap`, migration 0042, zod-clamped 2–64, live-applied via `terminalRuntimeRegistry.setParkedRuntimeCap`). CDP-verified: default seeds at boot, 16-tab cycle parks exactly 12, lowering to 6 sweeps immediately, persists, out-of-range rejected. Two controlled A/Bs below (18-terminal fill, 24-terminal live-stream; both measured at cap 5 — savings scale down as the cap rises) |
+| Parked-webview eviction + alt-screen exemption + quota guard | SUPER-1545 | **Implemented** (hidden-webview LRU cap 3 in `browserRuntimeRegistry`; alternate-screen TUIs exempt from terminal eviction; eviction skipped when the buffer cannot persist). CDP-verified 2026-07-18 |
 | Chat shiki off main thread | SUPER-1546 | Not started |
 | Collections preload/window/evict | SUPER-1547 | Not started |
 | Async process-tree probes | SUPER-1548 | Not started |
@@ -62,7 +62,7 @@ Same A/B discipline, harder load: 24 terminal tabs, each running a real PTY proc
 | Host-service / daemon / GPU CPU | 2% / 1% / 5% | 2% / 1% / 4% |
 | Tab-switch p50 / p95 under load | 52 / 95 ms | 68 / 114 ms |
 
-The CPU gap is structural: eviction closes the WebSocket of released terminals, so their streams are neither delivered nor parsed — the before build parses all 24 streams into 23 live xterms forever. Heap is also flat under load in the eviction build vs climbing in the before build.
+Under this real-PTY streaming workload, eviction closes the WebSocket of released terminals, so their streams are neither delivered nor parsed — the before build parses all 24 streams into 23 live xterms forever. Heap is also flat under load in the eviction build vs climbing in the before build. A later 18-terminal synthetic-output rerun confirmed the memory result (−46% JS heap, −30% renderer RSS) but did not reproduce a CPU reduction (`TaskDuration` 1.41 s before vs 1.80 s after), so treat the 30% → 21% CPU sample as workload-specific rather than a general CPU claim.
 
 ## Verified findings — renderer
 
