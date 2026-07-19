@@ -65,17 +65,17 @@ During churn, use real visible pointer/keyboard input to:
 
 Record the route transitions from the matched CDP page. Use CDP `Input.dispatchMouseEvent` for real pointer input, and use runtime evaluation only to observe the route, the Changes scroller, and numeric state. Do not assign DOM properties or call internal app APIs as end-to-end proof. Record click-to-observed-state wall times separately from CDP round-trip latency. Capture before/during/after screenshots and verify each screenshot agrees with its route and observed state.
 
-For a loaded Changes surface, record both the logical file count and the mounted DOM slice. A virtualized result should retain the full scroll range while bounding mounted rows; a cached file count is not proof of status freshness.
+For a loaded Changes surface, record both the logical file count and the mounted DOM slice. When Pierre owns the viewport, record the `file-tree-container` shadow root's virtualized-list height, scroll viewport `clientHeight`/`scrollHeight`, and mounted `[data-type=item]` count. A virtualized result should retain the full scroll range while bounding mounted rows; a cached file count is not proof of status freshness. Exercise a real wheel event inside that viewport, switch both Folders and Tree modes with real pointer input, and select a projected folder-mode file row so path translation is covered end to end.
 
 ## Evidence and decision gate
 
 - A responsive cached Changes list is not proof that background status is fresh. After cooldown, compare the visible count with a direct synthetic-repository status count and record any lag.
 - Do not claim a freeze from a slow status result alone. Require the reported interaction to stop responding or exceed the defined timeout while the matched route and input journey are active.
-- If the valid workload reproduces the freeze, capture a renderer CPU profile over the same mutation and visible-switch window and rank application frames by inclusive samples. Change product code only when the profile identifies a narrow hot path and the same workload can provide before/after evidence. In the 2026-07-19 run, eager `ChangesFoldersView` → `FileRow` mounting was that hot path; React/DOM creation and GC surrounded it.
+- If the valid workload reproduces the freeze, capture a renderer CPU profile over the same mutation and visible-switch window and rank application frames by inclusive samples. Change product code only when the profile identifies a narrow hot path and the same workload can provide before/after evidence. In the 2026-07-19 run, eager `ChangesFoldersView` → `FileRow` mounting was that hot path; React/DOM creation and GC surrounded it. For a Pierre implementation, do not infer virtualization from the package alone: a host sized to full content makes all rows part of the viewport. Require a bounded host/client height, full scroll range, and bounded mounted-row count.
 - If the valid workload does not reproduce, make documentation/measurement changes only.
 - Discard any run whose paths, worktree count, auth, cloud rows, ports, page target, or mutation type do not match the gate.
 
-The 2026-07-19 checkpoint montage is [renderer-churn-visible-lifecycle-checkpoints.mp4](artifacts/renderer-churn-visible-lifecycle-checkpoints.mp4). It contains four-second before/during/after checkpoints, in that order, from the latest-main before/after investigation; it is a checkpoint montage, not a continuous recording of every click. Preserve the source screenshots until the video has been decoded with `ffprobe`/`ffmpeg` and visually checked.
+The 2026-07-19 checkpoint montage is [renderer-churn-visible-lifecycle-checkpoints.mp4](artifacts/renderer-churn-visible-lifecycle-checkpoints.mp4). It contains four-second baseline/during/cooldown checkpoints, in that order, from the final shared-Pierre run; it is a checkpoint montage, not a continuous recording of every click. Preserve the source screenshots until the video has been decoded with `ffprobe`/`ffmpeg` and visually checked.
 
 ## Cleanup
 

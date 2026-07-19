@@ -1,6 +1,6 @@
 # Memory Profile & Worker Offload Review
 
-Initial review 2026-07-18; progress and the large-repository rerun updated 2026-07-19. Code sweep across renderer / Electron main / host-service / pty-daemon, then every load-bearing claim verified against the live dev app over CDP (18-terminal stress, heap + RSS sampling, process-table spawn sampling). Claims marked **CDP** were observed at runtime; **code** means verified at the cited line but not behaviorally driven.
+Initial review 2026-07-18; progress and the large-repository/Pierre reruns updated 2026-07-19. Code sweep across renderer / Electron main / host-service / pty-daemon, then every load-bearing claim verified against the live dev app over CDP (18-terminal stress, heap + RSS sampling, process-table spawn sampling). Claims marked **CDP** were observed at runtime; **code** means verified at the cited line but not behaviorally driven.
 
 ## Progress
 
@@ -14,14 +14,14 @@ Initial review 2026-07-18; progress and the large-repository rerun updated 2026-
 | Search pinned worker | SUPER-1549 | Not started (measurement-gated on SUPER-1544) |
 | Memory telemetry | SUPER-1550 | **Shipped** in PR #5777. Production-only, privacy-allowlisted `resource_snapshot` every 5–6 minutes; Electron process-class RSS/counts plus main-process heap/RSS, uptime, window count, and web-contents count |
 | Host-service git worker pool | SUPER-1544 | **Shipped** in PR #5750; watcher batches bounded in PR #5746. Git status and commit-file work run in the generic `worker_threads` pool; base-ref fetch coordination shipped in PR #5776 |
-| Large Changes-list renderer churn | — | **Fix measured in draft PR #5782.** Latest-main reproduction identified eager `FileRow` mounting as the renderer hot path; the folder view now virtualizes rows. Same-workload before/after is below |
+| Large Changes-list renderer churn | — | **Fix measured; PR #5782 is ready for review.** Latest-main reproduction identified eager `FileRow` mounting as the renderer hot path. Both folder and tree modes now use one bounded `@pierre/trees` renderer; the direct Pierre dependencies were upgraded to `@pierre/diffs` 1.2.12 and `@pierre/trees` 1.0.0-beta.5. Same-workload before/after/final-Pierre evidence is below |
 
 ## Bottom line
 
 - Fleet memory telemetry shipped in PR #5777 after the original sweep. It is disabled in development, so the "over time" profile and the rerun below remain direct measurements rather than PostHog data; production fleet percentiles will only exist after rollout and sample accumulation.
 - The biggest memory growth over a session is **retention, not thread-shaped work**. Parked xterm/webview caps and prior-org Electric collection eviction have shipped; active-org table windowing remains open.
 - Three worker systems now exist: desktop main's `WorkerTaskRunner` (v1 git status), the host-service generic pool (v2 git status + commit-file reads), and the pierre renderer pool (8 workers, diffs). Extend the matching system before inventing another request/response pool.
-- The latest-main 8-workspace/20k-file test now reproduces the reported renderer freeze. The profile points to eager changed-file-row mounting, not another worker-pool gap; virtualizing that existing list removed the measured timeouts and cut peak churn RSS from 1,727.9 to 915.8 MiB.
+- The latest-main 8-workspace/20k-file test reproduced the reported renderer freeze. The profile points to eager changed-file-row mounting, not another worker-pool gap. The final shared-Pierre rerun had zero timeouts, 119.2 ms maximum CDP latency, 210.4 ms maximum event-loop delay, and 917.9 MiB peak renderer RSS versus 3 timeouts, 1,563.2 ms maximum CDP latency, 6,644 ms maximum delay, and 1,727.9 MiB peak RSS before the fix.
 
 ## Pre-fix measured memory profile (dev app, CDP)
 
@@ -40,17 +40,17 @@ This was the pre-#5751 baseline: nothing was reclaimed on workspace switch, so w
 
 ### Production-shaped visible lifecycle follow-up
 
-The lifecycle was rerun after merging the latest `origin/main`. The before-fix reproduction used upstream `637aa9ec79078c60c4fe8179a5f67a137740236b` at merge commit `e4bf24c7b5f5c3ec51471ddd1ceaef10f860ea07`. Before publication, main advanced with a legacy-v1 Changes optimization; that non-overlapping delta was merged and the complete after-fix workload was rerun on upstream `b06e97fc2bf6f179541e9529300d00351fd722fd` at merge commit `e9f37b219bba333b7e1f59e6b6fa1417715e070f`. The current upstream state uses the local-first host-service database, so these runs used one local host-owned project with eight adopted synthetic workspaces instead of the now-stale cloud-project procedure.
+The lifecycle was rerun after merging the latest `origin/main`. The before-fix reproduction used upstream `637aa9ec79078c60c4fe8179a5f67a137740236b` at merge commit `e4bf24c7b5f5c3ec51471ddd1ceaef10f860ea07`. The first after-fix run used upstream `b06e97fc2bf6f179541e9529300d00351fd722fd` at merge commit `e9f37b219bba333b7e1f59e6b6fa1417715e070f`. The final shared-Pierre run merged upstream `20cde02967270178f60ac2c3fab2bbb955dfaad3` and tested commit `374ed2135c90a4961a3ae5331ebb122000b11965`. The current upstream state uses the local-first host-service database, so these runs used one local host-owned project with eight adopted synthetic workspaces instead of the now-stale cloud-project procedure.
 
-The reusable setup, measurement, evidence, and cleanup procedure is recorded in [`RENDERER_CHURN_UI_PROFILE_RUNBOOK.md`](./RENDERER_CHURN_UI_PROFILE_RUNBOOK.md). The [checkpoint video](./artifacts/renderer-churn-visible-lifecycle-checkpoints.mp4) shows the matched baseline, active-churn workspace lifecycle, and loaded post-fix Changes state.
+The reusable setup, measurement, evidence, and cleanup procedure is recorded in [`RENDERER_CHURN_UI_PROFILE_RUNBOOK.md`](./RENDERER_CHURN_UI_PROFILE_RUNBOOK.md). The [checkpoint video](./artifacts/renderer-churn-visible-lifecycle-checkpoints.mp4) shows the final shared-Pierre baseline, active-churn workspace lifecycle, and loaded cooldown Changes state.
 
 | Gate | Verified value |
 |---|---|
 | Worktree | `/Users/kietho/.superset/worktrees/1c99c8eb-1b31-4f04-9ac4-61a2760c74b6/agent/renderer-churn-current-main` |
-| Branch / final tested commit | `agent/renderer-churn-current-main` / `e9f37b219bba333b7e1f59e6b6fa1417715e070f` |
-| Included `origin/main` | `b06e97fc2bf6f179541e9529300d00351fd722fd` |
+| Branch / final tested commit | `agent/renderer-churn-current-main` / `374ed2135c90a4961a3ae5331ebb122000b11965` |
+| Included `origin/main` | `20cde02967270178f60ac2c3fab2bbb955dfaad3` |
 | API / renderer | `7501` / `7505` |
-| Dedicated CDP | `127.0.0.1:9520`; before-fix page `5620DCD39260716999F6ECB3FFBF7F60`, renderer PID `67316`; final after-fix page `0DAD89B3399A48957C95DBDDCDD19A56`, renderer PID `38437` |
+| Dedicated CDP | `127.0.0.1:9520`; final page `F07A1B359DD295ECA14F9C98B3B9428B`, Electron PID `28551`, renderer PID `29562` (plus the expected eight Pierre worker targets) |
 | Auth / data boundary | Authenticated local-dev session; project/workspace rows only in this worktree's local host-service DB. Synthetic Git roots only; no production database, migration, repository, or credential literal |
 | Visible lifecycle | Local/main plus `renderer-ui-1` through `renderer-ui-7`, v2 Workspaces list, and return to local/main, driven through real CDP pointer input on the dedicated renderer |
 
@@ -60,7 +60,9 @@ Each workspace contained 20,000 tracked files and started with the same 600-file
 
 The latest-main before run **did reproduce the renderer freeze**. During churn there were three 2 s CDP timeouts, a 6,644 ms maximum timer delay, and visible workspace interactions taking up to 6.8 s. The renderer CPU profile covered another identical 192,000-write wave (69.5 s, 15,243 samples). Its application-frame hot path was `ChangesFoldersView` eagerly mapping every file to `FileRow`; `FileRow.tsx:51` and its per-row hooks/policy work were the leading inclusive application frames, surrounded by React element/DOM creation and garbage collection.
 
-That evidence supported one narrow change: reuse `@tanstack/react-virtual` to flatten folder headers and file entries into one virtual row list, using the existing Changes scroller and an eight-row overscan. File behavior, grouping, folding, and status computation are unchanged. With 600 logical file entries, the loaded post-fix surface exposed a 16,752 px virtual scroll range while mounting only the bounded visible/overscan slice (121 buttons total inside the scroller, including row actions), rather than every file row.
+That evidence supported one narrow requirement: bound changed-file DOM mounting. The first implementation used `@tanstack/react-virtual`; the final implementation removes that separate folder renderer and projects immediate-parent groups into the existing Pierre path model. Both view modes now share the Pierre status, icon, selection, context-menu, folding, and virtualization stack. Folder-mode callbacks translate projected paths back to real repository paths, covered by focused tests.
+
+The first live CDP check of the consolidation found a crucial integration issue: sizing the Pierre host to its complete content height made all 604 rows part of the viewport and disabled effective virtualization. The final narrow correction caps the host at 20 rows and leaves the complete scroll range inside Pierre. With 600 logical entries, CDP measured a 528 px client viewport, 14,472 px scroll range, and 43 mounted shadow rows. Tree mode also stayed at 43 mounted rows while exposing a 19,320 px range; a real wheel event moved it to `scrollTop=12000`, and switching back to folder mode produced projected `src › 0000/...` rows. A real pointer click on one of those rows exercised the mapped file-selection path.
 
 #### Before/after results
 
@@ -80,7 +82,19 @@ Before-fix CDP timeouts were 0 / **3** / 0 across baseline/churn/cooldown.
 
 After-fix CDP timeouts were **0 / 0 / 0**. The final latest-main mutator completed in 60.100 s versus 62.230 s before. All nine real-pointer transitions were accepted in 522–701 ms (551 ms p50 / 701 ms p95 / 701 ms max, including a fixed 500 ms observation window). The after-run used a fresh renderer launch, so the absolute RSS delta includes launch-state variation; the identical workload, bounded mounted-row count, timeout removal, and profile-to-fix match are the stronger causal evidence.
 
-The real-input during screenshot shows a cold workspace immediately accepting the route change and displaying `Loading changes…` while its backend status populated. That status-completion wait is distinct from the reproduced renderer freeze: CDP round trips and timer sampling remained responsive. The remaining risk is full-tree status freshness/completion latency on unwarmed workspaces; this renderer fix does not change git status scheduling or the cache-first behavior.
+#### Final shared-Pierre rerun
+
+The same 10 s / 60 s / 10 s workload was repeated after the Pierre consolidation and dependency upgrades. The separate mutator completed 192,000 tracked-file appends in 59.617 s. All eleven real-pointer actions (open Changes, seven workspace switches, Workspaces, return to local, reopen Changes) landed in 506–681 ms (556 ms p50 / 681 ms p95 / 681 ms max, including the fixed 500 ms observation window).
+
+| Renderer metric | Pierre baseline p50 / p95 / max | Pierre churn p50 / p95 / max | Pierre cooldown p50 / p95 / max |
+|---|---:|---:|---:|
+| Dedicated-CDP round trip | 0.35 / 0.40 / 0.45 ms | 0.44 / 4.90 / 119.20 ms | 0.44 / 1.90 / 2.28 ms |
+| Renderer event-loop delay | 0.00 / 2.00 / 2.30 ms | 0.00 / 2.00 / 210.40 ms | 0.10 / 1.90 / 2.50 ms |
+| Renderer RSS | 790.88 / 790.89 / 790.89 MiB | 856.00 / 917.66 / 917.94 MiB | 858.84 / 859.19 / 859.33 MiB |
+
+Shared-Pierre CDP timeouts were **0 / 0 / 0**. Absolute RSS again reflects fresh-launch variation; its churn increase was bounded and the interaction/timeout/DOM evidence agrees with the original hot-path diagnosis.
+
+The real-input during screenshot shows an active workspace immediately accepting the route change while its backend status populated. That status-completion wait is distinct from the reproduced renderer freeze: CDP round trips and timer sampling remained responsive. At the cooldown checkpoint, the cached local Changes count still showed 600 while direct synthetic-repository status was 800 (560 modified + 150 untracked + 90 deleted); the UI later refreshed to 800. The remaining risk is full-tree status freshness/completion latency on unwarmed workspaces. This renderer fix does not change git status scheduling or the cache-first behavior. The 20-row Pierre viewport also moves long-list scrolling into the tree surface; pointer, wheel, mode-switch, and file-selection paths passed, but multi-section nested-scroll ergonomics remain the main UI risk.
 
 ### Earlier renderer-IPC diagnostic rerun
 
