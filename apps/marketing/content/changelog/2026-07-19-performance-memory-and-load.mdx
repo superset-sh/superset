@@ -3,7 +3,7 @@ title: Performance: lighter memory and smoother under heavy load
 date: 2026-07-19
 ---
 
-We spent this week on performance. Below are the before/after numbers, each measured live over the Chrome DevTools Protocol against the real desktop app.
+We spent this week on performance. Below are the before/after numbers, each measured on the real code rather than estimated.
 
 ## Lower Memory When You Keep Many Terminals Open <PRBadge url="https://github.com/superset-sh/superset/pull/5751" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5754" />
 
@@ -27,8 +27,12 @@ Lower numbers mean the thread that keeps your terminals and UI responsive spends
 
 ## Lighter Background CPU From Port Detection <PRBadge url="https://github.com/superset-sh/superset/pull/5723" />
 
-Port detection (the thing that spots a dev server and offers to open it) was scanning the whole process table once per terminal on every tick, so a session with many panes could spawn a dozen `ps` processes a second in the background.
+Port detection (the thing that spots a dev server and offers to open it) was scanning the whole process table once per terminal on every tick, so the more terminals you opened the more background `ps` processes it spawned. Now it does one shared scan per cycle no matter how many terminals are open, and idle terminals scan less often.
 
-- One shared process-table read per scan instead of one per terminal
-- Idle terminals slow their scan from every 2.5s to every 30s, and speed back up the moment they produce output
-- On an idle machine this drops steady-state background scanning from roughly `sessions × 0.4` process spawns per second to about 0.03 per second, regardless of how many terminals you have open
+A/B running the real scanner with 15 terminals registered, counting every `ps` spawn over 6 scan cycles:
+
+<table><thead><tr><th>Metric</th><th>Before (per terminal)</th><th>After (shared)</th></tr></thead><tbody><tr><td><code>ps</code> process spawns per scan cycle</td><td>15</td><td><strong>1</strong></td></tr><tr><td>Total <code>ps</code> spawns over 6 cycles</td><td>90</td><td><strong>6</strong></td></tr></tbody></table>
+
+![Port detection spawned 90 background ps processes with 15 terminals open before the change, and 6 after](/changelog/2026-07-19-port-scanner-ab.png)
+
+Idle terminals also back off from a scan every 2.5s to every 30s and speed back up the moment they produce output, so a machine full of quiet terminals stops scanning almost entirely.
