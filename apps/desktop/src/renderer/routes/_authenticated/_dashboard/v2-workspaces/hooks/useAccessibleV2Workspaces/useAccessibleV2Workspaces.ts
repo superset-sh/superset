@@ -4,6 +4,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -269,15 +270,8 @@ export function useAccessibleV2Workspaces(
 		[collections, currentUserId],
 	);
 
-	const { data: projectRows = [] } = useLiveQuery(
-		(q) =>
-			q.from({ projects: collections.v2Projects }).select(({ projects }) => ({
-				id: projects.id,
-				name: projects.name,
-				githubRepositoryId: projects.githubRepositoryId,
-			})),
-		[collections],
-	);
+	// Projects are fully local — the host fan-out is the identity source.
+	const { projects: hostProjects } = useHostProjects();
 
 	const { data: sidebarStateRows = [] } = useLiveQuery(
 		(q) =>
@@ -305,6 +299,7 @@ export function useAccessibleV2Workspaces(
 			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
 				id: repos.id,
 				owner: repos.owner,
+				name: repos.name,
 			})),
 		[collections],
 	);
@@ -327,7 +322,7 @@ export function useAccessibleV2Workspaces(
 		const hostsById = new Map(hostRows.map((host) => [host.machineId, host]));
 		const accessibleHostIds = new Set(userHostRows.map((row) => row.hostId));
 		const projectsById = new Map(
-			projectRows.map((project) => [project.id, project]),
+			hostProjects.map((project) => [project.projectKey, project]),
 		);
 		const sidebarStateByWorkspaceId = new Map(
 			sidebarStateRows.map((row) => [row.workspaceId, row]),
@@ -335,7 +330,14 @@ export function useAccessibleV2Workspaces(
 		const sidebarProjectIds = new Set(
 			sidebarProjectRows.map((row) => row.projectId),
 		);
-		const reposById = new Map(repoRows.map((repo) => [repo.id, repo]));
+		// Host rows carry owner/name (from the git remote), not the cloud repo
+		// UUID — resolve the repo row by coordinates for PR enrichment.
+		const reposByFullName = new Map(
+			repoRows.map((repo) => [
+				`${repo.owner}/${repo.name}`.toLowerCase(),
+				repo,
+			]),
+		);
 		const creatorsById = new Map(
 			creatorRows.map((creator) => [creator.id, creator]),
 		);
@@ -347,9 +349,12 @@ export function useAccessibleV2Workspaces(
 			const project = projectsById.get(workspace.projectId);
 			if (!project) return [];
 			const sidebarState = sidebarStateByWorkspaceId.get(workspace.id);
-			const repo = project.githubRepositoryId
-				? reposById.get(project.githubRepositoryId)
-				: undefined;
+			const repo =
+				project.repoOwner && project.repoName
+					? reposByFullName.get(
+							`${project.repoOwner}/${project.repoName}`.toLowerCase(),
+						)
+					: undefined;
 			const creator = workspace.createdByUserId
 				? creatorsById.get(workspace.createdByUserId)
 				: undefined;
@@ -363,10 +368,10 @@ export function useAccessibleV2Workspaces(
 					createdByUserId: workspace.createdByUserId,
 					createdByName: creator?.name ?? null,
 					createdByImage: creator?.image ?? null,
-					projectId: project.id,
+					projectId: project.projectKey,
 					projectName: project.name,
-					projectRepoId: project.githubRepositoryId,
-					projectGithubOwner: repo?.owner ?? null,
+					projectRepoId: repo?.id ?? null,
+					projectGithubOwner: project.repoOwner ?? repo?.owner ?? null,
 					hostId: workspace.hostId,
 					hostName: host.name,
 					hostIsOnline: host.isOnline,
@@ -384,7 +389,7 @@ export function useAccessibleV2Workspaces(
 		hostWorkspaces,
 		hostRows,
 		userHostRows,
-		projectRows,
+		hostProjects,
 		sidebarStateRows,
 		sidebarProjectRows,
 		repoRows,

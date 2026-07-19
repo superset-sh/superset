@@ -5,6 +5,7 @@ import type {
 import { formatDateTimeInTimezone } from "@superset/shared/rrule";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
@@ -14,7 +15,6 @@ import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { SchedulePicker } from "../../../components/SchedulePicker";
 import { TimezonePicker } from "../../../components/TimezonePicker";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
-import { useRecentProjects } from "../../../hooks/useRecentProjects";
 import { PreviousRunsList } from "../PreviousRunsList";
 import { Row } from "./components/Row";
 import { Section } from "./components/Section";

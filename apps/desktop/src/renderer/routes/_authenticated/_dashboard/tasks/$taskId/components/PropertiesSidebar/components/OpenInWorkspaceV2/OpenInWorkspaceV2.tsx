@@ -6,13 +6,12 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { HiArrowRight, HiChevronDown } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
 import { env } from "renderer/env.renderer";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { authClient } from "renderer/lib/auth-client";
@@ -51,12 +50,12 @@ function readStoredAgent(): SelectedAgent {
 
 export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 	const navigate = useNavigate();
-	const collections = useCollections();
+	const _collections = useCollections();
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { data: session } = authClient.useSession();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
+	const _activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 
@@ -78,46 +77,19 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		lastHostId ?? machineId ?? null,
 	);
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) =>
-					eq(projects.organizationId, activeOrganizationId ?? ""),
-				)
-				.select(({ projects }) => ({ ...projects })),
-		[collections, activeOrganizationId],
-	);
-
-	const { data: githubRepositories } = useLiveQuery(
-		(q) =>
-			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
-				id: repos.id,
-				owner: repos.owner,
-				name: repos.name,
-			})),
-		[collections],
-	);
-
 	const setUpProjectIds = useSelectedHostProjectIds(hostId);
-	const recentProjects = useMemo(() => {
-		const repoById = new Map(
-			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
-		);
-		return (v2Projects ?? []).map((project) => {
-			const repo = project.githubRepositoryId
-				? (repoById.get(project.githubRepositoryId) ?? null)
-				: null;
-			return {
-				id: project.id,
-				name: project.name,
-				githubOwner: repo?.owner ?? null,
-				iconUrl: project.iconUrl ?? null,
+	// Projects are fully local — shared host-fan-out list, with this
+	// surface's per-host needsSetup overlay.
+	const hostRecentProjects = useRecentProjects();
+	const recentProjects = useMemo(
+		() =>
+			hostRecentProjects.map((project) => ({
+				...project,
 				needsSetup:
 					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
-			};
-		});
-	}, [v2Projects, githubRepositories, setUpProjectIds]);
+			})),
+		[hostRecentProjects, setUpProjectIds],
+	);
 
 	const launchHostUrl = useHostUrl(hostId);
 	const { agents: v2Agents, isFetched: v2AgentsFetched } =

@@ -8,9 +8,9 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineFolder } from "react-icons/hi2";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
@@ -20,16 +20,23 @@ interface ProjectFilterProps {
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
-	const collections = useCollections();
+	const _collections = useCollections();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 
-	const { data: allProjects } = useLiveQuery(
-		(q) => q.from({ projects: collections.v2Projects }),
-		[collections],
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
+				name: project.name,
+				iconUrl: project.repoOwner
+					? `https://github.com/${project.repoOwner}.png?size=64`
+					: null,
+			})),
+		[hostProjects],
 	);
-
-	const projects = useMemo(() => allProjects ?? [], [allProjects]);
 
 	const selected = useMemo(
 		() => (value ? (projects.find((p) => p.id === value) ?? null) : null),
