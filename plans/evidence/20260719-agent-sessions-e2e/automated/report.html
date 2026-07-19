@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><title>Superset CLI E2E evidence</title>
+<style>
+:root{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;color:#e7e9ee;background:#0b0d12}body{margin:0;padding:40px}main{max-width:1320px;margin:auto}h1{font:700 30px system-ui;margin:0 0 8px}.subtitle{color:#9ba3b4;margin-bottom:24px}.summary{display:flex;gap:16px;margin:20px 0}.metric{background:#151923;border:1px solid #293040;border-radius:10px;padding:16px 20px}.metric strong{font-size:28px;display:block}.metric span,small{color:#9ba3b4}dl{display:grid;grid-template-columns:max-content 1fr;gap:7px 16px;background:#11151d;padding:16px;border-radius:10px}dt{color:#8e98aa}dd{margin:0}.assertions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.assertion{display:flex;flex-direction:column;gap:6px;border:1px solid #293040;border-left-width:5px;background:#11151d;padding:12px 14px;border-radius:8px}.assertion.pass{border-left-color:#41d17d}.assertion.fail{border-left-color:#ff667a}.assertion span{color:#b6bdca;font-size:12px}details{background:#11151d;border:1px solid #293040;border-radius:8px;margin:10px 0;padding:12px}summary{cursor:pointer;font-weight:700}.exit{display:inline-block;padding:3px 7px;border-radius:5px;margin-right:6px}.exit.ok{background:#163c29;color:#64e69b}.exit.bad{background:#461c26;color:#ff8c9b}pre{white-space:pre-wrap;overflow-wrap:anywhere;background:#090b10;border-radius:6px;padding:12px;color:#cdd3df}.command{color:#82b6ff}h2{font:700 20px system-ui;margin-top:30px}h4{margin-bottom:-4px;color:#9ba3b4}@media(max-width:800px){.assertions{grid-template-columns:1fr}body{padding:20px}}
+</style></head><body><main>
+<h1>Superset CLI agent-session E2E</h1><div class="subtitle">Generated from real CLI subprocesses, host HTTP calls, and a production-ABI PTY daemon.</div>
+<div class="summary"><div class="metric"><strong>17/17</strong><span>assertions passed</span></div><div class="metric"><strong>23</strong><span>CLI commands recorded</span></div></div>
+<dl><dt>result</dt><dd>PASSED</dd>
+<dt>commit</dt><dd>80d8f8a17ce64e6fec3d9bc1d60c168853241187</dd>
+<dt>generatedAt</dt><dd>2026-07-19T20:14:28.703Z</dd>
+<dt>worktree</dt><dd>cli-workspace-sidebar</dd>
+<dt>runtime</dt><dd>Bun 1.3.11; Electron-as-Node PTY daemon</dd></dl><h2>Assertions</h2><section class="assertions"><article class="assertion pass">
+<strong>PASS · large launch returned a terminal session</strong>
+<span>session 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · large prompt arrived byte-for-byte</strong>
+<span>87994 bytes; sha256 8b8bbfd59b5dd961264707f7287dd29177d298381355f3a6af466df85c2a00c3</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · sessions list exposes identity, workspace, agent, and state</strong>
+<span>status idle; workspace 30000000-0000-4000-8000-000000000001; agent custom:e2e</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · headless read returns the agent acknowledgement</strong>
+<span>idle snapshot contains the 8b8bbfd59b5d… digest</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · workspaces create forwards attachment bytes into its inline agent</strong>
+<span>workspace, inline agent result, uploaded bytes, and resolved host path agree</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · wait observes working</strong>
+<span>observed working</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · wait observes permission</strong>
+<span>observed permission</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · wait observes failed</strong>
+<span>observed failed</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · multiline stdin remains one semantic prompt</strong>
+<span>42 exact bytes; final state idle</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · --file sends exact file bytes</strong>
+<span>47 exact bytes</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · --file - sends exact stdin bytes</strong>
+<span>53 exact bytes</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · read and send adopt a daemon-owned session after host restart</strong>
+<span>same terminal id, exact follow-up, final state idle</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · wait timeout is a non-zero CLI result</strong>
+<span>exit 1; explicit timeout error</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · Ctrl+C aborts a pending wait</strong>
+<span>exit 1; explicit interruption error</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · immediate exec failure cannot report false success</strong>
+<span>exit 1; no session id emitted</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · unknown sessions fail without spawning replacements</strong>
+<span>exit 1; not-found guidance emitted</span>
+</article>
+<article class="assertion pass">
+<strong>PASS · exited sessions are not silently recreated</strong>
+<span>send observed exited; subsequent read failed</span>
+</article></section>
+<h2>Command transcript</h2><details >
+<summary><span class="exit ok">exit 0</span> launch an 88 KB agent prompt <small>913 ms</small></summary>
+<pre class="command">$ superset --json agents create --workspace 30000000-0000-4000-8000-000000000001 --agent e2e --prompt &quot;&lt;prompt bytes=87994 sha256=8b8bbfd59b5dd961264707f7287dd29177d298381355f3a6af466df85c2a00c3&gt;&quot;</pre>
+<h4>stdout</h4><pre>{
+  &quot;kind&quot;: &quot;terminal&quot;,
+  &quot;sessionId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;label&quot;: &quot;E2E fake agent&quot;
+}</pre>
+<h4>stderr</h4><pre>Warning: Cloud host discovery failed (Unable to connect. Is the computer able to access the url?); listing this machine's host only</pre>
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> list live local agent sessions <small>501 ms</small></summary>
+<pre class="command">$ superset --json agents sessions list --local</pre>
+<h4>stdout</h4><pre>[
+  {
+    &quot;status&quot;: &quot;idle&quot;,
+    &quot;agent&quot;: &quot;custom:e2e&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;host&quot;: &quot;300d922f3b90fd4955ae39163bda4431&quot;,
+    &quot;hostId&quot;: &quot;300d922f3b90fd4955ae39163bda4431&quot;,
+    &quot;lastEventAt&quot;: &quot;2026-07-19T20:14:16.021Z&quot;,
+    &quot;sessionId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;
+  }
+]</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> read a live session without attaching <small>232 ms</small></summary>
+<pre class="command">$ superset --json agents sessions read 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --lines 40</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+  &quot;status&quot;: &quot;idle&quot;,
+  &quot;output&quot;: &quot;'/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/superset-agent-launch-GY3fGB/launch.sh'\n/var/f/6/h/T/superset-cli-e2e-nlvOpm/workspace main ❯ '/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/supers\net-agent-launch-GY3fGB/launch.sh'\nREADY bytes=87994 sha256=8b8bbfd59b5dd961264707f7287dd29177d298381355f3a6af466df85c2a00c3\n&quot;,
+  &quot;truncated&quot;: false
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> create a workspace and launch an agent with an attachment <small>924 ms</small></summary>
+<pre class="command">$ superset --json workspaces create --local --project 20000000-0000-4000-8000-000000000001 --name e2e-attached-workspace --branch e2e-attached-workspace --agent e2e --prompt &quot;Inspect the attached markdown file.&quot; --attachment &quot;$E2E_ROOT/attachment.md&quot;</pre>
+<h4>stdout</h4><pre>{
+  &quot;workspace&quot;: {
+    &quot;organizationId&quot;: &quot;10000000-0000-4000-8000-000000000001&quot;,
+    &quot;projectId&quot;: &quot;20000000-0000-4000-8000-000000000001&quot;,
+    &quot;name&quot;: &quot;e2e-attached-workspace&quot;,
+    &quot;branch&quot;: &quot;e2e-attached-workspace&quot;,
+    &quot;hostId&quot;: &quot;e2e-host&quot;,
+    &quot;type&quot;: &quot;worktree&quot;,
+    &quot;taskId&quot;: null,
+    &quot;id&quot;: &quot;8f6c8a44-d4cd-4b57-ba10-a8546e330aa9&quot;,
+    &quot;clientMachineId&quot;: &quot;300d922f3b90fd4955ae39163bda4431&quot;,
+    &quot;updatedAt&quot;: &quot;2026-07-19T20:14:17.621Z&quot;
+  },
+  &quot;terminals&quot;: [],
+  &quot;agents&quot;: [
+    {
+      &quot;ok&quot;: true,
+      &quot;kind&quot;: &quot;terminal&quot;,
+      &quot;sessionId&quot;: &quot;70585d37-7a59-4d1a-a62e-97c213c1d78a&quot;,
+      &quot;label&quot;: &quot;E2E fake agent&quot;
+    }
+  ],
+  &quot;alreadyExists&quot;: false,
+  &quot;txid&quot;: null
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> send a prompt that enters working state <small>235 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 WORKING --local</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: true,
+  &quot;sentAt&quot;: 1784492058143
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> wait for working state <small>204 ms</small></summary>
+<pre class="command">$ superset --json agents sessions wait 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --for working --timeout 5s</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+  &quot;agentId&quot;: &quot;codex&quot;,
+  &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+  &quot;startedAt&quot;: 1784492056021,
+  &quot;lastEventAt&quot;: 1784492058146,
+  &quot;lastEventType&quot;: &quot;Start&quot;,
+  &quot;status&quot;: &quot;working&quot;
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> send a prompt that requests permission <small>214 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 PERMISSION --local</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: true,
+  &quot;sentAt&quot;: 1784492058561
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> wait for permission state <small>201 ms</small></summary>
+<pre class="command">$ superset --json agents sessions wait 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --for permission --timeout 5s</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+  &quot;agentId&quot;: &quot;codex&quot;,
+  &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+  &quot;startedAt&quot;: 1784492056021,
+  &quot;lastEventAt&quot;: 1784492058566,
+  &quot;lastEventType&quot;: &quot;PermissionRequest&quot;,
+  &quot;status&quot;: &quot;permission&quot;
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> send a prompt that fails <small>202 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 FAIL --local</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: true,
+  &quot;sentAt&quot;: 1784492058964
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> wait for failed state <small>223 ms</small></summary>
+<pre class="command">$ superset --json agents sessions wait 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --for failed --timeout 5s</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+  &quot;agentId&quot;: &quot;codex&quot;,
+  &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+  &quot;startedAt&quot;: 1784492056021,
+  &quot;lastEventAt&quot;: 1784492058968,
+  &quot;lastEventType&quot;: &quot;Failed&quot;,
+  &quot;status&quot;: &quot;failed&quot;
+}</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> send multiline stdin and wait for idle <small>741 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --wait --timeout 5s &quot;&lt; multiline.txt&quot;</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: {
+    &quot;accepted&quot;: true,
+    &quot;sentAt&quot;: 1784492059417
+  },
+  &quot;final&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;agentId&quot;: &quot;codex&quot;,
+    &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+    &quot;startedAt&quot;: 1784492056021,
+    &quot;lastEventAt&quot;: 1784492059452,
+    &quot;lastEventType&quot;: &quot;Stop&quot;,
+    &quot;status&quot;: &quot;idle&quot;
+  },
+  &quot;read&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;status&quot;: &quot;idle&quot;,
+    &quot;output&quot;: &quot;'/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/superset-agent-launch-GY3fGB/launch.sh'\n/var/f/6/h/T/superset-cli-e2e-nlvOpm/workspace main ❯ '/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/supers\net-age
+… (349 more characters)</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> send from a prompt file <small>778 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --file &quot;$E2E_ROOT/follow-up.md&quot; --wait --timeout 5s</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: {
+    &quot;accepted&quot;: true,
+    &quot;sentAt&quot;: 1784492060234
+  },
+  &quot;final&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;agentId&quot;: &quot;codex&quot;,
+    &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+    &quot;startedAt&quot;: 1784492056021,
+    &quot;lastEventAt&quot;: 1784492060271,
+    &quot;lastEventType&quot;: &quot;Stop&quot;,
+    &quot;status&quot;: &quot;idle&quot;
+  },
+  &quot;read&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;status&quot;: &quot;idle&quot;,
+    &quot;output&quot;: &quot;'/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/superset-agent-launch-GY3fGB/launch.sh'\n/var/f/6/h/T/superset-cli-e2e-nlvOpm/workspace main ❯ '/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/supers\net-age
+… (440 more characters)</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> send through conventional --file - stdin <small>774 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --file - --wait --timeout 5s &quot;&lt; stdin.txt&quot;</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: {
+    &quot;accepted&quot;: true,
+    &quot;sentAt&quot;: 1784492061008
+  },
+  &quot;final&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;agentId&quot;: &quot;codex&quot;,
+    &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+    &quot;startedAt&quot;: 1784492056021,
+    &quot;lastEventAt&quot;: 1784492061043,
+    &quot;lastEventType&quot;: &quot;Stop&quot;,
+    &quot;status&quot;: &quot;idle&quot;
+  },
+  &quot;read&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;status&quot;: &quot;idle&quot;,
+    &quot;output&quot;: &quot;'/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/superset-agent-launch-GY3fGB/launch.sh'\n/var/f/6/h/T/superset-cli-e2e-nlvOpm/workspace main ❯ '/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/supers\net-age
+… (539 more characters)</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> read the same PTY after host-service restart <small>286 ms</small></summary>
+<pre class="command">$ superset --json agents sessions read 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --lines 40</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+  &quot;status&quot;: &quot;idle&quot;,
+  &quot;output&quot;: &quot;'/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/superset-agent-launch-GY3fGB/launch.sh'\n/var/f/6/h/T/superset-cli-e2e-nlvOpm/workspace main ❯ '/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/supers\net-agent-launch-GY3fGB/launch.sh'\nREADY bytes=87994 sha256=8b8bbfd59b5dd961264707f7287dd29177d298381355f3a6af466df85c2a00c3\nFOLLOWUP bytes=7 base64=V09SS0lORw==\nFOLLOWUP bytes=10 base64=UEVSTUlTU0lPTg==\nFOLLOWUP bytes=4 base64=RkFJTA==\nFOLLOWUP bytes=42 base64=Zmlyc3QgbGluZQpzZWNvbmQgbGluZSB3aXRoIOmbqgp0aGlyZCBsaW5l\nFOLLOWUP bytes=47 base64=Zm9sbG93LXVwIGxvYWRlZCBmcm9tIGEgZmlsZQp3aXRoIGEgc2Vjb25kIGxpbmU=\nFOLLOWUP bytes=53 base64=c3RkaW4gc2VudGluZWwgLSBpcyBhY2NlcHRlZAp3aXRob3V0IHJlaW50ZXJwcmV0YXRpb24=\n&quot;,
+  &quot;truncated
+… (10 more characters)</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> continue the same PTY after host-service restart <small>753 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 &quot;continue after host restart&quot; --local --wait --timeout 5s</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: {
+    &quot;accepted&quot;: true,
+    &quot;sentAt&quot;: 1784492063532
+  },
+  &quot;final&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;agentId&quot;: &quot;codex&quot;,
+    &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+    &quot;startedAt&quot;: 1784492056021,
+    &quot;lastEventAt&quot;: 1784492063569,
+    &quot;lastEventType&quot;: &quot;Stop&quot;,
+    &quot;status&quot;: &quot;idle&quot;
+  },
+  &quot;read&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;status&quot;: &quot;idle&quot;,
+    &quot;output&quot;: &quot;'/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/superset-agent-launch-GY3fGB/launch.sh'\n/var/f/6/h/T/superset-cli-e2e-nlvOpm/workspace main ❯ '/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/supers\net-age
+… (602 more characters)</pre>
+
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> leave the agent working for timeout checks <small>265 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 WORKING --local</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: true,
+  &quot;sentAt&quot;: 1784492064309
+}</pre>
+
+</details>
+<details open>
+<summary><span class="exit bad">exit 1</span> timeout while waiting for idle <small>774 ms</small></summary>
+<pre class="command">$ superset --json agents sessions wait 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --for idle --timeout 150ms</pre>
+
+<h4>stderr</h4><pre>Error: Timed out waiting for agent session 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4
+Hint: Last observed status: working</pre>
+</details>
+<details open>
+<summary><span class="exit bad">exit 1</span> interrupt a pending wait with SIGINT <small>506 ms</small></summary>
+<pre class="command">$ superset --json agents sessions wait 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local --for idle --timeout 5s</pre>
+
+<h4>stderr</h4><pre>Error: Interrupted while waiting</pre>
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> settle the session after timeout checks <small>757 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 RESET --local --wait --timeout 5s</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: {
+    &quot;accepted&quot;: true,
+    &quot;sentAt&quot;: 1784492065836
+  },
+  &quot;final&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;agentId&quot;: &quot;codex&quot;,
+    &quot;agentSessionId&quot;: &quot;fake-59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;definitionId&quot;: &quot;custom:e2e&quot;,
+    &quot;startedAt&quot;: 1784492056021,
+    &quot;lastEventAt&quot;: 1784492065873,
+    &quot;lastEventType&quot;: &quot;Stop&quot;,
+    &quot;status&quot;: &quot;idle&quot;
+  },
+  &quot;read&quot;: {
+    &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+    &quot;workspaceId&quot;: &quot;30000000-0000-4000-8000-000000000001&quot;,
+    &quot;status&quot;: &quot;idle&quot;,
+    &quot;output&quot;: &quot;'/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/superset-agent-launch-GY3fGB/launch.sh'\n/var/f/6/h/T/superset-cli-e2e-nlvOpm/workspace main ❯ '/bin/sh' '/var/folders/6p/h3cw025x0z38clvxby6gqylh0000gn/T/supers\net-age
+… (674 more characters)</pre>
+
+</details>
+<details open>
+<summary><span class="exit bad">exit 1</span> reject an executable that cannot launch <small>927 ms</small></summary>
+<pre class="command">$ superset --json agents create --workspace 30000000-0000-4000-8000-000000000001 --agent e2e-missing --prompt &quot;this must not report a session id&quot;</pre>
+
+<h4>stderr</h4><pre>Warning: Cloud host discovery failed (Unable to connect. Is the computer able to access the url?); listing this machine's host only
+Error: Agent process exited before launch acknowledgement (status 127).</pre>
+</details>
+<details open>
+<summary><span class="exit bad">exit 1</span> reject an unknown session id <small>278 ms</small></summary>
+<pre class="command">$ superset --json agents sessions read 90000000-0000-4000-8000-000000000009 --local</pre>
+
+<h4>stderr</h4><pre>Error: Agent session not found: 90000000-0000-4000-8000-000000000009
+Hint: Run: superset agents sessions list</pre>
+</details>
+<details >
+<summary><span class="exit ok">exit 0</span> exit a live fake-agent process <small>739 ms</small></summary>
+<pre class="command">$ superset --json agents sessions send 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 EXIT --local --wait --timeout 5s</pre>
+<h4>stdout</h4><pre>{
+  &quot;terminalId&quot;: &quot;59dce876-4e2c-4fa7-bcc8-f41635f9b2d4&quot;,
+  &quot;accepted&quot;: {
+    &quot;accepted&quot;: true,
+    &quot;sentAt&quot;: 1784492067782
+  },
+  &quot;final&quot;: {
+    &quot;status&quot;: &quot;exited&quot;
+  },
+  &quot;read&quot;: null
+}</pre>
+
+</details>
+<details open>
+<summary><span class="exit bad">exit 1</span> reject a read after the agent process exited <small>236 ms</small></summary>
+<pre class="command">$ superset --json agents sessions read 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4 --local</pre>
+
+<h4>stderr</h4><pre>Error: Agent session not found: 59dce876-4e2c-4fa7-bcc8-f41635f9b2d4
+Hint: Run: superset agents sessions list</pre>
+</details></main></body></html>
