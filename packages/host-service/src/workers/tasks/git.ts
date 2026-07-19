@@ -5,8 +5,9 @@
 
 import { createUserSimpleGit } from "../../runtime/git/simple-git.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
+import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
 import { getChangedFilesForDiff } from "../../trpc/router/git/utils/git-helpers.ts";
-import type { GitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
+import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/git-status.ts";
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
 
@@ -16,12 +17,27 @@ export interface GitTaskEnv {
 
 export const gitStatusSnapshotTask = defineWorkerTask<
 	{ worktreePath: string; baseBranch?: string; gitEnv: GitTaskEnv },
-	GitStatusSnapshot
+	GitStatusSnapshotComputation
 >({
 	type: "git/getStatusSnapshot",
 	handler: async ({ worktreePath, baseBranch, gitEnv }) => {
 		const git = createUserSimpleGit(worktreePath).env(gitEnv);
 		return getGitStatusSnapshot({ git, worktreePath, baseBranch });
+	},
+});
+
+export const gitFetchBaseRefTask = defineWorkerTask<
+	{
+		worktreePath: string;
+		target: BaseRefFetchTarget;
+		gitEnv: GitTaskEnv;
+	},
+	void
+>({
+	type: "git/fetchBaseRef",
+	handler: async ({ worktreePath, target, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		await git.fetch([target.remote, target.branch, "--quiet", "--no-tags"]);
 	},
 });
 
@@ -42,4 +58,8 @@ export const gitCommitFilesTask = defineWorkerTask<
 	},
 });
 
-export const gitTasks = [gitStatusSnapshotTask, gitCommitFilesTask];
+export const gitTasks = [
+	gitStatusSnapshotTask,
+	gitFetchBaseRefTask,
+	gitCommitFilesTask,
+];

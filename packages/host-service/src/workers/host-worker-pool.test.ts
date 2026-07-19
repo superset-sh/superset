@@ -79,11 +79,13 @@ describe("HostWorkerPool", () => {
 		const inline = await gitStatusSnapshotTask.handler(input);
 
 		expect(fromWorker).toEqual(inline);
-		expect(fromWorker.unstaged.map((f) => f.path).sort()).toEqual([
+		expect(fromWorker.snapshot.unstaged.map((f) => f.path).sort()).toEqual([
 			"a.txt",
 			"c.txt",
 		]);
-		expect(fromWorker.staged.map((f) => f.path)).toEqual(["staged.txt"]);
+		expect(fromWorker.snapshot.staged.map((f) => f.path)).toEqual([
+			"staged.txt",
+		]);
 	});
 
 	test("unknown task type rejects with the worker's error", async () => {
@@ -120,7 +122,7 @@ describe("HostWorkerPool", () => {
 			gitEnv: { GIT_OPTIONAL_LOCKS: "0" },
 		});
 		expect(pool.getMode()).toBe("inline");
-		expect(result.unstaged.length).toBeGreaterThan(0);
+		expect(result.snapshot.unstaged.length).toBeGreaterThan(0);
 	});
 
 	test("worker crash retries inline; crash loop opens the circuit", async () => {

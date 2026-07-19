@@ -74,8 +74,12 @@ The desktop hydrates a persisted token into an in-memory bearer-token closure. A
 
 This credentialed local-dev sign-in creates the browser session cookie needed by subsequent in-renderer fetches. If it fails, report the sign-in/session status codes only. For a non-local setup, use the app's normal sign-in flow; never substitute local dev credentials.
 
-**Use `Runtime.evaluate` (`awaitPromise`, `returnByValue`), not `Network.*` interception** — sniffing misses React-Query-cached responses, and `refetchInterval` is paused while the window is backgrounded. After verifying or repairing the session cookie above, run an in-renderer `fetch(url, { credentials: "include" })`. `API` below is the dev backend origin (`NEXT_PUBLIC_API_URL`, e.g. `http://localhost:5881`):
+For a non-local workspace, the normal desktop flow intentionally restores an encrypted bearer token into the renderer's in-memory auth client without creating a browser cookie. If the renderer is on an authenticated route but a raw cookie-only probe returns no session, use `Runtime.evaluate` to import `/lib/auth-client.ts` from the renderer dev server and call `authClient.getSession({ fetchOptions: { throw: false } })`. This still verifies `/api/auth/get-session` through the app's real authenticated request path. Return only the status and `session.activeOrganizationId`; never call or print `getAuthToken()`.
 
-- Active org: `fetch(API + "/api/auth/get-session", {credentials:"include"})` → `.session.activeOrganizationId`.
+Do not use setup `--force` to fix a stale connection string, a missing CDP cookie, or a corrupt generated Next.js cache. First rerun the applicable setup script without force. If every API route returns Next.js's HTML 404, stop the dev stack, move `apps/api/.next` aside, and restart. `--force` is only appropriate when the user explicitly intends to replace the copied local/host databases and encrypted auth token.
+
+**Use `Runtime.evaluate` (`awaitPromise`, `returnByValue`), not `Network.*` interception** — sniffing misses React-Query-cached responses, and `refetchInterval` is paused while the window is backgrounded. After verifying the session through the applicable cookie or bearer path above, run requests inside the renderer. `API` below is the dev backend origin (`NEXT_PUBLIC_API_URL`, e.g. `http://localhost:5881`):
+
+- Active org: local cookie flow uses `fetch(API + "/api/auth/get-session", {credentials:"include"})`; non-local bearer flow uses `authClient.getSession({ fetchOptions: { throw: false } })`. Require `.session.activeOrganizationId`.
 - A tRPC query (bypasses the cache): GET `API + "/api/trpc/<proc>?batch=1&input=" + encodeURIComponent(JSON.stringify({"0":{json:<input>}}))`; response is `[{result:{data:{json:...}}}]`.
 - `window.location.hash` nav may not remount the route — call the endpoint directly instead.

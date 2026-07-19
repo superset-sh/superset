@@ -8,14 +8,14 @@
 
 | # | Finding | Severity | Fix |
 |---|---|---|---|
-| 1 | One flooding terminal destroys the org-wide daemon↔host-service socket (8 MiB cap, `Server.ts:595`); all terminals blip | Correctness bug, likely hitting users today | Per-session shedding in pty-daemon — **not** this pool |
+| 1 | One flooding terminal destroyed the org-wide daemon↔host-service socket (8 MiB cap, `Server.ts:595`); all terminals blipped | Correctness bug | **Fixed in #5747; verified below** |
 | 2 | 8-workspace churn stalls the loop (183ms stalls, query p95 127ms) via the **watcher path**, not status parsing | Loop health | Offload GitWatcher rescan/filtering to the pool |
 | 3 | Background `getStatus` takes 3.7–14.6s under churn — limiter queueing at concurrency 4 | UX staleness | Pool makes raising limiter concurrency safe |
 | 4 | Big-diff snapshot ≈1.2s (2k files) but does NOT stall the loop | Minor | Phase 1 offload, comes with #2/#3 infra |
 | 5 | Renderer freezes >60s under 8-workspace churn | Separate renderer workstream | Not host-service scope |
-| 6 | Daemon burns 50–77% CPU on unattached flooding PTYs; host-service RSS 320→570MB in one session | Investigate | With #1 / leak-check respectively |
+| 6 | Extreme subscribed terminal floods saturate host-service and daemon CPU and raise second-terminal echo p95 to 48.5 ms | Loop health | Attribute ModeTracker/hint scan, then test a pinned worker |
 
-**Recommended order:** ship #1 (small daemon fix, no pool needed) → build the pool with git status + watcher rescan as tenants (#2–#4) → raise limiter concurrency → hand #5 to a renderer-side effort. Re-run the ModeTracker/terminal measurement only after #1 lands (the transport dies before the loop can be loaded).
+**Outcome:** #1 and the worker-pool/watcher-path work shipped; limiter concurrency stays at 4 because a concurrency of 6 did not improve completion time. The authenticated post-#5747 terminal rerun below reproduces cross-terminal coupling and promotes ModeTracker attribution/pinned-worker work. #5 remains a separate renderer-side effort.
 
 ## Post-implementation measurement — 2026-07-18
 
@@ -44,6 +44,49 @@ Limiter comparison with eight identical snapshots: concurrency 4 completed in
 2.52 s (14 max active git processes); concurrency 6 took 2.59 s (17 processes).
 Keep the production limiter at 4: raising it did not improve completion time and
 increased subprocess pressure.
+
+## Post-daemon-fix terminal measurement — 2026-07-19
+
+The shared-socket backpressure fix landed in #5747. A reusable CDP harness now
+attaches real WebSocket consumers to two PTYs, floods one with continuous SGR
+output, probes echo latency on the other, probes host-service health, and samples
+host-service and pty-daemon CPU/RSS. The harness requires an authenticated CDP
+session and resolves the active organization through the renderer's real auth
+client; it has no organization-ID bypass.
+
+The first two full runs used an explicit organization while the workspace API
+was misconfigured. They established transport survival but are not accepted as
+the final renderer reproduction. After refreshing the workspace Neon branch,
+clearing a corrupt generated API cache, and verifying the renderer on its real
+workspace route, a settled authenticated 60-sample run at 150 ms intervals
+moved 326 MB through the subscribed flood terminal:
+
+| metric | authenticated baseline | authenticated flood |
+|---|---:|---:|
+| probe echo p50 | 8.7 ms | 12.3 ms |
+| probe echo p95 | 15.8 ms | **48.5 ms** |
+| probe echo p99 | 153.6 ms | 148.4 ms |
+| host health p95 | 2.5 ms | 4.9 ms |
+| host health p99 | 8.4 ms | **81.7 ms** |
+| host-service CPU p95 | 27.1% | **86.9%** |
+| pty-daemon CPU p95 | 1.6% | 76.1% |
+| probe/flood sockets | both open | both open |
+
+The transport now survives the load, confirming #5747, but the second terminal
+shows sustained coupling above the ~20 ms promotion threshold. Promote the
+ModeTracker/hint-scan attribution work and a pinned-worker experiment. The
+flood is deliberately more aggressive than normal TUI output, so use the same
+harness to compare the experiment and require a material echo-p95 improvement
+without regressing attach/preamble behavior before shipping the architecture.
+
+## Cross-worker background fetch coordination — 2026-07-19
+
+Moving status snapshots into workers accidentally made the base-ref freshness
+Maps worker-local. Parallel worktrees sharing one Git common directory could
+therefore launch redundant background fetches. The main host-service thread now
+owns the common-dir TTL/in-flight coordinator again; the actual network fetch is
+still submitted to the worker pool. This restores process-wide deduplication
+without moving Git I/O back onto the host-service loop.
 
 ---
 
