@@ -65,7 +65,7 @@ export interface MemoryTelemetryDeps {
 }
 
 function normalizeBytes(value: number | undefined): number {
-	return typeof value === "number" && Number.isFinite(value) && value > 0
+	return typeof value === "number" && Number.isFinite(value) && value >= 0
 		? value
 		: 0;
 }
@@ -152,8 +152,10 @@ export function buildResourceSnapshot(
 
 /**
  * Emit one snapshot, filtered to exactly the allowlisted numeric keys.
+ * Honors the enabled gate itself so any direct caller can't bypass it.
  */
 export function emitResourceSnapshot(deps: MemoryTelemetryDeps): void {
+	if (!deps.isEnabled()) return;
 	const snapshot = buildResourceSnapshot(deps);
 	const payload: Record<string, number> = {};
 	for (const key of RESOURCE_SNAPSHOT_KEYS) {

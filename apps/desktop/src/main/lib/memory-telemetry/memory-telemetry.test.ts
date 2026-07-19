@@ -49,6 +49,7 @@ function createDeps(overrides: Partial<MemoryTelemetryDeps> = {}): {
 
 afterEach(() => {
 	stopMemoryTelemetry();
+	jest.useRealTimers();
 });
 
 describe("buildResourceSnapshot", () => {
@@ -115,47 +116,35 @@ describe("emitResourceSnapshot payload allowlist", () => {
 describe("startMemoryTelemetry cadence", () => {
 	it("emits on the ~5-minute cadence and keeps ticking", () => {
 		jest.useFakeTimers();
-		try {
-			const { deps, calls } = createDeps();
-			startMemoryTelemetry(deps);
+		const { deps, calls } = createDeps();
+		startMemoryTelemetry(deps);
 
-			expect(calls).toHaveLength(0);
-			jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
-			expect(calls).toHaveLength(1);
-			jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
-			expect(calls).toHaveLength(2);
-		} finally {
-			jest.useRealTimers();
-		}
+		expect(calls).toHaveLength(0);
+		jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
+		expect(calls).toHaveLength(1);
+		jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
+		expect(calls).toHaveLength(2);
 	});
 
 	it("does not create a duplicate timer when started twice", () => {
 		jest.useFakeTimers();
-		try {
-			const { deps, calls } = createDeps();
-			startMemoryTelemetry(deps);
-			startMemoryTelemetry(deps);
+		const { deps, calls } = createDeps();
+		startMemoryTelemetry(deps);
+		startMemoryTelemetry(deps);
 
-			jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
-			expect(calls).toHaveLength(1); // one tick, not two
-		} finally {
-			jest.useRealTimers();
-		}
+		jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
+		expect(calls).toHaveLength(1); // one tick, not two
 	});
 });
 
 describe("startMemoryTelemetry disabled state", () => {
 	it("never schedules or emits when disabled", () => {
 		jest.useFakeTimers();
-		try {
-			const { deps, calls } = createDeps({ isEnabled: () => false });
-			startMemoryTelemetry(deps);
+		const { deps, calls } = createDeps({ isEnabled: () => false });
+		startMemoryTelemetry(deps);
 
-			jest.advanceTimersByTime(SAMPLE_INTERVAL_MS * 10);
-			expect(calls).toHaveLength(0);
-		} finally {
-			jest.useRealTimers();
-		}
+		jest.advanceTimersByTime(SAMPLE_INTERVAL_MS * 10);
+		expect(calls).toHaveLength(0);
 	});
 
 	it("is disabled under the test environment by default", () => {
@@ -177,19 +166,15 @@ describe("startMemoryTelemetry disabled state", () => {
 describe("stopMemoryTelemetry cleanup", () => {
 	it("stops emitting after cleanup", () => {
 		jest.useFakeTimers();
-		try {
-			const { deps, calls } = createDeps();
-			startMemoryTelemetry(deps);
+		const { deps, calls } = createDeps();
+		startMemoryTelemetry(deps);
 
-			jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
-			expect(calls).toHaveLength(1);
+		jest.advanceTimersByTime(SAMPLE_INTERVAL_MS);
+		expect(calls).toHaveLength(1);
 
-			stopMemoryTelemetry();
-			jest.advanceTimersByTime(SAMPLE_INTERVAL_MS * 5);
-			expect(calls).toHaveLength(1); // no further ticks
-		} finally {
-			jest.useRealTimers();
-		}
+		stopMemoryTelemetry();
+		jest.advanceTimersByTime(SAMPLE_INTERVAL_MS * 5);
+		expect(calls).toHaveLength(1); // no further ticks
 	});
 
 	it("unrefs the pending timer so it can't keep the process alive", () => {
