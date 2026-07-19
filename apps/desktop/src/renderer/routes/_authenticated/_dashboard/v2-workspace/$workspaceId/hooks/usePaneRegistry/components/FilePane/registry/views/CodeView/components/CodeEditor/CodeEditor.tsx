@@ -191,7 +191,9 @@ export function CodeEditor({
 		}
 
 		return () => {
-			reportScrollPosition();
+			// The passive effect cleanup can run after the editor DOM has been
+			// detached and its scroll offset clamped to zero. The scroll listener
+			// already saved the last real position, so do not overwrite it here.
 			view.scrollDOM.removeEventListener("scroll", reportScrollPosition);
 			if (editorRef?.current === adapter) {
 				editorRef.current = null;
