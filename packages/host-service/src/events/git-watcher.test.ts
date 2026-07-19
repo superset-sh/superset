@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "bun:test";
 import {
+	collectWorktreeBatchPaths,
 	DEBOUNCE_MS,
 	GIT_DIR_DEBOUNCE_MS,
 	type GitChangedEvent,
@@ -77,6 +78,27 @@ describe("isStatusRelevantGitDirEvent", () => {
 	test("does not confuse a top-level file that merely starts with an ignored name", () => {
 		expect(isStatusRelevantGitDirEvent("objects-are-cool")).toBe(true);
 		expect(isStatusRelevantGitDirEvent("logspam")).toBe(true);
+	});
+});
+
+describe("collectWorktreeBatchPaths", () => {
+	test("duplicate notifications do not hide a later distinct path", () => {
+		const duplicateEvents = Array.from(
+			{ length: MAX_WORKTREE_PATHS_PER_BATCH + 1 },
+			() => ({
+				kind: "update" as const,
+				absolutePath: "/repo/src/duplicate.ts",
+			}),
+		);
+		const paths = collectWorktreeBatchPaths(
+			[
+				...duplicateEvents,
+				{ kind: "update", absolutePath: "/repo/src/later.ts" },
+			],
+			"/repo",
+		);
+
+		expect([...paths]).toEqual(["src/duplicate.ts", "src/later.ts"]);
 	});
 });
 

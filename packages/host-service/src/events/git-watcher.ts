@@ -56,6 +56,42 @@ export function isStatusRelevantGitDirEvent(
 	return !IGNORED_GIT_DIR_TOP_LEVELS.has(topLevel);
 }
 
+/**
+ * Normalize one native worktree event batch while bounding unique path growth.
+ * Duplicate notifications must not consume the cap: a later distinct path still
+ * needs to be emitted unless the batch crosses into broad invalidation.
+ */
+export function collectWorktreeBatchPaths(
+	events: readonly FsWatchEvent[],
+	worktreePath: string,
+): Set<string> {
+	const worktreePrefix = worktreePath.endsWith("/")
+		? worktreePath
+		: `${worktreePath}/`;
+	const toRelative = (absolutePath: string): string | null => {
+		if (absolutePath === worktreePath) return null;
+		if (!absolutePath.startsWith(worktreePrefix)) return null;
+		const relative = absolutePath.slice(worktreePrefix.length);
+		// Defensive: ignore anything inside .git/ — the dedicated .git watcher
+		// handles those and the worktree fs watcher's default ignore patterns
+		// already exclude it, but a rare leak shouldn't pollute the paths list.
+		if (relative === ".git" || relative.startsWith(".git/")) return null;
+		return relative;
+	};
+
+	const relativePaths = new Set<string>();
+	for (const event of events) {
+		const relativePath = toRelative(event.absolutePath);
+		if (relativePath) relativePaths.add(relativePath);
+		if (event.oldAbsolutePath) {
+			const oldRelativePath = toRelative(event.oldAbsolutePath);
+			if (oldRelativePath) relativePaths.add(oldRelativePath);
+		}
+		if (relativePaths.size > MAX_WORKTREE_PATHS_PER_BATCH) break;
+	}
+	return relativePaths;
+}
+
 export interface GitChangedEvent {
 	workspaceId: string;
 	/**
@@ -359,21 +395,6 @@ export class GitWatcher {
 			return () => {};
 		}
 
-		const worktreePrefix = worktreePath.endsWith("/")
-			? worktreePath
-			: `${worktreePath}/`;
-
-		const toRelative = (absolutePath: string): string | null => {
-			if (absolutePath === worktreePath) return null;
-			if (!absolutePath.startsWith(worktreePrefix)) return null;
-			const relative = absolutePath.slice(worktreePrefix.length);
-			// Defensive: ignore anything inside .git/ — the dedicated .git watcher
-			// handles those and the worktree fs watcher's default ignore patterns
-			// already exclude it, but a rare leak shouldn't pollute the paths list.
-			if (relative === ".git" || relative.startsWith(".git/")) return null;
-			return relative;
-		};
-
 		void (async () => {
 			try {
 				while (!disposed && iterator) {
@@ -384,18 +405,12 @@ export class GitWatcher {
 						continue;
 					}
 
-					const relativePaths: string[] = [];
-					for (const event of next.value.events) {
-						const rel = toRelative(event.absolutePath);
-						if (rel) relativePaths.push(rel);
-						if (event.oldAbsolutePath) {
-							const oldRel = toRelative(event.oldAbsolutePath);
-							if (oldRel) relativePaths.push(oldRel);
-						}
-						if (relativePaths.length > MAX_WORKTREE_PATHS_PER_BATCH) break;
-					}
+					const relativePaths = collectWorktreeBatchPaths(
+						next.value.events,
+						worktreePath,
+					);
 
-					if (relativePaths.length > 0) {
+					if (relativePaths.size > 0) {
 						this.addWorktreePaths(workspaceId, relativePaths);
 					} else {
 						this.getOrCreateBatch(workspaceId);
