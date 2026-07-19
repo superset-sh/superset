@@ -411,7 +411,9 @@ class BrowserRuntimeRegistryImpl {
 	detach(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
-		entry.onPersist = null;
+		// Keep the persistence callback while hidden. A navigation can finish
+		// after React detaches the pane; clearing it here would leave only the
+		// previous URL to rebuild from if this webview is then LRU-evicted.
 		entry.placeholder = null;
 		entry.resizeObserver?.disconnect();
 		entry.resizeObserver = null;
@@ -431,7 +433,8 @@ class BrowserRuntimeRegistryImpl {
 	}
 
 	private evictExcessHiddenWebviews() {
-		const candidates = Array.from(this.entries.entries()).map(
+		const candidates = Array.from(
+			this.entries.entries(),
 			([paneId, entry]) => ({
 				paneId,
 				runtime: { container: entry.visible ? entry : null },
@@ -449,12 +452,18 @@ class BrowserRuntimeRegistryImpl {
 	destroy(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
+		entry.onPersist = null;
 		entry.resizeObserver?.disconnect();
 		entry.detachHandlers();
 		entry.webview.remove();
 		this.entries.delete(paneId);
 		this.listenersByPaneId.delete(paneId);
-		electronTrpcClient.browser.unregister.mutate({ paneId }).catch(() => {});
+		electronTrpcClient.browser.unregister.mutate({ paneId }).catch((err) => {
+			console.error(
+				`[browserRuntimeRegistry] unregister failed for ${paneId}:`,
+				err,
+			);
+		});
 	}
 
 	navigate(paneId: string, url: string): void {
