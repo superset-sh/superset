@@ -24,6 +24,9 @@ export default command({
 		command: string().desc(
 			"Shell command to run in the new workspace after creation",
 		),
+		strict: boolean().desc(
+			"Exit non-zero if the requested agent fails to launch (default: warn on stderr, exit 0)",
+		),
 		attachment: string()
 			.variadic()
 			.desc(
@@ -97,6 +100,28 @@ export default command({
 			agents,
 			command: options.command ?? undefined,
 		});
+
+		// The server keeps the workspace even when an agent fails to launch,
+		// mapping each failure to `{ ok: false, error }` in `agents[]` rather
+		// than rolling back. Surface those failures loudly: the caller asked
+		// for an agent, and a created-but-agentless workspace is not the
+		// requested outcome. Without this the CLI printed only the success
+		// message and the failure was visible solely in the --json payload.
+		const failedAgents = (result.agents ?? []).filter(
+			(entry): entry is { ok: false; error: string } => entry.ok === false,
+		);
+		if (failedAgents.length > 0) {
+			const detail = failedAgents.map((entry) => entry.error).join("; ");
+			if (options.strict) {
+				throw new CLIError(
+					`Agent launch failed: ${detail}`,
+					"The workspace was created but the agent did not start. Re-run the agent, or drop --strict to treat this as a warning.",
+				);
+			}
+			for (const entry of failedAgents) {
+				process.stderr.write(`warning: agent launch failed: ${entry.error}\n`);
+			}
+		}
 
 		return {
 			data: result,
