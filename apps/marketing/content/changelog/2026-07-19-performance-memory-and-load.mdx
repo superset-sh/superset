@@ -1,0 +1,34 @@
+---
+title: Performance: lighter memory and smoother under heavy load
+date: 2026-07-19
+---
+
+We spent this week on performance. Below are the before/after numbers, each measured live over the Chrome DevTools Protocol against the real desktop app.
+
+## Lower Memory When You Keep Many Terminals Open <PRBadge url="https://github.com/superset-sh/superset/pull/5751" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5754" />
+
+Every hidden terminal used to hold its full scrollback and a live GPU context forever, so a long session with lots of background terminals could grow to well over a gigabyte of memory. Superset now keeps only your most-recently-used terminals fully in memory and rebuilds the rest from disk when you return to them. The underlying process keeps running the whole time.
+
+A/B on one build, 16 background terminals each filled with ~5,000 lines, toggling the cap:
+
+<table><thead><tr><th>Metric</th><th>Before (unbounded)</th><th>After (eviction)</th></tr></thead><tbody><tr><td>Terminals held in memory (GPU contexts)</td><td>16</td><td><strong>4</strong></td></tr><tr><td>Scrollback lines retained</td><td>80,016</td><td><strong>20,004</strong></td></tr><tr><td>Renderer JS heap</td><td>581 MB</td><td><strong>286 MB (−51%)</strong></td></tr><tr><td>Renderer process memory (RSS)</td><td>1,127 MB</td><td><strong>838 MB (−26%)</strong></td></tr></tbody></table>
+
+The limit is yours to set in **Settings → Terminal → Background terminal memory** (default 12). Active terminals and in-place TUIs like vim or a running agent are never touched, and hidden in-app browser tabs get the same treatment.
+
+## Smoother While Git Churns in Big Repos <PRBadge url="https://github.com/superset-sh/superset/pull/5750" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5746" />
+
+Git status for large repositories used to run on the same thread that relays your terminal output, so a branch switch or a burst of file changes across many workspaces could make the whole app hitch. That work now runs on a background worker pool, and large file-watch batches are bounded instead of unbounded.
+
+A/B profiling 8 workspaces churning a 20,000-file repo (600 dirty files), at the shipped concurrency:
+
+<table><thead><tr><th>Metric</th><th>Before (on the main thread)</th><th>After (worker pool)</th></tr></thead><tbody><tr><td>File-watch stall, p99</td><td>31.7 ms</td><td><strong>10.7 ms</strong></td></tr><tr><td>File-watch stall, worst case</td><td>82.3 ms</td><td><strong>28.0 ms</strong></td></tr><tr><td>Full status refresh stall, p99</td><td>24.5 ms</td><td><strong>9.5 ms</strong></td></tr><tr><td>Full status refresh stall, worst case</td><td>49.0 ms</td><td><strong>17.6 ms</strong></td></tr></tbody></table>
+
+Lower numbers mean the thread that keeps your terminals and UI responsive spends far less time blocked. No setting to flip, it is on for everyone.
+
+## Lighter Background CPU From Port Detection <PRBadge url="https://github.com/superset-sh/superset/pull/5723" />
+
+Port detection (the thing that spots a dev server and offers to open it) was scanning the whole process table once per terminal on every tick, so a session with many panes could spawn a dozen `ps` processes a second in the background.
+
+- One shared process-table read per scan instead of one per terminal
+- Idle terminals slow their scan from every 2.5s to every 30s, and speed back up the moment they produce output
+- On an idle machine this drops steady-state background scanning from roughly `sessions × 0.4` process spawns per second to about 0.03 per second, regardless of how many terminals you have open
