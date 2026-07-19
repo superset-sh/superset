@@ -56,7 +56,7 @@ To check a change end-to-end against the real API/DB, drive the running dev app 
 3. Fetch `http://127.0.0.1:<port>/json/list` and require a `page` target whose URL uses this workspace's `DESKTOP_VITE_PORT`. A responding CDP endpoint alone is not sufficient proof that it belongs to this branch.
 4. Pass the matched values explicitly when using a script, e.g. `RENDERER_REMOTE_DEBUG_PORT=<port> NEXT_PUBLIC_API_URL=<api-origin> bun run apps/desktop/scripts/cdp-smoke-integrations.ts`.
 
-Do not borrow another worktree's signed-in renderer when this workspace has no usable session; that tests different code. Verify `/api/auth/get-session` from inside the matched renderer first.
+Verify `/api/auth/get-session` from inside the matched renderer before testing.
 
 ### Repairing CDP auth
 
@@ -67,7 +67,7 @@ Check which setup script provisioned the workspace before repairing auth:
 
 The desktop hydrates a persisted token into an in-memory bearer-token closure. A raw `Runtime.evaluate` `fetch` cannot read that closure, and the local-dev sign-in button persists a bearer token but uses `credentials: "omit"`; neither guarantees the cookie required by a raw CDP probe. For a workspace created by `setup.local.sh`, repair the CDP session as follows:
 
-1. Require a localhost API origin and confirm the matched renderer/API processes belong to this worktree. Never send dev credentials to a remote or shared API.
+1. Require a localhost API origin; never send dev credentials to a remote or shared API.
 2. From `apps/desktop` (so workspace imports resolve), import `DEV_EMAIL` and `DEV_PASSWORD` from `@superset/shared/dev-credentials`; do not copy their literal values into scripts or logs.
 3. Through `Runtime.evaluate` in the matched renderer, POST them to `${NEXT_PUBLIC_API_URL}/api/auth/sign-in/email` with JSON content type and `credentials: "include"`. Do not print the returned token or response body.
 4. Re-fetch `/api/auth/get-session` with `credentials: "include"` and require both `session` and `session.activeOrganizationId` before running the test.
