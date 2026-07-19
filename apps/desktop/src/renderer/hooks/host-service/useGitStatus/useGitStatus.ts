@@ -2,8 +2,12 @@ import {
 	type GitChangedPayload,
 	workspaceTrpc,
 } from "@superset/workspace-client";
-import { useCallback } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
+import { createTrailingRefreshScheduler } from "./createTrailingRefreshScheduler";
+
+const GIT_STATUS_STALE_TIME_MS = 5_000;
+export const GIT_STATUS_GC_TIME_MS = 30 * 60_000;
 
 /**
  * Fetches workspace git status and keeps it live against server events.
@@ -33,12 +37,34 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 			baseBranch: baseBranch ?? undefined,
 			priority: "foreground",
 		},
-		{ refetchOnWindowFocus: true, enabled: enabled && Boolean(workspaceId) },
+		{
+			enabled: enabled && Boolean(workspaceId),
+			gcTime: GIT_STATUS_GC_TIME_MS,
+			refetchOnWindowFocus: true,
+			staleTime: GIT_STATUS_STALE_TIME_MS,
+		},
+	);
+	const refetchRef = useRef(query.refetch);
+	refetchRef.current = query.refetch;
+	const refreshScheduler = useMemo(
+		() =>
+			createTrailingRefreshScheduler(() => {
+				if (!workspaceId) return Promise.resolve();
+				return refetchRef.current({ cancelRefetch: false });
+			}),
+		[workspaceId],
+	);
+
+	useEffect(
+		() => () => {
+			refreshScheduler.dispose();
+		},
+		[refreshScheduler],
 	);
 
 	const invalidate = useCallback(
 		(payload?: GitChangedPayload) => {
-			void utils.git.getStatus.invalidate({ workspaceId });
+			void refreshScheduler.request();
 			if (payload?.paths && payload.paths.length > 0) {
 				for (const path of payload.paths) {
 					void utils.git.getDiff.invalidate({ workspaceId, path });
@@ -51,7 +77,7 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 				void utils.git.getBaseBranch.invalidate({ workspaceId });
 			}
 		},
-		[utils, workspaceId],
+		[refreshScheduler, utils, workspaceId],
 	);
 
 	useWorkspaceEvent("git:changed", workspaceId, invalidate, enabled);

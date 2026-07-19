@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { FoldVertical, UnfoldVertical } from "lucide-react";
 import type {
@@ -17,6 +18,7 @@ interface ChangesToolbarProps {
 	totalFiles: number;
 	totalAdditions: number;
 	totalDeletions: number;
+	isRefreshing: boolean;
 	viewMode: ChangesViewMode;
 	onViewModeChange: (next: ChangesViewMode) => void;
 	/** Whether the last fold action was "collapse all". */
@@ -39,6 +41,7 @@ export function ChangesToolbar({
 	totalFiles,
 	totalAdditions,
 	totalDeletions,
+	isRefreshing,
 	viewMode,
 	onViewModeChange,
 	collapsed,
@@ -67,6 +70,12 @@ export function ChangesToolbar({
 						{totalDeletions > 0 && (
 							<span className="text-red-400">-{totalDeletions}</span>
 						)}
+					</span>
+				)}
+				{isRefreshing && (
+					<span className="flex items-center" title="Refreshing changes">
+						<Spinner className="size-3" />
+						<span className="sr-only">Refreshing changes</span>
 					</span>
 				)}
 			</div>

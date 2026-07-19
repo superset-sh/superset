@@ -11,6 +11,7 @@ import type { FoldSignal } from "../ChangesFileList";
 import { ChangesFileList } from "../ChangesFileList";
 import { ChangesHeader } from "../ChangesHeader";
 import { ChangesToolbar } from "../ChangesToolbar";
+import { shouldShowChangesLoading } from "./shouldShowChangesLoading";
 
 type RouterOutputs = inferRouterOutputs<AppRouter>;
 
@@ -18,6 +19,7 @@ interface ChangesTabContentProps {
 	workspaceId: string;
 	status: {
 		data: RouterOutputs["git"]["getStatus"] | undefined;
+		isFetching: boolean;
 		isLoading: boolean;
 	};
 	commits: { data: RouterOutputs["git"]["listCommits"] | undefined };
@@ -88,7 +90,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 		[],
 	);
 
-	if (status.isLoading) {
+	if (shouldShowChangesLoading(status)) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
 				<Spinner className="size-3.5" />
@@ -126,6 +128,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 				totalFiles={totalChanges}
 				totalAdditions={totalAdditions}
 				totalDeletions={totalDeletions}
+				isRefreshing={status.isFetching}
 				viewMode={viewMode}
 				onViewModeChange={onViewModeChange}
 				collapsed={foldCollapsed}
