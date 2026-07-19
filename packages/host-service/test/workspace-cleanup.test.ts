@@ -357,7 +357,7 @@ describe("workspaceCleanup.destroy in-flight guard", () => {
 		expect(result.success).toBe(true);
 		expect(result.cloudDeleted).toBe(false);
 		expect(
-			result.warnings.some((w) => w.includes("Cloud delete deferred")),
+			result.warnings.some((w) => w.includes("Legacy cloud cleanup failed")),
 		).toBe(true);
 		expect(ctx.__mocks.broadcastWorkspaceChanged).toHaveBeenCalledTimes(1);
 		expect(__testDestroysInFlight.has("ws-1")).toBe(false);

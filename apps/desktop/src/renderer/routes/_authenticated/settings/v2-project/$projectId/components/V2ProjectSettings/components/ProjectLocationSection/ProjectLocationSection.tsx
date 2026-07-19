@@ -28,6 +28,7 @@ interface BackfillConflict {
 
 interface ProjectLocationSectionProps {
 	projectId: string;
+	projectName?: string;
 	currentPath: string | null;
 	repoCloneUrl: string | null;
 	hostId: string | null;
@@ -39,6 +40,7 @@ interface ProjectLocationSectionProps {
 
 export function ProjectLocationSection({
 	projectId,
+	projectName,
 	currentPath,
 	repoCloneUrl,
 	hostId,
@@ -185,6 +187,7 @@ export function ProjectLocationSection({
 				open={setupOpen}
 				onOpenChange={setSetupOpen}
 				projectId={projectId}
+				projectName={projectName}
 				hostUrl={hostUrl}
 				hostName={hostName}
 				repoCloneUrl={repoCloneUrl}

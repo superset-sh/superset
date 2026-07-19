@@ -70,8 +70,6 @@ export type DashboardSidebarProjectChild =
 export interface DashboardSidebarProject {
 	id: string;
 	name: string;
-	slug: string;
-	githubRepositoryId: string | null;
 	githubOwner: string | null;
 	githubRepoName: string | null;
 	iconUrl: string | null;
