@@ -2,12 +2,14 @@ import {
 	type GitChangedPayload,
 	workspaceTrpc,
 } from "@superset/workspace-client";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { useWorkspaceEvent } from "../useWorkspaceEvent";
 import { createTrailingRefreshScheduler } from "./createTrailingRefreshScheduler";
 
 const GIT_STATUS_STALE_TIME_MS = 5_000;
-export const GIT_STATUS_GC_TIME_MS = 30 * 60_000;
+// Status snapshots scale with changed-file count, so keep revisits warm without
+// retaining large inactive workspaces for the global 30-minute default.
+export const GIT_STATUS_GC_TIME_MS = 10 * 60_000;
 
 /**
  * Fetches workspace git status and keeps it live against server events.
@@ -44,15 +46,13 @@ export function useGitStatus(workspaceId: string, enabled = true) {
 			staleTime: GIT_STATUS_STALE_TIME_MS,
 		},
 	);
-	const refetchRef = useRef(query.refetch);
-	refetchRef.current = query.refetch;
 	const refreshScheduler = useMemo(
 		() =>
 			createTrailingRefreshScheduler(() => {
 				if (!workspaceId) return Promise.resolve();
-				return refetchRef.current({ cancelRefetch: false });
+				return query.refetch({ cancelRefetch: false });
 			}),
-		[workspaceId],
+		[query.refetch, workspaceId],
 	);
 
 	useEffect(
