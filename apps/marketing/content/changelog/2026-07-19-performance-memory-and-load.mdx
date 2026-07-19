@@ -13,6 +13,8 @@ A/B on one build, 16 background terminals each filled with ~5,000 lines, togglin
 
 <table><thead><tr><th>Metric</th><th>Before (unbounded)</th><th>After (eviction)</th></tr></thead><tbody><tr><td>Terminals held in memory (GPU contexts)</td><td>16</td><td><strong>4</strong></td></tr><tr><td>Scrollback lines retained</td><td>80,016</td><td><strong>20,004</strong></td></tr><tr><td>Renderer JS heap</td><td>581 MB</td><td><strong>286 MB (−51%)</strong></td></tr><tr><td>Renderer process memory (RSS)</td><td>1,127 MB</td><td><strong>838 MB (−26%)</strong></td></tr></tbody></table>
 
+![Renderer memory with 16 background terminals: RSS drops from 1,127 MB to 838 MB and JS heap from 581 MB to 286 MB](/changelog/2026-07-19-terminal-memory-ab.png)
+
 The limit is yours to set in **Settings → Terminal → Background terminal memory** (default 12). Active terminals and in-place TUIs like vim or a running agent are never touched, and hidden in-app browser tabs get the same treatment.
 
 ## Smoother While Git Churns in Big Repos <PRBadge url="https://github.com/superset-sh/superset/pull/5750" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5746" />
@@ -22,6 +24,8 @@ Git status for large repositories used to run on the same thread that relays you
 A/B profiling 8 workspaces churning a 20,000-file repo (600 dirty files), at the shipped concurrency:
 
 <table><thead><tr><th>Metric</th><th>Before (on the main thread)</th><th>After (worker pool)</th></tr></thead><tbody><tr><td>File-watch stall, p99</td><td>31.7 ms</td><td><strong>10.7 ms</strong></td></tr><tr><td>File-watch stall, worst case</td><td>82.3 ms</td><td><strong>28.0 ms</strong></td></tr><tr><td>Full status refresh stall, p99</td><td>24.5 ms</td><td><strong>9.5 ms</strong></td></tr><tr><td>Full status refresh stall, worst case</td><td>49.0 ms</td><td><strong>17.6 ms</strong></td></tr></tbody></table>
+
+![Main-thread stalls under git-heavy load: worst-case drops from 82.3 ms to 28.0 ms and p99 from 24.5 ms to 9.5 ms](/changelog/2026-07-19-git-worker-pool-ab.png)
 
 Lower numbers mean the thread that keeps your terminals and UI responsive spends far less time blocked. No setting to flip, it is on for everyone.
 
