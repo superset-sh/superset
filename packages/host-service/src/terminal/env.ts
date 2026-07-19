@@ -15,6 +15,7 @@ export {
 	getShellLaunchArgs,
 	getSupersetShellPaths,
 	resolveLaunchShell,
+	shellLaunchExpectsReadyMarker,
 } from "./shell-launch.ts";
 
 import fs from "node:fs";
