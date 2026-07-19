@@ -1,0 +1,103 @@
+{
+  "runDate": "2026-07-19",
+  "desktopRendererOpen": false,
+  "daemonVersion": "0.2.6",
+  "rawArtifacts": {
+    "capture": {
+      "path": "raw/capture.jsonl",
+      "bytes": 117976,
+      "sha256": "c8d6cd129d758c9bd87d31068822d10dd5c73c14de6bcaccd280dfc0d7ec067d"
+    },
+    "hostDatabase": {
+      "path": "raw/host.db",
+      "bytes": 143360,
+      "sha256": "c1898726d8973f99363bc2244152ee2e218f5df163d561a83d6fb375449d0176"
+    }
+  },
+  "largePrompt": {
+    "passed": true,
+    "transport": "argv",
+    "expectedBytes": 88016,
+    "capturedBytes": 88016,
+    "expectedSha256": "c1691b75be714dba1da1f903b7543f03b88a2c4454133db42f321aedfb5fefe4",
+    "capturedSha256": "c1691b75be714dba1da1f903b7543f03b88a2c4454133db42f321aedfb5fefe4",
+    "sessionId": "907cfb8d-80fd-42f0-ba00-cadb78481cbe"
+  },
+  "multilineSend": {
+    "passed": true,
+    "source": "piped stdin",
+    "capturedAsOnePrompt": true,
+    "bytes": 33,
+    "sha256": "932a1830fc5d4c16832ea5cd27a9d0634ed80f7a29aa7909bd6abf6c6f0d116a",
+    "text": "first line\nsecond 🙂 line\nthird",
+    "finalStatus": "idle"
+  },
+  "lifecycleStates": {
+    "passed": true,
+    "sessionId": "5e5e974e-ec8c-44ab-8797-7c8d81b495b0",
+    "observations": [
+      {
+        "status": "working",
+        "lastEventType": "Start",
+        "lastEventAt": 1784486675904
+      },
+      {
+        "status": "permission",
+        "lastEventType": "PermissionRequest",
+        "lastEventAt": 1784486687700
+      },
+      {
+        "status": "failed",
+        "lastEventType": "Failed",
+        "lastEventAt": 1784486693714
+      },
+      {
+        "status": "idle",
+        "lastEventType": "Stop",
+        "sessionId": "30b0fb99-73b9-44f0-a818-69f10848368c",
+        "lastEventAt": 1784486766688
+      }
+    ]
+  },
+  "hostRestart": {
+    "passed": true,
+    "sessionId": "30b0fb99-73b9-44f0-a818-69f10848368c",
+    "agentStartedAt": 1784486630457,
+    "beforePrompt": "reset-before-restart",
+    "afterPrompt": "after-host-restart",
+    "afterPromptCaptured": true,
+    "afterFinalStatus": "idle",
+    "afterLastEventAt": 1784486766688
+  },
+  "missingSessions": {
+    "passed": true,
+    "exitedSessionId": "5f89c9dd-a1a6-42ce-af21-cd52a844fb5b",
+    "exitedReadExitCode": 1,
+    "unknownSessionId": "00000000-0000-4000-8000-000000000099",
+    "unknownSendExitCode": 1,
+    "error": "Agent session not found",
+    "replacementCreated": false
+  },
+  "launchFailure": {
+    "passed": true,
+    "command": "/definitely/missing/superset-e2e-agent",
+    "cliExitCode": 1,
+    "error": "Agent process exited before launch acknowledgement (status 127).",
+    "disposedTerminalId": "9179053a-951c-4a22-a9b7-ac9292e0479c",
+    "sessionIdReportedToCaller": false
+  },
+  "stdinSentinel": {
+    "passed": true,
+    "spelling": "--file -",
+    "capturedText": "dash stdin sentinel",
+    "capturedBytes": 19,
+    "finalStatus": "idle"
+  },
+  "waitControls": {
+    "passed": true,
+    "timeoutExitCode": 1,
+    "timeoutLastStatus": "failed",
+    "interruptExitCode": 1,
+    "interruptError": "Interrupted while waiting"
+  }
+}

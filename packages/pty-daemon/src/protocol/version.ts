@@ -5,9 +5,11 @@
 // v2: framing is  [u32 totalLen][u32 jsonLen][JSON][optional payload bytes];
 //     OutputMessage and InputMessage drop their `data` field and carry
 //     bytes via the payload tail. (See framing.ts.)
+// v3: adds non-destructive snapshot/snapshot-reply messages. Snapshot bytes
+//     use the binary payload tail and report whether older ring bytes evicted.
 //
 // We don't keep v1 around. Phase 2 auto-update converges daemon to current
 // on host-service start, so the version-skew window is bounded; any
 // session lost to that one upgrade is recoverable.
-export const CURRENT_PROTOCOL_VERSION = 2 as const;
-export const SUPPORTED_PROTOCOL_VERSIONS: readonly number[] = [2];
+export const CURRENT_PROTOCOL_VERSION = 3 as const;
+export const SUPPORTED_PROTOCOL_VERSIONS: readonly number[] = [3];

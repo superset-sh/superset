@@ -2,7 +2,7 @@ import { CLIError, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { resolveHostTarget } from "../../../lib/host-target";
 import { findHostWorkspace } from "../../../lib/host-workspaces";
-import { uploadAttachments } from "../../../lib/upload-attachments";
+import { prepareAttachmentIds } from "../../../lib/upload-attachments";
 
 export default command({
 	description: "Create an agent session in an existing workspace",
@@ -50,10 +50,10 @@ export default command({
 			userJwt: ctx.bearer,
 		});
 
-		const uploadedIds = options.attachment
-			? await uploadAttachments(target.client, options.attachment)
-			: [];
-		const attachmentIds = [...(options.attachmentId ?? []), ...uploadedIds];
+		const attachmentIds = await prepareAttachmentIds(target.client, {
+			attachmentIds: options.attachmentId ?? [],
+			attachmentPaths: options.attachment ?? [],
+		});
 
 		const result = await target.client.agents.run.mutate({
 			workspaceId: options.workspace,

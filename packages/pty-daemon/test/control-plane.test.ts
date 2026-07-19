@@ -12,7 +12,10 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, describe, test } from "node:test";
-import { encodeFrame } from "../src/protocol/index.ts";
+import {
+	CURRENT_PROTOCOL_VERSION,
+	encodeFrame,
+} from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
 import {
 	accumulatedOutputAsString,
@@ -106,15 +109,17 @@ describe("handshake", () => {
 
 	test("picks highest mutual when multiple offered", async () => {
 		const c = await connect(sockPath);
-		c.send({ type: "hello", protocols: [2, 99] });
+		c.send({ type: "hello", protocols: [2, CURRENT_PROTOCOL_VERSION, 99] });
 		const ack = await c.waitFor((m) => m.type === "hello-ack");
-		if (ack.type === "hello-ack") assert.equal(ack.protocol, 2);
+		if (ack.type === "hello-ack") {
+			assert.equal(ack.protocol, CURRENT_PROTOCOL_VERSION);
+		}
 		await c.close();
 	});
 
 	test("rejects duplicate hello", async () => {
 		const c = await connectAndHello(sockPath);
-		c.send({ type: "hello", protocols: [2] });
+		c.send({ type: "hello", protocols: [CURRENT_PROTOCOL_VERSION] });
 		const err = await c.waitFor((m) => m.type === "error", 1000);
 		if (err.type === "error") {
 			assert.match(err.message, /duplicate hello/);
@@ -996,7 +1001,10 @@ describe("server shutdown", () => {
 describe("framing on the wire", () => {
 	test("server tolerates split frames across multiple TCP chunks", async () => {
 		const c = await connect(sockPath);
-		const hello = encodeFrame({ type: "hello", protocols: [2] });
+		const hello = encodeFrame({
+			type: "hello",
+			protocols: [CURRENT_PROTOCOL_VERSION],
+		});
 		// Send the hello in 3-byte chunks to force the decoder to buffer.
 		for (let i = 0; i < hello.length; i += 3) {
 			c.sendRaw(hello.subarray(i, Math.min(i + 3, hello.length)));

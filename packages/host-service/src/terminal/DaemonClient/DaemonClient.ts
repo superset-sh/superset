@@ -35,6 +35,13 @@ export interface ExitInfo {
 	signal: number | null;
 }
 
+export interface SnapshotResult {
+	data: Buffer;
+	cols: number;
+	rows: number;
+	truncated: boolean;
+}
+
 export type Signal = "SIGINT" | "SIGTERM" | "SIGKILL" | "SIGHUP";
 
 export interface SubscribeCallbacks {
@@ -61,6 +68,7 @@ export interface DaemonClientOptions {
 const OPEN_TIMEOUT_MS = 15_000;
 const CLOSE_TIMEOUT_MS = 5_000;
 const LIST_TIMEOUT_MS = 5_000;
+const SNAPSHOT_TIMEOUT_MS = 5_000;
 // Daemon-side handoff has to write a snapshot, spawn a child Node process,
 // await successor adopt-ack, then reply. The Server uses 5s for the ack
 // alone; 15s here covers spawn + ack + reply round-trip with margin.
@@ -150,6 +158,52 @@ export class DaemonClient {
 		);
 		if (reply.type === "list-reply") return reply.sessions;
 		throw new Error(`list: unexpected reply ${reply.type}`);
+	}
+
+	/** Read the daemon ring buffer without subscribing or mutating it. */
+	async snapshot(id: string): Promise<SnapshotResult> {
+		return new Promise<SnapshotResult>((resolve, reject) => {
+			let settled = false;
+			const cleanup = () => {
+				off();
+				offDisc();
+				clearTimeout(timer);
+			};
+			const fail = (error: Error) => {
+				if (settled) return;
+				settled = true;
+				cleanup();
+				reject(error);
+			};
+			const off = this.on((message, payload) => {
+				if (message.type === "error" && message.id === id) {
+					fail(new Error(`snapshot ${id}: ${message.message}`));
+					return;
+				}
+				if (message.type !== "snapshot-reply" || message.id !== id) return;
+				settled = true;
+				cleanup();
+				resolve({
+					data: payload ? Buffer.from(payload) : Buffer.alloc(0),
+					cols: message.cols,
+					rows: message.rows,
+					truncated: message.truncated,
+				});
+			});
+			const offDisc = this.onDisconnect((error) =>
+				fail(error ?? new Error("daemon disconnected")),
+			);
+			const timer = setTimeout(
+				() =>
+					fail(
+						new Error(
+							`daemon snapshot ${id}: timed out after ${SNAPSHOT_TIMEOUT_MS}ms`,
+						),
+					),
+				SNAPSHOT_TIMEOUT_MS,
+			);
+			this.send({ type: "snapshot", id });
+		});
 	}
 
 	/**
@@ -368,14 +422,18 @@ export class DaemonClient {
 	}
 
 	/** Register a one-shot listener. Returns an unsubscribe; called for every frame until disposed. */
-	private on(cb: (m: ServerMessage) => void): () => void {
+	private on(
+		cb: (m: ServerMessage, payload: Uint8Array | null) => void,
+	): () => void {
 		this.adhocListeners.add(cb);
 		return () => {
 			this.adhocListeners.delete(cb);
 		};
 	}
 
-	private adhocListeners = new Set<(m: ServerMessage) => void>();
+	private adhocListeners = new Set<
+		(m: ServerMessage, payload: Uint8Array | null) => void
+	>();
 
 	private waitForFrame(
 		predicate: (m: ServerMessage) => boolean,
@@ -446,7 +504,7 @@ export class DaemonClient {
 			// Everything else (open-ok, closed, error, hello-ack, list-reply)
 			// goes through the adhoc listener fan-out so request/response
 			// helpers can pick it up.
-			for (const l of this.adhocListeners) l(msg);
+			for (const l of this.adhocListeners) l(msg, frame.payload);
 		}
 	}
 

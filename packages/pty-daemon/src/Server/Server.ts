@@ -10,6 +10,7 @@ import {
 	handleList,
 	handleOpen,
 	handleResize,
+	handleSnapshot,
 	handleSubscribe,
 	handleUnsubscribe,
 } from "../handlers/index.ts";
@@ -141,6 +142,7 @@ export class Server {
 				session.buffer = [buf];
 				session.bufferBytes = buf.byteLength;
 			}
+			session.bufferTruncated = s.truncated;
 			this.wireSession(session);
 		}
 	}
@@ -425,6 +427,10 @@ export class Server {
 			}
 			case "list": {
 				conn.send(handleList(ctx));
+				return;
+			}
+			case "snapshot": {
+				handleSnapshot(ctx, conn, msg);
 				return;
 			}
 			case "subscribe": {

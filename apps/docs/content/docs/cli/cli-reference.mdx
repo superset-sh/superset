@@ -544,6 +544,7 @@ List workspaces accessible to the active organization. With neither
 		{ flag: "--prompt <text>", description: "Initial prompt. Required when `--agent` is set." },
 		{ flag: "--command <cmd>", description: "Shell command to run in the new workspace after creation." },
 		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
+		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded host attachment UUID for the spawned agent. Repeatable." },
 	]}
 	output="Workspace"
 >
@@ -631,11 +632,11 @@ superset workspaces open ws_… --print
 #### Opening a specific session
 
 `workspaces open` targets a workspace, not a session. A session started with
-[`agents run`](#superset-agents-run) syncs to the desktop app but has no pane in
+[`agents create`](#superset-agents-create) syncs to the desktop app but has no pane in
 the workspace view until you navigate to it, and there is no session list, so a
 freshly created session is effectively invisible until opened. `workspaces open`
 can't focus a session, so build the deep link yourself and append a query param
-chosen by the session `kind` returned by `agents run`:
+chosen by the session `kind` returned by `agents create`:
 
 | `kind` | Example agents | Query param |
 | --- | --- | --- |
@@ -644,7 +645,7 @@ chosen by the session `kind` returned by `agents run`:
 
 ```bash
 # Run the agent with --json, then pull kind + sessionId out of the payload:
-session=$(superset agents run --workspace ws_… --agent claude --prompt "…" --json)
+session=$(superset agents create --workspace ws_… --agent claude --prompt "…" --json)
 kind=$(echo "$session" | jq -r '.kind')           # "chat" or "terminal"
 sessionId=$(echo "$session" | jq -r '.sessionId')
 
@@ -716,11 +717,103 @@ superset agents list --host host_…
 >
 Create an agent session in an existing workspace. Resolves the host that owns
 the workspace and starts the named preset (or HostAgentConfig instance) in a
-fresh terminal session on that host.
+fresh terminal session on that host. A successful response means the configured
+agent process started; immediate launch failures return an error instead of an
+idle terminal session ID.
 
 ```bash
 superset agents create --workspace ws_… --agent claude --prompt "Audit the login flow"
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
+```
+</Command>
+
+<Command
+	name="superset agents sessions list"
+	options={[
+		{ flag: "--host <id>", description: "Filter to one host machineId." },
+		{ flag: "--local", description: "Filter to this machine." },
+		{ flag: "--workspace <id>", description: "Filter to one workspace." },
+	]}
+	output={`Array<{
+  status: "working" | "permission" | "idle" | "failed";
+  agent: string;
+  workspaceId: string;
+  host: string;
+  hostId: string;
+  lastEventAt: string;
+  sessionId: string;
+}>`}
+>
+List live terminal-agent sessions across reachable hosts.
+
+```bash
+superset agents sessions list
+superset agents sessions list --local --workspace ws_…
+```
+</Command>
+
+<Command
+	name="superset agents sessions read <session-id>"
+	args={[
+		{ name: "session-id", required: true, description: "Full terminal session id." },
+	]}
+	options={[
+		{ flag: "--lines <n>", description: "Logical lines to return (default 120, maximum 1000)." },
+		{ flag: "--host <id>", description: "Probe only one host." },
+		{ flag: "--local", description: "Probe only this machine." },
+	]}
+>
+Read a recent plain-text terminal snapshot without attaching to or focusing the
+session. The snapshot is bounded and reports truncation in JSON mode; it is not
+a canonical transcript.
+
+```bash
+superset agents sessions read <session-id> --lines 120
+```
+</Command>
+
+<Command
+	name="superset agents sessions send <session-id> [prompt...]"
+	args={[
+		{ name: "session-id", required: true, description: "Full terminal session id." },
+		{ name: "prompt", required: false, description: "Follow-up prompt text." },
+	]}
+	options={[
+		{ flag: "--file <path>", description: "Read the prompt from a file; use - for stdin." },
+		{ flag: "--wait", description: "Wait for the resulting turn to settle." },
+		{ flag: "--timeout <duration>", description: "Maximum wait, such as 30s or 5m." },
+		{ flag: "--host <id>", description: "Probe only one host." },
+		{ flag: "--local", description: "Probe only this machine." },
+	]}
+>
+Send one semantic follow-up to a live agent. Choose exactly one prompt source:
+positional text, `--file`, or piped stdin. Multiline input is submitted as one
+bracketed paste and one submit key.
+
+```bash
+superset agents sessions send <session-id> "Now fix the failing test"
+superset agents sessions send <session-id> --file follow-up.md --wait --timeout 5m
+printf 'Check both files\nand run tests\n' | superset agents sessions send <session-id>
+```
+</Command>
+
+<Command
+	name="superset agents sessions wait <session-id>"
+	args={[
+		{ name: "session-id", required: true, description: "Full terminal session id." },
+	]}
+	options={[
+		{ flag: "--for <status>", required: true, description: "working, permission, idle, or failed." },
+		{ flag: "--timeout <duration>", description: "Maximum wait (default 5m)." },
+		{ flag: "--host <id>", description: "Probe only one host." },
+		{ flag: "--local", description: "Probe only this machine." },
+	]}
+>
+Poll a live agent until it reaches the requested state, exits, disappears, the
+timeout expires, or the command is interrupted.
+
+```bash
+superset agents sessions wait <session-id> --for idle --timeout 5m
 ```
 </Command>
 

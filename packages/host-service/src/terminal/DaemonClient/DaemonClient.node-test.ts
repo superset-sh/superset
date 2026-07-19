@@ -114,6 +114,38 @@ test("input is forwarded; resize updates dims", async () => {
 	await c.dispose();
 });
 
+test("snapshot reads buffered bytes repeatedly without subscribing", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+	const id = "host-test-snapshot";
+	await c.open(id, {
+		shell: "/bin/sh",
+		argv: ["-c", "printf snapshot-marker; sleep 2"],
+		cols: 80,
+		rows: 24,
+	});
+
+	await waitFor(
+		async () => (await c.snapshot(id)).data.includes("snapshot-marker"),
+		3000,
+	);
+	const first = await c.snapshot(id);
+	const second = await c.snapshot(id);
+	assert.ok(first.data.includes("snapshot-marker"));
+	assert.deepEqual(second, first);
+	assert.equal(first.truncated, false);
+
+	await c.close(id, "SIGTERM");
+	await c.dispose();
+});
+
+test("snapshot rejects an unknown terminal", async () => {
+	const c = new DaemonClient({ socketPath: sockPath });
+	await c.connect();
+	await assert.rejects(() => c.snapshot("missing-snapshot"), /unknown session/);
+	await c.dispose();
+});
+
 test("multiple local subscribers get fanned out from one wire subscription", async () => {
 	const c = new DaemonClient({ socketPath: sockPath });
 	await c.connect();
@@ -266,9 +298,12 @@ test("adoption flow: client A opens, drops, client B finds + subscribes-with-rep
 	await b.dispose();
 });
 
-async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
+async function waitFor(
+	predicate: () => boolean | Promise<boolean>,
+	ms: number,
+): Promise<void> {
 	const start = Date.now();
-	while (!predicate()) {
+	while (!(await predicate())) {
 		if (Date.now() - start > ms) throw new Error("waitFor timed out");
 		await new Promise((r) => setTimeout(r, 25));
 	}

@@ -42,10 +42,11 @@ Optionally act on the new workspace as soon as it's materialized:
 
 ```bash
 superset workspaces create --project <id> --local --name "..." --branch <branch> --agent claude --prompt "fix the build"
+superset workspaces create --project <id> --local --name "..." --branch <branch> --agent codex --prompt "review the context" --attachment ./context.md
 superset workspaces create --project <id> --local --name "..." --branch <branch> --command "bun install && bun test"
 ```
 
-- `--agent`/`--prompt` launch an agent in the workspace (both required together) — the inline form of `agents create`.
+- `--agent`/`--prompt` launch an agent in the workspace (both required together) — the inline form of `agents create`. Local `--attachment <path>` values are uploaded first; pre-uploaded files can be passed with repeatable `--attachment-id <uuid>`.
 - `--command <cmd>` runs a one-off shell command in the worktree — the inline form of `terminals create`.
 
 The two are independent — pass either or both.
@@ -60,7 +61,22 @@ superset agents create --workspace <id> --agent claude --prompt "..."
 
 `--agent` accepts a preset id (e.g. `claude`, `codex`), a HostAgentConfig instance UUID, or `superset` for a built-in Superset chat session. Pass `--attachment-id <uuid>` once per attachment. Use `agents list` first if you don't already know which agents are installed on the target host.
 
-`agents run --json` returns `{ kind, sessionId, label }`. `kind` is `chat` (the `superset` agent) or `terminal` (e.g. `claude`, `codex`) — you need it to build a session deep link (see [Opening sessions in the desktop app](#opening-sessions-in-the-desktop-app)).
+`agents create --json` returns `{ kind, sessionId, label }`. `kind` is `chat` (the `superset` agent) or `terminal` (e.g. `claude`, `codex`) — you need it to build a session deep link (see [Opening sessions in the desktop app](#opening-sessions-in-the-desktop-app)).
+
+Continue a live terminal agent headlessly with its returned `sessionId`:
+
+```bash
+superset agents sessions list [--host <id> | --local] [--workspace <id>]
+superset agents sessions read <session-id> --lines 120
+superset agents sessions send <session-id> "Now fix the failing test"
+superset agents sessions send <session-id> --file follow-up.md --wait --timeout 5m
+superset agents sessions wait <session-id> --for idle --timeout 5m
+```
+
+`read` is a bounded recent terminal snapshot, not a durable transcript. `send`
+accepts exactly one source from positional text, `--file`, or piped stdin.
+These commands work while the desktop renderer is closed; exited agent process
+resume remains agent-specific and is not part of this live-session interface.
 
 ## Opening sessions in the desktop app
 
@@ -71,9 +87,9 @@ superset workspaces open <workspaceId>
 superset workspaces open <workspaceId> --print
 ```
 
-A session you start with `agents run` syncs to the desktop app but has **no pane** in the workspace view until you navigate to it, and there is no session list — so a freshly created session is effectively invisible until opened. `workspaces open` targets only the workspace and cannot focus a session, so build the deep link yourself and append a query param chosen by the session `kind`:
+A session you start with `agents create` syncs to the desktop app but has **no pane** in the workspace view until you navigate to it, and there is no session list — so a freshly created session is effectively invisible until opened. `workspaces open` targets only the workspace and cannot focus a session, so build the deep link yourself and append a query param chosen by the session `kind`:
 
-| `kind` (from `agents run --json`) | Agents | Deep-link param |
+| `kind` (from `agents create --json`) | Agents | Deep-link param |
 | --- | --- | --- |
 | `chat` | `superset` | `?chatSessionId=<sessionId>` |
 | `terminal` | `claude`, `codex` | `?terminalId=<sessionId>` |

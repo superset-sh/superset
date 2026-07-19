@@ -1,0 +1,50 @@
+Agent sessions verification — 2026-07-19
+
+Targeted command:
+  bun test packages/cli-framework/src/parser.test.ts packages/cli/src/commands/agents packages/cli/src/commands/workspaces/create packages/cli/src/lib/upload-attachments.test.ts packages/host-service/src/trpc/router/terminal-agents
+
+Result:
+  18 pass
+  0 fail
+  32 expect() calls
+  6 test files
+
+Workspace attachment/launch contract:
+  shared ID/path resolution: 2 pass, 0 fail
+  workspace partial-failure reporting: 3 pass, 0 fail
+  workspaces create help exposes repeatable --attachment and --attachment-id: exit 0
+
+Desktop CDP acceptance:
+  renderer: Electron branch dev build on RENDERER_REMOTE_DEBUG_PORT=9222
+  result: 7 assertions pass, 0 fail
+  screenshot: cdp-desktop-workspace.png
+  screenshot sha256: cd42ab4ec6d4c8c98314231d0f0fd533d04f46160cf136fa965502370f7ff819
+  note: external Electric shape requests failed with network-loss/CORS errors; see cdp-assertions.json
+
+Monorepo typecheck:
+  command: bun run typecheck
+  result: 35 successful, 35 total
+  exit: 0
+
+Repository lint:
+  commands: bun run lint:fix && bun run lint
+  result: Checked 5222 files. No fixes required by the final lint pass.
+  exit: 0
+
+Version consistency:
+  command: bun run check:versions
+  result: versions unified at 1.15.1 for desktop, host-service, and CLI
+  exit: 0
+
+Production-ABI host/PTY suite from the same implementation run:
+  command: bun run --cwd packages/host-service test:e2e
+  result: 20 pass, 0 fail
+
+PTY daemon suites from the same implementation run:
+  unit: 61 pass, 0 fail
+  byte fidelity: 8 pass, 0 fail
+  integration: 51 pass, 0 fail
+
+Evidence artifact integrity:
+  capture.jsonl  c8d6cd129d758c9bd87d31068822d10dd5c73c14de6bcaccd280dfc0d7ec067d
+  host.db         c1898726d8973f99363bc2244152ee2e218f5df163d561a83d6fb375449d0176

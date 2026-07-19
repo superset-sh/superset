@@ -23,6 +23,8 @@ export type {
 	ServerMessage,
 	SessionInfo,
 	SessionMeta,
+	SnapshotMessage,
+	SnapshotReplyMessage,
 	SubscribeMessage,
 	UnsubscribeMessage,
 	UpgradePreparedMessage,
