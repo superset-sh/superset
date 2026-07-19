@@ -8,14 +8,14 @@
 
 | # | Finding | Severity | Fix |
 |---|---|---|---|
-| 1 | One flooding terminal destroys the org-wide daemon↔host-service socket (8 MiB cap, `Server.ts:595`); all terminals blip | Correctness bug, likely hitting users today | Per-session shedding in pty-daemon — **not** this pool |
+| 1 | One flooding terminal destroyed the org-wide daemon↔host-service socket (8 MiB cap, `Server.ts:595`); all terminals blipped | Correctness bug | **Fixed in #5747; verified below** |
 | 2 | 8-workspace churn stalls the loop (183ms stalls, query p95 127ms) via the **watcher path**, not status parsing | Loop health | Offload GitWatcher rescan/filtering to the pool |
 | 3 | Background `getStatus` takes 3.7–14.6s under churn — limiter queueing at concurrency 4 | UX staleness | Pool makes raising limiter concurrency safe |
 | 4 | Big-diff snapshot ≈1.2s (2k files) but does NOT stall the loop | Minor | Phase 1 offload, comes with #2/#3 infra |
 | 5 | Renderer freezes >60s under 8-workspace churn | Separate renderer workstream | Not host-service scope |
-| 6 | Daemon burns 50–77% CPU on unattached flooding PTYs; host-service RSS 320→570MB in one session | Investigate | With #1 / leak-check respectively |
+| 6 | Extreme subscribed terminal floods saturate host-service and daemon CPU | Measured | No sustained loop coupling; do not build a pinned worker yet |
 
-**Recommended order:** ship #1 (small daemon fix, no pool needed) → build the pool with git status + watcher rescan as tenants (#2–#4) → raise limiter concurrency → hand #5 to a renderer-side effort. Re-run the ModeTracker/terminal measurement only after #1 lands (the transport dies before the loop can be loaded).
+**Outcome:** #1 and the worker-pool/watcher-path work shipped; limiter concurrency stays at 4 because 6 did not improve completion time. The post-#5747 terminal rerun below rejects a pinned ModeTracker worker for now. #5 remains a separate renderer-side effort.
 
 ## Post-implementation measurement — 2026-07-18
 
@@ -44,6 +44,43 @@ Limiter comparison with eight identical snapshots: concurrency 4 completed in
 2.52 s (14 max active git processes); concurrency 6 took 2.59 s (17 processes).
 Keep the production limiter at 4: raising it did not improve completion time and
 increased subprocess pressure.
+
+## Post-daemon-fix terminal measurement — 2026-07-19
+
+The shared-socket backpressure fix landed in #5747. A reusable CDP harness now
+attaches real WebSocket consumers to two PTYs, floods one with continuous SGR
+output, probes echo latency on the other, probes host-service health, and samples
+host-service and pty-daemon CPU/RSS. Two 60-sample runs at 150 ms intervals moved
+279–288 MB through the subscribed flood terminal during each measured flood
+phase.
+
+| metric | baseline range | flood range |
+|---|---:|---:|
+| probe echo p50 | 8.1–8.7 ms | 9.2–9.3 ms |
+| probe echo p95 | 10.3–11.0 ms | 12.5–18.3 ms |
+| probe echo p99 | 11.4–19.4 ms | 21.1–52.5 ms |
+| host health p99 | 0.9–1.2 ms | 1.4–1.5 ms |
+| host-service CPU p95 | 4.6–9.5% | 88.9–89.3% |
+| pty-daemon CPU p95 | 0.9% | 83.2–84.0% |
+| probe/flood sockets | both open | both open |
+
+The transport now survives the load and the second terminal remains responsive.
+The flood is deliberately more aggressive than normal TUI output: it saturates
+most of a core in each process, but does not produce sustained health or echo
+latency above the ~20 ms promotion threshold. The one 52.5 ms p99 echo sample
+was a single tail sample; p95 remained below 20 ms in both runs. Do not add the
+pinned-worker/ModeTracker architecture from this plan based on these numbers.
+Keep the harness for regression measurements and reconsider only with a
+realistic workload that shows sustained loop coupling.
+
+## Cross-worker background fetch coordination — 2026-07-19
+
+Moving status snapshots into workers accidentally made the base-ref freshness
+Maps worker-local. Parallel worktrees sharing one Git common directory could
+therefore launch redundant background fetches. The main host-service thread now
+owns the common-dir TTL/in-flight coordinator again; the actual network fetch is
+still submitted to the worker pool. This restores process-wide deduplication
+without moving Git I/O back onto the host-service loop.
 
 ---
 

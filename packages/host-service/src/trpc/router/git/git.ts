@@ -5,10 +5,12 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
 import { createGitEnvResolver } from "../../../runtime/git";
+import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	gitCommitFilesTask,
+	gitFetchBaseRefTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
@@ -25,6 +27,7 @@ import type {
 	PullRequestReviewThread,
 	PullRequestState,
 } from "./types";
+import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
 import { gitConfigWrite } from "./utils/config-write";
 import {
 	getDefaultBranchName,
@@ -161,11 +164,32 @@ export const gitRouter = router({
 				run: async () => {
 					const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 					const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
-					return getHostWorkerPool().run(
+					const workerPool = getHostWorkerPool();
+					const result = await workerPool.run(
 						gitStatusSnapshotTask,
 						{ worktreePath, baseBranch: input.baseBranch, gitEnv },
 						{ timeoutMs: 15_000 },
 					);
+					if (result.baseRefFetchTarget) {
+						const target = result.baseRefFetchTarget;
+						const coordinatorGit =
+							createUserSimpleGit(worktreePath).env(gitEnv);
+						// The coordinator maps live in this process, not in individual
+						// workers, so worktrees sharing one common Git dir share one TTL
+						// and in-flight fetch. The network fetch itself remains off-loop.
+						scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
+							workerPool.run(
+								gitFetchBaseRefTask,
+								{ worktreePath, target, gitEnv },
+								{
+									timeoutMs: 30_000,
+									strategy: "coalesce",
+									dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
+								},
+							),
+						);
+					}
+					return result.snapshot;
 				},
 			});
 		}),
