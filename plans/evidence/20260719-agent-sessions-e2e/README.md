@@ -20,8 +20,6 @@ This directory contains a reproducible, isolated acceptance run for `plans/20260
 | `automated/transcript.md` | Plain-text review transcript generated from the same in-memory run records |
 | `automated/capture.jsonl` | Raw base64 fake-agent prompt records used for exact byte comparisons |
 | `automated/host.db` | Checkpointed isolated host database for session/workspace inspection |
-| `automated/host.log` | Both host-service lifetimes separated by the restart boundary |
-| `automated/pty-daemon.log` | Production-ABI daemon startup and shutdown record |
 
 The screenshot is a rendering of the generated E2E results, not independent proof. The authoritative evidence is `results.json` plus the raw capture/database and the executable harness in `packages/cli/test/e2e/`.
 
