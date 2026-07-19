@@ -135,11 +135,12 @@ Run targeted tests first, then repository checks:
     bun test packages/pty-daemon
     bun test packages/host-service/src/trpc/router/terminal-agents
     bun test packages/cli/src/commands/agents
+    bun run test:cli-e2e
     bun run typecheck
     bun run lint:fix
     bun run lint
 
-Manual acceptance, with the desktop app closed after launch:
+The isolated CLI E2E harness automates the desktop-closed acceptance sequence and records every command, exit code, stdout, stderr, and assertion:
 
 1. Launch an agent with `superset agents create` using a prompt larger than the prior truncation case; verify the full prompt reaches the agent, the command executes, and retain the returned terminal session id.
 2. `agents sessions list` shows it with the correct host, workspace, agent, and state.
@@ -172,6 +173,9 @@ Manual acceptance, with the desktop app closed after launch:
 - Decision: add a protocol-v3 snapshot reply with raw bytes, terminal dimensions, and an eviction flag.
   Rationale: dimensions let host-service render the bounded ANSI state accurately without a second list race, while the eviction flag prevents callers from mistaking a recent snapshot for a complete transcript. The daemon package is bumped to 0.2.6 so installs can detect the changed wire contract.
   Date: 2026-07-19.
+- Decision: make cross-process CLI acceptance executable and generated rather than manual evidence.
+  Rationale: a desktop-shell screenshot and hand-written summaries cannot prove headless command behavior. The harness must invoke the real CLI, isolated host HTTP service, and Electron-as-Node PTY daemon, then derive its report from captured commands and assertions.
+  Date: 2026-07-19.
 
 ## Progress
 
@@ -180,7 +184,7 @@ Manual acceptance, with the desktop app closed after launch:
 - [x] `terminalAgents.get/read/send` and normalized status
 - [x] CLI `agents sessions list/read/send/wait`
 - [x] SUPER-1568 workspace-create attachments, prompt-size coverage, and partial-failure reporting
-- [x] Automated and manual validation
+- [x] Reproducible CLI E2E, focused tests, typecheck, and lint validation
 
 ## Outcomes
 
@@ -191,5 +195,5 @@ Manual acceptance, with the desktop app closed after launch:
 - Automated unit, byte-fidelity, daemon integration/handoff, supervisor, production-ABI PTY E2E, monorepo typecheck, and lint validation pass.
 - The desktop-closed CLI acceptance sequence passes against an isolated production-ABI PTY daemon and restartable host fixture: an 88,016-byte multiline Unicode argv prompt arrived byte-for-byte, list/read/send/wait covered every normalized lifecycle state, multiline stdin remained one prompt, read/send survived a host-only restart, and exited/unknown sessions failed without replacement. An immediate exec failure returned exit 1 without a false session id.
 - The acceptance run exposed that the shared CLI parser rejected the conventional `--file -` spelling even though the session command supported `-` as stdin. The parser now accepts exactly `-` as a string option value, with a regression test; the spelling also passed through the full send/wait path.
-- Reviewable run evidence is preserved under `plans/evidence/20260719-agent-sessions-e2e/`: a concise index, machine-readable assertions, check results, the raw fake-agent byte capture, and the isolated host database. Product code does not depend on these artifacts.
+- `bun run test:cli-e2e` now recreates the desktop-closed acceptance run from an isolated Git repository, Superset home, manifest, host database, attachment root, host-service process, and production-ABI PTY daemon. It emits machine-readable results, a full command transcript, a rendered report/screenshot, the raw fake-agent byte capture, and the checkpointed database. A retained run is under `plans/evidence/20260719-agent-sessions-e2e/`; product code does not depend on it.
 - SUPER-1568 (`cli-gap-attachments-not-supported-in-workspaces-cr`) is covered by the same launch boundary: workspace creation accepts repeatable local paths and pre-uploaded attachment IDs, resolves both forms through the shared CLI helper used by `agents create`, and forwards the complete attachment-expanded prompt through the lossless launcher. There is no CLI or host-schema prompt character cap. If workspace creation succeeds but an inline agent launch fails or is omitted from the host response, the CLI exits with a clear partial-success error containing the retained workspace ID and an `agents create` retry command instead of reporting success.
