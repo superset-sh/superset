@@ -380,10 +380,11 @@ async function runScenario(
 		activeRefreshes++;
 		maxActiveRefreshes = Math.max(maxActiveRefreshes, activeRefreshes);
 		try {
-			const status = await workerPool.run(gitStatusSnapshotTask, {
+			const result = await workerPool.run(gitStatusSnapshotTask, {
 				worktreePath: options.repoPath,
 				gitEnv,
 			});
+			const status = result.snapshot;
 			lastSummary = {
 				againstBase: status.againstBase.length,
 				staged: status.staged.length,
@@ -505,12 +506,12 @@ async function runEventBusScenario(
 		try {
 			const worktreePath =
 				worktreePathByWorkspaceId.get(workspaceId) ?? options.repoPath;
-			const status = await workerPool.run(gitStatusSnapshotTask, {
+			const result = await workerPool.run(gitStatusSnapshotTask, {
 				worktreePath,
 				gitEnv,
 			});
-			lastSummary = summarizeStatus(status);
-			return status;
+			lastSummary = summarizeStatus(result.snapshot);
+			return result.snapshot;
 		} finally {
 			activeRefreshes--;
 		}
@@ -711,7 +712,7 @@ async function startCdpCapture(
 }
 
 function summarizeStatus(
-	status: Awaited<ReturnType<typeof gitStatusSnapshotTask.handler>>,
+	status: Awaited<ReturnType<typeof gitStatusSnapshotTask.handler>>["snapshot"],
 ): ScenarioResult["statusSummary"] {
 	return {
 		againstBase: status.againstBase.length,

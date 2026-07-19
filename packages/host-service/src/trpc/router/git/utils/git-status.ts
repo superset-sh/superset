@@ -1,6 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import type { Branch, ChangedFile } from "../types";
-import { scheduleBaseRefFetch } from "./base-ref-freshness";
+import type { BaseRefFetchTarget } from "./base-ref-freshness";
 import {
 	buildBranch,
 	countUntrackedFileLines,
@@ -20,6 +20,12 @@ export interface GitStatusSnapshot {
 	ignoredPaths: string[];
 }
 
+export interface GitStatusSnapshotComputation {
+	snapshot: GitStatusSnapshot;
+	/** Resolved in the worker, scheduled by the process-wide coordinator. */
+	baseRefFetchTarget: BaseRefFetchTarget | null;
+}
+
 export async function getGitStatusSnapshot({
 	git,
 	worktreePath,
@@ -28,19 +34,13 @@ export async function getGitStatusSnapshot({
 	git: SimpleGit;
 	worktreePath: string;
 	baseBranch?: string;
-}): Promise<GitStatusSnapshot> {
+}): Promise<GitStatusSnapshotComputation> {
 	const currentBranchName = (
 		await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
 	).trim();
 	const base = await resolveBaseComparison(git, baseBranch);
 	const defaultBranchName = base?.branchName ?? null;
 	const baseRef = base?.baseRef ?? "HEAD";
-
-	// Non-blocking refresh so the against-base diff stops ballooning after a
-	// rebase; see base-ref-freshness.
-	if (base?.fetchTarget) {
-		scheduleBaseRefFetch(git, worktreePath, base.fetchTarget);
-	}
 
 	const [currentBranch, defaultBranch, status, ignoredRaw] = await Promise.all([
 		buildBranch(git, currentBranchName, true, baseRef),
@@ -166,11 +166,14 @@ export async function getGitStatusSnapshot({
 	}
 
 	return {
-		currentBranch,
-		defaultBranch,
-		againstBase,
-		staged,
-		unstaged: mergedUnstaged,
-		ignoredPaths,
+		snapshot: {
+			currentBranch,
+			defaultBranch,
+			againstBase,
+			staged,
+			unstaged: mergedUnstaged,
+			ignoredPaths,
+		},
+		baseRefFetchTarget: base?.fetchTarget ?? null,
 	};
 }

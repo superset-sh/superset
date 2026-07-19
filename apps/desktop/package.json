@@ -22,6 +22,7 @@
 		"dev": "cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=8192 electron-vite dev --watch",
 		"compile:app": "cross-env NODE_OPTIONS=--max-old-space-size=8192 electron-vite build && bun run bundle:cli && bun run scripts/check-pty-daemon-bundle.ts",
 		"check:pty-daemon-bundle": "bun run scripts/check-pty-daemon-bundle.ts",
+		"profile:terminal-flood": "bun run scripts/cdp-terminal-flood-profile.ts",
 		"copy:native-modules": "bun run scripts/copy-native-modules.ts",
 		"validate:native-runtime": "bun run scripts/validate-native-runtime.ts",
 		"prebuild": "bun run clean:dev && bun run generate:icons && bun run compile:app && bun run copy:native-modules && bun run validate:native-runtime",
