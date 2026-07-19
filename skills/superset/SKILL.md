@@ -50,6 +50,8 @@ superset workspaces create --project <id> --local --name "..." --branch <branch>
 - `--command <cmd>` runs a one-off shell command in the worktree — the inline form of `terminals create`.
 
 The two are independent — pass either or both.
+If the workspace is created but its inline agent fails to start, the CLI exits
+non-zero and prints the retained workspace ID plus an `agents create` retry.
 
 ## Agents
 
@@ -75,8 +77,10 @@ superset agents sessions wait <session-id> --for idle --timeout 5m
 
 `read` is a bounded recent terminal snapshot, not a durable transcript. `send`
 accepts exactly one source from positional text, `--file`, or piped stdin.
-These commands work while the desktop renderer is closed; exited agent process
-resume remains agent-specific and is not part of this live-session interface.
+`send --wait` waits for a post-send idle, permission, failure, or exit event and
+returns a fresh snapshot when the process remains live. These commands work
+while the desktop renderer is closed and control terminal agents only; exited
+process resume and Superset chat sessions are not part of this interface.
 
 ## Opening sessions in the desktop app
 
@@ -87,7 +91,7 @@ superset workspaces open <workspaceId>
 superset workspaces open <workspaceId> --print
 ```
 
-A session you start with `agents create` syncs to the desktop app but has **no pane** in the workspace view until you navigate to it, and there is no session list — so a freshly created session is effectively invisible until opened. `workspaces open` targets only the workspace and cannot focus a session, so build the deep link yourself and append a query param chosen by the session `kind`:
+A session you start with `agents create` syncs to the desktop app but has **no pane** in the workspace view until you navigate to it. Recover live terminal IDs with `agents sessions list`. `workspaces open` targets only the workspace and cannot focus a session, so build the deep link yourself and append a query param chosen by the session `kind`:
 
 | `kind` (from `agents create --json`) | Agents | Deep-link param |
 | --- | --- | --- |

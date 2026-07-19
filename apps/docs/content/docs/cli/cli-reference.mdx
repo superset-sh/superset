@@ -546,12 +546,29 @@ List workspaces accessible to the active organization. With neither
 		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded host attachment UUID for the spawned agent. Repeatable." },
 	]}
-	output="Workspace"
+	output={`{
+  workspace: Workspace;
+  terminals: Array<{ terminalId: string; label: string }>;
+  agents: Array<
+    | { ok: true; kind: "terminal" | "chat"; sessionId: string; label: string }
+    | { ok: false; error: string }
+  >;
+  alreadyExists: boolean;
+  autoNameWarning?: string;
+  txid: number | null;
+}`}
 >
 Create a workspace on the target host. Specify exactly one of `--branch`
 or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
-`--agent`/`--prompt`. Pass either or both.
+`--agent`/`--prompt`. Pass either or both. Attachments require `--agent`:
+local paths are uploaded to the target host, while `--attachment-id` reuses a
+file already uploaded there.
+
+Workspace creation and the inline agent launch are separate outcomes. If the
+workspace is created but the agent fails to start, the command exits non-zero,
+prints the retained workspace ID, and suggests an `agents create` retry instead
+of deleting the workspace or reporting full success.
 
 ```bash
 superset workspaces create \
@@ -565,6 +582,15 @@ superset workspaces create \
   --name "review-pr-123" \
   --pr 123 \
   --local
+
+superset workspaces create \
+  --project prj_… \
+  --name "review-with-context" \
+  --branch review/with-context \
+  --local \
+  --agent codex \
+  --prompt "Review the attached trace" \
+  --attachment ./trace.log
 ```
 </Command>
 
@@ -633,10 +659,11 @@ superset workspaces open ws_… --print
 
 `workspaces open` targets a workspace, not a session. A session started with
 [`agents create`](#superset-agents-create) syncs to the desktop app but has no pane in
-the workspace view until you navigate to it, and there is no session list, so a
-freshly created session is effectively invisible until opened. `workspaces open`
-can't focus a session, so build the deep link yourself and append a query param
-chosen by the session `kind` returned by `agents create`:
+the workspace view until you navigate to it. Use
+[`agents sessions list`](#superset-agents-sessions-list) to recover a live
+terminal session ID. `workspaces open` can't focus a session, so build the deep
+link yourself and append a query param chosen by the session `kind` returned by
+`agents create`:
 
 | `kind` | Example agents | Query param |
 | --- | --- | --- |
@@ -719,13 +746,43 @@ Create an agent session in an existing workspace. Resolves the host that owns
 the workspace and starts the named preset (or HostAgentConfig instance) in a
 fresh terminal session on that host. A successful response means the configured
 agent process started; immediate launch failures return an error instead of an
-idle terminal session ID.
+idle terminal session ID. Large, multiline, Unicode, and attachment-expanded
+prompts bypass the interactive shell's line editor so their complete bytes reach
+argv- and stdin-based agents.
+
+Local `--attachment` paths are uploaded to the workspace's host before launch.
+Use `--attachment-id` for files already uploaded to that same host. Both options
+are repeatable and may be combined.
 
 ```bash
 superset agents create --workspace ws_… --agent claude --prompt "Audit the login flow"
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
 ```
 </Command>
+
+The session commands use these JSON shapes:
+
+```ts
+type AgentSession = {
+  terminalId: string;
+  workspaceId: string;
+  agentId: string;
+  agentSessionId?: string;
+  definitionId?: string;
+  startedAt: number;
+  lastEventAt: number;
+  lastEventType: string;
+  status: "working" | "permission" | "idle" | "failed";
+};
+
+type AgentSessionRead = {
+  terminalId: string;
+  workspaceId: string;
+  status: AgentSession["status"];
+  output: string;
+  truncated: boolean;
+};
+```
 
 <Command
 	name="superset agents sessions list"
@@ -744,7 +801,11 @@ superset agents create --workspace ws_… --agent codex --prompt "Review this di
   sessionId: string;
 }>`}
 >
-List live terminal-agent sessions across reachable hosts.
+List live terminal-agent sessions across reachable hosts. With no host filter,
+the command queries online organization hosts plus a running local host service;
+an unreachable host becomes a warning without hiding results from other hosts.
+These commands control terminal agents only—Superset chat sessions are not part
+of this live PTY interface.
 
 ```bash
 superset agents sessions list
@@ -762,10 +823,19 @@ superset agents sessions list --local --workspace ws_…
 		{ flag: "--host <id>", description: "Probe only one host." },
 		{ flag: "--local", description: "Probe only this machine." },
 	]}
+	output={`{
+  terminalId: string;
+  workspaceId: string;
+  status: "working" | "permission" | "idle" | "failed";
+  output: string;
+  truncated: boolean;
+}`}
 >
 Read a recent plain-text terminal snapshot without attaching to or focusing the
 session. The snapshot is bounded and reports truncation in JSON mode; it is not
-a canonical transcript.
+a canonical transcript. The terminal ID must be the full ID returned by
+`agents create` or `agents sessions list`. Reads also work after a host-service
+restart while the PTY daemon still owns the live process.
 
 ```bash
 superset agents sessions read <session-id> --lines 120
@@ -785,10 +855,27 @@ superset agents sessions read <session-id> --lines 120
 		{ flag: "--host <id>", description: "Probe only one host." },
 		{ flag: "--local", description: "Probe only this machine." },
 	]}
+	output={`Without --wait:
+{
+  terminalId: string;
+  accepted: true;
+  sentAt: number;
+}
+
+With --wait:
+{
+  terminalId: string;
+  accepted: { accepted: true; sentAt: number };
+  final: AgentSession | { status: "exited" };
+  read: AgentSessionRead | null;
+}`}
 >
 Send one semantic follow-up to a live agent. Choose exactly one prompt source:
 positional text, `--file`, or piped stdin. Multiline input is submitted as one
-bracketed paste and one submit key.
+bracketed paste and one submit key. `--wait` ignores an idle state that predates
+the send, then returns when the resulting turn becomes idle, requests
+permission, fails, or exits. Its response includes a fresh snapshot unless the
+process exited.
 
 ```bash
 superset agents sessions send <session-id> "Now fix the failing test"
@@ -808,14 +895,21 @@ printf 'Check both files\nand run tests\n' | superset agents sessions send <sess
 		{ flag: "--host <id>", description: "Probe only one host." },
 		{ flag: "--local", description: "Probe only this machine." },
 	]}
+	output={`AgentSession | { status: "exited" }`}
 >
 Poll a live agent until it reaches the requested state, exits, disappears, the
-timeout expires, or the command is interrupted.
+timeout expires, or the command is interrupted. `--timeout` accepts milliseconds,
+seconds, minutes, or hours, such as `250ms`, `30s`, `5m`, or `1h`.
 
 ```bash
 superset agents sessions wait <session-id> --for idle --timeout 5m
 ```
 </Command>
+
+All four session commands operate through the host service and PTY daemon; the
+desktop renderer does not need to be open. They address only a currently live
+process. Resuming an exited native agent session is agent-specific and is not
+part of this interface.
 
 ---
 
