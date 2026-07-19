@@ -54,6 +54,14 @@ Cross-process CLI changes need an isolated command-level test, not a desktop scr
 
 Run the headless agent-session acceptance test with `bun run test:cli-e2e`.
 
+When the acceptance criterion includes the real desktop UI, also run the
+CLI-to-Electron CDP workflow in
+`apps/desktop/docs/CLI_CDP_E2E.md`. The CLI must share the exact worktree's
+`SUPERSET_HOME_DIR` and Electron-owned host manifest; launch the full app, not a
+renderer-only Vite server. Preserve CLI output and genuine CDP screenshots as
+separate evidence: a screenshot proves the renderer's visible response to the
+returned CLI-created IDs, not the CLI upload or transport behavior by itself.
+
 ## Agent Rules
 1. **Type safety** - avoid `any` unless necessary
 2. **Prefer `gh` CLI** - when performing git operations (PRs, issues, checkout, etc.), prefer the GitHub CLI (`gh`) over raw `git` commands where possible

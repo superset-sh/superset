@@ -49,6 +49,11 @@ export const createMyRouter = () => {
 
 To check a change end-to-end against the real API/DB, drive the running dev app over CDP. Launch with an unused port, for example `RENDERER_REMOTE_DEBUG_PORT=9222 bun dev` (full stack; the app may restore a signed-in session), then attach via the page target's `webSocketDebuggerUrl` over a WebSocket (Bun built-in, no deps). Example: `scripts/cdp-smoke-integrations.ts`.
 
+For a CLI-initiated journey, follow `docs/CLI_CDP_E2E.md`. It documents how to
+run the development CLI against this exact Electron instance's home directory
+and host manifest, then tie CLI-returned workspace/session IDs to real CDP input
+and `Page.captureScreenshot` evidence.
+
 **Never assume port 9222 or attach to a renderer from another worktree.** Multiple Superset workspaces commonly run at once, each with different renderer, API, and CDP ports. Before testing:
 
 1. Read this workspace's final `DESKTOP_VITE_PORT` and `NEXT_PUBLIC_API_URL` values from the root `.env`.
