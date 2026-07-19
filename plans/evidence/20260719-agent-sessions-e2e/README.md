@@ -1,6 +1,6 @@
 # Agent-session CLI E2E evidence
 
-This directory contains a reproducible, isolated acceptance run for `plans/20260717-1616-cli-sidebar-groups.md`. The previous desktop screenshot was removed because it showed only a healthy empty shell and did not demonstrate the CLI feature.
+This directory contains a reproducible, isolated acceptance run for `plans/20260717-1616-cli-sidebar-groups.md`. It separates product-CDP evidence from CLI transcript evidence so neither is presented as proof of behavior it cannot show.
 
 ## Result
 
@@ -20,8 +20,12 @@ This directory contains a reproducible, isolated acceptance run for `plans/20260
 | `automated/transcript.md` | Plain-text review transcript generated from the same in-memory run records |
 | `automated/capture.jsonl` | Raw base64 fake-agent prompt records used for exact byte comparisons |
 | `automated/host.db` | Checkpointed isolated host database for session/workspace inspection |
+| `cdp/desktop-new-workspace-attachments.png` | Full Electron renderer captured through CDP with the New Workspace surface open |
+| `cdp/desktop-attachment-tooltip.png` | CDP close-up showing the visible `Add attachment` affordance and tooltip |
+| `cdp/desktop-agent-picker.png` | CDP close-up showing the renderer's agent picker options |
+| `cdp/assertions.json` | CDP target, renderer-port, auth, modal, attachment-control, and capture-method assertions |
 
-The screenshot is a rendering of the generated E2E results, not independent proof. The authoritative evidence is `results.json` plus the raw capture/database and the executable harness in `packages/cli/test/e2e/`.
+`automated/report.png` is a rendering of generated E2E results, not a product screenshot. The `cdp/*.png` files are actual Electron `Page.captureScreenshot` results from this worktree's renderer on port 7485, attached through isolated CDP port 29422. They validate the visible New Workspace attachment and agent-selection surfaces only. The authoritative evidence for headless `agents sessions list/read/send/wait` behavior remains `automated/results.json`, the raw capture/database, and the executable harness in `packages/cli/test/e2e/`.
 
 ## Covered behavior
 

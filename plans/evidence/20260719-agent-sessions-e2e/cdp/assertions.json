@@ -1,0 +1,35 @@
+{
+  "capturedAt": "2026-07-19T20:58:07.469Z",
+  "captureMethod": "Electron Chrome DevTools Protocol Page.captureScreenshot",
+  "cdpPort": 29422,
+  "targetId": "BC67A8C14912A6D42E2115A8C58F25D3",
+  "targetUrl": "http://localhost:7485/#/workspace",
+  "expectedRendererPort": 7485,
+  "workspaceRoot": "/Users/kietho/.superset/worktrees/1c99c8eb-1b31-4f04-9ac4-61a2760c74b6/cli-workspace-sidebar",
+  "assertions": {
+    "targetMatchesWorktreeRenderer": true,
+    "sessionStatus": 200,
+    "hasActiveOrganization": true,
+    "modalVisible": true,
+    "hasAttachmentControl": true,
+    "hasUploadInput": true,
+    "attachmentTooltipVisible": true,
+    "agentPickerOptions": [
+      "No agent",
+      "Superset",
+      "Configure agents..."
+    ]
+  },
+  "screenshots": [
+    "desktop-new-workspace-attachments.png",
+    "desktop-attachment-tooltip.png",
+    "desktop-agent-picker.png"
+  ],
+  "visibleDialogText": "\n\n\nNo agent\nNo agent\nSuperset\nConfigure agents...\nKiets-Spaceship\nSelect project\nSelect base branch…\n⌘↵",
+  "viewport": {
+    "width": 1728,
+    "height": 1084,
+    "devicePixelRatio": 2
+  },
+  "scopeNote": "This product CDP screen validates the desktop New Workspace attachment surface. Headless agents sessions list/read/send/wait behavior is evidenced separately by CLI transcripts and automated assertions."
+}
