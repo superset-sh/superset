@@ -6,12 +6,10 @@
  *   RENDERER_REMOTE_DEBUG_PORT=19322 bun --env-file=.env \
  *     apps/desktop/scripts/cdp-terminal-flood-profile.ts --repair-local-auth
  *
- * The harness verifies the renderer URL and normally resolves its authenticated
- * org through CDP. If the local API is unavailable, --organization-id selects
- * an already-running local host explicitly. It never prints the host token. It
- * attaches real WebSocket consumers to two PTYs, floods one, and measures
- * echo/health latency on the other while sampling host-service and pty-daemon
- * resources.
+ * The harness verifies the renderer URL and resolves its authenticated org
+ * through CDP. It never prints bearer or host tokens. It attaches real
+ * WebSocket consumers to two PTYs, floods one, and measures echo/health latency
+ * on the other while sampling host-service and pty-daemon resources.
  */
 
 import { Database } from "bun:sqlite";
@@ -32,7 +30,6 @@ interface Options {
 	samples: number;
 	intervalMs: number;
 	repairLocalAuth: boolean;
-	organizationId: string | null;
 	workspacePath: string;
 	outDir: string;
 }
@@ -108,7 +105,6 @@ function parseArgs(argv: string[]): Options {
 		samples: 60,
 		intervalMs: 150,
 		repairLocalAuth: false,
-		organizationId: null,
 		workspacePath: process.cwd(),
 		outDir: ".cache/terminal-flood-profiles",
 	};
@@ -132,9 +128,6 @@ function parseArgs(argv: string[]): Options {
 				break;
 			case "--repair-local-auth":
 				options.repairLocalAuth = true;
-				break;
-			case "--organization-id":
-				options.organizationId = next();
 				break;
 			case "--workspace-path":
 				options.workspacePath = resolve(next());
@@ -206,13 +199,25 @@ async function evaluateCdp<T>(
 			const message = JSON.parse(String(event.data)) as {
 				id?: number;
 				result?: {
-					exceptionDetails?: unknown;
+					exceptionDetails?: {
+						text?: string;
+						exception?: { description?: string };
+					};
 					result?: { value?: T };
 				};
 			};
 			if (message.id !== 1) return;
-			if (message.result?.exceptionDetails) {
-				settle(() => rejectValue(new Error("Renderer evaluation failed")));
+			const exception = message.result?.exceptionDetails;
+			if (exception) {
+				settle(() =>
+					rejectValue(
+						new Error(
+							exception.exception?.description ??
+								exception.text ??
+								"Renderer evaluation failed",
+						),
+					),
+				);
 				return;
 			}
 			settle(() => resolveValue(message.result?.result?.value as T));
@@ -231,6 +236,17 @@ function sessionProbeExpression(apiUrl: string): string {
 	})()`;
 }
 
+function bearerSessionProbeExpression(): string {
+	return `(async () => {
+		const { authClient } = await import("/lib/auth-client.ts");
+		const result = await authClient.getSession({ fetchOptions: { throw: false } });
+		return {
+			status: result.data ? 200 : 401,
+			organizationId: result.data?.session?.activeOrganizationId ?? null,
+		};
+	})()`;
+}
+
 async function resolveAuthenticatedOrg(
 	options: Options,
 	target: CdpTarget,
@@ -239,6 +255,15 @@ async function resolveAuthenticatedOrg(
 		target,
 		sessionProbeExpression(options.apiUrl),
 	);
+	// Non-local desktop auth intentionally uses an in-memory bearer token rather
+	// than browser cookies. Exercise the renderer's real auth client so the CDP
+	// probe verifies /api/auth/get-session without exposing that token.
+	if (!probe.organizationId) {
+		probe = await evaluateCdp<SessionProbe>(
+			target,
+			bearerSessionProbeExpression(),
+		);
+	}
 	if (!probe.organizationId && options.repairLocalAuth) {
 		const api = new URL(options.apiUrl);
 		if (
@@ -562,8 +587,7 @@ function sleep(ms: number): Promise<void> {
 async function main(): Promise<void> {
 	const options = parseArgs(process.argv.slice(2));
 	const target = await findRendererTarget(options);
-	const organizationId =
-		options.organizationId ?? (await resolveAuthenticatedOrg(options, target));
+	const organizationId = await resolveAuthenticatedOrg(options, target);
 	const organizationDir = join(options.homeDir, "host", organizationId);
 	const manifest = await readJson<HostManifest>(
 		join(organizationDir, "manifest.json"),

@@ -13,9 +13,9 @@
 | 3 | Background `getStatus` takes 3.7–14.6s under churn — limiter queueing at concurrency 4 | UX staleness | Pool makes raising limiter concurrency safe |
 | 4 | Big-diff snapshot ≈1.2s (2k files) but does NOT stall the loop | Minor | Phase 1 offload, comes with #2/#3 infra |
 | 5 | Renderer freezes >60s under 8-workspace churn | Separate renderer workstream | Not host-service scope |
-| 6 | Extreme subscribed terminal floods saturate host-service and daemon CPU | Measured | No sustained loop coupling; do not build a pinned worker yet |
+| 6 | Extreme subscribed terminal floods saturate host-service and daemon CPU and raise second-terminal echo p95 to 48.5 ms | Loop health | Attribute ModeTracker/hint scan, then test a pinned worker |
 
-**Outcome:** #1 and the worker-pool/watcher-path work shipped; limiter concurrency stays at 4 because 6 did not improve completion time. The post-#5747 terminal rerun below rejects a pinned ModeTracker worker for now. #5 remains a separate renderer-side effort.
+**Outcome:** #1 and the worker-pool/watcher-path work shipped; limiter concurrency stays at 4 because a concurrency of 6 did not improve completion time. The authenticated post-#5747 terminal rerun below reproduces cross-terminal coupling and promotes ModeTracker attribution/pinned-worker work. #5 remains a separate renderer-side effort.
 
 ## Post-implementation measurement — 2026-07-18
 
@@ -50,28 +50,34 @@ increased subprocess pressure.
 The shared-socket backpressure fix landed in #5747. A reusable CDP harness now
 attaches real WebSocket consumers to two PTYs, floods one with continuous SGR
 output, probes echo latency on the other, probes host-service health, and samples
-host-service and pty-daemon CPU/RSS. Two 60-sample runs at 150 ms intervals moved
-279–288 MB through the subscribed flood terminal during each measured flood
-phase.
+host-service and pty-daemon CPU/RSS. The harness requires an authenticated CDP
+session and resolves the active organization through the renderer's real auth
+client; it has no organization-ID bypass.
 
-| metric | baseline range | flood range |
+The first two full runs used an explicit organization while the workspace API
+was misconfigured. They established transport survival but are not accepted as
+the final renderer reproduction. After refreshing the workspace Neon branch,
+clearing a corrupt generated API cache, and verifying the renderer on its real
+workspace route, a settled authenticated 60-sample run at 150 ms intervals
+moved 326 MB through the subscribed flood terminal:
+
+| metric | authenticated baseline | authenticated flood |
 |---|---:|---:|
-| probe echo p50 | 8.1–8.7 ms | 9.2–9.3 ms |
-| probe echo p95 | 10.3–11.0 ms | 12.5–18.3 ms |
-| probe echo p99 | 11.4–19.4 ms | 21.1–52.5 ms |
-| host health p99 | 0.9–1.2 ms | 1.4–1.5 ms |
-| host-service CPU p95 | 4.6–9.5% | 88.9–89.3% |
-| pty-daemon CPU p95 | 0.9% | 83.2–84.0% |
+| probe echo p50 | 8.7 ms | 12.3 ms |
+| probe echo p95 | 15.8 ms | **48.5 ms** |
+| probe echo p99 | 153.6 ms | 148.4 ms |
+| host health p95 | 2.5 ms | 4.9 ms |
+| host health p99 | 8.4 ms | **81.7 ms** |
+| host-service CPU p95 | 27.1% | **86.9%** |
+| pty-daemon CPU p95 | 1.6% | 76.1% |
 | probe/flood sockets | both open | both open |
 
-The transport now survives the load and the second terminal remains responsive.
-The flood is deliberately more aggressive than normal TUI output: it saturates
-most of a core in each process, but does not produce sustained health or echo
-latency above the ~20 ms promotion threshold. The one 52.5 ms p99 echo sample
-was a single tail sample; p95 remained below 20 ms in both runs. Do not add the
-pinned-worker/ModeTracker architecture from this plan based on these numbers.
-Keep the harness for regression measurements and reconsider only with a
-realistic workload that shows sustained loop coupling.
+The transport now survives the load, confirming #5747, but the second terminal
+shows sustained coupling above the ~20 ms promotion threshold. Promote the
+ModeTracker/hint-scan attribution work and a pinned-worker experiment. The
+flood is deliberately more aggressive than normal TUI output, so use the same
+harness to compare the experiment and require a material echo-p95 improvement
+without regressing attach/preamble behavior before shipping the architecture.
 
 ## Cross-worker background fetch coordination — 2026-07-19
 
