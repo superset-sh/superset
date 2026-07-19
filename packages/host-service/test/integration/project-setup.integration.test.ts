@@ -104,20 +104,18 @@ describe("project.setup error paths", () => {
 
 describe("project.setup with caller-supplied origin (cross-host local-first)", () => {
 	let host: TestHost;
-	let repo: GitFixture;
-
-	beforeEach(async () => {
-		repo = await createGitFixture();
-	});
+	let repo: GitFixture | undefined;
 
 	afterEach(async () => {
 		if (host) await host.dispose();
-		repo.dispose();
+		repo?.dispose();
+		repo = undefined;
 	});
 
 	test("import with origin never consults the cloud and applies the origin name", async () => {
 		// No apiOverrides: any cloud call throws "unmocked procedure".
 		host = await createTestHost();
+		repo = await createGitFixture();
 		const projectId = randomUUID();
 
 		const result = await host.trpc.project.setup.mutate({
@@ -164,26 +162,27 @@ describe("project.create empty mode is fully local", () => {
 	test("creates repo dir, named row, and main workspace with zero cloud calls", async () => {
 		host = await createTestHost();
 		const parentDir = mkdtempSync(join(tmpdir(), "empty-mode-parent-"));
+		try {
+			const created = await host.trpc.project.create.mutate({
+				name: "Fresh Local",
+				mode: { kind: "empty", parentDir },
+			});
+			expect(created.repoPath.startsWith(parentDir)).toBe(true);
+			expect(created.mainWorkspaceId).toBeTruthy();
+			expect(existsSync(join(created.repoPath, ".git"))).toBe(true);
 
-		const created = await host.trpc.project.create.mutate({
-			name: "Fresh Local",
-			mode: { kind: "empty", parentDir },
-		});
-		expect(created.repoPath.startsWith(parentDir)).toBe(true);
-		expect(created.mainWorkspaceId).toBeTruthy();
-		expect(existsSync(join(created.repoPath, ".git"))).toBe(true);
-
-		const row = host.db
-			.select()
-			.from(projects)
-			.all()
-			.find((p) => p.id === created.projectId);
-		expect(row?.name).toBe("Fresh Local");
-		expect(row?.updatedAt).toBeGreaterThan(0);
-		expect(
-			host.apiCalls.filter((c) => c.path.startsWith("v2Project.")),
-		).toEqual([]);
-
-		rmSync(parentDir, { recursive: true, force: true });
+			const row = host.db
+				.select()
+				.from(projects)
+				.all()
+				.find((p) => p.id === created.projectId);
+			expect(row?.name).toBe("Fresh Local");
+			expect(row?.updatedAt).toBeGreaterThan(0);
+			expect(
+				host.apiCalls.filter((c) => c.path.startsWith("v2Project.")),
+			).toEqual([]);
+		} finally {
+			rmSync(parentDir, { recursive: true, force: true });
+		}
 	});
 });
