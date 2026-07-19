@@ -40,17 +40,17 @@ This was the pre-#5751 baseline: nothing was reclaimed on workspace switch, so w
 
 ### Production-shaped visible lifecycle follow-up
 
-The lifecycle was rerun after merging the latest `origin/main`. The included upstream commit was `637aa9ec79078c60c4fe8179a5f67a137740236b`; the tested merge commit was `e4bf24c7b5f5c3ec51471ddd1ceaef10f860ea07`. That upstream state moved projects to the local-first host-service database, so this run used one local host-owned project with eight adopted synthetic workspaces instead of the now-stale cloud-project procedure.
+The lifecycle was rerun after merging the latest `origin/main`. The before-fix reproduction used upstream `637aa9ec79078c60c4fe8179a5f67a137740236b` at merge commit `e4bf24c7b5f5c3ec51471ddd1ceaef10f860ea07`. Before publication, main advanced with a legacy-v1 Changes optimization; that non-overlapping delta was merged and the complete after-fix workload was rerun on upstream `b06e97fc2bf6f179541e9529300d00351fd722fd` at merge commit `e9f37b219bba333b7e1f59e6b6fa1417715e070f`. The current upstream state uses the local-first host-service database, so these runs used one local host-owned project with eight adopted synthetic workspaces instead of the now-stale cloud-project procedure.
 
 The reusable setup, measurement, evidence, and cleanup procedure is recorded in [`RENDERER_CHURN_UI_PROFILE_RUNBOOK.md`](./RENDERER_CHURN_UI_PROFILE_RUNBOOK.md). The [checkpoint video](./artifacts/renderer-churn-visible-lifecycle-checkpoints.mp4) shows the matched baseline, active-churn workspace lifecycle, and loaded post-fix Changes state.
 
 | Gate | Verified value |
 |---|---|
 | Worktree | `/Users/kietho/.superset/worktrees/1c99c8eb-1b31-4f04-9ac4-61a2760c74b6/agent/renderer-churn-current-main` |
-| Branch / tested commit | `agent/renderer-churn-current-main` / `e4bf24c7b5f5c3ec51471ddd1ceaef10f860ea07` |
-| Included `origin/main` | `637aa9ec79078c60c4fe8179a5f67a137740236b` |
+| Branch / final tested commit | `agent/renderer-churn-current-main` / `e9f37b219bba333b7e1f59e6b6fa1417715e070f` |
+| Included `origin/main` | `b06e97fc2bf6f179541e9529300d00351fd722fd` |
 | API / renderer | `7501` / `7505` |
-| Dedicated CDP | `127.0.0.1:9520`; before-fix page `5620DCD39260716999F6ECB3FFBF7F60`, renderer PID `67316`; after-fix page `FA23F5E2F933E4E68B0F2DFB63B19751`, renderer PID `7813` |
+| Dedicated CDP | `127.0.0.1:9520`; before-fix page `5620DCD39260716999F6ECB3FFBF7F60`, renderer PID `67316`; final after-fix page `0DAD89B3399A48957C95DBDDCDD19A56`, renderer PID `38437` |
 | Auth / data boundary | Authenticated local-dev session; project/workspace rows only in this worktree's local host-service DB. Synthetic Git roots only; no production database, migration, repository, or credential literal |
 | Visible lifecycle | Local/main plus `renderer-ui-1` through `renderer-ui-7`, v2 Workspaces list, and return to local/main, driven through real CDP pointer input on the dedicated renderer |
 
@@ -74,11 +74,11 @@ Before-fix CDP timeouts were 0 / **3** / 0 across baseline/churn/cooldown.
 
 | Renderer metric | After baseline p50 / p95 / max | After churn p50 / p95 / max | After cooldown p50 / p95 / max |
 |---|---:|---:|---:|
-| Dedicated-CDP round trip | 0.55 / 1.84 / 2.47 ms | 0.42 / 1.19 / 198.44 ms | 0.33 / 0.56 / 1.24 ms |
-| Renderer event-loop delay | 0.00 / 1.10 / 1.70 ms | 0.00 / 0.90 / 265.70 ms | 0.00 / 0.80 / 1.60 ms |
-| Renderer RSS | 860.89 / 862.36 / 862.36 MiB | 895.44 / 914.89 / 915.83 MiB | 916.38 / 917.22 / 917.22 MiB |
+| Dedicated-CDP round trip | 0.41 / 1.29 / 57.42 ms | 0.45 / 1.63 / 166.37 ms | 0.45 / 0.90 / 1.68 ms |
+| Renderer event-loop delay | 0.00 / 1.20 / 82.50 ms | 0.00 / 1.10 / 220.10 ms | 0.00 / 1.10 / 1.60 ms |
+| Renderer RSS | 645.95 / 667.91 / 667.91 MiB | 749.52 / 807.78 / 807.92 MiB | 770.58 / 772.53 / 772.53 MiB |
 
-After-fix CDP timeouts were **0 / 0 / 0**. The mutator completed in 59.525 s after the fix versus 62.230 s before. The after-run used a fresh renderer launch, so the absolute RSS delta includes launch-state variation; the identical workload, bounded mounted-row count, timeout removal, and profile-to-fix match are the stronger causal evidence.
+After-fix CDP timeouts were **0 / 0 / 0**. The final latest-main mutator completed in 60.100 s versus 62.230 s before. All nine real-pointer transitions were accepted in 522–701 ms (551 ms p50 / 701 ms p95 / 701 ms max, including a fixed 500 ms observation window). The after-run used a fresh renderer launch, so the absolute RSS delta includes launch-state variation; the identical workload, bounded mounted-row count, timeout removal, and profile-to-fix match are the stronger causal evidence.
 
 The real-input during screenshot shows a cold workspace immediately accepting the route change and displaying `Loading changes…` while its backend status populated. That status-completion wait is distinct from the reproduced renderer freeze: CDP round trips and timer sampling remained responsive. The remaining risk is full-tree status freshness/completion latency on unwarmed workspaces; this renderer fix does not change git status scheduling or the cache-first behavior.
 

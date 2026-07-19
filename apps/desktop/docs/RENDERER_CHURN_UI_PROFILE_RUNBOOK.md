@@ -32,7 +32,7 @@ bun packages/host-service/scripts/git-status-large-repo-profile.ts \
   --mode limited --flow event-bus --recreate
 ```
 
-On `637aa9e`, that general-purpose harness threw after creating the fixture because its report path still expected `status.againstBase`. Treat that exception as a setup limitation, not a successful measurement: independently verify all roots, branches, and dirty counts before adopting them. Do not reuse the harness's partial result as renderer evidence.
+On the final tested main (`b06e97f`), that general-purpose harness threw after creating the fixture because its report path still expected `status.againstBase`. Treat that exception as a setup limitation, not a successful measurement: independently verify all roots, branches, and dirty counts before adopting them. Do not reuse the harness's partial result as renderer evidence.
 
 The mutator must target existing tracked paths. Validate one generated path with `git ls-files --error-unmatch` before starting. For the 20k fixture used on 2026-07-19, tracked paths were shaped like:
 
