@@ -7,6 +7,7 @@ import {
 	getChangesetFileKey,
 } from "../../../../../useChangeset";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
+import { shouldRestoreCachedScrollState } from "./shouldRestoreCachedScrollState";
 
 interface UseDiffCodeViewScrollOptions {
 	codeViewRef: RefObject<CodeViewHandle<DiffAnnotationMetadata> | null>;
@@ -21,16 +22,6 @@ interface UseDiffCodeViewScrollOptions {
 
 interface UseDiffCodeViewScrollResult {
 	targetItemId?: string;
-}
-
-export function shouldRestoreCachedScrollState(
-	state: { scrollTop: number; updatedAt: number } | undefined,
-	navigationTick: number | undefined,
-): state is { scrollTop: number; updatedAt: number } {
-	return (
-		state !== undefined &&
-		(navigationTick === undefined || state.updatedAt > navigationTick)
-	);
 }
 
 export function useDiffCodeViewScroll({

@@ -1,9 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { shouldRestoreCachedScrollState } from "./useDiffCodeViewScroll";
+import { shouldRestoreCachedScrollState } from "./shouldRestoreCachedScrollState";
 
 const cachedState = {
 	scrollTop: 320,
-	scrollLeft: 0,
 	updatedAt: 20,
 };
 
