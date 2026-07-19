@@ -25,7 +25,7 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 
 ### CLI Options
 
-<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe"]}>
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code"]}>
 <Tab value="Claude Code">
 ```bash title="terminal"
 claude mcp add superset --transport http https://api.superset.sh/api/v2/agent/mcp
@@ -85,13 +85,22 @@ transport = "http"
 url = "https://api.superset.sh/api/v2/agent/mcp"
 ```
 </Tab>
+<Tab value="Kimi Code">
+Run `kimi`, enter `/mcp-config`, and add an HTTP server named `superset` with this URL:
+
+```text title="Kimi Code"
+https://api.superset.sh/api/v2/agent/mcp
+```
+
+Then enter `/mcp-config login superset` to authorize it.
+</Tab>
 </Tabs>
 
 ### Manual Configuration
 
 Alternatively, you can manually configure the MCP server for each client:
 
-<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe"]}>
+<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code"]}>
 <Tab value="Claude Code">
 Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and handles OAuth authentication.
 
@@ -191,6 +200,21 @@ name = "superset"
 transport = "http"
 url = "https://api.superset.sh/api/v2/agent/mcp"
 ```
+</Tab>
+<Tab value="Kimi Code">
+Add to `.kimi-code/mcp.json` in your project root (or `~/.kimi-code/mcp.json` for global config):
+
+```json title=".kimi-code/mcp.json"
+{
+  "mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+
+Then enter `/mcp-config login superset` in Kimi Code to authorize it.
 </Tab>
 </Tabs>
 

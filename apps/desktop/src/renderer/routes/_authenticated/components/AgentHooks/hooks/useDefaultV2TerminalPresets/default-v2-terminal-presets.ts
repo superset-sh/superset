@@ -9,6 +9,7 @@ export const DEFAULT_V2_TERMINAL_PRESET_IDS = [
 	"opencode",
 	"copilot",
 	"vibe",
+	"kimi",
 ] as const;
 
 interface CreateDefaultV2TerminalPresetRowsInput {

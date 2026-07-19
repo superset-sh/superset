@@ -50,4 +50,9 @@ describe("mapEventType", () => {
 		expect(mapEventType("before_tool")).toBe("Start");
 		expect(mapEventType("post_agent_turn")).toBe("Stop");
 	});
+
+	it("maps Kimi hook events that extend the shared lifecycle set", () => {
+		expect(mapEventType("PermissionResult")).toBe("Start");
+		expect(mapEventType("Interrupt")).toBe("Stop");
+	});
 });

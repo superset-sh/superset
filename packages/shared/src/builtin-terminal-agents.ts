@@ -142,6 +142,16 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "kimi",
+		label: "Kimi Code",
+		description:
+			"Moonshot AI's coding agent for reading, editing, and running code from the terminal.",
+		command: "kimi",
+		promptCommand: "kimi -p",
+		promptCommandSuffix: "; kimi --auto --continue",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "cursor-agent",
 		label: "Cursor Agent",
 		description:
