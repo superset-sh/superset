@@ -6,7 +6,7 @@ Initial review 2026-07-18; progress and the large-repository rerun updated 2026-
 
 | Item | Ticket | Status |
 |---|---|---|
-| Parked-terminal LRU eviction (terminal half) | SUPER-1545 | **Shipped** in PR #5751. Cap defaults to 12 parked, user-configurable (Settings → Terminal → "Background terminal memory"; local-db `terminal_parked_runtime_cap`, migration 0042, zod-clamped 2–64, live-applied via `terminalRuntimeRegistry.setParkedRuntimeCap`). CDP-verified: default seeds at boot, 16-tab cycle parks exactly 12, lowering to 6 sweeps immediately, persists, out-of-range rejected. Two controlled A/Bs below (18-terminal fill, 24-terminal live-stream; both measured at cap 5 — savings scale down as the cap rises) |
+| Parked-terminal LRU eviction (terminal half) | SUPER-1545 | **Shipped** in PR #5751. Cap defaults to 12 parked, user-configurable (Settings → Terminal → "Background terminal memory"; local-db `terminal_parked_runtime_cap`, migration 0042, zod-clamped 2–64, live-applied via `terminalRuntimeRegistry.setParkedRuntimeCap`). Workspace-close disposal was hardened in PR #5752 and eviction persistence races in PR #5771. CDP-verified: default seeds at boot, 16-tab cycle parks exactly 12, lowering to 6 sweeps immediately, persists, out-of-range rejected. Two controlled A/Bs below (18-terminal fill, 24-terminal live-stream; both measured at cap 5 — savings scale down as the cap rises) |
 | Parked-webview eviction + alt-screen exemption + quota guard | SUPER-1545 | **Shipped** in PR #5754 (hidden-webview LRU cap 3 in `browserRuntimeRegistry`; alternate-screen TUIs exempt from terminal eviction; eviction skipped when the buffer cannot persist). CDP-verified 2026-07-18 |
 | Chat shiki off main thread | SUPER-1546 | Not started |
 | Collections preload/window/evict | SUPER-1547 | Org-switch eviction **shipped** in PR #5778; preload deferral and table windowing are not started |
@@ -21,7 +21,7 @@ Initial review 2026-07-18; progress and the large-repository rerun updated 2026-
 - The biggest memory growth over a session is **retention, not thread-shaped work**. Parked xterm/webview caps and prior-org Electric collection eviction have shipped; active-org table windowing remains open.
 - Three worker systems now exist: desktop main's `WorkerTaskRunner` (v1 git status), the host-service generic pool (v2 git status + commit-file reads), and the pierre renderer pool (8 workers, diffs). Extend the matching system before inventing another request/response pool.
 
-## Measured memory profile (dev app, CDP)
+## Pre-fix measured memory profile (dev app, CDP)
 
 | State | JS heap | Renderer RSS |
 |---|---|---|
@@ -32,7 +32,7 @@ Initial review 2026-07-18; progress and the large-repository rerun updated 2026-
 | 5 terminals | 314 MB | — |
 | **18 terminals (17 parked)** | **558–570 MB** | **1.54–1.59 GB** |
 
-Nothing is reclaimed on workspace switch: with 17/18 terminals parked, heap and all 18 WebGL contexts stayed put.
+This was the pre-#5751 baseline: nothing was reclaimed on workspace switch, so with 17/18 terminals parked, heap and all 18 WebGL contexts stayed put. The controlled A/B below measures the shipped eviction behavior.
 
 ## Latest-main 8-workspace / 20k-file churn rerun (2026-07-19)
 
@@ -100,10 +100,10 @@ Same A/B discipline, harder load: 24 terminal tabs, each running a real PTY proc
 
 Under this real-PTY streaming workload, eviction closes the WebSocket of released terminals, so their streams are neither delivered nor parsed — the before build parses all 24 streams into 23 live xterms forever. Heap is also flat under load in the eviction build vs climbing in the before build. A later 18-terminal synthetic-output rerun confirmed the memory result (−46% JS heap, −30% renderer RSS) but did not reproduce a CPU reduction (`TaskDuration` 1.41 s before vs 1.80 s after), so treat the 30% → 21% CPU sample as workload-specific rather than a general CPU claim.
 
-## Verified findings — renderer
+## Original findings and current disposition — renderer
 
-- **Parked terminals are never disposed** (CDP). On workspace/tab switch the xterm wrapper reparents into a `position:fixed; left:-9999px` container under `<body>`; buffer (5,048 lines retained), addons, WebSocket, and **live WebGL context** all survive. `terminal-runtime-registry.ts`, `terminal-parking.ts`, detach-only unmount in `TerminalPane.tsx:162`.
-- **No instance cap** (CDP): 18 terminals → 18 registry entries, 18 live WebGL contexts, zero evictions, zero GPU context losses (Electron/ANGLE tolerated 18; the classic ~16 cap did not trigger).
+- **Original parked-terminal retention — resolved by PRs #5751, #5752, and #5771.** Before the fix, workspace/tab switch reparented xterm into a `position:fixed; left:-9999px` container under `<body>` and retained its buffer, addons, WebSocket, and live WebGL context indefinitely. Current code LRU-evicts eligible parked runtimes, makes workspace-close disposal reliable, and skips eviction when state cannot persist safely.
+- **Original absence of an instance cap — resolved by PRs #5751 and #5754.** The baseline reached 18 registry entries and 18 live WebGL contexts with zero evictions. Current defaults cap fully live parked xterms at 12 and hidden webviews at 3; the terminal cap is user-configurable from 2–64, while alternate-screen TUIs are exempt to avoid corrupt restoration.
 - **Scrollback 5000** (CDP: `term.options.scrollback === 5000`; buffer plateaued at 5,000 + viewport rows). `shared/constants.ts:42`. Park/persist serializes 1,000 lines to `localStorage` `terminal-buffer:<id>` (~69 KB observed) — `terminal-runtime.ts:25`.
 - **Electric collections: 30 per active org (29 org-scoped + shared organizations), fully preloaded at boot** (CDP + code). All reached `ready` on reload with entire tables in heap — dev org alone: 3,501 `githubPullRequests`, 1,719 tasks, 613 runs, 263 chat sessions (~50 MB heap). PR #5778 added org-switch eviction: inactive cache entries are deleted and each collection's public `cleanup()` stops sync and clears in-memory rows, while on-disk rows remain for cache-first rehydration. Active-org preload/windowing is unchanged.
 - **Pierre worker pool is real and is the only renderer worker system** (CDP: exactly 8 `worker` CDP targets). `layout.tsx:217` (`poolSize: 8`, shiki-wasm). No SharedWorker/OffscreenCanvas/comlink anywhere.
@@ -113,7 +113,7 @@ Under this real-PTY streaming workload, eviction closes the WebSocket of release
 ## Verified findings — Electron main
 
 - **superjson serializes every IPC round trip on the main thread** (code): `lib/trpc/index.ts:12`.
-- **`WorkerTaskRunner` exists with coalesce/dedupe/abort and one consumer**: `runGitTask` from `changes/status.ts:43,93` only. All other git ops (branches, staging, commit/push/pull, PR discovery, worktree parsing) run inline on main.
+- **Desktop main's v1 `WorkerTaskRunner` has one consumer**: `runGitTask` from `changes/status.ts:43,93`. Other v1 git ops run inline on Electron main; v2 git status and commit-file reads now use the separate host-service worker pool shipped in PR #5750.
 - **Port scanner spawns `lsof` on a 2.5 s cadence** (CDP-era behavioral: process-table sampling caught spawns at the rate expected for 2 host-services × 2.5 s interval). `port-scanner/src/port-manager.ts:10` (`SCAN_INTERVAL_MS = 2500`), idle decay 30 s.
 - All v1-backend terminal output transits main (relay + scrollback disk writes) — `daemon-manager.ts:179` (code; v1 backends weren't exercised).
 
@@ -126,13 +126,13 @@ Under this real-PTY streaming workload, eviction closes the WebSocket of release
 
 ## Recommendations (ranked impact/effort)
 
-### 1. Parked-terminal LRU eviction — biggest RSS win
+### 1. Parked-terminal and hidden-webview LRU eviction — shipped
 
-**Change:** cap live xterm instances (e.g. 4–6 most-recently-visible). On eviction, serialize 1,000 lines to localStorage (already implemented, ~69 KB) and `release()` the renderer state (already implemented — PTY stays alive host-side, host keeps its own 64 KB replay buffer). Re-attach restores the serialized buffer into a fresh instance. Same policy for parked `<webview>` guests (each is a whole Chromium process).
+**Shipped:** PR #5751 caps eligible parked xterm runtimes (default 12, configurable 2–64), serializes the existing 1,000-line restore window, and releases renderer state while the PTY stays alive host-side. PR #5754 adds a hidden-webview cap of 3 plus the alternate-screen exemption and persistence quota guard; PRs #5752 and #5771 harden terminal disposal and persistence edge cases.
 
-**Effect:** measured cost is ~20 MB JS heap + ~55–70 MB renderer RSS *per live terminal* (150→570 MB heap, renderer RSS 1.59 GB at 18 terminals). A 20-terminal session drops from ~1.6 GB to roughly 500–600 MB renderer RSS — **~1 GB reclaimed**, and GPU contexts drop from N to the cap. This is the direct fix for renderer OOM white-screens and GPU pressure on 8/16 GB machines, and it removes the per-parked-terminal WebSocket + reconnect traffic.
+**Effect:** at the controlled cap of 5, the 18-terminal A/B reduced JS heap 42% and renderer RSS 31%; the 24-stream A/B reduced live xterm/WebGL runtimes from 23 to 6 and held heap flat. Savings at the shipped default of 12 are smaller but still bounded, and lowering the setting trades faster reclamation for more rebuilds.
 
-**Cost/risk:** evicted terminals lose scrollback beyond 1,000 lines (visible only if the user scrolls back that far); re-attach pays one xterm construction + 69 KB replay (tens of ms, imperceptible next to pane-switch). No behavior change for the PTY itself.
+**Remaining risk:** evicted terminals restore only the persisted 1,000-line window and pay an xterm rebuild on re-attach; alternate-screen TUIs intentionally remain live and can therefore exceed the numeric cap. Fleet telemetry from PR #5777 should determine whether the default 12 needs adjustment.
 
 ### 2. Chat code-block highlighting off the main thread
 
