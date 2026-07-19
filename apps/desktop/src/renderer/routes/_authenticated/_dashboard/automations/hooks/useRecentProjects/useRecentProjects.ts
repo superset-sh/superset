@@ -1,45 +1,24 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 export function useRecentProjects(): ProjectOption[] {
-	const collections = useCollections();
+	// Projects are fully local — the host fan-out is the only source that
+	// includes local-first projects (the frozen cloud collection never will).
+	const { projects: hostProjects } = useHostProjects();
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.select(({ projects }) => ({ ...projects })),
-		[collections],
-	);
-
-	const { data: githubRepositories } = useLiveQuery(
-		(q) =>
-			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
-				id: repos.id,
-				owner: repos.owner,
-				name: repos.name,
-			})),
-		[collections],
-	);
-
-	return useMemo(() => {
-		const repoById = new Map(
-			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
-		);
-		return (v2Projects ?? []).map((project) => {
-			const repo = project.githubRepositoryId
-				? (repoById.get(project.githubRepositoryId) ?? null)
-				: null;
-			return {
-				id: project.id,
+	return useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
 				name: project.name,
-				githubOwner: repo?.owner ?? null,
-				githubRepoName: repo?.name ?? null,
-				iconUrl: project.iconUrl,
+				githubOwner: project.repoOwner,
+				githubRepoName: project.repoName,
+				iconUrl: project.repoOwner
+					? `https://github.com/${project.repoOwner}.png?size=64`
+					: null,
 				needsSetup: null,
-			};
-		});
-	}, [githubRepositories, v2Projects]);
+			})),
+		[hostProjects],
+	);
 }
