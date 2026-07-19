@@ -51,6 +51,10 @@ import { buildTreeShape } from "./utils/buildTreeShape";
 const ITEM_HEIGHT = 24;
 // Pierre rows carry `margin-block: 1px`, so each row occupies ITEM_HEIGHT + 2px.
 const ROW_BOX = ITEM_HEIGHT + 2;
+// A full-content host disables Pierre's internal virtualizer by making every
+// row part of its viewport. Cap the host while retaining Pierre's own complete
+// scroll range; overscan still keeps the interaction boundary smooth.
+const MAX_VIEWPORT_ROWS = 20;
 // Small cushion so the last row never clips against the host's `overflow: hidden`.
 const HEIGHT_CUSHION = 8;
 
@@ -89,7 +93,7 @@ interface ChangesTreeViewProps {
  * status tints, and icons; we layer on:
  *
  *  - `renderRowDecoration`: `+N/−N` on files, file count on directories
-	 *  - `renderContextMenu`: the existing file actions plus folder-row
+ *  - `renderContextMenu`: the existing file actions plus folder-row
  *    actions (open in editor, copy path)
  *  - hover actions overlay (Discard on unstaged + more-actions ⌄ dropdown)
  *  - `useChangesSidebarFilePolicy` for settings-driven click routing
@@ -181,10 +185,14 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	// 100%`, which collapses to 0 inside this section's auto-height container);
 	// fall back to a row-count estimate until that first measurement lands.
 	const contentHeight = useMeasuredTreeHeight(model);
-	const treeHeight =
+	const fullTreeHeight =
 		contentHeight != null
 			? contentHeight + HEIGHT_CUSHION
 			: (dirs.length + paths.length) * ROW_BOX + HEIGHT_CUSHION;
+	const treeHeight = Math.min(
+		fullTreeHeight,
+		MAX_VIEWPORT_ROWS * ROW_BOX + HEIGHT_CUSHION,
+	);
 
 	const setAllDirsExpanded = useCallback(
 		(expanded: boolean) => {

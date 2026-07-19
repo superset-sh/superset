@@ -6,10 +6,10 @@ import { useEffect, useState } from "react";
  * an auto-height container — so the tree would be invisible. Pierre also writes
  * the true content height (rendered rows × itemHeight, *after* it flattens
  * single-child directory chains into one row) to the virtualized list's inline
- * `style.height`; this hook mirrors that value so the caller can size the host
- * explicitly. A naive `dirs + files` count would massively over-estimate
- * because it doesn't know about flattening. Returns `null` until Pierre has
- * rendered (caller should fall back to an estimate meanwhile).
+ * `style.height`; this hook mirrors that value so the caller can size or cap
+ * the host explicitly. A naive `dirs + files` count would massively
+ * over-estimate because it doesn't know about flattening. Returns `null` until
+ * Pierre has rendered (caller should fall back to an estimate meanwhile).
  */
 export function useMeasuredTreeHeight(model: FileTree): number | null {
 	const [height, setHeight] = useState<number | null>(null);
