@@ -524,8 +524,14 @@ async function runPhase({
 		const markerPromise = probe.waitForText(marker);
 		const echoStartedAt = performance.now();
 		probe.sendInput(`printf '${marker}\\n'\n`);
-		const [, health] = await Promise.all([markerPromise, healthRtt(manifest)]);
-		echoRtts.push(performance.now() - echoStartedAt);
+		const echoRttPromise = markerPromise.then(
+			() => performance.now() - echoStartedAt,
+		);
+		const [echo, health] = await Promise.all([
+			echoRttPromise,
+			healthRtt(manifest),
+		]);
+		echoRtts.push(echo);
 		healthRtts.push(health);
 
 		if (index % Math.max(1, Math.round(500 / options.intervalMs)) === 0) {
