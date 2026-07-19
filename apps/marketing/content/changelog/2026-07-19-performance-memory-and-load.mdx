@@ -7,6 +7,12 @@ We spent the week on performance.
 
 Every number below is a real before/after measurement, not an estimate.
 
+**TL;DR**
+
+- **Memory:** with 16 terminals open, renderer memory drops 1,127 MB → 838 MB (−26%) and JS heap 581 MB → 286 MB (−51%), with 4× fewer GPU contexts. Long sessions with lots of terminals are far less likely to slow down or white-screen, especially on 8 or 16 GB machines.
+- **Git in big repos:** the worst-case stall on the UI thread drops 82.3 ms → 28.0 ms (3× smaller), typical (p99) 24.5 ms → 9.5 ms. The app stops hitching when you switch branches or a lot of files change at once.
+- **Port detection:** background `ps` scans drop 15 → 1 per cycle (15× fewer), and idle terminals scan every 30s instead of every 2.5s (12× less). Less background CPU, so quieter fans and better battery, even with many terminals open.
+
 ## Lower Memory When You Keep Many Terminals Open <PRBadge url="https://github.com/superset-sh/superset/pull/5751" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5754" />
 
 Every hidden terminal used to keep its full scrollback and a live GPU context, forever. Open a lot of them in one session and memory could climb past a gigabyte.
