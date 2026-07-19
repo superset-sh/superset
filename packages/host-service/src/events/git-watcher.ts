@@ -21,6 +21,11 @@ export const DEBOUNCE_MS = 300;
  */
 export const GIT_DIR_DEBOUNCE_MS = 1_000;
 
+/** Above this, clients are better served by one broad diff-cache invalidation
+ * than hundreds of per-path invalidations. The null sentinel also lets the
+ * watcher skip path normalization for the rest of the debounce window. */
+export const MAX_WORKTREE_PATHS_PER_BATCH = 128;
+
 /**
  * `.git/` top-level dirs whose churn never changes `git status`: `objects/**`
  * (fetch/gc/repack blobs — the bulk of idle churn), `lfs/**` (object cache),
@@ -55,8 +60,8 @@ export interface GitChangedEvent {
 	workspaceId: string;
 	/**
 	 * Worktree-relative paths that changed when the batch was worktree-only.
-	 * Absent when the batch included any `.git/*` activity, signaling a broad
-	 * state change (commit, staging, branch switch, fetch, etc.).
+	 * Absent when the batch included `.git/*` activity or exceeded the bounded
+	 * worktree path list, signaling a broad state change.
 	 */
 	paths?: string[];
 }
@@ -66,8 +71,8 @@ export type GitChangedListener = (event: GitChangedEvent) => void;
 interface PendingBatch {
 	/** Any `.git/*` event seen during this debounce window. */
 	hasGitDir: boolean;
-	/** Worktree-relative paths accumulated during this debounce window. */
-	paths: Set<string>;
+	/** Worktree-relative paths, or null once the batch requires broad refresh. */
+	paths: Set<string> | null;
 }
 
 interface WatchedWorkspace {
@@ -181,8 +186,15 @@ export class GitWatcher {
 
 	private addWorktreePaths(workspaceId: string, paths: Iterable<string>): void {
 		const batch = this.getOrCreateBatch(workspaceId);
-		for (const path of paths) {
-			if (path) batch.paths.add(path);
+		if (batch.paths) {
+			for (const path of paths) {
+				if (!path) continue;
+				batch.paths.add(path);
+				if (batch.paths.size > MAX_WORKTREE_PATHS_PER_BATCH) {
+					batch.paths = null;
+					break;
+				}
+			}
 		}
 		this.scheduleFlush(workspaceId);
 	}
@@ -194,7 +206,8 @@ export class GitWatcher {
 		// event arms it and later `.git/`-only events ride it rather than resetting,
 		// so a rapid metadata sequence (rebase, `git am`) can't push the flush past
 		// GIT_DIR_DEBOUNCE_MS. A worktree edit joining reverts to the short window.
-		const gitDirOnly = batch.hasGitDir && batch.paths.size === 0;
+		const gitDirOnly =
+			batch.hasGitDir && batch.paths !== null && batch.paths.size === 0;
 		if (gitDirOnly && existing) return;
 		if (existing) clearTimeout(existing);
 		const delay = gitDirOnly ? GIT_DIR_DEBOUNCE_MS : DEBOUNCE_MS;
@@ -206,7 +219,7 @@ export class GitWatcher {
 				this.pendingBatches.delete(workspaceId);
 				if (!batch) return;
 				const event: GitChangedEvent =
-					batch.hasGitDir || batch.paths.size === 0
+					batch.hasGitDir || batch.paths === null || batch.paths.size === 0
 						? { workspaceId }
 						: { workspaceId, paths: [...batch.paths] };
 				for (const listener of this.listeners) {
@@ -366,6 +379,10 @@ export class GitWatcher {
 				while (!disposed && iterator) {
 					const next = await iterator.next();
 					if (disposed || next.done) return;
+					if (this.pendingBatches.get(workspaceId)?.paths === null) {
+						this.scheduleFlush(workspaceId);
+						continue;
+					}
 
 					const relativePaths: string[] = [];
 					for (const event of next.value.events) {
@@ -375,6 +392,7 @@ export class GitWatcher {
 							const oldRel = toRelative(event.oldAbsolutePath);
 							if (oldRel) relativePaths.push(oldRel);
 						}
+						if (relativePaths.length > MAX_WORKTREE_PATHS_PER_BATCH) break;
 					}
 
 					if (relativePaths.length > 0) {

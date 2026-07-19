@@ -17,6 +17,34 @@
 
 **Recommended order:** ship #1 (small daemon fix, no pool needed) → build the pool with git status + watcher rescan as tenants (#2–#4) → raise limiter concurrency → hand #5 to a renderer-side effort. Re-run the ModeTracker/terminal measurement only after #1 lands (the transport dies before the loop can be loaded).
 
+## Post-implementation measurement — 2026-07-18
+
+The pool landed in `727af9d97` for status snapshots and commit-file reads. The
+profiling harness now exercises the real worker task, records worker vs inline
+mode and event-loop delay, generates churn outside the measured process, and
+can create eight real 20k-file worktrees with independent native watchers.
+
+Results from 400 paced tracked-file mutations per worktree (8 worktrees, 600
+pre-existing dirty files each):
+
+| run | p99 loop delay | max | duration |
+|---|---:|---:|---:|
+| watcher only, unbounded path collection | 87.2 ms | 125.7 ms | 5.09 s |
+| watcher only, paths capped at 128 then broad invalidation | **13.6 ms** | 27.1 ms | **3.51 s** |
+| watcher + worker-backed status refreshes, capped | **6.3 ms** | 107.4 ms | **5.34 s** |
+
+The hot watcher behavior was unbounded path normalization/Set growth, not work
+that benefits from another worker hop. A thresholded worker experiment made
+p99 worse (47.4 ms) because medium batches paid structured-clone and pool
+contention costs. The implemented fix keeps precise paths through 128 unique paths,
+then emits the already-supported broad invalidation and skips further path
+normalization until the debounce flush.
+
+Limiter comparison with eight identical snapshots: concurrency 4 completed in
+2.52 s (14 max active git processes); concurrency 6 took 2.59 s (17 processes).
+Keep the production limiter at 4: raising it did not improve completion time and
+increased subprocess pressure.
+
 ---
 
 Move CPU-bound compute off the host-service event loop into a generic `worker_threads` pool inside the host-service process. Today every byte of git output is drained, parsed, and assembled on the same loop that relays terminal I/O and serves all tRPC/WS traffic for the org; v1 had this work in a worker pool (`apps/desktop/src/main/git-task-worker.ts`) and v2 lost it. Git compute is the first tenant; the mechanism is domain-agnostic.

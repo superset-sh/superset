@@ -5,6 +5,7 @@ import {
 	type GitChangedEvent,
 	GitWatcher,
 	isStatusRelevantGitDirEvent,
+	MAX_WORKTREE_PATHS_PER_BATCH,
 } from "./git-watcher";
 
 /**
@@ -153,6 +154,24 @@ describe("GitWatcher adaptive debounce", () => {
 		expect(events).toEqual([
 			{ workspaceId: "workspace-1", paths: ["src/app.ts"] },
 		]);
+	});
+
+	test("large worktree batches collapse to one broad invalidation", () => {
+		const watcher = createWatcher();
+		const events: GitChangedEvent[] = [];
+		watcher.onChanged((event) => events.push(event));
+		const paths = Array.from(
+			{ length: MAX_WORKTREE_PATHS_PER_BATCH + 1 },
+			(_, index) => `src/file-${index}.ts`,
+		);
+
+		internals(watcher).addWorktreePaths("workspace-1", paths);
+		// Once broad, additional paths in the same window stay broad rather than
+		// rebuilding an unbounded Set.
+		internals(watcher).addWorktreePaths("workspace-1", ["src/later.ts"]);
+		jest.advanceTimersByTime(DEBOUNCE_MS);
+
+		expect(events).toEqual([{ workspaceId: "workspace-1" }]);
 	});
 
 	test("a worktree edit joining a `.git/` batch restores the short window", () => {
