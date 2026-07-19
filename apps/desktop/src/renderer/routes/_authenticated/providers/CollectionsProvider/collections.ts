@@ -23,7 +23,6 @@ import type {
 	SelectUser,
 	SelectV2Client,
 	SelectV2Host,
-	SelectV2Project,
 	SelectV2UsersHosts,
 	SelectV2Workspace,
 	SelectWorkspace,
@@ -146,7 +145,6 @@ export interface OrgCollections {
 	v2Hosts: Collection<SelectV2Host>;
 	v2Clients: Collection<SelectV2Client>;
 	v2UsersHosts: Collection<SelectV2UsersHosts>;
-	v2Projects: Collection<SelectV2Project>;
 	v2Workspaces: Collection<SelectV2Workspace>;
 	workspaces: Collection<SelectWorkspace>;
 	members: Collection<SelectMember>;
@@ -339,43 +337,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 			getKey: (item) => item.id,
 		}),
-	);
-
-	const v2Projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Project>({
-			id: `v2_projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const githubRepositoryId =
-					changes.githubRepositoryId === null &&
-					changes.repoCloneUrl !== undefined
-						? undefined
-						: changes.githubRepositoryId;
-				const result = await apiClient.v2Project.update.mutate({
-					id: original.id,
-					name: changes.name,
-					slug: changes.slug,
-					repoCloneUrl: changes.repoCloneUrl,
-					githubRepositoryId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-	v2Projects.createIndex(
-		(project) => project.githubRepositoryId,
-		basicIndexConfig,
 	);
 
 	const v2Hosts = createPersistedElectricCollection(
@@ -884,7 +845,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2Hosts,
 		v2Clients,
 		v2UsersHosts,
-		v2Projects,
 		v2Workspaces,
 		workspaces,
 		members,

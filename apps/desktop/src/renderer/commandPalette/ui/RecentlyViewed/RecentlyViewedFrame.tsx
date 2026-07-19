@@ -10,6 +10,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { LuCpu, LuGitBranch } from "react-icons/lu";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -43,13 +44,15 @@ export function RecentlyViewedFrame() {
 	);
 
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const { data: v2ProjectData } = useLiveQuery(
-		(q) =>
-			q.from({ projects: collections.v2Projects }).select(({ projects }) => ({
-				id: projects.id,
-				name: projects.name,
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const v2ProjectData = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
+				name: project.name,
 			})),
-		[collections],
+		[hostProjects],
 	);
 	const v2WorkspaceData = useMemo(() => {
 		const projectNamesById = new Map(

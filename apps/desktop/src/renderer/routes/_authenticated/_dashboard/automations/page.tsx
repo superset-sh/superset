@@ -32,6 +32,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { LuPlus, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import {
@@ -49,7 +50,6 @@ import { AutomationRow } from "./components/AutomationRow";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
-import { useRecentProjects } from "./hooks/useRecentProjects";
 import type { AutomationTemplate } from "./templates";
 import { isHostOfflineError } from "./utils/hostOfflineError";
 
