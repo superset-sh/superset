@@ -147,6 +147,7 @@ export function FilePane({ context, workspaceId }: FilePaneProps) {
 					document={document}
 					filePath={filePath}
 					workspaceId={workspaceId}
+					paneId={context.pane.id}
 					isActive={context.isActive}
 					onChangeView={handleChangeView}
 					onForceView={handleForceView}
