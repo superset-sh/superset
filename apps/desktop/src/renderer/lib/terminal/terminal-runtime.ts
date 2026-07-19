@@ -21,6 +21,7 @@ import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -75,6 +76,10 @@ function createTerminal(
 	});
 	terminal.loadAddon(fitAddon);
 	terminal.loadAddon(serializeAddon);
+	// Disarm TUI-only input modes (kitty keyboard / mouse / focus) leaked into a
+	// live shell prompt by a TUI killed while attached (#4949). The parser
+	// handlers are owned by the terminal and cleaned up on terminal.dispose().
+	installInputModeReclaimer(terminal);
 	return { terminal, fitAddon, serializeAddon };
 }
 
