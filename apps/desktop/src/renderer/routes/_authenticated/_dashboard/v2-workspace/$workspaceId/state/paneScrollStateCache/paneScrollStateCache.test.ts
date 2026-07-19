@@ -36,10 +36,9 @@ describe("paneScrollStateCache", () => {
 		expect(getPaneScrollState("250")?.scrollTop).toBe(250);
 	});
 
-	test("scopes keys by workspace, pane, and resource", () => {
+	test("scopes keys by workspace, resource, and optional pane", () => {
 		const base = {
 			workspaceId: "workspace-a",
-			paneId: "pane-a",
 			viewId: "editor" as const,
 			resourceId: "/repo/file.ts",
 		};
@@ -48,10 +47,10 @@ describe("paneScrollStateCache", () => {
 			createPaneScrollStateKey({ ...base, workspaceId: "workspace-b" }),
 		);
 		expect(createPaneScrollStateKey(base)).not.toBe(
-			createPaneScrollStateKey({ ...base, paneId: "pane-b" }),
-		);
-		expect(createPaneScrollStateKey(base)).not.toBe(
 			createPaneScrollStateKey({ ...base, resourceId: "/repo/other.ts" }),
+		);
+		expect(createPaneScrollStateKey({ ...base, paneId: "pane-a" })).not.toBe(
+			createPaneScrollStateKey({ ...base, paneId: "pane-b" }),
 		);
 	});
 });

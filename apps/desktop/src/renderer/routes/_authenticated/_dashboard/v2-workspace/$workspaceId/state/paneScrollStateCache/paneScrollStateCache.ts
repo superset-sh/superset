@@ -73,11 +73,11 @@ export function createPaneScrollStateKey({
 	resourceId,
 }: {
 	workspaceId: string;
-	paneId: string;
+	paneId?: string;
 	viewId: "diff" | "editor";
 	resourceId: string;
 }): string {
-	return JSON.stringify([workspaceId, paneId, viewId, resourceId]);
+	return JSON.stringify([workspaceId, paneId ?? null, viewId, resourceId]);
 }
 
 export function getPaneScrollState(key: string): PaneScrollState | undefined {

@@ -8,21 +8,17 @@ import { detectLanguage } from "shared/detect-language";
 import type { ViewProps } from "../../types";
 import { CodeEditor } from "./components/CodeEditor";
 
-export function CodeView({
-	document,
-	filePath,
-	workspaceId,
-	paneId,
-}: ViewProps) {
+export function CodeView({ document, filePath, workspaceId }: ViewProps) {
+	// Quick Open replaces preview panes with new pane IDs, so the file path is
+	// the stable editor identity when a user switches away and back.
 	const scrollStateKey = useMemo(
 		() =>
 			createPaneScrollStateKey({
 				workspaceId,
-				paneId,
 				viewId: "editor",
 				resourceId: filePath,
 			}),
-		[workspaceId, paneId, filePath],
+		[workspaceId, filePath],
 	);
 	const initialScrollPosition = useMemo(
 		() => getPaneScrollState(scrollStateKey),
