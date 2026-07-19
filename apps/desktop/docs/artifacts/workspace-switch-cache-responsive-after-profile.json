@@ -1,0 +1,184 @@
+{
+	"actions": [
+		{
+			"needle": "renderer-ui-1",
+			"elapsedMs": 220.0020829999994,
+			"href": "http://localhost:7325/#/v2-workspace/3393bf67-a98b-4f4c-9f33-ebcbdd99891a",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 14.443124999999782,
+			"href": "http://localhost:7325/#/v2-workspace/3393bf67-a98b-4f4c-9f33-ebcbdd99891a",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "renderer-ui-2",
+			"elapsedMs": 176.07391700000153,
+			"href": "http://localhost:7325/#/v2-workspace/57c26514-75ba-43c4-8a0a-0b14c23b9698",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 12.081207999999606,
+			"href": "http://localhost:7325/#/v2-workspace/57c26514-75ba-43c4-8a0a-0b14c23b9698",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "renderer-ui-3",
+			"elapsedMs": 286.3269169999985,
+			"href": "http://localhost:7325/#/v2-workspace/311fde62-08ed-4165-969d-2d954282a702",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 18.88287499999933,
+			"href": "http://localhost:7325/#/v2-workspace/311fde62-08ed-4165-969d-2d954282a702",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "renderer-ui-4",
+			"elapsedMs": 179.72691599999962,
+			"href": "http://localhost:7325/#/v2-workspace/35fa0b4b-4af8-4ee1-8775-9a2c148b68cf",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 8.817250000000058,
+			"href": "http://localhost:7325/#/v2-workspace/35fa0b4b-4af8-4ee1-8775-9a2c148b68cf",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "renderer-ui-5",
+			"elapsedMs": 217.46825000000536,
+			"href": "http://localhost:7325/#/v2-workspace/f2200733-a0db-47d7-bec1-a7922be13a21",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 9.332792000001064,
+			"href": "http://localhost:7325/#/v2-workspace/f2200733-a0db-47d7-bec1-a7922be13a21",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "renderer-ui-6",
+			"elapsedMs": 219.24041600000055,
+			"href": "http://localhost:7325/#/v2-workspace/904362c2-a273-4ef2-b15e-3a69eac777e2",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 9.109250000001339,
+			"href": "http://localhost:7325/#/v2-workspace/904362c2-a273-4ef2-b15e-3a69eac777e2",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "renderer-ui-7",
+			"elapsedMs": 252.06079199999658,
+			"href": "http://localhost:7325/#/v2-workspace/fd35db22-ab24-4748-9d6a-d96e38aa5d9f",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 9.28166699999565,
+			"href": "http://localhost:7325/#/v2-workspace/fd35db22-ab24-4748-9d6a-d96e38aa5d9f",
+			"loading": false,
+			"fileCount": "600"
+		},
+		{
+			"needle": "workspaces",
+			"elapsedMs": 239.1643750000003,
+			"href": "http://localhost:7325/#/v2-workspaces",
+			"loading": false,
+			"fileCount": null
+		},
+		{
+			"needle": "local",
+			"elapsedMs": 221.48666700000467,
+			"href": "http://localhost:7325/#/v2-workspace/7da45c71-399c-40fe-a34b-51583471b198",
+			"loading": false,
+			"fileCount": "2150"
+		},
+		{
+			"needle": "changes",
+			"elapsedMs": 9.527125000000524,
+			"href": "http://localhost:7325/#/v2-workspace/7da45c71-399c-40fe-a34b-51583471b198",
+			"loading": false,
+			"fileCount": "2150"
+		}
+	],
+	"immediateReturn": {
+		"href": "http://localhost:7325/#/v2-workspace/7da45c71-399c-40fe-a34b-51583471b198",
+		"loading": false,
+		"fileCount": "2150",
+		"refreshing": true
+	},
+	"finalState": {
+		"href": "http://localhost:7325/#/v2-workspace/7da45c71-399c-40fe-a34b-51583471b198",
+		"loading": false,
+		"fileCount": "2150",
+		"refreshing": true
+	},
+	"mutator": {
+		"durationMs": 60000.658792,
+		"writes": 192000
+	},
+	"cdpTimeouts": 0,
+	"phases": {
+		"baseline": {
+			"cdpMs": {
+				"count": 51,
+				"p50": 0.750458999999978,
+				"p95": 117.36283299999968,
+				"max": 142.8045830000001
+			},
+			"driftMs": {
+				"count": 83,
+				"p50": 0.09999999403953552,
+				"p95": 132,
+				"max": 157.69999998807907
+			}
+		},
+		"churn": {
+			"cdpMs": {
+				"count": 590,
+				"p50": 0.395249999994121,
+				"p95": 4.68724999999904,
+				"max": 258.8310420000016
+			},
+			"driftMs": {
+				"count": 1156,
+				"p50": 0,
+				"p95": 1.0999999940395355,
+				"max": 254
+			}
+		},
+		"cooldown": {
+			"cdpMs": {
+				"count": 100,
+				"p50": 0.4405419999966398,
+				"p95": 3.3092500000057044,
+				"max": 72.77470799999719
+			},
+			"driftMs": {
+				"count": 204,
+				"p50": 0,
+				"p95": 1,
+				"max": 2.800000011920929
+			}
+		}
+	}
+}
