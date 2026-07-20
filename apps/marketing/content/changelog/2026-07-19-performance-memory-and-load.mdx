@@ -3,9 +3,9 @@ title: "Performance: lighter memory and smoother under heavy load"
 date: 2026-07-19
 ---
 
-We spent the week on performance.
+We spent the week on performance: reducing memory consumption, smoothing out git hitches, and cutting background CPU.
 
-Every number below is a real before/after measurement, not an estimate.
+Every number below is a measured before/after, not an estimate.
 
 **TL;DR**
 
@@ -37,7 +37,7 @@ The test: 16 background terminals, each filled with about 5,000 lines.
 
 You set the limit in **Settings → Terminal → Background terminal memory** (default 12).
 
-Active terminals are never touched. Neither are running TUIs like vim or a coding agent. Hidden in-app browser tabs get the same treatment.
+Active terminals are never touched, and neither are running TUIs like vim or a coding agent. Hidden in-app browser tabs are offloaded the same way, and rebuilt when you switch back.
 
 ## Smoother While Git Churns in Big Repos <PRBadge url="https://github.com/superset-sh/superset/pull/5750" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5746" />
 
