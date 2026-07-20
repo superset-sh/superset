@@ -29,7 +29,7 @@ export function CommitRow({ commit, isSelected, wrap = false }: CommitRowProps) 
 				<div
 					className={
 						wrap
-							? "text-sm break-words whitespace-normal"
+							? "text-sm wrap-break-word"
 							: "truncate text-sm"
 					}
 				>
