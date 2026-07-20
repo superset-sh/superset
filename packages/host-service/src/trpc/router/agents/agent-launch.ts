@@ -136,6 +136,19 @@ export function cleanupAgentLaunch(launch: PreparedAgentLaunch): void {
 	rmSync(launch.launchDir, { recursive: true, force: true });
 }
 
+/** Run work with launch artifacts whose lifetime is scoped to the callback. */
+export async function withPreparedAgentLaunch<T>(
+	input: PrepareAgentLaunchInput,
+	run: (launch: PreparedAgentLaunch) => Promise<T>,
+): Promise<T> {
+	const launch = prepareAgentLaunch(input);
+	try {
+		return await run(launch);
+	} finally {
+		cleanupAgentLaunch(launch);
+	}
+}
+
 export async function waitForAgentLaunch(
 	launch: PreparedAgentLaunch,
 	options: { timeoutMs?: number; signal?: AbortSignal } = {},

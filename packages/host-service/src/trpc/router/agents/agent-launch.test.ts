@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "bun:test";
 import {
 	chmodSync,
+	existsSync,
 	mkdtempSync,
 	readFileSync,
 	rmSync,
@@ -13,6 +14,7 @@ import {
 	type PreparedAgentLaunch,
 	prepareAgentLaunch,
 	waitForAgentLaunch,
+	withPreparedAgentLaunch,
 } from "./agent-launch";
 
 const launches: PreparedAgentLaunch[] = [];
@@ -65,6 +67,30 @@ describe("prepareAgentLaunch", () => {
 		expect(launch.initialCommand).toBe(
 			`'/bin/sh' '${launch.scriptPath.replaceAll("'", "'\\''")}'`,
 		);
+	});
+
+	it("removes sensitive launch artifacts when scoped work throws", async () => {
+		let launchDir: string | undefined;
+		await expect(
+			withPreparedAgentLaunch(
+				{
+					command: "agent",
+					args: [],
+					promptArgs: [],
+					promptTransport: "argv",
+					prompt: "sensitive prompt",
+					env: {},
+				},
+				async (launch) => {
+					launchDir = launch.launchDir;
+					expect(existsSync(launch.promptPath)).toBe(true);
+					throw new Error("session creation failed");
+				},
+			),
+		).rejects.toThrow("session creation failed");
+
+		expect(launchDir).toBeDefined();
+		expect(existsSync(launchDir as string)).toBe(false);
 	});
 });
 
