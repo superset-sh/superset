@@ -23,6 +23,17 @@ const stdinConfig = {
 	env: {},
 };
 
+const kimiConfig = {
+	id: "00000000-0000-0000-0000-000000000003",
+	presetId: "kimi",
+	label: "Kimi Code",
+	command: "kimi",
+	args: [],
+	promptTransport: "argv" as const,
+	promptArgs: ["-p"],
+	env: {},
+};
+
 const RANDOM_ID = "test-1234";
 const DELIMITER = "SUPERSET_PROMPT_test1234";
 
@@ -88,6 +99,21 @@ describe("buildAgentCommandString", () => {
 		);
 		expect(buildAgentCommandString(stdinConfig, "", [], RANDOM_ID)).toBe(
 			"'amp'",
+		);
+	});
+
+	it("appends the interactive-resume suffix after the prompt (kimi)", () => {
+		// kimi -p is non-interactive; the suffix re-enters the TUI so the pane
+		// stays interactive after the headless prompt turn.
+		expect(
+			buildAgentCommandString(kimiConfig, "do the thing", [], RANDOM_ID),
+		).toBe("'kimi' '-p' 'do the thing' ; kimi --auto --continue");
+	});
+
+	it("omits the resume suffix on a promptless launch (kimi)", () => {
+		// The base command is already interactive without a prompt.
+		expect(buildAgentCommandString(kimiConfig, "", [], RANDOM_ID)).toBe(
+			"'kimi'",
 		);
 	});
 });
