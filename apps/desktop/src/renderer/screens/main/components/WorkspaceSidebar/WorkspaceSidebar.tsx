@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
+import { HiringBanner } from "./HiringBanner";
 import { MultiDragPreview } from "./MultiDragPreview";
 import { PortsList } from "./PortsList";
 import { ProjectSection } from "./ProjectSection";
@@ -114,6 +115,8 @@ export function WorkspaceSidebar({
 				projectId={activeProjectId}
 				projectName={activeProjectName}
 			/>
+
+			<HiringBanner isCollapsed={isCollapsed} />
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />
