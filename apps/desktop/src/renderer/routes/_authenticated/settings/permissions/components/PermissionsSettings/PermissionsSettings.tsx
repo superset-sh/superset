@@ -32,9 +32,11 @@ function PermissionRow({
 }: {
 	label: string;
 	description: string;
-	granted: boolean | undefined;
+	granted: boolean | "not-applicable" | undefined;
 	onRequest: () => void;
 }) {
+	if (granted === "not-applicable") return null;
+
 	return (
 		<div className="flex items-center justify-between gap-6">
 			<div className="min-w-0 flex-1 space-y-0.5">
