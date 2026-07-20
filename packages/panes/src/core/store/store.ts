@@ -708,6 +708,7 @@ export function createWorkspaceStore<TData>(
 					sourceTab.layout,
 					args.sourcePaneId,
 				);
+				if (!nextSourceLayout && sourceTab.pinned) return s;
 				const { [args.sourcePaneId]: _, ...nextSourcePanes } = sourceTab.panes;
 
 				const nextTargetLayout = splitPaneInLayout(
@@ -781,6 +782,7 @@ export function createWorkspaceStore<TData>(
 					sourceTab.layout,
 					args.paneId,
 				);
+				if (!nextSourceLayout && sourceTab.pinned) return s;
 				const { [args.paneId]: _, ...nextSourcePanes } = sourceTab.panes;
 
 				const paneLeaf: LayoutNode = { type: "pane", paneId: pane.id };
@@ -842,6 +844,7 @@ export function createWorkspaceStore<TData>(
 					sourceTab.layout,
 					args.paneId,
 				);
+				if (!nextSourceLayout && sourceTab.pinned) return s;
 				const { [args.paneId]: _, ...nextSourcePanes } = sourceTab.panes;
 
 				const newTab = buildTab({
