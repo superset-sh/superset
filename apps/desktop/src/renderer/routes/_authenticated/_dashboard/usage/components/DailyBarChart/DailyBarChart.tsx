@@ -4,7 +4,7 @@ interface DailyBarChartProps {
 	buckets: CostStatsData["dailyBuckets"];
 }
 
-const CHART_HEIGHT = 48;
+const CHART_HEIGHT = 44;
 const MIN_BAR_HEIGHT = 2;
 
 export function DailyBarChart({ buckets }: DailyBarChartProps) {
@@ -12,7 +12,7 @@ export function DailyBarChart({ buckets }: DailyBarChartProps) {
 
 	return (
 		<div
-			className="flex items-end gap-px"
+			className="flex items-end gap-[3px]"
 			style={{ height: CHART_HEIGHT }}
 			aria-hidden
 		>
@@ -24,7 +24,7 @@ export function DailyBarChart({ buckets }: DailyBarChartProps) {
 				return (
 					<div
 						key={bucket.date}
-						className="flex-1 rounded-sm bg-muted-foreground/40"
+						className="flex-1 rounded-[2px] bg-foreground/25"
 						style={{ height }}
 					/>
 				);

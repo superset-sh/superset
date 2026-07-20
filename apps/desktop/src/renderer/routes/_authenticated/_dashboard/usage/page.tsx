@@ -1,4 +1,3 @@
-import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
@@ -31,29 +30,29 @@ function UsagePage() {
 	const byProvider = new Map(active.map((s) => [s.providerId, s]));
 
 	return (
-		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
+		<div className="flex h-full w-full flex-1 flex-col overflow-hidden font-mono">
 			<header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
-				<h1 className="text-sm font-semibold tracking-tight">Token Usage</h1>
-				<div className="flex items-center gap-1">
+				<h1 className="text-[13px] font-semibold tracking-wide text-foreground">
+					Token Usage
+				</h1>
+				<div className="flex items-center gap-0.5">
 					<UsageSettingsPopover />
-					<Button
+					<button
 						type="button"
-						variant="outline"
-						size="sm"
-						className="h-8 gap-1.5 px-3"
 						onClick={() => refresh.mutate()}
 						disabled={refresh.isPending}
+						className="flex h-8 items-center gap-1.5 rounded-md px-2.5 text-xs text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground disabled:opacity-50"
 					>
 						<LuRefreshCw
-							className={cn("size-4", refresh.isPending && "animate-spin")}
+							className={cn("size-3.5", refresh.isPending && "animate-spin")}
 						/>
 						<span>Refresh</span>
-					</Button>
+					</button>
 				</div>
 			</header>
 
-			<div className="min-h-0 flex-1 overflow-y-auto px-4 py-6">
-				<div className="mx-auto flex w-full max-w-[540px] flex-col gap-4">
+			<div className="min-h-0 flex-1 overflow-y-auto px-4 py-8">
+				<div className="mx-auto flex w-full max-w-[620px] flex-col gap-4">
 					{PROVIDER_ORDER.map((providerId) => (
 						<ProviderCard
 							key={providerId}

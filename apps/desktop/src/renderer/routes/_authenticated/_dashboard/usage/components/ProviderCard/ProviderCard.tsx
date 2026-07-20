@@ -2,6 +2,7 @@ import type { ProviderId, ProviderSnapshot } from "../../types";
 import { formatRelativeAgo } from "../../utils/format";
 import { CostStats } from "../CostStats";
 import { DailyBarChart } from "../DailyBarChart";
+import { ProviderLogo } from "../ProviderLogo";
 import { RateLimitBar } from "../RateLimitBar";
 
 interface ProviderCardProps {
@@ -9,42 +10,51 @@ interface ProviderCardProps {
 	snapshot: ProviderSnapshot | undefined;
 }
 
-const PROVIDER_META: Record<ProviderId, { name: string; icon: string }> = {
-	claude: { name: "Claude", icon: "✳" },
-	codex: { name: "Codex", icon: "◇" },
-	copilot: { name: "Copilot", icon: "⧉" },
-	gemini: { name: "Gemini", icon: "✦" },
+const PROVIDER_NAME: Record<ProviderId, string> = {
+	claude: "Claude",
+	codex: "Codex",
+	copilot: "Copilot",
+	gemini: "Gemini",
 };
 
+function StatLine({ label, value }: { label: string; value: string }) {
+	return (
+		<div className="flex items-center justify-between text-xs">
+			<span className="text-muted-foreground">{label}</span>
+			<span className="font-bold tabular-nums text-foreground">{value}</span>
+		</div>
+	);
+}
+
 export function ProviderCard({ providerId, snapshot }: ProviderCardProps) {
-	const meta = PROVIDER_META[providerId];
 	const cost = snapshot?.cost ?? null;
 	const credits = snapshot?.credits ?? null;
 	const windows = snapshot?.windows ?? [];
 	const errorMessage = snapshot?.errorMessage ?? null;
-
 	const hasBody = !errorMessage && (windows.length > 0 || !!cost);
 
 	return (
-		<div className="rounded-lg border border-border p-4">
+		<div className="rounded-xl border border-border bg-card/30 px-5 py-4">
 			<header className="flex items-start justify-between gap-3">
-				<div className="flex items-center gap-2">
-					<span aria-hidden className="text-base leading-none">
-						{meta.icon}
-					</span>
-					<div>
-						<div className="font-semibold text-foreground">{meta.name}</div>
-						{snapshot && (
-							<div className="text-[10px] text-muted-foreground">
-								Updated {formatRelativeAgo(snapshot.updatedAt)}
-							</div>
-						)}
+				<div className="min-w-0">
+					<div className="flex items-center gap-2">
+						<ProviderLogo id={providerId} className="size-[18px]" />
+						<span className="text-[15px] font-bold tracking-tight text-foreground">
+							{PROVIDER_NAME[providerId]}
+						</span>
+					</div>
+					<div className="mt-1 text-[11px] text-muted-foreground">
+						{snapshot
+							? `Updated ${formatRelativeAgo(snapshot.updatedAt)}`
+							: "No data yet"}
 					</div>
 				</div>
-				<div className="flex flex-col items-end text-[10px] text-muted-foreground">
-					{snapshot?.email && <span>{snapshot.email}</span>}
+				<div className="flex flex-col items-end gap-0.5 text-[11px] text-muted-foreground">
+					{snapshot?.email && (
+						<span className="truncate">{snapshot.email}</span>
+					)}
 					{snapshot?.planLabel && (
-						<span className="uppercase tracking-wider">
+						<span className="uppercase tracking-widest text-foreground/70">
 							{snapshot.planLabel}
 						</span>
 					)}
@@ -52,13 +62,13 @@ export function ProviderCard({ providerId, snapshot }: ProviderCardProps) {
 			</header>
 
 			{errorMessage ? (
-				<p className="mt-3 select-text cursor-text text-xs text-amber-500">
+				<p className="mt-4 select-text cursor-text text-xs leading-relaxed text-amber-500">
 					{errorMessage}
 				</p>
 			) : hasBody ? (
-				<div className="mt-4 space-y-4">
+				<div className="mt-5 space-y-5">
 					{windows.length > 0 && (
-						<div className="space-y-3">
+						<div className="space-y-4">
 							{windows.map((window) => (
 								<RateLimitBar key={window.label} window={window} />
 							))}
@@ -66,29 +76,23 @@ export function ProviderCard({ providerId, snapshot }: ProviderCardProps) {
 					)}
 
 					{credits && (
-						<div className="space-y-1 text-xs">
-							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground">Credits</span>
-								<span className="font-mono tabular-nums text-foreground">
-									{credits.balance}
-								</span>
-							</div>
-							<div className="flex items-center justify-between">
-								<span className="text-muted-foreground">
-									Limit reset credits
-								</span>
-								<span className="font-mono tabular-nums text-foreground">
-									{credits.resetCredits}
-								</span>
-							</div>
+						<div className="space-y-2 border-t border-border/60 pt-4">
+							<StatLine
+								label="Credits"
+								value={`${credits.balance.toLocaleString()} credits`}
+							/>
+							<StatLine
+								label="Limit reset credits"
+								value={`${credits.resetCredits} available`}
+							/>
 						</div>
 					)}
 
 					{cost && (
-						<div className="space-y-3">
+						<div className="space-y-4 border-t border-border/60 pt-4">
 							<CostStats cost={cost} />
 							<DailyBarChart buckets={cost.dailyBuckets} />
-							<div className="space-y-0.5 text-[10px] text-muted-foreground">
+							<div className="space-y-0.5 text-[11px] text-muted-foreground">
 								{cost.topModel && <div>Top model: {cost.topModel}</div>}
 								{cost.estimatedFromLogs && (
 									<div>Estimated from local logs at API rates.</div>
@@ -97,9 +101,7 @@ export function ProviderCard({ providerId, snapshot }: ProviderCardProps) {
 						</div>
 					)}
 				</div>
-			) : (
-				<p className="mt-3 text-xs text-muted-foreground">no data yet</p>
-			)}
+			) : null}
 		</div>
 	);
 }

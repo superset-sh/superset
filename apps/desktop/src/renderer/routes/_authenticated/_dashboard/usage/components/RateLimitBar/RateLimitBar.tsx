@@ -13,22 +13,25 @@ export function RateLimitBar({ window }: RateLimitBarProps) {
 	const showReserveTick = window.reservePct < remainingPct - 1;
 
 	return (
-		<div className="space-y-1.5">
-			<div className="flex items-baseline justify-between">
-				<span className="text-xs text-foreground">{window.label}</span>
-				<span className="font-mono text-xs font-bold tabular-nums text-foreground">
-					{Math.round(remainingPct)}% left
+		<div className="space-y-2">
+			<div className="flex items-baseline justify-between gap-3">
+				<span className="truncate text-xs text-foreground">{window.label}</span>
+				<span className="shrink-0 text-xs tabular-nums text-muted-foreground">
+					<span className="font-bold text-foreground">
+						{Math.round(remainingPct)}%
+					</span>{" "}
+					left
 				</span>
 			</div>
 
-			<div className="relative h-1 w-full overflow-hidden rounded-full bg-muted">
+			<div className="relative h-1 w-full overflow-hidden rounded-full bg-foreground/10">
 				<div
-					className="h-full rounded-full bg-foreground/70"
+					className="h-full rounded-full bg-foreground/60"
 					style={{ width: `${remainingPct}%` }}
 				/>
 				{showReserveTick && (
 					<div
-						className="absolute top-0 h-full w-px bg-foreground/30"
+						className="absolute top-0 h-full w-px bg-foreground"
 						style={{
 							left: `${Math.max(0, Math.min(100, 100 - window.reservePct))}%`,
 						}}
@@ -36,9 +39,9 @@ export function RateLimitBar({ window }: RateLimitBarProps) {
 				)}
 			</div>
 
-			<div className="flex items-start justify-between text-[10px] text-muted-foreground">
+			<div className="flex items-start justify-between gap-3 text-[11px] text-muted-foreground">
 				<span>{Math.round(window.reservePct)}% in reserve</span>
-				<div className="flex flex-col items-end">
+				<div className="flex flex-col items-end leading-tight">
 					{window.resetAt && (
 						<span>Resets in {formatTimeUntil(window.resetAt)}</span>
 					)}
