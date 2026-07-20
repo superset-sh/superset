@@ -16,6 +16,17 @@ import {
 } from "main/lib/host-service-coordinator";
 import { menuEmitter } from "main/lib/menu-events";
 import { confirmAndQuitCompletely } from "main/lib/quit-completely";
+import {
+	getUsageCollector,
+	USAGE_UPDATED_EVENT,
+} from "main/lib/usage/usage-collector";
+import { getUsageDisplaySettings } from "main/lib/usage/usage-settings";
+import {
+	type ProviderSnapshot,
+	type RateLimitWindow,
+	USAGE_PROVIDER_LABELS,
+	worstWindowAcrossProviders,
+} from "main/lib/usage/usage-snapshot";
 
 /** Must have "Template" suffix for macOS dark/light mode support */
 const TRAY_ICON_FILENAME = "iconTemplate.png";
@@ -186,6 +197,69 @@ function buildHostServiceSubmenu(
 	return menuItems;
 }
 
+function formatTimeToReset(resetAt: Date | null): string | null {
+	if (!resetAt) return null;
+	const ms = resetAt.getTime() - Date.now();
+	if (ms <= 0) return "now";
+	const totalMinutes = Math.floor(ms / 60_000);
+	const days = Math.floor(totalMinutes / 1440);
+	const hours = Math.floor((totalMinutes % 1440) / 60);
+	const minutes = totalMinutes % 60;
+	if (days > 0) return `${days}d ${hours}h`;
+	if (hours > 0) return `${hours}h ${minutes}m`;
+	return `${minutes}m`;
+}
+
+function worstWindow(snapshot: ProviderSnapshot): RateLimitWindow | null {
+	let worst: RateLimitWindow | null = null;
+	for (const window of snapshot.windows) {
+		if (!worst || window.usedPct > worst.usedPct) worst = window;
+	}
+	return worst;
+}
+
+function buildUsageSection(
+	snapshots: ProviderSnapshot[],
+): MenuItemConstructorOptions[] {
+	const rows: MenuItemConstructorOptions[] = [];
+	for (const snapshot of snapshots) {
+		const window = worstWindow(snapshot);
+		if (!window) continue;
+		const resetLabel = formatTimeToReset(window.resetAt);
+		const suffix = resetLabel ? ` · resets in ${resetLabel}` : "";
+		rows.push({
+			label: `${USAGE_PROVIDER_LABELS[snapshot.providerId]}  ${Math.round(window.usedPct)}%${suffix}`,
+			enabled: false,
+		});
+	}
+
+	if (rows.length === 0) return [];
+
+	return [
+		{ type: "separator" },
+		{ label: "AI provider usage", enabled: false },
+		...rows,
+		{
+			label: "View details →",
+			click: () => {
+				focusMainWindow();
+				menuEmitter.emit("navigate", "/usage");
+			},
+		},
+	];
+}
+
+function updateTrayTooltip(snapshots: ProviderSnapshot[]): void {
+	if (!tray) return;
+	const worst = worstWindowAcrossProviders(snapshots);
+	const showPercentage = getUsageDisplaySettings().showTrayPercentage;
+	if (showPercentage && worst !== null) {
+		tray.setToolTip(`Superset · ${Math.round(worst)}%`);
+	} else {
+		tray.setToolTip("Superset");
+	}
+}
+
 async function updateTrayMenu(): Promise<void> {
 	if (!tray) return;
 
@@ -209,11 +283,15 @@ async function updateTrayMenu(): Promise<void> {
 
 	const hostServiceSubmenu = buildHostServiceSubmenu(orgIds, infos);
 
+	const usageSnapshots = getUsageCollector().getSnapshots();
+	updateTrayTooltip(usageSnapshots);
+
 	const menu = Menu.buildFromTemplate([
 		{
 			label: hostServiceLabel,
 			submenu: hostServiceSubmenu,
 		},
+		...buildUsageSection(usageSnapshots),
 		{ type: "separator" },
 		{
 			label: "Open Superset",
@@ -273,6 +351,10 @@ export function initTray(): void {
 
 		const manager = getHostServiceCoordinator();
 		manager.on("status-changed", (_event: HostServiceStatusEvent) => {
+			void updateTrayMenu();
+		});
+
+		getUsageCollector().on(USAGE_UPDATED_EVENT, () => {
 			void updateTrayMenu();
 		});
 

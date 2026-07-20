@@ -58,7 +58,11 @@ function parseLine(raw: string, sessionId: string): UsageEntry | null {
 
 /** Returns null on missing logs or an unrecognized format. */
 export async function parseClaudeLogs(): Promise<CostStats | null> {
-	const files = await collectLogFiles(CLAUDE_PROJECTS_DIR, ".jsonl", MAX_AGE_DAYS);
+	const files = await collectLogFiles(
+		CLAUDE_PROJECTS_DIR,
+		".jsonl",
+		MAX_AGE_DAYS,
+	);
 	if (files.length === 0) return null;
 
 	const entries: UsageEntry[] = [];

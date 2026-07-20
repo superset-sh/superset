@@ -40,9 +40,7 @@ function entryFromRecord(
 
 	const parsed = entry.timestamp ? new Date(entry.timestamp) : null;
 	const timestamp =
-		parsed && !Number.isNaN(parsed.getTime())
-			? parsed
-			: new Date(file.mtimeMs);
+		parsed && !Number.isNaN(parsed.getTime()) ? parsed : new Date(file.mtimeMs);
 
 	return {
 		timestamp,
@@ -93,7 +91,11 @@ function parseFile(content: string, file: LogFile): UsageEntry[] {
 
 /** Returns null on missing logs or an unrecognized format. */
 export async function parseCodexLogs(): Promise<CostStats | null> {
-	const files = await collectLogFiles(CODEX_SESSIONS_DIR, ".json", MAX_AGE_DAYS);
+	const files = await collectLogFiles(
+		CODEX_SESSIONS_DIR,
+		".json",
+		MAX_AGE_DAYS,
+	);
 	if (files.length === 0) return null;
 
 	const entries: UsageEntry[] = [];

@@ -6,16 +6,13 @@ import {
 	ensureSupersetHomeDirExists,
 	SUPERSET_HOME_DIR,
 } from "main/lib/app-environment";
+import type { ProviderCollector } from "./providers/base-provider";
 import { ClaudeProvider } from "./providers/claude-provider";
 import { CodexProvider } from "./providers/codex-provider";
 import { CopilotProvider } from "./providers/copilot-provider";
 import { GeminiProvider } from "./providers/gemini-provider";
-import type { ProviderCollector } from "./providers/base-provider";
 import { getUsageDisplaySettings } from "./usage-settings";
-import {
-	type ProviderSnapshot,
-	USAGE_PROVIDER_LABELS,
-} from "./usage-snapshot";
+import { type ProviderSnapshot, USAGE_PROVIDER_LABELS } from "./usage-snapshot";
 
 const SNAPSHOT_PATH = join(SUPERSET_HOME_DIR, "usage-snapshot.json");
 const POLL_INTERVAL_MS = 5 * 60 * 1000;

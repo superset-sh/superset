@@ -19,7 +19,8 @@ function coerce(raw: unknown): UsageDisplaySettings {
 	) as Partial<UsageDisplaySettings>;
 	return {
 		showSidebarBadge:
-			source.showSidebarBadge ?? DEFAULT_USAGE_DISPLAY_SETTINGS.showSidebarBadge,
+			source.showSidebarBadge ??
+			DEFAULT_USAGE_DISPLAY_SETTINGS.showSidebarBadge,
 		showTrayPercentage:
 			source.showTrayPercentage ??
 			DEFAULT_USAGE_DISPLAY_SETTINGS.showTrayPercentage,

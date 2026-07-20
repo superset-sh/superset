@@ -20,7 +20,9 @@ export async function readJsonFile<T>(path: string): Promise<T | null> {
 }
 
 /** Decodes a JWT payload without verifying its signature. */
-export function decodeJwtPayload(token: string): Record<string, unknown> | null {
+export function decodeJwtPayload(
+	token: string,
+): Record<string, unknown> | null {
 	const parts = token.split(".");
 	if (parts.length < 2) return null;
 	try {
