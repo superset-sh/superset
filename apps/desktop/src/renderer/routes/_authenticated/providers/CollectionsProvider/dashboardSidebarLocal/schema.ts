@@ -421,10 +421,11 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		sidebarFileLinks: shouldMigrateLegacySidebarFileLinks
 			? DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks
 			: sidebarFileLinks,
-		sidebarNavVisibility: {
-			...DEFAULT_V2_USER_PREFERENCES.sidebarNavVisibility,
-			...r.sidebarNavVisibility,
-		},
+		// Schema-parse so corrupted non-booleans (e.g. `"false"`) can't leak
+		// into React conditionals as truthy strings.
+		sidebarNavVisibility: sidebarNavVisibilitySchema
+			.catch(DEFAULT_SIDEBAR_NAV_VISIBILITY)
+			.parse(r.sidebarNavVisibility),
 	};
 }
 
