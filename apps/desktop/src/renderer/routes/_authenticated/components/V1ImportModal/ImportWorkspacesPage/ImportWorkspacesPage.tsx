@@ -5,6 +5,10 @@ import { useCallback, useMemo, useRef, useState } from "react";
 import { LuLayoutGrid } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import {
+	adoptV1Workspace,
+	recordV1MigrationOutcome,
+} from "renderer/lib/v1-migration";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
@@ -15,16 +19,8 @@ interface ImportWorkspacesPageProps {
 }
 
 const WORKTREE_LIST_KEY_PREFIX = ["v1-import", "projectWorktrees"] as const;
-const WORKSPACE_CLOUD_LIST_KEY = ["v1-import", "workspaceCloudList"] as const;
+const WORKSPACE_LIST_KEY = ["v1-import", "hostWorkspaceList"] as const;
 const HOST_PROJECT_LIST_KEY_PREFIX = ["v1-import", "hostProjectList"] as const;
-
-function trpcCode(err: unknown): string | null {
-	if (typeof err !== "object" || err === null) return null;
-	const data = (err as { data?: unknown }).data;
-	if (typeof data !== "object" || data === null) return null;
-	const code = (data as { code?: unknown }).code;
-	return typeof code === "string" ? code : null;
-}
 
 type AdoptStatus =
 	| { kind: "idle" }
@@ -53,29 +49,21 @@ export function ImportWorkspacesPage({
 		retry: false,
 	});
 
-	const cloudWorkspacesQuery = useQuery({
-		queryKey: [...WORKSPACE_CLOUD_LIST_KEY, organizationId, activeHostUrl],
+	// Host-local list (host.db is the authority post-local-first; the old
+	// cloud list never sees newly-adopted workspaces).
+	const hostWorkspacesQuery = useQuery({
+		queryKey: [...WORKSPACE_LIST_KEY, organizationId, activeHostUrl],
 		queryFn: async () => {
 			const client = getHostServiceClientByUrl(activeHostUrl);
-			return client.workspace.cloudList.query();
+			return client.workspace.list.query();
 		},
 		retry: false,
 	});
 
 	const v2ProjectIdByV1Id = useMemo(() => {
-		const projectIdsInCloud = new Set(
-			(cloudWorkspacesQuery.data ?? []).map((w) => w.projectId),
-		);
 		const v2ByPath = new Map<string, string>();
 		for (const v2 of hostProjectListQuery.data ?? []) {
-			const existing = v2ByPath.get(v2.repoPath);
-			if (!existing) {
-				v2ByPath.set(v2.repoPath, v2.id);
-				continue;
-			}
-			if (projectIdsInCloud.has(v2.id) && !projectIdsInCloud.has(existing)) {
-				v2ByPath.set(v2.repoPath, v2.id);
-			}
+			if (!v2ByPath.has(v2.repoPath)) v2ByPath.set(v2.repoPath, v2.id);
 		}
 		const map = new Map<string, string>();
 		for (const v1 of projectsQuery.data ?? []) {
@@ -83,19 +71,15 @@ export function ImportWorkspacesPage({
 			if (v2Id) map.set(v1.id, v2Id);
 		}
 		return map;
-	}, [
-		hostProjectListQuery.data,
-		projectsQuery.data,
-		cloudWorkspacesQuery.data,
-	]);
+	}, [hostProjectListQuery.data, projectsQuery.data]);
 
-	const cloudWorkspaceKeys = useMemo(() => {
+	const hostWorkspaceKeys = useMemo(() => {
 		const set = new Set<string>();
-		for (const w of cloudWorkspacesQuery.data ?? []) {
+		for (const w of hostWorkspacesQuery.data ?? []) {
 			set.add(`${w.projectId}\0${w.branch}`);
 		}
 		return set;
-	}, [cloudWorkspacesQuery.data]);
+	}, [hostWorkspacesQuery.data]);
 
 	const importedV2ProjectIds = Array.from(new Set(v2ProjectIdByV1Id.values()));
 
@@ -133,7 +117,7 @@ export function ImportWorkspacesPage({
 		workspacesQuery.isPending ||
 		worktreesQuery.isPending ||
 		hostProjectListQuery.isPending ||
-		cloudWorkspacesQuery.isPending ||
+		hostWorkspacesQuery.isPending ||
 		worktreeListQueries.some((q) => q.isPending);
 
 	const [isRefreshing, setIsRefreshing] = useState(false);
@@ -145,7 +129,7 @@ export function ImportWorkspacesPage({
 				workspacesQuery.refetch(),
 				worktreesQuery.refetch(),
 				hostProjectListQuery.refetch(),
-				cloudWorkspacesQuery.refetch(),
+				hostWorkspacesQuery.refetch(),
 				queryClient.invalidateQueries({
 					queryKey: WORKTREE_LIST_KEY_PREFIX,
 				}),
@@ -175,7 +159,7 @@ export function ImportWorkspacesPage({
 		const v2ProjectId = v2ProjectIdByV1Id.get(workspace.projectId);
 		if (!v2ProjectId) continue;
 
-		const alreadyImported = cloudWorkspaceKeys.has(
+		const alreadyImported = hostWorkspaceKeys.has(
 			`${v2ProjectId}\0${workspace.branch}`,
 		);
 		if (!alreadyImported) {
@@ -223,32 +207,24 @@ export function ImportWorkspacesPage({
 			updateAdoptStatus(workspace.id, { kind: "running" });
 			try {
 				const client = getHostServiceClientByUrl(activeHostUrl);
-				const adoptArgs = {
-					projectId: v2ProjectId,
-					workspaceName: workspace.name,
+				const result = await adoptV1Workspace(client, {
+					v2ProjectId,
+					name: workspace.name,
 					branch: workspace.branch,
-					baseBranch: baseBranch ?? undefined,
-				};
-				let result: Awaited<
-					ReturnType<typeof client.workspaceCreation.adopt.mutate>
-				>;
-				try {
-					result = await client.workspaceCreation.adopt.mutate({
-						...adoptArgs,
-						worktreePath,
-					});
-				} catch (err) {
-					if (worktreePath && trpcCode(err) === "NOT_FOUND") {
-						result = await client.workspaceCreation.adopt.mutate(adoptArgs);
-					} else {
-						throw err;
-					}
-				}
+					worktreePath,
+					baseBranch,
+				});
 
 				ensureWorkspaceInSidebar(result.workspace.id, v2ProjectId);
+				recordV1MigrationOutcome(organizationId, {
+					v1Id: workspace.id,
+					kind: "workspace",
+					status: "success",
+					v2Id: result.workspace.id,
+				});
 				updateAdoptStatus(workspace.id, { kind: "imported" });
 				await queryClient.invalidateQueries({
-					queryKey: WORKSPACE_CLOUD_LIST_KEY,
+					queryKey: WORKSPACE_LIST_KEY,
 				});
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
