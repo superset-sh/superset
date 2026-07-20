@@ -125,23 +125,43 @@ export class Server {
 	 * building its spawn args).
 	 */
 	adoptSnapshot(snapshot: HandoffSnapshot): void {
-		for (const s of snapshot.sessions) {
-			const pty = adoptFromFd({
-				fd: s.fdIndex,
-				pid: s.pid,
-				meta: s.meta,
-			});
-			const session = this.store.add(s.id, pty);
-			if (s.buffer.byteLength > 0) {
-				const buf = Buffer.from(
-					s.buffer.buffer,
-					s.buffer.byteOffset,
-					s.buffer.byteLength,
-				);
-				session.buffer = [buf];
-				session.bufferBytes = buf.byteLength;
+		const adopted: Session[] = [];
+		try {
+			for (const s of snapshot.sessions) {
+				const pty = adoptFromFd({
+					fd: s.fdIndex,
+					pid: s.pid,
+					meta: s.meta,
+				});
+				let session: Session | null = null;
+				try {
+					session = this.store.add(s.id, pty);
+					if (s.buffer.byteLength > 0) {
+						const buf = Buffer.from(
+							s.buffer.buffer,
+							s.buffer.byteOffset,
+							s.buffer.byteLength,
+						);
+						session.buffer = [buf];
+						session.bufferBytes = buf.byteLength;
+					}
+					this.wireSession(session);
+					adopted.push(session);
+				} catch (err) {
+					if (session) this.store.delete(session.id);
+					pty.dispose();
+					throw err;
+				}
 			}
-			this.wireSession(session);
+		} catch (err) {
+			// Adoption failed, so the predecessor retains ownership and keeps
+			// serving. Close only this successor's inherited copies; never signal
+			// the shared shells from a failed/partial handoff.
+			for (const session of adopted) {
+				session.pty.dispose();
+				this.store.delete(session.id);
+			}
+			throw err;
 		}
 	}
 
@@ -310,6 +330,11 @@ export class Server {
 					session.pty.kill("SIGKILL");
 				} catch {
 					// already dead, ignore
+				}
+				try {
+					session.pty.dispose();
+				} catch {
+					// best-effort teardown; continue closing the remaining sessions
 				}
 			}
 		}
@@ -513,6 +538,11 @@ export class Server {
 					c.subscriptions.delete(session.id);
 				}
 				c.pausedSessions.delete(session.id);
+			}
+			try {
+				session.pty.dispose();
+			} catch {
+				// The session must still leave the store if fd cleanup was already done.
 			}
 			// Delete the session immediately. Without this, every closed
 			// terminal pane left a row in the store forever — list-reply

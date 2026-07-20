@@ -209,6 +209,15 @@ export interface Pty {
 	pause(): void;
 	resume(): void;
 	/**
+	 * Release this process's ownership of the PTY master fd. Idempotent.
+	 *
+	 * Disposal is separate from TreeKiller: callers signal the process tree
+	 * first, then release the descriptor. A successful daemon handoff is the
+	 * exception — the predecessor must leave its adapter untouched because
+	 * node-pty disposal also signals the shell after closing its stream.
+	 */
+	dispose(): void;
+	/**
 	 * The kernel master fd backing this PTY. Required for daemon-upgrade
 	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
 	 * via stdio so the slave-side shell stays alive across the binary swap.
@@ -232,6 +241,7 @@ class NodePtyAdapter implements Pty {
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
+	private disposed = false;
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
@@ -260,8 +270,24 @@ class NodePtyAdapter implements Pty {
 			if (this.exited) return;
 			this.exited = true;
 			this.exitInfo = { code: exitCode ?? null, signal: signal ?? null };
+			this.dispose();
 			for (const cb of this.exitCallbacks) cb(this.exitInfo);
 		});
+	}
+
+	dispose(): void {
+		if (this.disposed) return;
+		this.disposed = true;
+		// Keep TreeKiller's escalation chain intact. A root shell can exit while
+		// a detached descendant that ignored SIGHUP is still alive; the kill
+		// chain's later snapshots are what find and reap those survivors.
+		try {
+			// UnixTerminal.destroy() closes the read socket/master fd and its
+			// write stream. node-pty omits destroy() from IPty's public typings.
+			(this.term as unknown as { destroy(): void }).destroy();
+		} catch {
+			// node-pty may already have torn the socket down on its exit path.
+		}
 	}
 
 	getMasterFd(): number {
@@ -310,12 +336,12 @@ class NodePtyAdapter implements Pty {
 	}
 
 	pause(): void {
-		if (this.exited) return;
+		if (this.exited || this.disposed) return;
 		this.term.pause();
 	}
 
 	resume(): void {
-		if (this.exited) return;
+		if (this.exited || this.disposed) return;
 		this.term.resume();
 	}
 }
@@ -387,10 +413,37 @@ export function spawn({ meta }: SpawnOptions): Pty {
 			`spawn failed (shell=${meta.shell} cwd=${meta.cwd ?? "(none)"} errno=${reprobeErrno(meta)}): ${(err as Error).message}`,
 		);
 	}
-	const adapter = new NodePtyAdapter(term, meta);
-	// Validate the private-fd dependency at spawn time, not handoff time.
-	adapter.getMasterFd();
-	return adapter;
+	let adapter: NodePtyAdapter | null = null;
+	try {
+		adapter = new NodePtyAdapter(term, meta);
+		// Validate the private-fd dependency at spawn time, not handoff time.
+		adapter.getMasterFd();
+		return adapter;
+	} catch (err) {
+		// node-pty has already forked and opened the master fd at this point.
+		// Tear down both a fully constructed adapter and a partial constructor
+		// before returning the spawn failure to the caller.
+		if (adapter) {
+			try {
+				adapter.kill("SIGKILL");
+			} catch {
+				// Disposal below still releases the native descriptor.
+			}
+			adapter.dispose();
+		} else {
+			try {
+				term.kill("SIGKILL");
+			} catch {
+				// Continue with raw descriptor disposal.
+			}
+			try {
+				(term as unknown as { destroy(): void }).destroy();
+			} catch {
+				// Preserve the original construction error.
+			}
+		}
+		throw err;
+	}
 }
 
 /**
@@ -417,6 +470,9 @@ class AdoptedPty implements Pty {
 	private readonly fd: number;
 	private readonly reader: tty.ReadStream;
 	private exitFired = false;
+	private exitInfo: { code: number | null; signal: number | null } | null =
+		null;
+	private disposed = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private readonly killer: TreeKiller;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -449,13 +505,12 @@ class AdoptedPty implements Pty {
 		const onExit = (info: { code: number | null; signal: number | null }) => {
 			if (this.exitFired) return;
 			this.exitFired = true;
-			if (this.livenessTimer) clearInterval(this.livenessTimer);
-			// tty.ReadStream owns the inherited fd; destroying the stream closes it.
-			try {
-				this.reader.destroy();
-			} catch {
-				// already closed
+			this.exitInfo = info;
+			if (this.livenessTimer) {
+				clearInterval(this.livenessTimer);
+				this.livenessTimer = null;
 			}
+			this.dispose();
 			for (const cb of this.exitCallbacks) cb(info);
 		};
 		this.reader.on("end", () => onExit({ code: null, signal: null }));
@@ -464,6 +519,19 @@ class AdoptedPty implements Pty {
 			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
 		}, 1000);
 		this.livenessTimer.unref();
+	}
+
+	dispose(): void {
+		if (this.disposed) return;
+		this.disposed = true;
+		// Do not touch TreeKiller or its pending escalation. Closing the adopted
+		// stream releases only this daemon's inherited descriptor; kill() owns
+		// process-tree signaling and may still be finishing in the background.
+		try {
+			this.reader.destroy();
+		} catch {
+			// The stream may already have closed after EOF/EIO.
+		}
 	}
 
 	getMasterFd(): number {
@@ -524,16 +592,20 @@ class AdoptedPty implements Pty {
 	}
 
 	onExit(cb: PtyOnExit): void {
+		if (this.exitInfo) {
+			cb(this.exitInfo);
+			return;
+		}
 		this.exitCallbacks.push(cb);
 	}
 
 	pause(): void {
-		if (this.exitFired) return;
+		if (this.exitFired || this.disposed) return;
 		this.reader.pause();
 	}
 
 	resume(): void {
-		if (this.exitFired) return;
+		if (this.exitFired || this.disposed) return;
 		this.reader.resume();
 	}
 }
@@ -571,5 +643,17 @@ export function adoptFromFd({ fd, pid, meta }: AdoptOptions): Pty {
 		throw new Error(`invalid pid: ${pid}`);
 	}
 	validateDims(meta.cols, meta.rows);
-	return new AdoptedPty(fd, pid, meta);
+	try {
+		return new AdoptedPty(fd, pid, meta);
+	} catch (err) {
+		// Ownership transfers to this process at adoption. If construction
+		// fails after handoff, close this inherited copy; the predecessor still
+		// owns its descriptor and can continue serving the live session.
+		try {
+			fs.closeSync(fd);
+		} catch {
+			// Preserve the adoption error.
+		}
+		throw err;
+	}
 }

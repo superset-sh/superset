@@ -63,6 +63,8 @@ test/
 ├── byte-fidelity.test.ts       # daemon → host byte-perfectness canary
 ├── handoff.test.ts             # Phase 2 fd-handoff end-to-end
 ├── signal-recovery.test.ts     # SIGKILL-during-handoff teardown
+├── server-fd-lifecycle.test.ts # server ownership paths with real OS fds
+├── fd-lifecycle.test.ts        # real master-fd disposal under churn
 └── no-encoding-hops.test.ts    # source-level grep: no base64 / per-chunk utf8 in the data path
 
 build.ts                        # Bun bundler → dist/pty-daemon.js (target: node)
@@ -79,6 +81,11 @@ build.ts                        # Bun bundler → dist/pty-daemon.js (target: no
 - **Buffer is in-memory only.** Survives host-service restarts (because the
   daemon does), but never persisted to disk. No SQLite, no scrollback files.
   v1's `HistoryManager` is explicitly out of scope.
+- **PTY master ownership is explicit.** Natural exit, pane close, failed open,
+  and normal daemon shutdown idempotently dispose native and adopted master
+  descriptors. A predecessor intentionally skips disposal only after a
+  successor acknowledges fd handoff, so TreeKiller and session continuity are
+  preserved.
 - **Protocol versioned from day one.** Handshake (`hello` / `hello-ack`)
   picks the highest mutually supported version.
 
@@ -95,6 +102,8 @@ What the integration suites prove:
 
 - **`control-plane.test.ts`**: handshake/version negotiation; session lifecycle (invalid dims, duplicate ids, ENOENT, instant-exit, hung-shell SIGKILL); I/O (resize, burst, multi-byte UTF-8); multi-subscriber fan-out; detach + reattach (replay); concurrency; hostile input; framing across split chunks.
 - **`handoff.test.ts`**: Phase 2 — sessions survive a daemon-binary swap with the same shell PIDs.
+- **`fd-lifecycle.test.ts`**: native and adopted real master fds close
+  idempotently, including repeated natural-exit churn.
 - **`byte-fidelity.test.ts`**: random bytes (including non-UTF-8) flow daemon → host byte-perfect on live and replay.
 - **`signal-recovery.test.ts`**: SIGKILL of the daemon mid-flight; clients see a clean close.
 - **`no-encoding-hops.test.ts`** (bun): source-level guard — fails the moment anyone reintroduces a base64 hop or per-chunk `chunk.toString("utf8")` on the data path.
