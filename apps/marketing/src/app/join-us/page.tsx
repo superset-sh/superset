@@ -1,4 +1,4 @@
-import { COMPANY } from "@superset/shared/constants";
+import { OPEN_ROLES } from "@superset/shared/constants";
 import { ArrowDown, ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
 
@@ -23,19 +23,6 @@ export const metadata: Metadata = {
 		images: ["/opengraph-image"],
 	},
 };
-
-const ROLES = [
-	{
-		title: "Founding Engineer",
-		location: "San Francisco, in person",
-		href: "https://www.ycombinator.com/companies/superset/jobs/Nd9luiP-founding-engineer",
-	},
-	{
-		title: "Founding Designer",
-		location: "San Francisco, in person",
-		href: COMPANY.CAREERS_URL,
-	},
-];
 
 export default function JoinUsPage() {
 	return (
@@ -126,26 +113,60 @@ export default function JoinUsPage() {
 						</ul>
 
 						<p>
-							That's why we shipped Superset — we noticed code was becoming
-							increasingly agentic, and we caught this trend at an excellent
-							time.
+							We saw this coming - coding was becoming increasingly agentic, and
+							the existing tooling wasn't catching up. That's why we built
+							Superset.
 						</p>
 
 						<p>
-							The key is that this agentic coding trend is{" "}
-							<em className="text-foreground">accelerating</em>, not staying the
-							same. Today, folks are running 3-5 agents in parallel, but that number
-							will be 100, and soon.
+							And this trend is{" "}
+							<em className="text-foreground">accelerating</em>. Today, folks
+							are running 3-5 agents in parallel, and soon it will be 100s.
 						</p>
 
 						<p>
-              If an agent can create quality code independently, why wouldn't you want to run 100s of them? If this trend continues, we believe we'll see the first bona-fide software factories emerge soon, which effectively are engines that will autonomously manufacture and ship code powered by 100s of agents running at once.
-            </p>
-            <p>
-              Our current model of writing code just won't scale in this world. How will a human understand what's going on? How will we communicate company priorities? How will our current infrastructure handle that much code being generated?
-            </p>
-            <p>
-              So much of our software infrastructure needs to be thrown out, and it's probably the most exciting time we've seen in our careers as a result.
+							Follow that trajectory and you get the first bona fide{" "}
+							<span className="text-foreground">software factories</span>:
+							engines that autonomously manufacture and ship code, powered by
+							hundreds of agents running at once.
+						</p>
+						<p>
+							Our current model of writing code just won't scale there. How will
+							a human understand what's going on? How will our infrastructure
+							handle that much code being generated?
+						</p>
+						<p>
+							So much of our software infrastructure needs to be thrown out and
+							rebuilt. This is a land grab - value is about to be created at a
+							scale we've never seen. We intend to claim it by making Superset
+							the place where teams run and manage their coding factories -{" "}
+							<span className="text-foreground">starting with our own.</span>
+						</p>
+					</div>
+				</section>
+
+				<section className="mt-12 md:mt-16">
+					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
+						We build our own toys
+					</h2>
+
+					<div className="space-y-5 text-lg text-muted-foreground leading-relaxed">
+						<p>
+							Superset is built in Superset, so we're our own #1 users. When
+							something's annoying, we feel it first; when something's magical,
+							we can't wait to share it.
+						</p>
+
+						<p>
+							That's the hidden perk of working here: you get paid to make your
+							own life easier. If the platform we're building is fun and makes
+							us 10x more productive, chances are everyone else will love it
+							too.
+						</p>
+
+						<p className="text-foreground">
+							If you've ever wanted to build a product you love to use, come
+							build it with us.
 						</p>
 					</div>
 				</section>
@@ -156,10 +177,10 @@ export default function JoinUsPage() {
 					</h2>
 
 					<ul className="m-0 list-none p-0 border-t border-border">
-						{ROLES.map((role) => (
+						{OPEN_ROLES.map((role) => (
 							<li key={role.title} className="border-b border-border">
 								<a
-									href={role.href}
+									href={role.url}
 									target="_blank"
 									rel="noopener noreferrer"
 									className="group flex items-center justify-between gap-4 py-5 no-underline"
