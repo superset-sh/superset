@@ -19,18 +19,27 @@ function timeAgo(date: string): string {
 interface CommitRowProps {
 	commit: Commit;
 	isSelected?: boolean;
+	wrap?: boolean;
 }
 
-export function CommitRow({ commit, isSelected }: CommitRowProps) {
+export function CommitRow({ commit, isSelected, wrap = false }: CommitRowProps) {
 	return (
-		<div className="flex flex-1 items-center justify-between">
-			<div className="min-w-0">
-				<div className="truncate text-sm">{commit.message}</div>
-				<div className="text-xs text-muted-foreground">
+		<div className="flex min-w-0 flex-1 items-start justify-between gap-2">
+			<div className="min-w-0 flex-1 overflow-hidden">
+				<div
+					className={
+						wrap
+							? "text-sm wrap-break-word"
+							: "truncate text-sm"
+					}
+				>
+					{commit.message}
+				</div>
+				<div className="truncate text-xs text-muted-foreground">
 					{commit.shortHash} · {commit.author} · {timeAgo(commit.date)}
 				</div>
 			</div>
-			{isSelected && <Check className="size-3.5 shrink-0" />}
+			{isSelected && <Check className="mt-0.5 size-3.5 shrink-0" />}
 		</div>
 	);
 }
