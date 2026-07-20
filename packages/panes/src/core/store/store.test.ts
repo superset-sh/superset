@@ -507,17 +507,54 @@ describe("openPane", () => {
 		).toBe(true);
 	});
 
-	it("splits the active pane right when no unpinned match", () => {
+	it("opens a new tab when the only candidate is pinned", () => {
 		const store = makeStore();
 		store.getState().addTab({
 			id: "t1",
 			panes: [{ ...tp("p1", "pinned"), pinned: true }],
 		});
 
-		store.getState().openPane({ pane: tp("p2", "split") });
+		store.getState().openPane({ pane: tp("p2", "fresh") });
 
-		const layout = store.getState().tabs[0]?.layout;
-		expect(layout?.type).toBe("split");
+		const tabs = store.getState().tabs;
+		expect(tabs).toHaveLength(2);
+		// The pinned tab is untouched; the new pane lives in its own tab
+		expect(tabs[0]?.layout?.type).toBe("pane");
+		expect(store.getState().getActivePane()?.pane.data.label).toBe("fresh");
+	});
+
+	it("never hijacks a multi-pane (split) tab as a preview", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1", "keep")] });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "right",
+			newPane: tp("p2", "also-keep"),
+		});
+
+		store.getState().openPane({ pane: tp("p3", "fresh") });
+
+		const tabs = store.getState().tabs;
+		expect(tabs).toHaveLength(2);
+		expect(tabs[0]?.panes.p1).toBeDefined();
+		expect(tabs[0]?.panes.p2).toBeDefined();
+	});
+
+	it("prefers the visible tab as the preview to replace", () => {
+		const store = makeStore();
+		// Two same-kind unpinned preview candidates; t2 is the visible tab
+		store.getState().addTab({ id: "t1", panes: [tp("p1", "first")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2", "visible")] });
+
+		store.getState().openPane({ pane: tp("p3", "next") });
+
+		const tabs = store.getState().tabs;
+		expect(tabs).toHaveLength(2);
+		// t2 (the tab being looked at) was replaced, t1 untouched
+		expect(store.getState().activeTabId).toBe("t2");
+		expect(tabs[0]?.panes.p1).toBeDefined();
+		expect(store.getState().getActivePane()?.pane.data.label).toBe("next");
 	});
 });
 
@@ -637,88 +674,6 @@ describe("movePaneToNewTab", () => {
 		expect(tabs.map((t) => t.id)).toEqual([newTab.id, "t2"]);
 		expect(newTab.panes.p1).toBeDefined();
 		expect(store.getState().activeTabId).toBe(newTab.id);
-	});
-});
-
-describe("moveTabToSplit", () => {
-	it("grafts all panes from the source tab next to the target pane and removes the source tab", () => {
-		const store = makeStore();
-		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
-		// t2 holds a vertical split of p2/p3 that should survive the merge intact.
-		store
-			.getState()
-			.addTab({ id: "t2", panes: [tp("p2")], activePaneId: "p2" });
-		store.getState().splitPane({
-			tabId: "t2",
-			paneId: "p2",
-			position: "bottom",
-			newPane: tp("p3"),
-		});
-		store.getState().setActiveTab("t1");
-
-		store.getState().moveTabToSplit({
-			sourceTabId: "t2",
-			targetPaneId: "p1",
-			position: "right",
-		});
-
-		const tabs = store.getState().tabs;
-		expect(tabs.map((t) => t.id)).toEqual(["t1"]);
-
-		const t1 = tabs[0];
-		expect(t1?.panes.p1).toBeDefined();
-		expect(t1?.panes.p2).toBeDefined();
-		expect(t1?.panes.p3).toBeDefined();
-		// p1 on the left, the source tab's p2/p3 split grafted on the right.
-		expect(t1?.layout).toEqual({
-			type: "split",
-			direction: "horizontal",
-			first: { type: "pane", paneId: "p1" },
-			second: {
-				type: "split",
-				direction: "vertical",
-				first: { type: "pane", paneId: "p2" },
-				second: { type: "pane", paneId: "p3" },
-			},
-		});
-		// The dragged tab's active pane carries over (splitPane focused p3).
-		expect(t1?.activePaneId).toBe("p3");
-		expect(store.getState().activeTabId).toBe("t1");
-	});
-
-	it("is a no-op when dropping a tab onto one of its own panes", () => {
-		const store = makeStore();
-		store.getState().addTab({ id: "t1", panes: [tp("p1"), tp("p2")] });
-
-		const before = structuredClone({
-			tabs: store.getState().tabs,
-			activeTabId: store.getState().activeTabId,
-		});
-
-		store.getState().moveTabToSplit({
-			sourceTabId: "t1",
-			targetPaneId: "p2",
-			position: "right",
-		});
-
-		expect({
-			tabs: store.getState().tabs,
-			activeTabId: store.getState().activeTabId,
-		}).toEqual(before);
-	});
-
-	it("is a no-op when the target pane does not exist", () => {
-		const store = makeStore();
-		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
-		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
-
-		store.getState().moveTabToSplit({
-			sourceTabId: "t2",
-			targetPaneId: "missing",
-			position: "right",
-		});
-
-		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
 	});
 });
 

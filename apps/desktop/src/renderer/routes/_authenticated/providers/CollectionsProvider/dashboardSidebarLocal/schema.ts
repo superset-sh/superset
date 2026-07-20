@@ -1,5 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
-import type { LayoutNode, Tab, WorkspaceState } from "@superset/panes";
+import { sanitizeWorkspaceState, type WorkspaceState } from "@superset/panes";
 import type { inferRouterInputs } from "@trpc/server";
 import { z } from "zod";
 
@@ -17,71 +17,14 @@ export const dashboardSidebarProjectSchema = z.object({
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
 
-// Structural validators for the persisted pane layout. `paneWorkspaceStateSchema`
-// above is a permissive passthrough for writes (the store always produces a
-// valid shape); these run on READ via `sanitizePaneLayout` so a malformed or
-// legacy-shaped layout (e.g. the pre-binary-tree `{ panes, focusedPaneId }`
-// shape) is healed instead of feeding an undefined node to the renderer.
-const layoutNodeSchema: z.ZodType<LayoutNode> = z.lazy(() =>
-	z.discriminatedUnion("type", [
-		z.object({ type: z.literal("pane"), paneId: z.string() }),
-		z.object({
-			type: z.literal("split"),
-			direction: z.enum(["horizontal", "vertical"]),
-			first: layoutNodeSchema,
-			second: layoutNodeSchema,
-			splitPercentage: z.number().optional(),
-		}),
-	]),
-);
-
-const paneNodeSchema = z.object({
-	id: z.string(),
-	kind: z.string(),
-	titleOverride: z.string().optional(),
-	pinned: z.boolean().optional(),
-	data: z.unknown(),
-});
-
-const tabNodeSchema = z.object({
-	id: z.string(),
-	titleOverride: z.string().optional(),
-	createdAt: z.number(),
-	activePaneId: z.string().nullable(),
-	layout: layoutNodeSchema,
-	panes: z.record(z.string(), paneNodeSchema),
-});
-
-const EMPTY_PANE_LAYOUT: WorkspaceState<unknown> = {
-	version: 1,
-	tabs: [],
-	activeTabId: null,
-};
-
 /**
- * Read-time heal for a persisted pane layout. An unparseable top-level shape
- * (missing `version`/`tabs`, or the legacy `{ panes, focusedPaneId }` layout)
- * resets to empty; individually-corrupt tabs (e.g. a split node missing a
- * child) are dropped while valid tabs are kept, and `activeTabId` is repaired
- * to point at a surviving tab. Prevents the renderer from rendering an
- * undefined layout node.
+ * Read-time heal for a persisted pane layout. Delegates to
+ * `sanitizeWorkspaceState` from @superset/panes — the package owns the
+ * persisted-state contract, so new `WorkspaceState` fields can't silently
+ * drift out of the heal. Never throws.
  */
 export function sanitizePaneLayout(raw: unknown): WorkspaceState<unknown> {
-	if (!raw || typeof raw !== "object") return EMPTY_PANE_LAYOUT;
-	const value = raw as Record<string, unknown>;
-	if (value.version !== 1 || !Array.isArray(value.tabs)) {
-		return EMPTY_PANE_LAYOUT;
-	}
-	const tabs = value.tabs.flatMap((tab): Tab<unknown>[] => {
-		const parsed = tabNodeSchema.safeParse(tab);
-		return parsed.success ? [parsed.data as Tab<unknown>] : [];
-	});
-	const activeTabId =
-		typeof value.activeTabId === "string" &&
-		tabs.some((tab) => tab.id === value.activeTabId)
-			? value.activeTabId
-			: (tabs[0]?.id ?? null);
-	return { version: 1, tabs, activeTabId };
+	return sanitizeWorkspaceState(raw);
 }
 
 const changesFilterSchema = z.discriminatedUnion("kind", [

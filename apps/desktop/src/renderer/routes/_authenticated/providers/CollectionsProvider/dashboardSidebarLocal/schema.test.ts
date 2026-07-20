@@ -130,7 +130,11 @@ describe("healWorkspaceLocalState", () => {
 		expect(healed.createdAt).toBe(baseStored.createdAt);
 		// A valid layout survives the read-time heal structurally intact (heal
 		// rebuilds the object, so this is structural, not reference, equality).
-		expect(healed.paneLayout).toEqual(validPaneLayout);
+		expect(healed.paneLayout).toEqual({
+			...validPaneLayout,
+			panelLayout: null,
+			panelActiveTabIds: {},
+		});
 		expect(healed.sidebarState.projectId).toBe(
 			baseStored.sidebarState.projectId,
 		);
@@ -189,6 +193,8 @@ describe("healWorkspaceLocalState", () => {
 			version: 1,
 			tabs: [],
 			activeTabId: null,
+			panelLayout: null,
+			panelActiveTabIds: {},
 		});
 	});
 });
@@ -202,7 +208,13 @@ describe("sanitizePaneLayout", () => {
 		panes: { "pane-1": { id: "pane-1", kind: "terminal", data: {} } },
 	};
 
-	const EMPTY: PaneLayout = { version: 1, tabs: [], activeTabId: null };
+	const EMPTY: PaneLayout = {
+		version: 1,
+		tabs: [],
+		activeTabId: null,
+		panelLayout: null,
+		panelActiveTabIds: {},
+	};
 
 	it("resets non-object / legacy / versionless input to empty", () => {
 		expect(sanitizePaneLayout(null)).toEqual(EMPTY);
@@ -219,7 +231,11 @@ describe("sanitizePaneLayout", () => {
 			tabs: [validTab],
 			activeTabId: "tab-1",
 		};
-		expect(sanitizePaneLayout(layout)).toEqual(layout);
+		expect(sanitizePaneLayout(layout)).toEqual({
+			...layout,
+			panelLayout: null,
+			panelActiveTabIds: {},
+		});
 	});
 
 	it("keeps a valid split layout intact", () => {
@@ -242,7 +258,50 @@ describe("sanitizePaneLayout", () => {
 			],
 			activeTabId: "tab-1",
 		};
+		expect(sanitizePaneLayout(layout)).toEqual({
+			...layout,
+			panelLayout: null,
+			panelActiveTabIds: {},
+		});
+	});
+
+	it("preserves panel fields (tab panelId, panelLayout, panelActiveTabIds)", () => {
+		const layout: PaneLayout = {
+			version: 1,
+			tabs: [
+				{ ...validTab, panelId: "panel-a" },
+				{
+					...validTab,
+					id: "tab-2",
+					activePaneId: "pane-2",
+					layout: { type: "pane", paneId: "pane-2" },
+					panes: { "pane-2": { id: "pane-2", kind: "chat", data: {} } },
+					panelId: "panel-b",
+				},
+			],
+			activeTabId: "tab-1",
+			panelLayout: {
+				type: "split",
+				direction: "horizontal",
+				first: { type: "pane", paneId: "panel-a" },
+				second: { type: "pane", paneId: "panel-b" },
+			},
+			panelActiveTabIds: { "panel-a": "tab-1", "panel-b": "tab-2" },
+		};
 		expect(sanitizePaneLayout(layout)).toEqual(layout);
+	});
+
+	it("drops a malformed panelLayout but keeps tabs", () => {
+		const result = sanitizePaneLayout({
+			version: 1,
+			tabs: [validTab],
+			activeTabId: "tab-1",
+			panelLayout: { type: "split", direction: "horizontal" },
+			panelActiveTabIds: { "panel-a": 42 },
+		});
+		expect(result.tabs).toHaveLength(1);
+		expect(result.panelLayout).toBeNull();
+		expect(result.panelActiveTabIds).toEqual({});
 	});
 
 	it("drops a corrupt tab (split missing a child) but keeps valid tabs", () => {

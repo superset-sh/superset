@@ -304,11 +304,11 @@ function V2WorkspaceContent() {
 									/>
 								) : null
 							}
-							renderAddTabMenu={() => (
+							renderAddTabMenu={({ panelId }) => (
 								<AddTabMenu
-									onAddTerminal={addTerminalTab}
-									onAddChat={addChatTab}
-									onAddBrowser={addBrowserTab}
+									onAddTerminal={() => addTerminalTab({ panelId })}
+									onAddChat={() => addChatTab({ panelId })}
+									onAddBrowser={() => addBrowserTab({ panelId })}
 									showPresetsBar={showPresetsBar}
 									onToggleShowPresetsBar={setShowPresetsBar}
 								/>

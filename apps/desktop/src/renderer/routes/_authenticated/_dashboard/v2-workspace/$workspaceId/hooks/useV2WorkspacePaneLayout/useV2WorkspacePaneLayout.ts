@@ -1,4 +1,8 @@
-import { createWorkspaceStore, type WorkspaceState } from "@superset/panes";
+import {
+	createWorkspaceStore,
+	toWorkspaceState,
+	type WorkspaceState,
+} from "@superset/panes";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
@@ -10,6 +14,8 @@ const EMPTY_STATE: WorkspaceState<PaneViewerData> = {
 	version: 1,
 	tabs: [],
 	activeTabId: null,
+	panelLayout: null,
+	panelActiveTabIds: {},
 };
 
 function getSnapshot(state: WorkspaceState<PaneViewerData>): string {
@@ -80,11 +86,9 @@ export function useV2WorkspacePaneLayout() {
 
 	useEffect(() => {
 		const unsubscribe = store.subscribe((nextStore) => {
-			const nextWorkspaceState: WorkspaceState<PaneViewerData> = {
-				version: nextStore.version,
-				tabs: nextStore.tabs,
-				activeTabId: nextStore.activeTabId,
-			};
+			// The package owns the persisted shape — new WorkspaceState fields
+			// flow into the snapshot without this hook needing to know them.
+			const nextWorkspaceState = toWorkspaceState(nextStore);
 			const nextSnapshot = getSnapshot(nextWorkspaceState);
 			if (nextSnapshot === syncStateRef.current.lastSyncedSnapshot) {
 				return;

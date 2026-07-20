@@ -14,14 +14,13 @@ import type {
 	RendererContext,
 } from "../../../../../../types";
 import { PaneHeaderActions } from "../../../../../PaneHeaderActions";
-import { TAB_DRAG_TYPE } from "../../../TabBar/components/TabItem";
 import { PANE_MIN_SIZE_CLASS_NAME } from "../../constants";
 import { DropZoneOverlay } from "./components/DropZoneOverlay";
 import { PaneContent } from "./components/PaneContent";
 import { PaneContextMenu } from "./components/PaneContextMenu";
 import { PANE_DRAG_TYPE, PaneHeader } from "./components/PaneHeader";
 
-type PaneDropItem = { paneId: string } | { tabId: string; index: number };
+type PaneDropItem = { paneId: string };
 
 interface PaneComponentProps<TData> {
 	store: StoreApi<WorkspaceStore<TData>>;
@@ -167,16 +166,12 @@ export function Pane<TData>({
 	const [dropPosition, setDropPosition] = useState<SplitPosition | null>(null);
 	const dropRef = useRef<HTMLDivElement>(null);
 
+	// Tab drags are handled by the panel-level drop zone; panes only accept
+	// other panes (split/move within and across tabs).
 	const [{ isOver, canDrop }, connectDrop] = useDrop(
 		() => ({
-			accept: [PANE_DRAG_TYPE, TAB_DRAG_TYPE],
-			canDrop: (item: PaneDropItem, monitor) => {
-				// Can't drop a tab onto a pane it already owns, or a pane onto itself.
-				if (monitor.getItemType() === TAB_DRAG_TYPE) {
-					return "tabId" in item && item.tabId !== tab.id;
-				}
-				return "paneId" in item && item.paneId !== pane.id;
-			},
+			accept: PANE_DRAG_TYPE,
+			canDrop: (item: PaneDropItem) => item.paneId !== pane.id,
 			hover: (_item, monitor) => {
 				const offset = monitor.getClientOffset();
 				const el = dropRef.current;
@@ -188,31 +183,21 @@ export function Pane<TData>({
 					setDropPosition(pos);
 				}
 			},
-			drop: (item: PaneDropItem, monitor) => {
+			drop: (item: PaneDropItem) => {
 				const pos = dropPositionRef.current;
 				if (!pos) return;
-				if (monitor.getItemType() === TAB_DRAG_TYPE && "tabId" in item) {
-					store.getState().moveTabToSplit({
-						sourceTabId: item.tabId,
-						targetPaneId: pane.id,
-						position: pos,
-					});
-					return;
-				}
-				if ("paneId" in item) {
-					store.getState().movePaneToSplit({
-						sourcePaneId: item.paneId,
-						targetPaneId: pane.id,
-						position: pos,
-					});
-				}
+				store.getState().movePaneToSplit({
+					sourcePaneId: item.paneId,
+					targetPaneId: pane.id,
+					position: pos,
+				});
 			},
 			collect: (monitor) => ({
 				isOver: monitor.isOver(),
 				canDrop: monitor.canDrop(),
 			}),
 		}),
-		[pane.id, tab.id, store],
+		[pane.id, store],
 	);
 
 	// Merge refs: connectDrop needs a node, and we need dropRef for rect calculations
@@ -238,6 +223,12 @@ export function Pane<TData>({
 	const headerExtras = definition?.renderHeaderExtras?.(context);
 	const toolbar = definition?.renderToolbar?.(context);
 
+	// A tab's single pane IS the tab (VS Code-style): its header is redundant
+	// with the tab item, so hide it. Keep it for split tabs (each pane needs
+	// its own handle/actions) and for kinds with a toolbar (e.g. the
+	// browser's URL bar).
+	const showHeader = Object.keys(tab.panes).length > 1 || toolbar != null;
+
 	const isDropTarget = isOver && canDrop;
 
 	return (
@@ -248,22 +239,24 @@ export function Pane<TData>({
 				className={`relative flex h-full w-full ${PANE_MIN_SIZE_CLASS_NAME} flex-col overflow-hidden`}
 				onMouseDown={context.actions.focus}
 			>
-				<PaneHeader
-					title={title}
-					icon={icon}
-					isActive={isActive}
-					titleContent={titleContent}
-					headerExtras={headerExtras}
-					toolbar={toolbar}
-					actionsContent={<context.components.PaneHeaderActions />}
-					paneId={pane.id}
-					onClick={
-						definition?.onHeaderClick
-							? () => definition.onHeaderClick?.(context)
-							: context.actions.pin
-					}
-					onMiddleClick={context.actions.close}
-				/>
+				{showHeader && (
+					<PaneHeader
+						title={title}
+						icon={icon}
+						isActive={isActive}
+						titleContent={titleContent}
+						headerExtras={headerExtras}
+						toolbar={toolbar}
+						actionsContent={<context.components.PaneHeaderActions />}
+						paneId={pane.id}
+						onClick={
+							definition?.onHeaderClick
+								? () => definition.onHeaderClick?.(context)
+								: context.actions.pin
+						}
+						onMiddleClick={context.actions.close}
+					/>
+				)}
 				<PaneContent>
 					{definition ? (
 						definition.renderPane(context)
