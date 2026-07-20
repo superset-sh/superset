@@ -1,7 +1,8 @@
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { FoldVertical, UnfoldVertical } from "lucide-react";
+import { cn } from "@superset/ui/utils";
+import { FoldVertical, RefreshCw, UnfoldVertical } from "lucide-react";
 import type {
 	ChangesFilter,
 	ChangesViewMode,
@@ -21,6 +22,8 @@ interface ChangesToolbarProps {
 	isRefreshing: boolean;
 	viewMode: ChangesViewMode;
 	onViewModeChange: (next: ChangesViewMode) => void;
+	/** Re-fetch git status, diff, commits, and branches. */
+	onRefresh: () => void;
 	/** Whether the last fold action was "collapse all". */
 	collapsed: boolean;
 	/** Toggle between collapse-all and expand-all across every section. */
@@ -44,6 +47,7 @@ export function ChangesToolbar({
 	isRefreshing,
 	viewMode,
 	onViewModeChange,
+	onRefresh,
 	collapsed,
 	onToggleFold,
 }: ChangesToolbarProps) {
@@ -80,6 +84,23 @@ export function ChangesToolbar({
 			</div>
 			<div className="flex shrink-0 items-center gap-1">
 				<ViewModeToggle viewMode={viewMode} onChange={onViewModeChange} />
+				<Tooltip>
+					<TooltipTrigger asChild>
+						<Button
+							variant="ghost"
+							size="icon"
+							className="size-5 text-muted-foreground hover:text-foreground"
+							onClick={onRefresh}
+							disabled={isRefreshing}
+							aria-label="Refresh changes"
+						>
+							<RefreshCw
+								className={cn("size-3", isRefreshing && "animate-spin")}
+							/>
+						</Button>
+					</TooltipTrigger>
+					<TooltipContent side="bottom">Refresh changes</TooltipContent>
+				</Tooltip>
 				<Tooltip>
 					<TooltipTrigger asChild>
 						<Button

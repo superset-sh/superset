@@ -43,6 +43,7 @@ interface ChangesTabContentProps {
 	onOpenInEditor?: (path: string) => void;
 	onFilterChange: (filter: ChangesFilter) => void;
 	onViewModeChange: (viewMode: ChangesViewMode) => void;
+	onRefresh: () => void;
 	onBaseBranchChange: (branchName: string) => void;
 	onRenameBranch: (newName: string) => void;
 	canRenameBranch: boolean;
@@ -68,6 +69,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 	onOpenInEditor,
 	onFilterChange,
 	onViewModeChange,
+	onRefresh,
 	onBaseBranchChange,
 	onRenameBranch,
 	canRenameBranch,
@@ -131,6 +133,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 				isRefreshing={status.isFetching}
 				viewMode={viewMode}
 				onViewModeChange={onViewModeChange}
+				onRefresh={onRefresh}
 				collapsed={foldCollapsed}
 				onToggleFold={toggleFold}
 			/>
