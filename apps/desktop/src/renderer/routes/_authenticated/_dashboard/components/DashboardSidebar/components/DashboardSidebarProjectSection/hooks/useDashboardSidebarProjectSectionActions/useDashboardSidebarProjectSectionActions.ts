@@ -9,6 +9,8 @@ import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import type { DashboardSidebarProject } from "../../../../types";
 
 interface UseDashboardSidebarProjectSectionActionsOptions {
@@ -36,6 +38,12 @@ export function useDashboardSidebarProjectSectionActions({
 	// the local host and rename the wrong replica.
 	const servingHostUrl = useHostUrl(servingHostId ?? undefined);
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
+	const projectColor = useV2ProjectLocalMetaStore(
+		(state) => state.projects[project.id]?.color ?? PROJECT_COLOR_DEFAULT,
+	);
+	const setProjectColor = useV2ProjectLocalMetaStore(
+		(state) => state.setProjectColor,
+	);
 	const {
 		createSection,
 		deleteSection,
@@ -73,6 +81,10 @@ export function useDashboardSidebarProjectSectionActions({
 					`Rename failed: ${err instanceof Error ? err.message : String(err)}`,
 				);
 			});
+	};
+
+	const handleSetColor = (color: string) => {
+		setProjectColor(project.id, color);
 	};
 
 	const handleOpenInFinder = () => {
@@ -122,7 +134,9 @@ export function useDashboardSidebarProjectSectionActions({
 		handleNewWorkspace,
 		handleOpenInFinder,
 		handleOpenSettings,
+		handleSetColor,
 		isRenaming,
+		projectColor,
 		renameSection,
 		renameValue,
 		setRenameValue,

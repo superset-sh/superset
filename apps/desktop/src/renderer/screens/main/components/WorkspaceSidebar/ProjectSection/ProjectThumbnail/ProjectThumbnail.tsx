@@ -1,7 +1,11 @@
 import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
+import {
+	hexToRgba,
+	isCustomProjectColor,
+	PROJECT_COLOR_DEFAULT,
+} from "shared/constants/project-colors";
 
 interface ProjectThumbnailProps {
 	projectId: string;
@@ -15,23 +19,6 @@ interface ProjectThumbnailProps {
 
 function getGitHubAvatarUrl(owner: string): string {
 	return `https://github.com/${owner}.png?size=64`;
-}
-
-/**
- * Converts a hex color to rgba with the specified alpha.
- */
-function hexToRgba(hex: string, alpha: number): string {
-	const r = Number.parseInt(hex.slice(1, 3), 16);
-	const g = Number.parseInt(hex.slice(3, 5), 16);
-	const b = Number.parseInt(hex.slice(5, 7), 16);
-	return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
-/**
- * Checks if a color value is a custom hex color (not the "default" value).
- */
-function isCustomColor(color: string): boolean {
-	return color !== PROJECT_COLOR_DEFAULT && color.startsWith("#");
 }
 
 /**
@@ -72,7 +59,7 @@ export function ProjectThumbnail({
 
 	const owner = avatarData?.owner ?? githubOwner;
 	const firstLetter = projectName.charAt(0).toUpperCase();
-	const hasCustomColor = isCustomColor(projectColor);
+	const hasCustomColor = isCustomProjectColor(projectColor);
 	const shouldUseTransparentIconFrame = projectColor === PROJECT_COLOR_DEFAULT;
 
 	// Border: gray by default, custom color with slight transparency when set

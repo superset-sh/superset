@@ -47,7 +47,9 @@ export function DashboardSidebarProjectSection({
 		handleNewWorkspace,
 		handleOpenInFinder,
 		handleOpenSettings,
+		handleSetColor,
 		isRenaming,
+		projectColor,
 		renameSection,
 		renameValue,
 		setRenameValue,
@@ -63,16 +65,19 @@ export function DashboardSidebarProjectSection({
 	if (isSidebarCollapsed) {
 		return (
 			<DashboardSidebarProjectContextMenu
+				projectColor={projectColor}
 				onCreateSection={handleNewSection}
 				onOpenInFinder={handleOpenInFinder}
 				onOpenSettings={handleOpenSettings}
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
 				onRename={startRename}
+				onSetColor={handleSetColor}
 			>
 				<div className={cn("border-b border-border last:border-b-0")}>
 					<DashboardSidebarCollapsedProjectContent
 						projectName={project.name}
 						iconUrl={project.iconUrl}
+						projectColor={projectColor}
 						isCollapsed={project.isCollapsed}
 						totalWorkspaceCount={totalWorkspaceCount}
 						workspaces={flattenedCollapsedWorkspaces}
@@ -88,15 +93,18 @@ export function DashboardSidebarProjectSection({
 	return (
 		<div className={cn("border-b border-border last:border-b-0")}>
 			<DashboardSidebarProjectContextMenu
+				projectColor={projectColor}
 				onCreateSection={handleNewSection}
 				onOpenInFinder={handleOpenInFinder}
 				onOpenSettings={handleOpenSettings}
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
 				onRename={startRename}
+				onSetColor={handleSetColor}
 			>
 				<DashboardSidebarProjectRow
 					projectName={project.name}
 					iconUrl={project.iconUrl}
+					projectColor={projectColor}
 					totalWorkspaceCount={totalWorkspaceCount}
 					isCollapsed={project.isCollapsed}
 					isRenaming={isRenaming}
