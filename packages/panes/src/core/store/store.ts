@@ -896,6 +896,7 @@ export function createWorkspaceStore<TData>(
 				if (!targetTab || !targetTab.layout) return s;
 				// Merging a tab into one of its own panes is a no-op.
 				if (sourceTab.id === targetTab.id) return s;
+				if (sourceTab.pinned) return s;
 				if (!findPaneInLayout(targetTab.layout, args.targetPaneId)) return s;
 
 				// Graft the source's whole layout subtree so its internal split

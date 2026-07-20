@@ -765,6 +765,22 @@ describe("moveTabToSplit", () => {
 
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
 	});
+
+	it("is a no-op when the source tab is pinned", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", pinned: true, panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().moveTabToSplit({
+			sourceTabId: "t1",
+			targetPaneId: "p2",
+			position: "right",
+		});
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().tabs[0]?.pinned).toBe(true);
+		expect(store.getState().tabs[1]?.panes.p1).toBeUndefined();
+	});
 });
 
 describe("edge cases", () => {

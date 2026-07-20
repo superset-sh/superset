@@ -154,6 +154,7 @@ export function TabItem<TData>({
 										onAuxClick={(event) => {
 											if (event.button === 1) {
 												event.preventDefault();
+												if (tab.pinned) return;
 												onClose();
 											}
 										}}
