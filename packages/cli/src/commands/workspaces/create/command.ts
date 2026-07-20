@@ -1,7 +1,7 @@
 import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
-import { prepareAttachmentIds } from "../../../lib/upload-attachments";
+import { uploadAttachments } from "../../../lib/upload-attachments";
 import { assertRequestedAgentsStarted } from "./agent-results";
 
 export default command({
@@ -30,11 +30,6 @@ export default command({
 			.desc(
 				"Local file path to upload as an attachment to the host. Repeatable. Only used when --agent is set",
 			),
-		attachmentId: string()
-			.variadic()
-			.desc(
-				"Pre-uploaded attachment UUID. Repeatable. Only used when --agent is set",
-			),
 	},
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -61,13 +56,9 @@ export default command({
 				"Pass --prompt <text> alongside --agent",
 			);
 		}
-		if (
-			((options.attachment?.length ?? 0) > 0 ||
-				(options.attachmentId?.length ?? 0) > 0) &&
-			!options.agent
-		) {
+		if (options.attachment && options.attachment.length > 0 && !options.agent) {
 			throw new CLIError(
-				"Attachments require --agent",
+				"--attachment requires --agent",
 				"Attachments are only meaningful when launching an agent",
 			);
 		}
@@ -83,10 +74,9 @@ export default command({
 			userJwt: ctx.bearer,
 		});
 
-		const attachmentIds = await prepareAttachmentIds(target.client, {
-			attachmentIds: options.attachmentId ?? [],
-			attachmentPaths: options.attachment ?? [],
-		});
+		const attachmentIds = options.attachment
+			? await uploadAttachments(target.client, options.attachment)
+			: [];
 
 		const agents =
 			options.agent && options.prompt

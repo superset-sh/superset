@@ -92,15 +92,6 @@ export const terminalAgentsRouter = router({
 				ctx.terminalAgentStore.list(),
 				input.terminalId,
 			);
-			const adopted = await adoptTerminalSessionInternal({
-				terminalId: binding.terminalId,
-				workspaceId: binding.workspaceId,
-				db: ctx.db,
-				eventBus: ctx.eventBus,
-			});
-			if ("error" in adopted) {
-				throw new TRPCError({ code: "NOT_FOUND", message: adopted.error });
-			}
 			try {
 				const snapshot = await (await getDaemonClient()).snapshot(
 					binding.terminalId,

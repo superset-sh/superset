@@ -46,7 +46,7 @@ superset workspaces create --project <id> --local --name "..." --branch <branch>
 superset workspaces create --project <id> --local --name "..." --branch <branch> --command "bun install && bun test"
 ```
 
-- `--agent`/`--prompt` launch an agent in the workspace (both required together) — the inline form of `agents create`. Local `--attachment <path>` values are uploaded first; pre-uploaded files can be passed with repeatable `--attachment-id <uuid>`.
+- `--agent`/`--prompt` launch an agent in the workspace (both required together) — the inline form of `agents create`. Repeatable local `--attachment <path>` values are uploaded first.
 - `--command <cmd>` runs a one-off shell command in the worktree — the inline form of `terminals create`.
 
 The two are independent — pass either or both.

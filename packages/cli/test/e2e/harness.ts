@@ -46,7 +46,6 @@ interface RunCommandOptions {
 	env: NodeJS.ProcessEnv;
 	stdin?: string;
 	displayArgs?: string[];
-	signalAfterMs?: number;
 }
 
 const PROCESS_TIMEOUT_MS = 15_000;
@@ -122,9 +121,6 @@ async function runCommand(
 	const process = startProcess(options.command, options.args, options);
 	if (options.stdin !== undefined) process.child.stdin.end(options.stdin);
 	else process.child.stdin.end();
-	if (options.signalAfterMs !== undefined) {
-		setTimeout(() => process.child.kill("SIGINT"), options.signalAfterMs);
-	}
 	const exitCode = await new Promise<number>((resolveExit, reject) => {
 		process.child.once("error", reject);
 		process.child.once("exit", (code) => resolveExit(code ?? 1));
@@ -378,7 +374,6 @@ export class CliE2EHarness {
 		args: string[];
 		stdin?: string;
 		displayArgs?: string[];
-		signalAfterMs?: number;
 	}): Promise<CommandEvidence> {
 		const executable = join(
 			this.cliRoot,
@@ -398,9 +393,6 @@ export class CliE2EHarness {
 			cwd: this.cliRoot,
 			env: this.commonEnv(),
 			...(options.stdin !== undefined ? { stdin: options.stdin } : {}),
-			...(options.signalAfterMs !== undefined
-				? { signalAfterMs: options.signalAfterMs }
-				: {}),
 		});
 		evidence.command = evidence.command.replace(/^bun superset /, "superset ");
 		this.commands.push(this.scrubCommand(evidence));

@@ -50,17 +50,10 @@ When a user asks for UI verification through the Chrome DevTools Protocol (CDP):
 
 ## CLI End-to-End Verification
 
-Cross-process CLI changes need an isolated command-level test, not a desktop screenshot. Invoke the real CLI and backing services with a temporary home, database, manifest, attachment root, and fixture workspace; never use live user state. Terminal tests must run the PTY daemon under Electron-as-Node so `node-pty` uses the production ABI. Record scrubbed commands, exit codes, output, and behavior assertions under ignored `test-results/`.
-
-Run the headless agent-session acceptance test with `bun run test:cli-e2e`.
-
-When the acceptance criterion includes the real desktop UI, also run the
-CLI-to-Electron CDP workflow in
-`apps/desktop/docs/CLI_CDP_E2E.md`. The CLI must share the exact worktree's
-`SUPERSET_HOME_DIR` and Electron-owned host manifest; launch the full app, not a
-renderer-only Vite server. Preserve CLI output and genuine CDP screenshots as
-separate evidence: a screenshot proves the renderer's visible response to the
-returned CLI-created IDs, not the CLI upload or transport behavior by itself.
+Run cross-process agent-session coverage with `bun run test:cli-e2e`; it uses an
+isolated home and a production-ABI PTY daemon. When the acceptance criterion
+includes the real desktop UI, follow `apps/desktop/docs/CLI_CDP_E2E.md` and
+preserve CLI output separately from genuine CDP screenshot evidence.
 
 ## Agent Rules
 1. **Type safety** - avoid `any` unless necessary

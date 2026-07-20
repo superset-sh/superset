@@ -544,7 +544,6 @@ List workspaces accessible to the active organization. With neither
 		{ flag: "--prompt <text>", description: "Initial prompt. Required when `--agent` is set." },
 		{ flag: "--command <cmd>", description: "Shell command to run in the new workspace after creation." },
 		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
-		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded host attachment UUID for the spawned agent. Repeatable." },
 	]}
 	output={`{
   workspace: Workspace;
@@ -561,9 +560,8 @@ List workspaces accessible to the active organization. With neither
 Create a workspace on the target host. Specify exactly one of `--branch`
 or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
-`--agent`/`--prompt`. Pass either or both. Attachments require `--agent`:
-local paths are uploaded to the target host, while `--attachment-id` reuses a
-file already uploaded there.
+`--agent`/`--prompt`. Pass either or both. Attachments require `--agent` and
+local paths are uploaded to the target host before launch.
 
 Workspace creation and the inline agent launch are separate outcomes. If the
 workspace is created but the agent fails to start, the command exits non-zero,

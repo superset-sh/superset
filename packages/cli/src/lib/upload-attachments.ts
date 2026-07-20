@@ -4,11 +4,6 @@ import { CLIError } from "@superset/cli-framework";
 import mimeTypes from "mime-types";
 import type { HostServiceClient } from "./host-target";
 
-export interface PrepareAttachmentIdsOptions {
-	attachmentIds?: string[];
-	attachmentPaths?: string[];
-}
-
 export async function uploadAttachments(
 	client: HostServiceClient,
 	paths: string[],
@@ -33,21 +28,4 @@ export async function uploadAttachments(
 		ids.push(result.attachmentId);
 	}
 	return ids;
-}
-
-/**
- * Resolve the two public CLI attachment forms into the host IDs consumed by
- * agent launch procedures. Existing IDs stay first and local paths are
- * uploaded in argument order, giving `agents create` and `workspaces create`
- * one ordering and error contract.
- */
-export async function prepareAttachmentIds(
-	client: HostServiceClient,
-	options: PrepareAttachmentIdsOptions,
-): Promise<string[]> {
-	const uploadedIds = await uploadAttachments(
-		client,
-		options.attachmentPaths ?? [],
-	);
-	return [...(options.attachmentIds ?? []), ...uploadedIds];
 }
