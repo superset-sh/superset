@@ -145,3 +145,16 @@ reference-counted survival is out of scope here.
   - existing `reset` / preferred-port tests still pass.
 
 Each test is verified to fail against the pre-change behavior (mutation check).
+
+## Result
+
+Shipped as planned. PR: https://github.com/superset-sh/superset/pull/5791
+
+- New `host-service-lock.ts` + `tryAdopt`/`startOrAdopt` + `owned` flag +
+  ownership-aware `stop`, exactly as designed above.
+- Tests: `host-service-lock.test.ts` (6) + 6 new coordinator tests — **18 pass**.
+  Mutation-verified: broke the ownership branch, health gate, lock-steal
+  condition, and adopted liveness re-check — each corresponding test failed.
+- `bun run lint` clean · `bun run typecheck` 35/35.
+- No production callers changed; `stop`/`stopAll`/`reset` keep their existing
+  semantics for owned entries.
