@@ -4,9 +4,11 @@ import {
 	useCallback,
 	useDeferredValue,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	tasksSearchFromFilters,
@@ -160,9 +162,15 @@ export function TasksView({
 		[collections],
 	);
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) => q.from({ projects: collections.v2Projects }),
-		[collections],
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const v2Projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
+				name: project.name,
+			})),
+		[hostProjects],
 	);
 
 	useEffect(() => {

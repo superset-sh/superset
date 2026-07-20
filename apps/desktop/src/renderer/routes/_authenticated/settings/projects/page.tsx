@@ -1,43 +1,29 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { MOCK_ORG_ID } from "shared/constants";
 
 export const Route = createFileRoute("/_authenticated/settings/projects/")({
 	component: ProjectsIndexPage,
 });
 
 function ProjectsIndexPage() {
-	const collections = useCollections();
-	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
-
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
 
 	const { data: groups = [], isLoading: groupsLoading } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 
-	const { data: v2Projects = [], isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) =>
-					eq(projects.organizationId, activeOrganizationId ?? ""),
-				)
-				.select(({ projects }) => ({
-					id: projects.id,
-					name: projects.name,
-				})),
-		[collections, activeOrganizationId],
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects, isReady } = useHostProjects();
+	const v2Projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
+				name: project.name,
+			})),
+		[hostProjects],
 	);
 
 	const firstProjectId = useMemo(() => {

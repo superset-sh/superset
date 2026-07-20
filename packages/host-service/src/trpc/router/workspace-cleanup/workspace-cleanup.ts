@@ -5,10 +5,7 @@ import { invalidateLabelCache } from "../../../ports/static-ports";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
-import {
-	clearWorkspaceCloudTombstone,
-	deleteLocalWorkspace,
-} from "../../../workspaces/local-workspace-store";
+import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
@@ -340,10 +337,10 @@ async function runDestroy(
 		}
 	}
 
-	// ─── Step 3: Local delete (authoritative) + cloud mirror ──────
-	// The local row is the commit point now: it broadcasts the deletion and
-	// tombstones the id. The cloud delete is a best-effort mirror push —
-	// unreachable cloud means the reconciler replays the tombstone later.
+	// ─── Step 3: Local delete (authoritative) ─────────────────────
+	// The local row is the commit point and the only record. The cloud
+	// delete is best-effort legacy cleanup for rows mirrored before
+	// workspaces went fully local.
 	deleteLocalWorkspace(
 		{ db: ctx.db, eventBus: ctx.eventBus },
 		input.workspaceId,
@@ -351,12 +348,11 @@ async function runDestroy(
 	let cloudDeleted = false;
 	try {
 		await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-		clearWorkspaceCloudTombstone(ctx.db, input.workspaceId);
 		cloudDeleted = true;
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		warnings.push(
-			`Cloud delete deferred (will retry in background): ${message}`,
+			`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
 		);
 	}
 

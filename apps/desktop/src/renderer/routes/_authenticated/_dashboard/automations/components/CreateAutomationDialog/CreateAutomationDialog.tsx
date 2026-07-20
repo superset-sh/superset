@@ -13,6 +13,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { LuX } from "react-icons/lu";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -20,7 +21,6 @@ import { DevicePicker } from "renderer/routes/_authenticated/components/Dashboar
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { hideAll as hideAllTippy } from "tippy.js";
 import { useProjectFileSearch } from "../../hooks/useProjectFileSearch";
-import { useRecentProjects } from "../../hooks/useRecentProjects";
 import type { AutomationTemplate } from "../../templates";
 import { AgentPicker } from "../AgentPicker";
 import { ProjectPicker } from "../ProjectPicker";

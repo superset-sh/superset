@@ -34,6 +34,7 @@ import {
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
+	waitForTerminalBaseEnv,
 } from "./env.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
@@ -1072,7 +1073,10 @@ export async function createTerminalSessionInternal({
 		DEFAULT_TERMINAL_ROWS,
 	);
 
-	// Use the preserved shell snapshot — never live process.env
+	// Use the preserved shell snapshot — never live process.env. Resolution
+	// runs in the background at startup so the server can listen immediately;
+	// wait for it here before the first PTY needs the snapshot.
+	await waitForTerminalBaseEnv();
 	const baseEnv = getTerminalBaseEnv();
 	const supersetHomeDir = process.env.SUPERSET_HOME_DIR || "";
 	const shell = resolveLaunchShell(baseEnv);

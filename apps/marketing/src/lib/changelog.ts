@@ -28,6 +28,7 @@ function parseFrontmatter(filePath: string): ChangelogEntry | null {
 			date: dateValue,
 			image: data.image,
 			content,
+			draft: data.draft === true,
 		};
 	} catch {
 		return null;
@@ -43,7 +44,7 @@ export function getChangelogEntries(): ChangelogEntry[] {
 
 	const entries = files
 		.map((file) => parseFrontmatter(path.join(CHANGELOG_DIR, file)))
-		.filter((entry): entry is ChangelogEntry => entry !== null);
+		.filter((entry): entry is ChangelogEntry => entry !== null && !entry.draft);
 
 	return entries.sort((a, b) => {
 		const dateA = new Date(a.date);
@@ -59,18 +60,13 @@ export function getChangelogEntry(slug: string): ChangelogEntry | undefined {
 		return undefined;
 	}
 
-	return parseFrontmatter(filePath) ?? undefined;
+	const entry = parseFrontmatter(filePath) ?? undefined;
+	return entry?.draft ? undefined : entry;
 }
 
 export function getAllChangelogSlugs(): string[] {
-	if (!fs.existsSync(CHANGELOG_DIR)) {
-		return [];
-	}
-
-	return fs
-		.readdirSync(CHANGELOG_DIR)
-		.filter((f) => f.endsWith(".mdx"))
-		.map((f) => f.replace(".mdx", ""));
+	// Drafts are excluded so they're never statically generated.
+	return getChangelogEntries().map((entry) => entry.slug);
 }
 
 export function extractToc(

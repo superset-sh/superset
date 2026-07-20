@@ -115,7 +115,14 @@ async function verifyProjectInOrg(organizationId: string, projectId: string) {
 		.where(eq(v2Projects.id, projectId))
 		.limit(1);
 
-	if (!project || project.organizationId !== organizationId) {
+	// Local-first projects live only in host.db — no cloud row exists and
+	// none ever will, so absence is not an error. The pin is metadata: real
+	// authorization is the per-user host access check, and a dangling pin
+	// surfaces as a readable host-side error at dispatch (PR #5741 model).
+	// When a legacy cloud row DOES exist, still enforce the org match.
+	if (!project) return;
+
+	if (project.organizationId !== organizationId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Project not found",
