@@ -74,3 +74,39 @@ Additional after-run artifacts:
 
 - [Cache-first after-run checkpoint video](artifacts/workspace-switch-cache-responsive-after-evidence.mp4)
 - [Cache-first after-run raw results](artifacts/workspace-switch-cache-responsive-after-profile.json)
+
+## Exact PR-only cherry-pick A/B
+
+To separate this PR from the Changes-list virtualization in PR #5782, two
+fresh worktrees were created at the same baseline commit
+`7d278681819d49ce9801ea838a8a8ce546d2e26a`. The treatment worktree
+cherry-picked only `48ac673d0` and `61b20cbd9`; its resulting commit was
+`a5390c9fe`. The diff contained the seven cache-first/scheduler files and no
+PR #5782 code. Each worktree used its own renderer, API, CDP port, Neon branch,
+renderer profile, and fresh active-organization host database. The same Git
+fixture was reset to 600 changes per workspace before treatment.
+
+Both retained runs completed the identical 192,000-write mutation in 60
+seconds. The result isolates an important dependency:
+
+| Churn observation | Before `7d2786818` | PR-only treatment `a5390c9fe` |
+|---|---:|---:|
+| CDP p50 / p95 / max | 0.46 / 333.49 / 1,582.01 ms | 0.46 / 431.24 / 2,897.00 ms |
+| Timer drift p50 / p95 / max | 0 / 2.20 / 1,647.40 ms | 0 / 85.30 / 8,904.80 ms |
+| Sampler CDP timeouts | 0 | 7 |
+| Longest visible action | 1,766.62 ms | one 15,000 ms timeout; other switches up to 7,903.89 ms |
+| Immediate return to `local` | cached 600 files; no refresh affordance | exact cached 2,950 files; `Refreshing changes`; no loading blank |
+
+The PR-only treatment proves the cache-first UX contract: exact-workspace data
+remained visible and refresh progress was exposed. It does **not** improve raw
+renderer responsiveness by itself under an eventually large result. Once a
+larger status snapshot arrived, the baseline eager `FileRow` renderer mounted
+thousands of rows and dominated the main thread. That independent bottleneck
+is why the current-main validation must include PR #5782, and why the earlier
+combined CDP improvement must not be attributed to this PR alone.
+
+Exact A/B artifacts:
+
+- [12-second checkpoint video](artifacts/workspace-switch-cache-exact-cherry-pick-ab-evidence.mp4) — first six seconds are before baseline/churn/return; final six seconds are PR-only treatment baseline/churn/return
+- [Before raw results](artifacts/workspace-switch-cache-exact-cherry-pick-before-profile.json)
+- [PR-only treatment raw results](artifacts/workspace-switch-cache-exact-cherry-pick-after-profile.json)
