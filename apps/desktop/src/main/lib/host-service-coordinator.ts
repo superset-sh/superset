@@ -196,9 +196,9 @@ export class HostServiceCoordinator extends EventEmitter {
 		instance.status = "stopped";
 		this.rememberPort(organizationId, instance.port);
 
-		// Adopted entries belong to another live app instance. Drop our local
-		// reference only — never SIGTERM the foreign child or delete the manifest
-		// the owner still relies on.
+		// Only owned children are ours to kill + de-manifest. Adopted entries
+		// (owned=false) belong to another live instance — fall through and just
+		// drop our local reference below; never SIGTERM it or remove its manifest.
 		if (instance.owned) {
 			try {
 				killProcess(instance.pid, "SIGTERM");
