@@ -109,16 +109,47 @@ test("Pty.getMasterFd returns a usable kernel fd", () => {
 test("adoptFromFd validates inputs", () => {
 	const meta = { shell: "/bin/sh", argv: [], cols: 80, rows: 24 };
 	assert.throws(() => adoptFromFd({ fd: -1, pid: 1, meta }), /invalid fd/);
-	assert.throws(() => adoptFromFd({ fd: 3, pid: 0, meta }), /invalid pid/);
-	assert.throws(
-		() =>
-			adoptFromFd({
-				fd: 3,
-				pid: 1,
-				meta: { ...meta, cols: 0 },
-			}),
-		/invalid cols/,
-	);
+
+	const invalidPidFd = fs.openSync("/dev/null", "r");
+	try {
+		assert.throws(
+			() => adoptFromFd({ fd: invalidPidFd, pid: 0, meta }),
+			/invalid pid/,
+		);
+		assert.throws(
+			() => fs.fstatSync(invalidPidFd),
+			(err: unknown) => (err as NodeJS.ErrnoException).code === "EBADF",
+		);
+	} finally {
+		try {
+			fs.closeSync(invalidPidFd);
+		} catch {
+			// adoptFromFd closed it as required
+		}
+	}
+
+	const invalidDimsFd = fs.openSync("/dev/null", "r");
+	try {
+		assert.throws(
+			() =>
+				adoptFromFd({
+					fd: invalidDimsFd,
+					pid: 1,
+					meta: { ...meta, cols: 0 },
+				}),
+			/invalid cols/,
+		);
+		assert.throws(
+			() => fs.fstatSync(invalidDimsFd),
+			(err: unknown) => (err as NodeJS.ErrnoException).code === "EBADF",
+		);
+	} finally {
+		try {
+			fs.closeSync(invalidDimsFd);
+		} catch {
+			// adoptFromFd closed it as required
+		}
+	}
 });
 
 test("adoptFromFd wraps a real PTY master fd without crashing", async () => {

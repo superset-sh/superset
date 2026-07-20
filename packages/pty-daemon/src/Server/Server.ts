@@ -149,7 +149,11 @@ export class Server {
 					adopted.push(session);
 				} catch (err) {
 					if (session) this.store.delete(session.id);
-					pty.dispose();
+					try {
+						pty.dispose();
+					} catch {
+						// Preserve the original adoption error.
+					}
 					throw err;
 				}
 			}
@@ -158,7 +162,11 @@ export class Server {
 			// serving. Close only this successor's inherited copies; never signal
 			// the shared shells from a failed/partial handoff.
 			for (const session of adopted) {
-				session.pty.dispose();
+				try {
+					session.pty.dispose();
+				} catch {
+					// Best-effort; keep rolling back the remaining sessions.
+				}
 				this.store.delete(session.id);
 			}
 			throw err;
@@ -526,6 +534,15 @@ export class Server {
 			session.exited = true;
 			session.exitCode = info.code;
 			session.exitSignal = info.signal;
+			try {
+				session.pty.dispose();
+			} catch {
+				// Continue state cleanup if fd disposal was already attempted.
+			}
+			// An explicitly closed session id can be recycled before its delayed
+			// process-exit notification arrives. Never let that stale callback
+			// broadcast an exit for or delete the replacement session.
+			if (this.store.get(session.id) !== session) return;
 			const ev: ServerMessage = {
 				type: "exit",
 				id: session.id,
@@ -538,11 +555,6 @@ export class Server {
 					c.subscriptions.delete(session.id);
 				}
 				c.pausedSessions.delete(session.id);
-			}
-			try {
-				session.pty.dispose();
-			} catch {
-				// The session must still leave the store if fd cleanup was already done.
 			}
 			// Delete the session immediately. Without this, every closed
 			// terminal pane left a row in the store forever — list-reply

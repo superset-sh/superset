@@ -55,7 +55,8 @@ function fdIsOpen(fd: number): boolean {
 		fs.fstatSync(fd);
 		return true;
 	} catch (err) {
-		return (err as NodeJS.ErrnoException).code !== "EBADF";
+		if ((err as NodeJS.ErrnoException).code === "EBADF") return false;
+		throw err;
 	}
 }
 
@@ -135,6 +136,54 @@ describe("PTY master-fd ownership", () => {
 			expect(pty.killSignals).toEqual(["SIGHUP"]);
 			expect(fdIsOpen(pty.fd)).toBe(false);
 			pty.fireExit();
+		} finally {
+			await client.close();
+		}
+	});
+
+	test("a stale exit cannot delete a replacement with the same id", async () => {
+		const { socket, spawned } = await listenWithFds("recycled-id");
+		const client = await connectAndHello(socket);
+		try {
+			client.send({
+				type: "open",
+				id: "recycled",
+				meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+			});
+			await client.waitFor((m) => m.type === "open-ok" && m.id === "recycled");
+			const original = spawned[0];
+			if (!original) throw new Error("missing original PTY");
+
+			client.send({ type: "close", id: "recycled" });
+			await client.waitFor((m) => m.type === "closed" && m.id === "recycled");
+
+			const replacementOpened = client.waitForNext(
+				(m) => m.type === "open-ok" && m.id === "recycled",
+			);
+			client.send({
+				type: "open",
+				id: "recycled",
+				meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+			});
+			await replacementOpened;
+			const replacement = spawned[1];
+			if (!replacement) throw new Error("missing replacement PTY");
+
+			original.fireExit();
+			const listed = client.waitForNext((m) => m.type === "list-reply");
+			client.send({ type: "list" });
+			const reply = await listed;
+			expect(reply.type).toBe("list-reply");
+			if (reply.type === "list-reply") {
+				expect(reply.sessions).toEqual([
+					expect.objectContaining({
+						id: "recycled",
+						pid: replacement.pid,
+						alive: true,
+					}),
+				]);
+			}
+			expect(fdIsOpen(replacement.fd)).toBe(true);
 		} finally {
 			await client.close();
 		}

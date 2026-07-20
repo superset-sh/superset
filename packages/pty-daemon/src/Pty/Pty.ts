@@ -524,6 +524,9 @@ class AdoptedPty implements Pty {
 	dispose(): void {
 		if (this.disposed) return;
 		this.disposed = true;
+		// Deliberately leave livenessTimer running after an explicit dispose.
+		// Adopted PTYs have no native exit event, so the poll must still deliver
+		// onExit to let Server remove the session; onExit clears the timer above.
 		// Do not touch TreeKiller or its pending escalation. Closing the adopted
 		// stream releases only this daemon's inherited descriptor; kill() owns
 		// process-tree signaling and may still be finishing in the background.
@@ -639,16 +642,16 @@ export function adoptFromFd({ fd, pid, meta }: AdoptOptions): Pty {
 	if (!Number.isInteger(fd) || fd < 0) {
 		throw new Error(`invalid fd: ${fd}`);
 	}
-	if (!Number.isInteger(pid) || pid <= 0) {
-		throw new Error(`invalid pid: ${pid}`);
-	}
-	validateDims(meta.cols, meta.rows);
 	try {
+		if (!Number.isInteger(pid) || pid <= 0) {
+			throw new Error(`invalid pid: ${pid}`);
+		}
+		validateDims(meta.cols, meta.rows);
 		return new AdoptedPty(fd, pid, meta);
 	} catch (err) {
-		// Ownership transfers to this process at adoption. If construction
-		// fails after handoff, close this inherited copy; the predecessor still
-		// owns its descriptor and can continue serving the live session.
+		// Ownership transfers once a valid fd reaches adoption. Close this
+		// inherited copy on validation or construction failure; the predecessor
+		// still owns its descriptor and can continue serving the live session.
 		try {
 			fs.closeSync(fd);
 		} catch {
