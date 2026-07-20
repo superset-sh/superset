@@ -1,7 +1,8 @@
-import { useCallback } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { folderIntentFor } from "./policies/folderPolicy";
 import type { ClickPolicy } from "./policies/policy";
 
+const SINGLE_CLICK_DELAY_MS = 250;
 interface UsePierreRowClickPolicyOptions {
 	/** Resolved file-row click policy (settings-driven, e.g. `useSidebarFilePolicy`). */
 	filePolicy: ClickPolicy;
@@ -34,7 +35,7 @@ interface UsePierreRowClickPolicyResult {
  *
  *   - folder rows → `folderIntentFor` (meta=reveal/no-op, metaShift=external)
  *   - file rows   → settings-driven via the injected `filePolicy`
- * 
+ *
  * Every resolved action is intercepted (preventDefault + stopPropagation) —
  * we never defer to Pierre's own click → `onSelectionChange` pipeline.
  * Pierre's `selectOnlyPath` no-ops when the clicked row is already selected,
@@ -47,6 +48,18 @@ export function usePierreRowClickPolicy({
 	onSelectFile,
 	openInExternalEditor,
 }: UsePierreRowClickPolicyOptions): UsePierreRowClickPolicyResult {
+	const singleClickTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+
+	const clearSingleClickTimer = useCallback(() => {
+		if (singleClickTimerRef.current === null) return;
+		clearTimeout(singleClickTimerRef.current);
+		singleClickTimerRef.current = null;
+	}, []);
+
+	useEffect(() => () => clearSingleClickTimer(), [clearSingleClickTimer]);
+
 	const findRow = useCallback((e: React.MouseEvent): HTMLElement | null => {
 		const path = e.nativeEvent.composedPath();
 		for (const node of path) {
@@ -73,6 +86,11 @@ export function usePierreRowClickPolicy({
 			const trimmed = treePath.endsWith("/") ? treePath.slice(0, -1) : treePath;
 
 			if (treePath.endsWith("/")) {
+				if (e.detail > 1) {
+					e.preventDefault();
+					e.stopPropagation();
+					return;
+				}
 				const intent = folderIntentFor(e);
 				if (intent === null) return;
 				e.preventDefault();
@@ -90,11 +108,32 @@ export function usePierreRowClickPolicy({
 			// (e.g. click-to-pin, or reopening a file after Cmd+W).
 			e.preventDefault();
 			e.stopPropagation();
-			if (action === "external") openInExternalEditor(trimmed);
-			else if (action === "newTab") onSelectFile(trimmed, true);
-			else if (action === "pane") onSelectFile(trimmed, false);
+			if (e.detail > 1) return;
+			if (action === "external") {
+				clearSingleClickTimer();
+				openInExternalEditor(trimmed);
+				return;
+			}
+			if (action === "newTab") {
+				clearSingleClickTimer();
+				onSelectFile(trimmed, true);
+				return;
+			}
+			if (action === "pane") {
+				clearSingleClickTimer();
+				singleClickTimerRef.current = setTimeout(() => {
+					singleClickTimerRef.current = null;
+					onSelectFile(trimmed, false);
+				}, SINGLE_CLICK_DELAY_MS);
+			}
 		},
-		[filePolicy, onSelectFile, openInExternalEditor, findRow],
+		[
+			filePolicy,
+			onSelectFile,
+			openInExternalEditor,
+			findRow,
+			clearSingleClickTimer,
+		],
 	);
 
 	const onDoubleClickCapture = useCallback(
@@ -103,11 +142,12 @@ export function usePierreRowClickPolicy({
 			if (!treePath) return;
 			const trimmed = treePath.endsWith("/") ? treePath.slice(0, -1) : treePath;
 
+			clearSingleClickTimer();
 			e.preventDefault();
 			e.stopPropagation();
 			openInExternalEditor(trimmed);
 		},
-		[findRow, openInExternalEditor],
+		[findRow, openInExternalEditor, clearSingleClickTimer],
 	);
 
 	return { onClickCapture, onDoubleClickCapture, findFileRow };
