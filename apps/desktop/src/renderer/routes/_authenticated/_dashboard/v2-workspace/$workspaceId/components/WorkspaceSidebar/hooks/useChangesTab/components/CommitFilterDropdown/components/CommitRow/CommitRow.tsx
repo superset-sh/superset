@@ -22,17 +22,15 @@ interface CommitRowProps {
 	wrap?: boolean;
 }
 
-export function CommitRow({ commit, isSelected, wrap = false }: CommitRowProps) {
+export function CommitRow({
+	commit,
+	isSelected,
+	wrap = false,
+}: CommitRowProps) {
 	return (
 		<div className="flex min-w-0 flex-1 items-start justify-between gap-2">
 			<div className="min-w-0 flex-1 overflow-hidden">
-				<div
-					className={
-						wrap
-							? "text-sm wrap-break-word"
-							: "truncate text-sm"
-					}
-				>
+				<div className={wrap ? "text-sm wrap-break-word" : "truncate text-sm"}>
 					{commit.message}
 				</div>
 				<div className="truncate text-xs text-muted-foreground">
