@@ -11,15 +11,19 @@ Every number below is a measured before/after, not an estimate.
 
 - **Less memory, fewer crashes.** Sessions with lots of terminals stay responsive and are far less likely to white-screen, even on 8 or 16 GB machines.
 
-  Renderer memory 1,127 → 838 MB (−26%), JS heap 581 → 286 MB (−51%), 4× fewer GPU contexts.
+  - Renderer memory 1,127 → 838 MB (−26%)
+  - JS heap 581 → 286 MB (−51%)
+  - 4× fewer GPU contexts
 
 - **No more hitching from git.** Switching branches or changing lots of files at once no longer stutters the app.
 
-  Worst-case stall on the UI thread 82.3 → 28.0 ms (3× smaller), typical 24.5 → 9.5 ms.
+  - Worst-case stall on the UI thread 82.3 → 28.0 ms (3× smaller)
+  - Typical stall 24.5 → 9.5 ms
 
 - **Quieter in the background.** Port detection uses far less CPU, so quieter fans and better battery, even with many terminals open.
 
-  Background scans 15 → 1 per cycle (15× fewer), idle terminals scan every 30s instead of every 2.5s (12× less).
+  - Background scans 15 → 1 per cycle (15× fewer)
+  - Idle terminals scan every 30s instead of every 2.5s (12× less)
 
 ## Lower Memory When You Keep Many Terminals Open <PRBadge url="https://github.com/superset-sh/superset/pull/5751" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5754" />
 
