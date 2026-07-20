@@ -280,7 +280,7 @@
         "nanoid": "5.1.7",
         "native-keymap": "3.3.9",
         "node-addon-api": "7.1.1",
-        "node-pty": "1.1.0",
+        "node-pty": "1.2.0-beta.14",
         "os-locale": "6.0.2",
         "pidtree": "0.6.0",
         "pidusage": "4.0.1",
@@ -865,7 +865,7 @@
         "hono": "4.12.25",
         "mastracode": "0.18.1",
         "mime-types": "3.0.2",
-        "node-pty": "1.1.0",
+        "node-pty": "1.2.0-beta.14",
         "semver": "7.7.4",
         "simple-git": "3.36.0",
         "superjson": "2.2.6",
@@ -989,7 +989,7 @@
         "pty-daemon": "./src/main.ts",
       },
       "dependencies": {
-        "node-pty": "1.1.0",
+        "node-pty": "1.2.0-beta.14",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -5330,7 +5330,7 @@
 
     "node-int64": ["node-int64@0.4.0", "", {}, "sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw=="],
 
-    "node-pty": ["node-pty@1.1.0", "", { "dependencies": { "node-addon-api": "^7.1.0" } }, "sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg=="],
+    "node-pty": ["node-pty@1.2.0-beta.14", "", { "dependencies": { "node-addon-api": "^7.1.0" } }, "sha512-XORU9BQgpxVgqr7WivjJ17mLenOHUgKKWzuZZNaw3NDYgHc/wPJQMSaoLDrpEgqV6aU1nNwil1o/OqYj6lWmUA=="],
 
     "node-releases": ["node-releases@2.0.36", "", {}, "sha512-TdC8FSgHz8Mwtw9g5L4gR/Sh9XhSP/0DEkQxfEFXOpiul5IiHgHan2VhYYb6agDSfp4KuvltmGApc8HMgUrIkA=="],
 

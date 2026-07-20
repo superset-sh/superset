@@ -150,7 +150,7 @@ export class Server {
 				} catch (err) {
 					if (session) this.store.delete(session.id);
 					try {
-						pty.dispose();
+						pty.dispose({ keepExitPolling: false });
 					} catch {
 						// Preserve the original adoption error.
 					}
@@ -163,7 +163,7 @@ export class Server {
 			// the shared shells from a failed/partial handoff.
 			for (const session of adopted) {
 				try {
-					session.pty.dispose();
+					session.pty.dispose({ keepExitPolling: false });
 				} catch {
 					// Best-effort; keep rolling back the remaining sessions.
 				}

@@ -22,10 +22,15 @@ Bun is the build tool, not a runtime. **No new runtime in the desktop
 app bundle.**
 
 **Why not Bun at runtime:** verified during development that node-pty
-1.1's master fd handling is incompatible with Bun 1.3 (`tty.ReadStream`
+1.2's master fd handling is incompatible with Bun 1.3 (`tty.ReadStream`
 closes immediately, alternate `fs.createReadStream(null, { fd })`
 returns EAGAIN with no recovery). The daemon needs a runtime where
 node-pty actually works.
+
+The dependency is pinned to `1.2.0-beta.14`: `1.1.0` leaked the temporary
+`/dev/ptmx` descriptor opened by its macOS `posix_spawn` path once per PTY
+spawn. The beta contains the upstream `/dev/ptmx` and kqueue descriptor fixes;
+do not downgrade without rerunning the process-wide real-FD churn test.
 
 **Dev:** unit tests run under Bun (`bun test`) for speed; integration
 tests run under Node (`bun run test:integration`) since they touch real

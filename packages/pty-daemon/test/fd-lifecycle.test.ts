@@ -2,6 +2,7 @@
 // tty.ReadStream cannot safely own node-pty master descriptors.
 
 import { strict as assert } from "node:assert";
+import { execFileSync } from "node:child_process";
 import * as fs from "node:fs";
 import { test } from "node:test";
 import { adoptFromFd, spawn } from "../src/Pty/index.ts";
@@ -27,7 +28,16 @@ function waitForExit(pty: ReturnType<typeof spawn>): Promise<void> {
 	return new Promise((resolve) => pty.onExit(() => resolve()));
 }
 
+function processPtmxCount(): number | null {
+	if (process.platform !== "darwin") return null;
+	const output = execFileSync("lsof", ["-nP", "-p", String(process.pid)], {
+		encoding: "utf8",
+	});
+	return output.split("\n").filter((line) => /\/dev\/ptmx$/.test(line)).length;
+}
+
 test("real PTY masters close across high natural-exit churn", async () => {
+	const processMastersBefore = processPtmxCount();
 	for (let i = 0; i < 128; i++) {
 		const pty = spawn({ meta: META });
 		const fd = pty.getMasterFd();
@@ -37,6 +47,12 @@ test("real PTY masters close across high natural-exit churn", async () => {
 		pty.dispose();
 		pty.dispose();
 	}
+	const processMastersAfter = processPtmxCount();
+	assert.equal(
+		processMastersAfter,
+		processMastersBefore,
+		"node-pty must not retain hidden /dev/ptmx descriptors outside term._fd",
+	);
 });
 
 test("native and adopted disposal are idempotent on real fds", async () => {

@@ -193,6 +193,11 @@ export type PtyOnExit = (info: {
 	signal: number | null;
 }) => void;
 
+export interface DisposeOptions {
+	/** Stop adopted-PTY exit polling when the caller has already untracked it. */
+	keepExitPolling?: boolean;
+}
+
 export interface Pty {
 	readonly pid: number;
 	readonly meta: SessionMeta;
@@ -216,7 +221,7 @@ export interface Pty {
 	 * exception — the predecessor must leave its adapter untouched because
 	 * node-pty disposal also signals the shell after closing its stream.
 	 */
-	dispose(): void;
+	dispose(options?: DisposeOptions): void;
 	/**
 	 * The kernel master fd backing this PTY. Required for daemon-upgrade
 	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
@@ -275,7 +280,7 @@ class NodePtyAdapter implements Pty {
 		});
 	}
 
-	dispose(): void {
+	dispose(_options?: DisposeOptions): void {
 		if (this.disposed) return;
 		this.disposed = true;
 		// Keep TreeKiller's escalation chain intact. A root shell can exit while
@@ -291,8 +296,8 @@ class NodePtyAdapter implements Pty {
 	}
 
 	getMasterFd(): number {
-		// node-pty 1.1.x exposes the master fd as the private property `_fd`.
-		// Pinned to "1.1.0" in package.json so a future bump can't break this
+		// node-pty 1.2 beta exposes the master fd as the private property `_fd`.
+		// Pinned exactly in package.json so a future bump can't break this
 		// silently — assert here so a missing/changed field surfaces at the
 		// first spawn, not when the user clicks "Update" months later.
 		const fd = (this.term as unknown as { _fd?: unknown })._fd;
@@ -300,7 +305,7 @@ class NodePtyAdapter implements Pty {
 			throw new Error(
 				`node-pty master fd unavailable (got ${typeof fd}: ${fd}). ` +
 					`Phase 2 fd-handoff depends on node-pty's private _fd property — ` +
-					`pin node-pty to 1.1.x or update Pty.ts to match the new shape.`,
+					`keep node-pty pinned or update Pty.ts to match the new shape.`,
 			);
 		}
 		return fd;
@@ -521,12 +526,18 @@ class AdoptedPty implements Pty {
 		this.livenessTimer.unref();
 	}
 
-	dispose(): void {
+	dispose(options: DisposeOptions = {}): void {
+		if (options.keepExitPolling === false && this.livenessTimer) {
+			clearInterval(this.livenessTimer);
+			this.livenessTimer = null;
+		}
 		if (this.disposed) return;
 		this.disposed = true;
-		// Deliberately leave livenessTimer running after an explicit dispose.
-		// Adopted PTYs have no native exit event, so the poll must still deliver
-		// onExit to let Server remove the session; onExit clears the timer above.
+		// Normally leave livenessTimer running after an explicit dispose. Adopted
+		// PTYs have no native exit event, so the poll must still deliver onExit to
+		// let Server remove the session. Failed handoff rollback passes
+		// keepExitPolling=false because that session is already untracked and the
+		// predecessor's shell may intentionally remain alive indefinitely.
 		// Do not touch TreeKiller or its pending escalation. Closing the adopted
 		// stream releases only this daemon's inherited descriptor; kill() owns
 		// process-tree signaling and may still be finishing in the background.
