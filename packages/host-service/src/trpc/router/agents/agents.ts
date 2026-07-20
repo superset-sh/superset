@@ -17,10 +17,7 @@ import {
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
-import {
-	waitForAgentLaunch,
-	withPreparedAgentLaunch,
-} from "./agent-launch";
+import { waitForAgentLaunch, withPreparedAgentLaunch } from "./agent-launch";
 import { buildAttachmentBlock } from "./attachment-prompt";
 
 interface ResolvedHostAgentConfig {
@@ -212,48 +209,51 @@ async function runTerminalAgent(
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
 	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
-	return withPreparedAgentLaunch({
-		command: config.command,
-		args: [...config.args, ...modelArgs, ...effortArgs],
-		promptArgs: config.promptArgs,
-		promptTransport: config.promptTransport,
-		prompt,
-		env: { ...config.env, ...modelEnv },
-	}, async (launch) => {
-		const terminalId = crypto.randomUUID();
-		const result = await createTerminalSessionInternal({
-			terminalId,
-			workspaceId: input.workspaceId,
-			db: ctx.db,
-			eventBus: ctx.eventBus,
-			initialCommand: launch.initialCommand,
-		});
-
-		if ("error" in result) {
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: result.error,
+	return withPreparedAgentLaunch(
+		{
+			command: config.command,
+			args: [...config.args, ...modelArgs, ...effortArgs],
+			promptArgs: config.promptArgs,
+			promptTransport: config.promptTransport,
+			prompt,
+			env: { ...config.env, ...modelEnv },
+		},
+		async (launch) => {
+			const terminalId = crypto.randomUUID();
+			const result = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId: input.workspaceId,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+				initialCommand: launch.initialCommand,
 			});
-		}
 
-		try {
-			await waitForAgentLaunch(launch);
-		} catch (error) {
-			await disposeSessionAndWait(terminalId, ctx.db).catch(() => undefined);
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message:
-					error instanceof Error ? error.message : "Agent failed to start",
-				cause: error,
-			});
-		}
+			if ("error" in result) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: result.error,
+				});
+			}
 
-		return {
-			kind: "terminal" as const,
-			sessionId: result.terminalId,
-			label: config.label,
-		};
-	});
+			try {
+				await waitForAgentLaunch(launch);
+			} catch (error) {
+				await disposeSessionAndWait(terminalId, ctx.db).catch(() => undefined);
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message:
+						error instanceof Error ? error.message : "Agent failed to start",
+					cause: error,
+				});
+			}
+
+			return {
+				kind: "terminal" as const,
+				sessionId: result.terminalId,
+				label: config.label,
+			};
+		},
+	);
 }
 
 export async function runAgentInWorkspace(
