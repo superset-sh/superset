@@ -23,6 +23,8 @@ import {
 	type ServerMessage,
 	type SessionInfo,
 	type SessionMeta,
+	SNAPSHOT_PROTOCOL_VERSION,
+	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@superset/pty-daemon/protocol";
 
 export interface OpenResult {
@@ -162,6 +164,11 @@ export class DaemonClient {
 
 	/** Read the daemon ring buffer without subscribing or mutating it. */
 	async snapshot(id: string): Promise<SnapshotResult> {
+		if (this.protocol < SNAPSHOT_PROTOCOL_VERSION) {
+			throw new Error(
+				`daemon snapshot requires protocol ${SNAPSHOT_PROTOCOL_VERSION}; connected with protocol ${this.protocol}`,
+			);
+		}
 		return new Promise<SnapshotResult>((resolve, reject) => {
 			let settled = false;
 			const cleanup = () => {
@@ -309,7 +316,7 @@ export class DaemonClient {
 	private async handshake(): Promise<void> {
 		this.send({
 			type: "hello",
-			protocols: [CURRENT_PROTOCOL_VERSION],
+			protocols: [...SUPPORTED_PROTOCOL_VERSIONS],
 		});
 		const ack = await this.waitForFrame(
 			(m) => m.type === "hello-ack" || m.type === "error",

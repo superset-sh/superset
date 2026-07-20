@@ -33,6 +33,22 @@ describe("resolvePrompt", () => {
 		).toBe("stdin via file\n");
 	});
 
+	it("does not read ambient stdin when --file names a path", async () => {
+		const directory = mkdtempSync(join(tmpdir(), "cli-session-send-"));
+		directories.push(directory);
+		const file = join(directory, "prompt.md");
+		writeFileSync(file, "from explicit file\n");
+		let readStdinCalled = false;
+
+		expect(
+			await resolvePrompt([], file, true, async () => {
+				readStdinCalled = true;
+				return "ambient stdin";
+			}),
+		).toBe("from explicit file\n");
+		expect(readStdinCalled).toBe(false);
+	});
+
 	it("rejects conflicting or empty sources", async () => {
 		await expect(
 			resolvePrompt(["positional"], undefined, true, async () => "piped"),

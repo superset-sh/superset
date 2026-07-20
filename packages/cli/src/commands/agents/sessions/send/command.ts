@@ -20,7 +20,9 @@ export async function resolvePrompt(
 	const hasPositional = positionals.length > 0;
 	const hasFile = file !== undefined;
 	const stdinPrompt =
-		stdinIsPiped || file === "-" ? await readStdinInput() : undefined;
+		file === "-" || (stdinIsPiped && !hasFile)
+			? await readStdinInput()
+			: undefined;
 	const hasPipedStdin =
 		file !== "-" && stdinPrompt !== undefined && stdinPrompt.length > 0;
 	const sourceCount =

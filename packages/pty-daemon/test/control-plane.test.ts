@@ -117,6 +117,26 @@ describe("handshake", () => {
 		await c.close();
 	});
 
+	test("keeps v2 operations reachable while rejecting v3-only snapshots", async () => {
+		const c = await connect(sockPath);
+		c.send({ type: "hello", protocols: [2] });
+		const ack = await c.waitFor((m) => m.type === "hello-ack");
+		if (ack.type === "hello-ack") assert.equal(ack.protocol, 2);
+
+		c.send({ type: "list" });
+		await c.waitFor((m) => m.type === "list-reply");
+
+		c.send({ type: "snapshot", id: "legacy-snapshot" });
+		const error = await c.waitFor(
+			(m) => m.type === "error" && m.id === "legacy-snapshot",
+		);
+		if (error.type === "error") {
+			assert.equal(error.code, "EVERSION");
+			assert.match(error.message, /requires protocol 3/);
+		}
+		await c.close();
+	});
+
 	test("rejects duplicate hello", async () => {
 		const c = await connectAndHello(sockPath);
 		c.send({ type: "hello", protocols: [CURRENT_PROTOCOL_VERSION] });

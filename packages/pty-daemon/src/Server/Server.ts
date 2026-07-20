@@ -22,6 +22,7 @@ import {
 	type HandoffMessage,
 	type HelloMessage,
 	type ServerMessage,
+	SNAPSHOT_PROTOCOL_VERSION,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "../protocol/index.ts";
 import type { HandoffSnapshot, Session } from "../SessionStore/index.ts";
@@ -430,6 +431,15 @@ export class Server {
 				return;
 			}
 			case "snapshot": {
+				if (conn.negotiated < SNAPSHOT_PROTOCOL_VERSION) {
+					conn.send({
+						type: "error",
+						id: msg.id,
+						message: `snapshot requires protocol ${SNAPSHOT_PROTOCOL_VERSION}`,
+						code: "EVERSION",
+					});
+					return;
+				}
 				handleSnapshot(ctx, conn, msg);
 				return;
 			}
