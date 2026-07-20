@@ -401,7 +401,8 @@ export function spawn({ meta }: SpawnOptions): Pty {
  * directly on the fd:
  *
  * - read via tty.ReadStream
- * - write via direct fs.writeSync calls
+ * - write via that same stream's socket (buffered + backpressure-aware;
+ *   a bare fs.writeSync drops input once the fd goes non-blocking — see write())
  * - kill via process.kill(pid)
  * - onExit: read-stream 'end'/'error' OR PID-liveness poll (whichever first)
  *
@@ -474,19 +475,19 @@ class AdoptedPty implements Pty {
 		if (this.exitFired) {
 			throw new Error(`session exited: ${this.pid}`);
 		}
-		let offset = 0;
-		while (offset < data.byteLength) {
-			const written = fs.writeSync(
-				this.fd,
-				data,
-				offset,
-				data.byteLength - offset,
-			);
-			if (written <= 0) {
-				throw new Error(`pty write wrote ${written} bytes`);
-			}
-			offset += written;
-		}
+		// Write through the read stream's socket, NOT fs.writeSync(this.fd).
+		// Constructing `this.reader` (a tty.ReadStream, i.e. a net.Socket) flips
+		// the master fd to non-blocking — O_NONBLOCK lives on the open file
+		// description, so it governs writes on the same fd too. A bare
+		// fs.writeSync loop therefore throws EAGAIN the moment the kernel PTY
+		// input buffer (~64KB) fills (a foreground process that stops draining
+		// stdin), silently dropping everything past the first block — the
+		// input-write wedge in #5792. The socket handle already owns this fd
+		// and buffers writes in JS, draining them as the fd becomes writable
+		// (same backpressure discipline as the outbound path), so a full PTY
+		// buffer throttles instead of dropping. Backpressure (write() === false)
+		// needs no action here: the queue drains on its own.
+		this.reader.write(data);
 	}
 
 	resize(cols: number, rows: number): void {
