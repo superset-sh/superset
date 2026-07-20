@@ -158,3 +158,21 @@ Shipped as planned. PR: https://github.com/superset-sh/superset/pull/5791
 - `bun run lint` clean · `bun run typecheck` 35/35.
 - No production callers changed; `stop`/`stopAll`/`reset` keep their existing
   semantics for owned entries.
+
+### Two-instance end-to-end verification
+
+`apps/desktop/scripts/verify-single-flight.ts` drives the **real**
+`HostServiceCoordinator` (real spawn lock, manifest, health check, and
+process-liveness code) in **two separate OS processes** racing to start the same
+org against an **isolated temp `$SUPERSET_HOME_DIR`** (only Electron + leaf deps
+mocked; `spawn` overridden to launch a countable stand-in child + a real
+localhost health server + write the real manifest — the host-service bundle
+isn't built in a worktree). Run: `bun run apps/desktop/scripts/verify-single-flight.ts`.
+
+Result (`✅ PASS`): one instance spawns, the other logs
+`adopted existing host on port …` and connects to the **same port + secret**;
+exactly **1** host-service child exists; the adopter's entry is `owned=false`.
+Teeth-checked by breaking `tryAdopt` → both spawn → 2 children → `❌ FAIL`.
+The harness is prod-safe (temp home only) and self-cleaning (removes the temp
+dir + kills stand-ins in `finally`); confirmed the real `~/.superset/host` was
+untouched and no processes leaked.
