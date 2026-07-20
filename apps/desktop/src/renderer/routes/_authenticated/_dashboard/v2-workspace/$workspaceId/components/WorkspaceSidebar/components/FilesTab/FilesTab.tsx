@@ -203,13 +203,16 @@ export function FilesTab({
 	// Folders are excluded since folder intents are hardcoded.
 	// The hook fires Pierre's relative path; this surface's external
 	// contract is absolute, so wrap each callback to join with `rootPath`.
-	const { onClickCapture: handleClickCapture, findFileRow } =
-		usePierreRowClickPolicy({
-			filePolicy,
-			onSelectFile: (rel, openInNewTab) =>
-				onSelectFile(toAbs(rootPath, rel), openInNewTab),
-			openInExternalEditor: (rel) => openInExternalEditor(toAbs(rootPath, rel)),
-		});
+	const {
+		onClickCapture: handleClickCapture,
+		onDoubleClickCapture: handleDoubleClickCapture,
+		findFileRow,
+	} = usePierreRowClickPolicy({
+		filePolicy,
+		onSelectFile: (rel, openInNewTab) =>
+			onSelectFile(toAbs(rootPath, rel), openInNewTab),
+		openInExternalEditor: (rel) => openInExternalEditor(toAbs(rootPath, rel)),
+	});
 
 	const renderContextMenu = useCallback(
 		(item: PierreContextMenuItem, ctx: PierreContextMenuOpenContext) => {
@@ -231,6 +234,7 @@ export function FilesTab({
 							relativePath={rel}
 							onNewFile={() => void startCreating("file", abs)}
 							onNewFolder={() => void startCreating("folder", abs)}
+							onOpenInEditor={() => openInExternalEditor(abs)}
 							onRename={() => model.startRenaming(treePath)}
 							onDelete={() => handleDelete(abs, item.name, true)}
 						/>
@@ -278,6 +282,7 @@ export function FilesTab({
 		<div
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
+			onDoubleClickCapture={handleDoubleClickCapture}
 			onDragOver={drop.onDragOver}
 			onDragLeave={drop.onDragLeave}
 			onDrop={drop.onDrop}

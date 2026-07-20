@@ -21,6 +21,7 @@ interface UsePierreRowClickPolicyOptions {
 interface UsePierreRowClickPolicyResult {
 	/** Capture-phase handler — attach to the wrapper holding the `PierreFileTree`. */
 	onClickCapture: (e: React.MouseEvent<HTMLDivElement>) => void;
+	onDoubleClickCapture: (e: React.MouseEvent<HTMLDivElement>) => void;
 	/** Find the file-row element under a mouse event (skips folder rows). */
 	findFileRow: (e: React.MouseEvent) => HTMLElement | null;
 }
@@ -33,7 +34,7 @@ interface UsePierreRowClickPolicyResult {
  *
  *   - folder rows → `folderIntentFor` (meta=reveal/no-op, metaShift=external)
  *   - file rows   → settings-driven via the injected `filePolicy`
- *
+ * 
  * Every resolved action is intercepted (preventDefault + stopPropagation) —
  * we never defer to Pierre's own click → `onSelectionChange` pipeline.
  * Pierre's `selectOnlyPath` no-ops when the clicked row is already selected,
@@ -96,5 +97,18 @@ export function usePierreRowClickPolicy({
 		[filePolicy, onSelectFile, openInExternalEditor, findRow],
 	);
 
-	return { onClickCapture, findFileRow };
+	const onDoubleClickCapture = useCallback(
+		(e: React.MouseEvent<HTMLDivElement>) => {
+			const treePath = findRow(e)?.getAttribute("data-item-path");
+			if (!treePath) return;
+			const trimmed = treePath.endsWith("/") ? treePath.slice(0, -1) : treePath;
+
+			e.preventDefault();
+			e.stopPropagation();
+			openInExternalEditor(trimmed);
+		},
+		[findRow, openInExternalEditor],
+	);
+
+	return { onClickCapture, onDoubleClickCapture, findFileRow };
 }
