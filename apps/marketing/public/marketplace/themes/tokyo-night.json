@@ -16,7 +16,7 @@
 		"secondary": "#24283b",
 		"secondaryForeground": "#c0caf5",
 		"muted": "#24283b",
-		"mutedForeground": "#565f89",
+		"mutedForeground": "#787c99",
 		"accent": "#292e42",
 		"accentForeground": "#c0caf5",
 		"tertiary": "#13141d",
@@ -66,5 +66,10 @@
 		"brightMagenta": "#c8a4ff",
 		"brightCyan": "#a4dfff",
 		"brightWhite": "#c0caf5"
+	},
+	"editor": {
+		"syntax": {
+			"comment": "#9aa5ce"
+		}
 	}
 }
