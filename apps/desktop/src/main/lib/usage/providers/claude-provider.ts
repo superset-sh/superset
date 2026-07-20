@@ -101,16 +101,12 @@ export class ClaudeProvider extends ProviderCollector {
 			},
 		});
 
-		if (response.status === 401 || response.status === 403) {
-			return emptySnapshot(this.providerId, "auth-error", {
-				cost,
-				errorMessage: "Session expired — re-authenticate the Claude CLI.",
-			});
-		}
+		// A subscription (Max/Pro) OAuth token frequently cannot call /v1/models,
+		// so a 401/403 here is not proof the session is dead — it just means we
+		// can't harvest rate-limit headers. Keep showing locally-estimated cost
+		// with no windows rather than a misleading "session expired" error.
+		const windows = response.ok ? windowsFromHeaders(response.headers) : [];
 
-		return emptySnapshot(this.providerId, "ok", {
-			cost,
-			windows: windowsFromHeaders(response.headers),
-		});
+		return emptySnapshot(this.providerId, "ok", { cost, windows });
 	}
 }

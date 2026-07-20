@@ -1,4 +1,5 @@
 import { observable } from "@trpc/server/observable";
+import { refreshTray } from "main/lib/tray";
 import {
 	getUsageCollector,
 	USAGE_UPDATED_EVENT,
@@ -45,6 +46,11 @@ export const createUsageRouter = () => {
 
 		updateSettings: publicProcedure
 			.input(updateSettingsInputSchema)
-			.mutation(({ input }) => updateUsageDisplaySettings(input)),
+			.mutation(({ input }) => {
+				const settings = updateUsageDisplaySettings(input);
+				// Reflect the tray-percentage toggle without waiting for the next poll.
+				refreshTray();
+				return settings;
+			}),
 	});
 };

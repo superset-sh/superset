@@ -46,14 +46,28 @@ function parseLine(raw: string, sessionId: string): UsageEntry | null {
 	const timestamp = line.timestamp ? new Date(line.timestamp) : null;
 	if (!timestamp || Number.isNaN(timestamp.getTime())) return null;
 
-	const inputTokens =
-		(usage.input_tokens ?? 0) +
-		(usage.cache_creation_input_tokens ?? 0) +
-		(usage.cache_read_input_tokens ?? 0);
+	const inputTokens = usage.input_tokens ?? 0;
 	const outputTokens = usage.output_tokens ?? 0;
-	if (inputTokens === 0 && outputTokens === 0) return null;
+	const cacheCreationTokens = usage.cache_creation_input_tokens ?? 0;
+	const cacheReadTokens = usage.cache_read_input_tokens ?? 0;
+	if (
+		inputTokens === 0 &&
+		outputTokens === 0 &&
+		cacheCreationTokens === 0 &&
+		cacheReadTokens === 0
+	) {
+		return null;
+	}
 
-	return { timestamp, model, sessionId, inputTokens, outputTokens };
+	return {
+		timestamp,
+		model,
+		sessionId,
+		inputTokens,
+		outputTokens,
+		cacheCreationTokens,
+		cacheReadTokens,
+	};
 }
 
 /** Returns null on missing logs or an unrecognized format. */

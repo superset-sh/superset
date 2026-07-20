@@ -368,6 +368,11 @@ export function initTray(): void {
 	}
 }
 
+/** Rebuild the tray menu + tooltip immediately (e.g. after a settings change). */
+export function refreshTray(): void {
+	void updateTrayMenu();
+}
+
 /** Call on app quit */
 export function disposeTray(): void {
 	if (tray) {

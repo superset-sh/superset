@@ -7,6 +7,10 @@ interface RateLimitBarProps {
 
 export function RateLimitBar({ window }: RateLimitBarProps) {
 	const remainingPct = Math.max(0, Math.min(100, 100 - window.usedPct));
+	// The reserve marker only carries information when pace projection pulls it
+	// below the plain remaining budget; otherwise it sits at the bar end and reads
+	// as a dead pixel.
+	const showReserveTick = window.reservePct < remainingPct - 1;
 
 	return (
 		<div className="space-y-1.5">
@@ -22,7 +26,7 @@ export function RateLimitBar({ window }: RateLimitBarProps) {
 					className="h-full rounded-full bg-foreground/70"
 					style={{ width: `${remainingPct}%` }}
 				/>
-				{window.reservePct > 0 && (
+				{showReserveTick && (
 					<div
 						className="absolute top-0 h-full w-px bg-foreground/30"
 						style={{

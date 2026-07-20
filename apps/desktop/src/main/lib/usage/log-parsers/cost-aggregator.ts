@@ -7,7 +7,14 @@ export interface UsageEntry {
 	sessionId: string;
 	inputTokens: number;
 	outputTokens: number;
+	cacheReadTokens?: number;
+	cacheCreationTokens?: number;
 }
+
+// Anthropic-style prompt caching bills reads at ~0.1x and 5-minute writes at
+// ~1.25x the base input rate. Providers without caching pass 0 and are unaffected.
+const CACHE_READ_MULTIPLIER = 0.1;
+const CACHE_WRITE_MULTIPLIER = 1.25;
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const WINDOW_DAYS = 30;
@@ -25,9 +32,16 @@ function entryUsd(
 ): { usd: number; approximate: boolean } {
 	const resolved = resolveModelRate(providerId, entry.model);
 	if (!resolved) return { usd: 0, approximate: true };
+	const { inputPerMillion, outputPerMillion } = resolved.rate;
 	const usd =
-		(entry.inputTokens / 1_000_000) * resolved.rate.inputPerMillion +
-		(entry.outputTokens / 1_000_000) * resolved.rate.outputPerMillion;
+		(entry.inputTokens / 1_000_000) * inputPerMillion +
+		(entry.outputTokens / 1_000_000) * outputPerMillion +
+		((entry.cacheReadTokens ?? 0) / 1_000_000) *
+			inputPerMillion *
+			CACHE_READ_MULTIPLIER +
+		((entry.cacheCreationTokens ?? 0) / 1_000_000) *
+			inputPerMillion *
+			CACHE_WRITE_MULTIPLIER;
 	return { usd, approximate: resolved.approximate };
 }
 
@@ -56,7 +70,11 @@ export function aggregateUsage(
 	const tokensBySession = new Map<string, number>();
 
 	for (const entry of entries) {
-		const tokens = entry.inputTokens + entry.outputTokens;
+		const tokens =
+			entry.inputTokens +
+			entry.outputTokens +
+			(entry.cacheReadTokens ?? 0) +
+			(entry.cacheCreationTokens ?? 0);
 		const time = entry.timestamp.getTime();
 
 		if (time > latestTimestamp) {

@@ -1,13 +1,18 @@
-const AGENTS = [
-	"Amp",
-	"Mastracode",
-	"OpenCode",
-	"Pi",
-	"Mistral Vibe",
-	"Cursor Agent",
-	"Droid",
-	"Polygraph",
-] as const;
+import { BUILTIN_TERMINAL_AGENTS } from "@superset/shared/agent-command";
+import type { ProviderId } from "../../types";
+
+// Providers with their own card; everything else in the registry falls into the
+// "no data yet" strip, so new builtin agents appear here automatically.
+const CARD_PROVIDER_IDS: ProviderId[] = [
+	"claude",
+	"codex",
+	"copilot",
+	"gemini",
+];
+
+const STRIP_AGENTS = BUILTIN_TERMINAL_AGENTS.filter(
+	(agent) => !CARD_PROVIDER_IDS.includes(agent.id as ProviderId),
+);
 
 export function NoDataStrip() {
 	return (
@@ -15,13 +20,13 @@ export function NoDataStrip() {
 			<span className="flex items-center gap-1">
 				<span aria-hidden>○</span> No data yet
 			</span>
-			{AGENTS.map((agent) => (
+			{STRIP_AGENTS.map((agent) => (
 				<span
-					key={agent}
+					key={agent.id}
 					className="flex items-center gap-1 rounded-md border border-border px-1.5 py-0.5"
 				>
 					<span aria-hidden>◦</span>
-					{agent}
+					{agent.label}
 				</span>
 			))}
 		</div>
