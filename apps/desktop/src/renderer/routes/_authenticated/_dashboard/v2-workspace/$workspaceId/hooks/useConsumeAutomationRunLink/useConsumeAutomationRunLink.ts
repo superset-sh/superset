@@ -5,7 +5,8 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useRef } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { StoreApi } from "zustand/vanilla";
-import type { ChatPaneData, PaneViewerData } from "../../types";
+import type { PaneViewerData } from "../../types";
+import { focusOrAddChatPane } from "../../utils/focusChatPane";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
 interface UseConsumeAutomationRunLinkArgs {
@@ -146,30 +147,4 @@ export function chatSessionBelongsToWorkspace({
 	workspaceId: string;
 }): boolean {
 	return chatSession?.v2WorkspaceId === workspaceId;
-}
-
-function focusOrAddChatPane(
-	store: StoreApi<WorkspaceStore<PaneViewerData>>,
-	sessionId: string,
-): void {
-	const state = store.getState();
-	for (const tab of state.tabs) {
-		for (const pane of Object.values(tab.panes)) {
-			if (pane.kind !== "chat") continue;
-			const data = pane.data as ChatPaneData;
-			if (data.sessionId === sessionId) {
-				state.setActiveTab(tab.id);
-				state.setActivePane({ tabId: tab.id, paneId: pane.id });
-				return;
-			}
-		}
-	}
-	state.addTab({
-		panes: [
-			{
-				kind: "chat",
-				data: { sessionId } as PaneViewerData,
-			},
-		],
-	});
 }
