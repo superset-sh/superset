@@ -24,7 +24,7 @@ interface ExtractedUsage {
 
 /** Pulls per-turn token counts from the many shapes Codex has shipped. */
 function extractUsage(obj: Record<string, unknown>): ExtractedUsage | null {
-	const input =
+	const rawInput =
 		num(obj.input_tokens) || num(obj.prompt_tokens) || num(obj.inputTokens);
 	const output =
 		num(obj.output_tokens) ||
@@ -34,9 +34,11 @@ function extractUsage(obj: Record<string, unknown>): ExtractedUsage | null {
 		num(obj.cached_input_tokens) ||
 		num(obj.cache_read_input_tokens) ||
 		num(obj.cached_tokens);
-	if (input === 0 && output === 0 && cacheRead === 0) return null;
+	if (rawInput === 0 && output === 0 && cacheRead === 0) return null;
+	// OpenAI's input_tokens is inclusive of cached tokens; split them so cache
+	// reads aren't billed twice (full input rate + cache rate).
 	return {
-		inputTokens: input,
+		inputTokens: Math.max(0, rawInput - cacheRead),
 		outputTokens: output,
 		cacheReadTokens: cacheRead,
 	};

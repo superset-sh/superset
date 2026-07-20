@@ -1,9 +1,19 @@
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseCodexLogs } from "../log-parsers/codex-log-parser";
-import type { ProviderSnapshot } from "../usage-snapshot";
+import type {
+	ProviderCredits,
+	ProviderSnapshot,
+	RateLimitWindow,
+} from "../usage-snapshot";
 import { emptySnapshot, ProviderCollector } from "./base-provider";
+import {
+	type CodexWindow,
+	labelForWindowMinutes,
+	readLatestCodexRateLimits,
+} from "./codex-rate-limits";
 import { decodeJwtPayload, readJsonFile } from "./credentials";
+import { buildWindow } from "./window-pace";
 
 const AUTH_PATH = join(homedir(), ".codex", "auth.json");
 
@@ -31,6 +41,15 @@ function extractPlan(auth: CodexAuth): string | null {
 	return typeof plan === "string" ? plan.toUpperCase() : null;
 }
 
+function toWindow(window: CodexWindow): RateLimitWindow {
+	return buildWindow({
+		label: labelForWindowMinutes(window.windowMinutes),
+		usedPct: window.usedPercent,
+		resetAt: window.resetsAt ? new Date(window.resetsAt * 1000) : null,
+		windowMs: window.windowMinutes * 60 * 1000,
+	});
+}
+
 export class CodexProvider extends ProviderCollector {
 	readonly providerId = "codex" as const;
 
@@ -45,12 +64,24 @@ export class CodexProvider extends ProviderCollector {
 			return emptySnapshot(this.providerId, "no-credentials", { cost });
 		}
 
-		// OpenAI does not expose a documented subscription rate-limit endpoint;
-		// surface identity + locally-estimated cost until one is available.
+		// Codex writes its subscription rate-limit snapshot into rollout session
+		// logs, so we read it passively rather than probing the backend.
+		const rateLimits = await readLatestCodexRateLimits();
+		const windows: RateLimitWindow[] = [];
+		if (rateLimits?.primary) windows.push(toWindow(rateLimits.primary));
+		if (rateLimits?.secondary) windows.push(toWindow(rateLimits.secondary));
+
+		const credits: ProviderCredits | null =
+			rateLimits?.creditBalance != null
+				? { balance: rateLimits.creditBalance, resetCredits: 0 }
+				: null;
+
 		return emptySnapshot(this.providerId, "ok", {
 			cost,
 			email: extractEmail(auth),
-			planLabel: extractPlan(auth),
+			planLabel: rateLimits?.planType?.toUpperCase() ?? extractPlan(auth),
+			windows,
+			credits,
 		});
 	}
 }

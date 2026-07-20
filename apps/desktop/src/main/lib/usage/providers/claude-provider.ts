@@ -7,79 +7,92 @@ import { readJsonFile, readKeychainSecret } from "./credentials";
 import { buildWindow } from "./window-pace";
 
 const CREDENTIALS_PATH = join(homedir(), ".claude", ".credentials.json");
-const MODELS_ENDPOINT = "https://api.anthropic.com/v1/models?limit=1";
+// Claude Code stores the live (refreshed) OAuth token in the macOS Keychain
+// under this service; the on-disk file is often a stale/revoked copy.
+const KEYCHAIN_SERVICE = "Claude Code-credentials";
+const MESSAGES_ENDPOINT = "https://api.anthropic.com/v1/messages";
 const ANTHROPIC_VERSION = "2023-06-01";
+// The subscription rate-limit windows only ride on /v1/messages responses when
+// the request is made with an OAuth (subscription) token + this beta header.
+const OAUTH_BETA = "oauth-2025-04-20";
+const PROBE_MODEL = "claude-haiku-4-5-20251001";
+
+const FIVE_HOURS_MS = 5 * 60 * 60 * 1000;
+const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+
+interface ClaudeOAuth {
+	accessToken?: string;
+	subscriptionType?: string;
+	account?: { email_address?: string; email?: string };
+}
 
 interface ClaudeCredentials {
-	claudeAiOauth?: { accessToken?: string };
+	claudeAiOauth?: ClaudeOAuth;
 	access_token?: string;
 	accessToken?: string;
 }
 
-async function resolveToken(): Promise<string | null> {
-	const creds = await readJsonFile<ClaudeCredentials>(CREDENTIALS_PATH);
-	const fromFile =
-		creds?.claudeAiOauth?.accessToken ??
-		creds?.access_token ??
-		creds?.accessToken ??
-		null;
-	if (fromFile) return fromFile;
-	return readKeychainSecret("claude");
+async function readCredentials(): Promise<ClaudeCredentials | null> {
+	const raw = await readKeychainSecret(KEYCHAIN_SERVICE);
+	if (raw) {
+		try {
+			return JSON.parse(raw) as ClaudeCredentials;
+		} catch {
+			// Fall through to the on-disk file.
+		}
+	}
+	return readJsonFile<ClaudeCredentials>(CREDENTIALS_PATH);
 }
 
-function pctFromHeaders(
-	headers: Headers,
-	limitKey: string,
-	remainingKey: string,
-): number | null {
-	const limit = Number.parseFloat(headers.get(limitKey) ?? "");
-	const remaining = Number.parseFloat(headers.get(remainingKey) ?? "");
-	if (!Number.isFinite(limit) || limit <= 0 || !Number.isFinite(remaining)) {
-		return null;
-	}
-	return ((limit - remaining) / limit) * 100;
+function resolveToken(creds: ClaudeCredentials): string | null {
+	return (
+		creds.claudeAiOauth?.accessToken ??
+		creds.access_token ??
+		creds.accessToken ??
+		null
+	);
 }
 
 function resetFromHeader(headers: Headers, key: string): Date | null {
 	const raw = headers.get(key);
 	if (!raw) return null;
-	const date = new Date(raw);
-	return Number.isNaN(date.getTime()) ? null : date;
+	const seconds = Number.parseInt(raw, 10);
+	if (!Number.isFinite(seconds)) return null;
+	return new Date(seconds * 1000);
+}
+
+function unifiedWindow(
+	headers: Headers,
+	prefix: string,
+	label: string,
+	windowMs: number,
+): RateLimitWindow | null {
+	const utilization = Number.parseFloat(
+		headers.get(`anthropic-ratelimit-unified-${prefix}-utilization`) ?? "",
+	);
+	if (!Number.isFinite(utilization)) return null;
+	return buildWindow({
+		label,
+		usedPct: utilization * 100,
+		resetAt: resetFromHeader(
+			headers,
+			`anthropic-ratelimit-unified-${prefix}-reset`,
+		),
+		windowMs,
+	});
 }
 
 function windowsFromHeaders(headers: Headers): RateLimitWindow[] {
 	const windows: RateLimitWindow[] = [];
-
-	const requestsPct = pctFromHeaders(
+	const session = unifiedWindow(headers, "5h", "5-hour session", FIVE_HOURS_MS);
+	if (session) windows.push(session);
+	const weekly = unifiedWindow(
 		headers,
-		"anthropic-ratelimit-requests-limit",
-		"anthropic-ratelimit-requests-remaining",
+		"7d",
+		"Weekly (all models)",
+		SEVEN_DAYS_MS,
 	);
-	if (requestsPct !== null) {
-		windows.push(
-			buildWindow({
-				label: "Requests",
-				usedPct: requestsPct,
-				resetAt: resetFromHeader(headers, "anthropic-ratelimit-requests-reset"),
-			}),
-		);
-	}
-
-	const tokensPct = pctFromHeaders(
-		headers,
-		"anthropic-ratelimit-tokens-limit",
-		"anthropic-ratelimit-tokens-remaining",
-	);
-	if (tokensPct !== null) {
-		windows.push(
-			buildWindow({
-				label: "Tokens",
-				usedPct: tokensPct,
-				resetAt: resetFromHeader(headers, "anthropic-ratelimit-tokens-reset"),
-			}),
-		);
-	}
-
+	if (weekly) windows.push(weekly);
 	return windows;
 }
 
@@ -87,26 +100,52 @@ export class ClaudeProvider extends ProviderCollector {
 	readonly providerId = "claude" as const;
 
 	protected async fetchSnapshot(): Promise<ProviderSnapshot> {
-		const token = await resolveToken();
+		const creds = await readCredentials();
 		const cost = await parseClaudeLogs();
 
+		const token = creds ? resolveToken(creds) : null;
 		if (!token) {
 			return emptySnapshot(this.providerId, "no-credentials", { cost });
 		}
 
-		const response = await this.fetchWithTimeout(MODELS_ENDPOINT, {
+		const oauth = creds?.claudeAiOauth;
+		const email =
+			oauth?.account?.email_address ?? oauth?.account?.email ?? null;
+		const planLabel = oauth?.subscriptionType
+			? oauth.subscriptionType.toUpperCase()
+			: null;
+
+		// A minimal 1-token request is the cheapest way to harvest the unified
+		// rate-limit headers; it consumes one request against the 5h window.
+		const response = await this.fetchWithTimeout(MESSAGES_ENDPOINT, {
+			method: "POST",
 			headers: {
 				authorization: `Bearer ${token}`,
 				"anthropic-version": ANTHROPIC_VERSION,
+				"anthropic-beta": OAUTH_BETA,
+				"content-type": "application/json",
 			},
+			body: JSON.stringify({
+				model: PROBE_MODEL,
+				max_tokens: 1,
+				messages: [{ role: "user", content: "hi" }],
+			}),
 		});
 
-		// A subscription (Max/Pro) OAuth token frequently cannot call /v1/models,
-		// so a 401/403 here is not proof the session is dead — it just means we
-		// can't harvest rate-limit headers. Keep showing locally-estimated cost
-		// with no windows rather than a misleading "session expired" error.
-		const windows = response.ok ? windowsFromHeaders(response.headers) : [];
+		if (response.status === 401 || response.status === 403) {
+			return emptySnapshot(this.providerId, "auth-error", {
+				cost,
+				email,
+				planLabel,
+				errorMessage: "Session expired — re-authenticate the Claude CLI.",
+			});
+		}
 
-		return emptySnapshot(this.providerId, "ok", { cost, windows });
+		return emptySnapshot(this.providerId, "ok", {
+			cost,
+			email,
+			planLabel,
+			windows: windowsFromHeaders(response.headers),
+		});
 	}
 }
