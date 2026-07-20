@@ -74,8 +74,7 @@ export function ChangesToolbar({
 				)}
 				{isRefreshing && (
 					<span className="flex items-center" title="Refreshing changes">
-						<Spinner className="size-3" />
-						<span className="sr-only">Refreshing changes</span>
+						<Spinner className="size-3" aria-label="Refreshing changes" />
 					</span>
 				)}
 			</div>
