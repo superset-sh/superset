@@ -222,6 +222,16 @@ describe("sanitizePaneLayout", () => {
 		expect(sanitizePaneLayout(layout)).toEqual(layout);
 	});
 
+	it("preserves a tab's pinned state", () => {
+		const layout: PaneLayout = {
+			version: 1,
+			tabs: [{ ...validTab, pinned: true }],
+			activeTabId: "tab-1",
+		};
+
+		expect(sanitizePaneLayout(layout)).toEqual(layout);
+	});
+
 	it("keeps a valid split layout intact", () => {
 		const layout: PaneLayout = {
 			version: 1,
