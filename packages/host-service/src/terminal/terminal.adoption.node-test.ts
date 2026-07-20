@@ -159,7 +159,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			workspaceId,
 			db,
 			listed: true,
-			initialCommand: `echo ok > ${sentinelFile}`,
+			initialCommand: `echo ok > "${sentinelFile}"`,
 		});
 		assert.ok(!("error" in second));
 		if ("error" in second) return;
@@ -183,7 +183,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 				workspaceId,
 				db,
 				listed: true,
-				initialCommand: `echo ok > ${sentinelFile}`,
+				initialCommand: `echo ok > "${sentinelFile}"`,
 			});
 			assert.ok(!("error" in result));
 			if ("error" in result) return;
@@ -241,7 +241,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 				workspaceId,
 				db,
 				listed: true,
-				initialCommand: `echo ok > ${sentinelFile}`,
+				initialCommand: `echo ok > "${sentinelFile}"`,
 			});
 			assert.ok(!("error" in result));
 			if ("error" in result) return;
@@ -288,7 +288,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 				workspaceId,
 				db,
 				listed: true,
-				initialCommand: `echo should-not-run > ${sentinelFile}`,
+				initialCommand: `echo should-not-run > "${sentinelFile}"`,
 			});
 			assert.ok(!("error" in result));
 			if ("error" in result) return;
