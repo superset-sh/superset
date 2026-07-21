@@ -14,20 +14,25 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	capture_exceptions: true,
 	debug: false,
 	cross_subdomain_cookie: true,
+	// Anonymous visitors must be full persons — the identified_only default
+	// breaks person-level funnels over anonymous traffic.
+	person_profiles: "always",
 	persistence: "cookie",
 	persistence_name: POSTHOG_COOKIE_NAME,
 	disable_session_recording: true,
 	loaded: (posthog) => {
-		posthog.register({
-			app_name: "marketing",
-			domain: window.location.hostname,
-		});
-
 		const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
 		if (consent === "declined") {
 			posthog.opt_out_capturing();
 		}
 	},
+});
+
+// Register synchronously — inside `loaded` these super-properties race the
+// first captured events and land missing.
+posthog.register({
+	app_name: "marketing",
+	domain: window.location.hostname,
 });
 
 Sentry.init({
