@@ -27,6 +27,7 @@ export const metadata: Metadata = {
 export default function JoinUsPage() {
 	return (
 		<main className="relative min-h-screen bg-background">
+			<style>{"html { scroll-behavior: smooth; }"}</style>
 			<div className="max-w-3xl mx-auto px-6 py-24 md:py-32">
 				<section>
 					<h1 className="text-4xl sm:text-5xl md:text-6xl font-normal leading-none text-foreground -mb-[0.2em]">
