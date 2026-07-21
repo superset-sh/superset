@@ -92,3 +92,38 @@ export const automationPromptSourceValues = [
 ] as const;
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
+
+export const desktopNoticeSeverityValues = [
+	"info",
+	"warning",
+	"blocking",
+] as const;
+export const desktopNoticeSeverityEnum = z.enum(desktopNoticeSeverityValues);
+export type DesktopNoticeSeverity = z.infer<typeof desktopNoticeSeverityEnum>;
+
+export const desktopNoticeTriggerValues = [
+	"immediate",
+	"pre-update",
+	"post-update",
+] as const;
+export const desktopNoticeTriggerEnum = z.enum(desktopNoticeTriggerValues);
+export type DesktopNoticeTrigger = z.infer<typeof desktopNoticeTriggerEnum>;
+
+export const desktopNoticeCtaActionValues = [
+	"install-update",
+	"open-url",
+] as const;
+export const desktopNoticeCtaActionEnum = z.enum(desktopNoticeCtaActionValues);
+export type DesktopNoticeCtaAction = z.infer<typeof desktopNoticeCtaActionEnum>;
+
+export const desktopNoticePlatformValues = [
+	"darwin",
+	"win32",
+	"linux",
+] as const;
+export const desktopNoticePlatformEnum = z.enum(desktopNoticePlatformValues);
+export type DesktopNoticePlatform = z.infer<typeof desktopNoticePlatformEnum>;
+
+export const desktopNoticeChannelValues = ["stable", "canary"] as const;
+export const desktopNoticeChannelEnum = z.enum(desktopNoticeChannelValues);
+export type DesktopNoticeChannel = z.infer<typeof desktopNoticeChannelEnum>;
