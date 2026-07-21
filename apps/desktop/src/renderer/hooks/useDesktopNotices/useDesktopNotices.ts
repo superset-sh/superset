@@ -4,10 +4,11 @@ import {
 	filterApplicableNotices,
 } from "@superset/shared/desktop-notices";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { useAppVersionHistoryStore } from "renderer/stores/app-version-history";
 import { useDesktopNoticeDismissalsStore } from "renderer/stores/desktop-notice-dismissals";
+import { useDesktopNoticePreviewStore } from "renderer/stores/desktop-notice-preview";
 import { lt, prerelease } from "semver";
 
 const REFETCH_INTERVAL_MS = 30 * 60 * 1000;
@@ -30,13 +31,28 @@ interface UseDesktopNoticesResult {
 
 export function useDesktopNotices(): UseDesktopNoticesResult {
 	const dismissedAt = useDesktopNoticeDismissalsStore((s) => s.dismissedAt);
-	const dismiss = useDesktopNoticeDismissalsStore((s) => s.dismiss);
+	const storeDismiss = useDesktopNoticeDismissalsStore((s) => s.dismiss);
 	const previousVersion = useAppVersionHistoryStore((s) => s.previousVersion);
 	const recordBoot = useAppVersionHistoryStore((s) => s.recordBoot);
+	// Dev-only forced preview (command palette). Inert in production.
+	const previewNotice = useDesktopNoticePreviewStore((s) => s.preview);
+	const setPreview = useDesktopNoticePreviewStore((s) => s.setPreview);
+	const preview = env.NODE_ENV === "development" ? previewNotice : null;
 
 	useEffect(() => {
 		recordBoot(window.App.appVersion);
 	}, [recordBoot]);
+
+	const dismiss = useCallback(
+		(noticeId: string) => {
+			if (preview?.id === noticeId) {
+				setPreview(null);
+				return;
+			}
+			storeDismiss(noticeId);
+		},
+		[preview, setPreview, storeDismiss],
+	);
 
 	// Fails open: any fetch/parse error just means no notices this cycle.
 	const { data } = useQuery({
@@ -81,10 +97,17 @@ export function useDesktopNotices(): UseDesktopNoticesResult {
 		});
 	}, [data, dismissedAt, previousVersion]);
 
+	// A dev preview overrides its matching surface; everything else falls back
+	// to the real server-derived notices.
+	const isPreUpdatePreview = preview?.trigger === "pre-update";
 	return {
 		// post-update announcements share the boot/poll popup surface
-		current: applicable.find((n) => n.trigger !== "pre-update") ?? null,
-		preUpdateNotice: applicable.find((n) => n.trigger === "pre-update") ?? null,
+		current: isPreUpdatePreview
+			? (applicable.find((n) => n.trigger !== "pre-update") ?? null)
+			: (preview ?? applicable.find((n) => n.trigger !== "pre-update") ?? null),
+		preUpdateNotice: isPreUpdatePreview
+			? preview
+			: (applicable.find((n) => n.trigger === "pre-update") ?? null),
 		dismiss,
 	};
 }
