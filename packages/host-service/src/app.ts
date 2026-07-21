@@ -2,6 +2,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/chat/server/desktop";
+import { GrokLifecycleInterpreter } from "@superset/shared/grok-lifecycle";
 import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -191,6 +192,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		);
 	}
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
+	const grokLifecycle = new GrokLifecycleInterpreter();
+	terminalAgentStore.on("terminal-removed", (terminalId: string) => {
+		grokLifecycle.clear(terminalId);
+	});
 
 	// Startup sweeps run in the background so they don't block server
 	// startup. Ordering matters: the backfills fill identity fields on
@@ -266,6 +271,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					db,
 					runtime,
 					eventBus,
+					grokLifecycle,
 					terminalAgentStore,
 					organizationId: config.organizationId,
 					isAuthenticated,
@@ -281,6 +287,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		// Each step is best-effort and isolated: a throw in one cleanup must
 		// not skip the others, otherwise a flaky `.stop()` could leak the
 		// open SQLite handle for the rest of the process lifetime.
+		try {
+			grokLifecycle.dispose();
+		} catch (err) {
+			console.warn("[host-service] grokLifecycle.dispose failed:", err);
+		}
 		try {
 			pullRequestRuntime.stop();
 		} catch (err) {

@@ -99,6 +99,20 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "grok",
+		label: "Grok",
+		description:
+			"xAI's coding agent for reading, modifying, and running code from the terminal.",
+		// TODO(grok): Confirm whether Superset should opt into --always-approve
+		// instead of preserving Grok's default interactive approval behavior.
+		command: "grok",
+		promptCommand: "grok",
+		// TODO(grok): Verify that headless Grok satisfies Superset's unattended
+		// safety requirements before opening the PR.
+		nonInteractiveCommand: "grok -p",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "mastracode",
 		label: "Mastracode",
 		description:

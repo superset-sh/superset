@@ -199,6 +199,7 @@ export class TerminalAgentStore extends EventEmitter {
 		if (!existing) return;
 		this.byTerminal.delete(terminalId);
 		this.persistence?.delete(terminalId);
+		this.emit("terminal-removed", terminalId);
 		this.emit("change", existing.workspaceId);
 	}
 }

@@ -83,6 +83,11 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		],
 	},
 	{
+		presetId: "grok",
+		modelFlag: "--model",
+		models: [{ id: "grok-4.5", label: "Grok 4.5" }],
+	},
+	{
 		presetId: "gemini",
 		modelFlag: "--model",
 		models: [
@@ -198,6 +203,17 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },
 			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "grok",
+		effortFlag: "--effort",
+		// TODO(grok): Verify Grok's accepted effort values against --help or the
+		// official CLI documentation before opening the PR.
+		efforts: [
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
 		],
 	},
 	{

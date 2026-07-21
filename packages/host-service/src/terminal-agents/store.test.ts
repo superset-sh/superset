@@ -175,6 +175,10 @@ describe("TerminalAgentStore", () => {
 	});
 
 	it("markTerminalExited removes the binding", () => {
+		const removed: string[] = [];
+		store.on("terminal-removed", (terminalId: string) => {
+			removed.push(terminalId);
+		});
 		store.recordEvent({
 			terminalId: "t1",
 			workspaceId: WORKSPACE,
@@ -184,6 +188,7 @@ describe("TerminalAgentStore", () => {
 		});
 		store.markTerminalExited("t1");
 		expect(store.get("t1")).toBeUndefined();
+		expect(removed).toEqual(["t1"]);
 	});
 
 	it("emits 'change' with workspaceId on mutation", () => {

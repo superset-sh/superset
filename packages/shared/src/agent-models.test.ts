@@ -108,6 +108,13 @@ describe("buildAgentModelArgs", () => {
 			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
 		}
 	});
+
+	it("builds Grok's verified model argument", () => {
+		expect(buildAgentModelArgs("grok", "grok-4.5")).toEqual([
+			"--model",
+			"grok-4.5",
+		]);
+	});
 });
 
 describe("AGENT_EFFORT_SUPPORT", () => {
@@ -149,6 +156,15 @@ describe("buildAgentEffortArgs", () => {
 			"-c",
 			"model_reasoning_effort=high",
 		]);
+	});
+
+	it("builds Grok's configured effort arguments", () => {
+		for (const effort of ["low", "medium", "high"]) {
+			expect(buildAgentEffortArgs("grok", effort)).toEqual([
+				"--effort",
+				effort,
+			]);
+		}
 	});
 
 	it("returns [] when no effort is set", () => {

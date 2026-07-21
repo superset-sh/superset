@@ -1,4 +1,8 @@
 import { EventEmitter } from "node:events";
+import {
+	type GrokLifecycleEventType,
+	GrokLifecycleInterpreter,
+} from "@superset/shared/grok-lifecycle";
 import { BrowserWindow } from "electron";
 import express from "express";
 import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
@@ -32,6 +36,11 @@ const DEBUG_HOOKS_ENABLED =
  * Broadcasts normalized agent lifecycle events from the local hook server.
  */
 export const notificationsEmitter = new EventEmitter();
+const grokLifecycle = new GrokLifecycleInterpreter();
+
+export function disposeNotificationsLifecycle(): void {
+	grokLifecycle.dispose();
+}
 
 const app = express();
 
@@ -59,6 +68,9 @@ app.get("/hook/complete", (req, res) => {
 		hookSessionId,
 		resourceId,
 		eventType,
+		rawEventType,
+		agentId,
+		notificationType,
 		env: clientEnv,
 		version,
 	} = req.query;
@@ -80,11 +92,15 @@ app.get("/hook/complete", (req, res) => {
 		);
 	}
 
-	const mappedEventType = mapEventType(eventType as string | undefined);
+	const rawEvent = rawEventType as string | undefined;
+	const isGrok = agentId === "grok";
+	const mappedEventType = isGrok
+		? null
+		: mapEventType(eventType as string | undefined);
 
 	// Unknown or missing eventType: return success but don't process
 	// This ensures forward compatibility and doesn't block the agent
-	if (!mappedEventType) {
+	if (!isGrok && !mappedEventType) {
 		if (eventType) {
 			console.log("[notifications] Ignoring unknown eventType:", eventType);
 		}
@@ -98,18 +114,55 @@ app.get("/hook/complete", (req, res) => {
 		sessionId as string | undefined,
 	);
 
-	const event: AgentLifecycleEvent = {
-		paneId: resolvedPaneId,
-		tabId: tabId as string | undefined,
-		workspaceId: workspaceId as string | undefined,
-		terminalId: terminalId as string | undefined,
-		eventType: mappedEventType,
+	const emitLifecycle = (
+		normalizedEventType:
+			| GrokLifecycleEventType
+			| NonNullable<typeof mappedEventType>,
+	): void => {
+		const legacyEventType =
+			normalizedEventType === "PermissionRequest"
+				? "PermissionRequest"
+				: normalizedEventType === "Attached" || normalizedEventType === "Start"
+					? "Start"
+					: "Stop";
+		const event: AgentLifecycleEvent = {
+			paneId: resolvedPaneId,
+			tabId: tabId as string | undefined,
+			workspaceId: workspaceId as string | undefined,
+			terminalId: terminalId as string | undefined,
+			eventType: legacyEventType,
+		};
+		notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, event);
 	};
+
+	if (isGrok) {
+		const lifecycleKey =
+			(terminalId as string | undefined) ??
+			(sessionId as string | undefined) ??
+			resolvedPaneId;
+		const recognized = grokLifecycle.handle(
+			{
+				key: lifecycleKey,
+				eventType: rawEvent ?? (eventType as string | undefined) ?? "",
+				notificationType: notificationType as string | undefined,
+				sessionId: sessionId as string | undefined,
+			},
+			emitLifecycle,
+		);
+		if (!recognized) {
+			return res.json({ success: true, ignored: true });
+		}
+	} else if (mappedEventType) {
+		emitLifecycle(mappedEventType);
+	}
 
 	if (DEBUG_HOOKS_ENABLED) {
 		console.log("[notifications] hook event received", {
 			eventType,
 			mappedEventType,
+			rawEventType: rawEvent,
+			agentId,
+			notificationType,
 			paneId: paneId as string | undefined,
 			tabId: tabId as string | undefined,
 			workspaceId: workspaceId as string | undefined,
@@ -120,8 +173,6 @@ app.get("/hook/complete", (req, res) => {
 			resolvedPaneId,
 		});
 	}
-
-	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, event);
 
 	res.json({ success: true, paneId: resolvedPaneId, tabId });
 });

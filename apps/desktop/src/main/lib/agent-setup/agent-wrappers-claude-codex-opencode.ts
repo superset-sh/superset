@@ -75,7 +75,11 @@ function isPlainObject(value: unknown): value is Record<string, unknown> {
 
 /** Shell command written into Claude's global hook config. */
 export function getClaudeManagedHookCommand(): string {
-	return getManagedNotifyHookCommand("claude");
+	// Grok loads ~/.claude/settings.json through its compatibility layer. Skip
+	// only Superset's managed Claude hook for Grok-originated events so Grok's
+	// native hook reports once with agentId=grok; user-owned Claude hooks remain
+	// available to Grok.
+	return `[ -z "\${GROK_HOOK_EVENT:-}" ] && ${getManagedNotifyHookCommand("claude")}`;
 }
 
 function isManagedClaudeHookCommand(

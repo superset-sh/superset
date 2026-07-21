@@ -203,6 +203,15 @@ export const terminalAgentsRouter = router({
 			z.object({ workspaceId: z.string(), terminalId: z.string().optional() }),
 		)
 		.mutation(({ ctx, input }) => {
+			if (input.terminalId) {
+				ctx.grokLifecycle.clear(input.terminalId);
+			} else {
+				for (const binding of ctx.terminalAgentStore.listByWorkspace(
+					input.workspaceId,
+				)) {
+					ctx.grokLifecycle.clear(binding.terminalId);
+				}
+			}
 			ctx.terminalAgentStore.clearWorkspaceStatuses(
 				input.workspaceId,
 				input.terminalId,

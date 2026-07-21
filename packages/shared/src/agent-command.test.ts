@@ -63,6 +63,17 @@ describe("buildAgentPromptCommand", () => {
 		expect(command).toStartWith("pi \"$(cat <<'SUPERSET_PROMPT_pi1234'");
 		expect(command).not.toContain("pi -p");
 	});
+
+	it("passes Grok's initial prompt positionally in interactive mode", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "grok-1234",
+			agent: "grok",
+		});
+
+		expect(command).toStartWith("grok \"$(cat <<'SUPERSET_PROMPT_grok1234'");
+		expect(command).not.toContain("grok -p");
+	});
 });
 
 describe("vibe agent registration", () => {
