@@ -45,6 +45,7 @@ export function PreUpdateConfirmPopover({
 					</div>
 					<MarkdownRenderer
 						content={notice.body}
+						allowHtml={false}
 						className="h-auto overflow-visible text-xs text-muted-foreground [&_article]:max-w-none [&_article]:p-0 [&_img]:mx-auto [&_img]:max-h-32 [&_img]:rounded-md"
 					/>
 					<div className="mt-3 flex justify-end gap-1.5">
