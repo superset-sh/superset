@@ -56,6 +56,36 @@ const sourceFiles = [...walk(RENDERER_DIR)].map((file) => ({
 	text: fs.readFileSync(file, "utf8"),
 }));
 
+const AUTHENTICATED_ROUTES = path.join("routes", "_authenticated");
+
+/**
+ * Walks the render graph upward: is this file rendered — directly or through a
+ * chain of parents — by something under routes/_authenticated, where the dialog
+ * is mounted? Resolving the real ancestry (rather than trusting a path prefix)
+ * means moving a host component out of the authenticated tree fails this test
+ * instead of silently reintroducing the hang.
+ */
+function reachesAuthenticatedTree(
+	relative: string,
+	seen: Set<string>,
+): boolean {
+	if (relative.startsWith(AUTHENTICATED_ROUTES)) return true;
+	if (seen.has(relative)) return false;
+	seen.add(relative);
+
+	// A component is rendered as <Name />, and its file is named after it.
+	const componentName = path.basename(relative).replace(/\.tsx?$/, "");
+	if (!/^[A-Z]/.test(componentName)) return false;
+	const rendered = new RegExp(`<${componentName}\\b`);
+
+	return sourceFiles.some(
+		(f) =>
+			f.relative !== relative &&
+			rendered.test(f.text) &&
+			reachesAuthenticatedTree(f.relative, seen),
+	);
+}
+
 describe("git-init confirm dialog mount", () => {
 	test("is mounted in the _authenticated layout, the shared ancestor of every caller", () => {
 		const layout = sourceFiles.find(
@@ -99,13 +129,10 @@ describe("git-init confirm dialog mount", () => {
 		// onboarding did, and needs its own dialog mount.
 		expect(callers.length).toBeGreaterThan(0);
 		for (const caller of callers) {
-			const reachesMount =
-				caller.startsWith(path.join("routes", "_authenticated")) ||
-				// Rendered by _dashboard/layout.tsx, itself under _authenticated.
-				caller.startsWith("commandPalette");
-			expect(reachesMount, `${caller} cannot reach the dialog mount`).toBe(
-				true,
-			);
+			expect(
+				reachesAuthenticatedTree(caller, new Set()),
+				`${caller} is not rendered from within routes/_authenticated, so it cannot reach the dialog mount`,
+			).toBe(true);
 		}
 	});
 });
