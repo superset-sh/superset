@@ -24,6 +24,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
+import { GitInitConfirmDialog } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/components/GitInitConfirmDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
@@ -292,6 +293,11 @@ function AuthenticatedLayout() {
 									<NewWorkspaceModal />
 								)}
 								<InitGitDialog />
+								{/* Mounted here, not under _dashboard: onboarding renders
+								    through this layout's Outlet and also runs the
+								    folder-first import, whose git-init confirm promise
+								    never settles without a mounted dialog. */}
+								<GitInitConfirmDialog />
 								<TeardownLogsDialog />
 								<Paywall />
 							</WorkerPoolContextProvider>
