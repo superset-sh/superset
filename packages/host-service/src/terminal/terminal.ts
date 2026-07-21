@@ -13,7 +13,7 @@ import {
 	scanForTerminalTitle,
 	type TerminalTitleScanState,
 } from "@superset/shared/terminal-title-scanner";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { Hono } from "hono";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
@@ -417,33 +417,68 @@ export function listTerminalSessions(
 		}));
 }
 
-export function countTerminalSessions(
-	options: {
-		workspaceId?: string;
-		includeExited?: boolean;
-		excludeTerminalIds?: Iterable<string>;
-	} = {},
-): number {
-	const includeExited = options.includeExited ?? true;
-	const excludedTerminalIds = options.excludeTerminalIds
-		? new Set(options.excludeTerminalIds)
-		: null;
-	let count = 0;
+/**
+ * Workspace session list sourced from truth, not from this process's memory.
+ *
+ * The in-memory map is attachment plumbing: it empties on every host-service
+ * restart while the detached pty-daemon keeps PTYs alive, and it only
+ * repopulates when a renderer attaches. Reading it alone made every pane-less
+ * session (background agents) invisible to the session dropdown, the
+ * background-terminals dropdown, and pane auto-adoption after a restart.
+ *
+ * So: in-memory sessions first (they carry liveness, titles, attachment, and
+ * respect `listed` for hidden internal sessions), then every other alive
+ * daemon session joined to an active workspace-owned row. Dispose-stamped
+ * rows are scheduled kills awaiting the reaper — never resurfaced. A session
+ * only the daemon knows has never been attached in this process's lifetime,
+ * hence `attached: false, title: null`.
+ */
+export async function listWorkspaceTerminalSessions(
+	db: HostDb,
+	workspaceId: string,
+): Promise<TerminalSessionSummary[]> {
+	const known = listTerminalSessions({ workspaceId, includeExited: false });
 
-	for (const session of sessions.values()) {
-		if (!session.listed) continue;
-		if (
-			options.workspaceId !== undefined &&
-			session.workspaceId !== options.workspaceId
-		) {
-			continue;
-		}
-		if (!includeExited && session.exited) continue;
-		if (excludedTerminalIds?.has(session.terminalId)) continue;
-		count += 1;
+	let daemonSessionIds: string[];
+	try {
+		const daemon = await getDaemonClient();
+		daemonSessionIds = (await daemon.list())
+			.filter((session) => session.alive && !sessions.has(session.id))
+			.map((session) => session.id);
+	} catch {
+		// Daemon unreachable — degrade to what this process knows.
+		return known;
 	}
+	if (daemonSessionIds.length === 0) return known;
 
-	return count;
+	const rows = db
+		.select({
+			id: terminalSessions.id,
+			originWorkspaceId: terminalSessions.originWorkspaceId,
+			status: terminalSessions.status,
+			createdAt: terminalSessions.createdAt,
+			disposeRequestedAt: terminalSessions.disposeRequestedAt,
+		})
+		.from(terminalSessions)
+		.where(inArray(terminalSessions.id, daemonSessionIds))
+		.all();
+
+	const merged = [...known];
+	for (const row of rows) {
+		if (row.originWorkspaceId !== workspaceId) continue;
+		if (row.status !== "active") continue;
+		if (row.disposeRequestedAt != null) continue;
+		merged.push({
+			terminalId: row.id,
+			workspaceId,
+			createdAt: row.createdAt,
+			exited: false,
+			exitCode: 0,
+			attached: false,
+			title: null,
+		});
+	}
+	return merged;
 }
 
 export function writeInputToSession({
