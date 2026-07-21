@@ -28,7 +28,7 @@ export function DownloadButton({
 			? "px-2 sm:px-4 py-2 text-sm"
 			: "px-3 sm:px-6 py-2 sm:py-3 text-sm sm:text-base";
 
-	const buttonClasses = `bg-brand/10 text-[#ff8c3a] border border-brand/20 ${sizeClasses} font-normal hover:bg-brand/15 hover:border-brand/35 transition-colors flex items-center gap-2 ${className}`;
+	const buttonClasses = `bg-foreground text-background ${sizeClasses} font-normal hover:opacity-90 transition-opacity flex items-center gap-2 ${className}`;
 
 	const goToInterstitial = () => {
 		track("download_clicked");
