@@ -3,7 +3,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { HiLink, HiMiniChevronRight, HiMiniXMark } from "react-icons/hi2";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { HotkeyLabel } from "renderer/hotkeys";
@@ -19,6 +19,7 @@ import { useActiveDragItemStore } from "renderer/stores/active-drag-item";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { extractPaneIdsFromLayout } from "renderer/stores/tabs/utils";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import { getHighestPriorityStatus } from "shared/tabs-types";
 import { LinkedWorktreesSection } from "../LinkedWorktreesSection/LinkedWorktreesSection";
 import { consumeSkipActiveScroll } from "../skip-active-scroll";
@@ -107,7 +108,11 @@ export function WorkspaceListItem({
 	const selectionStore = useWorkspaceSelectionStore;
 
 	// Linked worktrees symlinked into this worktree's dependency dirs.
-	const [linksOpen, setLinksOpen] = useState(false);
+	// Reveal state is persisted per worktree (defaults closed for unseen ids).
+	const linksOpen = useWorkspaceSidebarStore((s) => s.isLinkedSectionOpen(id));
+	const toggleLinkedSectionOpen = useWorkspaceSidebarStore(
+		(s) => s.toggleLinkedSectionOpen,
+	);
 	const isWorktree = type === "worktree" && !!worktreePath;
 	const { data: linkedWorktrees = [] } =
 		electronTrpc.workspaces.getLinkedWorktrees.useQuery(
@@ -414,7 +419,7 @@ export function WorkspaceListItem({
 									type="button"
 									onClick={(e) => {
 										e.stopPropagation();
-										setLinksOpen((v) => !v);
+										toggleLinkedSectionOpen(id);
 									}}
 									className="flex shrink-0 items-center gap-0.5 text-[10px] tabular-nums text-blue-400/80 hover:text-blue-400 transition-colors"
 									title={`${linkedWorktrees.length} linked worktree${linkedWorktrees.length === 1 ? "" : "s"}`}
@@ -519,7 +524,7 @@ export function WorkspaceListItem({
 				{content}
 			</WorkspaceContextMenu>
 			{isWorktree && linksOpen && (
-				<LinkedWorktreesSection links={linkedWorktrees} />
+				<LinkedWorktreesSection workspaceId={id} links={linkedWorktrees} />
 			)}
 			<DeleteWorkspaceDialog
 				workspaceId={id}

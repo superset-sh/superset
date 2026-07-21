@@ -1,16 +1,22 @@
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { useState } from "react";
 import { HiChevronRight, HiLink } from "react-icons/hi2";
 import { LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
+import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import type { LinkedTarget } from "shared/linked-worktrees-types";
 import { skipNextActiveScroll } from "../skip-active-scroll";
 
-export function LinkedWorktreesSection({ links }: { links: LinkedTarget[] }) {
+export function LinkedWorktreesSection({
+	workspaceId,
+	links,
+}: {
+	workspaceId: string;
+	links: LinkedTarget[];
+}) {
 	if (links.length === 0) return null;
 
 	const groups = new Map<string, LinkedTarget[]>();
@@ -23,27 +29,40 @@ export function LinkedWorktreesSection({ links }: { links: LinkedTarget[] }) {
 	return (
 		<div className="flex flex-col">
 			{[...groups.entries()].map(([sourceDir, items]) => (
-				<SourceGroup key={sourceDir} sourceDir={sourceDir} items={items} />
+				<SourceGroup
+					key={sourceDir}
+					workspaceId={workspaceId}
+					sourceDir={sourceDir}
+					items={items}
+				/>
 			))}
 		</div>
 	);
 }
 
 function SourceGroup({
+	workspaceId,
 	sourceDir,
 	items,
 }: {
+	workspaceId: string;
 	sourceDir: string;
 	items: LinkedTarget[];
 }) {
-	const [open, setOpen] = useState(true);
+	// Folder open/closed is persisted per (worktree, sourceDir); defaults open.
+	const open = useWorkspaceSidebarStore(
+		(s) => !s.isLinkSourceCollapsed(workspaceId, sourceDir),
+	);
+	const toggleLinkSourceCollapsed = useWorkspaceSidebarStore(
+		(s) => s.toggleLinkSourceCollapsed,
+	);
 	const ecosystem = items[0]?.ecosystem ?? "npm";
 
 	return (
 		<div>
 			<button
 				type="button"
-				onClick={() => setOpen((v) => !v)}
+				onClick={() => toggleLinkSourceCollapsed(workspaceId, sourceDir)}
 				className={cn(
 					"flex items-center gap-1.5 w-full pl-2 pr-2 py-1.5 text-[11px] font-medium uppercase tracking-wider",
 					"text-muted-foreground hover:bg-muted/50 transition-colors text-left cursor-pointer",
