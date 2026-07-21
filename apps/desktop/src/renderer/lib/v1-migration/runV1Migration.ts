@@ -85,12 +85,32 @@ export async function runV1Migration(
 	const { organizationId } = deps;
 	const ledger = await loadV1MigrationLedger(organizationId);
 	const outcomes: V1LedgerOutcome[] = [];
+	// Flush between stages (and on failure) so a throw in a later stage
+	// can't discard outcomes for host mutations that already committed.
+	const flush = async () => {
+		const batch = outcomes.splice(0);
+		try {
+			await recordV1MigrationOutcomes(organizationId, batch);
+		} catch (err) {
+			outcomes.unshift(...batch);
+			throw err;
+		}
+	};
 
-	const projects = await migrateProjects(deps, ledger, outcomes);
-	const workspaces = await migrateWorkspaces(deps, ledger, outcomes);
-	const presets = await migratePresets(deps, ledger, outcomes);
-
-	await recordV1MigrationOutcomes(organizationId, outcomes);
+	let projects = emptySummary();
+	let workspaces = emptySummary();
+	let presets = emptySummary();
+	try {
+		projects = await migrateProjects(deps, ledger, outcomes);
+		await flush();
+		workspaces = await migrateWorkspaces(deps, ledger, outcomes);
+		await flush();
+		presets = await migratePresets(deps, ledger, outcomes);
+	} finally {
+		await flush().catch((err) => {
+			console.error("[v1-migration] ledger flush failed", err);
+		});
+	}
 
 	const gateComplete =
 		projects.failed + projects.skipped + projects.deferred === 0 &&
@@ -167,7 +187,16 @@ async function migrateProjects(
 				status: "success",
 				v2Id: result.v2ProjectId,
 			});
-			deps.onProjectImported?.(result);
+			// The host mutation committed — a UI callback failure must not
+			// overwrite the success outcome with an error.
+			try {
+				deps.onProjectImported?.(result);
+			} catch (err) {
+				console.error("[v1-migration] onProjectImported callback failed", {
+					v1ProjectId: project.id,
+					err,
+				});
+			}
 		} catch (err) {
 			summary.failed++;
 			pushOutcome(ledger, outcomes, {
@@ -285,7 +314,14 @@ async function migrateWorkspaces(
 				status: "success",
 				v2Id: result.workspace.id,
 			});
-			deps.onWorkspaceAdopted?.(result.workspace.id, entry.v2ProjectId);
+			try {
+				deps.onWorkspaceAdopted?.(result.workspace.id, entry.v2ProjectId);
+			} catch (err) {
+				console.error("[v1-migration] onWorkspaceAdopted callback failed", {
+					v1WorkspaceId: entry.v1WorkspaceId,
+					err,
+				});
+			}
 		} catch (err) {
 			summary.failed++;
 			pushOutcome(ledger, outcomes, {
