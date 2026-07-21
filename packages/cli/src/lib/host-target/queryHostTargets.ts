@@ -59,6 +59,9 @@ export async function queryHostTargets<T>(
 		const manifest = readManifest(options.organizationId);
 		if (manifest && isProcessAlive(manifest.pid)) ids.add(localHostId);
 		targetHostIds = [...ids];
+		if (targetHostIds.length === 0) {
+			warnings.push("No hosts are currently online; nothing to query");
+		}
 	} else {
 		if (discoveryError !== undefined) {
 			warnings.push(

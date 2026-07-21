@@ -69,6 +69,26 @@ describe("prepareAgentLaunch", () => {
 		);
 	});
 
+	it("executes argv agents in the foreground launcher process", () => {
+		const launch = prepareAgentLaunch({
+			command: "codex",
+			args: ["--model", "gpt-test"],
+			promptArgs: ["--prompt"],
+			promptTransport: "argv",
+			prompt: "prompt",
+			env: {},
+		});
+		launches.push(launch);
+
+		const script = readFileSync(launch.scriptPath, "utf8");
+		expect(script).toContain("launcher_pid=$$");
+		expect(script).toContain("sleep 0.05 2>/dev/null || sleep 1");
+		expect(script).toContain(
+			`exec 'env' 'codex' '--model' 'gpt-test' '--prompt' "$prompt" < /dev/tty`,
+		);
+		expect(script).not.toContain(`"$prompt" < /dev/tty &`);
+	});
+
 	it("removes sensitive launch artifacts when scoped work throws", async () => {
 		let launchDir: string | undefined;
 		await expect(

@@ -54,37 +54,39 @@ function buildLauncherScript(
 	const errorPath = quoteSingleShell(paths.errorPath);
 
 	let preparePrompt = "";
-	let launchCommand = `${staticCommand} < /dev/tty &`;
+	let launchCommand = `exec ${staticCommand} < /dev/tty`;
 	if (input.prompt !== "") {
 		if (input.promptTransport === "argv") {
 			// Command substitution normally strips trailing newlines. Appending a
 			// sentinel first and removing exactly that sentinel preserves them.
 			preparePrompt = `prompt_with_sentinel="$(cat ${promptPath}; printf x)"\nprompt="\${prompt_with_sentinel%x}"\n`;
-			launchCommand = `${staticCommand} "$prompt" < /dev/tty &`;
+			launchCommand = `exec ${staticCommand} "$prompt" < /dev/tty`;
 		} else {
-			launchCommand = `${staticCommand} < ${promptPath} &`;
+			launchCommand = `exec ${staticCommand} < ${promptPath}`;
 		}
 	}
 
 	return `#!/bin/sh
 set -u
-${preparePrompt}${launchCommand}
-child_pid=$!
+${preparePrompt}launcher_pid=$$
 
-# Let an immediate exec/argument failure settle before acknowledging launch.
-sleep 0.05
-if ! kill -0 "$child_pid" 2>/dev/null; then
-	set +e
-	wait "$child_pid"
-	status=$?
-	printf 'Agent process exited before launch acknowledgement (status %s).\n' "$status" > ${errorPath}
-	exit "$status"
-fi
+# The launcher itself is the interactive shell's foreground job. A detached
+# watcher verifies that the same pid survives the immediate exec/argument
+# failure window; exec then replaces this process with the agent without ever
+# moving terminal input into a background process group.
+(
+	# BusyBox sleep rejects fractional values. Preserve the fast path where it
+	# is supported and fall back to one portable second instead of silently
+	# collapsing the immediate-failure detection window to zero.
+	sleep 0.05 2>/dev/null || sleep 1
+	if kill -0 "$launcher_pid" 2>/dev/null; then
+		printf '%s\n' "$launcher_pid" > ${ackPath}
+	else
+		printf 'Agent process exited before launch acknowledgement.\n' > ${errorPath}
+	fi
+) >/dev/null 2>&1 &
 
-printf '%s\n' "$child_pid" > ${ackPath}
-set +e
-wait "$child_pid"
-exit $?
+${launchCommand}
 `;
 }
 

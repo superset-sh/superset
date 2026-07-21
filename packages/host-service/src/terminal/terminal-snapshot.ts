@@ -32,6 +32,10 @@ export function renderTerminalSnapshot({
 		allowProposedApi: true,
 	});
 	try {
+		// Terminal.write is async-buffered and has no public synchronous
+		// equivalent. @xterm/headless is therefore pinned to an exact version in
+		// this package, and terminal-snapshot.test.ts exercises this compatibility
+		// boundary so dependency upgrades fail before reaching the read endpoint.
 		const writeBuffer = (terminal as unknown as HeadlessInternals)._core
 			?._writeBuffer;
 		if (typeof writeBuffer?.writeSync !== "function") {

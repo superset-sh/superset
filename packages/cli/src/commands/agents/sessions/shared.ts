@@ -125,9 +125,10 @@ export async function waitForSession({
 		if (signal.aborted) throw new CLIError("Interrupted while waiting");
 		let session: HostAgentSessionMatch["session"];
 		try {
-			session = await match.client.terminalAgents.get.query({
-				terminalId: match.session.terminalId,
-			});
+			session = await match.client.terminalAgents.get.query(
+				{ terminalId: match.session.terminalId },
+				{ signal },
+			);
 		} catch (error) {
 			if (isNotFoundError(error)) return { status: "exited" };
 			throw error;

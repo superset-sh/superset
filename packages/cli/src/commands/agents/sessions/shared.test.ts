@@ -53,6 +53,7 @@ describe("waitForSession", () => {
 			{ status: "idle", lastEventAt: 102 },
 		] as const;
 		let call = 0;
+		let querySignal: AbortSignal | undefined;
 		const base = {
 			terminalId: "session-1",
 			workspaceId: "workspace-1",
@@ -65,27 +66,35 @@ describe("waitForSession", () => {
 			client: {
 				terminalAgents: {
 					get: {
-						query: async () => ({
-							...base,
-							...states[Math.min(call++, states.length - 1)],
-						}),
+						query: async (
+							_input: unknown,
+							options?: { signal?: AbortSignal },
+						) => {
+							querySignal = options?.signal;
+							return {
+								...base,
+								...states[Math.min(call++, states.length - 1)],
+							};
+						},
 					},
 				},
 			},
 		} as unknown as HostAgentSessionMatch;
 
+		const controller = new AbortController();
 		const result = await waitForSession({
 			match,
 			statuses: new Set(["idle"]),
 			timeoutMs: 1000,
 			minEventAt: 100,
-			signal: new AbortController().signal,
+			signal: controller.signal,
 			pollIntervalMs: 1,
 		});
 
 		expect(result.status).toBe("idle");
 		expect("lastEventAt" in result ? result.lastEventAt : 0).toBe(102);
 		expect(call).toBe(3);
+		expect(querySignal).toBe(controller.signal);
 	});
 
 	it("returns exited when the session disappears", async () => {
