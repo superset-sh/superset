@@ -70,7 +70,7 @@ describe("agentConfigsRouter", () => {
 			expect(claude?.args).toEqual(["--dangerously-skip-permissions"]);
 		});
 
-		it("seeds Codex with its most permissive flag", async () => {
+		it("seeds Codex with its most permissive flags", async () => {
 			const caller = createCaller();
 			const result = await caller.list();
 			const codex = result.find((row) => row.presetId === "codex");
@@ -80,6 +80,7 @@ describe("agentConfigsRouter", () => {
 			);
 			expect(codex?.args).toEqual([
 				"--dangerously-bypass-approvals-and-sandbox",
+				"--dangerously-bypass-hook-trust",
 			]);
 			expect(codex?.args).not.toContain("--sandbox");
 			expect(codex?.args).not.toContain("--ask-for-approval");

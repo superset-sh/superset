@@ -48,7 +48,7 @@ function AddTabButton<_TData>({
 }) {
 	const button = (
 		<Button
-			className="size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
+			className="ml-1.5 size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
 			size="icon"
 			type="button"
 			variant="ghost"
@@ -171,14 +171,16 @@ export function TabBar<TData>({
 		return (
 			<div
 				ref={setRootRef}
-				className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+				// `drag`: the bar doubles as the Electron window-drag region (empty
+				// areas only — interactive clusters opt out with `no-drag`).
+				className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background"
 			>
-				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
+				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 				<div className="flex min-w-0 flex-1 items-stretch" />
 				{renderTabBarTrailing && (
-					<div className="flex h-full shrink-0 items-center px-1">
+					<div className="no-drag flex h-full shrink-0 items-center px-1">
 						{renderTabBarTrailing()}
 					</div>
 				)}
@@ -189,14 +191,21 @@ export function TabBar<TData>({
 	return (
 		<div
 			ref={setRootRef}
-			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+			// No border-b: the bar sits flush against whatever renders below it and
+			// the active tab draws its own frame. `drag`: the bar doubles as the
+			// Electron window-drag region (empty areas only — the tabs track and
+			// button clusters opt out with `no-drag`).
+			className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background"
 		>
 			<OverflowFadeContainer
 				observeChildren
 				onOverflowChange={handleOverflowChange}
 				className="hide-scrollbar flex min-w-0 flex-1 items-stretch overflow-x-auto overflow-y-hidden"
 			>
-				<div ref={tabsTrackRef} className="relative flex h-full items-stretch">
+				<div
+					ref={tabsTrackRef}
+					className="no-drag relative flex h-full items-stretch"
+				>
 					{tabs.map((tab, i) => (
 						<div
 							className="h-full shrink-0"
@@ -234,12 +243,12 @@ export function TabBar<TData>({
 				</div>
 			</OverflowFadeContainer>
 			{hasHorizontalOverflow && (
-				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
+				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 			)}
 			{renderTabBarTrailing && (
-				<div className="flex h-full shrink-0 items-center px-1">
+				<div className="no-drag flex h-full shrink-0 items-center px-1">
 					{renderTabBarTrailing()}
 				</div>
 			)}

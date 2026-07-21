@@ -66,7 +66,10 @@ mock.module("renderer/react-query/projects", () => ({
 mock.module(
 	"renderer/routes/_authenticated/providers/LocalHostServiceProvider",
 	() => ({
-		useLocalHostService: () => ({ activeHostUrl: hostUrl }),
+		useLocalHostService: () => ({
+			activeHostUrl: hostUrl,
+			waitForHostReady: async () => hostUrl,
+		}),
 	}),
 );
 

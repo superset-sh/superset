@@ -10,13 +10,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Settings } from "lucide-react";
-import {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
@@ -33,7 +27,6 @@ interface V2PresetsBarProps {
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
-	trailing?: ReactNode;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -75,7 +68,6 @@ export function V2PresetsBar({
 	executePreset,
 	showPresetsBar,
 	onToggleShowPresetsBar,
-	trailing,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
@@ -202,7 +194,7 @@ export function V2PresetsBar({
 
 	return (
 		<div
-			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border/60 bg-background px-2"
+			className="flex h-10 min-w-0 shrink-0 items-center gap-1.5 overflow-x-auto overflow-y-hidden bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>
@@ -301,9 +293,6 @@ export function V2PresetsBar({
 					/>
 				);
 			})}
-			{trailing ? (
-				<div className="ml-auto shrink-0 pl-1">{trailing}</div>
-			) : null}
 		</div>
 	);
 }

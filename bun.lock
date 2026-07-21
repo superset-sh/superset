@@ -115,7 +115,7 @@
     },
     "apps/desktop": {
       "name": "@superset/desktop",
-      "version": "1.15.1",
+      "version": "1.16.0",
       "dependencies": {
         "@agentclientprotocol/claude-agent-acp": "0.56.0",
         "@ai-sdk/anthropic": "3.0.64",
@@ -280,7 +280,7 @@
         "nanoid": "5.1.7",
         "native-keymap": "3.3.9",
         "node-addon-api": "7.1.1",
-        "node-pty": "1.1.0",
+        "node-pty": "1.2.0-beta.14",
         "os-locale": "6.0.2",
         "pidtree": "0.6.0",
         "pidusage": "4.0.1",
@@ -304,7 +304,7 @@
         "remark-parse": "11.0.0",
         "semver": "7.7.4",
         "shell-env": "4.0.3",
-        "shell-quote": "1.8.4",
+        "shell-quote": "1.9.0",
         "shiki": "3.23.0",
         "simple-git": "3.36.0",
         "streamdown": "2.5.0",
@@ -744,7 +744,7 @@
     },
     "packages/cli": {
       "name": "@superset/cli",
-      "version": "1.15.1",
+      "version": "1.16.0",
       "dependencies": {
         "@clack/prompts": "0.10.1",
         "@superset/cli-framework": "workspace:*",
@@ -839,7 +839,7 @@
     },
     "packages/host-service": {
       "name": "@superset/host-service",
-      "version": "1.15.1",
+      "version": "1.16.0",
       "dependencies": {
         "@agentclientprotocol/claude-agent-acp": "0.56.0",
         "@agentclientprotocol/sdk": "1.2.0",
@@ -865,7 +865,7 @@
         "hono": "4.12.25",
         "mastracode": "0.18.1",
         "mime-types": "3.0.2",
-        "node-pty": "1.1.0",
+        "node-pty": "1.2.0-beta.14",
         "semver": "7.7.4",
         "simple-git": "3.36.0",
         "superjson": "2.2.6",
@@ -984,12 +984,12 @@
     },
     "packages/pty-daemon": {
       "name": "@superset/pty-daemon",
-      "version": "0.2.5",
+      "version": "0.2.6",
       "bin": {
         "pty-daemon": "./src/main.ts",
       },
       "dependencies": {
-        "node-pty": "1.1.0",
+        "node-pty": "1.2.0-beta.14",
       },
       "devDependencies": {
         "@superset/typescript": "workspace:*",
@@ -1211,7 +1211,7 @@
     "axios": "1.14.0",
     "hono": "4.12.25",
     "kysely": "0.28.17",
-    "shell-quote": "1.8.4",
+    "shell-quote": "1.9.0",
   },
   "packages": {
     "7zip-bin": ["7zip-bin@5.2.0", "", {}, "sha512-ukTPVhqG4jNzMro2qA9HSCSSVJN3aN7tlb+hfqYCt3ER0yWroeA2VR38MNrOHLQ/cVj+DaIMad0kFCtWWowh/A=="],
@@ -5330,7 +5330,7 @@
 
     "node-int64": ["node-int64@0.4.0", "", {}, "sha512-O5lz91xSOeoXP6DulyHfllpq+Eg00MWitZIbtPfoSEvqIHdl5gfcY6hYzDWnj0qD5tz52PI08u9qUvSVeUBeHw=="],
 
-    "node-pty": ["node-pty@1.1.0", "", { "dependencies": { "node-addon-api": "^7.1.0" } }, "sha512-20JqtutY6JPXTUnL0ij1uad7Qe1baT46lyolh2sSENDd4sTzKZ4nmAFkeAARDKwmlLjPx6XKRlwRUxwjOy+lUg=="],
+    "node-pty": ["node-pty@1.2.0-beta.14", "", { "dependencies": { "node-addon-api": "^7.1.0" } }, "sha512-XORU9BQgpxVgqr7WivjJ17mLenOHUgKKWzuZZNaw3NDYgHc/wPJQMSaoLDrpEgqV6aU1nNwil1o/OqYj6lWmUA=="],
 
     "node-releases": ["node-releases@2.0.36", "", {}, "sha512-TdC8FSgHz8Mwtw9g5L4gR/Sh9XhSP/0DEkQxfEFXOpiul5IiHgHan2VhYYb6agDSfp4KuvltmGApc8HMgUrIkA=="],
 
@@ -6002,7 +6002,7 @@
 
     "shell-env": ["shell-env@4.0.3", "", { "dependencies": { "default-shell": "^2.0.0", "execa": "^5.1.1", "strip-ansi": "^7.0.1" } }, "sha512-Ioe5h+hCDZ7pKL5+JGzbtPvZ5ESMHePZ8nLxohlDL+twmlcmutttMhRkrQOed8DeLT8mkYBgbwZfohe8pqaA3g=="],
 
-    "shell-quote": ["shell-quote@1.8.4", "", {}, "sha512-VsC6n6vz1ihYYyZZwX7YZSF5l5x36ca17OC+a69h94YqB7X6XLwf+5MOgynYir2SLFUbl8gIYvBo8K8RoNQ6bQ=="],
+    "shell-quote": ["shell-quote@1.9.0", "", {}, "sha512-Iov+JwFv/2HcTpcwNMKd8+IWNb8tboQJNQTkAY/LLVK7gGH9jy+LGkVqPxfekHl+yMmiqXszdGWXgkfml7hjqA=="],
 
     "sherif": ["sherif@1.11.0", "", { "optionalDependencies": { "sherif-darwin-arm64": "1.11.0", "sherif-darwin-x64": "1.11.0", "sherif-linux-arm64": "1.11.0", "sherif-linux-arm64-musl": "1.11.0", "sherif-linux-x64": "1.11.0", "sherif-linux-x64-musl": "1.11.0", "sherif-windows-arm64": "1.11.0", "sherif-windows-x64": "1.11.0" }, "bin": { "sherif": "index.js" } }, "sha512-JrStUXvTM4vZmeiF55/LczheOgKFvKMrtqbeTs7pCmQCKcAiD/9Jvv8/6fuhldt85clllDIJCQujijlBm72CTA=="],
 

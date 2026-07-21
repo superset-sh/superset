@@ -8,12 +8,18 @@
 
 /*
  * Active when the sidebar workspace activity strip should show its expanded
- * (pill) state: the workspace item (`group/item`) is hovered or keyboard
- * focused, or one of the strip's own dropdown menus (`group/details` scope)
- * is open so it can't collapse under the pointer.
+ * (pill) state: the workspace item (`group/item`) is hovered, keyboard
+ * focused, or the active workspace (`data-active`), or one of the strip's own
+ * dropdown menus (`group/details` scope) is open so it can't collapse under
+ * the pointer.
  */
 @custom-variant details-expanded (&:is(
-		:where(.group\/item:hover, .group\/item:focus-within) *,
+		:where(
+				.group\/item:hover,
+				.group\/item:focus-within,
+				.group\/item[data-active]
+			)
+			*,
 		.group\/details:has([data-state="open"]) *
 	));
 

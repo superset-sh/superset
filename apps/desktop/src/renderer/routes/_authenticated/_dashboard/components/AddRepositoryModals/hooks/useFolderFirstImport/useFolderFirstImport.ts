@@ -24,22 +24,15 @@ export function useFolderFirstImport(options?: {
 	onMultipleProjects?: (input: { candidates: MatchingProject[] }) => void;
 }): UseFolderFirstImportResult {
 	const hostService = useLocalHostService();
-	const { activeHostUrl } = hostService;
+	const { waitForHostReady } = hostService;
 	const finalizeSetup = useFinalizeProjectSetup();
 	const selectDirectory = electronTrpc.window.selectDirectory.useMutation();
 	const requestGitInit = useRequestGitInitConfirm();
 	const { onError, onMultipleProjects } = options ?? {};
 
 	const start = useCallback(async (): Promise<ProjectSetupResult | null> => {
-		if (!activeHostUrl) {
-			onError?.(
-				getHostServiceUnavailableMessage(hostService, {
-					action: "import a folder",
-				}),
-			);
-			return null;
-		}
-
+		// Pick the folder first — the native dialog is a local Electron call and
+		// must not wait on the host service. Only the registration below needs it.
 		let repoPath: string;
 		try {
 			const picked = await selectDirectory.mutateAsync({
@@ -49,6 +42,16 @@ export function useFolderFirstImport(options?: {
 			repoPath = picked.path;
 		} catch (err) {
 			onError?.(err instanceof Error ? err.message : String(err));
+			return null;
+		}
+
+		const activeHostUrl = await waitForHostReady();
+		if (!activeHostUrl) {
+			onError?.(
+				getHostServiceUnavailableMessage(hostService, {
+					action: "import a folder",
+				}),
+			);
 			return null;
 		}
 
@@ -118,7 +121,7 @@ export function useFolderFirstImport(options?: {
 			return null;
 		}
 	}, [
-		activeHostUrl,
+		waitForHostReady,
 		finalizeSetup,
 		hostService,
 		onError,

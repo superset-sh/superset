@@ -145,7 +145,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					onDoubleClick={onDoubleClick}
 					className={cn(
 						"group relative flex w-full items-center py-2 pr-2",
-						isInSection ? "pl-7" : "pl-5",
+						isInSection ? "pl-10" : "pl-5",
 						onClick && "cursor-pointer",
 					)}
 				>
@@ -260,6 +260,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									{creationStatusText}
 								</span>
 							) : (
+								isActive &&
 								diffStats &&
 								(diffStats.additions > 0 || diffStats.deletions > 0) && (
 									<DashboardSidebarWorkspaceDiffStats

@@ -3,23 +3,22 @@ title: "Performance: lighter memory and smoother under heavy load"
 date: 2026-07-19
 ---
 
-We spent the week on performance.
+We spent the week on performance: reducing memory consumption, smoothing out git hitches, and cutting background CPU.
 
-Every number below is a real before/after measurement, not an estimate.
+Every number below is a measured before/after, not an estimate.
 
 **TL;DR**
 
 - **Less memory, fewer crashes.** Sessions with lots of terminals stay responsive and are far less likely to white-screen, even on 8 or 16 GB machines.
-
-  Renderer memory 1,127 → 838 MB (−26%), JS heap 581 → 286 MB (−51%), 4× fewer GPU contexts.
-
+  - Renderer memory 1,127 → 838 MB (−26%)
+  - JS heap 581 → 286 MB (−51%)
+  - 4× fewer GPU contexts
 - **No more hitching from git.** Switching branches or changing lots of files at once no longer stutters the app.
-
-  Worst-case stall on the UI thread 82.3 → 28.0 ms (3× smaller), typical 24.5 → 9.5 ms.
-
+  - Worst-case stall on the UI thread 82.3 → 28.0 ms (3× smaller)
+  - Typical stall 24.5 → 9.5 ms
 - **Quieter in the background.** Port detection uses far less CPU, so quieter fans and better battery, even with many terminals open.
-
-  Background scans 15 → 1 per cycle (15× fewer), idle terminals scan every 30s instead of every 2.5s (12× less).
+  - Background scans 15 → 1 per cycle (15× fewer)
+  - Idle terminals scan every 30s instead of every 2.5s (12× less)
 
 ## Lower Memory When You Keep Many Terminals Open <PRBadge url="https://github.com/superset-sh/superset/pull/5751" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5754" />
 
@@ -37,7 +36,7 @@ The test: 16 background terminals, each filled with about 5,000 lines.
 
 You set the limit in **Settings → Terminal → Background terminal memory** (default 12).
 
-Active terminals are never touched. Neither are running TUIs like vim or a coding agent. Hidden in-app browser tabs get the same treatment.
+Active terminals are never touched, and neither are running TUIs like vim or a coding agent. Hidden in-app browser tabs are offloaded the same way, and rebuilt when you switch back.
 
 ## Smoother While Git Churns in Big Repos <PRBadge url="https://github.com/superset-sh/superset/pull/5750" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5746" />
 
@@ -72,3 +71,7 @@ The test: the real scanner with 15 terminals registered, counting every `ps` spa
 ![Idle terminals scan every 30 seconds instead of every 2.5 seconds, 12 times less often](/changelog/2026-07-19-port-idle-cadence-ab.png)
 
 Idle terminals also slow down, from a scan every 2.5 seconds to every 30. They speed back up the moment they print output. So a machine full of quiet terminals nearly stops scanning.
+
+## More to come
+
+This is just the start. We want Superset to be the one workspace you need to build software, and being fast is a big part of that. We'll keep pushing on performance every release.

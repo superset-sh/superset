@@ -20,7 +20,14 @@ export function DefaultHeaderContent({
 }: DefaultHeaderContentProps) {
 	return (
 		<div className="flex h-full w-full min-w-0 items-center gap-2 px-3">
-			<div className="flex min-w-0 flex-1 items-center gap-2">
+			{/* font-semibold on the wrapper so custom titleContent inherits the
+			    active bolding too, not just the default title span. */}
+			<div
+				className={cn(
+					"flex min-w-0 flex-1 items-center gap-2",
+					isActive && "font-semibold",
+				)}
+			>
 				{titleContent ?? (
 					<>
 						{icon && <span className="shrink-0">{icon}</span>}
