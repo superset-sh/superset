@@ -1,6 +1,5 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
-import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
@@ -39,6 +38,10 @@ import {
 	type GeneratedWorkspaceNames,
 	generateWorkspaceNamesFromPrompt,
 } from "../workspace-creation/utils/ai-workspace-names";
+import {
+	resolveAutoBranchName,
+	resolveAutoTitle,
+} from "../workspace-creation/utils/auto-name-fallback";
 import { resolveProjectBranchPrefix } from "../workspace-creation/utils/branch-prefix";
 import type { ExecGh } from "../workspace-creation/utils/exec-gh";
 import { listBranchNames } from "../workspace-creation/utils/list-branch-names";
@@ -805,7 +808,7 @@ export const workspacesRouter = router({
 					// plan.branch may carry an existing branch's canonical casing.
 					resolvedBranch = plan.branch;
 					autoNameFellBack = wantAi && aiNames === null;
-					aiTitle = aiNames?.title ?? null;
+					aiTitle = resolveAutoTitle(aiNames?.title ?? null, composerPrompt);
 					// Namespace newly-created branches under the configured
 					// prefix. A typed branch that resolves to an existing ref is
 					// checked out as-is and never re-prefixed.
@@ -836,14 +839,20 @@ export const workspacesRouter = router({
 						listBranchNames(ctx, localProject.repoPath),
 					]);
 					autoNameFellBack = wantAi && aiNames === null;
-					aiTitle = aiNames?.title ?? null;
+					aiTitle = resolveAutoTitle(aiNames?.title ?? null, composerPrompt);
 					const prefix = await resolveProjectBranchPrefix({
 						ctx,
 						project: localProject,
 						git,
 						existingBranches: existing,
 					});
-					const candidate = aiNames?.branchName || generateFriendlyBranchName();
+					// AI name wins; when it's unavailable, derive a slug from the
+					// user's prompt before resorting to a random friendly name so
+					// prompt-driven creates keep meaningful branches (#5825).
+					const candidate = resolveAutoBranchName(
+						aiNames?.branchName ?? null,
+						composerPrompt,
+					);
 					const prefixed = prefix ? `${prefix}/${candidate}` : candidate;
 					resolvedBranch = deduplicateBranchName(prefixed, existing);
 					plan = {
