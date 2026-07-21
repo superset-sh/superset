@@ -16,6 +16,7 @@
 	"dependencies": {
 		"@clack/prompts": "0.10.1",
 		"@superset/cli-framework": "workspace:*",
+		"@superset/client-state": "workspace:*",
 		"@superset/host-service": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",

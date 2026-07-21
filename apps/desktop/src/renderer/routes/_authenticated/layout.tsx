@@ -39,7 +39,7 @@ import { AgentHooks } from "./components/AgentHooks";
 import { DockBadgeController } from "./components/DockBadgeController";
 import { FileMenuListener } from "./components/FileMenuListener";
 import { GlobalBrowserLifecycle } from "./components/GlobalBrowserLifecycle";
-import { SidebarCommandController } from "./components/SidebarCommandController";
+import { SidebarStateController } from "./components/SidebarStateController";
 import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
 import { createPierreWorker } from "./lib/pierreWorker";
@@ -273,7 +273,10 @@ function AuthenticatedLayout() {
 				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
 					<HostWorkspacesProvider>
-						<SidebarCommandController />
+						<SidebarStateController
+							organizationId={activeOrganizationId}
+							userId={session?.user?.id ?? "mock-user-id"}
+						/>
 						<DeletingWorkspacesProvider>
 							<WorkerPoolContextProvider
 								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}

@@ -2,8 +2,10 @@ import { CLIError } from "@superset/cli-framework";
 import type {
 	SidebarCommand,
 	SidebarStateSnapshot,
-} from "@superset/host-service/events";
+} from "@superset/client-state";
+import { executeSidebarCommand as executeClientSidebarCommand } from "@superset/client-state/store";
 import type { CliContext } from "../../lib/command";
+import { SUPERSET_HOME_DIR } from "../../lib/config";
 import { resolveHostTarget } from "../../lib/host-target";
 
 export interface LocalProject {
@@ -17,7 +19,7 @@ export interface LocalWorkspace {
 	name: string;
 }
 
-export function getLocalSidebarClient(ctx: CliContext) {
+export function getLocalResourceClient(ctx: CliContext) {
 	const organizationId = ctx.config.organizationId;
 	if (!organizationId) {
 		throw new CLIError("No active organization", "Run: superset auth login");
@@ -33,7 +35,18 @@ export async function executeSidebarCommand(
 	ctx: CliContext,
 	command: SidebarCommand,
 ): Promise<SidebarStateSnapshot> {
-	return getLocalSidebarClient(ctx).sidebar.execute.mutate(command);
+	const organizationId = ctx.config.organizationId;
+	if (!organizationId) {
+		throw new CLIError("No active organization", "Run: superset auth login");
+	}
+	const user = await ctx.api.user.me.query();
+	const scope = { organizationId, userId: user.id };
+	const result = await executeClientSidebarCommand(
+		SUPERSET_HOME_DIR,
+		scope,
+		command,
+	);
+	return result.document.state;
 }
 
 function resolveByIdOrName<T extends { id: string; name: string }>(

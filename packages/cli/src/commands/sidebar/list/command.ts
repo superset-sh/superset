@@ -1,6 +1,6 @@
 import { table } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { executeSidebarCommand, getLocalSidebarClient } from "../shared";
+import { executeSidebarCommand, getLocalResourceClient } from "../shared";
 
 interface SidebarListRow {
 	project: string;
@@ -37,7 +37,7 @@ export default command({
 			[24, 24, 10, 42, 36],
 		),
 	run: async ({ ctx }) => {
-		const client = getLocalSidebarClient(ctx);
+		const client = getLocalResourceClient(ctx);
 		const [state, projects, workspaces] = await Promise.all([
 			executeSidebarCommand(ctx, { action: "list" }),
 			client.project.list.query(),

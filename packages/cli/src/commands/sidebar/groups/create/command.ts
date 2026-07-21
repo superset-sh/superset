@@ -3,7 +3,7 @@ import { positional, string } from "@superset/cli-framework";
 import { command } from "../../../../lib/command";
 import {
 	executeSidebarCommand,
-	getLocalSidebarClient,
+	getLocalResourceClient,
 	resolveProject,
 } from "../../shared";
 
@@ -14,7 +14,7 @@ export default command({
 		project: string().required().desc("Project name or ID"),
 	},
 	run: async ({ ctx, args, options }) => {
-		const projects = await getLocalSidebarClient(ctx).project.list.query();
+		const projects = await getLocalResourceClient(ctx).project.list.query();
 		const project = resolveProject(projects, options.project);
 		const groupId = randomUUID();
 		const state = await executeSidebarCommand(ctx, {

@@ -122,8 +122,8 @@ server lifecycle is handled by top-level `start`, `status`, and `stop`.
 
 ### Sidebar state
 
-`sidebar` controls user-created groups in the currently running desktop app on
-this machine. Project, workspace, and group arguments accept an exact name or a
+`sidebar` controls user-created groups in the current client profile on this
+machine. Project, workspace, and group arguments accept an exact name or a
 stable ID; ambiguous names fail and print the matching IDs.
 
 ```bash
@@ -137,10 +137,12 @@ superset sidebar move "cli-workspace" --ungrouped
 superset sidebar groups delete "Ready to merge"
 ```
 
-Sidebar state is renderer-owned and local to the desktop installation. Commands
-target the local host only, wait for a renderer acknowledgement, and fail if the
-desktop app is closed. Deleting a group never deletes its workspaces; it moves
-them back to the project's ungrouped area.
+Sidebar state is client-owned and stored atomically under `SUPERSET_HOME_DIR`,
+scoped by organization and user. Commands work while the desktop renderer is
+closed; project and workspace name resolution still requires the local host
+service. Resource hosts never own or share this preference state. Deleting a
+group never deletes its workspaces; it moves them back to the project's
+ungrouped area.
 
 ## Global Options
 
@@ -173,6 +175,7 @@ CLI runtime state is under `SUPERSET_HOME_DIR`, defaulting to
 | Path | Purpose |
 | --- | --- |
 | `~/.superset/config.json` | OAuth token, expiry, and active organization ID. |
+| `~/.superset/client-state/<organizationId>/<userId>/sidebar.json` | Device-local sidebar layout shared by the CLI and desktop renderer. |
 | `~/.superset/host/<organizationId>/manifest.json` | Host service PID, endpoint, auth token, and organization ID. |
 | `~/.superset/host/<organizationId>/host.db` | Host service SQLite database. |
 

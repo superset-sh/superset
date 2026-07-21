@@ -17,7 +17,6 @@ import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
 import { settingsRouter } from "./settings";
-import { sidebarRouter } from "./sidebar";
 import { terminalRouter } from "./terminal";
 import { terminalAgentsRouter } from "./terminal-agents";
 import { workspaceRouter } from "./workspace";
@@ -44,7 +43,6 @@ export const appRouter = router({
 	project: projectRouter,
 	ports: portsRouter,
 	settings: settingsRouter,
-	sidebar: sidebarRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,
 	workspace: workspaceRouter,

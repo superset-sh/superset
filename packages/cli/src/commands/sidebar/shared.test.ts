@@ -14,6 +14,7 @@ describe("sidebar CLI name resolution", () => {
 
 	it("scopes group names to the workspace project", () => {
 		const state = {
+			projects: [],
 			groups: [
 				{
 					id: "group-1",

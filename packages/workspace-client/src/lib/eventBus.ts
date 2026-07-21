@@ -2,8 +2,6 @@ import type {
 	AgentLifecycleEventType,
 	ClientMessage,
 	ServerMessage,
-	SidebarCommand,
-	SidebarCommandResultPayload,
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
@@ -18,8 +16,7 @@ type EventType =
 	| "terminal:lifecycle"
 	| "port:changed"
 	| "workspace:changed"
-	| "project:changed"
-	| "sidebar:command";
+	| "project:changed";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -90,11 +87,6 @@ export interface ProjectChangedPayload {
 	occurredAt: number;
 }
 
-export interface SidebarCommandPayload {
-	targetMachineId: string;
-	command: SidebarCommand;
-}
-
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -109,9 +101,7 @@ type EventListener<T extends EventType> = T extends "fs:events"
 						? (workspaceId: string, payload: WorkspaceChangedPayload) => void
 						: T extends "project:changed"
 							? (projectId: string, payload: ProjectChangedPayload) => void
-							: T extends "sidebar:command"
-								? (commandId: string, payload: SidebarCommandPayload) => void
-								: never;
+							: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -159,7 +149,8 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 	for (const entry of state.listeners) {
 		if (entry.type !== message.type) continue;
 
-		// Scope id for per-entity filtering ("*" subscribers get all).
+		// Scope id for per-entity filtering: workspaceId for workspace-scoped
+		// events, projectId for project:changed ("*" subscribers get all).
 		const workspaceId =
 			message.type === "fs:events" ||
 			message.type === "git:changed" ||
@@ -170,9 +161,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				? message.workspaceId
 				: message.type === "project:changed"
 					? message.projectId
-					: message.type === "sidebar:command"
-						? message.commandId
-						: null;
+					: null;
 
 		if (
 			workspaceId &&
@@ -232,11 +221,6 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				eventType: message.eventType,
 				project: message.project,
 				occurredAt: message.occurredAt,
-			});
-		} else if (message.type === "sidebar:command") {
-			(entry.callback as EventListener<"sidebar:command">)(message.commandId, {
-				targetMachineId: message.targetMachineId,
-				command: message.command,
 			});
 		}
 	}
@@ -306,7 +290,6 @@ export interface EventBusHandle {
 	): () => void;
 	watchFs(workspaceId: string): void;
 	unwatchFs(workspaceId: string): void;
-	sendSidebarResult(result: SidebarCommandResultPayload): void;
 	retain(): () => void;
 }
 
@@ -355,10 +338,6 @@ export function getEventBus(
 			} else {
 				state.fsWatchedWorkspaces.set(workspaceId, count - 1);
 			}
-		},
-
-		sendSidebarResult(result: SidebarCommandResultPayload): void {
-			sendCommand(state, { type: "sidebar:result", ...result });
 		},
 
 		/**

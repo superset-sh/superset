@@ -1,4 +1,3 @@
-import type { SidebarStateSnapshot } from "@superset/host-service/events";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import {
 	getNextTabOrder,
@@ -152,12 +151,10 @@ export function createSidebarGroup(
 	collections: SidebarGroupCollections,
 	input: { groupId: string; projectId: string; name: string },
 ): string {
+	const name = input.name.trim();
 	const existing = collections.v2SidebarSections.get(input.groupId);
 	if (existing) {
-		if (
-			existing.projectId === input.projectId &&
-			existing.name === input.name
-		) {
+		if (existing.projectId === input.projectId && existing.name === name) {
 			return existing.sectionId;
 		}
 		throw new Error(`Group already exists: ${input.groupId}`);
@@ -171,7 +168,7 @@ export function createSidebarGroup(
 	collections.v2SidebarSections.insert({
 		sectionId: input.groupId,
 		projectId: input.projectId,
-		name: input.name.trim(),
+		name,
 		createdAt: new Date(),
 		tabOrder: getNextTabOrder(
 			getProjectTopLevelItems(collections, input.projectId),
@@ -287,41 +284,4 @@ export function deleteSidebarGroup(
 	);
 	writeProjectTopLevelOrder(collections, group.projectId, topLevelItems);
 	collections.v2SidebarSections.delete(groupId);
-}
-
-export function getSidebarStateSnapshot(
-	collections: SidebarGroupCollections,
-): SidebarStateSnapshot {
-	return {
-		groups: Array.from(collections.v2SidebarSections.state.values())
-			.map((group) => ({
-				id: group.sectionId,
-				projectId: group.projectId,
-				name: group.name,
-				tabOrder: group.tabOrder,
-				isCollapsed: group.isCollapsed,
-				color: group.color,
-			}))
-			.sort(
-				(left, right) =>
-					left.projectId.localeCompare(right.projectId) ||
-					left.tabOrder - right.tabOrder ||
-					left.id.localeCompare(right.id),
-			),
-		workspaces: Array.from(collections.v2WorkspaceLocalState.state.values())
-			.filter(isSidebarWorkspaceVisible)
-			.map((workspace) => ({
-				id: workspace.workspaceId,
-				projectId: workspace.sidebarState.projectId,
-				groupId: workspace.sidebarState.sectionId,
-				tabOrder: workspace.sidebarState.tabOrder,
-			}))
-			.sort(
-				(left, right) =>
-					left.projectId.localeCompare(right.projectId) ||
-					(left.groupId ?? "").localeCompare(right.groupId ?? "") ||
-					left.tabOrder - right.tabOrder ||
-					left.id.localeCompare(right.id),
-			),
-	};
 }

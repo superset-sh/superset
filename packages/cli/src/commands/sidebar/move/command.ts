@@ -2,7 +2,7 @@ import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import {
 	executeSidebarCommand,
-	getLocalSidebarClient,
+	getLocalResourceClient,
 	resolveGroup,
 	resolveWorkspace,
 } from "../shared";
@@ -15,13 +15,13 @@ export default command({
 		ungrouped: boolean().desc("Move to the project's ungrouped area"),
 	},
 	run: async ({ ctx, args, options }) => {
-		if ((options.group !== undefined) === options.ungrouped) {
+		if ((options.group !== undefined) === Boolean(options.ungrouped)) {
 			throw new CLIError(
 				"Choose exactly one destination",
 				"Pass --group <name-or-id> or --ungrouped",
 			);
 		}
-		const client = getLocalSidebarClient(ctx);
+		const client = getLocalResourceClient(ctx);
 		const [before, workspaces] = await Promise.all([
 			executeSidebarCommand(ctx, { action: "list" }),
 			client.workspace.list.query(),
@@ -33,6 +33,7 @@ export default command({
 		const state = await executeSidebarCommand(ctx, {
 			action: "move-workspace",
 			workspaceId: workspace.id,
+			projectId: workspace.projectId,
 			groupId: group?.id ?? null,
 		});
 		return {

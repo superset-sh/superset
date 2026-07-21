@@ -144,18 +144,24 @@ evidence.
 
 ```bash
 group_name="group-$case_id"
-bun run --cwd packages/cli dev -- sidebar groups create "$group_name" \
+SUPERSET_HOME_DIR="$dev_home" "$dev_home/bin/superset" sidebar groups create "$group_name" \
   --project "$project_id" > "$evidence_dir/group-create.txt"
-bun run --cwd packages/cli dev -- sidebar move "$workspace_id" \
+SUPERSET_HOME_DIR="$dev_home" "$dev_home/bin/superset" sidebar move "$workspace_id" \
   --group "$group_name" > "$evidence_dir/group-move.txt"
-bun run --cwd packages/cli dev -- --json sidebar list \
+SUPERSET_HOME_DIR="$dev_home" "$dev_home/bin/superset" --json sidebar list \
   > "$evidence_dir/sidebar-list.json"
 ```
 
 Capture the expanded group containing the workspace, then run `sidebar groups
 collapse`, capture the visibly collapsed group, and run `sidebar groups expand`
 before rename/delete cleanup. Save each CLI result separately. A CLI exit code
-of zero is valid only after the renderer has acknowledged the mutation.
+of zero proves that the client-owned state was written atomically; the CDP
+screenshot separately proves that Electron observed and rendered that state.
+
+Also validate the headless boundary: close Electron without stopping the local
+host service, create and rename a uniquely named group with the same bundled
+CLI, restart Electron, and capture the restored group. The state file must be
+under `client-state/<organizationId>/<userId>/sidebar.json`, never `host.db`.
 
 Clean up only the fixture created by this run:
 

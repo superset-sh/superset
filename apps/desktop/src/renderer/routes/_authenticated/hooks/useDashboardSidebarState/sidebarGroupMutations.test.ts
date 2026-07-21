@@ -1,9 +1,9 @@
 import { describe, expect, it } from "bun:test";
+import { getSidebarStateSnapshot } from "renderer/routes/_authenticated/components/SidebarStateController/applySidebarStateSnapshot";
 import {
 	createSidebarGroup,
 	deleteSidebarGroup,
 	ensureSidebarWorkspaceRecord,
-	getSidebarStateSnapshot,
 	moveSidebarWorkspaceToGroup,
 	renameSidebarGroup,
 	setSidebarGroupCollapsed,
@@ -217,6 +217,7 @@ describe("sidebar group mutations", () => {
 		).toThrow("same project");
 		expect(getSidebarStateSnapshot(asMutationCollections(collections))).toEqual(
 			{
+				projects: [],
 				groups: [
 					{
 						id: "group-1",
@@ -233,6 +234,7 @@ describe("sidebar group mutations", () => {
 						projectId: "project-2",
 						groupId: null,
 						tabOrder: 1,
+						isHidden: false,
 					},
 				],
 			},

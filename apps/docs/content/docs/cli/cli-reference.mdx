@@ -499,9 +499,10 @@ superset hosts list
 ### sidebar
 
 Organize user-created workspace groups in the desktop sidebar on this machine.
-The desktop app must be open: every mutation waits for the renderer to apply it
-and acknowledge the resulting state. Exact project, workspace, and group names
-can be used in place of IDs; ambiguous names fail with the matching IDs.
+State is stored for the current user and organization on this device, so the
+desktop app may be closed. Exact project, workspace, and group names can be used
+in place of IDs; ambiguous names fail with the matching IDs. Name resolution
+still requires the local host service (`superset start --daemon`).
 
 <Command name="superset sidebar list">
 List groups, their expanded or collapsed state, and workspace placement.
@@ -537,9 +538,9 @@ superset sidebar groups delete "Ready to merge"
 ```
 
 Deleting a group is non-destructive: its workspaces remain in the sidebar's
-ungrouped project area. Sidebar state belongs to the local desktop app, so these
-commands do not accept remote host flags and do not run while the renderer is
-closed.
+ungrouped project area. Sidebar layout belongs to the local client profile, not
+to any resource host, so these commands do not accept remote host flags. The
+desktop renderer observes the same state when it is open or starts later.
 
 ---
 

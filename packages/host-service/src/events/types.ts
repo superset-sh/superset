@@ -106,51 +106,6 @@ export interface ProjectChangedMessage {
 	occurredAt: number;
 }
 
-export type SidebarCommand =
-	| { action: "list" }
-	| {
-			action: "create-group";
-			groupId: string;
-			projectId: string;
-			name: string;
-	  }
-	| { action: "rename-group"; groupId: string; name: string }
-	| { action: "delete-group"; groupId: string }
-	| {
-			action: "move-workspace";
-			workspaceId: string;
-			groupId: string | null;
-	  }
-	| { action: "set-group-collapsed"; groupId: string; collapsed: boolean };
-
-export interface SidebarGroupSnapshot {
-	id: string;
-	projectId: string;
-	name: string;
-	tabOrder: number;
-	isCollapsed: boolean;
-	color: string | null;
-}
-
-export interface SidebarWorkspaceSnapshot {
-	id: string;
-	projectId: string;
-	groupId: string | null;
-	tabOrder: number;
-}
-
-export interface SidebarStateSnapshot {
-	groups: SidebarGroupSnapshot[];
-	workspaces: SidebarWorkspaceSnapshot[];
-}
-
-export interface SidebarCommandMessage {
-	type: "sidebar:command";
-	commandId: string;
-	targetMachineId: string;
-	command: SidebarCommand;
-}
-
 export interface EventBusErrorMessage {
 	type: "error";
 	message: string;
@@ -164,7 +119,6 @@ export type ServerMessage =
 	| PortChangedMessage
 	| WorkspaceChangedMessage
 	| ProjectChangedMessage
-	| SidebarCommandMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────
@@ -179,23 +133,4 @@ export interface FsUnwatchCommand {
 	workspaceId: string;
 }
 
-export type SidebarCommandResultPayload =
-	| {
-			commandId: string;
-			ok: true;
-			state: SidebarStateSnapshot;
-	  }
-	| {
-			commandId: string;
-			ok: false;
-			error: string;
-	  };
-
-export type SidebarCommandResult = SidebarCommandResultPayload & {
-	type: "sidebar:result";
-};
-
-export type ClientMessage =
-	| FsWatchCommand
-	| FsUnwatchCommand
-	| SidebarCommandResult;
+export type ClientMessage = FsWatchCommand | FsUnwatchCommand;

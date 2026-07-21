@@ -18,9 +18,9 @@
 
 ## Desktop app changes
 
-- [x] **Sidebar sections** — v2 groups are renderer-owned local collections;
-  the CLI uses a synchronous host event-bus command/ack bridge and the same
-  mutation layer as the desktop UI
+- [x] **Sidebar sections** — v2 groups use a device-local, organization/user-
+  scoped client state store shared by CLI and Electron main; resource hosts do
+  not own client layout preferences
 - [ ] **Websocket command routing** — CLI spec says device commands route via API → websocket → host service. Is this path built? Or does it still go through `agentCommands` + Electric SQL polling?
 
 ## CLI package
