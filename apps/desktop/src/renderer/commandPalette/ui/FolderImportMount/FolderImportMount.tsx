@@ -23,7 +23,9 @@ export function FolderImportMount() {
 	});
 	const folderImportRef = useRef(folderImport);
 	folderImportRef.current = folderImport;
-	const lastTickRef = useRef(0);
+	// Seed with the mount-time tick so a remount doesn't replay an import
+	// triggered earlier in the session.
+	const lastTickRef = useRef(tick);
 
 	useEffect(() => {
 		if (tick === lastTickRef.current) return;

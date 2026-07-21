@@ -43,12 +43,12 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 					<LuMegaphone className="h-4 w-4" />
 					Submit a prompt
 				</DropdownMenuItem>
-				<DropdownMenuItem onClick={() => openExternal(COMPANY.DOCS_URL)}>
+				<DropdownMenuItem onSelect={() => openExternal(COMPANY.DOCS_URL)}>
 					<HiOutlineBookOpen className="h-4 w-4" />
 					Documentation
 				</DropdownMenuItem>
 				<DropdownMenuItem
-					onClick={() => navigate({ to: "/settings/keyboard" })}
+					onSelect={() => navigate({ to: "/settings/keyboard" })}
 				>
 					<LuKeyboard className="h-4 w-4" />
 					Keyboard Shortcuts
@@ -57,7 +57,7 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 					)}
 				</DropdownMenuItem>
 				<DropdownMenuItem
-					onClick={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
+					onSelect={() => openExternal(COMPANY.REPORT_ISSUE_URL)}
 				>
 					<IoBugOutline className="h-4 w-4" />
 					Report Issue
@@ -68,18 +68,20 @@ export function HelpSubMenu({ onSubmitPrompt }: HelpSubMenuProps) {
 						Contact Us
 					</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent sideOffset={8} className="w-56">
-						<DropdownMenuItem onClick={() => openExternal(COMPANY.GITHUB_URL)}>
+						<DropdownMenuItem onSelect={() => openExternal(COMPANY.GITHUB_URL)}>
 							<FaGithub className="h-4 w-4" />
 							GitHub
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => openExternal(COMPANY.DISCORD_URL)}>
+						<DropdownMenuItem
+							onSelect={() => openExternal(COMPANY.DISCORD_URL)}
+						>
 							<FaDiscord className="h-4 w-4" />
 							Discord
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => openExternal(COMPANY.X_URL)}>
+						<DropdownMenuItem onSelect={() => openExternal(COMPANY.X_URL)}>
 							<FaXTwitter className="h-4 w-4" />X
 						</DropdownMenuItem>
-						<DropdownMenuItem onClick={() => openExternal(COMPANY.MAIL_TO)}>
+						<DropdownMenuItem onSelect={() => openExternal(COMPANY.MAIL_TO)}>
 							<HiOutlineEnvelope className="h-4 w-4" />
 							Email Support
 						</DropdownMenuItem>
