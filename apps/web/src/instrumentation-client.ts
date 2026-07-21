@@ -13,15 +13,11 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	capture_exceptions: true,
 	debug: false,
 	cross_subdomain_cookie: true,
-	// Anonymous visitors must be full persons — the identified_only default
-	// breaks person-level funnels over anonymous traffic.
 	person_profiles: "always",
 	persistence: "cookie",
 	persistence_name: POSTHOG_COOKIE_NAME,
 });
 
-// Register synchronously — inside `loaded` these super-properties race the
-// first captured events and land missing.
 posthog.register({
 	app_name: "web",
 	domain: window.location.hostname,

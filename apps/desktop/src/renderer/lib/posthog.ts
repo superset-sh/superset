@@ -18,15 +18,11 @@ export function initPostHog() {
 		capture_pageview: false,
 		capture_pageleave: false,
 		capture_exceptions: true,
-		// Anonymous visitors must be full persons — identified_only makes
-		// pre-sign-in abandonment structurally invisible to person-level funnels.
 		person_profiles: "always",
 		persistence: "localStorage",
 		debug: false,
 	});
 
-	// Register synchronously (bundled SDK, init is sync) — inside `loaded` these
-	// super-properties race identify()/first pageviews and land missing.
 	posthogFull.register({
 		app_name: "desktop",
 		// Event-level version (person-profile desktop_version reflects the
