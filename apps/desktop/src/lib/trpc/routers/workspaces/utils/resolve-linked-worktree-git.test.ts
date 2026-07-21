@@ -87,6 +87,14 @@ describe("resolveLinkedWorktreeGit", () => {
 		expect(await resolveLinkedWorktreeGit(detached)).toBeNull();
 	});
 
+	test("returns null for an unborn HEAD (initialized, no commits)", async () => {
+		const fresh = join(TEST_DIR, "fresh-repo");
+		mkdirSync(fresh, { recursive: true });
+		execSync("git init", { cwd: fresh, stdio: "ignore" });
+
+		expect(await resolveLinkedWorktreeGit(fresh)).toBeNull();
+	});
+
 	test("returns null for a bare repo", async () => {
 		const bare = join(TEST_DIR, "bare.git");
 		execSync(`git init --bare "${bare}"`, { stdio: "ignore" });

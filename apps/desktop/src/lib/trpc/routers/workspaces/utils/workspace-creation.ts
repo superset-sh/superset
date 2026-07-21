@@ -610,121 +610,129 @@ export async function openLinkedWorktree(
 
 	const defaultBranch = await getDefaultBranch(mainRepoPath);
 
-	// Upsert the project WITHOUT activateProject: a new project stays hidden
-	// (tabOrder = NULL); an already-loaded project keeps its current tabOrder.
-	let project = localDb
-		.select()
-		.from(projects)
-		.where(eq(projects.mainRepoPath, mainRepoPath))
-		.get();
-
-	if (project) {
-		localDb
-			.update(projects)
-			.set({ lastOpenedAt: Date.now(), defaultBranch })
-			.where(eq(projects.id, project.id))
-			.run();
-	} else {
-		project = localDb
-			.insert(projects)
-			.values({
-				mainRepoPath,
-				name: basename(mainRepoPath),
-				color: getDefaultProjectColor(),
-				defaultBranch,
-				// tabOrder intentionally omitted => NULL => hidden from sidebar.
-			})
-			.returning()
-			.get();
-	}
-
-	// Case A: the target IS the project's main checkout — use a branch workspace.
-	if (toplevel === mainRepoPath) {
-		const existingBranch = getBranchWorkspace(project.id);
-		if (existingBranch) {
-			return { workspaceId: existingBranch.id, projectId: project.id };
-		}
-		const branchWorkspace = localDb
-			.insert(workspaces)
-			.values({
-				projectId: project.id,
-				type: "branch",
-				branch,
-				name: "default",
-				tabOrder: 0,
-			})
-			.onConflictDoNothing()
-			.returning()
-			.get();
-		const workspaceId =
-			branchWorkspace?.id ??
-			// onConflictDoNothing hit the unique (projectId WHERE type='branch') index.
-			getBranchWorkspace(project.id)?.id;
-		if (!workspaceId) {
-			// Unreachable in practice unless a branch workspace is mid-soft-delete:
-			// the partial unique index ignores deletingAt, so the insert conflicts
-			// while getBranchWorkspace (which filters it out) finds nothing. Same
-			// pre-existing edge as projects.ts ensureMainWorkspace.
-			throw new Error(
-				"Failed to create branch workspace for linked main checkout",
-			);
-		}
-		return { workspaceId, projectId: project.id };
-	}
-
-	// Case B: the target is a git worktree of the project.
-	const existingWorktree = localDb
-		.select()
-		.from(worktrees)
-		.where(
-			and(eq(worktrees.projectId, project.id), eq(worktrees.path, toplevel)),
-		)
-		.get();
-
-	if (existingWorktree) {
-		const existingWorkspace = localDb
+	// Wrap every write in a single synchronous transaction so a failure partway
+	// through (e.g. the workspace insert throwing) can't leave an orphaned
+	// project or worktree row behind. better-sqlite3 is synchronous and
+	// single-writer, so this block also runs atomically relative to any other
+	// openLinkedWorktree call — there are no await points between the reads and
+	// writes for a second call to interleave into.
+	return localDb.transaction(() => {
+		// Upsert the project WITHOUT activateProject: a new project stays hidden
+		// (tabOrder = NULL); an already-loaded project keeps its current tabOrder.
+		let project = localDb
 			.select()
-			.from(workspaces)
+			.from(projects)
+			.where(eq(projects.mainRepoPath, mainRepoPath))
+			.get();
+
+		if (project) {
+			localDb
+				.update(projects)
+				.set({ lastOpenedAt: Date.now(), defaultBranch })
+				.where(eq(projects.id, project.id))
+				.run();
+		} else {
+			project = localDb
+				.insert(projects)
+				.values({
+					mainRepoPath,
+					name: basename(mainRepoPath),
+					color: getDefaultProjectColor(),
+					defaultBranch,
+					// tabOrder intentionally omitted => NULL => hidden from sidebar.
+				})
+				.returning()
+				.get();
+		}
+
+		// Case A: the target IS the project's main checkout — use a branch workspace.
+		if (toplevel === mainRepoPath) {
+			const existingBranch = getBranchWorkspace(project.id);
+			if (existingBranch) {
+				return { workspaceId: existingBranch.id, projectId: project.id };
+			}
+			const branchWorkspace = localDb
+				.insert(workspaces)
+				.values({
+					projectId: project.id,
+					type: "branch",
+					branch,
+					name: "default",
+					tabOrder: 0,
+				})
+				.onConflictDoNothing()
+				.returning()
+				.get();
+			const workspaceId =
+				branchWorkspace?.id ??
+				// onConflictDoNothing hit the unique (projectId WHERE type='branch') index.
+				getBranchWorkspace(project.id)?.id;
+			if (!workspaceId) {
+				// Unreachable in practice unless a branch workspace is mid-soft-delete:
+				// the partial unique index ignores deletingAt, so the insert conflicts
+				// while getBranchWorkspace (which filters it out) finds nothing. Same
+				// pre-existing edge as projects.ts ensureMainWorkspace.
+				throw new Error(
+					"Failed to create branch workspace for linked main checkout",
+				);
+			}
+			return { workspaceId, projectId: project.id };
+		}
+
+		// Case B: the target is a git worktree of the project.
+		const existingWorktree = localDb
+			.select()
+			.from(worktrees)
 			.where(
-				and(
-					eq(workspaces.worktreeId, existingWorktree.id),
-					isNull(workspaces.deletingAt),
-				),
+				and(eq(worktrees.projectId, project.id), eq(worktrees.path, toplevel)),
 			)
 			.get();
-		if (existingWorkspace) {
-			return { workspaceId: existingWorkspace.id, projectId: project.id };
+
+		if (existingWorktree) {
+			const existingWorkspace = localDb
+				.select()
+				.from(workspaces)
+				.where(
+					and(
+						eq(workspaces.worktreeId, existingWorktree.id),
+						isNull(workspaces.deletingAt),
+					),
+				)
+				.get();
+			if (existingWorkspace) {
+				return { workspaceId: existingWorkspace.id, projectId: project.id };
+			}
 		}
-	}
 
-	const worktreeRow =
-		existingWorktree ??
-		localDb
-			.insert(worktrees)
-			.values({
-				projectId: project.id,
-				path: toplevel,
-				branch,
-				baseBranch: defaultBranch,
-				createdAt: getWorktreeCreatedAt(toplevel),
-				gitStatus: {
+		const worktreeRow =
+			existingWorktree ??
+			localDb
+				.insert(worktrees)
+				.values({
+					projectId: project.id,
+					path: toplevel,
 					branch,
-					needsRebase: false,
-					ahead: 0,
-					behind: 0,
-					lastRefreshed: Date.now(),
-				},
-				createdBySuperset: false,
-			})
-			.returning()
-			.get();
+					baseBranch: defaultBranch,
+					createdAt: getWorktreeCreatedAt(toplevel),
+					gitStatus: {
+						branch,
+						needsRebase: false,
+						ahead: 0,
+						behind: 0,
+						lastRefreshed: Date.now(),
+					},
+					createdBySuperset: false,
+				})
+				.returning()
+				.get();
 
-	const workspace = createWorkspaceFromWorktree({
-		projectId: project.id,
-		worktreeId: worktreeRow.id,
-		branch,
-		name: branch,
+		const workspace = createWorkspaceFromWorktree({
+			projectId: project.id,
+			worktreeId: worktreeRow.id,
+			branch,
+			name: branch,
+		});
+
+		return { workspaceId: workspace.id, projectId: project.id };
 	});
-
-	return { workspaceId: workspace.id, projectId: project.id };
 }
