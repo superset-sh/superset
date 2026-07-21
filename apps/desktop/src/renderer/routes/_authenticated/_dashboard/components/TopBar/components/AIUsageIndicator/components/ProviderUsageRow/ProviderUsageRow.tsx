@@ -27,8 +27,12 @@ export function ProviderUsageRow({ provider }: ProviderUsageRowProps) {
 							? "bg-emerald-500"
 							: "bg-muted-foreground/40",
 					)}
+					aria-hidden="true"
 					title={provider.status === "ok" ? "Connected" : "Not connected"}
 				/>
+				<span className="sr-only">
+					{provider.status === "ok" ? "Connected" : "Not connected"}
+				</span>
 			</div>
 
 			{provider.status === "ok" ? (

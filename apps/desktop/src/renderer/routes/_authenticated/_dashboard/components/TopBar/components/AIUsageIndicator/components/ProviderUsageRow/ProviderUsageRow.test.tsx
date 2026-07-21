@@ -32,6 +32,8 @@ describe("ProviderUsageRow", () => {
 		expect(markup).toContain('role="progressbar"');
 		expect(markup).toContain('aria-valuenow="48"');
 		expect(markup).toContain("Resets");
+		expect(markup).toContain("Connected");
+		expect(markup).toContain("sr-only");
 	});
 
 	test("renders a selectable sign-in message without fabricated limits", () => {

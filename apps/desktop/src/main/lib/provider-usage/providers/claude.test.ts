@@ -75,6 +75,7 @@ describe("collectClaudeUsage", () => {
 			readCredentials: async () => ({
 				accessToken: "claude-secret-token",
 				accountLabel: "Max",
+				expiresAt: null,
 			}),
 			fetchUsage: async (url, init) => {
 				requestUrl = url;
@@ -116,6 +117,7 @@ describe("collectClaudeUsage", () => {
 			readCredentials: async () => ({
 				accessToken: "secret",
 				accountLabel: null,
+				expiresAt: null,
 			}),
 			fetchUsage: async () => new Response(null, { status: 429 }),
 		});
@@ -134,38 +136,88 @@ describe("createClaudeCredentialReader", () => {
 		let fileReads = 0;
 		const readCredentials = createClaudeCredentialReader({
 			platform: "darwin",
+			now: () => 1_000,
 			readKeychain: async () => {
 				keychainReads += 1;
-				return { accessToken: "keychain-token", accountLabel: "Max" };
+				return {
+					accessToken: "keychain-token",
+					accountLabel: "Max",
+					expiresAt: 2_000,
+				};
 			},
-			readFile: async () => {
+			readSupersetCredentials: async () => {
 				fileReads += 1;
-				return { accessToken: "file-token", accountLabel: "Pro" };
+				return {
+					apiKey: "managed-token",
+					kind: "oauth",
+					source: "auth-storage",
+					expiresAt: 2_000,
+				};
 			},
 		});
 
 		expect(await readCredentials()).toEqual({
 			accessToken: "keychain-token",
 			accountLabel: "Max",
+			expiresAt: 2_000,
 		});
 		expect(await readCredentials()).toEqual({
 			accessToken: "keychain-token",
 			accountLabel: "Max",
+			expiresAt: 2_000,
 		});
 		expect(keychainReads).toBe(2);
 		expect(fileReads).toBe(0);
 	});
 
-	test("uses the credential file when Keychain has no Claude login", async () => {
+	test("uses Superset's managed credential resolver when Keychain has no login", async () => {
 		const readCredentials = createClaudeCredentialReader({
 			platform: "darwin",
+			now: () => 1_000,
 			readKeychain: async () => null,
-			readFile: async () => ({
-				accessToken: "file-token",
-				accountLabel: "Pro",
+			readSupersetCredentials: async () => ({
+				apiKey: "managed-token",
+				kind: "oauth",
+				source: "auth-storage",
+				expiresAt: 2_000,
 			}),
 		});
 
-		expect((await readCredentials())?.accessToken).toBe("file-token");
+		expect((await readCredentials())?.accessToken).toBe("managed-token");
+	});
+
+	test("never returns an expired OAuth token", async () => {
+		const readCredentials = createClaudeCredentialReader({
+			platform: "darwin",
+			now: () => 2_000,
+			readKeychain: async () => ({
+				accessToken: "expired-keychain-token",
+				accountLabel: "Max",
+				expiresAt: 1_000,
+			}),
+			readSupersetCredentials: async () => ({
+				apiKey: "expired-managed-token",
+				kind: "oauth",
+				source: "auth-storage",
+				expiresAt: 1_500,
+			}),
+		});
+
+		expect(await readCredentials()).toBeNull();
+	});
+
+	test("does not use API keys with the OAuth-only usage endpoint", async () => {
+		const readCredentials = createClaudeCredentialReader({
+			platform: "linux",
+			now: () => 1_000,
+			readKeychain: async () => null,
+			readSupersetCredentials: async () => ({
+				apiKey: "anthropic-api-key",
+				kind: "apiKey",
+				source: "config",
+			}),
+		});
+
+		expect(await readCredentials()).toBeNull();
 	});
 });

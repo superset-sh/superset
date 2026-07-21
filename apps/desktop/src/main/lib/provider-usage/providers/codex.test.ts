@@ -2,124 +2,115 @@ import { describe, expect, test } from "bun:test";
 import { collectCodexUsage, parseCodexUsageResponse } from "./codex";
 
 describe("parseCodexUsageResponse", () => {
-	test("maps primary and secondary Codex windows", () => {
+	test("maps the official app-server rate-limit response", () => {
 		expect(
 			parseCodexUsageResponse({
-				rate_limit: {
-					primary_window: {
-						used_percent: 28,
-						limit_window_seconds: 18_000,
-						reset_at: 1_774_119_600,
+				rateLimits: {
+					planType: "pro",
+					primary: {
+						usedPercent: 28,
+						windowDurationMins: 300,
+						resetsAt: 1_774_119_600,
 					},
-					secondary_window: {
-						used_percent: 55,
-						limit_window_seconds: 604_800,
-						reset_at: 1_774_407_720,
+					secondary: {
+						usedPercent: 55,
+						windowDurationMins: 10_080,
+						resetsAt: 1_774_407_720,
 					},
 				},
 			}),
-		).toEqual([
-			{
-				id: "primary",
-				label: "5 hour",
-				usedPercent: 28,
-				remainingPercent: 72,
-				resetAt: 1_774_119_600_000,
-				windowSeconds: 18_000,
-			},
-			{
-				id: "secondary",
-				label: "Weekly",
-				usedPercent: 55,
-				remainingPercent: 45,
-				resetAt: 1_774_407_720_000,
-				windowSeconds: 604_800,
-			},
-		]);
+		).toEqual({
+			accountLabel: "PRO",
+			windows: [
+				{
+					id: "primary",
+					label: "5 hour",
+					usedPercent: 28,
+					remainingPercent: 72,
+					resetAt: 1_774_119_600_000,
+					windowSeconds: 18_000,
+				},
+				{
+					id: "secondary",
+					label: "Weekly",
+					usedPercent: 55,
+					remainingPercent: 45,
+					resetAt: 1_774_407_720_000,
+					windowSeconds: 604_800,
+				},
+			],
+		});
 	});
 
-	test("returns only valid windows and clamps percentages", () => {
+	test("prefers the named Codex bucket and clamps percentages", () => {
 		expect(
 			parseCodexUsageResponse({
-				rate_limit: {
-					primary_window: {
-						used_percent: 125,
-						limit_window_seconds: 3_600,
+				rateLimits: { primary: { usedPercent: 10 } },
+				rateLimitsByLimitId: {
+					codex: {
+						primary: {
+							usedPercent: 125,
+							windowDurationMins: 60,
+						},
+						secondary: { usedPercent: "unknown" },
 					},
-					secondary_window: { used_percent: "unknown" },
 				},
 			}),
-		).toEqual([
-			{
-				id: "primary",
-				label: "1 hour",
-				usedPercent: 100,
-				remainingPercent: 0,
-				resetAt: null,
-				windowSeconds: 3_600,
-			},
-		]);
-		expect(parseCodexUsageResponse({})).toEqual([]);
+		).toEqual({
+			accountLabel: null,
+			windows: [
+				{
+					id: "primary",
+					label: "1 hour",
+					usedPercent: 100,
+					remainingPercent: 0,
+					resetAt: null,
+					windowSeconds: 3_600,
+				},
+			],
+		});
+		expect(parseCodexUsageResponse({})).toEqual({
+			accountLabel: null,
+			windows: [],
+		});
 	});
 });
 
 describe("collectCodexUsage", () => {
-	test("calls only the ChatGPT quota endpoint and never returns credentials", async () => {
-		let requestUrl = "";
-		let requestInit: RequestInit | undefined;
+	test("uses only the local Codex app-server result", async () => {
+		let readCount = 0;
 		const result = await collectCodexUsage({
-			readCredentials: async () => ({
-				accessToken: "codex-secret-token",
-				accountId: "account-123",
-			}),
-			fetchUsage: async (url, init) => {
-				requestUrl = url;
-				requestInit = init;
-				return new Response(
-					JSON.stringify({
-						email: "coder@example.com",
-						rate_limit: {
-							primary_window: { used_percent: 20 },
+			readRateLimits: async () => {
+				readCount += 1;
+				return {
+					status: "ok",
+					value: {
+						rateLimits: {
+							planType: "pro",
+							primary: { usedPercent: 20 },
 						},
-					}),
-					{ status: 200 },
-				);
+					},
+				};
 			},
 		});
 
-		expect(requestUrl).toBe("https://chatgpt.com/backend-api/wham/usage");
-		expect(requestInit?.method).toBe("GET");
-		expect(requestInit?.redirect).toBe("error");
-		const headers = new Headers(requestInit?.headers);
-		expect(headers.get("authorization")).toBe("Bearer codex-secret-token");
-		expect(headers.get("chatgpt-account-id")).toBe("account-123");
+		expect(readCount).toBe(1);
 		expect(result.status).toBe("ok");
-		expect(result.accountLabel).toBe("coder@example.com");
-		expect(JSON.stringify(result)).not.toContain("codex-secret-token");
+		expect(result.accountLabel).toBe("PRO");
+		expect(JSON.stringify(result)).not.toContain("accessToken");
 	});
 
-	test("does not make a request when Codex is not configured", async () => {
-		let requestCount = 0;
+	test("reports Codex as not configured when the executable is absent", async () => {
 		const result = await collectCodexUsage({
-			readCredentials: async () => null,
-			fetchUsage: async () => {
-				requestCount += 1;
-				return new Response();
-			},
+			readRateLimits: async () => ({ status: "not-configured" }),
 		});
 
-		expect(requestCount).toBe(0);
 		expect(result.status).toBe("not-configured");
 	});
 
-	test("turns malformed responses into a safe unavailable state", async () => {
+	test("turns app-server failures into a safe unavailable state", async () => {
 		const result = await collectCodexUsage({
-			readCredentials: async () => ({
-				accessToken: "secret",
-				accountId: null,
-			}),
-			fetchUsage: async () =>
-				new Response(JSON.stringify({ rate_limit: null }), { status: 200 }),
+			readRateLimits: async () => ({ status: "unavailable" }),
 		});
 
 		expect(result).toMatchObject({

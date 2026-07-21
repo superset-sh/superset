@@ -1,8 +1,9 @@
 import { execFile } from "node:child_process";
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import { promisify } from "node:util";
+import {
+	getCredentialsFromAnySource,
+	type ClaudeCredentials as SupersetClaudeCredentials,
+} from "@superset/chat/server/desktop";
 import type {
 	ProviderUsage,
 	UsageWindow,
@@ -24,6 +25,7 @@ const credentialsSchema = z.object({
 		.object({
 			accessToken: z.string().min(1),
 			subscriptionType: z.string().nullish(),
+			expiresAt: z.number().finite().nullish(),
 		})
 		.nullish(),
 });
@@ -31,12 +33,14 @@ const credentialsSchema = z.object({
 export interface ClaudeCredentials {
 	accessToken: string;
 	accountLabel: string | null;
+	expiresAt: number | null;
 }
 
 interface ClaudeCredentialSources {
 	platform: NodeJS.Platform;
+	now: () => number;
 	readKeychain: () => Promise<ClaudeCredentials | null>;
-	readFile: () => Promise<ClaudeCredentials | null>;
+	readSupersetCredentials: () => Promise<SupersetClaudeCredentials | null>;
 }
 
 interface ClaudeUsageDependencies {
@@ -95,19 +99,8 @@ function parseCredentials(value: unknown): ClaudeCredentials | null {
 		accountLabel: oauth.subscriptionType
 			? oauth.subscriptionType.toUpperCase()
 			: null,
+		expiresAt: oauth.expiresAt ?? null,
 	};
-}
-
-async function readCredentialFile(): Promise<ClaudeCredentials | null> {
-	try {
-		const raw = await fs.readFile(
-			path.join(os.homedir(), ".claude", ".credentials.json"),
-			"utf8",
-		);
-		return parseCredentials(JSON.parse(raw));
-	} catch {
-		return null;
-	}
 }
 
 async function readKeychainCredentials(): Promise<ClaudeCredentials | null> {
@@ -128,17 +121,40 @@ export function createClaudeCredentialReader(
 	sources: ClaudeCredentialSources,
 ): () => Promise<ClaudeCredentials | null> {
 	return async () => {
-		if (sources.platform !== "darwin") return sources.readFile();
-		return (
-			(await sources.readKeychain().catch(() => null)) ?? sources.readFile()
-		);
+		const keychainCredential =
+			sources.platform === "darwin"
+				? await sources.readKeychain().catch(() => null)
+				: null;
+		if (
+			keychainCredential &&
+			(keychainCredential.expiresAt === null ||
+				keychainCredential.expiresAt > sources.now())
+		) {
+			return keychainCredential;
+		}
+
+		const resolved = await sources.readSupersetCredentials().catch(() => null);
+		if (
+			!resolved ||
+			resolved.kind !== "oauth" ||
+			(typeof resolved.expiresAt === "number" &&
+				resolved.expiresAt <= sources.now())
+		) {
+			return null;
+		}
+		return {
+			accessToken: resolved.apiKey,
+			accountLabel: null,
+			expiresAt: resolved.expiresAt ?? null,
+		};
 	};
 }
 
 const readClaudeCredentials = createClaudeCredentialReader({
 	platform: process.platform,
+	now: Date.now,
 	readKeychain: readKeychainCredentials,
-	readFile: readCredentialFile,
+	readSupersetCredentials: getCredentialsFromAnySource,
 });
 
 const defaultDependencies: ClaudeUsageDependencies = {

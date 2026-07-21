@@ -1,55 +1,50 @@
-import fs from "node:fs/promises";
-import os from "node:os";
-import path from "node:path";
 import type {
 	ProviderUsage,
 	UsageWindow,
 } from "lib/trpc/routers/provider-usage.schema";
 import { z } from "zod";
-
-const CODEX_USAGE_URL = "https://chatgpt.com/backend-api/wham/usage";
+import {
+	type CodexRateLimitsReadResult,
+	readCodexRateLimits,
+} from "./codex-app-server";
 
 const rateLimitWindowSchema = z
 	.object({
-		used_percent: z.number().finite(),
-		limit_window_seconds: z.number().int().positive().nullish(),
-		reset_at: z.number().finite().positive().nullish(),
+		usedPercent: z.number().finite(),
+		windowDurationMins: z.number().int().positive().nullish(),
+		resetsAt: z.number().finite().positive().nullish(),
 	})
 	.nullish();
 
-const credentialsSchema = z.object({
-	tokens: z
-		.object({
-			access_token: z.string().min(1),
-			account_id: z.string().nullish(),
-		})
-		.nullish(),
+const rateLimitSnapshotSchema = z.object({
+	primary: z.unknown().optional(),
+	secondary: z.unknown().optional(),
+	planType: z.string().nullish(),
 });
 
-const accountSchema = z.object({
-	email: z.string().nullish(),
-	plan_type: z.string().nullish(),
+const rateLimitsResponseSchema = z.object({
+	rateLimits: rateLimitSnapshotSchema,
+	rateLimitsByLimitId: z.record(z.string(), rateLimitSnapshotSchema).nullish(),
 });
 
-interface CodexCredentials {
-	accessToken: string;
-	accountId: string | null;
+interface ParsedCodexUsage {
+	accountLabel: string | null;
+	windows: UsageWindow[];
 }
 
 interface CodexUsageDependencies {
-	readCredentials: () => Promise<CodexCredentials | null>;
-	fetchUsage: (url: string, init: RequestInit) => Promise<Response>;
+	readRateLimits: () => Promise<CodexRateLimitsReadResult>;
 }
 
 function clampPercent(value: number): number {
 	return Math.min(100, Math.max(0, value));
 }
 
-function formatWindowLabel(seconds: number | null | undefined): string {
-	if (!seconds) return "Usage";
-	if (seconds >= 7 * 24 * 60 * 60) return "Weekly";
-	if (seconds >= 60 * 60) return `${Math.round(seconds / 3_600)} hour`;
-	return `${Math.round(seconds / 60)} min`;
+function formatWindowLabel(minutes: number | null | undefined): string {
+	if (!minutes) return "Usage";
+	if (minutes >= 7 * 24 * 60) return "Weekly";
+	if (minutes >= 60) return `${Math.round(minutes / 60)} hour`;
+	return `${Math.round(minutes)} min`;
 }
 
 function mapWindow(
@@ -59,60 +54,42 @@ function mapWindow(
 	const parsed = rateLimitWindowSchema.safeParse(value);
 	if (!parsed.success || !parsed.data) return null;
 	const bucket = parsed.data;
-	const usedPercent = clampPercent(bucket.used_percent);
+	const usedPercent = clampPercent(bucket.usedPercent);
 	return {
 		id,
-		label: formatWindowLabel(bucket.limit_window_seconds),
+		label: formatWindowLabel(bucket.windowDurationMins),
 		usedPercent,
 		remainingPercent: 100 - usedPercent,
-		resetAt: bucket.reset_at ? bucket.reset_at * 1_000 : null,
-		windowSeconds: bucket.limit_window_seconds ?? null,
+		resetAt: bucket.resetsAt ? bucket.resetsAt * 1_000 : null,
+		windowSeconds: bucket.windowDurationMins
+			? bucket.windowDurationMins * 60
+			: null,
 	};
 }
 
-export function parseCodexUsageResponse(value: unknown): UsageWindow[] {
-	if (!value || typeof value !== "object") return [];
-	const rateLimit = (value as { rate_limit?: unknown }).rate_limit;
-	if (!rateLimit || typeof rateLimit !== "object") return [];
-	const windows = rateLimit as Record<string, unknown>;
-	return [
-		mapWindow("primary", windows.primary_window),
-		mapWindow("secondary", windows.secondary_window),
-	].filter((window): window is UsageWindow => window !== null);
-}
-
-function parseCredentials(value: unknown): CodexCredentials | null {
-	const parsed = credentialsSchema.safeParse(value);
-	const tokens = parsed.success ? parsed.data.tokens : null;
-	if (!tokens) return null;
+export function parseCodexUsageResponse(value: unknown): ParsedCodexUsage {
+	const parsed = rateLimitsResponseSchema.safeParse(value);
+	if (!parsed.success) return { accountLabel: null, windows: [] };
+	const snapshot =
+		parsed.data.rateLimitsByLimitId?.codex ?? parsed.data.rateLimits;
 	return {
-		accessToken: tokens.access_token,
-		accountId: tokens.account_id ?? null,
+		accountLabel: snapshot.planType?.toUpperCase() ?? null,
+		windows: [
+			mapWindow("primary", snapshot.primary),
+			mapWindow("secondary", snapshot.secondary),
+		].filter((window): window is UsageWindow => window !== null),
 	};
-}
-
-async function readCodexCredentials(): Promise<CodexCredentials | null> {
-	try {
-		const raw = await fs.readFile(
-			path.join(os.homedir(), ".codex", "auth.json"),
-			"utf8",
-		);
-		return parseCredentials(JSON.parse(raw));
-	} catch {
-		return null;
-	}
 }
 
 const defaultDependencies: CodexUsageDependencies = {
-	readCredentials: readCodexCredentials,
-	fetchUsage: (url, init) => fetch(url, init),
+	readRateLimits: readCodexRateLimits,
 };
 
 export async function collectCodexUsage(
 	dependencies: CodexUsageDependencies = defaultDependencies,
 ): Promise<ProviderUsage> {
-	const credentials = await dependencies.readCredentials();
-	if (!credentials) {
+	const result = await dependencies.readRateLimits();
+	if (result.status === "not-configured") {
 		return {
 			providerId: "codex",
 			providerName: "Codex",
@@ -123,38 +100,18 @@ export async function collectCodexUsage(
 		};
 	}
 
-	try {
-		const headers: Record<string, string> = {
-			Authorization: `Bearer ${credentials.accessToken}`,
-		};
-		if (credentials.accountId) {
-			headers["chatgpt-account-id"] = credentials.accountId;
-		}
-		const response = await dependencies.fetchUsage(CODEX_USAGE_URL, {
-			method: "GET",
-			redirect: "error",
-			headers,
-			signal: AbortSignal.timeout(10_000),
-		});
-		const value: unknown = response.ok
-			? await response.json().catch(() => null)
-			: null;
-		const windows = parseCodexUsageResponse(value);
-		if (response.ok && windows.length > 0) {
-			const account = accountSchema.safeParse(value);
+	if (result.status === "ok") {
+		const parsed = parseCodexUsageResponse(result.value);
+		if (parsed.windows.length > 0) {
 			return {
 				providerId: "codex",
 				providerName: "Codex",
 				status: "ok",
-				accountLabel: account.success
-					? (account.data.email ?? account.data.plan_type ?? null)
-					: null,
-				windows,
+				accountLabel: parsed.accountLabel,
+				windows: parsed.windows,
 				errorMessage: null,
 			};
 		}
-	} catch {
-		// The compact meter reports a safe provider state without leaking details.
 	}
 
 	return {
