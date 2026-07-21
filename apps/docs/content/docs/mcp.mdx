@@ -25,7 +25,7 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 
 ### CLI Options
 
-<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code"]}>
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code", "Grok"]}>
 <Tab value="Claude Code">
 ```bash title="terminal"
 claude mcp add superset --transport http https://api.superset.sh/api/v2/agent/mcp
@@ -94,13 +94,20 @@ https://api.superset.sh/api/v2/agent/mcp
 
 Then enter `/mcp-config login superset` to authorize it.
 </Tab>
+<Tab value="Grok">
+Run `grok`, enter `/mcps`, and add an HTTP server named `superset` with this URL:
+
+```text title="Grok"
+https://api.superset.sh/api/v2/agent/mcp
+```
+</Tab>
 </Tabs>
 
 ### Manual Configuration
 
 Alternatively, you can manually configure the MCP server for each client:
 
-<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code"]}>
+<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code", "Grok"]}>
 <Tab value="Claude Code">
 Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and handles OAuth authentication.
 
@@ -215,6 +222,14 @@ Add to `.kimi-code/mcp.json` in your project root (or `~/.kimi-code/mcp.json` fo
 ```
 
 Then enter `/mcp-config login superset` in Kimi Code to authorize it.
+</Tab>
+<Tab value="Grok">
+Add to your `~/.grok/config.toml`:
+
+```toml title="~/.grok/config.toml"
+[mcp_servers.superset]
+url = "https://api.superset.sh/api/v2/agent/mcp"
+```
 </Tab>
 </Tabs>
 
