@@ -27,7 +27,7 @@ export function initPostHog() {
 		app_name: "desktop",
 		// Event-level version (person-profile desktop_version reflects the
 		// current install, not the build that emitted a given event).
-		app_version: window.App.appVersion,
+		app_version: window.App?.appVersion,
 		platform: window.navigator.platform,
 	});
 
