@@ -103,25 +103,39 @@ export function LocalHostServiceProvider({
 		async (timeoutMs = 20_000): Promise<string | null> => {
 			const orgId = activeOrganizationId;
 			if (!orgId) return null;
+			// Resolve the live host URL if a port is up, else null. Swallows
+			// transient IPC/tRPC fetch failures so a poll error never rejects the
+			// nullable contract callers rely on.
+			const tryGetHostUrl = async (): Promise<string | null> => {
+				try {
+					const connection =
+						await utils.hostServiceCoordinator.getConnection.fetch({
+							organizationId: orgId,
+						});
+					if (connection?.port) {
+						const hostUrl = `http://127.0.0.1:${connection.port}`;
+						if (connection.secret)
+							setHostServiceSecret(hostUrl, connection.secret);
+						return hostUrl;
+					}
+				} catch (error) {
+					console.warn("[host-service] connection poll failed:", error);
+				}
+				return null;
+			};
 			const deadline = Date.now() + timeoutMs;
 			while (Date.now() < deadline) {
-				const connection =
-					await utils.hostServiceCoordinator.getConnection.fetch({
-						organizationId: orgId,
-					});
-				if (connection?.port) {
-					const hostUrl = `http://127.0.0.1:${connection.port}`;
-					if (connection.secret)
-						setHostServiceSecret(hostUrl, connection.secret);
-					return hostUrl;
-				}
+				const hostUrl = await tryGetHostUrl();
+				if (hostUrl) return hostUrl;
 				// Re-attempt the idempotent, local-only start each iteration so a
 				// transient failure (auth token not yet persisted, spawn miss)
 				// self-heals instead of polling a host that never came up.
 				startHostService({ organizationId: orgId });
 				await new Promise((resolve) => setTimeout(resolve, 1_000));
 			}
-			return null;
+			// Final check: the last start may have brought the host up during the
+			// trailing sleep, after the deadline elapsed.
+			return await tryGetHostUrl();
 		},
 		[activeOrganizationId, startHostService, utils],
 	);
