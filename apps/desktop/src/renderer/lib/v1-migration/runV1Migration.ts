@@ -20,6 +20,7 @@ import {
 	findProjectByPath,
 	importV1Project,
 } from "./projects";
+import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import {
 	adoptV1Workspace,
 	planWorkspaceAdoptions,
@@ -39,6 +40,7 @@ export interface V1MigrationSummary {
 	projects: KindSummary;
 	workspaces: KindSummary;
 	presets: KindSummary;
+	settings: KindSummary;
 	/** D4 flip gate: every v1 project and workspace is success/linked in the ledger. */
 	gateComplete: boolean;
 }
@@ -100,10 +102,13 @@ export async function runV1Migration(
 	let projects = emptySummary();
 	let workspaces = emptySummary();
 	let presets = emptySummary();
+	let settings = emptySummary();
 	try {
 		projects = await migrateProjects(deps, ledger, outcomes);
 		await flush();
 		workspaces = await migrateWorkspaces(deps, ledger, outcomes);
+		await flush();
+		settings = await migrateSettings(deps, ledger, outcomes);
 		await flush();
 		presets = await migratePresets(deps, ledger, outcomes);
 	} finally {
@@ -116,7 +121,7 @@ export async function runV1Migration(
 		projects.failed + projects.skipped + projects.deferred === 0 &&
 		workspaces.failed + workspaces.skipped + workspaces.deferred === 0;
 
-	return { projects, workspaces, presets, gateComplete };
+	return { projects, workspaces, presets, settings, gateComplete };
 }
 
 async function migrateProjects(
@@ -327,6 +332,133 @@ async function migrateWorkspaces(
 			pushOutcome(ledger, outcomes, {
 				v1Id: entry.v1WorkspaceId,
 				kind: "workspace",
+				status: "error",
+				reason: errorMessage(err),
+			});
+		}
+	}
+
+	return summary;
+}
+
+/**
+ * Settings that live in a different v2 store: host-wide branch prefix and
+ * per-project worktree-dir / branch-prefix overrides (host.db). Everything
+ * else is shared with v2 via the electron settings row, and the host-wide
+ * worktree dir self-seeds from SUPERSET_LEGACY_WORKTREE_BASE_DIR. Keep-v2
+ * on conflict; never gates the flip.
+ */
+async function migrateSettings(
+	deps: RunV1MigrationDeps,
+	ledger: V1LedgerMap,
+	outcomes: V1LedgerOutcome[],
+): Promise<KindSummary> {
+	const summary = emptySummary();
+
+	// Host-wide branch prefix (ledger id: "branch-prefix").
+	const hostPrefixDone = ledger.get(ledgerKey("settings", "branch-prefix"));
+	if (!hostPrefixDone || !isTerminalStatus(hostPrefixDone.status)) {
+		try {
+			const v1Settings =
+				await electronTrpcClient.migration.readV1Settings.query();
+			const hostPrefix =
+				await deps.hostClient.settings.branchPrefix.get.query();
+			const plan = planHostBranchPrefix(
+				{
+					mode: v1Settings?.branchPrefixMode ?? null,
+					customPrefix: v1Settings?.branchPrefixCustom ?? null,
+				},
+				{ mode: hostPrefix.mode, customPrefix: hostPrefix.customPrefix },
+			);
+			if (plan.action === "set") {
+				await deps.hostClient.settings.branchPrefix.set.mutate({
+					mode: plan.mode,
+					customPrefix: plan.customPrefix,
+				});
+				summary.migrated++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: "branch-prefix",
+					kind: "settings",
+					status: "success",
+				});
+			} else if (plan.action === "keep-v2") {
+				summary.linked++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: "branch-prefix",
+					kind: "settings",
+					status: "linked",
+				});
+			}
+			// "nothing": v1 never configured it — no ledger row, nothing to redo.
+		} catch (err) {
+			summary.failed++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: "branch-prefix",
+				kind: "settings",
+				status: "error",
+				reason: errorMessage(err),
+			});
+		}
+	}
+
+	// Per-project overrides (ledger id: "project-prefs:<v1ProjectId>").
+	const v1Projects = await electronTrpcClient.migration.readV1Projects.query();
+	for (const v1 of v1Projects) {
+		const ledgerId = `project-prefs:${v1.id}`;
+		const done = ledger.get(ledgerKey("settings", ledgerId));
+		if (done && isTerminalStatus(done.status)) continue;
+
+		const mapped = ledger.get(ledgerKey("project", v1.id));
+		const v2ProjectId =
+			mapped && isTerminalStatus(mapped.status) ? mapped.v2Id : null;
+		if (!v2ProjectId) continue; // retried after the project migrates
+
+		try {
+			const v2Project = await deps.hostClient.project.get.query({
+				projectId: v2ProjectId,
+			});
+			if (!v2Project) continue;
+			const plan = planProjectPrefs(
+				{
+					worktreeBaseDir: v1.worktreeBaseDir,
+					branchPrefixMode: v1.branchPrefixMode,
+					branchPrefixCustom: v1.branchPrefixCustom,
+				},
+				{
+					worktreeBaseDir: v2Project.worktreeBaseDir,
+					branchPrefixMode: v2Project.branchPrefixMode ?? null,
+					branchPrefixCustom: v2Project.branchPrefixCustom ?? null,
+				},
+			);
+			if (!plan) continue; // no v1 overrides — nothing to record
+
+			if (plan.setWorktreeBaseDir) {
+				await deps.hostClient.project.setWorktreeBaseDir.mutate({
+					projectId: v2ProjectId,
+					path: plan.setWorktreeBaseDir,
+				});
+			}
+			if (plan.setBranchPrefix) {
+				await deps.hostClient.project.setBranchPrefix.mutate({
+					projectId: v2ProjectId,
+					mode: plan.setBranchPrefix.mode,
+					customPrefix: plan.setBranchPrefix.customPrefix,
+				});
+			}
+			const applied = !!plan.setWorktreeBaseDir || !!plan.setBranchPrefix;
+			if (applied) summary.migrated++;
+			else summary.linked++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: ledgerId,
+				kind: "settings",
+				status: applied ? "success" : "linked",
+				v2Id: v2ProjectId,
+			});
+		} catch (err) {
+			summary.failed++;
+			pushOutcome(ledger, outcomes, {
+				v1Id: ledgerId,
+				kind: "settings",
 				status: "error",
 				reason: errorMessage(err),
 			});

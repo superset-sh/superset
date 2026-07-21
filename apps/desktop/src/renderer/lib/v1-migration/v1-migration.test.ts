@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { resolvePresetImport } from "./presets";
 import { decideProjectImport } from "./projects";
+import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import { planWorkspaceAdoptions } from "./workspaces";
 
 type Candidate = { id: string; source: string };
@@ -148,5 +149,99 @@ describe("resolvePresetImport", () => {
 		const resolved = resolvePresetImport({ name: "claude" }, [], []);
 		expect(resolved.linkedAgentId).toBe("claude");
 		expect(resolved.alreadyImported).toBe(false);
+	});
+});
+
+describe("planHostBranchPrefix", () => {
+	test("copies v1 prefix onto an unconfigured host", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "github", customPrefix: null },
+				{ mode: "none", customPrefix: null },
+			),
+		).toEqual({ action: "set", mode: "github", customPrefix: null });
+	});
+
+	test("custom mode carries its prefix string", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "custom", customPrefix: "kiet/" },
+				{ mode: null, customPrefix: null },
+			),
+		).toEqual({ action: "set", mode: "custom", customPrefix: "kiet/" });
+	});
+
+	test("configured host wins (keep-v2)", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "github", customPrefix: null },
+				{ mode: "author", customPrefix: null },
+			),
+		).toEqual({ action: "keep-v2" });
+	});
+
+	test("unconfigured v1 does nothing", () => {
+		expect(
+			planHostBranchPrefix(
+				{ mode: "none", customPrefix: null },
+				{ mode: "none", customPrefix: null },
+			).action,
+		).toBe("nothing");
+		expect(
+			planHostBranchPrefix(
+				{ mode: null, customPrefix: null },
+				{ mode: "github", customPrefix: null },
+			).action,
+		).toBe("nothing");
+	});
+});
+
+describe("planProjectPrefs", () => {
+	const noPrefs = {
+		worktreeBaseDir: null,
+		branchPrefixMode: null,
+		branchPrefixCustom: null,
+	};
+
+	test("no v1 overrides means nothing to record", () => {
+		expect(planProjectPrefs(noPrefs, noPrefs)).toBeNull();
+	});
+
+	test("applies v1 overrides where v2 is unset", () => {
+		expect(
+			planProjectPrefs(
+				{
+					worktreeBaseDir: "/trees",
+					branchPrefixMode: "custom",
+					branchPrefixCustom: "team/",
+				},
+				noPrefs,
+			),
+		).toEqual({
+			setWorktreeBaseDir: "/trees",
+			setBranchPrefix: { mode: "custom", customPrefix: "team/" },
+			keptV2: false,
+		});
+	});
+
+	test("keeps v2 values that are already configured", () => {
+		expect(
+			planProjectPrefs(
+				{
+					worktreeBaseDir: "/v1-trees",
+					branchPrefixMode: "github",
+					branchPrefixCustom: null,
+				},
+				{
+					worktreeBaseDir: "/v2-trees",
+					branchPrefixMode: null,
+					branchPrefixCustom: null,
+				},
+			),
+		).toEqual({
+			setWorktreeBaseDir: null,
+			setBranchPrefix: { mode: "github", customPrefix: null },
+			keptV2: true,
+		});
 	});
 });

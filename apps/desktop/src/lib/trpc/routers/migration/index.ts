@@ -1,5 +1,6 @@
 import {
 	projects,
+	settings,
 	v1MigrationState,
 	workspaces,
 	worktrees,
@@ -40,6 +41,10 @@ export const createMigrationRouter = () => {
 
 		readV1Worktrees: publicProcedure.query(() => {
 			return localDb.select().from(worktrees).all();
+		}),
+
+		readV1Settings: publicProcedure.query(() => {
+			return localDb.select().from(settings).get() ?? null;
 		}),
 
 		ledgerList: publicProcedure

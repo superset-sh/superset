@@ -31,6 +31,12 @@ export {
 	type V1MigrationSummary,
 } from "./runV1Migration";
 export {
+	type HostBranchPrefixPlan,
+	type ProjectPrefsPlan,
+	planHostBranchPrefix,
+	planProjectPrefs,
+} from "./settings";
+export {
 	type AdoptPlanEntry,
 	adoptV1Workspace,
 	planWorkspaceAdoptions,
