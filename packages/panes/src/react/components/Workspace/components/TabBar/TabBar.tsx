@@ -169,7 +169,7 @@ export function TabBar<TData>({
 		return (
 			<div
 				ref={setRootRef}
-				className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+				className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background"
 			>
 				<div className="flex h-full w-10 shrink-0 items-center justify-center bg-background">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />

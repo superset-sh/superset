@@ -30,11 +30,13 @@ import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
+import { useSidebarWorkspacesCollapseStore } from "renderer/stores/sidebar-workspaces-collapse";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
+import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
@@ -109,6 +111,9 @@ export function DashboardSidebar({
 	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
 	const v2RouteMatch = matchRoute({ to: "/v2-workspace/$workspaceId" });
 	const activeV2WorkspaceId = v2RouteMatch ? v2RouteMatch.workspaceId : null;
+	const workspacesListCollapsed = useSidebarWorkspacesCollapseStore(
+		(s) => s.isCollapsed,
+	);
 
 	const sensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
@@ -184,55 +189,59 @@ export function DashboardSidebar({
 						<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
 							<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
-							<div className="flex-1 overflow-y-auto hide-scrollbar">
-								<DndContext
-									sensors={sensors}
-									collisionDetection={closestCenter}
-									measuring={{
-										droppable: { strategy: MeasuringStrategy.Always },
-									}}
-									onDragStart={({ active }) => {
-										const project = groups.find((p) => p.id === active.id);
-										setActiveProject(project ?? null);
-									}}
-									onDragEnd={handleDragEnd}
-									onDragCancel={() => setActiveProject(null)}
-								>
-									<SortableContext
-										items={projectOrder}
-										strategy={verticalListSortingStrategy}
-									>
-										{orderedGroups.map((project) => (
-											<SortableProjectWrapper
-												key={project.id}
-												project={project}
-												isCollapsed={isCollapsed}
-												isDraggingProject={activeProject != null}
-												workspaceShortcutLabels={workspaceShortcutLabels}
-												onWorkspaceHover={refreshWorkspacePullRequest}
-												onToggleCollapse={toggleProjectCollapsed}
-											/>
-										))}
-									</SortableContext>
+							{!isCollapsed && <DashboardSidebarWorkspacesHeader />}
 
-									{createPortal(
-										<DragOverlay dropAnimation={null}>
-											{activeProject && (
-												<div className="bg-background shadow-lg border-b border-border">
-													<DashboardSidebarProjectSection
-														project={activeProject}
-														isSidebarCollapsed={isCollapsed}
-														isDraggingProject
-														workspaceShortcutLabels={workspaceShortcutLabels}
-														onWorkspaceHover={() => {}}
-														onToggleCollapse={() => {}}
-													/>
-												</div>
-											)}
-										</DragOverlay>,
-										document.body,
-									)}
-								</DndContext>
+							<div className="flex-1 overflow-y-auto hide-scrollbar">
+								{(isCollapsed || !workspacesListCollapsed) && (
+									<DndContext
+										sensors={sensors}
+										collisionDetection={closestCenter}
+										measuring={{
+											droppable: { strategy: MeasuringStrategy.Always },
+										}}
+										onDragStart={({ active }) => {
+											const project = groups.find((p) => p.id === active.id);
+											setActiveProject(project ?? null);
+										}}
+										onDragEnd={handleDragEnd}
+										onDragCancel={() => setActiveProject(null)}
+									>
+										<SortableContext
+											items={projectOrder}
+											strategy={verticalListSortingStrategy}
+										>
+											{orderedGroups.map((project) => (
+												<SortableProjectWrapper
+													key={project.id}
+													project={project}
+													isCollapsed={isCollapsed}
+													isDraggingProject={activeProject != null}
+													workspaceShortcutLabels={workspaceShortcutLabels}
+													onWorkspaceHover={refreshWorkspacePullRequest}
+													onToggleCollapse={toggleProjectCollapsed}
+												/>
+											))}
+										</SortableContext>
+
+										{createPortal(
+											<DragOverlay dropAnimation={null}>
+												{activeProject && (
+													<div className="bg-background shadow-lg border-b border-border">
+														<DashboardSidebarProjectSection
+															project={activeProject}
+															isSidebarCollapsed={isCollapsed}
+															isDraggingProject
+															workspaceShortcutLabels={workspaceShortcutLabels}
+															onWorkspaceHover={() => {}}
+															onToggleCollapse={() => {}}
+														/>
+													</div>
+												)}
+											</DragOverlay>,
+											document.body,
+										)}
+									</DndContext>
+								)}
 							</div>
 							{!isCollapsed && !inlineWorkspacePortsEnabled && (
 								<DashboardSidebarPortsList />

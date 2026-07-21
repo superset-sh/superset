@@ -281,7 +281,7 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div
-			className="flex flex-col gap-1 border-b border-border px-3 pt-2 pb-2"
+			className="flex flex-col gap-1 px-3 pt-2 pb-2"
 			// Pin the top inset so the traffic-light row stays a constant physical
 			// distance from the window top under page zoom (see the row below).
 			style={isMac ? { paddingTop: `${8 / zoomFactor}px` } : undefined}
@@ -312,62 +312,24 @@ export function DashboardSidebarHeader({
 				</ZoomStable>
 			</div>
 
-			<div className="flex items-center gap-1">
-				<button
-					type="button"
-					onClick={() => openModal()}
-					className="group flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+			<button
+				type="button"
+				onClick={() => openModal()}
+				className="group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+			>
+				<LuPlus className="size-4 shrink-0" strokeWidth={STROKE_WIDTH_THICK} />
+				<span className="flex-1 truncate text-left whitespace-nowrap">
+					New Workspace
+				</span>
+				<span
+					className={cn(
+						"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
+						"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+					)}
 				>
-					<LuPlus
-						className="size-4 shrink-0"
-						strokeWidth={STROKE_WIDTH_THICK}
-					/>
-					<span className="flex-1 truncate text-left whitespace-nowrap">
-						New Workspace
-					</span>
-					<span
-						className={cn(
-							"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
-							"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
-						)}
-					>
-						{shortcutText}
-					</span>
-				</button>
-				<DropdownMenu>
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<DropdownMenuTrigger asChild>
-								<button
-									type="button"
-									aria-label="Add repository"
-									className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-								>
-									<LuFolderPlus className="size-4" />
-								</button>
-							</DropdownMenuTrigger>
-						</TooltipTrigger>
-						<TooltipContent side="right">Add repository</TooltipContent>
-					</Tooltip>
-					<DropdownMenuContent
-						align="end"
-						onCloseAutoFocus={(event) => event.preventDefault()}
-					>
-						<DropdownMenuItem onSelect={() => openNewProject()}>
-							<HiMiniPlus className="size-4" />
-							Clone from URL
-						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={handleImportFolder}>
-							<LuFolderInput className="size-4" />
-							Open from folder
-						</DropdownMenuItem>
-						<DropdownMenuItem onSelect={() => openTemplateGallery()}>
-							<LuLayoutTemplate className="size-4" />
-							Start from a template
-						</DropdownMenuItem>
-					</DropdownMenuContent>
-				</DropdownMenu>
-			</div>
+					{shortcutText}
+				</span>
+			</button>
 
 			<button
 				type="button"
