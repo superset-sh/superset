@@ -14,6 +14,7 @@ import {
 import { SettingsRow } from "../../../../components/SettingsRow";
 import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
+import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
@@ -158,6 +159,16 @@ export function V2ProjectSettings({
 					</SettingsRow>
 					<SettingsRow label="Repository" htmlFor="project-repo">
 						<RepositorySection repoUrl={project.repoUrl} />
+					</SettingsRow>
+					<SettingsRow
+						label="Icon"
+						hint="Upload a custom image, or use the linked GitHub owner's avatar."
+					>
+						<IconUploadField
+							projectId={projectId}
+							iconUrl={iconUrl}
+							hasGitHubRepo={Boolean(project.repoOwner)}
+						/>
 					</SettingsRow>
 					{targetHostUrl && hostProject && (
 						<SettingsRow
