@@ -29,6 +29,14 @@ export interface ChatPaneData {
 	} | null;
 }
 
+export interface SubagentPaneData {
+	parentSessionId: string;
+	parentPaneId: string;
+	toolCallId: string;
+	task?: string;
+	agentType?: string;
+}
+
 export interface BrowserPaneData {
 	url: string;
 	pageTitle?: string;
@@ -67,6 +75,7 @@ export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
 	| ChatPaneData
+	| SubagentPaneData
 	| BrowserPaneData
 	| DevtoolsPaneData
 	| DiffPaneData
