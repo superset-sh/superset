@@ -437,18 +437,32 @@ export async function listWorkspaceTerminalSessions(
 	db: HostDb,
 	workspaceId: string,
 ): Promise<TerminalSessionSummary[]> {
-	const known = listTerminalSessions({ workspaceId, includeExited: false });
-
-	let daemonSessionIds: string[];
+	// `getDaemonClient` gates on the daemon bootstrap (waitForDaemonReady +
+	// supervisor.ensure), so a query racing a host-service restart blocks
+	// until the daemon is adopted instead of observing it as unreachable.
+	let daemonAliveIds: string[] | null;
 	try {
 		const daemon = await getDaemonClient();
-		daemonSessionIds = (await daemon.list())
-			.filter((session) => session.alive && !sessions.has(session.id))
+		daemonAliveIds = (await daemon.list())
+			.filter((session) => session.alive)
 			.map((session) => session.id);
-	} catch {
-		// Daemon unreachable — degrade to what this process knows.
-		return known;
+	} catch (error) {
+		// Daemon genuinely down — its PTYs died with it, so the in-memory
+		// view is the whole truth. The dropdowns' polls re-query, so a
+		// transient connection failure self-heals.
+		console.warn(
+			"[terminal] listWorkspaceTerminalSessions: daemon unreachable, serving in-memory view",
+			{ workspaceId, error },
+		);
+		daemonAliveIds = null;
 	}
+
+	// Snapshot memory AFTER the daemon await so a session disposed while the
+	// lookup was in flight can't be returned with stale live state.
+	const known = listTerminalSessions({ workspaceId, includeExited: false });
+	if (daemonAliveIds === null) return known;
+
+	const daemonSessionIds = daemonAliveIds.filter((id) => !sessions.has(id));
 	if (daemonSessionIds.length === 0) return known;
 
 	const rows = db
