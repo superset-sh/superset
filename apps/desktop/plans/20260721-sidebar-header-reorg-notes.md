@@ -25,3 +25,34 @@ Revert guide: each item is independent; revert by undoing the listed file(s).
 - **Project header indented** `pl-3` → `pl-5`. `DashboardSidebarProjectSection/components/DashboardSidebarProjectRow/DashboardSidebarProjectRow.tsx`
 - **Workspace diff stats (+N −N) only render on the active row.** `DashboardSidebarWorkspaceItem/components/DashboardSidebarExpandedWorkspaceRow/DashboardSidebarExpandedWorkspaceRow.tsx`
 - **Workspace-count badges removed** from custom section headers and project rows (`totalWorkspaceCount` prop dropped from ProjectRow; collapsed-rail popover count kept). `DashboardSidebarSection/components/DashboardSidebarSectionHeader/DashboardSidebarSectionHeader.tsx`, `DashboardSidebarProjectRow.tsx`
+
+---
+
+# Session 2 additions (same branch, parallel session)
+
+## Dashboard sidebar
+
+- **User/org dropdown moved header → footer**; footer is now `[user dropdown | UpdatesPill | ⚙ | ?]` → later `?` removed (help lives in the org dropdown). `DashboardSidebarHeader.tsx`, `DashboardSidebar.tsx`
+- **Settings is an icon-only gear** in the footer (was a full-width labeled row); tooltip carries the hotkey. `DashboardSidebar.tsx`
+- **Org dropdown (expanded trigger): chevron removed** (topbar variant keeps it); **Settings item removed** from the menu (was the v1 TODO item); **"Switch organization" got an icon** (`HiOutlineArrowsRightLeft`). `TopBar/components/OrganizationDropdown/OrganizationDropdown.tsx`
+- **`SubmitPromptDialog` moved** to `OrganizationDropdown/components/`; old `DashboardSidebarHelpMenu/` deleted (git-tracked, restorable).
+- **Workspaces tab hidden, not deleted** — `SHOW_WORKSPACES_TAB = false` flag; flip to true to restore. `DashboardSidebarHeader.tsx`
+- **New Search row/icon** opens the command palette; clicking while open closes it (state captured on pointerdown because the palette dismisses on outside pointerdown before click). `DashboardSidebarHeader.tsx`
+- **Looking-glass button deleted** from `NavigationControls.tsx` (`⌘K` hotkey unaffected).
+- **ResourceConsumption moved** from right edge (`ml-auto`) to after back/forward in the top row. `DashboardSidebarHeader.tsx`
+- **Section-header hover drag-grip removed** — chevron stays visible; drag still works via row listeners. `DashboardSidebarSectionHeader.tsx`
+- **Workspaces under a section: indent `pl-7` → `pl-10`.** `DashboardSidebarExpandedWorkspaceRow.tsx`
+
+## Terminal pane / changes panel
+
+- **Pane-title chevron removed** (fetch spinner kept). `v2-workspace/.../TerminalPane/components/TerminalSessionDropdown/TerminalSessionDropdown.tsx`
+- **Divider after rich-input ✎ button removed.** `TerminalPane/components/TerminalPaneHeaderExtras/TerminalPaneHeaderExtras.tsx`
+- **Duplicate refresh spinner removed** (the refresh icon itself spins). `useChangesTab/components/ChangesToolbar/ChangesToolbar.tsx`
+- **Changes header block: `py-1.5` wrapper** around header+toolbar; toolbar `border-b` removed. `useChangesTab/components/ChangesTabContent/ChangesTabContent.tsx`, `ChangesToolbar.tsx`
+
+## Tabs / top bar (shared surfaces)
+
+- **`headerTabStyles.ts` gained `inverted` option** used only by v2 `SidebarHeader.tsx` (`inverted: true`) — v1 RightSidebar styling unchanged; active tab framed by l/r/t borders, transparent sides keep 1px stability.
+- **`packages/panes` TabItem/TabBar**: inverted colors, active-tab l/r/t frame, close-button hover bgs swapped; ALL `border-b` removed (tabbed + empty-state variants) and inactive-tab `border-r` separators removed; `+` button got `ml-1.5`. Affects every `Workspace` consumer.
+- **`TopBar.tsx` `border-b` removed** — NOTE: dashboard-wide; every route loses the line under the top bar, not just the workspace view.
+- **TopBar merged into the pane tab bar** (v2 workspace route, expanded sidebar only): `layout.tsx` skips `<TopBar />` when `onV2WorkspaceRoute && !versionMismatch && sidebarOutsideColumn`; the tab bar is now the Electron drag region (`drag` on the bar root, `no-drag` on tabs track / add button / trailing — `packages/panes` `TabBar.tsx`); `RightSidebarToggle` + non-Mac `WindowControls` moved into the tab-bar trailing slot (`v2-workspace/$workspaceId/page.tsx`). Collapsed/closed sidebar still shows the TopBar (its inset keeps content clear of macOS traffic lights). Workspace title breadcrumb no longer renders on this route.

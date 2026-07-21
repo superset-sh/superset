@@ -6,6 +6,9 @@ import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
+import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
@@ -256,6 +259,10 @@ function V2WorkspaceContent() {
 		void workspaceRun.toggleWorkspaceRun();
 	});
 
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	// Default to Mac while loading so window controls don't flash in.
+	const isMac = platform === undefined || platform === "darwin";
+
 	const workspaceRunButton = (
 		<V2WorkspaceRunButton
 			projectId={workspace.projectId}
@@ -317,6 +324,8 @@ function V2WorkspaceContent() {
 										store={store}
 									/>
 									{workspaceRunButton}
+									<RightSidebarToggle />
+									{!isMac && <WindowControls />}
 								</div>
 							)}
 							renderEmptyState={() => (

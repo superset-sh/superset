@@ -18,6 +18,7 @@ import {
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
@@ -191,7 +192,10 @@ export function DashboardSidebar({
 
 							{!isCollapsed && <DashboardSidebarWorkspacesHeader />}
 
-							<div className="flex-1 overflow-y-auto hide-scrollbar">
+							<OverflowFadeContainer
+								fadeEdges={["top", "bottom"]}
+								className="flex-1 overflow-y-auto hide-scrollbar"
+							>
 								{(isCollapsed || !workspacesListCollapsed) && (
 									<DndContext
 										sensors={sensors}
@@ -242,7 +246,7 @@ export function DashboardSidebar({
 										)}
 									</DndContext>
 								)}
-							</div>
+							</OverflowFadeContainer>
 							{!isCollapsed && !inlineWorkspacePortsEnabled && (
 								<DashboardSidebarPortsList />
 							)}
@@ -255,7 +259,6 @@ export function DashboardSidebar({
 							)}
 							<div
 								className={cn(
-									"border-t border-border",
 									isCollapsed
 										? "flex flex-col items-center gap-1 py-1"
 										: "flex items-center gap-1 p-3",

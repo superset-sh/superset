@@ -295,15 +295,18 @@ export function FilesTab({
 					className="flex-1 min-h-0"
 					style={TREE_STYLE}
 					header={
-						<div className="group flex h-7 items-center justify-end bg-background px-2">
-							<div className="flex items-center gap-0.5">
-								{onSearch && (
-									<FilesTabHeaderButton
-										icon={Search}
-										label="Search"
-										onClick={onSearch}
-									/>
-								)}
+						<div className="group flex h-10 items-center gap-1 bg-background px-2">
+							{onSearch && (
+								<button
+									type="button"
+									onClick={onSearch}
+									className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								>
+									<Search className="size-3.5 shrink-0" />
+									<span className="truncate">Search files</span>
+								</button>
+							)}
+							<div className="ml-auto flex items-center gap-0.5">
 								<FilesTabHeaderButton
 									icon={FilePlus}
 									label="New File"

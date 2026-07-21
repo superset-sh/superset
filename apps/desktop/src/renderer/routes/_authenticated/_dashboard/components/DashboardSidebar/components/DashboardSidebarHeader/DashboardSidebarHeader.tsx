@@ -137,7 +137,7 @@ export function DashboardSidebarHeader({
 
 	if (isCollapsed) {
 		return (
-			<div className="flex flex-col items-center gap-2 border-b border-border py-2">
+			<div className="flex flex-col items-center gap-2 py-2">
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
 						<button
