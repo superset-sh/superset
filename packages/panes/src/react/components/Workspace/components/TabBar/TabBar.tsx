@@ -169,11 +169,13 @@ export function TabBar<TData>({
 		return (
 			<div
 				ref={setRootRef}
-				// `drag`: the bar doubles as the Electron window-drag region (empty
-				// areas only — interactive clusters opt out with `no-drag`).
-				className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-border/30"
+				// No shade or bottom border with zero tabs: the empty bar blends into
+				// the content below. `drag`: the bar doubles as the Electron
+				// window-drag region (empty areas only — interactive clusters opt out
+				// with `no-drag`).
+				className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch"
 			>
-				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center bg-border/30">
+				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 				<div className="flex min-w-0 flex-1 items-stretch" />
