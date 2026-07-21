@@ -4,12 +4,11 @@ import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
-	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	disposeSessionsByWorkspaceId,
 	disposeSessionsByWorktreePath,
-	listTerminalSessions,
+	listWorkspaceTerminalSessions,
 	parseThemeType,
 	sessionHasRunningProcess,
 	writeInputToSession,
@@ -125,11 +124,8 @@ export const terminalRouter = router({
 				workspaceId: z.string(),
 			}),
 		)
-		.query(({ input }) => ({
-			sessions: listTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
-			}),
+		.query(async ({ ctx, input }) => ({
+			sessions: await listWorkspaceTerminalSessions(ctx.db, input.workspaceId),
 		})),
 
 	countBackgroundSessions: protectedProcedure
@@ -139,13 +135,17 @@ export const terminalRouter = router({
 				attachedTerminalIds: z.array(z.string()).default([]),
 			}),
 		)
-		.query(({ input }) => ({
-			count: countTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
-				excludeTerminalIds: input.attachedTerminalIds,
-			}),
-		})),
+		.query(async ({ ctx, input }) => {
+			const sessions = await listWorkspaceTerminalSessions(
+				ctx.db,
+				input.workspaceId,
+			);
+			const attached = new Set(input.attachedTerminalIds);
+			return {
+				count: sessions.filter((session) => !attached.has(session.terminalId))
+					.length,
+			};
+		}),
 
 	hasRunningProcess: protectedProcedure
 		.input(

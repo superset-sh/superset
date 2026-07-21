@@ -1,12 +1,13 @@
 import { env } from "renderer/env.renderer";
 import type { CommandContext, SectionId } from "./types";
 
-const BASE: SectionId[] = ["actions", "navigation"];
+const BASE: SectionId[] = ["actions", "navigation", "add-project"];
 
 export const SECTION_LABELS: Record<SectionId, string> = {
 	workspace: "Workspace actions",
 	actions: "Actions",
 	navigation: "Navigation",
+	"add-project": "Add project",
 	dev: "Dev",
 };
 

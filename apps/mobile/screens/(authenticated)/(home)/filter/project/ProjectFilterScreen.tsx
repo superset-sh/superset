@@ -1,7 +1,7 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
 import { useMemo } from "react";
 import { ScrollView, Text } from "react-native";
+import { useHostProjects } from "@/hooks/useHostProjects";
 import { useHostWorkspaces } from "@/hooks/useHostWorkspaces";
 import { useTheme } from "@/hooks/useTheme";
 import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/stores/workspacesFilterStore";
@@ -14,7 +14,7 @@ import { ProjectAvatar } from "../components/ProjectAvatar";
 export function ProjectFilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
-	const collections = useCollections();
+	const _collections = useCollections();
 	const selectedHost = useSelectedHost();
 	const { workspaces } = useHostWorkspaces(selectedHost);
 	const projectFilter = useWorkspacesFilterStore(
@@ -24,13 +24,11 @@ export function ProjectFilterScreen() {
 		(store) => store.setProjectFilter,
 	);
 
-	const { data: projects } = useLiveQuery(
-		(q) => q.from({ v2Projects: collections.v2Projects }),
-		[collections],
-	);
+	// Projects are fully local — served by the selected host, not Electric.
+	const { projects } = useHostProjects(selectedHost);
 
 	const sortedProjects = useMemo(
-		() => [...(projects ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+		() => [...projects].sort((a, b) => a.name.localeCompare(b.name)),
 		[projects],
 	);
 

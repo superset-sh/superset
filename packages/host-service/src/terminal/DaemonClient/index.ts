@@ -3,6 +3,7 @@ export type {
 	ExitInfo,
 	OpenResult,
 	Signal,
+	SnapshotResult,
 	SubscribeCallbacks,
 } from "./DaemonClient.ts";
 export { DaemonClient } from "./DaemonClient.ts";

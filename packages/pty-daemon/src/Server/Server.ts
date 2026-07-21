@@ -10,6 +10,7 @@ import {
 	handleList,
 	handleOpen,
 	handleResize,
+	handleSnapshot,
 	handleSubscribe,
 	handleUnsubscribe,
 } from "../handlers/index.ts";
@@ -21,6 +22,7 @@ import {
 	type HandoffMessage,
 	type HelloMessage,
 	type ServerMessage,
+	SNAPSHOT_PROTOCOL_VERSION,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "../protocol/index.ts";
 import type { HandoffSnapshot, Session } from "../SessionStore/index.ts";
@@ -125,23 +127,52 @@ export class Server {
 	 * building its spawn args).
 	 */
 	adoptSnapshot(snapshot: HandoffSnapshot): void {
-		for (const s of snapshot.sessions) {
-			const pty = adoptFromFd({
-				fd: s.fdIndex,
-				pid: s.pid,
-				meta: s.meta,
-			});
-			const session = this.store.add(s.id, pty);
-			if (s.buffer.byteLength > 0) {
-				const buf = Buffer.from(
-					s.buffer.buffer,
-					s.buffer.byteOffset,
-					s.buffer.byteLength,
-				);
-				session.buffer = [buf];
-				session.bufferBytes = buf.byteLength;
+		const adopted: Session[] = [];
+		try {
+			for (const s of snapshot.sessions) {
+				const pty = adoptFromFd({
+					fd: s.fdIndex,
+					pid: s.pid,
+					meta: s.meta,
+				});
+				let session: Session | null = null;
+				try {
+					session = this.store.add(s.id, pty);
+					if (s.buffer.byteLength > 0) {
+						const buf = Buffer.from(
+							s.buffer.buffer,
+							s.buffer.byteOffset,
+							s.buffer.byteLength,
+						);
+						session.buffer = [buf];
+						session.bufferBytes = buf.byteLength;
+					}
+					session.bufferTruncated = s.truncated;
+					this.wireSession(session);
+					adopted.push(session);
+				} catch (err) {
+					if (session) this.store.delete(session.id);
+					try {
+						pty.dispose({ keepExitPolling: false });
+					} catch {
+						// Preserve the original adoption error.
+					}
+					throw err;
+				}
 			}
-			this.wireSession(session);
+		} catch (err) {
+			// Adoption failed, so the predecessor retains ownership and keeps
+			// serving. Close only this successor's inherited copies; never signal
+			// the shared shells from a failed/partial handoff.
+			for (const session of adopted) {
+				try {
+					session.pty.dispose({ keepExitPolling: false });
+				} catch {
+					// Best-effort; keep rolling back the remaining sessions.
+				}
+				this.store.delete(session.id);
+			}
+			throw err;
 		}
 	}
 
@@ -311,6 +342,11 @@ export class Server {
 				} catch {
 					// already dead, ignore
 				}
+				try {
+					session.pty.dispose();
+				} catch {
+					// best-effort teardown; continue closing the remaining sessions
+				}
 			}
 		}
 		await new Promise<void>((resolve) => this.server.close(() => resolve()));
@@ -427,6 +463,19 @@ export class Server {
 				conn.send(handleList(ctx));
 				return;
 			}
+			case "snapshot": {
+				if (conn.negotiated < SNAPSHOT_PROTOCOL_VERSION) {
+					conn.send({
+						type: "error",
+						id: msg.id,
+						message: `snapshot requires protocol ${SNAPSHOT_PROTOCOL_VERSION}`,
+						code: "EVERSION",
+					});
+					return;
+				}
+				handleSnapshot(ctx, conn, msg);
+				return;
+			}
 			case "subscribe": {
 				handleSubscribe(ctx, conn, msg);
 				return;
@@ -501,6 +550,15 @@ export class Server {
 			session.exited = true;
 			session.exitCode = info.code;
 			session.exitSignal = info.signal;
+			try {
+				session.pty.dispose();
+			} catch {
+				// Continue state cleanup if fd disposal was already attempted.
+			}
+			// An explicitly closed session id can be recycled before its delayed
+			// process-exit notification arrives. Never let that stale callback
+			// broadcast an exit for or delete the replacement session.
+			if (this.store.get(session.id) !== session) return;
 			const ev: ServerMessage = {
 				type: "exit",
 				id: session.id,

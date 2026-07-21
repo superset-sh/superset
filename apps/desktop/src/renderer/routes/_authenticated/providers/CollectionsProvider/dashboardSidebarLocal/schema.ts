@@ -145,6 +145,17 @@ export const workspaceLocalStateSchema = z.object({
 	workspaceRunTerminals: z
 		.record(z.string(), workspaceRunTerminalStateSchema)
 		.default({}),
+	// v1->v2 migration: terminals to recreate lazily on first workspace open
+	// (D2 in plans/20260716-v1-to-v2-auto-migration.md). Cleared after the
+	// sessions are created; panes come from useAutoAdoptBackgroundSessions.
+	pendingMigratedTerminals: z
+		.array(
+			z.object({
+				terminalId: z.string(),
+				cwd: z.string().nullable().default(null),
+			}),
+		)
+		.default([]),
 });
 
 // Defaults for fields heal can synthesize. Identity fields (workspaceId,
@@ -170,6 +181,10 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 		string,
 		z.infer<typeof workspaceRunTerminalStateSchema>
 	>,
+	pendingMigratedTerminals: [] as Array<{
+		terminalId: string;
+		cwd: string | null;
+	}>,
 };
 
 export const dashboardSidebarSectionSchema = z.object({
@@ -366,6 +381,9 @@ export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 		workspaceRunTerminals:
 			r.workspaceRunTerminals ??
 			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.workspaceRunTerminals,
+		pendingMigratedTerminals:
+			r.pendingMigratedTerminals ??
+			WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS.pendingMigratedTerminals,
 		sidebarState: {
 			...SIDEBAR_STATE_DEFAULTS,
 			...sidebar,

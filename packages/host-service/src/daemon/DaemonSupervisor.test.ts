@@ -20,6 +20,7 @@ import {
 	type ClientMessage,
 	encodeFrame,
 	FrameDecoder,
+	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@superset/pty-daemon/protocol";
 import {
 	DaemonSupervisor,
@@ -77,6 +78,8 @@ interface FakeDaemonOptions {
 	hangUpAfterHello?: boolean;
 	respondWithWrongMessageFirst?: boolean;
 	silent?: boolean;
+	protocol?: number;
+	onHello?: (protocols: number[]) => void;
 }
 
 async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
@@ -96,6 +99,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 			for (const decoded of decoder.drain()) {
 				const msg = decoded.message as ClientMessage;
 				if (msg.type !== "hello") continue;
+				opts.onHello?.(msg.protocols);
 				if (opts.silent) return;
 				if (opts.hangUpAfterHello) {
 					sock.end();
@@ -119,7 +123,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 					sock.write(
 						encodeFrame({
 							type: "hello-ack",
-							protocol: 1,
+							protocol: opts.protocol ?? 1,
 							daemonVersion: opts.respondWithVersion,
 							daemonPid: opts.daemonPid,
 						}),
@@ -145,6 +149,23 @@ describe("probeDaemonVersion", () => {
 		const fake = await startFakeDaemon({ respondWithVersion: "0.1.0" });
 		try {
 			expect(await probeDaemonVersion(fake.socketPath, 1500)).toBe("0.1.0");
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("offers legacy protocol support during version probes", async () => {
+		let offered: number[] | undefined;
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.2.5",
+			protocol: 2,
+			onHello: (protocols) => {
+				offered = protocols;
+			},
+		});
+		try {
+			expect(await probeDaemonVersion(fake.socketPath, 1500)).toBe("0.2.5");
+			expect(offered).toEqual([...SUPPORTED_PROTOCOL_VERSIONS]);
 		} finally {
 			await fake.close();
 		}
@@ -934,7 +955,6 @@ describe("DaemonSupervisor auto-update best effort", () => {
 	test("leaves the predecessor running when the background smooth update returns ok:false", async () => {
 		const instance = staleInstance("0.0.9");
 		seedDaemonInstance(sup, "org-auto-best-effort", instance);
-		mockListSessions(sup, []);
 		const runUpdateMock = mock(async () => ({
 			ok: false as const,
 			reason: "snapshot write failed: ENOSPC",
@@ -972,7 +992,6 @@ describe("DaemonSupervisor auto-update best effort", () => {
 	test("leaves the predecessor running when the background smooth update throws", async () => {
 		const instance = staleInstance("0.0.8");
 		seedDaemonInstance(sup, "org-auto-throw", instance);
-		mockListSessions(sup, []);
 		const runUpdateMock = mock(async () => {
 			throw new Error("transport: ECONNRESET");
 		});
@@ -1008,7 +1027,6 @@ describe("DaemonSupervisor auto-update best effort", () => {
 	test("does not overwrite the current daemon if the failed update changed it", async () => {
 		const instance = staleInstance("0.0.7");
 		seedDaemonInstance(sup, "org-auto-changed", instance);
-		mockListSessions(sup, []);
 		const runUpdateMock = mock(async () => {
 			seedDaemonInstance(sup, "org-auto-changed", {
 				...instance,
@@ -1048,7 +1066,7 @@ describe("DaemonSupervisor auto-update best effort", () => {
 		).toBe(true);
 	});
 
-	test("defers the background update when live sessions are present", async () => {
+	test("attempts the handoff even when live sessions are present", async () => {
 		const instance = staleInstance("0.0.6");
 		seedDaemonInstance(sup, "org-auto-live", instance);
 		mockListSessions(sup, [aliveSession()]);
@@ -1062,14 +1080,12 @@ describe("DaemonSupervisor auto-update best effort", () => {
 		invokeKickoffAutoUpdate(sup, "org-auto-live", instance);
 		await flushAutoUpdate();
 
-		expect(runUpdateMock).not.toHaveBeenCalled();
+		expect(runUpdateMock).toHaveBeenCalledWith("org-auto-live");
 		expect(
 			loggedEvents.some(
 				(e) =>
-					e.event === "pty_daemon_auto_update_deferred" &&
-					e.props.reason === "live_sessions_present" &&
-					e.props.aliveSessionCount === 1 &&
-					e.props.pid === instance.pid,
+					e.event === "pty_daemon_auto_update_ok" &&
+					e.props.successorPid === 7777,
 			),
 		).toBe(true);
 	});
@@ -1077,7 +1093,6 @@ describe("DaemonSupervisor auto-update best effort", () => {
 	test("joins an existing manual update without adding a destructive fallback", async () => {
 		const instance = staleInstance("0.0.6");
 		seedDaemonInstance(sup, "org-auto-coalesced", instance);
-		mockListSessions(sup, []);
 		const deferred = createDeferred<{ ok: false; reason: string }>();
 		const runUpdateMock = mock(() => deferred.promise);
 		const forceRestartMock = mock(async () => ({ success: true as const }));
