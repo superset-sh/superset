@@ -22,7 +22,7 @@ type ChatPendingPlanApproval = UseChatDisplayReturn["pendingPlanApproval"];
 interface AssistantMessageProps {
 	message: ChatMessage;
 	isStreaming: boolean;
-	workspaceId: string;
+	workspaceId?: string;
 	sessionId?: string | null;
 	organizationId?: string | null;
 	workspaceCwd?: string;
@@ -119,6 +119,8 @@ export function AssistantMessage({
 	let didRenderPendingPlanApproval = false;
 	const handleAttachmentClick = useCallback(
 		(url: string, filename?: string) => {
+			// Freeform chats have no workspace to open a file-viewer pane in.
+			if (!workspaceId) return;
 			addFileViewerPane(workspaceId, {
 				filePath: url,
 				isPinned: true,

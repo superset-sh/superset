@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { homedir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
@@ -210,7 +211,8 @@ type ShellReadyState = "pending" | "ready" | "unsupported" | "cancelled";
 
 interface TerminalSession {
 	terminalId: string;
-	workspaceId: string;
+	// null = freeform terminal (no workspace); runs in the host's home dir.
+	workspaceId: string | null;
 	pty: DaemonPty;
 	cols: number;
 	rows: number;
@@ -385,7 +387,7 @@ function pruneAndCountOpenSockets(session: TerminalSession): number {
 
 export interface TerminalSessionSummary {
 	terminalId: string;
-	workspaceId: string;
+	workspaceId: string | null;
 	createdAt: number;
 	exited: boolean;
 	exitCode: number;
@@ -452,14 +454,14 @@ export function writeInputToSession({
 	data,
 }: {
 	terminalId: string;
-	workspaceId: string;
+	workspaceId?: string | null;
 	data: string;
 }): { success: true } | { error: string } {
 	const session = sessions.get(terminalId);
 	if (!session) {
 		return { error: "Terminal session not found" };
 	}
-	if (session.workspaceId !== workspaceId) {
+	if (session.workspaceId !== (workspaceId ?? null)) {
 		return { error: "Terminal session does not belong to this workspace" };
 	}
 	if (session.exited) {
@@ -841,7 +843,7 @@ export async function disposeSessionAndWait(
 		// sessions whose pty already exited: onExit broadcast that one.
 		if (session && !session.exited) {
 			session.eventBus?.broadcastTerminalLifecycle({
-				workspaceId: session.workspaceId,
+				workspaceId: session.workspaceId ?? "",
 				terminalId,
 				eventType: "exit",
 				exitCode: 0,
@@ -934,7 +936,8 @@ export async function disposeSessionsByWorktreePath(
 
 interface CreateTerminalSessionOptions {
 	terminalId: string;
-	workspaceId: string;
+	// Omitted for freeform terminals (no workspace); cwd defaults to home dir.
+	workspaceId?: string;
 	themeType?: "dark" | "light";
 	db: HostDb;
 	eventBus?: EventBus;
@@ -984,7 +987,7 @@ function getTerminalWorkspaceMismatchError({
 }: {
 	terminalId: string;
 	ownerWorkspaceId: string | null | undefined;
-	requestedWorkspaceId: string;
+	requestedWorkspaceId: string | null | undefined;
 }): string | null {
 	if (!ownerWorkspaceId || ownerWorkspaceId === requestedWorkspaceId) {
 		return null;
@@ -1032,29 +1035,35 @@ export async function createTerminalSessionInternal({
 	});
 	if (recordMismatchError) return { error: recordMismatchError };
 
-	const workspace = db.query.workspaces
-		.findFirst({ where: eq(workspaces.id, workspaceId) })
-		.sync();
-
-	if (!workspace) {
-		return { error: "Workspace not found" };
-	}
-	if (!existsSync(workspace.worktreePath)) {
-		return {
-			error: `Workspace worktree no longer exists: ${workspace.worktreePath}`,
-		};
-	}
-
-	// Derive root path from the workspace's project
+	// Freeform terminals (no workspace) run in the host's home dir with no
+	// project root; workspace terminals run in their worktree.
+	let worktreePath = homedir();
 	let rootPath = "";
-	const project = db.query.projects
-		.findFirst({ where: eq(projects.id, workspace.projectId) })
-		.sync();
-	if (project?.repoPath) {
-		rootPath = project.repoPath;
+	if (workspaceId) {
+		const workspace = db.query.workspaces
+			.findFirst({ where: eq(workspaces.id, workspaceId) })
+			.sync();
+
+		if (!workspace) {
+			return { error: "Workspace not found" };
+		}
+		if (!existsSync(workspace.worktreePath)) {
+			return {
+				error: `Workspace worktree no longer exists: ${workspace.worktreePath}`,
+			};
+		}
+		worktreePath = workspace.worktreePath;
+
+		// Derive root path from the workspace's project
+		const project = db.query.projects
+			.findFirst({ where: eq(projects.id, workspace.projectId) })
+			.sync();
+		if (project?.repoPath) {
+			rootPath = project.repoPath;
+		}
 	}
 
-	const cwd = resolveTerminalCwd(cwdOverride, workspace.worktreePath);
+	const cwd = resolveTerminalCwd(cwdOverride, worktreePath);
 	const cols = normalizeTerminalDimension(
 		requestedCols,
 		MIN_TERMINAL_COLS,
@@ -1081,8 +1090,8 @@ export async function createTerminalSessionInternal({
 		themeType,
 		cwd,
 		terminalId,
-		workspaceId,
-		workspacePath: workspace.worktreePath,
+		workspaceId: workspaceId ?? "",
+		workspacePath: worktreePath,
 		rootPath,
 		supersetEnv:
 			process.env.NODE_ENV === "development" ? "development" : "production",
@@ -1154,14 +1163,14 @@ export async function createTerminalSessionInternal({
 	db.insert(terminalSessions)
 		.values({
 			id: terminalId,
-			originWorkspaceId: workspaceId,
+			originWorkspaceId: workspaceId ?? null,
 			status: "active",
 			createdAt,
 		})
 		.onConflictDoUpdate({
 			target: terminalSessions.id,
 			set: {
-				originWorkspaceId: workspaceId,
+				originWorkspaceId: workspaceId ?? null,
 				status: "active",
 				createdAt,
 				endedAt: null,
@@ -1184,7 +1193,7 @@ export async function createTerminalSessionInternal({
 
 	const session: TerminalSession = {
 		terminalId,
-		workspaceId,
+		workspaceId: workspaceId ?? null,
 		pty,
 		cols,
 		rows,
@@ -1217,7 +1226,7 @@ export async function createTerminalSessionInternal({
 		modeTracker: createModeTracker(cols, rows),
 	};
 	sessions.set(terminalId, session);
-	portManager.upsertSession(terminalId, workspaceId, pty.pid);
+	portManager.upsertSession(terminalId, workspaceId ?? "", pty.pid);
 
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
@@ -1287,7 +1296,7 @@ export async function createTerminalSessionInternal({
 				});
 
 				eventBus?.broadcastTerminalLifecycle({
-					workspaceId,
+					workspaceId: workspaceId ?? "",
 					terminalId,
 					eventType: "exit",
 					exitCode: session.exitCode,
@@ -1450,11 +1459,8 @@ export function registerWorkspaceTerminalRoute({
 				if (record.status === "exited") {
 					return { error: `Terminal session "${terminalId}" has exited.` };
 				}
-				if (!record.originWorkspaceId) {
-					return {
-						error: `Terminal session "${terminalId}" is missing a workspace.`,
-					};
-				}
+				// A null originWorkspaceId means a freeform terminal (no workspace),
+				// which is valid — don't reject it.
 				if (requestedWorkspaceId) {
 					const mismatchError = getTerminalWorkspaceMismatchError({
 						terminalId,
@@ -1470,7 +1476,7 @@ export function registerWorkspaceTerminalRoute({
 				// host-service restart, we keep the live shell + ring buffer.
 				const adopted = await adoptTerminalSessionInternal({
 					terminalId,
-					workspaceId: record.originWorkspaceId,
+					workspaceId: record.originWorkspaceId ?? undefined,
 					themeType,
 					db,
 					eventBus,
@@ -1485,7 +1491,7 @@ export function registerWorkspaceTerminalRoute({
 				console.log(`[terminal] respawning lost session ${terminalId}`);
 				return createTerminalSessionInternal({
 					terminalId,
-					workspaceId: record.originWorkspaceId,
+					workspaceId: record.originWorkspaceId ?? undefined,
 					themeType,
 					db,
 					eventBus,

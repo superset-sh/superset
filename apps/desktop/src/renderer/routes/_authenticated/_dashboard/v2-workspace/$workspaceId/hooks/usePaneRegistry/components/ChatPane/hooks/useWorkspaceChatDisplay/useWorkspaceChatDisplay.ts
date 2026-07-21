@@ -6,7 +6,8 @@ import { hasAnsweredQuestionToolCall } from "renderer/components/Chat/ChatInterf
 
 interface UseChatDisplayOptions {
 	sessionId: string | null;
-	workspaceId: string;
+	// Omitted for freeform chats (no workspace); the host runs them in ~.
+	workspaceId?: string;
 	enabled?: boolean;
 	fps?: number;
 }
@@ -132,7 +133,7 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	} as const;
 
 	const snapshotQuery = workspaceTrpc.chat.getSnapshot.useQuery(
-		queryInput as { sessionId: string; workspaceId: string },
+		queryInput as { sessionId: string; workspaceId?: string },
 		queryOptions,
 	);
 

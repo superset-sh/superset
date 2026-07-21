@@ -28,13 +28,15 @@ export interface TerminalLauncher {
 }
 
 export function useV2TerminalLauncher(): TerminalLauncher {
-	const { workspace } = useWorkspace();
+	const { workspace, isFreeform } = useWorkspace();
 	const { trpcClient } = useWorkspaceClient();
 	const activeTheme = useTheme();
 	const themeType = resolveTerminalThemeType({
 		activeThemeType: activeTheme?.type,
 	});
-	const workspaceId = workspace.id;
+	// Freeform sessions have no workspace — omit workspaceId so the host runs
+	// the terminal in the home dir.
+	const workspaceId = isFreeform ? undefined : workspace.id;
 
 	const create = useCallback(
 		async (options?: CreateOptions): Promise<string> => {

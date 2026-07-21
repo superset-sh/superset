@@ -11,7 +11,8 @@ export function ChatPane({
 }: {
 	onSessionIdChange: (sessionId: string | null) => void;
 	sessionId: string | null;
-	workspaceId: string;
+	// Omitted for freeform chats (no workspace).
+	workspaceId?: string;
 	initialLaunchConfig?: ChatLaunchConfig | null;
 	onConsumeLaunchConfig?: () => void;
 }) {

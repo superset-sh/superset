@@ -30,7 +30,7 @@ import type { LinkedIssue } from "./types";
 import { getErrorMessage } from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
-	workspaceId: string;
+	workspaceId?: string;
 	cwd: string;
 	isFocused: boolean;
 	error: unknown;

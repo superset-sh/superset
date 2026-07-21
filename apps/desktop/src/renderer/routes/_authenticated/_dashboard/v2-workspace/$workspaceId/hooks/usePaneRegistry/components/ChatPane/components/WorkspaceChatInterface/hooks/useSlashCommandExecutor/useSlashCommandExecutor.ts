@@ -13,7 +13,7 @@ import { resolveSlashPromptResult } from "./prompt-result";
 
 interface UseSlashCommandExecutorOptions {
 	sessionId: string | null;
-	workspaceId: string;
+	workspaceId?: string;
 	cwd: string;
 	availableModels: ModelOption[];
 	canAbort: boolean;

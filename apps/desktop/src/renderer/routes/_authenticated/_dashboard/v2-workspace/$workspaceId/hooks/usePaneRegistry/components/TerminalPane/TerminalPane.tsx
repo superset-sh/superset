@@ -48,7 +48,8 @@ import { shellEscapePaths } from "./utils";
 
 interface TerminalPaneProps {
 	ctx: RendererContext<PaneViewerData>;
-	workspaceId: string;
+	// Omitted for freeform terminals (no workspace); runs in the host's home dir.
+	workspaceId?: string;
 	onOpenFile: (path: string, openInNewTab?: boolean) => void;
 	onRevealPath: (path: string, options?: { isDirectory?: boolean }) => void;
 }
@@ -67,7 +68,7 @@ export function TerminalPane({
 		onLeave: onLinkLeave,
 	} = useLinkHoverState();
 	const { hint, showHint } = useLinkClickHint();
-	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const openInExternalEditor = useOpenInExternalEditor(workspaceId ?? "");
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
 	const terminalInstanceId = ctx.pane.id;
@@ -91,7 +92,7 @@ export function TerminalPane({
 	});
 	const baseWebsocketUrl = useWorkspaceWsUrl(`/terminal/${terminalId}`);
 	const themedUrl = new URL(baseWebsocketUrl);
-	themedUrl.searchParams.set("workspaceId", workspaceId);
+	themedUrl.searchParams.set("workspaceId", workspaceId ?? "");
 	themedUrl.searchParams.set("themeType", themeType);
 	const websocketUrl = themedUrl.toString();
 	const websocketUrlRef = useRef(websocketUrl);
@@ -243,7 +244,7 @@ export function TerminalPane({
 				stat: async (path) => {
 					try {
 						const result = await statPathRef.current({
-							workspaceId,
+							workspaceId: workspaceId ?? "",
 							path,
 						});
 						if (!result) return null;
@@ -330,7 +331,7 @@ export function TerminalPane({
 	useTerminalInterruptClear({
 		terminalId,
 		terminalInstanceId,
-		workspaceId,
+		workspaceId: workspaceId ?? "",
 		connectionState,
 	});
 

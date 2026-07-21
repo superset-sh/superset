@@ -40,7 +40,7 @@ function toSessionSelectorItem(session: {
 
 async function createSessionRecord(input: {
 	sessionId: string;
-	v2WorkspaceId: string;
+	v2WorkspaceId?: string;
 }): Promise<void> {
 	if (isDesktopChatDevMode()) return;
 	await apiTrpcClient.chat.createSession.mutate({
@@ -56,7 +56,8 @@ export function useWorkspaceChatController({
 }: {
 	sessionId: string | null;
 	onSessionIdChange: (sessionId: string | null) => void;
-	workspaceId: string;
+	// Omitted for freeform chats (no workspace).
+	workspaceId?: string;
 }) {
 	const { data: session } = authClient.useSession();
 	const organizationId = resolveDesktopChatOrganizationId(
@@ -67,22 +68,33 @@ export function useWorkspaceChatController({
 	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
-		{ id: workspaceId },
+		{ id: workspaceId ?? "" },
 		{ enabled: Boolean(workspaceId) },
 	);
 
+	// A workspace pane lists only that workspace's sessions (efficient where
+	// clause). Freeform panes list workspace-less sessions — but tanstack/db
+	// `eq(col, null)` never matches nulls, so filter those in JS instead.
 	const { data: allSessionsData } = useLiveQuery(
-		(q) =>
-			q
+		(q) => {
+			const base = q
 				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) =>
-					eq(chatSessions.v2WorkspaceId, workspaceId),
-				)
-				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc")
-				.select(({ chatSessions }) => ({ ...chatSessions })),
+				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc");
+			const scoped = workspaceId
+				? base.where(({ chatSessions }) =>
+						eq(chatSessions.v2WorkspaceId, workspaceId),
+					)
+				: base;
+			return scoped.select(({ chatSessions }) => ({ ...chatSessions }));
+		},
 		[collections.chatSessions, workspaceId],
 	);
-	const sessions = allSessionsData ?? [];
+	const sessions = useMemo(() => {
+		const rows = allSessionsData ?? [];
+		return workspaceId
+			? rows
+			: rows.filter((s) => !s.v2WorkspaceId && !s.workspaceId);
+	}, [allSessionsData, workspaceId]);
 
 	const handleSelectSession = useCallback(
 		(nextSessionId: string) => {

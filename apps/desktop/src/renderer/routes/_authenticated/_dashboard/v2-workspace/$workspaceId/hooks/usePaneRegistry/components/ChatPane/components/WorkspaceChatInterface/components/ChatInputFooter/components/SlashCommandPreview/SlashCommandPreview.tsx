@@ -15,7 +15,7 @@ import {
 } from "./slash-command-preview.model";
 
 interface SlashCommandPreviewProps {
-	workspaceId: string;
+	workspaceId?: string;
 	slashCommands: Array<{
 		name: string;
 		aliases: string[];

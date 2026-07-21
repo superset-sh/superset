@@ -15,7 +15,7 @@ import { getUserMessageDraft } from "./utils/getUserMessageDraft";
 interface UserMessageProps {
 	message: ChatMessage;
 	prefixMessages: ChatMessage[];
-	workspaceId: string;
+	workspaceId?: string;
 	workspaceCwd?: string;
 	isEditing: boolean;
 	isSubmitting: boolean;
@@ -49,6 +49,8 @@ export function UserMessage({
 
 	const openAttachment = useCallback(
 		(url: string, filename?: string) => {
+			// Freeform chats have no workspace to open a file-viewer pane in.
+			if (!workspaceId) return;
 			addFileViewerPane(workspaceId, {
 				filePath: url,
 				isPinned: true,
@@ -59,6 +61,7 @@ export function UserMessage({
 	);
 	const openMentionedFile = useCallback(
 		(filePath: string) => {
+			if (!workspaceId) return;
 			addFileViewerPane(workspaceId, { filePath, isPinned: true });
 		},
 		[addFileViewerPane, workspaceId],

@@ -128,7 +128,7 @@ export function terminalSessionBelongsToWorkspace({
 	terminalId,
 	workspaceId,
 }: {
-	sessions: Array<{ terminalId: string; workspaceId: string }>;
+	sessions: Array<{ terminalId: string; workspaceId: string | null }>;
 	terminalId: string;
 	workspaceId: string;
 }): boolean {

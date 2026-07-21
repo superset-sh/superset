@@ -6,7 +6,7 @@ import { PendingPlanApprovalMessage } from "../PendingPlanApprovalMessage";
 
 interface ToolPreviewMessageProps {
 	previewToolParts: ToolPart[];
-	workspaceId: string;
+	workspaceId?: string;
 	sessionId: string | null;
 	organizationId: string | null;
 	workspaceCwd?: string;

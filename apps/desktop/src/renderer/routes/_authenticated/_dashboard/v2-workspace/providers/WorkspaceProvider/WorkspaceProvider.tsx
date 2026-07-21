@@ -12,9 +12,15 @@ import { WorkspaceTrpcProvider } from "../WorkspaceTrpcProvider";
 interface WorkspaceContextValue {
 	workspace: SelectV2Workspace;
 	hostUrl: string;
+	// True when this is a freeform session (no real workspace/worktree). Consumers
+	// that make workspace-scoped host calls (terminals, chat) must omit the
+	// workspaceId so the host runs them in the home dir instead.
+	isFreeform: boolean;
 }
 
-const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
+export const WorkspaceContext = createContext<WorkspaceContextValue | null>(
+	null,
+);
 
 export function WorkspaceProvider({
 	workspace,
@@ -38,7 +44,9 @@ export function WorkspaceProvider({
 	}
 
 	return (
-		<WorkspaceContext.Provider value={{ workspace, hostUrl }}>
+		<WorkspaceContext.Provider
+			value={{ workspace, hostUrl, isFreeform: false }}
+		>
 			<WorkspaceTrpcProvider
 				cacheKey={workspace.id}
 				key={`${workspace.id}:${hostUrl}`}
