@@ -147,7 +147,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 				? `${event?.error ?? "Update failed"} — click to retry`
 				: isUpdated
 					? `Updated${shortVersion ? ` to${shortVersion}` : ""}`
-					: `Install${shortVersion || " update"}`;
+					: `Install${shortVersion || " update"} — sessions keep running`;
 
 	if (isCollapsed) {
 		return (
