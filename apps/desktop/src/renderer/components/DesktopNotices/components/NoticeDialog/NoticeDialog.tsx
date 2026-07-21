@@ -64,7 +64,7 @@ export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
 					</DialogHeader>
 					<MarkdownRenderer
 						content={notice.body}
-						className="h-auto overflow-visible text-[13px] text-muted-foreground [&_article]:max-w-none [&_article]:p-0"
+						className="h-auto overflow-visible text-[13px] text-muted-foreground [&_article]:max-w-none [&_article]:p-0 [&_img]:mx-auto [&_img]:max-h-56 [&_img]:rounded-md"
 					/>
 					<DialogFooter className="mt-4 flex-row items-center justify-end gap-2">
 						<span className="mr-auto font-mono text-[11px] text-muted-foreground">
