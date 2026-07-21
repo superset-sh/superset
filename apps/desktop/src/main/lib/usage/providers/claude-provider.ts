@@ -132,12 +132,27 @@ export class ClaudeProvider extends ProviderCollector {
 			}),
 		});
 
+		// We only read headers, never the body — cancel it so undici releases the
+		// TCP socket instead of leaking one on every 5-minute probe.
+		await response.body?.cancel().catch(() => undefined);
+
 		if (response.status === 401 || response.status === 403) {
 			return emptySnapshot(this.providerId, "auth-error", {
 				cost,
 				email,
 				planLabel,
 				errorMessage: "Session expired — re-authenticate the Claude CLI.",
+			});
+		}
+
+		if (!response.ok) {
+			// A transient non-auth failure (e.g. 500/503) must not clear the shown
+			// windows or report the provider as healthy.
+			return emptySnapshot(this.providerId, "auth-error", {
+				cost,
+				email,
+				planLabel,
+				errorMessage: `Anthropic API returned ${response.status} — usage data unavailable.`,
 			});
 		}
 

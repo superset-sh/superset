@@ -92,10 +92,11 @@ export async function readLatestCodexRateLimits(): Promise<CodexRateLimits | nul
 			const rateLimits = parseRateLimits(parsed.payload);
 			if (!rateLimits) continue;
 
-			const time =
+			const parsedTime =
 				typeof parsed.timestamp === "string"
 					? new Date(parsed.timestamp).getTime()
-					: file.mtimeMs;
+					: Number.NaN;
+			const time = Number.isNaN(parsedTime) ? file.mtimeMs : parsedTime;
 			if (time > latestTime) {
 				latestTime = time;
 				latest = rateLimits;

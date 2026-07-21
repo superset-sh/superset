@@ -51,7 +51,11 @@ export function aggregateUsage(
 ): CostStats {
 	const now = new Date();
 	const todayKey = localDateKey(now);
-	const cutoff = now.getTime() - WINDOW_DAYS * DAY_MS;
+	// Align the cutoff to the oldest daily bucket's local midnight so every entry
+	// counted in the 30-day totals also lands in one of the chart buckets.
+	const oldestBucket = new Date(now.getTime() - (WINDOW_DAYS - 1) * DAY_MS);
+	oldestBucket.setHours(0, 0, 0, 0);
+	const cutoff = oldestBucket.getTime();
 
 	const buckets = new Map<string, DailyBucket>();
 	for (let i = 0; i < WINDOW_DAYS; i++) {
