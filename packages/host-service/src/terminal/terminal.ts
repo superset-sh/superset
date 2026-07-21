@@ -519,32 +519,6 @@ export function writeInputToSession({
 	return { success: true };
 }
 
-export async function adoptTerminalSessionInternal({
-	terminalId,
-	workspaceId,
-	db,
-	eventBus,
-	themeType,
-	replayOnAdoption = false,
-}: {
-	terminalId: string;
-	workspaceId: string;
-	db: HostDb;
-	eventBus?: EventBus;
-	themeType?: "dark" | "light";
-	replayOnAdoption?: boolean;
-}): Promise<TerminalSession | { error: string }> {
-	return createTerminalSessionInternal({
-		terminalId,
-		workspaceId,
-		db,
-		eventBus,
-		themeType,
-		adoptOnly: true,
-		replayOnAdoption,
-	});
-}
-
 function sendMessage(
 	socket: { send: (data: string) => void; readyState: number },
 	message: TerminalServerMessage,
@@ -1517,12 +1491,13 @@ export function registerWorkspaceTerminalRoute({
 
 				// Prefer adoption: if the daemon still owns the PTY across a
 				// host-service restart, we keep the live shell + ring buffer.
-				const adopted = await adoptTerminalSessionInternal({
+				const adopted = await createTerminalSessionInternal({
 					terminalId,
 					workspaceId: record.originWorkspaceId,
 					themeType,
 					db,
 					eventBus,
+					adoptOnly: true,
 					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
 					replayOnAdoption: c.req.query("replay") !== "0",
 				});

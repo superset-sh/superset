@@ -9,7 +9,6 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { adoptFromFd, spawn as spawnPty } from "../src/Pty/Pty.ts";
-import { CURRENT_PROTOCOL_VERSION } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
 import { connect, connectAndHello, payloadAsString } from "./helpers/client.ts";
 
@@ -27,11 +26,11 @@ after(async () => {
 
 test("handshake: hello → hello-ack", async () => {
 	const c = await connect(sockPath);
-	c.send({ type: "hello", protocols: [CURRENT_PROTOCOL_VERSION] });
+	c.send({ type: "hello", protocols: [2] });
 	const ack = await c.waitFor((m) => m.type === "hello-ack");
 	assert.equal(ack.type, "hello-ack");
 	if (ack.type === "hello-ack") {
-		assert.equal(ack.protocol, CURRENT_PROTOCOL_VERSION);
+		assert.equal(ack.protocol, 2);
 		assert.equal(ack.daemonVersion, "0.0.0-test");
 	}
 	await c.close();

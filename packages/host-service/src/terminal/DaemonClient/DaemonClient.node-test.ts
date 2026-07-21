@@ -3,18 +3,11 @@
 // daemon spawns real PTYs via node-pty.
 
 import { strict as assert } from "node:assert";
-import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { Server } from "@superset/pty-daemon";
-import {
-	type ClientMessage,
-	CURRENT_PROTOCOL_VERSION,
-	encodeFrame,
-	FrameDecoder,
-	SUPPORTED_PROTOCOL_VERSIONS,
-} from "@superset/pty-daemon/protocol";
+import { CURRENT_PROTOCOL_VERSION } from "@superset/pty-daemon/protocol";
 import { DaemonClient } from "./DaemonClient.ts";
 
 const sockPath = path.join(
@@ -42,65 +35,6 @@ test("connect + handshake exposes daemon version", async () => {
 	assert.equal(c.protocol, CURRENT_PROTOCOL_VERSION);
 	assert.ok(c.isConnected);
 	await c.dispose();
-});
-
-test("negotiates v2 for legacy operations and guards snapshots", async () => {
-	const legacyPath = path.join(
-		os.tmpdir(),
-		`host-daemon-client-v2-${process.pid}.sock`,
-	);
-	const legacyServer = net.createServer((socket) => {
-		const decoder = new FrameDecoder();
-		socket.on("data", (chunk) => {
-			decoder.push(chunk);
-			for (const frame of decoder.drain()) {
-				const message = frame.message as ClientMessage;
-				if (message.type === "hello") {
-					assert.deepEqual(message.protocols, SUPPORTED_PROTOCOL_VERSIONS);
-					socket.write(
-						encodeFrame({
-							type: "hello-ack",
-							protocol: 2,
-							daemonVersion: "0.2.5",
-							daemonPid: process.pid,
-						}),
-					);
-				} else if (message.type === "list") {
-					socket.write(encodeFrame({ type: "list-reply", sessions: [] }));
-				} else if (message.type === "prepare-upgrade") {
-					socket.write(
-						encodeFrame({
-							type: "upgrade-prepared",
-							result: { ok: true, successorPid: 4242 },
-						}),
-					);
-				}
-			}
-		});
-		socket.on("error", () => {});
-	});
-	await new Promise<void>((resolve) =>
-		legacyServer.listen(legacyPath, resolve),
-	);
-
-	const client = new DaemonClient({ socketPath: legacyPath });
-	try {
-		await client.connect();
-		assert.equal(client.protocol, 2);
-		assert.equal(client.version, "0.2.5");
-		assert.deepEqual(await client.list(), []);
-		assert.deepEqual(await client.prepareUpgrade(), {
-			ok: true,
-			successorPid: 4242,
-		});
-		await assert.rejects(
-			() => client.snapshot("legacy-session"),
-			/requires protocol 3; connected with protocol 2/,
-		);
-	} finally {
-		await client.dispose();
-		await new Promise<void>((resolve) => legacyServer.close(() => resolve()));
-	}
 });
 
 test("open + subscribe + receive output + close", async () => {
@@ -177,38 +111,6 @@ test("input is forwarded; resize updates dims", async () => {
 
 	unsubscribe();
 	await c.close(id, "SIGTERM");
-	await c.dispose();
-});
-
-test("snapshot reads buffered bytes repeatedly without subscribing", async () => {
-	const c = new DaemonClient({ socketPath: sockPath });
-	await c.connect();
-	const id = "host-test-snapshot";
-	await c.open(id, {
-		shell: "/bin/sh",
-		argv: ["-c", "printf snapshot-marker; sleep 2"],
-		cols: 80,
-		rows: 24,
-	});
-
-	await waitFor(
-		async () => (await c.snapshot(id)).data.includes("snapshot-marker"),
-		3000,
-	);
-	const first = await c.snapshot(id);
-	const second = await c.snapshot(id);
-	assert.ok(first.data.includes("snapshot-marker"));
-	assert.deepEqual(second, first);
-	assert.equal(first.truncated, false);
-
-	await c.close(id, "SIGTERM");
-	await c.dispose();
-});
-
-test("snapshot rejects an unknown terminal", async () => {
-	const c = new DaemonClient({ socketPath: sockPath });
-	await c.connect();
-	await assert.rejects(() => c.snapshot("missing-snapshot"), /unknown session/);
 	await c.dispose();
 });
 
@@ -364,12 +266,9 @@ test("adoption flow: client A opens, drops, client B finds + subscribes-with-rep
 	await b.dispose();
 });
 
-async function waitFor(
-	predicate: () => boolean | Promise<boolean>,
-	ms: number,
-): Promise<void> {
+async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
 	const start = Date.now();
-	while (!(await predicate())) {
+	while (!predicate()) {
 		if (Date.now() - start > ms) throw new Error("waitFor timed out");
 		await new Promise((r) => setTimeout(r, 25));
 	}

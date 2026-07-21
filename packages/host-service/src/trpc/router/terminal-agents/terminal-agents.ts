@@ -2,22 +2,16 @@ import {
 	type AgentDefinitionId,
 	BUILTIN_AGENT_IDS,
 } from "@superset/shared/agent-catalog";
-import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
-import { getDaemonClient } from "../../../terminal/daemon-client-singleton";
 import {
-	adoptTerminalSessionInternal,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
-	writeInputToSession,
 } from "../../../terminal/terminal";
-import { renderTerminalSnapshot } from "../../../terminal/terminal-snapshot";
 import type {
 	TerminalAgentBinding,
 	TerminalAgentId,
 } from "../../../terminal-agents";
-import { terminalAgentStatus } from "../../../terminal-agents";
 import { protectedProcedure, router } from "../../index";
 
 type GetOrCreateResult = {
@@ -43,118 +37,10 @@ const agentDefinitionIdSchema = z.union([
 
 const GET_OR_CREATE_TIMEOUT_MS = 10_000;
 
-export function encodeAgentPrompt(prompt: string): string {
-	return `\x1b[200~${prompt}\x1b[201~\r`;
-}
-
-function liveBinding(
-	bindings: TerminalAgentBinding[],
-	terminalId: string,
-): TerminalAgentBinding {
-	const binding = bindings.find(
-		(candidate) => candidate.terminalId === terminalId,
-	);
-	if (!binding) {
-		throw new TRPCError({
-			code: "NOT_FOUND",
-			message: `No live agent session matching '${terminalId}'.`,
-		});
-	}
-	return binding;
-}
-
-function withStatus(binding: TerminalAgentBinding) {
-	return { ...binding, status: terminalAgentStatus(binding) };
-}
-
 export const terminalAgentsRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
-		return ctx.terminalAgentStore.list().map(withStatus);
+		return ctx.terminalAgentStore.list();
 	}),
-
-	get: protectedProcedure
-		.input(z.object({ terminalId: z.string().min(1) }))
-		.query(({ ctx, input }) => {
-			return withStatus(
-				liveBinding(ctx.terminalAgentStore.list(), input.terminalId),
-			);
-		}),
-
-	read: protectedProcedure
-		.input(
-			z.object({
-				terminalId: z.string().min(1),
-				lines: z.number().int().min(1).max(1000).default(120),
-			}),
-		)
-		.query(async ({ ctx, input }) => {
-			const binding = liveBinding(
-				ctx.terminalAgentStore.list(),
-				input.terminalId,
-			);
-			try {
-				const snapshot = await (await getDaemonClient()).snapshot(
-					binding.terminalId,
-				);
-				return {
-					terminalId: binding.terminalId,
-					workspaceId: binding.workspaceId,
-					status: terminalAgentStatus(binding),
-					output: renderTerminalSnapshot({ ...snapshot, lines: input.lines }),
-					truncated: snapshot.truncated,
-				};
-			} catch (error) {
-				throw new TRPCError({
-					code: "NOT_FOUND",
-					message:
-						error instanceof Error
-							? error.message
-							: "Unable to read agent session",
-					cause: error,
-				});
-			}
-		}),
-
-	send: protectedProcedure
-		.input(
-			z.object({
-				terminalId: z.string().min(1),
-				prompt: z.string().min(1),
-			}),
-		)
-		.mutation(async ({ ctx, input }) => {
-			const binding = liveBinding(
-				ctx.terminalAgentStore.list(),
-				input.terminalId,
-			);
-			const adopted = await adoptTerminalSessionInternal({
-				terminalId: binding.terminalId,
-				workspaceId: binding.workspaceId,
-				db: ctx.db,
-				eventBus: ctx.eventBus,
-			});
-			if ("error" in adopted) {
-				throw new TRPCError({ code: "NOT_FOUND", message: adopted.error });
-			}
-			const prompt = sanitizePromptForPty(input.prompt);
-			if (prompt === "") {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message:
-						"Prompt is empty after removing terminal control characters.",
-				});
-			}
-			const sentAt = Date.now();
-			const result = writeInputToSession({
-				terminalId: binding.terminalId,
-				workspaceId: binding.workspaceId,
-				data: encodeAgentPrompt(prompt),
-			});
-			if ("error" in result) {
-				throw new TRPCError({ code: "NOT_FOUND", message: result.error });
-			}
-			return { accepted: true as const, sentAt };
-		}),
 
 	listByWorkspace: protectedProcedure
 		.input(

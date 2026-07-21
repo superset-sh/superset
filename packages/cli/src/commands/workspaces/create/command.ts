@@ -2,7 +2,6 @@ import { boolean, CLIError, number, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
 import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 import { uploadAttachments } from "../../../lib/upload-attachments";
-import { assertRequestedAgentsStarted } from "./agent-results";
 
 export default command({
 	description: "Create a workspace on a host",
@@ -98,7 +97,6 @@ export default command({
 			agents,
 			command: options.command ?? undefined,
 		});
-		assertRequestedAgentsStarted(result, agents?.length ?? 0);
 
 		return {
 			data: result,
