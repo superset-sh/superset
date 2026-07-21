@@ -157,7 +157,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Nous Research's autonomous agent for coding, research, and terminal workflows.",
 		command: "hermes --yolo",
-		promptCommand: "hermes chat --yolo -q",
+		promptCommand: "hermes --yolo chat -q",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
