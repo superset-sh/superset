@@ -21,6 +21,9 @@ import {
 	automationRunStatusValues,
 	automationSessionKindValues,
 	commandStatusValues,
+	desktopNoticeCtaActionValues,
+	desktopNoticeSeverityValues,
+	desktopNoticeTriggerValues,
 	deviceTypeValues,
 	integrationProviderValues,
 	taskPriorityValues,
@@ -918,3 +921,49 @@ export const submittedPrompts = pgTable(
 
 export type InsertSubmittedPrompt = typeof submittedPrompts.$inferInsert;
 export type SelectSubmittedPrompt = typeof submittedPrompts.$inferSelect;
+
+export const desktopNoticeSeverity = pgEnum(
+	"desktop_notice_severity",
+	desktopNoticeSeverityValues,
+);
+export const desktopNoticeTrigger = pgEnum(
+	"desktop_notice_trigger",
+	desktopNoticeTriggerValues,
+);
+export const desktopNoticeCtaAction = pgEnum(
+	"desktop_notice_cta_action",
+	desktopNoticeCtaActionValues,
+);
+
+export const desktopNotices = pgTable(
+	"desktop_notices",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		severity: desktopNoticeSeverity().notNull(),
+		trigger: desktopNoticeTrigger().notNull().default("immediate"),
+		// targeting: null = applies to all
+		minVersion: text("min_version"),
+		maxVersion: text("max_version"),
+		platforms: text().array(),
+		channels: text().array(),
+		startsAt: timestamp("starts_at", { withTimezone: true }),
+		endsAt: timestamp("ends_at", { withTimezone: true }),
+		// presentation
+		title: text().notNull(),
+		body: text().notNull(),
+		ctaLabel: text("cta_label"),
+		ctaAction: desktopNoticeCtaAction("cta_action"),
+		ctaUrl: text("cta_url"),
+		dismissible: boolean().notNull().default(true),
+		active: boolean().notNull().default(false),
+		createdAt: timestamp("created_at").notNull().defaultNow(),
+		updatedAt: timestamp("updated_at")
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [index("desktop_notices_active_idx").on(table.active)],
+);
+
+export type InsertDesktopNotice = typeof desktopNotices.$inferInsert;
+export type SelectDesktopNotice = typeof desktopNotices.$inferSelect;
