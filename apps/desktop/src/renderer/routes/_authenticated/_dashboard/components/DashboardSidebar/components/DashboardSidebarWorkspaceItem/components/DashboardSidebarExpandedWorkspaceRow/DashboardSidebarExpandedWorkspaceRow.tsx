@@ -244,14 +244,21 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)}
 							/>
 						) : (
-							<span
-								className={cn(
-									"truncate text-[13px] leading-tight transition-colors",
-									isActive ? "text-foreground" : "text-foreground/80",
+							<div className="flex min-w-0 items-center gap-1.5">
+								<span
+									className={cn(
+										"truncate text-[13px] leading-tight transition-colors",
+										isActive ? "text-foreground" : "text-foreground/80",
+									)}
+								>
+									{name || branch}
+								</span>
+								{pullRequest && (
+									<span className="shrink-0 font-mono text-[10px] leading-none tabular-nums text-muted-foreground">
+										#{pullRequest.number}
+									</span>
 								)}
-							>
-								{name || branch}
-							</span>
+							</div>
 						)}
 
 						<div className="col-start-2 row-start-1 grid h-5 shrink-0 items-center justify-items-end [&>*]:col-start-1 [&>*]:row-start-1">
