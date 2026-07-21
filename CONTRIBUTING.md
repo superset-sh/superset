@@ -10,14 +10,21 @@ Thanks for contributing! Please follow our [code of conduct](./CODE_OF_CONDUCT.m
 
 ## Local development
 
-See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide. TL;DR:
+Development is expected to run from a Superset workspace, which is a managed
+git worktree. Add your clone to the installed Superset app, create a workspace
+for your change, then run the following commands in that workspace:
 
 ```bash
 ./.superset/setup.local.sh
 bun run dev
 ```
 
-No Neon or third-party credentials needed.
+Run `setup.local.sh` once in every new worktree before starting development. It
+configures workspace-specific app identity, ports, local services, and a seeded
+development account so the dev desktop app can run alongside the installed app.
+No Neon or third-party credentials are needed.
+
+See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide.
 
 ## Opening a pull request
 

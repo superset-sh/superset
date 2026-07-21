@@ -1,14 +1,25 @@
 import { Input } from "@superset/ui/input";
 import { useEffect, useState } from "react";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
 interface NameSectionProps {
 	projectId: string;
 	currentName: string;
+	/** Host serving this project, when there is one. */
+	hostUrl: string | null;
+	/** False when no reachable host serves the project — rename disabled. */
+	canRename: boolean;
+	/** Called after the host commit so the caller can refresh its host row. */
+	onRenamed?: () => void;
 }
 
-export function NameSection({ projectId, currentName }: NameSectionProps) {
-	const { v2Projects: projectActions } = useOptimisticCollectionActions();
+export function NameSection({
+	projectId,
+	currentName,
+	hostUrl,
+	canRename,
+	onRenamed,
+}: NameSectionProps) {
 	const [value, setValue] = useState(currentName);
 
 	useEffect(() => {
@@ -22,13 +33,23 @@ export function NameSection({ projectId, currentName }: NameSectionProps) {
 			return;
 		}
 		if (trimmed === currentName) return;
-		projectActions.renameProject(projectId, trimmed);
+		if (!hostUrl) return;
+		// Renames commit on the host — host.db owns the project name; the
+		// project:changed event updates every open surface.
+		void getHostServiceClientByUrl(hostUrl)
+			.project.update.mutate({ projectId, name: trimmed })
+			.then(() => onRenamed?.())
+			.catch((err) => {
+				console.warn("[project-rename] host commit failed", err);
+				setValue(currentName);
+			});
 	};
 
 	return (
 		<Input
 			id="project-name"
 			value={value}
+			disabled={!canRename}
 			onChange={(e) => setValue(e.target.value)}
 			onBlur={commit}
 			onKeyDown={(e) => {

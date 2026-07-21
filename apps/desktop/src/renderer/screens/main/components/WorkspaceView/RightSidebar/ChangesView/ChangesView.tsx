@@ -383,7 +383,6 @@ export function ChangesView({
 				const invalidations: Promise<unknown>[] = [
 					trpcUtils.changes.getStatus.invalidate({
 						worktreePath,
-						defaultBranch: effectiveBaseBranch,
 					}),
 				];
 
@@ -663,7 +662,7 @@ export function ChangesView({
 		);
 	}
 
-	if (isLoading) {
+	if (!status && isLoading) {
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				Loading changes...
@@ -680,7 +679,7 @@ export function ChangesView({
 		!status.untracked
 	) {
 		return (
-			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
+			<div className="flex-1 flex select-text cursor-text items-center justify-center text-muted-foreground text-sm p-4">
 				Unable to load changes
 			</div>
 		);

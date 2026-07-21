@@ -13,6 +13,8 @@ export interface ChangelogEntry {
 	date: string;
 	image?: string;
 	content: string;
+	/** Draft entries (frontmatter `draft: true`) never render on the site. */
+	draft?: boolean;
 }
 
 export { slugify } from "./content-utils";

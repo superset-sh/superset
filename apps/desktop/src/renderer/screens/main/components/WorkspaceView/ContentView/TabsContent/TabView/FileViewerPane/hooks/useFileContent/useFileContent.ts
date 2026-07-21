@@ -5,6 +5,8 @@ import { detectLanguage } from "shared/detect-language";
 import { getImageMimeType, isImageFile } from "shared/file-types";
 
 const BRANCH_QUERY_STALE_TIME_MS = 10_000;
+export const FILE_CONTENT_STALE_TIME_MS = 30_000;
+export const FILE_CONTENT_GC_TIME_MS = 30 * 60_000;
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024;
 const MAX_IMAGE_SIZE = 10 * 1024 * 1024;
@@ -67,10 +69,12 @@ export function useFileContent({
 		},
 		{
 			enabled: rawReadEnabled,
+			gcTime: FILE_CONTENT_GC_TIME_MS,
 			retry: false,
 			// useWorkspaceFileEvents is the authoritative invalidation source for on-disk changes;
 			// window-focus refetches are redundant and introduce a race with in-flight user edits.
 			refetchOnWindowFocus: false,
+			staleTime: FILE_CONTENT_STALE_TIME_MS,
 		},
 	);
 
@@ -111,7 +115,13 @@ export function useFileContent({
 			absolutePath: filePath,
 			maxBytes: MAX_IMAGE_SIZE,
 		},
-		{ enabled: imageReadEnabled, retry: false },
+		{
+			enabled: imageReadEnabled,
+			gcTime: FILE_CONTENT_GC_TIME_MS,
+			retry: false,
+			refetchOnWindowFocus: false,
+			staleTime: FILE_CONTENT_STALE_TIME_MS,
+		},
 	);
 
 	const imageData = useMemo(() => {
@@ -184,6 +194,9 @@ export function useFileContent({
 			},
 			{
 				enabled: !isRemote && isUnstagedDiff && !!filePath && !!workspaceId,
+				gcTime: FILE_CONTENT_GC_TIME_MS,
+				refetchOnWindowFocus: false,
+				staleTime: FILE_CONTENT_STALE_TIME_MS,
 			},
 		);
 
@@ -222,9 +235,11 @@ export function useFileContent({
 
 	return {
 		rawFileData,
-		isLoadingRaw: rawQuery.isLoading || (isImage && imageQuery.isLoading),
+		isLoadingRaw: isImage
+			? !imageData && imageQuery.isLoading
+			: !rawFileData && rawQuery.isLoading,
 		imageData,
-		isLoadingImage: isRemote ? false : imageQuery.isLoading,
+		isLoadingImage: isRemote ? false : !imageData && imageQuery.isLoading,
 		diffData,
 		isLoadingDiff,
 		rawRevision: rawQuery.data?.revision ?? null,

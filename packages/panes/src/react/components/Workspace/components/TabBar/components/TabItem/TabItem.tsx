@@ -116,10 +116,14 @@ export function TabItem<TData>({
 				<div
 					ref={setRef}
 					className={cn(
-						"group relative flex h-full w-full items-center border-r border-border transition-colors",
+						// Inverted scheme: inactive tabs carry the shaded block; the active
+						// tab blends into the content below and is framed by left/right/top
+						// borders. Every state keeps a 1px border on all sides (transparent
+						// where hidden) so tabs don't shift when switching.
+						"group relative flex h-full w-full items-center border transition-colors",
 						isActive
-							? "bg-border/30 text-foreground"
-							: "text-muted-foreground/70 hover:bg-tertiary/20 hover:text-muted-foreground",
+							? "text-foreground border-border border-b-transparent"
+							: "bg-border/30 text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground border-transparent",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
@@ -177,7 +181,7 @@ export function TabItem<TData>({
 									aria-label="Close tab"
 									className={cn(
 										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-										isActive ? "hover:bg-foreground/10" : "hover:bg-muted",
+										isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
 									)}
 									onClick={(event) => {
 										event.stopPropagation();

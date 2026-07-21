@@ -3,7 +3,6 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../db/schema";
-import { pushWorkspaceCreateToCloud } from "../../../runtime/workspace-cloud-sync";
 import {
 	toCloudShape,
 	updateLocalWorkspace,
@@ -97,16 +96,6 @@ export const workspaceRouter = router({
 					message: "Workspace not found",
 				});
 			}
-			void pushWorkspaceCreateToCloud(
-				{
-					api: ctx.api,
-					db: ctx.db,
-					eventBus: ctx.eventBus,
-					organizationId: ctx.organizationId,
-					clientMachineId: ctx.clientMachineId,
-				},
-				updated,
-			);
 			return toCloudShape(updated, ctx.organizationId);
 		}),
 

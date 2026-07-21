@@ -690,6 +690,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"cursor",
 			"vibe",
 			"mistral",
+			"kimi",
+			"moonshot",
 		],
 	},
 	{
@@ -747,6 +749,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"assistant",
 			"vibe",
 			"mistral",
+			"kimi",
+			"moonshot",
 		],
 	},
 	{

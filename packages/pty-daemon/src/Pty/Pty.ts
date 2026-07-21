@@ -193,6 +193,11 @@ export type PtyOnExit = (info: {
 	signal: number | null;
 }) => void;
 
+export interface DisposeOptions {
+	/** Stop adopted-PTY exit polling when the caller has already untracked it. */
+	keepExitPolling?: boolean;
+}
+
 export interface Pty {
 	readonly pid: number;
 	readonly meta: SessionMeta;
@@ -208,6 +213,15 @@ export interface Pty {
 	 */
 	pause(): void;
 	resume(): void;
+	/**
+	 * Release this process's ownership of the PTY master fd. Idempotent.
+	 *
+	 * Disposal is separate from TreeKiller: callers signal the process tree
+	 * first, then release the descriptor. A successful daemon handoff is the
+	 * exception — the predecessor must leave its adapter untouched because
+	 * node-pty disposal also signals the shell after closing its stream.
+	 */
+	dispose(options?: DisposeOptions): void;
 	/**
 	 * The kernel master fd backing this PTY. Required for daemon-upgrade
 	 * fd-handoff (Phase 2): the successor daemon process inherits this fd
@@ -232,6 +246,7 @@ class NodePtyAdapter implements Pty {
 	private exitInfo: { code: number | null; signal: number | null } | null =
 		null;
 	private exitCallbacks: PtyOnExit[] = [];
+	private disposed = false;
 
 	constructor(term: nodePty.IPty, meta: SessionMeta) {
 		this.term = term;
@@ -260,13 +275,29 @@ class NodePtyAdapter implements Pty {
 			if (this.exited) return;
 			this.exited = true;
 			this.exitInfo = { code: exitCode ?? null, signal: signal ?? null };
+			this.dispose();
 			for (const cb of this.exitCallbacks) cb(this.exitInfo);
 		});
 	}
 
+	dispose(_options?: DisposeOptions): void {
+		if (this.disposed) return;
+		this.disposed = true;
+		// Keep TreeKiller's escalation chain intact. A root shell can exit while
+		// a detached descendant that ignored SIGHUP is still alive; the kill
+		// chain's later snapshots are what find and reap those survivors.
+		try {
+			// UnixTerminal.destroy() closes the read socket/master fd and its
+			// write stream. node-pty omits destroy() from IPty's public typings.
+			(this.term as unknown as { destroy(): void }).destroy();
+		} catch {
+			// node-pty may already have torn the socket down on its exit path.
+		}
+	}
+
 	getMasterFd(): number {
-		// node-pty 1.1.x exposes the master fd as the private property `_fd`.
-		// Pinned to "1.1.0" in package.json so a future bump can't break this
+		// node-pty 1.2 beta exposes the master fd as the private property `_fd`.
+		// Pinned exactly in package.json so a future bump can't break this
 		// silently — assert here so a missing/changed field surfaces at the
 		// first spawn, not when the user clicks "Update" months later.
 		const fd = (this.term as unknown as { _fd?: unknown })._fd;
@@ -274,7 +305,7 @@ class NodePtyAdapter implements Pty {
 			throw new Error(
 				`node-pty master fd unavailable (got ${typeof fd}: ${fd}). ` +
 					`Phase 2 fd-handoff depends on node-pty's private _fd property — ` +
-					`pin node-pty to 1.1.x or update Pty.ts to match the new shape.`,
+					`keep node-pty pinned or update Pty.ts to match the new shape.`,
 			);
 		}
 		return fd;
@@ -310,12 +341,12 @@ class NodePtyAdapter implements Pty {
 	}
 
 	pause(): void {
-		if (this.exited) return;
+		if (this.exited || this.disposed) return;
 		this.term.pause();
 	}
 
 	resume(): void {
-		if (this.exited) return;
+		if (this.exited || this.disposed) return;
 		this.term.resume();
 	}
 }
@@ -387,10 +418,37 @@ export function spawn({ meta }: SpawnOptions): Pty {
 			`spawn failed (shell=${meta.shell} cwd=${meta.cwd ?? "(none)"} errno=${reprobeErrno(meta)}): ${(err as Error).message}`,
 		);
 	}
-	const adapter = new NodePtyAdapter(term, meta);
-	// Validate the private-fd dependency at spawn time, not handoff time.
-	adapter.getMasterFd();
-	return adapter;
+	let adapter: NodePtyAdapter | null = null;
+	try {
+		adapter = new NodePtyAdapter(term, meta);
+		// Validate the private-fd dependency at spawn time, not handoff time.
+		adapter.getMasterFd();
+		return adapter;
+	} catch (err) {
+		// node-pty has already forked and opened the master fd at this point.
+		// Tear down both a fully constructed adapter and a partial constructor
+		// before returning the spawn failure to the caller.
+		if (adapter) {
+			try {
+				adapter.kill("SIGKILL");
+			} catch {
+				// Disposal below still releases the native descriptor.
+			}
+			adapter.dispose();
+		} else {
+			try {
+				term.kill("SIGKILL");
+			} catch {
+				// Continue with raw descriptor disposal.
+			}
+			try {
+				(term as unknown as { destroy(): void }).destroy();
+			} catch {
+				// Preserve the original construction error.
+			}
+		}
+		throw err;
+	}
 }
 
 /**
@@ -417,6 +475,9 @@ class AdoptedPty implements Pty {
 	private readonly fd: number;
 	private readonly reader: tty.ReadStream;
 	private exitFired = false;
+	private exitInfo: { code: number | null; signal: number | null } | null =
+		null;
+	private disposed = false;
 	private livenessTimer: NodeJS.Timeout | null = null;
 	private readonly killer: TreeKiller;
 	private exitCallbacks: PtyOnExit[] = [];
@@ -449,13 +510,12 @@ class AdoptedPty implements Pty {
 		const onExit = (info: { code: number | null; signal: number | null }) => {
 			if (this.exitFired) return;
 			this.exitFired = true;
-			if (this.livenessTimer) clearInterval(this.livenessTimer);
-			// tty.ReadStream owns the inherited fd; destroying the stream closes it.
-			try {
-				this.reader.destroy();
-			} catch {
-				// already closed
+			this.exitInfo = info;
+			if (this.livenessTimer) {
+				clearInterval(this.livenessTimer);
+				this.livenessTimer = null;
 			}
+			this.dispose();
 			for (const cb of this.exitCallbacks) cb(info);
 		};
 		this.reader.on("end", () => onExit({ code: null, signal: null }));
@@ -464,6 +524,28 @@ class AdoptedPty implements Pty {
 			if (!isPidAlive(this.pid)) onExit({ code: null, signal: null });
 		}, 1000);
 		this.livenessTimer.unref();
+	}
+
+	dispose(options: DisposeOptions = {}): void {
+		if (options.keepExitPolling === false && this.livenessTimer) {
+			clearInterval(this.livenessTimer);
+			this.livenessTimer = null;
+		}
+		if (this.disposed) return;
+		this.disposed = true;
+		// Normally leave livenessTimer running after an explicit dispose. Adopted
+		// PTYs have no native exit event, so the poll must still deliver onExit to
+		// let Server remove the session. Failed handoff rollback passes
+		// keepExitPolling=false because that session is already untracked and the
+		// predecessor's shell may intentionally remain alive indefinitely.
+		// Do not touch TreeKiller or its pending escalation. Closing the adopted
+		// stream releases only this daemon's inherited descriptor; kill() owns
+		// process-tree signaling and may still be finishing in the background.
+		try {
+			this.reader.destroy();
+		} catch {
+			// The stream may already have closed after EOF/EIO.
+		}
 	}
 
 	getMasterFd(): number {
@@ -524,16 +606,20 @@ class AdoptedPty implements Pty {
 	}
 
 	onExit(cb: PtyOnExit): void {
+		if (this.exitInfo) {
+			cb(this.exitInfo);
+			return;
+		}
 		this.exitCallbacks.push(cb);
 	}
 
 	pause(): void {
-		if (this.exitFired) return;
+		if (this.exitFired || this.disposed) return;
 		this.reader.pause();
 	}
 
 	resume(): void {
-		if (this.exitFired) return;
+		if (this.exitFired || this.disposed) return;
 		this.reader.resume();
 	}
 }
@@ -567,9 +653,21 @@ export function adoptFromFd({ fd, pid, meta }: AdoptOptions): Pty {
 	if (!Number.isInteger(fd) || fd < 0) {
 		throw new Error(`invalid fd: ${fd}`);
 	}
-	if (!Number.isInteger(pid) || pid <= 0) {
-		throw new Error(`invalid pid: ${pid}`);
+	try {
+		if (!Number.isInteger(pid) || pid <= 0) {
+			throw new Error(`invalid pid: ${pid}`);
+		}
+		validateDims(meta.cols, meta.rows);
+		return new AdoptedPty(fd, pid, meta);
+	} catch (err) {
+		// Ownership transfers once a valid fd reaches adoption. Close this
+		// inherited copy on validation or construction failure; the predecessor
+		// still owns its descriptor and can continue serving the live session.
+		try {
+			fs.closeSync(fd);
+		} catch {
+			// Preserve the adoption error.
+		}
+		throw err;
 	}
-	validateDims(meta.cols, meta.rows);
-	return new AdoptedPty(fd, pid, meta);
 }

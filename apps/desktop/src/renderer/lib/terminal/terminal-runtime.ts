@@ -21,6 +21,7 @@ import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -75,14 +76,24 @@ function createTerminal(
 	});
 	terminal.loadAddon(fitAddon);
 	terminal.loadAddon(serializeAddon);
+	// Disarm TUI-only input modes (kitty keyboard / mouse / focus) leaked into a
+	// live shell prompt by a TUI killed while attached (#4949). The parser
+	// handlers are owned by the terminal and cleaned up on terminal.dispose().
+	installInputModeReclaimer(terminal);
 	return { terminal, fitAddon, serializeAddon };
 }
 
-function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
+function persistBuffer(
+	terminalId: string,
+	serializeAddon: SerializeAddon,
+): boolean {
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
 		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
-	} catch {}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function restoreBuffer(terminalId: string, terminal: XTerm) {
@@ -97,12 +108,7 @@ function restoreBuffer(terminalId: string, terminal: XTerm) {
  * either write fails or the runtime could not be restored faithfully.
  */
 export function tryPersistRuntimeState(runtime: TerminalRuntime): boolean {
-	try {
-		const data = runtime.serializeAddon.serialize({
-			scrollback: SERIALIZE_SCROLLBACK,
-		});
-		localStorage.setItem(`${STORAGE_KEY_PREFIX}${runtime.terminalId}`, data);
-	} catch {
+	if (!persistBuffer(runtime.terminalId, runtime.serializeAddon)) {
 		return false;
 	}
 	return persistDimensions(
@@ -393,14 +399,10 @@ export function updateRuntimeAppearance(
 export function disposeRuntime(
 	runtime: TerminalRuntime,
 	options: {
-		persistedState?: "clear" | "persist" | "preserve";
+		persistedState?: "clear" | "preserve";
 	} = {},
 ) {
 	const persistedState = options.persistedState ?? "clear";
-	if (persistedState === "persist") {
-		persistBuffer(runtime.terminalId, runtime.serializeAddon);
-		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
-	}
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();

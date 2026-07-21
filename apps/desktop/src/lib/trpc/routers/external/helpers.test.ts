@@ -88,11 +88,23 @@ describe("getAppCommand", () => {
 			expect(result).toEqual([
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.intellij", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.intellij",
+						"--args",
+						"/path/to/file",
+					],
 				},
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.intellij.ce", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.intellij.ce",
+						"--args",
+						"/path/to/file",
+					],
 				},
 			]);
 		});
@@ -102,11 +114,23 @@ describe("getAppCommand", () => {
 			expect(result).toEqual([
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.pycharm", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.pycharm",
+						"--args",
+						"/path/to/file",
+					],
 				},
 				{
 					command: "open",
-					args: ["-b", "com.jetbrains.pycharm.ce", "/path/to/file"],
+					args: [
+						"-n",
+						"-b",
+						"com.jetbrains.pycharm.ce",
+						"--args",
+						"/path/to/file",
+					],
 				},
 			]);
 		});
@@ -114,21 +138,91 @@ describe("getAppCommand", () => {
 		test("returns single-element array for webstorm (single-edition)", () => {
 			const result = getAppCommand("webstorm", "/path/to/file");
 			expect(result).toEqual([
-				{ command: "open", args: ["-a", "WebStorm", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-n", "-a", "WebStorm", "--args", "/path/to/file"],
+				},
 			]);
 		});
 
 		test("returns single-element array for goland (single-edition)", () => {
 			const result = getAppCommand("goland", "/path/to/file");
 			expect(result).toEqual([
-				{ command: "open", args: ["-a", "GoLand", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-n", "-a", "GoLand", "--args", "/path/to/file"],
+				},
 			]);
 		});
 
 		test("returns single-element array for rustrover (single-edition)", () => {
 			const result = getAppCommand("rustrover", "/path/to/file");
 			expect(result).toEqual([
-				{ command: "open", args: ["-a", "RustRover", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-n", "-a", "RustRover", "--args", "/path/to/file"],
+				},
+			]);
+		});
+	});
+
+	// Regression test for #5090: "Open in IntelliJ opens the base project
+	// instead of the worktree".
+	//
+	// On macOS, `open -b <bundle> <path>` / `open -a <name> <path>` hands the
+	// path to the IDE as an "open document" Apple event. When a JetBrains IDE
+	// is already running, macOS does NOT relaunch it and the IDE simply
+	// reopens its last project (the base repo) instead of opening the passed
+	// worktree directory as a project.
+	//
+	// JetBrains IDEs only open a directory as a project when the path arrives
+	// as a launcher CLI argument (`--args`), and `--args` is only delivered
+	// when a fresh instance is requested with `-n`. This is JetBrains' own
+	// documented invocation (`open -na "IntelliJ IDEA.app" --args <path>`);
+	// the launcher detects the running instance and routes the open-project
+	// request to it, so no duplicate IDE process is spawned.
+	describe("opening a worktree as a project (issue #5090)", () => {
+		const WORKTREE = "/Users/me/.superset/worktrees/my-feature";
+
+		test("intellij passes the worktree via --args so it opens as a project", () => {
+			const result = getAppCommand("intellij", WORKTREE);
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.intellij", "--args", WORKTREE],
+				},
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.intellij.ce", "--args", WORKTREE],
+				},
+			]);
+		});
+
+		test("pycharm passes the worktree via --args so it opens as a project", () => {
+			const result = getAppCommand("pycharm", WORKTREE);
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.pycharm", "--args", WORKTREE],
+				},
+				{
+					command: "open",
+					args: ["-n", "-b", "com.jetbrains.pycharm.ce", "--args", WORKTREE],
+				},
+			]);
+		});
+
+		test("single-edition JetBrains IDEs (webstorm) use -n + --args too", () => {
+			const result = getAppCommand("webstorm", WORKTREE);
+			expect(result).toEqual([
+				{ command: "open", args: ["-n", "-a", "WebStorm", "--args", WORKTREE] },
+			]);
+		});
+
+		test("non-JetBrains editors (cursor) are unaffected", () => {
+			const result = getAppCommand("cursor", WORKTREE);
+			expect(result).toEqual([
+				{ command: "open", args: ["-a", "Cursor", WORKTREE] },
 			]);
 		});
 	});

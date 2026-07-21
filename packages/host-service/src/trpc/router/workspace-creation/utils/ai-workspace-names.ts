@@ -18,10 +18,7 @@ import {
 import { z } from "zod";
 import type { HostDb } from "../../../../db";
 import type { HostServiceContext } from "../../../../types";
-import {
-	markWorkspaceCloudSynced,
-	updateLocalWorkspace,
-} from "../../../../workspaces/local-workspace-store";
+import { updateLocalWorkspace } from "../../../../workspaces/local-workspace-store";
 import { resolveHostAgentConfig } from "../../agents/agents";
 import { listBranchNames } from "./list-branch-names";
 import { deduplicateBranchName } from "./sanitize-branch";
@@ -412,23 +409,6 @@ export async function applyAiWorkspaceRename(
 		console.warn(
 			"[applyAiWorkspaceRename] workspace row missing after git rename",
 			{ workspaceId, patch },
-		);
-		return;
-	}
-
-	try {
-		await ctx.api.v2Workspace.updateNameFromHost.mutate({
-			id: workspaceId,
-			...patch,
-			...(titleChanged ? { expectedCurrentName: oldWorkspaceName } : {}),
-		});
-		markWorkspaceCloudSynced(ctx.db, workspaceId, {
-			expectedUpdatedAt: updated.updatedAt,
-		});
-	} catch (err) {
-		console.warn(
-			"[applyAiWorkspaceRename] cloud mirror push failed; reconciler will retry",
-			{ workspaceId, err },
 		);
 	}
 }

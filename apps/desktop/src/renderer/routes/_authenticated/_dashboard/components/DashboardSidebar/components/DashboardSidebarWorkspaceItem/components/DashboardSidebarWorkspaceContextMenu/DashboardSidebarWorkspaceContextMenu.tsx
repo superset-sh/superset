@@ -22,14 +22,18 @@ import {
 	LuFolderPlus,
 	LuGitBranch,
 	LuPencil,
+	LuRadioTower,
 	LuTrash2,
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
+import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
+import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
+	workspaceId: string;
 	projectId: string;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
@@ -51,6 +55,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 }
 
 export function DashboardSidebarWorkspaceContextMenu({
+	workspaceId,
 	projectId,
 	isInSection,
 	isLocalWorkspace,
@@ -72,6 +77,10 @@ export function DashboardSidebarWorkspaceContextMenu({
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
 	const { setContextMenuOpen } = useDashboardSidebarHover();
+	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
+	const { isPending: isKillingPorts, killPorts } =
+		useDashboardSidebarPortKill();
+	const ports = portGroup?.ports ?? [];
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
@@ -90,6 +99,10 @@ export function DashboardSidebarWorkspaceContextMenu({
 				})),
 		[collections, projectId],
 	);
+	const handleCloseAllPorts = () => {
+		if (isKillingPorts) return;
+		void killPorts(ports);
+	};
 
 	return (
 		<ContextMenu onOpenChange={setContextMenuOpen}>
@@ -180,6 +193,16 @@ export function DashboardSidebarWorkspaceContextMenu({
 					</>
 				)}
 				<ContextMenuSeparator />
+				{ports.length > 0 && (
+					<ContextMenuItem
+						onSelect={handleCloseAllPorts}
+						disabled={isKillingPorts}
+						variant="destructive"
+					>
+						<LuRadioTower className="size-4 mr-2" />
+						Close all ports
+					</ContextMenuItem>
+				)}
 				<ContextMenuItem
 					onSelect={onRemoveFromSidebar}
 					className="text-destructive focus:text-destructive"

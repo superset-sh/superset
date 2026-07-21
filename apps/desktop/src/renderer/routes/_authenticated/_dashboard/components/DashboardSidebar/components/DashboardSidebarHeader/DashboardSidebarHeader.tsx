@@ -8,6 +8,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
+import { useRef } from "react";
 import { HiMiniPlus, HiOutlineClipboardDocumentList } from "react-icons/hi2";
 import {
 	LuClock,
@@ -16,7 +17,9 @@ import {
 	LuLayers,
 	LuLayoutTemplate,
 	LuPlus,
+	LuSearch,
 } from "react-icons/lu";
+import { useFrameStackStore } from "renderer/commandPalette";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { ZoomStable } from "renderer/components/ZoomStable";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
@@ -26,7 +29,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
-import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
@@ -39,6 +41,9 @@ import {
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+
+// Temporarily hidden, not removed — flip to true to restore the Workspaces tab.
+const SHOW_WORKSPACES_TAB = false;
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -74,6 +79,19 @@ export function DashboardSidebarHeader({
 	};
 
 	const shortcutText = useHotkeyDisplay("NEW_WORKSPACE").text;
+	const searchShortcutText = useHotkeyDisplay("OPEN_COMMAND_PALETTE").text;
+	const openCommandPalette = useFrameStackStore((s) => s.setOpen);
+	// The palette dialog dismisses on outside pointerdown before our click fires,
+	// so a live-state toggle would always reopen it. Capture the state at
+	// pointerdown to make clicking the button close an open palette.
+	const paletteWasOpenRef = useRef(false);
+	const handleSearchPointerDown = () => {
+		paletteWasOpenRef.current = useFrameStackStore.getState().open;
+	};
+	const handleSearchClick = () => {
+		openCommandPalette(!paletteWasOpenRef.current);
+		paletteWasOpenRef.current = false;
+	};
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	// Default to Mac while loading so we don't briefly cover the traffic lights.
 	const isMac = platform === undefined || platform === "darwin";
@@ -124,8 +142,21 @@ export function DashboardSidebarHeader({
 
 	if (isCollapsed) {
 		return (
-			<div className="flex flex-col items-center gap-2 border-b border-border py-2">
-				<OrganizationDropdown variant="collapsed" />
+			<div className="flex flex-col items-center gap-2 py-2">
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={() => openModal()}
+							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+						>
+							<LuPlus className="size-4" strokeWidth={STROKE_WIDTH_THICK} />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">
+						New Workspace ({shortcutText})
+					</TooltipContent>
+				</Tooltip>
 
 				{showWorkspaces && (
 					<Tooltip delayDuration={300}>
@@ -202,21 +233,6 @@ export function DashboardSidebarHeader({
 					</Tooltip>
 				)}
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={() => openModal()}
-							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-						>
-							<LuPlus className="size-4" strokeWidth={STROKE_WIDTH_THICK} />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">
-						New Workspace ({shortcutText})
-					</TooltipContent>
-				</Tooltip>
-
 				<DropdownMenu>
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
@@ -256,7 +272,7 @@ export function DashboardSidebarHeader({
 
 	return (
 		<div
-			className="flex flex-col gap-1 border-b border-border px-3 pt-2 pb-2"
+			className="flex flex-col gap-1 px-3 pt-2 pb-2"
 			// Pin the top inset so the traffic-light row stays a constant physical
 			// distance from the window top under page zoom (see the row below).
 			style={isMac ? { paddingTop: `${8 / zoomFactor}px` } : undefined}
@@ -283,12 +299,9 @@ export function DashboardSidebarHeader({
 				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 					<SidebarToggle />
 					<NavigationControls />
-				</ZoomStable>
-				<ZoomStable enabled={isMac} className="ml-auto">
 					<ResourceConsumption surface="v2" />
 				</ZoomStable>
 			</div>
-			<OrganizationDropdown variant="expanded" />
 
 			{showWorkspaces && (
 				<button

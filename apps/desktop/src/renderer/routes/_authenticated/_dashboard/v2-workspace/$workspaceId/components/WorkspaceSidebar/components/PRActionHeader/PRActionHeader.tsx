@@ -1,5 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { VscGitPullRequest, VscLoading } from "react-icons/vsc";
+import { V2WorkspaceOpenInButton } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/V2WorkspaceOpenInButton";
 import type { PRFlowDispatch } from "../../hooks/usePRFlowDispatch";
 import { PRStatusGroup } from "./components/PRStatusGroup";
 import {
@@ -31,8 +32,9 @@ export function PRActionHeader({
 	const action = selectActionButton(state);
 
 	return (
-		<div className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-muted/45 px-2 dark:bg-muted/35">
-			<div className="ml-auto flex items-center">
+		<div className="@container flex h-12 shrink-0 items-center gap-2 bg-muted/45 px-2 dark:bg-muted/35">
+			<div className="ml-auto flex items-center gap-2">
+				<V2WorkspaceOpenInButton workspaceId={workspaceId} />
 				<ActionSlot
 					variant={action}
 					state={state}

@@ -15,7 +15,8 @@ type EventType =
 	| "agent:lifecycle"
 	| "terminal:lifecycle"
 	| "port:changed"
-	| "workspace:changed";
+	| "workspace:changed"
+	| "project:changed";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -70,6 +71,22 @@ export interface WorkspaceChangedPayload {
 	occurredAt: number;
 }
 
+type ProjectChangedMessage = Extract<
+	ServerMessage,
+	{ type: "project:changed" }
+>;
+
+export type ProjectSnapshotPayload = NonNullable<
+	ProjectChangedMessage["project"]
+>;
+
+export interface ProjectChangedPayload {
+	eventType: ProjectChangedMessage["eventType"];
+	/** Null for `deleted` — the row is already gone. */
+	project: ProjectChangedMessage["project"];
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -82,7 +99,9 @@ type EventListener<T extends EventType> = T extends "fs:events"
 					? (workspaceId: string, payload: PortChangedPayload) => void
 					: T extends "workspace:changed"
 						? (workspaceId: string, payload: WorkspaceChangedPayload) => void
-						: never;
+						: T extends "project:changed"
+							? (projectId: string, payload: ProjectChangedPayload) => void
+							: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -130,6 +149,8 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 	for (const entry of state.listeners) {
 		if (entry.type !== message.type) continue;
 
+		// Scope id for per-entity filtering: workspaceId for workspace-scoped
+		// events, projectId for project:changed ("*" subscribers get all).
 		const workspaceId =
 			message.type === "fs:events" ||
 			message.type === "git:changed" ||
@@ -138,7 +159,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			message.type === "port:changed" ||
 			message.type === "workspace:changed"
 				? message.workspaceId
-				: null;
+				: message.type === "project:changed"
+					? message.projectId
+					: null;
 
 		if (
 			workspaceId &&
@@ -193,6 +216,12 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					occurredAt: message.occurredAt,
 				},
 			);
+		} else if (message.type === "project:changed") {
+			(entry.callback as EventListener<"project:changed">)(message.projectId, {
+				eventType: message.eventType,
+				project: message.project,
+				occurredAt: message.occurredAt,
+			});
 		}
 	}
 }

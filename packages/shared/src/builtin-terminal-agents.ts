@@ -81,8 +81,10 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Codex",
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
-		command: "codex --dangerously-bypass-approvals-and-sandbox",
-		promptCommand: "codex --dangerously-bypass-approvals-and-sandbox --",
+		command:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
+		promptCommand:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust --",
 		nonInteractiveCommand: "codex exec --skip-git-repo-check",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -139,6 +141,16 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Mistral's coding agent for reading, editing, and running code from the terminal.",
 		command: "vibe --trust --auto-approve",
 		nonInteractiveCommand: "vibe --trust --agent plan -p",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
+		id: "kimi",
+		label: "Kimi Code",
+		description:
+			"Moonshot AI's coding agent for reading, editing, and running code from the terminal.",
+		command: "kimi",
+		promptCommand: "kimi -p",
+		promptCommandSuffix: "; kimi --auto --continue",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({

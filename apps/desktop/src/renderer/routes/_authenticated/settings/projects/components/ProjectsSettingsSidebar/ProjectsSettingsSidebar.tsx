@@ -1,14 +1,9 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { env } from "renderer/env.renderer";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
-import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { MOCK_ORG_ID } from "shared/constants";
 import {
 	type SettingsListGroup,
 	SettingsListSidebar,
@@ -29,30 +24,22 @@ interface ProjectsSettingsSidebarProps {
 export function ProjectsSettingsSidebar({
 	selectedProjectId,
 }: ProjectsSettingsSidebarProps) {
-	const collections = useCollections();
-	const { data: session } = authClient.useSession();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
-
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
-
 	const { data: groups = [] } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 
-	const { data: v2Projects = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) =>
-					eq(projects.organizationId, activeOrganizationId ?? ""),
-				)
-				.select(({ projects }) => ({
-					id: projects.id,
-					name: projects.name,
-					iconUrl: projects.iconUrl,
-				})),
-		[collections, activeOrganizationId],
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const v2Projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
+				name: project.name,
+				iconUrl: project.repoOwner
+					? `https://github.com/${project.repoOwner}.png?size=64`
+					: null,
+			})),
+		[hostProjects],
 	);
 
 	const listGroups = useMemo<Array<SettingsListGroup<ProjectRow>>>(() => {

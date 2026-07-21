@@ -7,6 +7,7 @@ import {
 	getChangesetFileKey,
 } from "../../../../../useChangeset";
 import type { DiffAnnotationMetadata } from "../useDiffAnnotations";
+import { shouldRestoreCachedScrollState } from "./shouldRestoreCachedScrollState";
 
 interface UseDiffCodeViewScrollOptions {
 	codeViewRef: RefObject<CodeViewHandle<DiffAnnotationMetadata> | null>;
@@ -15,6 +16,8 @@ interface UseDiffCodeViewScrollOptions {
 	items: CodeViewItem<DiffAnnotationMetadata>[];
 	collapsedSet: ReadonlySet<string>;
 	setCollapsed: (path: string, value: boolean) => void;
+	scrollStateKey: string;
+	initialScrollState?: { scrollTop: number; updatedAt: number };
 }
 
 interface UseDiffCodeViewScrollResult {
@@ -28,8 +31,11 @@ export function useDiffCodeViewScroll({
 	items,
 	collapsedSet,
 	setCollapsed,
+	scrollStateKey,
+	initialScrollState,
 }: UseDiffCodeViewScrollOptions): UseDiffCodeViewScrollResult {
 	const lastScrollTargetRef = useRef<string | null>(null);
+	const resolvedScrollStateKeyRef = useRef<string | null>(null);
 	const itemById = useMemo(() => {
 		const map = new Map<string, CodeViewItem<DiffAnnotationMetadata>>();
 		for (const item of items) {
@@ -50,6 +56,29 @@ export function useDiffCodeViewScroll({
 	}, [data.changeKey, data.path, items, fileByItemId]);
 
 	useEffect(() => {
+		const scrollKey = [
+			targetItemId ?? "",
+			data.focusLine ?? "",
+			data.focusSide ?? "",
+			data.focusTick ?? "",
+		].join(":");
+		if (resolvedScrollStateKeyRef.current !== scrollStateKey) {
+			lastScrollTargetRef.current = null;
+			if (shouldRestoreCachedScrollState(initialScrollState, data.focusTick)) {
+				const instance = codeViewRef.current?.getInstance();
+				if (!instance || items.length === 0) return;
+				codeViewRef.current?.scrollTo({
+					type: "position",
+					position: initialScrollState.scrollTop,
+					behavior: "instant",
+				});
+				lastScrollTargetRef.current = scrollKey;
+				resolvedScrollStateKeyRef.current = scrollStateKey;
+				return;
+			}
+			resolvedScrollStateKeyRef.current = scrollStateKey;
+		}
+
 		if (!targetItemId) return;
 		const file = fileByItemId.get(targetItemId);
 		if (!file) return;
@@ -60,12 +89,6 @@ export function useDiffCodeViewScroll({
 			return;
 		}
 
-		const scrollKey = [
-			targetItemId,
-			data.focusLine ?? "",
-			data.focusSide ?? "",
-			data.focusTick ?? "",
-		].join(":");
 		if (lastScrollTargetRef.current === scrollKey) return;
 
 		const targetItem = itemById.get(targetItemId);
@@ -93,6 +116,9 @@ export function useDiffCodeViewScroll({
 		data.focusLine,
 		data.focusSide,
 		data.focusTick,
+		initialScrollState,
+		items.length,
+		scrollStateKey,
 		targetItemId,
 		fileByItemId,
 		itemById,
