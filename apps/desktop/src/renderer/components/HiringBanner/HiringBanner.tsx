@@ -7,17 +7,22 @@ import { track } from "renderer/lib/analytics";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useHiringBannerStore } from "renderer/stores/hiring-banner";
 
-export function HiringBanner() {
+interface HiringBannerProps {
+	surface: "v1" | "v2";
+	isCollapsed?: boolean;
+}
+
+export function HiringBanner({ surface, isCollapsed }: HiringBannerProps) {
 	const isEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.HIRING_BANNER);
 	const dismissed = useHiringBannerStore((s) => s.dismissed);
 	const dismiss = useHiringBannerStore((s) => s.dismiss);
 	const openUrlMutation = electronTrpc.external.openUrl.useMutation();
-	const isVisible = isEnabled && !dismissed;
+	const isVisible = !isCollapsed && isEnabled && !dismissed;
 
 	useEffect(() => {
 		if (!isVisible) return;
-		track("hiring_banner_shown", { surface: "v2" });
-	}, [isVisible]);
+		track("hiring_banner_shown", { surface });
+	}, [isVisible, surface]);
 
 	function handleViewRoles() {
 		track("hiring_banner_clicked");
@@ -29,7 +34,7 @@ export function HiringBanner() {
 		dismiss();
 	}
 
-	if (!isEnabled) return null;
+	if (isCollapsed || !isEnabled) return null;
 
 	return (
 		<AnimatePresence>

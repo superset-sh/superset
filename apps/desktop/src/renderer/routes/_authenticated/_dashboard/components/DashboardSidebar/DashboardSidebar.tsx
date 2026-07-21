@@ -24,6 +24,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
+import { HiringBanner } from "renderer/components/HiringBanner";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -35,7 +36,6 @@ import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarH
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
-import { HiringBanner } from "./components/HiringBanner";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
@@ -245,7 +245,7 @@ export function DashboardSidebar({
 									projectName={activeV2Project.name}
 								/>
 							)}
-							{!isCollapsed && <HiringBanner />}
+							<HiringBanner surface="v2" isCollapsed={isCollapsed} />
 							<div
 								className={cn(
 									"border-t border-border",

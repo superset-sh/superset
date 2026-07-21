@@ -137,9 +137,10 @@ export default function JoinUsPage() {
 						</p>
 						<p>
 							So much of our software infrastructure needs to be thrown out and
-							rebuilt. This is a land grab - value is about to be created at a
-							scale we've never seen. We intend to claim it by making Superset
-							the place where teams run and manage their coding factories -{" "}
+							rebuilt, which makes it an extremely exciting time. This is a land
+							grab - value is about to be created at a scale we've never seen.
+							We intend to claim it by making Superset the place where teams run
+							and manage their coding factories -{" "}
 							<span className="text-foreground">starting with our own.</span>
 						</p>
 					</div>
