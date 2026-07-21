@@ -9,8 +9,10 @@ import {
 } from "@superset/ui/dialog";
 import { cn } from "@superset/ui/utils";
 import { HiExclamationTriangle, HiInformationCircle } from "react-icons/hi2";
-import { useNoticeCta } from "renderer/components/DesktopNotices/hooks/useNoticeCta";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
+import { useAutoUpdateStatus } from "renderer/components/UpdatesPill/useAutoUpdateStatus";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 
 interface NoticeDialogProps {
 	notice: DesktopNotice;
@@ -19,11 +21,27 @@ interface NoticeDialogProps {
 
 /** Soft (warning/info) server-driven notice, per the version-notices design. */
 export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
-	const runCta = useNoticeCta();
+	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const install = electronTrpc.autoUpdate.install.useMutation();
+	const check = electronTrpc.autoUpdate.check.useMutation();
+	const updateEvent = useAutoUpdateStatus();
 	const isWarning = notice.severity === "warning";
 
 	const handleOpenChange = (open: boolean) => {
 		if (!open && notice.dismissible) onDismiss(notice.id);
+	};
+
+	const runCta = () => {
+		const cta = notice.cta;
+		if (!cta) return;
+		if (cta.action === "open-url") {
+			if (cta.url) openUrl.mutate(cta.url);
+		} else if (updateEvent?.status === AUTO_UPDATE_STATUS.READY) {
+			install.mutate();
+		} else {
+			check.mutate();
+		}
+		if (notice.dismissible) onDismiss(notice.id);
 	};
 
 	return (
@@ -81,13 +99,7 @@ export function NoticeDialog({ notice, onDismiss }: NoticeDialogProps) {
 							</Button>
 						)}
 						{notice.cta && (
-							<Button
-								size="sm"
-								onClick={() => {
-									runCta(notice.cta);
-									if (notice.dismissible) onDismiss(notice.id);
-								}}
-							>
+							<Button size="sm" onClick={runCta}>
 								{notice.cta.label}
 							</Button>
 						)}
