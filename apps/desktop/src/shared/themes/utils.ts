@@ -1,4 +1,4 @@
-import { formatHex, formatHex8, parse } from "culori";
+import { formatHex, formatHex8, parse, wcagContrast } from "culori";
 
 /**
  * Convert any CSS color to hex format (#RRGGBB)
@@ -53,4 +53,17 @@ export function withAlpha(color: string, alpha: number): string {
  */
 export function stripHash(hex: string): string {
 	return hex.replace("#", "");
+}
+
+/**
+ * WCAG contrast ratio (1–21) between a foreground and background color.
+ * Returns 1 (worst case) if either color can't be parsed.
+ */
+export function contrastRatio(foreground: string, background: string): number {
+	const fg = parse(foreground);
+	const bg = parse(background);
+	if (!fg || !bg) {
+		return 1;
+	}
+	return wcagContrast(fg, bg);
 }

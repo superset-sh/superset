@@ -1,5 +1,30 @@
 import { type EditorTheme, getTerminalColors, type Theme } from "./types";
-import { withAlpha } from "./utils";
+import { contrastRatio, withAlpha } from "./utils";
+
+/**
+ * Minimum contrast a comment color must clear against the editor background to
+ * be used as-is. ANSI brightBlack is dim by design and in most dark themes sits
+ * well below this, so it's rejected in favor of the theme's designed-to-be-read
+ * secondary text color. See #5662.
+ */
+const MIN_COMMENT_CONTRAST = 4.5;
+
+/**
+ * Pick the comment token color. brightBlack is a good comment color when it's
+ * legible, but in imported dark themes it's often the dim ANSI slot (e.g. Tokyo
+ * Night's #414868 at ~1.9:1) — unreadable once the diff view composites line
+ * tints on top. Fall back to mutedForeground, which themes design to be read.
+ */
+function deriveComment(theme: Theme): string {
+	const brightBlack = theme.terminal?.brightBlack;
+	if (
+		brightBlack &&
+		contrastRatio(brightBlack, theme.ui.background) >= MIN_COMMENT_CONTRAST
+	) {
+		return brightBlack;
+	}
+	return theme.ui.mutedForeground;
+}
 
 /**
  * Get editor colors from a theme, falling back to a derived palette if not defined.
@@ -53,7 +78,7 @@ export function getEditorTheme(theme: Theme): EditorTheme {
 		},
 		syntax: {
 			plainText: theme.ui.foreground,
-			comment: terminal?.brightBlack ?? theme.ui.mutedForeground,
+			comment: deriveComment(theme),
 			keyword: terminal?.magenta ?? theme.ui.primary,
 			string: terminal?.green ?? theme.ui.chart2,
 			number: terminal?.yellow ?? theme.ui.chart4,

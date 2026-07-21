@@ -83,4 +83,13 @@ export const monokaiTheme: Theme = {
 		brightCyan: "#a1efe4",
 		brightWhite: "#f9f8f5",
 	},
+
+	editor: {
+		syntax: {
+			// Monokai's iconic comment gray (~3.0:1). Below the generic contrast
+			// guard, so pin it explicitly rather than letting comments fall back
+			// to mutedForeground. See #5662.
+			comment: "#75715e",
+		},
+	},
 };
