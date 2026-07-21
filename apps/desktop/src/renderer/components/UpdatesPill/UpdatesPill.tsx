@@ -2,9 +2,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import { LuCircleArrowUp, LuCircleCheck } from "react-icons/lu";
+import { useDesktopNotices } from "renderer/hooks/useDesktopNotices";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
 import { CountdownBorder } from "./CountdownBorder";
+import { PreUpdateConfirmPopover } from "./components/PreUpdateConfirmPopover";
 import { DownloadRing } from "./DownloadRing";
 import { useAutoUpdateStatus } from "./useAutoUpdateStatus";
 
@@ -64,7 +66,9 @@ interface UpdatesPillProps {
  */
 export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const event = useAutoUpdateStatus();
+	const { preUpdateNotice } = useDesktopNotices();
 	const [isInstalling, setIsInstalling] = useState(false);
+	const [isConfirming, setIsConfirming] = useState(false);
 	const [confirmationDone, setConfirmationDone] = useState(false);
 	const [isLeaving, setIsLeaving] = useState(false);
 	const installMutation = electronTrpc.autoUpdate.install.useMutation();
@@ -123,10 +127,20 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const percent = event?.progress?.percent ?? null;
 	const spinnerGlyph = SPINNER_FRAMES[frame % SPINNER_FRAMES.length];
 
+	const startInstall = () => {
+		setIsConfirming(false);
+		setIsInstalling(true);
+		installMutation.mutate();
+	};
+
 	const handleClick = () => {
 		if (isReady && !isInstalling) {
-			setIsInstalling(true);
-			installMutation.mutate();
+			// a server-driven pre-update notice intercepts the install click
+			if (preUpdateNotice) {
+				setIsConfirming(true);
+				return;
+			}
+			startInstall();
 		} else if (isError) {
 			checkMutation.mutate();
 		}
@@ -144,19 +158,92 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 
 	if (isCollapsed) {
 		return (
+			<PreUpdateConfirmPopover
+				open={isConfirming}
+				notice={preUpdateNotice}
+				onConfirm={startInstall}
+				onCancel={() => setIsConfirming(false)}
+			>
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleClick}
+							aria-disabled={isBusy}
+							aria-label={tooltip}
+							className={cn(
+								"relative flex size-8 items-center justify-center rounded-md",
+								"animate-in fade-in duration-300",
+								isBusy
+									? "cursor-default text-muted-foreground"
+									: "hover:bg-accent/50",
+							)}
+							style={
+								isDissolving
+									? { animation: `pill-pixel-out ${EXIT_MS}ms steps(3) both` }
+									: undefined
+							}
+						>
+							{isUpdated && (
+								<CountdownBorder durationMs={CONFIRM_MS} radius={5} />
+							)}
+							{isDownloading ? (
+								<DownloadRing percent={percent} className="size-3.5" />
+							) : isInstalling ? (
+								<span className="font-mono text-xs leading-none text-orange-600 dark:text-orange-300">
+									{spinnerGlyph}
+								</span>
+							) : isUpdated ? (
+								<LuCircleCheck
+									strokeWidth={STROKE_WIDTH}
+									className="size-4 text-emerald-600 dark:text-emerald-400"
+								/>
+							) : (
+								<LuCircleArrowUp
+									strokeWidth={STROKE_WIDTH}
+									className={cn(
+										"size-4",
+										isError
+											? "text-destructive"
+											: "text-emerald-600 dark:text-emerald-400",
+									)}
+								/>
+							)}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">{tooltip}</TooltipContent>
+				</Tooltip>
+			</PreUpdateConfirmPopover>
+		);
+	}
+
+	return (
+		<PreUpdateConfirmPopover
+			open={isConfirming}
+			notice={preUpdateNotice}
+			onConfirm={startInstall}
+			onCancel={() => setIsConfirming(false)}
+		>
 			<Tooltip delayDuration={300}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
 						onClick={handleClick}
 						aria-disabled={isBusy}
-						aria-label={tooltip}
 						className={cn(
-							"relative flex size-8 items-center justify-center rounded-md",
-							"animate-in fade-in duration-300",
-							isBusy
-								? "cursor-default text-muted-foreground"
-								: "hover:bg-accent/50",
+							"relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1",
+							"font-mono text-[10px] tabular-nums leading-none",
+							"ring-1 ring-inset animate-in fade-in slide-in-from-bottom-1 duration-300",
+							isBusy && "cursor-default",
+							(isDownloading || isInstalling || isUpdated) &&
+								"bg-foreground/[0.045] ring-foreground/[0.06]",
+							(isDownloading || isUpdated) && "text-muted-foreground",
+							isInstalling && "text-orange-600 dark:text-orange-300",
+							isReady &&
+								!isInstalling &&
+								"bg-emerald-500/15 ring-emerald-500/25 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300",
+							isError &&
+								"bg-destructive/10 ring-destructive/25 text-destructive hover:bg-destructive/20",
 						)}
 						style={
 							isDissolving
@@ -165,119 +252,62 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						}
 					>
 						{isUpdated && (
-							<CountdownBorder durationMs={CONFIRM_MS} radius={5} />
+							<CountdownBorder durationMs={CONFIRM_MS} radius="pill" />
 						)}
-						{isDownloading ? (
-							<DownloadRing percent={percent} className="size-3.5" />
-						) : isInstalling ? (
-							<span className="font-mono text-xs leading-none text-orange-600 dark:text-orange-300">
-								{spinnerGlyph}
-							</span>
+						{isInstalling ? (
+							<>
+								<span className="w-3 text-center text-xs leading-none">
+									{spinnerGlyph}
+								</span>
+								<span className="tracking-tighter">{asciiBar(frame)}</span>
+							</>
+						) : isDownloading ? (
+							<>
+								<DownloadRing percent={percent} className="size-3" />
+								<span>
+									{percent !== null ? `${Math.floor(percent)}%` : "…"}
+								</span>
+							</>
 						) : isUpdated ? (
-							<LuCircleCheck
-								strokeWidth={STROKE_WIDTH}
-								className="size-4 text-emerald-600 dark:text-emerald-400"
-							/>
+							<>
+								<svg
+									viewBox="0 0 24 24"
+									fill="none"
+									stroke="currentColor"
+									aria-hidden="true"
+									className="size-3 shrink-0 text-emerald-600 dark:text-emerald-400"
+								>
+									<path
+										d="M4.5 12.5l5 5L20 6.5"
+										strokeWidth={3}
+										strokeLinecap="round"
+										strokeLinejoin="round"
+										style={{
+											strokeDasharray: 26,
+											animation:
+												"check-draw 0.45s cubic-bezier(0.5, 0, 0.25, 1) 0.05s both",
+										}}
+									/>
+								</svg>
+								<span>
+									{version ? `v${displayVersion(version)}` : "downloaded"}
+								</span>
+							</>
+						) : isReady ? (
+							<>
+								<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
+								<span>↑ update</span>
+							</>
 						) : (
-							<LuCircleArrowUp
-								strokeWidth={STROKE_WIDTH}
-								className={cn(
-									"size-4",
-									isError
-										? "text-destructive"
-										: "text-emerald-600 dark:text-emerald-400",
-								)}
-							/>
+							<>
+								<span className="size-1.5 shrink-0 rounded-full bg-destructive animate-pulse" />
+								<span>↻ retry</span>
+							</>
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="right">{tooltip}</TooltipContent>
+				<TooltipContent side="top">{tooltip}</TooltipContent>
 			</Tooltip>
-		);
-	}
-
-	return (
-		<Tooltip delayDuration={300}>
-			<TooltipTrigger asChild>
-				<button
-					type="button"
-					onClick={handleClick}
-					aria-disabled={isBusy}
-					className={cn(
-						"relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1",
-						"font-mono text-[10px] tabular-nums leading-none",
-						"ring-1 ring-inset animate-in fade-in slide-in-from-bottom-1 duration-300",
-						isBusy && "cursor-default",
-						(isDownloading || isInstalling || isUpdated) &&
-							"bg-foreground/[0.045] ring-foreground/[0.06]",
-						(isDownloading || isUpdated) && "text-muted-foreground",
-						isInstalling && "text-orange-600 dark:text-orange-300",
-						isReady &&
-							!isInstalling &&
-							"bg-emerald-500/15 ring-emerald-500/25 text-emerald-700 hover:bg-emerald-500/25 dark:text-emerald-300",
-						isError &&
-							"bg-destructive/10 ring-destructive/25 text-destructive hover:bg-destructive/20",
-					)}
-					style={
-						isDissolving
-							? { animation: `pill-pixel-out ${EXIT_MS}ms steps(3) both` }
-							: undefined
-					}
-				>
-					{isUpdated && (
-						<CountdownBorder durationMs={CONFIRM_MS} radius="pill" />
-					)}
-					{isInstalling ? (
-						<>
-							<span className="w-3 text-center text-xs leading-none">
-								{spinnerGlyph}
-							</span>
-							<span className="tracking-tighter">{asciiBar(frame)}</span>
-						</>
-					) : isDownloading ? (
-						<>
-							<DownloadRing percent={percent} className="size-3" />
-							<span>{percent !== null ? `${Math.floor(percent)}%` : "…"}</span>
-						</>
-					) : isUpdated ? (
-						<>
-							<svg
-								viewBox="0 0 24 24"
-								fill="none"
-								stroke="currentColor"
-								aria-hidden="true"
-								className="size-3 shrink-0 text-emerald-600 dark:text-emerald-400"
-							>
-								<path
-									d="M4.5 12.5l5 5L20 6.5"
-									strokeWidth={3}
-									strokeLinecap="round"
-									strokeLinejoin="round"
-									style={{
-										strokeDasharray: 26,
-										animation:
-											"check-draw 0.45s cubic-bezier(0.5, 0, 0.25, 1) 0.05s both",
-									}}
-								/>
-							</svg>
-							<span>
-								{version ? `v${displayVersion(version)}` : "downloaded"}
-							</span>
-						</>
-					) : isReady ? (
-						<>
-							<span className="size-1.5 shrink-0 rounded-full bg-emerald-500 animate-pulse" />
-							<span>↑ update</span>
-						</>
-					) : (
-						<>
-							<span className="size-1.5 shrink-0 rounded-full bg-destructive animate-pulse" />
-							<span>↻ retry</span>
-						</>
-					)}
-				</button>
-			</TooltipTrigger>
-			<TooltipContent side="top">{tooltip}</TooltipContent>
-		</Tooltip>
+		</PreUpdateConfirmPopover>
 	);
 }

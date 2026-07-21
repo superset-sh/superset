@@ -19,6 +19,7 @@ const API = {
 	sayHelloFromBridge: () => console.log("\nHello from bridgeAPI! 👋\n\n"),
 	username: process.env.USER,
 	appVersion: __APP_VERSION__,
+	platform: process.platform,
 };
 
 // Store mapping of user listeners to wrapped listeners for proper cleanup
