@@ -1,9 +1,8 @@
 // Reusable test client for pty-daemon integration tests.
-// Speaks the daemon's current wire protocol over a Unix socket.
+// Speaks the daemon's wire protocol (v2) over a Unix socket.
 
 import * as net from "node:net";
 import {
-	CURRENT_PROTOCOL_VERSION,
 	encodeFrame,
 	FrameDecoder,
 	type ServerMessage,
@@ -226,7 +225,7 @@ export async function connectAndHello(
 	socketPath: string,
 ): Promise<DaemonClient> {
 	const c = await connect(socketPath);
-	c.send({ type: "hello", protocols: [CURRENT_PROTOCOL_VERSION] });
+	c.send({ type: "hello", protocols: [2] });
 	await c.waitFor((m) => m.type === "hello-ack");
 	return c;
 }

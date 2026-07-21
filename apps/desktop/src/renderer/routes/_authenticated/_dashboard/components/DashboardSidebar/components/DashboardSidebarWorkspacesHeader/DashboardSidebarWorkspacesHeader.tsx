@@ -59,7 +59,7 @@ export function DashboardSidebarWorkspacesHeader() {
 			}}
 			className="group flex min-h-8 w-full shrink-0 items-center gap-1.5 py-1.5 pl-5 pr-2 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-muted/50"
 		>
-			<span className="min-w-0 truncate text-left">Workspaces</span>
+			<span className="min-w-0 truncate text-left">Projects</span>
 			<HiChevronRight
 				className={cn(
 					"size-3 shrink-0 text-muted-foreground opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100 group-focus-visible:opacity-100",

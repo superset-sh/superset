@@ -29,7 +29,6 @@
 		"dev:relay": "turbo dev --filter=@superset/relay",
 		"build": "turbo build --filter=@superset/desktop",
 		"test": "turbo test --concurrency=2",
-		"test:cli-e2e": "bun run --cwd packages/cli test:e2e:agents",
 		"lint": "./scripts/lint.sh",
 		"check:desktop-git-env": "./scripts/check-desktop-git-env.sh",
 		"lint:fix": "bunx @biomejs/biome@2.4.2 migrate --write && bunx @biomejs/biome@2.4.2 check --write --unsafe .",

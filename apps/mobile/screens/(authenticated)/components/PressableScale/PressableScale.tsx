@@ -1,5 +1,10 @@
 import { type ComponentProps, type ReactNode, useRef } from "react";
-import { Pressable, StyleSheet } from "react-native";
+import {
+	Pressable,
+	type StyleProp,
+	StyleSheet,
+	type ViewStyle,
+} from "react-native";
 import Animated, {
 	useAnimatedStyle,
 	useSharedValue,
@@ -17,11 +22,13 @@ const HOLD_FADE_MS = 150;
 
 export function PressableScale({
 	children,
+	style,
 	onPressIn,
 	onPressOut,
 	...props
-}: Omit<ComponentProps<typeof Pressable>, "children"> & {
+}: Omit<ComponentProps<typeof Pressable>, "children" | "style"> & {
 	children?: ReactNode;
+	style?: StyleProp<ViewStyle>;
 }) {
 	const pressed = useSharedValue(0);
 	const holdFadeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -35,7 +42,7 @@ export function PressableScale({
 	return (
 		<AnimatedPressable
 			{...props}
-			style={containerStyle}
+			style={[style, containerStyle]}
 			onPressIn={(event) => {
 				pressed.value = withTiming(1, { duration: PRESS_IN_MS });
 				if (holdFadeTimer.current) clearTimeout(holdFadeTimer.current);

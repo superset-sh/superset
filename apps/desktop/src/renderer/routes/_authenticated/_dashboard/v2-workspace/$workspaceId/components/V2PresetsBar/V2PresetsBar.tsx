@@ -273,9 +273,6 @@ export function V2PresetsBar({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			{visiblePresets.length > 0 ? (
-				<div className="mx-1 h-3.5 w-px shrink-0 bg-border/60" />
-			) : null}
 			{visiblePresets.map(({ preset }, visibleIndex) => {
 				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
 				return (

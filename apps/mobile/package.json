@@ -51,6 +51,7 @@
 		"@shikijs/core": "4.2.0",
 		"@shikijs/langs": "4.2.0",
 		"@shikijs/themes": "4.2.0",
+		"@shopify/flash-list": "2.3.2",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/host-client": "workspace:*",

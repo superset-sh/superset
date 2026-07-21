@@ -20,7 +20,6 @@ import {
 	type ClientMessage,
 	encodeFrame,
 	FrameDecoder,
-	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@superset/pty-daemon/protocol";
 import {
 	DaemonSupervisor,
@@ -78,8 +77,6 @@ interface FakeDaemonOptions {
 	hangUpAfterHello?: boolean;
 	respondWithWrongMessageFirst?: boolean;
 	silent?: boolean;
-	protocol?: number;
-	onHello?: (protocols: number[]) => void;
 }
 
 async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
@@ -99,7 +96,6 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 			for (const decoded of decoder.drain()) {
 				const msg = decoded.message as ClientMessage;
 				if (msg.type !== "hello") continue;
-				opts.onHello?.(msg.protocols);
 				if (opts.silent) return;
 				if (opts.hangUpAfterHello) {
 					sock.end();
@@ -123,7 +119,7 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 					sock.write(
 						encodeFrame({
 							type: "hello-ack",
-							protocol: opts.protocol ?? 1,
+							protocol: 1,
 							daemonVersion: opts.respondWithVersion,
 							daemonPid: opts.daemonPid,
 						}),
@@ -149,23 +145,6 @@ describe("probeDaemonVersion", () => {
 		const fake = await startFakeDaemon({ respondWithVersion: "0.1.0" });
 		try {
 			expect(await probeDaemonVersion(fake.socketPath, 1500)).toBe("0.1.0");
-		} finally {
-			await fake.close();
-		}
-	});
-
-	test("offers legacy protocol support during version probes", async () => {
-		let offered: number[] | undefined;
-		const fake = await startFakeDaemon({
-			respondWithVersion: "0.2.5",
-			protocol: 2,
-			onHello: (protocols) => {
-				offered = protocols;
-			},
-		});
-		try {
-			expect(await probeDaemonVersion(fake.socketPath, 1500)).toBe("0.2.5");
-			expect(offered).toEqual([...SUPPORTED_PROTOCOL_VERSIONS]);
 		} finally {
 			await fake.close();
 		}

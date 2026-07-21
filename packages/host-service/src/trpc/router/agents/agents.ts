@@ -4,21 +4,21 @@ import {
 	buildAgentModelArgs,
 	buildAgentModelEnv,
 } from "@superset/shared/agent-models";
-import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
+import {
+	buildArgvCommand,
+	buildPromptCommandString,
+	envOverlayPrefix,
+	sanitizePromptForPty,
+} from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
-import {
-	createTerminalSessionInternal,
-	disposeSessionAndWait,
-} from "../../../terminal/terminal";
+import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
-import { waitForAgentLaunch, withPreparedAgentLaunch } from "./agent-launch";
-import { buildAttachmentBlock } from "./attachment-prompt";
 
 interface ResolvedHostAgentConfig {
 	id: string;
@@ -105,6 +105,54 @@ export function resolveHostAgentConfig(
 	return null;
 }
 
+/**
+ * Build a shell command string that runs the resolved agent config with the
+ * given prompt. argv transport appends the prompt as a quoted positional;
+ * stdin transport delegates heredoc assembly and delimiter collision handling
+ * to the shared prompt-launch pipeline.
+ *
+ * Prompts that sanitize to empty drop `promptArgs` and the prompt payload so
+ * codex/opencode/copilot don't get stray prompt-mode flags during promptless
+ * launches — emptiness is only knowable after sanitization, so the check
+ * lives here rather than in the router's zod schema.
+ */
+export function buildAgentCommandString(
+	config: ResolvedHostAgentConfig,
+	rawPrompt: string,
+	modelArgs: string[] = [],
+	randomId: string = crypto.randomUUID(),
+): string {
+	const prompt = sanitizePromptForPty(rawPrompt);
+	const baseArgv = [config.command, ...config.args, ...modelArgs];
+
+	if (prompt === "") {
+		return buildArgvCommand(baseArgv);
+	}
+
+	if (config.promptTransport === "argv") {
+		// Plain quoted positional, not the shared "$(cat <<…)" form: the command
+		// is typed into the user's configured shell, and fish has no heredocs.
+		return buildArgvCommand([...baseArgv, ...config.promptArgs, prompt]);
+	}
+
+	return buildPromptCommandString({
+		command: buildArgvCommand([...baseArgv, ...config.promptArgs]),
+		transport: "stdin",
+		prompt,
+		randomId,
+	});
+}
+
+function buildAttachmentBlock(
+	prompt: string,
+	resolved: Array<{ attachmentId: string; path: string }>,
+): string {
+	if (resolved.length === 0) return prompt;
+	const lines = resolved.map((item) => `- ${item.path}`);
+	const block = `\n\n# Attached files\n\nThe user attached these files. They are available on this host at:\n\n${lines.join("\n")}`;
+	return prompt + block;
+}
+
 export interface AgentRunInput {
 	workspaceId: string;
 	agent: string;
@@ -180,7 +228,7 @@ async function runChatAgent(
 }
 
 async function runTerminalAgent(
-	ctx: HostServiceContext,
+	ctx: { db: HostDb; eventBus: import("../../../events").EventBus },
 	input: AgentRunInput,
 ): Promise<AgentRunResult> {
 	const config = resolveHostAgentConfig(ctx.db, input.agent);
@@ -203,57 +251,37 @@ async function runTerminalAgent(
 		resolvedAttachments.push({ attachmentId, path: resolved.path });
 	}
 
-	const prompt = sanitizePromptForPty(
-		buildAttachmentBlock(input.prompt, resolvedAttachments),
-	);
+	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
 	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
+	const command = buildAgentCommandString(config, prompt, [
+		...modelArgs,
+		...effortArgs,
+	]);
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
-	return withPreparedAgentLaunch(
-		{
-			command: config.command,
-			args: [...config.args, ...modelArgs, ...effortArgs],
-			promptArgs: config.promptArgs,
-			promptTransport: config.promptTransport,
-			prompt,
-			env: { ...config.env, ...modelEnv },
-		},
-		async (launch) => {
-			const terminalId = crypto.randomUUID();
-			const result = await createTerminalSessionInternal({
-				terminalId,
-				workspaceId: input.workspaceId,
-				db: ctx.db,
-				eventBus: ctx.eventBus,
-				initialCommand: launch.initialCommand,
-			});
+	const fullCommand = `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`;
 
-			if ("error" in result) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: result.error,
-				});
-			}
+	const terminalId = crypto.randomUUID();
+	const result = await createTerminalSessionInternal({
+		terminalId,
+		workspaceId: input.workspaceId,
+		db: ctx.db,
+		eventBus: ctx.eventBus,
+		initialCommand: fullCommand,
+	});
 
-			try {
-				await waitForAgentLaunch(launch);
-			} catch (error) {
-				await disposeSessionAndWait(terminalId, ctx.db).catch(() => undefined);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						error instanceof Error ? error.message : "Agent failed to start",
-					cause: error,
-				});
-			}
+	if ("error" in result) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: result.error,
+		});
+	}
 
-			return {
-				kind: "terminal" as const,
-				sessionId: result.terminalId,
-				label: config.label,
-			};
-		},
-	);
+	return {
+		kind: "terminal",
+		sessionId: result.terminalId,
+		label: config.label,
+	};
 }
 
 export async function runAgentInWorkspace(

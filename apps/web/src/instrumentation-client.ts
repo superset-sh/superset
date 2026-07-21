@@ -13,14 +13,14 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	capture_exceptions: true,
 	debug: false,
 	cross_subdomain_cookie: true,
+	person_profiles: "always",
 	persistence: "cookie",
 	persistence_name: POSTHOG_COOKIE_NAME,
-	loaded: (posthog) => {
-		posthog.register({
-			app_name: "web",
-			domain: window.location.hostname,
-		});
-	},
+});
+
+posthog.register({
+	app_name: "web",
+	domain: window.location.hostname,
 });
 
 Sentry.init({

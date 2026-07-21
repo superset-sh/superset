@@ -24,7 +24,6 @@ import {
 	FrameDecoder,
 	type ServerMessage,
 	type SessionInfo,
-	SUPPORTED_PROTOCOL_VERSIONS,
 } from "@superset/pty-daemon/protocol";
 import semver from "semver";
 import { DaemonClient } from "../terminal/DaemonClient/index.ts";
@@ -1263,7 +1262,7 @@ export async function listDaemonSessions(
 				sock.write(
 					encodeFrame({
 						type: "hello",
-						protocols: [...SUPPORTED_PROTOCOL_VERSIONS],
+						protocols: [CURRENT_PROTOCOL_VERSION],
 						clientVersion: "supervisor-list",
 					}),
 				);
@@ -1434,7 +1433,7 @@ function probeDaemonHello(
 				sock.write(
 					encodeFrame({
 						type: "hello",
-						protocols: [...SUPPORTED_PROTOCOL_VERSIONS],
+						protocols: [CURRENT_PROTOCOL_VERSION],
 						clientVersion: "supervisor-probe",
 					}),
 				);
