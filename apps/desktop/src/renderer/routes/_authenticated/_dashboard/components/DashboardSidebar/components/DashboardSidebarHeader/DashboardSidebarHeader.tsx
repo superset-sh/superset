@@ -13,6 +13,7 @@ import {
 	LuClock,
 	LuFolderInput,
 	LuFolderPlus,
+	LuGauge,
 	LuLayers,
 	LuLayoutTemplate,
 	LuPlus,
@@ -28,6 +29,7 @@ import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/compone
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
+import { useUsageBadge } from "renderer/routes/_authenticated/_dashboard/hooks/useUsageBadge";
 import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
@@ -82,7 +84,9 @@ export function DashboardSidebarHeader({
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
+	const isUsageOpen = !!matchRoute({ to: "/usage", fuzzy: true });
 	const { myFailedCount } = useFailedAutomations();
+	const { tone: usageTone } = useUsageBadge();
 
 	const {
 		tab: lastTab,
@@ -99,6 +103,10 @@ export function DashboardSidebarHeader({
 
 	const handleAutomationsClick = () => {
 		navigate({ to: "/automations" });
+	};
+
+	const handleUsageClick = () => {
+		navigate({ to: "/usage" });
 	};
 
 	const handleTasksClick = () => {
@@ -189,6 +197,34 @@ export function DashboardSidebarHeader({
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">Tasks & PRs</TooltipContent>
+				</Tooltip>
+
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleUsageClick}
+							aria-label="Token Usage"
+							className={cn(
+								"relative flex size-8 items-center justify-center rounded-md transition-colors",
+								isUsageOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<LuGauge className="size-4" />
+							{usageTone && (
+								<span
+									aria-hidden="true"
+									className={cn(
+										"absolute right-1 top-1 size-1.5 rounded-full",
+										usageTone === "red" ? "bg-red-500" : "bg-amber-500",
+									)}
+								/>
+							)}
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Token Usage</TooltipContent>
 				</Tooltip>
 
 				<Tooltip delayDuration={300}>
@@ -327,6 +363,29 @@ export function DashboardSidebarHeader({
 			>
 				<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
 				<span className="flex-1 text-left">Tasks & PRs</span>
+			</button>
+
+			<button
+				type="button"
+				onClick={handleUsageClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+					isUsageOpen
+						? "bg-accent text-foreground"
+						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+			>
+				<LuGauge className="size-4 shrink-0" />
+				<span className="flex-1 text-left">Token Usage</span>
+				{usageTone && (
+					<span
+						aria-hidden="true"
+						className={cn(
+							"size-2 shrink-0 rounded-full",
+							usageTone === "red" ? "bg-red-500" : "bg-amber-500",
+						)}
+					/>
+				)}
 			</button>
 
 			<div className="flex items-center gap-1">

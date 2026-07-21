@@ -27,6 +27,7 @@ import { createSettingsRouter } from "./settings";
 import { createSystemRouter } from "./system";
 import { createTerminalRouter } from "./terminal";
 import { createUiStateRouter } from "./ui-state";
+import { createUsageRouter } from "./usage";
 import { createWindowRouter } from "./window";
 import { createWorkspacesRouter } from "./workspaces";
 
@@ -57,6 +58,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		config: createConfigRouter(),
 		device: createDeviceRouter(),
 		uiState: createUiStateRouter(),
+		usage: createUsageRouter(),
 		ringtone: createRingtoneRouter(getWindow),
 		hostServiceCoordinator: createHostServiceCoordinatorRouter(),
 		keyboardLayout: createKeyboardLayoutRouter(),

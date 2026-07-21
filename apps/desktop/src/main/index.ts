@@ -54,6 +54,7 @@ import {
 	getTerminalHostClient,
 } from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
+import { getUsageCollector } from "./lib/usage/usage-collector";
 import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
 import { MainWindow } from "./windows/main";
 
@@ -237,6 +238,7 @@ app.on("before-quit", async (event) => {
 			disposeTerminalHostClient();
 		}
 		shutdownTanstackDbPersistence();
+		getUsageCollector().dispose();
 		disposeTray();
 	} catch (error) {
 		console.error("[main] Cleanup during quit failed:", error);
@@ -453,6 +455,7 @@ if (!gotTheLock) {
 		setupAutoUpdater();
 		startMemoryTelemetry();
 		initTray();
+		getUsageCollector().start();
 
 		const coldStartUrl = findDeepLinkInArgv(process.argv);
 		if (coldStartUrl) {

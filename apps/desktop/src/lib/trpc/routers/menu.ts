@@ -11,7 +11,8 @@ type MenuEvent =
 	| { type: "open-settings"; data: OpenSettingsEvent }
 	| { type: "open-workspace"; data: OpenWorkspaceEvent }
 	| { type: "open-project" }
-	| { type: "toggle-presets-bar" };
+	| { type: "toggle-presets-bar" }
+	| { type: "navigate"; data: { to: string } };
 
 export const createMenuRouter = () => {
 	return router({
@@ -33,16 +34,22 @@ export const createMenuRouter = () => {
 					emit.next({ type: "toggle-presets-bar" });
 				};
 
+				const onNavigate = (to: string) => {
+					emit.next({ type: "navigate", data: { to } });
+				};
+
 				menuEmitter.on("open-settings", onOpenSettings);
 				menuEmitter.on("open-workspace", onOpenWorkspace);
 				menuEmitter.on("open-project", onOpenProject);
 				menuEmitter.on("toggle-presets-bar", onTogglePresetsBar);
+				menuEmitter.on("navigate", onNavigate);
 
 				return () => {
 					menuEmitter.off("open-settings", onOpenSettings);
 					menuEmitter.off("open-workspace", onOpenWorkspace);
 					menuEmitter.off("open-project", onOpenProject);
 					menuEmitter.off("toggle-presets-bar", onTogglePresetsBar);
+					menuEmitter.off("navigate", onNavigate);
 				};
 			});
 		}),
