@@ -2,7 +2,10 @@ import type { WorkspaceStore } from "@superset/panes";
 import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData } from "../../../../../../types";
-import { openSubagentPane } from "../../../../../../utils/openSubagentPane";
+import {
+	findSubagentPaneLocation,
+	openSubagentPane,
+} from "../../../../../../utils/openSubagentPane";
 import type { UseChatDisplayReturn } from "../useWorkspaceChatDisplay";
 
 type ChatActiveSubagents = NonNullable<UseChatDisplayReturn["activeSubagents"]>;
@@ -65,14 +68,17 @@ export function useAutoOpenSubagentPanes({
 
 	useEffect(() => {
 		openedToolCallIdsRef.current.clear();
-	}, []);
+	}, [sessionId, parentPaneId]);
 
 	useEffect(() => {
 		if (!store || !tabId || !parentPaneId || !sessionId) return;
 
+		const state = store.getState();
 		for (const entry of listSubagentEntries(activeSubagents)) {
 			if (openedToolCallIdsRef.current.has(entry.toolCallId)) continue;
 			openedToolCallIdsRef.current.add(entry.toolCallId);
+			if (findSubagentPaneLocation(state, entry.toolCallId)) continue;
+
 			openSubagentPane(store, {
 				tabId,
 				parentPaneId,
