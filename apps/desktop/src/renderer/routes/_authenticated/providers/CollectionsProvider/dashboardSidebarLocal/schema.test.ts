@@ -89,6 +89,21 @@ describe("healV2UserPreferences", () => {
 			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
 		);
 	});
+
+	it("migrates the previous split-pane default to the current new-tab default", () => {
+		const healed = healV2UserPreferences({
+			sidebarFileLinks: {
+				plain: "pane",
+				shift: "newTab",
+				meta: "pane",
+				metaShift: "external",
+			},
+		});
+
+		expect(healed.sidebarFileLinks).toEqual(
+			DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks,
+		);
+	});
 });
 
 describe("healWorkspaceLocalState", () => {

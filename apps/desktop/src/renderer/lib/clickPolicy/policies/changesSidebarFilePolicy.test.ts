@@ -67,6 +67,19 @@ describe("changes sidebar file policy", () => {
 		).toBe("external");
 	});
 
+	it("maps shift-click to the diff when the settings action is pane", () => {
+		expect(
+			resolveChangesSidebarFileIntent(
+				{ ...map, shift: "pane" },
+				{
+					metaKey: false,
+					ctrlKey: false,
+					shiftKey: true,
+				},
+			),
+		).toBe("diff");
+	});
+
 	it("returns null for unbound tiers", () => {
 		expect(
 			resolveChangesSidebarFileIntent(

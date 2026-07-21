@@ -19,7 +19,7 @@ export const NEW_PREFIX = "new:";
 const LAST_NEW_AGENT_CONFIG_ID_KEY = "lastSelectedDiffCommentNewAgentConfigId";
 const LAST_TERMINAL_ID_KEY = "lastSelectedDiffCommentTerminalId";
 const LAST_PLACEMENT_KEY = "lastSelectedDiffCommentPlacement";
-const DEFAULT_PLACEMENT: AgentSessionPlacement = "split-pane";
+const DEFAULT_PLACEMENT: AgentSessionPlacement = "new-tab";
 
 function readStorage(key: string): string | null {
 	if (typeof window === "undefined") return null;

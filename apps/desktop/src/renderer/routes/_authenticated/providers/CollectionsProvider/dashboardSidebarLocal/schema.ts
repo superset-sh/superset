@@ -283,16 +283,26 @@ const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
 	metaShift: "external",
 };
 
-const LEGACY_SIDEBAR_FILE_LINKS: LinkTierMap = {
-	plain: "pane",
-	shift: "newTab",
-	meta: "external",
-	metaShift: "external",
-};
+// Previously shipped default maps. A stored row matching any of these is
+// treated as un-customized and upgraded to the current default on read.
+const LEGACY_SIDEBAR_FILE_LINKS: LinkTierMap[] = [
+	{
+		plain: "pane",
+		shift: "newTab",
+		meta: "external",
+		metaShift: "external",
+	},
+	{
+		plain: "pane",
+		shift: "newTab",
+		meta: "pane",
+		metaShift: "external",
+	},
+];
 
 const DEFAULT_SIDEBAR_FILE_LINKS: LinkTierMap = {
-	plain: "pane",
-	shift: "newTab",
+	plain: "newTab",
+	shift: "pane",
 	meta: "pane",
 	metaShift: "external",
 };
@@ -408,10 +418,13 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 				...r.sidebarFileLinks,
 			}
 		: DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks;
+	const storedSidebarFileLinks = r.sidebarFileLinks;
 	const shouldMigrateLegacySidebarFileLinks =
-		r.sidebarFileLinks &&
-		isCompleteLinkTierMap(r.sidebarFileLinks) &&
-		isSameLinkTierMap(r.sidebarFileLinks, LEGACY_SIDEBAR_FILE_LINKS);
+		storedSidebarFileLinks &&
+		isCompleteLinkTierMap(storedSidebarFileLinks) &&
+		LEGACY_SIDEBAR_FILE_LINKS.some((legacy) =>
+			isSameLinkTierMap(storedSidebarFileLinks, legacy),
+		);
 	return {
 		...DEFAULT_V2_USER_PREFERENCES,
 		...r,
