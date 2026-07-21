@@ -1,14 +1,12 @@
 import { CLIError } from "@superset/cli-framework";
-import { getHostId } from "@superset/shared/host-info";
 import type { ApiClient } from "../api-client";
-import { isProcessAlive, readManifest } from "../host/manifest";
-import { type HostServiceClient, resolveHostTarget } from "../host-target";
+import {
+	type HostInfo,
+	type HostServiceClient,
+	queryHostTargets,
+} from "../host-target";
 
-export interface HostInfo {
-	id: string;
-	name: string;
-	online: boolean;
-}
+export type { HostInfo } from "../host-target";
 
 export type HostWorkspaceRow = Awaited<
 	ReturnType<HostServiceClient["workspace"]["list"]["query"]>
@@ -30,10 +28,6 @@ export interface HostWorkspacesResult {
 	warnings: string[];
 }
 
-function describeError(error: unknown): string {
-	return error instanceof Error ? error.message : String(error);
-}
-
 /**
  * Workspace records are host-owned: discover the org's hosts via the cloud
  * (`host.list` stays cloud-owned), then query each online host's
@@ -45,72 +39,11 @@ function describeError(error: unknown): string {
 export async function listHostWorkspaces(
 	options: ListHostWorkspacesOptions,
 ): Promise<HostWorkspacesResult> {
-	const warnings: string[] = [];
-	const localHostId = getHostId();
-
-	// Host discovery stays cloud-owned; tolerate the cloud being unreachable
-	// (host names degrade to ids, targeting falls back to the local host).
-	let hosts: HostInfo[] = [];
-	let discoveryError: unknown;
-	try {
-		hosts = await options.api.host.list.query({
-			organizationId: options.organizationId,
-		});
-	} catch (error) {
-		discoveryError = error;
-	}
-
-	let targetHostIds: string[];
-	if (options.hostId) {
-		targetHostIds = [options.hostId];
-	} else if (hosts.length > 0) {
-		const ids = new Set(
-			hosts.filter((host) => host.online).map((host) => host.id),
-		);
-		// Cloud presence can lag: always include this machine's host when its
-		// host-service manifest points at a live process.
-		const manifest = readManifest(options.organizationId);
-		if (manifest && isProcessAlive(manifest.pid)) {
-			ids.add(localHostId);
-		}
-		targetHostIds = [...ids];
-	} else {
-		if (discoveryError !== undefined) {
-			warnings.push(
-				`Cloud host discovery failed (${describeError(discoveryError)}); listing this machine's host only`,
-			);
-		}
-		targetHostIds = [localHostId];
-	}
-
-	const hostNameById = new Map(hosts.map((host) => [host.id, host.name]));
-	const describeHost = (hostId: string): string =>
-		hostNameById.get(hostId) ?? hostId;
-
-	const settled = await Promise.allSettled(
-		targetHostIds.map(async (hostId) => {
-			const target = resolveHostTarget({
-				requestedHostId: hostId,
-				organizationId: options.organizationId,
-				userJwt: options.userJwt,
-			});
-			return target.client.workspace.list.query();
-		}),
+	const { results, hosts, warnings } = await queryHostTargets(
+		options,
+		(client) => client.workspace.list.query(),
 	);
-
-	const workspaces: HostWorkspaceRow[] = [];
-	settled.forEach((result, index) => {
-		const hostId = targetHostIds[index];
-		if (!hostId) return;
-		if (result.status === "fulfilled") {
-			workspaces.push(...result.value);
-		} else {
-			warnings.push(
-				`Host ${describeHost(hostId)} unreachable: ${describeError(result.reason)}`,
-			);
-		}
-	});
-
+	const workspaces = results.flatMap((result) => result.value);
 	return { workspaces, hosts, warnings };
 }
 

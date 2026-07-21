@@ -23,11 +23,14 @@ export type {
 	ServerMessage,
 	SessionInfo,
 	SessionMeta,
+	SnapshotMessage,
+	SnapshotReplyMessage,
 	SubscribeMessage,
 	UnsubscribeMessage,
 	UpgradePreparedMessage,
 } from "./messages.ts";
 export {
 	CURRENT_PROTOCOL_VERSION,
+	SNAPSHOT_PROTOCOL_VERSION,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "./version.ts";

@@ -1,4 +1,6 @@
 export { SqliteTerminalAgentBindingPersistence } from "./persistence";
+export type { TerminalAgentStatus } from "./status";
+export { terminalAgentStatus } from "./status";
 export type {
 	TerminalAgentBindingListFilter,
 	TerminalAgentBindingPersistence,
