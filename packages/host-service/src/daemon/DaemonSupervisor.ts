@@ -89,7 +89,6 @@ const VERSION_PROBE_TIMEOUT_MS = 1_500;
 const HANDOFF_PREDECESSOR_EXIT_TIMEOUT_MS = 3_000;
 const HANDOFF_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 const DAEMON_TERMINATE_TIMEOUT_MS = 1_000;
-const AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS = 1_500;
 const ADOPTION_PROBE_TOTAL_TIMEOUT_MS = 3_000;
 
 /**
@@ -642,10 +641,9 @@ export class DaemonSupervisor {
 	/**
 	 * Auto-update: best-effort opportunistic handoff when the adopted
 	 * daemon is older than the bundled binary. Runs after host-service
-	 * boot, fire-and-track, doesn't block anything. The background path
-	 * is intentionally conservative: live sessions keep running on the
-	 * predecessor and the foreground Settings UI remains the place for
-	 * user-approved handoff/restart.
+	 * boot, fire-and-track, doesn't block anything. Live sessions are
+	 * fine — the handoff is non-destructive (fd-handoff carries them to
+	 * the successor), and on failure the predecessor keeps running.
 	 */
 	private kickoffAutoUpdate(
 		organizationId: string,
@@ -678,26 +676,6 @@ export class DaemonSupervisor {
 		organizationId: string,
 		instance: DaemonInstance,
 	): Promise<void> {
-		const sessions = await this.listSessions(
-			organizationId,
-			AUTO_UPDATE_SESSION_LIST_TIMEOUT_MS,
-		);
-		if (sessions === null) {
-			this.deferAutoUpdate(
-				organizationId,
-				instance,
-				"session_list_unavailable",
-			);
-			return;
-		}
-		const aliveSessionCount = countAliveSessions(sessions);
-		if (aliveSessionCount > 0) {
-			this.deferAutoUpdate(organizationId, instance, "live_sessions_present", {
-				aliveSessionCount,
-			});
-			return;
-		}
-
 		const update = this.startUpdate(organizationId);
 		try {
 			const result = await update.promise;
@@ -775,22 +753,6 @@ export class DaemonSupervisor {
 			reason,
 			failedAt,
 		};
-	}
-
-	private deferAutoUpdate(
-		organizationId: string,
-		instance: DaemonInstance,
-		reason: string,
-		extra: Record<string, unknown> = {},
-	): void {
-		logEvent("pty_daemon_auto_update_deferred", {
-			organizationId,
-			pid: instance.pid,
-			runningVersion: instance.runningVersion,
-			expectedVersion: instance.expectedVersion,
-			reason,
-			...extra,
-		});
 	}
 
 	/**
@@ -1228,10 +1190,6 @@ function pipeWithPrefix(
 		if (pending) target.write(`${tag} ${pending}\n`);
 		pending = "";
 	});
-}
-
-function countAliveSessions(sessions: SessionInfo[]): number {
-	return sessions.filter((session) => session.alive).length;
 }
 
 /**
