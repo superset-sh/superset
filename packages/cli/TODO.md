@@ -18,7 +18,9 @@
 
 ## Desktop app changes
 
-- [ ] **Sidebar sections** — does the concept of sidebar sections exist today? If not, need to add data model + UI
+- [x] **Sidebar sections** — v2 groups use a device-local, organization/user-
+  scoped client state store shared by CLI and Electron main; resource hosts do
+  not own client layout preferences
 - [ ] **Websocket command routing** — CLI spec says device commands route via API → websocket → host service. Is this path built? Or does it still go through `agentCommands` + Electric SQL polling?
 
 ## CLI package
@@ -27,7 +29,7 @@
 - [ ] Auth flow (`login` / `logout` / `whoami`)
 - [ ] Cloud commands (`tasks`, `devices`, `chat`)
 - [ ] Device commands (`workspaces`, `projects`, `agent`)
-- [ ] UI commands (`focus`, `sidebar`, `tabs`, `panes`)
+- [ ] UI commands (`focus`, `tabs`, `panes`); local sidebar group commands are implemented
 - [ ] Pane-type commands (`terminal send/read`, `browser navigate/cdp-url`, `chat send/read`)
 - [ ] Port commands (`list`, `claim`, `release`)
 - [ ] Cron commands (`list`, `create`, `update`, `delete`, `logs`, `run`)

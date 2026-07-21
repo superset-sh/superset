@@ -88,6 +88,7 @@
 		"@streamdown/mermaid": "1.0.2",
 		"@superset/auth": "workspace:*",
 		"@superset/chat": "workspace:*",
+		"@superset/client-state": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/host-service": "workspace:*",
 		"@superset/local-db": "workspace:*",
