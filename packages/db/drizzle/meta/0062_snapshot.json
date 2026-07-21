@@ -1,5 +1,5 @@
 {
-  "id": "37f83bb7-a3e2-4164-9553-13f4c6385125",
+  "id": "5955f23c-01d9-43d8-8e1f-c169aabe1589",
   "prevId": "8881f663-84f3-42e1-9901-59364b0b028b",
   "version": "7",
   "dialect": "postgresql",
@@ -6650,7 +6650,8 @@
       "schema": "public",
       "values": [
         "immediate",
-        "pre-update"
+        "pre-update",
+        "post-update"
       ]
     },
     "public.device_type": {

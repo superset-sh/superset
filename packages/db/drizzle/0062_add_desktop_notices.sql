@@ -1,6 +1,6 @@
 CREATE TYPE "public"."desktop_notice_cta_action" AS ENUM('install-update', 'open-url');--> statement-breakpoint
 CREATE TYPE "public"."desktop_notice_severity" AS ENUM('info', 'warning', 'blocking');--> statement-breakpoint
-CREATE TYPE "public"."desktop_notice_trigger" AS ENUM('immediate', 'pre-update');--> statement-breakpoint
+CREATE TYPE "public"."desktop_notice_trigger" AS ENUM('immediate', 'pre-update', 'post-update');--> statement-breakpoint
 CREATE TABLE "desktop_notices" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"severity" "desktop_notice_severity" NOT NULL,

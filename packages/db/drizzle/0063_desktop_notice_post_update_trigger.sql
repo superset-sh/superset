@@ -1,1 +1,0 @@
-ALTER TYPE "public"."desktop_notice_trigger" ADD VALUE 'post-update';

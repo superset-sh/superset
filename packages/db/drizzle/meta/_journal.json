@@ -439,15 +439,8 @@
     {
       "idx": 62,
       "version": "7",
-      "when": 1784594568511,
+      "when": 1784650065500,
       "tag": "0062_add_desktop_notices",
-      "breakpoints": true
-    },
-    {
-      "idx": 63,
-      "version": "7",
-      "when": 1784596447440,
-      "tag": "0063_desktop_notice_post_update_trigger",
       "breakpoints": true
     }
   ]
