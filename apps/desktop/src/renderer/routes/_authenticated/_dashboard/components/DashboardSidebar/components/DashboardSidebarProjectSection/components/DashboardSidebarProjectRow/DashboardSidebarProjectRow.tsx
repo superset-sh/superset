@@ -9,7 +9,6 @@ interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
 	iconUrl: string | null;
-	totalWorkspaceCount: number;
 	isCollapsed: boolean;
 	isRenaming: boolean;
 	renameValue: string;
@@ -29,7 +28,6 @@ export const DashboardSidebarProjectRow = forwardRef<
 		{
 			projectName,
 			iconUrl,
-			totalWorkspaceCount,
 			isCollapsed,
 			isRenaming,
 			renameValue,
@@ -63,7 +61,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-10 w-full items-center pl-3 pr-2 py-1.5 text-sm font-medium",
+					"group flex min-h-10 w-full items-center pl-5 pr-2 py-1.5 text-sm font-medium",
 					"hover:bg-muted/50 transition-colors",
 					className,
 				)}
@@ -118,9 +116,6 @@ export const DashboardSidebarProjectRow = forwardRef<
 								New workspace
 							</TooltipContent>
 						</Tooltip>
-						<span className="text-[10px] font-normal tabular-nums text-muted-foreground group-hover:hidden group-has-[:focus]:hidden">
-							{totalWorkspaceCount}
-						</span>
 					</div>
 				)}
 			</div>

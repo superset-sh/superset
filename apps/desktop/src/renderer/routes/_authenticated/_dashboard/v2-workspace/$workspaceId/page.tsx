@@ -6,6 +6,9 @@ import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
+import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
+import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
@@ -241,10 +244,6 @@ function V2WorkspaceContent() {
 	// The sidebar slot lives at the dashboard layout level (next to TopBar) so
 	// the sidebar runs full-height.
 	const sidebarSlotEl = useSlotElement("workspace-right-sidebar-slot");
-	// TopBar slot for the run button when the presets bar (its usual home) is
-	// hidden. The button renders here via portal so it keeps this page's
-	// context (pane store, workspace providers) while appearing in the TopBar.
-	const runButtonSlotEl = useSlotElement("workspace-topbar-run-slot");
 
 	useWorkspaceHotkeys({
 		store,
@@ -259,6 +258,10 @@ function V2WorkspaceContent() {
 	useHotkey("RUN_WORKSPACE_COMMAND", () => {
 		void workspaceRun.toggleWorkspaceRun();
 	});
+
+	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
+	// Default to Mac while loading so window controls don't flash in.
+	const isMac = platform === undefined || platform === "darwin";
 
 	const workspaceRunButton = (
 		<V2WorkspaceRunButton
@@ -302,7 +305,6 @@ function V2WorkspaceContent() {
 										executePreset={executePreset}
 										showPresetsBar={showPresetsBar}
 										onToggleShowPresetsBar={setShowPresetsBar}
-										trailing={workspaceRunButton}
 									/>
 								) : null
 							}
@@ -316,10 +318,15 @@ function V2WorkspaceContent() {
 								/>
 							)}
 							renderTabBarTrailing={() => (
-								<BackgroundTerminalsButton
-									workspaceId={workspaceId}
-									store={store}
-								/>
+								<div className="flex items-center gap-1">
+									<BackgroundTerminalsButton
+										workspaceId={workspaceId}
+										store={store}
+									/>
+									{workspaceRunButton}
+									<RightSidebarToggle />
+									{!isMac && <WindowControls />}
+								</div>
 							)}
 							renderEmptyState={() => (
 								<WorkspaceEmptyState
@@ -335,9 +342,6 @@ function V2WorkspaceContent() {
 						/>
 					</div>
 				</div>
-				{!showPresetsBar &&
-					runButtonSlotEl &&
-					createPortal(workspaceRunButton, runButtonSlotEl)}
 				{sidebarOpen &&
 					sidebarSlotEl &&
 					createPortal(

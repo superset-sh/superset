@@ -1,15 +1,13 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
-import { LuArrowLeft, LuArrowRight, LuSearch } from "react-icons/lu";
-import { useFrameStackStore } from "renderer/commandPalette/core/frames";
+import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
-import { HistoryDropdown } from "./components/HistoryDropdown";
+// Temporarily hidden: import { HistoryDropdown } from "./components/HistoryDropdown";
 
 export function NavigationControls() {
 	const router = useRouter();
 	const location = useLocation();
-	const openCommandPalette = useFrameStackStore((s) => s.setOpen);
 
 	const canGoBack = router.history.canGoBack();
 	const canGoForward = location.state.__TSR_index < router.history.length - 1;
@@ -66,22 +64,7 @@ export function NavigationControls() {
 				</TooltipContent>
 			</Tooltip>
 
-			<HistoryDropdown />
-
-			<Tooltip delayDuration={300}>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={() => openCommandPalette(true)}
-						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors"
-					>
-						<LuSearch className="size-3.5" strokeWidth={1.5} />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom">
-					<HotkeyLabel label="Command palette" id="OPEN_COMMAND_PALETTE" />
-				</TooltipContent>
-			</Tooltip>
+			{/* Temporarily hidden: <HistoryDropdown /> */}
 		</div>
 	);
 }

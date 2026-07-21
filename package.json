@@ -62,7 +62,7 @@
 		"axios": "1.14.0",
 		"hono": "4.12.25",
 		"kysely": "0.28.17",
-		"shell-quote": "1.8.4"
+		"shell-quote": "1.9.0"
 	},
 	"trustedDependencies": [
 		"better-sqlite3",

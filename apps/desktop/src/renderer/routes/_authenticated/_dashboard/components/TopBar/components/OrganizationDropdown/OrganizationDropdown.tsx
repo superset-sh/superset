@@ -13,19 +13,21 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
+import { useState } from "react";
 import { FiUsers } from "react-icons/fi";
 import {
 	HiCheck,
 	HiChevronUpDown,
 	HiOutlineArrowRightOnRectangle,
-	HiOutlineCog6Tooth,
+	HiOutlineArrowsRightLeft,
 	HiOutlinePlus,
 } from "react-icons/hi2";
-import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HelpSubMenu } from "./components/HelpSubMenu";
+import { SubmitPromptDialog } from "./components/SubmitPromptDialog";
 
 export function OrganizationDropdown({
 	variant = "topbar",
@@ -36,6 +38,7 @@ export function OrganizationDropdown({
 	const collections = useCollections();
 	const signOut = useSignOut();
 	const navigate = useNavigate();
+	const [submitPromptOpen, setSubmitPromptOpen] = useState(false);
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -97,7 +100,6 @@ export function OrganizationDropdown({
 				/>
 				<span className="truncate">{displayName}</span>
 				{planBadge}
-				<HiChevronUpDown className="ml-auto h-3.5 w-3.5 text-muted-foreground shrink-0" />
 			</button>
 		) : (
 			<button
@@ -122,81 +124,82 @@ export function OrganizationDropdown({
 	const contentAlign = variant === "topbar" ? "end" : "start";
 
 	return (
-		<DropdownMenu>
-			<DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
-			<DropdownMenuContent
-				align={contentAlign}
-				className={
-					variant === "expanded"
-						? "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"
-						: "w-56"
-				}
-			>
-				{/* Organization */}
-				{/* TODO(v1): Settings lives in the sidebar footer in v2; kept here for v1. Remove once v1 is gone. */}
-				<DropdownMenuItem
-					onSelect={() => navigate({ to: "/settings/account" })}
+		<>
+			<DropdownMenu>
+				<DropdownMenuTrigger asChild>{triggerButton}</DropdownMenuTrigger>
+				<DropdownMenuContent
+					align={contentAlign}
+					className={
+						variant === "expanded"
+							? "w-[var(--radix-dropdown-menu-trigger-width)] min-w-56"
+							: "w-56"
+					}
 				>
-					<HiOutlineCog6Tooth className="h-4 w-4" />
-					<span>Settings</span>
-					<HotkeyMenuShortcut hotkeyId="OPEN_SETTINGS" />
-				</DropdownMenuItem>
-				<DropdownMenuItem
-					onSelect={() => navigate({ to: "/settings/organization" })}
-				>
-					<FiUsers className="h-4 w-4" />
-					<span>Manage members</span>
-				</DropdownMenuItem>
-				{organizations && organizations.length > 0 && (
-					<DropdownMenuSub>
-						<DropdownMenuSubTrigger className="gap-2">
-							<span>Switch organization</span>
-						</DropdownMenuSubTrigger>
-						<DropdownMenuSubContent>
-							{userEmail && (
-								<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
-									{userEmail}
-								</DropdownMenuLabel>
-							)}
-							{organizations.map((organization) => (
+					{/* Organization */}
+					<DropdownMenuItem
+						onSelect={() => navigate({ to: "/settings/organization" })}
+					>
+						<FiUsers className="h-4 w-4" />
+						<span>Manage members</span>
+					</DropdownMenuItem>
+					{organizations && organizations.length > 0 && (
+						<DropdownMenuSub>
+							<DropdownMenuSubTrigger className="gap-2">
+								<HiOutlineArrowsRightLeft className="h-4 w-4" />
+								<span>Switch organization</span>
+							</DropdownMenuSubTrigger>
+							<DropdownMenuSubContent>
+								{userEmail && (
+									<DropdownMenuLabel className="font-normal text-muted-foreground text-xs">
+										{userEmail}
+									</DropdownMenuLabel>
+								)}
+								{organizations.map((organization) => (
+									<DropdownMenuItem
+										key={organization.id}
+										onSelect={() =>
+											collections.switchOrganization(organization.id)
+										}
+										className="gap-2"
+									>
+										<Avatar
+											size="xs"
+											fullName={organization.name}
+											image={organization.logo}
+											className="rounded-md"
+										/>
+										<span className="flex-1 truncate">{organization.name}</span>
+										{organization.id === activeOrganization?.id && (
+											<HiCheck className="h-4 w-4 text-primary" />
+										)}
+									</DropdownMenuItem>
+								))}
+								<DropdownMenuSeparator />
 								<DropdownMenuItem
-									key={organization.id}
-									onSelect={() =>
-										collections.switchOrganization(organization.id)
-									}
-									className="gap-2"
+									onSelect={() => navigate({ to: "/create-organization" })}
 								>
-									<Avatar
-										size="xs"
-										fullName={organization.name}
-										image={organization.logo}
-										className="rounded-md"
-									/>
-									<span className="flex-1 truncate">{organization.name}</span>
-									{organization.id === activeOrganization?.id && (
-										<HiCheck className="h-4 w-4 text-primary" />
-									)}
+									<HiOutlinePlus className="h-4 w-4" />
+									<span>Create organization</span>
 								</DropdownMenuItem>
-							))}
-							<DropdownMenuSeparator />
-							<DropdownMenuItem
-								onSelect={() => navigate({ to: "/create-organization" })}
-							>
-								<HiOutlinePlus className="h-4 w-4" />
-								<span>Create organization</span>
-							</DropdownMenuItem>
-						</DropdownMenuSubContent>
-					</DropdownMenuSub>
-				)}
+							</DropdownMenuSubContent>
+						</DropdownMenuSub>
+					)}
 
-				<DropdownMenuSeparator />
+					<HelpSubMenu onSubmitPrompt={() => setSubmitPromptOpen(true)} />
 
-				{/* Account */}
-				<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
-					<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
-					<span>Log out</span>
-				</DropdownMenuItem>
-			</DropdownMenuContent>
-		</DropdownMenu>
+					<DropdownMenuSeparator />
+
+					{/* Account */}
+					<DropdownMenuItem onSelect={handleSignOut} className="gap-2">
+						<HiOutlineArrowRightOnRectangle className="h-4 w-4" />
+						<span>Log out</span>
+					</DropdownMenuItem>
+				</DropdownMenuContent>
+			</DropdownMenu>
+			<SubmitPromptDialog
+				open={submitPromptOpen}
+				onOpenChange={setSubmitPromptOpen}
+			/>
+		</>
 	);
 }
