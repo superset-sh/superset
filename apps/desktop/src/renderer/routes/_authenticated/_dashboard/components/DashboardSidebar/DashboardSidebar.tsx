@@ -25,6 +25,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
+import { HiringBanner } from "renderer/components/HiringBanner";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
@@ -257,6 +258,7 @@ export function DashboardSidebar({
 									projectName={activeV2Project.name}
 								/>
 							)}
+							<HiringBanner surface="v2" isCollapsed={isCollapsed} />
 							<div
 								className={cn(
 									isCollapsed
