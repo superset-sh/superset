@@ -93,9 +93,6 @@ export async function runDesktop(argv: string[]): Promise<void> {
 			`Invalid version format: ${version}\nExpected MAJOR.MINOR.PATCH (e.g. 1.2.3). To release a specific commit: release desktop <version> <commit>`,
 		);
 	}
-	if (autoMerge && commitInput) {
-		warn("--merge has no effect with a commit SHA (no PR is created).");
-	}
 
 	if ((await exitCode($`gh auth status`)) !== 0) {
 		fail("Not authenticated with GitHub CLI. Run: gh auth login");
@@ -109,7 +106,8 @@ export async function runDesktop(argv: string[]): Promise<void> {
 
 	let prNumber = "";
 	if (commitInput) {
-		await releaseFromCommit(version, commitInput, tag, withDaemon);
+		prNumber = (await releaseFromCommit(version, commitInput, tag, withDaemon))
+			.prNumber;
 	} else {
 		prNumber = (await releaseFromHead(root, version, tag, withDaemon)).prNumber;
 	}
@@ -224,6 +222,30 @@ async function bumpUnified(
 	};
 }
 
+/** Open the bump PR into main, reusing an open one for `branch` if present. */
+async function openBumpPr(version: string, branch: string): Promise<string> {
+	const existing = (
+		await $`gh pr list --head ${branch} --json number --jq ${".[0].number"}`
+			.nothrow()
+			.text()
+	).trim();
+	if (existing) {
+		info(`Reusing existing PR #${existing}`);
+		return existing;
+	}
+	const r =
+		await $`gh pr create --title ${`chore(desktop): bump version to ${version}`} --body ${"Automated by scripts/release/desktop.ts."} --base main --head ${branch}`
+			.nothrow()
+			.text();
+	const m = r.match(/\/(\d+)\s*$/);
+	if (!m) {
+		warn("Could not create PR");
+		return "";
+	}
+	success(`PR #${m[1]} created`);
+	return m[1];
+}
+
 async function releaseFromHead(
 	root: string,
 	version: string,
@@ -251,29 +273,13 @@ async function releaseFromHead(
 	await $`git push -u origin ${`HEAD:${branch}`}`;
 
 	let prNumber = "";
-	if (branch !== "main") {
-		const existing = (
-			await $`gh pr list --head ${branch} --json number --jq ${".[0].number"}`
-				.nothrow()
-				.text()
-		).trim();
-		if (existing) {
-			prNumber = existing;
-		} else if (
-			Number(
-				(await $`git rev-list --count ${"main..HEAD"}`.nothrow().text()).trim(),
-			) > 0
-		) {
-			const r =
-				await $`gh pr create --title ${`chore(desktop): bump version to ${version}`} --body ${"Automated by scripts/release/desktop.ts."} --base main --head ${branch}`
-					.nothrow()
-					.text();
-			const m = r.match(/\/(\d+)\s*$/);
-			if (m) {
-				prNumber = m[1];
-				success(`PR #${prNumber} created`);
-			} else warn("Could not create PR");
-		}
+	if (
+		branch !== "main" &&
+		Number(
+			(await $`git rev-list --count ${"main..HEAD"}`.nothrow().text()).trim(),
+		) > 0
+	) {
+		prNumber = await openBumpPr(version, branch);
 	}
 
 	info(`Creating tag ${tag}...`);
@@ -288,7 +294,7 @@ async function releaseFromCommit(
 	commitInput: string,
 	tag: string,
 	withDaemon: boolean,
-): Promise<void> {
+): Promise<{ prNumber: string }> {
 	const fullSha = (
 		await $`git rev-parse --verify ${`${commitInput}^{commit}`}`
 			.nothrow()
@@ -302,6 +308,7 @@ async function releaseFromCommit(
 	await $`git push origin --delete ${tempBranch}`.nothrow().quiet();
 
 	const worktree = mkdtempSync(join(tmpdir(), "superset-release-"));
+	let bumped = false;
 	try {
 		await $`git worktree add --detach ${worktree} ${fullSha}`.quiet();
 		success(`Provisioned worktree at ${worktree}`);
@@ -322,6 +329,7 @@ async function releaseFromCommit(
 				worktree,
 			);
 			success(`Committed ${wtVersion} -> ${version} on top of ${shortSha}`);
+			bumped = true;
 		} else {
 			warn(`Commit ${shortSha} already has version ${version}; skipping bump`);
 		}
@@ -334,6 +342,9 @@ async function releaseFromCommit(
 		await $`git worktree remove --force ${worktree}`.nothrow().quiet();
 		rmSync(worktree, { recursive: true, force: true });
 	}
+
+	// The tag pins the release commit; the PR is what lands the bump back on main.
+	return { prNumber: bumped ? await openBumpPr(version, tempBranch) : "" };
 }
 
 async function monitorAndPublish(
@@ -384,7 +395,9 @@ async function monitorAndPublish(
 	if (opts.autoPublish) {
 		await $`gh release edit ${tag} --draft=false`;
 		success("Release published!");
-		await publishMatchingCli(version, tag);
+		info(
+			`release-cli-lockstep.yml will tag cli-v${version} and ship the matching standalone CLI.`,
+		);
 		if (opts.autoMerge && opts.prNumber) {
 			const r =
 				await $`gh pr merge ${opts.prNumber} --squash --delete-branch`.nothrow();
@@ -397,37 +410,9 @@ async function monitorAndPublish(
 		console.log(`\nReview: ${url}`);
 		console.log(`Publish with: gh release edit ${tag} --draft=false`);
 		console.log(
-			`Then ship the matching standalone CLI ${version}:\n  git tag cli-v${version} ${tag} && git push origin cli-v${version}`,
+			`Publishing auto-tags cli-v${version} and ships the standalone CLI (release-cli-lockstep.yml).`,
 		);
 	}
-}
-
-/** After the desktop release is published, cut the matching plain cli-v<version>
- * (same commit) so the standalone CLI ships in lockstep with desktop. Skipped in
- * draft mode — nothing ships until the desktop release is live. */
-async function publishMatchingCli(
-	version: string,
-	desktopTag: string,
-): Promise<void> {
-	const cliTag = `cli-v${version}`;
-	// Check origin, not a possibly-stale local tag: a leftover local cli-v tag
-	// would otherwise skip a publish that origin never received.
-	const remote = (
-		await $`git ls-remote --tags origin ${`refs/tags/${cliTag}`}`
-			.nothrow()
-			.text()
-	).trim();
-	if (remote) {
-		warn(`${cliTag} already on origin; skipping standalone CLI publish.`);
-		return;
-	}
-	info(`Publishing matching standalone CLI ${cliTag}...`);
-	// -f force-updates any stale local tag onto the desktop release commit.
-	await $`git tag -f ${cliTag} ${desktopTag}`;
-	await $`git push origin ${cliTag}`;
-	success(
-		`Tag ${cliTag} pushed — release-cli.yml will publish the standalone CLI ${version}`,
-	);
 }
 
 if (import.meta.main) await runDesktop(process.argv.slice(2));

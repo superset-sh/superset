@@ -6,7 +6,7 @@ import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
-import type { GitFactory } from "../git";
+import { type GitFactory, resolveDefaultBranchName } from "../git";
 import {
 	fetchOpenPullRequests,
 	fetchOpenPullRequestsFromGh,
@@ -223,6 +223,8 @@ interface NormalizedRepoIdentity {
 	name: string;
 	url: string;
 	remoteName: string;
+	// Null when the repo can't be opened. Drives the default-branch link guard.
+	defaultBranch: string | null;
 }
 
 type PullRequestRow = typeof pullRequests.$inferSelect;
@@ -644,7 +646,7 @@ export class PullRequestRuntimeManager {
 			const upstreamOwner = workspace.upstreamOwner;
 			const upstreamRepo = workspace.upstreamRepo;
 			const upstreamBranch = workspace.upstreamBranch ?? workspace.branch;
-			const key = upstreamKey(upstreamOwner, upstreamRepo, upstreamBranch);
+			const key = this.effectiveUpstreamKey(workspace, repo);
 			if (key && upstreamOwner && upstreamRepo) {
 				wantedRefs.set(key, {
 					owner: upstreamOwner,
@@ -658,11 +660,7 @@ export class PullRequestRuntimeManager {
 			await this.fetchRepoPullRequests(projectId, repo, wantedRefs, options);
 
 		for (const workspace of projectWorkspaces) {
-			const key = upstreamKey(
-				workspace.upstreamOwner,
-				workspace.upstreamRepo,
-				workspace.upstreamBranch ?? workspace.branch,
-			);
+			const key = this.effectiveUpstreamKey(workspace, repo);
 			if (!key) {
 				// PR checkouts recovered from GitHub's archived refs intentionally
 				// have no upstream. Keep the explicit PR link only while the
@@ -712,6 +710,7 @@ export class PullRequestRuntimeManager {
 			.sync();
 		if (!project) return null;
 
+		let identity: Omit<NormalizedRepoIdentity, "defaultBranch">;
 		if (
 			project.repoProvider === "github" &&
 			project.repoOwner &&
@@ -719,47 +718,82 @@ export class PullRequestRuntimeManager {
 			project.repoUrl &&
 			project.remoteName
 		) {
-			return {
+			identity = {
 				provider: "github",
 				owner: project.repoOwner,
 				name: project.repoName,
 				url: project.repoUrl,
 				remoteName: project.remoteName,
 			};
-		}
-
-		const git = await this.git(project.repoPath);
-		const remoteName = "origin";
-		let remoteUrl: string;
-		try {
-			const value = await git.remote(["get-url", remoteName]);
-			if (typeof value !== "string") {
+		} else {
+			const git = await this.git(project.repoPath);
+			const remoteName = "origin";
+			let remoteUrl: string;
+			try {
+				const value = await git.remote(["get-url", remoteName]);
+				if (typeof value !== "string") {
+					return null;
+				}
+				remoteUrl = value.trim();
+			} catch {
 				return null;
 			}
-			remoteUrl = value.trim();
+
+			const parsedRemote = parseGitHubRemote(remoteUrl);
+			if (!parsedRemote) return null;
+
+			this.db
+				.update(projects)
+				.set({
+					repoProvider: parsedRemote.provider,
+					repoOwner: parsedRemote.owner,
+					repoName: parsedRemote.name,
+					repoUrl: parsedRemote.url,
+					remoteName,
+				})
+				.where(eq(projects.id, projectId))
+				.run();
+
+			identity = { ...parsedRemote, remoteName };
+		}
+
+		const defaultBranch = await this.resolveDefaultBranch(project.repoPath);
+		return { ...identity, defaultBranch };
+	}
+
+	// Shared origin/HEAD resolver; a repo-open failure disables the guard
+	// rather than aborting the whole refresh.
+	private async resolveDefaultBranch(repoPath: string): Promise<string | null> {
+		try {
+			return await resolveDefaultBranchName(await this.git(repoPath));
 		} catch {
 			return null;
 		}
+	}
 
-		const parsedRemote = parseGitHubRemote(remoteUrl);
-		if (!parsedRemote) return null;
-
-		this.db
-			.update(projects)
-			.set({
-				repoProvider: parsedRemote.provider,
-				repoOwner: parsedRemote.owner,
-				repoName: parsedRemote.name,
-				repoUrl: parsedRemote.url,
-				remoteName,
-			})
-			.where(eq(projects.id, projectId))
-			.run();
-
-		return {
-			...parsedRemote,
-			remoteName,
-		};
+	// Guard: a workspace that merely tracks `origin/<default>` (branched off it,
+	// never pushed) must not key on `<default>` and grab a head=<default> PR —
+	// only its own default-branch workspace may. Base repo only, so fork /
+	// `gh pr checkout` renames whose head is `<default>` still link.
+	private effectiveUpstreamKey(
+		workspace: typeof workspaces.$inferSelect,
+		repo: NormalizedRepoIdentity,
+	): string | null {
+		const upstreamBranch = workspace.upstreamBranch ?? workspace.branch;
+		if (
+			repo.defaultBranch &&
+			upstreamBranch === repo.defaultBranch &&
+			workspace.branch !== repo.defaultBranch &&
+			workspace.upstreamOwner?.toLowerCase() === repo.owner.toLowerCase() &&
+			workspace.upstreamRepo?.toLowerCase() === repo.name.toLowerCase()
+		) {
+			return null;
+		}
+		return upstreamKey(
+			workspace.upstreamOwner,
+			workspace.upstreamRepo,
+			upstreamBranch,
+		);
 	}
 
 	private findPullRequestRow(

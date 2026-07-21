@@ -27,7 +27,7 @@ interface LocalSetupConfig {
 }
 
 const SCRIPT_KEYS = ["setup", "teardown", "run"] as const;
-type ScriptKey = (typeof SCRIPT_KEYS)[number];
+export type ScriptKey = (typeof SCRIPT_KEYS)[number];
 
 function isStringArray(value: unknown): value is string[] {
 	return (
@@ -165,18 +165,24 @@ export function getProjectConfigPath(repoPath: string): string {
 	return join(repoPath, PROJECT_SUPERSET_DIR_NAME, CONFIG_FILE_NAME);
 }
 
-function getUserOverridePath(
-	projectId: string,
-	homeDir: string,
-): string | null {
-	if (projectId.includes("/") || projectId.includes("\\")) return null;
-	return join(
-		homeDir,
-		SUPERSET_DIR_NAME,
-		PROJECTS_DIR_NAME,
-		projectId,
-		CONFIG_FILE_NAME,
-	);
+/**
+ * Candidate user-override files, highest priority first: keyed by the
+ * project's repo path mirrored under the projects dir (e.g.
+ * `~/.superset/projects/Users/me/work/app/config.json` — discoverable
+ * without looking up an ID), then by project id (legacy). The first
+ * candidate that parses wins.
+ */
+function getUserOverridePaths(args: {
+	repoPath: string;
+	projectId: string;
+	homeDir: string;
+}): string[] {
+	const projectsDir = join(args.homeDir, SUPERSET_DIR_NAME, PROJECTS_DIR_NAME);
+	const paths = [join(projectsDir, args.repoPath, CONFIG_FILE_NAME)];
+	if (!args.projectId.includes("/") && !args.projectId.includes("\\")) {
+		paths.push(join(projectsDir, args.projectId, CONFIG_FILE_NAME));
+	}
+	return paths;
 }
 
 function getLocalOverlayPath(repoPath: string): string {
@@ -184,35 +190,54 @@ function getLocalOverlayPath(repoPath: string): string {
 }
 
 /**
- * Resolve setup/teardown/run config for a v2 project.
+ * Resolve setup/teardown/run config for a v2 project. Base merge, per key,
+ * later wins:
  *
- *   1. <repoPath>/.superset/config.json    — canonical
- *   2. ~/.superset/projects/<id>/config.json — per-machine override (later wins)
- *   3. <repoPath>/.superset/config.local.json — overlay with before/after/replace
+ *   1. <repoPath>/.superset/config.json      — canonical project config
+ *   2. <worktreePath>/.superset/config.json  — workspace/branch override
+ *      (only when a worktree is in scope: setup at create, teardown at delete)
+ *   3. ~/.superset/projects/<repoPath>/config.json — per-machine user
+ *      override (falls back to the legacy <project-id> key)
  *
- * Returns null when no source defines anything. Worktrees are not consulted —
- * the main repo path is the single source of truth.
+ * Then a local overlay with before/after/replace semantics: the worktree's
+ * `config.local.json` if present, else the main repo's.
+ *
+ * Returns null when no source defines anything.
  */
 export function loadSetupConfig(args: {
 	repoPath: string;
 	projectId: string;
+	/** Workspace worktree; when set, its config overrides the main repo's. */
+	worktreePath?: string;
 	/** Override $HOME for tests. Defaults to `os.homedir()`. */
 	homeDir?: string;
 }): SetupConfig | null {
 	const projectConfig = readSetupConfigAt(getProjectConfigPath(args.repoPath));
-
-	const userOverridePath = getUserOverridePath(
-		args.projectId,
-		args.homeDir ?? homedir(),
-	);
-	const userConfig = userOverridePath
-		? readSetupConfigAt(userOverridePath)
+	const worktreeConfig = args.worktreePath
+		? readSetupConfigAt(getProjectConfigPath(args.worktreePath))
 		: null;
 
-	const base = mergeBaseConfigs(projectConfig, userConfig);
+	let userConfig: SetupConfig | null = null;
+	for (const overridePath of getUserOverridePaths({
+		repoPath: args.repoPath,
+		projectId: args.projectId,
+		homeDir: args.homeDir ?? homedir(),
+	})) {
+		userConfig = readSetupConfigAt(overridePath);
+		if (userConfig) break;
+	}
+
+	const base = mergeBaseConfigs(
+		mergeBaseConfigs(projectConfig, worktreeConfig),
+		userConfig,
+	);
 	if (!base) return null;
 
-	const local = readLocalConfigAt(getLocalOverlayPath(args.repoPath));
+	const worktreeLocal = args.worktreePath
+		? readLocalConfigAt(getLocalOverlayPath(args.worktreePath))
+		: null;
+	const local =
+		worktreeLocal ?? readLocalConfigAt(getLocalOverlayPath(args.repoPath));
 	return local ? applyLocalOverlay(base, local) : base;
 }
 
@@ -228,6 +253,57 @@ export function hasConfiguredScripts(config: SetupConfig | null): boolean {
 	return false;
 }
 
-export function getResolvedSetupCommands(config: SetupConfig | null): string[] {
-	return nonEmptyStrings(config?.setup);
+export type ResolvedScript =
+	| { kind: "commands"; commands: string[]; cwd?: string }
+	| { kind: "script"; scriptPath: string; cwd?: string };
+
+/**
+ * Resolve a lifecycle script (`setup` | `teardown` | `run`) for a project.
+ * Every key gets the same posture:
+ *
+ *   1. Configured commands via {@link loadSetupConfig} — worktree config
+ *      overrides the main repo's when `worktreePath` is in scope.
+ *   2. Fallback: `.superset/<key>.sh`, worktree first (when in scope), then
+ *      the main repo — gitignored scripts only exist in the main repo.
+ *
+ * Setup and teardown pass their worktree; `run` resolves per project, where
+ * no single worktree exists, so it uses the main repo only.
+ *
+ * `cwd` from the same config rides along either way. Returns null when no
+ * source resolves to anything runnable.
+ */
+export function resolveScript(
+	key: ScriptKey,
+	args: {
+		repoPath: string;
+		projectId: string;
+		/** Workspace worktree; its config and script win over the main repo. */
+		worktreePath?: string;
+		/** Override $HOME for tests. Defaults to `os.homedir()`. */
+		homeDir?: string;
+	},
+): ResolvedScript | null {
+	const config = loadSetupConfig(args);
+	const cwd = config?.cwd;
+	const commands = nonEmptyStrings(config?.[key]);
+	if (commands.length > 0) {
+		return { kind: "commands", commands, ...(cwd && { cwd }) };
+	}
+
+	const roots = args.worktreePath
+		? [args.worktreePath, args.repoPath]
+		: [args.repoPath];
+	for (const root of roots) {
+		const scriptPath = join(root, PROJECT_SUPERSET_DIR_NAME, `${key}.sh`);
+		if (existsSync(scriptPath)) {
+			return { kind: "script", scriptPath, ...(cwd && { cwd }) };
+		}
+	}
+
+	return null;
+}
+
+/** POSIX single-quote escape: safe for any byte sequence in a path. */
+export function shellSingleQuote(s: string): string {
+	return `'${s.replaceAll("'", "'\\''")}'`;
 }

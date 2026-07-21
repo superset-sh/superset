@@ -1,4 +1,4 @@
-export { createGitFactory } from "./git";
+export { createGitEnvResolver, createGitFactory } from "./git";
 export type { ResolvedRef, ResolveRefOptions } from "./refs";
 export {
 	asLocalRef,

@@ -20,7 +20,7 @@ standalone installer from [Getting Started](/cli/getting-started).
 gh auth login
 ```
 
-The host server reuses your existing `gh` auth. For sandboxes or CI, set `GH_TOKEN` (or `GITHUB_TOKEN`) instead of running `gh auth login` — `gh` picks it up automatically.
+The host server reuses your existing `gh` auth. For sandboxes or CI, set `GH_TOKEN` (or `GITHUB_TOKEN`) instead of running `gh auth login`. `gh` picks it up automatically.
 
 ### Agent CLIs (optional)
 
@@ -35,7 +35,7 @@ If you plan to run AI agents inside workspaces, install whichever agent CLIs you
 | Gemini CLI | `npm install -g @google/gemini-cli` |
 | OpenCode | see [opencode.ai/docs](https://opencode.ai/docs) |
 
-None are required to start the host server or create workspaces — install only what you plan to run.
+None are required to start the host server or create workspaces. Install only what you plan to run.
 
 ## Authenticate the Superset CLI
 
@@ -68,7 +68,7 @@ superset status
 
 ### Create or adopt a project
 
-A workspace branches off a project — a repo registered with Superset.
+A workspace branches off a project: a repo registered with Superset.
 
 Each repo gets one cloud project record, shared across the organization.
 The first machine to register the repo runs `projects create`; every
@@ -81,7 +81,7 @@ Start by checking what's already in your org:
 superset projects list
 ```
 
-#### First machine — `projects create`
+#### First machine: `projects create`
 
 If the project doesn't exist yet, clone a remote repo or import an
 existing local one:
@@ -104,10 +104,10 @@ superset projects create \
 The host server clones (or registers) the repo, creates the cloud project
 record, and ensures the main workspace.
 
-#### Subsequent machines — `projects setup <id>`
+#### Subsequent machines: `projects setup <id>`
 
 If a teammate (or a previous machine of yours) already created the project,
-adopt it instead of running `create` again — `create` would make a duplicate
+adopt it instead of running `create` again: `create` would make a duplicate
 cloud project pointing at the same repo. Pick the ID from `projects list`,
 then:
 

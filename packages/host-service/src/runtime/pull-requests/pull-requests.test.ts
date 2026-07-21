@@ -121,11 +121,28 @@ function getPrByNumber(db: HostDb, prNumber: number) {
 		.get();
 }
 
+// Answers only the origin/HEAD symref (default branch); every other git call
+// throws, asserting the refresh path never depends on live git.
+function defaultBranchGit(defaultBranch: string) {
+	return (async () => ({
+		raw: async (args: string[]) => {
+			if (
+				args[0] === "symbolic-ref" &&
+				args.includes("refs/remotes/origin/HEAD")
+			) {
+				return `origin/${defaultBranch}\n`;
+			}
+			throw new Error(`unexpected git raw: ${args.join(" ")}`);
+		},
+	})) as never;
+}
+
 function createManager(
 	db: HostDb,
 	overrides: {
 		execGh?: (args: string[]) => Promise<unknown>;
 		github?: () => Promise<never>;
+		git?: unknown;
 	} = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -135,9 +152,11 @@ function createManager(
 			((async () => {
 				throw new Error("gh should not be used for direct PR linking");
 			}) as never),
-		git: (async () => {
-			throw new Error("git should not be used when project metadata is set");
-		}) as never,
+		git:
+			(overrides.git as never) ??
+			((async () => {
+				throw new Error("git should not be used when project metadata is set");
+			}) as never),
 		github:
 			(overrides.github as never) ??
 			((async () => {
@@ -502,7 +521,7 @@ function routeGh(prsByHeadRef: Record<string, ReturnType<typeof makePrNode>>) {
 		if (path === `repos/${REPO.owner}/${REPO.name}/pulls`) {
 			const headArg = args.find((a) => a.startsWith("head="));
 			if (headArg) {
-				const ref = headArg.slice(`head=${REPO.owner}:`.length);
+				const ref = headArg.slice(headArg.indexOf(":") + 1);
 				const pr = prsByHeadRef[ref];
 				return pr ? [pr] : [];
 			}
@@ -609,6 +628,111 @@ describe("case-variant branch isolation", () => {
 		);
 		expect(getWorkspace(db, "ws-upper")?.pullRequestId).toBe(
 			getPrByNumber(db, 102)?.id,
+		);
+	});
+});
+
+// A workspace branched off `main` still tracks `origin/main`, so its upstream
+// branch is `main`; without the guard it links to any head=main PR.
+describe("default-branch guard", () => {
+	test("does not link a workspace tracking origin/main to a head=main PR", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		// Pre-linked like the real bug: the refresh must clear it, not re-affirm it.
+		seedPullRequest(db, {
+			id: "pr-sync-main",
+			prNumber: 1522,
+			headBranch: "main",
+			headSha: "main-sha",
+			title: "chore: sync main into feat/signal-pages",
+		});
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "roshvan/mcp-1703-mcp-surface-area",
+			headSha: "workspace-sha",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "main",
+			pullRequestId: "pr-sync-main",
+		});
+		const manager = createManager(db, {
+			git: defaultBranchGit("main"),
+			execGh: routeGh({
+				main: makePrNode({
+					number: 1522,
+					headRef: "main",
+					headSha: "main-sha",
+					title: "chore: sync main into feat/signal-pages",
+				}),
+			}),
+		});
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
+
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+
+	test("still links the workspace whose local branch is the default branch", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws-main",
+			branch: "main",
+			headSha: "main-sha",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "main",
+		});
+		const manager = createManager(db, {
+			git: defaultBranchGit("main"),
+			execGh: routeGh({
+				main: makePrNode({
+					number: 1522,
+					headRef: "main",
+					headSha: "main-sha",
+					title: "chore: sync main into feat/signal-pages",
+				}),
+			}),
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-main"]);
+
+		expect(getWorkspace(db, "ws-main")?.pullRequestId).toBe(
+			getPrByNumber(db, 1522)?.id,
+		);
+	});
+
+	test("still links a fork PR whose head branch is named main", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws-fork",
+			branch: "quueli-main",
+			headSha: "fork-sha",
+			upstreamOwner: "fork-owner",
+			upstreamRepo: "fork-repo",
+			upstreamBranch: "main",
+		});
+		const manager = createManager(db, {
+			git: defaultBranchGit("main"),
+			execGh: routeGh({
+				main: makePrNode({
+					number: 88,
+					headRef: "main",
+					headSha: "fork-sha",
+					headOwner: "fork-owner",
+					headRepo: "fork-repo",
+					title: "Fork feature",
+				}),
+			}),
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-fork"]);
+
+		expect(getWorkspace(db, "ws-fork")?.pullRequestId).toBe(
+			getPrByNumber(db, 88)?.id,
 		);
 	});
 });

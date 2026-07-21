@@ -7,8 +7,9 @@ step). One entry point: **`bun run release`**. Design/rationale lives in
 ## Model
 
 - **desktop == host-service == cli** at each desktop release — one unified plain
-  version, enforced by `bun run check:versions` (CI-gated). A desktop release also
-  publishes a matching plain `cli-v<version>`, so the standalone CLI ships in lockstep.
+  version, enforced by `bun run check:versions` (CI-gated). Publishing a desktop
+  release fires `release-cli-lockstep.yml`, which tags the matching plain
+  `cli-v<version>` so the standalone CLI ships in lockstep automatically.
 - **CLI hotfixes lead by a patch.** Between desktop releases, a CLI-only fix bumps
   a plain patch above the current CLI (`1.14.1 → 1.14.2`), within desktop's minor
   line, until the next desktop release catches up.
@@ -36,8 +37,8 @@ Releases are cut on a **dedicated release branch**, not on `main` and not on you
 feature branch. Two ways:
 
 **A — release a specific commit (canary-style).** Provisions an ephemeral release
-branch from the commit in a worktree, applies the version bump there, tags, and
-pushes; your working tree is untouched:
+branch from the commit in a worktree, applies the version bump there, tags,
+pushes, and opens the bump PR; your working tree is untouched:
 
 ```bash
 bun run release desktop 1.15.0 <commit-sha>   # commit to release (e.g. a main SHA)
@@ -51,9 +52,11 @@ git switch -c release-1.15.0
 bun run release desktop 1.15.0
 ```
 
-Either way, the `desktop-v<version>` tag triggers `release-desktop.yml`. The
-version-bump commit lives on the release branch/tag; merge it however you
-normally do.
+Either way, the `desktop-v<version>` tag triggers `release-desktop.yml`, and both
+open a `chore(desktop): bump version to <version>` PR into `main` — merge it (or
+pass `--merge`) so `main` carries the released version. Leaving it unmerged only
+drifts `main`'s `package.json`: the next release reads the latest `desktop-v` tag,
+not `package.json`.
 
 ## Desktop: draft → publish
 
@@ -66,7 +69,9 @@ bun run release desktop 1.15.0 --publish [--merge] # auto-publish (+ merge the P
 ```
 
 Once published (non-draft), it becomes `/releases/latest`, which the desktop
-auto-updater reads.
+auto-updater reads. Publishing (either way) also triggers
+`release-cli-lockstep.yml`, which tags `cli-v<version>` and ships the matching
+standalone CLI — no manual CLI step.
 
 ## When the daemon guard blocks
 
@@ -86,6 +91,9 @@ gh release delete cli-v1.14.0-2 --yes --cleanup-tag   # delete release + remote 
 git tag -d cli-v1.14.0-2                               # delete local tag
 # then re-run the release, or pass --republish (desktop) to recreate the same version
 ```
+
+Re-cutting an **older** `cli-v` tag is safe: `release-cli.yml` only moves the
+rolling `cli-latest` pointer (and Homebrew) forward, never backward.
 
 ## Agent / non-interactive
 

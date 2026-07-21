@@ -29,12 +29,26 @@ export const COMPANY = {
 	LINKEDIN_URL: "https://www.linkedin.com/company/superset-sh",
 	YOUTUBE_URL: "https://www.youtube.com/@superset-sh",
 	MAIL_TO: "mailto:support@superset.sh",
+	FOUNDERS_EMAIL: "founders@superset.sh",
+	FOUNDERS_MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
 	STATUS_URL: "https://status.superset.sh",
 	TRUST_URL: "https://trust.superset.sh",
+	JOIN_US_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/join-us`,
+	/** The open-roles section of the join-us page; product surfaces link here. */
+	JOIN_US_ROLES_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/join-us#open-roles`,
+	/** The formal YC listing. `JOIN_US_URL` is our own page and the one we link from product surfaces. */
 	CAREERS_URL: "https://www.ycombinator.com/companies/superset/jobs",
 } as const;
+
+export const OPEN_ROLES = [
+	{
+		title: "Founding Engineer",
+		location: "San Francisco, CA",
+		url: "https://www.ycombinator.com/companies/superset/jobs/Nd9luiP-founding-engineer",
+	},
+] as const;
 
 // Theme
 export const THEME_STORAGE_KEY = "superset-theme";
@@ -106,15 +120,29 @@ export const FEATURE_FLAGS = {
 	 * defaults for other users.
 	 */
 	RELAY_URL_OVERRIDE: "relay-url-override",
+	/**
+	 * Shows the "We're Hiring" card in the dashboard sidebar. Targets a static
+	 * PostHog cohort of users who have created 10+ workspaces all-time, which is
+	 * the only place that history exists — workspace rows are hard-deleted, so a
+	 * lifetime count can't be derived from the DB. The cohort is a frozen
+	 * snapshot because PostHog rejects behavioral cohorts in flags; re-populate
+	 * it to reach users who cross the threshold later.
+	 */
+	HIRING_BANNER: "hiring-banner",
 } as const;
 
-// Terminal identity presented to shell programs via TERM_PROGRAM. vscode, not
-// kitty: agent TUIs (claude-code especially) tune wheel-scroll compensation
-// and terminal quirks per TERM_PROGRAM, and the vscode assumptions match our
-// xterm.js terminals — notably that they send ~one throttled scroll event per
-// wheel notch, so TUIs apply their own scroll multiplier. Kitty *keyboard
-// protocol* support is advertised separately via the CSI-u capability probe.
-export const TERMINAL_TERM_PROGRAM = "vscode";
-// A plausible VS Code version: TUIs version-gate quirk handling against real
-// VS Code releases, so keep this roughly current when touching terminal code.
-export const TERMINAL_TERM_PROGRAM_VERSION = "1.128.0";
+// Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
+// agent TUIs (claude-code especially) tune wheel-scroll compensation per
+// TERM_PROGRAM, and our terminals install the full-fidelity wheel handler
+// (@superset/shared/terminal-wheel-handler) that produces a native
+// kitty/iTerm-grade report stream. Under kitty-class identities TUIs trust
+// that stream as-is; a vscode identity would make claude-code amplify each
+// report (its compensation for xterm.js's damped stock stream) and
+// over-scroll ~3x. The identity and the wheel handler must ship together —
+// reverting one without the other reintroduces slow or runaway scrolling.
+// Kitty *keyboard protocol* support is advertised separately via the CSI-u
+// capability probe.
+export const TERMINAL_TERM_PROGRAM = "kitty";
+// A plausible kitty version: TUIs may version-gate quirk handling against
+// real kitty releases, so keep this roughly current when touching terminal code.
+export const TERMINAL_TERM_PROGRAM_VERSION = "0.42.0";

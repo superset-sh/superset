@@ -11,7 +11,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@paper-design/shaders-react": "0.0.76",
+		"@paper-design/shaders-react": "0.0.77",
 		"@react-three/drei": "10.7.7",
 		"@react-three/fiber": "9.5.0",
 		"@sentry/nextjs": "10.46.0",
@@ -42,7 +42,6 @@
 		"simplex-noise": "4.0.3",
 		"stripe-gradient": "1.0.1",
 		"three": "0.181.2",
-		"ua-parser-js": "2.0.10",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {
@@ -54,7 +53,6 @@
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
 		"@types/three": "0.181.0",
-		"@types/ua-parser-js": "0.7.39",
 		"babel-plugin-react-compiler": "1.0.0",
 		"dotenv": "17.3.1",
 		"tailwindcss": "4.2.2",

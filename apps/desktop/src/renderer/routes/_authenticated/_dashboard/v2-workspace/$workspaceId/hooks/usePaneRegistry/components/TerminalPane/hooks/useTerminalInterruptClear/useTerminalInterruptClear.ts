@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useEffectEvent } from "react";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
@@ -17,11 +18,11 @@ interface UseTerminalInterruptClearOptions {
 /**
  * Ctrl+C / Escape kills the foreground agent turn while the shell stays
  * alive, and Claude Code's Stop hook doesn't fire on user interrupt — so the
- * host binding (the status source of truth) would stay "working". Record a
- * synthetic Stop with the host; a real hook event arriving later harmlessly
- * overwrites it. The Stop may derive as `review` for one refetch cycle, then
- * `useClearActivePaneAttention` marks it seen with the host-clock timestamp
- * (the interrupted pane is by definition the active one).
+ * host binding (the status source of truth) would stay "working". Clear the
+ * binding via the silent status mutation (not a synthetic hook event, which
+ * would broadcast a completion chime); a real hook event arriving later
+ * harmlessly overwrites it. lastEventAt is preserved, so the visible pane's
+ * seen mark already covers it and no transient `review` appears.
  */
 export function useTerminalInterruptClear({
 	terminalId,
@@ -31,6 +32,7 @@ export function useTerminalInterruptClear({
 }: UseTerminalInterruptClearOptions): void {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
+	const queryClient = useQueryClient();
 
 	const recordInterrupt = useEffectEvent(() => {
 		const agentActive =
@@ -38,10 +40,15 @@ export function useTerminalInterruptClear({
 			binding?.lastEventType === "PermissionRequest";
 		if (!agentActive || !hostUrl) return;
 		getHostServiceClientByUrl(hostUrl)
-			.notifications.hook.mutate({ terminalId, eventType: "Stop" })
+			.terminalAgents.clearWorkspaceStatuses.mutate({ workspaceId, terminalId })
+			.then(() =>
+				queryClient.invalidateQueries({
+					queryKey: ["terminal-agent-bindings", hostUrl, workspaceId],
+				}),
+			)
 			.catch((error) => {
 				console.warn(
-					"[terminal] failed to record synthetic agent stop:",
+					"[terminal] failed to clear agent status on interrupt:",
 					error,
 				);
 			});

@@ -80,7 +80,7 @@ export function DashboardSidebarWorkspaceDetails({
 			observeChildren
 			className={cn(
 				// group/details scopes the menu-open half of `details-expanded`.
-				"group/details flex h-[22px] items-center overflow-x-auto hide-scrollbar pr-2",
+				"group/details flex h-7 items-center overflow-x-auto hide-scrollbar pr-2",
 				isInSection ? "pl-[58px]" : "pl-[50px]",
 				onClick && "cursor-pointer",
 			)}

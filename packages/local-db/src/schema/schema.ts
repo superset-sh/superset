@@ -225,6 +225,7 @@ export const settings = sqliteTable("settings", {
 	}),
 	terminalFontFamily: text("terminal_font_family"),
 	terminalFontSize: integer("terminal_font_size"),
+	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
@@ -239,7 +240,12 @@ export const settings = sqliteTable("settings", {
 export type InsertSettings = typeof settings.$inferInsert;
 export type SelectSettings = typeof settings.$inferSelect;
 
-export type V1MigrationKind = "project" | "workspace" | "preset";
+export type V1MigrationKind =
+	| "project"
+	| "workspace"
+	| "preset"
+	| "settings"
+	| "terminal";
 export type V1MigrationStatus = "success" | "linked" | "error" | "skipped";
 
 export const v1MigrationState = sqliteTable(

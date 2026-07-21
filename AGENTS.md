@@ -10,58 +10,19 @@ Guidelines for agents and developers working in this repository.
 
 ## Structure
 
-Bun + Turbo monorepo with:
-- **Apps**:
-  - `apps/web` - Main web application (app.superset.sh)
-  - `apps/marketing` - Marketing site (superset.sh)
-  - `apps/admin` - Admin dashboard
-  - `apps/api` - API backend
-  - `apps/desktop` - Electron desktop application
-  - `apps/docs` - Documentation site
-  - `apps/mobile` - React Native mobile app (Expo)
-- **Packages**:
-  - `packages/ui` - Shared UI components (shadcn/ui + TailwindCSS v4).
-    - Add components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
-  - `packages/db` - Drizzle ORM database schema
-  - `packages/auth` - Authentication
-  - `packages/trpc` - Shared tRPC definitions
-  - `packages/shared` - Shared utilities
-  - `packages/mcp` - MCP integration
-  - `packages/local-db` - Local SQLite database
-  - `packages/durable-session` - Durable session management
-  - `packages/email` - Email templates/sending
-  - `packages/scripts` - CLI tooling
-- **Tooling**:
-  - `tooling/typescript` - Shared TypeScript configs
+Bun + Turbo monorepo: `apps/` (web, marketing, admin, api, desktop, docs, mobile) and `packages/` — see `ls apps/ packages/` for the full list.
+- Add shadcn components: `npx shadcn@latest add <component>` (run in `packages/ui/`)
 
 ## Tech Stack
 
 - **Package Manager**: Bun (no npm/yarn/pnpm)
-- **Build System**: Turborepo
-- **Database**: Drizzle ORM + Neon PostgreSQL
-- **UI**: React + TailwindCSS v4 + shadcn/ui
-- **Code Quality**: Biome (formatting + linting at root)
 - **Next.js**: Version 16 - NEVER create `middleware.ts`. Next.js 16 renamed middleware to `proxy.ts`. Always use `proxy.ts` for request interception.
 
 ## Common Commands
 
+Standard scripts live in the root `package.json` (`bun dev`, `bun test`, `bun run lint:fix`, `bun run typecheck`, ...).
+
 ```bash
-# Development
-bun dev                    # Start all dev servers
-bun test                   # Run tests
-bun build                  # Build all packages
-
-# Code Quality
-bun run lint               # Check for lint issues (no changes)
-bun run lint:fix           # Fix auto-fixable lint issues
-bun run format             # Format code only
-bun run format:check       # Check formatting only (CI)
-bun run typecheck          # Type check all packages
-
-# Maintenance
-bun run clean              # Clean root node_modules
-bun run clean:workspaces   # Clean all workspace node_modules
-
 # Releases (desktop + host-service + cli share one version; see scripts/release/README.md)
 bun run release            # interactive: desktop release or CLI hotfix
 bun run release desktop    # desktop app release (draft by default)
@@ -74,11 +35,18 @@ Cut releases on a dedicated release branch (not `main`); `bun run release deskto
 
 ## Code Quality
 
-**Biome runs at root level** (not per-package) for speed:
-- `biome check --write --unsafe` = format + lint + organize imports + fix all auto-fixable issues
-- `biome check` = check only (no changes)
-- `biome format` = format only
-- Use `bun run lint:fix` to fix all issues automatically
+**Biome runs at root level** (not per-package) for speed — use `bun run lint:fix` to fix all issues automatically.
+
+## CDP UI Verification
+
+When a user asks for UI verification through the Chrome DevTools Protocol (CDP):
+
+1. **Target the correct app instance** - confirm and report the worktree, renderer URL/port, and active route before testing. Follow any task-provided CDP/auth guidance and verify the expected signed-in session. Do not treat a different running desktop instance as equivalent.
+2. **Reproduce the exact user journey** - use real browser input and visible UI navigation for the steps the user performs. Directly assigning DOM properties, invoking internal app APIs, or running component-only scripts is diagnostic support, not proof of end-to-end behavior.
+3. **Capture visual and numeric evidence** - take before/after screenshots and pair them with relevant CDP measurements (for example, `scrollTop`, focused element, route, or persisted state). Confirm that the screenshot and measured state agree.
+4. **Exercise the relevant lifecycle** - include the actual route change, workspace/pane/file switch, remount, close/reopen, or other teardown boundary from the report. A narrower synthetic flow cannot substitute for the reported interaction.
+5. **Treat a mismatch as an incomplete reproduction** - if the test passes but the user still observes the bug, re-check the target instance, exact steps, input method, persisted keys, and lifecycle timing. Reproduce the failure before changing code; do not assume the report is disproven by a synthetic smoke test.
+6. **Use an evidence gate** - for a reported bug or regression, do not claim it is verified until the original interaction demonstrably fails before the fix and passes after it under the same observations. For a new feature, record equivalent baseline evidence and demonstrate the expected behavior. In all cases, state clearly which checks were end-to-end, which were synthetic, and whether screenshots were actually captured.
 
 ## Agent Rules
 1. **Type safety** - avoid `any` unless necessary
@@ -87,6 +55,8 @@ Cut releases on a dedicated release branch (not `main`); `bun run release deskto
 4. **Workspace MCP config** - keep shared MCP servers in `.mcp.json`; `.cursor/mcp.json` should link to `../.mcp.json`. Codex uses `.codex/config.toml` (run with `CODEX_HOME=.codex codex ...`). OpenCode uses `opencode.json` and should mirror the same MCP set using OpenCode's `remote`/`local` schema.
 
    > **Mistral Vibe compatibility**: Vibe reads `AGENTS.md` + `.agents/skills/` natively (trust granted via `--trust`; no `.agents/commands` support). Configure it via `.vibe/config.toml`; it consumes MCP servers as `[[mcp_servers]]` TOML entries (not `.mcp.json`).
+
+   > **Kimi Code compatibility**: Kimi reads `AGENTS.md` + `.agents/skills/` natively. It does not discover `.agents/commands`; configure it through `~/.kimi-code/config.toml` or `KIMI_CODE_HOME`.
 
 5. **Mastra dependencies** - use the published upstream `mastracode` and `@mastra/*` packages. Do not add fork tarball overrides or custom patch steps unless explicitly requested.
 6. **Plan & doc placement** - implementation plans go in `plans/` (cross-cutting) or `apps/<app>/plans/` (app-scoped); shipped plans move to `plans/done/`. Architecture/reference docs go in `<app>/docs/`. Never drop `*_PLAN.md` at an app root or inside `src/`.
@@ -181,9 +151,5 @@ The `src/components/ui/` and `src/components/ai-elements` directories contain sh
 - Use Drizzle ORM for all database operations
 
 ## DB migrations
-- Always spin up a new neon branch to create migrations. Update our root .env files to point at the neon branch locally.
-- Use drizzle to manage the migration. You can see the schema at packages/db/src/schema. Never run a migration yourself.
-- Create migrations by changing drizzle schema then running `bunx drizzle-kit generate --name="<sample_name_snake_case>"`
-- `NEON_ORG_ID` and `NEON_PROJECT_ID` env vars are set in .env
-- list_projects tool requires org_id passed in
-- **NEVER manually edit files in `packages/db/drizzle/`** - this includes `.sql` migration files, `meta/_journal.json`, and snapshot files. These are auto-generated by Drizzle. If you need to create a migration, only modify the schema files in `packages/db/src/schema/` and ask the user to run `drizzle-kit generate`.
+- Never run a migration yourself, and **NEVER manually edit files in `packages/db/drizzle/`** (`.sql` files, `meta/_journal.json`, snapshots — all auto-generated). Only modify schema files in `packages/db/src/schema/` and ask the user to run `drizzle-kit generate`.
+- Workflow (Neon branch setup, drizzle-kit invocation): see `.agents/skills/db-migrations/SKILL.md`.

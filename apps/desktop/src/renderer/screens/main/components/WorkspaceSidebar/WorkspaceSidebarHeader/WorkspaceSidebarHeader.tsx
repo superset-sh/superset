@@ -107,7 +107,7 @@ export function WorkspaceSidebarHeader({
 	}
 
 	return (
-		<div className="flex flex-col gap-1 border-b border-border px-2 pt-2 pb-2">
+		<div className="flex flex-col border-b border-border px-2 pt-2 pb-2">
 			<button
 				type="button"
 				onClick={handleWorkspacesClick}

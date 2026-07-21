@@ -1,9 +1,14 @@
 import type { CheckItem } from "@superset/local-db";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { derivePullRequestQueryTargets } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import {
 	DEVICE_FILTER_ALL,
 	DEVICE_FILTER_THIS_DEVICE,
@@ -212,6 +217,21 @@ function mapChecks(rawChecks: RawCheckEntry[] | null | undefined): CheckItem[] {
 	}));
 }
 
+// useQueries returns a fresh array each render; key the map on a content
+// fingerprint so its identity only changes when the entries do.
+function useStableWorkspacePrNumbers(
+	entries: [string, number][],
+): Map<string, number> {
+	const fingerprint = useMemo(
+		() => JSON.stringify([...entries].sort(([a], [b]) => a.localeCompare(b))),
+		[entries],
+	);
+	return useMemo<Map<string, number>>(
+		() => new Map(JSON.parse(fingerprint) as [string, number][]),
+		[fingerprint],
+	);
+}
+
 export function useAccessibleV2Workspaces(
 	options: UseAccessibleV2WorkspacesOptions = {},
 ): UseAccessibleV2WorkspacesResult {
@@ -220,7 +240,8 @@ export function useAccessibleV2Workspaces(
 	const projectFilter = options.projectFilter ?? PROJECT_FILTER_ALL;
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const { machineId } = useLocalHostService();
+	const { machineId, activeHostUrl } = useLocalHostService();
+	const relayUrl = useRelayUrl();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
@@ -232,6 +253,7 @@ export function useAccessibleV2Workspaces(
 	const { data: hostRows = [] } = useLiveQuery(
 		(q) =>
 			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
+				organizationId: hosts.organizationId,
 				machineId: hosts.machineId,
 				name: hosts.name,
 				isOnline: hosts.isOnline,
@@ -248,15 +270,8 @@ export function useAccessibleV2Workspaces(
 		[collections, currentUserId],
 	);
 
-	const { data: projectRows = [] } = useLiveQuery(
-		(q) =>
-			q.from({ projects: collections.v2Projects }).select(({ projects }) => ({
-				id: projects.id,
-				name: projects.name,
-				githubRepositoryId: projects.githubRepositoryId,
-			})),
-		[collections],
-	);
+	// Projects are fully local — the host fan-out is the identity source.
+	const { projects: hostProjects } = useHostProjects();
 
 	const { data: sidebarStateRows = [] } = useLiveQuery(
 		(q) =>
@@ -284,6 +299,7 @@ export function useAccessibleV2Workspaces(
 			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
 				id: repos.id,
 				owner: repos.owner,
+				name: repos.name,
 			})),
 		[collections],
 	);
@@ -306,7 +322,7 @@ export function useAccessibleV2Workspaces(
 		const hostsById = new Map(hostRows.map((host) => [host.machineId, host]));
 		const accessibleHostIds = new Set(userHostRows.map((row) => row.hostId));
 		const projectsById = new Map(
-			projectRows.map((project) => [project.id, project]),
+			hostProjects.map((project) => [project.projectKey, project]),
 		);
 		const sidebarStateByWorkspaceId = new Map(
 			sidebarStateRows.map((row) => [row.workspaceId, row]),
@@ -314,7 +330,14 @@ export function useAccessibleV2Workspaces(
 		const sidebarProjectIds = new Set(
 			sidebarProjectRows.map((row) => row.projectId),
 		);
-		const reposById = new Map(repoRows.map((repo) => [repo.id, repo]));
+		// Host rows carry owner/name (from the git remote), not the cloud repo
+		// UUID — resolve the repo row by coordinates for PR enrichment.
+		const reposByFullName = new Map(
+			repoRows.map((repo) => [
+				`${repo.owner}/${repo.name}`.toLowerCase(),
+				repo,
+			]),
+		);
 		const creatorsById = new Map(
 			creatorRows.map((creator) => [creator.id, creator]),
 		);
@@ -326,9 +349,12 @@ export function useAccessibleV2Workspaces(
 			const project = projectsById.get(workspace.projectId);
 			if (!project) return [];
 			const sidebarState = sidebarStateByWorkspaceId.get(workspace.id);
-			const repo = project.githubRepositoryId
-				? reposById.get(project.githubRepositoryId)
-				: undefined;
+			const repo =
+				project.repoOwner && project.repoName
+					? reposByFullName.get(
+							`${project.repoOwner}/${project.repoName}`.toLowerCase(),
+						)
+					: undefined;
 			const creator = workspace.createdByUserId
 				? creatorsById.get(workspace.createdByUserId)
 				: undefined;
@@ -342,15 +368,15 @@ export function useAccessibleV2Workspaces(
 					createdByUserId: workspace.createdByUserId,
 					createdByName: creator?.name ?? null,
 					createdByImage: creator?.image ?? null,
-					projectId: project.id,
+					projectId: project.projectKey,
 					projectName: project.name,
-					projectRepoId: project.githubRepositoryId,
-					projectGithubOwner: repo?.owner ?? null,
+					projectRepoId: repo?.id ?? null,
+					projectGithubOwner: project.repoOwner ?? repo?.owner ?? null,
 					hostId: workspace.hostId,
 					hostName: host.name,
 					hostIsOnline: host.isOnline,
-					sidebarProjectId: sidebarProjectIds.has(project.id)
-						? project.id
+					sidebarProjectId: sidebarProjectIds.has(project.projectKey)
+						? project.projectKey
 						: null,
 					sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
 					sidebarIsHidden: sidebarState?.isHidden ?? false,
@@ -363,12 +389,60 @@ export function useAccessibleV2Workspaces(
 		hostWorkspaces,
 		hostRows,
 		userHostRows,
-		projectRows,
+		hostProjects,
 		sidebarStateRows,
 		sidebarProjectRows,
 		repoRows,
 		creatorRows,
 	]);
+
+	// The authoritative link lives in host.db (`workspace.pullRequestId`), not any
+	// collection, so fan `getByWorkspaces` out per host like the sidebar. A
+	// client-side `repositoryId::branch` map mistracks on fork branch collisions.
+	const pullRequestQueryTargets = useMemo(
+		() =>
+			derivePullRequestQueryTargets({
+				activeHostUrl,
+				hosts: hostRows,
+				machineId,
+				relayUrl,
+				workspaces: rows,
+			}),
+		[activeHostUrl, hostRows, machineId, relayUrl, rows],
+	);
+
+	const pullRequestQueries = useQueries({
+		queries: pullRequestQueryTargets.map((target) => ({
+			queryKey: [
+				"v2-workspaces",
+				"pull-requests",
+				target.machineId,
+				target.hostUrl,
+				target.workspaceIds,
+			] as const,
+			refetchInterval: 10_000,
+			queryFn: async () => {
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.pullRequests.getByWorkspaces.query({
+					workspaceIds: target.workspaceIds,
+				});
+			},
+		})),
+	});
+
+	const prNumberEntries = useMemo<[string, number][]>(() => {
+		const entries: [string, number][] = [];
+		for (const query of pullRequestQueries) {
+			const data = query.data;
+			if (!data) continue;
+			for (const row of data.workspaces) {
+				if (row.pullRequest)
+					entries.push([row.workspaceId, row.pullRequest.number]);
+			}
+		}
+		return entries;
+	}, [pullRequestQueries]);
+	const prNumberByWorkspaceId = useStableWorkspacePrNumbers(prNumberEntries);
 
 	const { data: prRows = [] } = useLiveQuery(
 		(q) =>
@@ -379,7 +453,6 @@ export function useAccessibleV2Workspaces(
 					id: prs.id,
 					repositoryId: prs.repositoryId,
 					prNumber: prs.prNumber,
-					headBranch: prs.headBranch,
 					title: prs.title,
 					url: prs.url,
 					state: prs.state,
@@ -395,17 +468,11 @@ export function useAccessibleV2Workspaces(
 		[collections, activeOrganizationId],
 	);
 
-	const prsByRepoBranch = useMemo(() => {
+	// Unique (repositoryId, prNumber) key — no branch collisions, no first-match-wins.
+	const prByRepoNumber = useMemo(() => {
 		const map = new Map<string, V2WorkspacePrSummary>();
-		const stateRank: Record<string, number> = {
-			open: 0,
-			draft: 1,
-			merged: 2,
-			closed: 3,
-		};
 		for (const row of prRows) {
-			const key = `${row.repositoryId}::${row.headBranch}`;
-			const candidate: V2WorkspacePrSummary = {
+			map.set(`${row.repositoryId}::${row.prNumber}`, {
 				prNumber: row.prNumber,
 				title: row.title,
 				url: row.url,
@@ -416,21 +483,7 @@ export function useAccessibleV2Workspaces(
 				additions: row.additions,
 				deletions: row.deletions,
 				updatedAt: new Date(row.updatedAt),
-			};
-			const existing = map.get(key);
-			if (!existing) {
-				map.set(key, candidate);
-				continue;
-			}
-			const cmpState = stateRank[candidate.state] - stateRank[existing.state];
-			if (cmpState < 0) {
-				map.set(key, candidate);
-			} else if (
-				cmpState === 0 &&
-				candidate.updatedAt.getTime() > existing.updatedAt.getTime()
-			) {
-				map.set(key, candidate);
-			}
+			});
 		}
 		return map;
 	}, [prRows]);
@@ -448,9 +501,11 @@ export function useAccessibleV2Workspaces(
 			const isInSidebar =
 				isSidebarWorkspaceVisible({ isHidden: row.sidebarIsHidden }) &&
 				(row.sidebarWorkspaceId != null || isAutoVisibleMain);
-			const pr = row.projectRepoId
-				? (prsByRepoBranch.get(`${row.projectRepoId}::${row.branch}`) ?? null)
-				: null;
+			const prNumber = prNumberByWorkspaceId.get(row.id);
+			const pr =
+				row.projectRepoId != null && prNumber != null
+					? (prByRepoNumber.get(`${row.projectRepoId}::${prNumber}`) ?? null)
+					: null;
 
 			deduped.set(row.id, {
 				id: row.id,
@@ -478,7 +533,7 @@ export function useAccessibleV2Workspaces(
 		return Array.from(deduped.values()).sort(
 			(a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
 		);
-	}, [rows, machineId, currentUserId, prsByRepoBranch]);
+	}, [rows, machineId, currentUserId, prByRepoNumber, prNumberByWorkspaceId]);
 
 	const searchFiltered = useMemo(
 		() =>

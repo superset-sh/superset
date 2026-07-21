@@ -5,7 +5,7 @@ export {
 } from "./port-manager.ts";
 export {
 	getListeningPortsForPids,
-	getProcessTree,
+	getProcessTreesForPids,
 	type PortInfo,
 } from "./scanner.ts";
 export {

@@ -232,6 +232,7 @@ export function WorkspaceRow({
 			{isClosedWorktree && workspace.worktreeId && (
 				<DeleteWorktreeDialog
 					worktreeId={workspace.worktreeId}
+					worktreePath={workspace.worktreePath}
 					worktreeName={workspace.name}
 					open={showDeleteDialog}
 					onOpenChange={setShowDeleteDialog}

@@ -4,12 +4,12 @@ import { Switch } from "@superset/ui/switch";
 import { useState } from "react";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ExposeViaRelayConfirmDialog } from "renderer/routes/_authenticated/components/ExposeViaRelayConfirmDialog";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
-import { ExposeViaRelayConfirmDialog } from "./components/ExposeViaRelayConfirmDialog";
 
 interface SecuritySettingsProps {
 	visibleItems?: SettingItemId[] | null;

@@ -1,6 +1,8 @@
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
+import { DEFAULT_TERMINAL_PARKED_RUNTIME_CAP } from "shared/constants";
 import type { TerminalAppearance } from "./appearance";
+import { runWhenParserIdle } from "./parser-idle-gate";
 import {
 	type LinkHoverInfo,
 	type TerminalLinkHandlers,
@@ -8,24 +10,32 @@ import {
 } from "./terminal-link-manager";
 import {
 	attachToContainer,
+	clearPersistedRuntimeState,
 	createRuntime,
 	detachFromContainer,
 	disposeRuntime,
 	type TerminalRuntime,
+	tryPersistRuntimeState,
 	updateRuntimeAppearance,
 } from "./terminal-runtime";
+import {
+	normalizeParkedRuntimeCap,
+	selectRuntimesToEvict,
+} from "./terminal-runtime-eviction";
 import {
 	type ConnectionState,
 	clearLogs,
 	connect,
 	createTransport,
 	disposeTransport,
+	reconnect,
 	sendDispose,
 	sendInput,
 	sendResize,
 	type TerminalLogEntry,
 	type TerminalTransport,
 } from "./terminal-ws-transport";
+import type { TerminalFailureClassification } from "./terminalConnectionDiagnostics";
 
 interface RegistryEntry {
 	terminalId: string;
@@ -35,11 +45,33 @@ interface RegistryEntry {
 	linkManager: TerminalLinkManager | null;
 	/** Stored until linkManager is created (mount called after setLinkHandlers). */
 	pendingLinkHandlers: TerminalLinkHandlers | null;
+	/** Stops the alternate/normal buffer observer installed with the runtime. */
+	disposeBufferChangeListener: (() => void) | null;
+	/** Monotonic use counter; bumped on mount/detach, drives parked-LRU eviction. */
+	lastUsedAt: number;
 }
 
 class TerminalRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private entryKeysByTerminalId = new Map<string, Set<string>>();
+	private useSeq = 0;
+	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
+	private persistFailureWarnedTerminalIds = new Set<string>();
+	/**
+	 * Cap on parked (hidden) xterm runtimes. Each live runtime holds its full
+	 * scrollback and a WebGL context (~55–70 MB RSS measured), so parked
+	 * instances beyond this are released — buffer persisted to localStorage,
+	 * PTY untouched — and rebuilt from the persisted buffer on next mount.
+	 * User-configurable via settings.setTerminalParkedRuntimeCap. (SUPER-1545)
+	 */
+	private parkedRuntimeCap = DEFAULT_TERMINAL_PARKED_RUNTIME_CAP;
+
+	setParkedRuntimeCap(cap: number) {
+		const normalized = normalizeParkedRuntimeCap(cap);
+		if (normalized === null) return;
+		this.parkedRuntimeCap = normalized;
+		this.scheduleParkedEviction();
+	}
 
 	private getEntryKey(terminalId: string, instanceId = terminalId): string {
 		return `${terminalId}\u0000${instanceId}`;
@@ -60,6 +92,8 @@ class TerminalRuntimeRegistryImpl {
 			transport: createTransport(),
 			linkManager: null,
 			pendingLinkHandlers: null,
+			disposeBufferChangeListener: null,
+			lastUsedAt: 0,
 		};
 
 		this.entries.set(key, entry);
@@ -144,11 +178,13 @@ class TerminalRuntimeRegistryImpl {
 		instanceId = terminalId,
 	) {
 		const entry = this.getOrCreateEntry(terminalId, instanceId);
+		entry.lastUsedAt = ++this.useSeq;
 
 		if (!entry.runtime) {
 			entry.runtime = createRuntime(terminalId, appearance, {
 				initialBuffer: this.serializeExistingRuntime(terminalId, instanceId),
 			});
+			this.observeBufferChanges(entry);
 			entry.linkManager = new TerminalLinkManager(entry.runtime.terminal);
 			if (entry.pendingLinkHandlers) {
 				entry.linkManager.setHandlers(entry.pendingLinkHandlers);
@@ -167,6 +203,22 @@ class TerminalRuntimeRegistryImpl {
 			},
 			{ focus: false },
 		);
+	}
+
+	private observeBufferChanges(entry: RegistryEntry) {
+		entry.disposeBufferChangeListener?.();
+		entry.disposeBufferChangeListener = null;
+		const runtime = entry.runtime;
+		if (!runtime) return;
+
+		const subscription = runtime.terminal.buffer.onBufferChange(() => {
+			// Exempt alternate-screen TUIs may put the registry over cap. As soon as
+			// a parked TUI returns to its normal buffer, reconsider it for eviction.
+			if (entry.runtime?.container === null) {
+				this.scheduleParkedEviction();
+			}
+		});
+		entry.disposeBufferChangeListener = () => subscription.dispose();
 	}
 
 	/**
@@ -203,6 +255,17 @@ class TerminalRuntimeRegistryImpl {
 	}
 
 	/**
+	 * Manually re-dial after the transport stopped trying (access denied, fatal
+	 * server error, PTY exit). reconnect() clears the terminated flag and forces
+	 * an immediate dial, restarting a dead loop.
+	 */
+	retryConnect(terminalId: string, instanceId = terminalId) {
+		const entry = this.getEntry(terminalId, instanceId);
+		if (!entry?.runtime) return;
+		reconnect(entry.transport);
+	}
+
+	/**
 	 * Set link handler callbacks for a terminal. Safe to call before or after
 	 * mount(). If the runtime already exists, link providers are re-registered.
 	 */
@@ -228,7 +291,63 @@ class TerminalRuntimeRegistryImpl {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry?.runtime) return;
 
+		entry.lastUsedAt = ++this.useSeq;
 		detachFromContainer(entry.runtime);
+		this.scheduleParkedEviction();
+	}
+
+	/**
+	 * Deferred so a workspace switch (detach batch, then mount batch in the
+	 * next effect pass) re-adopts parked runtimes before eviction counts them.
+	 */
+	private scheduleParkedEviction() {
+		if (this.pendingEviction !== null) return;
+		this.pendingEviction = setTimeout(() => {
+			this.pendingEviction = null;
+			this.evictExcessParkedRuntimes();
+		}, 0);
+	}
+
+	private evictExcessParkedRuntimes() {
+		const parkedEntries = Array.from(this.entries.values()).filter(
+			(entry) => entry.runtime?.container === null,
+		);
+
+		// A pane can detach before the animation-frame output batch has reached
+		// xterm. Flush it, then wait for xterm's parser callback before checking
+		// alternate-screen mode or serializing the buffer.
+		for (const entry of parkedEntries) {
+			entry.transport._writeCoalescer?.flushSync();
+		}
+		const parsingEntries = parkedEntries.filter(
+			(entry) => (entry.runtime?.gate.pending ?? 0) > 0,
+		);
+		if (parsingEntries.length > 0) {
+			for (const entry of parsingEntries) {
+				const gate = entry.runtime?.gate;
+				if (gate) {
+					runWhenParserIdle(gate, () => this.scheduleParkedEviction());
+				}
+			}
+			return;
+		}
+
+		const victims = selectRuntimesToEvict(
+			this.entries.values(),
+			this.parkedRuntimeCap,
+			// Alternate-screen TUIs restore as a garbled static snapshot — never evict them.
+			(entry) => entry.runtime?.terminal.buffer.active.type === "alternate",
+		);
+		for (const entry of victims) {
+			if (!entry.runtime || !tryPersistRuntimeState(entry.runtime)) {
+				this.warnPersistFailureOnce(entry.terminalId);
+				continue;
+			}
+			this.clearPersistFailureWarning(entry.terminalId);
+			// tryPersistRuntimeState already wrote the snapshot. Preserve it while
+			// disposing instead of serializing and writing the same buffer twice.
+			this.disposeEntry(entry, { persistedState: "preserve" });
+		}
 	}
 
 	updateAppearance(
@@ -250,8 +369,10 @@ class TerminalRuntimeRegistryImpl {
 
 	private disposeEntry(
 		entry: RegistryEntry,
-		options: { clearPersistedState?: boolean } = {},
+		options: { persistedState?: "clear" | "preserve" } = {},
 	) {
+		entry.disposeBufferChangeListener?.();
+		entry.disposeBufferChangeListener = null;
 		entry.linkManager?.dispose();
 		disposeTransport(entry.transport);
 		if (entry.runtime) {
@@ -272,8 +393,28 @@ class TerminalRuntimeRegistryImpl {
 				)
 			: this.getEntries(terminalId);
 		for (const entry of entries) {
-			this.disposeEntry(entry, { clearPersistedState: false });
+			if (entry.runtime && !tryPersistRuntimeState(entry.runtime)) {
+				this.warnPersistFailureOnce(entry.terminalId);
+				continue;
+			}
+			this.clearPersistFailureWarning(entry.terminalId);
+			// Persistence succeeded before any runtime or transport cleanup began.
+			this.disposeEntry(entry, { persistedState: "preserve" });
 		}
+	}
+
+	private warnPersistFailureOnce(terminalId: string) {
+		// HMR can preserve a registry instance created before this field existed.
+		this.persistFailureWarnedTerminalIds ??= new Set<string>();
+		if (this.persistFailureWarnedTerminalIds.has(terminalId)) return;
+		this.persistFailureWarnedTerminalIds.add(terminalId);
+		console.warn(
+			`[terminal-registry] state persist failed for ${terminalId}; keeping runtime alive (localStorage quota?)`,
+		);
+	}
+
+	private clearPersistFailureWarning(terminalId: string) {
+		this.persistFailureWarnedTerminalIds?.delete(terminalId);
 	}
 
 	/**
@@ -285,6 +426,9 @@ class TerminalRuntimeRegistryImpl {
 			sendDispose(entry.transport);
 			this.disposeEntry(entry);
 		}
+		// Eviction deletes the live registry entry but deliberately leaves its
+		// snapshot behind. Closing that pane must still clear the orphaned keys.
+		clearPersistedRuntimeState(terminalId);
 	}
 
 	getSelection(terminalId: string, instanceId?: string): string {
@@ -384,6 +528,21 @@ class TerminalRuntimeRegistryImpl {
 		return this.getEntry(terminalId, instanceId)?.transport.logs ?? EMPTY_LOGS;
 	}
 
+	/**
+	 * Why the connection is down, once the transport has stopped retrying.
+	 * Null while healthy or still auto-reconnecting. Changes are announced
+	 * through the state and log listeners (diagnosis flips always accompany a
+	 * state change or a log push).
+	 */
+	getConnectionDiagnosis(
+		terminalId: string,
+		instanceId?: string,
+	): TerminalFailureClassification | null {
+		return (
+			this.getEntry(terminalId, instanceId)?.transport.lastDiagnosis ?? null
+		);
+	}
+
 	clearLogs(terminalId: string, instanceId?: string): void {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry) return;
@@ -448,6 +607,7 @@ if (import.meta.hot) {
 export type {
 	ConnectionState,
 	LinkHoverInfo,
+	TerminalFailureClassification,
 	TerminalLinkHandlers,
 	TerminalLogEntry,
 };

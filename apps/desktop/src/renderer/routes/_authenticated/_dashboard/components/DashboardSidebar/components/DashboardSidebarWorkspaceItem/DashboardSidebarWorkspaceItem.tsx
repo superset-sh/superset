@@ -152,6 +152,7 @@ export function DashboardSidebarWorkspaceItem({
 						content
 					) : (
 						<DashboardSidebarWorkspaceContextMenu
+							workspaceId={id}
 							projectId={projectId}
 							isInSection={isInSection}
 							isUnread={isUnread}
@@ -167,7 +168,7 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
-							onRename={startRename}
+							onRename={isMainWorkspace ? undefined : startRename}
 							onDelete={
 								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 							}
@@ -210,7 +211,9 @@ export function DashboardSidebarWorkspaceItem({
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
 			// Hover/focus scope for the details strip below the row: it swaps its
-			// summary cluster for the full badges while the item is hovered.
+			// summary cluster for the full badges while the item is hovered, or
+			// while this is the active workspace.
+			data-active={isActive || undefined}
 			className="group/item"
 		>
 			<DashboardSidebarExpandedWorkspaceRow
@@ -223,7 +226,7 @@ export function DashboardSidebarWorkspaceItem({
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
 				onClick={handleClick}
-				onDoubleClick={isPending ? undefined : startRename}
+				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
 				onRenameValueChange={setRenameValue}
@@ -248,6 +251,7 @@ export function DashboardSidebarWorkspaceItem({
 					expandedContent
 				) : (
 					<DashboardSidebarWorkspaceContextMenu
+						workspaceId={id}
 						projectId={projectId}
 						isInSection={isInSection}
 						isUnread={isUnread}
@@ -263,7 +267,7 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
-						onRename={startRename}
+						onRename={isMainWorkspace ? undefined : startRename}
 						onDelete={
 							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
 						}

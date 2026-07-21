@@ -77,6 +77,27 @@ describe("TerminalAgentStore", () => {
 		expect(store.listByWorkspace(WORKSPACE)).toHaveLength(0);
 	});
 
+	it("records a Failed event on the binding instead of deleting it", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.lastEventAt).toBe(200);
+		expect(store.listByWorkspace(WORKSPACE)).toHaveLength(1);
+	});
+
 	it("drops stale identity metadata on agent swap even when the new event omits it", () => {
 		store.recordEvent({
 			terminalId: "t1",
@@ -181,6 +202,56 @@ describe("TerminalAgentStore", () => {
 		store.markTerminalExited("t1");
 
 		expect(events).toEqual([WORKSPACE, WORKSPACE]);
+	});
+
+	it("clearWorkspaceStatuses forces non-Stop bindings to Stop, keeping lastEventAt", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t2",
+			workspaceId: "other",
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 200,
+		});
+
+		const events: string[] = [];
+		store.on("change", (workspaceId: string) => {
+			events.push(workspaceId);
+		});
+
+		store.clearWorkspaceStatuses(WORKSPACE);
+
+		expect(store.get("t1")?.lastEventType).toBe("Stop");
+		expect(store.get("t1")?.lastEventAt).toBe(100);
+		expect(store.get("t2")?.lastEventType).toBe("Start");
+		expect(events).toEqual([WORKSPACE]);
+
+		// Everything already Stop → no-op, no change event.
+		store.clearWorkspaceStatuses(WORKSPACE);
+		expect(events).toEqual([WORKSPACE]);
+	});
+
+	it("clearWorkspaceStatuses scoped to a terminalId leaves siblings alone", () => {
+		for (const terminalId of ["t1", "t2"]) {
+			store.recordEvent({
+				terminalId,
+				workspaceId: WORKSPACE,
+				eventType: "Start",
+				agentId: "claude",
+				occurredAt: 100,
+			});
+		}
+
+		store.clearWorkspaceStatuses(WORKSPACE, "t1");
+
+		expect(store.get("t1")?.lastEventType).toBe("Stop");
+		expect(store.get("t2")?.lastEventType).toBe("Start");
 	});
 
 	it("filters listByWorkspace by agentId and definitionId", () => {

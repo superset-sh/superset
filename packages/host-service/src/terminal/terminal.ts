@@ -2,9 +2,9 @@ import { existsSync } from "node:fs";
 import { isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
+import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
 import {
 	createScanState,
-	SHELLS_WITH_READY_MARKER,
 	type ShellReadyScanState,
 	scanForShellReady,
 } from "@superset/shared/shell-ready-scanner";
@@ -13,7 +13,7 @@ import {
 	scanForTerminalTitle,
 	type TerminalTitleScanState,
 } from "@superset/shared/terminal-title-scanner";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { Hono } from "hono";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
@@ -33,6 +33,8 @@ import {
 	getShellLaunchArgs,
 	getTerminalBaseEnv,
 	resolveLaunchShell,
+	shellLaunchExpectsReadyMarker,
+	waitForTerminalBaseEnv,
 } from "./env.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
@@ -197,17 +199,14 @@ type TerminalSocket = {
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
 // ---------------------------------------------------------------------------
 
-/** Flush partial OSC 133;A prefix bytes the scanner is holding if a full marker never arrives. */
-const SHELL_READY_TIMEOUT_MS = 3_000;
-
 /**
  * Shell readiness lifecycle:
  * - `pending`     — shell initialising; scanner active
  * - `ready`       — OSC 133;A detected; scanner off
- * - `timed_out`   — marker never arrived within timeout; scanner off
- * - `unsupported` — shell has no marker (sh, ksh); scanner never started
+ * - `unsupported` — launch config has no marker; scanner never started
+ * - `cancelled`   — session ended before readiness; queued automation cancelled
  */
-type ShellReadyState = "pending" | "ready" | "timed_out" | "unsupported";
+type ShellReadyState = "pending" | "ready" | "unsupported" | "cancelled";
 
 interface TerminalSession {
 	terminalId: string;
@@ -249,7 +248,6 @@ interface TerminalSession {
 	shellReadyState: ShellReadyState;
 	shellReadyResolve: (() => void) | null;
 	shellReadyPromise: Promise<void>;
-	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
 	scanState: ShellReadyScanState;
 	initialCommandQueued: boolean;
 
@@ -289,6 +287,7 @@ onDaemonDisconnect((err) => {
 		`[terminal] pty-daemon disconnected (${err?.message ?? "no message"}); closing ${sessionCount} terminal WS socket(s) to trigger renderer reconnect`,
 	);
 	for (const session of sessions.values()) {
+		cancelShellReady(session);
 		for (const socket of session.sockets) {
 			try {
 				socket.close(1011, "pty-daemon disconnected");
@@ -324,6 +323,7 @@ onDaemonDisconnect((err) => {
  */
 export function __resetSessionsForTesting(): void {
 	for (const session of sessions.values()) {
+		cancelShellReady(session);
 		if (session.unsubscribeDaemon) {
 			try {
 				session.unsubscribeDaemon();
@@ -350,6 +350,22 @@ export function __resetSessionsForTesting(): void {
 export function isLiveTerminalSession(terminalId: string): boolean {
 	const session = sessions.get(terminalId);
 	return session !== undefined && !session.exited;
+}
+
+/**
+ * Whether a live session has a foreground command running (vs. sitting at an
+ * idle shell prompt). Drives the "close anyway?" confirm on pane close. Unknown
+ * sessions, idle prompts, and sessions owned by another workspace return false.
+ */
+export function sessionHasRunningProcess(
+	terminalId: string,
+	workspaceId: string,
+): boolean {
+	const session = sessions.get(terminalId);
+	if (!session || session.exited) return false;
+	// Ownership gate: don't let one workspace probe another's terminals.
+	if (session.workspaceId !== workspaceId) return false;
+	return hasRunningForegroundProcess(session.pty.pid);
 }
 
 function pruneAndCountOpenSockets(session: TerminalSession): number {
@@ -401,33 +417,82 @@ export function listTerminalSessions(
 		}));
 }
 
-export function countTerminalSessions(
-	options: {
-		workspaceId?: string;
-		includeExited?: boolean;
-		excludeTerminalIds?: Iterable<string>;
-	} = {},
-): number {
-	const includeExited = options.includeExited ?? true;
-	const excludedTerminalIds = options.excludeTerminalIds
-		? new Set(options.excludeTerminalIds)
-		: null;
-	let count = 0;
-
-	for (const session of sessions.values()) {
-		if (!session.listed) continue;
-		if (
-			options.workspaceId !== undefined &&
-			session.workspaceId !== options.workspaceId
-		) {
-			continue;
-		}
-		if (!includeExited && session.exited) continue;
-		if (excludedTerminalIds?.has(session.terminalId)) continue;
-		count += 1;
+/**
+ * Workspace session list sourced from truth, not from this process's memory.
+ *
+ * The in-memory map is attachment plumbing: it empties on every host-service
+ * restart while the detached pty-daemon keeps PTYs alive, and it only
+ * repopulates when a renderer attaches. Reading it alone made every pane-less
+ * session (background agents) invisible to the session dropdown, the
+ * background-terminals dropdown, and pane auto-adoption after a restart.
+ *
+ * So: in-memory sessions first (they carry liveness, titles, attachment, and
+ * respect `listed` for hidden internal sessions), then every other alive
+ * daemon session joined to an active workspace-owned row. Dispose-stamped
+ * rows are scheduled kills awaiting the reaper — never resurfaced. A session
+ * only the daemon knows has never been attached in this process's lifetime,
+ * hence `attached: false, title: null`.
+ */
+export async function listWorkspaceTerminalSessions(
+	db: HostDb,
+	workspaceId: string,
+): Promise<TerminalSessionSummary[]> {
+	// `getDaemonClient` gates on the daemon bootstrap (waitForDaemonReady +
+	// supervisor.ensure), so a query racing a host-service restart blocks
+	// until the daemon is adopted instead of observing it as unreachable.
+	let daemonAliveIds: string[] | null;
+	try {
+		const daemon = await getDaemonClient();
+		daemonAliveIds = (await daemon.list())
+			.filter((session) => session.alive)
+			.map((session) => session.id);
+	} catch (error) {
+		// Daemon genuinely down — its PTYs died with it, so the in-memory
+		// view is the whole truth. The dropdowns' polls re-query, so a
+		// transient connection failure self-heals.
+		console.warn(
+			"[terminal] listWorkspaceTerminalSessions: daemon unreachable, serving in-memory view",
+			{ workspaceId, error },
+		);
+		daemonAliveIds = null;
 	}
 
-	return count;
+	// Snapshot memory AFTER the daemon await so a session disposed while the
+	// lookup was in flight can't be returned with stale live state.
+	const known = listTerminalSessions({ workspaceId, includeExited: false });
+	if (daemonAliveIds === null) return known;
+
+	const daemonSessionIds = daemonAliveIds.filter((id) => !sessions.has(id));
+	if (daemonSessionIds.length === 0) return known;
+
+	const rows = db
+		.select({
+			id: terminalSessions.id,
+			originWorkspaceId: terminalSessions.originWorkspaceId,
+			status: terminalSessions.status,
+			createdAt: terminalSessions.createdAt,
+			disposeRequestedAt: terminalSessions.disposeRequestedAt,
+		})
+		.from(terminalSessions)
+		.where(inArray(terminalSessions.id, daemonSessionIds))
+		.all();
+
+	const merged = [...known];
+	for (const row of rows) {
+		if (row.originWorkspaceId !== workspaceId) continue;
+		if (row.status !== "active") continue;
+		if (row.disposeRequestedAt != null) continue;
+		merged.push({
+			terminalId: row.id,
+			workspaceId,
+			createdAt: row.createdAt,
+			exited: false,
+			exitCode: 0,
+			attached: false,
+			title: null,
+		});
+	}
+	return merged;
 }
 
 export function writeInputToSession({
@@ -593,28 +658,20 @@ export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 	sendBytes(socket, combined);
 }
 
-/**
- * Transition out of `pending`. Flushes any partially-matched marker
- * bytes as terminal output (they weren't a real marker). Idempotent.
- */
-function resolveShellReady(
-	session: TerminalSession,
-	state: "ready" | "timed_out",
-): void {
+/** Transition out of `pending` after the scanner matches the prompt marker. */
+function resolveShellReady(session: TerminalSession): void {
 	if (session.shellReadyState !== "pending") return;
-	session.shellReadyState = state;
-	if (session.shellReadyTimeoutId) {
-		clearTimeout(session.shellReadyTimeoutId);
-		session.shellReadyTimeoutId = null;
+	session.shellReadyState = "ready";
+	if (session.shellReadyResolve) {
+		session.shellReadyResolve();
+		session.shellReadyResolve = null;
 	}
-	// Flush held marker bytes — they weren't part of a full marker
-	if (session.scanState.heldBytes.length > 0) {
-		const heldBytes = Uint8Array.from(session.scanState.heldBytes);
-		session.modeTracker.feed(heldBytes);
-		bufferOutput(session, heldBytes);
-		session.scanState.heldBytes.length = 0;
-	}
-	session.scanState.matchPos = 0;
+}
+
+/** Release pending readiness waiters without allowing queued input to run. */
+function cancelShellReady(session: TerminalSession): void {
+	if (session.shellReadyState !== "pending") return;
+	session.shellReadyState = "cancelled";
 	if (session.shellReadyResolve) {
 		session.shellReadyResolve();
 		session.shellReadyResolve = null;
@@ -630,9 +687,15 @@ function queueInitialCommand(
 	const cmd = initialCommand.endsWith("\n")
 		? initialCommand
 		: `${initialCommand}\n`;
-	// Don't gate on OSC 133;A: PTY stdin buffers until the shell reads it,
-	// and gating turned broken/missing markers into a guaranteed stall.
-	session.pty.write(cmd);
+	// Marker-backed shells can run interactive startup hooks that read or flush
+	// PTY input before the first prompt (direnv/devenv is one example). Wait for
+	// that prompt so the command cannot be consumed as startup input. Launches
+	// without a verified marker resolve this promise immediately.
+	void session.shellReadyPromise.then(() => {
+		if (!session.exited && session.shellReadyState !== "cancelled") {
+			session.pty.write(cmd);
+		}
+	});
 }
 
 interface DaemonCloseResult {
@@ -722,14 +785,24 @@ export async function disposeSessionAndWait(
 	terminalId: string,
 	db: HostDb,
 ): Promise<DisposeSessionResult> {
+	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
+	// restart mid-kill), the reaper retries any stamped row — a one-shot
+	// renderer broadcast must not be the only chance to kill a session.
+	// First request time wins so retries don't look like fresh requests.
+	db.update(terminalSessions)
+		.set({ disposeRequestedAt: Date.now() })
+		.where(
+			and(
+				eq(terminalSessions.id, terminalId),
+				isNull(terminalSessions.disposeRequestedAt),
+			),
+		)
+		.run();
 	const session = sessions.get(terminalId);
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
 	if (session) {
-		if (session.shellReadyTimeoutId) {
-			clearTimeout(session.shellReadyTimeoutId);
-			session.shellReadyTimeoutId = null;
-		}
+		cancelShellReady(session);
 		for (const socket of session.sockets) {
 			socket.close(1000, "Session disposed");
 		}
@@ -809,8 +882,11 @@ export async function disposeSessionAndWait(
 }
 
 /**
- * Dispose every active session belonging to the given workspace.
- * Returns counts so callers (e.g. workspaceCleanup.destroy) can surface warnings.
+ * Dispose every active session belonging to the given workspace, then drop the
+ * confirmed-dead rows so the workspace's session index dies with it rather than
+ * lingering as `set null` orphans. A still-`active` row is a failed kill we keep
+ * reachable for the reaper. Returns counts so callers (e.g.
+ * workspaceCleanup.destroy) can surface warnings.
  */
 export async function disposeSessionsByWorkspaceId(
 	workspaceId: string,
@@ -840,6 +916,41 @@ export async function disposeSessionsByWorkspaceId(
 		} catch {
 			failed += 1;
 		}
+	}
+
+	db.delete(terminalSessions)
+		.where(
+			and(
+				eq(terminalSessions.originWorkspaceId, workspaceId),
+				ne(terminalSessions.status, "active"),
+			),
+		)
+		.run();
+
+	return { terminated, failed };
+}
+
+/**
+ * Dispose every active session for any workspace mapped to the given worktree
+ * path. Deleting a closed worktree has no workspace id, so we join through the
+ * workspaces table on the shared worktree path.
+ */
+export async function disposeSessionsByWorktreePath(
+	worktreePath: string,
+	db: HostDb,
+): Promise<{ terminated: number; failed: number }> {
+	const workspaceRows = db
+		.select({ id: workspaces.id })
+		.from(workspaces)
+		.where(eq(workspaces.worktreePath, worktreePath))
+		.all();
+
+	let terminated = 0;
+	let failed = 0;
+	for (const { id } of workspaceRows) {
+		const result = await disposeSessionsByWorkspaceId(id, db);
+		terminated += result.terminated;
+		failed += result.failed;
 	}
 	return { terminated, failed };
 }
@@ -978,7 +1089,10 @@ export async function createTerminalSessionInternal({
 		DEFAULT_TERMINAL_ROWS,
 	);
 
-	// Use the preserved shell snapshot — never live process.env
+	// Use the preserved shell snapshot — never live process.env. Resolution
+	// runs in the background at startup so the server can listen immediately;
+	// wait for it here before the first PTY needs the snapshot.
+	await waitForTerminalBaseEnv();
 	const baseEnv = getTerminalBaseEnv();
 	const supersetHomeDir = process.env.SUPERSET_HOME_DIR || "";
 	const shell = resolveLaunchShell(baseEnv);
@@ -1081,9 +1195,8 @@ export async function createTerminalSessionInternal({
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
 	// marker has already flown by and we don't want to gate writes on it.
-	const shellName = shell.split("/").pop() || shell;
 	const shellSupportsReady =
-		!isAdopted && SHELLS_WITH_READY_MARKER.has(shellName);
+		!isAdopted && shellLaunchExpectsReadyMarker({ shell, supersetHomeDir });
 
 	let shellReadyResolve: (() => void) | null = null;
 	const shellReadyPromise = shellSupportsReady
@@ -1119,7 +1232,6 @@ export async function createTerminalSessionInternal({
 				: "unsupported",
 		shellReadyResolve,
 		shellReadyPromise,
-		shellReadyTimeoutId: null,
 		scanState: createScanState(),
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
@@ -1129,14 +1241,6 @@ export async function createTerminalSessionInternal({
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
-
-	// If the marker never arrives (broken wrapper, unsupported config),
-	// the timeout unblocks so the session degrades gracefully.
-	if (session.shellReadyState === "pending") {
-		session.shellReadyTimeoutId = setTimeout(() => {
-			resolveShellReady(session, "timed_out");
-		}, SHELL_READY_TIMEOUT_MS);
-	}
 
 	session.unsubscribeDaemon = daemon.subscribe(
 		terminalId,
@@ -1159,7 +1263,7 @@ export async function createTerminalSessionInternal({
 					const result = scanForShellReady(session.scanState, chunk);
 					bytes = result.output;
 					if (result.matched) {
-						resolveShellReady(session, "ready");
+						resolveShellReady(session);
 					}
 				}
 				if (bytes.byteLength === 0) return;
@@ -1173,7 +1277,9 @@ export async function createTerminalSessionInternal({
 						? bytes
 						: Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength),
 				);
-				if (hintText.length > 0) portManager.checkOutputForHint(hintText);
+				// Runs even when the decoder buffers a partial codepoint into ""
+				// — the chunk is still output and must refresh the idle clock.
+				portManager.checkOutputForHint(terminalId, hintText);
 
 				// Feed the tracker on every byte — broadcast skips the FIFO,
 				// so this is the only path that catches startup mode escapes.
@@ -1185,6 +1291,7 @@ export async function createTerminalSessionInternal({
 			},
 			onExit({ code, signal }) {
 				session.exited = true;
+				cancelShellReady(session);
 				session.exitCode = code ?? 0;
 				session.exitSignal = signal ?? 0;
 				const occurredAt = Date.now();

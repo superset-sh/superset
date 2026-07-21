@@ -17,6 +17,12 @@ interface UseWorkspaceHostOptionsResult {
 	currentDeviceName: string | null;
 	/** machineId of the current device (the one running this desktop app). */
 	localHostId: string | null;
+	/**
+	 * Relay connectivity of the local device as the cloud sees it; null while
+	 * its v2Hosts row hasn't synced. Cloud-dispatched work (automations) needs
+	 * this even for the local device.
+	 */
+	localHostIsOnline: boolean | null;
 	activeHostUrl: string | null;
 	otherHosts: WorkspaceHostOption[];
 }
@@ -75,6 +81,7 @@ export function useWorkspaceHostOptions(): UseWorkspaceHostOptionsResult {
 	return {
 		currentDeviceName: localHost?.name ?? (machineId ? "This device" : null),
 		localHostId: localHost?.machineId ?? machineId,
+		localHostIsOnline: localHost ? (localHost.isOnline ?? false) : null,
 		activeHostUrl,
 		otherHosts,
 	};

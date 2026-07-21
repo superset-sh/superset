@@ -115,3 +115,51 @@ export function extractComparisonFaqItems(
 
 	return items;
 }
+
+/**
+ * Extracts the ranked list of tools from the first Markdown table in a roundup,
+ * reading the first column of each data row. Used to emit ItemList structured
+ * data so "best X" listicles are eligible for rich results.
+ */
+export function extractRoundupItems(content: string): string[] {
+	const lines = content.split("\n");
+	const items: string[] = [];
+
+	let inTable = false;
+	let seenSeparator = false;
+
+	for (const line of lines) {
+		const trimmed = line.trim();
+		const isTableRow = trimmed.startsWith("|") && trimmed.endsWith("|");
+
+		if (!inTable) {
+			if (isTableRow) {
+				inTable = true;
+				seenSeparator = false;
+			}
+			continue;
+		}
+
+		if (!isTableRow) {
+			break; // table ended
+		}
+
+		// The row after the header is the |---|---| separator.
+		if (!seenSeparator) {
+			if (/^\|[\s:|-]+\|$/.test(trimmed)) {
+				seenSeparator = true;
+			}
+			continue; // skip header and separator rows
+		}
+
+		// Split the row into cells on unescaped pipes, then unescape "\|".
+		const cells = trimmed.slice(1, -1).split(/(?<!\\)\|/);
+		const firstCell = (cells[0] ?? "").replace(/\\\|/g, "|");
+		const name = stripMarkdownFormatting(firstCell);
+		if (name) {
+			items.push(name);
+		}
+	}
+
+	return items;
+}

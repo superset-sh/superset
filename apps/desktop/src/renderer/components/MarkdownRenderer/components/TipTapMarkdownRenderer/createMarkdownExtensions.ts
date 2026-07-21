@@ -16,11 +16,17 @@ import { ListItem } from "@tiptap/extension-list-item";
 import { OrderedList } from "@tiptap/extension-ordered-list";
 import { Paragraph } from "@tiptap/extension-paragraph";
 import { Strike } from "@tiptap/extension-strike";
-import { TableKit } from "@tiptap/extension-table";
+import { Table } from "@tiptap/extension-table";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
+import { TableRow } from "@tiptap/extension-table-row";
 import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import { Text } from "@tiptap/extension-text";
 import { Underline } from "@tiptap/extension-underline";
+import type { Fragment, Slice } from "@tiptap/pm/model";
+import { Plugin, PluginKey } from "@tiptap/pm/state";
+import type { EditorView } from "@tiptap/pm/view";
 import { ReactNodeViewRenderer } from "@tiptap/react";
 import { common, createLowlight } from "lowlight";
 import type { MutableRefObject } from "react";
@@ -28,6 +34,11 @@ import { Markdown } from "tiptap-markdown";
 import { EditableCodeBlockView } from "./components/EditableCodeBlockView";
 import { ReadOnlyCodeBlockView } from "./components/ReadOnlyCodeBlockView";
 import { ReadOnlySafeImageView } from "./components/ReadOnlySafeImageView";
+import {
+	serializeMarkdownTable,
+	serializeSelectionForClipboard,
+	sliceToPlainText,
+} from "./serializeMarkdownTable";
 
 const lowlight = createLowlight(common);
 const ENABLE_RAW_MARKDOWN_HTML = false;
@@ -99,6 +110,45 @@ const EditorHotkeys = Extension.create<{
 	},
 });
 
+/**
+ * Chooses the clipboard text/plain for a copied selection: a whole-table
+ * CellSelection becomes a GFM table, cell-text/partial selections become plain
+ * text, and everything else stays markdown. Higher priority than tiptap-markdown's
+ * Markdown extension (priority 50) so this serializer is consulted first.
+ */
+const TableClipboardMarkdown = Extension.create({
+	name: "tableClipboardMarkdown",
+	priority: 1000,
+	addProseMirrorPlugins() {
+		const editor = this.editor;
+		return [
+			new Plugin({
+				key: new PluginKey("tableClipboardMarkdown"),
+				props: {
+					clipboardTextSerializer: (slice: Slice, view: EditorView) => {
+						const markdownStorage = (
+							editor.storage as {
+								markdown?: {
+									serializer?: { serialize: (content: Fragment) => string };
+								};
+							}
+						).markdown;
+						const serializer = markdownStorage?.serializer;
+						if (!serializer) {
+							return sliceToPlainText(slice);
+						}
+						return serializeSelectionForClipboard(
+							view.state.selection,
+							slice,
+							(content) => serializer.serialize(content),
+						);
+					},
+				},
+			}),
+		];
+	},
+});
+
 interface CreateMarkdownExtensionsOptions {
 	editable: boolean;
 	onSaveRef: MutableRefObject<(() => void) | undefined>;
@@ -155,23 +205,34 @@ export function createMarkdownExtensions({
 			},
 		}),
 		SafeImage,
-		TableKit.configure({
-			table: {
-				resizable: false,
-				cellMinWidth: 192,
-				HTMLAttributes: {
-					class: "markdown-table my-4 min-w-full border-collapse",
-				},
+		// Individual table nodes (not TableKit) so a GFM markdown serializer can be
+		// attached to the `table` node's `storage.markdown`, replacing
+		// tiptap-markdown's built-in serializer that emits `[table]`. The
+		// CellSelection editing plugins live on the `Table` node, so rendering,
+		// parsing, and selection are unchanged.
+		Table.extend({
+			addStorage() {
+				return {
+					...this.parent?.(),
+					markdown: { serialize: serializeMarkdownTable },
+				};
 			},
-			tableHeader: {
-				HTMLAttributes: {
-					class: "bg-muted px-4 py-2 text-left text-sm font-semibold align-top",
-				},
+		}).configure({
+			resizable: false,
+			cellMinWidth: 192,
+			HTMLAttributes: {
+				class: "markdown-table my-4 min-w-full border-collapse",
 			},
-			tableCell: {
-				HTMLAttributes: {
-					class: "border-t border-border px-4 py-2 text-sm align-top",
-				},
+		}),
+		TableRow,
+		TableHeader.configure({
+			HTMLAttributes: {
+				class: "bg-muted px-4 py-2 text-left text-sm font-semibold align-top",
+			},
+		}),
+		TableCell.configure({
+			HTMLAttributes: {
+				class: "border-t border-border px-4 py-2 text-sm align-top",
 			},
 		}),
 		Markdown.configure({
@@ -180,6 +241,7 @@ export function createMarkdownExtensions({
 			transformPastedText: true,
 			transformCopiedText: true,
 		}),
+		TableClipboardMarkdown,
 		EditorHotkeys.configure({
 			onSaveRef,
 		}),

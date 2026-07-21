@@ -1,10 +1,13 @@
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import type { DashboardSidebarProject } from "../../../../types";
 
@@ -17,7 +20,21 @@ export function useDashboardSidebarProjectSectionActions({
 }: UseDashboardSidebarProjectSectionActionsOptions) {
 	const openModal = useOpenNewWorkspaceModal();
 	const navigate = useNavigate();
-	const { v2Projects: projectActions } = useOptimisticCollectionActions();
+	// Renames commit on a host serving the project — host.db owns the name.
+	// Prefer the local host when it serves the project (always reachable);
+	// hostIds order is arbitrary and may lead with an offline remote.
+	const { projects: hostProjects } = useHostProjects();
+	const { machineId } = useLocalHostService();
+	const servingHostId = useMemo(() => {
+		const hostIds =
+			hostProjects.find((item) => item.projectKey === project.id)?.hostIds ??
+			[];
+		if (machineId && hostIds.includes(machineId)) return machineId;
+		return hostIds[0] ?? null;
+	}, [hostProjects, machineId, project.id]);
+	// undefined (not null) when no host serves it — null would resolve to
+	// the local host and rename the wrong replica.
+	const servingHostUrl = useHostUrl(servingHostId ?? undefined);
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
 	const {
 		createSection,
@@ -45,7 +62,17 @@ export function useDashboardSidebarProjectSectionActions({
 		setIsRenaming(false);
 		const trimmed = renameValue.trim();
 		if (!trimmed || trimmed === project.name) return;
-		projectActions.renameProject(project.id, trimmed);
+		if (!servingHostUrl) {
+			toast.error("Project's host is unreachable — cannot rename right now");
+			return;
+		}
+		void getHostServiceClientByUrl(servingHostUrl)
+			.project.update.mutate({ projectId: project.id, name: trimmed })
+			.catch((err) => {
+				toast.error(
+					`Rename failed: ${err instanceof Error ? err.message : String(err)}`,
+				);
+			});
 	};
 
 	const handleOpenInFinder = () => {

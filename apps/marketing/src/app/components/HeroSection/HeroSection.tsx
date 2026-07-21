@@ -2,16 +2,62 @@
 
 import { COMPANY } from "@superset/shared/constants";
 import { useScroll } from "framer-motion";
+import { useFeatureFlagVariantKey } from "posthog-js/react";
 import { useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
+import { isMacPlatform, usePlatform } from "../../hooks/useOS";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
+const HERO_POSITIONING_FLAG = "landing-hero-positioning";
+
+const PIXEL_FONT_STYLE = {
+	fontFamily: "var(--font-geist-pixel-grid)",
+} satisfies React.CSSProperties;
+
+interface HeroCopy {
+	headline: string;
+	segments: { text: string; style?: React.CSSProperties }[];
+	subheadline: string;
+}
+
+const TEST_SUBHEADLINE =
+	"Isolated workspaces for Claude Code, Codex, and any CLI agent — run them side by side and review every change from one dashboard. Free to start.";
+
+const HERO_COPY = {
+	control: {
+		headline: "The Code Editor for AI Agents.",
+		segments: [
+			{ text: "The Code Editor for " },
+			{ text: "AI Agents.", style: PIXEL_FONT_STYLE },
+		],
+		subheadline:
+			"Orchestrate 100+ coding agents in parallel. Works for any agents. Built for the AI era.",
+	},
+	"capability-mac": {
+		headline: "Run parallel coding agents on your Mac.",
+		segments: [
+			{ text: "Run " },
+			{ text: "parallel coding agents", style: PIXEL_FONT_STYLE },
+			{ text: " on your Mac." },
+		],
+		subheadline: TEST_SUBHEADLINE,
+	},
+} satisfies Record<string, HeroCopy>;
+
 export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
 	const demoRef = useRef<HTMLDivElement>(null);
+	const { platform } = usePlatform();
+	const heroVariant = useFeatureFlagVariantKey(HERO_POSITIONING_FLAG);
+	const copy =
+		isMacPlatform(platform) &&
+		typeof heroVariant === "string" &&
+		heroVariant in HERO_COPY
+			? HERO_COPY[heroVariant as keyof typeof HERO_COPY]
+			: HERO_COPY.control;
 
 	const { scrollYProgress } = useScroll({
 		target: demoRef,
@@ -31,27 +77,19 @@ export function HeroSection() {
 								}}
 							>
 								<span className="invisible" aria-hidden="true">
-									The Code Editor for AI Agents.
+									{copy.headline}
 								</span>
 								<span className="absolute inset-0">
 									<TypewriterText
-										segments={[
-											{ text: "The Code Editor for " },
-											{
-												text: "AI Agents.",
-												style: {
-													fontFamily: "var(--font-geist-pixel-grid)",
-												},
-											},
-										]}
+										key={copy.headline}
+										segments={copy.segments}
 										speed={40}
 										delay={600}
 									/>
 								</span>
 							</h1>
 							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
-								Orchestrate 100+ coding agents in parallel. Works for any
-								agents. Built for the AI era.
+								{copy.subheadline}
 							</p>
 						</div>
 

@@ -4,7 +4,7 @@ description: Complete reference for Superset command-line interface, including c
 ---
 
 <Callout type="warn">
-The CLI is currently in Beta — commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
+The CLI is currently in Beta. Commands and flags are still evolving. Make sure you're on the latest version of the CLI if you run into issues.
 </Callout>
 
 ## Synopsis
@@ -61,8 +61,8 @@ superset auth login
 superset auth login --organization acme
 ```
 
-To sign in with an API key — useful for CI or any environment where the
-OAuth browser flow isn't an option — pass `--api-key`. The CLI validates
+To sign in with an API key (useful for CI or any environment where the
+OAuth browser flow isn't an option), pass `--api-key`. The CLI validates
 the key, stores it at `~/.superset/config.json`, and clears any prior
 OAuth session.
 
@@ -96,7 +96,7 @@ The newly authenticated user and active organization.
 </Command>
 
 <Command name="superset auth logout">
-Clear stored credentials — both an OAuth session and a stored API key.
+Clear stored credentials: both an OAuth session and a stored API key.
 Does not call the API and does not clear the active organization (your
 preferred org persists across re-logins).
 
@@ -158,7 +158,7 @@ Auth: Session (expires in 32 min)
 
 ### start
 
-Start the local host server — the daemon the CLI and desktop app both
+Start the local host server: the daemon the CLI and desktop app both
 talk to when targeting this machine.
 
 <Command
@@ -198,7 +198,7 @@ Stop the local host server.
 
 <Command name="superset stop">
 Sends SIGTERM, waits up to 10 seconds, sends SIGKILL if still alive. The
-manifest is removed in all cases — including when SIGTERM itself throws.
+manifest is removed in all cases, including when SIGTERM itself throws.
 
 ```bash
 superset stop
@@ -414,9 +414,9 @@ List projects in the active organization. Org-wide; not host-scoped.
 >
 Create a fresh project on a host. Two modes:
 
-- **Clone** — pass `--clone <url>` and `--parent-dir`. The host clones the
+- **Clone**: pass `--clone <url>` and `--parent-dir`. The host clones the
   repo into `<parent-dir>/<derived-name>/`.
-- **Import** — pass `--import <path>` to register a repo that already exists
+- **Import**: pass `--import <path>` to register a repo that already exists
   on disk.
 
 Either way, a new cloud project record is created and the host's main
@@ -486,7 +486,7 @@ host server running on this machine, use [`start`](#start),
 	quiet="host IDs"
 >
 List hosts registered to the active organization. Host registration
-happens via `superset start` on each machine — there is no
+happens via `superset start` on each machine. There is no
 separate registration command.
 
 ```bash
@@ -501,7 +501,7 @@ superset hosts list
 Workspaces are branch-scoped working copies on a host.
 
 **Routing:** when `--host` resolves to the local machine, the CLI calls
-the host server directly over loopback HTTP — no cloud roundtrip, works
+the host server directly over loopback HTTP: no cloud roundtrip, works
 offline. Otherwise it routes through the cloud API and the relay.
 
 If the resolved host is the local machine but the host server isn't
@@ -550,7 +550,7 @@ List workspaces accessible to the active organization. With neither
 Create a workspace on the target host. Specify exactly one of `--branch`
 or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
-`--agent`/`--prompt` — pass either or both.
+`--agent`/`--prompt`. Pass either or both.
 
 ```bash
 superset workspaces create \
@@ -632,7 +632,7 @@ superset workspaces open ws_… --print
 
 `workspaces open` targets a workspace, not a session. A session started with
 [`agents run`](#superset-agents-run) syncs to the desktop app but has no pane in
-the workspace view until you navigate to it — and there is no session list, so a
+the workspace view until you navigate to it, and there is no session list, so a
 freshly created session is effectively invisible until opened. `workspaces open`
 can't focus a session, so build the deep link yourself and append a query param
 chosen by the session `kind` returned by `agents run`:
@@ -901,7 +901,7 @@ List automations in the active organization.
 	]}
 	output="Automation"
 >
-Get an automation's metadata. The prompt body is omitted — use
+Get an automation's metadata. The prompt body is omitted. Use
 [`automations prompt get`](#superset-automations-prompt-get-id) to read it.
 Use [`automations logs`](#superset-automations-logs-id) for run history.
 </Command>
@@ -956,7 +956,7 @@ superset automations create \
 	output="Automation"
 >
 Update an automation's metadata (name, schedule, agent, host). All flags
-optional. Omitting a flag preserves the existing value — `undefined` means
+optional. Omitting a flag preserves the existing value: `undefined` means
 "no change", not "clear". Use [`automations prompt get`](#superset-automations-prompt-get-id)
 or [`automations prompt set`](#superset-automations-prompt-set-id) to read or
 replace the prompt body.

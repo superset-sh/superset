@@ -197,6 +197,17 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out project lifecycle changes (create/rename/delete) from the
+	 * host-owned projects table. Broadcast to all clients — list consumers
+	 * subscribe host-wide rather than per-workspace.
+	 */
+	broadcastProjectChanged(
+		message: Omit<Extract<ServerMessage, { type: "project:changed" }>, "type">,
+	): void {
+		this.broadcast({ type: "project:changed", ...message });
+	}
+
+	/**
 	 * Fan out port add/remove events discovered by the host-service scanner.
 	 * Renderer clients use this to patch their host snapshot immediately while
 	 * keeping a slow refetch as a reconnect fallback.
@@ -255,7 +266,6 @@ export class EventBus {
 			const service = this.filesystem.getServiceForWorkspace(workspaceId);
 			const stream = service.watchPath({
 				absolutePath: rootPath,
-				recursive: true,
 			});
 			iterator = stream[Symbol.asyncIterator]();
 		} catch (error) {

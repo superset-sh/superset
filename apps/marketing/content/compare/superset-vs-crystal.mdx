@@ -1,0 +1,104 @@
+---
+title: "Superset vs Crystal (2026): Comparing Parallel Claude Code Workspaces"
+description: "Compare Superset and Crystal (now Nimbalyst) for running Claude Code and Codex in parallel Git worktrees. See how agent breadth, remote workflows, and scope differ."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "1v1"
+competitors:
+  - crystal
+keywords:
+  - superset vs crystal
+  - crystal alternative
+  - nimbalyst alternative
+  - parallel claude code
+  - claude code worktrees
+  - agentic ide
+---
+
+Superset and Crystal both run multiple Claude Code and Codex sessions in parallel Git worktrees inside one desktop app, with per-session diff review and integrated Git operations. The difference is scope and direction: Crystal is a focused, open-source app for Claude Code and Codex, now continuing under the name Nimbalyst, while Superset is a broader, agent-agnostic workspace that adds more agents, an in-app browser, remote and cloud workspaces, and automation.
+
+Note: Crystal has been renamed and is being succeeded by [Nimbalyst](https://nimbalyst.com/) as of early 2026. If you are evaluating "Crystal" today, you are effectively evaluating Nimbalyst.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Crystal (now Nimbalyst)** |
+|---|---|---|
+| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, browser, and automation | Runs Claude Code and Codex sessions in parallel Git worktrees with review and Git ops |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, Mistral Vibe, and more) | Claude Code and Codex |
+| **Isolation** | Automatic Git worktree per task | Git worktree per session |
+| **Review tooling** | Built-in diff/file editor, staging, commit | In-app diff review, per-iteration commits, rebase/squash/merge |
+| **Remote / cloud** | Remote and cloud workspaces across your network devices | Local desktop |
+| **Automation** | Automations: scheduled sessions, TypeScript SDK, Slack bot | Focused on interactive sessions |
+| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS, Windows, Linux) |
+| **License** | Source-available (ELv2) | Open source (MIT) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces and can schedule agent sessions as automations. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Crystal?
+
+Crystal is an open-source Electron desktop app for running multiple Claude Code and Codex sessions in parallel Git worktrees. Each session gets its own worktree, with per-iteration commits, in-app diff review, and integrated Git operations like rebase, squash, and merge without leaving the app. It is MIT licensed and runs on macOS, Windows, and Linux. Its maintainers have renamed the project and now direct active development to Nimbalyst, so treat "Crystal" as the legacy name for what is now Nimbalyst.
+
+## Key Differences
+
+### Agent Breadth
+
+Crystal is built around Claude Code and Codex. If those are your two agents, its focus is a feature. Superset is deliberately agent-agnostic: it runs Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and custom terminal agents you define. If you want to mix agents or adopt new ones as they launch, Superset gives you more room.
+
+### Same Worktree Core, Wider Surface
+
+Both apps make a Git worktree per session the unit of work and both include strong in-app review and Git operations. Around that, Superset adds an in-app browser for docs and dev servers, port management, an MCP server, and one-click handoff into more editors. Crystal keeps a tighter footprint focused on the review-and-merge loop for Claude Code and Codex.
+
+### Reach and Automation
+
+Superset extends past the local desktop with remote and cloud workspaces on your own network devices, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. Crystal is a local, interactive desktop app. If you want unattended or scheduled runs, or work that moves across machines, Superset covers more of it.
+
+### Project Status
+
+Crystal is stable and open source, but its maintainers have moved active development to Nimbalyst. Superset is actively developed under its current name. If long-term maintenance direction matters to you, factor in the Nimbalyst transition when evaluating Crystal.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Crystal is free and open source (MIT). In both cases, you still pay the underlying providers for Claude Code, Codex, or any compatible API usage.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Use more than Claude Code and Codex, or want to adopt new agents freely
+- Want remote, cloud, CLI, or MCP surfaces around the same worktree model
+- Need scheduled or unattended runs through automations
+- Prefer an actively developed product under one name
+
+**Choose Crystal (Nimbalyst) if you:**
+
+- Primarily use Claude Code and Codex and want a focused desktop app
+- Want a free, MIT-licensed tool with strong in-app Git operations
+- Work on one machine and value a tight review-and-merge loop
+
+**Verdict:** Crystal is a clean, open-source choice if Claude Code and Codex are your world and you want a focused parallel-worktree app -- just note its transition to Nimbalyst. Superset is the better fit if you want the same worktree model with broader agent support, an in-app browser, remote and cloud workspaces, and automation.
+
+---
+
+## Frequently Asked Questions
+
+### Is Crystal still maintained?
+
+Crystal has been renamed and its maintainers now direct active development to Nimbalyst. It still works, but new development happens under the Nimbalyst name.
+
+### Do both use Git worktrees?
+
+Yes. Both give each session its own Git worktree, branch, and working directory. The isolation model is the same; the products differ in agent breadth and surrounding features.
+
+### Can Crystal run agents other than Claude Code and Codex?
+
+Crystal is built specifically for Claude Code and Codex. If you want OpenCode, Cursor, Gemini, or custom agents in the same workspace, Superset is the more flexible choice.

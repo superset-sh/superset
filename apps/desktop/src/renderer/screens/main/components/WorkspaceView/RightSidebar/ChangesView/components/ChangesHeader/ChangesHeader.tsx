@@ -63,7 +63,10 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 
 	const updateBaseBranch = electronTrpc.changes.updateBaseBranch.useMutation({
 		onSuccess: () => {
-			utils.changes.getBranches.invalidate({ worktreePath });
+			void Promise.all([
+				utils.changes.getBranches.invalidate({ worktreePath }),
+				utils.changes.getStatus.invalidate({ worktreePath }),
+			]);
 		},
 	});
 

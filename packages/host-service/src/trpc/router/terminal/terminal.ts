@@ -4,11 +4,13 @@ import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
-	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
-	listTerminalSessions,
+	disposeSessionsByWorkspaceId,
+	disposeSessionsByWorktreePath,
+	listWorkspaceTerminalSessions,
 	parseThemeType,
+	sessionHasRunningProcess,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
@@ -68,6 +70,16 @@ const daemonRouter = router({
 		getSupervisor().getUpdateStatus(ctx.organizationId),
 	),
 
+	/**
+	 * Whether the daemon is still answering, and for how long it hasn't.
+	 * Deliberately does not `waitForDaemonReady` — this is polled by the
+	 * terminal UI to decide whether a stall is worth surfacing, so it has to
+	 * answer immediately rather than block on the thing that may be wedged.
+	 */
+	getHealth: protectedProcedure.query(({ ctx }) =>
+		getSupervisor().getHealth(ctx.organizationId),
+	),
+
 	listSessions: protectedProcedure.query(async ({ ctx }) => {
 		// Wait for the bootstrap so the supervisor has a socket path.
 		await waitForDaemonReady(ctx.organizationId);
@@ -112,11 +124,8 @@ export const terminalRouter = router({
 				workspaceId: z.string(),
 			}),
 		)
-		.query(({ input }) => ({
-			sessions: listTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
-			}),
+		.query(async ({ ctx, input }) => ({
+			sessions: await listWorkspaceTerminalSessions(ctx.db, input.workspaceId),
 		})),
 
 	countBackgroundSessions: protectedProcedure
@@ -126,12 +135,27 @@ export const terminalRouter = router({
 				attachedTerminalIds: z.array(z.string()).default([]),
 			}),
 		)
-		.query(({ input }) => ({
-			count: countTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
-				excludeTerminalIds: input.attachedTerminalIds,
+		.query(async ({ ctx, input }) => {
+			const sessions = await listWorkspaceTerminalSessions(
+				ctx.db,
+				input.workspaceId,
+			);
+			const attached = new Set(input.attachedTerminalIds);
+			return {
+				count: sessions.filter((session) => !attached.has(session.terminalId))
+					.length,
+			};
+		}),
+
+	hasRunningProcess: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
 			}),
+		)
+		.query(({ input }) => ({
+			running: sessionHasRunningProcess(input.terminalId, input.workspaceId),
 		})),
 
 	writeInput: protectedProcedure
@@ -194,6 +218,23 @@ export const terminalRouter = router({
 			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
+
+	// Kill every session (including backgrounded, renderer-detached ones) for a
+	// workspace. Called by delete paths that don't run the full
+	// workspaceCleanup.destroy, so their terminals don't leak in the daemon.
+	disposeWorkspaceSessions: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorkspaceId(input.workspaceId, ctx.db),
+		),
+
+	// Like disposeWorkspaceSessions but for a closed worktree, which no longer
+	// has a workspace id — resolve sessions through the shared worktree path.
+	disposeWorktreeSessions: protectedProcedure
+		.input(z.object({ worktreePath: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorktreePath(input.worktreePath, ctx.db),
+		),
 
 	daemon: daemonRouter,
 });

@@ -1,0 +1,107 @@
+---
+title: "Superset vs Orca (2026): Comparing Worktree-Based Agent Workspaces"
+description: "Compare Superset and Orca for running AI coding agents in parallel Git worktrees. See how these agent development environments differ in remote workflows, automation, and scope."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "1v1"
+competitors:
+  - orca
+keywords:
+  - superset vs orca
+  - orca alternative
+  - orca ade alternative
+  - agentic ide
+  - ai agent orchestration
+  - worktree agent workspace
+---
+
+Superset and Orca are unusually close in design. Both are desktop workspaces that run many AI coding agents in parallel, give each task its own Git worktree, and add diff review and an in-app browser around the orchestration core. The differences are not about the core idea -- they are about scope, remote and cloud workflows, automation, and how far each product extends beyond a single machine.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Orca** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs multiple AI agents in parallel with Git worktree isolation and per-task browser tabs |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Local agent development environment (ADE) |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Agent-agnostic (25+ CLI agents, including Claude Code, Codex, OpenCode, Cursor CLI, Gemini) |
+| **Isolation** | Automatic Git worktree per task | Automatic Git worktree per task |
+| **Remote / cloud** | Remote and cloud workspaces across your network devices | Local desktop, plus iOS and Android companion apps |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Focused on interactive parallel runs |
+| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS, Windows, Linux) + mobile companions |
+| **License** | Source-available (ELv2) | Open source (MIT) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Orca?
+
+Orca is a free, open-source desktop "agent development environment" from Stably. It runs multiple coding agents in parallel, giving every task its own Git worktree, its own agent terminal, and its own browser tab, with a unified UI for diffs, pull request and CI inspection, file browsing, and agent-status tracking. Its pitch is to fan one prompt across several agents, compare the results, and merge the winner. Orca is agent-agnostic, supports 25+ CLI agents, ships on macOS, Windows, and Linux, and offers iOS and Android companion apps. It is MIT licensed.
+
+## Key Differences
+
+### Same Worktree Model, Different Reach
+
+Both products make one Git worktree per task the default primitive, so this is not where they diverge. The difference is reach. Superset extends past the local desktop into remote and cloud workspaces that run on your own network devices, so you can start a task on one machine and pick it up from another. Orca is a local desktop environment with mobile companion apps for monitoring and control. If your work stays on one machine, both feel similar. If you want to move work across machines or run agents on a remote host, Superset covers more of that surface.
+
+### Automation and Scheduling
+
+Superset includes Automations: you can schedule agent sessions like cron jobs, drive them with a TypeScript SDK, and trigger or receive them through a Slack bot. That makes it suited to recurring or unattended work such as nightly dependency bumps, scheduled test runs, or triage. Orca is centered on interactive parallel runs where you launch, compare, and merge in the moment. If you want agents to run on a schedule or as part of a larger pipeline, Superset has more built in.
+
+### Breadth of Surfaces
+
+Beyond the desktop app, Superset is also available as a command-line interface and an MCP server, so the same orchestration can be scripted or embedded into other tools. Orca focuses on its desktop ADE plus mobile companions. Both are agent-agnostic and both give each task a browser, so day to day they overlap heavily; Superset simply exposes more entry points around the same core.
+
+### Licensing
+
+Orca is MIT licensed, which is maximally permissive. Superset is source-available under the Elastic License 2.0. For most individual developers and teams the practical experience is the same, but if a fully permissive open-source license is a hard requirement, that is a real distinction worth noting.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Orca is free and open source, with a bring-your-own-subscription model. In both cases, you still pay the underlying providers for Claude Code, Codex, or any compatible API usage.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want remote and cloud workspaces, not just a single local desktop
+- Need scheduled or unattended agent runs through automations and an SDK
+- Want CLI and MCP server surfaces around the same orchestration
+- Care about enterprise features like SOC 2 and team workflows
+
+**Choose Orca if you:**
+
+- Want a free, MIT-licensed desktop ADE for parallel agents
+- Mostly work on one machine and value the fan-out-and-compare workflow
+- Want mobile companion apps to monitor runs
+- Prefer a fully permissive open-source license
+
+**Verdict:** Orca and Superset share the same foundation, so you will not go wrong with either for local parallel agent work. Orca is a clean, free, open-source choice if your work lives on one machine. Superset is the better fit if you want the orchestration to extend across remote and cloud hosts, run on a schedule, and expose CLI and MCP surfaces for larger workflows.
+
+---
+
+## Frequently Asked Questions
+
+### Do Superset and Orca both use Git worktrees?
+
+Yes. Both create an isolated Git worktree for each task, giving every agent its own branch and working directory. The isolation mechanism is the same; the products differ in reach, automation, and surfaces.
+
+### Is Orca open source?
+
+Yes. Orca is MIT licensed and free to use. Superset is source-available under the Elastic License 2.0 and offers a free tier plus paid Pro.
+
+### Can both run agents other than Claude Code?
+
+Yes. Both are agent-agnostic. Orca lists 25+ supported CLI agents, and Superset runs Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and custom terminal agents.
+
+### Which one works across multiple machines?
+
+Superset adds remote and cloud workspaces that run across your own network devices, so a task can move between machines. Orca is a local desktop environment with iOS and Android companion apps for monitoring and control.
