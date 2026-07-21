@@ -6,6 +6,7 @@ import {
 	worktrees,
 } from "@superset/local-db";
 import { eq, isNotNull, isNull } from "drizzle-orm";
+import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
@@ -45,6 +46,31 @@ export const createMigrationRouter = () => {
 
 		readV1Settings: publicProcedure.query(() => {
 			return localDb.select().from(settings).get() ?? null;
+		}),
+
+		/**
+		 * v1 terminal panes from app-state.json, resolved to their workspace
+		 * and best-known cwd. Terminal sessions themselves can't migrate (v1
+		 * and v2 own separate daemon sessions) — the cwd is what carries over.
+		 */
+		readV1TerminalPanes: publicProcedure.query(() => {
+			const tabsState = appState.data.tabsState;
+			const workspaceIdByTabId = new Map(
+				tabsState.tabs.map((tab) => [tab.id, tab.workspaceId]),
+			);
+			return Object.values(tabsState.panes)
+				.filter((pane) => pane.type === "terminal")
+				.flatMap((pane) => {
+					const v1WorkspaceId = workspaceIdByTabId.get(pane.tabId);
+					if (!v1WorkspaceId) return [];
+					return [
+						{
+							paneId: pane.id,
+							v1WorkspaceId,
+							cwd: pane.cwd ?? pane.initialCwd ?? null,
+						},
+					];
+				});
 		}),
 
 		ledgerList: publicProcedure

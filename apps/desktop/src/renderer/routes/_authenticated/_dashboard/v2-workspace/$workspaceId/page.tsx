@@ -23,6 +23,7 @@ import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellIn
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
 import { useConsumeAutomationRunLink } from "./hooks/useConsumeAutomationRunLink";
 import { useConsumeOpenUrlRequest } from "./hooks/useConsumeOpenUrlRequest";
+import { useCreatePendingMigratedTerminals } from "./hooks/useCreatePendingMigratedTerminals";
 import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActions";
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
@@ -149,6 +150,7 @@ function V2WorkspaceContent() {
 		chatSessionId,
 		focusRequestId,
 	});
+	useCreatePendingMigratedTerminals({ workspaceId, isLayoutReady });
 	useAutoAdoptBackgroundSessions({ store, workspaceId, isLayoutReady });
 	useConsumeOpenUrlRequest({
 		store,

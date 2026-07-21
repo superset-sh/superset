@@ -22,6 +22,10 @@ import {
 } from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import {
+	type PendingMigratedTerminal,
+	planTerminalMigration,
+} from "./terminals";
+import {
 	adoptV1Workspace,
 	planWorkspaceAdoptions,
 	type V1WorktreeLike,
@@ -41,6 +45,7 @@ export interface V1MigrationSummary {
 	workspaces: KindSummary;
 	presets: KindSummary;
 	settings: KindSummary;
+	terminals: KindSummary;
 	/** D4 flip gate: every v1 project and workspace is success/linked in the ledger. */
 	gateComplete: boolean;
 }
@@ -64,6 +69,17 @@ export interface RunV1MigrationDeps {
 		repoPath: string;
 	}) => void;
 	onWorkspaceAdopted?: (v2WorkspaceId: string, v2ProjectId: string) => void;
+	/**
+	 * Pending-terminal queue lives in the renderer-only workspace local
+	 * state collection (D2: lazy recreation on first workspace open). Omit
+	 * to skip the terminal step (never gates the flip).
+	 */
+	terminalTarget?: {
+		appendPending: (
+			workspace: { id: string; projectId: string },
+			terminals: PendingMigratedTerminal[],
+		) => void;
+	};
 }
 
 function emptySummary(): KindSummary {
@@ -103,12 +119,15 @@ export async function runV1Migration(
 	let workspaces = emptySummary();
 	let presets = emptySummary();
 	let settings = emptySummary();
+	let terminals = emptySummary();
 	try {
 		projects = await migrateProjects(deps, ledger, outcomes);
 		await flush();
 		workspaces = await migrateWorkspaces(deps, ledger, outcomes);
 		await flush();
 		settings = await migrateSettings(deps, ledger, outcomes);
+		await flush();
+		terminals = await migrateTerminals(deps, ledger, outcomes);
 		await flush();
 		presets = await migratePresets(deps, ledger, outcomes);
 	} finally {
@@ -121,7 +140,7 @@ export async function runV1Migration(
 		projects.failed + projects.skipped + projects.deferred === 0 &&
 		workspaces.failed + workspaces.skipped + workspaces.deferred === 0;
 
-	return { projects, workspaces, presets, settings, gateComplete };
+	return { projects, workspaces, presets, settings, terminals, gateComplete };
 }
 
 async function migrateProjects(
@@ -462,6 +481,92 @@ async function migrateSettings(
 				status: "error",
 				reason: errorMessage(err),
 			});
+		}
+	}
+
+	return summary;
+}
+
+/**
+ * Queue each v1 terminal pane for lazy recreation (fresh shell at the v1
+ * cwd) under its migrated workspace. Sessions are created on first
+ * workspace open; useAutoAdoptBackgroundSessions builds the panes.
+ */
+async function migrateTerminals(
+	deps: RunV1MigrationDeps,
+	ledger: V1LedgerMap,
+	outcomes: V1LedgerOutcome[],
+): Promise<KindSummary> {
+	const summary = emptySummary();
+	const target = deps.terminalTarget;
+	if (!target) return summary;
+
+	const v1Panes =
+		await electronTrpcClient.migration.readV1TerminalPanes.query();
+	const pendingPanes = v1Panes.filter((pane) => {
+		const done = ledger.get(ledgerKey("terminal", pane.paneId));
+		return !done || !isTerminalStatus(done.status);
+	});
+	if (pendingPanes.length === 0) return summary;
+
+	const v1Workspaces =
+		await electronTrpcClient.migration.readV1Workspaces.query();
+	const v2WorkspaceIdByV1WorkspaceId = new Map<string, string>();
+	for (const w of v1Workspaces) {
+		const row = ledger.get(ledgerKey("workspace", w.id));
+		if (row && isTerminalStatus(row.status) && row.v2Id) {
+			v2WorkspaceIdByV1WorkspaceId.set(w.id, row.v2Id);
+		}
+	}
+
+	const plan = planTerminalMigration({
+		v1TerminalPanes: pendingPanes,
+		v2WorkspaceIdByV1WorkspaceId,
+		newTerminalId: () => crypto.randomUUID(),
+	});
+	summary.deferred += plan.deferredPaneIds.length;
+	if (plan.pendingByV2WorkspaceId.size === 0) return summary;
+
+	const hostWorkspaces = await deps.hostClient.workspace.list.query();
+	const projectIdByWorkspaceId = new Map(
+		hostWorkspaces.map((w) => [w.id, w.projectId]),
+	);
+
+	for (const [v2WorkspaceId, terminals] of plan.pendingByV2WorkspaceId) {
+		const paneIds = pendingPanes
+			.filter(
+				(p) =>
+					plan.terminalIdByPaneId.has(p.paneId) &&
+					terminals.some(
+						(t) => t.terminalId === plan.terminalIdByPaneId.get(p.paneId),
+					),
+			)
+			.map((p) => p.paneId);
+		const projectId = projectIdByWorkspaceId.get(v2WorkspaceId);
+		try {
+			if (!projectId) {
+				throw new Error("workspace missing from host list");
+			}
+			target.appendPending({ id: v2WorkspaceId, projectId }, terminals);
+			for (const paneId of paneIds) {
+				summary.migrated++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: paneId,
+					kind: "terminal",
+					status: "success",
+					v2Id: plan.terminalIdByPaneId.get(paneId),
+				});
+			}
+		} catch (err) {
+			for (const paneId of paneIds) {
+				summary.failed++;
+				pushOutcome(ledger, outcomes, {
+					v1Id: paneId,
+					kind: "terminal",
+					status: "error",
+					reason: errorMessage(err),
+				});
+			}
 		}
 	}
 

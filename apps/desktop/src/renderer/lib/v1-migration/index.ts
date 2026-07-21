@@ -37,6 +37,12 @@ export {
 	planProjectPrefs,
 } from "./settings";
 export {
+	type PendingMigratedTerminal,
+	planTerminalMigration,
+	type TerminalMigrationPlan,
+	type V1TerminalPane,
+} from "./terminals";
+export {
 	type AdoptPlanEntry,
 	adoptV1Workspace,
 	planWorkspaceAdoptions,

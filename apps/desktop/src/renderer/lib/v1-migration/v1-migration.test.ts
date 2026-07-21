@@ -2,6 +2,7 @@ import { describe, expect, test } from "bun:test";
 import { resolvePresetImport } from "./presets";
 import { decideProjectImport } from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
+import { planTerminalMigration } from "./terminals";
 import { planWorkspaceAdoptions } from "./workspaces";
 
 type Candidate = { id: string; source: string };
@@ -243,5 +244,32 @@ describe("planProjectPrefs", () => {
 			setBranchPrefix: { mode: "github", customPrefix: null },
 			keptV2: true,
 		});
+	});
+});
+
+describe("planTerminalMigration", () => {
+	const panes = [
+		{ paneId: "pane-1", v1WorkspaceId: "v1-ws", cwd: "/repo/feat" },
+		{ paneId: "pane-2", v1WorkspaceId: "v1-ws", cwd: null },
+		{ paneId: "pane-3", v1WorkspaceId: "v1-unmapped", cwd: "/x" },
+	];
+	let n = 0;
+	const plan = planTerminalMigration({
+		v1TerminalPanes: panes,
+		v2WorkspaceIdByV1WorkspaceId: new Map([["v1-ws", "v2-ws"]]),
+		newTerminalId: () => `term-${++n}`,
+	});
+
+	test("mapped panes queue under their v2 workspace with fresh ids", () => {
+		expect(plan.pendingByV2WorkspaceId.get("v2-ws")).toEqual([
+			{ terminalId: "term-1", cwd: "/repo/feat" },
+			{ terminalId: "term-2", cwd: null },
+		]);
+		expect(plan.terminalIdByPaneId.get("pane-1")).toBe("term-1");
+	});
+
+	test("panes on unmigrated workspaces defer", () => {
+		expect(plan.deferredPaneIds).toEqual(["pane-3"]);
+		expect(plan.terminalIdByPaneId.has("pane-3")).toBe(false);
 	});
 });
