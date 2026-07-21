@@ -14,5 +14,12 @@ export type {
 	GitChangedMessage,
 	PortChangedMessage,
 	ServerMessage,
+	SidebarCommand,
+	SidebarCommandMessage,
+	SidebarCommandResult,
+	SidebarCommandResultPayload,
+	SidebarGroupSnapshot,
+	SidebarStateSnapshot,
+	SidebarWorkspaceSnapshot,
 	TerminalLifecycleMessage,
 } from "./types.ts";

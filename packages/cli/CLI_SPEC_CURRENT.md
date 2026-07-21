@@ -1,7 +1,7 @@
 # Superset CLI Current-State Reference
 
 This document records the CLI surface implemented in `packages/cli` as of
-2026-05-12. Public user-facing docs live in
+2026-07-20. Public user-facing docs live in
 `apps/docs/content/docs/cli/`.
 
 ## Source Of Truth
@@ -11,7 +11,7 @@ This document records the CLI surface implemented in `packages/cli` as of
 - Command files: `packages/cli/src/commands/**/command.ts`
 - Command groups: `packages/cli/src/commands/**/meta.ts`
 - CLI framework: `packages/cli-framework/src`
-- Built version: `0.2.14`
+- Built version: `1.16.0`
 
 To regenerate a command inventory:
 
@@ -36,6 +36,7 @@ superset automations
 superset hosts
 superset organization
 superset projects
+superset sidebar
 superset start
 superset status
 superset stop
@@ -89,6 +90,15 @@ projects
   create
   list
   setup
+sidebar
+  list
+  move
+  groups
+    collapse
+    create
+    delete
+    expand
+    rename
 tasks
   create
   delete
@@ -109,6 +119,28 @@ workspaces
 
 There are no `devices` or `host` command groups in the current CLI. Host
 server lifecycle is handled by top-level `start`, `status`, and `stop`.
+
+### Sidebar state
+
+`sidebar` controls user-created groups in the currently running desktop app on
+this machine. Project, workspace, and group arguments accept an exact name or a
+stable ID; ambiguous names fail and print the matching IDs.
+
+```bash
+superset sidebar list
+superset sidebar groups create "In review" --project superset
+superset sidebar move "cli-workspace" --group "In review"
+superset sidebar groups collapse "In review"
+superset sidebar groups expand "In review"
+superset sidebar groups rename "In review" "Ready to merge"
+superset sidebar move "cli-workspace" --ungrouped
+superset sidebar groups delete "Ready to merge"
+```
+
+Sidebar state is renderer-owned and local to the desktop installation. Commands
+target the local host only, wait for a renderer acknowledgement, and fail if the
+desktop app is closed. Deleting a group never deletes its workspaces; it moves
+them back to the project's ungrouped area.
 
 ## Global Options
 

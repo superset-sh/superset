@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import type { NodeWebSocket } from "@hono/node-ws";
 import type { DetectedPort } from "@superset/port-scanner";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
@@ -7,7 +8,13 @@ import { portManager } from "../ports/port-manager.ts";
 import { getLabelsForWorkspace } from "../ports/static-ports.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
 import type { GitWatcher } from "./git-watcher.ts";
-import type { ClientMessage, ServerMessage } from "./types.ts";
+import type {
+	ClientMessage,
+	ServerMessage,
+	SidebarCommand,
+	SidebarCommandResult,
+	SidebarStateSnapshot,
+} from "./types.ts";
 
 type WsSocket = {
 	send: (data: string) => void;
@@ -33,15 +40,22 @@ function parseClientMessage(data: unknown): ClientMessage | null {
 	try {
 		const raw = typeof data === "string" ? data : String(data);
 		const parsed = JSON.parse(raw);
+		if (!parsed || typeof parsed !== "object") return null;
 		if (
-			parsed &&
-			typeof parsed === "object" &&
-			typeof parsed.type === "string" &&
+			(parsed.type === "fs:watch" || parsed.type === "fs:unwatch") &&
 			typeof parsed.workspaceId === "string"
 		) {
-			if (parsed.type === "fs:watch" || parsed.type === "fs:unwatch") {
-				return parsed as ClientMessage;
-			}
+			return parsed as ClientMessage;
+		}
+		if (
+			parsed.type === "sidebar:result" &&
+			typeof parsed.commandId === "string" &&
+			((parsed.ok === true &&
+				Array.isArray(parsed.state?.groups) &&
+				Array.isArray(parsed.state?.workspaces)) ||
+				(parsed.ok === false && typeof parsed.error === "string"))
+		) {
+			return parsed as ClientMessage;
 		}
 	} catch (error) {
 		console.warn("[event-bus] malformed client message — ignored", { error });
@@ -53,7 +67,16 @@ export interface EventBusOptions {
 	db: HostDb;
 	filesystem: WorkspaceFilesystemManager;
 	gitWatcher: GitWatcher;
+	sidebarCommandTimeoutMs?: number;
 }
+
+interface PendingSidebarCommand {
+	resolve: (state: SidebarStateSnapshot) => void;
+	reject: (error: Error) => void;
+	timer: ReturnType<typeof setTimeout>;
+}
+
+const DEFAULT_SIDEBAR_COMMAND_TIMEOUT_MS = 5_000;
 
 /**
  * Unified WebSocket event bus for the host-service.
@@ -67,12 +90,19 @@ export class EventBus {
 	private readonly clients = new Map<WsSocket, ClientState>();
 	private readonly gitWatcher: GitWatcher;
 	private readonly filesystem: WorkspaceFilesystemManager;
+	private readonly sidebarCommandTimeoutMs: number;
+	private readonly pendingSidebarCommands = new Map<
+		string,
+		PendingSidebarCommand
+	>();
 	private removeGitListener: (() => void) | null = null;
 	private removePortListeners: (() => void) | null = null;
 
 	constructor(options: EventBusOptions) {
 		this.filesystem = options.filesystem;
 		this.gitWatcher = options.gitWatcher;
+		this.sidebarCommandTimeoutMs =
+			options.sidebarCommandTimeoutMs ?? DEFAULT_SIDEBAR_COMMAND_TIMEOUT_MS;
 	}
 
 	start(): void {
@@ -109,6 +139,11 @@ export class EventBus {
 			this.cleanupClient(socket, state);
 		}
 		this.clients.clear();
+		for (const [commandId, pending] of this.pendingSidebarCommands) {
+			clearTimeout(pending.timer);
+			pending.reject(new Error("Host event bus closed before sidebar replied"));
+			this.pendingSidebarCommands.delete(commandId);
+		}
 	}
 
 	handleOpen(socket: WsSocket): void {
@@ -126,6 +161,44 @@ export class EventBus {
 			this.startFsWatch(socket, state, message.workspaceId);
 		} else if (message.type === "fs:unwatch") {
 			this.stopFsWatch(state, message.workspaceId);
+		} else if (message.type === "sidebar:result") {
+			this.resolveSidebarCommand(message);
+		}
+	}
+
+	requestSidebarCommand(
+		targetMachineId: string,
+		command: SidebarCommand,
+	): Promise<SidebarStateSnapshot> {
+		const commandId = randomUUID();
+		return new Promise((resolve, reject) => {
+			const timer = setTimeout(() => {
+				this.pendingSidebarCommands.delete(commandId);
+				reject(
+					new Error(
+						"Superset did not acknowledge the sidebar command. Open the desktop app on this machine and try again.",
+					),
+				);
+			}, this.sidebarCommandTimeoutMs);
+			this.pendingSidebarCommands.set(commandId, { resolve, reject, timer });
+			this.broadcast({
+				type: "sidebar:command",
+				commandId,
+				targetMachineId,
+				command,
+			});
+		});
+	}
+
+	private resolveSidebarCommand(message: SidebarCommandResult): void {
+		const pending = this.pendingSidebarCommands.get(message.commandId);
+		if (!pending) return;
+		clearTimeout(pending.timer);
+		this.pendingSidebarCommands.delete(message.commandId);
+		if (message.ok) {
+			pending.resolve(message.state);
+		} else {
+			pending.reject(new Error(message.error));
 		}
 	}
 

@@ -6,7 +6,7 @@ import type { WorkspaceFilesystemManager } from "../runtime/filesystem";
 import { EventBus } from "./event-bus";
 import type { GitWatcher } from "./git-watcher";
 
-function createEventBus(): EventBus {
+function createEventBus(sidebarCommandTimeoutMs?: number): EventBus {
 	return new EventBus({
 		db: {} as unknown as HostDb,
 		filesystem: {
@@ -15,8 +15,89 @@ function createEventBus(): EventBus {
 		gitWatcher: {
 			onChanged: () => () => {},
 		} as unknown as GitWatcher,
+		sidebarCommandTimeoutMs,
 	});
 }
+
+describe("EventBus sidebar commands", () => {
+	it("resolves only after a renderer acknowledges with post-command state", async () => {
+		const eventBus = createEventBus();
+		const sentMessages: string[] = [];
+		const socket = {
+			readyState: 1,
+			send(data: string) {
+				sentMessages.push(data);
+			},
+			close() {},
+		};
+		eventBus.handleOpen(socket);
+
+		const result = eventBus.requestSidebarCommand("machine-1", {
+			action: "list",
+		});
+		const command = JSON.parse(sentMessages[0] ?? "{}");
+		expect(command).toMatchObject({
+			type: "sidebar:command",
+			targetMachineId: "machine-1",
+			command: { action: "list" },
+		});
+
+		eventBus.handleMessage(
+			socket,
+			JSON.stringify({
+				type: "sidebar:result",
+				commandId: command.commandId,
+				ok: true,
+				state: { groups: [], workspaces: [] },
+			}),
+		);
+		await expect(result).resolves.toEqual({ groups: [], workspaces: [] });
+	});
+
+	it("rejects renderer failures and missing acknowledgements", async () => {
+		const eventBus = createEventBus(10);
+		const sentMessages: string[] = [];
+		const socket = {
+			readyState: 1,
+			send(data: string) {
+				sentMessages.push(data);
+			},
+			close() {},
+		};
+		eventBus.handleOpen(socket);
+
+		const rejected = eventBus.requestSidebarCommand("machine-1", {
+			action: "delete-group",
+			groupId: "missing",
+		});
+		const command = JSON.parse(sentMessages[0] ?? "{}");
+		eventBus.handleMessage(
+			socket,
+			JSON.stringify({
+				type: "sidebar:result",
+				commandId: command.commandId,
+				ok: false,
+				error: "Group not found: missing",
+			}),
+		);
+		await expect(rejected).rejects.toThrow("Group not found: missing");
+
+		const timedOut = eventBus.requestSidebarCommand("machine-1", {
+			action: "list",
+		});
+		const secondCommand = JSON.parse(sentMessages[1] ?? "{}");
+		// A syntactically valid packet without post-command state is not success.
+		eventBus.handleMessage(
+			socket,
+			JSON.stringify({
+				type: "sidebar:result",
+				commandId: secondCommand.commandId,
+				ok: true,
+			}),
+		);
+		await expect(timedOut).rejects.toThrow("did not acknowledge");
+	});
+});
 
 describe("EventBus port events", () => {
 	it("broadcasts port changes from the shared port manager and removes listeners on close", () => {

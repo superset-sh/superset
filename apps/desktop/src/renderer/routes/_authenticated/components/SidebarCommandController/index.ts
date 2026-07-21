@@ -1,0 +1,1 @@
+export { SidebarCommandController } from "./SidebarCommandController";

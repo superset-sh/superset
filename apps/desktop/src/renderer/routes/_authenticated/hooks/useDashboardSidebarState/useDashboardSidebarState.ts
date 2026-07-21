@@ -7,164 +7,22 @@ import {
 	type PaneLifecycleRow,
 } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
-import {
-	getNextTabOrder,
-	getPrependTabOrder,
-	isSidebarWorkspaceVisible,
-} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
-	createEmptyPaneLayout,
+	createSidebarGroup,
+	deleteSidebarGroup,
+	ensureSidebarProjectRecord,
+	ensureSidebarWorkspaceRecord,
+	moveSidebarWorkspaceToGroup,
+	renameSidebarGroup,
+	setSidebarGroupCollapsed,
+} from "./sidebarGroupMutations";
+import {
 	removeProjectFromSidebarState,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
-
-type ProjectTopLevelItem = {
-	type: "workspace" | "section";
-	id: string;
-	tabOrder: number;
-};
-
-type ProjectTopLevelCollections = Pick<
-	AppCollections,
-	"v2SidebarSections" | "v2WorkspaceLocalState"
->;
-
-function compareProjectTopLevelItems(
-	left: ProjectTopLevelItem,
-	right: ProjectTopLevelItem,
-): number {
-	const orderDelta = left.tabOrder - right.tabOrder;
-	if (orderDelta !== 0) return orderDelta;
-	if (left.type === right.type) return 0;
-	return left.type === "section" ? -1 : 1;
-}
-
-function getProjectTopLevelItems(
-	collections: ProjectTopLevelCollections,
-	projectId: string,
-	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
-): ProjectTopLevelItem[] {
-	return [
-		...Array.from(collections.v2WorkspaceLocalState.state.values())
-			.filter(
-				(item) =>
-					item.sidebarState.projectId === projectId &&
-					isSidebarWorkspaceVisible(item) &&
-					item.sidebarState.sectionId === null &&
-					item.workspaceId !== options.excludeWorkspaceId,
-			)
-			.map((item) => ({
-				type: "workspace" as const,
-				id: item.workspaceId,
-				tabOrder: item.sidebarState.tabOrder,
-			})),
-		...Array.from(collections.v2SidebarSections.state.values())
-			.filter(
-				(item) =>
-					item.projectId === projectId &&
-					item.sectionId !== options.excludeSectionId,
-			)
-			.map((item) => ({
-				type: "section" as const,
-				id: item.sectionId,
-				tabOrder: item.tabOrder,
-			})),
-	].sort(compareProjectTopLevelItems);
-}
-
-function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
-	const firstSectionIndex = items.findIndex((item) => item.type === "section");
-	return firstSectionIndex === -1 ? items.length : firstSectionIndex;
-}
-
-/**
- * Rewrites the flat top-level project lane. Workspace items are explicitly
- * ungrouped by setting sidebarState.projectId and clearing sidebarState.sectionId.
- */
-function writeProjectTopLevelOrder(
-	collections: ProjectTopLevelCollections,
-	projectId: string,
-	items: ProjectTopLevelItem[],
-): void {
-	items.forEach((item, index) => {
-		const tabOrder = index + 1;
-		if (item.type === "workspace") {
-			if (!collections.v2WorkspaceLocalState.get(item.id)) return;
-			collections.v2WorkspaceLocalState.update(item.id, (draft) => {
-				draft.sidebarState.projectId = projectId;
-				draft.sidebarState.sectionId = null;
-				draft.sidebarState.tabOrder = tabOrder;
-				draft.sidebarState.isHidden = false;
-			});
-			return;
-		}
-
-		if (!collections.v2SidebarSections.get(item.id)) return;
-		collections.v2SidebarSections.update(item.id, (draft) => {
-			draft.tabOrder = tabOrder;
-		});
-	});
-}
-
-function ensureSidebarProjectRecord(
-	collections: Pick<AppCollections, "v2SidebarProjects">,
-	projectId: string,
-): void {
-	if (collections.v2SidebarProjects.get(projectId)) {
-		return;
-	}
-
-	collections.v2SidebarProjects.insert({
-		projectId,
-		createdAt: new Date(),
-		tabOrder: getNextTabOrder([
-			...collections.v2SidebarProjects.state.values(),
-		]),
-		isCollapsed: false,
-	});
-}
-
-function ensureSidebarWorkspaceRecord(
-	collections: Pick<
-		AppCollections,
-		"v2SidebarSections" | "v2WorkspaceLocalState"
-	>,
-	workspaceId: string,
-	projectId: string,
-): void {
-	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
-	if (existing && isSidebarWorkspaceVisible(existing)) {
-		return;
-	}
-
-	const topLevelItems = getProjectTopLevelItems(collections, projectId);
-
-	if (existing) {
-		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-			draft.sidebarState.projectId = projectId;
-			draft.sidebarState.tabOrder = getPrependTabOrder(topLevelItems);
-			draft.sidebarState.sectionId = null;
-			draft.sidebarState.isHidden = false;
-		});
-		return;
-	}
-
-	collections.v2WorkspaceLocalState.insert({
-		workspaceId,
-		createdAt: new Date(),
-		sidebarState: {
-			projectId,
-			tabOrder: getPrependTabOrder(topLevelItems),
-			sectionId: null,
-			isHidden: false,
-		},
-		paneLayout: createEmptyPaneLayout(),
-	});
-}
 
 function getTerminalRuntimeId(pane: Pane<unknown>): string | null {
 	if (pane.kind !== "terminal") return null;
@@ -305,28 +163,12 @@ export function useDashboardSidebarState() {
 	const createSection = useCallback(
 		(projectId: string, options: { name?: string } = {}) => {
 			const { name = "New group" } = options;
-			ensureSidebarProjectRecord(collections, projectId);
-
 			const sectionId = crypto.randomUUID();
-			const randomColor =
-				PROJECT_CUSTOM_COLORS[
-					Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
-				].value;
-
-			const tabOrder = getNextTabOrder(
-				getProjectTopLevelItems(collections, projectId),
-			);
-
-			collections.v2SidebarSections.insert({
-				sectionId,
+			createSidebarGroup(collections, {
+				groupId: sectionId,
 				projectId,
 				name,
-				createdAt: new Date(),
-				tabOrder,
-				isCollapsed: false,
-				color: randomColor,
 			});
-
 			return sectionId;
 		},
 		[collections],
@@ -334,10 +176,9 @@ export function useDashboardSidebarState() {
 
 	const toggleSectionCollapsed = useCallback(
 		(sectionId: string) => {
-			if (!collections.v2SidebarSections.get(sectionId)) return;
-			collections.v2SidebarSections.update(sectionId, (draft) => {
-				draft.isCollapsed = !draft.isCollapsed;
-			});
+			const section = collections.v2SidebarSections.get(sectionId);
+			if (!section) return;
+			setSidebarGroupCollapsed(collections, sectionId, !section.isCollapsed);
 		},
 		[collections],
 	);
@@ -345,9 +186,7 @@ export function useDashboardSidebarState() {
 	const renameSection = useCallback(
 		(sectionId: string, name: string) => {
 			if (!collections.v2SidebarSections.get(sectionId)) return;
-			collections.v2SidebarSections.update(sectionId, (draft) => {
-				draft.name = name.trim();
-			});
+			renameSidebarGroup(collections, sectionId, name);
 		},
 		[collections],
 	);
@@ -363,83 +202,18 @@ export function useDashboardSidebarState() {
 	);
 
 	const moveWorkspaceToSection = useCallback(
-		(workspaceId: string, projectId: string, sectionId: string | null) => {
+		(workspaceId: string, _projectId: string, sectionId: string | null) => {
 			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) return;
-
-			if (sectionId === null) {
-				const topLevelItems = getProjectTopLevelItems(collections, projectId, {
-					excludeWorkspaceId: workspaceId,
-				});
-				const insertIndex = getFirstSectionIndex(topLevelItems);
-				topLevelItems.splice(insertIndex, 0, {
-					type: "workspace",
-					id: workspaceId,
-					tabOrder: 0,
-				});
-				writeProjectTopLevelOrder(collections, projectId, topLevelItems);
-				return;
-			}
-
-			const siblingRows = Array.from(
-				collections.v2WorkspaceLocalState.state.values(),
-			)
-				.filter(
-					(item) =>
-						item.sidebarState.projectId === projectId &&
-						isSidebarWorkspaceVisible(item) &&
-						item.workspaceId !== workspaceId &&
-						item.sidebarState.sectionId === sectionId,
-				)
-				.map((item) => ({ tabOrder: item.sidebarState.tabOrder }));
-
-			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
-				draft.sidebarState.projectId = projectId;
-				draft.sidebarState.sectionId = sectionId;
-				draft.sidebarState.tabOrder = getNextTabOrder(siblingRows);
-				draft.sidebarState.isHidden = false;
-			});
+			moveSidebarWorkspaceToGroup(collections, workspaceId, sectionId);
 		},
 		[collections],
 	);
 
 	const deleteSection = useCallback(
 		(sectionId: string) => {
-			const section = collections.v2SidebarSections.get(sectionId);
-			if (!section) return;
-
-			const topLevelItems = getProjectTopLevelItems(
-				collections,
-				section.projectId,
-				{ excludeSectionId: sectionId },
-			);
-			const sectionWorkspaces = Array.from(
-				collections.v2WorkspaceLocalState.state.values(),
-			)
-				.filter(
-					(item) =>
-						item.sidebarState.projectId === section.projectId &&
-						isSidebarWorkspaceVisible(item) &&
-						item.sidebarState.sectionId === sectionId,
-				)
-				.sort(
-					(left, right) =>
-						left.sidebarState.tabOrder - right.sidebarState.tabOrder,
-				);
-
-			const insertIndex = getFirstSectionIndex(topLevelItems);
-			topLevelItems.splice(
-				insertIndex,
-				0,
-				...sectionWorkspaces.map((workspace) => ({
-					type: "workspace" as const,
-					id: workspace.workspaceId,
-					tabOrder: 0,
-				})),
-			);
-			writeProjectTopLevelOrder(collections, section.projectId, topLevelItems);
-
-			collections.v2SidebarSections.delete(sectionId);
+			if (!collections.v2SidebarSections.get(sectionId)) return;
+			deleteSidebarGroup(collections, sectionId);
 		},
 		[collections],
 	);

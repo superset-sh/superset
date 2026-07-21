@@ -79,6 +79,48 @@ describe("eventBus", () => {
 		expect(other.length).toBe(0);
 	});
 
+	it("delivers sidebar commands and sends typed acknowledgements", async () => {
+		const host = makeHostServer();
+		const bus = getEventBus(host.hostUrl, () => "tok");
+		const received: Array<Record<string, unknown>> = [];
+		cleanups.push(
+			bus.on("sidebar:command", "*", (commandId, payload) => {
+				received.push({ commandId, ...payload });
+				bus.sendSidebarResult({
+					commandId,
+					ok: true,
+					state: { groups: [], workspaces: [] },
+				});
+			}),
+		);
+		cleanups.push(() => host.server.stop(true));
+
+		await waitFor(() => host.clientCount() === 1);
+		host.push({
+			type: "sidebar:command",
+			commandId: "command-1",
+			targetMachineId: "machine-1",
+			command: { action: "list" },
+		});
+		await waitFor(() => received.length === 1 && host.commands.length === 1);
+
+		expect(received).toEqual([
+			{
+				commandId: "command-1",
+				targetMachineId: "machine-1",
+				command: { action: "list" },
+			},
+		]);
+		expect(host.commands).toEqual([
+			{
+				type: "sidebar:result",
+				commandId: "command-1",
+				ok: true,
+				state: { groups: [], workspaces: [] },
+			},
+		]);
+	});
+
 	it("shares one connection per hostUrl across handles", async () => {
 		const host = makeHostServer();
 		const busA = getEventBus(host.hostUrl, () => "tok");

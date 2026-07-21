@@ -18,7 +18,9 @@
 
 ## Desktop app changes
 
-- [ ] **Sidebar sections** — does the concept of sidebar sections exist today? If not, need to add data model + UI
+- [x] **Sidebar sections** — v2 groups are renderer-owned local collections;
+  the CLI uses a synchronous host event-bus command/ack bridge and the same
+  mutation layer as the desktop UI
 - [ ] **Websocket command routing** — CLI spec says device commands route via API → websocket → host service. Is this path built? Or does it still go through `agentCommands` + Electric SQL polling?
 
 ## CLI package
@@ -27,7 +29,7 @@
 - [ ] Auth flow (`login` / `logout` / `whoami`)
 - [ ] Cloud commands (`tasks`, `devices`, `chat`)
 - [ ] Device commands (`workspaces`, `projects`, `agent`)
-- [ ] UI commands (`focus`, `sidebar`, `tabs`, `panes`)
+- [ ] UI commands (`focus`, `tabs`, `panes`); local sidebar group commands are implemented
 - [ ] Pane-type commands (`terminal send/read`, `browser navigate/cdp-url`, `chat send/read`)
 - [ ] Port commands (`list`, `claim`, `release`)
 - [ ] Cron commands (`list`, `create`, `update`, `delete`, `logs`, `run`)

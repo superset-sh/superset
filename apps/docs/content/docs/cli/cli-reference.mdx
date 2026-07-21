@@ -496,6 +496,53 @@ superset hosts list
 
 ---
 
+### sidebar
+
+Organize user-created workspace groups in the desktop sidebar on this machine.
+The desktop app must be open: every mutation waits for the renderer to apply it
+and acknowledge the resulting state. Exact project, workspace, and group names
+can be used in place of IDs; ambiguous names fail with the matching IDs.
+
+<Command name="superset sidebar list">
+List groups, their expanded or collapsed state, and workspace placement.
+</Command>
+
+<Command
+	name="superset sidebar groups create <name>"
+	args={[
+		{ name: "name", required: true, description: "Group name." },
+	]}
+	options={[
+		{ flag: "--project <name-or-id>", required: true, description: "Local project name or ID." },
+	]}
+>
+Create a group at the end of the project's sidebar items.
+</Command>
+
+<Command name="superset sidebar move <workspace>" options={[
+	{ flag: "--group <name-or-id>", description: "Move into this group." },
+	{ flag: "--ungrouped", description: "Move back to the project root." },
+]}>
+Move a workspace by exact name or ID. Pass exactly one destination option.
+</Command>
+
+```bash
+superset sidebar groups create "In review" --project superset
+superset sidebar move "fix-login" --group "In review"
+superset sidebar groups collapse "In review"
+superset sidebar groups expand "In review"
+superset sidebar groups rename "In review" "Ready to merge"
+superset sidebar move "fix-login" --ungrouped
+superset sidebar groups delete "Ready to merge"
+```
+
+Deleting a group is non-destructive: its workspaces remain in the sidebar's
+ungrouped project area. Sidebar state belongs to the local desktop app, so these
+commands do not accept remote host flags and do not run while the renderer is
+closed.
+
+---
+
 ### workspaces (alias: `ws`)
 
 Workspaces are branch-scoped working copies on a host.

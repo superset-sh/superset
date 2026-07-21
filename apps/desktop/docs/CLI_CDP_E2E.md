@@ -20,7 +20,8 @@ awk -F= '/^(DESKTOP_VITE_PORT|SUPERSET_HOME_DIR|NEXT_PUBLIC_API_URL)=/ { print $
 
 Choose an unused CDP port and launch the full stack in terminal A. A
 renderer-only Vite process does not own the host service or PTY daemon and is
-not an end-to-end target.
+not an end-to-end target. Root `bun dev` rebuilds the CLI before Electron
+launches and installs that binary at `<SUPERSET_HOME_DIR>/bin/superset`.
 
 ```bash
 cdp_port=29422
@@ -51,15 +52,26 @@ First prove the development CLI sees the live host manifest written beneath
 this worktree's `SUPERSET_HOME_DIR`:
 
 ```bash
+dev_home=$(awk -F= '/^SUPERSET_HOME_DIR=/{ gsub(/"/, "", $2); print $2 }' .env)
+test -x "$dev_home/bin/superset"
+
 case_id="cli-cdp-$(date +%s)"
 evidence_dir="test-results/cli-cdp/$case_id"
 mkdir -p "$evidence_dir"
 
-bun run --cwd packages/cli dev -- --json status \
+SUPERSET_HOME_DIR="$dev_home" "$dev_home/bin/superset" --json status \
   > "$evidence_dir/cli-status.json"
 jq '{running, healthy, organizationId, hostId, port}' \
   "$evidence_dir/cli-status.json"
 ```
+
+Use the same explicit `SUPERSET_HOME_DIR="$dev_home"` prefix for every bundled
+CLI command and for any Bun/TypeScript evidence harness that imports CLI config
+helpers. Setting it only on a spawned child can select one organization in the
+harness and another in the CLI. `bun run --cwd packages/cli dev -- ...` is
+useful for source-level iteration because its script loads the worktree `.env`;
+the bundled path above is the correct check for the CLI used by terminals
+opened from this `bun dev` app.
 
 Stop if `running` or `healthy` is not true. Then create an unambiguous fixture
 and retain the command's stdout, stderr, and exit code:
@@ -123,6 +135,27 @@ worktree, renderer URL and CDP port, CLI exit/stdout/stderr, returned IDs,
 machine-readable CDP assertions, and a genuine screenshot. CLI output proves
 the command path; the screenshot proves the real renderer displayed that same
 state. Neither substitutes for the other.
+
+### Sidebar group acceptance flow
+
+For sidebar work, the screenshot must show a user-created group by its unique
+name and the workspace nested beneath it. Project collapse/expand is not group
+evidence.
+
+```bash
+group_name="group-$case_id"
+bun run --cwd packages/cli dev -- sidebar groups create "$group_name" \
+  --project "$project_id" > "$evidence_dir/group-create.txt"
+bun run --cwd packages/cli dev -- sidebar move "$workspace_id" \
+  --group "$group_name" > "$evidence_dir/group-move.txt"
+bun run --cwd packages/cli dev -- --json sidebar list \
+  > "$evidence_dir/sidebar-list.json"
+```
+
+Capture the expanded group containing the workspace, then run `sidebar groups
+collapse`, capture the visibly collapsed group, and run `sidebar groups expand`
+before rename/delete cleanup. Save each CLI result separately. A CLI exit code
+of zero is valid only after the renderer has acknowledged the mutation.
 
 Clean up only the fixture created by this run:
 
