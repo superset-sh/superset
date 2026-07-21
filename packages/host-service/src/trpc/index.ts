@@ -10,7 +10,7 @@ import {
 	type TeardownFailureCause,
 } from "./error-types";
 
-interface RouterMeta {
+export interface RouterMeta {
 	/**
 	 * Per-procedure timeout in milliseconds, applied to query procedures
 	 * via `queryProcedure`. Defaults to 5_000 when omitted. Set higher for
@@ -119,4 +119,5 @@ export type {
 	ProjectNotSetupCause,
 	TeardownFailureCause,
 } from "./error-types";
+// INTERIM cross-runtime types via dist-types — see docs/interim-router-types.md
 export type { AppRouter } from "./router";

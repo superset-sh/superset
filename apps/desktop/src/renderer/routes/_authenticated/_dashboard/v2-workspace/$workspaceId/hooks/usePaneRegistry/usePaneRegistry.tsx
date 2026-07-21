@@ -20,14 +20,15 @@ import {
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
 import { getBaseName } from "renderer/lib/pathBasename";
+import {
+	confirmCloseTerminals,
+	probeTerminalRunning,
+} from "renderer/lib/terminal/confirm-close-terminals";
 import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-background-intents";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import {
-	clearV2TerminalRunStatus,
-	getV2NotificationSourcesForPane,
-} from "renderer/stores/v2-notifications";
+import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
 import {
@@ -55,6 +56,7 @@ import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneH
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
 import { TerminalPane } from "./components/TerminalPane";
+import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
 
@@ -324,13 +326,25 @@ export function usePaneRegistry({
 								?.trim() || undefined,
 					};
 				},
+				onBeforeClose: (pane) => {
+					const { terminalId } = pane.data as TerminalPaneData;
+					return confirmCloseTerminals(
+						[terminalId],
+						(id) => probeTerminalRunning(workspaceTrpcUtils, workspaceId, id),
+						{
+							title: "A process is still running in this terminal",
+							description:
+								"Closing this terminal will end the running process.",
+							confirmLabel: "Close terminal",
+						},
+					);
+				},
 				onAfterClose: (pane) => {
 					const { terminalId } = pane.data as TerminalPaneData;
 					if (consumeTerminalBackgroundIntent(terminalId)) {
 						terminalRuntimeRegistry.release(terminalId);
 						return;
 					}
-					clearV2TerminalRunStatus(terminalId, workspaceId);
 					clearWorkspaceRunTerminal(terminalId);
 					terminalRuntimeRegistry.dispose(terminalId);
 					killTerminalSessionSilently({ terminalId, workspaceId });
@@ -347,6 +361,15 @@ export function usePaneRegistry({
 						/>
 					</div>
 				),
+				renderHeaderExtras: (ctx: RendererContext<PaneViewerData>) => {
+					const { terminalId } = ctx.pane.data as TerminalPaneData;
+					return (
+						<TerminalPaneHeaderExtras
+							terminalId={terminalId}
+							terminalInstanceId={ctx.pane.id}
+						/>
+					);
+				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<TerminalPane
 						ctx={ctx}
@@ -561,6 +584,7 @@ export function usePaneRegistry({
 			onOpenFile,
 			onRevealPath,
 			createNewAgentSession,
+			workspaceTrpcUtils,
 		],
 	);
 }

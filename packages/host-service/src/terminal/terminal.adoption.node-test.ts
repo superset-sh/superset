@@ -25,6 +25,12 @@ import { eq } from "drizzle-orm";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import {
+	cleanupAgentLaunch,
+	prepareAgentLaunch,
+	waitForAgentLaunch,
+} from "../trpc/router/agents/agent-launch.ts";
+import { buildAttachmentBlock } from "../trpc/router/agents/attachment-prompt.ts";
+import {
 	disposeDaemonClient,
 	getDaemonClient,
 } from "./daemon-client-singleton.ts";
@@ -34,6 +40,7 @@ import {
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
 	listTerminalSessions,
+	replayBuffer,
 } from "./terminal.ts";
 import { __setAccountShellForTesting } from "./user-shell.ts";
 
@@ -49,6 +56,7 @@ let workspaceId: string;
 let otherWorkspaceId: string;
 let worktreePath: string;
 let otherWorktreePath: string;
+let fakeAgentPath: string;
 
 before(async () => {
 	fs.mkdirSync(TEST_HOME, { recursive: true });
@@ -56,6 +64,32 @@ before(async () => {
 	otherWorktreePath = path.join(TEST_HOME, "other-worktree");
 	fs.mkdirSync(worktreePath, { recursive: true });
 	fs.mkdirSync(otherWorktreePath, { recursive: true });
+	fakeAgentPath = path.join(TEST_HOME, "fake-agent.sh");
+	fs.writeFileSync(
+		fakeAgentPath,
+		`#!/bin/sh
+set -u
+mode=$1
+output_path=$2
+pid_path=$3
+shift 3
+
+if [ "$mode" = "argv" ]; then
+	if [ "$1" != "--prompt" ]; then
+		exit 64
+	fi
+	shift
+	printf '%s' "$1" > "$output_path"
+else
+	cat > "$output_path"
+fi
+
+printf '%s' "$TEST_LAUNCH_ENV" > "$output_path.env"
+printf '%s\n' "$$" > "$pid_path"
+sleep 30
+`,
+		{ mode: 0o700 },
+	);
 
 	server = new Server({
 		socketPath: SOCK,
@@ -112,6 +146,14 @@ after(async () => {
 });
 
 describe("createTerminalSessionInternal — host-service restart adoption", () => {
+	test("losslessly launches an argv agent with a large attachment-expanded prompt", async () => {
+		await assertLosslessAgentLaunch("argv");
+	});
+
+	test("losslessly launches a stdin agent with a large attachment-expanded prompt", async () => {
+		await assertLosslessAgentLaunch("stdin");
+	});
+
 	test("fresh open uses requested initial dimensions", async () => {
 		const terminalId = `e2e-dims-${randomUUID().slice(0, 8)}`;
 		const result = await createTerminalSessionInternal({
@@ -158,7 +200,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			workspaceId,
 			db,
 			listed: true,
-			initialCommand: `echo ok > ${sentinelFile}`,
+			initialCommand: `echo ok > "${sentinelFile}"`,
 		});
 		assert.ok(!("error" in second));
 		if ("error" in second) return;
@@ -169,9 +211,8 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 	});
 
 	test("initialCommand runs promptly even when OSC 133;A never fires", async () => {
-		// Regression guard against reintroducing the SHELL_READY_TIMEOUT_MS
-		// stall: bash with no Superset wrapper on disk never emits OSC 133;A,
-		// but the preset command should still run as soon as the shell reads.
+		// A shell name is not proof that the active launch config emits a marker.
+		// Missing/stale wrappers must keep the immediate-write fallback.
 		__setAccountShellForTesting("/bin/bash");
 		try {
 			const terminalId = `e2e-no-marker-${randomUUID().slice(0, 8)}`;
@@ -183,7 +224,7 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 				workspaceId,
 				db,
 				listed: true,
-				initialCommand: `echo ok > ${sentinelFile}`,
+				initialCommand: `echo ok > "${sentinelFile}"`,
 			});
 			assert.ok(!("error" in result));
 			if ("error" in result) return;
@@ -201,6 +242,107 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			await disposeSessionAndWait(terminalId, db);
 		} finally {
 			__setAccountShellForTesting("/bin/sh");
+		}
+	});
+
+	test("initialCommand waits for a verified shell-ready marker", async () => {
+		const terminalId = `e2e-delayed-marker-${randomUUID().slice(0, 8)}`;
+		const sentinelFile = path.join(TEST_HOME, `delayed-marker-${terminalId}`);
+		const fakeShellDir = path.join(TEST_HOME, `fake-shell-${terminalId}`);
+		const fakeZsh = path.join(fakeShellDir, "zsh");
+		const zshWrapperDir = path.join(TEST_HOME, "zsh");
+
+		fs.mkdirSync(fakeShellDir, { recursive: true });
+		fs.mkdirSync(zshWrapperDir, { recursive: true });
+		fs.writeFileSync(
+			fakeZsh,
+			[
+				"#!/bin/bash",
+				// Simulate an interactive startup process consuming already-buffered
+				// input before returning control to the shell.
+				"sleep 0.5",
+				"IFS= read -r -t 0.5 _discarded || true",
+				"printf '\\033]133;A\\007'",
+				"exec /bin/bash --noprofile --norc -i",
+				"",
+			].join("\n"),
+			{ mode: 0o755 },
+		);
+		fs.writeFileSync(path.join(zshWrapperDir, ".zshrc"), "# wrapper\n");
+		fs.writeFileSync(
+			path.join(zshWrapperDir, ".zlogin"),
+			'printf "\\033]133;A\\007"\n',
+		);
+
+		__setAccountShellForTesting(fakeZsh);
+		try {
+			const start = Date.now();
+			const result = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				initialCommand: `echo ok > "${sentinelFile}"`,
+			});
+			assert.ok(!("error" in result));
+			if ("error" in result) return;
+
+			await waitFor(() => fs.existsSync(sentinelFile), 5000);
+			assert.ok(
+				Date.now() - start >= 450,
+				"expected initialCommand to wait for delayed shell readiness",
+			);
+		} finally {
+			await disposeSessionAndWait(terminalId, db);
+			// Restore the suite-wide shell override established in before().
+			__setAccountShellForTesting("/bin/sh");
+			fs.rmSync(fakeShellDir, { recursive: true, force: true });
+			fs.rmSync(zshWrapperDir, { recursive: true, force: true });
+		}
+	});
+
+	test("cancels initialCommand when the shell exits before readiness", async () => {
+		const terminalId = `e2e-exit-before-marker-${randomUUID().slice(0, 8)}`;
+		const sentinelFile = path.join(
+			TEST_HOME,
+			`exit-before-marker-${terminalId}`,
+		);
+		const fakeShellDir = path.join(TEST_HOME, `fake-shell-${terminalId}`);
+		const fakeZsh = path.join(fakeShellDir, "zsh");
+		const zshWrapperDir = path.join(TEST_HOME, "zsh");
+
+		fs.mkdirSync(fakeShellDir, { recursive: true });
+		fs.mkdirSync(zshWrapperDir, { recursive: true });
+		fs.writeFileSync(fakeZsh, "#!/bin/bash\nsleep 0.1\nexit 17\n", {
+			mode: 0o755,
+		});
+		fs.writeFileSync(path.join(zshWrapperDir, ".zshrc"), "# wrapper\n");
+		fs.writeFileSync(
+			path.join(zshWrapperDir, ".zlogin"),
+			'printf "\\033]133;A\\007"\n',
+		);
+
+		__setAccountShellForTesting(fakeZsh);
+		try {
+			const result = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				initialCommand: `echo should-not-run > "${sentinelFile}"`,
+			});
+			assert.ok(!("error" in result));
+			if ("error" in result) return;
+
+			await waitFor(() => result.exited, 5000);
+			await result.shellReadyPromise;
+			assert.equal(result.shellReadyState, "cancelled");
+			assert.equal(fs.existsSync(sentinelFile), false);
+		} finally {
+			await disposeSessionAndWait(terminalId, db);
+			__setAccountShellForTesting("/bin/sh");
+			fs.rmSync(fakeShellDir, { recursive: true, force: true });
+			fs.rmSync(zshWrapperDir, { recursive: true, force: true });
 		}
 	});
 
@@ -339,6 +481,106 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 		second.pty.write("echo after-host-restart\n");
 		await waitFor(() => buf.includes("after-host-restart"), 3000);
 		disposer.dispose();
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("restoredNotice delivers the separator ahead of shell output on first replay only", async () => {
+		const terminalId = `e2e-notice-${randomUUID().slice(0, 8)}`;
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			restoredNotice: true,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		const first = makeCaptureSocket();
+		replayBuffer(result, first.socket);
+		assert.match(
+			first.received(),
+			/Session Contents Restored/,
+			"first replay should carry the restored-session separator",
+		);
+
+		const second = makeCaptureSocket();
+		replayBuffer(result, second.socket);
+		assert.doesNotMatch(
+			second.received(),
+			/Session Contents Restored/,
+			"separator should not repeat on later replays",
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("restoredNotice survives FIFO eviction when the shell floods output before attach", async () => {
+		const terminalId = `e2e-notice-flood-${randomUUID().slice(0, 8)}`;
+		const suffix = randomUUID().slice(0, 6);
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			restoredNotice: true,
+			// > MAX_BUFFER_BYTES (64 KiB) so the FIFO drops its oldest chunks
+			// before any socket attaches. The marker is assembled by printf so
+			// the PTY echo of the command line doesn't match it.
+			initialCommand: `head -c 200000 /dev/zero | tr '\\0' x; printf 'flood-done-%s\\n' "${suffix}"`,
+		});
+		assert.ok(!("error" in result));
+		if ("error" in result) return;
+
+		await waitFor(
+			() => sessionBufferText(result).includes(`flood-done-${suffix}`),
+			15_000,
+		);
+
+		const capture = makeCaptureSocket();
+		replayBuffer(result, capture.socket);
+		const replayed = capture.received();
+		const noticeIndex = replayed.indexOf("Session Contents Restored");
+		assert.ok(noticeIndex >= 0, "separator should survive buffer eviction");
+		assert.ok(
+			noticeIndex < replayed.indexOf("xxxx"),
+			"separator should precede the flooded shell output",
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("restoredNotice is skipped when the daemon session is adopted", async () => {
+		const terminalId = `e2e-notice-adopt-${randomUUID().slice(0, 8)}`;
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const second = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			restoredNotice: true,
+		});
+		assert.ok(!("error" in second));
+		if ("error" in second) return;
+
+		const capture = makeCaptureSocket();
+		replayBuffer(second, capture.socket);
+		assert.doesNotMatch(
+			capture.received(),
+			/Session Contents Restored/,
+			"adopted (still-live) session should not get the restored separator",
+		);
 
 		await disposeSessionAndWait(terminalId, db);
 	});
@@ -716,6 +958,69 @@ async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
 	}
 }
 
+async function assertLosslessAgentLaunch(
+	promptTransport: "argv" | "stdin",
+): Promise<void> {
+	const terminalId = `e2e-agent-launch-${promptTransport}-${randomUUID().slice(0, 8)}`;
+	const outputPath = path.join(TEST_HOME, `${terminalId}.prompt`);
+	const pidPath = path.join(TEST_HOME, `${terminalId}.pid`);
+	const prompt = buildAttachmentBlock(
+		`${"large multiline prompt 🎉 中文\n".repeat(2048)}closing prompt bytes\n\n`,
+		Array.from({ length: 300 }, (_, index) => ({
+			attachmentId: `attachment-${index}`,
+			path: `/tmp/attached files/evidence-${index}-é.log`,
+		})),
+	);
+	const launch = prepareAgentLaunch({
+		command: fakeAgentPath,
+		args: [promptTransport, outputPath, pidPath],
+		promptArgs: promptTransport === "argv" ? ["--prompt"] : [],
+		promptTransport,
+		prompt,
+		env: { TEST_LAUNCH_ENV: "launch-env-preserved" },
+	});
+	let terminalCreated = false;
+
+	try {
+		assert.ok(
+			Buffer.byteLength(prompt) > 64 * 1024,
+			"fixture must exceed the old interactive PTY command boundary",
+		);
+		const result = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			initialCommand: launch.initialCommand,
+		});
+		if ("error" in result) {
+			assert.fail(`expected session, got error: ${result.error}`);
+		}
+		terminalCreated = true;
+
+		const acknowledgement = await waitForAgentLaunch(launch);
+		await waitFor(
+			() => fs.existsSync(outputPath) && fs.existsSync(pidPath),
+			5000,
+		);
+
+		assert.equal(fs.readFileSync(outputPath, "utf8"), prompt);
+		assert.equal(
+			fs.readFileSync(`${outputPath}.env`, "utf8"),
+			"launch-env-preserved",
+		);
+		const childPid = Number.parseInt(fs.readFileSync(pidPath, "utf8"), 10);
+		assert.equal(acknowledgement.pid, childPid);
+		assert.doesNotThrow(
+			() => process.kill(childPid, 0),
+			"agent child must still be alive when launch reports success",
+		);
+	} finally {
+		cleanupAgentLaunch(launch);
+		if (terminalCreated) await disposeSessionAndWait(terminalId, db);
+	}
+}
+
 async function waitForOutput(
 	pty: { onData: (cb: (d: string) => void) => { dispose(): void } },
 	marker: string,
@@ -733,7 +1038,21 @@ async function waitForOutput(
 }
 
 function sessionBufferText(session: { buffer: Uint8Array[] }): string {
-	return Buffer.concat(session.buffer.map((b) => Buffer.from(b))).toString(
-		"utf8",
-	);
+	return Buffer.concat(session.buffer).toString("utf8");
+}
+
+function makeCaptureSocket() {
+	const chunks: Uint8Array[] = [];
+	return {
+		socket: {
+			send: (data: string | Uint8Array) => {
+				chunks.push(
+					typeof data === "string" ? Buffer.from(data, "utf8") : data,
+				);
+			},
+			close: () => {},
+			readyState: 1, // SOCKET_OPEN
+		},
+		received: () => Buffer.concat(chunks).toString("utf8"),
+	};
 }

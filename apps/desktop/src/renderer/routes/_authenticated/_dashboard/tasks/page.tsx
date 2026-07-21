@@ -7,7 +7,8 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks/")({
 });
 
 function TasksPage() {
-	const { tab, assignee, search, type, project } = TasksLayoutRoute.useSearch();
+	const { tab, assignee, search, type, project, linearProject } =
+		TasksLayoutRoute.useSearch();
 	return (
 		<TasksView
 			initialTab={tab}
@@ -15,6 +16,7 @@ function TasksPage() {
 			initialSearch={search}
 			initialType={type}
 			initialProject={project}
+			initialLinearProject={linearProject}
 		/>
 	);
 }

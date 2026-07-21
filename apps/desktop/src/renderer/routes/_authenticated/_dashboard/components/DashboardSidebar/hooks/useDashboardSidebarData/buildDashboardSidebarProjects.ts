@@ -1,4 +1,5 @@
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
+import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type {
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
@@ -12,8 +13,6 @@ type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 export interface SidebarProjectInput {
 	id: string;
 	name: string;
-	slug: string;
-	githubRepositoryId: string | null;
 	githubOwner: string | null;
 	githubRepoName: string | null;
 	iconUrl: string | null;
@@ -123,7 +122,7 @@ export function buildDashboardSidebarProjects({
 			hostIsOnline:
 				hostType === "remote-device" ? workspace.hostIsOnline : null,
 			accentColor: null,
-			name: workspace.name,
+			name: getV2WorkspaceDisplayName(workspace),
 			branch: workspace.branch,
 			pullRequest: pullRequestsByWorkspaceId.get(workspace.id) ?? null,
 			repoUrl:

@@ -4,7 +4,9 @@ import path from "node:path";
 import {
 	buildWrapperScript,
 	createWrapper,
+	getManagedNotifyHookCommand,
 	isSupersetManagedHookCommand,
+	MANAGED_NOTIFY_RELATIVE_PATH,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
@@ -65,24 +67,15 @@ interface ClaudeSettingsJson {
 	[key: string]: unknown;
 }
 
-const CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
-const CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}`;
+const CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}`;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-/**
- * Returns the shell command written into Claude's global hook config.
- * The notify path is resolved at runtime from SUPERSET_HOME_DIR so one
- * shared ~/.claude/settings.json works for both dev and prod installs.
- *
- * `SUPERSET_AGENT_ID=claude` is inlined so the v2 hook payload carries the
- * wrapper-level identity even when Claude is launched outside the Superset
- * wrapper (system PATH resolves to the real binary directly).
- */
+/** Shell command written into Claude's global hook config. */
 export function getClaudeManagedHookCommand(): string {
-	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=claude "$SUPERSET_HOME_DIR/${CLAUDE_DYNAMIC_NOTIFY_RELATIVE_PATH}" || true`;
+	return getManagedNotifyHookCommand("claude");
 }
 
 function isManagedClaudeHookCommand(
@@ -180,6 +173,7 @@ export function getClaudeGlobalSettingsJsonContent(
 			| "SessionEnd"
 			| "UserPromptSubmit"
 			| "Stop"
+			| "StopFailure"
 			| "PostToolUse"
 			| "PostToolUseFailure"
 			| "PermissionRequest";
@@ -199,6 +193,11 @@ export function getClaudeGlobalSettingsJsonContent(
 		},
 		{
 			eventName: "Stop",
+			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
+		},
+		{
+			// API-error hook; fires while the session stays alive, unlike Stop.
+			eventName: "StopFailure",
 			definition: { hooks: [{ type: "command", command: managedHookCommand }] },
 		},
 		{

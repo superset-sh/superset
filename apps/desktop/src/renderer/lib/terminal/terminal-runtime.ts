@@ -1,3 +1,4 @@
+import { installTerminalWheelEventHandler } from "@superset/shared/terminal-wheel-handler";
 import { FitAddon } from "@xterm/addon-fit";
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
@@ -9,10 +10,18 @@ import {
 	type TerminalAppearance,
 } from "./appearance";
 import { scheduleFontSettleRefit } from "./font-settle";
+import {
+	cancelParserIdleWork,
+	createParserIdleGate,
+	type ParserIdleGate,
+	runWhenParserIdle,
+	wrapWrite,
+} from "./parser-idle-gate";
 import { loadAddons } from "./terminal-addons";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 const SERIALIZE_SCROLLBACK = 1000;
 const STORAGE_KEY_PREFIX = "terminal-buffer:";
@@ -30,6 +39,7 @@ export interface TerminalRuntime {
 	progressAddon: ProgressAddon | null;
 	wrapper: HTMLDivElement;
 	container: HTMLDivElement | null;
+	gate: ParserIdleGate;
 	resizeObserver: ResizeObserver | null;
 	_disposeResizeObserver: (() => void) | null;
 	lastCols: number;
@@ -66,14 +76,24 @@ function createTerminal(
 	});
 	terminal.loadAddon(fitAddon);
 	terminal.loadAddon(serializeAddon);
+	// Disarm TUI-only input modes (kitty keyboard / mouse / focus) leaked into a
+	// live shell prompt by a TUI killed while attached (#4949). The parser
+	// handlers are owned by the terminal and cleaned up on terminal.dispose().
+	installInputModeReclaimer(terminal);
 	return { terminal, fitAddon, serializeAddon };
 }
 
-function persistBuffer(terminalId: string, serializeAddon: SerializeAddon) {
+function persistBuffer(
+	terminalId: string,
+	serializeAddon: SerializeAddon,
+): boolean {
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
 		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
-	} catch {}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function restoreBuffer(terminalId: string, terminal: XTerm) {
@@ -83,19 +103,41 @@ function restoreBuffer(terminalId: string, terminal: XTerm) {
 	} catch {}
 }
 
+/**
+ * Persist buffer + dims, reporting success. Eviction must not proceed when
+ * either write fails or the runtime could not be restored faithfully.
+ */
+export function tryPersistRuntimeState(runtime: TerminalRuntime): boolean {
+	if (!persistBuffer(runtime.terminalId, runtime.serializeAddon)) {
+		return false;
+	}
+	return persistDimensions(
+		runtime.terminalId,
+		runtime.lastCols,
+		runtime.lastRows,
+	);
+}
+
 function clearPersistedBuffer(terminalId: string) {
 	try {
 		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
 	} catch {}
 }
 
-function persistDimensions(terminalId: string, cols: number, rows: number) {
+function persistDimensions(
+	terminalId: string,
+	cols: number,
+	rows: number,
+): boolean {
 	try {
 		localStorage.setItem(
 			`${DIMS_KEY_PREFIX}${terminalId}`,
 			JSON.stringify({ cols, rows }),
 		);
-	} catch {}
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function loadSavedDimensions(
@@ -120,36 +162,57 @@ function clearPersistedDimensions(terminalId: string) {
 	} catch {}
 }
 
+/** Clear persisted renderer state even when no live runtime entry remains. */
+export function clearPersistedRuntimeState(terminalId: string): void {
+	clearPersistedBuffer(terminalId);
+	clearPersistedDimensions(terminalId);
+}
+
 function hostIsVisible(container: HTMLDivElement | null): boolean {
 	if (!container) return false;
 	return container.clientWidth > 0 && container.clientHeight > 0;
 }
 
-function measureAndResize(runtime: TerminalRuntime): boolean {
-	if (!hostIsVisible(runtime.container)) return false;
+function measureAndResize(
+	runtime: TerminalRuntime,
+	onResize?: () => void,
+	options: { forceNotify?: boolean } = {},
+): void {
+	if (!hostIsVisible(runtime.container)) return;
 	const { terminal } = runtime;
-	const buffer = terminal.buffer.active;
-	const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
-	const savedViewportY = buffer.viewportY;
-	const prevCols = terminal.cols;
-	const prevRows = terminal.rows;
 
-	runtime.fitAddon.fit();
-	runtime.lastCols = terminal.cols;
-	runtime.lastRows = terminal.rows;
+	runWhenParserIdle(runtime.gate, () => {
+		if (!hostIsVisible(runtime.container)) return;
 
-	if (wasPinnedToBottom) {
-		terminal.scrollToBottom();
-	} else {
-		const targetY = Math.min(savedViewportY, terminal.buffer.active.baseY);
-		if (terminal.buffer.active.viewportY !== targetY) {
-			terminal.scrollToLine(targetY);
+		const buffer = terminal.buffer.active;
+		const wasPinnedToBottom = buffer.viewportY >= buffer.baseY;
+		const savedViewportY = buffer.viewportY;
+		const prevCols = terminal.cols;
+		const prevRows = terminal.rows;
+
+		runtime.fitAddon.fit();
+		runtime.lastCols = terminal.cols;
+		runtime.lastRows = terminal.rows;
+
+		if (wasPinnedToBottom) {
+			terminal.scrollToBottom();
+		} else {
+			const targetY = Math.min(savedViewportY, terminal.buffer.active.baseY);
+			if (terminal.buffer.active.viewportY !== targetY) {
+				terminal.scrollToLine(targetY);
+			}
 		}
-	}
 
-	terminal.refresh(0, Math.max(0, terminal.rows - 1));
+		terminal.refresh(0, Math.max(0, terminal.rows - 1));
 
-	return terminal.cols !== prevCols || terminal.rows !== prevRows;
+		if (
+			options.forceNotify ||
+			terminal.cols !== prevCols ||
+			terminal.rows !== prevRows
+		) {
+			onResize?.();
+		}
+	});
 }
 
 function createResizeScheduler(
@@ -170,8 +233,10 @@ function createResizeScheduler(
 
 	const run = () => {
 		timeoutId = null;
-		const changed = measureAndResize(runtime);
-		if (changed) onResize?.();
+		// Notify unconditionally (VS Code parity): a reveal after a zero-size
+		// hide re-sends PTY dims even when unchanged, resyncing a PTY resized
+		// elsewhere meanwhile. Same-size re-sends are kernel no-ops.
+		measureAndResize(runtime, onResize, { forceNotify: true });
 	};
 
 	const observe: ResizeObserverCallback = (entries) => {
@@ -206,6 +271,9 @@ export function createRuntime(
 		appearance,
 	);
 
+	const gate = createParserIdleGate();
+	terminal.write = wrapWrite(gate, terminal.write.bind(terminal));
+
 	const wrapper = document.createElement("div");
 	wrapper.style.width = "100%";
 	wrapper.style.height = "100%";
@@ -213,6 +281,7 @@ export function createRuntime(
 	terminal.open(wrapper);
 
 	installTerminalKeyEventHandler(terminal);
+	installTerminalWheelEventHandler(terminal);
 
 	// Activate Unicode 11 widths (inside loadAddons) before restoring the buffer,
 	// else CJK/emoji/ZWJ widths get baked wrong into the replay. (#3572)
@@ -237,6 +306,7 @@ export function createRuntime(
 		progressAddon: addonsResult.progressAddon,
 		wrapper,
 		container: null,
+		gate,
 		resizeObserver: null,
 		_disposeResizeObserver: null,
 		lastCols: cols,
@@ -264,12 +334,11 @@ export function attachToContainer(
 
 	runtime.container = container;
 	container.appendChild(runtime.wrapper);
-	if (measureAndResize(runtime)) onResize?.();
+	measureAndResize(runtime, onResize);
 	scheduleFontSettleRefit(
 		runtime.terminal,
 		() => hostIsVisible(runtime.container),
-		() => measureAndResize(runtime),
-		onResize,
+		() => measureAndResize(runtime, onResize),
 	);
 
 	runtime._disposeResizeObserver?.();
@@ -293,6 +362,7 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	cancelParserIdleWork(runtime.gate);
 	// Park instead of .remove() so xterm survives the React unmount —
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
@@ -315,29 +385,24 @@ export function updateRuntimeAppearance(
 		applyTerminalFontFamilyCssVariable(runtime.wrapper, appearance.fontFamily);
 		terminal.options.fontFamily = appearance.fontFamily;
 		terminal.options.fontSize = appearance.fontSize;
-		if (hostIsVisible(runtime.container)) {
-			measureAndResize(runtime);
-		}
+		measureAndResize(runtime, onResize);
 		// The freshly-selected font may still be loading — schedule a follow-up
 		// refit once it resolves so dimensions track the rendered glyphs.
 		scheduleFontSettleRefit(
 			runtime.terminal,
 			() => hostIsVisible(runtime.container),
-			() => measureAndResize(runtime),
-			onResize,
+			() => measureAndResize(runtime, onResize),
 		);
 	}
 }
 
 export function disposeRuntime(
 	runtime: TerminalRuntime,
-	options: { clearPersistedState?: boolean } = {},
+	options: {
+		persistedState?: "clear" | "preserve";
+	} = {},
 ) {
-	const clearPersistedState = options.clearPersistedState ?? true;
-	if (!clearPersistedState) {
-		persistBuffer(runtime.terminalId, runtime.serializeAddon);
-		persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
-	}
+	const persistedState = options.persistedState ?? "clear";
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
 	runtime._disposeAddons?.();
@@ -346,10 +411,11 @@ export function disposeRuntime(
 	runtime._disposeResizeObserver = null;
 	runtime.resizeObserver?.disconnect();
 	runtime.resizeObserver = null;
+	cancelParserIdleWork(runtime.gate);
+	runtime.container = null;
 	runtime.wrapper.remove();
 	runtime.terminal.dispose();
-	if (clearPersistedState) {
-		clearPersistedBuffer(runtime.terminalId);
-		clearPersistedDimensions(runtime.terminalId);
+	if (persistedState === "clear") {
+		clearPersistedRuntimeState(runtime.terminalId);
 	}
 }

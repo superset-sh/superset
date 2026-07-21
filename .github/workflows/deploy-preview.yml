@@ -12,6 +12,7 @@ concurrency:
 
 env:
   VERCEL_CLI_VERSION: 50.22.1
+  EAS_CLI_VERSION: 20.5.1
   PR_NUMBER: ${{ github.event.pull_request.number }}
   API_ALIAS: api-pr-${{ github.event.pull_request.number }}-superset.vercel.app
   WEB_ALIAS: web-pr-${{ github.event.pull_request.number }}-superset.vercel.app
@@ -675,6 +676,63 @@ jobs:
         with:
           name: docs-status
           path: docs-status.env
+
+  e2e-mobile:
+    name: E2E Mobile (Maestro on EAS)
+    runs-on: ubuntu-latest
+    environment: preview
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: read
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Detect mobile-related changes
+        id: changes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          files=$(gh pr diff ${{ github.event.pull_request.number }} --name-only)
+          if echo "$files" | grep -qE '^(apps/mobile/|packages/auth/|packages/shared/|packages/trpc/|\.github/workflows/deploy-preview\.yml)'; then
+            echo "mobile=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "mobile=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Setup Bun
+        if: steps.changes.outputs.mobile == 'true'
+        id: setup-bun
+        uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
+        with:
+          bun-version-file: .bun-version
+
+      - name: Cache dependencies
+        if: steps.changes.outputs.mobile == 'true'
+        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
+
+      - name: Install dependencies
+        if: steps.changes.outputs.mobile == 'true'
+        run: bun install --frozen --ignore-scripts
+
+      - name: Install EAS CLI
+        if: steps.changes.outputs.mobile == 'true'
+        run: npm install --global eas-cli@$EAS_CLI_VERSION
+
+      - name: Run EAS e2e workflow and wait
+        if: steps.changes.outputs.mobile == 'true'
+        working-directory: apps/mobile
+        env:
+          EXPO_TOKEN: ${{ secrets.EXPO_TOKEN }}
+        run: |
+          eas workflow:run e2e-ios.yml \
+            -F api_url=https://${{ env.API_ALIAS }} \
+            --non-interactive --wait
 
   post-final-comment:
     name: Post Deployment Comment

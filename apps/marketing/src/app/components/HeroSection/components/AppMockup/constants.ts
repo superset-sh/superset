@@ -92,6 +92,18 @@ export const AGENT_TABS: AgentTab[] = [
 	},
 	{ src: "/app-icons/amp.svg", alt: "Amp", label: "amp", delay: 0.5 },
 	{ src: "/app-icons/gemini.svg", alt: "Gemini", label: "gemini", delay: 0.6 },
+	{
+		src: "/app-icons/vibe.svg",
+		alt: "Mistral Vibe",
+		label: "vibe",
+		delay: 0.7,
+	},
+	{
+		src: "/app-icons/kimi.svg",
+		alt: "Kimi Code",
+		label: "kimi",
+		delay: 0.8,
+	},
 ];
 
 export const SETUP_STEPS = [

@@ -7,7 +7,7 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@superset/ui/empty";
-import { ScrollArea } from "@superset/ui/scroll-area";
+import { Table, TableBody, TableHead, TableRow } from "@superset/ui/table";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
@@ -17,6 +17,11 @@ import {
 	LuLayers,
 	LuSearchX,
 } from "react-icons/lu";
+import {
+	DATA_TABLE_HEAD_CELL,
+	DataTableHeader,
+} from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
+import { SortableHeader } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
 import type {
 	AccessibleV2Workspace,
 	V2WorkspaceHostType,
@@ -28,9 +33,8 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
-import { SortableHeader } from "./components/SortableHeader";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
-import { V2_WORKSPACES_ROW_GRID } from "./constants";
+import { V2_WORKSPACES_COLUMN_COUNT } from "./constants";
 import type { SortDirection, SortField } from "./types";
 
 interface V2WorkspacesListProps {
@@ -168,59 +172,70 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 		projectFilter !== PROJECT_FILTER_ALL;
 
 	const columnHeader = (
-		<div
-			className={cn(
-				V2_WORKSPACES_ROW_GRID,
-				"sticky top-0 z-10 h-8 border-b border-border bg-background px-6 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/80",
-			)}
-		>
-			<SortableHeader
-				field="sidebar"
-				label="In sidebar"
-				align="center"
-				srOnlyLabel
-				sortField={sortField}
-				sortDirection={sortDirection}
-				onSort={handleSort}
-			/>
-			<SortableHeader
-				field="name"
-				label="Name"
-				sortField={sortField}
-				sortDirection={sortDirection}
-				onSort={handleSort}
-			/>
-			<SortableHeader
-				field="host"
-				label="Host"
-				className="hidden md:flex"
-				sortField={sortField}
-				sortDirection={sortDirection}
-				onSort={handleSort}
-			/>
-			<SortableHeader
-				field="branch"
-				label="Branch"
-				className="hidden lg:flex"
-				sortField={sortField}
-				sortDirection={sortDirection}
-				onSort={handleSort}
-			/>
-			<SortableHeader
-				field="created"
-				label="Created"
-				className="hidden xl:flex"
-				sortField={sortField}
-				sortDirection={sortDirection}
-				onSort={handleSort}
-			/>
-		</div>
+		<DataTableHeader>
+			<TableRow className="hover:bg-transparent">
+				<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-14 pl-6")}>
+					<SortableHeader
+						field="sidebar"
+						label="In sidebar"
+						align="center"
+						srOnlyLabel
+						sortField={sortField}
+						sortDirection={sortDirection}
+						onSort={handleSort}
+					/>
+				</TableHead>
+				<TableHead className={DATA_TABLE_HEAD_CELL}>
+					<SortableHeader
+						field="name"
+						label="Name"
+						sortField={sortField}
+						sortDirection={sortDirection}
+						onSort={handleSort}
+					/>
+				</TableHead>
+				<TableHead
+					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-48 md:table-cell")}
+				>
+					<SortableHeader
+						field="host"
+						label="Host"
+						sortField={sortField}
+						sortDirection={sortDirection}
+						onSort={handleSort}
+					/>
+				</TableHead>
+				<TableHead
+					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-56 lg:table-cell")}
+				>
+					<SortableHeader
+						field="branch"
+						label="Branch"
+						sortField={sortField}
+						sortDirection={sortDirection}
+						onSort={handleSort}
+					/>
+				</TableHead>
+				<TableHead
+					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-44 xl:table-cell")}
+				>
+					<SortableHeader
+						field="created"
+						label="Created"
+						sortField={sortField}
+						sortDirection={sortDirection}
+						onSort={handleSort}
+					/>
+				</TableHead>
+				<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-14 pr-6")} />
+			</TableRow>
+		</DataTableHeader>
 	);
 
 	if (totalCount === 0) {
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
-				{columnHeader}
+				<Table className="table-fixed">{columnHeader}</Table>
 				<Empty className="flex-1 border-0">
 					<EmptyHeader>
 						<EmptyMedia
@@ -257,10 +272,12 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	}
 
 	return (
-		<ScrollArea className="min-h-0 flex-1">
-			<div className="flex w-full flex-col">
+		<div className="min-h-0 flex-1">
+			<Table
+				containerClassName="h-full overflow-y-auto"
+				className="table-fixed"
+			>
 				{columnHeader}
-
 				{projectGroups.map((project) => (
 					<ProjectSection
 						key={project.projectId}
@@ -268,8 +285,8 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 						currentWorkspaceId={currentWorkspaceId}
 					/>
 				))}
-			</div>
-		</ScrollArea>
+			</Table>
+		</div>
 	);
 }
 
@@ -292,44 +309,43 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 	const Chevron = isCollapsed ? LuChevronRight : LuChevronDown;
 
 	return (
-		<div className="flex flex-col">
-			<button
-				type="button"
-				onClick={() => toggleCollapsed(project.projectId)}
-				aria-expanded={!isCollapsed}
-				aria-controls={`v2-workspaces-project-${project.projectId}`}
-				className="sticky top-8 z-[5] flex w-full items-center gap-2 border-b border-border/60 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"
-			>
-				<Chevron className="size-3 shrink-0 text-muted-foreground" />
-				<V2WorkspaceProjectIcon
-					projectName={project.projectName}
-					githubOwner={project.githubOwner}
-					size="sm"
-				/>
-				<h3
-					className="min-w-0 truncate text-xs font-semibold text-foreground/80"
-					title={project.projectName}
-				>
-					{project.projectName}
-				</h3>
-				<span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
-					{project.workspaces.length}
-				</span>
-			</button>
-			{isCollapsed ? null : (
-				<ul
-					id={`v2-workspaces-project-${project.projectId}`}
-					className="flex flex-col"
-				>
-					{project.workspaces.map((workspace) => (
+		<TableBody id={`v2-workspaces-project-${project.projectId}`}>
+			<TableRow className="sticky top-8 z-[5] border-border/60 hover:bg-transparent">
+				<td colSpan={V2_WORKSPACES_COLUMN_COUNT} className="p-0">
+					<button
+						type="button"
+						onClick={() => toggleCollapsed(project.projectId)}
+						aria-expanded={!isCollapsed}
+						aria-controls={`v2-workspaces-project-${project.projectId}`}
+						className="flex w-full items-center gap-2 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"
+					>
+						<Chevron className="size-3 shrink-0 text-muted-foreground" />
+						<V2WorkspaceProjectIcon
+							projectName={project.projectName}
+							githubOwner={project.githubOwner}
+							size="sm"
+						/>
+						<h3
+							className="min-w-0 truncate text-xs font-semibold text-foreground/80"
+							title={project.projectName}
+						>
+							{project.projectName}
+						</h3>
+						<span className="shrink-0 text-xs tabular-nums text-muted-foreground/60">
+							{project.workspaces.length}
+						</span>
+					</button>
+				</td>
+			</TableRow>
+			{isCollapsed
+				? null
+				: project.workspaces.map((workspace) => (
 						<V2WorkspaceRow
 							key={workspace.id}
 							workspace={workspace}
 							isCurrentRoute={workspace.id === currentWorkspaceId}
 						/>
 					))}
-				</ul>
-			)}
-		</div>
+		</TableBody>
 	);
 }

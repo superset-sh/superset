@@ -360,6 +360,17 @@ export const HOTKEYS_REGISTRY = {
 		category: "Terminal",
 		description: "Search text in the active terminal",
 	},
+	TOGGLE_TERMINAL_RICH_INPUT: {
+		key: {
+			mac: L("meta+i"),
+			// Ctrl+Shift+I is the Electron devtools accelerator; use +M instead.
+			windows: L("ctrl+shift+m"),
+			linux: L("ctrl+shift+m"),
+		},
+		label: "Toggle Terminal Rich Input",
+		category: "Terminal",
+		description: "Open a multiline prompt composer for the active terminal",
+	},
 	FIND_IN_FILE_VIEWER: {
 		key: {
 			mac: L("meta+f"),
@@ -379,6 +390,16 @@ export const HOTKEYS_REGISTRY = {
 		label: "Find in Chat",
 		category: "Terminal",
 		description: "Search text in the active chat",
+	},
+	FIND_IN_CHANGES: {
+		key: {
+			mac: L("meta+f"),
+			windows: L("ctrl+shift+f"),
+			linux: L("ctrl+shift+f"),
+		},
+		label: "Find in Changes",
+		category: "Terminal",
+		description: "Search text in the changes diff",
 	},
 	NEW_GROUP: {
 		key: {

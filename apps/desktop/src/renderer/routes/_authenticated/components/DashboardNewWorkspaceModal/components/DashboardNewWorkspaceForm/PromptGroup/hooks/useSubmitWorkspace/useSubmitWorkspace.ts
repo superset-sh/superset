@@ -20,6 +20,8 @@ import { resolveNames } from "./resolveNames";
 export function useSubmitWorkspace(
 	projectId: string | null,
 	selectedAgent: WorkspaceCreateAgent,
+	selectedModel: string | null,
+	selectedEffort: string | null,
 	uploadAttachments: UseUploadAttachmentsApi,
 	promptContext: NewWorkspacePromptContextApi,
 ) {
@@ -89,6 +91,8 @@ export function useSubmitWorkspace(
 						agent: selectedAgent,
 						prompt: finalPrompt ?? "",
 						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
+						model: selectedModel ?? undefined,
+						effort: selectedEffort ?? undefined,
 					},
 				]
 			: undefined;
@@ -174,6 +178,8 @@ export function useSubmitWorkspace(
 		projectId,
 		promptContext,
 		selectedAgent,
+		selectedModel,
+		selectedEffort,
 		submit,
 		uploadAttachments,
 	]);

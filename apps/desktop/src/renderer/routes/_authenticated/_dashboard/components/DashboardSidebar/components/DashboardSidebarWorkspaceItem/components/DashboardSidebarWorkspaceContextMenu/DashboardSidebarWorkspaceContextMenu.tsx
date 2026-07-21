@@ -14,6 +14,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
+	LuBellOff,
 	LuCopy,
 	LuEye,
 	LuEyeOff,
@@ -21,19 +22,24 @@ import {
 	LuFolderPlus,
 	LuGitBranch,
 	LuPencil,
+	LuRadioTower,
 	LuTrash2,
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
+import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
+import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
+	workspaceId: string;
 	projectId: string;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
 	isPinned?: boolean;
 	isUnread: boolean;
+	hasStatus: boolean;
 	showDeleteHotkey?: boolean;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
@@ -41,18 +47,21 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onCopyPath: () => void;
 	onCopyBranchName: () => void;
 	onRemoveFromSidebar: () => void;
-	onRename: () => void;
+	onRename?: () => void;
 	onDelete?: () => void;
 	onToggleUnread: () => void;
+	onClearStatus: () => void;
 	children: React.ReactNode;
 }
 
 export function DashboardSidebarWorkspaceContextMenu({
+	workspaceId,
 	projectId,
 	isInSection,
 	isLocalWorkspace,
 	isPinned = false,
 	isUnread,
+	hasStatus,
 	showDeleteHotkey = false,
 	onCreateSection,
 	onMoveToSection,
@@ -63,10 +72,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onRename,
 	onDelete,
 	onToggleUnread,
+	onClearStatus,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
 	const { setContextMenuOpen } = useDashboardSidebarHover();
+	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
+	const { isPending: isKillingPorts, killPorts } =
+		useDashboardSidebarPortKill();
+	const ports = portGroup?.ports ?? [];
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
@@ -85,18 +99,24 @@ export function DashboardSidebarWorkspaceContextMenu({
 				})),
 		[collections, projectId],
 	);
+	const handleCloseAllPorts = () => {
+		if (isKillingPorts) return;
+		void killPorts(ports);
+	};
 
 	return (
 		<ContextMenu onOpenChange={setContextMenuOpen}>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
-				<ContextMenuItem onSelect={onRename}>
-					<LuPencil className="size-4 mr-2" />
-					Rename
-				</ContextMenuItem>
+				{onRename && (
+					<ContextMenuItem onSelect={onRename}>
+						<LuPencil className="size-4 mr-2" />
+						Rename
+					</ContextMenuItem>
+				)}
 				{isLocalWorkspace && (
 					<>
-						<ContextMenuSeparator />
+						{onRename && <ContextMenuSeparator />}
 						<ContextMenuItem onSelect={onOpenInFinder}>
 							<LuFolderOpen className="size-4 mr-2" />
 							Open in Finder
@@ -107,7 +127,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 						</ContextMenuItem>
 					</>
 				)}
-				{!isLocalWorkspace && <ContextMenuSeparator />}
+				{!isLocalWorkspace && onRename && <ContextMenuSeparator />}
 				<ContextMenuItem onSelect={onCopyBranchName}>
 					<LuGitBranch className="size-4 mr-2" />
 					Copy Branch Name
@@ -126,6 +146,12 @@ export function DashboardSidebarWorkspaceContextMenu({
 						</>
 					)}
 				</ContextMenuItem>
+				{hasStatus && (
+					<ContextMenuItem onSelect={onClearStatus}>
+						<LuBellOff className="size-4 mr-2" />
+						Clear Status
+					</ContextMenuItem>
+				)}
 				{!isPinned && (
 					<>
 						<ContextMenuSeparator />
@@ -167,6 +193,16 @@ export function DashboardSidebarWorkspaceContextMenu({
 					</>
 				)}
 				<ContextMenuSeparator />
+				{ports.length > 0 && (
+					<ContextMenuItem
+						onSelect={handleCloseAllPorts}
+						disabled={isKillingPorts}
+						variant="destructive"
+					>
+						<LuRadioTower className="size-4 mr-2" />
+						Close all ports
+					</ContextMenuItem>
+				)}
 				<ContextMenuItem
 					onSelect={onRemoveFromSidebar}
 					className="text-destructive focus:text-destructive"

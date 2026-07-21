@@ -40,7 +40,7 @@ Agent 2: Writes its version of login.ts (overwrites Agent 1)
 Agent 1: Commits — but the file is Agent 2's version
 ```
 
-This isn't a theoretical risk. It happens every time two agents touch overlapping files. Even if they're editing different files, a shared `git index` means their commits can include each other's uncommitted changes.
+This isn't a theoretical risk. It happens every time two agents touch overlapping files. Even if they're editing different files, a shared `git index` means their commits can include each other's uncommitted changes. The clean fix is [a Git worktree per agent](/compare/git-worktrees-for-ai-agents).
 
 ### Solution: One Worktree Per Agent
 
@@ -208,3 +208,7 @@ If the agent doesn't run tests, you're reviewing blind. Either include "run test
 5. **Scale gradually** — Add more agents as your review speed improves
 
 The goal isn't to run the most agents possible. It's to maximize useful throughput — tasks completed per hour that meet your quality bar. Parallel agents get you there faster than sequential work, but only if the orchestration and review workflow supports it.
+
+---
+
+**Related:** [Best Agentic IDE in 2026](/compare/best-agentic-ide) · [Git Worktrees for AI Coding Agents](/compare/git-worktrees-for-ai-agents) · [How to Run Multiple Claude Code Agents in Parallel](/compare/multiple-claude-code-agents-parallel)

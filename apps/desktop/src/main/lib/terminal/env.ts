@@ -1,6 +1,10 @@
 import { exec } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
+import {
+	TERMINAL_TERM_PROGRAM,
+	TERMINAL_TERM_PROGRAM_VERSION,
+} from "@superset/shared/constants";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
@@ -460,14 +464,21 @@ export function buildTerminalEnv(params: {
 
 	// COLORFGBG: "foreground;background" ANSI color indices — TUI apps use this to detect light/dark
 	const colorFgBg = themeType === "light" ? "0;15" : "15;0";
+	// TERM_THEME: explicit light/dark hint that cursor-agent (and other TUIs)
+	// read before falling back to an OSC 11 background probe. Our PTY output
+	// round-trips through the renderer's xterm, so that probe routinely exceeds
+	// cursor-agent's ~100ms timeout and defaults to dark on a light theme.
+	// Setting it here resolves the theme without the probe race.
+	const termTheme = themeType === "light" ? "light" : "dark";
 
 	const terminalEnv: Record<string, string> = {
 		...baseEnv,
 		...shellEnv,
-		TERM_PROGRAM: "kitty",
-		TERM_PROGRAM_VERSION: process.env.npm_package_version || "1.0.0",
+		TERM_PROGRAM: TERMINAL_TERM_PROGRAM,
+		TERM_PROGRAM_VERSION: TERMINAL_TERM_PROGRAM_VERSION,
 		COLORTERM: "truecolor",
 		COLORFGBG: colorFgBg,
+		TERM_THEME: termTheme,
 		LANG: locale,
 		SUPERSET_PANE_ID: paneId,
 		SUPERSET_TAB_ID: tabId,

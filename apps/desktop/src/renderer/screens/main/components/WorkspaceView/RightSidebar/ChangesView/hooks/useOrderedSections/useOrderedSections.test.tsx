@@ -53,7 +53,7 @@ const emptyArgs = {
 	onUnstagedFileSelect: () => {},
 	onStageFile: () => {},
 	onStageFiles: () => {},
-	onDiscardFile: () => {},
+	onDiscardFiles: () => {},
 	onShowDiscardUnstagedDialog: () => {},
 	onStageAll: () => {},
 	isDiscardAllUnstagedPending: false,

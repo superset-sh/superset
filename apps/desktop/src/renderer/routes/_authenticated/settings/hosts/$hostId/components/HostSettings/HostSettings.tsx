@@ -12,6 +12,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
+import { DeleteHostSection } from "./components/DeleteHostSection";
 import { HostHeader } from "./components/HostHeader";
 import type { MemberRowData } from "./components/MembersTable";
 import { MembersTable } from "./components/MembersTable";
@@ -57,7 +58,6 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				.select(({ uh }) => ({ ...uh })),
 		[collections, hostId],
 	);
-
 	const { data: orgUsers = [] } = useLiveQuery(
 		(q) =>
 			q.from({ users: collections.users }).select(({ users }) => ({
@@ -200,6 +200,14 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 						onRemove={handleRemove}
 					/>
 				</section>
+
+				{isOwner ? (
+					<DeleteHostSection
+						hostId={hostId}
+						hostName={host.name}
+						isLocalHost={hostId === machineId}
+					/>
+				) : null}
 			</div>
 		</div>
 	);

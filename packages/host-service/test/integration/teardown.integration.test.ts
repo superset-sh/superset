@@ -82,6 +82,8 @@ describe("runTeardown integration", () => {
 			db: scenario.host.db,
 			workspaceId: scenario.workspaceId,
 			worktreePath: scenario.repo.repoPath,
+			repoPath: scenario.repo.repoPath,
+			projectId: scenario.projectId,
 			timeoutMs: 3_000,
 		});
 

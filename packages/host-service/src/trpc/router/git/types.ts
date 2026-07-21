@@ -122,6 +122,7 @@ export interface ChangedFile {
 	status: FileStatus;
 	additions: number;
 	deletions: number;
+	isBinary?: boolean;
 }
 
 export interface Commit {
@@ -129,5 +130,6 @@ export interface Commit {
 	shortHash: string;
 	message: string;
 	author: string;
+	authorEmail: string;
 	date: string;
 }

@@ -22,10 +22,14 @@ export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"gemini-hook-script",
 	"gemini-wrapper",
 	"gemini-settings-json",
+	"kimi-config-toml",
+	"kimi-wrapper",
 	"mastra-wrapper",
 	"mastra-hooks-json",
 	"copilot-hook-script",
 	"copilot-wrapper",
+	"vibe-hooks-toml",
+	"vibe-wrapper",
 ] as const;
 
 export type DesktopAgentSetupAction =
@@ -95,8 +99,18 @@ export const DESKTOP_AGENT_SETUP_TARGETS = [
 		managedBinary: true,
 	},
 	{
+		id: "kimi",
+		setupActions: ["kimi-config-toml", "kimi-wrapper"],
+		managedBinary: true,
+	},
+	{
 		id: "copilot",
 		setupActions: ["copilot-hook-script", "copilot-wrapper"],
+		managedBinary: true,
+	},
+	{
+		id: "vibe",
+		setupActions: ["vibe-hooks-toml", "vibe-wrapper"],
 		managedBinary: true,
 	},
 ] as const satisfies readonly DesktopAgentSetupTarget[];

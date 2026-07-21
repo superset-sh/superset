@@ -16,6 +16,7 @@ import {
 import { NavigationControls } from "../_dashboard/components/NavigationControls";
 import { SearchResultsBanner } from "./components/SearchResultsBanner";
 import { SettingsSidebar } from "./components/SettingsSidebar";
+import { useScrollReset } from "./hooks/useScrollReset";
 import {
 	getMatchCountBySection,
 	searchSettings,
@@ -37,6 +38,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"models",
 	"organization",
 	"teams",
+	"project",
 	"integrations",
 	"billing",
 	"apikeys",
@@ -97,6 +99,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/permissions";
 		case "hosts":
 			return "/settings/hosts";
+		case "project":
+			return "/settings/projects";
 		default:
 			return "/settings/account";
 	}
@@ -110,6 +114,8 @@ function SettingsLayout() {
 	const originRoute = useSettingsOriginRoute();
 	const location = useLocation();
 	const navigate = useNavigate();
+	// Reset scroll to top when navigating to a different settings page.
+	const contentRef = useScrollReset<HTMLDivElement>(location.pathname);
 	const normalizedSearchQuery = searchQuery.trim();
 	const isSearchActive = normalizedSearchQuery.length > 0;
 	const totalMatches = isSearchActive
@@ -172,9 +178,9 @@ function SettingsLayout() {
 				<NavigationControls />
 			</div>
 
-			<div className="flex flex-1 overflow-hidden">
+			<div className="flex flex-1 overflow-hidden bg-background">
 				<SettingsSidebar />
-				<div className="flex-1 m-3 bg-background rounded overflow-auto">
+				<div ref={contentRef} className="flex-1 overflow-auto">
 					{isSearchActive && (
 						<SearchResultsBanner
 							query={normalizedSearchQuery}

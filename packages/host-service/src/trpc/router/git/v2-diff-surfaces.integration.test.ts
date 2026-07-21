@@ -231,7 +231,11 @@ describe("Surfaces B/C — sidebar badge + Changes tab counts", () => {
 		await git.raw(["reset", "--hard", originSha]);
 
 		const base = await resolveBaseComparison(git);
-		expect(base).toEqual({ branchName: "main", baseRef: "upstream/main" });
+		expect(base).toEqual({
+			branchName: "main",
+			baseRef: "upstream/main",
+			fetchTarget: { remote: "upstream", branch: "main" },
+		});
 	});
 
 	test("non-ASCII filename reports correct additions (was +0 -0 before fix)", async () => {

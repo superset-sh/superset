@@ -4,6 +4,7 @@ import { useCallback } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
+	type LinkAction,
 	type LinkTierMap,
 	V2_USER_PREFERENCES_ID,
 	type V2UserPreferencesRow,
@@ -16,11 +17,13 @@ export interface V2UserPreferencesApi {
 	setFileLinks: (next: LinkTierMap) => void;
 	setUrlLinks: (next: LinkTierMap) => void;
 	setSidebarFileLinks: (next: LinkTierMap) => void;
+	setPortOpenAction: (next: LinkAction) => void;
 	setRightSidebarOpen: (next: boolean | ((prev: boolean) => boolean)) => void;
 	setRightSidebarTab: (next: RightSidebarTab) => void;
 	setRightSidebarWidth: (next: number) => void;
 	setDeleteLocalBranch: (next: boolean) => void;
-	setShowPresetsBar: (next: boolean) => void;
+	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
+	toggleShowPresetsBar: () => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -68,6 +71,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	const setSidebarFileLinks = useCallback(
 		(next: LinkTierMap) => upsertTierMap("sidebarFileLinks", next),
 		[upsertTierMap],
+	);
+
+	const setPortOpenAction = useCallback(
+		(next: LinkAction) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					portOpenAction: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.portOpenAction = next;
+			});
+		},
+		[collections],
 	);
 
 	const setRightSidebarOpen = useCallback(
@@ -151,33 +173,44 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 	);
 
 	const setShowPresetsBar = useCallback(
-		(next: boolean) => {
+		(next: boolean | ((prev: boolean) => boolean)) => {
 			const existing = collections.v2UserPreferences.get(
 				V2_USER_PREFERENCES_ID,
 			);
+			const prev =
+				existing?.showPresetsBar ?? DEFAULT_V2_USER_PREFERENCES.showPresetsBar;
+			const value = typeof next === "function" ? next(prev) : next;
 			if (!existing) {
 				collections.v2UserPreferences.insert({
 					...DEFAULT_V2_USER_PREFERENCES,
-					showPresetsBar: next,
+					showPresetsBar: value,
 				});
 				return;
 			}
 			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
-				draft.showPresetsBar = next;
+				draft.showPresetsBar = value;
 			});
 		},
 		[collections],
 	);
+
+	// Functional update reads the collection at write time, so back-to-back
+	// toggles can't act on a stale snapshot.
+	const toggleShowPresetsBar = useCallback(() => {
+		setShowPresetsBar((prev) => !prev);
+	}, [setShowPresetsBar]);
 
 	return {
 		preferences,
 		setFileLinks,
 		setUrlLinks,
 		setSidebarFileLinks,
+		setPortOpenAction,
 		setRightSidebarOpen,
 		setRightSidebarTab,
 		setRightSidebarWidth,
 		setDeleteLocalBranch,
 		setShowPresetsBar,
+		toggleShowPresetsBar,
 	};
 }

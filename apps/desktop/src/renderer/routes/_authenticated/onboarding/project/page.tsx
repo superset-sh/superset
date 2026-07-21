@@ -30,8 +30,7 @@ function OnboardingProjectPage() {
 	const navigate = useNavigate();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { refetch: refetchSession } = authClient.useSession();
-	const { activeHostUrl } = useLocalHostService();
-	const hostReady = !isV2CloudEnabled || activeHostUrl !== null;
+	const { waitForHostReady } = useLocalHostService();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
@@ -109,10 +108,14 @@ function OnboardingProjectPage() {
 		e.preventDefault();
 		const trimmed = url.trim();
 		if (!trimmed || !cloneTargetDir) return;
-		if (isV2CloudEnabled && !activeHostUrl) return;
 		setBusy(true);
 		try {
-			if (isV2CloudEnabled && activeHostUrl) {
+			if (isV2CloudEnabled) {
+				const activeHostUrl = await waitForHostReady();
+				if (!activeHostUrl) {
+					toast.error("Local host service isn't ready yet. Please try again.");
+					return;
+				}
 				const hostService = getHostServiceClientByUrl(activeHostUrl);
 				const created = await hostService.project.create.mutate({
 					name: repoNameFromUrl(trimmed),
@@ -150,9 +153,9 @@ function OnboardingProjectPage() {
 					variant="outline"
 					size="sm"
 					onClick={handleOpenFolder}
-					disabled={!hostReady || busy}
+					disabled={busy}
 				>
-					{hostReady ? "Browse…" : "Connecting…"}
+					Browse…
 				</Button>
 			</Card>
 
@@ -172,12 +175,12 @@ function OnboardingProjectPage() {
 						placeholder="git@github.com:org/repo.git"
 						value={url}
 						onChange={(e) => setUrl(e.target.value)}
-						disabled={busy || !hostReady}
+						disabled={busy}
 						className="flex-1"
 					/>
 					<Button
 						type="submit"
-						disabled={!url.trim() || busy || !hostReady || !cloneTargetDir}
+						disabled={!url.trim() || busy || !cloneTargetDir}
 					>
 						{busy ? "Cloning…" : "Clone"}
 					</Button>
@@ -198,9 +201,9 @@ function OnboardingProjectPage() {
 					variant="outline"
 					size="sm"
 					onClick={() => setTemplateOpen(true)}
-					disabled={!hostReady || busy}
+					disabled={busy}
 				>
-					{hostReady ? "Browse…" : "Connecting…"}
+					Browse…
 				</Button>
 			</Card>
 

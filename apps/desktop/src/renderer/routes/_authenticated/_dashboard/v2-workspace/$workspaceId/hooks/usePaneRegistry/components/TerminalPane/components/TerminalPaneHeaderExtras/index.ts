@@ -1,0 +1,1 @@
+export { TerminalPaneHeaderExtras } from "./TerminalPaneHeaderExtras";

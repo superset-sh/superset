@@ -385,6 +385,13 @@ export class TunnelManager {
 		const tunnel = this.tunnels.get(hostId);
 		if (!tunnel) throw new Error("Host not connected");
 
+		// The host control tunnel must be open. Otherwise `send()` below silently
+		// drops the `ws:open` (it no-ops when `readyState !== 1`) and the client is
+		// left attached to a channel the host never creates — the terminal hangs on
+		// a permanent "Disconnected" and no `ws:close` is ever delivered. Throw so
+		// the caller closes the client socket and it reconnects to a live tunnel.
+		if (tunnel.ws.readyState !== 1) throw new Error("Host tunnel not open");
+
 		const id = crypto.randomUUID();
 		tunnel.activeChannels.set(id, clientWs);
 		this.send(tunnel.ws, { type: "ws:open", id, path, query });

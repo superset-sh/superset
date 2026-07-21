@@ -74,6 +74,11 @@ export interface ListMessage {
 	type: "list";
 }
 
+export interface SnapshotMessage {
+	type: "snapshot";
+	id: string;
+}
+
 export interface SubscribeMessage {
 	type: "subscribe";
 	id: string;
@@ -130,6 +135,16 @@ export interface ListReplyMessage {
 	sessions: SessionInfo[];
 }
 
+/** Buffered PTY bytes ride in the frame's binary tail. */
+export interface SnapshotReplyMessage {
+	type: "snapshot-reply";
+	id: string;
+	cols: number;
+	rows: number;
+	/** True when bytes older than this snapshot were evicted from the ring. */
+	truncated: boolean;
+}
+
 export interface ErrorMessage {
 	type: "error";
 	id?: string;
@@ -156,6 +171,7 @@ export type ClientMessage =
 	| ResizeMessage
 	| CloseMessage
 	| ListMessage
+	| SnapshotMessage
 	| SubscribeMessage
 	| UnsubscribeMessage
 	| PrepareUpgradeMessage;
@@ -167,5 +183,6 @@ export type ServerMessage =
 	| ExitMessage
 	| ClosedMessage
 	| ListReplyMessage
+	| SnapshotReplyMessage
 	| ErrorMessage
 	| UpgradePreparedMessage;

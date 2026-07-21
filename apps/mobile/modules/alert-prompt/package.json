@@ -1,0 +1,11 @@
+{
+	"name": "@superset/alert-prompt",
+	"version": "0.0.1",
+	"main": "src/index.ts",
+	"private": true,
+	"peerDependencies": {
+		"expo": "*",
+		"react": "*",
+		"react-native": "*"
+	}
+}

@@ -12,6 +12,12 @@ const STATUS_CONFIG = {
 		pulse: true,
 		tooltip: "Needs input",
 	},
+	failed: {
+		pingColor: "bg-red-400",
+		dotColor: "bg-red-500",
+		pulse: true,
+		tooltip: "Agent failed",
+	},
 	working: {
 		pingColor: "bg-amber-400",
 		dotColor: "bg-amber-500",

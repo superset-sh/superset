@@ -1,5 +1,6 @@
-import { boolean, positional, string } from "@superset/cli-framework";
+import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { resolveWorkspacePin } from "../../../lib/host-workspaces";
 
 export default command({
 	description: "Update an automation's metadata (name, schedule, agent, host)",
@@ -36,6 +37,28 @@ export default command({
 						.filter(Boolean)
 				: undefined;
 
+		// Workspace records are host-owned: resolve --workspace across the
+		// org's hosts so the mutation carries the denormalized pin
+		// (targetHostId + v2ProjectId) alongside the workspace id.
+		let pin: { targetHostId?: string; v2ProjectId?: string } = {};
+		if (options.workspace) {
+			const organizationId = ctx.config.organizationId;
+			if (!organizationId) {
+				throw new CLIError(
+					"No active organization",
+					"Run: superset auth login",
+				);
+			}
+			pin = await resolveWorkspacePin(
+				{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+				{
+					workspaceId: options.workspace,
+					hostId: options.host ?? undefined,
+					projectId: options.project ?? undefined,
+				},
+			);
+		}
+
 		const result = await ctx.api.automation.update.mutate({
 			id,
 			name: options.name,
@@ -50,6 +73,7 @@ export default command({
 			...(options.workspace !== undefined
 				? { v2WorkspaceId: options.workspace }
 				: {}),
+			...pin,
 			...(mcpScope !== undefined ? { mcpScope } : {}),
 		});
 

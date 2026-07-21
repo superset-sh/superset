@@ -25,6 +25,9 @@ export const Route = createFileRoute("/create-organization/")({
 	component: CreateOrganization,
 });
 
+// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
+const signInRedirect = <Navigate to="/sign-in" replace />;
+
 const formSchema = z.object({
 	name: z.string().min(1, "Organization name is required").max(100),
 	slug: z
@@ -153,7 +156,7 @@ export function CreateOrganization() {
 	}
 
 	if (!isSignedIn) {
-		return <Navigate to="/sign-in" replace />;
+		return signInRedirect;
 	}
 
 	const hasActiveOrganization = !!activeOrganizationId;

@@ -14,22 +14,35 @@ This guide is for contributors building Superset from source. If you just want t
 
 macOS is the primary supported platform. Windows / Linux are untested.
 
-## Run it (one command)
+## Run it from a Superset workspace
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
-cd superset
+```
+
+Add the clone to the installed Superset app and create a workspace for your
+change. Superset creates that workspace as an isolated git worktree. In the new
+workspace terminal, run:
+
+```bash
 ./.superset/setup.local.sh
 bun run dev
 ```
 
-That's it. **You do not need a Neon account, Stripe keys, or any other third-party credentials** — `.env.local.example` ships fake placeholders that pass env validation, and `setup.local.sh` runs everything against a local Docker stack.
+Run `setup.local.sh` separately in every new worktree before `bun run dev`. The
+setup and workspace-specific app identity allow the development desktop app to
+run alongside the installed Superset app and development apps from other
+worktrees.
+
+**You do not need a Neon account, Stripe keys, or any other third-party
+credentials.** `.env.local.example` ships fake placeholders that pass env
+validation, and `setup.local.sh` runs everything against a local Docker stack.
 
 ### What `setup.local.sh` does
 
 1. Copies `.env.local.example` → `.env`
 2. Allocates a per-workspace port range so multiple worktrees don't collide
-3. Brings up Postgres + neon-proxy + Electric via `docker compose` (project-scoped to this worktree)
+3. Brings up Postgres + neon-proxy + Electric + Redis (behind an HTTP shim, for the relay) via `docker compose` (project-scoped to this worktree)
 4. Runs `bun install` and `bun run db:migrate`
 5. Seeds a `Local Admin` dev account via `bun run db:seed-dev`
 6. Writes a gitignored `.superset/config.local.json` overlay so subsequent worktrees automatically use this setup
@@ -47,7 +60,7 @@ After `bun run dev`, open the web app and click the **"Sign in as dev"** button 
 - Email: `admin@local.test`
 - Password: `supersetdev`
 
-The dev sign-in button and email/password auth are gated on `NODE_ENV=development` — they don't ship in production.
+The dev sign-in button and email/password auth are gated on `NODE_ENV=development`. They don't ship in production.
 
 ## Manual setup (advanced)
 
@@ -81,10 +94,13 @@ See [`AGENTS.md`](./AGENTS.md) for repo structure, monorepo conventions, and dat
 
 ## Troubleshooting
 
-- **`caddy trust` prompts for sudo** — expected, once per machine. Without it Chromium rejects `https://localhost:*` with `ERR_CERT_AUTHORITY_INVALID`.
-- **Port collision** — `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
-- **DB connection errors after pulling main** — re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
-- **Stuck Docker stack** — `./.superset/teardown.local.sh` then re-run setup.
+- **Dev desktop exits while the installed app is running**: launch development
+  from a Superset workspace instead of the repository's main checkout, run
+  `./.superset/setup.local.sh` in that worktree, then run `bun run dev` again.
+- **`caddy trust` prompts for sudo**: expected, once per machine. Without it Chromium rejects `https://localhost:*` with `ERR_CERT_AUTHORITY_INVALID`.
+- **Port collision**: `setup.local.sh` allocates a fresh port window per worktree. If you ran the script before this change landed, re-run it to migrate.
+- **DB connection errors after pulling main**: re-run `./.superset/setup.local.sh`; it's idempotent and will apply any new migrations.
+- **Stuck Docker stack**: `./.superset/teardown.local.sh` then re-run setup.
 
 ## Contributing
 

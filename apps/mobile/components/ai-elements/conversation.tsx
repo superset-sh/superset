@@ -91,13 +91,22 @@ export const Conversation = <ItemT,>({
 	return (
 		<ConversationContext.Provider value={contextValue}>
 			<View className={cn("relative flex-1", className)}>
+				{/* Not alignItemsAtEnd: bottom-anchoring short threads means ANY item
+				    growth (expanding a tool card) shoves the whole thread upward.
+				    Top-aligned short threads grow downward instead, so the tapped
+				    trigger stays put; long threads are unaffected. */}
 				<LegendList
-					alignItemsAtEnd
 					data={data}
 					initialScrollAtEnd
+					keyboardShouldPersistTaps="handled"
+					// No `itemLayout` trigger on purpose: re-pinning when an item grows
+					// makes expanding a collapsible (tool card) yank the whole list up,
+					// so the chevron the user just tapped jumps away. Streaming still
+					// sticks to bottom via `dataChange` (every chunk replaces the data
+					// array) and `layout` covers keyboard/list resizes.
 					maintainScrollAtEnd={{
 						animated: false,
-						on: { dataChange: true, itemLayout: true, layout: true },
+						on: { dataChange: true, layout: true },
 					}}
 					maintainScrollAtEndThreshold={0.15}
 					recycleItems={false}

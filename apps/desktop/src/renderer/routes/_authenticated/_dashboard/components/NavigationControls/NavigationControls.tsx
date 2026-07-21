@@ -3,7 +3,7 @@ import { useLocation, useRouter } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { LuArrowLeft, LuArrowRight } from "react-icons/lu";
 import { HotkeyLabel, useHotkey } from "renderer/hotkeys";
-import { HistoryDropdown } from "./components/HistoryDropdown";
+// Temporarily hidden: import { HistoryDropdown } from "./components/HistoryDropdown";
 
 export function NavigationControls() {
 	const router = useRouter();
@@ -64,7 +64,7 @@ export function NavigationControls() {
 				</TooltipContent>
 			</Tooltip>
 
-			<HistoryDropdown />
+			{/* Temporarily hidden: <HistoryDropdown /> */}
 		</div>
 	);
 }

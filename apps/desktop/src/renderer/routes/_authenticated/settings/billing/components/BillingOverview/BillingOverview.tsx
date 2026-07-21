@@ -138,7 +138,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 					<p className="text-sm text-muted-foreground mt-1">
 						For questions about billing,{" "}
 						<a
-							href="mailto:founders@superset.sh"
+							href="mailto:support@superset.sh"
 							className="text-primary hover:underline"
 						>
 							contact us

@@ -1,4 +1,10 @@
+import type { HarnessKind, StopReason } from "@superset/session-protocol";
+import type {
+	AgentDefinitionId,
+	BuiltinAgentId,
+} from "@superset/shared/agent-catalog";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
+import { sql } from "drizzle-orm";
 import {
 	index,
 	integer,
@@ -21,12 +27,38 @@ export const terminalSessions = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		lastAttachedAt: integer("last_attached_at"),
 		endedAt: integer("ended_at"),
+		/**
+		 * Set the moment a dispose is requested — durable intent-to-kill. A
+		 * failed kill leaves the row `active` with this stamp, and the reaper
+		 * retries it regardless of workspace liveness (a one-shot renderer
+		 * broadcast must not be the only chance to kill a session).
+		 */
+		disposeRequestedAt: integer("dispose_requested_at"),
 	},
 	(table) => [
 		index("terminal_sessions_origin_workspace_id_idx").on(
 			table.originWorkspaceId,
 		),
 		index("terminal_sessions_status_idx").on(table.status),
+	],
+);
+
+export const terminalAgentBindings = sqliteTable(
+	"terminal_agent_bindings",
+	{
+		terminalId: text("terminal_id")
+			.primaryKey()
+			.references(() => terminalSessions.id, { onDelete: "cascade" }),
+		workspaceId: text("workspace_id").notNull(),
+		agentId: text("agent_id").notNull().$type<BuiltinAgentId>(),
+		agentSessionId: text("agent_session_id"),
+		definitionId: text("definition_id").$type<AgentDefinitionId>(),
+		startedAt: integer("started_at").notNull(),
+		lastEventAt: integer("last_event_at").notNull(),
+		lastEventType: text("last_event_type").notNull(),
+	},
+	(table) => [
+		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),
 	],
 );
 
@@ -45,6 +77,11 @@ export const projects = sqliteTable(
 		// "fall back to the host-wide default" in `host_settings`.
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		// Empty string means "not yet backfilled" — the startup sweep targets
+		// these rows (name from cloud legacy row if reachable, else basename).
+		name: text().notNull().default(""),
+		// 0 means "predates local ownership"; write paths always set it.
+		updatedAt: integer("updated_at").notNull().default(0),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
@@ -116,6 +153,10 @@ export const hostAgentConfigs = sqliteTable(
 	{
 		id: text().primaryKey(),
 		presetId: text("preset_id").notNull(),
+		// Optional icon override. When null the client falls back to the icon
+		// implied by `presetId`. User-authored ("custom") agents set this to a
+		// built-in icon key (e.g. "claude") to pick a recognizable icon.
+		iconId: text("icon_id"),
 		label: text().notNull(),
 		command: text().notNull(),
 		argsJson: text("args_json").notNull().default("[]"),
@@ -151,9 +192,20 @@ export const workspaces = sqliteTable(
 		pullRequestId: text("pull_request_id").references(() => pullRequests.id, {
 			onDelete: "set null",
 		}),
+		// Empty string means "not yet backfilled from cloud" — the startup
+		// backfill sweep targets these rows.
+		name: text().notNull().default(""),
+		type: text().$type<"main" | "worktree">().notNull().default("worktree"),
+		taskId: text("task_id"),
+		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),
+		// 0 means "predates local ownership"; write paths always set it.
+		updatedAt: integer("updated_at").notNull().default(0),
+		// Null = local changes not yet pushed to the cloud mirror (dual-write
+		// era only; the column and reconciler go away in R3).
+		cloudSyncedAt: integer("cloud_synced_at"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
@@ -163,5 +215,44 @@ export const workspaces = sqliteTable(
 			table.upstreamBranch,
 		),
 		index("workspaces_pull_request_id_idx").on(table.pullRequestId),
+		uniqueIndex("workspaces_one_main_per_project")
+			.on(table.projectId)
+			.where(sql`type = 'main'`),
 	],
 );
+
+/**
+ * Registry of ACP agent sessions (docs/acp-sessions.md). One row per
+ * session, kept fresh on every state emit. Rows survive host restarts so the
+ * manager can list them as `offline` and resurrect on demand via the
+ * adapter's `session/load` — the journal itself is not persisted; transcript
+ * replay comes from the agent harness's own on-disk session store.
+ */
+export const acpSessions = sqliteTable(
+	"acp_sessions",
+	{
+		sessionId: text("session_id").primaryKey(),
+		workspaceId: text("workspace_id").notNull(),
+		/** Adapter-side ACP session id — the `session/load` key. */
+		acpSessionId: text("acp_session_id").notNull(),
+		harness: text().notNull().$type<HarnessKind>(),
+		cwd: text().notNull(),
+		title: text(),
+		lastStopReason: text("last_stop_reason").$type<StopReason>(),
+		createdAt: integer("created_at").notNull(),
+		updatedAt: integer("updated_at").notNull(),
+	},
+	(table) => [index("acp_sessions_workspace_id_idx").on(table.workspaceId)],
+);
+
+/**
+ * Tombstones for workspaces deleted while the cloud was unreachable. The
+ * reconciler drains this into `v2Workspace.delete` calls; rows are removed
+ * once the cloud confirms. Dual-write era only — dropped in R3.
+ */
+export const workspaceCloudDeletes = sqliteTable("workspace_cloud_deletes", {
+	id: text().primaryKey(),
+	queuedAt: integer("queued_at")
+		.notNull()
+		.$defaultFn(() => Date.now()),
+});

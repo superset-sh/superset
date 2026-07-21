@@ -83,12 +83,13 @@ async function verifyHostAccess(
 async function verifyWorkspaceInOrg(
 	organizationId: string,
 	workspaceId: string,
-): Promise<{ id: string; projectId: string }> {
+): Promise<{ id: string; projectId: string; hostId: string }> {
 	const [workspace] = await db
 		.select({
 			id: v2Workspaces.id,
 			organizationId: v2Workspaces.organizationId,
 			projectId: v2Workspaces.projectId,
+			hostId: v2Workspaces.hostId,
 		})
 		.from(v2Workspaces)
 		.where(eq(v2Workspaces.id, workspaceId))
@@ -100,7 +101,11 @@ async function verifyWorkspaceInOrg(
 			message: "Workspace not found",
 		});
 	}
-	return { id: workspace.id, projectId: workspace.projectId };
+	return {
+		id: workspace.id,
+		projectId: workspace.projectId,
+		hostId: workspace.hostId,
+	};
 }
 
 async function verifyProjectInOrg(organizationId: string, projectId: string) {
@@ -110,7 +115,14 @@ async function verifyProjectInOrg(organizationId: string, projectId: string) {
 		.where(eq(v2Projects.id, projectId))
 		.limit(1);
 
-	if (!project || project.organizationId !== organizationId) {
+	// Local-first projects live only in host.db — no cloud row exists and
+	// none ever will, so absence is not an error. The pin is metadata: real
+	// authorization is the per-user host access check, and a dangling pin
+	// surfaces as a readable host-side error at dispatch (PR #5741 model).
+	// When a legacy cloud row DOES exist, still enforce the org match.
+	if (!project) return;
+
+	if (project.organizationId !== organizationId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Project not found",
@@ -206,12 +218,29 @@ export const automationRouter = {
 				);
 			}
 
+			let targetHostId = input.targetHostId ?? null;
 			let v2ProjectId = input.v2ProjectId;
-			if (input.v2WorkspaceId) {
+			if (input.v2WorkspaceId && targetHostId && v2ProjectId) {
+				// Denormalized pin: the client resolved the workspace on its host
+				// and supplies hostId/projectId alongside the id — no workspace
+				// registry lookup (hosts own workspace records). Host access and
+				// project scoping are still verified below; a stale pin surfaces
+				// as a host-side error at run time, same as today.
+				await verifyProjectInOrg(organizationId, v2ProjectId);
+			} else if (input.v2WorkspaceId) {
+				// Legacy clients (pre-denormalization) — resolve via the cloud
+				// table while it still exists; this branch is deleted in R3.
 				const workspace = await verifyWorkspaceInOrg(
 					organizationId,
 					input.v2WorkspaceId,
 				);
+				if (targetHostId && targetHostId !== workspace.hostId) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "targetHostId does not match the workspace's host",
+					});
+				}
+				targetHostId = workspace.hostId;
 				if (v2ProjectId && v2ProjectId !== workspace.projectId) {
 					throw new TRPCError({
 						code: "BAD_REQUEST",
@@ -228,6 +257,13 @@ export const automationRouter = {
 					code: "BAD_REQUEST",
 					message: "v2ProjectId required when v2WorkspaceId is not provided",
 				});
+			}
+			if (targetHostId && targetHostId !== input.targetHostId) {
+				await verifyHostAccess(
+					ctx.session.user.id,
+					organizationId,
+					targetHostId,
+				);
 			}
 
 			const dtstart = input.dtstart ?? new Date();
@@ -246,7 +282,7 @@ export const automationRouter = {
 						name: input.name,
 						prompt: input.prompt,
 						agent: input.agent,
-						targetHostId: input.targetHostId ?? null,
+						targetHostId,
 						v2ProjectId,
 						v2WorkspaceId: input.v2WorkspaceId ?? null,
 						rrule: input.rrule,
@@ -295,8 +331,88 @@ export const automationRouter = {
 					input.targetHostId,
 				);
 			}
-			if (input.v2WorkspaceId) {
-				await verifyWorkspaceInOrg(organizationId, input.v2WorkspaceId);
+
+			let nextTargetHostId =
+				input.targetHostId === undefined
+					? existing.targetHostId
+					: input.targetHostId;
+			let nextProjectId = input.v2ProjectId ?? existing.v2ProjectId;
+			let nextWorkspaceId =
+				input.v2WorkspaceId === undefined
+					? existing.v2WorkspaceId
+					: input.v2WorkspaceId;
+
+			if (input.v2WorkspaceId === undefined) {
+				const targetHostChanged =
+					input.targetHostId !== undefined &&
+					input.targetHostId !== existing.targetHostId;
+				const projectChanged =
+					input.v2ProjectId !== undefined &&
+					input.v2ProjectId !== existing.v2ProjectId;
+				if (targetHostChanged || projectChanged) {
+					nextWorkspaceId = null;
+				}
+			}
+
+			if (
+				nextWorkspaceId &&
+				input.v2WorkspaceId &&
+				input.targetHostId &&
+				input.v2ProjectId
+			) {
+				// Denormalized pin (see create): the client supplies host and
+				// project with the workspace id; no workspace registry lookup.
+				await verifyProjectInOrg(organizationId, input.v2ProjectId);
+				nextProjectId = input.v2ProjectId;
+				nextTargetHostId = input.targetHostId;
+			} else if (nextWorkspaceId) {
+				// Legacy clients — resolve via the cloud table while it still
+				// exists; this branch is deleted in R3.
+				const workspace = await verifyWorkspaceInOrg(
+					organizationId,
+					nextWorkspaceId,
+				);
+				// Mirror create: derive the project from the workspace and only
+				// reject when the caller *explicitly* passed a conflicting project.
+				// Otherwise a legitimate cross-project workspace move (sending only
+				// v2WorkspaceId) would be wrongly rejected as a mismatch.
+				if (
+					input.v2ProjectId !== undefined &&
+					input.v2ProjectId !== workspace.projectId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "v2ProjectId does not match the workspace's project",
+					});
+				}
+				nextProjectId = workspace.projectId;
+				if (
+					input.targetHostId !== undefined &&
+					input.targetHostId !== null &&
+					input.targetHostId !== workspace.hostId
+				) {
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "targetHostId does not match the workspace's host",
+					});
+				}
+				nextTargetHostId = workspace.hostId;
+			} else if (
+				input.v2ProjectId !== undefined &&
+				input.v2ProjectId !== existing.v2ProjectId
+			) {
+				await verifyProjectInOrg(organizationId, input.v2ProjectId);
+			}
+			if (
+				nextTargetHostId &&
+				nextTargetHostId !== existing.targetHostId &&
+				nextTargetHostId !== input.targetHostId
+			) {
+				await verifyHostAccess(
+					ctx.session.user.id,
+					organizationId,
+					nextTargetHostId,
+				);
 			}
 
 			const nextRrule = input.rrule ?? existing.rrule;
@@ -320,15 +436,9 @@ export const automationRouter = {
 				.set({
 					name: input.name ?? existing.name,
 					agent: input.agent ?? existing.agent,
-					targetHostId:
-						input.targetHostId === undefined
-							? existing.targetHostId
-							: input.targetHostId,
-					v2ProjectId: input.v2ProjectId ?? existing.v2ProjectId,
-					v2WorkspaceId:
-						input.v2WorkspaceId === undefined
-							? existing.v2WorkspaceId
-							: input.v2WorkspaceId,
+					targetHostId: nextTargetHostId,
+					v2ProjectId: nextProjectId,
+					v2WorkspaceId: nextWorkspaceId,
 					rrule: nextRrule,
 					dtstart: nextDtstart,
 					timezone: nextTimezone,

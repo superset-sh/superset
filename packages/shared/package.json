@@ -8,9 +8,17 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./terminal-wheel-handler": {
+			"types": "./src/terminal-wheel-handler/index.ts",
+			"default": "./src/terminal-wheel-handler/index.ts"
+		},
 		"./dev-credentials": {
 			"types": "./src/dev-credentials.ts",
 			"default": "./src/dev-credentials.ts"
+		},
+		"./media-files": {
+			"types": "./src/media-files.ts",
+			"default": "./src/media-files.ts"
 		},
 		"./v2-only-user": {
 			"types": "./src/v2-only-user.ts",
@@ -63,6 +71,10 @@
 		"./agent-custom": {
 			"types": "./src/agent-custom.ts",
 			"default": "./src/agent-custom.ts"
+		},
+		"./agent-models": {
+			"types": "./src/agent-models.ts",
+			"default": "./src/agent-models.ts"
 		},
 		"./billing": {
 			"types": "./src/billing.ts",
@@ -147,7 +159,8 @@
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/friendly-words": "1.2.2",
-		"bun-types": "1.3.11",
+		"@xterm/xterm": "6.1.0-beta.289",
+		"bun-types": "1.3.14",
 		"typescript": "6.0.3"
 	}
 }

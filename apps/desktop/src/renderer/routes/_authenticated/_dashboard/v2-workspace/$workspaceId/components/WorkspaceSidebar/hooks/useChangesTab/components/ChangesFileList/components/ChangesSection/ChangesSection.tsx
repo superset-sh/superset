@@ -11,25 +11,33 @@ import { ChevronRight, Minus, Plus } from "lucide-react";
 import { type ReactNode, useState } from "react";
 import { LuUndo2 } from "react-icons/lu";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
+import {
+	useV2ChangesSectionsStore,
+	type V2ChangesSectionKey,
+} from "renderer/stores/v2-changes-sections";
 
 type SectionKind = "unstaged" | "staged";
 
 interface ChangesSectionProps {
+	sectionKey: V2ChangesSectionKey;
 	title: string;
 	count: number;
-	defaultOpen?: boolean;
 	stagingActions?: { kind: SectionKind; workspaceId: string };
 	children: ReactNode;
 }
 
 export function ChangesSection({
+	sectionKey,
 	title,
 	count,
-	defaultOpen = true,
 	stagingActions,
 	children,
 }: ChangesSectionProps) {
-	const [open, setOpen] = useState(defaultOpen);
+	const collapsed = useV2ChangesSectionsStore(
+		(state) => state.collapsed[sectionKey] ?? false,
+	);
+	const setCollapsed = useV2ChangesSectionsStore((state) => state.setCollapsed);
+	const open = !collapsed;
 	const [showConfirm, setShowConfirm] = useState(false);
 	const utils = workspaceTrpc.useUtils();
 
@@ -112,7 +120,10 @@ export function ChangesSection({
 	const StagingToggleIcon = isUnstaged ? Plus : Minus;
 
 	return (
-		<Collapsible open={open} onOpenChange={setOpen}>
+		<Collapsible
+			open={open}
+			onOpenChange={(next) => setCollapsed(sectionKey, !next)}
+		>
 			<div className="flex items-center">
 				<CollapsibleTrigger className="flex min-w-0 flex-1 items-center gap-1.5 px-2 py-1 text-left text-xs hover:bg-accent/30">
 					<ChevronRight

@@ -39,4 +39,40 @@ describe("translateLineEditChord", () => {
 			}),
 		).toBeNull();
 	});
+
+	it("maps Shift+Enter to the TUI newline sequence on Mac", () => {
+		expect(
+			translateLineEditChord(event({ key: "Enter", shiftKey: true }), {
+				isMac: true,
+				isWindows: false,
+			}),
+		).toBe("\x1b\r");
+	});
+
+	it("maps Shift+Enter to the TUI newline sequence on Windows", () => {
+		expect(
+			translateLineEditChord(event({ key: "Enter", shiftKey: true }), {
+				isMac: false,
+				isWindows: true,
+			}),
+		).toBe("\x1b\r");
+	});
+
+	it("maps Shift+Enter to the TUI newline sequence on Linux", () => {
+		expect(
+			translateLineEditChord(event({ key: "Enter", shiftKey: true }), {
+				isMac: false,
+				isWindows: false,
+			}),
+		).toBe("\x1b\r");
+	});
+
+	it("does not map plain Enter", () => {
+		expect(
+			translateLineEditChord(event({ key: "Enter" }), {
+				isMac: true,
+				isWindows: false,
+			}),
+		).toBeNull();
+	});
 });

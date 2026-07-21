@@ -1,4 +1,5 @@
 export { HotkeyLabel } from "./components/HotkeyLabel";
+export { HotkeyTooltip } from "./components/HotkeyTooltip";
 export { formatHotkeyDisplay } from "./display";
 export {
 	getBinding,

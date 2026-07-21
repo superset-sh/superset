@@ -9,6 +9,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiOutlinePlus } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { getAgentCommandText } from "renderer/lib/agent-launch-command";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -69,12 +70,14 @@ export function V2PresetsSection({
 		[collections],
 	);
 
-	const { data: v2Projects = [] } = useLiveQuery(
-		(query) =>
-			query
-				.from({ v2Projects: collections.v2Projects })
-				.orderBy(({ v2Projects }) => v2Projects.name),
-		[collections],
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const v2Projects = useMemo(
+		() =>
+			[...hostProjects]
+				.sort((a, b) => a.name.localeCompare(b.name))
+				.map((project) => ({ id: project.projectKey, name: project.name })),
+		[hostProjects],
 	);
 
 	// V2TerminalPresetRow is a superset of TerminalPreset — safe to cast
@@ -197,7 +200,7 @@ export function V2PresetsSection({
 			}
 			pills.push({
 				agentId: agent.id,
-				iconId: agent.presetId,
+				iconId: agent.iconId ?? agent.presetId,
 				label: agent.label,
 				description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId) ?? "",
 				commands: [getAgentCommandText(agent)],

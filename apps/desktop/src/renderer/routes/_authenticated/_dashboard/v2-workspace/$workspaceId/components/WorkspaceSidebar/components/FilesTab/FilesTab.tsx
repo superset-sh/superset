@@ -19,6 +19,7 @@ import {
 	FoldVertical,
 	Loader2,
 	RefreshCw,
+	Search,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
@@ -28,7 +29,10 @@ import {
 	useSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
 import { useFallthroughIcons } from "renderer/lib/fileIcons";
-import { createPierreTreeStyle } from "renderer/lib/pierreTree";
+import {
+	createPierreTreeStyle,
+	PIERRE_TREE_UNSAFE_CSS,
+} from "renderer/lib/pierreTree";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { PierreRowContextMenu } from "../PierreRowContextMenu";
 import { FileMenuItems } from "./components/FileMenuItems";
@@ -43,6 +47,7 @@ import {
 import { useFilesTabActions } from "./hooks/useFilesTabActions";
 import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
 import { useFilesTabDrop } from "./hooks/useFilesTabDrop";
+import { useFileTreeScrollFade } from "./hooks/useFileTreeScrollFade";
 import { buildPierreGitStatus } from "./utils/buildPierreGitStatus";
 import { stripTrailingSlash, toAbs, toRel } from "./utils/treePath";
 
@@ -63,6 +68,7 @@ interface FilesTabProps {
 	} | null;
 	workspaceId: string;
 	gitStatus: GitStatusData | undefined;
+	onSearch?: () => void;
 }
 
 export function FilesTab({
@@ -71,10 +77,17 @@ export function FilesTab({
 	pendingReveal,
 	workspaceId,
 	gitStatus,
+	onSearch,
 }: FilesTabProps) {
-	const workspaceQuery = workspaceTrpc.workspace.get.useQuery({
-		id: workspaceId,
-	});
+	// Shares the query cache with V2WorkspacePage's workspace.get query, so
+	// the first render after a workspace switch typically already has cached
+	// data from React Query (the parent route resolves it first). staleTime
+	// is set high enough that intra-session switches to a previously-visited
+	// workspace render instantly without a refetch.
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{ staleTime: 30_000 },
+	);
 	const rootPath = workspaceQuery.data?.worktreePath ?? "";
 
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
@@ -112,6 +125,7 @@ export function FilesTab({
 		paths: [],
 		initialExpansion: "closed",
 		search: false,
+		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
 		renaming: {
 			onRename: (event) => handlersRef.current.onRename(event),
 			onError: (message) => toast.error(message),
@@ -252,6 +266,10 @@ export function FilesTab({
 		],
 	);
 
+	const fadeContainerRef = useFileTreeScrollFade<HTMLDivElement>(
+		Boolean(rootPath),
+	);
+
 	if (!rootPath) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -270,6 +288,7 @@ export function FilesTab({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
 		<div
+			ref={fadeContainerRef}
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
 			onDragOver={drop.onDragOver}
@@ -282,9 +301,18 @@ export function FilesTab({
 					className="flex-1 min-h-0"
 					style={TREE_STYLE}
 					header={
-						<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-							<span className="truncate">Explorer</span>
-							<div className="flex items-center gap-0.5">
+						<div className="group flex h-10 items-center gap-1 bg-background px-2">
+							{onSearch && (
+								<button
+									type="button"
+									onClick={onSearch}
+									className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								>
+									<Search className="size-3.5 shrink-0" />
+									<span className="truncate">Search files</span>
+								</button>
+							)}
+							<div className="ml-auto flex items-center gap-0.5">
 								<FilesTabHeaderButton
 									icon={FilePlus}
 									label="New File"

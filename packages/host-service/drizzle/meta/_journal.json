@@ -43,6 +43,48 @@
       "when": 1779922528385,
       "tag": "0005_host_settings_and_project_overrides",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1782705692725,
+      "tag": "0006_ambitious_princess_powerful",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1783034111888,
+      "tag": "0007_host_agent_icon_id",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1783213515635,
+      "tag": "0008_workspace_full_fields",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "6",
+      "when": 1783753971421,
+      "tag": "0009_add_acp_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "6",
+      "when": 1784330905233,
+      "tag": "0010_reflective_cerebro",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "6",
+      "when": 1784490907723,
+      "tag": "0011_project_identity_fields",
+      "breakpoints": true
     }
   ]
 }

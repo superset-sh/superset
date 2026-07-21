@@ -146,7 +146,11 @@ export function parseArgv(
 
 			// String/number: consume next arg as value
 			const nextArg = args[i + 1];
-			if (nextArg === undefined || nextArg.startsWith("-")) {
+			const isStdinSentinel = entry[1].type === "string" && nextArg === "-";
+			if (
+				nextArg === undefined ||
+				(nextArg.startsWith("-") && !isStdinSentinel)
+			) {
 				throw new CLIError(
 					`Option ${arg} requires a value`,
 					entry[1].enumVals

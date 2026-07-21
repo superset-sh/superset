@@ -9,6 +9,7 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { after, before, test } from "node:test";
 import { adoptFromFd, spawn as spawnPty } from "../src/Pty/Pty.ts";
+import { CURRENT_PROTOCOL_VERSION } from "../src/protocol/index.ts";
 import { Server } from "../src/Server/index.ts";
 import { connect, connectAndHello, payloadAsString } from "./helpers/client.ts";
 
@@ -26,11 +27,11 @@ after(async () => {
 
 test("handshake: hello → hello-ack", async () => {
 	const c = await connect(sockPath);
-	c.send({ type: "hello", protocols: [2] });
+	c.send({ type: "hello", protocols: [CURRENT_PROTOCOL_VERSION] });
 	const ack = await c.waitFor((m) => m.type === "hello-ack");
 	assert.equal(ack.type, "hello-ack");
 	if (ack.type === "hello-ack") {
-		assert.equal(ack.protocol, 2);
+		assert.equal(ack.protocol, CURRENT_PROTOCOL_VERSION);
 		assert.equal(ack.daemonVersion, "0.0.0-test");
 	}
 	await c.close();
@@ -109,19 +110,50 @@ test("Pty.getMasterFd returns a usable kernel fd", () => {
 test("adoptFromFd validates inputs", () => {
 	const meta = { shell: "/bin/sh", argv: [], cols: 80, rows: 24 };
 	assert.throws(() => adoptFromFd({ fd: -1, pid: 1, meta }), /invalid fd/);
-	assert.throws(() => adoptFromFd({ fd: 3, pid: 0, meta }), /invalid pid/);
-	assert.throws(
-		() =>
-			adoptFromFd({
-				fd: 3,
-				pid: 1,
-				meta: { ...meta, cols: 0 },
-			}),
-		/invalid cols/,
-	);
+
+	const invalidPidFd = fs.openSync("/dev/null", "r");
+	try {
+		assert.throws(
+			() => adoptFromFd({ fd: invalidPidFd, pid: 0, meta }),
+			/invalid pid/,
+		);
+		assert.throws(
+			() => fs.fstatSync(invalidPidFd),
+			(err: unknown) => (err as NodeJS.ErrnoException).code === "EBADF",
+		);
+	} finally {
+		try {
+			fs.closeSync(invalidPidFd);
+		} catch {
+			// adoptFromFd closed it as required
+		}
+	}
+
+	const invalidDimsFd = fs.openSync("/dev/null", "r");
+	try {
+		assert.throws(
+			() =>
+				adoptFromFd({
+					fd: invalidDimsFd,
+					pid: 1,
+					meta: { ...meta, cols: 0 },
+				}),
+			/invalid cols/,
+		);
+		assert.throws(
+			() => fs.fstatSync(invalidDimsFd),
+			(err: unknown) => (err as NodeJS.ErrnoException).code === "EBADF",
+		);
+	} finally {
+		try {
+			fs.closeSync(invalidDimsFd);
+		} catch {
+			// adoptFromFd closed it as required
+		}
+	}
 });
 
-test("adoptFromFd wraps a real PTY master fd without crashing", () => {
+test("adoptFromFd wraps a real PTY master fd without crashing", async () => {
 	// API-surface check only. End-to-end I/O on an adopted fd is validated
 	// in the cross-process handoff integration test — in this test process,
 	// node-pty's native worker is actively reading from the master fd, so
@@ -130,19 +162,33 @@ test("adoptFromFd wraps a real PTY master fd without crashing", () => {
 	const original = spawnPty({
 		meta: { shell: "/bin/sh", argv: ["-c", "sleep 1"], cols: 80, rows: 24 },
 	});
+	// Adopt a /dev/fd dup, not node-pty's own fd: AdoptedPty owns (and
+	// closes) the fd it's given, and closing node-pty's copy under its
+	// internal ReadStream surfaces as an uncaught EBADF. Only this test
+	// double-owns a master fd; a real successor daemon owns it exclusively.
+	const dupFd = fs.openSync(`/dev/fd/${original.getMasterFd()}`, "r+");
+	let adopted: ReturnType<typeof adoptFromFd> | null = null;
 	try {
-		const adopted = adoptFromFd({
-			fd: original.getMasterFd(),
+		adopted = adoptFromFd({
+			fd: dupFd,
 			pid: original.pid,
 			meta: original.meta,
 		});
 		assert.equal(adopted.pid, original.pid);
-		assert.equal(adopted.getMasterFd(), original.getMasterFd());
+		assert.equal(adopted.getMasterFd(), dupFd);
 		// resize updates meta but not kernel-side window (TODO: koffi ioctl)
 		adopted.resize(120, 40);
 		assert.equal(adopted.meta.cols, 120);
 		assert.equal(adopted.meta.rows, 40);
 	} finally {
 		original.kill("SIGKILL");
+		// Let both sides observe the exit inside the test window so no
+		// async tail gets attributed to after-test activity.
+		await Promise.all([
+			new Promise<void>((r) => original.onExit(() => r())),
+			new Promise<void>((r) => {
+				adopted ? adopted.onExit(() => r()) : r();
+			}),
+		]);
 	}
 });

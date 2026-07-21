@@ -11,6 +11,8 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
+import { isHostOfflineError } from "../utils/hostOfflineError";
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
@@ -39,6 +41,7 @@ function AutomationDetailPage() {
 	const navigate = useNavigate();
 	const collections = useCollections();
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
+	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
 
 	const { data: automationRows, isReady: automationReady } = useLiveQuery(
 		(q) =>
@@ -70,6 +73,15 @@ function AutomationDetailPage() {
 	const runNowMutation = useMutation({
 		mutationFn: () =>
 			apiTrpcClient.automation.runNow.mutate({ id: automationId }),
+		onSuccess: () => toast.success("Running now"),
+		onError: (error) => {
+			const message = error instanceof Error ? error.message : null;
+			if (isHostOfflineError(message)) {
+				setHostOfflineOpen(true);
+				return;
+			}
+			toast.error(message ?? "Failed to trigger run");
+		},
 	});
 
 	const deleteMutation = useMutation({
@@ -131,6 +143,12 @@ function AutomationDetailPage() {
 			<AutomationDetailSidebar
 				automation={automation}
 				recentRuns={recentRuns}
+			/>
+
+			<HostOfflineRunDialog
+				hostId={automation.targetHostId}
+				open={hostOfflineOpen}
+				onOpenChange={setHostOfflineOpen}
 			/>
 
 			<VersionHistorySheet

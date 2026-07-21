@@ -5,15 +5,16 @@ import type {
 import { formatDateTimeInTimezone } from "@superset/shared/rrule";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
 import { AgentPicker } from "../../../components/AgentPicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
+import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { SchedulePicker } from "../../../components/SchedulePicker";
 import { TimezonePicker } from "../../../components/TimezonePicker";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
-import { useRecentProjects } from "../../../hooks/useRecentProjects";
 import { PreviousRunsList } from "../PreviousRunsList";
 import { Row } from "./components/Row";
 import { Section } from "./components/Section";
@@ -99,6 +100,7 @@ export function AutomationDetailSidebar({
 							<DevicePicker
 								className="-mr-4"
 								hostId={hostId}
+								showLocalOnlineState
 								onSelectHostId={(nextHostId) => {
 									updateMutation.mutate({ targetHostId: nextHostId });
 								}}
@@ -123,11 +125,22 @@ export function AutomationDetailSidebar({
 						value={
 							<WorkspacePicker
 								className="-mr-4"
-								hostId={automation.targetHostId ?? null}
+								hostId={hostId}
 								projectId={automation.v2ProjectId}
 								value={automation.v2WorkspaceId}
 								onChange={(v2WorkspaceId) =>
-									updateMutation.mutate({ v2WorkspaceId })
+									updateMutation.mutate({
+										v2WorkspaceId,
+										// Denormalized pin: the picker is scoped to this
+										// host/project, so send both — the cloud stores them
+										// without a workspace-registry lookup.
+										...(v2WorkspaceId && hostId && automation.v2ProjectId
+											? {
+													targetHostId: hostId,
+													v2ProjectId: automation.v2ProjectId,
+												}
+											: {}),
+									})
 								}
 							/>
 						}
@@ -175,6 +188,7 @@ export function AutomationDetailSidebar({
 							/>
 						}
 					/>
+					<RelayOfflineNotice hostId={hostId} className="mt-2" />
 				</Section>
 			</div>
 

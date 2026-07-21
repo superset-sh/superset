@@ -1,4 +1,5 @@
 import { isV2OnlyUser } from "@superset/shared/v2-only-user";
+import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
 
@@ -15,5 +16,6 @@ export function useIsV2OnlyUser(): boolean {
 export function useIsV2CloudEnabled(): boolean {
 	const v2Only = useIsV2OnlyUser();
 	const optInV2 = useV2LocalOverrideStore((s) => s.optInV2);
-	return optInV2 ?? v2Only;
+	// Dev builds default to v2; an explicit opt-out (optInV2 === false) still wins.
+	return optInV2 ?? (v2Only || env.NODE_ENV === "development");
 }

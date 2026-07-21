@@ -1,4 +1,3 @@
-import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
 import { protectedProcedure } from "../../../index";
 import { ensureMainWorkspace } from "../../project/utils/ensure-main-workspace";
@@ -63,13 +62,6 @@ export const adopt = protectedProcedure
 			worktreePath = found;
 		}
 
-		const hostPromise = ctx.api.host.ensure.mutate({
-			organizationId: ctx.organizationId,
-			machineId: getHostId(),
-			name: getHostName(),
-		});
-		hostPromise.catch(() => {});
-
 		const { workspace } = await adoptExistingWorktree({
 			ctx,
 			git,
@@ -79,7 +71,6 @@ export const adopt = protectedProcedure
 			workspaceName: input.workspaceName,
 			baseBranch: input.baseBranch,
 			existingWorkspaceId: input.existingWorkspaceId,
-			hostPromise,
 		});
 
 		return {

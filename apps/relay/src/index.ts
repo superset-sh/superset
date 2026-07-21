@@ -4,10 +4,11 @@ import type { Context, MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { logger } from "hono/logger";
-import { checkHostAccess } from "./access";
+import { accessDenialMessage, checkHostAccess } from "./access";
 import { type AuthContext, verifyJWT } from "./auth";
 import * as directory from "./directory";
 import { env } from "./env";
+import { createProxyBridge, internalProxyUrl, PROXY_HOP_PARAM } from "./proxy";
 import { captureSentryException, initSentry } from "./sentry";
 import { startSyntheticCheck } from "./synthetic";
 import { isTrpcPath, trpcErrorResponse } from "./trpc-error";
@@ -41,6 +42,11 @@ type AppContext = {
 		auth: AuthContext;
 		token: string;
 		hostId: string;
+		// Set by the auth middleware when a WS upgrade targets a tunnel owned by
+		// another relay instance: the WS handler bridges to that instance over
+		// Fly's private network instead of fly-replaying (which can't route a
+		// WS upgrade).
+		proxyOwner: { region: string; machineId: string };
 	};
 };
 
@@ -170,6 +176,40 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 	// tunnel, the destination machine will authorize the request — no need
 	// to double-bill the API for checkHostAccess on every cross-machine hop.
 	if (!tunnelManager.hasTunnel(hostId)) {
+		const isWsUpgrade = c.req.header("upgrade")?.toLowerCase() === "websocket";
+
+		// fly-replay can't route a WS upgrade — the replay header rides on a
+		// response that only arrives after the handshake, so the browser sees a
+		// non-101 status and fails with 1006/502. So WS upgrades never fly-replay:
+		// when another instance owns the tunnel, hand the WS handler the owner so
+		// it bridges over Fly's private network instead. A `_rlp=1` hop that
+		// reached us means the directory is stale (we were told we own it but
+		// don't) — fail so the upstream relay closes and the client reconnects,
+		// rather than re-proxying into a loop.
+		if (isWsUpgrade) {
+			const isProxyHop = c.req.query(PROXY_HOP_PARAM) === "1";
+			if (!isProxyHop) {
+				const owner = await directory.lookup(hostId).catch((err) => {
+					captureSentryException(err, { op: "directory.lookup", hostId });
+					return null;
+				});
+				const ownedElsewhere =
+					owner != null &&
+					!(
+						owner.region === env.FLY_REGION &&
+						owner.machineId === env.FLY_MACHINE_ID
+					);
+				if (ownedElsewhere) {
+					c.set("auth", auth);
+					c.set("token", token);
+					c.set("hostId", hostId);
+					c.set("proxyOwner", owner);
+					return next();
+				}
+			}
+			return c.json({ error: "Host not connected" }, 503);
+		}
+
 		const replay = await maybeReplay(hostId);
 		if (replay) return c.body(null, 200, replay.header);
 		return wantsTrpc
@@ -177,11 +217,13 @@ const authMiddleware: MiddlewareHandler<AppContext> = async (c, next) => {
 			: c.json({ error: "Host not connected" }, 503);
 	}
 
-	const hasAccess = await checkHostAccess(auth, token, hostId);
-	if (!hasAccess)
+	const access = await checkHostAccess(auth, token, hostId);
+	if (!access.ok) {
+		const detail = `Forbidden: ${accessDenialMessage(access.reason)}`;
 		return wantsTrpc
-			? trpcErrorResponse(c, "FORBIDDEN", "Forbidden")
-			: c.json({ error: "Forbidden" }, 403);
+			? trpcErrorResponse(c, "FORBIDDEN", detail)
+			: c.json({ error: detail }, 403);
+	}
 
 	c.set("auth", auth);
 	c.set("token", token);
@@ -217,9 +259,9 @@ app.get(
 					return;
 				}
 
-				const hasAccess = await checkHostAccess(auth, token, hostId);
-				if (!hasAccess) {
-					ws.close(1008, "Forbidden");
+				const access = await checkHostAccess(auth, token, hostId);
+				if (!access.ok) {
+					ws.close(1008, `Forbidden: ${accessDenialMessage(access.reason)}`);
 					return;
 				}
 
@@ -251,9 +293,12 @@ app.get(
 
 // ── Pre-flight for WS replay (host hits this once before opening WS to a host) ─
 
-// Pre-flight for WS upgrade routing. Requires a valid JWT (no checkHostAccess —
-// the destination machine still authorizes) so we don't leak tunnel-presence
-// or fly topology to unauthenticated probers.
+// Pre-flight for WS upgrade routing. Requires a valid JWT so we don't leak
+// tunnel-presence or fly topology to unauthenticated probers. When this
+// machine owns the tunnel, it also runs the (cached) access check: the WS
+// upgrade's 403 is invisible to browser clients (they only see a 1006 close),
+// so this is the one place a definitive denial can surface — clients use it
+// to stop reconnect-looping against hosts they'll never be allowed to reach.
 app.get("/hosts/:hostId/_whoowns", async (c) => {
 	const token = extractToken(c);
 	if (!token) return c.json({ error: "Unauthorized" }, 401);
@@ -263,9 +308,19 @@ app.get("/hosts/:hostId/_whoowns", async (c) => {
 	const hostId = c.req.param("hostId");
 	const replay = await maybeReplay(hostId);
 	if (!replay) {
-		return tunnelManager.hasTunnel(hostId)
-			? c.json({ ok: true, region: env.FLY_REGION })
-			: c.json({ error: "Host not connected" }, 503);
+		if (!tunnelManager.hasTunnel(hostId)) {
+			return c.json({ error: "Host not connected" }, 503);
+		}
+		const access = await checkHostAccess(auth, token, hostId);
+		if (!access.ok) {
+			const detail = `Forbidden: ${accessDenialMessage(access.reason)}`;
+			// "error" means the access check itself failed (API unreachable), not
+			// a denial — don't 403, or clients would stop retrying permanently.
+			return access.reason === "error"
+				? c.json({ error: detail }, 500)
+				: c.json({ error: detail }, 403);
+		}
+		return c.json({ ok: true, region: env.FLY_REGION });
 	}
 	return c.body(null, 200, replay.header);
 });
@@ -312,6 +367,19 @@ app.get(
 		const prefix = `/hosts/${hostId}`;
 		const path = url.pathname.slice(prefix.length) || "/";
 		const query = url.search.slice(1) || undefined;
+
+		// Cross-instance bridge: this node doesn't own the tunnel, so relay the
+		// WS to the owning instance over Fly's private network and pipe frames
+		// both ways. The owning node runs the normal access check + channel path.
+		const proxyOwner = c.get("proxyOwner");
+		if (proxyOwner) {
+			const target = internalProxyUrl(proxyOwner, hostId, path, url.search, {
+				appName: env.FLY_APP_NAME,
+				port: env.RELAY_PORT,
+			});
+			return createProxyBridge(target);
+		}
+
 		let channelId: string | null = null;
 
 		return {
@@ -375,11 +443,18 @@ try {
 	console.error("[relay] startup cleanup failed", err);
 }
 
-server = serve({ fetch: app.fetch, port: env.RELAY_PORT }, (info) => {
-	console.log(
-		`[relay] listening on http://localhost:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,
-	);
-});
+// Bind dual-stack (`::`) rather than the default `0.0.0.0`. Fly's private
+// 6PN network (`<machine>.vm.<app>.internal`) is IPv6-only, and relay-to-relay
+// WS proxying dials peers over it; `::` accepts both the public IPv4 proxy
+// traffic (IPv4-mapped, V6ONLY=0 on Linux) and 6PN IPv6 peer connections.
+server = serve(
+	{ fetch: app.fetch, port: env.RELAY_PORT, hostname: "::" },
+	(info) => {
+		console.log(
+			`[relay] listening on [::]:${info.port} (region=${env.FLY_REGION} machine=${env.FLY_MACHINE_ID})`,
+		);
+	},
+);
 injectWebSocket(server);
 
 // Disable Nagle's algorithm on every incoming connection. Both the client's

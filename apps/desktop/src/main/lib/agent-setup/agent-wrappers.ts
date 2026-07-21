@@ -70,6 +70,15 @@ export {
 	getGeminiSettingsJsonPath,
 } from "./agent-wrappers-gemini";
 export {
+	createKimiConfigToml,
+	createKimiWrapper,
+	getKimiConfigTomlContent,
+	getKimiConfigTomlPath,
+	getKimiWrapperScript,
+	KIMI_HOOKS_MARKER_END,
+	KIMI_HOOKS_MARKER_START,
+} from "./agent-wrappers-kimi";
+export {
 	createMastraHooksJson,
 	createMastraWrapper,
 	getMastraGlobalHooksJsonPath,
@@ -82,3 +91,12 @@ export {
 	PI_EXTENSION_FILE,
 	PI_EXTENSION_MARKER,
 } from "./agent-wrappers-pi";
+export {
+	createVibeHooksToml,
+	createVibeWrapper,
+	getVibeHooksTomlContent,
+	getVibeHooksTomlPath,
+	getVibeWrapperScript,
+	VIBE_HOOKS_MARKER_END,
+	VIBE_HOOKS_MARKER_START,
+} from "./agent-wrappers-vibe";

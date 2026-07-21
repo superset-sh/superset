@@ -18,6 +18,7 @@ import {
 	HiOutlineBarsArrowDown,
 	HiOutlineCpuChip,
 } from "react-icons/hi2";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -30,6 +31,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { AppResourceSection } from "./components/AppResourceSection";
 import { MetricBadge } from "./components/MetricBadge";
@@ -221,26 +223,18 @@ function ResourceConsumptionContent({
 		[rawSidebarWorkspaces],
 	);
 
-	const { data: rawV2Projects = [] } = useLiveQuery(
-		(q) =>
-			q.from({ project: collections.v2Projects }).select(({ project }) => ({
-				id: project.id,
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const rawV2Projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
 				name: project.name,
 			})),
-		[collections],
+		[hostProjects],
 	);
 
-	const { data: rawV2Workspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspace: collections.v2Workspaces })
-				.select(({ workspace }) => ({
-					id: workspace.id,
-					projectId: workspace.projectId,
-					name: workspace.name,
-				})),
-		[collections],
-	);
+	const { workspaces: rawV2Workspaces } = useHostWorkspaces();
 
 	const shouldQueryMetrics = shouldQueryResourceMonitor({
 		enabled: true,

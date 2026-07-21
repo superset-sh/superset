@@ -16,11 +16,15 @@ import {
 	createGeminiHookScript,
 	createGeminiSettingsJson,
 	createGeminiWrapper,
+	createKimiConfigToml,
+	createKimiWrapper,
 	createMastraHooksJson,
 	createMastraWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
 	createPiExtension,
+	createVibeHooksToml,
+	createVibeWrapper,
 } from "./agent-wrappers";
 import {
 	DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS,
@@ -50,10 +54,14 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 		"gemini-hook-script": createGeminiHookScript,
 		"gemini-wrapper": createGeminiWrapper,
 		"gemini-settings-json": createGeminiSettingsJson,
+		"kimi-config-toml": createKimiConfigToml,
+		"kimi-wrapper": createKimiWrapper,
 		"mastra-wrapper": createMastraWrapper,
 		"mastra-hooks-json": createMastraHooksJson,
 		"copilot-hook-script": createCopilotHookScript,
 		"copilot-wrapper": createCopilotWrapper,
+		"vibe-hooks-toml": createVibeHooksToml,
+		"vibe-wrapper": createVibeWrapper,
 	};
 
 export function setupDesktopAgentCapabilities(): void {

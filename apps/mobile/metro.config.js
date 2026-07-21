@@ -33,6 +33,7 @@ config.resolver.unstable_enablePackageExports = true;
 
 // Resolve local Expo Modules (modules/ dir)
 config.resolver.extraNodeModules = {
+	"@superset/alert-prompt": path.resolve(projectRoot, "modules/alert-prompt"),
 	"@superset/tab-bar": path.resolve(projectRoot, "modules/tab-bar"),
 };
 

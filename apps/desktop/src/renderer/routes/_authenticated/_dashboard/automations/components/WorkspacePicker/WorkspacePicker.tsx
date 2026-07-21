@@ -1,4 +1,4 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
+import type { SelectV2Host } from "@superset/db/schema";
 import {
 	Command,
 	CommandGroup,
@@ -7,12 +7,14 @@ import {
 	CommandList,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
-import { LuGitBranch, LuSparkles } from "react-icons/lu";
+import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface WorkspacePickerProps {
 	hostId: string | null;
@@ -32,31 +34,71 @@ export function WorkspacePicker({
 	const [open, setOpen] = useState(false);
 	const collections = useCollections();
 
-	const { data: allWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ w: collections.v2Workspaces })
-				.orderBy(({ w }) => w.createdAt, "desc")
-				.select(({ w }) => ({ ...w })),
-		[collections.v2Workspaces],
+	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
+	const workspaceRows = useMemo(
+		() =>
+			[...hostWorkspaces].sort(
+				(a, b) =>
+					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+			),
+		[hostWorkspaces],
 	);
 
-	const workspaces = useMemo(() => {
-		const rows = allWorkspaces as SelectV2Workspace[];
-		if (!hostId || !projectId) return [];
-		return rows.filter((w) => w.hostId === hostId && w.projectId === projectId);
-	}, [allWorkspaces, hostId, projectId]);
+	const { data: allHosts = [] } = useLiveQuery(
+		(q) => q.from({ h: collections.v2Hosts }).select(({ h }) => ({ ...h })),
+		[collections.v2Hosts],
+	);
 
-	const selected = value ? workspaces.find((w) => w.id === value) : null;
-	const label = selected ? selected.name : "New workspace";
+	const hostRows = allHosts as SelectV2Host[];
+
+	const workspaces = useMemo(
+		() =>
+			hostId && projectId
+				? workspaceRows.filter(
+						(w) => w.hostId === hostId && w.projectId === projectId,
+					)
+				: [],
+		[workspaceRows, hostId, projectId],
+	);
+
+	// Resolve the pinned workspace from the FULL list, not the host-scoped
+	// subset: a workspace pinned to a different device must stay visible here
+	// instead of silently masquerading as "New workspace" (which hides the
+	// mismatch and lets dispatch keep failing with "Workspace not found").
+	const selected = value
+		? (workspaceRows.find((w) => w.id === value) ?? null)
+		: null;
+	const offScope =
+		!!selected &&
+		(selected.hostId !== hostId || selected.projectId !== projectId);
+	const offScopeHostName = offScope
+		? (hostRows.find((h) => h.machineId === selected.hostId)?.name ??
+			"another device")
+		: null;
+	// A pinned value we can't resolve yet (live query still hydrating) is loading,
+	// not an empty "New workspace" selection — don't flash the wrong label/warning.
+	const resolving = !!value && !selected && !isReady;
+	// Pinned to a workspace no host list resolves — deleted, or an unreachable
+	// host with no cached snapshot. Never render this as "New workspace": that
+	// hides the broken pin while dispatch keeps failing.
+	const missing = !!value && !selected && isReady;
+	const label = selected
+		? selected.name
+		: resolving
+			? "Loading…"
+			: missing
+				? "Workspace not found"
+				: "New workspace";
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<PopoverTrigger asChild>
 				<PickerTrigger
-					className={className}
+					className={cn((offScope || missing) && "text-amber-500", className)}
 					icon={
-						selected ? (
+						offScope || missing ? (
+							<LuTriangleAlert className="size-4 shrink-0" />
+						) : selected || resolving ? (
 							<LuGitBranch className="size-4 shrink-0" />
 						) : (
 							<LuSparkles className="size-4 shrink-0" />
@@ -84,8 +126,43 @@ export function WorkspacePicker({
 							>
 								<LuSparkles className="size-4" />
 								<span>New workspace</span>
-								{!selected && <HiCheck className="ml-auto size-4" />}
+								{!selected && !resolving && !missing && (
+									<HiCheck className="ml-auto size-4" />
+								)}
 							</CommandItem>
+							{missing && (
+								<CommandItem
+									value="__deleted__"
+									onSelect={() => setOpen(false)}
+									className="text-amber-500"
+								>
+									<LuTriangleAlert className="size-4" />
+									<span className="flex min-w-0 flex-col select-text cursor-text">
+										<span className="truncate">Workspace not found</span>
+										<span className="truncate text-[10px] text-amber-500/70">
+											deleted or unavailable — pick another
+										</span>
+									</span>
+									<HiCheck className="ml-auto size-4" />
+								</CommandItem>
+							)}
+							{offScope && selected && (
+								<CommandItem
+									value={`__pinned__${selected.id}`}
+									keywords={[selected.name]}
+									onSelect={() => setOpen(false)}
+									className="text-amber-500"
+								>
+									<LuTriangleAlert className="size-4" />
+									<span className="flex min-w-0 flex-col">
+										<span className="truncate">{selected.name}</span>
+										<span className="truncate text-[10px] text-amber-500/70">
+											on {offScopeHostName} — won't run here
+										</span>
+									</span>
+									<HiCheck className="ml-auto size-4" />
+								</CommandItem>
+							)}
 							{workspaces.map((workspace) => (
 								<CommandItem
 									key={workspace.id}

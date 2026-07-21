@@ -223,9 +223,11 @@ test("prepare-upgrade hands off live sessions to a successor binary", async () =
 		);
 		for (const id of sessionIds) {
 			adoptedClient.send({ type: "close", id, signal: "SIGKILL" });
+			// Close includes TreeKiller's synchronous process-table snapshot, which
+			// can exceed two seconds while the other process-heavy suites run.
 			await adoptedClient.waitFor(
 				(m) => m.type === "closed" && m.id === id,
-				2_000,
+				5_000,
 			);
 		}
 		await Promise.all(exitAfterClose.values());

@@ -12,22 +12,54 @@ interface RecordEventInput {
 	occurredAt: number;
 }
 
-interface ListFilter {
+export interface TerminalAgentBindingListFilter {
 	agentId?: TerminalAgentId;
 	definitionId?: AgentDefinitionId;
 }
 
 const EXIT_EVENT_TYPES = new Set(["Detached", "exit", "error"]);
 
+export interface TerminalAgentBindingPersistence {
+	load(): TerminalAgentBinding[];
+	upsert(binding: TerminalAgentBinding): void;
+	delete(terminalId: string): void;
+	/**
+	 * Liveness-joined reads (session `active` + workspace-owned). When
+	 * provided, the store serves list/find from here so dead-terminal
+	 * bindings are unrepresentable; the in-memory map then only backs
+	 * `get()` (the fresh-launch wait path).
+	 */
+	listLiveByWorkspace?(
+		workspaceId: string,
+		filter?: TerminalAgentBindingListFilter,
+	): TerminalAgentBinding[];
+	listLive?(): TerminalAgentBinding[];
+	findLiveActive?(
+		workspaceId: string,
+		agentId: TerminalAgentId,
+		definitionId?: AgentDefinitionId,
+	): TerminalAgentBinding | undefined;
+}
+
 /**
  * In-process tracker for which agent is alive in which terminal. Populated
- * by the hook receiver, drained on terminal exit. Absence is the only
- * signal — no history is retained.
+ * by the hook receiver, drained on terminal exit, and optionally restored
+ * from host-local persistence across host-service restarts.
  *
  * Emits `"change"` with the affected workspaceId after every mutation.
  */
 export class TerminalAgentStore extends EventEmitter {
 	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
+	private readonly persistence: TerminalAgentBindingPersistence | undefined;
+
+	constructor(persistence?: TerminalAgentBindingPersistence) {
+		super();
+		this.persistence = persistence;
+
+		for (const binding of persistence?.load() ?? []) {
+			this.byTerminal.set(binding.terminalId, binding);
+		}
+	}
 
 	recordEvent(input: RecordEventInput): void {
 		const {
@@ -77,11 +109,35 @@ export class TerminalAgentStore extends EventEmitter {
 		};
 
 		this.byTerminal.set(terminalId, next);
+		this.persistence?.upsert(next);
 		this.emit("change", workspaceId);
 	}
 
 	markTerminalExited(terminalId: string): void {
 		this.deleteTerminal(terminalId);
+	}
+
+	/**
+	 * Escape hatch for wedged working/permission state (an agent whose final
+	 * Stop hook never fired — interrupts fire no hook at all). Forces the
+	 * workspace's bindings (or just `terminalId`'s) to `Stop`, keeping
+	 * lastEventAt so seen-gating still resolves to idle. Live agents
+	 * re-assert within seconds via their next hook event, so clearing a
+	 * genuinely working agent self-corrects.
+	 */
+	clearWorkspaceStatuses(workspaceId: string, onlyTerminalId?: string): void {
+		let changed = false;
+		for (const [terminalId, binding] of this.byTerminal) {
+			if (binding.workspaceId !== workspaceId) continue;
+			if (onlyTerminalId !== undefined && terminalId !== onlyTerminalId)
+				continue;
+			if (binding.lastEventType === "Stop") continue;
+			const next: TerminalAgentBinding = { ...binding, lastEventType: "Stop" };
+			this.byTerminal.set(terminalId, next);
+			this.persistence?.upsert(next);
+			changed = true;
+		}
+		if (changed) this.emit("change", workspaceId);
 	}
 
 	get(terminalId: string): TerminalAgentBinding | undefined {
@@ -90,8 +146,11 @@ export class TerminalAgentStore extends EventEmitter {
 
 	listByWorkspace(
 		workspaceId: string,
-		filter?: ListFilter,
+		filter?: TerminalAgentBindingListFilter,
 	): TerminalAgentBinding[] {
+		if (this.persistence?.listLiveByWorkspace) {
+			return this.persistence.listLiveByWorkspace(workspaceId, filter);
+		}
 		const out: TerminalAgentBinding[] = [];
 		for (const binding of this.byTerminal.values()) {
 			if (binding.workspaceId !== workspaceId) continue;
@@ -103,11 +162,25 @@ export class TerminalAgentStore extends EventEmitter {
 		return out;
 	}
 
+	list(): TerminalAgentBinding[] {
+		if (this.persistence?.listLive) {
+			return this.persistence.listLive();
+		}
+		return [...this.byTerminal.values()];
+	}
+
 	findActive(
 		workspaceId: string,
 		agentId: TerminalAgentId,
 		definitionId?: AgentDefinitionId,
 	): TerminalAgentBinding | undefined {
+		if (this.persistence?.findLiveActive) {
+			return this.persistence.findLiveActive(
+				workspaceId,
+				agentId,
+				definitionId,
+			);
+		}
 		let best: TerminalAgentBinding | undefined;
 		for (const binding of this.byTerminal.values()) {
 			if (binding.workspaceId !== workspaceId) continue;
@@ -125,6 +198,7 @@ export class TerminalAgentStore extends EventEmitter {
 		const existing = this.byTerminal.get(terminalId);
 		if (!existing) return;
 		this.byTerminal.delete(terminalId);
+		this.persistence?.delete(terminalId);
 		this.emit("change", existing.workspaceId);
 	}
 }

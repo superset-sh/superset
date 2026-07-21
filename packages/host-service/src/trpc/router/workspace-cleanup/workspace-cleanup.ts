@@ -1,12 +1,11 @@
 import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
-import { terminalSessions, workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
+import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
@@ -226,15 +225,6 @@ async function runDestroy(
 		}
 	}
 
-	// Make sure we can commit to cloud before touching local disk. The actual
-	// cloud mutation happens after the worktree is removed.
-	if (!ctx.api) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: "Cloud API not configured",
-		});
-	}
-
 	// ─── Step 1: Teardown ──────────────────────────────────────────
 	// Script is the user's last chance to stop services / flush state
 	// before the workspace goes away. Failure here is recoverable
@@ -244,6 +234,8 @@ async function runDestroy(
 			db: ctx.db,
 			workspaceId: input.workspaceId,
 			worktreePath: local.worktreePath,
+			repoPath: project.repoPath,
+			projectId: local.projectId,
 		});
 		if (teardown.status === "failed") {
 			const cause: TeardownFailureCause = {
@@ -274,26 +266,6 @@ async function runDestroy(
 	} catch (err) {
 		const message = err instanceof Error ? err.message : String(err);
 		warnings.push(`Failed to dispose terminal sessions: ${message}`);
-	}
-
-	// Drop this workspace's terminal rows so its session index dies with it
-	// rather than lingering as `set null` orphans. Confirmed-dead rows only:
-	// a still-`active` row is a failed kill we keep reachable for the reaper.
-	try {
-		ctx.db
-			.delete(terminalSessions)
-			.where(
-				and(
-					eq(terminalSessions.originWorkspaceId, input.workspaceId),
-					ne(terminalSessions.status, "active"),
-				),
-			)
-			.run();
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		warnings.push(
-			`Failed to clear terminal session rows for ${input.workspaceId}: ${message}`,
-		);
 	}
 
 	// 2b. Worktree. Double-force unlocks the rare locked-worktree case and
@@ -365,12 +337,27 @@ async function runDestroy(
 		}
 	}
 
-	// ─── Step 3: Cloud delete ──────────────────────────────────────
-	await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+	// ─── Step 3: Local delete (authoritative) ─────────────────────
+	// The local row is the commit point and the only record. The cloud
+	// delete is best-effort legacy cleanup for rows mirrored before
+	// workspaces went fully local.
+	deleteLocalWorkspace(
+		{ db: ctx.db, eventBus: ctx.eventBus },
+		input.workspaceId,
+	);
+	let cloudDeleted = false;
+	try {
+		await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+		cloudDeleted = true;
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		warnings.push(
+			`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
+		);
+	}
 
 	// ─── Step 4: Optional branch delete ────────────────────────────
-	// Keep this after the cloud commit point. If cloud delete fails, the
-	// workspace stays visible/retryable and the branch pointer remains intact.
+	// After the local commit point so a failure here can't block the delete.
 	if (git && local?.branch && input.deleteBranch) {
 		try {
 			// An absent ref (renamed, pruned, or never materialized) already
@@ -387,19 +374,8 @@ async function runDestroy(
 		}
 	}
 
-	// ─── Step 5: Host sqlite row ───────────────────────────────────
+	// ─── Step 5: Caches ────────────────────────────────────────────
 	if (local) {
-		try {
-			ctx.db
-				.delete(workspaces)
-				.where(eq(workspaces.id, input.workspaceId))
-				.run();
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			warnings.push(
-				`Failed to remove local workspace row for ${input.workspaceId}: ${message}`,
-			);
-		}
 		try {
 			invalidateLabelCache(input.workspaceId);
 		} catch (err) {
@@ -410,7 +386,7 @@ async function runDestroy(
 
 	return {
 		success: true,
-		cloudDeleted: true,
+		cloudDeleted,
 		worktreeRemoved,
 		branchDeleted,
 		warnings,

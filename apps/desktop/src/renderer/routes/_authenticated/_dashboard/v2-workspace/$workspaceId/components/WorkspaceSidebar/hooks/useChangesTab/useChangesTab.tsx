@@ -1,10 +1,6 @@
-import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { RefreshCw } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback } from "react";
 import { useChangeset } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useSidebarDiffRef } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useSidebarDiffRef";
@@ -24,7 +20,11 @@ interface UseChangesTabParams {
 	workspaceId: string;
 	/** Absolute path of the file whose diff/preview is currently open. */
 	selectedFilePath?: string;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 }
 
@@ -145,10 +145,7 @@ export function useChangesTab({
 	const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
 	const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
 
-	const [isRefreshing, setIsRefreshing] = useState(false);
 	const handleRefresh = useCallback(async () => {
-		if (isRefreshing) return;
-		setIsRefreshing(true);
 		try {
 			await Promise.all([
 				utils.git.getStatus.invalidate({ workspaceId }),
@@ -162,29 +159,8 @@ export function useChangesTab({
 			toast.error(
 				error instanceof Error ? error.message : "Failed to refresh changes",
 			);
-		} finally {
-			setIsRefreshing(false);
 		}
-	}, [utils, workspaceId, isRefreshing]);
-
-	const actions = (
-		<Tooltip>
-			<TooltipTrigger asChild>
-				<Button
-					variant="ghost"
-					size="icon"
-					className="size-6"
-					onClick={() => void handleRefresh()}
-					disabled={isRefreshing}
-				>
-					<RefreshCw
-						className={cn("size-3.5", isRefreshing && "animate-spin")}
-					/>
-				</Button>
-			</TooltipTrigger>
-			<TooltipContent side="bottom">Refresh changes</TooltipContent>
-		</Tooltip>
-	);
+	}, [utils, workspaceId]);
 
 	const content = (
 		<ChangesTabContent
@@ -207,6 +183,7 @@ export function useChangesTab({
 			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}
 			onViewModeChange={setViewMode}
+			onRefresh={handleRefresh}
 			onBaseBranchChange={setBaseBranch}
 			onRenameBranch={handleRenameBranch}
 			canRenameBranch={canRenameBranch}
@@ -217,7 +194,6 @@ export function useChangesTab({
 		id: "changes",
 		label: "Changes",
 		badge: totalChanges > 0 ? totalChanges : undefined,
-		actions,
 		content,
 	};
 }

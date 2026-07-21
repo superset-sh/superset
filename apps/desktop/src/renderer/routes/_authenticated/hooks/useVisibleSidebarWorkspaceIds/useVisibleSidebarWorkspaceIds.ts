@@ -1,11 +1,12 @@
-import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	getSidebarWorkspaceIsHidden,
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 
 /**
@@ -21,52 +22,48 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();
 
-	const { data: sidebarProjects = [] } = useLiveQuery(
+	// Placement rows joined against live host-served projects (projects are
+	// fully local; the old inner join against the cloud collection is gone).
+	const { data: sidebarPlacementRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarProjects: collections.v2SidebarProjects })
-				.innerJoin(
-					{ projects: collections.v2Projects },
-					({ sidebarProjects, projects }) =>
-						eq(sidebarProjects.projectId, projects.id),
-				)
-				.select(({ projects }) => ({ id: projects.id })),
+				.select(({ sidebarProjects }) => ({
+					projectId: sidebarProjects.projectId,
+				})),
 		[collections],
 	);
+	const { projects: hostProjects } = useHostProjects();
+	const sidebarProjects = useMemo(() => {
+		const known = new Set(hostProjects.map((project) => project.projectKey));
+		return sidebarPlacementRows.filter((row) => known.has(row.projectId));
+	}, [sidebarPlacementRows, hostProjects]);
 
-	const { data: localStateWorkspaces = [] } = useLiveQuery(
+	const { data: localStateRows = [] } = useLiveQuery(
 		(q) =>
 			q
 				.from({ sidebarWorkspaces: collections.v2WorkspaceLocalState })
-				.innerJoin(
-					{ workspaces: collections.v2Workspaces },
-					({ sidebarWorkspaces, workspaces }) =>
-						eq(sidebarWorkspaces.workspaceId, workspaces.id),
-				)
-				.select(({ sidebarWorkspaces, workspaces }) => ({
-					id: workspaces.id,
+				.select(({ sidebarWorkspaces }) => ({
+					id: sidebarWorkspaces.workspaceId,
 					projectId: sidebarWorkspaces.sidebarState.projectId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
 				})),
 		[collections],
 	);
 
-	const { data: mainWorkspaces = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ workspaces: collections.v2Workspaces })
-				.where(({ workspaces }) => eq(workspaces.type, "main"))
-				.select(({ workspaces }) => ({
-					id: workspaces.id,
-					projectId: workspaces.projectId,
-					hostId: workspaces.hostId,
-				})),
-		[collections],
-	);
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 
 	return useMemo(() => {
+		const workspaceIds = new Set(
+			hostWorkspaces.map((workspace) => workspace.id),
+		);
+		// Local-state rows only count when the workspace still exists (the old
+		// query inner-joined against the workspaces table for the same reason).
+		const localStateWorkspaces = localStateRows.filter((workspace) =>
+			workspaceIds.has(workspace.id),
+		);
 		const sidebarProjectIds = new Set(
-			sidebarProjects.map((project) => project.id),
+			sidebarProjects.map((project) => project.projectId),
 		);
 		const localStateWorkspaceIds = new Set(
 			localStateWorkspaces.map((workspace) => workspace.id),
@@ -79,7 +76,8 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 			visibleIds.add(workspace.id);
 		}
 
-		for (const workspace of mainWorkspaces) {
+		for (const workspace of hostWorkspaces) {
+			if (workspace.type !== "main") continue;
 			if (
 				isAutoIncludedLocalMainWorkspace(workspace, {
 					localStateWorkspaceIds,
@@ -92,5 +90,5 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 		}
 
 		return visibleIds;
-	}, [sidebarProjects, localStateWorkspaces, mainWorkspaces, machineId]);
+	}, [sidebarProjects, localStateRows, hostWorkspaces, machineId]);
 }

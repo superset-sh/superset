@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
 	buildV2TerminalEnv,
 	getShellBootstrapEnv,
@@ -8,6 +11,7 @@ import {
 	normalizeUtf8Locale,
 	resetTerminalBaseEnvForTests,
 	resolveLaunchShell,
+	shellLaunchExpectsReadyMarker,
 	stripTerminalRuntimeEnv,
 } from "./env";
 
@@ -291,6 +295,85 @@ describe("getShellLaunchArgs", () => {
 	});
 });
 
+describe("shellLaunchExpectsReadyMarker", () => {
+	test("recognizes current zsh and bash wrappers", () => {
+		const supersetHomeDir = mkdtempSync(
+			path.join(tmpdir(), "superset-shell-ready-"),
+		);
+		try {
+			mkdirSync(path.join(supersetHomeDir, "zsh"), { recursive: true });
+			mkdirSync(path.join(supersetHomeDir, "bash"), { recursive: true });
+			writeFileSync(path.join(supersetHomeDir, "zsh", ".zshrc"), "# rc\n");
+			writeFileSync(
+				path.join(supersetHomeDir, "zsh", ".zlogin"),
+				'printf "\\033]133;A\\007"\n',
+			);
+			writeFileSync(
+				path.join(supersetHomeDir, "bash", "rcfile"),
+				'printf "\\033]133;A\\007"\n',
+			);
+
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/zsh",
+					supersetHomeDir,
+				}),
+			).toBe(true);
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/bash",
+					supersetHomeDir,
+				}),
+			).toBe(true);
+		} finally {
+			rmSync(supersetHomeDir, { recursive: true, force: true });
+		}
+	});
+
+	test("does not trust stale or incomplete wrapper files", () => {
+		const supersetHomeDir = mkdtempSync(
+			path.join(tmpdir(), "superset-shell-stale-"),
+		);
+		try {
+			mkdirSync(path.join(supersetHomeDir, "zsh"), { recursive: true });
+			mkdirSync(path.join(supersetHomeDir, "bash"), { recursive: true });
+			writeFileSync(path.join(supersetHomeDir, "zsh", ".zshrc"), "# rc\n");
+			writeFileSync(
+				path.join(supersetHomeDir, "zsh", ".zlogin"),
+				"# stale wrapper\n",
+			);
+			writeFileSync(
+				path.join(supersetHomeDir, "bash", "rcfile"),
+				"# stale wrapper\n",
+			);
+
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/zsh",
+					supersetHomeDir,
+				}),
+			).toBe(false);
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/bash",
+					supersetHomeDir,
+				}),
+			).toBe(false);
+		} finally {
+			rmSync(supersetHomeDir, { recursive: true, force: true });
+		}
+	});
+
+	test("recognizes fish's injected marker without wrapper files", () => {
+		expect(
+			shellLaunchExpectsReadyMarker({
+				shell: "/usr/bin/fish",
+				supersetHomeDir: "/tmp/missing-superset-home",
+			}),
+		).toBe(true);
+	});
+});
+
 describe("getShellBootstrapEnv", () => {
 	test("zsh bootstrap applies only when wrapper files exist", () => {
 		const result = getShellBootstrapEnv({
@@ -410,7 +493,6 @@ describe("buildV2TerminalEnv", () => {
 		workspaceId: "ws-1",
 		workspacePath: "/tmp/workspace",
 		rootPath: "/tmp/repo",
-		hostServiceVersion: "2.0.0",
 		supersetEnv: "production" as const,
 		agentHookPort: "51741",
 		agentHookVersion: "2",
@@ -421,7 +503,7 @@ describe("buildV2TerminalEnv", () => {
 		expect(env).toMatchObject({
 			TERM: "xterm-256color",
 			TERM_PROGRAM: "kitty",
-			TERM_PROGRAM_VERSION: "2.0.0",
+			TERM_PROGRAM_VERSION: "0.42.0",
 			COLORTERM: "truecolor",
 			PWD: "/tmp/workspace",
 			SUPERSET_TERMINAL_ID: "term-1",
@@ -470,6 +552,27 @@ describe("buildV2TerminalEnv", () => {
 			themeType: "light",
 		});
 		expect(env.COLORFGBG).toBe("0;15");
+	});
+
+	test("defaults TERM_THEME to dark", () => {
+		const env = buildV2TerminalEnv(baseParams);
+		expect(env.TERM_THEME).toBe("dark");
+	});
+
+	test("sets TERM_THEME to dark when themeType is dark", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			themeType: "dark",
+		});
+		expect(env.TERM_THEME).toBe("dark");
+	});
+
+	test("sets TERM_THEME to light when themeType is light", () => {
+		const env = buildV2TerminalEnv({
+			...baseParams,
+			themeType: "light",
+		});
+		expect(env.TERM_THEME).toBe("light");
 	});
 
 	test("drops removed v1 metadata while preserving user shell vars", () => {
@@ -522,7 +625,6 @@ describe("v2 env contract boundary", () => {
 			workspaceId: "w-1",
 			workspacePath: "/tmp/ws",
 			rootPath: "",
-			hostServiceVersion: "2.0.0",
 			supersetEnv: "production",
 			agentHookPort: "51741",
 			agentHookVersion: "2",

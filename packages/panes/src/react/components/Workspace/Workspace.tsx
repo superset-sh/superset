@@ -1,10 +1,12 @@
 import { cn } from "@superset/ui/utils";
-import { useEffect, useRef } from "react";
+import { useEffect, useMemo, useRef } from "react";
+import { useDragLayer } from "react-dnd";
 import { useStore } from "zustand";
 import type { Pane } from "../../../types";
 import type { WorkspaceProps } from "../../types";
 import { Tab } from "./components/Tab";
 import { TabBar } from "./components/TabBar";
+import { TAB_DRAG_TYPE } from "./components/TabBar/components/TabItem";
 import { useWorkspaceInteractionState } from "./hooks/useWorkspaceInteractionState";
 
 export function Workspace<TData>({
@@ -29,6 +31,28 @@ export function Workspace<TData>({
 	const { onSplitResizeDragging } = useWorkspaceInteractionState({
 		onInteractionStateChange,
 	});
+
+	// The tab id currently being dragged in the tab bar, if any.
+	const draggedTabId = useDragLayer((monitor) => {
+		if (!monitor.isDragging() || monitor.getItemType() !== TAB_DRAG_TYPE) {
+			return null;
+		}
+		const item = monitor.getItem() as { tabId?: string } | null;
+		return item?.tabId ?? null;
+	});
+
+	// While dragging the active tab, render its neighbor (preceding tab, or the
+	// next one when dragging the first tab) instead. Dropping a tab onto its own
+	// view is a no-op (you'd merge it into itself), so showing a sibling lets
+	// you see — and drop onto — an actual merge target.
+	const displayedTab = useMemo(() => {
+		if (draggedTabId && draggedTabId === activeTabId) {
+			const index = tabs.findIndex((t) => t.id === draggedTabId);
+			if (index > 0) return tabs[index - 1];
+			if (index === 0 && tabs.length > 1) return tabs[1];
+		}
+		return activeTab;
+	}, [draggedTabId, activeTabId, tabs, activeTab]);
 
 	const previousPanesRef = useRef<Map<string, Pane<TData>>>(new Map());
 	useEffect(() => {
@@ -101,10 +125,10 @@ export function Workspace<TData>({
 				renderTabAccessory={renderTabAccessory}
 			/>
 			{renderBelowTabBar?.()}
-			{activeTab ? (
+			{displayedTab ? (
 				<Tab
 					store={store}
-					tab={activeTab}
+					tab={displayedTab}
 					registry={registry}
 					paneActions={paneActions}
 					contextMenuActions={contextMenuActions}

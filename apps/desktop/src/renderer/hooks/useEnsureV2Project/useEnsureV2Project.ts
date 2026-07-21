@@ -28,32 +28,21 @@ export function useEnsureV2Project(): (args: {
 			}
 			const hostService = getHostServiceClientByUrl(activeHostUrl);
 
+			// findByPath is local-only: a candidate means this host already has
+			// the project, so setup just re-ensures the main workspace.
 			const found = await hostService.project.findByPath.query({ repoPath });
 			const candidate = found.candidates[0];
 			if (candidate) {
-				try {
-					const setupResult = await hostService.project.setup.mutate({
-						projectId: candidate.id,
-						mode: { kind: "import", repoPath },
-					});
-					return {
-						hostUrl: activeHostUrl,
-						projectId: candidate.id,
-						repoPath: setupResult.repoPath,
-						mainWorkspaceId: setupResult.mainWorkspaceId,
-					};
-				} catch (err) {
-					// findByPath returns local sqlite rows even when no cloud v2 project
-					// exists for that id; setup → v2Project.get → NOT_FOUND. Only that
-					// case is safe to fall through to create — every other error
-					// (network, auth, 5xx) must propagate so retries don't silently mint
-					// duplicate cloud projects.
-					const code = (err as { data?: { code?: string } } | null | undefined)
-						?.data?.code;
-					if (code !== "NOT_FOUND") {
-						throw err;
-					}
-				}
+				const setupResult = await hostService.project.setup.mutate({
+					projectId: candidate.id,
+					mode: { kind: "import", repoPath },
+				});
+				return {
+					hostUrl: activeHostUrl,
+					projectId: candidate.id,
+					repoPath: setupResult.repoPath,
+					mainWorkspaceId: setupResult.mainWorkspaceId,
+				};
 			}
 
 			const created = await hostService.project.create.mutate({

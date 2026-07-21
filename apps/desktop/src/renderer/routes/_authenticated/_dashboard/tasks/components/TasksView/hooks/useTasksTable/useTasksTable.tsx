@@ -63,12 +63,14 @@ interface UseTasksTableParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	linearProjectFilter: string | null;
 }
 
 export function useTasksTable({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	linearProjectFilter,
 }: UseTasksTableParams): {
 	table: Table<TaskWithStatus>;
 	slugColumnWidth: string;
@@ -118,15 +120,22 @@ export function useTasksTable({
 			.sort(compareTasks);
 	}, [allData]);
 
-	const { search } = useHybridSearch(sortedData);
+	const projectScopedData = useMemo(() => {
+		if (!linearProjectFilter) return sortedData;
+		return sortedData.filter(
+			(task) => task.externalProjectId === linearProjectFilter,
+		);
+	}, [sortedData, linearProjectFilter]);
+
+	const { search } = useHybridSearch(projectScopedData);
 
 	const data = useMemo(() => {
 		if (!searchQuery.trim()) {
-			return sortedData;
+			return projectScopedData;
 		}
 		const results = search(searchQuery);
 		return results.map((r) => r.item);
-	}, [sortedData, searchQuery, search]);
+	}, [projectScopedData, searchQuery, search]);
 
 	const isFirstMount = useRef(true);
 	useEffect(() => {

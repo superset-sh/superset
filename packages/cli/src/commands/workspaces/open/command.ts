@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { boolean, CLIError, positional } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
+import { findHostWorkspace } from "../../../lib/host-workspaces";
 
 function openUrl(url: string): Promise<void> {
 	const [bin, args]: [string, string[]] =
@@ -35,13 +36,18 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const workspace = await ctx.api.v2Workspace.getFromHost.query({
-			organizationId,
+		// Workspace records are host-owned: resolve the id across the org's
+		// reachable hosts.
+		const { workspace, warnings } = await findHostWorkspace(
+			{ api: ctx.api, organizationId, userJwt: ctx.bearer },
 			id,
-		});
+		);
+		for (const warning of warnings) {
+			process.stderr.write(`Warning: ${warning}\n`);
+		}
 		if (!workspace) {
 			throw new CLIError(
-				`Workspace not found: ${id}`,
+				`Workspace not found on any reachable host: ${id}`,
 				"List workspaces with: superset workspaces list",
 			);
 		}

@@ -4,7 +4,7 @@ description: Method-by-method reference for the Superset TypeScript SDK.
 ---
 
 <Callout type="warn">
-The SDK is in early alpha — it is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
+The SDK is in early alpha. It is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
 </Callout>
 
 ## Client
@@ -64,7 +64,7 @@ const tasks = await client.tasks.list({
 });
 ```
 
-Returns `Array<TaskListItem>` — each row is a `Task` denormalized with `assigneeName`, `assigneeImage`, `creatorName`, `creatorImage`, and `statusName` so you don't need follow-up calls for display.
+Returns `Array<TaskListItem>`. Each row is a `Task` denormalized with `assigneeName`, `assigneeImage`, `creatorName`, `creatorImage`, and `statusName` so you don't need follow-up calls for display.
 
 ### `tasks.retrieve(idOrSlug)`
 
@@ -109,7 +109,7 @@ const statuses = await client.tasks.statuses.list();
 const todo = statuses.find((s) => s.type === 'unstarted');
 ```
 
-Returns `Array<TaskStatus>` — each entry is `{ id, name, color, type, position }`.
+Returns `Array<TaskStatus>`. Each entry is `{ id, name, color, type, position }`.
 
 ---
 
@@ -128,9 +128,9 @@ Returns `Array<Workspace>`.
 
 ### `workspaces.create({ hostId, projectId, name, branch, agents?, command? })`
 
-Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel — the host must be online.
+Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
 
-Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID — the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents` — pass either or both.
+Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
 
 ```ts
 const result = await client.workspaces.create({
@@ -153,9 +153,9 @@ for (const agent of result.agents) {
 
 Returns a `WorkspaceCreateResult`:
 
-- `workspace` — the created workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
-- `terminals` — terminals opened on the host (`{ terminalId, label? }`).
-- `agents` — one entry per agent in the request (empty if `agents` was omitted). Each entry is either `{ ok: true, kind: 'terminal' | 'chat', sessionId, label }` or `{ ok: false, error }`.
+- `workspace`: the created workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
+- `terminals`: terminals opened on the host (`{ terminalId, label? }`).
+- `agents`: one entry per agent in the request (empty if `agents` was omitted). Each entry is either `{ ok: true, kind: 'terminal' | 'chat', sessionId, label }` or `{ ok: false, error }`.
 
 ### `workspaces.update(id, params)`
 
@@ -207,14 +207,14 @@ const online = hosts.filter((h) => h.online);
 ## agents
 
 Terminal-agent rows configured on a specific host (the same rows shown in
-Settings → Agents on that machine). Reads route through the relay tunnel —
+Settings → Agents on that machine). Reads route through the relay tunnel:
 the target host must be online.
 
 ### `agents.list({ hostId })`
 
 List configured agents on a host in persisted display order. First call on a
-fresh host seeds the bundled defaults. Returns `Array<HostAgentConfig>` —
-each row carries `id`, `presetId`, `label`, `command`, `args`, `env`, and
+fresh host seeds the bundled defaults. Returns `Array<HostAgentConfig>`.
+Each row carries `id`, `presetId`, `label`, `command`, `args`, `env`, and
 prompt-transport fields used to launch the agent.
 
 ```ts
@@ -272,7 +272,7 @@ const automations = await client.automations.list();
 const triage = await client.automations.list({ name: 'triage' });
 ```
 
-Each row is an `AutomationSummary` — the `prompt` body is omitted (it can be
+Each row is an `AutomationSummary`: the `prompt` body is omitted (it can be
 large markdown). Fetch one with `automations.getPrompt(id)`. Each row includes
 `scheduleText`, a human-readable rendering of the rrule.
 
@@ -282,7 +282,7 @@ large markdown). Fetch one with `automations.getPrompt(id)`. Each row includes
 const a = await client.automations.retrieve(id);
 ```
 
-Returns an `AutomationSummary` (no `prompt` body — call `getPrompt(id)`).
+Returns an `AutomationSummary` (no `prompt` body: call `getPrompt(id)`).
 
 ### `automations.create(body)`
 
@@ -327,7 +327,7 @@ Toggle the `enabled` flag. A paused automation stops running on its schedule unt
 
 ### `automations.logs(id, params?)`
 
-Run history. Owner-only — returns 404 if the automation isn't owned by the calling user.
+Run history. Owner-only: returns 404 if the automation isn't owned by the calling user.
 
 ```ts
 const runs = await client.automations.logs(id, { limit: 20 });

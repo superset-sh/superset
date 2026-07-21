@@ -151,9 +151,8 @@ export function useWorkspaceFileNavigation({
 		[store, worktreePath, recordView],
 	);
 
-	// Sidebar tree clicks layer the VS-Code-style "click an already-active row
-	// to pin it" pattern on top of openFilePane. The picker and other callers
-	// stay on plain openFilePane so re-picks just refocus without pinning.
+	// User-facing file opens from the workspace sidebar layer the VS-Code-style
+	// "click an already-active row to pin it" pattern on top of openFilePane.
 	const openFilePaneFromTreeClick = useCallback(
 		(filePath: string, openInNewTab?: boolean) => {
 			if (openInNewTab) {

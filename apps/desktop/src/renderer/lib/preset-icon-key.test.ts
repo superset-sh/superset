@@ -10,6 +10,7 @@ function createAgent(
 	return {
 		id,
 		presetId,
+		iconId: null,
 		label: presetId,
 		command: presetId,
 		args: [],
@@ -30,8 +31,46 @@ describe("resolveV2PresetIconKey", () => {
 		).toBe("claude");
 	});
 
+	it("prefers linked host-agent icon overrides", () => {
+		expect(
+			resolveV2PresetIconKey({ agentId: "custom-config" }, [
+				createAgent({
+					id: "custom-config",
+					presetId: "custom",
+					iconId: "codex",
+				}),
+			]),
+		).toBe("codex");
+	});
+
+	it("resolves linked host-agent uploaded image icons", () => {
+		const dataUri = "data:image/png;base64,abc123";
+
+		expect(
+			resolveV2PresetIconKey({ agentId: "custom-config" }, [
+				createAgent({
+					id: "custom-config",
+					presetId: "custom",
+					iconId: dataUri,
+				}),
+			]),
+		).toBe(dataUri);
+	});
+
 	it("keeps supporting legacy rows whose agentId is already a preset id", () => {
 		expect(resolveV2PresetIconKey({ agentId: "codex" }, [])).toBe("codex");
+	});
+
+	it("does not apply icon overrides to legacy rows whose agentId is already a preset id", () => {
+		expect(
+			resolveV2PresetIconKey({ agentId: "codex" }, [
+				createAgent({
+					id: "custom-codex-config",
+					presetId: "codex",
+					iconId: "claude",
+				}),
+			]),
+		).toBe("codex");
 	});
 
 	it("infers the icon from stored commands when the agent link is stale", () => {
@@ -55,6 +94,48 @@ describe("resolveV2PresetIconKey", () => {
 				[],
 			),
 		).toBe("cursor-agent");
+	});
+
+	it("prefers matching agent icon overrides when inferring from commands", () => {
+		expect(
+			resolveV2PresetIconKey(
+				{
+					commands: ["custom-agent"],
+				},
+				[
+					createAgent({
+						id: "custom-config",
+						presetId: "custom",
+						iconId: "claude",
+						command: "custom-agent",
+					}),
+				],
+			),
+		).toBe("claude");
+	});
+
+	it("falls back to a shared preset id when command matches have different icon overrides", () => {
+		expect(
+			resolveV2PresetIconKey(
+				{
+					commands: ["codex"],
+				},
+				[
+					createAgent({
+						id: "codex-config-a",
+						presetId: "codex",
+						iconId: "claude",
+						command: "codex",
+					}),
+					createAgent({
+						id: "codex-config-b",
+						presetId: "codex",
+						iconId: "opencode",
+						command: "codex",
+					}),
+				],
+			),
+		).toBe("codex");
 	});
 
 	it("does not infer from editable preset names", () => {

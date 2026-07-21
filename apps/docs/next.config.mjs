@@ -37,6 +37,41 @@ const config = {
 				destination: "/overview",
 				permanent: false,
 			},
+			// Legacy /docs-prefixed URLs (e.g. /docs/automations) now live at root.
+			{
+				source: "/docs/:path*",
+				destination: "/:path*",
+				permanent: true,
+			},
+			// Old top-level entry points from the previous docs structure (were 404ing).
+			{
+				source: "/getting-started",
+				destination: "/overview",
+				permanent: true,
+			},
+			{
+				source: "/installation",
+				destination: "/overview",
+				permanent: true,
+			},
+			{
+				source: "/quick-start",
+				destination: "/first-workspace",
+				permanent: true,
+			},
+		];
+	},
+	async headers() {
+		// Keep raw markdown surfaces out of the index (they duplicate rendered pages).
+		return [
+			{
+				source: "/:path*.mdx",
+				headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+			},
+			{
+				source: "/llms-full.txt",
+				headers: [{ key: "X-Robots-Tag", value: "noindex" }],
+			},
 		];
 	},
 	async rewrites() {

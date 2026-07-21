@@ -1,3 +1,4 @@
+import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { env } from "main/env.main";
 import {
@@ -16,7 +17,10 @@ export const createHostServiceCoordinatorRouter = () => {
 			const coordinator = getHostServiceCoordinator();
 			const { token } = await loadToken();
 			if (!token) {
-				throw new Error("No auth token available — user must be logged in");
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "No auth token available — user must be logged in",
+				});
 			}
 			return coordinator.start(input.organizationId, {
 				authToken: token,
@@ -29,6 +33,14 @@ export const createHostServiceCoordinatorRouter = () => {
 			return coordinator.getConnection(input.organizationId);
 		}),
 
+		// All running local host connections, across every org — used to broadcast
+		// workspace-session disposal so a non-active-org workspace's terminals are
+		// cleaned up regardless of which org is currently active.
+		getConnections: publicProcedure.query(() => {
+			const coordinator = getHostServiceCoordinator();
+			return coordinator.getConnections();
+		}),
+
 		getProcessStatus: publicProcedure.input(orgInput).query(({ input }) => {
 			const coordinator = getHostServiceCoordinator();
 			return { status: coordinator.getProcessStatus(input.organizationId) };
@@ -38,7 +50,10 @@ export const createHostServiceCoordinatorRouter = () => {
 			const coordinator = getHostServiceCoordinator();
 			const { token } = await loadToken();
 			if (!token) {
-				throw new Error("No auth token available — user must be logged in");
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "No auth token available — user must be logged in",
+				});
 			}
 			return coordinator.restart(input.organizationId, {
 				authToken: token,
@@ -50,7 +65,10 @@ export const createHostServiceCoordinatorRouter = () => {
 			const coordinator = getHostServiceCoordinator();
 			const { token } = await loadToken();
 			if (!token) {
-				throw new Error("No auth token available — user must be logged in");
+				throw new TRPCError({
+					code: "UNAUTHORIZED",
+					message: "No auth token available — user must be logged in",
+				});
 			}
 			return coordinator.reset(input.organizationId, {
 				authToken: token,

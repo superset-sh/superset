@@ -1,10 +1,11 @@
 name: Release CLI
 
-# Fires on cli-v* tag push. Builds the full 3-target matrix, publishes a
-# prerelease GitHub Release plus a rolling cli-latest pointer, then bumps the
-# Homebrew formula. workflow_dispatch is the manual escape hatch for testing
-# the full pipeline without cutting a tag (the release job is gated to tag
-# pushes only).
+# Fires on cli-v* tag push, or dispatched on a cli-v* tag ref by
+# release-cli-lockstep.yml (an API-created tag emits no push event). Builds the
+# full 3-target matrix, publishes a prerelease GitHub Release plus a rolling
+# cli-latest pointer, then bumps the Homebrew formula. A bare workflow_dispatch
+# (branch ref) is the manual escape hatch for testing the build without
+# cutting a tag (the release job is gated to cli-v* tag refs).
 
 on:
   push:
@@ -25,6 +26,8 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/cli-v')
     permissions:
       contents: write
+    outputs:
+      is_newest: ${{ steps.pointer.outputs.is_newest }}
 
     steps:
       - name: Checkout code
@@ -61,6 +64,7 @@ jobs:
           echo "${VERSION_TAG#cli-v}" > release-artifacts/version.txt
 
       - name: Update rolling cli-latest release
+        id: pointer
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           VERSION_TAG: ${{ github.ref_name }}
@@ -70,8 +74,29 @@ jobs:
           # from `/releases/download/cli-latest/` so it never has to filter
           # the repo's release list (where desktop releases would otherwise
           # shadow the latest CLI release on the global /releases/latest
-          # endpoint). Recreate it on every CLI release.
+          # endpoint). Recreate it on every CLI release — unless this tag is
+          # OLDER than what cli-latest already serves (a re-cut of an old
+          # version must not roll users or Homebrew back).
           set -euo pipefail
+          NEW="${VERSION_TAG#cli-v}"
+          # Fail CLOSED: only a genuinely absent pointer/manifest may skip the
+          # comparison. A transient fetch error aborts the job rather than
+          # letting an old re-cut move the pointer backward unverified.
+          CURRENT=""
+          if ASSETS=$(gh release view cli-latest --json assets --jq '.assets[].name' 2>&1); then
+            if printf '%s\n' "$ASSETS" | grep -qx 'version.txt'; then
+              CURRENT=$(gh release download cli-latest --pattern version.txt --output - | tr -d '[:space:]')
+            fi
+          elif ! printf '%s' "$ASSETS" | grep -qi 'release not found'; then
+            echo "::error::Could not verify cli-latest pointer: $ASSETS"
+            exit 1
+          fi
+          if [ -n "$CURRENT" ] && [ "$(printf '%s\n%s\n' "$NEW" "$CURRENT" | sort -V | tail -n1)" != "$NEW" ]; then
+            echo "is_newest=false" >> "$GITHUB_OUTPUT"
+            echo "cli-latest already serves $CURRENT (newer than $NEW); leaving the pointer and Homebrew untouched."
+            exit 0
+          fi
+          echo "is_newest=true" >> "$GITHUB_OUTPUT"
           gh release delete cli-latest --yes --cleanup-tag || true
           gh release create cli-latest \
             release-artifacts/*.tar.gz \
@@ -88,7 +113,9 @@ jobs:
     # never runs. needs: release guarantees the tarballs are published first.
     name: Bump Homebrew Formula
     needs: release
-    if: startsWith(github.ref, 'refs/tags/cli-v')
+    # is_newest gate: skip the formula bump when the pointer update was skipped
+    # (re-cut of an older tag) so Homebrew never downgrades either.
+    if: startsWith(github.ref, 'refs/tags/cli-v') && needs.release.outputs.is_newest == 'true'
     uses: ./.github/workflows/bump-homebrew.yml
     with:
       tag: ${{ github.ref_name }}

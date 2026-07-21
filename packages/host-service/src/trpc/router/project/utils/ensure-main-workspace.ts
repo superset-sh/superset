@@ -1,11 +1,15 @@
-import { getHostId, getHostName } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
+import {
+	insertLocalWorkspace,
+	updateLocalWorkspace,
+} from "../../../../workspaces/local-workspace-store";
 
 export type EnsureMainWorkspaceContext = Pick<
 	HostServiceContext,
-	"api" | "db" | "git" | "organizationId" | "clientMachineId"
+	"db" | "git" | "eventBus"
 >;
 
 async function getCurrentBranchName(
@@ -28,7 +32,7 @@ async function getCurrentBranchName(
 
 /**
  * Idempotent log-and-continue variant. Returns null on any failure so a
- * transient cloud blip during setup or sweep doesn't fail the caller — the
+ * transient blip during setup or sweep doesn't fail the caller — the
  * startup sweep retries on the next boot. Create flows want strict
  * semantics instead; see `ensureMainWorkspaceStrict`.
  */
@@ -49,10 +53,10 @@ export async function ensureMainWorkspace(
 }
 
 /**
- * Strict variant: ensure a `type='main'` v2 workspace exists for
- * (projectId, currentHost) with a matching local `workspaces` row, or
- * throw. The create-project saga uses this so a workspace failure rolls
- * back the whole saga, including the cloud project commit.
+ * Strict variant: ensure a `type='main'` workspace row exists locally for
+ * this project, or throw. Fully local — workspaces have no cloud mirror.
+ * The one-main-per-project invariant is enforced by the
+ * `workspaces_one_main_per_project` partial unique index.
  */
 export async function ensureMainWorkspaceStrict(
 	ctx: EnsureMainWorkspaceContext,
@@ -69,39 +73,53 @@ export async function ensureMainWorkspaceStrict(
 		});
 	}
 
-	const host = await ctx.api.host.ensure.mutate({
-		organizationId: ctx.organizationId,
-		machineId: getHostId(),
-		name: getHostName(),
-	});
+	const store = { db: ctx.db, eventBus: ctx.eventBus };
 
-	const cloudRow = await ctx.api.v2Workspace.create.mutate({
-		organizationId: ctx.organizationId,
-		projectId,
-		name: branch,
-		branch,
-		hostId: host.machineId,
-		type: "main",
-		clientMachineId: ctx.clientMachineId ?? getHostId(),
-	});
+	const existing = ctx.db.query.workspaces
+		.findFirst({
+			where: and(
+				eq(workspaces.projectId, projectId),
+				eq(workspaces.type, "main"),
+			),
+		})
+		.sync();
+	if (existing) {
+		if (existing.branch !== branch || existing.worktreePath !== repoPath) {
+			// The repo's checked-out branch moved; follow it. A name that was
+			// just the branch follows too.
+			updateLocalWorkspace(store, existing.id, {
+				branch,
+				worktreePath: repoPath,
+				...(existing.name === existing.branch ? { name: branch } : {}),
+			});
+		}
+		return { id: existing.id };
+	}
 
-	ctx.db
-		.insert(workspaces)
-		.values({
-			id: cloudRow.id,
+	let inserted: ReturnType<typeof insertLocalWorkspace>;
+	try {
+		inserted = insertLocalWorkspace(store, {
 			projectId,
 			worktreePath: repoPath,
 			branch,
-		})
-		.onConflictDoUpdate({
-			target: workspaces.id,
-			set: {
-				projectId,
-				worktreePath: repoPath,
-				branch,
-			},
-		})
-		.run();
+			name: branch,
+			type: "main",
+		});
+	} catch (err) {
+		// A concurrent caller (e.g. the startup sweep racing a create saga)
+		// won the one-main-per-project unique index. That's the desired
+		// invariant, not a failure — re-query and return the winner's row.
+		const winner = ctx.db.query.workspaces
+			.findFirst({
+				where: and(
+					eq(workspaces.projectId, projectId),
+					eq(workspaces.type, "main"),
+				),
+			})
+			.sync();
+		if (winner) return { id: winner.id };
+		throw err;
+	}
 
-	return { id: cloudRow.id };
+	return { id: inserted.id };
 }

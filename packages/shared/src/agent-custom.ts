@@ -59,6 +59,7 @@ export const agentCustomDefinitionSchema = z.object({
 	promptCommand: z.string().optional(),
 	promptCommandSuffix: z.string().optional(),
 	promptTransport: z.enum(PROMPT_TRANSPORTS).optional(),
+	nonInteractiveCommand: z.string().optional(),
 	taskPromptTemplate: z.string(),
 	contextPromptTemplateSystem: z.string().optional(),
 	contextPromptTemplateUser: z.string().optional(),

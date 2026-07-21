@@ -23,13 +23,13 @@ import type {
 	SelectUser,
 	SelectV2Client,
 	SelectV2Host,
-	SelectV2Project,
 	SelectV2UsersHosts,
 	SelectV2Workspace,
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
+import { toast } from "@superset/ui/sonner";
 import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
@@ -47,13 +47,9 @@ import {
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
-import {
-	authClient,
-	getAuthToken,
-	getJwt,
-	setJwt,
-} from "renderer/lib/auth-client";
-import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { track } from "renderer/lib/analytics";
+import { getAuthToken, getJwt } from "renderer/lib/auth-client";
+import { refreshJwtAfterUnauthorized } from "renderer/lib/jwt-refresh";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -73,6 +69,7 @@ import {
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { evictInactiveOrgs } from "./evictInactiveOrgs";
 import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
@@ -148,7 +145,6 @@ export interface OrgCollections {
 	v2Hosts: Collection<SelectV2Host>;
 	v2Clients: Collection<SelectV2Client>;
 	v2UsersHosts: Collection<SelectV2UsersHosts>;
-	v2Projects: Collection<SelectV2Project>;
 	v2Workspaces: Collection<SelectV2Workspace>;
 	workspaces: Collection<SelectWorkspace>;
 	members: Collection<SelectMember>;
@@ -241,18 +237,27 @@ type ElectricSyncErrorHandler = NonNullable<ShapeStreamOptions["onError"]>;
 
 const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 	if (error instanceof FetchError && error.status === 401) {
-		try {
-			const result = await authClient.token();
-			if (result.data?.token) {
-				setJwt(result.data.token);
-			}
-		} catch (refreshError) {
-			console.error("[collections] JWT refresh after 401 failed", refreshError);
-		}
-	} else {
-		console.error("[collections] Electric sync error", error);
+		// Shared gate: concurrent shape 401s dedupe to one /api/auth/token call,
+		// and a broken session backs off + trips a circuit instead of storming
+		// the endpoint into Vercel's firewall (issue #5513).
+		await refreshJwtAfterUnauthorized();
+		return {}; // retry once with the refreshed token
 	}
-	return {};
+	// 5xx/network/429 are retried inside Electric forever and never reach here, so
+	// a 4xx that does is terminal — return void to stop the stream instead of
+	// looping the same doomed request until Electric's 50-retry guard trips.
+	console.error("[collections] Electric sync stopped", error);
+	const status = error instanceof FetchError ? error.status : undefined;
+	track("electric_sync_stopped", {
+		status,
+		message: error instanceof Error ? error.message.slice(0, 200) : undefined,
+	});
+	toast.error("Cloud sync stopped", {
+		id: "electric-sync-stopped",
+		description: "Synced data may be stale until Superset reconnects.",
+		action: { label: "Reload", onClick: () => window.location.reload() },
+	});
+	return;
 };
 
 const organizationsCollection = createPersistedElectricCollection(
@@ -334,43 +339,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const v2Projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Project>({
-			id: `v2_projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const githubRepositoryId =
-					changes.githubRepositoryId === null &&
-					changes.repoCloneUrl !== undefined
-						? undefined
-						: changes.githubRepositoryId;
-				const result = await apiClient.v2Project.update.mutate({
-					id: original.id,
-					name: changes.name,
-					slug: changes.slug,
-					repoCloneUrl: changes.repoCloneUrl,
-					githubRepositoryId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-	v2Projects.createIndex(
-		(project) => project.githubRepositoryId,
-		basicIndexConfig,
-	);
-
 	const v2Hosts = createPersistedElectricCollection(
 		electricCollectionOptions<SelectV2Host>({
 			id: `v2_hosts-${organizationId}`,
@@ -387,6 +355,13 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			// Composite PK on (organization_id, machine_id); within an
 			// org-scoped collection, machineId alone is unique.
 			getKey: (item) => item.machineId,
+			onDelete: async ({ transaction }) => {
+				const { original } = transaction.mutations[0];
+				const result = await apiClient.v2Host.delete.mutate({
+					hostId: original.machineId,
+				});
+				return electricTxidMatch(result.txid);
+			},
 			onUpdate: async ({ transaction }) => {
 				const { original, changes } = transaction.mutations[0];
 				if (changes.name === undefined) {
@@ -483,26 +458,10 @@ function createOrgCollections(organizationId: string): OrgCollections {
 				onError: handleElectricSyncError,
 			},
 			getKey: (item) => item.id,
-			onInsert: async ({ transaction }) => {
-				const metadata = transaction.mutations[0]
-					.metadata as WorkspaceCreateMutationMetadata;
-				const client = getHostServiceClientByUrl(metadata.hostUrl);
-				const result = await client.workspaces.create.mutate(metadata.input);
-				metadata.result = result;
-				return electricTxidMatch(result.txid);
-			},
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const { branch, hostId, name, taskId } = changes;
-				const result = await apiClient.v2Workspace.update.mutate({
-					id: original.id,
-					branch,
-					hostId,
-					name,
-					taskId,
-				});
-				return electricTxidMatch(result.txid);
-			},
+			// Read-only: workspace records are host-owned now. This collection
+			// is only the R2 read-through fallback for hosts still on pre-R1
+			// builds and is deleted in R3 — writes go through the owning host
+			// (workspaces.create / workspace.update via useHostWorkspaces).
 		}),
 	);
 	v2Workspaces.createIndex((workspace) => workspace.hostId, basicIndexConfig);
@@ -886,7 +845,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2Hosts,
 		v2Clients,
 		v2UsersHosts,
-		v2Projects,
 		v2Workspaces,
 		workspaces,
 		members,
@@ -952,6 +910,32 @@ export function getCollections(organizationId: string) {
 		...orgCollections,
 		organizations: organizationsCollection,
 	};
+}
+
+/**
+ * Evict the collection sets of every cached org except `activeOrganizationId`,
+ * stopping their Electric/localStorage sync, clearing their in-memory rows, and
+ * dropping them from the cache. Call this when the active org changes so prior
+ * orgs stop holding entire synced tables in the heap.
+ *
+ * The shared `organizationsCollection` singleton lives outside `collectionsCache`
+ * and is never touched. Recovery is handled by `getCollections`, which rebuilds
+ * fresh instances (rehydrating cache-first from the untouched on-disk rows) when
+ * an evicted org is re-entered.
+ */
+export function evictInactiveOrgCollections(
+	activeOrganizationId: string,
+): void {
+	evictInactiveOrgs(
+		collectionsCache as unknown as Map<string, Record<string, unknown>>,
+		getCollectionsCacheKey(activeOrganizationId),
+		(orgKey, collectionName, error) => {
+			console.error(
+				`[collections] Failed to clean up evicted collection ${collectionName} for org ${orgKey}`,
+				error,
+			);
+		},
+	);
 }
 
 export type AppCollections = ReturnType<typeof getCollections>;

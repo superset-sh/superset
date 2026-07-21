@@ -15,10 +15,15 @@ export {
 	getShellLaunchArgs,
 	getSupersetShellPaths,
 	resolveLaunchShell,
+	shellLaunchExpectsReadyMarker,
 } from "./shell-launch.ts";
 
 import fs from "node:fs";
 import os from "node:os";
+import {
+	TERMINAL_TERM_PROGRAM,
+	TERMINAL_TERM_PROGRAM_VERSION,
+} from "@superset/shared/constants";
 import {
 	augmentPathForMacOS,
 	clearStrictShellEnvCache,
@@ -97,8 +102,47 @@ export function getTerminalBaseEnv(): Record<string, string> {
 	return { ..._terminalBaseEnv };
 }
 
+let _terminalBaseEnvReady: Promise<void> | null = null;
+
+/**
+ * Kick off the shell-env snapshot in the background and stash it once resolved.
+ *
+ * Startup must NOT await this. The login-shell probe can take up to
+ * SHELL_ENV_TIMEOUT_MS (8s) — often the full budget when the user's shell is
+ * slow (e.g. a wedged powerlevel10k/gitstatus init) — and gating the HTTP
+ * listen on it pushes cold starts past the desktop coordinator's health-check
+ * window, especially when every org boots at once. PTY creation awaits
+ * `waitForTerminalBaseEnv()` instead, so terminals still get the preserved
+ * snapshot without blocking the server from becoming reachable.
+ */
+export function startTerminalBaseEnvResolution(): void {
+	if (_terminalBaseEnvReady) return;
+	const promise = resolveTerminalBaseEnv().then((baseEnv) => {
+		// Ignore a stale resolution whose gate was already reset (tests) so it
+		// can't clobber fresh state.
+		if (_terminalBaseEnvReady === promise) initTerminalBaseEnv(baseEnv);
+	});
+	// Fire-and-forget: nothing awaits the gate until the first PTY is created,
+	// so swallow a background failure rather than crash on an unhandled
+	// rejection. resolveTerminalBaseEnv already falls back internally.
+	promise.catch((err) => {
+		console.warn("[host-service] terminal base env resolution failed:", err);
+	});
+	_terminalBaseEnvReady = promise;
+}
+
+/**
+ * Await the background shell-env snapshot before reading getTerminalBaseEnv().
+ * Resolves immediately when resolution was never started (tests and helpers
+ * that call initTerminalBaseEnv() directly).
+ */
+export async function waitForTerminalBaseEnv(): Promise<void> {
+	if (_terminalBaseEnvReady) await _terminalBaseEnvReady;
+}
+
 export function resetTerminalBaseEnvForTests(): void {
 	_terminalBaseEnv = null;
+	_terminalBaseEnvReady = null;
 	cachedMacosSystemCertAvailable = null;
 	clearStrictShellEnvCache();
 }
@@ -126,7 +170,6 @@ interface BuildV2TerminalEnvParams {
 	workspaceId: string;
 	workspacePath: string;
 	rootPath: string;
-	hostServiceVersion: string;
 	supersetEnv: "development" | "production";
 	agentHookPort: string;
 	agentHookVersion: string;
@@ -155,7 +198,6 @@ export function buildV2TerminalEnv(
 		workspaceId,
 		workspacePath,
 		rootPath,
-		hostServiceVersion,
 		supersetEnv,
 		agentHookPort,
 		agentHookVersion,
@@ -170,14 +212,21 @@ export function buildV2TerminalEnv(
 
 	env.TERM = "xterm-256color";
 	env.SHELL = shell;
-	// claude-code and similar chat TUIs only parse kitty CSI-u (e.g. Shift+Enter
-	// → \x1b[13;2u) when TERM_PROGRAM ∈ {ghostty, kitty, iTerm.app, WezTerm,
-	// WarpTerminal}. xterm.js already emits the right bytes — claim kitty so
-	// they're parsed instead of submitted as plain Enter.
-	env.TERM_PROGRAM = "kitty";
-	env.TERM_PROGRAM_VERSION = hostServiceVersion;
+	// See TERMINAL_TERM_PROGRAM for why we identify as kitty: the client's
+	// full-fidelity wheel handler produces a native-grade report stream that
+	// TUIs must trust as-is, not amplify with vscode-style compensation.
+	// Shift+Enter does NOT depend on this: line-edit-translations.ts sends
+	// ESC+CR directly.
+	env.TERM_PROGRAM = TERMINAL_TERM_PROGRAM;
+	env.TERM_PROGRAM_VERSION = TERMINAL_TERM_PROGRAM_VERSION;
 	env.COLORTERM = "truecolor";
 	env.COLORFGBG = themeType === "light" ? "0;15" : "15;0";
+	// TERM_THEME is an explicit light/dark hint that cursor-agent (and other
+	// TUIs) read before falling back to an OSC 11 background probe. Our PTY
+	// output round-trips through the renderer's xterm, so that probe routinely
+	// exceeds cursor-agent's ~100ms timeout and defaults to dark on a light
+	// theme. Setting it here resolves the theme without the probe race.
+	env.TERM_THEME = themeType === "light" ? "light" : "dark";
 	env.LANG = normalizeUtf8Locale(baseEnv);
 	env.PWD = cwd;
 

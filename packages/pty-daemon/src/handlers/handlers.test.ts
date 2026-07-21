@@ -9,6 +9,7 @@ import {
 	handleList,
 	handleOpen,
 	handleResize,
+	handleSnapshot,
 	handleSubscribe,
 	handleUnsubscribe,
 } from "./handlers.ts";
@@ -19,6 +20,7 @@ interface FakePtyState {
 	rows: number;
 	written: Buffer[];
 	killed: boolean;
+	disposed: boolean;
 }
 
 function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
@@ -37,7 +39,12 @@ function makeFakePty(state: FakePtyState, meta: SpawnOptions["meta"]): Pty {
 		},
 		onData: () => {},
 		onExit: () => {},
+		dispose: () => {
+			state.disposed = true;
+		},
 		getMasterFd: () => -1,
+		pause: () => {},
+		resume: () => {},
 	};
 }
 
@@ -78,6 +85,7 @@ function makeCtx(): HandlerCtx & {
 				rows: opts.meta.rows,
 				written: [],
 				killed: false,
+				disposed: false,
 			};
 			states.push(state);
 			return makeFakePty(state, opts.meta);
@@ -153,7 +161,7 @@ describe("handlers", () => {
 		expect(states[0]?.rows).toBe(30);
 	});
 
-	test("close kills the pty and replies closed", () => {
+	test("close kills and disposes the pty before replying closed", () => {
 		const ctx = makeCtx();
 		handleOpen(ctx, {
 			type: "open",
@@ -163,6 +171,24 @@ describe("handlers", () => {
 		const reply = handleClose(ctx, { type: "close", id: "s0" });
 		expect(reply.type).toBe("closed");
 		expect(states[0]?.killed).toBe(true);
+		expect(states[0]?.disposed).toBe(true);
+		expect(ctx.store.get("s0")?.exited).toBe(true);
+	});
+
+	test("open disposes a spawned pty when session wiring fails", () => {
+		const ctx = makeCtx();
+		ctx.wireSession = () => {
+			throw new Error("wire failed");
+		};
+		const reply = handleOpen(ctx, {
+			type: "open",
+			id: "partial",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		expect(reply).toMatchObject({ type: "error", code: "ESPAWN" });
+		expect(states[0]?.killed).toBe(true);
+		expect(states[0]?.disposed).toBe(true);
+		expect(ctx.store.get("partial")).toBeUndefined();
 	});
 
 	test("list returns all sessions", () => {
@@ -172,6 +198,59 @@ describe("handlers", () => {
 		handleOpen(ctx, { type: "open", id: "b", meta });
 		const reply = handleList(ctx);
 		expect(reply.sessions).toHaveLength(2);
+	});
+
+	test("snapshot returns bytes repeatedly without subscribing or clearing", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		const session = ctx.store.get("s0");
+		if (!session) throw new Error("no session");
+		ctx.store.appendOutput(session, Buffer.from([0x00, 0xff, 0x41]));
+		const conn = makeConn();
+
+		handleSnapshot(ctx, conn, { type: "snapshot", id: "s0" });
+		handleSnapshot(ctx, conn, { type: "snapshot", id: "s0" });
+
+		expect(conn.subscriptions.size).toBe(0);
+		expect(conn.sent).toHaveLength(2);
+		for (const frame of conn.sent) {
+			expect(frame.message).toEqual({
+				type: "snapshot-reply",
+				id: "s0",
+				cols: 80,
+				rows: 24,
+				truncated: false,
+			});
+			expect(Buffer.from(frame.payload ?? [])).toEqual(
+				Buffer.from([0x00, 0xff, 0x41]),
+			);
+		}
+	});
+
+	test("snapshot reports truncation and unknown sessions", () => {
+		const ctx = makeCtx();
+		handleOpen(ctx, {
+			type: "open",
+			id: "s0",
+			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
+		});
+		const session = ctx.store.get("s0");
+		if (!session) throw new Error("no session");
+		session.bufferTruncated = true;
+		const conn = makeConn();
+
+		handleSnapshot(ctx, conn, { type: "snapshot", id: "s0" });
+		handleSnapshot(ctx, conn, { type: "snapshot", id: "missing" });
+
+		expect(conn.sent[0]?.message).toMatchObject({ truncated: true });
+		expect(conn.sent[1]?.message).toMatchObject({
+			type: "error",
+			code: "ENOENT",
+		});
 	});
 
 	test("subscribe with replay sends buffered output", () => {

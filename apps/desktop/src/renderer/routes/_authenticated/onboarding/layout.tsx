@@ -17,6 +17,9 @@ export const Route = createFileRoute("/_authenticated/onboarding")({
 	component: OnboardingFlowLayout,
 });
 
+// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
+const rootRedirect = <Navigate to="/" replace />;
+
 const STEPS = [
 	{
 		path: "/onboarding",
@@ -42,7 +45,7 @@ function OnboardingFlowLayout() {
 
 	if (isPending) return null;
 	if (session?.user?.onboardedAt) {
-		return <Navigate to="/" replace />;
+		return rootRedirect;
 	}
 
 	const currentStepIdx = STEPS.findIndex((s) => s.match(location.pathname));

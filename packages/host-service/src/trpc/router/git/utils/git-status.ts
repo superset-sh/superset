@@ -1,5 +1,6 @@
 import type { SimpleGit } from "simple-git";
 import type { Branch, ChangedFile } from "../types";
+import type { BaseRefFetchTarget } from "./base-ref-freshness";
 import {
 	buildBranch,
 	countUntrackedFileLines,
@@ -19,6 +20,12 @@ export interface GitStatusSnapshot {
 	ignoredPaths: string[];
 }
 
+export interface GitStatusSnapshotComputation {
+	snapshot: GitStatusSnapshot;
+	/** Resolved in the worker, scheduled by the process-wide coordinator. */
+	baseRefFetchTarget: BaseRefFetchTarget | null;
+}
+
 export async function getGitStatusSnapshot({
 	git,
 	worktreePath,
@@ -27,7 +34,7 @@ export async function getGitStatusSnapshot({
 	git: SimpleGit;
 	worktreePath: string;
 	baseBranch?: string;
-}): Promise<GitStatusSnapshot> {
+}): Promise<GitStatusSnapshotComputation> {
 	const currentBranchName = (
 		await git.revparse(["--abbrev-ref", "HEAD"]).catch(() => "")
 	).trim();
@@ -77,6 +84,7 @@ export async function getGitStatusSnapshot({
 			const stats = stagedNumstat.get(file.path) ?? {
 				additions: 0,
 				deletions: 0,
+				isBinary: false,
 			};
 			staged.push({
 				path: file.path,
@@ -84,6 +92,7 @@ export async function getGitStatusSnapshot({
 				status: mapGitStatus(idx),
 				additions: stats.additions,
 				deletions: stats.deletions,
+				isBinary: stats.isBinary,
 			});
 		}
 	}
@@ -108,12 +117,14 @@ export async function getGitStatusSnapshot({
 			const stats = unstagedNumstat.get(file.path) ?? {
 				additions: 0,
 				deletions: 0,
+				isBinary: false,
 			};
 			unstaged.push({
 				path: file.path,
 				status: mapGitStatus(wd),
 				additions: stats.additions,
 				deletions: stats.deletions,
+				isBinary: stats.isBinary,
 			});
 		}
 	}
@@ -149,16 +160,20 @@ export async function getGitStatusSnapshot({
 				status: rename.status,
 				additions: rename.additions,
 				deletions: rename.deletions,
+				isBinary: rename.isBinary,
 			});
 		}
 	}
 
 	return {
-		currentBranch,
-		defaultBranch,
-		againstBase,
-		staged,
-		unstaged: mergedUnstaged,
-		ignoredPaths,
+		snapshot: {
+			currentBranch,
+			defaultBranch,
+			againstBase,
+			staged,
+			unstaged: mergedUnstaged,
+			ignoredPaths,
+		},
+		baseRefFetchTarget: base?.fetchTarget ?? null,
 	};
 }

@@ -4,6 +4,7 @@ import {
 	DEV_NAME,
 	DEV_PASSWORD,
 } from "@superset/shared/dev-credentials";
+import { Badge } from "@superset/ui/badge";
 import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
@@ -11,6 +12,7 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
+import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { track } from "renderer/lib/analytics";
 import { setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -21,21 +23,44 @@ export const Route = createFileRoute("/sign-in/")({
 	component: SignInPage,
 });
 
+const LAST_USED_METHOD_KEY = "superset-last-auth-method";
+
+// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
+const workspaceRedirect = <Navigate to="/workspace" replace />;
+
+const SESSION_PENDING_TIMEOUT_MS = 15_000;
+
+type AuthMethod = AuthProvider | "dev";
+
+function readLastUsedMethod(): AuthMethod | null {
+	const stored = window.localStorage.getItem(LAST_USED_METHOD_KEY);
+	return stored === "github" || stored === "google" || stored === "dev"
+		? stored
+		: null;
+}
+
 function SignInPage() {
 	const signInMutation = electronTrpc.auth.signIn.useMutation();
 	const persistToken = electronTrpc.auth.persistToken.useMutation();
 	const navigate = useNavigate();
 	const [isLoadingDev, setIsLoadingDev] = useState(false);
 	const [devError, setDevError] = useState<string | null>(null);
+	const [lastUsedMethod, setLastUsedMethod] = useState(readLastUsedMethod);
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
+	// A session fetch that never settles must not trap the user on a spinner —
+	// fall through to the sign-in buttons after a while (#5729).
+	const pendingTimedOut = useDelayElapsed(
+		isPending,
+		SESSION_PENDING_TIMEOUT_MS,
+	);
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
 
 	// Show loading while session is being fetched
-	if (isPending) {
+	if (isPending && !pendingTimedOut) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
 				<Spinner className="size-8" />
@@ -45,17 +70,24 @@ function SignInPage() {
 
 	// If already signed in, redirect to workspace
 	if (session?.user) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
+
+	const rememberLastUsedMethod = (method: AuthMethod) => {
+		window.localStorage.setItem(LAST_USED_METHOD_KEY, method);
+		setLastUsedMethod(method);
+	};
 
 	const signIn = (provider: AuthProvider) => {
 		track("auth_started", { provider });
+		rememberLastUsedMethod(provider);
 		signInMutation.mutate({ provider });
 	};
 
 	const signInAsDev = async () => {
 		setIsLoadingDev(true);
 		setDevError(null);
+		rememberLastUsedMethod("dev");
 
 		const postAuth = async (path: string, body: Record<string, unknown>) => {
 			const response = await fetch(`${env.NEXT_PUBLIC_API_URL}${path}`, {
@@ -114,6 +146,8 @@ function SignInPage() {
 		}
 	};
 
+	const lastUsedBadge = <Badge variant="secondary">Last used</Badge>;
+
 	return (
 		<div className="flex flex-col h-full w-full bg-background">
 			<div className="h-12 w-full drag shrink-0" />
@@ -147,6 +181,7 @@ function SignInPage() {
 								{isLoadingDev
 									? "Signing in..."
 									: "Sign in as Local Admin (dev)"}
+								{lastUsedMethod === "dev" && lastUsedBadge}
 							</Button>
 						)}
 						{devError && (
@@ -163,6 +198,7 @@ function SignInPage() {
 						>
 							<FaGithub className="size-5" />
 							Continue with GitHub
+							{lastUsedMethod === "github" && lastUsedBadge}
 						</Button>
 
 						<Button
@@ -174,6 +210,7 @@ function SignInPage() {
 						>
 							<FcGoogle className="size-5" />
 							Continue with Google
+							{lastUsedMethod === "google" && lastUsedBadge}
 						</Button>
 					</div>
 

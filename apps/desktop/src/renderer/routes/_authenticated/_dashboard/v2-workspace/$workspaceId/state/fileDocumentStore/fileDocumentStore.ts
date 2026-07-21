@@ -1,6 +1,6 @@
 import type { workspaceTrpc } from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
-import { isImageFile } from "shared/file-types";
+import { isImageFile, isVideoFile } from "shared/file-types";
 import type {
 	ConflictResolution,
 	ConflictState,
@@ -91,7 +91,8 @@ async function loadEntry(
 	options: { unlimited?: boolean } = {},
 ): Promise<void> {
 	const client = entry.trpcClient;
-	const readAsBinary = isImageFile(entry.absolutePath);
+	const readAsBinary =
+		isImageFile(entry.absolutePath) || isVideoFile(entry.absolutePath);
 	const maxBytes = options.unlimited ? undefined : DEFAULT_MAX_BYTES;
 	try {
 		const result = await client.filesystem.readFile.query({
@@ -102,6 +103,7 @@ async function loadEntry(
 		});
 
 		entry.byteSize = result.byteLength;
+		entry.isBinary = readAsBinary ? true : entry.isBinary;
 		entry.orphaned = false;
 		entry.hasExternalChange = false;
 

@@ -10,6 +10,7 @@ import {
 	handleList,
 	handleOpen,
 	handleResize,
+	handleSnapshot,
 	handleSubscribe,
 	handleUnsubscribe,
 } from "../handlers/index.ts";
@@ -21,6 +22,7 @@ import {
 	type HandoffMessage,
 	type HelloMessage,
 	type ServerMessage,
+	SNAPSHOT_PROTOCOL_VERSION,
 	SUPPORTED_PROTOCOL_VERSIONS,
 } from "../protocol/index.ts";
 import type { HandoffSnapshot, Session } from "../SessionStore/index.ts";
@@ -35,6 +37,8 @@ export interface ServerOptions {
 	daemonVersion: string;
 	bufferCap?: number;
 	outboundBufferCap?: number;
+	/** Pause producing PTYs when a subscriber buffers past this (flow control). */
+	outboundPauseThreshold?: number;
 	/**
 	 * Override for the PTY-spawn factory. Production leaves this unset;
 	 * `defaultSpawn` (real node-pty) is used. Tests inject a fake here so
@@ -45,10 +49,20 @@ export interface ServerOptions {
 
 const DEFAULT_OUTBOUND_BUFFER_CAP_BYTES = 8 * 1024 * 1024;
 
+// Flow control: when a subscriber's socket buffers more than this, pause the
+// producing PTYs instead of letting the buffer grow toward the destroy cap.
+// The kernel PTY buffer then fills and the foreground process blocks on
+// write — the flood throttles itself at the source (VS Code ptyHost does the
+// same via pause/resume; our congestion signal is local writableLength
+// instead of renderer ACKs). Resume on socket 'drain'.
+const DEFAULT_OUTBOUND_PAUSE_THRESHOLD_BYTES = 1 * 1024 * 1024;
+
 interface ConnState extends Conn {
 	socket: net.Socket;
 	decoder: FrameDecoder;
 	negotiated: number | null;
+	/** Session ids whose PTYs we paused because this conn was congested. */
+	pausedSessions: Set<string>;
 }
 
 export class Server {
@@ -113,23 +127,52 @@ export class Server {
 	 * building its spawn args).
 	 */
 	adoptSnapshot(snapshot: HandoffSnapshot): void {
-		for (const s of snapshot.sessions) {
-			const pty = adoptFromFd({
-				fd: s.fdIndex,
-				pid: s.pid,
-				meta: s.meta,
-			});
-			const session = this.store.add(s.id, pty);
-			if (s.buffer.byteLength > 0) {
-				const buf = Buffer.from(
-					s.buffer.buffer,
-					s.buffer.byteOffset,
-					s.buffer.byteLength,
-				);
-				session.buffer = [buf];
-				session.bufferBytes = buf.byteLength;
+		const adopted: Session[] = [];
+		try {
+			for (const s of snapshot.sessions) {
+				const pty = adoptFromFd({
+					fd: s.fdIndex,
+					pid: s.pid,
+					meta: s.meta,
+				});
+				let session: Session | null = null;
+				try {
+					session = this.store.add(s.id, pty);
+					if (s.buffer.byteLength > 0) {
+						const buf = Buffer.from(
+							s.buffer.buffer,
+							s.buffer.byteOffset,
+							s.buffer.byteLength,
+						);
+						session.buffer = [buf];
+						session.bufferBytes = buf.byteLength;
+					}
+					session.bufferTruncated = s.truncated;
+					this.wireSession(session);
+					adopted.push(session);
+				} catch (err) {
+					if (session) this.store.delete(session.id);
+					try {
+						pty.dispose({ keepExitPolling: false });
+					} catch {
+						// Preserve the original adoption error.
+					}
+					throw err;
+				}
 			}
-			this.wireSession(session);
+		} catch (err) {
+			// Adoption failed, so the predecessor retains ownership and keeps
+			// serving. Close only this successor's inherited copies; never signal
+			// the shared shells from a failed/partial handoff.
+			for (const session of adopted) {
+				try {
+					session.pty.dispose({ keepExitPolling: false });
+				} catch {
+					// Best-effort; keep rolling back the remaining sessions.
+				}
+				this.store.delete(session.id);
+			}
+			throw err;
 		}
 	}
 
@@ -299,6 +342,11 @@ export class Server {
 				} catch {
 					// already dead, ignore
 				}
+				try {
+					session.pty.dispose();
+				} catch {
+					// best-effort teardown; continue closing the remaining sessions
+				}
 			}
 		}
 		await new Promise<void>((resolve) => this.server.close(() => resolve()));
@@ -317,10 +365,16 @@ export class Server {
 			decoder: new FrameDecoder(),
 			negotiated: null,
 			subscriptions: new Set(),
+			pausedSessions: new Set(),
 			send: (msg, payload) =>
 				writeMessage(socket, msg, payload, outboundBufferCap),
 		};
 		this.conns.add(conn);
+
+		// Flow control: the buffer only reaches the pause threshold after
+		// write() has returned false, so a 'drain' (buffer fully flushed) is
+		// guaranteed to follow and is our resume signal.
+		socket.on("drain", () => this.resumePausedSessions(conn));
 
 		socket.on("data", (chunk) => {
 			try {
@@ -409,6 +463,19 @@ export class Server {
 				conn.send(handleList(ctx));
 				return;
 			}
+			case "snapshot": {
+				if (conn.negotiated < SNAPSHOT_PROTOCOL_VERSION) {
+					conn.send({
+						type: "error",
+						id: msg.id,
+						message: `snapshot requires protocol ${SNAPSHOT_PROTOCOL_VERSION}`,
+						code: "EVERSION",
+					});
+					return;
+				}
+				handleSnapshot(ctx, conn, msg);
+				return;
+			}
 			case "subscribe": {
 				handleSubscribe(ctx, conn, msg);
 				return;
@@ -460,18 +527,38 @@ export class Server {
 	 * subscribed to this session id receives the output / exit frames.
 	 */
 	private wireSession(session: Session): void {
+		const pauseThreshold =
+			this.opts.outboundPauseThreshold ??
+			DEFAULT_OUTBOUND_PAUSE_THRESHOLD_BYTES;
 		session.pty.onData((chunk) => {
 			this.store.appendOutput(session, chunk);
 			const out: ServerMessage = { type: "output", id: session.id };
+			let congested = false;
 			for (const c of this.conns) {
 				if (!c.subscriptions.has(session.id)) continue;
 				c.send(out, chunk);
+				if (!c.socket.destroyed && c.socket.writableLength > pauseThreshold) {
+					c.pausedSessions.add(session.id);
+					congested = true;
+				}
 			}
+			// Paused PTYs emit no further onData, so this fires at most once
+			// per congestion episode; the conn's 'drain' resumes us.
+			if (congested) session.pty.pause();
 		});
 		session.pty.onExit((info) => {
 			session.exited = true;
 			session.exitCode = info.code;
 			session.exitSignal = info.signal;
+			try {
+				session.pty.dispose();
+			} catch {
+				// Continue state cleanup if fd disposal was already attempted.
+			}
+			// An explicitly closed session id can be recycled before its delayed
+			// process-exit notification arrives. Never let that stale callback
+			// broadcast an exit for or delete the replacement session.
+			if (this.store.get(session.id) !== session) return;
 			const ev: ServerMessage = {
 				type: "exit",
 				id: session.id,
@@ -483,6 +570,7 @@ export class Server {
 					c.send(ev);
 					c.subscriptions.delete(session.id);
 				}
+				c.pausedSessions.delete(session.id);
 			}
 			// Delete the session immediately. Without this, every closed
 			// terminal pane left a row in the store forever — list-reply
@@ -500,6 +588,28 @@ export class Server {
 
 	private dropConn(conn: ConnState): void {
 		this.conns.delete(conn);
+		// A destroyed socket never drains — release its paused producers here.
+		this.resumePausedSessions(conn);
+	}
+
+	/**
+	 * Resume every PTY paused on behalf of `conn`, unless another congested
+	 * conn still holds it paused. Called on socket 'drain' and on conn drop.
+	 */
+	private resumePausedSessions(conn: ConnState): void {
+		for (const id of conn.pausedSessions) {
+			conn.pausedSessions.delete(id);
+			let heldElsewhere = false;
+			for (const other of this.conns) {
+				if (other !== conn && other.pausedSessions.has(id)) {
+					heldElsewhere = true;
+					break;
+				}
+			}
+			if (heldElsewhere) continue;
+			const session = this.store.get(id);
+			if (session && !session.exited) session.pty.resume();
+		}
 	}
 }
 

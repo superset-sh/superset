@@ -23,12 +23,16 @@ import { useFallthroughIcons } from "renderer/lib/fileIcons";
 import {
 	createPierreTreeStyle,
 	FILE_STATUS_TO_PIERRE,
+	PIERRE_TREE_UNSAFE_CSS,
 	type PierreGitStatusEntry,
 	stripTrailingSlash,
 } from "renderer/lib/pierreTree";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { PierreRowContextMenu } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/PierreRowContextMenu";
-import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
+import {
+	type ChangesetFile,
+	getChangesetFileKey,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import {
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
@@ -64,7 +68,11 @@ interface ChangesTreeViewProps {
 	selectedFilePath?: string;
 	/** Bumped by the toolbar's expand-all / collapse-all buttons. */
 	foldSignal: FoldSignal;
-	onSelectFile?: (path: string, openInNewTab?: boolean) => void;
+	onSelectFile?: (
+		path: string,
+		openInNewTab?: boolean,
+		changeKey?: string,
+	) => void;
 	onOpenFile?: (absolutePath: string, openInNewTab?: boolean) => void;
 	onOpenInEditor?: (path: string) => void;
 }
@@ -122,6 +130,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		paths,
 		initialExpansion: "open",
 		search: false,
+		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
 		gitStatus: initialGitStatusEntriesRef.current,
 		icons: { set: "complete", colored: true },
 		itemHeight: ITEM_HEIGHT,
@@ -198,7 +207,12 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 
 	handlersRef.current.onSelect = (treePath) => {
 		lastUserSelectRef.current = treePath;
-		onSelectFile?.(treePath, false);
+		const file = fileByPath.get(treePath);
+		onSelectFile?.(
+			treePath,
+			false,
+			file ? getChangesetFileKey(file) : undefined,
+		);
 	};
 	// Pierre's row decoration accepts text or icon, not arbitrary JSX. The
 	// status indicator is already painted by `setGitStatus` (row tint + icon),
@@ -221,7 +235,12 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			getFileIntent: filePolicy.getIntent,
 			onSelectDiff: (rel, openInNewTab) => {
 				lastUserSelectRef.current = rel;
-				onSelectFile?.(rel, openInNewTab);
+				const file = fileByPath.get(rel);
+				onSelectFile?.(
+					rel,
+					openInNewTab,
+					file ? getChangesetFileKey(file) : undefined,
+				);
 			},
 			onOpenFile: (rel, openInNewTab) => {
 				if (!worktreePath) return;

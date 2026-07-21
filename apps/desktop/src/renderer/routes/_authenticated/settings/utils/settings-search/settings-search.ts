@@ -41,16 +41,20 @@ export const SETTING_ITEM_ID = {
 	TERMINAL_QUICK_ADD: "terminal-quick-add",
 	TERMINAL_SESSIONS: "terminal-sessions",
 	TERMINAL_LINK_BEHAVIOR: "terminal-link-behavior",
+	TERMINAL_BACKGROUND_LIMIT: "terminal-background-limit",
 
 	LINKS_FILE: "links-file",
 	LINKS_URL: "links-url",
 	LINKS_SIDEBAR_FILE: "links-sidebar-file",
+	LINKS_PORT: "links-port",
 
 	MODELS_ANTHROPIC: "models-anthropic",
 	MODELS_OPENAI: "models-openai",
 
 	EXPERIMENTAL_SUPERSET_V2: "experimental-superset-v2",
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
+	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
+	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -84,6 +88,7 @@ export const SETTING_ITEM_ID = {
 	HOST_INVITE_MEMBER: "host-invite-member",
 	HOST_MEMBER_ROLE: "host-member-role",
 	HOST_WORKTREE_LOCATION: "host-worktree-location",
+	HOST_DELETE: "host-delete",
 } as const;
 
 export type SettingItemId =
@@ -150,16 +155,20 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.TERMINAL_QUICK_ADD]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_SESSIONS]: "shared",
 	[SETTING_ITEM_ID.TERMINAL_LINK_BEHAVIOR]: "v1",
+	[SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT]: "v2",
 
 	[SETTING_ITEM_ID.LINKS_FILE]: "v2",
 	[SETTING_ITEM_ID.LINKS_URL]: "v2",
 	[SETTING_ITEM_ID.LINKS_SIDEBAR_FILE]: "v2",
+	[SETTING_ITEM_ID.LINKS_PORT]: "v2",
 
 	[SETTING_ITEM_ID.MODELS_ANTHROPIC]: "shared",
 	[SETTING_ITEM_ID.MODELS_OPENAI]: "shared",
 
 	[SETTING_ITEM_ID.EXPERIMENTAL_SUPERSET_V2]: "shared",
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
+	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -171,7 +180,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.PROJECT_NAME]: "shared",
 	[SETTING_ITEM_ID.PROJECT_PATH]: "shared",
-	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "v1",
+	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "shared",
 	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
 	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
 	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
@@ -192,6 +201,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.HOST_INVITE_MEMBER]: "shared",
 	[SETTING_ITEM_ID.HOST_MEMBER_ROLE]: "shared",
 	[SETTING_ITEM_ID.HOST_WORKTREE_LOCATION]: "v2",
+	[SETTING_ITEM_ID.HOST_DELETE]: "shared",
 };
 
 export function isItemAllowedForVariant(
@@ -657,6 +667,10 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"copilot",
 			"cursor",
+			"vibe",
+			"mistral",
+			"kimi",
+			"moonshot",
 		],
 	},
 	{
@@ -712,6 +726,10 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"pi",
 			"ai",
 			"assistant",
+			"vibe",
+			"mistral",
+			"kimi",
+			"moonshot",
 		],
 	},
 	{
@@ -736,6 +754,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"stop",
 			"manage",
 			"pty",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT,
+		section: "terminal",
+		title: "Background terminal memory",
+		description: "How many hidden terminals stay fully loaded",
+		keywords: [
+			"terminal",
+			"memory",
+			"background",
+			"hidden",
+			"parked",
+			"limit",
+			"cap",
+			"performance",
+			"ram",
+			"scrollback",
 		],
 	},
 	{
@@ -834,6 +870,33 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
+		id: SETTING_ITEM_ID.LINKS_PORT,
+		section: "links",
+		title: "Ports",
+		description:
+			"How detected-port badges in the sidebar open when clicked (in-app or system browser)",
+		keywords: [
+			"links",
+			"port",
+			"ports",
+			"badge",
+			"localhost",
+			"server",
+			"forwarded",
+			"click",
+			"cmd",
+			"ctrl",
+			"shift",
+			"meta",
+			"browser",
+			"in-app",
+			"system",
+			"external",
+			"open",
+			"behavior",
+		],
+	},
+	{
 		id: SETTING_ITEM_ID.MODELS_ANTHROPIC,
 		section: "models",
 		title: "Anthropic Model Auth",
@@ -901,6 +964,45 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"v2",
 			"projects",
 			"workspaces",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS,
+		section: "experimental",
+		title: "Inline workspace ports",
+		description:
+			"Show detected ports under each workspace in the sidebar instead of a single panel at the bottom",
+		keywords: [
+			"experimental",
+			"ports",
+			"port",
+			"inline",
+			"sidebar",
+			"workspace",
+			"workspaces",
+			"dev server",
+			"toggle",
+			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS,
+		section: "experimental",
+		title: "Workspace agents",
+		description:
+			"Show running agents under each workspace in the sidebar, with their live status",
+		keywords: [
+			"experimental",
+			"agents",
+			"agent",
+			"running",
+			"inline",
+			"sidebar",
+			"workspace",
+			"workspaces",
+			"status",
+			"toggle",
+			"switch",
 		],
 	},
 	{
@@ -1323,6 +1425,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"member",
 			"permission",
 			"admin",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.HOST_DELETE,
+		section: "hosts",
+		title: "Delete host",
+		description:
+			"Remove a host and its synced workspace records from the organization",
+		keywords: [
+			"host",
+			"hosts",
+			"delete",
+			"remove",
+			"machine",
+			"device",
+			"workspace",
+			"owner",
+			"danger zone",
 		],
 	},
 ];

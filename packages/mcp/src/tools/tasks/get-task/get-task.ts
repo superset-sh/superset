@@ -38,6 +38,10 @@ export function register(server: McpServer) {
 					estimate: z.number().nullable(),
 					branch: z.string().nullable(),
 					prUrl: z.string().nullable(),
+					externalProjectId: z.string().nullable(),
+					externalProjectName: z.string().nullable(),
+					externalCycleId: z.string().nullable(),
+					externalCycleName: z.string().nullable(),
 				}),
 			},
 		},
@@ -76,6 +80,10 @@ export function register(server: McpServer) {
 					estimate: tasks.estimate,
 					branch: tasks.branch,
 					prUrl: tasks.prUrl,
+					externalProjectId: tasks.externalProjectId,
+					externalProjectName: tasks.externalProjectName,
+					externalCycleId: tasks.externalCycleId,
+					externalCycleName: tasks.externalCycleName,
 				})
 				.from(tasks)
 				.leftJoin(assignee, eq(tasks.assigneeId, assignee.id))

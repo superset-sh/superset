@@ -4,9 +4,11 @@ import {
 	useCallback,
 	useDeferredValue,
 	useEffect,
+	useMemo,
 	useRef,
 	useState,
 } from "react";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	tasksSearchFromFilters,
@@ -29,6 +31,7 @@ interface TasksViewProps {
 	initialSearch?: string;
 	initialType?: "tasks" | "prs" | "issues";
 	initialProject?: string;
+	initialLinearProject?: string;
 }
 
 export function TasksView({
@@ -37,6 +40,7 @@ export function TasksView({
 	initialSearch,
 	initialType,
 	initialProject,
+	initialLinearProject,
 }: TasksViewProps) {
 	const navigate = useNavigate();
 	const collections = useCollections();
@@ -46,6 +50,7 @@ export function TasksView({
 	const assigneeFilter = initialAssignee ?? null;
 	const typeTab = initialType ?? "tasks";
 	const projectFilter = initialProject ?? null;
+	const linearProjectFilter = initialLinearProject ?? null;
 
 	const {
 		setTab: storeSetTab,
@@ -53,6 +58,7 @@ export function TasksView({
 		setSearch: storeSetSearch,
 		setTypeTab: storeSetTypeTab,
 		setProjectFilter: storeSetProjectFilter,
+		setLinearProjectFilter: storeSetLinearProjectFilter,
 		viewMode,
 		setViewMode,
 	} = useTasksFilterStore();
@@ -66,6 +72,7 @@ export function TasksView({
 			search?: string;
 			type?: "tasks" | "prs" | "issues";
 			project?: string | null;
+			linearProject?: string | null;
 		}) =>
 			tasksSearchFromFilters({
 				tab: overrides.tab ?? currentTab,
@@ -77,8 +84,19 @@ export function TasksView({
 				typeTab: overrides.type ?? typeTab,
 				projectFilter:
 					overrides.project !== undefined ? overrides.project : projectFilter,
+				linearProjectFilter:
+					overrides.linearProject !== undefined
+						? overrides.linearProject
+						: linearProjectFilter,
 			}),
-		[currentTab, assigneeFilter, searchQuery, typeTab, projectFilter],
+		[
+			currentTab,
+			assigneeFilter,
+			searchQuery,
+			typeTab,
+			projectFilter,
+			linearProjectFilter,
+		],
 	);
 
 	const syncSearchToUrl = useCallback(
@@ -130,6 +148,10 @@ export function TasksView({
 		storeSetProjectFilter(projectFilter);
 	}, [projectFilter, storeSetProjectFilter]);
 
+	useEffect(() => {
+		storeSetLinearProjectFilter(linearProjectFilter);
+	}, [linearProjectFilter, storeSetLinearProjectFilter]);
+
 	const { data: integrations } = useLiveQuery(
 		(q) =>
 			q
@@ -140,9 +162,15 @@ export function TasksView({
 		[collections],
 	);
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) => q.from({ projects: collections.v2Projects }),
-		[collections],
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const v2Projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
+				name: project.name,
+			})),
+		[hostProjects],
 	);
 
 	useEffect(() => {
@@ -178,6 +206,14 @@ export function TasksView({
 
 	const handleProjectFilterChange = (project: string) => {
 		navigate({ to: "/tasks", search: buildSearch({ project }), replace: true });
+	};
+
+	const handleLinearProjectFilterChange = (linearProject: string | null) => {
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ linearProject }),
+			replace: true,
+		});
 	};
 
 	const [selectedTasks, setSelectedTasks] = useState<TaskWithStatus[]>([]);
@@ -245,6 +281,8 @@ export function TasksView({
 					onTypeTabChange={handleTypeTabChange}
 					projectFilter={projectFilter}
 					onProjectFilterChange={handleProjectFilterChange}
+					linearProjectFilter={linearProjectFilter}
+					onLinearProjectFilterChange={handleLinearProjectFilterChange}
 				/>
 			)}
 
@@ -258,6 +296,7 @@ export function TasksView({
 								filterTab={currentTab}
 								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
+								linearProjectFilter={linearProjectFilter}
 								onTaskClick={handleTaskClick}
 							/>
 						) : (
@@ -265,6 +304,7 @@ export function TasksView({
 								filterTab={currentTab}
 								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
+								linearProjectFilter={linearProjectFilter}
 								onTaskClick={handleTaskClick}
 								onSelectionChange={handleSelectionChange}
 							/>

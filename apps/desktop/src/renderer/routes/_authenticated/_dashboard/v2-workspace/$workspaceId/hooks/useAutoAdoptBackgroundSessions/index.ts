@@ -1,0 +1,1 @@
+export { useAutoAdoptBackgroundSessions } from "./useAutoAdoptBackgroundSessions";

@@ -132,6 +132,12 @@ export const tasks = pgTable(
 		lastSyncedAt: timestamp("last_synced_at"),
 		syncError: text("sync_error"),
 
+		// External project/cycle snapshot (from Linear)
+		externalProjectId: text("external_project_id"),
+		externalProjectName: text("external_project_name"),
+		externalCycleId: text("external_cycle_id"),
+		externalCycleName: text("external_cycle_name"),
+
 		// External assignee snapshot (for unmatched Linear users)
 		assigneeExternalId: text("assignee_external_id"),
 		assigneeDisplayName: text("assignee_display_name"),
@@ -156,6 +162,9 @@ export const tasks = pgTable(
 		index("tasks_status_id_idx").on(table.statusId),
 		index("tasks_created_at_idx").on(table.createdAt),
 		index("tasks_external_provider_idx").on(table.externalProvider),
+		index("tasks_external_project_id_idx").on(table.externalProjectId),
+		index("tasks_external_project_name_idx").on(table.externalProjectName),
+		index("tasks_external_cycle_id_idx").on(table.externalCycleId),
 		index("tasks_assignee_external_id_idx").on(table.assigneeExternalId),
 		unique("tasks_external_unique").on(
 			table.organizationId,
@@ -440,6 +449,9 @@ export const v2Hosts = pgTable(
 		machineId: text("machine_id").notNull(),
 		name: text().notNull(),
 		isOnline: boolean("is_online").notNull().default(false),
+		// User-defined command run locally to wake/start this host (e.g. resume a
+		// cloud sandbox, start a VM). Null when the host has no wake command.
+		wakeCommand: text("wake_command"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
 		}),
@@ -561,7 +573,7 @@ export const v2Workspaces = pgTable(
 			columns: [table.organizationId, table.hostId],
 			foreignColumns: [v2Hosts.organizationId, v2Hosts.machineId],
 			name: "v2_workspaces_host_fk",
-		}),
+		}).onDelete("cascade"),
 		index("v2_workspaces_project_id_idx").on(table.projectId),
 		index("v2_workspaces_organization_id_idx").on(table.organizationId),
 		index("v2_workspaces_host_id_idx").on(table.hostId),

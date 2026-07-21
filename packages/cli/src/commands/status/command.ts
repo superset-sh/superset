@@ -1,9 +1,10 @@
-import { CLIError } from "@superset/cli-framework";
+import { string } from "@superset/cli-framework";
 import { getHostId } from "@superset/shared/host-info";
 import { formatDistanceToNowStrict } from "date-fns";
 import type { ApiClient } from "../../lib/api-client";
 import { command } from "../../lib/command";
 import { isProcessAlive, readManifest } from "../../lib/host/manifest";
+import { resolveOrganizationFromContext } from "../../lib/resolve-org";
 
 async function checkHealth(
 	endpoint: string,
@@ -38,10 +39,15 @@ async function fetchHostName(
 
 export default command({
 	description: "Check host service status",
-	run: async ({ ctx }) => {
-		const organization = await ctx.api.user.myOrganization.query();
-		if (!organization)
-			throw new CLIError("No active organization", "Run: superset auth login");
+	options: {
+		org: string().desc("Organization (id, slug, or name); defaults to active"),
+	},
+	run: async ({ ctx, options }) => {
+		const organization = await resolveOrganizationFromContext(
+			ctx.api,
+			ctx.config.organizationId,
+			options.org,
+		);
 
 		const localHostId = getHostId();
 		const manifest = readManifest(organization.id);

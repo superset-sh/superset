@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it } from "bun:test";
-import { TerminalAgentStore } from "./store";
+import {
+	type TerminalAgentBindingPersistence,
+	TerminalAgentStore,
+} from "./store";
+import type { TerminalAgentBinding } from "./types";
 
 const WORKSPACE = "ws-1";
 
@@ -71,6 +75,27 @@ describe("TerminalAgentStore", () => {
 
 		expect(store.get("t1")).toBeUndefined();
 		expect(store.listByWorkspace(WORKSPACE)).toHaveLength(0);
+	});
+
+	it("records a Failed event on the binding instead of deleting it", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Failed",
+			occurredAt: 200,
+		});
+
+		const binding = store.get("t1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.lastEventAt).toBe(200);
+		expect(store.listByWorkspace(WORKSPACE)).toHaveLength(1);
 	});
 
 	it("drops stale identity metadata on agent swap even when the new event omits it", () => {
@@ -179,6 +204,56 @@ describe("TerminalAgentStore", () => {
 		expect(events).toEqual([WORKSPACE, WORKSPACE]);
 	});
 
+	it("clearWorkspaceStatuses forces non-Stop bindings to Stop, keeping lastEventAt", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t2",
+			workspaceId: "other",
+			eventType: "Start",
+			agentId: "claude",
+			occurredAt: 200,
+		});
+
+		const events: string[] = [];
+		store.on("change", (workspaceId: string) => {
+			events.push(workspaceId);
+		});
+
+		store.clearWorkspaceStatuses(WORKSPACE);
+
+		expect(store.get("t1")?.lastEventType).toBe("Stop");
+		expect(store.get("t1")?.lastEventAt).toBe(100);
+		expect(store.get("t2")?.lastEventType).toBe("Start");
+		expect(events).toEqual([WORKSPACE]);
+
+		// Everything already Stop → no-op, no change event.
+		store.clearWorkspaceStatuses(WORKSPACE);
+		expect(events).toEqual([WORKSPACE]);
+	});
+
+	it("clearWorkspaceStatuses scoped to a terminalId leaves siblings alone", () => {
+		for (const terminalId of ["t1", "t2"]) {
+			store.recordEvent({
+				terminalId,
+				workspaceId: WORKSPACE,
+				eventType: "Start",
+				agentId: "claude",
+				occurredAt: 100,
+			});
+		}
+
+		store.clearWorkspaceStatuses(WORKSPACE, "t1");
+
+		expect(store.get("t1")?.lastEventType).toBe("Stop");
+		expect(store.get("t2")?.lastEventType).toBe("Start");
+	});
+
 	it("filters listByWorkspace by agentId and definitionId", () => {
 		store.recordEvent({
 			terminalId: "t1",
@@ -214,5 +289,92 @@ describe("TerminalAgentStore", () => {
 			occurredAt: 100,
 		});
 		expect(store.get("t1")).toBeUndefined();
+	});
+
+	it("lists bindings across all workspaces, preferring live persistence reads", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.recordEvent({
+			terminalId: "t2",
+			workspaceId: "ws-2",
+			eventType: "Attached",
+			agentId: "codex",
+			occurredAt: 200,
+		});
+
+		expect(
+			store
+				.list()
+				.map((binding) => binding.terminalId)
+				.sort(),
+		).toEqual(["t1", "t2"]);
+
+		const live: TerminalAgentBinding = {
+			terminalId: "t3",
+			workspaceId: "ws-3",
+			agentId: "claude",
+			startedAt: 300,
+			lastEventAt: 300,
+			lastEventType: "Start",
+		};
+		const liveStore = new TerminalAgentStore({
+			load: () => [],
+			upsert: () => {},
+			delete: () => {},
+			listLive: () => [live],
+		});
+		expect(liveStore.list()).toEqual([live]);
+	});
+
+	it("hydrates persisted bindings", () => {
+		const persisted: TerminalAgentBinding = {
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			agentId: "claude",
+			agentSessionId: "s1",
+			startedAt: 100,
+			lastEventAt: 200,
+			lastEventType: "Start",
+		};
+
+		const hydratedStore = new TerminalAgentStore({
+			load: () => [persisted],
+			upsert: () => {},
+			delete: () => {},
+		});
+
+		expect(hydratedStore.get("t1")).toEqual(persisted);
+		expect(hydratedStore.listByWorkspace(WORKSPACE)).toEqual([persisted]);
+	});
+
+	it("persists binding updates and deletes", () => {
+		const persisted = new Map<string, TerminalAgentBinding>();
+		const persistence: TerminalAgentBindingPersistence = {
+			load: () => [],
+			upsert: (binding) => {
+				persisted.set(binding.terminalId, binding);
+			},
+			delete: (terminalId) => {
+				persisted.delete(terminalId);
+			},
+		};
+		const persistentStore = new TerminalAgentStore(persistence);
+
+		persistentStore.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		expect(persisted.get("t1")?.lastEventType).toBe("Attached");
+
+		persistentStore.markTerminalExited("t1");
+		expect(persisted.has("t1")).toBe(false);
 	});
 });
