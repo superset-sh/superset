@@ -1,8 +1,10 @@
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
+	DropdownMenuShortcut,
 } from "@superset/ui/dropdown-menu";
-import { FilePlus, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { ExternalLink, FilePlus, FolderPlus, Pencil, Trash2 } from "lucide-react";
+import { modifierLabel } from "renderer/lib/clickPolicy";
 import { PathActions } from "../PathActions";
 
 interface FolderMenuItemsProps {
@@ -10,6 +12,7 @@ interface FolderMenuItemsProps {
 	relativePath: string;
 	onNewFile: () => void;
 	onNewFolder: () => void;
+	onOpenInEditor: () => void;
 	onRename: () => void;
 	onDelete: () => void;
 }
@@ -19,6 +22,7 @@ export function FolderMenuItems({
 	relativePath,
 	onNewFile,
 	onNewFolder,
+	onOpenInEditor,
 	onRename,
 	onDelete,
 }: FolderMenuItemsProps) {
@@ -33,6 +37,13 @@ export function FolderMenuItems({
 				New Folder...
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
+			<DropdownMenuItem onSelect={onOpenInEditor}>
+				<ExternalLink />
+				Open in Editor
+				<DropdownMenuShortcut>
+					{modifierLabel("metaShift")}
+				</DropdownMenuShortcut>
+			</DropdownMenuItem>
 			<PathActions absolutePath={absolutePath} relativePath={relativePath} />
 			<DropdownMenuSeparator />
 			<DropdownMenuItem onSelect={() => setTimeout(onRename, 0)}>
