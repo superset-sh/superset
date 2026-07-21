@@ -13,7 +13,8 @@ import { useGitInitConfirmStore } from "renderer/stores/git-init-confirm";
 /**
  * Confirms initializing git in a folder the user picked to import that isn't a
  * git repo yet. Driven imperatively by `useGitInitConfirmStore.request()` from
- * the folder-first import flow; mounted once via AddRepositoryModals.
+ * the folder-first import flow; mounted once by the _authenticated layout, the
+ * shared ancestor of every route that can start that flow.
  */
 export function GitInitConfirmDialog() {
 	const isOpen = useGitInitConfirmStore((s) => s.isOpen);
