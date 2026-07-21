@@ -7,7 +7,7 @@
  * - VS Code: ZDOTDIR for zsh, --init-file for bash, --init-command for fish
  * - Kitty: KITTY_ORIG_ZDOTDIR for zsh, ENV for bash, XDG_DATA_DIRS for fish
  */
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import path from "node:path";
 import {
@@ -37,6 +37,16 @@ export function getSupersetShellPaths(supersetHomeDir: string): {
 
 function getShellName(shell: string): string {
 	return path.basename(shell);
+}
+
+const SHELL_READY_MARKER_SCRIPT = "\\033]133;A\\007";
+
+function fileContainsShellReadyMarker(filePath: string): boolean {
+	try {
+		return readFileSync(filePath, "utf8").includes(SHELL_READY_MARKER_SCRIPT);
+	} catch {
+		return false;
+	}
 }
 
 /**
@@ -93,6 +103,37 @@ export function getShellBootstrapEnv(
 export interface ShellLaunchParams {
 	shell: string;
 	supersetHomeDir: string;
+}
+
+/**
+ * Whether this exact launch configuration installs Superset's prompt marker.
+ *
+ * Shell name alone is not enough: stale or missing wrapper files mean zsh and
+ * bash never emit OSC 133;A. Callers use this capability check to decide
+ * whether automation can safely wait for the first prompt without risking an
+ * indefinite stall on an unwrapped shell.
+ */
+export function shellLaunchExpectsReadyMarker(
+	params: ShellLaunchParams,
+): boolean {
+	const { shell, supersetHomeDir } = params;
+	const shellName = getShellName(shell);
+	const paths = getSupersetShellPaths(supersetHomeDir);
+
+	if (shellName === "zsh") {
+		return (
+			existsSync(path.join(paths.ZSH_DIR, ".zshrc")) &&
+			fileContainsShellReadyMarker(path.join(paths.ZSH_DIR, ".zlogin"))
+		);
+	}
+
+	if (shellName === "bash") {
+		return fileContainsShellReadyMarker(path.join(paths.BASH_DIR, "rcfile"));
+	}
+
+	// Fish receives the marker hook directly in --init-command, so it does not
+	// depend on wrapper files on disk.
+	return shellName === "fish";
 }
 
 export function getShellLaunchArgs(params: ShellLaunchParams): string[] {

@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
+import { useHostProjects } from "@/hooks/useHostProjects";
 import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
@@ -88,10 +89,8 @@ export function HomeScreen() {
 	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
 	const attentionByWorkspace = useHostTerminalAgents(selectedHost);
 
-	const { data: projects } = useLiveQuery(
-		(q) => q.from({ v2Projects: collections.v2Projects }),
-		[collections],
-	);
+	// Projects are fully local — served by the selected host, not Electric.
+	const { projects } = useHostProjects(selectedHost);
 	const { data: pullRequests } = useLiveQuery(
 		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
 		[collections],
@@ -99,15 +98,14 @@ export function HomeScreen() {
 	const { sessionsByWorkspace } = useHostAcpSessions(selectedHost);
 
 	const sortedProjects = useMemo(
-		() => [...(projects ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+		() => [...projects].sort((a, b) => a.name.localeCompare(b.name)),
 		[projects],
 	);
 
 	const selectedProjectId = projectFilter ?? sortedProjects[0]?.id ?? null;
 
 	const projectNamesById = useMemo(
-		() =>
-			new Map((projects ?? []).map((project) => [project.id, project.name])),
+		() => new Map(projects.map((project) => [project.id, project.name])),
 		[projects],
 	);
 
@@ -204,7 +202,12 @@ export function HomeScreen() {
 		const rank = { closed: 3, draft: 1, merged: 2, open: 0 } as const;
 		const byRepoBranch = new Map<string, SelectGithubPullRequest>();
 		for (const pullRequest of pullRequests ?? []) {
-			const key = `${pullRequest.repositoryId}::${pullRequest.headBranch}`;
+			// Key on repo coordinates from the PR URL — host projects don't
+			// know cloud repo UUIDs.
+			const repoPrefix = pullRequest.url
+				.toLowerCase()
+				.replace(/pull\/\d+.*$/, "");
+			const key = `${repoPrefix}::${pullRequest.headBranch}`;
 			const existing = byRepoBranch.get(key);
 			if (!existing) {
 				byRepoBranch.set(key, pullRequest);
@@ -264,12 +267,16 @@ export function HomeScreen() {
 		setRefreshing(false);
 	}, [queryClient]);
 
-	const repositoryIdsByProject = useMemo(
+	// Projects are fully local: PR rows are matched by repo coordinates
+	// parsed from the PR URL (cloud repo UUIDs aren't known host-side).
+	const repoPrefixesByProject = useMemo(
 		() =>
 			new Map(
-				(projects ?? []).map((project) => [
+				projects.map((project) => [
 					project.id,
-					project.githubRepositoryId,
+					project.repoOwner && project.repoName
+						? `https://github.com/${project.repoOwner}/${project.repoName}/`.toLowerCase()
+						: null,
 				]),
 			),
 		[projects],
@@ -291,14 +298,14 @@ export function HomeScreen() {
 					);
 				case "workspace": {
 					const { workspace } = item;
-					const repositoryId = repositoryIdsByProject.get(workspace.projectId);
+					const repoPrefix = repoPrefixesByProject.get(workspace.projectId);
 					return (
 						<WorkspaceRow
 							workspace={workspace}
 							pullRequest={
-								repositoryId
+								repoPrefix
 									? pullRequestsByRepoBranch.get(
-											`${repositoryId}::${workspace.branch}`,
+											`${repoPrefix}::${workspace.branch}`,
 										)
 									: undefined
 							}
@@ -333,7 +340,7 @@ export function HomeScreen() {
 		},
 		[
 			pullRequestsByRepoBranch,
-			repositoryIdsByProject,
+			repoPrefixesByProject,
 			diffStats,
 			cache,
 			router,

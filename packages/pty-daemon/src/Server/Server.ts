@@ -125,23 +125,51 @@ export class Server {
 	 * building its spawn args).
 	 */
 	adoptSnapshot(snapshot: HandoffSnapshot): void {
-		for (const s of snapshot.sessions) {
-			const pty = adoptFromFd({
-				fd: s.fdIndex,
-				pid: s.pid,
-				meta: s.meta,
-			});
-			const session = this.store.add(s.id, pty);
-			if (s.buffer.byteLength > 0) {
-				const buf = Buffer.from(
-					s.buffer.buffer,
-					s.buffer.byteOffset,
-					s.buffer.byteLength,
-				);
-				session.buffer = [buf];
-				session.bufferBytes = buf.byteLength;
+		const adopted: Session[] = [];
+		try {
+			for (const s of snapshot.sessions) {
+				const pty = adoptFromFd({
+					fd: s.fdIndex,
+					pid: s.pid,
+					meta: s.meta,
+				});
+				let session: Session | null = null;
+				try {
+					session = this.store.add(s.id, pty);
+					if (s.buffer.byteLength > 0) {
+						const buf = Buffer.from(
+							s.buffer.buffer,
+							s.buffer.byteOffset,
+							s.buffer.byteLength,
+						);
+						session.buffer = [buf];
+						session.bufferBytes = buf.byteLength;
+					}
+					this.wireSession(session);
+					adopted.push(session);
+				} catch (err) {
+					if (session) this.store.delete(session.id);
+					try {
+						pty.dispose({ keepExitPolling: false });
+					} catch {
+						// Preserve the original adoption error.
+					}
+					throw err;
+				}
 			}
-			this.wireSession(session);
+		} catch (err) {
+			// Adoption failed, so the predecessor retains ownership and keeps
+			// serving. Close only this successor's inherited copies; never signal
+			// the shared shells from a failed/partial handoff.
+			for (const session of adopted) {
+				try {
+					session.pty.dispose({ keepExitPolling: false });
+				} catch {
+					// Best-effort; keep rolling back the remaining sessions.
+				}
+				this.store.delete(session.id);
+			}
+			throw err;
 		}
 	}
 
@@ -310,6 +338,11 @@ export class Server {
 					session.pty.kill("SIGKILL");
 				} catch {
 					// already dead, ignore
+				}
+				try {
+					session.pty.dispose();
+				} catch {
+					// best-effort teardown; continue closing the remaining sessions
 				}
 			}
 		}
@@ -501,6 +534,15 @@ export class Server {
 			session.exited = true;
 			session.exitCode = info.code;
 			session.exitSignal = info.signal;
+			try {
+				session.pty.dispose();
+			} catch {
+				// Continue state cleanup if fd disposal was already attempted.
+			}
+			// An explicitly closed session id can be recycled before its delayed
+			// process-exit notification arrives. Never let that stale callback
+			// broadcast an exit for or delete the replacement session.
+			if (this.store.get(session.id) !== session) return;
 			const ev: ServerMessage = {
 				type: "exit",
 				id: session.id,
