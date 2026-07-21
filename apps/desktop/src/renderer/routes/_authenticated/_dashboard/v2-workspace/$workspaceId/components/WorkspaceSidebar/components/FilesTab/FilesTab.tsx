@@ -47,6 +47,7 @@ import {
 import { useFilesTabActions } from "./hooks/useFilesTabActions";
 import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
 import { useFilesTabDrop } from "./hooks/useFilesTabDrop";
+import { useFileTreeScrollFade } from "./hooks/useFileTreeScrollFade";
 import { buildPierreGitStatus } from "./utils/buildPierreGitStatus";
 import { stripTrailingSlash, toAbs, toRel } from "./utils/treePath";
 
@@ -265,6 +266,10 @@ export function FilesTab({
 		],
 	);
 
+	const fadeContainerRef = useFileTreeScrollFade<HTMLDivElement>(
+		Boolean(rootPath),
+	);
+
 	if (!rootPath) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -283,6 +288,7 @@ export function FilesTab({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
 		<div
+			ref={fadeContainerRef}
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
 			onDragOver={drop.onDragOver}

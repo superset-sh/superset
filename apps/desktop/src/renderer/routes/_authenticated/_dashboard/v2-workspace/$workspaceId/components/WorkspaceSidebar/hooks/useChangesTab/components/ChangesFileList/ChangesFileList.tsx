@@ -1,3 +1,4 @@
+import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { memo, useMemo } from "react";
 import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useChangeset";
 import type { ChangesViewMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
@@ -86,7 +87,8 @@ export const ChangesFileList = memo(function ChangesFileList({
 	}
 
 	return (
-		<div
+		<OverflowFadeContainer
+			fadeEdges={["top", "bottom"]}
 			className="relative min-h-0 flex-1 space-y-2 overflow-y-auto pt-1"
 			data-changes-scroll-container
 		>
@@ -132,6 +134,6 @@ export const ChangesFileList = memo(function ChangesFileList({
 					</ChangesSection>
 				);
 			})}
-		</div>
+		</OverflowFadeContainer>
 	);
 });
