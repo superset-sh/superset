@@ -36,9 +36,7 @@ export const COMPANY = {
 	STATUS_URL: "https://status.superset.sh",
 	TRUST_URL: "https://trust.superset.sh",
 	JOIN_US_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/join-us`,
-	/** The open-roles section of the join-us page; product surfaces link here. */
-	JOIN_US_ROLES_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/join-us#open-roles`,
-	/** The formal YC listing. `JOIN_US_URL` is our own page and the one we link from product surfaces. */
+	/** The formal YC listing; product surfaces link here. `JOIN_US_URL` is our own marketing page. */
 	CAREERS_URL: "https://www.ycombinator.com/companies/superset/jobs",
 } as const;
 

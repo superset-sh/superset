@@ -26,7 +26,7 @@ export function HiringBanner({ surface, isCollapsed }: HiringBannerProps) {
 
 	function handleViewRoles() {
 		track("hiring_banner_clicked");
-		openUrlMutation.mutate(COMPANY.JOIN_US_ROLES_URL);
+		openUrlMutation.mutate(COMPANY.CAREERS_URL);
 	}
 
 	function handleDismiss() {
