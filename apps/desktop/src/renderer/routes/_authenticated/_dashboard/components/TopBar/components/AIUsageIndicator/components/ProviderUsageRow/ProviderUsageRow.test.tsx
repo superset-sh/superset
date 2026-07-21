@@ -3,7 +3,7 @@ import type { ProviderUsage } from "lib/trpc/routers/provider-usage.schema";
 import { renderToStaticMarkup } from "react-dom/server";
 import { ProviderUsageRow } from "./ProviderUsageRow";
 
-const provider: ProviderUsage = {
+const claudeProvider: ProviderUsage = {
 	providerId: "claude",
 	providerName: "Claude",
 	status: "ok",
@@ -24,7 +24,7 @@ const provider: ProviderUsage = {
 describe("ProviderUsageRow", () => {
 	test("renders remaining capacity with accessible progress semantics", () => {
 		const markup = renderToStaticMarkup(
-			<ProviderUsageRow provider={provider} />,
+			<ProviderUsageRow provider={claudeProvider} />,
 		);
 
 		expect(markup).toContain("Claude");
@@ -38,7 +38,7 @@ describe("ProviderUsageRow", () => {
 		const markup = renderToStaticMarkup(
 			<ProviderUsageRow
 				provider={{
-					...provider,
+					...claudeProvider,
 					status: "not-configured",
 					windows: [],
 				}}

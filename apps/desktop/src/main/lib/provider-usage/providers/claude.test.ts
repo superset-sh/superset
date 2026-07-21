@@ -129,7 +129,7 @@ describe("collectClaudeUsage", () => {
 });
 
 describe("createClaudeCredentialReader", () => {
-	test("prefers and caches the macOS Keychain credential", async () => {
+	test("re-reads the macOS Keychain so account switches are detected", async () => {
 		let keychainReads = 0;
 		let fileReads = 0;
 		const readCredentials = createClaudeCredentialReader({
@@ -152,7 +152,7 @@ describe("createClaudeCredentialReader", () => {
 			accessToken: "keychain-token",
 			accountLabel: "Max",
 		});
-		expect(keychainReads).toBe(1);
+		expect(keychainReads).toBe(2);
 		expect(fileReads).toBe(0);
 	});
 

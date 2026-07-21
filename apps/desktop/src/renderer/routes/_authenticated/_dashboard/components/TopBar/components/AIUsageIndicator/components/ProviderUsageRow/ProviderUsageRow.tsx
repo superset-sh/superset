@@ -1,6 +1,6 @@
 import { cn } from "@superset/ui/lib/utils";
 import type { ProviderUsage } from "lib/trpc/routers/provider-usage.schema";
-import { formatResetLabel } from "./usageIndicatorPolicy";
+import { formatResetLabel } from "../../usageIndicatorPolicy";
 
 interface ProviderUsageRowProps {
 	provider: ProviderUsage;

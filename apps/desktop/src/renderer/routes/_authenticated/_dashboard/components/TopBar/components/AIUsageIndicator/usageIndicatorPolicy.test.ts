@@ -4,6 +4,8 @@ import {
 	formatResetLabel,
 	getLowestRemainingPercent,
 	getPrimaryWindow,
+	getProviderUsageRefetchInterval,
+	shouldQueryProviderUsage,
 } from "./usageIndicatorPolicy";
 
 const provider: ProviderUsage = {
@@ -33,6 +35,13 @@ const provider: ProviderUsage = {
 };
 
 describe("usageIndicatorPolicy", () => {
+	test("keeps provider network calls cold until the meter is opened", () => {
+		expect(shouldQueryProviderUsage(false)).toBe(false);
+		expect(getProviderUsageRefetchInterval(false)).toBe(false);
+		expect(shouldQueryProviderUsage(true)).toBe(true);
+		expect(getProviderUsageRefetchInterval(true)).toBe(5 * 60_000);
+	});
+
 	test("uses the shortest provider window for the compact runway", () => {
 		expect(getPrimaryWindow(provider)?.id).toBe("five-hour");
 	});

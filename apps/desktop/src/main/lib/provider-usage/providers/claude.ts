@@ -127,11 +127,11 @@ async function readKeychainCredentials(): Promise<ClaudeCredentials | null> {
 export function createClaudeCredentialReader(
 	sources: ClaudeCredentialSources,
 ): () => Promise<ClaudeCredentials | null> {
-	let keychainResult: Promise<ClaudeCredentials | null> | null = null;
 	return async () => {
 		if (sources.platform !== "darwin") return sources.readFile();
-		keychainResult ??= sources.readKeychain().catch(() => null);
-		return (await keychainResult) ?? sources.readFile();
+		return (
+			(await sources.readKeychain().catch(() => null)) ?? sources.readFile()
+		);
 	};
 }
 

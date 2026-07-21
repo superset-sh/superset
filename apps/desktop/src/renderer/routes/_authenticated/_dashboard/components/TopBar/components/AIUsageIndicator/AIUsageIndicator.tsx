@@ -5,10 +5,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
 import { HiOutlineArrowPath, HiOutlineChartPie } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { ProviderUsageRow } from "./ProviderUsageRow";
-import { getLowestRemainingPercent } from "./usageIndicatorPolicy";
-
-const REFRESH_INTERVAL_MS = 5 * 60_000;
+import { ProviderUsageRow } from "./components/ProviderUsageRow";
+import {
+	getLowestRemainingPercent,
+	getProviderUsageRefetchInterval,
+	PROVIDER_USAGE_REFETCH_INTERVAL_MS,
+	shouldQueryProviderUsage,
+} from "./usageIndicatorPolicy";
 
 export function AIUsageIndicator() {
 	const [open, setOpen] = useState(false);
@@ -17,8 +20,9 @@ export function AIUsageIndicator() {
 	const { data, isFetching } = electronTrpc.providerUsage.getSnapshot.useQuery(
 		undefined,
 		{
-			staleTime: REFRESH_INTERVAL_MS,
-			refetchInterval: REFRESH_INTERVAL_MS,
+			enabled: shouldQueryProviderUsage(open),
+			staleTime: PROVIDER_USAGE_REFETCH_INTERVAL_MS,
+			refetchInterval: getProviderUsageRefetchInterval(open),
 			refetchIntervalInBackground: false,
 		},
 	);
@@ -93,7 +97,7 @@ export function AIUsageIndicator() {
 				))}
 				{!data && (
 					<p className="border-t border-border/60 px-3.5 py-3 text-[10px] text-muted-foreground">
-						Reading local provider sessions…
+						Reading provider usage…
 					</p>
 				)}
 			</PopoverContent>

@@ -3,6 +3,16 @@ import type {
 	UsageWindow,
 } from "lib/trpc/routers/provider-usage.schema";
 
+export const PROVIDER_USAGE_REFETCH_INTERVAL_MS = 5 * 60_000;
+
+export function shouldQueryProviderUsage(open: boolean): boolean {
+	return open;
+}
+
+export function getProviderUsageRefetchInterval(open: boolean): number | false {
+	return open ? PROVIDER_USAGE_REFETCH_INTERVAL_MS : false;
+}
+
 export function getPrimaryWindow(provider: ProviderUsage): UsageWindow | null {
 	if (provider.status !== "ok") return null;
 	return (
