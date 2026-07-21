@@ -441,12 +441,14 @@ if (!gotTheLock) {
 			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
 
+		const hostServiceConfigProvider = async () => {
+			const { token } = await loadToken();
+			if (!token) return null;
+			return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+		};
+		getHostServiceCoordinator().enableHealthWatchdog(hostServiceConfigProvider);
 		if (IS_DEV) {
-			getHostServiceCoordinator().enableDevReload(async () => {
-				const { token } = await loadToken();
-				if (!token) return null;
-				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
-			});
+			getHostServiceCoordinator().enableDevReload(hostServiceConfigProvider);
 		}
 
 		await makeAppSetup(() => MainWindow());

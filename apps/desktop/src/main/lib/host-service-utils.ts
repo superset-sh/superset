@@ -113,7 +113,11 @@ export async function pollHealthCheck(
 	while (Date.now() < deadline) {
 		if (shouldAbort?.()) return false;
 		const controller = new AbortController();
-		const timeout = setTimeout(() => controller.abort(), 2_000);
+		// Clamp both the fetch and the retry sleep to the remaining budget so
+		// a call never runs meaningfully past its advertised timeout — the
+		// watchdog probes instances serially and relies on this bound.
+		const fetchBudget = Math.min(2_000, deadline - Date.now());
+		const timeout = setTimeout(() => controller.abort(), fetchBudget);
 		try {
 			const res = await fetch(`${endpoint}/trpc/health.check`, {
 				signal: controller.signal,
@@ -125,7 +129,12 @@ export async function pollHealthCheck(
 		} finally {
 			clearTimeout(timeout);
 		}
-		await new Promise((r) => setTimeout(r, HEALTH_POLL_INTERVAL_MS));
+		const sleepBudget = Math.min(
+			HEALTH_POLL_INTERVAL_MS,
+			deadline - Date.now(),
+		);
+		if (sleepBudget <= 0) break;
+		await new Promise((r) => setTimeout(r, sleepBudget));
 	}
 	return false;
 }
