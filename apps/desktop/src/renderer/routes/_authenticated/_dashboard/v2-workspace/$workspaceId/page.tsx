@@ -241,10 +241,6 @@ function V2WorkspaceContent() {
 	// The sidebar slot lives at the dashboard layout level (next to TopBar) so
 	// the sidebar runs full-height.
 	const sidebarSlotEl = useSlotElement("workspace-right-sidebar-slot");
-	// TopBar slot for the run button when the presets bar (its usual home) is
-	// hidden. The button renders here via portal so it keeps this page's
-	// context (pane store, workspace providers) while appearing in the TopBar.
-	const runButtonSlotEl = useSlotElement("workspace-topbar-run-slot");
 
 	useWorkspaceHotkeys({
 		store,
@@ -302,7 +298,6 @@ function V2WorkspaceContent() {
 										executePreset={executePreset}
 										showPresetsBar={showPresetsBar}
 										onToggleShowPresetsBar={setShowPresetsBar}
-										trailing={workspaceRunButton}
 									/>
 								) : null
 							}
@@ -316,10 +311,13 @@ function V2WorkspaceContent() {
 								/>
 							)}
 							renderTabBarTrailing={() => (
-								<BackgroundTerminalsButton
-									workspaceId={workspaceId}
-									store={store}
-								/>
+								<div className="flex items-center gap-1">
+									<BackgroundTerminalsButton
+										workspaceId={workspaceId}
+										store={store}
+									/>
+									{workspaceRunButton}
+								</div>
 							)}
 							renderEmptyState={() => (
 								<WorkspaceEmptyState
@@ -335,9 +333,6 @@ function V2WorkspaceContent() {
 						/>
 					</div>
 				</div>
-				{!showPresetsBar &&
-					runButtonSlotEl &&
-					createPortal(workspaceRunButton, runButtonSlotEl)}
 				{sidebarOpen &&
 					sidebarSlotEl &&
 					createPortal(

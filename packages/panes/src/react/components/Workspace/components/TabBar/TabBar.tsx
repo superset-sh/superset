@@ -47,7 +47,7 @@ function AddTabButton<_TData>({
 }) {
 	const button = (
 		<Button
-			className="size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
+			className="ml-1.5 size-7 rounded-md border border-border/60 bg-muted/30 px-1 text-muted-foreground shadow-none hover:bg-accent/60 hover:text-foreground"
 			size="icon"
 			type="button"
 			variant="ghost"
@@ -187,7 +187,9 @@ export function TabBar<TData>({
 	return (
 		<div
 			ref={setRootRef}
-			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch border-b border-border bg-background"
+			// No border-b: the bar sits flush against whatever renders below it and
+			// the active tab draws its own frame.
+			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background"
 		>
 			<OverflowFadeContainer
 				observeChildren

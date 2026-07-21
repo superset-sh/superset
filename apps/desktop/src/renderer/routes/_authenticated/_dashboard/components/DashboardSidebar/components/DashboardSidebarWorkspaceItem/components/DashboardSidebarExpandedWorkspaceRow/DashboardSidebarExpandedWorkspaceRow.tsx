@@ -260,6 +260,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									{creationStatusText}
 								</span>
 							) : (
+								isActive &&
 								diffStats &&
 								(diffStats.additions > 0 || diffStats.deletions > 0) && (
 									<DashboardSidebarWorkspaceDiffStats

@@ -144,7 +144,7 @@ export function V2OpenInMenuButton({
 							isLoading && "opacity-50 pointer-events-none",
 						)}
 					>
-						<HiChevronDown className="size-3.5" />
+						<HiChevronDown className="size-3" />
 					</button>
 				</DropdownMenuTrigger>
 

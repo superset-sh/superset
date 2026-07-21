@@ -55,10 +55,6 @@ export function TerminalPaneHeaderExtras({
 					{label}
 				</TooltipContent>
 			</Tooltip>
-			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
-				aria-hidden="true"
-			/>
 		</div>
 	);
 }

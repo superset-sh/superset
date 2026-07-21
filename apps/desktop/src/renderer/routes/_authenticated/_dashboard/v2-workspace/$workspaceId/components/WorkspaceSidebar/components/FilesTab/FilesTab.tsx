@@ -19,6 +19,7 @@ import {
 	FoldVertical,
 	Loader2,
 	RefreshCw,
+	Search,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
@@ -66,6 +67,7 @@ interface FilesTabProps {
 	} | null;
 	workspaceId: string;
 	gitStatus: GitStatusData | undefined;
+	onSearch?: () => void;
 }
 
 export function FilesTab({
@@ -74,6 +76,7 @@ export function FilesTab({
 	pendingReveal,
 	workspaceId,
 	gitStatus,
+	onSearch,
 }: FilesTabProps) {
 	// Shares the query cache with V2WorkspacePage's workspace.get query, so
 	// the first render after a workspace switch typically already has cached
@@ -292,9 +295,15 @@ export function FilesTab({
 					className="flex-1 min-h-0"
 					style={TREE_STYLE}
 					header={
-						<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-							<span className="truncate">Explorer</span>
+						<div className="group flex h-7 items-center justify-end bg-background px-2">
 							<div className="flex items-center gap-0.5">
+								{onSearch && (
+									<FilesTabHeaderButton
+										icon={Search}
+										label="Search"
+										onClick={onSearch}
+									/>
+								)}
 								<FilesTabHeaderButton
 									icon={FilePlus}
 									label="New File"

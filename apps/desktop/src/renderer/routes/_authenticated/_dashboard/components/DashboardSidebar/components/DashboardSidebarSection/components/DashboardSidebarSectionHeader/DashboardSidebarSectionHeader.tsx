@@ -93,22 +93,13 @@ export const DashboardSidebarSectionHeader = forwardRef<
 						{actions ? (
 							// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
 							<div
-								className="peer hidden size-full items-center justify-center group-hover:flex group-has-[:focus]:flex has-[[data-state=open]]:flex"
+								className="hidden size-full items-center justify-center group-hover:flex group-has-[:focus]:flex has-[[data-state=open]]:flex"
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}
 							>
 								{actions}
 							</div>
 						) : null}
-						<span
-							className={cn(
-								"text-[10px] font-normal tabular-nums text-muted-foreground",
-								actions &&
-									"group-hover:hidden group-has-[:focus]:hidden peer-has-[[data-state=open]]:hidden",
-							)}
-						>
-							{section.workspaces.length}
-						</span>
 					</div>
 				)}
 			</div>

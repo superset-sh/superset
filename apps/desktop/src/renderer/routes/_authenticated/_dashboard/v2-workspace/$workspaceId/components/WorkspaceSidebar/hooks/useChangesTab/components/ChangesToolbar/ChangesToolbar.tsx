@@ -1,5 +1,4 @@
 import { Button } from "@superset/ui/button";
-import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { FoldVertical, RefreshCw, UnfoldVertical } from "lucide-react";
@@ -54,7 +53,7 @@ export function ChangesToolbar({
 	const label = collapsed ? "Expand all" : "Collapse all";
 	const Icon = collapsed ? UnfoldVertical : FoldVertical;
 	return (
-		<div className="flex items-center justify-between gap-2 border-b border-border px-2 pt-0.5 pb-1.5">
+		<div className="flex items-center justify-between gap-2 px-2 pt-0.5 pb-1.5">
 			<div className="flex min-w-0 items-center gap-2 overflow-hidden text-[11px] text-muted-foreground">
 				<CommitFilterDropdown
 					filter={filter}
@@ -74,11 +73,6 @@ export function ChangesToolbar({
 						{totalDeletions > 0 && (
 							<span className="text-red-400">-{totalDeletions}</span>
 						)}
-					</span>
-				)}
-				{isRefreshing && (
-					<span className="flex items-center" title="Refreshing changes">
-						<Spinner className="size-3" aria-label="Refreshing changes" />
 					</span>
 				)}
 			</div>
