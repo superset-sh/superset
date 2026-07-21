@@ -1,3 +1,5 @@
+import agyIcon from "./agy.svg";
+import agyWhiteIcon from "./agy-white.svg";
 import ampIcon from "./amp.svg";
 import claudeIcon from "./claude.svg";
 import codexIcon from "./codex.svg";
@@ -28,6 +30,7 @@ export interface PresetIconSet {
 
 export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	amp: { light: ampIcon, dark: ampIcon },
+	agy: { light: agyIcon, dark: agyWhiteIcon },
 	claude: { light: claudeIcon, dark: claudeIcon },
 	codex: { light: codexIcon, dark: codexWhiteIcon },
 	copilot: { light: copilotIcon, dark: copilotWhiteIcon },
@@ -63,6 +66,8 @@ export function getPresetIcon(
 }
 
 export {
+	agyIcon,
+	agyWhiteIcon,
 	ampIcon,
 	claudeIcon,
 	codexIcon,
