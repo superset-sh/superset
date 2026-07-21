@@ -8,7 +8,6 @@ import {
 	ActionSheetIOS,
 	ActivityIndicator,
 	Alert,
-	LayoutAnimation,
 	Linking,
 	PanResponder,
 	RefreshControl,
@@ -35,6 +34,10 @@ import {
 	useDraftCommentsStore,
 } from "../stores/draftCommentsStore";
 import { languageForPath } from "../utils/languageForPath";
+import {
+	AnimatedCellContainer,
+	CellTransitionsContext,
+} from "./components/AnimatedCellContainer";
 import { CommentCardRow } from "./components/CommentCardRow";
 import { ExpanderRow } from "./components/ExpanderRow";
 import { FileHeaderRow } from "./components/FileHeaderRow";
@@ -52,6 +55,7 @@ import {
 import {
 	CharWidthProbe,
 	contentWidthForChars,
+	DIFF_LINE_HEIGHT,
 	ESTIMATED_CHAR_WIDTH,
 	GUTTER_WIDTH,
 	HUNK_ROW_HEIGHT,
@@ -62,6 +66,10 @@ const NO_VIEWED_PATHS: string[] = [];
 const FETCH_PIPELINE_START = 10;
 const FETCH_PIPELINE_STEP = 6;
 const FETCH_PIPELINE_LOOKAHEAD = 3;
+// Sections taller than this snap instead of animating — sliding multiple
+// viewports of content in 240ms reads as noise and the mid-flight cell
+// mounting stutters.
+const ANIMATED_TOGGLE_MAX_PX = 1_400;
 
 export function FilesChangedScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
@@ -114,16 +122,44 @@ export function FilesChangedScreen() {
 		[viewedSet, collapsedToggles],
 	);
 
-	// Section collapse/expand: pause cell recycling for the next commit and let
-	// native LayoutAnimation slide the surrounding rows into place.
+	// Section collapse/expand: pause cell recycling for the next commit and
+	// open the cell-transition gate so repositioned cells slide into place.
+	// The gate stays shut otherwise — recycled cells must not animate their
+	// reposition during normal scrolling.
+	const [cellTransitions, setCellTransitions] = useState(false);
+	const cellTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
 	const animateNextListUpdate = useCallback(() => {
 		listRef.current?.prepareForLayoutAnimationRender();
-		LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
+		setCellTransitions(true);
+		if (cellTransitionTimer.current) clearTimeout(cellTransitionTimer.current);
+		cellTransitionTimer.current = setTimeout(
+			() => setCellTransitions(false),
+			400,
+		);
 	}, []);
+	useEffect(
+		() => () => {
+			if (cellTransitionTimer.current)
+				clearTimeout(cellTransitionTimer.current);
+		},
+		[],
+	);
+
+	const animateToggleIfSmall = useCallback(
+		(path: string) => {
+			const file = changeset.files.find((entry) => entry.path === path);
+			if (!file) return;
+			const estimate = (file.additions + file.deletions + 8) * DIFF_LINE_HEIGHT;
+			if (estimate <= ANIMATED_TOGGLE_MAX_PX) animateNextListUpdate();
+		},
+		[changeset.files, animateNextListUpdate],
+	);
 
 	const toggleCollapsed = useCallback(
 		(path: string) => {
-			animateNextListUpdate();
+			animateToggleIfSmall(path);
 			setCollapsedToggles((previous) => {
 				const next = new Set(previous);
 				if (next.has(path)) next.delete(path);
@@ -131,7 +167,7 @@ export function FilesChangedScreen() {
 				return next;
 			});
 		},
-		[animateNextListUpdate],
+		[animateToggleIfSmall],
 	);
 
 	// The toggle bit is relative to the viewed baseline — reset it when the
@@ -139,7 +175,7 @@ export function FilesChangedScreen() {
 	const onToggleViewed = useCallback(
 		(path: string) => {
 			if (!workspaceId) return;
-			animateNextListUpdate();
+			animateToggleIfSmall(path);
 			toggleViewed(workspaceId, path);
 			setCollapsedToggles((previous) => {
 				if (!previous.has(path)) return previous;
@@ -148,7 +184,7 @@ export function FilesChangedScreen() {
 				return next;
 			});
 		},
-		[workspaceId, toggleViewed, animateNextListUpdate],
+		[workspaceId, toggleViewed, animateToggleIfSmall],
 	);
 
 	const fetchableFiles = useMemo(
@@ -598,33 +634,36 @@ export function FilesChangedScreen() {
 			</Stack.Screen>
 			<CharWidthProbe onMeasure={setCharWidth} />
 			<View className="flex-1" {...panResponder.panHandlers}>
-				<FlashList
-					ref={listRef}
-					data={items}
-					renderItem={renderItem}
-					keyExtractor={(item) => item.key}
-					getItemType={(item) => item.kind}
-					stickyHeaderIndices={stickyHeaderIndices}
-					stickyHeaderConfig={{ hideRelatedCell: true }}
-					contentContainerStyle={{ paddingBottom: 96 }}
-					refreshControl={
-						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-					}
-					ListFooterComponent={
-						changeset.isReady && changeset.files.length === 0 ? (
-							<View className="items-center gap-2 px-10 py-20">
-								<Icon
-									as={FileDiff}
-									className="text-muted-foreground/50 size-10"
-									strokeWidth={1.4}
-								/>
-								<Text className="text-muted-foreground text-center text-sm">
-									No changes on this branch yet.
-								</Text>
-							</View>
-						) : null
-					}
-				/>
+				<CellTransitionsContext.Provider value={cellTransitions}>
+					<FlashList
+						ref={listRef}
+						data={items}
+						renderItem={renderItem}
+						keyExtractor={(item) => item.key}
+						getItemType={(item) => item.kind}
+						CellRendererComponent={AnimatedCellContainer}
+						stickyHeaderIndices={stickyHeaderIndices}
+						stickyHeaderConfig={{ hideRelatedCell: true }}
+						contentContainerStyle={{ paddingBottom: 96 }}
+						refreshControl={
+							<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+						}
+						ListFooterComponent={
+							changeset.isReady && changeset.files.length === 0 ? (
+								<View className="items-center gap-2 px-10 py-20">
+									<Icon
+										as={FileDiff}
+										className="text-muted-foreground/50 size-10"
+										strokeWidth={1.4}
+									/>
+									<Text className="text-muted-foreground text-center text-sm">
+										No changes on this branch yet.
+									</Text>
+								</View>
+							) : null
+						}
+					/>
+				</CellTransitionsContext.Provider>
 			</View>
 			<ReviewOverlay
 				draftCount={comments.length}
