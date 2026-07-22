@@ -90,7 +90,14 @@ export function parseCheckContexts(
 
 export function computeChecksStatus(checks: PullRequestCheck[]): ChecksStatus {
 	if (checks.length === 0) return "none";
-	if (checks.some((check) => check.status === "failure")) return "failure";
+	// A cancelled run is terminal and did not pass, so it must not roll up to a
+	// green "success". Treat it as non-passing alongside "failure".
+	if (
+		checks.some(
+			(check) => check.status === "failure" || check.status === "cancelled",
+		)
+	)
+		return "failure";
 	if (checks.some((check) => check.status === "pending")) return "pending";
 	return "success";
 }
