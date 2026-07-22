@@ -5,6 +5,7 @@ import { handleAuthCallback } from "lib/trpc/routers/auth/utils/auth-functions";
 import { NOTIFICATION_EVENTS } from "shared/constants";
 import { env } from "shared/env.shared";
 import type { AgentLifecycleEvent } from "shared/notification-types";
+import { syncClaudeSettingsForConfigDir } from "../agent-setup/agent-wrappers-claude-codex-opencode";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
 import { resolvePaneId } from "./resolve-pane-id";
@@ -124,6 +125,25 @@ app.get("/hook/complete", (req, res) => {
 	notificationsEmitter.emit(NOTIFICATION_EVENTS.AGENT_LIFECYCLE, event);
 
 	res.json({ success: true, paneId: resolvedPaneId, tabId });
+});
+
+// Requested by the claude wrapper when CLAUDE_CONFIG_DIR is set (e.g. a
+// claude-work/claude-personal profile alias), so Claude Code reads hooks
+// from a directory other than ~/.claude — sync our managed hooks into it
+// too. Best-effort and fail-open: never blocks the agent from launching.
+app.get("/hook/claude-config-sync", (req, res) => {
+	const { configDir } = req.query;
+	try {
+		if (typeof configDir === "string") {
+			syncClaudeSettingsForConfigDir(configDir);
+		}
+	} catch (error) {
+		console.warn(
+			"[notifications] Failed to sync Claude settings for config dir:",
+			error,
+		);
+	}
+	res.json({ success: true });
 });
 
 // Health check

@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { env } from "shared/env.shared";
 import {
 	buildWrapperScript,
 	createWrapper,
@@ -90,24 +91,24 @@ function isManagedClaudeHookCommand(
 }
 
 function readExistingClaudeSettings(
-	globalPath: string,
+	settingsPath: string,
 ): ClaudeSettingsJson | null {
-	if (!fs.existsSync(globalPath)) {
+	if (!fs.existsSync(settingsPath)) {
 		return {};
 	}
 
 	try {
-		const parsed = JSON.parse(fs.readFileSync(globalPath, "utf-8"));
+		const parsed = JSON.parse(fs.readFileSync(settingsPath, "utf-8"));
 		if (!isPlainObject(parsed)) {
 			console.warn(
-				"[agent-setup] Expected ~/.claude/settings.json to contain a JSON object; skipping Claude hook merge",
+				`[agent-setup] Expected ${settingsPath} to contain a JSON object; skipping Claude hook merge`,
 			);
 			return null;
 		}
 		return parsed;
 	} catch (error) {
 		console.warn(
-			"[agent-setup] Could not parse existing ~/.claude/settings.json; skipping Claude hook merge:",
+			`[agent-setup] Could not parse existing ${settingsPath}; skipping Claude hook merge:`,
 			error,
 		);
 		return null;
@@ -148,18 +149,18 @@ export function getClaudeGlobalSettingsJsonPath(): string {
 }
 
 /**
- * Reads existing ~/.claude/settings.json, merges our hook definitions
- * (identified by notify script path), and preserves any user-defined hooks
- * and all non-hook settings.
+ * Reads existing settings.json at `settingsPath`, merges our hook
+ * definitions (identified by notify script path), and preserves any
+ * user-defined hooks and all non-hook settings.
  *
  * Claude Code uses the same nested hook structure as Droid:
  *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
  */
-export function getClaudeGlobalSettingsJsonContent(
+export function getClaudeSettingsJsonContent(
+	settingsPath: string,
 	notifyScriptPath: string,
 ): string | null {
-	const globalPath = getClaudeGlobalSettingsJsonPath();
-	const existing = readExistingClaudeSettings(globalPath);
+	const existing = readExistingClaudeSettings(settingsPath);
 	if (!existing) return null;
 	const managedHookCommand = getClaudeManagedHookCommand();
 
@@ -250,7 +251,7 @@ export function getClaudeGlobalSettingsJsonContent(
 export function createClaudeSettingsJson(): void {
 	const notifyScriptPath = getNotifyScriptPath();
 	const globalPath = getClaudeGlobalSettingsJsonPath();
-	const content = getClaudeGlobalSettingsJsonContent(notifyScriptPath);
+	const content = getClaudeSettingsJsonContent(globalPath, notifyScriptPath);
 	if (content === null) return;
 
 	const dir = path.dirname(globalPath);
@@ -259,6 +260,35 @@ export function createClaudeSettingsJson(): void {
 	console.log(
 		`[agent-setup] ${changed ? "Updated" : "Verified"} Claude settings.json`,
 	);
+}
+
+/**
+ * Merges Superset's managed Claude hooks into `settings.json` inside an
+ * arbitrary directory. Claude Code reads its hooks from `$CLAUDE_CONFIG_DIR`
+ * when set (e.g. `alias claude-work='CLAUDE_CONFIG_DIR=~/.claude-work claude'`),
+ * so createClaudeSettingsJson()'s write to the default `~/.claude` never
+ * reaches that profile. Called from the claude wrapper's runtime sync
+ * request (see buildClaudeWrapperExecLine) whenever CLAUDE_CONFIG_DIR is set.
+ */
+export function syncClaudeSettingsForConfigDir(
+	configDirInput: string,
+): boolean {
+	const trimmed = configDirInput.trim();
+	if (!trimmed) return false;
+	const resolvedDir = trimmed.startsWith("~")
+		? path.join(os.homedir(), trimmed.slice(1))
+		: trimmed;
+	if (!path.isAbsolute(resolvedDir)) return false;
+
+	const settingsPath = path.join(resolvedDir, "settings.json");
+	const content = getClaudeSettingsJsonContent(
+		settingsPath,
+		getNotifyScriptPath(),
+	);
+	if (content === null) return false;
+
+	fs.mkdirSync(resolvedDir, { recursive: true });
+	return writeFileIfChanged(settingsPath, content, 0o644);
 }
 
 /**
@@ -272,15 +302,33 @@ export function getOpenCodePluginContent(notifyPath: string): string {
 }
 
 /**
- * Pass-through wrapper for Claude. Hooks live in ~/.claude/settings.json
- * (createClaudeSettingsJson); the wrapper exists only to forward SUPERSET_*
- * env vars into the agent process tree.
+ * Wrapper for Claude. Hooks normally live in ~/.claude/settings.json
+ * (createClaudeSettingsJson), but when CLAUDE_CONFIG_DIR points elsewhere
+ * (e.g. a claude-work/claude-personal profile alias), Claude Code reads
+ * hooks from that directory instead, so the boot-time write never reaches
+ * it. Ask the running app to sync hooks into that directory first — best
+ * effort, and a no-op for a plain `claude` invocation.
  */
 export function createClaudeWrapper(): void {
-	const script = buildWrapperScript("claude", `exec "$REAL_BIN" "$@"`, {
+	const script = buildWrapperScript("claude", buildClaudeWrapperExecLine(), {
 		agentId: "claude",
 	});
 	createWrapper("claude", script);
+}
+
+/**
+ * Builds the Claude wrapper's exec block, including the CLAUDE_CONFIG_DIR
+ * hook-sync request. Mirrors the timeout/data-urlencode/fail-open
+ * conventions already used by notify-hook.template.sh.
+ */
+export function buildClaudeWrapperExecLine(): string {
+	return `if [ -n "$CLAUDE_CONFIG_DIR" ]; then
+  curl -sG "http://127.0.0.1:\${SUPERSET_PORT:-${env.DESKTOP_NOTIFICATIONS_PORT}}/hook/claude-config-sync" \\
+    --connect-timeout 1 --max-time 3 \\
+    --data-urlencode "configDir=$CLAUDE_CONFIG_DIR" \\
+    -o /dev/null 2>/dev/null || true
+fi
+exec "$REAL_BIN" "$@"`;
 }
 
 /**
