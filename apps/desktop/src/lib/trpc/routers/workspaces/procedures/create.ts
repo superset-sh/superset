@@ -21,6 +21,7 @@ import {
 	setLastActiveWorkspace,
 	touchWorkspace,
 } from "../utils/db-helpers";
+import { resolvePromptBranchName } from "../utils/fallback-branch-name";
 import {
 	createWorktreeFromPr,
 	type ExternalWorktree,
@@ -548,10 +549,19 @@ export const createCreateProcedures = () => {
 						{ preserveFirstSegmentCase: true },
 					);
 				} else {
-					branch = generateBranchName({
-						existingBranches,
-						authorPrefix: branchPrefix,
-					});
+					// Derive a slug from the prompt before resorting to a random
+					// friendly name, so prompt-driven creates keep a meaningful
+					// branch when AI naming is unavailable (#5825).
+					branch =
+						resolvePromptBranchName({
+							prompt: input.prompt,
+							existingBranches,
+							addPrefix: withPrefix,
+						}) ??
+						generateBranchName({
+							existingBranches,
+							authorPrefix: branchPrefix,
+						});
 				}
 
 				if (input.branchName?.trim()) {
