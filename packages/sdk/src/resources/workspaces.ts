@@ -186,6 +186,10 @@ export interface WorkspaceAgentLaunch {
 	prompt: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
+	/** Optional model id to pass to the selected agent, when the preset supports model selection. */
+	model?: string;
+	/** Optional reasoning-effort id to pass to the selected agent, when the preset supports effort selection. */
+	effort?: string;
 }
 
 export type WorkspaceCreateAgentResult =
