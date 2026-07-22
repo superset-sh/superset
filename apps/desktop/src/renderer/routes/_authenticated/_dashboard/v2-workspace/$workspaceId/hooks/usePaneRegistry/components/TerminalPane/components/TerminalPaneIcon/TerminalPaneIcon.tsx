@@ -1,4 +1,4 @@
-import { BUILTIN_AGENT_LABELS } from "@superset/shared/agent-catalog";
+import { AGENT_IDENTITY_LABELS } from "@superset/shared/agent-catalog";
 import { TerminalSquare } from "lucide-react";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
@@ -24,8 +24,8 @@ export function TerminalPaneIcon({
 
 	if (agentId && iconSrc) {
 		const label =
-			(agentId in BUILTIN_AGENT_LABELS &&
-				BUILTIN_AGENT_LABELS[agentId as keyof typeof BUILTIN_AGENT_LABELS]) ||
+			(agentId in AGENT_IDENTITY_LABELS &&
+				AGENT_IDENTITY_LABELS[agentId as keyof typeof AGENT_IDENTITY_LABELS]) ||
 			agentId;
 		return (
 			<img

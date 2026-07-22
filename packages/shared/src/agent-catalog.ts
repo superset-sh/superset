@@ -23,6 +23,19 @@ export const BUILTIN_AGENT_IDS = [
 export type BuiltinAgentId = (typeof BUILTIN_AGENT_IDS)[number];
 export type AgentDefinitionId = BuiltinAgentId | `custom:${string}`;
 
+/**
+ * Agents Superset can identify via lifecycle hooks but cannot launch —
+ * they run in an external app whose hooks land on a Superset terminal.
+ */
+export const EXTERNAL_AGENT_IDS = ["cursor-composer"] as const;
+
+export const AGENT_IDENTITY_IDS = [
+	...BUILTIN_AGENT_IDS,
+	...EXTERNAL_AGENT_IDS,
+] as const;
+
+export type AgentIdentityId = (typeof AGENT_IDENTITY_IDS)[number];
+
 export type {
 	AgentDefinition,
 	AgentDefinitionSource,
@@ -37,6 +50,11 @@ export const BUILTIN_AGENT_LABELS: Record<BuiltinAgentId, string> = {
 	),
 	superset: "Superset",
 } as Record<BuiltinAgentId, string>;
+
+export const AGENT_IDENTITY_LABELS: Record<AgentIdentityId, string> = {
+	...BUILTIN_AGENT_LABELS,
+	"cursor-composer": "Cursor Composer",
+};
 
 const BUILTIN_CHAT_AGENT: ChatAgentDefinition = {
 	id: "superset",
