@@ -748,7 +748,7 @@
     },
     "packages/cli": {
       "name": "@superset/cli",
-      "version": "1.16.1",
+      "version": "1.16.2",
       "dependencies": {
         "@clack/prompts": "0.10.1",
         "@superset/cli-framework": "workspace:*",
@@ -843,7 +843,7 @@
     },
     "packages/host-service": {
       "name": "@superset/host-service",
-      "version": "1.16.1",
+      "version": "1.16.2",
       "dependencies": {
         "@agentclientprotocol/claude-agent-acp": "0.56.0",
         "@agentclientprotocol/sdk": "1.2.0",
