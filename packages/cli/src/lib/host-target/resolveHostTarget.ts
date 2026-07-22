@@ -24,7 +24,12 @@ export type ResolvedHostTarget =
 	  };
 
 export interface ResolveHostTargetOptions {
-	requestedHostId: string | undefined;
+	/**
+	 * Always a concrete host id — callers decide explicitly (requireHostTarget,
+	 * a resource's hostId, or getHostId() when local is the documented
+	 * behavior). There is deliberately no implicit local fallback.
+	 */
+	requestedHostId: string;
 	organizationId: string;
 	userJwt: string;
 }
@@ -33,7 +38,7 @@ export function resolveHostTarget(
 	options: ResolveHostTargetOptions,
 ): ResolvedHostTarget {
 	const localHostId = getHostId();
-	const targetHostId = options.requestedHostId ?? localHostId;
+	const targetHostId = options.requestedHostId;
 
 	if (targetHostId === localHostId) {
 		const manifest = readManifest(options.organizationId);
