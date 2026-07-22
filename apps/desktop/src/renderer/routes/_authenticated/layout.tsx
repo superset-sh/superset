@@ -27,6 +27,7 @@ import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
+import { GitInitConfirmDialog } from "renderer/routes/_authenticated/components/GitInitConfirmDialog";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -292,6 +293,11 @@ function AuthenticatedLayout() {
 									<NewWorkspaceModal />
 								)}
 								<InitGitDialog />
+								{/* Mounted here, not under _dashboard: onboarding renders
+								    through this layout's Outlet and also runs the
+								    folder-first import, whose git-init confirm promise
+								    never settles without a mounted dialog. */}
+								<GitInitConfirmDialog />
 								<TeardownLogsDialog />
 								<Paywall />
 							</WorkerPoolContextProvider>
