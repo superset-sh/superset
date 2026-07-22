@@ -23,10 +23,13 @@ import type {
 
 interface BranchComparison {
 	commits: GitChangesStatus["commits"];
+	totalCommitCount: number;
 	againstBase: ChangedFile[];
 	ahead: number;
 	behind: number;
 }
+
+export const MAX_COMMIT_LIST_COUNT = 500;
 
 interface TrackingStatus {
 	pushCount: number;
@@ -168,6 +171,7 @@ async function getBranchComparison(
 	defaultBranch: string,
 ): Promise<BranchComparison> {
 	let commits: GitChangesStatus["commits"] = [];
+	let totalCommitCount = 0;
 	let againstBase: ChangedFile[] = [];
 	let ahead = 0;
 	let behind = 0;
@@ -186,10 +190,11 @@ async function getBranchComparison(
 		const logOutput = await git.raw([
 			"log",
 			`origin/${defaultBranch}..HEAD`,
-			"--max-count=500",
+			`--max-count=${MAX_COMMIT_LIST_COUNT}`,
 			"--format=%H|%h|%s|%an|%aI",
 		]);
 		commits = parseGitLog(logOutput);
+		totalCommitCount = ahead;
 
 		if (ahead > 0) {
 			const nameStatus = await git.raw([
@@ -212,7 +217,7 @@ async function getBranchComparison(
 		);
 	}
 
-	return { commits, againstBase, ahead, behind };
+	return { commits, totalCommitCount, againstBase, ahead, behind };
 }
 
 async function getTrackingBranchStatus(
@@ -276,6 +281,7 @@ async function computeStatus({
 		defaultBranch: effectiveBaseBranch,
 		againstBase: branchComparison.againstBase,
 		commits: branchComparison.commits,
+		totalCommitCount: branchComparison.totalCommitCount,
 		staged: parsed.staged,
 		unstaged: parsed.unstaged,
 		untracked: parsed.untracked,
