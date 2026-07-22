@@ -5,6 +5,7 @@ import { getBaseName } from "renderer/lib/pathBasename";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { getDocument } from "../../state/fileDocumentStore";
 import type { FilePaneData, PaneViewerData } from "../../types";
+import { confirmCloseActiveTerminalPanes } from "../confirmTerminalClose";
 
 type OnBeforeCloseTab = NonNullable<
 	WorkspaceProps<PaneViewerData>["onBeforeCloseTab"]
@@ -14,7 +15,12 @@ export function useDirtyTabCloseGuard(): OnBeforeCloseTab {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
 	return useCallback<OnBeforeCloseTab>(
-		(tab) => {
+		async (tab) => {
+			const activeTerminalCloseAllowed = await confirmCloseActiveTerminalPanes(
+				Object.values(tab.panes),
+			);
+			if (!activeTerminalCloseAllowed) return false;
+
 			const dirtyPanes = Object.values(tab.panes).filter((pane) => {
 				if (pane.kind !== "file") return false;
 				const filePath = (pane.data as FilePaneData).filePath;
