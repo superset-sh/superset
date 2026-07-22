@@ -1,7 +1,7 @@
 import type { HarnessKind, StopReason } from "@superset/session-protocol";
 import type {
 	AgentDefinitionId,
-	BuiltinAgentId,
+	AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { sql } from "drizzle-orm";
@@ -50,7 +50,7 @@ export const terminalAgentBindings = sqliteTable(
 			.primaryKey()
 			.references(() => terminalSessions.id, { onDelete: "cascade" }),
 		workspaceId: text("workspace_id").notNull(),
-		agentId: text("agent_id").notNull().$type<BuiltinAgentId>(),
+		agentId: text("agent_id").notNull().$type<AgentIdentityId>(),
 		agentSessionId: text("agent_session_id"),
 		definitionId: text("definition_id").$type<AgentDefinitionId>(),
 		startedAt: integer("started_at").notNull(),

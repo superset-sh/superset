@@ -56,20 +56,20 @@ describe("getNotifyScriptContent", () => {
 });
 
 describe("per-agent hook scripts dispatch to v2", () => {
-	const expectedV2Payload =
-		'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"';
+	const buildExpectedV2Payload = (agentIdVar: string) =>
+		`PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$${agentIdVar}")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"`;
 
-	for (const template of [
-		"cursor-hook.template.sh",
-		"copilot-hook.template.sh",
-		"gemini-hook.template.sh",
-	]) {
+	for (const [template, agentIdVar] of [
+		["cursor-hook.template.sh", "AGENT_ID"],
+		["copilot-hook.template.sh", "SUPERSET_AGENT_ID"],
+		["gemini-hook.template.sh", "SUPERSET_AGENT_ID"],
+	] as const) {
 		it(`${template} posts v2 first and falls back to v1`, () => {
 			const script = readFileSync(
 				path.join(import.meta.dir, "templates", template),
 				"utf-8",
 			);
-			expect(script).toContain(expectedV2Payload);
+			expect(script).toContain(buildExpectedV2Payload(agentIdVar));
 			expect(script).toContain('curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL"');
 			expect(script).toContain(
 				'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',

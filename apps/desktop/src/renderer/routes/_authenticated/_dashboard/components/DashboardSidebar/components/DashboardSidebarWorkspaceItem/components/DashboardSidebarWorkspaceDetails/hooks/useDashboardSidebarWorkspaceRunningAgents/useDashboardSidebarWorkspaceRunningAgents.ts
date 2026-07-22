@@ -1,6 +1,6 @@
 import {
-	BUILTIN_AGENT_LABELS,
-	type BuiltinAgentId,
+	AGENT_IDENTITY_LABELS,
+	type AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import { useMemo } from "react";
 import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
@@ -20,8 +20,8 @@ export interface DashboardSidebarRunningAgent {
 	source: V2NotificationSource;
 	/** Host terminal the agent is bound to. */
 	terminalId: string;
-	/** Built-in agent id (`claude`, `codex`, …) — drives label + icon. */
-	agentId: BuiltinAgentId;
+	/** Agent identity id (`claude`, `codex`, …) — drives label + icon. */
+	agentId: AgentIdentityId;
 	/** `idle` | `working` | `permission` | `review`. */
 	status: RunningAgentStatus;
 	/** When the agent process was bound (ms since epoch), used for stable order. */
@@ -55,7 +55,7 @@ export function useDashboardSidebarWorkspaceRunningAgents(
 				agentId: binding.agentId,
 				status: statuses.get(binding.terminalId) ?? "idle",
 				startedAt: binding.startedAt,
-				label: BUILTIN_AGENT_LABELS[binding.agentId] ?? binding.agentId,
+				label: AGENT_IDENTITY_LABELS[binding.agentId] ?? binding.agentId,
 			});
 		}
 		agents.sort((a, b) => a.startedAt - b.startedAt);
