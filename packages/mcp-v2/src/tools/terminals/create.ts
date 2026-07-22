@@ -1,6 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
 import { hostServiceCall } from "../../host-service-client";
 
@@ -8,8 +7,12 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "terminals_create",
 		description:
-			"Create a terminal session in an existing workspace. Resolves the host that owns the workspace, then opens a fresh PTY in the worktree. Pass `command` to run a one-off shell command, or omit it to open an interactive shell. For create-and-run in a single call, pass `command` to workspaces_create instead.",
+			"Create a terminal session in an existing workspace on its host: opens a fresh PTY in the worktree. Use hosts_list / workspaces_list to find the hostId. Pass `command` to run a one-off shell command, or omit it to open an interactive shell. For create-and-run in a single call, pass `command` to workspaces_create instead.",
 		inputSchema: {
+			hostId: z
+				.string()
+				.min(1)
+				.describe("Host machineId the workspace lives on."),
 			workspaceId: z
 				.string()
 				.uuid()
@@ -29,20 +32,11 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
-			const caller = createMcpCaller(ctx);
-			const workspace = await caller.v2Workspace.getFromHost({
-				organizationId: ctx.organizationId,
-				id: input.workspaceId,
-			});
-			if (!workspace) {
-				throw new Error(`Workspace not found: ${input.workspaceId}`);
-			}
-
 			return hostServiceCall<{ terminalId: string; status: string }>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,
-					hostId: workspace.hostId,
+					hostId: input.hostId,
 					jwt: ctx.bearerToken,
 				},
 				"terminal.createSession",
