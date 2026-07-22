@@ -27,8 +27,13 @@ export default command({
 		});
 		const hostExplicit = options.host !== undefined || options.local === true;
 
-		let hostProjectById: Map<string, { id: string; repoPath: string }> | null =
-			null;
+		type HostProject = {
+			id: string;
+			name: string;
+			repoPath: string;
+			repoUrl: string | null;
+		};
+		let hostProjectById: Map<string, HostProject> | null = null;
 		try {
 			const target = resolveHostTarget({
 				requestedHostId: hostId,
@@ -43,7 +48,7 @@ export default command({
 			if (hostExplicit) throw err;
 		}
 
-		return projects.map((project) => {
+		const cloudRows = projects.map((project) => {
 			if (!hostProjectById) {
 				return { ...project, setUp: "?", path: "-" };
 			}
@@ -54,5 +59,25 @@ export default command({
 				path: hostProject?.repoPath ?? "-",
 			};
 		});
+
+		if (!hostProjectById) return cloudRows;
+
+		// Local-first projects (created via `projects create --local`) live only
+		// in the host DB — the cloud never learns about them. Surface any host
+		// project the cloud list didn't already cover so `list` matches what the
+		// desktop UI shows instead of printing "No results." after a create.
+		const cloudIds = new Set(projects.map((project) => project.id));
+		const hostOnlyRows = [...hostProjectById.values()]
+			.filter((hostProject) => !cloudIds.has(hostProject.id))
+			.map((hostProject) => ({
+				id: hostProject.id,
+				name: hostProject.name,
+				slug: null,
+				repoCloneUrl: hostProject.repoUrl ?? null,
+				setUp: "yes",
+				path: hostProject.repoPath,
+			}));
+
+		return [...cloudRows, ...hostOnlyRows];
 	},
 });
