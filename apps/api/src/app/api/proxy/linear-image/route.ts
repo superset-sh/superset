@@ -4,8 +4,6 @@ import { integrationConnections } from "@superset/db/schema";
 import { and, eq } from "drizzle-orm";
 
 const LINEAR_IMAGE_HOST = "uploads.linear.app";
-const CACHE_MAX_AGE = 31536000; // 1 year (Linear URLs are content-addressed)
-
 export async function GET(request: Request): Promise<Response> {
 	const sessionData = await auth.api.getSession({
 		headers: request.headers,
@@ -78,7 +76,9 @@ export async function GET(request: Request): Promise<Response> {
 		status: 200,
 		headers: {
 			"Content-Type": contentType,
-			"Cache-Control": `public, max-age=${CACHE_MAX_AGE}, immutable`,
+			"Cache-Control": "private, no-store, max-age=0",
+			Pragma: "no-cache",
+			Vary: "Cookie, Authorization",
 		},
 	});
 }
