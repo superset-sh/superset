@@ -3,10 +3,17 @@ import { FitAddon } from "@xterm/addon-fit";
 import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
-import { Terminal as XTerm } from "@xterm/xterm";
+import {
+	type ITerminalInitOnlyOptions,
+	type ITerminalOptions,
+	Terminal as XTerm,
+} from "@xterm/xterm";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
 	applyTerminalFontFamilyCssVariable,
+	applyTerminalTheme,
+	registerTerminalThemeTarget,
+	TERMINAL_MINIMUM_CONTRAST_RATIO,
 	type TerminalAppearance,
 } from "./appearance";
 import { scheduleFontSettleRefit } from "./font-settle";
@@ -46,6 +53,30 @@ export interface TerminalRuntime {
 	lastRows: number;
 	_disposeAddons: (() => void) | null;
 	_disposeImagePasteFallback: (() => void) | null;
+	_disposeThemeSync: (() => void) | null;
+}
+
+export function buildTerminalOptions(
+	cols: number,
+	rows: number,
+	appearance: TerminalAppearance,
+): ITerminalOptions & ITerminalInitOnlyOptions {
+	return {
+		cols,
+		rows,
+		cursorBlink: true,
+		fontFamily: appearance.fontFamily,
+		fontSize: appearance.fontSize,
+		theme: appearance.theme,
+		minimumContrastRatio: TERMINAL_MINIMUM_CONTRAST_RATIO,
+		allowProposedApi: true,
+		scrollback: DEFAULT_TERMINAL_SCROLLBACK,
+		macOptionIsMeta: false,
+		cursorStyle: "block",
+		cursorInactiveStyle: "outline",
+		vtExtensions: { kittyKeyboard: true },
+		scrollbar: { showScrollbar: false },
+	};
 }
 
 function createTerminal(
@@ -59,21 +90,7 @@ function createTerminal(
 } {
 	const fitAddon = new FitAddon();
 	const serializeAddon = new SerializeAddon();
-	const terminal = new XTerm({
-		cols,
-		rows,
-		cursorBlink: true,
-		fontFamily: appearance.fontFamily,
-		fontSize: appearance.fontSize,
-		theme: appearance.theme,
-		allowProposedApi: true,
-		scrollback: DEFAULT_TERMINAL_SCROLLBACK,
-		macOptionIsMeta: false,
-		cursorStyle: "block",
-		cursorInactiveStyle: "outline",
-		vtExtensions: { kittyKeyboard: true },
-		scrollbar: { showScrollbar: false },
-	});
+	const terminal = new XTerm(buildTerminalOptions(cols, rows, appearance));
 	terminal.loadAddon(fitAddon);
 	terminal.loadAddon(serializeAddon);
 	// Disarm TUI-only input modes (kitty keyboard / mouse / focus) leaked into a
@@ -296,6 +313,7 @@ export function createRuntime(
 		terminal,
 		wrapper,
 	);
+	const disposeThemeSync = registerTerminalThemeTarget(terminal);
 
 	return {
 		terminalId,
@@ -313,6 +331,7 @@ export function createRuntime(
 		lastRows: rows,
 		_disposeAddons: addonsResult.dispose,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
+		_disposeThemeSync: disposeThemeSync,
 	};
 }
 
@@ -375,7 +394,7 @@ export function updateRuntimeAppearance(
 	onResize?: () => void,
 ) {
 	const { terminal } = runtime;
-	terminal.options.theme = appearance.theme;
+	applyTerminalTheme(terminal, appearance.theme);
 
 	const fontChanged =
 		terminal.options.fontFamily !== appearance.fontFamily ||
@@ -405,6 +424,8 @@ export function disposeRuntime(
 	const persistedState = options.persistedState ?? "clear";
 	runtime._disposeImagePasteFallback?.();
 	runtime._disposeImagePasteFallback = null;
+	runtime._disposeThemeSync?.();
+	runtime._disposeThemeSync = null;
 	runtime._disposeAddons?.();
 	runtime._disposeAddons = null;
 	runtime._disposeResizeObserver?.();

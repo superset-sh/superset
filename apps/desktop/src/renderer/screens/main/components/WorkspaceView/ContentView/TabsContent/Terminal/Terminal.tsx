@@ -4,7 +4,10 @@ import type { Terminal as XTerm } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { sanitizeTerminalFontFamily } from "renderer/lib/terminal/appearance";
+import {
+	applyTerminalTheme,
+	sanitizeTerminalFontFamily,
+} from "renderer/lib/terminal/appearance";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import { useTerminalTheme } from "renderer/stores/theme";
@@ -397,7 +400,7 @@ export const Terminal = memo(function Terminal({
 	useEffect(() => {
 		const xterm = xtermRef.current;
 		if (!xterm || !terminalTheme) return;
-		xterm.options.theme = terminalTheme;
+		applyTerminalTheme(xterm, terminalTheme);
 	}, [terminalTheme]);
 
 	const { data: fontSettings } = electronTrpc.settings.getFontSettings.useQuery(
