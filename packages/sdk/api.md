@@ -46,21 +46,22 @@ Types:
 
 Methods:
 
-- <code title="get /api/trpc/v2Workspace.list">client.workspaces.<a href="./src/resources/workspaces.ts">list</a>({ ...params }) -> WorkspaceListResponse</code>
-- <code title="host post /api/trpc/workspaces.create">client.workspaces.<a href="./src/resources/workspaces.ts">create</a>({ ...params }) -> WorkspaceCreateResult</code>
-- <code title="post /api/trpc/v2Workspace.update">client.workspaces.<a href="./src/resources/workspaces.ts">update</a>(id, { ...params }) -> WorkspaceUpdateResult</code>
-- <code title="host post /api/trpc/workspace.delete">client.workspaces.<a href="./src/resources/workspaces.ts">delete</a>(id, { hostId? }) -> WorkspaceDeleteResult</code>
+- <code title="host get /api/trpc/workspace.list">client.workspaces.<a href="./src/resources/workspaces.ts">list</a>({ hostId, ...params }) -> WorkspaceListResponse</code>
+- <code title="host post /api/trpc/workspaces.create">client.workspaces.<a href="./src/resources/workspaces.ts">create</a>({ hostId, ...params }) -> WorkspaceCreateResult</code>
+- <code title="host post /api/trpc/workspace.update">client.workspaces.<a href="./src/resources/workspaces.ts">update</a>(id, { ...params }, { hostId }) -> WorkspaceUpdateResult</code>
+- <code title="host post /api/trpc/workspace.delete">client.workspaces.<a href="./src/resources/workspaces.ts">delete</a>(id, { hostId }) -> WorkspaceDeleteResult</code>
 
 # Projects
 
 Types:
 
 - <code><a href="./src/resources/projects.ts">Project</a></code>
+- <code><a href="./src/resources/projects.ts">ProjectListParams</a></code>
 - <code><a href="./src/resources/projects.ts">ProjectListResponse</a></code>
 
 Methods:
 
-- <code title="get /api/trpc/v2Project.list">client.projects.<a href="./src/resources/projects.ts">list</a>() -> ProjectListResponse</code>
+- <code title="host get /api/trpc/project.list">client.projects.<a href="./src/resources/projects.ts">list</a>({ hostId }) -> ProjectListResponse</code>
 
 # Hosts
 
@@ -87,7 +88,7 @@ Types:
 Methods:
 
 - <code title="host get /api/trpc/settings.agentConfigs.list">client.agents.<a href="./src/resources/agents.ts">list</a>({ hostId }) -> AgentListResponse</code>
-- <code title="host post /api/trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">create</a>({ workspaceId, agent, prompt, attachmentIds? }, { hostId? }) -> AgentCreateResult</code>
+- <code title="host post /api/trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">create</a>({ hostId, workspaceId, agent, prompt, attachmentIds? }) -> AgentCreateResult</code>
 
 # Terminals
 
@@ -98,7 +99,7 @@ Types:
 
 Methods:
 
-- <code title="host post /api/trpc/terminal.createSession">client.terminals.<a href="./src/resources/terminals.ts">create</a>({ workspaceId, command?, cwd? }, { hostId? }) -> TerminalCreateResult</code>
+- <code title="host post /api/trpc/terminal.createSession">client.terminals.<a href="./src/resources/terminals.ts">create</a>({ hostId, workspaceId, command?, cwd? }) -> TerminalCreateResult</code>
 
 # Automations
 
