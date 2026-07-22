@@ -134,7 +134,17 @@ export function matchPreset(rrule: string): PresetMatch {
 	if (parts.BYSETPOS || parts.BYYEARDAY || parts.BYWEEKNO) {
 		return { kind: "custom", rrule };
 	}
+	// BYMONTH/BYMONTHDAY narrow the recurrence in ways no preset encodes, so a
+	// rule like `FREQ=DAILY;BYHOUR=9;BYMONTH=6` must not masquerade as `daily`
+	// (would silently drop the month restriction on re-serialize). See #5670.
+	if (parts.BYMONTH || parts.BYMONTHDAY) return { kind: "custom", rrule };
 	if (parts.COUNT || parts.UNTIL) return { kind: "custom", rrule };
+	// Multi-valued BYHOUR/BYMINUTE (e.g. `BYHOUR=9,17`) encode multiple daily
+	// runs; presets carry a single hour/minute, so collapsing here would drop
+	// the extra run(s). Treat any comma-listed time field as custom.
+	if (parts.BYHOUR?.includes(",") || parts.BYMINUTE?.includes(",")) {
+		return { kind: "custom", rrule };
+	}
 
 	const interval = parseIntOrNull(parts.INTERVAL) ?? 1;
 	if (interval !== 1) return { kind: "custom", rrule };
