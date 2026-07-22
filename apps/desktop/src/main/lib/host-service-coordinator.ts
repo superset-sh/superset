@@ -27,6 +27,7 @@ import {
 	pollHealthCheck,
 } from "./host-service-utils";
 import { localDb } from "./local-db";
+import { getNotificationsPort } from "./notifications/runtime-port";
 import { getRelayUrl } from "./relay-url";
 import { HOOK_PROTOCOL_VERSION } from "./terminal/env";
 
@@ -666,7 +667,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			DESKTOP_VITE_PORT: String(sharedEnv.DESKTOP_VITE_PORT),
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
 			SUPERSET_LEGACY_WORKTREE_BASE_DIR: row?.worktreeBaseDir ?? "",
-			SUPERSET_AGENT_HOOK_PORT: String(sharedEnv.DESKTOP_NOTIFICATIONS_PORT),
+			SUPERSET_AGENT_HOOK_PORT: String(getNotificationsPort()),
 			SUPERSET_AGENT_HOOK_VERSION: HOOK_PROTOCOL_VERSION,
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_AUTH_CONFIG_PATH: path.join(SUPERSET_HOME_DIR, "config.json"),

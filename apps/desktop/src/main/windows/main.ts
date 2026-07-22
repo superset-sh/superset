@@ -25,6 +25,7 @@ import {
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
+import { startNotificationsServer } from "../lib/notifications/start-server";
 import {
 	extractWorkspaceIdFromUrl,
 	getNotificationTitle,
@@ -182,15 +183,7 @@ export async function MainWindow() {
 		});
 	}
 
-	const server = notificationsApp.listen(
-		env.DESKTOP_NOTIFICATIONS_PORT,
-		"127.0.0.1",
-		() => {
-			console.log(
-				`[notifications] Listening on http://127.0.0.1:${env.DESKTOP_NOTIFICATIONS_PORT}`,
-			);
-		},
-	);
+	const { server } = await startNotificationsServer(notificationsApp);
 
 	const notificationManager = new NotificationManager({
 		isSupported: () => Notification.isSupported(),

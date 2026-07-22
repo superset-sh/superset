@@ -8,6 +8,10 @@ import {
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
 import { getShellEnv } from "../agent-setup/shell-wrappers";
+import {
+	getNotificationsPort,
+	setNotificationsPort,
+} from "../notifications/runtime-port";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;
@@ -178,6 +182,7 @@ export function resetTerminalEnvCachesForTests(): void {
 	cachedMacosSystemCertAvailable = null;
 	cachedUtf8Locale = null;
 	localeProbeInFlight = false;
+	setNotificationsPort(env.DESKTOP_NOTIFICATIONS_PORT);
 }
 
 /**
@@ -486,7 +491,7 @@ export function buildTerminalEnv(params: {
 		SUPERSET_WORKSPACE_NAME: workspaceName || "",
 		SUPERSET_WORKSPACE_PATH: workspacePath || "",
 		SUPERSET_ROOT_PATH: rootPath || "",
-		SUPERSET_PORT: String(env.DESKTOP_NOTIFICATIONS_PORT),
+		SUPERSET_PORT: String(getNotificationsPort()),
 		// Environment identifier for dev/prod separation
 		SUPERSET_ENV: env.NODE_ENV === "development" ? "development" : "production",
 		// Hook protocol version for forward compatibility
