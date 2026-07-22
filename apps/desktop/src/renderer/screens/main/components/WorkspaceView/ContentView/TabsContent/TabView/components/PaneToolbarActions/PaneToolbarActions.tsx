@@ -1,7 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { HiMiniXMark } from "react-icons/hi2";
 import { TbLayoutColumns, TbLayoutRows } from "react-icons/tb";
-import type { HotkeyId } from "renderer/hotkeys";
 import { HotkeyLabel } from "renderer/hotkeys";
 import type { SplitOrientation } from "../../hooks";
 
@@ -10,8 +9,6 @@ interface PaneToolbarActionsProps {
 	onSplitPane: (e: React.MouseEvent) => void;
 	onClosePane: (e: React.MouseEvent) => void;
 	leadingActions?: React.ReactNode;
-	/** Hotkey ID to display for the close action. Defaults to CLOSE_PANE. */
-	closeHotkeyId?: HotkeyId;
 }
 
 export function PaneToolbarActions({
@@ -19,7 +16,6 @@ export function PaneToolbarActions({
 	onSplitPane,
 	onClosePane,
 	leadingActions,
-	closeHotkeyId = "CLOSE_PANE",
 }: PaneToolbarActionsProps) {
 	const splitIcon =
 		splitOrientation === "vertical" ? (
@@ -31,7 +27,7 @@ export function PaneToolbarActions({
 	return (
 		<div className="flex items-center gap-0.5">
 			{leadingActions}
-			<Tooltip>
+			<Tooltip delayDuration={1000}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
@@ -41,24 +37,22 @@ export function PaneToolbarActions({
 						{splitIcon}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent
+					side="bottom"
+					sideOffset={4}
+					showArrow={false}
+					className="rounded-sm border border-border bg-background px-1.5 py-0.5 font-medium text-muted-foreground shadow-sm"
+				>
 					<HotkeyLabel label="Split pane" id="SPLIT_AUTO" />
 				</TooltipContent>
 			</Tooltip>
-			<Tooltip>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={onClosePane}
-						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-					>
-						<HiMiniXMark className="size-3.5" />
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					<HotkeyLabel label="Close pane" id={closeHotkeyId} />
-				</TooltipContent>
-			</Tooltip>
+			<button
+				type="button"
+				onClick={onClosePane}
+				className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+			>
+				<HiMiniXMark className="size-3.5" />
+			</button>
 		</div>
 	);
 }

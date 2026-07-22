@@ -343,7 +343,7 @@ export function PresetsBar() {
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>
-				<Tooltip>
+				<Tooltip delayDuration={1000}>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" size="icon" className="size-6 shrink-0">
@@ -351,7 +351,12 @@ export function PresetsBar() {
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" sideOffset={4}>
+					<TooltipContent
+						side="bottom"
+						sideOffset={4}
+						showArrow={false}
+						className="rounded-sm border border-border bg-background px-1.5 py-0.5 font-medium text-muted-foreground shadow-sm"
+					>
 						Manage Presets
 					</TooltipContent>
 				</Tooltip>
