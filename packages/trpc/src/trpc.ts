@@ -70,12 +70,6 @@ export const protectedProcedure = t.procedure
 		return next({ ctx: { ...ctx, activeOrganizationId } });
 	});
 
-function getJwtOrganizationIds(value: unknown): string[] {
-	return Array.isArray(value)
-		? value.filter((id): id is string => typeof id === "string")
-		: [];
-}
-
 function resolveActiveOrganizationId(
 	organizationIds: string[],
 	requestedOrganizationId: string | null,
@@ -105,7 +99,11 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 				body: { token: bearer },
 			});
 			if (payload?.sub) {
-				const organizationIds = getJwtOrganizationIds(payload.organizationIds);
+				const organizationIds = Array.isArray(payload.organizationIds)
+					? payload.organizationIds.filter(
+							(id): id is string => typeof id === "string",
+						)
+					: [];
 				return next({
 					ctx: {
 						userId: payload.sub,
