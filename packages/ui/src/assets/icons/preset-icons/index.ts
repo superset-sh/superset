@@ -37,6 +37,7 @@ export const PRESET_ICONS: Record<string, PresetIconSet> = {
 	polygraph: { light: polygraphIcon, dark: polygraphWhiteIcon },
 	superset: { light: supersetIcon, dark: supersetIcon },
 	"cursor-agent": { light: cursorAgentIcon, dark: cursorAgentIcon },
+	"cursor-composer": { light: cursorAgentIcon, dark: cursorAgentIcon },
 	droid: { light: droidIcon, dark: droidWhiteIcon },
 	mastracode: { light: mastracodeIcon, dark: mastracodeWhiteIcon },
 	opencode: { light: opencodeIcon, dark: opencodeWhiteIcon },
