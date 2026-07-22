@@ -6,7 +6,7 @@ import type { Pane, Tab } from "../types";
 export interface PaneActionConfig<TData> {
 	key: string;
 	icon: ReactNode | ((context: RendererContext<TData>) => ReactNode);
-	tooltip: ReactNode | ((context: RendererContext<TData>) => ReactNode);
+	tooltip?: ReactNode | ((context: RendererContext<TData>) => ReactNode);
 	onClick: (context: RendererContext<TData>) => void;
 }
 

@@ -71,11 +71,12 @@ export function DashboardSidebarProjectSection({
 			>
 				<div className={cn("border-b border-border last:border-b-0")}>
 					<DashboardSidebarCollapsedProjectContent
+						projectId={project.id}
 						projectName={project.name}
 						iconUrl={project.iconUrl}
 						isCollapsed={project.isCollapsed}
 						totalWorkspaceCount={totalWorkspaceCount}
-						workspaces={flattenedCollapsedWorkspaces}
+						projectChildren={project.children}
 						workspaceShortcutLabels={workspaceShortcutLabels}
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}

@@ -38,10 +38,6 @@ function V2WorkspaceLayout() {
 	// mid-create before agent/terminal panes are seeded.
 	const isCreatePending = pendingTransaction?.type === "insert";
 
-	// Menu-driven presets bar toggle lives here, above WorkspaceProvider:
-	// workspaceTrpc.Provider (inside it) shares @trpc/react-query's default
-	// context, so electronTrpc hooks below it would resolve the host-service
-	// HTTP client, which does not support subscriptions.
 	const { toggleShowPresetsBar } = useV2UserPreferences();
 	electronTrpc.menu.subscribe.useSubscription(undefined, {
 		onData: (event) => {

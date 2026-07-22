@@ -773,9 +773,7 @@ export const automations = pgTable(
 
 		targetHostId: text("target_host_id"),
 
-		v2ProjectId: uuid("v2_project_id")
-			.notNull()
-			.references(() => v2Projects.id, { onDelete: "cascade" }),
+		v2ProjectId: uuid("v2_project_id").notNull(),
 		v2WorkspaceId: uuid("v2_workspace_id"),
 
 		rrule: text().notNull(),
