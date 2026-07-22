@@ -7,14 +7,14 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_update",
 		description:
-			"Update fields on an existing workspace on its host. At least one field is required. Use hosts_list / workspaces_list to find the hostId.",
+			"Rename a workspace on its host. Use hosts_list / workspaces_list to find the hostId.",
 		inputSchema: {
 			hostId: z
 				.string()
 				.min(1)
 				.describe("Host machineId the workspace lives on."),
 			id: z.string().uuid().describe("Workspace UUID."),
-			name: z.string().min(1).optional().describe("New workspace name."),
+			name: z.string().min(1).describe("New workspace name."),
 		},
 		handler: async (input, ctx) => {
 			return hostServiceCall(

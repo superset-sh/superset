@@ -396,7 +396,7 @@ superset org members list -s satya
 
 A project is a repository checked out on a host. Projects are host-owned —
 each host serves the projects set up on that machine; there is no org-wide
-project registry. Workspaces branch off a host's checkout.
+listing. Workspaces branch off a host's checkout.
 
 <Command
 	name="superset projects list"
@@ -592,7 +592,8 @@ than silently falling through to the cloud.
 >
 List workspaces on a host. Defaults to this machine; pass `--host <id>` for
 another host. Workspaces are host-owned — there is no org-wide listing (the
-desktop app is the cross-host view).
+desktop app is the cross-host view). `projectName` falls back to the raw
+project id when the host doesn't know the project's name.
 </Command>
 
 <Command

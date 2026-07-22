@@ -25,7 +25,7 @@ export default command({
 		),
 		workspace: string().desc("existing v2 workspace id — reuses it every run"),
 		host: string().desc(
-			"Target host id (default: this machine for --project mode, the workspace's host for --workspace mode)",
+			"Host the target project/workspace lives on (default: this machine)",
 		),
 		agent: string()
 			.default("claude")

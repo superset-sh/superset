@@ -29,9 +29,10 @@ await client.tasks.update({ id: task.id, statusId: '<uuid>' });
 await client.tasks.delete(task.id);
 
 // Hosts own workspaces and projects — pick a host, then read from it
-const hosts = await client.hosts.list();
-await client.workspaces.list({ hostId: hosts[0].id });
-await client.projects.list({ hostId: hosts[0].id });
+const [host] = await client.hosts.list();
+if (!host) throw new Error('No hosts registered — run `superset start` on a machine');
+await client.workspaces.list({ hostId: host.id });
+await client.projects.list({ hostId: host.id });
 await client.automations.list();
 
 // Trigger an automation now (off-schedule)

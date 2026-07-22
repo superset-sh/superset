@@ -125,7 +125,9 @@ you care about.
 const workspaces = await client.workspaces.list({ hostId: '<machineId>' });
 ```
 
-Returns `Array<Workspace>`. Rows include the host-served `projectName`.
+Returns `Array<Workspace>`. Rows include the host-served `projectName`
+(`string | null` — null when the workspace's project row is missing on that
+host, so don't assume it's always present).
 
 ### `workspaces.create({ hostId, projectId, name, branch?, pr?, baseBranch?, taskId?, agents?, command? })`
 
@@ -174,7 +176,7 @@ Returns the updated workspace row (`id`, `name`, `branch`, `hostId`, `projectId`
 Delete a workspace on its host.
 
 ```ts
-await client.workspaces.delete(id, { hostId: '<machineId>' });
+await client.workspaces.delete('<workspaceId>', { hostId: '<machineId>' });
 ```
 
 ---

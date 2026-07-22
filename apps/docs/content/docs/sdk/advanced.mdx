@@ -168,7 +168,10 @@ const wave = await Promise.all(
   ),
 );
 
-const totalAgents = wave.reduce((n, result) => n + result.agents.length, 0);
+const totalAgents = wave.reduce(
+  (n, result) => n + result.agents.filter((agent) => agent.ok).length,
+  0,
+);
 console.log(`launched ${totalAgents} agents across ${projects.length} repos`);
 ```
 
