@@ -37,6 +37,31 @@ function escapeLikePattern(value: string): string {
 	return value.replace(/[\\%_]/g, (match) => `\\${match}`);
 }
 
+/**
+ * Wraps parseRrule and maps an exhausted recurrence (a COUNT/UNTIL-bounded rule
+ * whose occurrences are all in the past) to a client-facing PRECONDITION_FAILED
+ * error instead of letting the plain Error surface as a 500.
+ */
+function parseRruleOrThrow(
+	args: Parameters<typeof parseRrule>[0],
+): ReturnType<typeof parseRrule> {
+	try {
+		return parseRrule(args);
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			error.message === "Recurrence has no future occurrences"
+		) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message:
+					"This automation's schedule has no remaining future occurrences. Update the schedule before re-enabling.",
+			});
+		}
+		throw error;
+	}
+}
+
 async function verifyHostAccess(
 	userId: string,
 	organizationId: string,
@@ -267,7 +292,7 @@ export const automationRouter = {
 			}
 
 			const dtstart = input.dtstart ?? new Date();
-			const { nextRunAt } = parseRrule({
+			const { nextRunAt } = parseRruleOrThrow({
 				rrule: input.rrule,
 				dtstart,
 				timezone: input.timezone,
@@ -424,7 +449,7 @@ export const automationRouter = {
 				input.timezone !== undefined;
 
 			const recomputedNextRunAt = recurrenceChanged
-				? parseRrule({
+				? parseRruleOrThrow({
 						rrule: nextRrule,
 						dtstart: nextDtstart,
 						timezone: nextTimezone,
@@ -531,7 +556,7 @@ export const automationRouter = {
 				enabled: input.enabled,
 			};
 			if (input.enabled && !existing.enabled) {
-				patch.nextRunAt = parseRrule({
+				patch.nextRunAt = parseRruleOrThrow({
 					rrule: existing.rrule,
 					dtstart: existing.dtstart,
 					timezone: existing.timezone,
@@ -609,7 +634,7 @@ export const automationRouter = {
 		.input(parseRruleSchema)
 		.mutation(async ({ input }) => {
 			const dtstart = input.dtstart ?? new Date();
-			const { nextRunAt } = parseRrule({
+			const { nextRunAt } = parseRruleOrThrow({
 				rrule: input.rrule,
 				dtstart,
 				timezone: input.timezone,

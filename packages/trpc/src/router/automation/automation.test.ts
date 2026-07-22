@@ -55,8 +55,9 @@ mock.module("@superset/db/client", () => ({
 	},
 }));
 
+const parseRruleMock = mock(() => ({ nextRunAt: new Date(0) }));
 mock.module("@superset/shared/rrule", () => ({
-	parseRrule: mock(() => ({ nextRunAt: new Date(0) })),
+	parseRrule: parseRruleMock,
 	describeSchedule: mock(() => "every day"),
 	nextOccurrences: mock(() => []),
 }));
@@ -123,6 +124,8 @@ beforeEach(() => {
 	insertValuesMock.mockClear();
 	updateSetMock.mockClear();
 	getAutomationForUserMock.mockReset();
+	parseRruleMock.mockReset();
+	parseRruleMock.mockImplementation(() => ({ nextRunAt: new Date(0) }));
 });
 
 describe("automation.create host/workspace reconciliation", () => {
@@ -326,5 +329,55 @@ describe("automation.update host/workspace reconciliation", () => {
 			message: "targetHostId does not match the workspace's host",
 		});
 		expect(updateSetMock).not.toHaveBeenCalled();
+	});
+});
+
+describe("automation.setEnabled exhausted recurrence", () => {
+	const pausedExisting = {
+		id: AUTOMATION_ID,
+		ownerUserId: ACTOR_USER_ID,
+		enabled: false,
+		rrule: "FREQ=DAILY;COUNT=1",
+		dtstart: new Date(0),
+		timezone: "America/Los_Angeles",
+		nextRunAt: null,
+	};
+
+	it("maps an exhausted recurrence to PRECONDITION_FAILED instead of 500", async () => {
+		getAutomationForUserMock.mockResolvedValue({ ...pausedExisting });
+		parseRruleMock.mockImplementation(() => {
+			throw new Error("Recurrence has no future occurrences");
+		});
+
+		const caller = createCaller(createContext());
+		await expect(
+			caller.automation.setEnabled({ id: AUTOMATION_ID, enabled: true }),
+		).rejects.toMatchObject({
+			code: "PRECONDITION_FAILED",
+			message:
+				"This automation's schedule has no remaining future occurrences. Update the schedule before re-enabling.",
+		});
+		expect(updateSetMock).not.toHaveBeenCalled();
+	});
+
+	it("resumes normally when the recurrence still has future occurrences", async () => {
+		getAutomationForUserMock.mockResolvedValue({ ...pausedExisting });
+		updateResults.push([
+			{
+				id: AUTOMATION_ID,
+				enabled: true,
+				rrule: "FREQ=DAILY",
+				timezone: "UTC",
+			},
+		]);
+
+		const caller = createCaller(createContext());
+		await caller.automation.setEnabled({ id: AUTOMATION_ID, enabled: true });
+
+		expect(updateSetMock).toHaveBeenCalledTimes(1);
+		expect(updateSetMock.mock.calls[0]?.[0]).toMatchObject({
+			enabled: true,
+			nextRunAt: new Date(0),
+		});
 	});
 });
