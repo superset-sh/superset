@@ -88,6 +88,7 @@ export {
 	createPiExtension,
 	getPiExtensionContent,
 	getPiExtensionPath,
+	isPiExtensionDisabled,
 	PI_EXTENSION_FILE,
 	PI_EXTENSION_MARKER,
 } from "./agent-wrappers-pi";

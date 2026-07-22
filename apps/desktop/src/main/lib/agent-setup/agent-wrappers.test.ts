@@ -72,6 +72,7 @@ const {
 	createDroidWrapper,
 	createMastraWrapper,
 	createPiExtension,
+	isPiExtensionDisabled,
 	getClaudeGlobalSettingsJsonContent,
 	getClaudeManagedHookCommand,
 	getCodexGlobalHooksJsonContent,
@@ -1778,14 +1779,22 @@ describe("kimi config.toml", () => {
 });
 
 describe("agent-wrappers pi", () => {
+	const savedDisableEnv = process.env.SUPERSET_DISABLE_PI_EXTENSION;
+
 	beforeEach(() => {
 		mockedHomeDir = path.join(TEST_ROOT, "home");
 		mkdirSync(TEST_BIN_DIR, { recursive: true });
 		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		delete process.env.SUPERSET_DISABLE_PI_EXTENSION;
 	});
 
 	afterEach(() => {
 		rmSync(TEST_ROOT, { recursive: true, force: true });
+		if (savedDisableEnv === undefined) {
+			delete process.env.SUPERSET_DISABLE_PI_EXTENSION;
+		} else {
+			process.env.SUPERSET_DISABLE_PI_EXTENSION = savedDisableEnv;
+		}
 	});
 
 	it("renders pi extension content with the marker substituted", () => {
@@ -1816,5 +1825,44 @@ describe("agent-wrappers pi", () => {
 		const installed = readFileSync(extensionPath, "utf-8");
 		expect(installed).toContain(PI_EXTENSION_MARKER);
 		expect(installed).toContain("export default function");
+	});
+
+	// Reproduces #5715: a user who owns Start/Stop reporting via their own pi
+	// extension has no way to stop Superset from installing — and regenerating —
+	// its managed extension. Setting SUPERSET_DISABLE_PI_EXTENSION must skip the
+	// install entirely.
+	it("does not install the pi extension when SUPERSET_DISABLE_PI_EXTENSION is set", () => {
+		process.env.SUPERSET_DISABLE_PI_EXTENSION = "1";
+
+		expect(isPiExtensionDisabled()).toBe(true);
+
+		createPiExtension();
+
+		expect(existsSync(getPiExtensionPath())).toBe(false);
+	});
+
+	// The other half of #5715: the managed file is "overwritten whenever
+	// Superset starts". When disabled, an existing (user-managed) extension at
+	// the same path must be left untouched rather than clobbered.
+	it("leaves an existing user-managed extension untouched when disabled", () => {
+		process.env.SUPERSET_DISABLE_PI_EXTENSION = "true";
+
+		const extensionPath = getPiExtensionPath();
+		const userExtension =
+			"// my own extension\nexport default function () {}\n";
+		mkdirSync(path.dirname(extensionPath), { recursive: true });
+		writeFileSync(extensionPath, userExtension);
+
+		createPiExtension();
+
+		expect(readFileSync(extensionPath, "utf-8")).toBe(userExtension);
+	});
+
+	it("still installs the managed extension when the opt-out is unset", () => {
+		expect(isPiExtensionDisabled()).toBe(false);
+
+		createPiExtension();
+
+		expect(existsSync(getPiExtensionPath())).toBe(true);
 	});
 });

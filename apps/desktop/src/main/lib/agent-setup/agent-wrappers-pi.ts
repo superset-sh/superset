@@ -47,6 +47,20 @@ export function getPiExtensionContent(): string {
 }
 
 /**
+ * Opt-out for users who own Start/Stop reporting themselves (e.g. a custom pi
+ * extension that adds async subagents and only reports "done" once all of them
+ * finish). Setting `SUPERSET_DISABLE_PI_EXTENSION` to a truthy value stops
+ * Superset from installing — and, crucially, from regenerating/overwriting —
+ * its managed extension, so the user's own extension owns lifecycle reporting.
+ *
+ * Ordinary pi users leave this unset and get the default integration.
+ */
+export function isPiExtensionDisabled(): boolean {
+	const value = process.env.SUPERSET_DISABLE_PI_EXTENSION?.trim().toLowerCase();
+	return value === "1" || value === "true" || value === "yes";
+}
+
+/**
  * Writes the Superset-managed pi extension into the global pi extensions
  * directory. Idempotent via `writeFileIfChanged`.
  *
@@ -54,8 +68,18 @@ export function getPiExtensionContent(): string {
  * registration step is required. The install is unconditional on whether
  * pi itself is installed: if the user later installs pi via npm, hooks
  * start working with no further setup.
+ *
+ * When `SUPERSET_DISABLE_PI_EXTENSION` is set the install is skipped entirely
+ * and any existing file is left untouched, so a user-managed extension is not
+ * clobbered on the next Superset launch.
  */
 export function createPiExtension(): void {
+	if (isPiExtensionDisabled()) {
+		console.log(
+			"[agent-setup] Skipped pi extension (SUPERSET_DISABLE_PI_EXTENSION set)",
+		);
+		return;
+	}
 	const extensionPath = getPiExtensionPath();
 	const content = getPiExtensionContent();
 	fs.mkdirSync(path.dirname(extensionPath), { recursive: true });
