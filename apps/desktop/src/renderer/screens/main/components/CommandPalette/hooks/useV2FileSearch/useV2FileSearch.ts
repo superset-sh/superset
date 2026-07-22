@@ -3,9 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 
 const SEARCH_LIMIT = 50;
 
-// Plain useQuery + the provider's imperative client instead of a workspaceTrpc
-// hook: the CommandPalette also mounts on v1 surfaces with no
-// WorkspaceClientProvider, where a workspaceTrpc hook would throw.
+// Not a workspaceTrpc hook: the CommandPalette also mounts on v1 surfaces
+// with no WorkspaceClientProvider, where those hooks throw.
 export function useV2FileSearch(
 	workspaceId: string | undefined,
 	query: string,
