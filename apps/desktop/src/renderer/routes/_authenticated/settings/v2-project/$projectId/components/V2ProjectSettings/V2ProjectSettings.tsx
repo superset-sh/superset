@@ -113,9 +113,11 @@ export function V2ProjectSettings({
 		);
 	}
 
-	const iconUrl = project.repoOwner
+	const githubAvatarUrl = project.repoOwner
 		? `https://github.com/${project.repoOwner}.png?size=64`
 		: null;
+	// Custom local icon wins; fall back to the GitHub owner avatar.
+	const iconUrl = project.icon ?? githubAvatarUrl;
 	const canRename = Boolean(
 		targetHostUrl && targetHostId && project.hostIds.includes(targetHostId),
 	);
@@ -162,12 +164,13 @@ export function V2ProjectSettings({
 					</SettingsRow>
 					<SettingsRow
 						label="Icon"
-						hint="Upload a custom image, or use the linked GitHub owner's avatar."
+						hint="Upload a custom image. Defaults to the linked GitHub owner's avatar."
 					>
 						<IconUploadField
 							projectId={projectId}
+							hostUrl={targetHostUrl}
 							iconUrl={iconUrl}
-							hasGitHubRepo={Boolean(project.repoOwner)}
+							hasCustomIcon={Boolean(project.icon)}
 						/>
 					</SettingsRow>
 					{targetHostUrl && hostProject && (

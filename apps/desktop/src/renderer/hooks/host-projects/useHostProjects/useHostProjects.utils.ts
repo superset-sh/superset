@@ -11,6 +11,8 @@ export interface HostProjectRow {
 	repoName: string | null;
 	repoUrl: string | null;
 	worktreeBaseDir: string | null;
+	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	icon: string | null;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -30,6 +32,8 @@ export interface HostProjectItem {
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;
+	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	icon: string | null;
 	/** Hosts that serve this project. */
 	hostIds: string[];
 	/** False when no serving host answered live (snapshot data only). */
@@ -131,6 +135,7 @@ export function normalizeHostProjectRow(
 		repoName: row.repoName ?? null,
 		repoUrl: row.repoUrl ?? null,
 		worktreeBaseDir: row.worktreeBaseDir ?? null,
+		icon: row.icon ?? null,
 		createdAt: row.createdAt ?? 0,
 		updatedAt: row.updatedAt ?? row.createdAt ?? 0,
 	};
@@ -234,6 +239,7 @@ export function applyProjectChangedEvent(
 		repoName: snapshot.repoName,
 		repoUrl: snapshot.repoUrl,
 		worktreeBaseDir: snapshot.worktreeBaseDir,
+		icon: snapshot.icon,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
 	};
@@ -274,6 +280,7 @@ export function mergeHostProjects({
 					repoOwner: row.repoOwner,
 					repoName: row.repoName,
 					repoUrl: row.repoUrl,
+					icon: row.icon,
 					hostIds: [result.target.machineId],
 					hostReachable: result.reachable,
 					createdAt: row.createdAt,
@@ -297,6 +304,7 @@ export function mergeHostProjects({
 				existing.repoPath = row.repoPath;
 				existing.repoOwner = row.repoOwner;
 				existing.repoName = row.repoName;
+				existing.icon = row.icon;
 			}
 		}
 	}

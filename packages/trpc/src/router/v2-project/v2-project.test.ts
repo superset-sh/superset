@@ -8,11 +8,6 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 
 const getCurrentTxidMock = mock(async () => 123);
 
-const uploadImageMock = mock(async () => "https://blob.example/new-icon.png");
-const generateImagePathnameMock = mock(
-	({ prefix, mimeType }: { prefix: string; mimeType: string }) =>
-		`${prefix}/abc.${mimeType.split("/")[1]}`,
-);
 const fetchAndStoreGitHubAvatarMock = mock(
 	async () => "https://blob.example/avatar.png",
 );
@@ -180,11 +175,6 @@ mock.module("../../lib/github-avatar", () => ({
 	fetchAndStoreGitHubAvatar: fetchAndStoreGitHubAvatarMock,
 }));
 
-mock.module("../../lib/upload", () => ({
-	generateImagePathname: generateImagePathnameMock,
-	uploadImage: uploadImageMock,
-}));
-
 mock.module("../integration/utils", () => ({
 	verifyOrgAdmin: verifyOrgAdminMock,
 	verifyOrgOwner: verifyOrgOwnerMock,
@@ -292,11 +282,6 @@ beforeEach(() => {
 	getCurrentTxidMock.mockReset();
 	getCurrentTxidMock.mockImplementation(async () => 123);
 
-	uploadImageMock.mockReset();
-	uploadImageMock.mockImplementation(
-		async () => "https://blob.example/new-icon.png",
-	);
-	generateImagePathnameMock.mockClear();
 	fetchAndStoreGitHubAvatarMock.mockReset();
 	fetchAndStoreGitHubAvatarMock.mockImplementation(
 		async () => "https://blob.example/avatar.png",
@@ -325,224 +310,6 @@ beforeEach(() => {
 			owner: "acme",
 			name: "repo",
 		};
-	});
-});
-
-describe("v2Project.uploadIcon", () => {
-	const validInput = {
-		id: PROJECT_ID,
-		fileData: "data:image/png;base64,iVBORw0KGgo=",
-		fileName: "icon.png",
-		mimeType: "image/png",
-	};
-
-	it("rejects unauthenticated callers before any DB read", async () => {
-		const caller = createCaller(unauthedContext());
-
-		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
-			{ code: "UNAUTHORIZED" },
-		);
-		expect(v2ProjectsFindFirst).not.toHaveBeenCalled();
-		expect(uploadImageMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects when the session has no active organization", async () => {
-		const caller = createCaller(authedContext({ activeOrganizationId: null }));
-
-		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
-			{ code: "FORBIDDEN", message: "No active organization" },
-		);
-		expect(v2ProjectsFindFirst).not.toHaveBeenCalled();
-		expect(uploadImageMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects with NOT_FOUND when the project does not exist", async () => {
-		v2ProjectsFindResults.push(null);
-		const caller = createCaller(authedContext());
-
-		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
-			{ code: "NOT_FOUND", message: "Project not found" },
-		);
-		expect(uploadImageMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects with NOT_FOUND when the project belongs to another organization", async () => {
-		v2ProjectsFindResults.push({
-			id: PROJECT_ID,
-			organizationId: OTHER_ORG_ID,
-		});
-		const caller = createCaller(authedContext());
-
-		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
-			{ code: "NOT_FOUND" },
-		);
-		expect(verifyOrgMembershipMock).not.toHaveBeenCalled();
-		expect(uploadImageMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects when the user is not a member of the project's organization", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		verifyOrgMembershipMock.mockImplementationOnce(async () => {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "Not a member of this organization",
-			});
-		});
-		const caller = createCaller(authedContext());
-
-		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
-			{ code: "FORBIDDEN" },
-		);
-		expect(uploadImageMock).not.toHaveBeenCalled();
-	});
-
-	it("uploads with no existingUrl when the project has no icon yet", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({ iconUrl: null });
-		txUpdateReturningResults.push([
-			{ id: PROJECT_ID, iconUrl: "https://blob.example/new-icon.png" },
-		]);
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.uploadIcon(validInput);
-
-		expect(uploadImageMock).toHaveBeenCalledWith({
-			fileData: validInput.fileData,
-			mimeType: "image/png",
-			pathname: `organizations/${ORG_ID}/projects/${PROJECT_ID}/icon/abc.png`,
-			existingUrl: null,
-		});
-		expect(generateImagePathnameMock).toHaveBeenCalledWith({
-			prefix: `organizations/${ORG_ID}/projects/${PROJECT_ID}/icon`,
-			mimeType: "image/png",
-		});
-		expect(txUpdateSet).toHaveBeenCalledWith({
-			iconUrl: "https://blob.example/new-icon.png",
-		});
-		expect(result).toMatchObject({
-			id: PROJECT_ID,
-			iconUrl: "https://blob.example/new-icon.png",
-			txid: 123,
-		});
-	});
-
-	it("forwards the existing iconUrl so uploadImage can clean up the prior blob", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: "https://blob.example/old-icon.png",
-		});
-		txUpdateReturningResults.push([
-			{ id: PROJECT_ID, iconUrl: "https://blob.example/new-icon.png" },
-		]);
-
-		const caller = createCaller(authedContext());
-		await caller.v2Project.uploadIcon(validInput);
-
-		expect(uploadImageMock).toHaveBeenCalledWith(
-			expect.objectContaining({
-				existingUrl: "https://blob.example/old-icon.png",
-			}),
-		);
-	});
-
-	it("returns NOT_FOUND when the post-upload UPDATE finds no row (race: project deleted)", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({ iconUrl: null });
-		txUpdateReturningResults.push([]);
-
-		const caller = createCaller(authedContext());
-
-		await expect(caller.v2Project.uploadIcon(validInput)).rejects.toMatchObject(
-			{ code: "NOT_FOUND", message: "Project not found" },
-		);
-	});
-});
-
-describe("v2Project.resetIconToGitHub", () => {
-	it("runs auth before any side effect (covered in depth on uploadIcon)", async () => {
-		const caller = createCaller(unauthedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-		expect(v2ProjectsFindFirst).not.toHaveBeenCalled();
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-		expect(transactionMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects with BAD_REQUEST when the project has no linked repository", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({ iconUrl: null, repoCloneUrl: null });
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({
-			code: "BAD_REQUEST",
-			message: "Project has no linked GitHub repository",
-		});
-		expect(fetchAndStoreGitHubAvatarMock).not.toHaveBeenCalled();
-	});
-
-	it("rejects with BAD_GATEWAY when GitHub avatar fetch fails", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: null,
-			repoCloneUrl: "https://github.com/acme/repo.git",
-		});
-		fetchAndStoreGitHubAvatarMock.mockImplementationOnce(async () => null);
-
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({
-			code: "BAD_GATEWAY",
-			message: "Could not fetch GitHub avatar",
-		});
-		expect(transactionMock).not.toHaveBeenCalled();
-	});
-
-	it("forwards the existing iconUrl to fetchAndStoreGitHubAvatar so it can replace the prior blob", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: "https://blob.example/old-icon.png",
-			repoCloneUrl: "https://github.com/acme/repo.git",
-		});
-		txUpdateReturningResults.push([
-			{ id: PROJECT_ID, iconUrl: "https://blob.example/avatar.png" },
-		]);
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.resetIconToGitHub({
-			id: PROJECT_ID,
-		});
-
-		expect(fetchAndStoreGitHubAvatarMock).toHaveBeenCalledWith({
-			owner: "acme",
-			pathnamePrefix: `organizations/${ORG_ID}/projects/${PROJECT_ID}/icon`,
-			existingUrl: "https://blob.example/old-icon.png",
-		});
-		expect(result).toMatchObject({
-			id: PROJECT_ID,
-			iconUrl: "https://blob.example/avatar.png",
-			txid: 123,
-		});
-	});
-
-	it("returns NOT_FOUND when the post-fetch UPDATE finds no row", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: null,
-			repoCloneUrl: "https://github.com/acme/repo.git",
-		});
-		txUpdateReturningResults.push([]);
-
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.resetIconToGitHub({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "NOT_FOUND" });
 	});
 });
 
@@ -646,85 +413,6 @@ describe("v2Project.delete", () => {
 		expect(consoleWarnSpy).toHaveBeenCalled();
 
 		consoleWarnSpy.mockRestore();
-	});
-});
-
-describe("v2Project.removeIcon", () => {
-	it("runs auth before any side effect (covered in depth on uploadIcon)", async () => {
-		const caller = createCaller(unauthedContext());
-
-		await expect(
-			caller.v2Project.removeIcon({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "UNAUTHORIZED" });
-		expect(v2ProjectsFindFirst).not.toHaveBeenCalled();
-		expect(delMock).not.toHaveBeenCalled();
-		expect(transactionMock).not.toHaveBeenCalled();
-	});
-
-	it("does not call blob.del when the project has no icon", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({ iconUrl: null });
-		txUpdateReturningResults.push([{ id: PROJECT_ID, iconUrl: null }]);
-
-		const caller = createCaller(authedContext());
-		await caller.v2Project.removeIcon({ id: PROJECT_ID });
-
-		expect(delMock).not.toHaveBeenCalled();
-		expect(txUpdateSet).toHaveBeenCalledWith({ iconUrl: null });
-	});
-
-	it("deletes the existing blob and clears iconUrl", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: "https://blob.example/old-icon.png",
-		});
-		txUpdateReturningResults.push([{ id: PROJECT_ID, iconUrl: null }]);
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.removeIcon({ id: PROJECT_ID });
-
-		expect(delMock).toHaveBeenCalledWith("https://blob.example/old-icon.png");
-		expect(txUpdateSet).toHaveBeenCalledWith({ iconUrl: null });
-		expect(result).toMatchObject({
-			id: PROJECT_ID,
-			iconUrl: null,
-			txid: 123,
-		});
-	});
-
-	it("swallows blob.del failures and still clears iconUrl in DB", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: "https://blob.example/old-icon.png",
-		});
-		txUpdateReturningResults.push([{ id: PROJECT_ID, iconUrl: null }]);
-		delMock.mockImplementationOnce(async () => {
-			throw new Error("blob storage unavailable");
-		});
-		const consoleWarnSpy = spyOn(console, "warn").mockImplementation(() => {});
-
-		const caller = createCaller(authedContext());
-		const result = await caller.v2Project.removeIcon({ id: PROJECT_ID });
-
-		expect(consoleWarnSpy).toHaveBeenCalled();
-		expect(txUpdateSet).toHaveBeenCalledWith({ iconUrl: null });
-		expect(result).toMatchObject({ id: PROJECT_ID, iconUrl: null });
-
-		consoleWarnSpy.mockRestore();
-	});
-
-	it("returns NOT_FOUND when the post-delete UPDATE finds no row", async () => {
-		v2ProjectsFindResults.push({ id: PROJECT_ID, organizationId: ORG_ID });
-		v2ProjectsFindResults.push({
-			iconUrl: "https://blob.example/old-icon.png",
-		});
-		txUpdateReturningResults.push([]);
-
-		const caller = createCaller(authedContext());
-
-		await expect(
-			caller.v2Project.removeIcon({ id: PROJECT_ID }),
-		).rejects.toMatchObject({ code: "NOT_FOUND" });
 	});
 });
 
