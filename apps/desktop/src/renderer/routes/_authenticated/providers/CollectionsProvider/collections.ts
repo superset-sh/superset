@@ -49,6 +49,7 @@ import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
 import { track } from "renderer/lib/analytics";
 import { getAuthToken, getJwt } from "renderer/lib/auth-client";
+import { createJsonGuardedFetch } from "renderer/lib/json-guarded-fetch";
 import { refreshJwtAfterUnauthorized } from "renderer/lib/jwt-refresh";
 import superjson from "superjson";
 import { z } from "zod";
@@ -222,6 +223,7 @@ const apiClient = createTRPCProxyClient<AppRouter>({
 				return token ? { Authorization: `Bearer ${token}` } : {};
 			},
 			transformer: superjson,
+			fetch: createJsonGuardedFetch(),
 		}),
 	],
 });

@@ -3,6 +3,7 @@ import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import { env } from "renderer/env.renderer";
 import superjson from "superjson";
 import { getAuthToken } from "./auth-client";
+import { createJsonGuardedFetch } from "./json-guarded-fetch";
 
 /**
  * HTTP tRPC client for calling the API server.
@@ -23,6 +24,7 @@ export const apiTrpcClient = createTRPCProxyClient<AppRouter>({
 				}
 				return {};
 			},
+			fetch: createJsonGuardedFetch(),
 		}),
 	],
 });
