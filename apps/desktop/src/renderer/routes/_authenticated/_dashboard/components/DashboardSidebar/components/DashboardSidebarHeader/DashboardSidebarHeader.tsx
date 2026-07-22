@@ -143,9 +143,11 @@ export function DashboardSidebarHeader({
 						<button
 							type="button"
 							onClick={() => openModal()}
-							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+							className="group flex size-8 items-center justify-center rounded-md bg-accent/40 transition-colors hover:bg-accent/60"
 						>
-							<LuPlus className="size-4" strokeWidth={STROKE_WIDTH_THICK} />
+							<div className="flex size-5 items-center justify-center rounded bg-accent">
+								<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
+							</div>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right">
@@ -315,18 +317,15 @@ export function DashboardSidebarHeader({
 			<button
 				type="button"
 				onClick={() => openModal()}
-				className="group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+				className="group flex w-full items-center gap-2 rounded-md bg-accent/40 px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
 			>
-				<LuPlus className="size-4 shrink-0" strokeWidth={STROKE_WIDTH_THICK} />
+				<div className="flex size-5 shrink-0 items-center justify-center rounded bg-accent">
+					<LuPlus className="size-3" strokeWidth={STROKE_WIDTH_THICK} />
+				</div>
 				<span className="flex-1 truncate text-left whitespace-nowrap">
 					New Workspace
 				</span>
-				<span
-					className={cn(
-						"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
-						"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
-					)}
-				>
+				<span className="shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/40 transition-colors group-hover:text-muted-foreground/80">
 					{shortcutText}
 				</span>
 			</button>
