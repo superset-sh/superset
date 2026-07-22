@@ -1,5 +1,50 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { integrationConnections } from "@superset/db/schema";
 import { handleLinearImageProxy } from "./route-core";
+
+const findFirstIntegrationConnection = mock(async () => ({
+	accessToken: "linear-token",
+}));
+const getRouteSession = mock(async () => ({
+	user: { id: "user-1" },
+	session: { activeOrganizationId: "org-1" },
+}));
+const andClause = mock((...clauses: unknown[]) => ({ clauses, type: "and" }));
+const eqClause = mock((left: unknown, right: unknown) => ({
+	left,
+	right,
+	type: "eq",
+}));
+const isNullClause = mock((column: unknown) => ({
+	column,
+	type: "isNull",
+}));
+
+mock.module("@superset/auth/server", () => ({
+	auth: {
+		api: {
+			getSession: getRouteSession,
+		},
+	},
+}));
+
+mock.module("@superset/db/client", () => ({
+	db: {
+		query: {
+			integrationConnections: {
+				findFirst: findFirstIntegrationConnection,
+			},
+		},
+	},
+}));
+
+mock.module("drizzle-orm", () => ({
+	and: andClause,
+	eq: eqClause,
+	isNull: isNullClause,
+}));
+
+const { GET } = await import("./route");
 
 const getSession = mock(async () => ({
 	user: { id: "user-1" },
@@ -16,6 +61,14 @@ const fetchLinearImage = mock(
 );
 const originalConsoleError = console.error;
 const consoleError = mock(() => undefined);
+
+const originalFetch = globalThis.fetch;
+const routeFetch = mock(
+	async () =>
+		new Response(new Uint8Array([4, 5, 6]), {
+			headers: { "content-type": "image/png" },
+		}),
+);
 
 function linearImageRequest(linearUrl: string, init?: RequestInit): Request {
 	const url = new URL("http://localhost/api/proxy/linear-image");
@@ -59,12 +112,31 @@ describe("linear image proxy", () => {
 		getSession.mockClear();
 		findLinearConnection.mockClear();
 		fetchLinearImage.mockClear();
+		findFirstIntegrationConnection.mockClear();
+		getRouteSession.mockClear();
+		andClause.mockClear();
+		eqClause.mockClear();
+		isNullClause.mockClear();
+		routeFetch.mockClear();
 		consoleError.mockClear();
 		getSession.mockResolvedValue({
 			user: { id: "user-1" },
 			session: { activeOrganizationId: "org-1" },
 		});
 		findLinearConnection.mockResolvedValue({ accessToken: "linear-token" });
+		findFirstIntegrationConnection.mockResolvedValue({
+			accessToken: "linear-token",
+		});
+		getRouteSession.mockResolvedValue({
+			user: { id: "user-1" },
+			session: { activeOrganizationId: "org-1" },
+		});
+		routeFetch.mockResolvedValue(
+			new Response(new Uint8Array([4, 5, 6]), {
+				headers: { "content-type": "image/png" },
+			}),
+		);
+		globalThis.fetch = routeFetch as unknown as typeof fetch;
 		fetchLinearImage.mockResolvedValue(
 			new Response(new Uint8Array([1, 2, 3]), {
 				headers: { "content-type": "image/jpeg" },
@@ -75,6 +147,7 @@ describe("linear image proxy", () => {
 
 	afterEach(() => {
 		console.error = originalConsoleError;
+		globalThis.fetch = originalFetch;
 	});
 
 	test("keeps authenticated Linear images out of shared caches", async () => {
@@ -100,6 +173,71 @@ describe("linear image proxy", () => {
 		});
 		expect(fetchOptions?.redirect).toBe("error");
 		expect(fetchOptions?.signal instanceof AbortSignal).toBe(true);
+	});
+
+	test("GET queries only active Linear integrations for the session organization", async () => {
+		const response = await GET(
+			linearImageRequest("https://uploads.linear.app/private-image.png"),
+		);
+
+		expect(response.status).toBe(200);
+		expect(findFirstIntegrationConnection).toHaveBeenCalledTimes(1);
+		expect(getRouteSession.mock.calls[0]?.[0]).toEqual({
+			headers: expect.any(Headers),
+		});
+		expect(eqClause.mock.calls).toEqual([
+			[integrationConnections.organizationId, "org-1"],
+			[integrationConnections.provider, "linear"],
+		]);
+		expect(isNullClause.mock.calls).toEqual([
+			[integrationConnections.disconnectedAt],
+		]);
+		expect(andClause.mock.calls[0]).toEqual([
+			{
+				left: integrationConnections.organizationId,
+				right: "org-1",
+				type: "eq",
+			},
+			{
+				left: integrationConnections.provider,
+				right: "linear",
+				type: "eq",
+			},
+			{ column: integrationConnections.disconnectedAt, type: "isNull" },
+		]);
+		expect(routeFetch.mock.calls[0]?.[1]).toMatchObject({
+			headers: { Authorization: "Bearer linear-token" },
+			redirect: "error",
+		});
+	});
+
+	test("applies a timeout signal to upstream Linear image fetches", async () => {
+		const originalTimeout = AbortSignal.timeout;
+		const timeoutSignal = new AbortController().signal;
+		const timeout = mock(() => timeoutSignal);
+
+		Object.defineProperty(AbortSignal, "timeout", {
+			configurable: true,
+			value: timeout,
+		});
+
+		try {
+			const response = await proxy(
+				linearImageRequest("https://uploads.linear.app/private-image.jpg"),
+			);
+
+			expect(response.status).toBe(200);
+			expect(timeout).toHaveBeenCalledWith(15_000);
+			const fetchOptions = fetchLinearImage.mock.calls[0]?.[1] as
+				| RequestInit
+				| undefined;
+			expect(fetchOptions?.signal instanceof AbortSignal).toBe(true);
+		} finally {
+			Object.defineProperty(AbortSignal, "timeout", {
+				configurable: true,
+				value: originalTimeout,
+			});
+		}
 	});
 
 	test("propagates client aborts to the upstream Linear image fetch", async () => {
