@@ -1,3 +1,4 @@
+import { indexResolvedAgentConfigs } from "@superset/shared/agent-settings";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -52,6 +53,12 @@ export function useCommandWatcher() {
 	const { data: workspaceGroups } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const { data: projects } = electronTrpc.projects.getRecents.useQuery();
+	const { data: agentPresets } =
+		electronTrpc.settings.getAgentPresets.useQuery();
+	const resolvedAgentConfigsById = useMemo(
+		() => indexResolvedAgentConfigs(agentPresets ?? []),
+		[agentPresets],
+	);
 	const worktreePathByWorkspaceId = useMemo(() => {
 		const pathByWorkspaceId = new Map<string, string>();
 
@@ -91,6 +98,7 @@ export function useCommandWatcher() {
 			getActiveWorkspaceId: getCurrentWorkspaceIdFromRoute,
 			getWorktreePathByWorkspaceId: (workspaceId) =>
 				worktreePathByWorkspaceId.get(workspaceId),
+			getResolvedAgentConfigsById: () => resolvedAgentConfigsById,
 		}),
 		[
 			createWorktree,
@@ -104,6 +112,7 @@ export function useCommandWatcher() {
 			projects,
 			getCurrentWorkspaceIdFromRoute,
 			worktreePathByWorkspaceId,
+			resolvedAgentConfigsById,
 		],
 	);
 

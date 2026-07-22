@@ -51,6 +51,10 @@ export const terminalLaunchConfigSchema = z.object({
 	command: z.string().min(1),
 	name: z.string().min(1).optional(),
 	paneId: z.string().min(1).optional(),
+	// Raw prompt carried alongside the baked command so a device can
+	// re-resolve the effective command from device-local agent presets.
+	// Older devices ignore it and run the baked command verbatim.
+	prompt: z.string().min(1).optional(),
 	taskPromptContent: z.string().min(1).optional(),
 	taskPromptFileName: z.string().min(1).optional(),
 	autoExecute: z.boolean().optional(),

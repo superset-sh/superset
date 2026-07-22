@@ -21,6 +21,26 @@ describe("normalizeAgentLaunchRequest", () => {
 		expect(normalized).toEqual(request);
 	});
 
+	it("round-trips the optional prompt on a terminal launch", () => {
+		const request: AgentLaunchRequest = {
+			kind: "terminal",
+			workspaceId: "ws-1",
+			source: "mcp",
+			agentType: "claude",
+			terminal: {
+				command: "claude --dangerously-skip-permissions",
+				name: "Claude",
+				prompt: "Fix the failing tests",
+			},
+		};
+
+		const normalized = normalizeAgentLaunchRequest(request);
+		expect(normalized).toEqual(request);
+		expect(
+			normalized.kind === "terminal" ? normalized.terminal.prompt : undefined,
+		).toBe("Fix the failing tests");
+	});
+
 	it("maps legacy terminal launch params", () => {
 		const normalized = normalizeAgentLaunchRequest({
 			workspaceId: "ws-1",
