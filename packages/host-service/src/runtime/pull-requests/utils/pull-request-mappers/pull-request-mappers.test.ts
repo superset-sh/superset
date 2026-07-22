@@ -1,8 +1,16 @@
 import { describe, expect, test } from "bun:test";
 import {
 	coercePullRequestState,
+	computeChecksStatus,
 	mapPullRequestState,
+	type PullRequestCheck,
 } from "./pull-request-mappers";
+
+const check = (status: PullRequestCheck["status"]): PullRequestCheck => ({
+	name: `check-${status}`,
+	status,
+	url: null,
+});
 
 describe("mapPullRequestState", () => {
 	test("maps merged and closed states regardless of other flags", () => {
@@ -32,5 +40,52 @@ describe("coercePullRequestState", () => {
 	test("falls back to open for unknown values", () => {
 		expect(coercePullRequestState("nonsense")).toBe("open");
 		expect(coercePullRequestState(null)).toBe("open");
+	});
+});
+
+describe("computeChecksStatus", () => {
+	test("returns 'none' when there are no checks", () => {
+		expect(computeChecksStatus([])).toBe("none");
+	});
+
+	test("returns 'success' when all checks succeed", () => {
+		expect(computeChecksStatus([check("success"), check("success")])).toBe(
+			"success",
+		);
+	});
+
+	test("returns 'failure' when any check failed", () => {
+		expect(computeChecksStatus([check("success"), check("failure")])).toBe(
+			"failure",
+		);
+	});
+
+	test("returns 'pending' when a check is still running and none failed", () => {
+		expect(computeChecksStatus([check("success"), check("pending")])).toBe(
+			"pending",
+		);
+	});
+
+	// Regression: a cancelled run is terminal and did not pass, so it must not
+	// roll up to a green 'success'.
+	test("treats a cancelled check as a non-passing status, not success", () => {
+		expect(computeChecksStatus([check("cancelled")])).toBe("failure");
+		expect(computeChecksStatus([check("success"), check("cancelled")])).toBe(
+			"failure",
+		);
+	});
+
+	test("cancelled/failure outrank a concurrent pending check", () => {
+		expect(computeChecksStatus([check("pending"), check("cancelled")])).toBe(
+			"failure",
+		);
+	});
+
+	// `skipped` (GitHub SKIPPED/NEUTRAL) is intentionally non-blocking.
+	test("keeps skipped checks non-blocking (folds into success)", () => {
+		expect(computeChecksStatus([check("success"), check("skipped")])).toBe(
+			"success",
+		);
+		expect(computeChecksStatus([check("skipped")])).toBe("success");
 	});
 });
