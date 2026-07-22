@@ -46,6 +46,7 @@ const paneNodeSchema = z.object({
 const tabNodeSchema = z.object({
 	id: z.string(),
 	titleOverride: z.string().optional(),
+	pinned: z.boolean().optional(),
 	createdAt: z.number(),
 	activePaneId: z.string().nullable(),
 	layout: layoutNodeSchema,

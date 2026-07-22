@@ -9,7 +9,7 @@ import {
 import { OverflowFadeText } from "@superset/ui/overflow-fade-text";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { PencilIcon, XIcon } from "lucide-react";
+import { PencilIcon, PinIcon, PinOffIcon, XIcon } from "lucide-react";
 import { type ReactNode, useCallback, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import type { Tab } from "../../../../../../../types";
@@ -31,6 +31,7 @@ interface TabItemProps<TData> {
 	onCloseOthers: () => void;
 	onCloseAll: () => void;
 	onRename: (title: string | undefined) => void;
+	onPinnedChange: (pinned: boolean) => void;
 	icon?: ReactNode;
 	accessory?: ReactNode;
 }
@@ -46,6 +47,7 @@ export function TabItem<TData>({
 	onCloseOthers,
 	onCloseAll,
 	onRename,
+	onPinnedChange,
 	icon,
 	accessory,
 }: TabItemProps<TData>) {
@@ -158,12 +160,19 @@ export function TabItem<TData>({
 										onAuxClick={(event) => {
 											if (event.button === 1) {
 												event.preventDefault();
+												if (tab.pinned) return;
 												onClose();
 											}
 										}}
 										onDoubleClick={startEditing}
 									>
 										{icon && <span className="shrink-0">{icon}</span>}
+										{tab.pinned && (
+											<PinIcon
+												className="size-3 shrink-0"
+												aria-label="Pinned tab"
+											/>
+										)}
 										<OverflowFadeText className="flex-1">
 											{title}
 										</OverflowFadeText>
@@ -179,25 +188,27 @@ export function TabItem<TData>({
 										{accessory}
 									</span>
 								)}
-								<Button
-									aria-label="Close tab"
-									className={cn(
-										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-										isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
-									)}
-									onClick={(event) => {
-										event.stopPropagation();
-										onClose();
-									}}
-									onMouseDown={(event) => {
-										event.stopPropagation();
-									}}
-									size="icon"
-									type="button"
-									variant="ghost"
-								>
-									<XIcon className="size-3.5" />
-								</Button>
+								{!tab.pinned && (
+									<Button
+										aria-label="Close tab"
+										className={cn(
+											"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+											isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
+										)}
+										onClick={(event) => {
+											event.stopPropagation();
+											onClose();
+										}}
+										onMouseDown={(event) => {
+											event.stopPropagation();
+										}}
+										size="icon"
+										type="button"
+										variant="ghost"
+									>
+										<XIcon className="size-3.5" />
+									</Button>
+								)}
 							</div>
 						</>
 					)}
@@ -208,8 +219,16 @@ export function TabItem<TData>({
 					<PencilIcon className="mr-2 size-4" />
 					Rename
 				</ContextMenuItem>
+				<ContextMenuItem onSelect={() => onPinnedChange(!tab.pinned)}>
+					{tab.pinned ? (
+						<PinOffIcon className="mr-2 size-4" />
+					) : (
+						<PinIcon className="mr-2 size-4" />
+					)}
+					{tab.pinned ? "Unpin tab" : "Pin tab"}
+				</ContextMenuItem>
 				<ContextMenuSeparator />
-				<ContextMenuItem onSelect={onClose}>
+				<ContextMenuItem disabled={tab.pinned} onSelect={onClose}>
 					<XIcon className="mr-2 size-4" />
 					Close
 				</ContextMenuItem>

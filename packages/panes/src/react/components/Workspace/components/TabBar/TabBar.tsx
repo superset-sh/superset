@@ -29,6 +29,7 @@ interface TabBarProps<TData> {
 	onCloseOtherTabs: (tabId: string) => void;
 	onCloseAllTabs: () => void;
 	onRenameTab: (tabId: string, title: string | undefined) => void;
+	onSetTabPinned: (tabId: string, pinned: boolean) => void;
 	onReorderTab: (tabId: string, toIndex: number) => void;
 	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
@@ -79,6 +80,7 @@ export function TabBar<TData>({
 	onCloseOtherTabs,
 	onCloseAllTabs,
 	onRenameTab,
+	onSetTabPinned,
 	onReorderTab,
 	onMovePaneToNewTab,
 	renderTabIcon,
@@ -225,6 +227,7 @@ export function TabBar<TData>({
 								onCloseOthers={() => onCloseOtherTabs(tab.id)}
 								onCloseAll={onCloseAllTabs}
 								onRename={(title) => onRenameTab(tab.id, title)}
+								onPinnedChange={(pinned) => onSetTabPinned(tab.id, pinned)}
 								icon={renderTabIcon?.(tab)}
 								accessory={renderTabAccessory?.(tab)}
 							/>
