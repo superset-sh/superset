@@ -2,7 +2,8 @@
 	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
 		"types": [],
-		"lib": ["ES2022", "DOM", "DOM.Iterable"]
+		"lib": ["ES2022", "DOM", "DOM.Iterable"],
+		"rootDir": "src"
 	},
 	"include": ["src"],
 	"exclude": ["node_modules", "dist"]
