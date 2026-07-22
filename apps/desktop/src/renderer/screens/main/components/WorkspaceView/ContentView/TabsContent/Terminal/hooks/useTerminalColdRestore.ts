@@ -8,7 +8,7 @@ import type {
 	CreateOrAttachResult,
 	TerminalStreamEvent,
 } from "../types";
-import { scrollToBottom } from "../utils";
+import { disarmStaleInputModes, scrollToBottom } from "../utils";
 
 export interface UseTerminalColdRestoreOptions {
 	paneId: string;
@@ -180,8 +180,16 @@ export function useTerminalColdRestore({
 			});
 		});
 
-		// Add visual separator
-		xterm.write("\r\n\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\r\n");
+		// The replayed scrollback is sanitized, but the xterm may still carry
+		// armed modes from the pre-crash session.
+		disarmStaleInputModes(xterm);
+
+		// Add visual separator. The replayed scrollback can leave the cursor
+		// mid-screen with old content on the rows below, so clear each line
+		// (CSI 2K) before drawing on it.
+		xterm.write(
+			"\r\n\x1b[2K\x1b[90m─── Session Contents Restored ───\x1b[0m\r\n\x1b[2K\r\n\x1b[2K",
+		);
 
 		// Reset state for new session
 		isStreamReadyRef.current = false;

@@ -237,6 +237,41 @@ mock.module("./history-manager", () => ({
 	},
 }));
 
+const mockHistory: {
+	metadata: {
+		cols: number;
+		rows: number;
+		cwd: string;
+		endedAt?: string;
+	} | null;
+	scrollback: string | null;
+} = { metadata: null, scrollback: null };
+
+const { truncateUtf8ToLastBytes: actualTruncateUtf8ToLastBytes } = await import(
+	"../../terminal-history"
+);
+
+mock.module("../../terminal-history", () => ({
+	HistoryReader: class {
+		exists() {
+			return Promise.resolve(mockHistory.metadata !== null);
+		}
+
+		readMetadata() {
+			return Promise.resolve(mockHistory.metadata);
+		}
+
+		readScrollback() {
+			return Promise.resolve(mockHistory.scrollback);
+		}
+
+		cleanup() {
+			return Promise.resolve();
+		}
+	},
+	truncateUtf8ToLastBytes: actualTruncateUtf8ToLastBytes,
+}));
+
 const { DaemonTerminalManager } = await import("./daemon-manager");
 
 describe("DaemonTerminalManager kill tracking", () => {
@@ -563,5 +598,82 @@ describe("DaemonTerminalManager kill tracking", () => {
 
 		await expect(manager.forceKillAll()).rejects.toThrow("probe failed");
 		expect(mockClient.killAllCalls).toBe(0);
+	});
+});
+
+describe("DaemonTerminalManager cold restore sanitization", () => {
+	beforeEach(() => {
+		mockClient = new MockTerminalHostClient();
+		mockHistory.metadata = null;
+		mockHistory.scrollback = null;
+	});
+
+	it("strips input-arming and query sequences from replayed scrollback", async () => {
+		// meta.json without endedAt marks an unclean shutdown.
+		mockHistory.metadata = { cols: 120, rows: 40, cwd: "/repo" };
+		mockHistory.scrollback = [
+			"$ claude\r\n",
+			"\x1b[?1002h\x1b[?1003h\x1b[?1006h\x1b[?2004h", // TUI arms input reporting
+			"\x1b[>1u", // kitty keyboard push
+			"\x1b[c\x1b[6n\x1b[?u", // DA1 + DSR + kitty query
+			"\x1b[31mWelcome\x1b[0m\r\n",
+		].join("");
+
+		const manager = new DaemonTerminalManager();
+		const result = await manager.createOrAttach({
+			paneId: "pane-cold-restore",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+		});
+
+		expect(result.isColdRestore).toBe(true);
+		const expectedAnsi = "$ claude\r\n\x1b[31mWelcome\x1b[0m\r\n";
+		expect(result.snapshot?.snapshotAnsi).toBe(expectedAnsi);
+		expect(result.scrollback).toBe(expectedAnsi);
+		expect(result.snapshot?.cols).toBe(120);
+		expect(mockClient.createOrAttachCalls).toHaveLength(0);
+	});
+
+	it("serves the sanitized scrollback on repeat attaches until acked", async () => {
+		mockHistory.metadata = { cols: 80, rows: 24, cwd: "/repo" };
+		mockHistory.scrollback = "before\x1b[?1003h\x1b[?1006hafter";
+
+		const manager = new DaemonTerminalManager();
+		const first = await manager.createOrAttach({
+			paneId: "pane-cold-restore-sticky",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+		});
+		// The sticky replay served before ack must be the sanitized copy.
+		const second = await manager.createOrAttach({
+			paneId: "pane-cold-restore-sticky",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+		});
+
+		expect(first.snapshot?.snapshotAnsi).toBe("beforeafter");
+		expect(second.isColdRestore).toBe(true);
+		expect(second.snapshot?.snapshotAnsi).toBe("beforeafter");
+	});
+
+	it("caps visible content, not raw bytes, when the tail is escape-heavy", async () => {
+		// Raw log over the byte cap whose tail is dominated by strippable
+		// clipboard queries. Sanitizing before truncating keeps the whole
+		// visible prefix; truncating first would drop most of it.
+		const visible = "V".repeat(400_000);
+		const junk = `${"\x1b]52;c;?\x07"}`.repeat(30_000); // ~240KB, all stripped
+		mockHistory.metadata = { cols: 80, rows: 24, cwd: "/repo" };
+		mockHistory.scrollback = visible + junk;
+
+		const manager = new DaemonTerminalManager();
+		const result = await manager.createOrAttach({
+			paneId: "pane-cold-restore-cap",
+			tabId: "tab-1",
+			workspaceId: "ws-1",
+		});
+
+		expect(result.isColdRestore).toBe(true);
+		expect(result.snapshot?.snapshotAnsi).toBe(visible);
+		expect(result.snapshot?.snapshotAnsi).not.toContain("\x1b]52");
 	});
 });
