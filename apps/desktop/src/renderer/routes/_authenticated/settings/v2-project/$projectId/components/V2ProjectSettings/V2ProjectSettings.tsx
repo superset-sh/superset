@@ -14,6 +14,7 @@ import {
 import { SettingsRow } from "../../../../components/SettingsRow";
 import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
+import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
@@ -112,9 +113,11 @@ export function V2ProjectSettings({
 		);
 	}
 
-	const iconUrl = project.repoOwner
+	const githubAvatarUrl = project.repoOwner
 		? `https://github.com/${project.repoOwner}.png?size=64`
 		: null;
+	// Custom local icon wins; fall back to the GitHub owner avatar.
+	const iconUrl = project.icon ?? githubAvatarUrl;
 	const canRename = Boolean(
 		targetHostUrl && targetHostId && project.hostIds.includes(targetHostId),
 	);
@@ -158,6 +161,17 @@ export function V2ProjectSettings({
 					</SettingsRow>
 					<SettingsRow label="Repository" htmlFor="project-repo">
 						<RepositorySection repoUrl={project.repoUrl} />
+					</SettingsRow>
+					<SettingsRow
+						label="Icon"
+						hint="Upload a custom image. Defaults to the linked GitHub owner's avatar."
+					>
+						<IconUploadField
+							projectId={projectId}
+							hostUrl={targetHostUrl}
+							iconUrl={iconUrl}
+							hasCustomIcon={Boolean(project.icon)}
+						/>
 					</SettingsRow>
 					{targetHostUrl && hostProject && (
 						<SettingsRow
