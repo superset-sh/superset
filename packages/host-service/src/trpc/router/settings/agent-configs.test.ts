@@ -391,6 +391,71 @@ describe("agentConfigsRouter", () => {
 		});
 	});
 
+	describe("restoreDefault()", () => {
+		it("repairs a malformed built-in config without replacing its row", async () => {
+			const caller = createCaller();
+			const configs = await caller.list();
+			const codex = configs.find((row) => row.presetId === "codex");
+			expect(codex).toBeDefined();
+			if (!codex) return;
+
+			await caller.update({
+				id: codex.id,
+				patch: {
+					label: "Broken Codex",
+					command: "codex",
+					args: [
+						"-c",
+						"model_reasoning_summary=detailed",
+						" ",
+						"--dangerously-bypass-approvals-and-sandbox",
+					],
+					promptTransport: "stdin",
+					promptArgs: ["--prompt"],
+					env: { CODEX_HOME: "/tmp/old-codex" },
+					iconId: "claude",
+				},
+			});
+
+			const restored = await caller.restoreDefault({ id: codex.id });
+			const preset = getPresetById("codex");
+			expect(preset).toBeDefined();
+			if (!preset) return;
+
+			expect(restored).toMatchObject({
+				id: codex.id,
+				presetId: "codex",
+				iconId: null,
+				label: preset.label,
+				command: preset.command,
+				args: preset.args,
+				promptTransport: preset.promptTransport,
+				promptArgs: preset.promptArgs,
+				env: preset.env,
+				order: codex.order,
+			});
+		});
+
+		it("rejects custom agents and unknown ids", async () => {
+			const caller = createCaller();
+			const custom = await caller.add({
+				label: "Custom",
+				command: "custom",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+
+			await expect(caller.restoreDefault({ id: custom.id })).rejects.toThrow(
+				/no bundled default/i,
+			);
+			await expect(
+				caller.restoreDefault({ id: "does-not-exist" }),
+			).rejects.toThrow(/not found/i);
+		});
+	});
+
 	describe("reorder()", () => {
 		it("persists the submitted id order", async () => {
 			const caller = createCaller();

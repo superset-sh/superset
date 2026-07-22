@@ -1,10 +1,22 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
+import { getPresetById } from "@superset/shared/host-agent-presets";
+import {
+	AlertDialog,
+	AlertDialogAction,
+	AlertDialogCancel,
+	AlertDialogContent,
+	AlertDialogDescription,
+	AlertDialogFooter,
+	AlertDialogHeader,
+	AlertDialogTitle,
+	AlertDialogTrigger,
+} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { useMutation } from "@tanstack/react-query";
-import { Trash2 } from "lucide-react";
+import { RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
 	getAgentCommandText,
@@ -38,6 +50,7 @@ export function AgentDetail({
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const isCustom = config.presetId === "custom";
+	const hasBundledDefault = getPresetById(config.presetId) !== undefined;
 
 	const [label, setLabel] = useState(config.label);
 	const [commandText, setCommandText] = useState(getAgentCommandText(config));
@@ -108,6 +121,29 @@ export function AgentDetail({
 		onSuccess: () => onDeleted(),
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to remove"),
+	});
+
+	const restoreDefaultMutation = useMutation({
+		mutationFn: () => {
+			if (!activeHostUrl) {
+				throw new Error(
+					getHostServiceUnavailableMessage(hostService, {
+						action: "restore the agent defaults",
+					}),
+				);
+			}
+			return getHostServiceClientByUrl(
+				activeHostUrl,
+			).settings.agentConfigs.restoreDefault.mutate({ id: config.id });
+		},
+		onSuccess: (updated) => {
+			onChanged(updated);
+			toast.success(`${updated.label} restored to defaults`);
+		},
+		onError: (err) =>
+			toast.error(
+				err instanceof Error ? err.message : "Failed to restore defaults",
+			),
 	});
 
 	const handleLabelBlur = () => {
@@ -188,7 +224,56 @@ export function AgentDetail({
 					onPromptTransportChange={handleTransportChange}
 				/>
 
-				<div className="pt-2 border-t border-border">
+				{hasBundledDefault ? (
+					<div className="pt-2 border-t border-border">
+						<div className="flex items-center justify-between gap-8">
+							<div className="min-w-0 flex-1">
+								<div className="text-sm font-medium">Restore default</div>
+								<p className="text-sm text-muted-foreground mt-0.5">
+									Replace this agent's launch settings with the current bundled
+									configuration.
+								</p>
+							</div>
+							<AlertDialog>
+								<AlertDialogTrigger asChild>
+									<Button
+										variant="outline"
+										size="sm"
+										disabled={restoreDefaultMutation.isPending}
+										className="shrink-0 gap-1.5"
+									>
+										<RotateCcw className="size-3.5" />
+										Restore
+									</Button>
+								</AlertDialogTrigger>
+								<AlertDialogContent>
+									<AlertDialogHeader>
+										<AlertDialogTitle>
+											Restore {config.label} to defaults?
+										</AlertDialogTitle>
+										<AlertDialogDescription>
+											This replaces its label, command, arguments, prompt
+											settings, environment variables, and icon with the current
+											bundled configuration.
+										</AlertDialogDescription>
+									</AlertDialogHeader>
+									<AlertDialogFooter>
+										<AlertDialogCancel>Cancel</AlertDialogCancel>
+										<AlertDialogAction
+											onClick={() => restoreDefaultMutation.mutate()}
+										>
+											Restore defaults
+										</AlertDialogAction>
+									</AlertDialogFooter>
+								</AlertDialogContent>
+							</AlertDialog>
+						</div>
+					</div>
+				) : null}
+
+				<div
+					className={hasBundledDefault ? "pt-6" : "pt-2 border-t border-border"}
+				>
 					<div className="flex items-center justify-between gap-8">
 						<div className="min-w-0 flex-1">
 							<div className="text-sm font-medium">Delete agent</div>
