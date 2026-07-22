@@ -25,6 +25,7 @@ export {
 	setRelaySocketTelemetry,
 } from "./lib/relaySocket";
 export {
+	useMaybeWorkspaceClient,
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
 	useWorkspaceWsUrl,

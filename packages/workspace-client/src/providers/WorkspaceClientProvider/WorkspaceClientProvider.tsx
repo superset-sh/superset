@@ -134,6 +134,11 @@ export function useWorkspaceClient(): WorkspaceClientContextValue {
 	return client;
 }
 
+/** Like `useWorkspaceClient`, but returns null outside a WorkspaceClientProvider. */
+export function useMaybeWorkspaceClient(): WorkspaceClientContextValue | null {
+	return useContext(WorkspaceClientContext);
+}
+
 export function useWorkspaceHostUrl(): string {
 	return useWorkspaceClient().hostUrl;
 }
