@@ -71,7 +71,9 @@ describe("buildAgentPromptCommand", () => {
 			agent: "grok",
 		});
 
-		expect(command).toStartWith("grok \"$(cat <<'SUPERSET_PROMPT_grok1234'");
+		expect(command).toStartWith(
+			"grok --always-approve \"$(cat <<'SUPERSET_PROMPT_grok1234'",
+		);
 		expect(command).not.toContain("grok -p");
 	});
 });

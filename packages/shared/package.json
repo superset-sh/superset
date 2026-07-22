@@ -76,10 +76,6 @@
 			"types": "./src/agent-models.ts",
 			"default": "./src/agent-models.ts"
 		},
-		"./grok-lifecycle": {
-			"types": "./src/grok-lifecycle.ts",
-			"default": "./src/grok-lifecycle.ts"
-		},
 		"./billing": {
 			"types": "./src/billing.ts",
 			"default": "./src/billing.ts"

@@ -22,7 +22,6 @@ import { createApplicationMenu } from "../lib/menu";
 import { playNotificationSound } from "../lib/notification-sound";
 import { NotificationManager } from "../lib/notifications/notification-manager";
 import {
-	disposeNotificationsLifecycle,
 	notificationsApp,
 	notificationsEmitter,
 } from "../lib/notifications/server";
@@ -366,7 +365,6 @@ export async function MainWindow() {
 		server.close();
 		notificationManager.dispose();
 		notificationsEmitter.removeAllListeners();
-		disposeNotificationsLifecycle();
 		getWorkspaceRuntimeRegistry().getDefault().terminal.detachAllListeners();
 		ipcHandler?.detachWindow(window);
 		currentWindow = null;

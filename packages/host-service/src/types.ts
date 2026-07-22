@@ -1,6 +1,5 @@
 import type { Octokit } from "@octokit/rest";
 import type { ChatService } from "@superset/chat/server/desktop";
-import type { GrokLifecycleInterpreter } from "@superset/shared/grok-lifecycle";
 import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
 import type { HostDb } from "./db";
@@ -39,7 +38,6 @@ export interface HostServiceContext {
 	db: HostDb;
 	runtime: HostServiceRuntime;
 	eventBus: EventBus;
-	grokLifecycle: GrokLifecycleInterpreter;
 	terminalAgentStore: TerminalAgentStore;
 	organizationId: string;
 	isAuthenticated: boolean;

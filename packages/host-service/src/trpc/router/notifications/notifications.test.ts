@@ -1,9 +1,5 @@
-import { afterEach, describe, expect, it, jest, mock } from "bun:test";
+import { describe, expect, it, mock } from "bun:test";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
-import {
-	GROK_PERMISSION_DEBOUNCE_MS,
-	GrokLifecycleInterpreter,
-} from "@superset/shared/grok-lifecycle";
 import type { AgentLifecycleEventType } from "../../../events";
 import { TerminalAgentStore } from "../../../terminal-agents";
 import type { HostServiceContext } from "../../../types";
@@ -24,7 +20,6 @@ function createContext(originWorkspaceId: string | null): {
 	>;
 	findFirst: ReturnType<typeof mock>;
 	terminalAgentStore: TerminalAgentStore;
-	grokLifecycle: GrokLifecycleInterpreter;
 } {
 	const broadcastAgentLifecycle = mock(
 		(_event: BroadcastedAgentLifecycleEvent) => {},
@@ -35,11 +30,9 @@ function createContext(originWorkspaceId: string | null): {
 				? null
 				: {
 						originWorkspaceId,
-						status: "active",
 					},
 	}));
 	const terminalAgentStore = new TerminalAgentStore();
-	const grokLifecycle = new GrokLifecycleInterpreter();
 
 	const ctx = {
 		db: {
@@ -52,23 +45,13 @@ function createContext(originWorkspaceId: string | null): {
 		eventBus: {
 			broadcastAgentLifecycle,
 		},
-		grokLifecycle,
 		terminalAgentStore,
 	} as unknown as HostServiceContext;
 
-	return {
-		ctx,
-		broadcastAgentLifecycle,
-		findFirst,
-		terminalAgentStore,
-		grokLifecycle,
-	};
+	return { ctx, broadcastAgentLifecycle, findFirst, terminalAgentStore };
 }
 
 describe("notificationsRouter.hook", () => {
-	afterEach(() => {
-		jest.useRealTimers();
-	});
 	it("derives workspaceId from terminalId before broadcasting", async () => {
 		const { ctx, broadcastAgentLifecycle, findFirst } =
 			createContext("workspace-1");
@@ -216,115 +199,5 @@ describe("notificationsRouter.hook", () => {
 
 		const broadcast = broadcastAgentLifecycle.mock.calls[0]?.[0];
 		expect(broadcast?.agent).toBeUndefined();
-	});
-
-	it("suppresses Grok permission notifications that resolve immediately", async () => {
-		jest.useFakeTimers();
-		const { ctx, broadcastAgentLifecycle, terminalAgentStore, grokLifecycle } =
-			createContext("workspace-1");
-		const caller = notificationsRouter.createCaller(ctx);
-		const agent = { agentId: "grok", sessionId: "grok-session" };
-
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "session_start",
-			agent,
-		});
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "user_prompt_submit",
-			agent,
-		});
-		broadcastAgentLifecycle.mockClear();
-
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "notification",
-			notificationType: "permission_prompt",
-			agent,
-		});
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "post_tool_use",
-			agent,
-		});
-		jest.advanceTimersByTime(GROK_PERMISSION_DEBOUNCE_MS);
-
-		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
-		expect(broadcastAgentLifecycle.mock.calls[0]?.[0].eventType).toBe("Start");
-		expect(terminalAgentStore.get("terminal-1")?.lastEventType).toBe("Start");
-		grokLifecycle.dispose();
-	});
-
-	it("publishes a delayed Grok permission request when the turn remains blocked", async () => {
-		jest.useFakeTimers();
-		const { ctx, broadcastAgentLifecycle, terminalAgentStore, grokLifecycle } =
-			createContext("workspace-1");
-		const caller = notificationsRouter.createCaller(ctx);
-		const agent = { agentId: "grok", sessionId: "grok-session" };
-
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "session_start",
-			agent,
-		});
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "user_prompt_submit",
-			agent,
-		});
-		broadcastAgentLifecycle.mockClear();
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "notification",
-			notificationType: "permission_prompt",
-			agent,
-		});
-
-		jest.advanceTimersByTime(GROK_PERMISSION_DEBOUNCE_MS - 1);
-		expect(broadcastAgentLifecycle).not.toHaveBeenCalled();
-		jest.advanceTimersByTime(1);
-
-		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
-		expect(broadcastAgentLifecycle.mock.calls[0]?.[0]).toMatchObject({
-			eventType: "PermissionRequest",
-			agent,
-		});
-		expect(terminalAgentStore.get("terminal-1")?.lastEventType).toBe(
-			"PermissionRequest",
-		);
-		grokLifecycle.dispose();
-	});
-
-	it("does not let a cleared Grok status reappear from a pending timer", async () => {
-		jest.useFakeTimers();
-		const { ctx, broadcastAgentLifecycle, terminalAgentStore, grokLifecycle } =
-			createContext("workspace-1");
-		const caller = notificationsRouter.createCaller(ctx);
-		const agent = { agentId: "grok", sessionId: "grok-session" };
-
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "session_start",
-			agent,
-		});
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "user_prompt_submit",
-			agent,
-		});
-		await caller.hook({
-			terminalId: "terminal-1",
-			eventType: "notification",
-			notificationType: "permission_prompt",
-			agent,
-		});
-		broadcastAgentLifecycle.mockClear();
-		terminalAgentStore.clearWorkspaceStatuses("workspace-1", "terminal-1");
-		jest.advanceTimersByTime(GROK_PERMISSION_DEBOUNCE_MS);
-
-		expect(broadcastAgentLifecycle).not.toHaveBeenCalled();
-		expect(terminalAgentStore.get("terminal-1")?.lastEventType).toBe("Stop");
-		grokLifecycle.dispose();
 	});
 });

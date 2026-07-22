@@ -50,6 +50,12 @@ describe("notifications/server", () => {
 
 		it("should map 'PostToolUseFailure' to 'Start'", () => {
 			expect(mapEventType("PostToolUseFailure")).toBe("Start");
+			expect(mapEventType("post_tool_use_failure")).toBe("Start");
+		});
+
+		it("should map Grok stop failures to 'Stop'", () => {
+			expect(mapEventType("StopFailure")).toBe("Stop");
+			expect(mapEventType("stop_failure")).toBe("Stop");
 		});
 
 		it("should map Gemini 'BeforeAgent' to 'Start'", () => {

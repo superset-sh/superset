@@ -18,6 +18,7 @@ describe("mapEventType", () => {
 		expect(mapEventType("UserPromptSubmit")).toBe("Start");
 		expect(mapEventType("BeforeAgent")).toBe("Start");
 		expect(mapEventType("PostToolUse")).toBe("Start");
+		expect(mapEventType("post_tool_use_failure")).toBe("Start");
 		expect(mapEventType("task_started")).toBe("Start");
 
 		expect(mapEventType("Stop")).toBe("Stop");

@@ -10,19 +10,16 @@ import {
 
 export const GROK_HOOKS_FILE_NAME = "superset.json";
 
-// These event names are transported unchanged. Their Superset lifecycle
-// meaning—especially Notification and PermissionDenied—belongs to the
-// agent-aware event mapping, not the instrumentation adapter.
+// Only passive lifecycle events are installed. The built-in Grok preset uses
+// --always-approve, so permission hooks are neither needed nor actionable.
 export const GROK_MANAGED_HOOK_EVENTS = [
 	"SessionStart",
 	"SessionEnd",
 	"UserPromptSubmit",
 	"PostToolUse",
 	"PostToolUseFailure",
-	"PermissionDenied",
 	"Stop",
 	"StopFailure",
-	"Notification",
 ] as const;
 
 const GROK_HOOK_TIMEOUT_SECONDS = 10;

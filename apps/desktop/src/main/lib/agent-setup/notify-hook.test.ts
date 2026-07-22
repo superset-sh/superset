@@ -14,7 +14,7 @@ import { NOTIFY_SCRIPT_MARKER } from "./notify-hook";
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v5");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v4");
 	});
 
 	it("emits the v2 host-service payload with full agent identity", () => {
@@ -29,14 +29,11 @@ describe("getNotifyScriptContent", () => {
 		expect(script).toContain('HOOK_SESSION_ID="$GROK_SESSION_ID"');
 		expect(script).toContain('EVENT_TYPE="$GROK_HOOK_EVENT"');
 		expect(script).toContain(
-			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"notificationType\\":\\"$(json_escape "$NOTIFICATION_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
+			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
 		);
 		expect(script).toContain(
-			"event=$EVENT_TYPE notificationType=$NOTIFICATION_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
+			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
 		);
-		expect(script).toContain("rawEventType=$EVENT_TYPE");
-		expect(script).toContain("agentId=$SUPERSET_AGENT_ID");
-		expect(script).toContain("notificationType=$NOTIFICATION_TYPE");
 		expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
 		expect(script).toContain('V1_EVENT_TYPE="Stop"');
 	});
@@ -70,7 +67,7 @@ describe("getNotifyScriptContent", () => {
 		expect(script).toContain("SUPERSET_PANE_ID");
 	});
 
-	it("delivers Grok camelCase hook fields with Grok identity", () => {
+	it("delivers Grok camelCase lifecycle fields with Grok identity", () => {
 		const root = mkdtempSync(path.join(os.tmpdir(), "superset-grok-notify-"));
 		try {
 			const fakeBinDir = path.join(root, "bin");
@@ -98,8 +95,7 @@ describe("getNotifyScriptContent", () => {
 
 			execFileSync("/bin/bash", [scriptPath], {
 				input: JSON.stringify({
-					hookEventName: "notification",
-					notificationType: "permission_prompt",
+					hookEventName: "stop",
 					sessionId: "grok-session-123",
 					cwd: "/tmp/project",
 				}),
@@ -116,7 +112,7 @@ describe("getNotifyScriptContent", () => {
 			const curlArguments = readFileSync(curlCapturePath, "utf-8");
 			expect(curlArguments).toContain("http://127.0.0.1:9999/hook");
 			expect(curlArguments).toContain(
-				'{"json":{"terminalId":"terminal-123","eventType":"notification","notificationType":"permission_prompt","agent":{"agentId":"grok","sessionId":"grok-session-123"}}}',
+				'{"json":{"terminalId":"terminal-123","eventType":"stop","agent":{"agentId":"grok","sessionId":"grok-session-123"}}}',
 			);
 		} finally {
 			rmSync(root, { recursive: true, force: true });
