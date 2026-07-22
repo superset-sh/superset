@@ -1,5 +1,6 @@
 const LINEAR_IMAGE_HOST = "uploads.linear.app";
 const LINEAR_IMAGE_FETCH_TIMEOUT_MS = 15_000;
+const CLIENT_CLOSED_REQUEST_STATUS = 499;
 const NO_STORE_HEADERS = {
 	"Cache-Control": "no-store",
 	Pragma: "no-cache",
@@ -62,6 +63,36 @@ function getAllowedImageContentType(response: Response): string | null {
 		: null;
 }
 
+function getErrorName(error: unknown): string {
+	return error instanceof Error ? error.name : typeof error;
+}
+
+function getLinearImageFetchSignal(requestSignal: AbortSignal): AbortSignal {
+	return AbortSignal.any([
+		requestSignal,
+		AbortSignal.timeout(LINEAR_IMAGE_FETCH_TIMEOUT_MS),
+	]);
+}
+
+function isClientClosedRequest(
+	requestSignal: AbortSignal,
+	error: unknown,
+): boolean {
+	return requestSignal.aborted && getErrorName(error) === "AbortError";
+}
+
+async function cancelResponseBody(response: Response): Promise<void> {
+	if (!response.body) {
+		return;
+	}
+
+	try {
+		await response.body.cancel();
+	} catch {
+		// Best effort only: the proxy is already returning a local error response.
+	}
+}
+
 export async function handleLinearImageProxy(
 	request: Request,
 	dependencies: LinearImageProxyDependencies,
@@ -70,7 +101,7 @@ export async function handleLinearImageProxy(
 		return await handleLinearImageProxyRequest(request, dependencies);
 	} catch (error) {
 		console.error("[proxy/linear-image] Linear proxy failed:", {
-			errorName: error instanceof Error ? error.name : typeof error,
+			errorName: getErrorName(error),
 		});
 		return noStoreResponse("Failed to proxy Linear image", { status: 500 });
 	}
@@ -132,10 +163,11 @@ async function handleLinearImageProxyRequest(
 				Authorization: `Bearer ${connection.accessToken}`,
 			},
 			redirect: "error",
-			signal: AbortSignal.timeout(LINEAR_IMAGE_FETCH_TIMEOUT_MS),
+			signal: getLinearImageFetchSignal(request.signal),
 		});
 
 		if (!linearResponse.ok) {
+			await cancelResponseBody(linearResponse);
 			console.error("[proxy/linear-image] Linear fetch failed:", {
 				host: parsedUrl.host,
 				hasQuery: parsedUrl.search.length > 0,
@@ -150,6 +182,7 @@ async function handleLinearImageProxyRequest(
 
 		const contentType = getAllowedImageContentType(linearResponse);
 		if (!contentType) {
+			await cancelResponseBody(linearResponse);
 			return noStoreResponse("Unsupported Linear image content type", {
 				status: 415,
 			});
@@ -162,8 +195,15 @@ async function handleLinearImageProxyRequest(
 			},
 		});
 	} catch (error) {
+		if (isClientClosedRequest(request.signal, error)) {
+			return noStoreResponse("Client closed request", {
+				status: CLIENT_CLOSED_REQUEST_STATUS,
+				statusText: "Client Closed Request",
+			});
+		}
+
 		console.error("[proxy/linear-image] Linear fetch threw:", {
-			errorName: error instanceof Error ? error.name : typeof error,
+			errorName: getErrorName(error),
 			host: parsedUrl.host,
 			hasQuery: parsedUrl.search.length > 0,
 			pathLength: parsedUrl.pathname.length,

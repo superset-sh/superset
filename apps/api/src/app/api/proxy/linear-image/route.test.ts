@@ -17,10 +17,10 @@ const fetchLinearImage = mock(
 const originalConsoleError = console.error;
 const consoleError = mock(() => undefined);
 
-function linearImageRequest(linearUrl: string): Request {
+function linearImageRequest(linearUrl: string, init?: RequestInit): Request {
 	const url = new URL("http://localhost/api/proxy/linear-image");
 	url.searchParams.set("url", linearUrl);
-	return new Request(url);
+	return new Request(url, init);
 }
 
 function proxy(request: Request) {
@@ -29,6 +29,23 @@ function proxy(request: Request) {
 		findLinearConnection,
 		getSession,
 	});
+}
+
+function streamWithCancel(): {
+	body: ReadableStream<Uint8Array>;
+	cancel: ReturnType<typeof mock>;
+} {
+	const cancel = mock(() => undefined);
+
+	return {
+		body: new ReadableStream<Uint8Array>({
+			start(controller) {
+				controller.enqueue(new TextEncoder().encode("denied"));
+			},
+			cancel,
+		}),
+		cancel,
+	};
 }
 
 function expectNoStoreHeaders(response: Response) {
@@ -85,6 +102,31 @@ describe("linear image proxy", () => {
 		expect(fetchOptions?.signal instanceof AbortSignal).toBe(true);
 	});
 
+	test("propagates client aborts to the upstream Linear image fetch", async () => {
+		const controller = new AbortController();
+		controller.abort();
+		fetchLinearImage.mockImplementationOnce(async () => {
+			throw new DOMException("The operation was aborted.", "AbortError");
+		});
+
+		const response = await proxy(
+			linearImageRequest("https://uploads.linear.app/private-image.jpg", {
+				signal: controller.signal,
+			}),
+		);
+
+		expect(response.status).toBe(499);
+		expect(response.statusText).toBe("Client Closed Request");
+		expectNoStoreHeaders(response);
+		expect(await response.text()).toBe("Client closed request");
+		const fetchOptions = fetchLinearImage.mock.calls[0]?.[1] as
+			| RequestInit
+			| undefined;
+		expect(fetchOptions?.signal instanceof AbortSignal).toBe(true);
+		expect(fetchOptions?.signal?.aborted).toBe(true);
+		expect(consoleError).not.toHaveBeenCalled();
+	});
+
 	test("rejects non-Linear image hosts before fetching", async () => {
 		const response = await proxy(
 			linearImageRequest("https://example.com/private-image.jpg"),
@@ -130,8 +172,9 @@ describe("linear image proxy", () => {
 	});
 
 	test("keeps upstream failures out of caches without logging raw URLs", async () => {
+		const upstreamBody = streamWithCancel();
 		fetchLinearImage.mockResolvedValueOnce(
-			new Response("denied", {
+			new Response(upstreamBody.body, {
 				status: 403,
 				statusText: "Forbidden",
 			}),
@@ -153,11 +196,13 @@ describe("linear image proxy", () => {
 			status: 403,
 			statusText: "Forbidden",
 		});
+		expect(upstreamBody.cancel).toHaveBeenCalled();
 	});
 
 	test("rejects active image content types from Linear", async () => {
+		const upstreamBody = streamWithCancel();
 		fetchLinearImage.mockResolvedValueOnce(
-			new Response("<svg><script>alert(1)</script></svg>", {
+			new Response(upstreamBody.body, {
 				headers: { "content-type": "image/svg+xml" },
 			}),
 		);
@@ -169,6 +214,7 @@ describe("linear image proxy", () => {
 		expect(response.status).toBe(415);
 		expectNoStoreHeaders(response);
 		expect(await response.text()).toBe("Unsupported Linear image content type");
+		expect(upstreamBody.cancel).toHaveBeenCalled();
 	});
 
 	test("returns a no-store bad gateway when hardened fetch throws", async () => {
