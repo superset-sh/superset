@@ -31,6 +31,11 @@ mock.module("@superset/db/schema", () => ({
 		organizationId: "organizationId",
 		provider: "provider",
 	},
+	usersSlackUsers: {
+		id: "id",
+		slackUserId: "slackUserId",
+		teamId: "teamId",
+	},
 }));
 
 mock.module("drizzle-orm", () => ({
