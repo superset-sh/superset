@@ -284,7 +284,7 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `workspaces_list` | List workspaces, optionally filtered by host |
+| `workspaces_list` | List workspaces on a host (get the hostId from `hosts_list`) |
 | `workspaces_create` | Create a workspace on a host (branch-scoped git worktree) |
 | `workspaces_delete` | Delete a workspace by UUID; idempotent |
 
@@ -321,7 +321,7 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `projects_list` | List projects (checked-out repos) in the active organization |
+| `projects_list` | List projects (checked-out repos) on a host (get the hostId from `hosts_list`) |
 
 ### Hosts
 

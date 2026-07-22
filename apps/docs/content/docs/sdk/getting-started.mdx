@@ -86,9 +86,9 @@ const urgent = await client.tasks.list({
   creatorMe: true,
 });
 
-// Inspect what else you have
-const projects = await client.projects.list();
+// Inspect what else you have — projects and workspaces are host-owned
 const hosts = await client.hosts.list();
+const projects = await client.projects.list({ hostId: hosts[0].id });
 const automations = await client.automations.list();
 
 // Trigger an automation off-schedule
