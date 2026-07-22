@@ -127,9 +127,9 @@ const workspaces = await client.workspaces.list({ hostId: '<machineId>' });
 
 Returns `Array<Workspace>`. Rows include the host-served `projectName`.
 
-### `workspaces.create({ hostId, projectId, name, branch, agents?, command? })`
+### `workspaces.create({ hostId, projectId, name, branch?, pr?, baseBranch?, taskId?, agents?, command? })`
 
-Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
+Create a worktree on a specific host. Provide exactly one of `branch` or `pr` (a pull request number — the host checks out the verified PR head and derives the branch). `baseBranch` picks the fork point when `branch` doesn't exist yet, and `taskId` links the new workspace to a task. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
 
 Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
 
@@ -157,6 +157,7 @@ Returns a `WorkspaceCreateResult`:
 - `workspace`: the created workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
 - `terminals`: terminals opened on the host (`{ terminalId, label? }`).
 - `agents`: one entry per agent in the request (empty if `agents` was omitted). Each entry is either `{ ok: true, kind: 'terminal' | 'chat', sessionId, label }` or `{ ok: false, error }`.
+- `alreadyExists`: true when a workspace for that branch already existed and was reused instead of created.
 
 ### `workspaces.update(id, params, { hostId })`
 
@@ -315,11 +316,13 @@ await client.automations.update({ id, rrule: 'FREQ=WEEKLY;BYDAY=MO' });
 
 ### `automations.run(id)`
 
-Dispatch immediately, off-schedule. Goes through the relay to the pinned host.
+Dispatch immediately, off-schedule. Goes through the relay to the automation's
+target host. Returns identifiers for the dispatched run, not the full run row —
+use [`automations.logs(id)`](#automationslogsid-params) for status.
 
 ```ts
 const run = await client.automations.run(id);
-console.log(run.status, run.hostId);
+console.log(run.automationId, run.runId);
 ```
 
 ### `automations.pause(id)` / `automations.resume(id)`
@@ -337,3 +340,15 @@ const runs = await client.automations.logs(id, { limit: 20 });
 ### `automations.getPrompt(id)` / `automations.setPrompt(id, prompt)`
 
 Read or replace the automation's prompt without going through the full update.
+
+---
+
+## organization
+
+### `organization.members.list()`
+
+List members of the active organization.
+
+```ts
+const members = await client.organization.members.list();
+```
