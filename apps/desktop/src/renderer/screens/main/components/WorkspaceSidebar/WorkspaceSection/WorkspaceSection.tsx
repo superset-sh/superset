@@ -14,10 +14,11 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import { HiChevronRight } from "react-icons/hi2";
-import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
+import { LuPalette, LuPencil, LuPlus, LuTrash2 } from "react-icons/lu";
 import { ColorSelector } from "renderer/components/ColorSelector";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useReorderProjectChildren } from "renderer/react-query/workspaces";
+import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import { SECTION_DND_TYPE, STROKE_WIDTH } from "../constants";
 import { useSectionDropZone } from "../hooks";
@@ -58,6 +59,13 @@ export function WorkspaceSection({
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(name);
 	const mutations = useSectionMutations(sectionId);
+
+	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
+
+	const handleNewWorkspaceInSection = useCallback(() => {
+		if (isCollapsed) mutations.toggle();
+		openNewWorkspaceModal(projectId, sectionId);
+	}, [isCollapsed, mutations, openNewWorkspaceModal, projectId, sectionId]);
 
 	const hasColor = color && color !== PROJECT_COLOR_DEFAULT;
 	const sectionBorderStyle = {
@@ -256,6 +264,11 @@ export function WorkspaceSection({
 					</div>
 				</ContextMenuTrigger>
 				<ContextMenuContent>
+					<ContextMenuItem onSelect={handleNewWorkspaceInSection}>
+						<LuPlus className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
+						New Workspace
+					</ContextMenuItem>
+					<ContextMenuSeparator />
 					<ContextMenuItem onSelect={handleStartRename}>
 						<LuPencil className="size-4 mr-2" strokeWidth={STROKE_WIDTH} />
 						Rename Section

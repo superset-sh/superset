@@ -6,6 +6,7 @@ import { PromptGroup } from "../PromptGroup";
 interface NewWorkspaceModalContentProps {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	preSelectedSectionId: string | null;
 	onImportRepo: () => Promise<void>;
 	onNewProject: () => void;
 }
@@ -14,6 +15,7 @@ interface NewWorkspaceModalContentProps {
 export function NewWorkspaceModalContent({
 	isOpen,
 	preSelectedProjectId,
+	preSelectedSectionId,
 	onImportRepo,
 	onNewProject,
 }: NewWorkspaceModalContentProps) {
@@ -52,7 +54,12 @@ export function NewWorkspaceModalContent({
 			if (hasPreSelectedProject) {
 				appliedPreSelectionRef.current = preSelectedProjectId;
 				if (preSelectedProjectId !== draft.selectedProjectId) {
-					updateDraft({ selectedProjectId: preSelectedProjectId });
+					updateDraft({
+						selectedProjectId: preSelectedProjectId,
+						sectionId: preSelectedSectionId,
+					});
+				} else if (draft.sectionId !== preSelectedSectionId) {
+					updateDraft({ sectionId: preSelectedSectionId });
 				}
 				return;
 			}
@@ -64,13 +71,18 @@ export function NewWorkspaceModalContent({
 			(project) => project.id === draft.selectedProjectId,
 		);
 		if (!hasSelectedProject) {
-			updateDraft({ selectedProjectId: recentProjects[0]?.id ?? null });
+			updateDraft({
+				selectedProjectId: recentProjects[0]?.id ?? null,
+				sectionId: null,
+			});
 		}
 	}, [
 		draft.selectedProjectId,
+		draft.sectionId,
 		areRecentProjectsFetched,
 		isOpen,
 		preSelectedProjectId,
+		preSelectedSectionId,
 		recentProjects,
 		updateDraft,
 	]);
@@ -86,7 +98,7 @@ export function NewWorkspaceModalContent({
 				selectedProject={selectedProject}
 				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
 				onSelectProject={(selectedProjectId) =>
-					updateDraft({ selectedProjectId })
+					updateDraft({ selectedProjectId, sectionId: null })
 				}
 				onImportRepo={onImportRepo}
 				onNewProject={onNewProject}

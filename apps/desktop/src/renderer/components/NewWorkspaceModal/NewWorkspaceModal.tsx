@@ -18,6 +18,7 @@ import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
 	usePreSelectedProjectId,
+	usePreSelectedSectionId,
 } from "renderer/stores/new-workspace-modal";
 import { NewWorkspaceModalContent } from "./components/NewWorkspaceModalContent";
 import {
@@ -48,6 +49,7 @@ export function NewWorkspaceModal() {
 	const { openNew } = useOpenProject();
 	const openNewProject = useOpenNewProjectModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
+	const preSelectedSectionId = usePreSelectedSectionId();
 
 	// Prevents AgentSelect from flashing "No agent" while presets load after refresh.
 	electronTrpc.settings.getAgentPresets.useQuery();
@@ -90,6 +92,7 @@ export function NewWorkspaceModal() {
 						<NewWorkspaceModalContent
 							isOpen={isOpen}
 							preSelectedProjectId={preSelectedProjectId}
+							preSelectedSectionId={preSelectedSectionId}
 							onImportRepo={handleImportRepo}
 							onNewProject={handleNewProject}
 						/>
