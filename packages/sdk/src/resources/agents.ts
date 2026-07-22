@@ -55,6 +55,8 @@ export class Agents extends APIResource {
 			agent: params.agent,
 			prompt: params.prompt,
 			attachmentIds: params.attachmentIds,
+			model: params.model,
+			effort: params.effort,
 		});
 	}
 
@@ -74,6 +76,8 @@ export type PromptTransport = "argv" | "stdin";
 export interface HostAgentConfig {
 	id: string;
 	presetId: string;
+	/** Built-in icon key to render, or null to fall back to `presetId`. Absent on older host-service versions. */
+	iconId?: string | null;
 	label: string;
 	command: string;
 	args: string[];
@@ -99,6 +103,10 @@ export interface AgentCreateParams {
 	prompt: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
+	/** Optional model id to pass to the selected agent, when the preset supports model selection. */
+	model?: string;
+	/** Optional reasoning-effort id to pass to the selected agent, when the preset supports effort selection. */
+	effort?: string;
 }
 
 export type AgentCreateResult =
