@@ -5,13 +5,12 @@ import { useScroll } from "framer-motion";
 import { useFeatureFlagVariantKey } from "posthog-js/react";
 import { useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
+import { HERO_POSITIONING_FLAG } from "@/lib/analytics/hero-flag-bootstrap";
 import { isMacPlatform, usePlatform } from "../../hooks/useOS";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
-
-const HERO_POSITIONING_FLAG = "landing-hero-positioning";
 
 const PIXEL_FONT_STYLE = {
 	fontFamily: "var(--font-geist-pixel-grid)",

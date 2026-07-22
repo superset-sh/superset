@@ -3,9 +3,11 @@ import { POSTHOG_COOKIE_NAME } from "@superset/shared/constants";
 import posthog from "posthog-js";
 
 import { env } from "@/env";
+import { getHeroFlagBootstrap } from "@/lib/analytics/hero-flag-bootstrap";
 import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
 
 posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+	bootstrap: getHeroFlagBootstrap(),
 	api_host: "/ingest",
 	ui_host: "https://us.posthog.com",
 	defaults: "2025-11-30",
