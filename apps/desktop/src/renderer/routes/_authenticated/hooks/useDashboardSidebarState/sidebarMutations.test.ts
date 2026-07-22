@@ -49,6 +49,11 @@ function localStateRow(
 	workspaceId: string,
 	projectId: string,
 	overrides: Partial<LocalStateRow["sidebarState"]> = {},
+	paneLayout: LocalStateRow["paneLayout"] = {
+		version: 1,
+		tabs: [],
+		activeTabId: null,
+	},
 ): LocalStateRow {
 	return {
 		workspaceId,
@@ -60,7 +65,26 @@ function localStateRow(
 			isHidden: false,
 			...overrides,
 		},
-		paneLayout: { version: 1, tabs: [], activeTabId: null },
+		paneLayout,
+	};
+}
+
+/**
+ * A layout with a live Claude terminal pane, as a workspace with an open
+ * session would have persisted.
+ */
+function claudeSessionPaneLayout(): LocalStateRow["paneLayout"] {
+	return {
+		version: 1,
+		tabs: [
+			{
+				id: "tab-1",
+				panes: [
+					{ id: "pane-1", kind: "terminal", data: { terminalId: "t-1" } },
+				],
+			},
+		],
+		activeTabId: "tab-1",
 	};
 }
 
@@ -256,6 +280,33 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 			collections.v2WorkspaceLocalState.get("ws-new")?.sidebarState.isHidden,
 		).toBe(true);
 		expect(cleaned).toEqual([]);
+	});
+
+	// Reproduces #5881: "Remove from Sidebar" is documented as a reversible
+	// unpin ("the workspace itself is not deleted and can be re-pinned"), and the
+	// pane-runtime cleanup it runs only *releases* runtimes (host sessions stay
+	// alive; state is persisted for reattach). But the tombstone also wiped the
+	// persisted paneLayout, so reopening the workspace from Search restored it
+	// with no panes — the live Claude session was orphaned rather than shown.
+	// The layout must be preserved so reopening reattaches the session.
+	it("preserves the persisted pane layout so a re-pinned workspace reattaches its session", () => {
+		const collections = makeCollections();
+		const layout = claudeSessionPaneLayout();
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-session", "proj-1", {}, layout),
+		);
+
+		tombstoneSidebarWorkspaceRecord(
+			asTombstoneArg(collections),
+			"ws-session",
+			"proj-1",
+			noopCleanup,
+		);
+
+		const row = collections.v2WorkspaceLocalState.get("ws-session");
+		expect(row?.sidebarState.isHidden).toBe(true);
+		// The saved panes (and thus the live Claude session) survive the unpin.
+		expect(row?.paneLayout).toEqual(layout);
 	});
 
 	it("hides an existing row, clears its section, and runs pane cleanup", () => {
