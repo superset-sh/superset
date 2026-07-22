@@ -32,7 +32,7 @@ mock.module("shared/env.shared", () => ({
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v3",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v4",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -1774,6 +1774,94 @@ describe("kimi config.toml", () => {
 		expect(out).toContain('command = "show-my-notification"');
 		expect(out.split(KIMI_HOOKS_MARKER_START).length - 1).toBe(1);
 		expect(out.split(KIMI_HOOKS_MARKER_END).length - 1).toBe(1);
+	});
+});
+
+import {
+	GROK_COMPAT_MARKER_END,
+	GROK_COMPAT_MARKER_START,
+	getGrokConfigTomlContent,
+	getGrokHooksJsonContent,
+	getGrokWrapperScript,
+} from "./agent-wrappers-grok";
+
+describe("grok wrapper", () => {
+	it("stamps the agent id and forwards arguments to the real binary", () => {
+		const script = getGrokWrapperScript();
+		expect(script).toContain('export SUPERSET_AGENT_ID="grok"');
+		expect(script).toContain('exec "$REAL_BIN" "$@"');
+	});
+});
+
+describe("grok hooks json", () => {
+	it("registers passive lifecycle hooks and skips blocking PreToolUse", () => {
+		const parsed = JSON.parse(getGrokHooksJsonContent());
+		const events = Object.keys(parsed.hooks);
+		expect(events).toEqual([
+			"SessionStart",
+			"SessionEnd",
+			"UserPromptSubmit",
+			"PostToolUse",
+			"PostToolUseFailure",
+			"Stop",
+			"StopFailure",
+		]);
+		expect(events).not.toContain("PreToolUse");
+		for (const definitions of Object.values(parsed.hooks)) {
+			const [definition] = definitions as Array<{
+				hooks: Array<{ type: string; command: string }>;
+			}>;
+			expect(definition.hooks[0].type).toBe("command");
+			expect(definition.hooks[0].command).toContain("SUPERSET_AGENT_ID=grok");
+		}
+	});
+});
+
+describe("grok config.toml", () => {
+	it("disables Claude/Cursor hook compat inside the managed block", () => {
+		const out = getGrokConfigTomlContent("");
+		expect(out).toContain(GROK_COMPAT_MARKER_START);
+		expect(out).toContain(GROK_COMPAT_MARKER_END);
+		expect(out).toContain("[compat.claude]");
+		expect(out).toContain("[compat.cursor]");
+		expect(out).toContain("hooks = false");
+	});
+
+	it("preserves user config and replaces the managed block idempotently", () => {
+		const user = ['[models]\ndefault = "grok-4"', ""].join("\n");
+		const once = getGrokConfigTomlContent(user);
+		const twice = getGrokConfigTomlContent(once);
+
+		expect(twice).toContain('default = "grok-4"');
+		expect(twice.split(GROK_COMPAT_MARKER_START).length - 1).toBe(1);
+		expect(twice.split(GROK_COMPAT_MARKER_END).length - 1).toBe(1);
+	});
+
+	it("skips a compat table the user already defines", () => {
+		const user = "[compat.claude]\nhooks = true\n";
+		const out = getGrokConfigTomlContent(user);
+
+		expect(out).toContain("hooks = true");
+		expect(out.split("[compat.claude]").length - 1).toBe(1);
+		expect(out).toContain("[compat.cursor]");
+	});
+
+	it("preserves user tables after an orphaned managed block", () => {
+		const partial = [
+			GROK_COMPAT_MARKER_START,
+			"[compat.claude]",
+			"hooks = false",
+			"",
+			"# user table",
+			"[models]",
+			'default = "grok-4"',
+		].join("\n");
+		const out = getGrokConfigTomlContent(partial);
+
+		expect(out).toContain("# user table");
+		expect(out).toContain('default = "grok-4"');
+		expect(out.split(GROK_COMPAT_MARKER_START).length - 1).toBe(1);
+		expect(out.split(GROK_COMPAT_MARKER_END).length - 1).toBe(1);
 	});
 });
 

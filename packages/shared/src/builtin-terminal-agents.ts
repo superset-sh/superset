@@ -154,6 +154,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "grok",
+		label: "Grok",
+		description:
+			"xAI's coding agent for reading, editing, and running code from the terminal.",
+		command: "grok --always-approve",
+		nonInteractiveCommand: "grok --permission-mode plan -p",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "cursor-agent",
 		label: "Cursor Agent",
 		description:
