@@ -168,6 +168,17 @@ export function checkForUpdates(): void {
 	if (env.NODE_ENV === "development" || !IS_AUTO_UPDATE_PLATFORM) {
 		return;
 	}
+	// Don't disturb an in-flight download or an update that's already been
+	// downloaded and is waiting to install. Resetting to CHECKING here would
+	// strand the ready-to-install state (electron-updater won't re-download a
+	// cached update, so no new lifecycle event would move it back to READY).
+	if (
+		isInstalling ||
+		currentStatus === AUTO_UPDATE_STATUS.DOWNLOADING ||
+		currentStatus === AUTO_UPDATE_STATUS.READY
+	) {
+		return;
+	}
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
 	autoUpdater.checkForUpdates().catch((error) => {
@@ -196,6 +207,37 @@ export function checkForUpdatesInteractive(): void {
 			title: "Updates",
 			message: "Auto-updates are only available on macOS and Linux.",
 		});
+		return;
+	}
+
+	// An update may already have been downloaded by a periodic background check
+	// and be waiting to install. Re-running checkForUpdates() would reset the
+	// status to CHECKING and, because electron-updater won't re-download an
+	// already-cached update, strand the ready-to-install state — leaving the
+	// user unable to update despite explicitly checking (issue #5904). Surface
+	// the pending update instead of throwing it away.
+	if (isUpdateReadyToInstall()) {
+		emitStatus(AUTO_UPDATE_STATUS.READY, currentVersion);
+		dialog.showMessageBox({
+			type: "info",
+			title: "Update Ready",
+			message: "An update is ready to install.",
+			detail: currentVersion
+				? `Version ${currentVersion} will be installed when you restart Superset.`
+				: "Restart Superset to install the update.",
+		});
+		return;
+	}
+
+	// A download is already in progress — re-surface its state rather than
+	// bouncing back to CHECKING.
+	if (currentStatus === AUTO_UPDATE_STATUS.DOWNLOADING) {
+		emitStatus(
+			AUTO_UPDATE_STATUS.DOWNLOADING,
+			currentVersion,
+			undefined,
+			currentProgress,
+		);
 		return;
 	}
 
