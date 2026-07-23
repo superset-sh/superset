@@ -93,7 +93,12 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; the
 fi
 
 # v1 fallback: Electron localhost hook server. Kept while v1 terminals exist.
-[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
+# Only dispatch when a genuine Superset terminal marker is present. SESSION_ID
+# is parsed from the agent's own payload and is therefore ALWAYS set (inside or
+# outside Superset), so it must not gate this fallback — otherwise agents run
+# from a standalone terminal (e.g. Ghostty) would still fire notifications into
+# a running Superset app. See #5531.
+[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \

@@ -45,7 +45,13 @@ describe("getNotifyScriptContent", () => {
 		expect(script).toContain(
 			'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',
 		);
+		// The v1 fallback must be gated only on real Superset terminal markers.
+		// SESSION_ID comes from the agent payload and is always set, so it must
+		// not appear in this guard (regression test for #5531).
 		expect(script).toContain(
+			'[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0',
+		);
+		expect(script).not.toContain(
 			'[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0',
 		);
 		expect(script).toContain("/hook/complete");
