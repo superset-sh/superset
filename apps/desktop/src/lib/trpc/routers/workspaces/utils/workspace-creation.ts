@@ -1,18 +1,26 @@
+import { basename } from "node:path";
 import type { SelectWorktree } from "@superset/local-db";
 import { projects, workspaces, worktrees } from "@superset/local-db";
 import { and, eq, isNull } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
+import { getDefaultProjectColor } from "../../projects/utils/colors";
 import { resolveWorkspaceBaseBranch } from "./base-branch";
 import { setBranchBaseConfig } from "./base-branch-config";
 import {
 	activateProject,
+	getBranchWorkspace,
 	getMaxProjectChildTabOrder,
 	setLastActiveWorkspace,
 	touchWorkspace,
 	updateActiveWorkspaceIfRemoved,
 } from "./db-helpers";
-import { getWorktreeCreatedAt, listExternalWorktrees } from "./git";
+import {
+	getDefaultBranch,
+	getWorktreeCreatedAt,
+	listExternalWorktrees,
+} from "./git";
+import { resolveLinkedWorktreeGit } from "./resolve-linked-worktree-git";
 import { resolveWorktreePath } from "./resolve-worktree-path";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
@@ -576,4 +584,155 @@ export async function openExternalWorktree({
 		projectId: project.id,
 		wasExisting: false,
 	};
+}
+
+export interface OpenLinkedWorktreeResult {
+	workspaceId: string;
+	projectId: string;
+}
+
+/**
+ * Open a linked worktree whose parent project may not be loaded into superset.
+ *
+ * Registers the parent project in a loaded-but-hidden state: a brand-new project
+ * keeps tabOrder = NULL (excluded from the top-level sidebar list) so the worktree
+ * is reachable only through its symlink rows. Writes nothing into the target dir.
+ * Idempotent: an already-imported worktree returns its existing workspace.
+ */
+export async function openLinkedWorktree(
+	targetPath: string,
+): Promise<OpenLinkedWorktreeResult> {
+	const resolved = await resolveLinkedWorktreeGit(targetPath);
+	if (!resolved) {
+		throw new Error(`Not an importable git worktree: ${targetPath}`);
+	}
+	const { mainRepoPath, toplevel, branch } = resolved;
+
+	const defaultBranch = await getDefaultBranch(mainRepoPath);
+
+	// Wrap every write in a single synchronous transaction so a failure partway
+	// through (e.g. the workspace insert throwing) can't leave an orphaned
+	// project or worktree row behind. better-sqlite3 is synchronous and
+	// single-writer, so this block also runs atomically relative to any other
+	// openLinkedWorktree call — there are no await points between the reads and
+	// writes for a second call to interleave into.
+	return localDb.transaction(() => {
+		// Upsert the project WITHOUT activateProject: a new project stays hidden
+		// (tabOrder = NULL); an already-loaded project keeps its current tabOrder.
+		let project = localDb
+			.select()
+			.from(projects)
+			.where(eq(projects.mainRepoPath, mainRepoPath))
+			.get();
+
+		if (project) {
+			localDb
+				.update(projects)
+				.set({ lastOpenedAt: Date.now(), defaultBranch })
+				.where(eq(projects.id, project.id))
+				.run();
+		} else {
+			project = localDb
+				.insert(projects)
+				.values({
+					mainRepoPath,
+					name: basename(mainRepoPath),
+					color: getDefaultProjectColor(),
+					defaultBranch,
+					// tabOrder intentionally omitted => NULL => hidden from sidebar.
+				})
+				.returning()
+				.get();
+		}
+
+		// Case A: the target IS the project's main checkout — use a branch workspace.
+		if (toplevel === mainRepoPath) {
+			const existingBranch = getBranchWorkspace(project.id);
+			if (existingBranch) {
+				return { workspaceId: existingBranch.id, projectId: project.id };
+			}
+			const branchWorkspace = localDb
+				.insert(workspaces)
+				.values({
+					projectId: project.id,
+					type: "branch",
+					branch,
+					name: "default",
+					tabOrder: 0,
+				})
+				.onConflictDoNothing()
+				.returning()
+				.get();
+			const workspaceId =
+				branchWorkspace?.id ??
+				// onConflictDoNothing hit the unique (projectId WHERE type='branch') index.
+				getBranchWorkspace(project.id)?.id;
+			if (!workspaceId) {
+				// Unreachable in practice unless a branch workspace is mid-soft-delete:
+				// the partial unique index ignores deletingAt, so the insert conflicts
+				// while getBranchWorkspace (which filters it out) finds nothing. Same
+				// pre-existing edge as projects.ts ensureMainWorkspace.
+				throw new Error(
+					"Failed to create branch workspace for linked main checkout",
+				);
+			}
+			return { workspaceId, projectId: project.id };
+		}
+
+		// Case B: the target is a git worktree of the project.
+		const existingWorktree = localDb
+			.select()
+			.from(worktrees)
+			.where(
+				and(eq(worktrees.projectId, project.id), eq(worktrees.path, toplevel)),
+			)
+			.get();
+
+		if (existingWorktree) {
+			const existingWorkspace = localDb
+				.select()
+				.from(workspaces)
+				.where(
+					and(
+						eq(workspaces.worktreeId, existingWorktree.id),
+						isNull(workspaces.deletingAt),
+					),
+				)
+				.get();
+			if (existingWorkspace) {
+				return { workspaceId: existingWorkspace.id, projectId: project.id };
+			}
+		}
+
+		const worktreeRow =
+			existingWorktree ??
+			localDb
+				.insert(worktrees)
+				.values({
+					projectId: project.id,
+					path: toplevel,
+					branch,
+					baseBranch: defaultBranch,
+					createdAt: getWorktreeCreatedAt(toplevel),
+					gitStatus: {
+						branch,
+						needsRebase: false,
+						ahead: 0,
+						behind: 0,
+						lastRefreshed: Date.now(),
+					},
+					createdBySuperset: false,
+				})
+				.returning()
+				.get();
+
+		const workspace = createWorkspaceFromWorktree({
+			projectId: project.id,
+			worktreeId: worktreeRow.id,
+			branch,
+			name: branch,
+		});
+
+		return { workspaceId: workspace.id, projectId: project.id };
+	});
 }
