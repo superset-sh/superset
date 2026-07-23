@@ -69,6 +69,20 @@ function getAgentPromptCommandDefaults(
 	return promptCommand;
 }
 
+/**
+ * The interactive-resume suffix for a preset, if any. Some CLIs (kimi,
+ * mastracode) have no way to seed a prompt into their TUI, so a prompt launch
+ * runs the prompt headlessly and then re-enters the TUI via this suffix (e.g.
+ * `; kimi --auto --continue`). Keyed by preset id so the host launch path can
+ * append it after the prompt command, mirroring the per-preset model/effort
+ * arg hooks. Returns undefined for unknown/custom presets.
+ */
+export function getAgentPromptSuffix(presetId: string): string | undefined {
+	const defaults: AgentPromptCommandDefaults | undefined =
+		AGENT_PROMPT_COMMANDS[presetId as AgentType];
+	return defaults?.suffix;
+}
+
 export function buildAgentFileCommand({
 	filePath,
 	agent = "claude",

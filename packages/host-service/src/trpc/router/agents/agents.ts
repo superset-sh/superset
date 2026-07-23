@@ -1,4 +1,5 @@
 import { readFileSync } from "node:fs";
+import { getAgentPromptSuffix } from "@superset/shared/agent-command";
 import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
@@ -129,14 +130,26 @@ export function buildAgentCommandString(
 		return buildArgvCommand(baseArgv);
 	}
 
+	// Interactive-resume suffix for CLIs that can't seed a prompt into their
+	// TUI (kimi, mastracode): the prompt runs headlessly, then this re-enters
+	// the TUI. Empty-prompt launches skip it — the base command is already
+	// interactive.
+	const suffix = getAgentPromptSuffix(config.presetId);
+
 	if (config.promptTransport === "argv") {
 		// Plain quoted positional, not the shared "$(cat <<…)" form: the command
 		// is typed into the user's configured shell, and fish has no heredocs.
-		return buildArgvCommand([...baseArgv, ...config.promptArgs, prompt]);
+		const command = buildArgvCommand([
+			...baseArgv,
+			...config.promptArgs,
+			prompt,
+		]);
+		return suffix ? `${command} ${suffix}` : command;
 	}
 
 	return buildPromptCommandString({
 		command: buildArgvCommand([...baseArgv, ...config.promptArgs]),
+		suffix,
 		transport: "stdin",
 		prompt,
 		randomId,
