@@ -7,6 +7,7 @@ import {
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
+import { WorkspacesTabSection } from "./components/WorkspacesTabSection";
 
 /**
  * Renders a list of visible sections with automatic border separators.
@@ -49,6 +50,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showWorkspacesTab = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_WORKSPACES_TAB,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -69,6 +74,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 				{showTerminalFont && (
 					<FontSettingSection key="terminal-font" variant="terminal" />
 				)}
+				{showWorkspacesTab && <WorkspacesTabSection key="workspaces-tab" />}
 			</SectionList>
 		</div>
 	);

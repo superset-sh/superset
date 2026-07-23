@@ -40,9 +40,7 @@ import {
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
-
-// Temporarily hidden, not removed — flip to true to restore the Workspaces tab.
-const SHOW_WORKSPACES_TAB = false;
+import { useIsWorkspacesTabVisible } from "renderer/stores/sidebar-workspaces-tab";
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -54,6 +52,7 @@ export function DashboardSidebarHeader({
 	const openModal = useOpenNewWorkspaceModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
+	const showWorkspacesTab = useIsWorkspacesTabVisible();
 	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
 		onError: (message) => {
@@ -171,7 +170,7 @@ export function DashboardSidebarHeader({
 					</TooltipContent>
 				</Tooltip>
 
-				{SHOW_WORKSPACES_TAB && (
+				{showWorkspacesTab && (
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
 							<button
@@ -351,7 +350,7 @@ export function DashboardSidebarHeader({
 				)}
 			</button>
 
-			{SHOW_WORKSPACES_TAB && (
+			{showWorkspacesTab && (
 				<button
 					type="button"
 					onClick={handleWorkspacesClick}
