@@ -42,6 +42,21 @@ const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
 };
 
+/**
+ * macOS bundle-ID fallbacks for single-edition editors launched via `open -a`.
+ *
+ * `open -a "<display name>"` resolves the app through Launch Services by its
+ * display name, which can go stale after an app update, a move, or a duplicate
+ * install — the launch then fails with "Unable to find application named
+ * '<name>'" even though the editor is installed (#5896). `open -b <bundleId>`
+ * resolves via the stable bundle identifier instead, so it's appended as a
+ * fallback the caller can retry when the name-based command fails.
+ */
+const MACOS_BUNDLE_ID_FALLBACKS: Partial<Record<ExternalApp, string[]>> = {
+	vscode: ["com.microsoft.VSCode"],
+	"vscode-insiders": ["com.microsoft.VSCodeInsiders"],
+};
+
 /** Map of app IDs to their Linux CLI commands */
 const LINUX_CLI_COMMANDS: Record<ExternalApp, string | null> = {
 	finder: null, // Handled specially with shell.showItemInFolder
@@ -136,14 +151,28 @@ export function getAppCommand(
 
 		const appName = MACOS_APP_NAMES[app];
 		if (!appName) return null;
-		return [
-			{
-				command: "open",
-				args: isJetBrains
-					? ["-n", "-a", appName, "--args", targetPath]
-					: ["-a", appName, targetPath],
-			},
-		];
+		const nameCommand = {
+			command: "open",
+			args: isJetBrains
+				? ["-n", "-a", appName, "--args", targetPath]
+				: ["-a", appName, targetPath],
+		};
+
+		// Append bundle-ID fallbacks so a stale `open -a <name>` lookup can retry
+		// via the stable bundle identifier (#5896). JetBrains IDEs are excluded —
+		// they need the launcher-CLI (`-n ... --args`) invocation handled above.
+		const bundleFallbacks = MACOS_BUNDLE_ID_FALLBACKS[app];
+		if (bundleFallbacks && !isJetBrains) {
+			return [
+				nameCommand,
+				...bundleFallbacks.map((id) => ({
+					command: "open",
+					args: ["-b", id, targetPath],
+				})),
+			];
+		}
+
+		return [nameCommand];
 	}
 
 	// Linux (and other non-macOS platforms)
