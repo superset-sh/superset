@@ -6,6 +6,8 @@ import {
 	DEFAULT_V2_USER_PREFERENCES,
 	type LinkAction,
 	type LinkTierMap,
+	type SidebarNavItem,
+	type SidebarNavVisibility,
 	V2_USER_PREFERENCES_ID,
 	type V2UserPreferencesRow,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
@@ -24,6 +26,7 @@ export interface V2UserPreferencesApi {
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
 	toggleShowPresetsBar: () => void;
+	setSidebarNavItemVisible: (item: SidebarNavItem, visible: boolean) => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -200,6 +203,30 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setShowPresetsBar((prev) => !prev);
 	}, [setShowPresetsBar]);
 
+	const setSidebarNavItemVisible = useCallback(
+		(item: SidebarNavItem, visible: boolean) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			const next: SidebarNavVisibility = {
+				...(existing?.sidebarNavVisibility ??
+					DEFAULT_V2_USER_PREFERENCES.sidebarNavVisibility),
+				[item]: visible,
+			};
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					sidebarNavVisibility: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.sidebarNavVisibility = next;
+			});
+		},
+		[collections],
+	);
+
 	return {
 		preferences,
 		setFileLinks,
@@ -212,5 +239,6 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setDeleteLocalBranch,
 		setShowPresetsBar,
 		toggleShowPresetsBar,
+		setSidebarNavItemVisible,
 	};
 }

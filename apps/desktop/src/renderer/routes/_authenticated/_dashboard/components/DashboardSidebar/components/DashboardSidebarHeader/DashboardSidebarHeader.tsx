@@ -22,6 +22,7 @@ import {
 import { useFrameStackStore } from "renderer/commandPalette";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { ZoomStable } from "renderer/components/ZoomStable";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -97,6 +98,10 @@ export function DashboardSidebarHeader({
 	const zoomFactor = useZoomFactor();
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
+	const { preferences } = useV2UserPreferences();
+	const showWorkspaces = preferences.sidebarNavVisibility.workspaces;
+	const showAutomations = preferences.sidebarNavVisibility.automations;
+	const showTasks = preferences.sidebarNavVisibility.tasks;
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
@@ -153,25 +158,7 @@ export function DashboardSidebarHeader({
 					</TooltipContent>
 				</Tooltip>
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onPointerDown={handleSearchPointerDown}
-							onClick={handleSearchClick}
-							className="flex size-8 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-						>
-							<LuSearch className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">
-						{searchShortcutText !== "Unassigned"
-							? `Search (${searchShortcutText})`
-							: "Search"}
-					</TooltipContent>
-				</Tooltip>
-
-				{SHOW_WORKSPACES_TAB && (
+				{showWorkspaces && (
 					<Tooltip delayDuration={300}>
 						<TooltipTrigger asChild>
 							<button
@@ -191,56 +178,60 @@ export function DashboardSidebarHeader({
 					</Tooltip>
 				)}
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleAutomationsClick}
-							aria-label={
-								myFailedCount > 0
-									? `Automations, ${myFailedCount} failing`
-									: "Automations"
-							}
-							className={cn(
-								"relative flex size-8 items-center justify-center rounded-md transition-colors",
-								isAutomationsOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<LuClock className="size-4" />
-							{myFailedCount > 0 && (
-								<span
-									aria-hidden="true"
-									className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
-								/>
-							)}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">
-						{myFailedCount > 0
-							? `Automations (${myFailedCount} failing)`
-							: "Automations"}
-					</TooltipContent>
-				</Tooltip>
+				{showAutomations && (
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleAutomationsClick}
+								aria-label={
+									myFailedCount > 0
+										? `Automations, ${myFailedCount} failing`
+										: "Automations"
+								}
+								className={cn(
+									"relative flex size-8 items-center justify-center rounded-md transition-colors",
+									isAutomationsOpen
+										? "bg-accent text-foreground"
+										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+								)}
+							>
+								<LuClock className="size-4" />
+								{myFailedCount > 0 && (
+									<span
+										aria-hidden="true"
+										className="absolute right-1 top-1 size-1.5 rounded-full bg-red-500"
+									/>
+								)}
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">
+							{myFailedCount > 0
+								? `Automations (${myFailedCount} failing)`
+								: "Automations"}
+						</TooltipContent>
+					</Tooltip>
+				)}
 
-				<Tooltip delayDuration={300}>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={handleTasksClick}
-							className={cn(
-								"flex size-8 items-center justify-center rounded-md transition-colors",
-								isTasksOpen
-									? "bg-accent text-foreground"
-									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-							)}
-						>
-							<HiOutlineClipboardDocumentList className="size-4" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="right">Tasks & PRs</TooltipContent>
-				</Tooltip>
+				{showTasks && (
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleTasksClick}
+								className={cn(
+									"flex size-8 items-center justify-center rounded-md transition-colors",
+									isTasksOpen
+										? "bg-accent text-foreground"
+										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+								)}
+							>
+								<HiOutlineClipboardDocumentList className="size-4" />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">Tasks & PRs</TooltipContent>
+					</Tooltip>
+				)}
 
 				<DropdownMenu>
 					<Tooltip delayDuration={300}>
@@ -312,46 +303,7 @@ export function DashboardSidebarHeader({
 				</ZoomStable>
 			</div>
 
-			<button
-				type="button"
-				onClick={() => openModal()}
-				className="group flex w-full items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-			>
-				<LuPlus className="size-4 shrink-0" strokeWidth={STROKE_WIDTH_THICK} />
-				<span className="flex-1 truncate text-left whitespace-nowrap">
-					New Workspace
-				</span>
-				<span
-					className={cn(
-						"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
-						"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
-					)}
-				>
-					{shortcutText}
-				</span>
-			</button>
-
-			<button
-				type="button"
-				onPointerDown={handleSearchPointerDown}
-				onClick={handleSearchClick}
-				className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
-			>
-				<LuSearch className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Search</span>
-				{searchShortcutText !== "Unassigned" && (
-					<span
-						className={cn(
-							"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
-							"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
-						)}
-					>
-						{searchShortcutText}
-					</span>
-				)}
-			</button>
-
-			{SHOW_WORKSPACES_TAB && (
+			{showWorkspaces && (
 				<button
 					type="button"
 					onClick={handleWorkspacesClick}
@@ -367,41 +319,102 @@ export function DashboardSidebarHeader({
 				</button>
 			)}
 
-			<button
-				type="button"
-				onClick={handleAutomationsClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isAutomationsOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<LuClock className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Automations</span>
-				{myFailedCount > 0 && (
-					<span
-						title={`${myFailedCount} of your automations failed their last run`}
-						className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
-					>
-						{myFailedCount > 9 ? "9+" : myFailedCount}
-					</span>
-				)}
-			</button>
+			{showAutomations && (
+				<button
+					type="button"
+					onClick={handleAutomationsClick}
+					className={cn(
+						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+						isAutomationsOpen
+							? "bg-accent text-foreground"
+							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+					)}
+				>
+					<LuClock className="size-4 shrink-0" />
+					<span className="flex-1 text-left">Automations</span>
+					{myFailedCount > 0 && (
+						<span
+							title={`${myFailedCount} of your automations failed their last run`}
+							className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-red-500/15 px-1 text-[10px] font-medium tabular-nums text-red-600 dark:text-red-400"
+						>
+							{myFailedCount > 9 ? "9+" : myFailedCount}
+						</span>
+					)}
+				</button>
+			)}
 
-			<button
-				type="button"
-				onClick={handleTasksClick}
-				className={cn(
-					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-					isTasksOpen
-						? "bg-accent text-foreground"
-						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-				)}
-			>
-				<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
-				<span className="flex-1 text-left">Tasks & PRs</span>
-			</button>
+			{showTasks && (
+				<button
+					type="button"
+					onClick={handleTasksClick}
+					className={cn(
+						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+						isTasksOpen
+							? "bg-accent text-foreground"
+							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+					)}
+				>
+					<HiOutlineClipboardDocumentList className="size-4 shrink-0" />
+					<span className="flex-1 text-left">Tasks & PRs</span>
+				</button>
+			)}
+
+			<div className="flex items-center gap-1">
+				<button
+					type="button"
+					onClick={() => openModal()}
+					className="group flex flex-1 min-w-0 items-center gap-1.5 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+				>
+					<LuPlus
+						className="size-4 shrink-0"
+						strokeWidth={STROKE_WIDTH_THICK}
+					/>
+					<span className="flex-1 truncate text-left whitespace-nowrap">
+						New Workspace
+					</span>
+					<span
+						className={cn(
+							"shrink-0 text-[10px] font-mono tabular-nums text-muted-foreground/60",
+							"opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100",
+						)}
+					>
+						{shortcutText}
+					</span>
+				</button>
+				<DropdownMenu>
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<DropdownMenuTrigger asChild>
+								<button
+									type="button"
+									aria-label="Add repository"
+									className="flex size-8 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground"
+								>
+									<LuFolderPlus className="size-4" />
+								</button>
+							</DropdownMenuTrigger>
+						</TooltipTrigger>
+						<TooltipContent side="right">Add repository</TooltipContent>
+					</Tooltip>
+					<DropdownMenuContent
+						align="end"
+						onCloseAutoFocus={(event) => event.preventDefault()}
+					>
+						<DropdownMenuItem onSelect={() => openNewProject()}>
+							<HiMiniPlus className="size-4" />
+							Clone from URL
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={handleImportFolder}>
+							<LuFolderInput className="size-4" />
+							Open from folder
+						</DropdownMenuItem>
+						<DropdownMenuItem onSelect={() => openTemplateGallery()}>
+							<LuLayoutTemplate className="size-4" />
+							Start from a template
+						</DropdownMenuItem>
+					</DropdownMenuContent>
+				</DropdownMenu>
+			</div>
 		</div>
 	);
 }
