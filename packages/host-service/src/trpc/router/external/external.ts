@@ -1,3 +1,4 @@
+import nodePath from "node:path";
 import { EXTERNAL_APPS } from "@superset/local-db/schema/zod";
 import { getHostId } from "@superset/shared/host-info";
 import { TRPCError } from "@trpc/server";
@@ -46,14 +47,14 @@ const localOnlyProcedure = protectedProcedure.use(({ ctx, next }) => {
 
 /**
  * Opens a path/URL with the OS default handler. Pure Node (no Electron
- * `shell`): macOS `open`, Windows `start`, Linux `xdg-open`.
+ * `shell`). Only macOS (`open`) and Linux (`xdg-open`) are handled, matching
+ * the desktop's `getAppCommand` platform support — the target is never routed
+ * through `cmd.exe`, which would treat `&`/`|` in a URL or path as command
+ * separators.
  */
 function openWithOsDefault(target: string): Promise<void> {
 	if (process.platform === "darwin") {
 		return spawnAsync("open", [target]);
-	}
-	if (process.platform === "win32") {
-		return spawnAsync("cmd", ["/c", "start", "", target]);
 	}
 	return spawnAsync("xdg-open", [target]);
 }
@@ -63,12 +64,23 @@ function revealInFileManager(targetPath: string): Promise<void> {
 	if (process.platform === "darwin") {
 		return spawnAsync("open", ["-R", targetPath]);
 	}
-	if (process.platform === "win32") {
-		return spawnAsync("explorer", [`/select,${targetPath}`]);
-	}
 	// Linux file managers have no universal "reveal & select"; open the
-	// containing directory instead.
-	return openWithOsDefault(targetPath);
+	// containing directory so the item is visible instead of opening the file
+	// itself in its default app.
+	return spawnAsync("xdg-open", [nodePath.dirname(targetPath)]);
+}
+
+/**
+ * Rejects relative paths, which would otherwise be resolved against the
+ * host-service working directory rather than the caller's intended location.
+ */
+function assertAbsolutePath(action: string, path: string): void {
+	if (!path.startsWith("/") && !/^[a-zA-Z]:[\\/]/.test(path)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${action} requires an absolute path (got ${JSON.stringify(path)}).`,
+		});
+	}
 }
 
 /** Allowlisted URL schemes, mirroring the desktop's safe-url guard. */
@@ -92,12 +104,7 @@ export const externalRouter = router({
 			}),
 		)
 		.mutation(async ({ input }) => {
-			if (!input.path.startsWith("/") && !/^[a-zA-Z]:[\\/]/.test(input.path)) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: `openInApp requires an absolute path (got ${JSON.stringify(input.path)}).`,
-				});
-			}
+			assertAbsolutePath("openInApp", input.path);
 
 			if (input.app === "finder") {
 				await revealInFileManager(input.path);
@@ -127,6 +134,7 @@ export const externalRouter = router({
 	openInFinder: localOnlyProcedure
 		.input(z.string())
 		.mutation(async ({ input }) => {
+			assertAbsolutePath("openInFinder", input);
 			await revealInFileManager(input);
 		}),
 

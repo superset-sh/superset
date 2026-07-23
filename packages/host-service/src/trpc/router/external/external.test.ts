@@ -43,4 +43,11 @@ describe("externalRouter input validation (local host)", () => {
 			/scheme not allowed/i,
 		);
 	});
+
+	it("rejects a relative path for openInFinder", async () => {
+		const caller = createCaller(LOCAL);
+		await expect(caller.openInFinder("relative/dir")).rejects.toThrow(
+			/absolute path/i,
+		);
+	});
 });
