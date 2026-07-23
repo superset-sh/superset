@@ -5,7 +5,6 @@ import {
 	useCloseAddRepositoryModal,
 	useResolveNewProjectModal,
 } from "renderer/stores/add-repository-modal";
-import { GitInitConfirmDialog } from "./components/GitInitConfirmDialog";
 import { NewProjectModal } from "./components/NewProjectModal";
 
 export function AddRepositoryModals() {
@@ -37,7 +36,6 @@ export function AddRepositoryModals() {
 				}}
 				onError={(message) => toast.error(`Create failed: ${message}`)}
 			/>
-			<GitInitConfirmDialog />
 		</>
 	);
 }
