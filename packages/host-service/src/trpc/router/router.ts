@@ -6,6 +6,7 @@ import { authRouter } from "./auth";
 import { chatRouter } from "./chat";
 import { cloudRouter } from "./cloud";
 import { configRouter } from "./config";
+import { externalRouter } from "./external/external";
 import { filesystemRouter } from "./filesystem";
 import { gitRouter } from "./git";
 import { githubRouter } from "./github";
@@ -33,6 +34,7 @@ export const appRouter = router({
 	host: hostRouter,
 	chat: chatRouter,
 	config: configRouter,
+	external: externalRouter,
 	filesystem: filesystemRouter,
 	git: gitRouter,
 	github: githubRouter,
