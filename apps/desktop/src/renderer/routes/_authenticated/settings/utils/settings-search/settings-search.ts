@@ -20,6 +20,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_WORKSPACES_TAB: "appearance-workspaces-tab",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -132,6 +133,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_WORKSPACES_TAB]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -410,6 +412,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"display",
 			"md",
 			"readme",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_WORKSPACES_TAB,
+		section: "appearance",
+		title: "Show Workspaces Tab",
+		description: "Show a Workspaces entry in the sidebar",
+		keywords: [
+			"appearance",
+			"workspaces",
+			"tab",
+			"sidebar",
+			"nav",
+			"navigation",
+			"show",
+			"hide",
+			"list",
 		],
 	},
 	{
