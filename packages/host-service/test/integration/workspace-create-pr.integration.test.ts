@@ -9,7 +9,7 @@ import {
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
 import simpleGit, { type SimpleGit } from "simple-git";
@@ -360,7 +360,7 @@ describe("workspaces.create PR checkout integration", () => {
 		const bare = await createBareRemote();
 		const expectedBranch = "contributor/feature/rollback";
 		const expectedWorktreePath = safeResolveWorktreePath(
-			scenario.projectId,
+			basename(scenario.repo.repoPath),
 			expectedBranch,
 		);
 		dispose = async () => {
