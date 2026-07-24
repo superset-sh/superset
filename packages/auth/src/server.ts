@@ -15,7 +15,7 @@ import { OrganizationInvitationEmail } from "@superset/email/emails/organization
 import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
-import { welcomeHtml } from "@superset/email/emails/welcome-html";
+import { WelcomeEmail } from "@superset/email/emails/welcome";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
@@ -206,7 +206,7 @@ export const auth = betterAuth({
 							replyTo: "founders@superset.sh",
 							to: user.email,
 							subject: "Welcome to Superset",
-							html: welcomeHtml,
+							react: WelcomeEmail({ userName: user.name }),
 						});
 					} catch (error) {
 						console.error(
