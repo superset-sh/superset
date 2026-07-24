@@ -1,5 +1,6 @@
 import { useWorkspaceClient } from "@superset/workspace-client";
 import { useCallback, useMemo } from "react";
+import { withNetworkRetry } from "renderer/lib/terminal/create-session-retry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
@@ -39,13 +40,19 @@ export function useV2TerminalLauncher(): TerminalLauncher {
 	const create = useCallback(
 		async (options?: CreateOptions): Promise<string> => {
 			const terminalId = options?.terminalId ?? crypto.randomUUID();
-			await trpcClient.terminal.createSession.mutate({
-				terminalId,
-				workspaceId,
-				themeType,
-				initialCommand: options?.command,
-				cwd: options?.cwd,
-			});
+			// Retry transient "Failed to fetch" blips — host-service busy,
+			// mid-restart, or the loopback port just rotated. createSession is
+			// idempotent, so a retried request can't create a duplicate session
+			// (#5699).
+			await withNetworkRetry(() =>
+				trpcClient.terminal.createSession.mutate({
+					terminalId,
+					workspaceId,
+					themeType,
+					initialCommand: options?.command,
+					cwd: options?.cwd,
+				}),
+			);
 			return terminalId;
 		},
 		[trpcClient, workspaceId, themeType],
