@@ -94,15 +94,7 @@ export function EmptyProjectModal({
 				const projectId = await createV1Project.createEmpty({
 					name: trimmedName,
 					parentDir: trimmedParent,
-					onError: (message) => {
-						if (onError) {
-							onError(message);
-						} else {
-							toast.error("Could not create project", {
-								description: message,
-							});
-						}
-					},
+					onError,
 				});
 				if (!projectId) return;
 				onSuccess?.({ projectId });
