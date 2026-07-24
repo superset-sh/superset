@@ -294,8 +294,8 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			if ("error" in result) return;
 
 			await waitFor(() => result.exited, 5000);
-			await result.shellReadyPromise;
-			assert.equal(result.shellReadyState, "cancelled");
+			await result.shellReady.promise;
+			assert.equal(result.shellReady.getState(), "cancelled");
 			assert.equal(fs.existsSync(sentinelFile), false);
 		} finally {
 			await disposeSessionAndWait(terminalId, db);

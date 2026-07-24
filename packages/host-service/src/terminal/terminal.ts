@@ -38,6 +38,10 @@ import {
 } from "./env.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
+	createShellReadyGate,
+	type ShellReadyGate,
+} from "./shell-ready-gate.ts";
+import {
 	createModeTracker,
 	type ModeTracker,
 } from "./terminal-mode-tracker.ts";
@@ -199,15 +203,6 @@ type TerminalSocket = {
 // Scanner logic lives in @superset/shared/shell-ready-scanner.
 // ---------------------------------------------------------------------------
 
-/**
- * Shell readiness lifecycle:
- * - `pending`     — shell initialising; scanner active
- * - `ready`       — OSC 133;A detected; scanner off
- * - `unsupported` — launch config has no marker; scanner never started
- * - `cancelled`   — session ended before readiness; queued automation cancelled
- */
-type ShellReadyState = "pending" | "ready" | "unsupported" | "cancelled";
-
 interface TerminalSession {
 	terminalId: string;
 	workspaceId: string;
@@ -244,10 +239,10 @@ interface TerminalSession {
 	 */
 	eventBus: EventBus | undefined;
 
-	// Shell readiness (OSC 133)
-	shellReadyState: ShellReadyState;
-	shellReadyResolve: (() => void) | null;
-	shellReadyPromise: Promise<void>;
+	// Shell readiness (OSC 133). The gate owns the pending/ready/cancelled
+	// lifecycle plus the fallback timeout that keeps queued commands from
+	// hanging forever when the prompt marker never arrives.
+	shellReady: ShellReadyGate;
 	scanState: ShellReadyScanState;
 	initialCommandQueued: boolean;
 
@@ -660,22 +655,12 @@ export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 
 /** Transition out of `pending` after the scanner matches the prompt marker. */
 function resolveShellReady(session: TerminalSession): void {
-	if (session.shellReadyState !== "pending") return;
-	session.shellReadyState = "ready";
-	if (session.shellReadyResolve) {
-		session.shellReadyResolve();
-		session.shellReadyResolve = null;
-	}
+	session.shellReady.markReady();
 }
 
 /** Release pending readiness waiters without allowing queued input to run. */
 function cancelShellReady(session: TerminalSession): void {
-	if (session.shellReadyState !== "pending") return;
-	session.shellReadyState = "cancelled";
-	if (session.shellReadyResolve) {
-		session.shellReadyResolve();
-		session.shellReadyResolve = null;
-	}
+	session.shellReady.cancel();
 }
 
 function queueInitialCommand(
@@ -691,8 +676,8 @@ function queueInitialCommand(
 	// PTY input before the first prompt (direnv/devenv is one example). Wait for
 	// that prompt so the command cannot be consumed as startup input. Launches
 	// without a verified marker resolve this promise immediately.
-	void session.shellReadyPromise.then(() => {
-		if (!session.exited && session.shellReadyState !== "cancelled") {
+	void session.shellReady.promise.then(() => {
+		if (!session.exited && session.shellReady.getState() !== "cancelled") {
 			session.pty.write(cmd);
 		}
 	});
@@ -1195,15 +1180,13 @@ export async function createTerminalSessionInternal({
 	// Determine shell readiness support. Adopted sessions are already past
 	// shell startup, so treat them as immediately ready — the OSC 133;A
 	// marker has already flown by and we don't want to gate writes on it.
-	const shellSupportsReady =
-		!isAdopted && shellLaunchExpectsReadyMarker({ shell, supersetHomeDir });
-
-	let shellReadyResolve: (() => void) | null = null;
-	const shellReadyPromise = shellSupportsReady
-		? new Promise<void>((resolve) => {
-				shellReadyResolve = resolve;
-			})
-		: Promise.resolve();
+	// The gate arms a fallback timeout so a launch config that promises the
+	// marker but never emits it can't leave queued commands unsent forever.
+	const shellReady = createShellReadyGate({
+		supportsMarker:
+			!isAdopted && shellLaunchExpectsReadyMarker({ shell, supersetHomeDir }),
+		isAdopted,
+	});
 
 	const session: TerminalSession = {
 		terminalId,
@@ -1225,13 +1208,7 @@ export async function createTerminalSessionInternal({
 		title: null,
 		titleScanState: createTerminalTitleScanState(),
 		eventBus,
-		shellReadyState: shellSupportsReady
-			? "pending"
-			: isAdopted
-				? "ready"
-				: "unsupported",
-		shellReadyResolve,
-		shellReadyPromise,
+		shellReady,
 		scanState: createScanState(),
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
@@ -1259,7 +1236,7 @@ export async function createTerminalSessionInternal({
 				}
 
 				let bytes: Uint8Array = chunk;
-				if (session.shellReadyState === "pending") {
+				if (session.shellReady.getState() === "pending") {
 					const result = scanForShellReady(session.scanState, chunk);
 					bytes = result.output;
 					if (result.matched) {
