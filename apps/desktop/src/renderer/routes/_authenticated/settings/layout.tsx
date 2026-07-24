@@ -43,6 +43,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"billing",
 	"apikeys",
 	"permissions",
+	"workspaces",
 	"hosts",
 	"experimental",
 ];
@@ -63,6 +64,7 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/integrations")) return "integrations";
 	if (pathname.includes("/settings/permissions")) return "permissions";
 	if (pathname.includes("/settings/hosts")) return "hosts";
+	if (pathname.includes("/settings/workspaces")) return "workspaces";
 	if (pathname.includes("/settings/project")) return "project";
 	return null;
 }
@@ -99,6 +101,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/permissions";
 		case "hosts":
 			return "/settings/hosts";
+		case "workspaces":
+			return "/settings/workspaces";
 		case "project":
 			return "/settings/projects";
 		default:
@@ -162,10 +166,11 @@ function SettingsLayout() {
 		[navigate, location.pathname, originRoute],
 	);
 
-	const usesInnerSidebar =
+	const usesFullBleedContent =
 		location.pathname.startsWith("/settings/projects") ||
 		location.pathname.startsWith("/settings/hosts") ||
-		location.pathname.startsWith("/settings/agents");
+		location.pathname.startsWith("/settings/agents") ||
+		location.pathname.startsWith("/settings/workspaces");
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
@@ -188,7 +193,7 @@ function SettingsLayout() {
 							onClear={() => setSearchQuery("")}
 						/>
 					)}
-					{usesInnerSidebar ? (
+					{usesFullBleedContent ? (
 						<Outlet />
 					) : (
 						<div className="mx-auto max-w-4xl">
