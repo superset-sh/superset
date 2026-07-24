@@ -251,6 +251,43 @@ describe("matchPreset", () => {
 		const input = "FREQ=MONTHLY;BYMONTHDAY=15;BYHOUR=8";
 		expect(matchPreset(input)).toEqual({ kind: "custom", rrule: input });
 	});
+
+	// Regression: a multi-valued BYHOUR (fires at two times) was mis-detected as
+	// the single-time "daily" preset, so `parseIntOrNull` kept only the first
+	// hour — re-serializing via buildRrule silently dropped the 5 PM run.
+	it("treats a multi-valued BYHOUR as custom (not daily)", () => {
+		const input = "FREQ=DAILY;BYHOUR=9,17;BYMINUTE=0";
+		expect(matchPreset(input)).toEqual({ kind: "custom", rrule: input });
+	});
+
+	it("treats a multi-valued BYHOUR on WEEKLY as custom", () => {
+		const input = "FREQ=WEEKLY;BYDAY=MO;BYHOUR=9,18;BYMINUTE=0";
+		expect(matchPreset(input)).toEqual({ kind: "custom", rrule: input });
+	});
+
+	it("treats a multi-valued BYMINUTE as custom", () => {
+		const input = "FREQ=DAILY;BYHOUR=9;BYMINUTE=0,30";
+		expect(matchPreset(input)).toEqual({ kind: "custom", rrule: input });
+	});
+
+	// Regression: BYMONTH / BYMONTHDAY were never rejected, so a seasonal or
+	// monthly-restricted rule collapsed to a plain daily/weekly preset.
+	it("treats a BYMONTH-restricted rule as custom (not daily)", () => {
+		const input = "FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYMONTH=6";
+		expect(matchPreset(input)).toEqual({ kind: "custom", rrule: input });
+	});
+
+	it("treats FREQ=HOURLY with a BYMINUTE as custom (hourly preset takes no minute)", () => {
+		const input = "FREQ=HOURLY;BYMINUTE=30";
+		expect(matchPreset(input)).toEqual({ kind: "custom", rrule: input });
+	});
+
+	// The whole point of the fallback: matchPreset → buildRrule must not lose
+	// information for a rule the picker can't represent as a preset.
+	it("round-trips a multi-time rule through buildRrule without dropping a run", () => {
+		const input = "FREQ=DAILY;BYHOUR=9,17;BYMINUTE=0";
+		expect(buildRrule(matchPreset(input))).toBe(input);
+	});
 });
 
 describe("buildRrule", () => {
