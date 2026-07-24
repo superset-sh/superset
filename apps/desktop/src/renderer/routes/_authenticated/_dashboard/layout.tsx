@@ -6,6 +6,7 @@ import {
 } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
+import { WindowDropZone } from "renderer/components/WindowDropZone";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -191,7 +192,7 @@ function DashboardLayout() {
 		onV2WorkspaceRoute && !versionMismatch && sidebarOutsideColumn;
 
 	return (
-		<div className="flex h-full w-full overflow-hidden">
+		<WindowDropZone className="flex h-full w-full overflow-hidden">
 			<CommandPaletteHost />
 			{sidebarOutsideColumn && sidebarPanel}
 			<div className="flex flex-1 flex-col min-w-0 min-h-0">
@@ -232,6 +233,6 @@ function DashboardLayout() {
 					}}
 				/>
 			)}
-		</div>
+		</WindowDropZone>
 	);
 }

@@ -168,6 +168,32 @@ app.on("open-url", async (event, url) => {
 	}
 });
 
+// macOS fires `open-file` when a folder is dropped on the Dock/app icon or via
+// "Open With" (requires the `public.folder` CFBundleDocumentTypes declaration).
+// It fires once per item and can arrive before the window exists on cold start,
+// so we buffer paths and flush them together after init (see VS Code's approach).
+const pendingOpenFolderPaths: string[] = [];
+let flushOpenFoldersTimer: NodeJS.Timeout | null = null;
+
+function flushOpenFolderPaths(): void {
+	if (pendingOpenFolderPaths.length === 0) return;
+	const paths = pendingOpenFolderPaths.splice(0);
+	focusMainWindow();
+	const windows = BrowserWindow.getAllWindows();
+	if (windows.length > 0) {
+		windows[0].webContents.send("open-folder-path", paths);
+	}
+}
+
+app.on("open-file", (event, path) => {
+	event.preventDefault();
+	pendingOpenFolderPaths.push(path);
+	if (!appReady) return;
+	// Debounce: a multi-item drop yields several events in quick succession.
+	if (flushOpenFoldersTimer) clearTimeout(flushOpenFoldersTimer);
+	flushOpenFoldersTimer = setTimeout(flushOpenFolderPaths, 100);
+});
+
 let isQuitting = false;
 let skipQuitConfirmation = false;
 let forceFullCleanup = false;
@@ -462,6 +488,7 @@ if (!gotTheLock) {
 			await processDeepLink(pendingDeepLinkUrl);
 			pendingDeepLinkUrl = null;
 		}
+		flushOpenFolderPaths();
 
 		appReady = true;
 	})();
