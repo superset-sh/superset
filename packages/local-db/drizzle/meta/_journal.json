@@ -302,6 +302,13 @@
       "when": 1784326143765,
       "tag": "0042_overconfident_cloak",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1784479232424,
+      "tag": "0043_appearance_typography_controls",
+      "breakpoints": true
     }
   ]
 }

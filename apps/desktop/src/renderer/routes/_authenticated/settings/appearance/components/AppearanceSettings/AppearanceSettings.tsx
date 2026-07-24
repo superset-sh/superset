@@ -52,7 +52,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
-		<div className="p-6 max-w-4xl w-full">
+		<div className="p-6 max-w-5xl w-full">
 			<div className="mb-8">
 				<h2 className="text-xl font-semibold">Appearance</h2>
 				<p className="text-sm text-muted-foreground mt-1">
@@ -63,11 +63,12 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			<SectionList>
 				{showThemeSection && <ThemeSection key="theme" />}
 				{showMarkdown && <MarkdownStyleSection key="markdown" />}
-				{showEditorFont && (
-					<FontSettingSection key="editor-font" variant="editor" />
-				)}
-				{showTerminalFont && (
-					<FontSettingSection key="terminal-font" variant="terminal" />
+				{(showEditorFont || showTerminalFont) && (
+					<FontSettingSection
+						key="typography"
+						showEditor={showEditorFont}
+						showTerminal={showTerminalFont}
+					/>
 				)}
 			</SectionList>
 		</div>

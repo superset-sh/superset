@@ -1,4 +1,4 @@
-import type { ITheme } from "@xterm/xterm";
+import type { FontWeight, ITheme } from "@xterm/xterm";
 import { toXtermTheme } from "renderer/stores/theme/utils";
 import {
 	builtInThemes,
@@ -11,6 +11,25 @@ export interface TerminalAppearance {
 	background: string;
 	fontFamily: string;
 	fontSize: number;
+	lineHeight: number;
+	letterSpacing: number;
+	fontWeight: FontWeight;
+	ligatures: boolean;
+	minimumContrastRatio: number;
+	cursorStyle: "block" | "bar" | "underline";
+	cursorBlink: boolean;
+}
+
+export interface TerminalFontSettings {
+	terminalFontFamily?: string | null;
+	terminalFontSize?: number | null;
+	terminalLineHeight?: number | null;
+	terminalLetterSpacing?: number | null;
+	terminalFontWeight?: number | null;
+	terminalLigatures?: boolean | null;
+	terminalMinimumContrast?: number | null;
+	terminalCursorStyle?: "block" | "bar" | "underline" | null;
+	terminalCursorBlink?: boolean | null;
 }
 
 export const TERMINAL_FONT_FAMILY_CSS_VARIABLE =
@@ -70,6 +89,13 @@ export const DEFAULT_TERMINAL_FONT_FAMILY = serializeFontFamilyList([
 ]);
 
 export const DEFAULT_TERMINAL_FONT_SIZE = 14;
+export const DEFAULT_TERMINAL_LINE_HEIGHT = 1;
+export const DEFAULT_TERMINAL_LETTER_SPACING = 0;
+export const DEFAULT_TERMINAL_FONT_WEIGHT: FontWeight = "normal";
+export const DEFAULT_TERMINAL_LIGATURES = true;
+export const DEFAULT_TERMINAL_MINIMUM_CONTRAST = 1;
+export const DEFAULT_TERMINAL_CURSOR_STYLE = "block" as const;
+export const DEFAULT_TERMINAL_CURSOR_BLINK = true;
 
 const MONOSPACE_GENERIC_FAMILIES = new Set(["monospace", "ui-monospace"]);
 
@@ -182,11 +208,29 @@ export function sanitizeTerminalFontFamily(
 /** Reads localStorage theme cache for flash-free first paint. */
 export function getDefaultTerminalAppearance(): TerminalAppearance {
 	const theme = readCachedTerminalTheme();
+	return resolveTerminalAppearance(theme);
+}
+
+export function resolveTerminalAppearance(
+	theme: ITheme,
+	fontSettings: TerminalFontSettings = {},
+): TerminalAppearance {
 	return {
 		theme,
 		background: theme.background ?? "#151110",
-		fontFamily: DEFAULT_TERMINAL_FONT_FAMILY,
-		fontSize: DEFAULT_TERMINAL_FONT_SIZE,
+		fontFamily: sanitizeTerminalFontFamily(fontSettings.terminalFontFamily),
+		fontSize: fontSettings.terminalFontSize ?? DEFAULT_TERMINAL_FONT_SIZE,
+		lineHeight: fontSettings.terminalLineHeight ?? DEFAULT_TERMINAL_LINE_HEIGHT,
+		letterSpacing:
+			fontSettings.terminalLetterSpacing ?? DEFAULT_TERMINAL_LETTER_SPACING,
+		fontWeight: fontSettings.terminalFontWeight ?? DEFAULT_TERMINAL_FONT_WEIGHT,
+		ligatures: fontSettings.terminalLigatures ?? DEFAULT_TERMINAL_LIGATURES,
+		minimumContrastRatio:
+			fontSettings.terminalMinimumContrast ?? DEFAULT_TERMINAL_MINIMUM_CONTRAST,
+		cursorStyle:
+			fontSettings.terminalCursorStyle ?? DEFAULT_TERMINAL_CURSOR_STYLE,
+		cursorBlink:
+			fontSettings.terminalCursorBlink ?? DEFAULT_TERMINAL_CURSOR_BLINK,
 	};
 }
 
