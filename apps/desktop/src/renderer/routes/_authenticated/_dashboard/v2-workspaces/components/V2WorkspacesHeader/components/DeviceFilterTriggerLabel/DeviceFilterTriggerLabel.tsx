@@ -1,9 +1,6 @@
 import { cn } from "@superset/ui/utils";
-import { LuLaptop, LuLayers, LuMonitor } from "react-icons/lu";
-import {
-	DEVICE_FILTER_ALL,
-	DEVICE_FILTER_THIS_DEVICE,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { LuLaptop, LuMonitor } from "react-icons/lu";
+import { DEVICE_FILTER_THIS_DEVICE } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 
 interface DeviceFilterTriggerLabelProps {
 	deviceFilter: string;
@@ -14,14 +11,6 @@ export function DeviceFilterTriggerLabel({
 	deviceFilter,
 	selectedRemoteHost,
 }: DeviceFilterTriggerLabelProps) {
-	if (deviceFilter === DEVICE_FILTER_ALL) {
-		return (
-			<span className="flex items-center gap-2">
-				<LuLayers className="size-3.5" />
-				<span>All devices</span>
-			</span>
-		);
-	}
 	if (deviceFilter === DEVICE_FILTER_THIS_DEVICE) {
 		return (
 			<span className="flex items-center gap-2">

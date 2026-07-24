@@ -36,7 +36,7 @@ Revert guide: each item is independent; revert by undoing the listed file(s).
 - **Settings is an icon-only gear** in the footer (was a full-width labeled row); tooltip carries the hotkey. `DashboardSidebar.tsx`
 - **Org dropdown (expanded trigger): chevron removed** (topbar variant keeps it); **Settings item removed** from the menu (was the v1 TODO item); **"Switch organization" got an icon** (`HiOutlineArrowsRightLeft`). `TopBar/components/OrganizationDropdown/OrganizationDropdown.tsx`
 - **`SubmitPromptDialog` moved** to `OrganizationDropdown/components/`; old `DashboardSidebarHelpMenu/` deleted (git-tracked, restorable).
-- **Workspaces tab hidden, not deleted** — `SHOW_WORKSPACES_TAB = false` flag; flip to true to restore. `DashboardSidebarHeader.tsx`
+- **Workspaces tab hidden, not deleted** — `SHOW_WORKSPACES_TAB = false` flag; flip to true to restore. `DashboardSidebarHeader.tsx` *(Update 2026-07-23: tab restored unconditionally; flag removed.)*
 - **New Search row/icon** opens the command palette; clicking while open closes it (state captured on pointerdown because the palette dismisses on outside pointerdown before click). `DashboardSidebarHeader.tsx`
 - **Looking-glass button deleted** from `NavigationControls.tsx` (`⌘K` hotkey unaffected).
 - **ResourceConsumption moved** from right edge (`ml-auto`) to after back/forward in the top row. `DashboardSidebarHeader.tsx`

@@ -27,7 +27,7 @@ import type {
 	V2WorkspaceHostType,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
-	DEVICE_FILTER_ALL,
+	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_ALL,
 	useV2WorkspacesFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
@@ -39,6 +39,7 @@ import type { SortDirection, SortField } from "./types";
 
 interface V2WorkspacesListProps {
 	workspaces: AccessibleV2Workspace[];
+	isReady: boolean;
 }
 
 interface ProjectGroup {
@@ -128,7 +129,10 @@ const DEFAULT_DIRECTION_BY_FIELD: Record<SortField, SortDirection> = {
 	created: "desc",
 };
 
-export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
+export function V2WorkspacesList({
+	workspaces,
+	isReady,
+}: V2WorkspacesListProps) {
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -168,7 +172,7 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	);
 	const hasActiveFilters =
 		searchQuery.trim() !== "" ||
-		deviceFilter !== DEVICE_FILTER_ALL ||
+		deviceFilter !== DEVICE_FILTER_THIS_DEVICE ||
 		projectFilter !== PROJECT_FILTER_ALL;
 
 	const columnHeader = (
@@ -233,6 +237,14 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	);
 
 	if (totalCount === 0) {
+		// Hosts that haven't answered yet must not read as empty (cache-first rule).
+		if (!isReady) {
+			return (
+				<div className="flex min-h-0 flex-1 flex-col">
+					<Table className="table-fixed">{columnHeader}</Table>
+				</div>
+			);
+		}
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				<Table className="table-fixed">{columnHeader}</Table>
@@ -251,8 +263,8 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 						</EmptyTitle>
 						<EmptyDescription>
 							{hasActiveFilters
-								? "Try a different search term or clear the device filter."
-								: "Workspaces you have access to across all your devices will show up here."}
+								? "Try a different search term or another device."
+								: "Workspaces on this device will show up here."}
 						</EmptyDescription>
 					</EmptyHeader>
 					{hasActiveFilters ? (

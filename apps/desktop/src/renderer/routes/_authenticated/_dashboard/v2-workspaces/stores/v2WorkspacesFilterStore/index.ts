@@ -1,5 +1,4 @@
 export {
-	DEVICE_FILTER_ALL,
 	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_ALL,
 	useV2WorkspacesFilterStore,
