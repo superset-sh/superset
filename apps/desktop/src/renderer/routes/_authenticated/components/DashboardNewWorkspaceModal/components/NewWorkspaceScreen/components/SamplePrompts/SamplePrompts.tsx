@@ -18,11 +18,11 @@ export function SamplePrompts({ onSelect }: SamplePromptsProps) {
 						track("new_workspace_sample_prompt_clicked", {
 							prompt_id: sample.id,
 						});
-						onSelect(sample.text);
+						onSelect(sample.prompt);
 					}}
 				>
 					<SparklesIcon className="size-3.5 shrink-0" />
-					{sample.text}
+					{sample.label}
 				</button>
 			))}
 		</div>
