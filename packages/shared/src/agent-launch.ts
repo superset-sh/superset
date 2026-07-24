@@ -51,6 +51,8 @@ export const terminalLaunchConfigSchema = z.object({
 	command: z.string().min(1),
 	name: z.string().min(1).optional(),
 	paneId: z.string().min(1).optional(),
+	/** Run the command in the pane identified by `paneId` instead of splitting a new pane off it. */
+	reuseExistingPane: z.boolean().optional(),
 	taskPromptContent: z.string().min(1).optional(),
 	taskPromptFileName: z.string().min(1).optional(),
 	autoExecute: z.boolean().optional(),
@@ -192,6 +194,70 @@ export function normalizeAgentLaunchRequest(
 
 	const legacy = legacyAgentLaunchRequestSchema.parse(request);
 	return agentLaunchRequestSchema.parse(normalizeLegacyLaunchRequest(legacy));
+}
+
+export interface SetupPaneLaunch {
+	request: AgentLaunchRequest;
+	/**
+	 * True when the request runs the setup commands and the agent as one
+	 * chained command in the setup pane itself. The launch then owns attaching
+	 * that pane, and the caller must not run the setup commands separately.
+	 */
+	chained: boolean;
+}
+
+/**
+ * Targets an agent launch at the workspace-setup pane. A terminal request
+ * that does not already target a pane either chains behind the setup commands
+ * in the setup pane itself — so the agent starts only after setup succeeds,
+ * in one terminal instead of two — or splits a new pane off it. Chaining
+ * requires `waitForSetup`, setup commands and an auto-executing launch. Chat
+ * launches and requests already targeting a pane pass through unchanged.
+ */
+export function buildSetupPaneLaunchRequest({
+	request,
+	setupCommands,
+	setupPaneId,
+	waitForSetup,
+}: {
+	request: AgentLaunchRequest;
+	setupCommands: string[] | null | undefined;
+	setupPaneId: string;
+	waitForSetup: boolean;
+}): SetupPaneLaunch {
+	if (request.kind !== "terminal" || request.terminal.paneId) {
+		return { request, chained: false };
+	}
+
+	const chainedCommands =
+		waitForSetup &&
+		request.terminal.autoExecute !== false &&
+		setupCommands?.length
+			? setupCommands
+			: null;
+
+	if (!chainedCommands) {
+		return {
+			request: {
+				...request,
+				terminal: { ...request.terminal, paneId: setupPaneId },
+			},
+			chained: false,
+		};
+	}
+
+	return {
+		request: {
+			...request,
+			terminal: {
+				...request.terminal,
+				paneId: setupPaneId,
+				reuseExistingPane: true,
+				command: [...chainedCommands, request.terminal.command].join(" && "),
+			},
+		},
+		chained: true,
+	};
 }
 
 /**

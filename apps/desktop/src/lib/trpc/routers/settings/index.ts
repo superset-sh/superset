@@ -51,6 +51,7 @@ import {
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
 	DEFAULT_TERMINAL_PARKED_RUNTIME_CAP,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
+	DEFAULT_WAIT_FOR_SETUP_BEFORE_AGENT,
 	MAX_TERMINAL_PARKED_RUNTIME_CAP,
 	MIN_TERMINAL_PARKED_RUNTIME_CAP,
 } from "shared/constants";
@@ -775,6 +776,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { autoApplyDefaultPreset: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getWaitForSetupBeforeAgent: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.waitForSetupBeforeAgent ?? DEFAULT_WAIT_FOR_SETUP_BEFORE_AGENT;
+		}),
+
+		setWaitForSetupBeforeAgent: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, waitForSetupBeforeAgent: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { waitForSetupBeforeAgent: input.enabled },
 					})
 					.run();
 
