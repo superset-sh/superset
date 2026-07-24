@@ -1,0 +1,1 @@
+export { useFilesTabDragSource } from "./useFilesTabDragSource";
