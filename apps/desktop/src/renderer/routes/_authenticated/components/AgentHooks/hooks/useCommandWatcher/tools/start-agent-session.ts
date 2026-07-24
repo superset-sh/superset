@@ -1,8 +1,14 @@
+import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
 import {
+	type AgentLaunchRequest,
 	chatLaunchConfigSchema,
 	normalizeAgentLaunchRequest,
 	STARTABLE_AGENT_TYPES,
 } from "@superset/shared/agent-launch";
+import {
+	buildFileCommandFromAgentConfig,
+	buildPromptCommandFromAgentConfig,
+} from "@superset/shared/agent-settings";
 import {
 	launchAgentSession,
 	queueAgentSessionLaunch,
@@ -55,7 +61,10 @@ async function execute(
 			params.request && typeof params.request === "object"
 				? { ...fallbackRequest, ...(params.request as Record<string, unknown>) }
 				: fallbackRequest;
-		const request = normalizeAgentLaunchRequest(mergedRequest);
+		const request = resolveDeviceLocalCommand(
+			normalizeAgentLaunchRequest(mergedRequest),
+			ctx,
+		);
 
 		if (request.workspaceId !== params.workspaceId) {
 			return {
@@ -108,6 +117,48 @@ async function execute(
 					: "Failed to start agent session",
 		};
 	}
+}
+
+/**
+ * Re-resolves a terminal launch command from the device-local agent presets,
+ * so MCP-launched sessions honor the user's UI-configured command/flags.
+ *
+ * The server sends a baked builtin command as a fallback plus the raw prompt
+ * (or task prompt file name) needed to re-resolve here. Falls back to the baked
+ * command whenever the presets, a matching enabled terminal config, or the
+ * prompt fields are unavailable — keeping old renderers and old servers working.
+ */
+function resolveDeviceLocalCommand(
+	request: AgentLaunchRequest,
+	ctx: ToolContext,
+): AgentLaunchRequest {
+	if (request.kind !== "terminal" || !request.agentType) return request;
+
+	const config = ctx
+		.getResolvedAgentConfigsById?.()
+		?.get(request.agentType as AgentDefinitionId);
+	if (!config || !config.enabled || config.kind !== "terminal") return request;
+
+	const { taskPromptFileName, prompt } = request.terminal;
+	const command = taskPromptFileName
+		? buildFileCommandFromAgentConfig({
+				filePath: `.superset/${taskPromptFileName}`,
+				config,
+			})
+		: prompt
+			? buildPromptCommandFromAgentConfig({
+					prompt,
+					randomId: crypto.randomUUID(),
+					config,
+				})
+			: null;
+
+	if (!command) return request;
+
+	return {
+		...request,
+		terminal: { ...request.terminal, command },
+	};
 }
 
 export const startAgentSession: ToolDefinition<typeof schema> = {

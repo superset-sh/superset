@@ -109,7 +109,12 @@ describe("session launch MCP tools", () => {
 			params: {
 				request: {
 					kind: string;
-					terminal?: { name?: string; command: string };
+					terminal?: {
+						name?: string;
+						command: string;
+						taskPromptContent?: string;
+						taskPromptFileName?: string;
+					};
 				};
 			};
 		};
@@ -119,8 +124,16 @@ describe("session launch MCP tools", () => {
 			kind: "terminal",
 			terminal: {
 				name: "demo-task",
+				taskPromptFileName: "task-demo-task.md",
 			},
 		});
+		// Carries the task prompt so the device can re-resolve and write the file.
+		expect(
+			launchInput.params.request.terminal?.taskPromptContent,
+		).toBeDefined();
+		expect(launchInput.params.request.terminal?.command).toContain(
+			".superset/task-demo-task.md",
+		);
 	});
 
 	it("launches prompt-only terminal sessions without fetching a task", async () => {
@@ -146,7 +159,7 @@ describe("session launch MCP tools", () => {
 				request: {
 					kind: string;
 					agentType: string;
-					terminal?: { name?: string; command: string };
+					terminal?: { name?: string; command: string; prompt?: string };
 				};
 			};
 		};
@@ -158,6 +171,8 @@ describe("session launch MCP tools", () => {
 			agentType: "codex",
 			terminal: {
 				name: "Codex",
+				// Trimmed raw prompt carried for device-local re-resolution.
+				prompt: "Fix the failing tests",
 			},
 		});
 		expect(launchInput.params.request.terminal?.command).toContain(

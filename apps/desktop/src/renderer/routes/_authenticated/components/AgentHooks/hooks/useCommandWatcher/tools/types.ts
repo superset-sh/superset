@@ -1,4 +1,6 @@
 import type { SelectProject, SelectWorkspace } from "@superset/local-db";
+import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
+import type { ResolvedAgentConfig } from "@superset/shared/agent-settings";
 import type { electronTrpc } from "renderer/lib/electron-trpc";
 import type { z } from "zod";
 
@@ -62,6 +64,11 @@ export interface ToolContext {
 	getProjects: () => SelectProject[] | undefined;
 	getActiveWorkspaceId: () => string | null;
 	getWorktreePathByWorkspaceId: (workspaceId: string) => string | undefined;
+	// Device-local agent presets, indexed by id. Absence (older renderer)
+	// signals callers to fall back to the server-baked command.
+	getResolvedAgentConfigsById?: () =>
+		| Map<AgentDefinitionId, ResolvedAgentConfig>
+		| undefined;
 }
 
 // Tool definition with schema and execute function
