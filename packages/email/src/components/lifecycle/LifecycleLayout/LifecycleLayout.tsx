@@ -85,7 +85,7 @@ export function LifecycleLayout({
 								<Img
 									src={`${assets}/logo-full-white.png`}
 									alt="Superset"
-									width="219"
+									width="232"
 								/>
 								<Text style={{ margin: "40px 0 0 0" }}>
 									<Link
