@@ -1,4 +1,5 @@
 import { describe, expect, mock, test } from "bun:test";
+import type { GitClient } from "../shared/types";
 import { resolveNewBranchStartPoint } from "./resolve-new-branch-start-point";
 
 interface MockState {
@@ -19,10 +20,7 @@ function createMockGit(state: MockState) {
 			if (state.existingRefs.has(ref)) return `${"0".repeat(40)}\n`;
 			throw new Error("fatal: Needed a single revision");
 		}
-		if (
-			args[0] === "symbolic-ref" &&
-			args[1] === "refs/remotes/origin/HEAD"
-		) {
+		if (args[0] === "symbolic-ref" && args[1] === "refs/remotes/origin/HEAD") {
 			if (state.defaultBranch) return `origin/${state.defaultBranch}`;
 			throw new Error("fatal: ref is not a symbolic ref");
 		}
@@ -40,7 +38,9 @@ function createMockGit(state: MockState) {
 		}
 		throw new Error(`Unexpected raw args: ${args.join(" ")}`);
 	});
-	return { raw, fetch } as never;
+	return { raw, fetch } as unknown as GitClient & {
+		fetch: typeof fetch;
+	};
 }
 
 describe("resolveNewBranchStartPoint", () => {
@@ -76,10 +76,7 @@ describe("resolveNewBranchStartPoint", () => {
 
 	test("upgrades and fetches the default branch (unchanged behavior)", async () => {
 		const git = createMockGit({
-			existingRefs: new Set([
-				"refs/heads/main",
-				"refs/remotes/origin/main",
-			]),
+			existingRefs: new Set(["refs/heads/main", "refs/remotes/origin/main"]),
 			upstreams: { main: { remote: "origin", remoteBranch: "main" } },
 			defaultBranch: "main",
 		});
@@ -122,10 +119,7 @@ describe("resolveNewBranchStartPoint", () => {
 
 	test("swallows fetch errors and still returns the resolved start point", async () => {
 		const git = createMockGit({
-			existingRefs: new Set([
-				"refs/heads/main",
-				"refs/remotes/origin/main",
-			]),
+			existingRefs: new Set(["refs/heads/main", "refs/remotes/origin/main"]),
 			upstreams: { main: { remote: "origin", remoteBranch: "main" } },
 			fetchThrows: new Error("network unreachable"),
 		});
