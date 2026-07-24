@@ -179,6 +179,12 @@ interface BuildV2TerminalEnvParams {
 	 * no state change. See the router for rationale.
 	 */
 	hostAgentHookUrl?: string;
+	/**
+	 * Agent-config env overlay, applied last so it wins over the base snapshot.
+	 * Passed structurally into the PTY spawn env — never interpolated into a
+	 * shell command string — so keys/values can't inject shell metacharacters.
+	 */
+	agentEnv?: Record<string, string>;
 }
 
 /**
@@ -202,6 +208,7 @@ export function buildV2TerminalEnv(
 		agentHookPort,
 		agentHookVersion,
 		hostAgentHookUrl,
+		agentEnv,
 	} = params;
 
 	// Defense in depth — baseEnv is pre-stripped at init, but strip again
@@ -257,6 +264,13 @@ export function buildV2TerminalEnv(
 		hasMacosSystemCertBundle()
 	) {
 		env.SSL_CERT_FILE = MACOS_SYSTEM_CERT_FILE;
+	}
+
+	// Applied last: agent-config env overrides the base snapshot. Only valid
+	// POSIX identifier keys reach here (validated at the tRPC boundary), and
+	// they never touch shell parsing — node-pty sets them structurally.
+	if (agentEnv) {
+		Object.assign(env, agentEnv);
 	}
 
 	return env;

@@ -1,7 +1,38 @@
 import { auth } from "@superset/auth/server";
 import { toNextJsHandler } from "better-auth/next-js";
+import { verifyAccessToken } from "better-auth/oauth2";
+import { env } from "@/env";
+import { isUntrustedAuthorizedParty } from "@/lib/trusted-clients";
 
 const { GET: _GET, POST: _POST } = toNextJsHandler(auth);
+
+const apiUrl = env.NEXT_PUBLIC_API_URL.replace(/\/+$/, "");
+
+/**
+ * The native Better Auth userinfo endpoint returns the token subject's
+ * identity but does not validate `azp`. Reject a victim-scoped token minted to
+ * an attacker-registered DCR client before it can leak the victim's identity
+ * (cross-tenant ATO), mirroring the MCP and tRPC boundary checks. Tokens that
+ * fail verification fall through to Better Auth's own handling.
+ */
+async function rejectsUntrustedUserInfo(req: Request): Promise<boolean> {
+	const match = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i);
+	const token = match?.[1];
+	if (!token || token.split(".").length !== 3) return false;
+
+	try {
+		const payload = (await verifyAccessToken(token, {
+			jwksUrl: `${apiUrl}/api/auth/jwks`,
+			verifyOptions: {
+				issuer: apiUrl,
+				audience: [apiUrl, `${apiUrl}/`],
+			},
+		})) as Record<string, unknown>;
+		return isUntrustedAuthorizedParty(payload);
+	} catch {
+		return false;
+	}
+}
 
 /**
  * Normalize localhost variants in a URL so that `localhost` and `127.0.0.1`
@@ -15,6 +46,11 @@ function normalizeLocalhostUri(uri: string): string {
 
 const GET = async (req: Request) => {
 	const url = new URL(req.url);
+	if (url.pathname.endsWith("/oauth2/userinfo")) {
+		if (await rejectsUntrustedUserInfo(req)) {
+			return new Response("Unauthorized", { status: 401 });
+		}
+	}
 	if (url.pathname.endsWith("/oauth2/authorize")) {
 		const redirectUri = url.searchParams.get("redirect_uri");
 		if (redirectUri) {
@@ -30,6 +66,11 @@ const GET = async (req: Request) => {
 
 const POST = async (req: Request) => {
 	const url = new URL(req.url);
+	if (url.pathname.endsWith("/oauth2/userinfo")) {
+		if (await rejectsUntrustedUserInfo(req)) {
+			return new Response("Unauthorized", { status: 401 });
+		}
+	}
 	if (url.pathname.endsWith("/oauth2/register")) {
 		const cloned = req.clone();
 		const body = await cloned.json().catch(() => null);

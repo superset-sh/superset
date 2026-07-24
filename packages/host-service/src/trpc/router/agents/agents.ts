@@ -7,7 +7,6 @@ import {
 import {
 	buildArgvCommand,
 	buildPromptCommandString,
-	envOverlayPrefix,
 	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -259,7 +258,11 @@ async function runTerminalAgent(
 		...effortArgs,
 	]);
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
-	const fullCommand = `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`;
+	// Pass agent env structurally into the PTY spawn rather than prefixing
+	// `KEY=value` onto the command string — an unquoted key would otherwise be
+	// a shell-injection vector (RCE). Keys are also validated at the config
+	// boundary (settings.agentConfigs), so this is defense in depth.
+	const agentEnv = { ...config.env, ...modelEnv };
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -267,7 +270,8 @@ async function runTerminalAgent(
 		workspaceId: input.workspaceId,
 		db: ctx.db,
 		eventBus: ctx.eventBus,
-		initialCommand: fullCommand,
+		initialCommand: command,
+		...(Object.keys(agentEnv).length > 0 ? { extraEnv: agentEnv } : {}),
 	});
 
 	if ("error" in result) {
