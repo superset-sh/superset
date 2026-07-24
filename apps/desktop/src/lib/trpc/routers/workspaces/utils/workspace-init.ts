@@ -18,7 +18,7 @@ import {
 	removeWorktree,
 	sanitizeGitError,
 } from "./git";
-import { copySupersetConfigToWorktree } from "./setup";
+import { copySupersetConfigToWorktree, loadSetupConfig } from "./setup";
 
 export interface WorkspaceInitParams {
 	workspaceId: string;
@@ -92,6 +92,16 @@ export async function initializeWorkspaceWorktree({
 			.from(projects)
 			.where(eq(projects.id, projectId))
 			.get();
+
+		// Coverage signal for the workspace_initialized event: does this project
+		// have any setup/teardown/run script configured?
+		const setupConfig = loadSetupConfig({ mainRepoPath, projectId });
+		const hasSetupScript = Boolean(
+			setupConfig &&
+				((setupConfig.setup?.length ?? 0) > 0 ||
+					(setupConfig.teardown?.length ?? 0) > 0 ||
+					(setupConfig.run?.length ?? 0) > 0),
+		);
 
 		const {
 			compareBaseBranch: configuredCompareBaseBranch,
@@ -180,6 +190,7 @@ export async function initializeWorkspaceWorktree({
 				branch,
 				base_branch: effectiveCompareBaseBranch,
 				use_existing_branch: true,
+				has_setup_script: hasSetupScript,
 			});
 
 			return;
@@ -525,6 +536,7 @@ export async function initializeWorkspaceWorktree({
 			project_id: projectId,
 			branch,
 			base_branch: effectiveCompareBaseBranch,
+			has_setup_script: hasSetupScript,
 		});
 	} catch (error) {
 		const errorMessage = error instanceof Error ? error.message : String(error);
