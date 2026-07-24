@@ -19,6 +19,21 @@ interface CreateDefaultV2TerminalPresetRowsInput {
 	createdAt: Date;
 }
 
+interface ShouldInitializeV2TerminalPresetsInput {
+	initialized: boolean;
+	presetCount: number;
+	hasPersistedCollection: boolean;
+}
+
+export function shouldInitializeV2TerminalPresets({
+	initialized,
+	presetCount,
+	hasPersistedCollection,
+}: ShouldInitializeV2TerminalPresetsInput): boolean {
+	if (!initialized) return true;
+	return presetCount === 0 && !hasPersistedCollection;
+}
+
 export function createDefaultV2TerminalPresetRows({
 	agents,
 	existingPresets,

@@ -7,9 +7,29 @@ import {
 	V2_USER_PREFERENCES_ID,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useCollections } from "../../../../providers/CollectionsProvider";
-import { createDefaultV2TerminalPresetRows } from "./default-v2-terminal-presets";
+import { getV2TerminalPresetsStorageKey } from "../../../../providers/CollectionsProvider/collections";
+import {
+	createDefaultV2TerminalPresetRows,
+	shouldInitializeV2TerminalPresets,
+} from "./default-v2-terminal-presets";
 
-export function useDefaultV2TerminalPresets(hostUrl: string | null): void {
+function hasPersistedPresetCollection(organizationId: string): boolean {
+	try {
+		return (
+			localStorage.getItem(getV2TerminalPresetsStorageKey(organizationId)) !==
+			null
+		);
+	} catch {
+		// If storage is unavailable, preserve an initialized empty collection
+		// instead of risking an unexpected reset.
+		return true;
+	}
+}
+
+export function useDefaultV2TerminalPresets(
+	hostUrl: string | null,
+	organizationId: string | null,
+): void {
 	const collections = useCollections();
 	const { data: agents = [], isFetched: agentsFetched } =
 		useV2AgentConfigs(hostUrl);
@@ -27,14 +47,22 @@ export function useDefaultV2TerminalPresets(hostUrl: string | null): void {
 	);
 
 	const preferences = preferenceRows[0] ?? DEFAULT_V2_USER_PREFERENCES;
+	const hasPersistedCollection = organizationId
+		? hasPersistedPresetCollection(organizationId)
+		: true;
 
 	useEffect(() => {
 		if (
 			!hostUrl ||
+			!organizationId ||
 			!agentsFetched ||
 			!presetsReady ||
 			!preferencesReady ||
-			preferences.terminalPresetsInitialized
+			!shouldInitializeV2TerminalPresets({
+				initialized: preferences.terminalPresetsInitialized,
+				presetCount: v2Presets.length,
+				hasPersistedCollection,
+			})
 		) {
 			return;
 		}
@@ -74,6 +102,8 @@ export function useDefaultV2TerminalPresets(hostUrl: string | null): void {
 		collections.v2TerminalPresets,
 		collections.v2UserPreferences,
 		hostUrl,
+		hasPersistedCollection,
+		organizationId,
 		preferences.terminalPresetsInitialized,
 		preferencesReady,
 		presetsReady,

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-import { createDefaultV2TerminalPresetRows } from "./default-v2-terminal-presets";
+import {
+	createDefaultV2TerminalPresetRows,
+	shouldInitializeV2TerminalPresets,
+} from "./default-v2-terminal-presets";
 
 const createdAt = new Date("2026-05-14T12:00:00.000Z");
 
@@ -163,5 +166,47 @@ describe("createDefaultV2TerminalPresetRows", () => {
 		});
 
 		expect(rows).toEqual([]);
+	});
+});
+
+describe("shouldInitializeV2TerminalPresets", () => {
+	it("repairs a missing preset collection despite a stale initialized flag", () => {
+		expect(
+			shouldInitializeV2TerminalPresets({
+				initialized: true,
+				presetCount: 0,
+				hasPersistedCollection: false,
+			}),
+		).toBe(true);
+	});
+
+	it("preserves an intentionally empty persisted collection", () => {
+		expect(
+			shouldInitializeV2TerminalPresets({
+				initialized: true,
+				presetCount: 0,
+				hasPersistedCollection: true,
+			}),
+		).toBe(false);
+	});
+
+	it("seeds a never-initialized collection", () => {
+		expect(
+			shouldInitializeV2TerminalPresets({
+				initialized: false,
+				presetCount: 0,
+				hasPersistedCollection: true,
+			}),
+		).toBe(true);
+	});
+
+	it("finalizes initialization when presets already exist", () => {
+		expect(
+			shouldInitializeV2TerminalPresets({
+				initialized: false,
+				presetCount: 1,
+				hasPersistedCollection: false,
+			}),
+		).toBe(true);
 	});
 });

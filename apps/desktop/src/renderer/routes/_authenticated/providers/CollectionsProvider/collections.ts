@@ -74,6 +74,10 @@ import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
 
+export function getV2TerminalPresetsStorageKey(organizationId: string): string {
+	return `v2-terminal-presets-${organizationId}`;
+}
+
 const electricUrl = `${env.NEXT_PUBLIC_ELECTRIC_URL}/v1/shape`;
 
 export const ELECTRIC_WRITE_SYNC_TIMEOUT_MS = 30_000;
@@ -805,7 +809,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	const v2TerminalPresets = createIndexedCollection(
 		localStorageCollectionOptions({
 			id: `v2_terminal_presets-${organizationId}`,
-			storageKey: `v2-terminal-presets-${organizationId}`,
+			storageKey: getV2TerminalPresetsStorageKey(organizationId),
 			schema: v2TerminalPresetSchema,
 			getKey: (item) => item.id,
 		}),
