@@ -10,7 +10,7 @@ import {
 import { Table, TableBody, TableHead, TableRow } from "@superset/ui/table";
 import { cn } from "@superset/ui/utils";
 import { useMatchRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import {
 	LuChevronDown,
 	LuChevronRight,
@@ -34,7 +34,10 @@ import {
 import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { V2WorkspaceRow } from "./components/V2WorkspaceRow";
-import { V2_WORKSPACES_COLUMN_COUNT } from "./constants";
+import {
+	useWorkspaceColumns,
+	type WorkspaceColumnVisibility,
+} from "./hooks/useWorkspaceColumns";
 import type { SortDirection, SortField } from "./types";
 
 interface V2WorkspacesListProps {
@@ -152,6 +155,9 @@ export function V2WorkspacesList({
 	const [sortField, setSortField] = useState<SortField>("host");
 	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
 
+	const containerRef = useRef<HTMLDivElement>(null);
+	const { columns, columnCount } = useWorkspaceColumns(containerRef);
+
 	const handleSort = (field: SortField) => {
 		if (sortField === field) {
 			setSortDirection((prev) => (prev === "asc" ? "desc" : "asc"));
@@ -198,39 +204,39 @@ export function V2WorkspacesList({
 						onSort={handleSort}
 					/>
 				</TableHead>
-				<TableHead
-					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-48 md:table-cell")}
-				>
-					<SortableHeader
-						field="host"
-						label="Host"
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
-				<TableHead
-					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-56 lg:table-cell")}
-				>
-					<SortableHeader
-						field="branch"
-						label="Branch"
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
-				<TableHead
-					className={cn(DATA_TABLE_HEAD_CELL, "hidden w-44 xl:table-cell")}
-				>
-					<SortableHeader
-						field="created"
-						label="Created"
-						sortField={sortField}
-						sortDirection={sortDirection}
-						onSort={handleSort}
-					/>
-				</TableHead>
+				{columns.host ? (
+					<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-48")}>
+						<SortableHeader
+							field="host"
+							label="Host"
+							sortField={sortField}
+							sortDirection={sortDirection}
+							onSort={handleSort}
+						/>
+					</TableHead>
+				) : null}
+				{columns.branch ? (
+					<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-56")}>
+						<SortableHeader
+							field="branch"
+							label="Branch"
+							sortField={sortField}
+							sortDirection={sortDirection}
+							onSort={handleSort}
+						/>
+					</TableHead>
+				) : null}
+				{columns.created ? (
+					<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-44")}>
+						<SortableHeader
+							field="created"
+							label="Created"
+							sortField={sortField}
+							sortDirection={sortDirection}
+							onSort={handleSort}
+						/>
+					</TableHead>
+				) : null}
 				<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-14 pr-6")} />
 			</TableRow>
 		</DataTableHeader>
@@ -239,7 +245,7 @@ export function V2WorkspacesList({
 	if (totalCount === 0) {
 		// A host that hasn't answered yet must not read as empty (cache-first rule).
 		return (
-			<div className="flex min-h-0 flex-1 flex-col">
+			<div ref={containerRef} className="flex min-h-0 flex-1 flex-col">
 				<Table className="table-fixed">{columnHeader}</Table>
 				{isReady ? (
 					<Empty className="flex-1 border-0">
@@ -279,7 +285,7 @@ export function V2WorkspacesList({
 	}
 
 	return (
-		<div className="min-h-0 flex-1">
+		<div ref={containerRef} className="min-h-0 flex-1">
 			<Table
 				containerClassName="h-full overflow-y-auto"
 				className="table-fixed"
@@ -290,6 +296,8 @@ export function V2WorkspacesList({
 						key={project.projectId}
 						project={project}
 						currentWorkspaceId={currentWorkspaceId}
+						columns={columns}
+						columnCount={columnCount}
 					/>
 				))}
 			</Table>
@@ -300,9 +308,16 @@ export function V2WorkspacesList({
 interface ProjectSectionProps {
 	project: ProjectGroup;
 	currentWorkspaceId: string | null;
+	columns: WorkspaceColumnVisibility;
+	columnCount: number;
 }
 
-function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
+function ProjectSection({
+	project,
+	currentWorkspaceId,
+	columns,
+	columnCount,
+}: ProjectSectionProps) {
 	const persistedCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.projects[project.projectId]?.isCollapsed ?? false,
 	);
@@ -318,7 +333,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 	return (
 		<TableBody id={`v2-workspaces-project-${project.projectId}`}>
 			<TableRow className="sticky top-8 z-[5] border-border/60 hover:bg-transparent">
-				<td colSpan={V2_WORKSPACES_COLUMN_COUNT} className="p-0">
+				<td colSpan={columnCount} className="p-0">
 					<button
 						type="button"
 						onClick={() => toggleCollapsed(project.projectId)}
@@ -351,6 +366,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 							key={workspace.id}
 							workspace={workspace}
 							isCurrentRoute={workspace.id === currentWorkspaceId}
+							columns={columns}
 						/>
 					))}
 		</TableBody>

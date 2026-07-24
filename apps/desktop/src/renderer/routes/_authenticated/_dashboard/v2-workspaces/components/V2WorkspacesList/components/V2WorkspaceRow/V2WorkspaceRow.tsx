@@ -43,10 +43,12 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { getRelativeTime } from "renderer/screens/main/components/WorkspacesListView/utils";
+import type { WorkspaceColumnVisibility } from "../../hooks/useWorkspaceColumns";
 
 interface V2WorkspaceRowProps {
 	workspace: AccessibleV2Workspace;
 	isCurrentRoute: boolean;
+	columns: WorkspaceColumnVisibility;
 }
 
 function hostIconFor(hostType: V2WorkspaceHostType) {
@@ -56,6 +58,7 @@ function hostIconFor(hostType: V2WorkspaceHostType) {
 export function V2WorkspaceRow({
 	workspace,
 	isCurrentRoute,
+	columns,
 }: V2WorkspaceRowProps) {
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
@@ -277,35 +280,41 @@ export function V2WorkspaceRow({
 							</span>
 						</TableCell>
 
-						<TableCell className="hidden py-1.5 md:table-cell">
-							{treatAsOffline ? (
-								<Tooltip delayDuration={300}>
-									<TooltipTrigger asChild>{hostCell}</TooltipTrigger>
-									<TooltipContent side="top">Host is offline</TooltipContent>
-								</Tooltip>
-							) : (
-								hostCell
-							)}
-						</TableCell>
+						{columns.host ? (
+							<TableCell className="py-1.5">
+								{treatAsOffline ? (
+									<Tooltip delayDuration={300}>
+										<TooltipTrigger asChild>{hostCell}</TooltipTrigger>
+										<TooltipContent side="top">Host is offline</TooltipContent>
+									</Tooltip>
+								) : (
+									hostCell
+								)}
+							</TableCell>
+						) : null}
 
-						<TableCell className="hidden py-1.5 lg:table-cell">
-							<span
-								className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
-								title={workspace.branch}
-							>
-								<LuGitBranch className="size-3 shrink-0" />
-								<span className="min-w-0 truncate font-mono text-[11px]">
-									{workspace.branch}
+						{columns.branch ? (
+							<TableCell className="py-1.5">
+								<span
+									className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
+									title={workspace.branch}
+								>
+									<LuGitBranch className="size-3 shrink-0" />
+									<span className="min-w-0 truncate font-mono text-[11px]">
+										{workspace.branch}
+									</span>
 								</span>
-							</span>
-						</TableCell>
+							</TableCell>
+						) : null}
 
-						<TableCell
-							className="hidden truncate py-1.5 text-xs tabular-nums text-muted-foreground xl:table-cell"
-							title={`Created ${workspace.createdAt.toLocaleString()} by ${creatorLabel}`}
-						>
-							{timeLabel} · {creatorLabel}
-						</TableCell>
+						{columns.created ? (
+							<TableCell
+								className="truncate py-1.5 text-xs tabular-nums text-muted-foreground"
+								title={`Created ${workspace.createdAt.toLocaleString()} by ${creatorLabel}`}
+							>
+								{timeLabel} · {creatorLabel}
+							</TableCell>
+						) : null}
 
 						<TableCell className="py-1.5 pr-6">
 							<div className="flex items-center justify-center">
