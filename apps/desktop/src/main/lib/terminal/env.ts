@@ -213,6 +213,7 @@ const ALLOWED_ENV_VARS = new Set([
 
 	// Terminal/display
 	"DISPLAY",
+	"WAYLAND_DISPLAY", // Wayland compositor socket - needed for clipboard tools (wl-paste, xclip) in PTY
 	"COLORTERM",
 	"TERM_PROGRAM",
 	"TERM_PROGRAM_VERSION",
