@@ -154,6 +154,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
+		id: "hermes",
+		label: "Hermes",
+		description:
+			"Nous Research's autonomous agent for coding, research, and terminal workflows.",
+		command: "hermes --yolo",
+		promptCommand: "hermes --yolo chat -q",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "cursor-agent",
 		label: "Cursor Agent",
 		description:
