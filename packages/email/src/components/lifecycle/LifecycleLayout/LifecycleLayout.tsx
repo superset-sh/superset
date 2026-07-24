@@ -85,16 +85,38 @@ export function LifecycleLayout({
 								<Img
 									src={`${assets}/logo-full-white.png`}
 									alt="Superset"
-									width="180"
+									width="219"
 									style={{ marginTop: "14px" }}
 								/>
+								<Row style={{ marginTop: "40px", width: "236px" }}>
+									<Column style={{ width: "112px" }}>
+										<Link href="https://superset.sh/download">
+											<Img
+												src={`${assets}/badge-appstore.png`}
+												alt="App Store"
+												width="108"
+												height="32"
+											/>
+										</Link>
+									</Column>
+									<Column style={{ width: "124px" }}>
+										<Link href="https://superset.sh/download">
+											<Img
+												src={`${assets}/badge-googleplay.png`}
+												alt="Google Play"
+												width="108"
+												height="32"
+											/>
+										</Link>
+									</Column>
+								</Row>
 							</Column>
 							<Column style={{ width: "55%", verticalAlign: "top" }}>
 								<Row>
-									<Column style={{ width: "33%", textAlign: "center" }}>
+									<Column style={{ width: "25%", textAlign: "center" }}>
 										<Link href="https://instagram.com/superset">
 											<Img
-												src={`${assets}/instagram-white.png`}
+												src={`${assets}/icon-instagram-white.png`}
 												alt="Instagram"
 												width="28"
 												height="28"
@@ -102,10 +124,10 @@ export function LifecycleLayout({
 											/>
 										</Link>
 									</Column>
-									<Column style={{ width: "33%", textAlign: "center" }}>
+									<Column style={{ width: "25%", textAlign: "center" }}>
 										<Link href="https://www.linkedin.com/company/superset-sh">
 											<Img
-												src={`${assets}/linkedin-white.png`}
+												src={`${assets}/icon-linkedin-white.png`}
 												alt="LinkedIn"
 												width="28"
 												height="28"
@@ -113,11 +135,22 @@ export function LifecycleLayout({
 											/>
 										</Link>
 									</Column>
-									<Column style={{ width: "33%", textAlign: "center" }}>
+									<Column style={{ width: "25%", textAlign: "center" }}>
 										<Link href="https://x.com/superset_sh">
 											<Img
-												src={`${assets}/x-white.png`}
+												src={`${assets}/icon-x-white.png`}
 												alt="X"
+												width="28"
+												height="28"
+												style={{ display: "inline-block" }}
+											/>
+										</Link>
+									</Column>
+									<Column style={{ width: "25%", textAlign: "center" }}>
+										<Link href="https://www.youtube.com/@superset-sh">
+											<Img
+												src={`${assets}/icon-youtube-white.png`}
+												alt="YouTube"
 												width="28"
 												height="28"
 												style={{ display: "inline-block" }}
@@ -127,9 +160,10 @@ export function LifecycleLayout({
 								</Row>
 								<Hr
 									style={{
-										borderColor: "#FFFFFF",
-										borderWidth: "1px",
-										margin: "26px 0 24px 0",
+										borderTop: "solid 1px #C2C0B6",
+										borderBottom: "none",
+										width: "248px",
+										margin: "26px auto 24px auto",
 									}}
 								/>
 								<Text style={{ ...footerText, marginBottom: "14px" }}>
