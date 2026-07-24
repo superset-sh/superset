@@ -59,6 +59,8 @@ export function useDashboardSidebarPortsData(): {
 				.map((workspace) => ({
 					id: workspace.id,
 					name: workspace.name,
+					branch: workspace.branch,
+					type: workspace.type,
 					hostId: workspace.hostId,
 				})),
 		[allWorkspaces, visibleWorkspaceIds],

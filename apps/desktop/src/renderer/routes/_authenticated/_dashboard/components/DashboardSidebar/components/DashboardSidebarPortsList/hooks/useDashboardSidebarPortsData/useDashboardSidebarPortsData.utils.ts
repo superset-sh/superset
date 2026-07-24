@@ -1,7 +1,11 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { PortChangedPayload } from "@superset/workspace-client";
+import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type { DetectedPort } from "shared/types";
-import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
+import type {
+	DashboardSidebarWorkspaceHostType,
+	DashboardSidebarWorkspaceType,
+} from "../../../../types";
 
 export interface DashboardSidebarPort extends RemotePort {
 	hostId: string;
@@ -54,6 +58,8 @@ export interface DashboardSidebarHostRow {
 export interface DashboardSidebarWorkspaceRow {
 	id: string;
 	name: string;
+	branch: string;
+	type: DashboardSidebarWorkspaceType;
 	hostId: string;
 }
 
@@ -130,7 +136,7 @@ export function deriveHostPortQueryTargets({
 	hosts: DashboardSidebarHostRow[];
 	machineId: string | null;
 	relayUrl: string;
-	workspaces: DashboardSidebarWorkspaceRow[];
+	workspaces: Pick<DashboardSidebarWorkspaceRow, "id" | "hostId">[];
 }): HostPortsQueryTarget[] {
 	const workspaceIdsByHostId = new Map<string, string[]>();
 	for (const workspace of workspaces) {
@@ -214,7 +220,7 @@ export function groupDashboardSidebarPorts({
 		workspaces.map((workspace) => [
 			workspace.id,
 			{
-				name: workspace.name,
+				name: getV2WorkspaceDisplayName(workspace),
 			},
 		]),
 	);
