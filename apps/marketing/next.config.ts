@@ -81,7 +81,7 @@ const config: NextConfig = {
 							'</index.md>; rel="alternate"; type="text/markdown"',
 							'</llms.txt>; rel="describedby"; type="text/plain"',
 							'</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"',
-							'<https://api.superset.sh/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
+							'</.well-known/mcp/server-card.json>; rel="service-desc"; type="application/json"',
 						].join(", "),
 					},
 				],

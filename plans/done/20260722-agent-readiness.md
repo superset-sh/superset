@@ -16,11 +16,11 @@ Shipped 2026-07-22 against the [orank scan](https://ora.ai/score/superset.sh) (5
 | robots.txt AI tiers (allow AI search/user agents; block CCBot/Bytespider) + Content-Signal `ai-train=yes` | `marketing/app/robots.txt/` | **Med** — explicit welcome signal to AI crawlers; train=yes keeps us in future model knowledge | Low — static text; revisit the train stance deliberately, not per-scan |
 | docs `/llms.txt` index + blog/compare scoped llms.txt | `docs/app/llms.txt/`, `marketing/app/{blog,compare}/llms.txt/` | **Med** — scoped context for agents; docs already had `llms-full.txt` + per-page `/llms.mdx/*` | Low — generated from sources |
 | JSON-LD: Organization contactPoint/address/sameAs, WebPage speakable, Service; contact-page prose | `marketing/components/JsonLd/`, `contact/page.tsx` | **Med** — entity disambiguation + trust checks AI assistants run before recommending | Low — static schema |
-| `/openapi.json` (OpenAPI 3.1) | `api/app/openapi.json/route.ts` | **Med** — biggest single scanner item (7pts + 3 downstream); real API is MCP, so spec value to agents is secondary | **Med — the one hand-authored artifact.** Scoped to protocol-stable surface only (MCP transport, OAuth per RFC, discovery); tools intentionally excluded (self-described via `tools/list`). If the OAuth or transport surface changes, update this file |
 | A2A agent card + RFC 9727 `api-catalog` + RFC 8288 Link headers on `/` | `marketing/.well-known/`, `next.config.ts` | **Low** — emerging standards, little real traffic today; card honestly states we speak MCP, not A2A | Low — static, but 3 more files repeating the same URLs; consolidate if they drift |
 
 ## Dropped (deliberately)
 
+- `/openapi.json` — shipped then removed. Our API is MCP (JSON-RPC over one endpoint), so an OpenAPI spec reduces to a single generic operation no function-calling framework can use; the real catalog is the live server card / `tools/list`, and auth is discoverable via RFC metadata + auth.md. Forfeits ~7-9 scanner pts but avoids the only hand-maintained artifact. Revisit only if we ever expose per-tool REST.
 - NLWeb `schemamap.xml` / `/ask` — would have invented an unverifiable format / real endpoint work for negligible reach.
 - 401 stubs at `/v1`, `/v2`, `/agent/auth` — fake entry points; scanner-gaming.
 - Web Bot Auth key directory — publishing keys nothing signs with is theater.
