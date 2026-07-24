@@ -1,5 +1,6 @@
 import { COMPANY } from "@superset/shared/constants";
 import { getBlogPost } from "@/lib/blog";
+import { getChangelogEntry } from "@/lib/changelog";
 import { getComparisonPage } from "@/lib/compare";
 import { MARKDOWN_HEADERS, stripMdxSyntax } from "@/lib/llms";
 
@@ -35,6 +36,17 @@ function loadPage(section: string, slug: string): MarkdownPage | undefined {
 			date: page.lastUpdated ?? page.date,
 			description: page.description,
 			content: page.content,
+		};
+	}
+	if (section === "changelog") {
+		const entry = getChangelogEntry(slug);
+		if (!entry || entry.draft) return undefined;
+		return {
+			title: entry.title,
+			url: `${baseUrl}/changelog/${entry.slug}`,
+			date: entry.date,
+			description: entry.description,
+			content: entry.content,
 		};
 	}
 	return undefined;

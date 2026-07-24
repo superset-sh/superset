@@ -71,6 +71,7 @@ export function SoftwareApplicationJsonLd() {
 		name: COMPANY.NAME,
 		operatingSystem: "macOS, Windows, Linux",
 		applicationCategory: "DeveloperApplication",
+		applicationSubCategory: "Developer Tools",
 		offers: {
 			"@type": "Offer",
 			price: "0",

@@ -57,6 +57,11 @@ const config: NextConfig = {
 				permanent: true,
 			},
 			{
+				source: "/mcp",
+				destination: "https://api.superset.sh/mcp",
+				permanent: false,
+			},
+			{
 				source: "/changelog/2026-03-09-codemirror-workspace-modal-icons",
 				destination: "/changelog/2026-03-09-codemirror-workspace",
 				permanent: true,
@@ -81,7 +86,7 @@ const config: NextConfig = {
 							'</index.md>; rel="alternate"; type="text/markdown"',
 							'</llms.txt>; rel="describedby"; type="text/plain"',
 							'</.well-known/api-catalog>; rel="api-catalog"; type="application/linkset+json"',
-							'</.well-known/mcp/server-card.json>; rel="service-desc"; type="application/json"',
+							'<https://api.superset.sh/openapi.json>; rel="service-desc"; type="application/vnd.oai.openapi+json"',
 						].join(", "),
 					},
 				],

@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-const MD_TWIN_PATTERN = /^\/(blog|compare)\/([^/]+)\.md$/;
+const MD_TWIN_PATTERN = /^\/(blog|compare|changelog)\/([^/]+)\.md$/;
 
 function acceptsMarkdown(request: NextRequest): boolean {
 	const accept = request.headers.get("accept") ?? "";
@@ -39,7 +39,10 @@ export default function proxy(request: NextRequest) {
 
 	// Accept negotiation on content pages that have a markdown twin. Segments
 	// with an extension (llms.txt, feed.xml) are files, not pages — skip them.
-	if (/^\/(blog|compare)\/[^/.]+$/.test(pathname) && acceptsMarkdown(request)) {
+	if (
+		/^\/(blog|compare|changelog)\/[^/.]+$/.test(pathname) &&
+		acceptsMarkdown(request)
+	) {
 		return rewriteTo(request, `/md${pathname}`);
 	}
 
@@ -47,5 +50,5 @@ export default function proxy(request: NextRequest) {
 }
 
 export const config = {
-	matcher: ["/", "/blog/:slug", "/compare/:slug"],
+	matcher: ["/", "/blog/:slug", "/compare/:slug", "/changelog/:slug"],
 };

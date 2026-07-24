@@ -1,6 +1,8 @@
 # Agent readiness (orank remediation)
 
-Shipped 2026-07-22 against the [orank scan](https://ora.ai/score/superset.sh) (59/100). Goal: make superset.sh discoverable and usable by AI agents — markdown surfaces, MCP discovery, auth metadata, structured errors. Rescan after deploy: `POST https://ora.ai/api/scan {"url":"superset.sh"}`.
+Round 1 shipped 2026-07-22 against the [orank scan](https://ora.ai/score/superset.sh) at 59/100; rescan came back 70/100. Round 2 shipped 2026-07-24 targeting >85. Goal: make superset.sh discoverable and usable by AI agents — markdown surfaces, MCP discovery, auth metadata, structured errors. Rescan after deploy: `POST https://ora.ai/api/scan {"url":"superset.sh"}`.
+
+Context for future scan-chasing: AI assistants refer ~200 visitors/mo (~0.25% of traffic, measured 2026-07-23), so this workstream is insurance + agent product polish, not a growth lever. The score-moving levers left are external (Wikipedia/Wikidata, skills.sh, ChatGPT directory, PyPI SDK) and orank's own category classifier (we're classified "AI & ML"; "Developer Tools" would give us saner brand queries).
 
 **Growth** = how much this helps agents/AI search find, cite, and use Superset. **Debt** = ongoing maintenance risk.
 
@@ -16,11 +18,22 @@ Shipped 2026-07-22 against the [orank scan](https://ora.ai/score/superset.sh) (5
 | robots.txt AI tiers (allow AI search/user agents; block CCBot/Bytespider) + Content-Signal `ai-train=yes` | `marketing/app/robots.txt/` | **Med** — explicit welcome signal to AI crawlers; train=yes keeps us in future model knowledge | Low — static text; revisit the train stance deliberately, not per-scan |
 | docs `/llms.txt` index + blog/compare scoped llms.txt | `docs/app/llms.txt/`, `marketing/app/{blog,compare}/llms.txt/` | **Med** — scoped context for agents; docs already had `llms-full.txt` + per-page `/llms.mdx/*` | Low — generated from sources |
 | JSON-LD: Organization contactPoint/address/sameAs, WebPage speakable, Service; contact-page prose | `marketing/components/JsonLd/`, `contact/page.tsx` | **Med** — entity disambiguation + trust checks AI assistants run before recommending | Low — static schema |
+| `/openapi.json` (OpenAPI 3.1) | `api/app/openapi.json/route.ts` | **Med** — biggest single scanner item (7pts + 3 downstream); real API is MCP, so spec value to agents is secondary | **Med — the one hand-authored artifact.** Scoped to protocol-stable surface only (MCP transport, OAuth per RFC, discovery); tools intentionally excluded (self-described via `tools/list`). If the OAuth or transport surface changes, update this file |
 | A2A agent card + RFC 9727 `api-catalog` + RFC 8288 Link headers on `/` | `marketing/.well-known/`, `next.config.ts` | **Low** — emerging standards, little real traffic today; card honestly states we speak MCP, not A2A | Low — static, but 3 more files repeating the same URLs; consolidate if they drift |
+
+## Round 2 (2026-07-24, after 70/100 rescan)
+
+| Change | Where | Growth | Debt |
+|---|---|---|---|
+| Docs MCP server: `docs.superset.sh/mcp` speaks MCP (docs_search + docs_read over fumadocs source); docs page moved to `/mcp-server`, browser GETs 308-redirect | `docs/src/app/mcp/route.ts` | **Med** — the "learn" surface over the same protocol agents act with; no auth, read-only | Low — tools read the live source loader; page rename is the only URL change |
+| `/openapi.json` reinstated (revert of the drop) | `api/app/openapi.json/route.ts` | Scanner-driven: ~16 pts hang off it (spec + scoped-permissions + schema + function-calling checks). Protocol-stable scope only; tools still self-described via `tools/list` | **Med — the one hand-authored artifact**; update only if OAuth/transport surface changes |
+| `agent_auth.identity_types_supported: ["anonymous"]` + per-type block | `api/lib/agent-auth-metadata.ts` | Low — completes the auth.md discovery shape; "anonymous DCR, user claims via consent" accurately describes our flow | Low |
+| `/mcp` alias on api host + `superset.sh/mcp` 307 redirect | `api/app/mcp/route.ts`, marketing redirects | Low-Med — memorable URL, satisfies WebMCP probes | Low — re-export of the v2 handler |
+| `/api/llms.txt` + robots carve-out; `.md` twins + Accept negotiation extended to changelog | marketing | Low — more scoped/markdown coverage | Low — generated |
+| `applicationSubCategory: "Developer Tools"` in SoftwareApplication JSON-LD | `marketing/components/JsonLd/` | Low — nudges category classifiers away from "AI & ML" | Low |
 
 ## Dropped (deliberately)
 
-- `/openapi.json` — shipped then removed. Our API is MCP (JSON-RPC over one endpoint), so an OpenAPI spec reduces to a single generic operation no function-calling framework can use; the real catalog is the live server card / `tools/list`, and auth is discoverable via RFC metadata + auth.md. Forfeits ~7-9 scanner pts but avoids the only hand-maintained artifact. Revisit only if we ever expose per-tool REST.
 - NLWeb `schemamap.xml` / `/ask` — would have invented an unverifiable format / real endpoint work for negligible reach.
 - 401 stubs at `/v1`, `/v2`, `/agent/auth` — fake entry points; scanner-gaming.
 - Web Bot Auth key directory — publishing keys nothing signs with is theater.

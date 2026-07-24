@@ -7,7 +7,7 @@ function unauthorized(request: Request): Response {
 			error: {
 				code: "UNAUTHORIZED",
 				message: "Authentication required.",
-				hint: `Authenticate via OAuth 2.1 (see https://superset.sh/auth.md) or a Superset API key, then use the MCP server at ${origin}/api/v2/agent/mcp. Tool catalog: ${origin}/.well-known/mcp/server-card.json`,
+				hint: `Authenticate via OAuth 2.1 (see https://superset.sh/auth.md) or a Superset API key, then use the MCP server at ${origin}/api/v2/agent/mcp. API surface: ${origin}/openapi.json`,
 			},
 		},
 		{
