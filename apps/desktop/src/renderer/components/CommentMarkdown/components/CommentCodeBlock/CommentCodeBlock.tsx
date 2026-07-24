@@ -1,4 +1,4 @@
-import { mermaid } from "@streamdown/mermaid";
+import { mermaidConfig, mermaidPlugins } from "@superset/ui/lib/mermaid";
 import type { ReactNode } from "react";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import {
@@ -7,8 +7,6 @@ import {
 } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { useTheme } from "renderer/stores";
 import { Streamdown } from "streamdown";
-
-const mermaidPlugins = { mermaid };
 
 const MERMAID_DARK_VARS = {
 	background: "#1e1e2e",
@@ -65,12 +63,10 @@ export function CommentCodeBlock({
 			<Streamdown
 				mode="static"
 				plugins={mermaidPlugins}
-				mermaid={{
-					config: {
-						theme: "base",
-						themeVariables: isDark ? MERMAID_DARK_VARS : MERMAID_LIGHT_VARS,
-					},
-				}}
+				mermaid={mermaidConfig({
+					theme: "base",
+					themeVariables: isDark ? MERMAID_DARK_VARS : MERMAID_LIGHT_VARS,
+				})}
 			>
 				{`\`\`\`mermaid\n${codeString}\n\`\`\``}
 			</Streamdown>
