@@ -16,6 +16,16 @@ export const pullRequestsRouter = router({
 				);
 			return { workspaces };
 		}),
+	unlinkFromWorkspace: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			ctx.runtime.pullRequests.unlinkWorkspacePullRequest(input.workspaceId);
+			return { ok: true };
+		}),
 	refreshByWorkspaces: protectedProcedure
 		.input(
 			z.object({

@@ -24,6 +24,7 @@ import {
 	LuPencil,
 	LuRadioTower,
 	LuTrash2,
+	LuUnlink,
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
@@ -40,6 +41,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	isPinned?: boolean;
 	isUnread: boolean;
 	hasStatus: boolean;
+	hasPullRequest: boolean;
 	showDeleteHotkey?: boolean;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
@@ -51,6 +53,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onDelete?: () => void;
 	onToggleUnread: () => void;
 	onClearStatus: () => void;
+	onRemovePullRequest: () => void;
 	children: React.ReactNode;
 }
 
@@ -62,6 +65,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	isPinned = false,
 	isUnread,
 	hasStatus,
+	hasPullRequest,
 	showDeleteHotkey = false,
 	onCreateSection,
 	onMoveToSection,
@@ -73,6 +77,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onDelete,
 	onToggleUnread,
 	onClearStatus,
+	onRemovePullRequest,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
@@ -150,6 +155,12 @@ export function DashboardSidebarWorkspaceContextMenu({
 					<ContextMenuItem onSelect={onClearStatus}>
 						<LuBellOff className="size-4 mr-2" />
 						Clear Status
+					</ContextMenuItem>
+				)}
+				{hasPullRequest && (
+					<ContextMenuItem onSelect={onRemovePullRequest}>
+						<LuUnlink className="size-4 mr-2" />
+						Remove PR Link
 					</ContextMenuItem>
 				)}
 				{!isPinned && (

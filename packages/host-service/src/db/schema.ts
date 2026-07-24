@@ -192,6 +192,12 @@ export const workspaces = sqliteTable(
 		pullRequestId: text("pull_request_id").references(() => pullRequests.id, {
 			onDelete: "set null",
 		}),
+		// Set when the user removes the PR link; the refresh sweep must not
+		// re-link this specific PR. A different PR on the branch still links.
+		suppressedPullRequestId: text("suppressed_pull_request_id").references(
+			() => pullRequests.id,
+			{ onDelete: "set null" },
+		),
 		// Empty string means "not yet backfilled from cloud" — the startup
 		// backfill sweep targets these rows.
 		name: text().notNull().default(""),
