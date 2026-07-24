@@ -36,6 +36,7 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
+	useOpenEmptyProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
@@ -49,6 +50,7 @@ export function DashboardSidebarHeader({
 	isCollapsed = false,
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
+	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
 	const navigate = useNavigate();
@@ -256,6 +258,10 @@ export function DashboardSidebarHeader({
 						align="start"
 						onCloseAutoFocus={(event) => event.preventDefault()}
 					>
+						<DropdownMenuItem onSelect={() => openEmptyProject()}>
+							<LuFolderPlus className="size-4" />
+							Create new project
+						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openNewProject()}>
 							<HiMiniPlus className="size-4" />
 							Clone from URL
