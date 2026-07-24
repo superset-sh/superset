@@ -23,7 +23,7 @@ interface HeroCopy {
 }
 
 const TEST_SUBHEADLINE =
-	"Isolated workspaces for Claude Code, Codex, and any CLI agent — run them side by side and review every change from one dashboard. Free to start.";
+	"Isolated workspaces for Claude Code, Codex, and any CLI agent. Review every change from one dashboard. Free to start.";
 
 const HERO_COPY = {
 	control: {
@@ -70,7 +70,7 @@ export function HeroSection() {
 					<div className="flex flex-col items-center text-center">
 						<div className="space-y-4 sm:space-y-6">
 							<h1
-								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative"
+								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative max-w-6xl mx-auto"
 								style={{
 									fontFamily: "var(--font-ibm-plex-mono), monospace",
 								}}

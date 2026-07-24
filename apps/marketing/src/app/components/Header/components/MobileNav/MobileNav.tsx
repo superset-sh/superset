@@ -21,7 +21,10 @@ export function MobileNav({ ctaButtons, starCounter }: MobileNavProps) {
 	const close = () => setIsOpen(false);
 
 	return (
-		<div className="md:hidden">
+		<div className="lg:hidden flex items-center gap-2">
+			<div className="hidden sm:flex items-center gap-2 shrink-0">
+				{ctaButtons}
+			</div>
 			<button
 				type="button"
 				className="p-2 text-muted-foreground hover:text-foreground transition-colors"
