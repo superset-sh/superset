@@ -87,28 +87,32 @@ export function LifecycleLayout({
 									alt="Superset"
 									width="219"
 								/>
-								<Row style={{ marginTop: "40px", width: "236px" }}>
-									<Column style={{ width: "112px" }}>
-										<Link href="https://superset.sh/download">
-											<Img
-												src={`${assets}/badge-appstore.png`}
-												alt="App Store"
-												width="108"
-												height="32"
-											/>
-										</Link>
-									</Column>
-									<Column style={{ width: "124px" }}>
-										<Link href="https://superset.sh/download">
-											<Img
-												src={`${assets}/badge-googleplay.png`}
-												alt="Google Play"
-												width="108"
-												height="32"
-											/>
-										</Link>
-									</Column>
-								</Row>
+								<Text style={{ margin: "40px 0 0 0" }}>
+									<Link
+										href="https://superset.sh/download"
+										style={{ display: "inline-block", marginRight: "16px" }}
+									>
+										<Img
+											src={`${assets}/badge-appstore.png`}
+											alt="App Store"
+											width="108"
+											height="32"
+											style={{ display: "inline-block" }}
+										/>
+									</Link>
+									<Link
+										href="https://superset.sh/download"
+										style={{ display: "inline-block" }}
+									>
+										<Img
+											src={`${assets}/badge-googleplay.png`}
+											alt="Google Play"
+											width="108"
+											height="32"
+											style={{ display: "inline-block" }}
+										/>
+									</Link>
+								</Text>
 							</Column>
 							<Column style={{ width: "50%", verticalAlign: "top" }}>
 								<Section style={{ width: "248px", margin: "0 auto" }}>
