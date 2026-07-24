@@ -59,11 +59,11 @@ export interface UseHostWorkspacesResult {
  * Electric collection fill in only for hosts that served nothing (pre-R1
  * builds, no snapshot) — that fallback disappears in R3.
  *
- * Scoped (`scopedHostId` a machine id, or null while it resolves): a single
- * host, no fan-out and no cloud fallback — an unreachable host shows its
- * snapshot or nothing, never stale cloud rows. Query keys are shared with
- * the provider, so a scoped call where the provider is mounted fetches the
- * host once, not twice.
+ * Scoped (`scopedHostId` a machine id): a single host, no fan-out and no
+ * cloud fallback — an unreachable host shows its snapshot or nothing, never
+ * stale cloud rows. Query keys are shared with the provider, so a scoped
+ * call where the provider is mounted fetches the host once, not twice.
+ * Passing null resolves no target and runs nothing (stays !isReady).
  */
 export function useHostWorkspacesSource(
 	scopedHostId?: string | null,

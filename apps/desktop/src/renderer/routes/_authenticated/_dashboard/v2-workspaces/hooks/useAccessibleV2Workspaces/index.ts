@@ -5,7 +5,6 @@ export {
 	type V2WorkspaceHostOption,
 	type V2WorkspaceHostType,
 	type V2WorkspacePrChecksStatus,
-	type V2WorkspaceProjectGroup,
 	type V2WorkspaceProjectOption,
 	type V2WorkspacePrReviewDecision,
 	type V2WorkspacePrState,

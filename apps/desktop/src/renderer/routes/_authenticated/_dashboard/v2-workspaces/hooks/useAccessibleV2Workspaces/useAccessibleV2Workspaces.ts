@@ -72,12 +72,6 @@ export interface AccessibleV2Workspace {
 	pr: V2WorkspacePrSummary | null;
 }
 
-export interface V2WorkspaceProjectGroup {
-	projectId: string;
-	projectName: string;
-	workspaces: AccessibleV2Workspace[];
-}
-
 export interface V2WorkspaceHostOption {
 	hostId: string;
 	hostName: string;
@@ -94,9 +88,7 @@ export interface V2WorkspaceProjectOption {
 
 export interface UseAccessibleV2WorkspacesResult {
 	all: AccessibleV2Workspace[];
-	pinned: AccessibleV2Workspace[];
-	others: AccessibleV2Workspace[];
-	/** Selected host settlement — gates empty states only, never rendered rows. */
+	/** Row-source settlement — gates empty states only, never rendered rows. */
 	isReady: boolean;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
@@ -232,23 +224,22 @@ export function useAccessibleV2Workspaces(
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
-	// Scoped (the page): a single `workspace.list` against the selected host —
-	// no fan-out, so ten idle hosts can't slow down or silently thin out the
-	// list. Unscoped (palette, dev seeding): the shared provider's merged view;
-	// the scoped source gets null there, which resolves no target and runs no
-	// queries.
+	// With a device filter (the page), rows come from a single `workspace.list`
+	// against that host — no fan-out, so ten idle hosts can't slow down or
+	// silently thin out the list. Without one (palette, dev seeding), rows come
+	// from the provider's already-running fan-out. Both hooks always run per the
+	// rules of hooks; the unused one is passed null / left unread and does no
+	// work of its own.
 	const selectedHostId =
 		deviceFilter === undefined
 			? null
 			: deviceFilter === DEVICE_FILTER_THIS_DEVICE
 				? machineId
 				: deviceFilter;
-	const selectedHost = useHostWorkspacesSource(selectedHostId);
-	const allHosts = useHostWorkspaces();
-	const hostWorkspaces =
-		deviceFilter === undefined ? allHosts.workspaces : selectedHost.workspaces;
-	const isReady =
-		deviceFilter === undefined ? allHosts.isReady : selectedHost.isReady;
+	const scopedSource = useHostWorkspacesSource(selectedHostId);
+	const fanoutSource = useHostWorkspaces();
+	const { workspaces: hostWorkspaces, isReady } =
+		deviceFilter === undefined ? fanoutSource : scopedSource;
 
 	const { data: hostRows = [] } = useLiveQuery(
 		(q) =>
@@ -566,16 +557,6 @@ export function useAccessibleV2Workspaces(
 		[searchFiltered, projectFilter],
 	);
 
-	const pinned = useMemo(
-		() => fullyFiltered.filter((workspace) => workspace.isInSidebar),
-		[fullyFiltered],
-	);
-
-	const others = useMemo(
-		() => fullyFiltered.filter((workspace) => !workspace.isInSidebar),
-		[fullyFiltered],
-	);
-
 	// Hosts come straight from the (locally cached) hosts collections so the
 	// picker is populated immediately — before the selected host's workspace
 	// query answers, and including hosts with zero workspaces. No per-host
@@ -658,8 +639,6 @@ export function useAccessibleV2Workspaces(
 
 	return {
 		all: fullyFiltered,
-		pinned,
-		others,
 		isReady,
 		hostOptions,
 		projectOptions,
