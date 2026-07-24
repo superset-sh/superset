@@ -73,6 +73,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleRemovePullRequest,
 		handleTogglePin,
 		handleToggleUnread,
 		isActive,
@@ -238,6 +239,7 @@ export function DashboardSidebarWorkspaceItem({
 							isInSection={isInSection}
 							isUnread={isUnread}
 							hasStatus={!!workspaceStatus}
+							hasPullRequest={!!pullRequest}
 							isLocalWorkspace={hostType === "local-device"}
 							isLocalMainWorkspace={
 								isMainWorkspace && hostType === "local-device"
@@ -253,6 +255,7 @@ export function DashboardSidebarWorkspaceItem({
 							onCopyPath={handleCopyPath}
 							onCopyBranchName={handleCopyBranchName}
 							onRemoveFromSidebar={handleRemoveFromSidebar}
+							onRemovePullRequest={handleRemovePullRequest}
 							onRename={isMainWorkspace ? undefined : startRename}
 							onDelete={
 								isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)
@@ -339,6 +342,7 @@ export function DashboardSidebarWorkspaceItem({
 						isInSection={isInSection}
 						isUnread={isUnread}
 						hasStatus={!!workspaceStatus}
+						hasPullRequest={!!pullRequest}
 						onCreateSection={handleCreateSection}
 						onMoveToSection={(targetSectionId) =>
 							moveWorkspaceToSection(id, projectId, targetSectionId)
@@ -354,6 +358,7 @@ export function DashboardSidebarWorkspaceItem({
 						onCopyPath={handleCopyPath}
 						onCopyBranchName={handleCopyBranchName}
 						onRemoveFromSidebar={handleRemoveFromSidebar}
+						onRemovePullRequest={handleRemovePullRequest}
 						onRename={isMainWorkspace ? undefined : startRename}
 						onDelete={
 							isMainWorkspace ? undefined : () => setIsDeleteDialogOpen(true)

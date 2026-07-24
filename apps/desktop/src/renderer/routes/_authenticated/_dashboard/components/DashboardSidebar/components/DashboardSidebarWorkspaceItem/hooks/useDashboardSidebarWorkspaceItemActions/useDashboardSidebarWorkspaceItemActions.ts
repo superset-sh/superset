@@ -13,6 +13,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
+import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -191,6 +192,22 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
+	const handleRemovePullRequest = async () => {
+		if (!workspaceHostUrl) return;
+		try {
+			await getHostServiceClientByUrl(
+				workspaceHostUrl,
+			).pullRequests.unlinkFromWorkspace.mutate({ workspaceId });
+			await queryClient.invalidateQueries({
+				queryKey: DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX,
+			});
+		} catch (error) {
+			toast.error(
+				`Failed to remove PR link: ${error instanceof Error ? error.message : "Unknown error"}`,
+			);
+		}
+	};
+
 	const handleCopyBranchName = async () => {
 		if (!branch) {
 			toast.error("Branch name is not available");
@@ -216,6 +233,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleRemovePullRequest,
 		handleTogglePin,
 		handleToggleUnread,
 		isActive,
