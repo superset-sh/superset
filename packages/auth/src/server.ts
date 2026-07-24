@@ -206,7 +206,10 @@ export const auth = betterAuth({
 							replyTo: "founders@superset.sh",
 							to: user.email,
 							subject: "Welcome to Superset",
-							react: WelcomeEmail({ userName: user.name }),
+							react: WelcomeEmail({
+								userName: user.name,
+								userEmail: user.email,
+							}),
 						});
 					} catch (error) {
 						console.error(

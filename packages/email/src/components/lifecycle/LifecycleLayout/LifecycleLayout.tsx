@@ -1,11 +1,14 @@
 import {
 	Body,
+	Column,
 	Container,
 	Head,
+	Hr,
 	Html,
 	Img,
 	Link,
 	Preview,
+	Row,
 	Section,
 	Text,
 } from "@react-email/components";
@@ -16,12 +19,22 @@ import { lifecycle } from "../../../lib/lifecycle-theme";
 interface LifecycleLayoutProps {
 	preview: string;
 	children: ReactNode;
+	recipientEmail?: string;
 	unsubscribeUrl?: string;
 }
+
+const footerText = {
+	margin: 0,
+	fontFamily: lifecycle.fonts.serif,
+	fontSize: "14px",
+	lineHeight: "21px",
+	color: lifecycle.colors.footerMuted,
+} as const;
 
 export function LifecycleLayout({
 	preview,
 	children,
+	recipientEmail,
 	unsubscribeUrl,
 }: LifecycleLayoutProps) {
 	const assets = `${env.NEXT_PUBLIC_MARKETING_URL}/assets/emails`;
@@ -64,96 +77,94 @@ export function LifecycleLayout({
 					<Section
 						style={{
 							backgroundColor: lifecycle.colors.footer,
-							padding: "40px 48px",
+							padding: "48px 40px 56px 40px",
 						}}
 					>
-						<Img
-							src={`${assets}/logo-full-white.png`}
-							alt="Superset"
-							width="140"
-							style={{ marginBottom: "24px" }}
-						/>
-						<Text style={{ margin: "0 0 28px 0" }}>
-							<Link
-								href="https://x.com/superset_sh"
-								style={{ display: "inline-block", marginRight: "18px" }}
-							>
+						<Row>
+							<Column style={{ width: "45%", verticalAlign: "top" }}>
 								<Img
-									src={`${assets}/x-white.png`}
-									alt="X"
-									width="22"
-									height="22"
+									src={`${assets}/logo-full-white.png`}
+									alt="Superset"
+									width="180"
+									style={{ marginTop: "14px" }}
 								/>
-							</Link>
-							<Link
-								href="https://instagram.com/superset"
-								style={{ display: "inline-block", marginRight: "18px" }}
-							>
-								<Img
-									src={`${assets}/instagram-white.png`}
-									alt="Instagram"
-									width="22"
-									height="22"
+							</Column>
+							<Column style={{ width: "55%", verticalAlign: "top" }}>
+								<Row>
+									<Column style={{ width: "33%", textAlign: "center" }}>
+										<Link href="https://instagram.com/superset">
+											<Img
+												src={`${assets}/instagram-white.png`}
+												alt="Instagram"
+												width="28"
+												height="28"
+												style={{ display: "inline-block" }}
+											/>
+										</Link>
+									</Column>
+									<Column style={{ width: "33%", textAlign: "center" }}>
+										<Link href="https://www.linkedin.com/company/superset-sh">
+											<Img
+												src={`${assets}/linkedin-white.png`}
+												alt="LinkedIn"
+												width="28"
+												height="28"
+												style={{ display: "inline-block" }}
+											/>
+										</Link>
+									</Column>
+									<Column style={{ width: "33%", textAlign: "center" }}>
+										<Link href="https://x.com/superset_sh">
+											<Img
+												src={`${assets}/x-white.png`}
+												alt="X"
+												width="28"
+												height="28"
+												style={{ display: "inline-block" }}
+											/>
+										</Link>
+									</Column>
+								</Row>
+								<Hr
+									style={{
+										borderColor: "#FFFFFF",
+										borderWidth: "1px",
+										margin: "26px 0 24px 0",
+									}}
 								/>
-							</Link>
-							<Link
-								href="https://www.linkedin.com/company/superset-sh"
-								style={{ display: "inline-block" }}
-							>
-								<Img
-									src={`${assets}/linkedin-white.png`}
-									alt="LinkedIn"
-									width="22"
-									height="22"
-								/>
-							</Link>
-						</Text>
-						<Text
-							style={{
-								margin: "0 0 6px 0",
-								fontFamily: lifecycle.fonts.serif,
-								fontSize: "13px",
-								lineHeight: "20px",
-								color: lifecycle.colors.footerMuted,
-							}}
-						>
-							Superset, Inc. — San Francisco, CA
-						</Text>
-						<Text
-							style={{
-								margin: 0,
-								fontFamily: lifecycle.fonts.serif,
-								fontSize: "13px",
-								lineHeight: "20px",
-								color: lifecycle.colors.footerMuted,
-							}}
-						>
-							{unsubscribeUrl ? (
-								<>
-									To opt out of future emails,{" "}
+								<Text style={{ ...footerText, marginBottom: "14px" }}>
+									Superset, Inc., San Francisco, CA
+								</Text>
+								<Text style={footerText}>
+									{recipientEmail ? (
+										<>
+											This email was sent to{" "}
+											<Link
+												href={`mailto:${recipientEmail}`}
+												style={{
+													color: "#8CA6DE",
+													textDecoration: "underline",
+												}}
+											>
+												{recipientEmail}
+											</Link>
+											.{" "}
+										</>
+									) : null}
+									To opt out of future emails, click{" "}
 									<Link
-										href={unsubscribeUrl}
+										href={unsubscribeUrl ?? "https://superset.sh/contact"}
 										style={{
-											color: lifecycle.colors.footerText,
+											color: lifecycle.colors.footerMuted,
 											textDecoration: "underline",
 										}}
 									>
 										unsubscribe
 									</Link>
 									.
-								</>
-							) : (
-								<Link
-									href="https://superset.sh/contact"
-									style={{
-										color: lifecycle.colors.footerText,
-										textDecoration: "underline",
-									}}
-								>
-									Contact us
-								</Link>
-							)}
-						</Text>
+								</Text>
+							</Column>
+						</Row>
 					</Section>
 				</Container>
 			</Body>

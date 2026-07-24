@@ -25,13 +25,17 @@ const body = {
 
 interface WelcomeEmailProps {
 	userName?: string;
+	userEmail?: string;
 }
 
-export function WelcomeEmail(_props: WelcomeEmailProps = {}) {
+export function WelcomeEmail({ userEmail }: WelcomeEmailProps = {}) {
 	const assets = `${env.NEXT_PUBLIC_MARKETING_URL}/assets/emails`;
 
 	return (
-		<LifecycleLayout preview="Your command center for coding agents — let's get you set up.">
+		<LifecycleLayout
+			preview="Your command center for coding agents — let's get you set up."
+			recipientEmail={userEmail}
+		>
 			<BandSection tone="paper">
 				<DisplayHeading size="lg">
 					Welcome to Superset,
