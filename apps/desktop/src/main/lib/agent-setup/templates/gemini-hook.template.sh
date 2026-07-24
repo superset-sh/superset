@@ -42,7 +42,9 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; the
 
   case "$STATUS_CODE" in
     2*) exit 0 ;;
-    *) echo "[gemini-hook] host-service dispatch failed status=$STATUS_CODE; falling back to v1" >&2 ;;
+    # Log to file, never stderr: hook stdio is inherited from the agent's PTY,
+    # so stray output corrupts the TUI's diff-rendered screen.
+    *) printf '%s [gemini-hook] host-service dispatch failed status=%s; falling back to v1\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$STATUS_CODE" >> "${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-agent-hooks.log}" 2>/dev/null || true ;;
   esac
 fi
 

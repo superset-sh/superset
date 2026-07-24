@@ -19,10 +19,33 @@ describe("getNotifyScriptContent", () => {
 			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
 		);
 		expect(script).toContain(
-			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
+			'debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID"',
 		);
 		expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
 		expect(script).toContain('V1_EVENT_TYPE="Stop"');
+	});
+
+	it("never writes to stdout/stderr — hook stdio is the agent TUI's PTY", () => {
+		// Anything a hook prints lands at the TUI's cursor position and corrupts
+		// its diff-rendered screen (only debug_log's file redirection is allowed).
+		for (const template of [
+			"notify-hook.template.sh",
+			"cursor-hook.template.sh",
+			"copilot-hook.template.sh",
+		]) {
+			const script = readFileSync(
+				path.join(import.meta.dir, "templates", template),
+				"utf-8",
+			);
+			expect(script).not.toContain(">&2");
+		}
+		// gemini-hook must print exactly one JSON object to stdout (protocol
+		// requirement), but nothing to stderr.
+		const gemini = readFileSync(
+			path.join(import.meta.dir, "templates", "gemini-hook.template.sh"),
+			"utf-8",
+		);
+		expect(gemini).not.toContain(">&2");
 	});
 
 	it("gives the v2 host-service hook enough time to deliver", () => {

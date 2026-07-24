@@ -48,16 +48,17 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
   DEBUG_HOOKS_ENABLED="1"
 fi
 
-if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
-fi
-
+# Diagnostics must NEVER go to stdout/stderr: hooks run as children of TUI
+# agents with stdio inherited from the PTY, so anything printed lands at the
+# cursor position and corrupts the agent's diff-rendered screen. Debug output
+# goes to the log file only — tail it with:
+#   tail -f /tmp/superset-agent-hooks.log
 debug_log() {
   [ "$DEBUG_HOOKS_ENABLED" = "1" ] || return 0
   printf '%s [notify-hook] %s\n' "$(date -u '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null || date)" "$*" >> "${SUPERSET_HOOK_DEBUG_LOG:-/tmp/superset-agent-hooks.log}" 2>/dev/null || true
 }
 
-debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID tabId=$SUPERSET_TAB_ID"
+debug_log "event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID"
 
 V1_EVENT_TYPE="$EVENT_TYPE"
 case "$V1_EVENT_TYPE" in
@@ -82,9 +83,6 @@ if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; the
     -d "$PAYLOAD" \
     -o /dev/null -w "%{http_code}" 2>/dev/null)
 
-  if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-    echo "[notify-hook] host-service dispatched status=$STATUS_CODE" >&2
-  fi
   debug_log "host-service status=$STATUS_CODE url=$SUPERSET_HOST_AGENT_HOOK_URL"
 
   case "$STATUS_CODE" in
@@ -95,37 +93,19 @@ fi
 # v1 fallback: Electron localhost hook server. Kept while v1 terminals exist.
 [ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 
-if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
-    --connect-timeout 1 --max-time 2 \
-    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
-    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
-    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
-    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
-    --data-urlencode "sessionId=$SESSION_ID" \
-    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
-    --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$V1_EVENT_TYPE" \
-    --data-urlencode "env=$SUPERSET_ENV" \
-    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
-    -o /dev/null -w "%{http_code}" 2>/dev/null)
-  echo "[notify-hook] v1 dispatched status=$STATUS_CODE" >&2
-  debug_log "v1 status=$STATUS_CODE port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
-else
-  debug_log "v1 dispatch port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
-  curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
-    --connect-timeout 1 --max-time 2 \
-    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
-    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
-    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
-    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
-    --data-urlencode "sessionId=$SESSION_ID" \
-    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
-    --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$V1_EVENT_TYPE" \
-    --data-urlencode "env=$SUPERSET_ENV" \
-    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
-    > /dev/null 2>&1
-fi
+STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
+  --connect-timeout 1 --max-time 2 \
+  --data-urlencode "paneId=$SUPERSET_PANE_ID" \
+  --data-urlencode "tabId=$SUPERSET_TAB_ID" \
+  --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+  --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
+  --data-urlencode "sessionId=$SESSION_ID" \
+  --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
+  --data-urlencode "resourceId=$RESOURCE_ID" \
+  --data-urlencode "eventType=$V1_EVENT_TYPE" \
+  --data-urlencode "env=$SUPERSET_ENV" \
+  --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
+  -o /dev/null -w "%{http_code}" 2>/dev/null)
+debug_log "v1 status=$STATUS_CODE port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
 
 exit 0
