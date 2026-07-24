@@ -5,6 +5,7 @@ import {
 	getAppCommand,
 	RelativePathWithoutCwdError,
 	resolvePath,
+	spawnAsync,
 	stripPathWrappers,
 } from "./helpers";
 
@@ -30,12 +31,16 @@ describe("getAppCommand", () => {
 		]);
 	});
 
-	test("returns single-element array for vscode", () => {
+	test("returns name-based command plus bundle-ID fallback for vscode", () => {
 		const result = getAppCommand("vscode", "/path/to/file");
 		expect(result).toEqual([
 			{
 				command: "open",
 				args: ["-a", "Visual Studio Code", "/path/to/file"],
+			},
+			{
+				command: "open",
+				args: ["-b", "com.microsoft.VSCode", "/path/to/file"],
 			},
 		]);
 	});
@@ -244,6 +249,73 @@ describe("getAppCommand", () => {
 			{ command: "intellij-idea-ultimate", args: ["/path/to/file"] },
 			{ command: "intellij-idea-community", args: ["/path/to/file"] },
 		]);
+	});
+
+	// Regression test for #5896: "Unable to open file in VS Code".
+	//
+	// On macOS the button launches VS Code via `open -a "Visual Studio Code"`,
+	// which resolves the app by its Launch Services *display name*. That lookup
+	// can go stale — after a VS Code update, a move, or a duplicate install —
+	// and then `open -a` exits non-zero with "Unable to find application named
+	// 'Visual Studio Code'". Because VS Code only had a single launch strategy,
+	// that one failure surfaced directly as the reported error toast with no
+	// recovery.
+	//
+	// The fix appends a bundle-ID fallback (`open -b com.microsoft.VSCode`),
+	// which resolves via the stable bundle identifier instead of the display
+	// name, so `openPathInApp` retries when the name lookup fails.
+	describe("VS Code launch resilience (issue #5896)", () => {
+		test("vscode includes a bundle-ID fallback after the name-based command", () => {
+			const result = getAppCommand("vscode", "/path/to/file");
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-a", "Visual Studio Code", "/path/to/file"],
+				},
+				{
+					command: "open",
+					args: ["-b", "com.microsoft.VSCode", "/path/to/file"],
+				},
+			]);
+		});
+
+		test("vscode-insiders includes a bundle-ID fallback too", () => {
+			const result = getAppCommand("vscode-insiders", "/path/to/file");
+			expect(result).toEqual([
+				{
+					command: "open",
+					args: ["-a", "Visual Studio Code - Insiders", "/path/to/file"],
+				},
+				{
+					command: "open",
+					args: ["-b", "com.microsoft.VSCodeInsiders", "/path/to/file"],
+				},
+			]);
+		});
+	});
+});
+
+describe("spawnAsync surfaces launch failures (issue #5896)", () => {
+	// A failing editor launch (`open` exiting non-zero because Launch Services
+	// can't resolve the app) must reject with the OS stderr — this rejection is
+	// what the renderer renders as the "Failed to open…" error toast.
+	test("rejects with stderr when the launch command exits non-zero", async () => {
+		await expect(
+			spawnAsync("sh", [
+				"-c",
+				'echo "Unable to find application named \\"Visual Studio Code\\"" >&2; exit 1',
+			]),
+		).rejects.toThrow(/Unable to find application named/);
+	});
+
+	test("rejects with an install hint when the command cannot be spawned", async () => {
+		await expect(
+			spawnAsync("definitely-not-a-real-command-5896", ["/path"]),
+		).rejects.toThrow(/Failed to spawn/);
+	});
+
+	test("resolves when the launch command exits zero", async () => {
+		await expect(spawnAsync("sh", ["-c", "exit 0"])).resolves.toBeUndefined();
 	});
 });
 
