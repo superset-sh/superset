@@ -855,6 +855,7 @@
         "@mastra/memory": "1.18.0",
         "@octokit/rest": "22.0.1",
         "@superset/chat": "workspace:*",
+        "@superset/local-db": "workspace:*",
         "@superset/port-scanner": "workspace:*",
         "@superset/pty-daemon": "workspace:*",
         "@superset/session-protocol": "workspace:*",
