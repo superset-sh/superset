@@ -10,9 +10,9 @@ export function GET() {
 				anchor: API_URL,
 				"service-desc": [
 					{
-						href: `${baseUrl}/.well-known/mcp/server-card.json`,
-						type: "application/json",
-						title: "Superset MCP server card (live tool catalog)",
+						href: `${API_URL}/openapi.json`,
+						type: "application/vnd.oai.openapi+json",
+						title: "Superset API OpenAPI 3.1 specification",
 					},
 				],
 				"service-doc": [
@@ -32,6 +32,11 @@ export function GET() {
 						href: `${API_URL}/.well-known/oauth-protected-resource`,
 						type: "application/json",
 						title: "OAuth protected resource metadata (RFC 9728)",
+					},
+					{
+						href: `${baseUrl}/.well-known/mcp/server-card.json`,
+						type: "application/json",
+						title: "MCP server card",
 					},
 				],
 				item: [

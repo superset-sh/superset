@@ -32,6 +32,7 @@ export async function GET() {
 		"",
 		`- MCP server (Streamable HTTP): \`${MCP_SERVER_URL}\``,
 		`- MCP server card: \`${baseUrl}/.well-known/mcp/server-card.json\``,
+		`- OpenAPI spec: \`${API_URL}/openapi.json\``,
 		`- API catalog (RFC 9727): \`${baseUrl}/.well-known/api-catalog\``,
 		`- A2A agent card: \`${baseUrl}/.well-known/agent-card.json\``,
 		"",
