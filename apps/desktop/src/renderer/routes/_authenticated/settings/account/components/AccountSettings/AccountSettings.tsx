@@ -19,6 +19,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { ProfileSkeleton } from "./components/ProfileSkeleton";
+import { resolveAccountProfileView } from "./resolveAccountProfileView";
 
 interface AccountSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -41,12 +42,17 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 	const [nameValue, setNameValue] = useState("");
 	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
-	const { data: usersData, isReady } = useLiveQuery(
+	const { data: usersData } = useLiveQuery(
 		(q) => q.from({ users: collections.users }),
 		[collections],
 	);
 
-	const user = usersData?.find((u) => u.id === currentUserId);
+	const collectionUser = usersData?.find((u) => u.id === currentUserId);
+	const profileView = resolveAccountProfileView({
+		sessionUser: session?.user,
+		collectionUser,
+	});
+	const user = profileView.kind === "profile" ? profileView.user : undefined;
 
 	const signOut = useSignOut();
 
@@ -109,7 +115,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 			<div className="space-y-3">
 				{showProfile &&
-					(!isReady && !user ? (
+					(profileView.kind === "loading" ? (
 						<ProfileSkeleton />
 					) : user ? (
 						<>
