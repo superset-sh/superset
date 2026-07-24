@@ -374,6 +374,18 @@ describe("PullRequestRuntimeManager unlink", () => {
 		expect(ws?.suppressedPullRequestId).toBe("pr-1");
 	});
 
+	test("deleting the suppressed PR row clears the suppression", () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db);
+
+		manager.unlinkWorkspacePullRequest("ws");
+		db.delete(pullRequests).where(eq(pullRequests.id, "pr-1")).run();
+
+		expect(getWorkspace(db, "ws")?.suppressedPullRequestId).toBeNull();
+	});
+
 	test("an explicit checkout link clears the suppression", async () => {
 		const db = createRealDb();
 		seedProject(db);
