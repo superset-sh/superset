@@ -20,6 +20,8 @@ import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
 	cloneRepoInto,
+	cloneTemplateInto,
+	initEmptyRepo,
 	initLocalRepoInPlace,
 	resolveLocalRepo,
 } from "./resolve-repo";
@@ -460,5 +462,98 @@ describe("cloneRepoInto", () => {
 
 		expect(resolved.parsed).toBeNull();
 		expect(resolved.remoteName).toBeNull();
+	});
+});
+
+// ── initEmptyRepo ─────────────────────────────────────────────────
+// Regression coverage for #5664: a project name that reduces to "." or
+// ".." must be rejected as an invalid directory name, consistent with
+// deriveCloneDirectoryName. Otherwise join(parentDir, "..") resolves
+// *outside* the intended <parentDir>/<name> location.
+describe("initEmptyRepo", () => {
+	let parentDir: string;
+
+	// The initial commit happens inside the call, so provide a git identity
+	// via env (honored without config) so the positive case succeeds under
+	// CI's identity-less env — same trick the initLocalRepoInPlace suite uses.
+	const savedEnv: Record<string, string | undefined> = {};
+	const identity = {
+		GIT_AUTHOR_NAME: "test",
+		GIT_AUTHOR_EMAIL: "test@example.com",
+		GIT_COMMITTER_NAME: "test",
+		GIT_COMMITTER_EMAIL: "test@example.com",
+	};
+
+	beforeAll(() => {
+		for (const [k, v] of Object.entries(identity)) {
+			savedEnv[k] = process.env[k];
+			process.env[k] = v;
+		}
+	});
+
+	afterAll(() => {
+		for (const k of Object.keys(identity)) {
+			if (savedEnv[k] === undefined) delete process.env[k];
+			else process.env[k] = savedEnv[k];
+		}
+	});
+
+	beforeEach(() => {
+		parentDir = join(workRoot, "projects");
+		mkdirSync(parentDir);
+	});
+
+	test("rejects a directory name of '.'", async () => {
+		await expect(initEmptyRepo(parentDir, ".")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+		// The parent must not have been turned into a git repo.
+		expect(existsSync(join(parentDir, ".git"))).toBe(false);
+	});
+
+	test("rejects a directory name of '..' (escapes the parent)", async () => {
+		await expect(initEmptyRepo(parentDir, "..")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+		// The grandparent (workRoot) must not have been turned into a repo.
+		expect(existsSync(join(workRoot, ".git"))).toBe(false);
+	});
+
+	test("creates an empty repo for a valid directory name", async () => {
+		const resolved = await initEmptyRepo(parentDir, "my-project");
+
+		expect(eqRealpath(resolved.repoPath, join(parentDir, "my-project"))).toBe(
+			true,
+		);
+		expect(existsSync(join(parentDir, "my-project", ".git"))).toBe(true);
+	});
+});
+
+// ── cloneTemplateInto ─────────────────────────────────────────────
+describe("cloneTemplateInto", () => {
+	let parentDir: string;
+	let template: string;
+
+	beforeEach(async () => {
+		parentDir = join(workRoot, "projects");
+		mkdirSync(parentDir);
+		template = join(workRoot, "template-repo");
+		const git = await initRepoAt(template);
+		writeFileSync(join(template, "README.md"), "template");
+		await git.add(".");
+		await git.raw(["commit", "-m", "template seed"]);
+	});
+
+	test("rejects a directory name of '.'", async () => {
+		await expect(cloneTemplateInto(template, parentDir, ".")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+	});
+
+	test("rejects a directory name of '..' (escapes the parent)", async () => {
+		await expect(cloneTemplateInto(template, parentDir, "..")).rejects.toThrow(
+			/Invalid directory name/,
+		);
+		expect(existsSync(join(workRoot, ".git"))).toBe(false);
 	});
 });

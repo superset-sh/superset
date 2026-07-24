@@ -125,6 +125,28 @@ function asInitialCommitTrpcError(err: unknown): TRPCError {
 	});
 }
 
+/**
+ * Rejects directory names that can't safely be joined onto a parent dir:
+ * empty/whitespace, embedded path separators, or the `.`/`..` path
+ * references that would resolve *outside* `<parentDir>/<name>` (the parent
+ * itself for `.`, its parent for `..`). Kept consistent with
+ * `deriveCloneDirectoryName`, which reserves the same segments for clones.
+ */
+function assertValidDirName(dirName: string): void {
+	const trimmed = dirName.trim();
+	if (
+		!trimmed ||
+		dirName === "." ||
+		dirName === ".." ||
+		/[/\\]/.test(dirName)
+	) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid directory name: "${dirName}"`,
+		});
+	}
+}
+
 /** `git init --initial-branch=main` with a fallback for older git versions. */
 async function gitInitMainBranch(targetPath: string): Promise<void> {
 	const git = createUserSimpleGit(targetPath);
@@ -268,12 +290,7 @@ export async function initEmptyRepo(
 	parentDir: string,
 	dirName: string,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Invalid directory name: "${dirName}"`,
-		});
-	}
+	assertValidDirName(dirName);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
@@ -311,12 +328,7 @@ export async function cloneTemplateInto(
 	dirName: string,
 	credentials?: GitCredentialProvider,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Invalid directory name: "${dirName}"`,
-		});
-	}
+	assertValidDirName(dirName);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
