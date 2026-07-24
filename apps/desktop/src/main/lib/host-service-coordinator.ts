@@ -88,6 +88,15 @@ const ADOPT_WAIT_INTERVAL_MS = 250;
 const STABLE_PORT_BASE = 48_000;
 const STABLE_PORT_COUNT = 1_000;
 
+// A "running" child can wedge without exiting (blocked event loop, fd
+// exhaustion) — the exit listener never fires, so the coordinator keeps
+// reporting it as healthy while every renderer request fails with
+// "Failed to fetch" (superset-sh/superset#5699). The watchdog probes each
+// running instance and force-restarts it after enough consecutive failures.
+export const HEALTH_WATCHDOG_INTERVAL_MS = 15_000;
+export const HEALTH_WATCHDOG_PROBE_TIMEOUT_MS = 3_000;
+export const HEALTH_WATCHDOG_FAILURE_THRESHOLD = 3;
+
 function getStablePortForOrganization(organizationId: string): number {
 	let hash = 2_166_136_261;
 	for (let index = 0; index < organizationId.length; index++) {
@@ -119,6 +128,15 @@ export class HostServiceCoordinator extends EventEmitter {
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
+	private watchdogTimer: ReturnType<typeof setInterval> | null = null;
+	private watchdogTickInFlight = false;
+	/**
+	 * Consecutive failed health probes per org, bound to the probed child's
+	 * pid so a freshly-spawned child never inherits its predecessor's count.
+	 * Entries at/over the threshold whose org has no live instance mark a
+	 * failed recovery that the watchdog keeps retrying each tick.
+	 */
+	private watchdogFailures = new Map<string, { pid: number; count: number }>();
 
 	async start(
 		organizationId: string,
@@ -189,6 +207,10 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	stop(organizationId: string): void {
+		// A deliberate stop disarms the watchdog for this org — it must not
+		// auto-respawn something the caller just chose to shut down.
+		this.watchdogFailures.delete(organizationId);
+
 		const instance = this.instances.get(organizationId);
 		if (!instance) return;
 
@@ -237,21 +259,30 @@ export class HostServiceCoordinator extends EventEmitter {
 	async reset(
 		organizationId: string,
 		config: SpawnConfig,
+		opts: { alsoKillPid?: number } = {},
 	): Promise<Connection> {
 		// Capture the manifest pid *before* stop() — stop() removes the manifest
 		// for tracked instances and only sends SIGTERM, which a wedged process
-		// can ignore. We escalate to SIGKILL on whatever pid the manifest named.
+		// can ignore. We escalate to SIGKILL on whatever pid the manifest named,
+		// plus any caller-provided pid (the watchdog passes the wedged child's
+		// tracked pid, which can differ from the manifest when the manifest is
+		// missing or stale). Escalation happens here, before the slow respawn,
+		// so the pid can't be recycled by the OS in the meantime.
 		const preferredPorts = this.getPreferredPorts(organizationId);
 		const manifestPid = readManifest(organizationId)?.pid;
 
 		this.stop(organizationId);
 
-		if (manifestPid != null && isProcessAlive(manifestPid)) {
+		const pidsToKill = new Set<number>();
+		if (manifestPid != null) pidsToKill.add(manifestPid);
+		if (opts.alsoKillPid != null) pidsToKill.add(opts.alsoKillPid);
+		for (const pid of pidsToKill) {
+			if (!isProcessAlive(pid)) continue;
 			try {
-				killProcess(manifestPid, "SIGKILL");
+				killProcess(pid, "SIGKILL");
 			} catch (error) {
 				log.warn(
-					`[host-service:${organizationId}] reset: SIGKILL of pid=${manifestPid} failed`,
+					`[host-service:${organizationId}] reset: SIGKILL of pid=${pid} failed`,
 					error,
 				);
 			}
@@ -518,6 +549,187 @@ export class HostServiceCoordinator extends EventEmitter {
 		return { port, secret: manifest.authToken, machineId: this.machineId };
 	}
 
+	/**
+	 * Periodically health-check every "running" instance and force-restart the
+	 * ones that stop responding. The exit listener only catches children that
+	 * die; a wedged child stays "running" forever and the only recovery today
+	 * is the manual tray restart (or rebooting the machine).
+	 */
+	enableHealthWatchdog(
+		configProvider: () => Promise<SpawnConfig | null>,
+	): () => void {
+		if (this.watchdogTimer) return () => {};
+
+		const timer = setInterval(() => {
+			void this.runWatchdogTick(configProvider);
+		}, HEALTH_WATCHDOG_INTERVAL_MS);
+		timer.unref();
+		this.watchdogTimer = timer;
+
+		return () => {
+			clearInterval(timer);
+			this.watchdogTimer = null;
+			this.watchdogFailures.clear();
+		};
+	}
+
+	private async runWatchdogTick(
+		configProvider: () => Promise<SpawnConfig | null>,
+	): Promise<void> {
+		// A wedged instance makes each probe wait out its full timeout — skip
+		// the tick instead of stacking probes against the same instance.
+		if (this.watchdogTickInFlight) return;
+		this.watchdogTickInFlight = true;
+
+		try {
+			for (const [organizationId, instance] of [...this.instances]) {
+				if (
+					instance.status !== "running" ||
+					this.pendingStarts.has(organizationId)
+				) {
+					continue;
+				}
+
+				// Only supervise children we own. An adopted entry (owned=false)
+				// points at another live app instance's host-service — force-
+				// restarting it would SIGKILL a process we don't control. That
+				// instance runs its own watchdog; if its owner has died the entry
+				// is dropped lazily on the next startWithPreferredPorts.
+				if (!instance.owned) continue;
+
+				const healthy = await pollHealthCheck(
+					`http://127.0.0.1:${instance.port}`,
+					instance.secret,
+					HEALTH_WATCHDOG_PROBE_TIMEOUT_MS,
+				);
+
+				// The instance may have been stopped or replaced while the probe
+				// was in flight — a stale probe result must not count against the
+				// replacement child.
+				const current = this.instances.get(organizationId);
+				if (
+					!current ||
+					current.pid !== instance.pid ||
+					current.status !== "running"
+				) {
+					continue;
+				}
+
+				if (healthy) {
+					this.watchdogFailures.delete(organizationId);
+					continue;
+				}
+
+				// Bind the count to this child's pid: a freshly-spawned child
+				// starts from 1 instead of inheriting its predecessor's failures.
+				const prev = this.watchdogFailures.get(organizationId);
+				const failureCount = prev?.pid === instance.pid ? prev.count + 1 : 1;
+				this.watchdogFailures.set(organizationId, {
+					pid: instance.pid,
+					count: failureCount,
+				});
+				log.warn(
+					`[host-service:${organizationId}] health check failed (${failureCount}/${HEALTH_WATCHDOG_FAILURE_THRESHOLD}) on port ${instance.port}`,
+				);
+				if (failureCount < HEALTH_WATCHDOG_FAILURE_THRESHOLD) continue;
+
+				// Keep the counter until recovery actually runs — if no config is
+				// available (logged out) the watchdog stays armed and retries on
+				// the next tick instead of waiting out a full threshold again.
+				const config = await configProvider();
+				if (!config) continue;
+
+				// Revalidate after the await — a manual restart may have replaced
+				// the child while the config was being fetched.
+				const latest = this.instances.get(organizationId);
+				if (
+					!latest ||
+					latest.pid !== instance.pid ||
+					latest.status !== "running" ||
+					this.pendingStarts.has(organizationId)
+				) {
+					this.watchdogFailures.delete(organizationId);
+					continue;
+				}
+
+				log.error(
+					`[host-service:${organizationId}] unresponsive for ${HEALTH_WATCHDOG_FAILURE_THRESHOLD} consecutive health checks — force-restarting`,
+				);
+				try {
+					// alsoKillPid escalates the wedged child to SIGKILL inside
+					// reset(), after stop() but before the slow respawn — waiting
+					// until reset() returned would leave a window where the pid is
+					// recycled and the SIGKILL hits an innocent process.
+					await this.reset(organizationId, config, {
+						alsoKillPid: instance.pid,
+					});
+					this.watchdogFailures.delete(organizationId);
+				} catch (error) {
+					log.error(
+						`[host-service:${organizationId}] watchdog restart failed:`,
+						error,
+					);
+					// reset()'s stop() disarmed the entry; re-arm it so the
+					// no-instance retry pass below keeps trying on later ticks.
+					this.watchdogFailures.set(organizationId, {
+						pid: instance.pid,
+						count: failureCount,
+					});
+				}
+			}
+
+			// Orgs whose recovery failed have no tracked instance and are
+			// invisible to the loop above — keep retrying those each tick until
+			// a spawn sticks. Deliberate stops never land here: stop() disarms
+			// the entry.
+			for (const [organizationId, entry] of [...this.watchdogFailures]) {
+				if (
+					this.instances.has(organizationId) ||
+					this.pendingStarts.has(organizationId)
+				) {
+					continue;
+				}
+				if (entry.count < HEALTH_WATCHDOG_FAILURE_THRESHOLD) {
+					// Stale sub-threshold entry (e.g. the child crashed on its
+					// own after a blip) — nothing to recover, drop it.
+					this.watchdogFailures.delete(organizationId);
+					continue;
+				}
+				const config = await configProvider();
+				if (!config) continue;
+				// Revalidate after the await — a concurrent stop() disarms the
+				// entry (deliberate shutdown) and a concurrent start() makes the
+				// respawn redundant; neither must be overridden here.
+				if (
+					this.watchdogFailures.get(organizationId) !== entry ||
+					this.instances.has(organizationId) ||
+					this.pendingStarts.has(organizationId)
+				) {
+					continue;
+				}
+				log.warn(
+					`[host-service:${organizationId}] retrying respawn after failed watchdog recovery`,
+				);
+				try {
+					await this.startWithPreferredPorts(organizationId, config);
+					this.watchdogFailures.delete(organizationId);
+				} catch (error) {
+					log.error(
+						`[host-service:${organizationId}] watchdog respawn retry failed:`,
+						error,
+					);
+				}
+			}
+		} catch (error) {
+			// The tick runs detached from a timer — a rejection here (e.g. the
+			// config lookup throwing) would otherwise surface as an unhandled
+			// rejection. Log and let the next tick retry.
+			log.error("[host-service] watchdog tick failed:", error);
+		} finally {
+			this.watchdogTickInFlight = false;
+		}
+	}
+
 	// ── Spawn ─────────────────────────────────────────────────────────
 
 	private async spawn(
@@ -539,102 +751,122 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
 
-		const childEnv = await this.buildEnv(organizationId, port, secret, config);
-		const logFd = openRotatingLogFd(
-			path.join(manifestDir(organizationId), "host-service.log"),
-			MAX_HOST_LOG_BYTES,
-		);
-		// Dev: pipe child stdout/stderr through this process so log lines
-		// land in the developer's `bun dev` terminal. Production: hard-back
-		// stdio with the rotating log file.
-		const isDev = !app.isPackaged;
-		const stdio: childProcess.StdioOptions = isDev
-			? ["ignore", "pipe", "pipe"]
-			: logFd >= 0
-				? ["ignore", logFd, logFd]
-				: ["ignore", "ignore", "ignore"];
-
-		let child: ReturnType<typeof childProcess.spawn>;
 		try {
-			child = childProcess.spawn(process.execPath, [this.scriptPath], {
-				detached: false,
-				stdio,
-				env: childEnv,
-				// Avoid a flashing CMD window on Windows.
-				windowsHide: true,
-			});
-		} finally {
-			if (logFd >= 0) {
-				try {
-					fs.closeSync(logFd);
-				} catch {
-					// Best-effort — child has its own dup of the fd.
+			const childEnv = await this.buildEnv(
+				organizationId,
+				port,
+				secret,
+				config,
+			);
+			const logFd = openRotatingLogFd(
+				path.join(manifestDir(organizationId), "host-service.log"),
+				MAX_HOST_LOG_BYTES,
+			);
+			// Dev: pipe child stdout/stderr through this process so log lines
+			// land in the developer's `bun dev` terminal. Production: hard-back
+			// stdio with the rotating log file.
+			const isDev = !app.isPackaged;
+			const stdio: childProcess.StdioOptions = isDev
+				? ["ignore", "pipe", "pipe"]
+				: logFd >= 0
+					? ["ignore", logFd, logFd]
+					: ["ignore", "ignore", "ignore"];
+
+			let child: ReturnType<typeof childProcess.spawn>;
+			try {
+				child = childProcess.spawn(process.execPath, [this.scriptPath], {
+					detached: false,
+					stdio,
+					env: childEnv,
+					// Avoid a flashing CMD window on Windows.
+					windowsHide: true,
+				});
+			} finally {
+				if (logFd >= 0) {
+					try {
+						fs.closeSync(logFd);
+					} catch {
+						// Best-effort — child has its own dup of the fd.
+					}
 				}
 			}
-		}
 
-		// In dev, fan child output through to parent stdout/stderr with a
-		// prefix so it's identifiable in `bun dev`.
-		if (isDev && child.stdout && child.stderr) {
-			const tag = `[hs:${organizationId.slice(0, 8)}]`;
-			pipeWithPrefix(child.stdout, process.stdout, tag);
-			pipeWithPrefix(child.stderr, process.stderr, tag);
-		}
-
-		const childPid = child.pid;
-		if (!childPid) {
-			this.instances.delete(organizationId);
-			throw new Error("Failed to spawn host service process");
-		}
-
-		instance.pid = childPid;
-		let childExited = false;
-		child.on("exit", (code, signal) => {
-			childExited = true;
-			log.info(
-				`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
-			);
-			const current = this.instances.get(organizationId);
-			if (!current || current.pid !== childPid || current.status === "stopped")
-				return;
-
-			// Only alert a crash of a running child; startup deaths surface via
-			// start()'s rejection instead.
-			const previousStatus = current.status;
-			this.rememberPort(organizationId, current.port);
-			this.instances.delete(organizationId);
-			removeManifest(organizationId);
-			this.emitStatus(organizationId, "stopped", previousStatus);
-
-			if (previousStatus === "running") {
-				this.alertChildCrashed(organizationId, code, signal);
+			// In dev, fan child output through to parent stdout/stderr with a
+			// prefix so it's identifiable in `bun dev`.
+			if (isDev && child.stdout && child.stderr) {
+				const tag = `[hs:${organizationId.slice(0, 8)}]`;
+				pipeWithPrefix(child.stdout, process.stdout, tag);
+				pipeWithPrefix(child.stderr, process.stderr, tag);
 			}
-		});
-		// Don't let the child block Electron's exit — stopAll() handles teardown.
-		child.unref();
 
-		const endpoint = `http://127.0.0.1:${port}`;
-		const healthy = await pollHealthCheck(
-			endpoint,
-			secret,
-			HEALTH_POLL_TIMEOUT_MS,
-			() => childExited,
-		);
-		if (!healthy) {
-			if (!childExited) child.kill("SIGTERM");
-			this.instances.delete(organizationId);
-			throw new Error(
-				childExited
-					? "Host service process exited during startup"
-					: `Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
+			const childPid = child.pid;
+			if (!childPid) {
+				throw new Error("Failed to spawn host service process");
+			}
+
+			instance.pid = childPid;
+			let childExited = false;
+			child.on("exit", (code, signal) => {
+				childExited = true;
+				log.info(
+					`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
+				);
+				const current = this.instances.get(organizationId);
+				if (
+					!current ||
+					current.pid !== childPid ||
+					current.status === "stopped"
+				)
+					return;
+
+				// Only alert a crash of a running child; startup deaths surface via
+				// start()'s rejection instead.
+				const previousStatus = current.status;
+				this.rememberPort(organizationId, current.port);
+				this.instances.delete(organizationId);
+				removeManifest(organizationId);
+				this.emitStatus(organizationId, "stopped", previousStatus);
+
+				if (previousStatus === "running") {
+					this.alertChildCrashed(organizationId, code, signal);
+				}
+			});
+			// Don't let the child block Electron's exit — stopAll() handles teardown.
+			child.unref();
+
+			const endpoint = `http://127.0.0.1:${port}`;
+			const healthy = await pollHealthCheck(
+				endpoint,
+				secret,
+				HEALTH_POLL_TIMEOUT_MS,
+				() => childExited,
 			);
+			if (!healthy) {
+				if (!childExited) child.kill("SIGTERM");
+				throw new Error(
+					childExited
+						? "Host service process exited during startup"
+						: `Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
+				);
+			}
+
+			instance.status = "running";
+
+			log.info(`[host-service:${organizationId}] listening on port ${port}`);
+			this.emitStatus(organizationId, "running", "starting");
+			return { port, secret, machineId: this.machineId };
+		} catch (error) {
+			// Every startup failure must remove the "starting" entry — a stale
+			// ghost (e.g. buildEnv rejecting) would make status readers and the
+			// watchdog's retry pass treat the org as occupied forever. The child
+			// exit handler may have cleaned up already; only act if this call's
+			// instance is still the registered one.
+			if (this.instances.get(organizationId) === instance) {
+				this.instances.delete(organizationId);
+				this.emitStatus(organizationId, "stopped", "starting");
+			}
+			throw error;
 		}
-
-		instance.status = "running";
-
-		log.info(`[host-service:${organizationId}] listening on port ${port}`);
-		this.emitStatus(organizationId, "running", "starting");
-		return { port, secret, machineId: this.machineId };
 	}
 
 	private async buildEnv(
