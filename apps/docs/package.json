@@ -11,6 +11,7 @@
 		"postinstall": "fumadocs-mdx"
 	},
 	"dependencies": {
+		"@modelcontextprotocol/sdk": "1.28.0",
 		"@radix-ui/react-collapsible": "1.1.12",
 		"@radix-ui/react-scroll-area": "1.2.10",
 		"@sentry/nextjs": "10.46.0",

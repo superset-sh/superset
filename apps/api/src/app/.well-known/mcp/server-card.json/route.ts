@@ -33,7 +33,7 @@ export async function GET(request: Request): Promise<Response> {
 		version: "0.1.0",
 		serverUrl: `${origin}/api/v2/agent/mcp`,
 		transport: "streamable-http",
-		documentationUrl: "https://docs.superset.sh/mcp",
+		documentationUrl: "https://docs.superset.sh/mcp-server",
 		authentication: {
 			type: "oauth2",
 			resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource`,

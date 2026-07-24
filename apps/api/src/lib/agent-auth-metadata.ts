@@ -30,6 +30,12 @@ export function withAgentAuthMetadata(handler: MetadataHandler) {
 			skill: "https://superset.sh/auth.md",
 			...(registerUri ? { register_uri: registerUri } : {}),
 			...(revocationUri ? { revocation_uri: revocationUri } : {}),
+			identity_types_supported: ["anonymous"],
+			anonymous: {
+				credential_types_supported: ["access_token"],
+				description:
+					"RFC 7591 registration carries no identity; the user claims it via browser consent (authorization code + PKCE).",
+			},
 		};
 
 		const headers = new Headers(response.headers);

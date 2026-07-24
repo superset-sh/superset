@@ -17,7 +17,7 @@ export function GET() {
 				],
 				"service-doc": [
 					{
-						href: `${COMPANY.DOCS_URL}/mcp`,
+						href: `${COMPANY.DOCS_URL}/mcp-server`,
 						type: "text/html",
 						title: "Superset MCP server documentation",
 					},

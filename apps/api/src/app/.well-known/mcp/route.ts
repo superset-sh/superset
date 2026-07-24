@@ -17,7 +17,15 @@ export function GET(request: Request): Response {
 						type: "oauth2",
 						resourceMetadataUrl: `${origin}/.well-known/oauth-protected-resource`,
 					},
-					documentation: "https://docs.superset.sh/mcp",
+					documentation: "https://docs.superset.sh/mcp-server",
+				},
+				{
+					name: "superset-docs",
+					description:
+						"Superset documentation over MCP — search and read docs pages.",
+					url: "https://docs.superset.sh/mcp",
+					transport: "streamable-http",
+					authentication: { type: "none" },
 				},
 			],
 		},

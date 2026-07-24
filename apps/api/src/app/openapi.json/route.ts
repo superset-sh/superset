@@ -111,7 +111,7 @@ const SPEC = {
 	},
 	externalDocs: {
 		description: "Superset MCP documentation",
-		url: `${DOCS_URL}/mcp`,
+		url: `${DOCS_URL}/mcp-server`,
 	},
 	servers: [{ url: API_URL, description: "Production" }],
 	tags: [

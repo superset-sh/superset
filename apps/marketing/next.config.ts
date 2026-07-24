@@ -57,6 +57,11 @@ const config: NextConfig = {
 				permanent: true,
 			},
 			{
+				source: "/mcp",
+				destination: "https://api.superset.sh/mcp",
+				permanent: false,
+			},
+			{
 				source: "/changelog/2026-03-09-codemirror-workspace-modal-icons",
 				destination: "/changelog/2026-03-09-codemirror-workspace",
 				permanent: true,
