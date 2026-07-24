@@ -1,0 +1,1 @@
+export { PlainCollapsibleContent } from "./PlainCollapsibleContent";

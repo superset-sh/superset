@@ -1,13 +1,10 @@
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
+import { Collapsible, CollapsibleTrigger } from "@superset/ui/collapsible";
 import { cn } from "@superset/ui/utils";
-import type { ReactNode } from "react";
+import { type ReactNode, useId } from "react";
 import { VscChevronRight } from "react-icons/vsc";
 import { useChangesSectionDnd } from "renderer/screens/main/components/WorkspaceView/hooks/useChangesSectionDnd";
 import type { ChangeCategory } from "shared/changes-types";
+import { PlainCollapsibleContent } from "../PlainCollapsibleContent";
 
 interface CategorySectionProps {
 	id: ChangeCategory;
@@ -32,6 +29,7 @@ export function CategorySection({
 }: CategorySectionProps) {
 	const { containerRef, isDragging, isOver } =
 		useChangesSectionDnd<HTMLDivElement>({ id, onMove });
+	const contentId = useId();
 
 	if (count === 0) {
 		return null;
@@ -61,6 +59,7 @@ export function CategorySection({
 				)}
 			>
 				<CollapsibleTrigger
+					aria-controls={contentId}
 					className={cn(
 						"flex-1 flex items-center gap-1.5 px-2 py-1.5 text-left min-w-0",
 						"hover:bg-accent/30 cursor-pointer transition-colors",
@@ -97,9 +96,13 @@ export function CategorySection({
 				{actions && <div className="pr-1.5 shrink-0">{actions}</div>}
 			</div>
 
-			<CollapsibleContent className="px-0.5 pb-1 min-w-0 overflow-hidden">
+			<PlainCollapsibleContent
+				id={contentId}
+				isOpen={isExpanded}
+				className="px-0.5 pb-1 min-w-0 overflow-hidden"
+			>
 				{children}
-			</CollapsibleContent>
+			</PlainCollapsibleContent>
 		</Collapsible>
 	);
 }
