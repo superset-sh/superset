@@ -1,7 +1,6 @@
 import { SupersetError } from "../core/error";
 import { APIResource } from "../core/resource";
 import type { RequestOptions } from "../internal/request-options";
-import { findWorkspaceHostId } from "./host-workspaces";
 
 /**
  * Configured terminal-agent rows live on each developer's host service —
@@ -31,31 +30,24 @@ export class Agents extends APIResource {
 	}
 
 	/**
-	 * Create (launch) an agent session inside an existing workspace. Looks up
-	 * the host that owns the workspace (by fanning out across reachable hosts)
-	 * and starts the named preset (or HostAgentConfig instance) in a fresh
-	 * terminal session on that host. Pass an explicit `hostId` to skip the
-	 * lookup.
+	 * Create (launch) an agent session inside an existing workspace on its
+	 * host: starts the named preset (or HostAgentConfig instance) in a fresh
+	 * terminal session there.
 	 *
-	 * Mirrors `superset agents create`.
+	 * Mirrors `superset agents create --host <id>`.
 	 */
-	async create(
-		params: AgentCreateParams,
-		options?: { hostId?: string },
-	): Promise<AgentCreateResult> {
-		const hostId =
-			options?.hostId ??
-			(await findWorkspaceHostId(
-				this._client,
-				this._requireOrgId(),
-				params.workspaceId,
-			));
-		return this._client.hostMutation<AgentCreateResult>(hostId, "agents.run", {
-			workspaceId: params.workspaceId,
-			agent: params.agent,
-			prompt: params.prompt,
-			attachmentIds: params.attachmentIds,
-		});
+	async create(params: AgentCreateParams): Promise<AgentCreateResult> {
+		this._requireOrgId();
+		return this._client.hostMutation<AgentCreateResult>(
+			params.hostId,
+			"agents.run",
+			{
+				workspaceId: params.workspaceId,
+				agent: params.agent,
+				prompt: params.prompt,
+				attachmentIds: params.attachmentIds,
+			},
+		);
 	}
 
 	private _requireOrgId(): string {
@@ -91,6 +83,8 @@ export interface AgentListParams {
 }
 
 export interface AgentCreateParams {
+	/** The host machineId the workspace lives on (see `hosts.list()`). */
+	hostId: string;
 	/** Workspace UUID to launch the agent session in. */
 	workspaceId: string;
 	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */

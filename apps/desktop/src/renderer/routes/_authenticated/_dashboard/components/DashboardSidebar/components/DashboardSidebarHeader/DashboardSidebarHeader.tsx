@@ -41,9 +41,6 @@ import {
 } from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 
-// Temporarily hidden, not removed — flip to true to restore the Workspaces tab.
-const SHOW_WORKSPACES_TAB = false;
-
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
 }
@@ -171,25 +168,23 @@ export function DashboardSidebarHeader({
 					</TooltipContent>
 				</Tooltip>
 
-				{SHOW_WORKSPACES_TAB && (
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleWorkspacesClick}
-								className={cn(
-									"flex size-8 items-center justify-center rounded-md transition-colors",
-									isWorkspacesListOpen
-										? "bg-accent text-foreground"
-										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-								)}
-							>
-								<LuLayers className="size-4" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="right">Workspaces</TooltipContent>
-					</Tooltip>
-				)}
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleWorkspacesClick}
+							className={cn(
+								"flex size-8 items-center justify-center rounded-md transition-colors",
+								isWorkspacesListOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<LuLayers className="size-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Workspaces</TooltipContent>
+				</Tooltip>
 
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
@@ -351,21 +346,19 @@ export function DashboardSidebarHeader({
 				)}
 			</button>
 
-			{SHOW_WORKSPACES_TAB && (
-				<button
-					type="button"
-					onClick={handleWorkspacesClick}
-					className={cn(
-						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-						isWorkspacesListOpen
-							? "bg-accent text-foreground"
-							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-					)}
-				>
-					<LuLayers className="size-4 shrink-0" />
-					<span className="flex-1 text-left">Workspaces</span>
-				</button>
-			)}
+			<button
+				type="button"
+				onClick={handleWorkspacesClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+					isWorkspacesListOpen
+						? "bg-accent text-foreground"
+						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+			>
+				<LuLayers className="size-4 shrink-0" />
+				<span className="flex-1 text-left">Workspaces</span>
+			</button>
 
 			<button
 				type="button"

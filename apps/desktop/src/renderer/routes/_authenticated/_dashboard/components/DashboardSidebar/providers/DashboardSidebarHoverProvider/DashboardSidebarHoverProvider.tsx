@@ -28,6 +28,7 @@ interface HoverContextValue {
 	anchorElement: HTMLElement | null;
 	payload: DashboardSidebarHoverPayload | null;
 	contextMenuOpen: boolean;
+	hoverCardSuppressed: boolean;
 	requestOpen: (
 		id: string,
 		anchor: HTMLElement,
@@ -37,6 +38,8 @@ interface HoverContextValue {
 	cancelClose: () => void;
 	forceClose: () => void;
 	setContextMenuOpen: (open: boolean) => void;
+	beginHoverCardSuppression: () => void;
+	endHoverCardSuppression: () => void;
 	syncIfHovered: (id: string, payload: DashboardSidebarHoverPayload) => void;
 }
 
@@ -53,6 +56,16 @@ export function DashboardSidebarHoverProvider({
 		payload: null,
 	});
 	const [contextMenuOpen, setContextMenuOpen] = useState(false);
+	// Counted, not boolean: overlapping holds (chip trigger hovered while its
+	// hover card is open, adjacent chips) must not release each other early.
+	const [suppressionCount, setSuppressionCount] = useState(0);
+
+	const beginHoverCardSuppression = useCallback(() => {
+		setSuppressionCount((count) => count + 1);
+	}, []);
+	const endHoverCardSuppression = useCallback(() => {
+		setSuppressionCount((count) => Math.max(0, count - 1));
+	}, []);
 
 	const stateRef = useRef(state);
 	useEffect(() => {
@@ -149,11 +162,14 @@ export function DashboardSidebarHoverProvider({
 			anchorElement: state.anchorElement,
 			payload: state.payload,
 			contextMenuOpen,
+			hoverCardSuppressed: suppressionCount > 0,
 			requestOpen,
 			requestClose,
 			cancelClose,
 			forceClose,
 			setContextMenuOpen,
+			beginHoverCardSuppression,
+			endHoverCardSuppression,
 			syncIfHovered,
 		}),
 		[
@@ -161,10 +177,13 @@ export function DashboardSidebarHoverProvider({
 			state.anchorElement,
 			state.payload,
 			contextMenuOpen,
+			suppressionCount,
 			requestOpen,
 			requestClose,
 			cancelClose,
 			forceClose,
+			beginHoverCardSuppression,
+			endHoverCardSuppression,
 			syncIfHovered,
 		],
 	);

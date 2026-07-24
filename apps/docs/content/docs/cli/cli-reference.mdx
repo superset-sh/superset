@@ -26,7 +26,7 @@ These flags are accepted by every command:
 | `--quiet` | | One ID per line for arrays; the ID for single objects; JSON fallback otherwise. |
 | `--api-key <key>` | `SUPERSET_API_KEY` | Use an API key instead of stored OAuth login. |
 | `--help`, `-h` | | Show help for the current command. |
-| `--version`, `-v` | | Print `superset v<version>` and exit. |
+| `--version`, `-v` | | Print the version number and exit. |
 
 ---
 
@@ -166,11 +166,12 @@ talk to when targeting this machine.
 	options={[
 		{ flag: "--daemon", description: "Run detached." },
 		{ flag: "--port <n>", description: "Specific port. Default: a free loopback port." },
+		{ flag: "--org <id>", description: "Organization to register under. Default: the active organization." },
 	]}
 >
 If a manifest exists and the PID is alive, returns the existing
-instance's details. Otherwise spawns the host server binary, polls
-`/trpc/health.check` for up to 10 seconds, and writes the manifest.
+instance's `{ pid, endpoint }`. Otherwise spawns the host server binary,
+polls `/trpc/health.check` for up to 10 seconds, and writes the manifest.
 Binds to `127.0.0.1` only.
 
 ```bash
@@ -182,10 +183,17 @@ The running host server.
 
 <JsonOutput>
 ```ts
+// Freshly started
 {
   pid: number;
   port: number;
   organizationId: string;
+}
+
+// Already running
+{
+  pid: number;
+  endpoint: string;
 }
 ```
 </JsonOutput>
@@ -197,8 +205,9 @@ The running host server.
 Stop the local host server.
 
 <Command name="superset stop">
-Sends SIGTERM, waits up to 10 seconds, sends SIGKILL if still alive. The
-manifest is removed in all cases, including when SIGTERM itself throws.
+Sends SIGTERM, waits up to 10 seconds, sends SIGKILL if still alive, then
+removes the manifest. If sending SIGTERM itself throws, the command errors
+and the manifest is left in place.
 
 ```bash
 superset stop
@@ -223,7 +232,12 @@ The stopped host server, if one was running.
 
 Inspect the local host server.
 
-<Command name="superset status">
+<Command
+	name="superset status"
+	options={[
+		{ flag: "--org <id>", description: "Organization to inspect. Default: the active organization." },
+	]}
+>
 `healthy` reflects a live `health.check` request (2-second timeout).
 
 ```bash
@@ -236,7 +250,7 @@ The host server state. Three shapes depending on what's running.
 <JsonOutput>
 ```ts
 // No manifest
-{ running: false; organizationId: string }
+{ running: false; organizationId: string; hostId: string }
 
 // Manifest exists but PID is dead
 {
@@ -244,6 +258,7 @@ The host server state. Three shapes depending on what's running.
   stale: true;
   pid: number;
   organizationId: string;
+  hostId: string;
 }
 
 // Running
@@ -254,6 +269,8 @@ The host server state. Three shapes depending on what's running.
   port: number;
   endpoint: string;
   organizationId: string;
+  hostId: string;
+  hostName: string;
   uptimeSec: number;
 }
 ```
@@ -326,7 +343,7 @@ Manage which organization the CLI targets.
   id: string;
   name: string;
   slug: string;
-  active: boolean;
+  active: "✓" | "";
 }>`}
 	humanColumns={["NAME", "SLUG", "ACTIVE"]}
 	quiet="organization IDs"
@@ -377,23 +394,27 @@ superset org members list -s satya
 
 ### projects
 
-A project is a repository registered with your organization. It carries
-a cloud record (one per repo, shared across the org) and one or more
-host-side checkouts. Workspaces branch off a host's checkout.
+A project is a repository checked out on a host. Projects are host-owned —
+each host serves the projects set up on that machine; there is no org-wide
+listing. Workspaces branch off a host's checkout.
 
 <Command
 	name="superset projects list"
+	options={[
+		{ flag: "--host <id>", description: "List projects on a specific host machineId." },
+		{ flag: "--local", description: "List projects on this machine (the default)." },
+	]}
 	output={`Array<{
   id: string;
   name: string;
-  slug: string;
-  repoCloneUrl: string | null;
-  githubRepositoryId: string | null;
+  repo: string;
+  path: string;
 }>`}
-	humanColumns={["NAME", "SLUG", "REPO", "ID"]}
+	humanColumns={["NAME", "REPO", "PATH", "ID"]}
 	quiet="project IDs"
 >
-List projects in the active organization. Org-wide; not host-scoped.
+List projects on a host. Defaults to this machine; pass `--host <id>` for
+another host.
 </Command>
 
 <Command
@@ -440,9 +461,11 @@ superset projects create --name "my-app" --local --import ~/code/my-app
 	options={[
 		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
-		{ flag: "--parent-dir <path>", description: "Parent directory to clone the project's repo into (clone mode). The URL comes from the cloud project, so no `--clone <url>` is needed." },
+		{ flag: "--project <id>", description: "Project UUID to adopt. Alias for the positional argument." },
+		{ flag: "--parent-dir <path>", description: "Parent directory to clone the project's repo into (clone mode)." },
 		{ flag: "--import <path>", description: "Existing repo path on the target host (import mode)." },
-		{ flag: "--allow-relocate", description: "Permit re-importing at a different path if the project is already set up here. `--import` only." },
+		{ flag: "--path <path>", description: "Alias for `--import`." },
+		{ flag: "--allow-relocate", description: "Permit re-importing at a different path if the project is already set up here. `--import`/`--path` only." },
 	]}
 	output={`{
   repoPath: string;
@@ -477,12 +500,15 @@ host server running on this machine, use [`start`](#start),
 
 <Command
 	name="superset hosts list"
+	options={[
+		{ flag: "--org <id>", description: "Organization to list. Default: the active organization." },
+	]}
 	output={`Array<{
   id: string;
   name: string;
-  online: boolean;
+  online: "yes" | "local" | "no";
 }>`}
-	humanColumns={["ID", "NAME", "ONLINE"]}
+	humanColumns={["NAME", "ONLINE", "ID"]}
 	quiet="host IDs"
 >
 List hosts registered to the active organization. Host registration
@@ -491,6 +517,43 @@ separate registration command.
 
 ```bash
 superset hosts list
+```
+</Command>
+
+<Command
+	name="superset hosts set-wake <host> <command...>"
+	args={[
+		{ name: "host", required: true, description: "Host name or id." },
+		{ name: "command", variadic: true, description: "Command to run locally to wake the host, e.g. `vercel sandbox resume my-box`." },
+	]}
+	options={[
+		{ flag: "--clear", description: "Remove the wake command." },
+		{ flag: "--org <id>", description: "Organization (id, slug, or name). Default: the active organization." },
+	]}
+>
+Set (or clear) the command used to wake a host.
+
+```bash
+superset hosts set-wake my-sandbox vercel sandbox resume my-box
+superset hosts set-wake my-sandbox --clear
+```
+</Command>
+
+<Command
+	name="superset hosts wake <host>"
+	args={[
+		{ name: "host", required: true, description: "Host name or id." },
+	]}
+	options={[
+		{ flag: "--yes", description: "Skip the confirmation prompt." },
+		{ flag: "--org <id>", description: "Organization (id, slug, or name). Default: the active organization." },
+	]}
+>
+Wake a host by running its configured wake command locally, streaming its
+output.
+
+```bash
+superset hosts wake my-sandbox
 ```
 </Command>
 
@@ -511,8 +574,10 @@ than silently falling through to the cloud.
 <Command
 	name="superset workspaces list"
 	options={[
-		{ flag: "--host <id>", description: "Filter to a specific host machineId." },
-		{ flag: "--local", description: "Filter to this machine." },
+		{ flag: "--host <id>", description: "List workspaces on a specific host machineId." },
+		{ flag: "--local", description: "List workspaces on this machine (the default)." },
+		{ flag: "--project <nameOrId>", description: "Filter by project name (case-insensitive) or id." },
+		{ flag: "--search <text>", description: "Substring match against workspace name or branch. Alias: -s." },
 	]}
 	output={`Array<{
   id: string;
@@ -521,13 +586,14 @@ than silently falling through to the cloud.
   projectId: string;
   projectName: string;
   hostId: string;
-  hostName: string;
 }>`}
-	humanColumns={["NAME", "BRANCH", "PROJECT", "HOST"]}
+	humanColumns={["NAME", "BRANCH", "PROJECT", "ID"]}
 	quiet="workspace IDs"
 >
-List workspaces accessible to the active organization. With neither
-`--host` nor `--local`, the list is organization-wide.
+List workspaces on a host. Defaults to this machine; pass `--host <id>` for
+another host. Workspaces are host-owned — there is no org-wide listing (the
+desktop app is the cross-host view). `projectName` falls back to the raw
+project id when the host doesn't know the project's name.
 </Command>
 
 <Command
@@ -545,7 +611,7 @@ List workspaces accessible to the active organization. With neither
 		{ flag: "--command <cmd>", description: "Shell command to run in the new workspace after creation." },
 		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
 	]}
-	output="Workspace"
+	output={`{ workspace: Workspace; alreadyExists: boolean }`}
 >
 Create a workspace on the target host. Specify exactly one of `--branch`
 or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
@@ -573,15 +639,48 @@ superset workspaces create \
 		{ name: "id", required: true, variadic: true, description: "Workspace IDs to delete." },
 	]}
 	options={[
-		{ flag: "--host <id>", description: "Skip cloud lookup and target this host directly." },
-		{ flag: "--local", description: "Skip cloud lookup and target this machine." },
+		{ flag: "--host <id>", description: "Host the workspaces live on." },
+		{ flag: "--local", description: "Target this machine (the default)." },
 	]}
-	output={`{ deleted: string[] }`}
+	output={`{ deleted: string[]; warnings: string[] }`}
 >
-Delete one or more workspaces on the target host.
+Delete one or more workspaces on the target host (default: this machine).
 
 ```bash
 superset workspaces delete ws_a ws_b ws_c
+```
+</Command>
+
+<Command
+	name="superset workspaces get [id]"
+	args={[
+		{ name: "id", description: "Workspace ID. Defaults to `$SUPERSET_WORKSPACE_ID` when run inside a workspace." },
+	]}
+	options={[
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+		{ flag: "--field <name>", description: "Print a single field's raw value (e.g. name, branch, worktreePath). Alias: -f." },
+	]}
+	output={`{
+  id: string;
+  name: string;
+  branch: string;
+  type: "main" | "worktree";
+  projectId: string;
+  projectName: string;
+  hostId: string;
+  hostName: string;
+  taskId: string | null;
+  worktreePath: string;
+  worktreeExists: boolean;
+  createdAt: Date;
+}`}
+>
+Show details for a single workspace on its host. `--field` is handy in
+scripts: `superset workspaces get --field worktreePath`.
+
+```bash
+superset workspaces get ws_…
+superset workspaces get --field branch   # inside a workspace
 ```
 </Command>
 
@@ -591,13 +690,14 @@ superset workspaces delete ws_a ws_b ws_c
 		{ name: "id", required: true, description: "Workspace UUID." },
 	]}
 	options={[
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--name <name>", description: "New workspace name." },
 		{ flag: "--task-id <id>", description: "Link the workspace to a task by id." },
 		{ flag: "--clear-task", description: "Unlink the workspace from its current task. Mutually exclusive with --task-id." },
 	]}
 	output="Workspace"
 >
-Update a workspace.
+Update a workspace on its host (default: this machine).
 
 ```bash
 superset workspaces update ws_… --name "better-name"
@@ -612,6 +712,7 @@ superset workspaces update ws_… --clear-task
 		{ name: "id", required: true, description: "Workspace ID." },
 	]}
 	options={[
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--print", description: "Print the deep link instead of opening the desktop app." },
 	]}
 	output={`{
@@ -631,11 +732,11 @@ superset workspaces open ws_… --print
 #### Opening a specific session
 
 `workspaces open` targets a workspace, not a session. A session started with
-[`agents run`](#superset-agents-run) syncs to the desktop app but has no pane in
+[`agents create`](#superset-agents-create) syncs to the desktop app but has no pane in
 the workspace view until you navigate to it, and there is no session list, so a
 freshly created session is effectively invisible until opened. `workspaces open`
 can't focus a session, so build the deep link yourself and append a query param
-chosen by the session `kind` returned by `agents run`:
+chosen by the session `kind` returned by `agents create`:
 
 | `kind` | Example agents | Query param |
 | --- | --- | --- |
@@ -644,7 +745,7 @@ chosen by the session `kind` returned by `agents run`:
 
 ```bash
 # Run the agent with --json, then pull kind + sessionId out of the payload:
-session=$(superset agents run --workspace ws_… --agent claude --prompt "…" --json)
+session=$(superset agents create --workspace ws_… --agent claude --prompt "…" --json)
 kind=$(echo "$session" | jq -r '.kind')           # "chat" or "terminal"
 sessionId=$(echo "$session" | jq -r '.sessionId')
 
@@ -703,6 +804,7 @@ superset agents list --host host_…
 	name="superset agents create"
 	options={[
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the agent session in." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
 		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
@@ -714,9 +816,9 @@ superset agents list --host host_…
   label: string;
 }`}
 >
-Create an agent session in an existing workspace. Resolves the host that owns
-the workspace and starts the named preset (or HostAgentConfig instance) in a
-fresh terminal session on that host.
+Create an agent session in an existing workspace on its host (default: this
+machine): starts the named preset (or HostAgentConfig instance) in a fresh
+terminal session there.
 
 ```bash
 superset agents create --workspace ws_… --agent claude --prompt "Audit the login flow"
@@ -735,6 +837,7 @@ a one-off command in a worktree or to open an interactive shell.
 	name="superset terminals create"
 	options={[
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the terminal in." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--command <cmd>", description: "Shell command to run in the terminal. Omit to open an interactive shell." },
 		{ flag: "--cwd <path>", description: "Working directory for the terminal. Defaults to the worktree." },
 	]}
@@ -743,9 +846,8 @@ a one-off command in a worktree or to open an interactive shell.
   status: string;
 }`}
 >
-Create a terminal session in an existing workspace. Resolves the host that
-owns the workspace and opens a fresh PTY in the worktree, optionally running
-a command.
+Create a terminal session in an existing workspace on its host (default: this
+machine): opens a fresh PTY in the worktree, optionally running a command.
 
 ```bash
 superset terminals create --workspace ws_… --command "bun install && bun test"
@@ -767,12 +869,19 @@ Tasks are units of work in your organization's task tracker.
 		{ flag: "--assignee <userId>", description: "Filter by assignee user ID." },
 		{ flag: "--assignee-me, -m", description: "Tasks assigned to the current user." },
 		{ flag: "--creator-me", description: "Tasks created by the current user." },
-		{ flag: "--search <query>, -s", description: "Substring search on title." },
+		{ flag: "--search <query>, -s", description: "Substring search on title or description." },
+		{ flag: "--project <id>", description: "Filter by Linear project id." },
+		{ flag: "--project-name <name>", description: "Filter by Linear project name (prefix, case-insensitive)." },
+		{ flag: "--cycle <id>", description: "Filter by Linear cycle id." },
+		{ flag: "--due-from <date>", description: "Tasks due on or after this date (YYYY-MM-DD)." },
+		{ flag: "--due-to <date>", description: "Tasks due on or before this date (YYYY-MM-DD)." },
+		{ flag: "--sort-by <field>", description: "createdAt | updatedAt | dueDate | priority. Default: createdAt." },
+		{ flag: "--sort-order <dir>", description: "asc | desc." },
 		{ flag: "--limit <n>", description: "Default 50." },
 		{ flag: "--offset <n>", description: "Default 0." },
 	]}
 	output="Array<Task>"
-	humanColumns={["SLUG", "TITLE", "PRIORITY", "ASSIGNEE"]}
+	humanColumns={["SLUG", "TITLE", "PRIORITY", "ASSIGNEE", "PROJECT"]}
 	quiet="task IDs"
 >
 List tasks in the active organization.
@@ -887,6 +996,9 @@ Scheduled agent runs. Schedules use RFC 5545 RRULE bodies, e.g.
 
 <Command
 	name="superset automations list"
+	options={[
+		{ flag: "--name <text>", description: "Case-insensitive substring filter on the automation name. Alias: -n." },
+	]}
 	output="Array<Automation>"
 	humanColumns={["ID", "NAME", "AGENT", "SCHEDULE", "ENABLED", "NEXT RUN"]}
 	quiet="automation IDs"
@@ -917,14 +1029,15 @@ Use [`automations logs`](#superset-automations-logs-id) for run history.
 		{ flag: "--dtstart <iso8601>", description: "Default: now." },
 		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace." },
 		{ flag: "--project <projectId>", description: "Project ID for new-workspace-per-run mode." },
-		{ flag: "--host <hostId>", description: "Default: owner's online host." },
+		{ flag: "--host <hostId>", description: "Host the automation dispatches to (default: this machine)." },
 		{ flag: "--agent <agent>", description: "Host agent presetId, instance UUID, or 'superset' for built-in chat. Default: claude." },
 	]}
 	output="Automation"
 >
 Create an automation. Provide `--prompt` or `--prompt-file`; if both are
 present, the inline `--prompt` value is used. At least one of `--project`
-or `--workspace` must be provided.
+or `--workspace` must be provided, and it must exist on the target host —
+the CLI verifies this before creating the automation.
 
 ```bash
 superset automations create \
@@ -990,7 +1103,7 @@ superset automations prompt get aut_… | diff - ./prompt.md
 	options={[
 		{ flag: "--from-file <path>", required: true, description: "Read the new prompt from a file. Use `-` for stdin." },
 	]}
-	output="Automation"
+	output={`{ id: string; name: string; length: number }`}
 >
 Replace an automation's prompt body. The new prompt fully overwrites the
 old one.
@@ -1009,7 +1122,7 @@ cat ./prompt.md | superset automations prompt set aut_… --from-file -
 	args={[
 		{ name: "id", required: true, description: "Automation ID." },
 	]}
-	output={`{ deleted: string }`}
+	output={`{ ok: true }`}
 >
 Delete an automation.
 

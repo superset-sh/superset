@@ -1,12 +1,13 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
 import { resolveHostTarget } from "../../../lib/host-target";
-import { findHostWorkspace } from "../../../lib/host-workspaces";
 
 export default command({
-	description: "Update a workspace",
+	description: "Update a workspace on a host (default: this machine)",
 	args: [positional("id").required().desc("Workspace UUID")],
 	options: {
+		host: string().desc("Host the workspace lives on (default: this machine)"),
 		name: string().desc("Workspace name"),
 		taskId: string().desc("Link the workspace to a task by id"),
 		clearTask: boolean().desc("Unlink the workspace from its current task"),
@@ -38,24 +39,8 @@ export default command({
 			);
 		}
 
-		// Workspace records are host-owned: find the owning host across the
-		// org's reachable hosts, then route the update to it.
-		const { workspace, warnings } = await findHostWorkspace(
-			{ api: ctx.api, organizationId, userJwt: ctx.bearer },
-			id,
-		);
-		for (const warning of warnings) {
-			process.stderr.write(`Warning: ${warning}\n`);
-		}
-		if (!workspace) {
-			throw new CLIError(
-				`Workspace not found on any reachable host: ${id}`,
-				"List workspaces with: superset workspaces list",
-			);
-		}
-
 		const target = resolveHostTarget({
-			requestedHostId: workspace.hostId,
+			requestedHostId: options.host ?? getHostId(),
 			organizationId,
 			userJwt: ctx.bearer,
 		});

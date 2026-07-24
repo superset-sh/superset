@@ -1,6 +1,5 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { createMcpCaller } from "../../caller";
 import { defineTool } from "../../define-tool";
 import { hostServiceCall } from "../../host-service-client";
 
@@ -8,8 +7,12 @@ export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "agents_create",
 		description:
-			"Create (launch) an agent session inside an existing workspace. Resolves the host that owns the workspace, then runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
+			"Create (launch) an agent session inside an existing workspace on its host: runs the named agent preset (or HostAgentConfig instance) with the given prompt in a fresh terminal session. Use hosts_list / workspaces_list to find the hostId. Use this to start a second agent in a workspace that already exists; for create-and-spawn in a single call, pass `agents` to workspaces_create instead.",
 		inputSchema: {
+			hostId: z
+				.string()
+				.min(1)
+				.describe("Host machineId the workspace lives on."),
 			workspaceId: z
 				.string()
 				.uuid()
@@ -29,15 +32,6 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
-			const caller = createMcpCaller(ctx);
-			const workspace = await caller.v2Workspace.getFromHost({
-				organizationId: ctx.organizationId,
-				id: input.workspaceId,
-			});
-			if (!workspace) {
-				throw new Error(`Workspace not found: ${input.workspaceId}`);
-			}
-
 			return hostServiceCall<
 				| { kind: "terminal"; sessionId: string; label: string }
 				| { kind: "chat"; sessionId: string; label: string }
@@ -45,7 +39,7 @@ export function register(server: McpServer): void {
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,
-					hostId: workspace.hostId,
+					hostId: input.hostId,
 					jwt: ctx.bearerToken,
 				},
 				"agents.run",

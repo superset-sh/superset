@@ -15,11 +15,12 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 
 | Category | Operations |
 |----------|------------|
-| **Tasks** | list, get (by id or slug), create, update, delete |
-| **Workspaces** | list (filterable by host), create on a host, delete |
+| **Tasks** | list, get (by id or slug), create, update, delete, list statuses |
+| **Workspaces** | list (per host), create on a host, update, delete |
 | **Automations** | list, get metadata, get/set prompt body, create, update metadata, pause, resume, run on demand, list runs, delete |
-| **Projects** | list projects, create from a Git URL or local repo path |
+| **Projects** | list projects on a host |
 | **Hosts** | list hosts (registered machines) you have access to |
+| **Organization** | list members |
 
 ## Setup
 
@@ -278,15 +279,17 @@ API keys grant full access to your organization. Keep them secret and never comm
 | `tasks_get` | Get one task by UUID or slug |
 | `tasks_create` | Create a task in the active organization |
 | `tasks_update` | Update fields on an existing task |
-| `tasks_delete` | Hard-delete a task by UUID |
+| `tasks_delete` | Soft-delete a task by UUID |
+| `tasks_statuses_list` | List the organization's task statuses (for `tasks_create`/`tasks_update` statusId) |
 
 ### Workspaces
 
 | Tool | Description |
 |------|-------------|
-| `workspaces_list` | List workspaces, optionally filtered by host |
+| `workspaces_list` | List workspaces on a host (get the hostId from `hosts_list`) |
 | `workspaces_create` | Create a workspace on a host (branch-scoped git worktree) |
-| `workspaces_delete` | Delete a workspace by UUID; idempotent |
+| `workspaces_update` | Update fields on a workspace on its host |
+| `workspaces_delete` | Delete a workspace by UUID on its host |
 
 ### Agents
 
@@ -321,13 +324,19 @@ API keys grant full access to your organization. Keep them secret and never comm
 
 | Tool | Description |
 |------|-------------|
-| `projects_list` | List projects (checked-out repos) in the active organization |
+| `projects_list` | List projects (checked-out repos) on a host (get the hostId from `hosts_list`) |
 
 ### Hosts
 
 | Tool | Description |
 |------|-------------|
 | `hosts_list` | List the hosts (registered machines) you have access to |
+
+### Organization
+
+| Tool | Description |
+|------|-------------|
+| `organization_members_list` | List members of the active organization |
 
 ## Chat Integration
 

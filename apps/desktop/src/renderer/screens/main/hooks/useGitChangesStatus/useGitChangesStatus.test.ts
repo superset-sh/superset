@@ -6,6 +6,7 @@ const status: GitChangesStatus = {
 	defaultBranch: "release",
 	againstBase: [],
 	commits: [],
+	totalCommitCount: 0,
 	staged: [],
 	unstaged: [],
 	untracked: [],
