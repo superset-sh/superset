@@ -2,6 +2,7 @@ import "@sentry/electron/preload";
 
 import { contextBridge, ipcRenderer, webUtils } from "electron";
 import { exposeElectronTRPC } from "trpc-electron/main";
+import { createIpcListenerRegistry } from "./ipc-listener-registry";
 
 declare const __APP_VERSION__: string;
 
@@ -21,9 +22,9 @@ const API = {
 	appVersion: __APP_VERSION__,
 };
 
-// Store mapping of user listeners to wrapped listeners for proper cleanup
-type IpcListener = (...args: unknown[]) => void;
-const listenerMap = new WeakMap<IpcListener, IpcListener>();
+// Per-channel bookkeeping so the same listener can be registered on multiple
+// channels and still be fully removed (see ipc-listener-registry.ts).
+const listenerRegistry = createIpcListenerRegistry(ipcRenderer);
 
 /**
  * IPC renderer API
@@ -38,24 +39,12 @@ const ipcRendererAPI = {
 	send: (channel: string, ...args: any[]) => ipcRenderer.send(channel, ...args),
 
 	// biome-ignore lint/suspicious/noExplicitAny: IPC listener requires any for dynamic event types
-	on: (channel: string, listener: (...args: any[]) => void) => {
-		// biome-ignore lint/suspicious/noExplicitAny: IPC event wrapper requires any
-		const wrappedListener = (_event: any, ...args: any[]) => {
-			listener(...args);
-		};
-		listenerMap.set(listener, wrappedListener);
-		ipcRenderer.on(channel, wrappedListener);
-	},
+	on: (channel: string, listener: (...args: any[]) => void) =>
+		listenerRegistry.on(channel, listener),
 
 	// biome-ignore lint/suspicious/noExplicitAny: IPC listener requires any for dynamic event types
-	off: (channel: string, listener: (...args: any[]) => void) => {
-		const wrappedListener = listenerMap.get(listener as IpcListener);
-		if (wrappedListener) {
-			// biome-ignore lint/suspicious/noExplicitAny: Electron IPC API requires this cast
-			ipcRenderer.removeListener(channel, wrappedListener as any);
-			listenerMap.delete(listener as IpcListener);
-		}
-	},
+	off: (channel: string, listener: (...args: any[]) => void) =>
+		listenerRegistry.off(channel, listener),
 };
 
 // Expose electron-trpc IPC channel FIRST (must be before contextBridge calls)
