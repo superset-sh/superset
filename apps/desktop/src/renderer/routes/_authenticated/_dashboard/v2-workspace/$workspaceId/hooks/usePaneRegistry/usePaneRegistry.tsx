@@ -510,7 +510,12 @@ export function usePaneRegistry({
 				renderPane: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as ChatPaneData;
 					return (
+						// Key by pane id so switching between two chat tabs remounts the
+						// chat subtree instead of reusing one instance (the active Tab is
+						// rendered unkeyed, so same-kind panes at the same layout slot would
+						// otherwise share editor state and bleed drafts across panes).
 						<ChatPane
+							key={ctx.pane.id}
 							workspaceId={workspaceId}
 							sessionId={data.sessionId}
 							onSessionIdChange={(id) =>
@@ -519,6 +524,12 @@ export function usePaneRegistry({
 							initialLaunchConfig={data.launchConfig ?? null}
 							onConsumeLaunchConfig={() =>
 								ctx.actions.updateData({ ...data, launchConfig: null })
+							}
+							onSaveDraft={(draftInput) =>
+								ctx.actions.updateData({
+									...data,
+									launchConfig: { ...(data.launchConfig ?? {}), draftInput },
+								})
 							}
 						/>
 					);
