@@ -62,6 +62,7 @@ export function buildDeveloperResourcesSection(): string[] {
 		`- [Agent instructions](${baseUrl}/agents.md): when and how AI agents should use Superset`,
 		`- [OAuth protected resource metadata](${API_URL}/.well-known/oauth-protected-resource): RFC 9728`,
 		`- [OAuth authorization server metadata](${API_URL}/.well-known/oauth-authorization-server): RFC 8414`,
+		`- [Agent skills](https://github.com/superset-sh/skills): official skills for the CLI and MCP server — \`npx skills add superset-sh/skills\``,
 		`- [CLI](${docsUrl}/cli/getting-started): \`brew install superset-sh/tap/superset\` or \`curl -fsSL https://superset.sh/cli/install.sh | sh\``,
 		`- [TypeScript SDK](${docsUrl}/sdk/getting-started): \`npm install @superset_sh/sdk\``,
 		`- [Docs llms.txt](${docsUrl}/llms.txt): scoped context for the documentation`,
