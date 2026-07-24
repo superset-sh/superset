@@ -7,6 +7,7 @@ import {
 	buildAgentModelEnv,
 	getAgentEffortSupport,
 	getAgentModelSupport,
+	SUPERSET_CHAT_MODELS,
 } from "./agent-models";
 import { BUILTIN_TERMINAL_AGENT_TYPES } from "./builtin-terminal-agents";
 
@@ -37,6 +38,39 @@ describe("AGENT_MODEL_SUPPORT", () => {
 	it("lists at least one model per entry", () => {
 		for (const entry of AGENT_MODEL_SUPPORT) {
 			expect(entry.models.length).toBeGreaterThan(0);
+		}
+	});
+
+	it("includes MiniMax-M3 and MiniMax-M2.7 for both API regions", () => {
+		const expectedModels = [
+			{
+				id: "minimax/MiniMax-M3",
+				label: "MiniMax-M3",
+				provider: "MiniMax (minimax.io)",
+			},
+			{
+				id: "minimax/MiniMax-M2.7",
+				label: "MiniMax-M2.7",
+				provider: "MiniMax (minimax.io)",
+			},
+			{
+				id: "minimax-cn/MiniMax-M3",
+				label: "MiniMax-M3",
+				provider: "MiniMax (minimaxi.com)",
+			},
+			{
+				id: "minimax-cn/MiniMax-M2.7",
+				label: "MiniMax-M2.7",
+				provider: "MiniMax (minimaxi.com)",
+			},
+		];
+
+		for (const model of expectedModels) {
+			expect(SUPERSET_CHAT_MODELS).toContainEqual(model);
+			expect(getAgentModelSupport("superset")?.models).toContainEqual({
+				id: model.id,
+				label: model.label,
+			});
 		}
 	});
 });
