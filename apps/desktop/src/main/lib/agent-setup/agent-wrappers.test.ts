@@ -60,6 +60,7 @@ const {
 	AMP_PLUGIN_MARKER,
 	createAmpPlugin,
 	createAmpWrapper,
+	buildClaudeWrapperExecLine,
 	buildCodexWrapperExecLine,
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
@@ -72,8 +73,9 @@ const {
 	createDroidWrapper,
 	createMastraWrapper,
 	createPiExtension,
-	getClaudeGlobalSettingsJsonContent,
+	getClaudeGlobalSettingsJsonPath,
 	getClaudeManagedHookCommand,
+	getClaudeSettingsJsonContent,
 	getCodexGlobalHooksJsonContent,
 	getCursorHooksJsonContent,
 	getCopilotHookScriptPath,
@@ -86,6 +88,7 @@ const {
 	getPiExtensionContent,
 	getPiExtensionPath,
 	PI_EXTENSION_MARKER,
+	syncClaudeSettingsForConfigDir,
 } = await import("./agent-wrappers");
 const { reconcileManagedEntries } = await import("./agent-wrappers-common");
 
@@ -973,7 +976,10 @@ describe("agent-wrappers claude settings.json", () => {
 
 	it("creates Claude settings.json with hooks when no file exists", () => {
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
-		const content = getClaudeGlobalSettingsJsonContent(notifyPath);
+		const content = getClaudeSettingsJsonContent(
+			getClaudeGlobalSettingsJsonPath(),
+			notifyPath,
+		);
 		expect(content).not.toBeNull();
 		if (content === null) throw new Error("Expected content");
 
@@ -1036,7 +1042,10 @@ describe("agent-wrappers claude settings.json", () => {
 		);
 
 		const notifyPath = "/tmp/.superset/hooks/notify.sh";
-		const content = getClaudeGlobalSettingsJsonContent(notifyPath);
+		const content = getClaudeSettingsJsonContent(
+			getClaudeGlobalSettingsJsonPath(),
+			notifyPath,
+		);
 		expect(content).not.toBeNull();
 		if (content === null) throw new Error("Expected content");
 
@@ -1109,13 +1118,14 @@ describe("agent-wrappers claude settings.json", () => {
 			),
 		);
 
-		const content = getClaudeGlobalSettingsJsonContent(currentHookPath);
+		const claudePath = getClaudeGlobalSettingsJsonPath();
+		const content = getClaudeSettingsJsonContent(claudePath, currentHookPath);
 		expect(content).not.toBeNull();
 		if (content === null) throw new Error("Expected content");
 
 		// Second run should be idempotent
 		writeFileSync(claudeSettingsPath, content);
-		const content2 = getClaudeGlobalSettingsJsonContent(currentHookPath);
+		const content2 = getClaudeSettingsJsonContent(claudePath, currentHookPath);
 		expect(content2).not.toBeNull();
 
 		const parsed = JSON.parse(content) as {
@@ -1172,7 +1182,10 @@ describe("agent-wrappers claude settings.json", () => {
 		writeFileSync(claudeSettingsPath, invalidJson);
 
 		expect(
-			getClaudeGlobalSettingsJsonContent("/tmp/.superset/hooks/notify.sh"),
+			getClaudeSettingsJsonContent(
+				getClaudeGlobalSettingsJsonPath(),
+				"/tmp/.superset/hooks/notify.sh",
+			),
 		).toBeNull();
 
 		createClaudeSettingsJson();
@@ -1192,8 +1205,67 @@ describe("agent-wrappers claude settings.json", () => {
 		writeFileSync(claudeSettingsPath, JSON.stringify("not-an-object"));
 
 		expect(
-			getClaudeGlobalSettingsJsonContent("/tmp/.superset/hooks/notify.sh"),
+			getClaudeSettingsJsonContent(
+				getClaudeGlobalSettingsJsonPath(),
+				"/tmp/.superset/hooks/notify.sh",
+			),
 		).toBeNull();
+	});
+
+	it("syncs Claude hooks into an arbitrary CLAUDE_CONFIG_DIR", () => {
+		const configDir = path.join(TEST_ROOT, "claude-work");
+		const settingsPath = path.join(configDir, "settings.json");
+		mkdirSync(configDir, { recursive: true });
+		writeFileSync(
+			settingsPath,
+			JSON.stringify({ permissions: { defaultMode: "auto" } }, null, 2),
+		);
+
+		const changed = syncClaudeSettingsForConfigDir(configDir);
+		expect(changed).toBe(true);
+
+		const parsed = JSON.parse(readFileSync(settingsPath, "utf-8"));
+		expect(parsed.permissions).toEqual({ defaultMode: "auto" });
+		expect(
+			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
+				def.hooks.some(
+					(hook: { command: string }) =>
+						hook.command === managedClaudeHookCommand,
+				),
+			),
+		).toBe(true);
+	});
+
+	it("creates the config dir and settings.json when none exists yet", () => {
+		const configDir = path.join(TEST_ROOT, "claude-personal");
+
+		const changed = syncClaudeSettingsForConfigDir(configDir);
+		expect(changed).toBe(true);
+
+		const parsed = JSON.parse(
+			readFileSync(path.join(configDir, "settings.json"), "utf-8"),
+		);
+		expect(
+			parsed.hooks.Stop.some((def: { hooks: Array<{ command: string }> }) =>
+				def.hooks.some(
+					(hook: { command: string }) =>
+						hook.command === managedClaudeHookCommand,
+				),
+			),
+		).toBe(true);
+	});
+
+	it("no-ops for an empty or non-absolute config dir", () => {
+		expect(syncClaudeSettingsForConfigDir("")).toBe(false);
+		expect(syncClaudeSettingsForConfigDir("   ")).toBe(false);
+		expect(syncClaudeSettingsForConfigDir("relative/path")).toBe(false);
+	});
+
+	it("includes the CLAUDE_CONFIG_DIR sync request in the wrapper exec line", () => {
+		const execLine = buildClaudeWrapperExecLine();
+		expect(execLine).toContain('[ -n "$CLAUDE_CONFIG_DIR" ]');
+		expect(execLine).toContain("/hook/claude-config-sync");
+		expect(execLine).toContain('exec "$REAL_BIN" "$@"');
 	});
 });
 
