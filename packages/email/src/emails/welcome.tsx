@@ -1,7 +1,8 @@
-import { Section, Text } from "@react-email/components";
+import { Text } from "@react-email/components";
 import {
 	BandSection,
 	DisplayHeading,
+	FeatureSplit,
 	HeroCard,
 	IdeaBlock,
 	LifecycleLayout,
@@ -128,24 +129,36 @@ export function WelcomeEmail({ userEmail }: WelcomeEmailProps = {}) {
 			</BandSection>
 
 			<BandSection tone="paper">
-				<Section style={{ padding: "0 0 8px 0" }}>
-					<DisplayHeading size="sm" align="left">
-						Why Superset is different
-					</DisplayHeading>
-					<Text style={{ ...body, margin: "-8px 0 36px 0" }}>
-						Agents are only useful when they can work like teammates. Superset
-						gives every agent an isolated copy of your repo on its own branch —
-						so agents work in parallel, never step on each other, and every
-						change comes back as a reviewable diff.
-					</Text>
+				<FeatureSplit
+					imageSrc={`${assets}/feature-1.png`}
+					imageAlt="Agents working across isolated workspaces in Superset"
+					imageSide="left"
+					title="Why Superset is different"
+				>
+					Agents are only useful when they can work like teammates. Superset
+					gives every agent an isolated copy of your repo on its own branch —
+					parallel work, no stepping on each other, every change a reviewable
+					diff.
+				</FeatureSplit>
 
-					<DisplayHeading size="sm" align="left">
-						Questions?
-					</DisplayHeading>
-					<Text style={{ ...body, margin: "-8px 0 0 0" }}>
-						Just reply to this email — a founder reads every message.
-					</Text>
-				</Section>
+				<FeatureSplit
+					imageSrc={`${assets}/feature-2.png`}
+					imageAlt="Reviewing an agent's diff in Superset"
+					imageSide="right"
+					title="You stay the reviewer"
+				>
+					Agents propose, you approve. Every workspace ends in a diff you can
+					read, request changes on, or merge — the same way you&apos;d review a
+					teammate.
+				</FeatureSplit>
+
+				<PillButton href={`${DOWNLOAD}${utm("footer-cta")}`}>
+					Get the desktop app
+				</PillButton>
+
+				<Text style={{ ...body, margin: "32px 0 0 0", textAlign: "center" }}>
+					Questions? Just reply — a founder reads every message.
+				</Text>
 			</BandSection>
 		</LifecycleLayout>
 	);
