@@ -212,6 +212,9 @@ export const settings = sqliteTable("settings", {
 	autoApplyDefaultPreset: integer("auto_apply_default_preset", {
 		mode: "boolean",
 	}),
+	waitForSetupBeforeAgent: integer("wait_for_setup_before_agent", {
+		mode: "boolean",
+	}),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
 	notificationSoundsMuted: integer("notification_sounds_muted", {
