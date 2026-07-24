@@ -14,11 +14,7 @@ import {
 import { gitConfigWrite } from "../../git/utils/config-write";
 import type { GitClient } from "./types";
 
-export type AdoptedWorkspace = NonNullable<
-	Awaited<
-		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
-	>
->;
+export type AdoptedWorkspace = ReturnType<typeof toCloudShape>;
 
 export interface AdoptExistingWorktreeArgs {
 	ctx: HostServiceContext;
@@ -121,6 +117,7 @@ export async function adoptExistingWorktree(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
+				ne(workspaces.type, "subworkspace"),
 			),
 		})
 		.sync();
@@ -139,6 +136,7 @@ export async function adoptExistingWorktree(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.worktreePath, worktreePath),
+				ne(workspaces.type, "subworkspace"),
 			),
 		})
 		.sync();
@@ -216,6 +214,7 @@ function deleteLocalWorkspaceConflicts(
 					eq(workspaces.branch, args.branch),
 					eq(workspaces.worktreePath, args.worktreePath),
 				),
+				ne(workspaces.type, "subworkspace"),
 				ne(workspaces.id, args.keepWorkspaceId),
 			),
 		)

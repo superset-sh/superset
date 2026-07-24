@@ -1111,6 +1111,7 @@ export async function createTerminalSessionInternal({
 			process.env.NODE_ENV === "development" ? "development" : "production",
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
 		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
+		agentDelegationMode: workspace.agentDelegationMode,
 		hostAgentHookUrl: getHostAgentHookUrl(),
 	});
 

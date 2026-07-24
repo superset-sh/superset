@@ -1,8 +1,11 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect } from "react";
 import { logStressEvent } from "renderer/lib/performance/stress-instrumentation";
 import { getTerminalBackgroundMarkerIdsKey } from "renderer/lib/terminal/terminal-background-intents";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { StoreApi } from "zustand/vanilla";
 import {
 	getAttachedTerminalIdsKey,
@@ -10,6 +13,7 @@ import {
 	parseAttachedTerminalIdsKey,
 } from "../../components/BackgroundTerminalsButton/BackgroundTerminalsButton.utils";
 import type { PaneViewerData } from "../../types";
+import { focusOrAddChatPane } from "../../utils/focusChatPane";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
 interface UseAutoAdoptBackgroundSessionsArgs {
@@ -39,6 +43,11 @@ export function useAutoAdoptBackgroundSessions({
 	workspaceId,
 	isLayoutReady,
 }: UseAutoAdoptBackgroundSessionsArgs): void {
+	const collections = useCollections();
+	const workspaceQuery = workspaceTrpc.workspace.get.useQuery(
+		{ id: workspaceId },
+		{ enabled: isLayoutReady },
+	);
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
 		{ workspaceId },
 		{ enabled: isLayoutReady, refetchOnWindowFocus: false },
@@ -47,6 +56,16 @@ export function useAutoAdoptBackgroundSessions({
 	// Don't act on a cached list still being refetched — it may name a session
 	// killed while the workspace was closed, which would adopt a ghost pane.
 	const isFetchingSessions = sessionsQuery.isFetching;
+	const { data: chatSessions = [], isReady: chatSessionsReady } = useLiveQuery(
+		(q) =>
+			q
+				.from({ chatSessions: collections.chatSessions })
+				.where(({ chatSessions }) =>
+					eq(chatSessions.v2WorkspaceId, workspaceId),
+				)
+				.select(({ chatSessions }) => ({ id: chatSessions.id })),
+		[collections, workspaceId],
+	);
 
 	useEffect(() => {
 		if (!isLayoutReady || !sessions || isFetchingSessions) return;
@@ -66,7 +85,7 @@ export function useAutoAdoptBackgroundSessions({
 		// Oldest→newest so tabs read chronologically; restore the active tab so
 		// adoption never steals focus.
 		const restoreActiveTabId = state.tabs.length > 0 ? state.activeTabId : null;
-		for (const session of toAdopt.reverse()) {
+		for (const session of [...toAdopt].reverse()) {
 			focusOrAddTerminalPane(store, session.terminalId);
 		}
 		if (restoreActiveTabId) {
@@ -77,4 +96,42 @@ export function useAutoAdoptBackgroundSessions({
 			workspaceId,
 		});
 	}, [isLayoutReady, isFetchingSessions, sessions, store, workspaceId]);
+
+	useEffect(() => {
+		if (
+			workspaceQuery.data?.type !== "subworkspace" ||
+			!isLayoutReady ||
+			!chatSessionsReady
+		) {
+			return;
+		}
+		const state = store.getState();
+		const attachedSessionIds = new Set<string>();
+		for (const tab of state.tabs) {
+			for (const pane of Object.values(tab.panes)) {
+				if (pane.kind !== "chat") continue;
+				const sessionId = (pane.data as { sessionId?: string | null })
+					.sessionId;
+				if (sessionId) attachedSessionIds.add(sessionId);
+			}
+		}
+		const toAdopt = chatSessions.filter(
+			(session) => !attachedSessionIds.has(session.id),
+		);
+		if (toAdopt.length === 0) return;
+
+		const restoreActiveTabId = state.tabs.length > 0 ? state.activeTabId : null;
+		for (const session of [...toAdopt].reverse()) {
+			focusOrAddChatPane(store, session.id);
+		}
+		if (restoreActiveTabId) {
+			store.getState().setActiveTab(restoreActiveTabId);
+		}
+	}, [
+		chatSessions,
+		chatSessionsReady,
+		isLayoutReady,
+		store,
+		workspaceQuery.data?.type,
+	]);
 }

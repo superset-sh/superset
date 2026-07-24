@@ -42,7 +42,9 @@ export function useDestroyDialogState({
 
 	const { preferences, setDeleteLocalBranch: setDeleteBranch } =
 		useV2UserPreferences();
-	const deleteBranch = preferences.deleteLocalBranch;
+	const workspace = hostWorkspaces.find((item) => item.id === workspaceId);
+	const isSubworkspace = workspace?.type === "subworkspace";
+	const deleteBranch = !isSubworkspace && preferences.deleteLocalBranch;
 
 	const [inspectState, setInspectState] = useState<InspectState>({
 		status: "idle",
@@ -108,9 +110,7 @@ export function useDestroyDialogState({
 			navigateAwayFromWorkspace(workspaceId);
 			toast(`Deleting "${workspaceName}"...`);
 
-			const hostId = hostWorkspaces.find(
-				(item) => item.id === workspaceId,
-			)?.hostId;
+			const hostId = workspace?.hostId;
 
 			try {
 				let result: DestroyWorkspaceSuccess;
@@ -165,13 +165,14 @@ export function useDestroyDialogState({
 			markDeleting,
 			clearDeleting,
 			navigateAwayFromWorkspace,
-			hostWorkspaces,
+			workspace?.hostId,
 			hostWorkspacesCache,
 		],
 	);
 
 	return {
 		deleteBranch,
+		isSubworkspace,
 		setDeleteBranch,
 		hasChanges: preview?.hasChanges ?? false,
 		hasUnpushedCommits: preview?.hasUnpushedCommits ?? false,

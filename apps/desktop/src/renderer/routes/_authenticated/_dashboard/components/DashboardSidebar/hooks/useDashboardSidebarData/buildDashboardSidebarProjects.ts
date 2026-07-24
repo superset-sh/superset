@@ -36,6 +36,7 @@ export interface SidebarWorkspaceInput {
 	projectId: string;
 	hostId: string;
 	type: DashboardSidebarWorkspaceType;
+	parentWorkspaceId: string | null;
 	hostIsOnline: boolean;
 	name: string;
 	branch: string;
@@ -53,6 +54,39 @@ export interface BuildDashboardSidebarProjectsParams {
 	visibleSidebarWorkspaces: SidebarWorkspaceInput[];
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+}
+
+function orderSubWorkspacesAfterParents(
+	workspaces: DashboardSidebarWorkspace[],
+): DashboardSidebarWorkspace[] {
+	const workspaceIds = new Set(workspaces.map((workspace) => workspace.id));
+	const childrenByParentId = new Map<string, DashboardSidebarWorkspace[]>();
+	const roots: DashboardSidebarWorkspace[] = [];
+
+	for (const workspace of workspaces) {
+		if (
+			workspace.type !== "subworkspace" ||
+			!workspace.parentWorkspaceId ||
+			!workspaceIds.has(workspace.parentWorkspaceId)
+		) {
+			roots.push(workspace);
+			continue;
+		}
+		const siblings = childrenByParentId.get(workspace.parentWorkspaceId) ?? [];
+		siblings.push(workspace);
+		childrenByParentId.set(workspace.parentWorkspaceId, siblings);
+	}
+
+	const ordered: DashboardSidebarWorkspace[] = [];
+	const appendTree = (workspace: DashboardSidebarWorkspace) => {
+		ordered.push(workspace);
+		for (const child of childrenByParentId.get(workspace.id) ?? []) {
+			appendTree(child);
+		}
+	};
+	for (const root of roots) appendTree(root);
+
+	return ordered;
 }
 
 export function buildDashboardSidebarProjects({
@@ -119,6 +153,7 @@ export function buildDashboardSidebarProjects({
 			hostId: workspace.hostId,
 			hostType,
 			type: workspace.type,
+			parentWorkspaceId: workspace.parentWorkspaceId,
 			hostIsOnline:
 				hostType === "remote-device" ? workspace.hostIsOnline : null,
 			accentColor: null,
@@ -243,7 +278,35 @@ export function buildDashboardSidebarProjects({
 			);
 		}
 
-		sidebarProject.children = children;
+		for (const child of children) {
+			if (child.type === "section") {
+				child.section.workspaces = orderSubWorkspacesAfterParents(
+					child.section.workspaces,
+				);
+			}
+		}
+
+		const orderedChildren: DashboardSidebarProjectChild[] = [];
+		const topLevelWorkspaces: DashboardSidebarWorkspace[] = [];
+		const flushTopLevelWorkspaces = () => {
+			orderedChildren.push(
+				...orderSubWorkspacesAfterParents(topLevelWorkspaces).map(
+					(workspace) => ({ type: "workspace" as const, workspace }),
+				),
+			);
+			topLevelWorkspaces.length = 0;
+		};
+		for (const child of children) {
+			if (child.type === "workspace") {
+				topLevelWorkspaces.push(child.workspace);
+				continue;
+			}
+			flushTopLevelWorkspaces();
+			orderedChildren.push(child);
+		}
+		flushTopLevelWorkspaces();
+
+		sidebarProject.children = orderedChildren;
 		return [sidebarProject];
 	});
 }

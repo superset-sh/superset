@@ -1,12 +1,13 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
 import type { WorkspaceState } from "@superset/panes";
 import type { PaneLifecycleRow } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 
-export type SidebarWorkspaceRow = Pick<
-	SelectV2Workspace,
-	"id" | "projectId" | "type" | "hostId"
->;
+export interface SidebarWorkspaceRow {
+	id: string;
+	projectId: string;
+	type: "main" | "worktree" | "subworkspace";
+	hostId: string;
+}
 
 /**
  * Pure sidebar local-state mutations, kept free of React/Electron imports so

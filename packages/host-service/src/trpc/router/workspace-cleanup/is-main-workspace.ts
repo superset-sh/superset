@@ -44,6 +44,13 @@ export async function isMainWorkspace(
 				.sync()
 		: undefined;
 
+	// A subworkspace deliberately shares its parent's path. It is a logical
+	// session container, not the physical checkout, so path equality must not
+	// make it undeletable when its parent is the main workspace.
+	if (local?.type === "subworkspace") {
+		return { isMain: false, reason: null, local, project };
+	}
+
 	if (
 		local &&
 		project &&

@@ -85,6 +85,20 @@
       "when": 1784490907723,
       "tag": "0011_project_identity_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "6",
+      "when": 1784910113911,
+      "tag": "0012_clean_edwin_jarvis",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "6",
+      "when": 1784924572295,
+      "tag": "0013_persist_agent_delegation_mode",
+      "breakpoints": true
     }
   ]
 }

@@ -496,6 +496,7 @@ describe("buildV2TerminalEnv", () => {
 		supersetEnv: "production" as const,
 		agentHookPort: "51741",
 		agentHookVersion: "2",
+		agentDelegationMode: "native" as const,
 	};
 
 	test("injects the public terminal contract and retained v2 metadata", () => {
@@ -513,6 +514,7 @@ describe("buildV2TerminalEnv", () => {
 			SUPERSET_ENV: "production",
 			SUPERSET_AGENT_HOOK_PORT: "51741",
 			SUPERSET_AGENT_HOOK_VERSION: "2",
+			SUPERSET_AGENT_DELEGATION_MODE: "native",
 		});
 		expect(env.TERM_PROGRAM).toBe("kitty");
 		expect(env.SHELL).toBe("/bin/zsh");
@@ -628,6 +630,7 @@ describe("v2 env contract boundary", () => {
 			supersetEnv: "production",
 			agentHookPort: "51741",
 			agentHookVersion: "2",
+			agentDelegationMode: "native",
 		});
 
 		// None of the runtime secrets should be present

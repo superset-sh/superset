@@ -48,3 +48,52 @@ export function isAutoIncludedLocalMainWorkspace(
 		sidebarProjectIds.has(workspace.projectId)
 	);
 }
+
+/**
+ * Finds host-owned delegated workspaces that should follow a visible parent
+ * into the sidebar. An explicit local-state row always wins: a user-hidden
+ * child stays hidden, while an explicitly placed child is already in the
+ * visible seed set.
+ */
+export function getAutoIncludedSubWorkspaceIds(
+	workspaces: ReadonlyArray<{
+		id: string;
+		projectId: string;
+		type?: "main" | "worktree" | "subworkspace";
+		parentWorkspaceId?: string | null;
+	}>,
+	{
+		localStateWorkspaceIds,
+		sidebarProjectIds,
+		visibleWorkspaceIds,
+	}: {
+		localStateWorkspaceIds: ReadonlySet<string>;
+		sidebarProjectIds: ReadonlySet<string>;
+		visibleWorkspaceIds: ReadonlySet<string>;
+	},
+): Set<string> {
+	const visibleIds = new Set(visibleWorkspaceIds);
+	const autoIncludedIds = new Set<string>();
+	let changed = true;
+
+	while (changed) {
+		changed = false;
+		for (const workspace of workspaces) {
+			if (
+				workspace.type !== "subworkspace" ||
+				!workspace.parentWorkspaceId ||
+				visibleIds.has(workspace.id) ||
+				localStateWorkspaceIds.has(workspace.id) ||
+				!sidebarProjectIds.has(workspace.projectId) ||
+				!visibleIds.has(workspace.parentWorkspaceId)
+			) {
+				continue;
+			}
+			visibleIds.add(workspace.id);
+			autoIncludedIds.add(workspace.id);
+			changed = true;
+		}
+	}
+
+	return autoIncludedIds;
+}

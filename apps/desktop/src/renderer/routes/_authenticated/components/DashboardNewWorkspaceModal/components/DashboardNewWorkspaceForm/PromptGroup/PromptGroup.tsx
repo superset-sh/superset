@@ -15,6 +15,8 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -52,6 +54,7 @@ import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
+import { useAgentDelegationPreference } from "./hooks/useAgentDelegationPreference";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
@@ -182,6 +185,7 @@ export function PromptGroup({
 		EFFORT_STORAGE_KEY,
 		effortSupport ? selectedPresetId : null,
 	);
+	const { delegationMode, setDelegationMode } = useAgentDelegationPreference();
 
 	// Promote the placeholder "none" → first configured agent whenever the
 	// current selection isn't a real agent and the user hasn't explicitly
@@ -302,6 +306,7 @@ export function PromptGroup({
 		selectedAgent,
 		modelSupport ? selectedModel : null,
 		effortSupport ? selectedEffort : null,
+		delegationMode,
 		uploadAttachments,
 		promptContext,
 	);
@@ -508,6 +513,31 @@ export function PromptGroup({
 								onValueChange={setSelectedEffort}
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
+						)}
+						{selectedAgent !== "none" && (
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<label
+										htmlFor="fan-out-to-workspaces"
+										className={`${PILL_BUTTON_CLASS} flex cursor-pointer items-center gap-1.5 px-2 text-foreground`}
+									>
+										<Switch
+											id="fan-out-to-workspaces"
+											checked={delegationMode === "workspaces"}
+											onCheckedChange={(checked) =>
+												setDelegationMode(checked ? "workspaces" : "native")
+											}
+											className="scale-75"
+										/>
+										Create sub-workspaces for sub-agents
+									</label>
+								</TooltipTrigger>
+								<TooltipContent>
+									{delegationMode === "workspaces"
+										? "Subagents become visible Superset sub-workspaces"
+										: "Subagents use the agent's native headless mode"}
+								</TooltipContent>
+							</Tooltip>
 						)}
 					</PromptInputTools>
 					<div className="flex items-center gap-2">

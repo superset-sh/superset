@@ -2,6 +2,7 @@ import {
 	chmodSync,
 	existsSync,
 	mkdirSync,
+	readdirSync,
 	readFileSync,
 	rmSync,
 	writeFileSync,
@@ -22,12 +23,18 @@ export interface HostServiceManifest {
 	organizationId: string;
 }
 
-function manifestDir(organizationId: string): string {
-	return join(SUPERSET_HOME_DIR, "host", organizationId);
+function manifestDir(
+	organizationId: string,
+	supersetHomeDir = SUPERSET_HOME_DIR,
+): string {
+	return join(supersetHomeDir, "host", organizationId);
 }
 
-function manifestPath(organizationId: string): string {
-	return join(manifestDir(organizationId), "manifest.json");
+function manifestPath(
+	organizationId: string,
+	supersetHomeDir = SUPERSET_HOME_DIR,
+): string {
+	return join(manifestDir(organizationId, supersetHomeDir), "manifest.json");
 }
 
 export function ensureManifestDir(organizationId: string): string {
@@ -47,14 +54,28 @@ export function writeManifest(manifest: HostServiceManifest): void {
 
 export function readManifest(
 	organizationId: string,
+	supersetHomeDir = SUPERSET_HOME_DIR,
 ): HostServiceManifest | null {
-	const path = manifestPath(organizationId);
+	const path = manifestPath(organizationId, supersetHomeDir);
 	if (!existsSync(path)) return null;
 	try {
 		return JSON.parse(readFileSync(path, "utf-8")) as HostServiceManifest;
 	} catch {
 		return null;
 	}
+}
+
+export function listManifests(
+	supersetHomeDir = SUPERSET_HOME_DIR,
+): HostServiceManifest[] {
+	const hostDir = join(supersetHomeDir, "host");
+	if (!existsSync(hostDir)) return [];
+
+	return readdirSync(hostDir, { withFileTypes: true }).flatMap((entry) => {
+		if (!entry.isDirectory()) return [];
+		const manifest = readManifest(entry.name, supersetHomeDir);
+		return manifest ? [manifest] : [];
+	});
 }
 
 export function removeManifest(organizationId: string): void {

@@ -1,5 +1,6 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
+import { CornerDownRight } from "lucide-react";
 import {
 	type ComponentPropsWithoutRef,
 	forwardRef,
@@ -101,12 +102,17 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 
 		const creationStatusText = isPending ? "Creating…" : null;
 		const isMainWorkspace = workspace.type === "main";
+		const isSubWorkspace = workspace.type === "subworkspace";
 		const workspaceKindTitle = isMainWorkspace
 			? "Main workspace"
-			: "Worktree workspace";
+			: isSubWorkspace
+				? "Sub-workspace"
+				: "Worktree workspace";
 		const workspaceKindDescription = isMainWorkspace
 			? "Uses the repository checkout on this host"
-			: "Isolated copy for parallel development";
+			: isSubWorkspace
+				? "Created for a delegated subagent"
+				: "Isolated copy for parallel development";
 
 		return (
 			<div
@@ -145,10 +151,19 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					onDoubleClick={onDoubleClick}
 					className={cn(
 						"group relative flex w-full items-center py-2 pr-2",
-						isInSection ? "pl-10" : "pl-5",
+						isInSection
+							? isSubWorkspace
+								? "pl-13"
+								: "pl-10"
+							: isSubWorkspace
+								? "pl-8"
+								: "pl-5",
 						onClick && "cursor-pointer",
 					)}
 				>
+					{isSubWorkspace && (
+						<CornerDownRight className="mr-1 size-3 shrink-0 text-muted-foreground/60" />
+					)}
 					<Tooltip delayDuration={500}>
 						<TooltipTrigger asChild>
 							{pullRequest ? (
@@ -206,7 +221,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							) : (
 								<>
 									<p className="text-xs font-medium">
-										{isMainWorkspace
+										{isMainWorkspace || isSubWorkspace
 											? workspaceKindTitle
 											: hostType === "local-device"
 												? "Local workspace"
@@ -217,7 +232,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													: "Cloud workspace"}
 									</p>
 									<p className="text-xs text-muted-foreground">
-										{isMainWorkspace
+										{isMainWorkspace || isSubWorkspace
 											? workspaceKindDescription
 											: hostType === "local-device"
 												? "Running on this device"

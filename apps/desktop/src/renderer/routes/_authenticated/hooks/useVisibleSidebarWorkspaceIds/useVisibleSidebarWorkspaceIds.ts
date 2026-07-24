@@ -3,6 +3,7 @@ import { useMemo } from "react";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	getAutoIncludedSubWorkspaceIds,
 	getSidebarWorkspaceIsHidden,
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -87,6 +88,18 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 			) {
 				visibleIds.add(workspace.id);
 			}
+		}
+
+		const autoIncludedSubWorkspaceIds = getAutoIncludedSubWorkspaceIds(
+			hostWorkspaces,
+			{
+				localStateWorkspaceIds,
+				sidebarProjectIds,
+				visibleWorkspaceIds: visibleIds,
+			},
+		);
+		for (const workspaceId of autoIncludedSubWorkspaceIds) {
+			visibleIds.add(workspaceId);
 		}
 
 		return visibleIds;

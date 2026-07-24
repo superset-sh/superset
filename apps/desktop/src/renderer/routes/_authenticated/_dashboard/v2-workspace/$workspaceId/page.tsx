@@ -121,6 +121,16 @@ function V2WorkspaceContent() {
 	} = Route.useSearch();
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const updateWorkspaceMutation = workspaceTrpc.workspace.update.useMutation();
+	const handleToggleFanOutToPanes = useCallback(
+		(enabled: boolean) => {
+			updateWorkspaceMutation.mutate({
+				id: workspaceId,
+				agentDelegationMode: enabled ? "workspaces" : "native",
+			});
+		},
+		[updateWorkspaceMutation, workspaceId],
+	);
 
 	const {
 		preferences: v2UserPreferences,
@@ -318,6 +328,9 @@ function V2WorkspaceContent() {
 									onAddBrowser={addBrowserTab}
 									showPresetsBar={showPresetsBar}
 									onToggleShowPresetsBar={setShowPresetsBar}
+									fanOutToPanes={workspace.agentDelegationMode === "workspaces"}
+									onToggleFanOutToPanes={handleToggleFanOutToPanes}
+									isFanOutTogglePending={updateWorkspaceMutation.isPending}
 								/>
 							)}
 							renderTabBarTrailing={() => (

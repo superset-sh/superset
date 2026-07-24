@@ -31,6 +31,8 @@ if [ -z "$EVENT_TYPE" ]; then
   esac
 fi
 
+RAW_EVENT_TYPE="$EVENT_TYPE"
+
 # UserPromptSubmit normalizes here; other aliases are mapped server-side
 # by mapEventType so the wire stays a single source of truth.
 [ "$EVENT_TYPE" = "UserPromptSubmit" ] && EVENT_TYPE="Start"
@@ -70,62 +72,90 @@ case "$V1_EVENT_TYPE" in
 esac
 
 json_escape() {
-  printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+  local value="$1"
+  value=${value//\\/\\\\}
+  value=${value//\"/\\\"}
+  value=${value//$'\n'/\\n}
+  value=${value//$'\r'/\\r}
+  value=${value//$'\t'/\\t}
+  printf '%s' "$value"
 }
+
+DELEGATION_MODE="${SUPERSET_AGENT_DELEGATION_MODE:-native}"
 
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then
   PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$SESSION_ID")\"}}}"
+  RESPONSE_FILE=$(mktemp "${TMPDIR:-/tmp}/superset-agent-hook.XXXXXX")
 
   STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
     --connect-timeout 2 --max-time 5 \
     -H "Content-Type: application/json" \
     -d "$PAYLOAD" \
-    -o /dev/null -w "%{http_code}" 2>/dev/null)
+    -o "$RESPONSE_FILE" -w "%{http_code}" 2>/dev/null)
+  RESPONSE=$(cat "$RESPONSE_FILE" 2>/dev/null)
+  rm -f "$RESPONSE_FILE"
+  HOST_DELEGATION_MODE=$(printf '%s' "$RESPONSE" | grep -oE '"agentDelegationMode"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  if [ -n "$HOST_DELEGATION_MODE" ]; then
+    DELEGATION_MODE="$HOST_DELEGATION_MODE"
+  fi
 
   if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-    echo "[notify-hook] host-service dispatched status=$STATUS_CODE" >&2
+    echo "[notify-hook] host-service dispatched status=$STATUS_CODE delegationMode=$DELEGATION_MODE" >&2
   fi
   debug_log "host-service status=$STATUS_CODE url=$SUPERSET_HOST_AGENT_HOOK_URL"
 
   case "$STATUS_CODE" in
-    2*) exit 0 ;;
+    2*) HOST_DISPATCHED="1" ;;
   esac
 fi
 
 # v1 fallback: Electron localhost hook server. Kept while v1 terminals exist.
-[ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
+if [ "${HOST_DISPATCHED:-0}" != "1" ]; then
+  if [ -n "$SUPERSET_TAB_ID" ] || [ -n "$SESSION_ID" ] || [ -n "$SUPERSET_TERMINAL_ID" ]; then
 
-if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
-    --connect-timeout 1 --max-time 2 \
-    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
-    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
-    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
-    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
-    --data-urlencode "sessionId=$SESSION_ID" \
-    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
-    --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$V1_EVENT_TYPE" \
-    --data-urlencode "env=$SUPERSET_ENV" \
-    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
-    -o /dev/null -w "%{http_code}" 2>/dev/null)
-  echo "[notify-hook] v1 dispatched status=$STATUS_CODE" >&2
-  debug_log "v1 status=$STATUS_CODE port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
-else
-  debug_log "v1 dispatch port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
-  curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
-    --connect-timeout 1 --max-time 2 \
-    --data-urlencode "paneId=$SUPERSET_PANE_ID" \
-    --data-urlencode "tabId=$SUPERSET_TAB_ID" \
-    --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
-    --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
-    --data-urlencode "sessionId=$SESSION_ID" \
-    --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
-    --data-urlencode "resourceId=$RESOURCE_ID" \
-    --data-urlencode "eventType=$V1_EVENT_TYPE" \
-    --data-urlencode "env=$SUPERSET_ENV" \
-    --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
-    > /dev/null 2>&1
+    if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
+      STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
+        --connect-timeout 1 --max-time 2 \
+        --data-urlencode "paneId=$SUPERSET_PANE_ID" \
+        --data-urlencode "tabId=$SUPERSET_TAB_ID" \
+        --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+        --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
+        --data-urlencode "sessionId=$SESSION_ID" \
+        --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
+        --data-urlencode "resourceId=$RESOURCE_ID" \
+        --data-urlencode "eventType=$V1_EVENT_TYPE" \
+        --data-urlencode "env=$SUPERSET_ENV" \
+        --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
+        -o /dev/null -w "%{http_code}" 2>/dev/null)
+      echo "[notify-hook] v1 dispatched status=$STATUS_CODE" >&2
+      debug_log "v1 status=$STATUS_CODE port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
+    else
+      debug_log "v1 dispatch port=${SUPERSET_PORT:-{{DEFAULT_PORT}}}"
+      curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
+        --connect-timeout 1 --max-time 2 \
+        --data-urlencode "paneId=$SUPERSET_PANE_ID" \
+        --data-urlencode "tabId=$SUPERSET_TAB_ID" \
+        --data-urlencode "workspaceId=$SUPERSET_WORKSPACE_ID" \
+        --data-urlencode "terminalId=$SUPERSET_TERMINAL_ID" \
+        --data-urlencode "sessionId=$SESSION_ID" \
+        --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
+        --data-urlencode "resourceId=$RESOURCE_ID" \
+        --data-urlencode "eventType=$V1_EVENT_TYPE" \
+        --data-urlencode "env=$SUPERSET_ENV" \
+        --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
+        > /dev/null 2>&1
+    fi
+  fi
+fi
+
+if [ "$RAW_EVENT_TYPE" = "UserPromptSubmit" ] && [ "$DELEGATION_MODE" = "workspaces" ]; then
+  DELEGATION_CONTEXT=$(cat <<'SUPERSET_DELEGATION_CONTEXT'
+{{DELEGATION_CONTEXT}}
+SUPERSET_DELEGATION_CONTEXT
+)
+  DELEGATION_CONTEXT=${DELEGATION_CONTEXT//__SUPERSET_WORKSPACE_ID__/$SUPERSET_WORKSPACE_ID}
+  DELEGATION_CONTEXT=${DELEGATION_CONTEXT//__SUPERSET_AGENT_ID__/$SUPERSET_AGENT_ID}
+  printf '{"hookSpecificOutput":{"hookEventName":"UserPromptSubmit","additionalContext":"%s"}}\n' "$(json_escape "$DELEGATION_CONTEXT")"
 fi
 
 exit 0

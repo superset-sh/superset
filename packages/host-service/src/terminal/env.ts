@@ -20,6 +20,7 @@ export {
 
 import fs from "node:fs";
 import os from "node:os";
+import type { AgentDelegationMode } from "@superset/shared/agent-delegation";
 import {
 	TERMINAL_TERM_PROGRAM,
 	TERMINAL_TERM_PROGRAM_VERSION,
@@ -173,10 +174,12 @@ interface BuildV2TerminalEnvParams {
 	supersetEnv: "development" | "production";
 	agentHookPort: string;
 	agentHookVersion: string;
+	agentDelegationMode: AgentDelegationMode;
 	/**
 	 * tRPC URL for the host-service notifications.hook mutation.
-	 * Endpoint is unauthenticated by design — it only broadcasts chimes,
-	 * no state change. See the router for rationale.
+	 * Endpoint is unauthenticated by design — it broadcasts lifecycle state
+	 * and returns the terminal workspace's non-sensitive delegation mode.
+	 * See the router for rationale.
 	 */
 	hostAgentHookUrl?: string;
 }
@@ -201,6 +204,7 @@ export function buildV2TerminalEnv(
 		supersetEnv,
 		agentHookPort,
 		agentHookVersion,
+		agentDelegationMode,
 		hostAgentHookUrl,
 	} = params;
 
@@ -237,10 +241,12 @@ export function buildV2TerminalEnv(
 	env.SUPERSET_ENV = supersetEnv;
 	env.SUPERSET_AGENT_HOOK_PORT = agentHookPort;
 	env.SUPERSET_AGENT_HOOK_VERSION = agentHookVersion;
+	env.SUPERSET_AGENT_DELEGATION_MODE = agentDelegationMode;
 	// v2 — agent posts to host-service so the renderer can play the sound
 	// client-side. No auth token: the endpoint is unauthenticated by design
-	// (it only broadcasts chimes). The notify-hook script falls back to
-	// the electron endpoint when this URL isn't set.
+	// (it broadcasts lifecycle and returns non-sensitive delegation mode).
+	// The notify-hook script falls back to the electron endpoint when this URL
+	// isn't set.
 	if (hostAgentHookUrl) {
 		env.SUPERSET_HOST_AGENT_HOOK_URL = hostAgentHookUrl;
 	}

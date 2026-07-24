@@ -1,7 +1,7 @@
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { terminalSessions } from "../../../db/schema";
+import { terminalSessions, workspaces } from "../../../db/schema";
 import { mapEventType } from "../../../events";
 import { publicProcedure, router } from "../../index";
 
@@ -48,8 +48,9 @@ export const notificationsRouter = router({
 	 * the terminal's workspace, and fan out over the WS event bus.
 	 *
 	 * Intentionally unauthenticated: a caller can only trigger a chime and a
-	 * sidebar indicator. Reusing the host-service PSK would leak it into every
-	 * agent shell's env for zero practical gain.
+	 * sidebar indicator, plus read the terminal's non-sensitive delegation
+	 * mode. Reusing the host-service PSK would leak it into every agent shell's
+	 * env for zero practical gain.
 	 */
 	hook: publicProcedure.input(hookInput).mutation(async ({ ctx, input }) => {
 		const eventType = mapEventType(input.eventType);
@@ -70,6 +71,12 @@ export const notificationsRouter = router({
 		if (!terminalSession?.originWorkspaceId) {
 			return { success: true, ignored: true as const };
 		}
+		const workspace = ctx.db.query.workspaces
+			.findFirst({
+				where: eq(workspaces.id, terminalSession.originWorkspaceId),
+				columns: { agentDelegationMode: true },
+			})
+			.sync();
 
 		const agent = normalizeAgentIdentity(input.agent);
 		const occurredAt = Date.now();
@@ -92,6 +99,10 @@ export const notificationsRouter = router({
 			occurredAt,
 		});
 
-		return { success: true, ignored: false as const };
+		return {
+			success: true,
+			ignored: false as const,
+			agentDelegationMode: workspace?.agentDelegationMode ?? "native",
+		};
 	}),
 });

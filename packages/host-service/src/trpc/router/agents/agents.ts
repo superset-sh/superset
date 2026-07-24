@@ -1,5 +1,9 @@
 import { readFileSync } from "node:fs";
 import {
+	type AgentDelegationMode,
+	agentDelegationModeSchema,
+} from "@superset/shared/agent-delegation";
+import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
 	buildAgentModelEnv,
@@ -17,6 +21,7 @@ import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
+import { updateLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
 
@@ -160,6 +165,7 @@ export interface AgentRunInput {
 	attachmentIds?: string[];
 	model?: string;
 	effort?: string;
+	delegationMode?: AgentDelegationMode;
 }
 
 export type AgentRunResult =
@@ -299,10 +305,20 @@ export async function runAgentInWorkspace(
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
 	}
-	if (input.agent === SUPERSET_AGENT_ID) {
-		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
+	const delegationMode = input.delegationMode ?? workspace.agentDelegationMode;
+	if (
+		input.delegationMode !== undefined &&
+		input.delegationMode !== workspace.agentDelegationMode
+	) {
+		updateLocalWorkspace({ db: ctx.db, eventBus: ctx.eventBus }, workspace.id, {
+			agentDelegationMode: input.delegationMode,
+		});
 	}
-	return runTerminalAgent(ctx, input);
+	const launchInput = { ...input, delegationMode };
+	if (launchInput.agent === SUPERSET_AGENT_ID) {
+		return runChatAgent(ctx, launchInput, SUPERSET_AGENT_LABEL);
+	}
+	return runTerminalAgent(ctx, launchInput);
 }
 
 export const agentsRouter = router({
@@ -315,6 +331,7 @@ export const agentsRouter = router({
 				attachmentIds: z.array(z.string().uuid()).optional(),
 				model: z.string().min(1).optional(),
 				effort: z.string().min(1).optional(),
+				delegationMode: agentDelegationModeSchema.optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),

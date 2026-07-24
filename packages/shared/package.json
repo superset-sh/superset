@@ -64,6 +64,10 @@
 			"types": "./src/agent-launch.ts",
 			"default": "./src/agent-launch.ts"
 		},
+		"./agent-delegation": {
+			"types": "./src/agent-delegation.ts",
+			"default": "./src/agent-delegation.ts"
+		},
 		"./agent-prompt-template": {
 			"types": "./src/agent-prompt-template.ts",
 			"default": "./src/agent-prompt-template.ts"

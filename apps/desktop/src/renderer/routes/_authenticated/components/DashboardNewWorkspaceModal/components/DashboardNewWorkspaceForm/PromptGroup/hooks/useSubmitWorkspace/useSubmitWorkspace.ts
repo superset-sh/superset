@@ -1,3 +1,4 @@
+import type { AgentDelegationMode } from "@superset/shared/agent-delegation";
 import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
@@ -22,6 +23,7 @@ export function useSubmitWorkspace(
 	selectedAgent: WorkspaceCreateAgent,
 	selectedModel: string | null,
 	selectedEffort: string | null,
+	delegationMode: AgentDelegationMode,
 	uploadAttachments: UseUploadAttachmentsApi,
 	promptContext: NewWorkspacePromptContextApi,
 ) {
@@ -93,6 +95,7 @@ export function useSubmitWorkspace(
 						attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 						model: selectedModel ?? undefined,
 						effort: selectedEffort ?? undefined,
+						delegationMode,
 					},
 				]
 			: undefined;
@@ -116,6 +119,7 @@ export function useSubmitWorkspace(
 			pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
 			baseBranch: draft.baseBranch ?? undefined,
 			taskId: linkedTaskId,
+			agentDelegationMode: delegationMode,
 			agents,
 			namingPrompt:
 				!isPrCheckout && !wantAgent && trimmedPrompt
@@ -180,6 +184,7 @@ export function useSubmitWorkspace(
 		selectedAgent,
 		selectedModel,
 		selectedEffort,
+		delegationMode,
 		submit,
 		uploadAttachments,
 	]);

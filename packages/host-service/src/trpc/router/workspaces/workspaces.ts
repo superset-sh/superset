@@ -1,8 +1,9 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { agentDelegationModeSchema } from "@superset/shared/agent-delegation";
 import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
@@ -11,6 +12,7 @@ import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
+	updateLocalWorkspace,
 } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
 import { type AgentRunResult, runAgentInWorkspace } from "../agents";
@@ -62,6 +64,7 @@ const agentLaunchSchema = z
 		attachmentIds: z.array(z.string().uuid()).optional(),
 		model: z.string().optional(),
 		effort: z.string().optional(),
+		delegationMode: agentDelegationModeSchema.optional(),
 	})
 	.refine(
 		(value) =>
@@ -81,6 +84,7 @@ const createInputSchema = z
 		pr: z.number().int().positive().optional(),
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
+		agentDelegationMode: agentDelegationModeSchema.default("native"),
 		agents: z.array(agentLaunchSchema).optional(),
 		command: z.string().min(1).optional(),
 		namingPrompt: z.string().min(1).optional(),
@@ -96,6 +100,13 @@ const createInputSchema = z
 	.refine((value) => !(value.worktreePath && value.pr), {
 		message: "`worktreePath` and `pr` cannot both be set",
 	});
+
+const createSubworkspaceInputSchema = z.object({
+	parentWorkspaceId: z.string().uuid(),
+	name: z.string().min(1),
+	agent: agentLaunchSchema,
+	id: z.string().uuid().optional(),
+});
 
 const workspaceCreateLocks = new Map<string, Promise<void>>();
 
@@ -124,14 +135,10 @@ type AgentLaunchResult =
 	| ({ ok: true } & AgentRunResult)
 	| { ok: false; error: string };
 
-type CloudWorkspace = NonNullable<
-	Awaited<
-		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
-	>
->;
+type CloudWorkspace = ReturnType<typeof toCloudShape> & { txid?: number };
 
 function extractCreateTxid(row: CloudWorkspace): number | null {
-	const txid = (row as { txid?: unknown }).txid;
+	const txid = row.txid;
 	return typeof txid === "number" ? txid : null;
 }
 
@@ -149,6 +156,7 @@ function findExistingWorkspaceByBranch(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
+				ne(workspaces.type, "subworkspace"),
 			),
 		})
 		.sync();
@@ -371,6 +379,7 @@ async function registerLocalWorkspace(args: {
 	branch: string;
 	worktreePath: string;
 	taskId: string | undefined;
+	agentDelegationMode: z.infer<typeof agentDelegationModeSchema>;
 	rollbackWorktree: () => Promise<void>;
 }): Promise<CloudWorkspace> {
 	const { ctx } = args;
@@ -384,6 +393,7 @@ async function registerLocalWorkspace(args: {
 			branch: args.branch,
 			name: args.name,
 			taskId: args.taskId ?? null,
+			agentDelegationMode: args.agentDelegationMode,
 		});
 	} catch (err) {
 		await args.rollbackWorktree();
@@ -412,6 +422,7 @@ async function dispatchSugarAgents(
 					attachmentIds: entry.attachmentIds,
 					model: entry.model,
 					effort: entry.effort,
+					delegationMode: entry.delegationMode,
 				});
 				return { ok: true as const, ...result };
 			} catch (err) {
@@ -425,6 +436,70 @@ async function dispatchSugarAgents(
 }
 
 export const workspacesRouter = router({
+	createSubworkspace: protectedProcedure
+		.input(createSubworkspaceInputSchema)
+		.mutation(async ({ ctx, input }) => {
+			if (input.parentWorkspaceId === input.id) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "A subworkspace cannot be its own parent",
+				});
+			}
+
+			const parent = getLocalWorkspace(ctx.db, input.parentWorkspaceId);
+			if (!parent) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Parent workspace ${input.parentWorkspaceId} was not found on this host`,
+				});
+			}
+
+			let alreadyExists = false;
+			let row: ReturnType<typeof insertLocalWorkspace>;
+			const existing = input.id
+				? getLocalWorkspace(ctx.db, input.id)
+				: undefined;
+			if (existing) {
+				if (
+					existing.type !== "subworkspace" ||
+					existing.parentWorkspaceId !== parent.id ||
+					existing.projectId !== parent.projectId ||
+					existing.worktreePath !== parent.worktreePath ||
+					existing.branch !== parent.branch
+				) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: `Workspace ${existing.id} already exists with a different context`,
+					});
+				}
+				alreadyExists = true;
+				row = existing;
+			} else {
+				row = insertLocalWorkspace(ctx, {
+					id: input.id,
+					projectId: parent.projectId,
+					worktreePath: parent.worktreePath,
+					branch: parent.branch,
+					name: input.name,
+					type: "subworkspace",
+					parentWorkspaceId: parent.id,
+					agentDelegationMode:
+						input.agent.delegationMode ?? parent.agentDelegationMode,
+					createdByUserId: parent.createdByUserId,
+				});
+			}
+
+			const [agent] = alreadyExists
+				? []
+				: await dispatchSugarAgents(ctx, row.id, [input.agent]);
+
+			return {
+				workspace: toCloudShape(row, ctx.organizationId),
+				agent: agent ?? null,
+				alreadyExists,
+			};
+		}),
+
 	create: protectedProcedure
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
@@ -671,6 +746,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
+								agentDelegationMode: input.agentDelegationMode,
 								rollbackWorktree: rollbackCreatedWorktree,
 							});
 
@@ -927,10 +1003,22 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
+								agentDelegationMode: input.agentDelegationMode,
 								rollbackWorktree,
 							});
 						}
 					}
+				}
+			}
+
+			if (workspaceRow.agentDelegationMode !== input.agentDelegationMode) {
+				const updated = updateLocalWorkspace(
+					{ db: ctx.db, eventBus: ctx.eventBus },
+					workspaceRow.id,
+					{ agentDelegationMode: input.agentDelegationMode },
+				);
+				if (updated) {
+					workspaceRow = toCloudShape(updated, ctx.organizationId);
 				}
 			}
 

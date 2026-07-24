@@ -5,7 +5,10 @@ export type DashboardSidebarWorkspaceHostType =
 	| "remote-device"
 	| "cloud";
 
-export type DashboardSidebarWorkspaceType = "main" | "worktree";
+export type DashboardSidebarWorkspaceType =
+	| "main"
+	| "worktree"
+	| "subworkspace";
 
 export interface DashboardSidebarWorkspacePullRequestCheck {
 	name: string;
@@ -30,6 +33,7 @@ export interface DashboardSidebarWorkspace {
 	hostId: string;
 	hostType: DashboardSidebarWorkspaceHostType;
 	type: DashboardSidebarWorkspaceType;
+	parentWorkspaceId: string | null;
 	hostIsOnline: boolean | null;
 	accentColor: string | null;
 	name: string;
