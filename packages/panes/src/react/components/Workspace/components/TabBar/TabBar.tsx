@@ -165,39 +165,18 @@ export function TabBar<TData>({
 
 	const insertLineLeft = insertIndex !== null ? insertIndex * TAB_WIDTH : null;
 
-	if (tabs.length === 0) {
-		return (
-			<div
-				ref={setRootRef}
-				// No shade or bottom border with zero tabs: the empty bar blends into
-				// the content below. `drag`: the bar doubles as the Electron
-				// window-drag region (empty areas only — interactive clusters opt out
-				// with `no-drag`).
-				className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch"
-			>
-				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center">
-					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
-				</div>
-				<div className="flex min-w-0 flex-1 items-stretch" />
-				{renderTabBarTrailing && (
-					<div className="no-drag flex h-full shrink-0 items-center px-1">
-						{renderTabBarTrailing()}
-					</div>
-				)}
-			</div>
-		);
-	}
-
 	return (
 		<div
 			ref={setRootRef}
 			// The bottom border is drawn on the bar's leaf elements (inactive tabs,
 			// the add-button cluster, the trailing region, and the flex filler) rather
 			// than the root, so the active tab can leave a real 1px gap and flow into
-			// the content below. `drag`: the bar doubles as the Electron window-drag
-			// region (empty areas only — the tabs track and button clusters opt out
-			// with `no-drag`).
-			className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-border/30"
+			// the content below. Only the empty filler right of the tabs is an
+			// Electron window-drag region — marking the whole bar `drag` and carving
+			// children out with `no-drag` loses the carve-outs once they sit inside
+			// the masked/scrollable OverflowFadeContainer, which made the entire bar
+			// swallow clicks.
+			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-border/30"
 		>
 			<OverflowFadeContainer
 				observeChildren
@@ -243,7 +222,7 @@ export function TabBar<TData>({
 					)}
 					{/* Carries the bar's bottom border across the empty space to the
 					    right of the tabs (collapses to 0 when the tabs overflow). */}
-					<div className="h-full flex-1 border-b border-border" />
+					<div className="drag h-full flex-1 border-b border-border" />
 				</div>
 			</OverflowFadeContainer>
 			{hasHorizontalOverflow && (

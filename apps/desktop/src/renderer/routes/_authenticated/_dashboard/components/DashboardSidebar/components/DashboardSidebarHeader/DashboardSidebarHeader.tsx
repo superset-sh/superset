@@ -290,21 +290,22 @@ export function DashboardSidebarHeader({
 			    pinned row height it matches is Mac-only; elsewhere the row height (h-8)
 			    scales with zoom, so the controls should scale with it. */}
 			<div
-				className="drag -mx-3 flex h-8 items-center gap-1.5 pr-3"
-				style={
-					isMac
-						? {
-								paddingLeft: `${80 / zoomFactor}px`,
-								height: `${32 / zoomFactor}px`,
-							}
-						: { paddingLeft: "8px" }
-				}
+				// Window-drag regions live on the empty spacer + filler leaves, never
+				// on this row: `no-drag` carve-outs under a `drag` ancestor are lost
+				// inside zoomed wrappers like ZoomStable, deadening the controls.
+				className="-mx-3 flex h-8 items-center pr-3"
+				style={isMac ? { height: `${32 / zoomFactor}px` } : undefined}
 			>
+				<div
+					className="drag h-full shrink-0"
+					style={{ width: isMac ? `${80 / zoomFactor}px` : "8px" }}
+				/>
 				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 					<SidebarToggle />
 					<NavigationControls />
 					<ResourceConsumption surface="v2" />
 				</ZoomStable>
+				<div className="drag h-full min-w-0 flex-1" />
 			</div>
 
 			<button

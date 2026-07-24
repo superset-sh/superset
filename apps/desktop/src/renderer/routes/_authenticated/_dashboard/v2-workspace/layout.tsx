@@ -8,6 +8,7 @@ import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/u
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
+import { StateScreenShell } from "./components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
 import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
@@ -76,37 +77,49 @@ function V2WorkspaceLayout() {
 	const hostStatus = useRemoteHostStatus(workspace);
 
 	if (!workspaceId || (!workspace && !isReady)) {
-		return <div className="flex h-full w-full" />;
+		return <StateScreenShell>{null}</StateScreenShell>;
 	}
 
 	if (!workspace) {
 		if (failedEntry) {
-			return <WorkspaceCreateErrorState entry={failedEntry} />;
+			return (
+				<StateScreenShell>
+					<WorkspaceCreateErrorState entry={failedEntry} />
+				</StateScreenShell>
+			);
 		}
-		return <WorkspaceNotFoundState workspaceId={workspaceId} />;
+		return (
+			<StateScreenShell>
+				<WorkspaceNotFoundState workspaceId={workspaceId} />
+			</StateScreenShell>
+		);
 	}
 
 	if (isCreatePending) {
 		return (
-			<WorkspaceCreatingState
-				name={workspace.name}
-				branch={workspace.branch}
-				startedAt={new Date(workspace.createdAt).getTime()}
-			/>
+			<StateScreenShell>
+				<WorkspaceCreatingState
+					name={workspace.name}
+					branch={workspace.branch}
+					startedAt={new Date(workspace.createdAt).getTime()}
+				/>
+			</StateScreenShell>
 		);
 	}
 
 	if (hostStatus.status === "incompatible") {
 		return (
-			<WorkspaceHostIncompatibleState
-				hostName={hostStatus.hostName}
-				hostVersion={hostStatus.hostVersion}
-				minVersion={hostStatus.minVersion}
-			/>
+			<StateScreenShell>
+				<WorkspaceHostIncompatibleState
+					hostName={hostStatus.hostName}
+					hostVersion={hostStatus.hostVersion}
+					minVersion={hostStatus.minVersion}
+				/>
+			</StateScreenShell>
 		);
 	}
 	if (hostStatus.status === "loading") {
-		return <div className="flex h-full w-full" />;
+		return <StateScreenShell>{null}</StateScreenShell>;
 	}
 
 	return (
