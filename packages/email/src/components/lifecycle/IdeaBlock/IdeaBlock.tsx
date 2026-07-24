@@ -31,10 +31,10 @@ export function IdeaBlock({
 			<Text
 				style={{
 					margin: "-8px 0 12px 0",
-					fontFamily: lifecycle.fonts.serif,
-					fontSize: "18px",
-					lineHeight: "27px",
-					color: lifecycle.colors.ink,
+					fontFamily: lifecycle.fonts.sans,
+					fontSize: "16px",
+					lineHeight: "24px",
+					color: lifecycle.colors.mutedInk,
 					textAlign: "center",
 				}}
 			>
@@ -43,10 +43,10 @@ export function IdeaBlock({
 			<Link
 				href={href}
 				style={{
-					fontFamily: lifecycle.fonts.serif,
-					fontWeight: 700,
-					fontSize: "17px",
-					color: lifecycle.colors.ink,
+					fontFamily: lifecycle.fonts.sans,
+					fontWeight: 600,
+					fontSize: "15px",
+					color: lifecycle.colors.brand,
 					textDecoration: "underline",
 				}}
 			>

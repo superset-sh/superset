@@ -17,9 +17,9 @@ const DOWNLOAD = "https://superset.sh/download";
 
 const body = {
 	margin: "0 0 20px 0",
-	fontFamily: lifecycle.fonts.serif,
-	fontSize: "17px",
-	lineHeight: "26px",
+	fontFamily: lifecycle.fonts.sans,
+	fontSize: "16px",
+	lineHeight: "24px",
 	color: lifecycle.colors.ink,
 } as const;
 

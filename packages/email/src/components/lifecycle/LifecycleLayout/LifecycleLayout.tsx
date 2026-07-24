@@ -25,7 +25,7 @@ interface LifecycleLayoutProps {
 
 const footerText = {
 	margin: 0,
-	fontFamily: lifecycle.fonts.serif,
+	fontFamily: lifecycle.fonts.sans,
 	fontSize: "12px",
 	lineHeight: "16px",
 	color: lifecycle.colors.footerMuted,
@@ -47,7 +47,7 @@ export function LifecycleLayout({
 				style={{
 					margin: 0,
 					backgroundColor: lifecycle.colors.paper,
-					fontFamily: lifecycle.fonts.serif,
+					fontFamily: lifecycle.fonts.sans,
 				}}
 			>
 				<Container
@@ -59,13 +59,13 @@ export function LifecycleLayout({
 				>
 					<Section
 						style={{
-							backgroundColor: lifecycle.colors.clay,
+							backgroundColor: lifecycle.colors.header,
 							padding: "26px 0",
 							textAlign: "center",
 						}}
 					>
 						<Img
-							src={`${assets}/logo-full.png`}
+							src={`${assets}/logo-full-white.png`}
 							alt="Superset"
 							width="150"
 							style={{ margin: "0 auto" }}
@@ -88,30 +88,20 @@ export function LifecycleLayout({
 									width="232"
 								/>
 								<Text style={{ margin: "40px 0 0 0" }}>
-									<Link
-										href="https://superset.sh/download"
+									<Img
+										src={`${assets}/badge-appstore.png`}
+										alt="App Store"
+										width="108"
+										height="32"
 										style={{ display: "inline-block", marginRight: "16px" }}
-									>
-										<Img
-											src={`${assets}/badge-appstore.png`}
-											alt="App Store"
-											width="108"
-											height="32"
-											style={{ display: "inline-block" }}
-										/>
-									</Link>
-									<Link
-										href="https://superset.sh/download"
+									/>
+									<Img
+										src={`${assets}/badge-googleplay.png`}
+										alt="Google Play"
+										width="108"
+										height="32"
 										style={{ display: "inline-block" }}
-									>
-										<Img
-											src={`${assets}/badge-googleplay.png`}
-											alt="Google Play"
-											width="108"
-											height="32"
-											style={{ display: "inline-block" }}
-										/>
-									</Link>
+									/>
 								</Text>
 							</Column>
 							<Column style={{ width: "50%", verticalAlign: "top" }}>

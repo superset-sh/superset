@@ -9,9 +9,9 @@ interface DisplayHeadingProps {
 }
 
 const sizes = {
-	lg: { fontSize: "30px", lineHeight: "38px", tag: "h1" },
-	md: { fontSize: "36px", lineHeight: "44px", tag: "h2" },
-	sm: { fontSize: "26px", lineHeight: "34px", tag: "h3" },
+	lg: { fontSize: "32px", lineHeight: "40px", tag: "h1" },
+	md: { fontSize: "28px", lineHeight: "36px", tag: "h2" },
+	sm: { fontSize: "20px", lineHeight: "28px", tag: "h3" },
 } as const;
 
 export function DisplayHeading({
@@ -25,8 +25,8 @@ export function DisplayHeading({
 			as={s.tag}
 			style={{
 				margin: "0 0 24px 0",
-				fontFamily: lifecycle.fonts.serif,
-				fontWeight: 400,
+				fontFamily: lifecycle.fonts.sans,
+				fontWeight: 600,
 				fontSize: s.fontSize,
 				lineHeight: s.lineHeight,
 				color: lifecycle.colors.ink,

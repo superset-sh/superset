@@ -13,15 +13,16 @@ export function HeroCard({ src, alt, href }: HeroCardProps) {
 			src={src}
 			alt={alt}
 			width="496"
-			style={{ width: "100%", borderRadius: "16px" }}
+			style={{ width: "100%", borderRadius: "10px" }}
 		/>
 	);
 	return (
 		<Section
 			style={{
 				backgroundColor: lifecycle.colors.card,
-				borderRadius: "24px",
-				padding: "36px",
+				border: `1px solid ${lifecycle.colors.cardBorder}`,
+				borderRadius: "16px",
+				padding: "24px",
 				margin: "0 0 32px 0",
 			}}
 		>
