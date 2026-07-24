@@ -91,12 +91,16 @@ export function derivePullRequestQueryTargets({
 	return targets;
 }
 
+export const DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX = [
+	"dashboard-sidebar",
+	"pull-requests",
+] as const;
+
 export function getDashboardSidebarPullRequestQueryKey(
 	target: PullRequestQueryTarget,
 ) {
 	return [
-		"dashboard-sidebar",
-		"pull-requests",
+		...DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX,
 		target.machineId,
 		target.hostUrl,
 		target.workspaceIds,

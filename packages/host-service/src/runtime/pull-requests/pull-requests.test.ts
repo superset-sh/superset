@@ -308,6 +308,112 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 	});
 });
 
+describe("PullRequestRuntimeManager unlink", () => {
+	function seedLinkedWorkspace(db: HostDb) {
+		seedPullRequest(db, {
+			id: "pr-1",
+			prNumber: 101,
+			headBranch: "feature",
+			headSha: "sha-feature",
+		});
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "sha-feature",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+			pullRequestId: "pr-1",
+		});
+	}
+
+	test("unlink clears the link and the refresh sweep does not re-link the same PR", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db, {
+			execGh: routeGh({
+				feature: makePrNode({
+					number: 101,
+					headRef: "feature",
+					headSha: "sha-feature",
+				}),
+			}),
+		});
+
+		manager.unlinkWorkspacePullRequest("ws");
+
+		const unlinked = getWorkspace(db, "ws");
+		expect(unlinked?.pullRequestId).toBeNull();
+		expect(unlinked?.suppressedPullRequestId).toBe("pr-1");
+
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+
+	test("a different PR on the same branch still links after unlink", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db, {
+			execGh: routeGh({
+				feature: makePrNode({
+					number: 202,
+					headRef: "feature",
+					headSha: "sha-feature-2",
+				}),
+			}),
+		});
+
+		manager.unlinkWorkspacePullRequest("ws");
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		const ws = getWorkspace(db, "ws");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 202)?.id ?? "");
+		expect(ws?.suppressedPullRequestId).toBe("pr-1");
+	});
+
+	test("deleting the suppressed PR row clears the suppression", () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db);
+
+		manager.unlinkWorkspacePullRequest("ws");
+		db.delete(pullRequests).where(eq(pullRequests.id, "pr-1")).run();
+
+		expect(getWorkspace(db, "ws")?.suppressedPullRequestId).toBeNull();
+	});
+
+	test("an explicit checkout link clears the suppression", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db);
+
+		manager.unlinkWorkspacePullRequest("ws");
+		await manager.linkWorkspaceToCheckoutPullRequest({
+			workspaceId: "ws",
+			projectId: PROJECT_ID,
+			pullRequest: {
+				number: 101,
+				url: "https://github.com/base-owner/base-repo/pull/101",
+				title: "PR 101",
+				state: "open",
+				isDraft: false,
+				headRefName: "feature",
+				headRefOid: "sha-feature",
+				isCrossRepository: false,
+			},
+		});
+
+		const ws = getWorkspace(db, "ws");
+		expect(ws?.pullRequestId).toBe("pr-1");
+		expect(ws?.suppressedPullRequestId).toBeNull();
+	});
+});
+
 describe("PullRequestRuntimeManager refresh", () => {
 	test("preserves last-known review and checks when detail refresh fails", async () => {
 		const db = createRealDb();

@@ -405,6 +405,27 @@ export class PullRequestRuntimeManager {
 		);
 	}
 
+	// User-initiated "Remove PR Link". Recording the removed PR id keeps the
+	// refresh sweep from re-linking it while its branch still matches; a
+	// different PR on the branch (or an explicit re-link) still links.
+	unlinkWorkspacePullRequest(workspaceId: string): void {
+		const workspace = this.db
+			.select({ pullRequestId: workspaces.pullRequestId })
+			.from(workspaces)
+			.where(eq(workspaces.id, workspaceId))
+			.get();
+		if (!workspace?.pullRequestId) return;
+
+		this.db
+			.update(workspaces)
+			.set({
+				pullRequestId: null,
+				suppressedPullRequestId: workspace.pullRequestId,
+			})
+			.where(eq(workspaces.id, workspaceId))
+			.run();
+	}
+
 	async linkWorkspaceToCheckoutPullRequest({
 		workspaceId,
 		projectId,
@@ -451,6 +472,8 @@ export class PullRequestRuntimeManager {
 			.update(workspaces)
 			.set({
 				pullRequestId: rowId,
+				// An explicit checkout link overrides an earlier "Remove PR Link".
+				suppressedPullRequestId: null,
 				headSha: pullRequest.headRefOid,
 				upstreamOwner: upstream?.owner ?? null,
 				upstreamRepo: upstream?.name ?? null,
@@ -682,7 +705,12 @@ export class PullRequestRuntimeManager {
 				}
 				continue;
 			}
-			const match = keyToPullRequest.get(key);
+			const rawMatch = keyToPullRequest.get(key);
+			// A PR the user unlinked stays unlinked; a different PR still links.
+			const match =
+				rawMatch?.id === workspace.suppressedPullRequestId
+					? undefined
+					: rawMatch;
 			if (match) {
 				this.db
 					.update(workspaces)
@@ -694,11 +722,13 @@ export class PullRequestRuntimeManager {
 
 			if (failedKeys.has(key)) continue;
 
-			this.db
-				.update(workspaces)
-				.set({ pullRequestId: null })
-				.where(eq(workspaces.id, workspace.id))
-				.run();
+			if (workspace.pullRequestId) {
+				this.db
+					.update(workspaces)
+					.set({ pullRequestId: null })
+					.where(eq(workspaces.id, workspace.id))
+					.run();
+			}
 		}
 	}
 
