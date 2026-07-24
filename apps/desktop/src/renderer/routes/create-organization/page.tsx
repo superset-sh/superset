@@ -163,6 +163,8 @@ export function CreateOrganization() {
 
 	return (
 		<div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+			{/* Stops short of the top-right Cancel/Sign Out button. */}
+			<div className="drag absolute left-0 right-32 top-0 h-12" />
 			<div className="absolute top-4 right-4">
 				{hasActiveOrganization ? (
 					<Button

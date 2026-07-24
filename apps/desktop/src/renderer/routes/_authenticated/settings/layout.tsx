@@ -169,13 +169,13 @@ function SettingsLayout() {
 
 	return (
 		<div className="flex flex-col h-screen w-screen bg-tertiary">
-			<div
-				className="drag flex h-12 w-full items-center gap-1.5 bg-tertiary"
-				style={{
-					paddingLeft: isMac ? "96px" : "8px",
-				}}
-			>
+			<div className="flex h-12 w-full items-center bg-tertiary">
+				<div
+					className="drag h-full shrink-0"
+					style={{ width: isMac ? "96px" : "8px" }}
+				/>
 				<NavigationControls />
+				<div className="drag h-full min-w-0 flex-1" />
 			</div>
 
 			<div className="flex flex-1 overflow-hidden bg-background">

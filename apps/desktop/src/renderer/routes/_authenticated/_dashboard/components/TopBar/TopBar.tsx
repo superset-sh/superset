@@ -51,13 +51,18 @@ export function TopBar() {
 
 	return (
 		<div
-			className="drag gap-2 h-12 w-full flex items-center justify-between bg-muted/45 relative dark:bg-muted/35"
+			// Window-drag regions live on the empty leaf elements (traffic-light
+			// spacer + title filler), never on this container: `no-drag` carve-outs
+			// under a `drag` ancestor are lost inside zoomed/masked/scrollable
+			// wrappers, which makes the whole bar swallow clicks.
+			className="gap-2 h-12 w-full flex items-center justify-between bg-muted/45 relative dark:bg-muted/35"
 			style={barStyle}
 		>
-			<div
-				className="flex items-center h-full"
-				style={{ paddingLeft: trafficLightInset }}
-			>
+			<div className="flex items-center h-full">
+				<div
+					className="drag h-full shrink-0"
+					style={{ width: trafficLightInset }}
+				/>
 				{!sidebarHostsChrome && (
 					<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 						<SidebarToggle />
@@ -67,7 +72,7 @@ export function TopBar() {
 				)}
 			</div>
 
-			<div className="flex min-w-0 flex-1 items-center justify-start">
+			<div className="drag flex h-full min-w-0 flex-1 items-center justify-start">
 				{isV2WorkspaceRoute && v2WorkspaceId && (
 					<V2WorkspaceTitle workspaceId={v2WorkspaceId} />
 				)}
@@ -75,7 +80,7 @@ export function TopBar() {
 
 			<div className="flex items-center gap-3 h-full pr-4 shrink-0">
 				{!isOnline && (
-					<div className="no-drag flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
+					<div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2 py-1 rounded">
 						<HiOutlineWifi className="size-3.5" />
 						<span>Offline</span>
 					</div>
