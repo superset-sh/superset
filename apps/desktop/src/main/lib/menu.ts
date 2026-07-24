@@ -158,6 +158,13 @@ export function createApplicationMenu() {
 				},
 				{ type: "separator" },
 				{
+					label: "Open Attention Prototype",
+					click: () => {
+						menuEmitter.emit("open-attention-prototype");
+					},
+				},
+				{ type: "separator" },
+				{
 					label: "Simulate Update Downloading",
 					click: () => simulateDownloading(),
 				},
