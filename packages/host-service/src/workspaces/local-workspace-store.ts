@@ -37,23 +37,27 @@ function trackWorkspaceEvent(
 ): void {
 	if (!ctx.api) return;
 	const clientMachineId = ctx.clientMachineId ?? getHostId();
-	void ctx.api.analytics.captureEvent
-		.mutate({
-			source: "host_service",
-			event,
-			properties: {
-				workspace_id: row.id,
-				project_id: row.projectId,
-				organization_id: ctx.organizationId ?? null,
-				host_id: getHostId(),
-				branch: row.branch,
-				type: row.type,
-				host_kind: clientMachineId === getHostId() ? "local" : "remote",
-				client_machine_id: clientMachineId,
-				host_service_version: hostServicePackageJson.version,
-			},
-		})
-		.catch(() => {});
+	try {
+		void ctx.api.analytics.captureEvent
+			.mutate({
+				source: "host_service",
+				event,
+				properties: {
+					workspace_id: row.id,
+					project_id: row.projectId,
+					organization_id: ctx.organizationId ?? null,
+					host_id: getHostId(),
+					branch: row.branch,
+					type: row.type,
+					host_kind: clientMachineId === getHostId() ? "local" : "remote",
+					client_machine_id: clientMachineId,
+					host_service_version: hostServicePackageJson.version,
+				},
+			})
+			.catch(() => {});
+	} catch {
+		// Telemetry must never fail the workspace operation.
+	}
 }
 
 /**
