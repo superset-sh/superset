@@ -53,12 +53,16 @@ export function tombstoneSidebarWorkspaceRecord(
 		return;
 	}
 
+	// Release (don't dispose) the renderer-side runtimes: host sessions stay
+	// alive and their state is persisted for reattach. The persisted paneLayout
+	// is deliberately kept so re-pinning the workspace (a reversible unpin)
+	// restores its panes and reattaches the live session. Wiping it here orphaned
+	// the session — the workspace reopened empty (#5881).
 	cleanupPaneRuntimes([existing]);
 	collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 		draft.sidebarState.projectId = projectId;
 		draft.sidebarState.sectionId = null;
 		draft.sidebarState.isHidden = true;
-		draft.paneLayout = createEmptyPaneLayout();
 	});
 }
 
