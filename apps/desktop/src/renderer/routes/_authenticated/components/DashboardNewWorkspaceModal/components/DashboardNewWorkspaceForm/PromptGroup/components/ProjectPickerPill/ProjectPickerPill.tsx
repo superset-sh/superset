@@ -13,10 +13,13 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiCheck, HiChevronUpDown, HiMiniPlus } from "react-icons/hi2";
-import { LuFolderInput, LuTriangleAlert } from "react-icons/lu";
+import { LuFolderInput, LuFolderPlus, LuTriangleAlert } from "react-icons/lu";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
+import {
+	useOpenEmptyProjectModal,
+	useOpenNewProjectModal,
+} from "renderer/stores/add-repository-modal";
 import type { ProjectOption } from "../../types";
 import { FormPickerTrigger } from "../FormPickerTrigger";
 
@@ -32,6 +35,7 @@ export function ProjectPickerPill({
 	onSelectProject,
 }: ProjectPickerPillProps) {
 	const [open, setOpen] = useState(false);
+	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const navigate = useNavigate();
 	const folderImport = useFolderFirstImport({
@@ -50,6 +54,12 @@ export function ProjectPickerPill({
 	});
 
 	const handleCreateNewProject = async () => {
+		setOpen(false);
+		const result = await openEmptyProject();
+		if (result) onSelectProject(result.projectId);
+	};
+
+	const handleCloneProject = async () => {
 		setOpen(false);
 		const result = await openNewProject();
 		if (result) onSelectProject(result.projectId);
@@ -123,6 +133,10 @@ export function ProjectPickerPill({
 					<CommandSeparator alwaysRender />
 					<CommandGroup forceMount>
 						<CommandItem forceMount onSelect={handleCreateNewProject}>
+							<LuFolderPlus className="size-4" />
+							Create new project
+						</CommandItem>
+						<CommandItem forceMount onSelect={handleCloneProject}>
 							<HiMiniPlus className="size-4" />
 							Clone from URL
 						</CommandItem>

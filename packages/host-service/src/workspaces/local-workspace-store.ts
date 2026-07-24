@@ -1,16 +1,63 @@
 import { randomUUID } from "node:crypto";
+import hostServicePackageJson from "@superset/host-service/package.json" with {
+	type: "json",
+};
 import { getHostId } from "@superset/shared/host-info";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
+import type { ApiClient } from "../types";
 
 export type HostWorkspaceRow = typeof workspaces.$inferSelect;
 
+/**
+ * `api`/`organizationId`/`clientMachineId` mirror `HostServiceContext` field
+ * names so a full request context satisfies this interface as-is. When `api`
+ * is absent the store still works but skips telemetry.
+ */
 export interface WorkspaceStoreContext {
 	db: HostDb;
 	eventBus: EventBus;
+	api?: ApiClient;
+	organizationId?: string;
+	clientMachineId?: string;
+}
+
+/**
+ * Workspaces have no cloud mirror since local-first (#5731), so the cloud
+ * capture in `v2Workspace.create`/`delete` never fires for local rows —
+ * the host relays the event through `analytics.captureEvent` instead.
+ */
+function trackWorkspaceEvent(
+	ctx: WorkspaceStoreContext,
+	event: "workspace_created" | "workspace_deleted",
+	row: HostWorkspaceRow,
+): void {
+	if (!ctx.api) return;
+	const clientMachineId = ctx.clientMachineId ?? getHostId();
+	try {
+		void ctx.api.analytics.captureEvent
+			.mutate({
+				source: "host_service",
+				event,
+				properties: {
+					workspace_id: row.id,
+					project_id: row.projectId,
+					organization_id: ctx.organizationId ?? null,
+					host_id: getHostId(),
+					branch: row.branch,
+					type: row.type,
+					host_kind: clientMachineId === getHostId() ? "local" : "remote",
+					client_machine_id: clientMachineId,
+					host_service_version: hostServicePackageJson.version,
+				},
+			})
+			.catch(() => {});
+	} catch {
+		// Telemetry must never fail the workspace operation.
+	}
 }
 
 /**
@@ -115,6 +162,7 @@ export function insertLocalWorkspace(
 	const row = getLocalWorkspace(ctx.db, id);
 	if (!row) throw new Error(`Workspace insert readback failed: ${id}`);
 	emitWorkspaceChanged(ctx.eventBus, "created", row);
+	trackWorkspaceEvent(ctx, "workspace_created", row);
 	return row;
 }
 
@@ -161,6 +209,7 @@ export function deleteLocalWorkspace(
 			workspace: null,
 			occurredAt: Date.now(),
 		});
+		trackWorkspaceEvent(ctx, "workspace_deleted", existing);
 	}
 }
 

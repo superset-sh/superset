@@ -30,6 +30,7 @@ export function JsonLdScript({ schema }: { schema: unknown }) {
 }
 
 export function OrganizationJsonLd() {
+	const supportEmail = COMPANY.MAIL_TO.replace("mailto:", "");
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "Organization",
@@ -37,7 +38,27 @@ export function OrganizationJsonLd() {
 		url: COMPANY.MARKETING_URL,
 		logo: `${COMPANY.MARKETING_URL}/logo.png`,
 		description: "Run 10+ parallel coding agents on your machine",
-		sameAs: [COMPANY.GITHUB_URL, COMPANY.X_URL],
+		email: supportEmail,
+		contactPoint: {
+			"@type": "ContactPoint",
+			contactType: "customer support",
+			email: supportEmail,
+			url: `${COMPANY.MARKETING_URL}/contact`,
+			availableLanguage: "English",
+		},
+		address: {
+			"@type": "PostalAddress",
+			addressLocality: "San Francisco",
+			addressRegion: "CA",
+			addressCountry: "US",
+		},
+		sameAs: [
+			COMPANY.GITHUB_URL,
+			"https://github.com/superset-sh",
+			COMPANY.X_URL,
+			COMPANY.LINKEDIN_URL,
+			COMPANY.YOUTUBE_URL,
+		],
 	};
 
 	return <JsonLdScript schema={schema} />;
@@ -50,6 +71,7 @@ export function SoftwareApplicationJsonLd() {
 		name: COMPANY.NAME,
 		operatingSystem: "macOS, Windows, Linux",
 		applicationCategory: "DeveloperApplication",
+		applicationSubCategory: "Developer Tools",
 		offers: {
 			"@type": "Offer",
 			price: "0",
@@ -181,6 +203,51 @@ export function WebsiteJsonLd() {
 		"@type": "WebSite",
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
+export function HomeWebPageJsonLd() {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "WebPage",
+		"@id": COMPANY.MARKETING_URL,
+		url: COMPANY.MARKETING_URL,
+		name: `${COMPANY.NAME} — Run 10+ parallel coding agents on your machine`,
+		isPartOf: {
+			"@type": "WebSite",
+			name: COMPANY.NAME,
+			url: COMPANY.MARKETING_URL,
+		},
+		speakable: {
+			"@type": "SpeakableSpecification",
+			cssSelector: ["h1", "#hero-subheadline"],
+		},
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
+export function ServiceJsonLd() {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "Service",
+		name: `${COMPANY.NAME} agent orchestration`,
+		serviceType: "AI coding agent orchestration platform",
+		description:
+			"Run and orchestrate parallel AI coding agents (Claude Code, Codex, OpenCode, and any CLI agent) in isolated Git worktrees, with diff review, persistent terminals, scheduled automations, and an MCP server for programmatic control.",
+		provider: {
+			"@type": "Organization",
+			name: COMPANY.NAME,
+			url: COMPANY.MARKETING_URL,
+		},
+		url: COMPANY.MARKETING_URL,
+		offers: {
+			"@type": "Offer",
+			price: "0",
+			priceCurrency: "USD",
+		},
 	};
 
 	return <JsonLdScript schema={schema} />;

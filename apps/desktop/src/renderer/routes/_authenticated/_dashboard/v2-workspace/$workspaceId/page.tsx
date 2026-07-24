@@ -12,6 +12,7 @@ import { WindowControls } from "renderer/routes/_authenticated/_dashboard/compon
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { getV2NotificationSourcesForTab } from "renderer/stores/v2-notifications";
+import { StateScreenShell } from "../components/StateScreenShell";
 import { useWorkspace } from "../providers/WorkspaceProvider";
 import { AddTabMenu } from "./components/AddTabMenu";
 import { BackgroundTerminalsButton } from "./components/BackgroundTerminalsButton";
@@ -91,16 +92,18 @@ function V2WorkspacePage() {
 
 	if (workspaceStatusQuery.data?.worktreeExists === false) {
 		return (
-			<WorkspaceMissingWorktreeState
-				workspaceId={workspace.id}
-				workspaceName={workspace.name}
-				branch={workspace.branch}
-				worktreePath={workspaceStatusQuery.data?.worktreePath}
-				onRefresh={() => {
-					void workspaceStatusQuery.refetch();
-				}}
-				isRefreshing={workspaceStatusQuery.isFetching}
-			/>
+			<StateScreenShell>
+				<WorkspaceMissingWorktreeState
+					workspaceId={workspace.id}
+					workspaceName={workspace.name}
+					branch={workspace.branch}
+					worktreePath={workspaceStatusQuery.data?.worktreePath}
+					onRefresh={() => {
+						void workspaceStatusQuery.refetch();
+					}}
+					isRefreshing={workspaceStatusQuery.isFetching}
+				/>
+			</StateScreenShell>
 		);
 	}
 

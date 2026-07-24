@@ -5,12 +5,12 @@ import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { derivePullRequestQueryTargets } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import {
-	DEVICE_FILTER_ALL,
 	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_ALL,
 	type V2WorkspacesDeviceFilter,
@@ -72,23 +72,11 @@ export interface AccessibleV2Workspace {
 	pr: V2WorkspacePrSummary | null;
 }
 
-export interface V2WorkspaceProjectGroup {
-	projectId: string;
-	projectName: string;
-	workspaces: AccessibleV2Workspace[];
-}
-
-export interface V2WorkspaceDeviceCounts {
-	all: number;
-	thisDevice: number;
-}
-
 export interface V2WorkspaceHostOption {
 	hostId: string;
 	hostName: string;
 	isOnline: boolean;
 	isLocal: boolean;
-	count: number;
 }
 
 export interface V2WorkspaceProjectOption {
@@ -100,9 +88,8 @@ export interface V2WorkspaceProjectOption {
 
 export interface UseAccessibleV2WorkspacesResult {
 	all: AccessibleV2Workspace[];
-	pinned: AccessibleV2Workspace[];
-	others: AccessibleV2Workspace[];
-	counts: V2WorkspaceDeviceCounts;
+	/** Row-source settlement — gates empty states only, never rendered rows. */
+	isReady: boolean;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
 	hostsById: Map<
@@ -117,6 +104,7 @@ export interface UseAccessibleV2WorkspacesResult {
 
 interface UseAccessibleV2WorkspacesOptions {
 	searchQuery?: string;
+	/** Omitted = no device scoping (programmatic callers like the palette). */
 	deviceFilter?: V2WorkspacesDeviceFilter;
 	projectFilter?: V2WorkspacesProjectFilter;
 }
@@ -136,18 +124,6 @@ function workspaceMatchesSearch(
 		(workspace.pr ? `#${workspace.pr.prNumber}`.includes(query) : false) ||
 		(workspace.pr?.title.toLowerCase().includes(query) ?? false)
 	);
-}
-
-function matchesDeviceFilter(
-	workspace: AccessibleV2Workspace,
-	deviceFilter: V2WorkspacesDeviceFilter,
-	machineId: string | null,
-): boolean {
-	if (deviceFilter === DEVICE_FILTER_ALL) return true;
-	if (deviceFilter === DEVICE_FILTER_THIS_DEVICE) {
-		return machineId == null || workspace.hostId === machineId;
-	}
-	return workspace.hostId === deviceFilter;
 }
 
 function matchesProjectFilter(
@@ -236,7 +212,7 @@ export function useAccessibleV2Workspaces(
 	options: UseAccessibleV2WorkspacesOptions = {},
 ): UseAccessibleV2WorkspacesResult {
 	const searchQuery = options.searchQuery ?? "";
-	const deviceFilter = options.deviceFilter ?? DEVICE_FILTER_ALL;
+	const deviceFilter = options.deviceFilter;
 	const projectFilter = options.projectFilter ?? PROJECT_FILTER_ALL;
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
@@ -248,7 +224,22 @@ export function useAccessibleV2Workspaces(
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	// With a device filter (the page), rows come from a single `workspace.list`
+	// against that host — no fan-out, so ten idle hosts can't slow down or
+	// silently thin out the list. Without one (palette, dev seeding), rows come
+	// from the provider's already-running fan-out. Both hooks always run per the
+	// rules of hooks; the unused one is passed null / left unread and does no
+	// work of its own.
+	const selectedHostId =
+		deviceFilter === undefined
+			? null
+			: deviceFilter === DEVICE_FILTER_THIS_DEVICE
+				? machineId
+				: deviceFilter;
+	const scopedSource = useHostWorkspacesSource(selectedHostId);
+	const fanoutSource = useHostWorkspaces();
+	const { workspaces: hostWorkspaces, isReady } =
+		deviceFilter === undefined ? fanoutSource : scopedSource;
 
 	const { data: hostRows = [] } = useLiveQuery(
 		(q) =>
@@ -345,7 +336,15 @@ export function useAccessibleV2Workspaces(
 		return hostWorkspaces.flatMap((workspace) => {
 			if (workspace.organizationId !== activeOrganizationId) return [];
 			const host = hostsById.get(workspace.hostId);
-			if (!host || !accessibleHostIds.has(workspace.hostId)) return [];
+			// A host-served row is its own proof of existence and access — the
+			// host answered this caller's credentials. Only cloud-fallback rows
+			// need the v2Hosts/v2UsersHosts gate; stale or unsynced cloud host
+			// tables must not hide live host data.
+			if (
+				workspace.source !== "host" &&
+				(!host || !accessibleHostIds.has(workspace.hostId))
+			)
+				return [];
 			const project = projectsById.get(workspace.projectId);
 			if (!project) return [];
 			const sidebarState = sidebarStateByWorkspaceId.get(workspace.id);
@@ -373,8 +372,10 @@ export function useAccessibleV2Workspaces(
 					projectRepoId: repo?.id ?? null,
 					projectGithubOwner: project.repoOwner ?? repo?.owner ?? null,
 					hostId: workspace.hostId,
-					hostName: host.name,
-					hostIsOnline: host.isOnline,
+					hostName:
+						host?.name ??
+						(workspace.hostId === machineId ? "This device" : "Unknown device"),
+					hostIsOnline: host?.isOnline ?? workspace.hostReachable,
 					sidebarProjectId: sidebarProjectIds.has(project.projectKey)
 						? project.projectKey
 						: null,
@@ -386,6 +387,7 @@ export function useAccessibleV2Workspaces(
 	}, [
 		activeOrganizationId,
 		currentUserId,
+		machineId,
 		hostWorkspaces,
 		hostRows,
 		userHostRows,
@@ -396,19 +398,23 @@ export function useAccessibleV2Workspaces(
 		creatorRows,
 	]);
 
-	// The authoritative link lives in host.db (`workspace.pullRequestId`), not any
-	// collection, so fan `getByWorkspaces` out per host like the sidebar. A
-	// client-side `repositoryId::branch` map mistracks on fork branch collisions.
+	// The authoritative link lives in host.db (`workspace.pullRequestId`), not
+	// any collection. With host-scoped rows this derives a single target; a
+	// client-side `repositoryId::branch` map mistracks on fork branch
+	// collisions. Unscoped callers (palette, dev seeding) don't render PR data,
+	// so skip the queries entirely rather than fanning them out per host.
 	const pullRequestQueryTargets = useMemo(
 		() =>
-			derivePullRequestQueryTargets({
-				activeHostUrl,
-				hosts: hostRows,
-				machineId,
-				relayUrl,
-				workspaces: rows,
-			}),
-		[activeHostUrl, hostRows, machineId, relayUrl, rows],
+			deviceFilter === undefined
+				? []
+				: derivePullRequestQueryTargets({
+						activeHostUrl,
+						hosts: hostRows,
+						machineId,
+						relayUrl,
+						workspaces: rows,
+					}),
+		[deviceFilter, activeHostUrl, hostRows, machineId, relayUrl, rows],
 	);
 
 	const pullRequestQueries = useQueries({
@@ -543,68 +549,42 @@ export function useAccessibleV2Workspaces(
 		[enriched, searchQuery],
 	);
 
-	const deviceFiltered = useMemo(
-		() =>
-			searchFiltered.filter((workspace) =>
-				matchesDeviceFilter(workspace, deviceFilter, machineId),
-			),
-		[searchFiltered, deviceFilter, machineId],
-	);
-
 	const fullyFiltered = useMemo(
 		() =>
-			deviceFiltered.filter((workspace) =>
+			searchFiltered.filter((workspace) =>
 				matchesProjectFilter(workspace, projectFilter),
 			),
-		[deviceFiltered, projectFilter],
+		[searchFiltered, projectFilter],
 	);
 
-	const pinned = useMemo(
-		() => fullyFiltered.filter((workspace) => workspace.isInSidebar),
-		[fullyFiltered],
-	);
-
-	const others = useMemo(
-		() => fullyFiltered.filter((workspace) => !workspace.isInSidebar),
-		[fullyFiltered],
-	);
-
-	const counts = useMemo<V2WorkspaceDeviceCounts>(() => {
-		let thisDevice = 0;
-		for (const workspace of searchFiltered) {
-			if (workspace.hostId === machineId) thisDevice += 1;
-		}
-		return {
-			all: searchFiltered.length,
-			thisDevice,
-		};
-	}, [searchFiltered, machineId]);
-
+	// Hosts come straight from the (locally cached) hosts collections so the
+	// picker is populated immediately — before the selected host's workspace
+	// query answers, and including hosts with zero workspaces. No per-host
+	// counts: counting other hosts' workspaces would itself be a fan-out.
 	const hostOptions = useMemo<V2WorkspaceHostOption[]>(() => {
-		const byHost = new Map<string, V2WorkspaceHostOption>();
-		for (const workspace of searchFiltered) {
-			const existing = byHost.get(workspace.hostId);
-			if (existing) {
-				existing.count += 1;
-				continue;
-			}
-			byHost.set(workspace.hostId, {
-				hostId: workspace.hostId,
-				hostName: workspace.hostName,
-				isOnline: workspace.hostIsOnline,
-				isLocal: workspace.hostId === machineId,
-				count: 1,
+		if (activeOrganizationId == null) return [];
+		const accessibleHostIds = new Set(userHostRows.map((row) => row.hostId));
+		return hostRows
+			.filter(
+				(host) =>
+					host.organizationId === activeOrganizationId &&
+					accessibleHostIds.has(host.machineId),
+			)
+			.map((host) => ({
+				hostId: host.machineId,
+				hostName: host.name,
+				isOnline: host.isOnline,
+				isLocal: host.machineId === machineId,
+			}))
+			.sort((a, b) => {
+				if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
+				return a.hostName.localeCompare(b.hostName);
 			});
-		}
-		return Array.from(byHost.values()).sort((a, b) => {
-			if (a.isLocal !== b.isLocal) return a.isLocal ? -1 : 1;
-			return a.hostName.localeCompare(b.hostName);
-		});
-	}, [searchFiltered, machineId]);
+	}, [activeOrganizationId, hostRows, userHostRows, machineId]);
 
 	const projectOptions = useMemo<V2WorkspaceProjectOption[]>(() => {
 		const byProject = new Map<string, V2WorkspaceProjectOption>();
-		for (const workspace of deviceFiltered) {
+		for (const workspace of searchFiltered) {
 			const existing = byProject.get(workspace.projectId);
 			if (existing) {
 				existing.count += 1;
@@ -620,23 +600,27 @@ export function useAccessibleV2Workspaces(
 		return Array.from(byProject.values()).sort((a, b) =>
 			a.projectName.localeCompare(b.projectName),
 		);
-	}, [deviceFiltered]);
+	}, [searchFiltered]);
 
 	const hostsById = useMemo(() => {
 		const map = new Map<
 			string,
 			{ hostName: string; isOnline: boolean; isLocal: boolean }
 		>();
-		for (const workspace of enriched) {
-			if (map.has(workspace.hostId)) continue;
-			map.set(workspace.hostId, {
-				hostName: workspace.hostName,
-				isOnline: workspace.hostIsOnline,
-				isLocal: workspace.hostId === machineId,
+		for (const host of hostRows) {
+			if (
+				activeOrganizationId != null &&
+				host.organizationId !== activeOrganizationId
+			)
+				continue;
+			map.set(host.machineId, {
+				hostName: host.name,
+				isOnline: host.isOnline,
+				isLocal: host.machineId === machineId,
 			});
 		}
 		return map;
-	}, [enriched, machineId]);
+	}, [hostRows, activeOrganizationId, machineId]);
 
 	const projectsById = useMemo(() => {
 		const map = new Map<
@@ -655,9 +639,7 @@ export function useAccessibleV2Workspaces(
 
 	return {
 		all: fullyFiltered,
-		pinned,
-		others,
-		counts,
+		isReady,
 		hostOptions,
 		projectOptions,
 		hostsById,

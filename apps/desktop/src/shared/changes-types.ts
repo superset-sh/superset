@@ -43,7 +43,8 @@ export interface GitChangesStatus {
 	branch: string;
 	defaultBranch: string; // Default branch (main/master)
 	againstBase: ChangedFile[]; // All files changed vs base branch
-	commits: CommitInfo[]; // Individual commits on branch (not on default)
+	commits: CommitInfo[]; // Individual commits on branch (not on default), capped for display
+	totalCommitCount: number; // True number of commits on branch, even beyond the display cap
 	staged: ChangedFile[];
 	unstaged: ChangedFile[];
 	untracked: ChangedFile[];

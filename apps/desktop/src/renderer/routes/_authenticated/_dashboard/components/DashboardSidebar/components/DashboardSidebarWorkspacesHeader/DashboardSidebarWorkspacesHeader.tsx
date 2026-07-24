@@ -12,6 +12,7 @@ import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { LuFolderInput, LuFolderPlus, LuLayoutTemplate } from "react-icons/lu";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import {
+	useOpenEmptyProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
@@ -20,6 +21,7 @@ import { useSidebarWorkspacesCollapseStore } from "renderer/stores/sidebar-works
 export function DashboardSidebarWorkspacesHeader() {
 	const isCollapsed = useSidebarWorkspacesCollapseStore((s) => s.isCollapsed);
 	const toggleCollapsed = useSidebarWorkspacesCollapseStore((s) => s.toggle);
+	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
 	const navigate = useNavigate();
@@ -88,6 +90,10 @@ export function DashboardSidebarWorkspacesHeader() {
 					align="end"
 					onCloseAutoFocus={(event) => event.preventDefault()}
 				>
+					<DropdownMenuItem onSelect={() => openEmptyProject()}>
+						<LuFolderPlus className="size-4" />
+						Create new project
+					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openNewProject()}>
 						<HiMiniPlus className="size-4" />
 						Clone from URL

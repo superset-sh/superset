@@ -1,0 +1,354 @@
+---
+title: MCP Server
+description: Connect AI agents directly to Superset via MCP
+---
+
+<Callout type="info">
+This document covers **MCP v2**. The v1 server is deprecated but still available at `https://api.superset.sh/api/agent/mcp` for existing integrations.
+</Callout>
+
+## Overview
+
+Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol.io) server that lets AI agents interact with your tasks, workspaces, and devices programmatically.
+
+## Capabilities
+
+| Category | Operations |
+|----------|------------|
+| **Tasks** | list, get (by id or slug), create, update, delete, list statuses |
+| **Workspaces** | list (per host), create on a host, update, delete |
+| **Automations** | list, get metadata, get/set prompt body, create, update metadata, pause, resume, run on demand, list runs, delete |
+| **Projects** | list projects on a host |
+| **Hosts** | list hosts (registered machines) you have access to |
+| **Organization** | list members |
+
+## Setup
+
+### CLI Options
+
+<Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code"]}>
+<Tab value="Claude Code">
+```bash title="terminal"
+claude mcp add superset --transport http https://api.superset.sh/api/v2/agent/mcp
+```
+</Tab>
+<Tab value="Codex">
+```bash title="terminal"
+codex mcp add superset --url https://api.superset.sh/api/v2/agent/mcp
+```
+</Tab>
+<Tab value="Gemini CLI">
+```bash title="terminal"
+gemini mcp add --transport http superset https://api.superset.sh/api/v2/agent/mcp
+```
+</Tab>
+<Tab value="Open Code">
+Run `opencode mcp add` and follow the interactive prompts:
+
+```ansi title="terminal"
+opencode mcp add
+
+[2m┌[0m  Add MCP server
+[2m│[0m
+[2m◇[0m  Location
+[2m│[0m  [36mCurrent project[0m
+[2m│[0m
+[2m◇[0m  Enter MCP server name
+[2m│[0m  [36msuperset[0m
+[2m│[0m
+[2m◇[0m  Select MCP server type
+[2m│[0m  [36mRemote[0m
+[2m│[0m
+[2m◇[0m  Enter MCP server URL
+[2m│[0m  [36mhttps://api.superset.sh/api/v2/agent/mcp[0m
+[2m│[0m
+[2m◇[0m  Does this server require OAuth authentication?
+[2m│[0m  [36mYes[0m
+[2m│[0m
+[2m◇[0m  Do you have a pre-registered client ID?
+[2m│[0m  [36mNo[0m
+[2m│[0m
+[2m└[0m  [32mMCP server added successfully[0m
+```
+</Tab>
+<Tab value="Amp CLI">
+```bash title="terminal"
+amp mcp add --workspace superset https://api.superset.sh/api/v2/agent/mcp
+```
+</Tab>
+<Tab value="Mistral Vibe">
+Add to your `.vibe/config.toml`:
+
+```toml title=".vibe/config.toml"
+[[mcp_servers]]
+name = "superset"
+transport = "http"
+url = "https://api.superset.sh/api/v2/agent/mcp"
+```
+</Tab>
+<Tab value="Kimi Code">
+Run `kimi`, enter `/mcp-config`, and add an HTTP server named `superset` with this URL:
+
+```text title="Kimi Code"
+https://api.superset.sh/api/v2/agent/mcp
+```
+
+Then enter `/mcp-config login superset` to authorize it.
+</Tab>
+</Tabs>
+
+### Manual Configuration
+
+Alternatively, you can manually configure the MCP server for each client:
+
+<Tabs items={["Claude Code", "Claude Desktop", "Cursor", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code"]}>
+<Tab value="Claude Code">
+Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and handles OAuth authentication.
+
+```json title=".mcp.json"
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Claude Desktop">
+Add to your `claude_desktop_config.json`:
+
+```json title="claude_desktop_config.json"
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Cursor">
+Add to `.cursor/mcp.json` in your project root:
+
+```json title=".cursor/mcp.json"
+{
+  "mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Codex">
+Add to your `~/.codex/config.toml`:
+
+```toml title="config.toml"
+[mcp_servers.superset]
+url = "https://api.superset.sh/api/v2/agent/mcp"
+```
+</Tab>
+<Tab value="Gemini CLI">
+Add to your `.gemini/settings.json`:
+
+```json title="settings.json"
+{
+  "mcpServers": {
+    "superset": {
+      "httpUrl": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Open Code">
+Add to your `opencode.json`:
+
+```json title="opencode.json"
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "superset": {
+      "type": "remote",
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Amp CLI">
+Add to `.amp/settings.json` in your project root:
+
+```json title=".amp/settings.json"
+{
+  "amp.mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+</Tab>
+<Tab value="Mistral Vibe">
+Add to `.vibe/config.toml` in your project root (or `~/.vibe/config.toml` for global config):
+
+```toml title=".vibe/config.toml"
+[[mcp_servers]]
+name = "superset"
+transport = "http"
+url = "https://api.superset.sh/api/v2/agent/mcp"
+```
+</Tab>
+<Tab value="Kimi Code">
+Add to `.kimi-code/mcp.json` in your project root (or `~/.kimi-code/mcp.json` for global config):
+
+```json title=".kimi-code/mcp.json"
+{
+  "mcpServers": {
+    "superset": {
+      "url": "https://api.superset.sh/api/v2/agent/mcp"
+    }
+  }
+}
+```
+
+Then enter `/mcp-config login superset` in Kimi Code to authorize it.
+</Tab>
+</Tabs>
+
+## Authentication
+
+The MCP server uses OAuth 2.1. When you first connect, you'll be prompted to authorize the connection in your browser. The token is scoped to your active organization.
+
+### API Key Authentication
+
+For headless environments, CI/CD pipelines, or scripts where browser-based OAuth isn't practical, you can authenticate with an API key instead.
+
+**Generating an API key:**
+
+1. Open the Superset desktop app
+2. Go to **Settings > API Keys**
+3. Click **Create API Key**
+4. Copy the key (it starts with `sk_live_`). You won't be able to see it again.
+
+**Using the API key:**
+
+Pass the API key as a Bearer token in the `Authorization` header:
+
+```
+Authorization: Bearer sk_live_your_api_key_here
+```
+
+MCP clients that support custom headers can use this directly. For Claude Code, set the header in your `.mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "superset": {
+      "type": "http",
+      "url": "https://api.superset.sh/api/v2/agent/mcp",
+      "headers": {
+        "Authorization": "Bearer sk_live_your_api_key_here"
+      }
+    }
+  }
+}
+```
+
+<Callout type="warn">
+API keys grant full access to your organization. Keep them secret and never commit them to version control. Use environment variables or secrets managers for CI/CD.
+</Callout>
+
+**When to use which method:**
+
+| Method | Best for |
+|--------|----------|
+| OAuth 2.1 | Interactive use: Claude Desktop, Claude Code, Cursor |
+| API Key | Headless/CI: scripts, automation, pipelines |
+
+## Available Tools
+
+### Tasks
+
+| Tool | Description |
+|------|-------------|
+| `tasks_list` | List tasks with optional filters (status, priority, assignee, free-text search) |
+| `tasks_get` | Get one task by UUID or slug |
+| `tasks_create` | Create a task in the active organization |
+| `tasks_update` | Update fields on an existing task |
+| `tasks_delete` | Soft-delete a task by UUID |
+| `tasks_statuses_list` | List the organization's task statuses (for `tasks_create`/`tasks_update` statusId) |
+
+### Workspaces
+
+| Tool | Description |
+|------|-------------|
+| `workspaces_list` | List workspaces on a host (get the hostId from `hosts_list`) |
+| `workspaces_create` | Create a workspace on a host (branch-scoped git worktree) |
+| `workspaces_update` | Update fields on a workspace on its host |
+| `workspaces_delete` | Delete a workspace by UUID on its host |
+
+### Agents
+
+| Tool | Description |
+|------|-------------|
+| `agents_list` | List agents configured on a host |
+| `agents_create` | Create (launch) an agent session in an existing workspace |
+
+### Terminals
+
+| Tool | Description |
+|------|-------------|
+| `terminals_create` | Create a terminal session in a workspace, optionally running a command |
+
+### Automations
+
+| Tool | Description |
+|------|-------------|
+| `automations_list` | List automations the calling user owns |
+| `automations_get` | Get one automation's metadata (prompt body omitted) |
+| `automations_get_prompt` | Fetch the full markdown prompt for one automation |
+| `automations_create` | Schedule a recurring agent run with an RFC 5545 RRULE |
+| `automations_update` | Update metadata (name, schedule, agent, host); use `automations_set_prompt` to change the prompt |
+| `automations_set_prompt` | Replace the full markdown prompt body |
+| `automations_pause` | Pause an automation (schedule stops firing) |
+| `automations_resume` | Resume a paused automation |
+| `automations_run` | Dispatch an automation immediately, outside its schedule |
+| `automations_logs` | List recent runs for an automation |
+| `automations_delete` | Delete an automation |
+
+### Projects
+
+| Tool | Description |
+|------|-------------|
+| `projects_list` | List projects (checked-out repos) on a host (get the hostId from `hosts_list`) |
+
+### Hosts
+
+| Tool | Description |
+|------|-------------|
+| `hosts_list` | List the hosts (registered machines) you have access to |
+
+### Organization
+
+| Tool | Description |
+|------|-------------|
+| `organization_members_list` | List members of the active organization |
+
+## Chat Integration
+
+In the built-in chat panel, use the `/mcp` slash command to see your workspace's configured MCP servers: their names, transport type (local/remote), and current state (enabled/disabled/invalid). This reads from your workspace MCP config (`.mastracode/mcp.json`, `.amp/settings.json`, or `.mcp.json`).
+
+## Example Usage
+
+Once connected, you can ask your AI agent to:
+
+- "Create a task for fixing the login bug"
+- "List all my assigned tasks"
+- "Create a workspace for the auth feature on my MacBook"
+- "Schedule a daily automation that triages new Linear issues at 9am"
+- "Pause the nightly cleanup automation"
+- "Show me the last 10 runs of my Linear triage automation"

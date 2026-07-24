@@ -4,7 +4,12 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { LuFolderOpen, LuGitBranch, LuLayoutTemplate } from "react-icons/lu";
+import {
+	LuFolderOpen,
+	LuFolderPlus,
+	LuGitBranch,
+	LuLayoutTemplate,
+} from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -18,6 +23,7 @@ import {
 } from "renderer/react-query/projects";
 import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import { EmptyProjectModal } from "renderer/routes/_authenticated/components/EmptyProjectModal";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -36,6 +42,7 @@ function OnboardingProjectPage() {
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
 	const [url, setUrl] = useState("");
 	const [busy, setBusy] = useState(false);
+	const [emptyProjectOpen, setEmptyProjectOpen] = useState(false);
 	const [templateOpen, setTemplateOpen] = useState(false);
 
 	const folderImport = useFolderFirstImport({
@@ -142,6 +149,26 @@ function OnboardingProjectPage() {
 	return (
 		<div className="flex flex-col gap-3">
 			<Card className="flex-row items-center gap-4 p-5">
+				<ProjectIcon icon={<LuFolderPlus className="size-4.5" />} />
+				<div className="min-w-0 flex-1">
+					<p className="text-sm font-medium text-foreground">
+						Create a new project
+					</p>
+					<p className="text-xs text-muted-foreground">
+						Start from scratch in a new folder.
+					</p>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setEmptyProjectOpen(true)}
+					disabled={busy}
+				>
+					Create
+				</Button>
+			</Card>
+
+			<Card className="flex-row items-center gap-4 p-5">
 				<ProjectIcon icon={<LuFolderOpen className="size-4.5" />} />
 				<div className="min-w-0 flex-1">
 					<p className="text-sm font-medium text-foreground">Open a folder</p>
@@ -212,6 +239,14 @@ function OnboardingProjectPage() {
 				onOpenChange={setTemplateOpen}
 				onCreated={(result) => {
 					setTemplateOpen(false);
+					finish(result.projectId);
+				}}
+			/>
+			<EmptyProjectModal
+				open={emptyProjectOpen}
+				onOpenChange={setEmptyProjectOpen}
+				onSuccess={(result) => {
+					setEmptyProjectOpen(false);
 					finish(result.projectId);
 				}}
 			/>

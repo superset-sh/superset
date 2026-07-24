@@ -5,13 +5,12 @@ import { useScroll } from "framer-motion";
 import { useFeatureFlagVariantKey } from "posthog-js/react";
 import { useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
+import { HERO_POSITIONING_FLAG } from "@/lib/analytics/hero-flag-bootstrap";
 import { isMacPlatform, usePlatform } from "../../hooks/useOS";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
-
-const HERO_POSITIONING_FLAG = "landing-hero-positioning";
 
 const PIXEL_FONT_STYLE = {
 	fontFamily: "var(--font-geist-pixel-grid)",
@@ -24,7 +23,7 @@ interface HeroCopy {
 }
 
 const TEST_SUBHEADLINE =
-	"Isolated workspaces for Claude Code, Codex, and any CLI agent — run them side by side and review every change from one dashboard. Free to start.";
+	"Isolated workspaces for Claude Code, Codex, and any CLI agent. Review every change from one dashboard. Free to start.";
 
 const HERO_COPY = {
 	control: {
@@ -71,7 +70,7 @@ export function HeroSection() {
 					<div className="flex flex-col items-center text-center">
 						<div className="space-y-4 sm:space-y-6">
 							<h1
-								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative"
+								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative max-w-6xl mx-auto"
 								style={{
 									fontFamily: "var(--font-ibm-plex-mono), monospace",
 								}}
@@ -88,7 +87,10 @@ export function HeroSection() {
 									/>
 								</span>
 							</h1>
-							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
+							<p
+								id="hero-subheadline"
+								className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto"
+							>
 								{copy.subheadline}
 							</p>
 						</div>

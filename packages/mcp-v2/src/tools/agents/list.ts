@@ -18,6 +18,7 @@ interface HostAgentConfig {
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "agents_list",
+		annotations: { readOnlyHint: true },
 		description:
 			"List terminal-agent instances configured on a host (the rows in Settings → Agents on that machine). Returns each row with its instance UUID, presetId, label, command, args, and env. Use to find an `agent` value for `agents_create` or to confirm what's installed before launching.",
 		inputSchema: {

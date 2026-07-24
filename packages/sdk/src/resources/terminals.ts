@@ -1,6 +1,5 @@
 import { SupersetError } from "../core/error";
 import { APIResource } from "../core/resource";
-import { findWorkspaceHostId } from "./host-workspaces";
 
 /**
  * Terminals are PTY sessions that live on a developer's host service, scoped
@@ -9,24 +8,13 @@ import { findWorkspaceHostId } from "./host-workspaces";
  */
 export class Terminals extends APIResource {
 	/**
-	 * Create a terminal session in an existing workspace. Looks up the host
-	 * that owns the workspace (by fanning out across reachable hosts) and
-	 * opens a fresh PTY on that host, optionally running `command`. Pass an
-	 * explicit `hostId` to skip the lookup.
+	 * Create a terminal session in an existing workspace on its host,
+	 * optionally running `command`.
 	 */
-	async create(
-		params: TerminalCreateParams,
-		options?: { hostId?: string },
-	): Promise<TerminalCreateResult> {
-		const hostId =
-			options?.hostId ??
-			(await findWorkspaceHostId(
-				this._client,
-				this._requireOrgId(),
-				params.workspaceId,
-			));
+	async create(params: TerminalCreateParams): Promise<TerminalCreateResult> {
+		this._requireOrgId();
 		return this._client.hostMutation<TerminalCreateResult>(
-			hostId,
+			params.hostId,
 			"terminal.createSession",
 			{
 				workspaceId: params.workspaceId,
@@ -47,6 +35,8 @@ export class Terminals extends APIResource {
 }
 
 export interface TerminalCreateParams {
+	/** The host machineId the workspace lives on (see `hosts.list()`). */
+	hostId: string;
 	/** Workspace UUID to create the terminal in. */
 	workspaceId: string;
 	/** Shell command to run. Omit to open an interactive shell. */

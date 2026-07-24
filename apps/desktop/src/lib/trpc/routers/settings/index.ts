@@ -897,8 +897,19 @@ export const createSettingsRouter = () => {
 			return {
 				terminalFontFamily: row.terminalFontFamily ?? null,
 				terminalFontSize: row.terminalFontSize ?? null,
+				terminalLineHeight: row.terminalLineHeight ?? null,
+				terminalLetterSpacing: row.terminalLetterSpacing ?? null,
+				terminalFontWeight: row.terminalFontWeight ?? null,
+				terminalLigatures: row.terminalLigatures ?? null,
+				terminalMinimumContrast: row.terminalMinimumContrast ?? null,
+				terminalCursorStyle: row.terminalCursorStyle ?? null,
+				terminalCursorBlink: row.terminalCursorBlink ?? null,
 				editorFontFamily: row.editorFontFamily ?? null,
 				editorFontSize: row.editorFontSize ?? null,
+				editorLineHeight: row.editorLineHeight ?? null,
+				editorLetterSpacing: row.editorLetterSpacing ?? null,
+				editorFontWeight: row.editorFontWeight ?? null,
+				editorLigatures: row.editorLigatures ?? null,
 			};
 		}),
 

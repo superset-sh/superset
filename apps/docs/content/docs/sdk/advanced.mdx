@@ -40,7 +40,7 @@ app.post('/webhooks/sentry', async (c) => {
   // 2. Spin up a worktree on a developer's machine and dispatch an agent
   //    inside it. The SDK creates the worktree, then runs the agent with
   //    your prompt — you don't manage the dispatch loop.
-  const workspace = await client.workspaces.create({
+  const result = await client.workspaces.create({
     hostId: TARGET_HOST_ID,
     projectId: PROJECT_ID,
     name: slug,
@@ -64,8 +64,8 @@ app.post('/webhooks/sentry', async (c) => {
   return c.json({
     ok: true,
     taskId: task.id,
-    workspaceId: workspace.id,
-    runId: workspace.agentRuns[0]?.runId,
+    workspaceId: result.workspace.id,
+    sessionId: result.agents[0]?.ok ? result.agents[0].sessionId : null,
   });
 });
 
@@ -141,14 +141,14 @@ import Superset from '@superset_sh/sdk';
 const client = new Superset();
 const HOST_ID = process.env.SUPERSET_HOST_ID!;
 
-const projects = await client.projects.list();
+const projects = await client.projects.list({ hostId: HOST_ID });
 
 const wave = await Promise.all(
   projects.map((p) =>
     client.workspaces.create({
       hostId: HOST_ID,
       projectId: p.id,
-      name: `rename-getUser-${p.slug}`,
+      name: `rename-getUser-${p.name}`,
       branch: 'refactor/rename-getUser',
       agents: [
         {
@@ -168,8 +168,11 @@ const wave = await Promise.all(
   ),
 );
 
-const totalAgents = wave.reduce((n, ws) => n + ws.agentRuns.length, 0);
-console.log(`fanned out ${totalAgents} agents across ${projects.length} repos`);
+const totalAgents = wave.reduce(
+  (n, result) => n + result.agents.filter((agent) => agent.ok).length,
+  0,
+);
+console.log(`launched ${totalAgents} agents across ${projects.length} repos`);
 ```
 
 Same loop works for "bump TypeScript to 5.7", "swap Sentry SDK for the new one", "add a `lint:strict` script to every package.json". Anything you'd otherwise farm out to a long Slack thread.
@@ -180,7 +183,7 @@ If you've already created a recurring automation in the dashboard, the SDK can f
 
 ```ts
 const run = await client.automations.run('<automation-id>');
-console.log(`dispatched run ${run.id} to host ${run.hostId}`);
+console.log(`dispatched run ${run.runId} for automation ${run.automationId}`);
 ```
 
 The automation's pinned host has to be online and tunneling. The SDK will surface a `503 Host not connected` error if it isn't, so you can retry later or page someone.

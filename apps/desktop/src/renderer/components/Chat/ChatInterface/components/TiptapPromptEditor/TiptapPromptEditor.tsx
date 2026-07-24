@@ -555,13 +555,15 @@ export function TiptapPromptEditor({
 					return false;
 				},
 				keydown: (_view, event) => {
-					// Keep bare Cmd/Ctrl+Arrow line-nav inside the editor, but let chords
-					// that resolve to a real hotkey (e.g. ⌘⌥←/→ = prev/next tab) bubble to
+					// Keep Cmd/Ctrl+Arrow line-nav inside the editor. Bare chords (incl.
+					// Shift selection) never bubble — app hotkeys fire in contenteditable
+					// and would preventDefault the cursor move — while Alt chords that
+					// resolve to a real hotkey (e.g. ⌘⌥←/→ = prev/next tab) bubble to
 					// react-hotkeys-hook instead of the editor swallowing them.
 					if (
 						(event.key === "ArrowLeft" || event.key === "ArrowRight") &&
 						(event.metaKey || event.ctrlKey) &&
-						resolveHotkeyFromEvent(event) === null
+						(!event.altKey || resolveHotkeyFromEvent(event) === null)
 					) {
 						event.stopPropagation();
 					}

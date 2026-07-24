@@ -341,10 +341,7 @@ async function runDestroy(
 	// The local row is the commit point and the only record. The cloud
 	// delete is best-effort legacy cleanup for rows mirrored before
 	// workspaces went fully local.
-	deleteLocalWorkspace(
-		{ db: ctx.db, eventBus: ctx.eventBus },
-		input.workspaceId,
-	);
+	deleteLocalWorkspace(ctx, input.workspaceId);
 	let cloudDeleted = false;
 	try {
 		await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });

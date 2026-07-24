@@ -36,6 +36,7 @@ interface UseOrderedSectionsInput {
 	againstBaseFiles: ChangedFile[];
 	onAgainstBaseFileSelect: (file: ChangedFile) => void;
 	commitsWithFiles: CommitInfo[];
+	totalCommitCount: number;
 	expandedCommits: Set<string>;
 	onCommitToggle: (commitHash: string) => void;
 	onCommitFileSelect: (file: ChangedFile, commitHash: string) => void;
@@ -74,6 +75,7 @@ export function useOrderedSections({
 	againstBaseFiles,
 	onAgainstBaseFileSelect,
 	commitsWithFiles,
+	totalCommitCount,
 	expandedCommits,
 	onCommitToggle,
 	onCommitFileSelect,
@@ -97,8 +99,6 @@ export function useOrderedSections({
 	isStageAllPending,
 	isUnstagedActioning,
 }: UseOrderedSectionsInput) {
-	const commitCount = commitsWithFiles.length;
-
 	const sectionDefinitions: Record<ChangeCategory, OrderedSection> = {
 		"against-base": {
 			id: "against-base",
@@ -123,7 +123,7 @@ export function useOrderedSections({
 		committed: {
 			id: "committed",
 			title: "Commits",
-			count: commitCount,
+			count: totalCommitCount,
 			isExpanded: expandedSections.committed,
 			onToggle: () => toggleSection("committed"),
 			content: expandedSections.committed ? (

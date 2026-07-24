@@ -27,6 +27,7 @@ import { colorPicker } from "@replit/codemirror-css-color-picker";
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import { FONT_SETTINGS_QUERY_KEY } from "renderer/lib/font-settings";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useResolvedTheme } from "renderer/stores/theme";
 import {
@@ -81,12 +82,16 @@ export function CodeEditor({
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
-		queryKey: ["electron", "settings", "getFontSettings"],
+		queryKey: FONT_SETTINGS_QUERY_KEY,
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
 		staleTime: 30_000,
 	});
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
+	const editorLineHeight = fontSettings?.editorLineHeight ?? undefined;
+	const editorLetterSpacing = fontSettings?.editorLetterSpacing ?? undefined;
+	const editorFontWeight = fontSettings?.editorFontWeight ?? undefined;
+	const editorLigatures = fontSettings?.editorLigatures ?? undefined;
 	const activeTheme = useResolvedTheme();
 
 	onChangeRef.current = onChange;
@@ -151,7 +156,14 @@ export function CodeEditor({
 					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(
 						activeTheme,
-						{ fontFamily: editorFontFamily, fontSize: editorFontSize },
+						{
+							fontFamily: editorFontFamily,
+							fontSize: editorFontSize,
+							lineHeight: editorLineHeight,
+							letterSpacing: editorLetterSpacing,
+							fontWeight: editorFontWeight,
+							ligatures: editorLigatures,
+						},
 						fillHeight,
 					),
 				]),
@@ -234,7 +246,14 @@ export function CodeEditor({
 				getCodeSyntaxHighlighting(activeTheme),
 				createCodeMirrorTheme(
 					activeTheme,
-					{ fontFamily: editorFontFamily, fontSize: editorFontSize },
+					{
+						fontFamily: editorFontFamily,
+						fontSize: editorFontSize,
+						lineHeight: editorLineHeight,
+						letterSpacing: editorLetterSpacing,
+						fontWeight: editorFontWeight,
+						ligatures: editorLigatures,
+					},
 					fillHeight,
 				),
 			]),
@@ -242,7 +261,11 @@ export function CodeEditor({
 	}, [
 		activeTheme,
 		editorFontFamily,
+		editorFontWeight,
 		editorFontSize,
+		editorLetterSpacing,
+		editorLigatures,
+		editorLineHeight,
 		fillHeight,
 		themeCompartment,
 	]);

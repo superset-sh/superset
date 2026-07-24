@@ -27,7 +27,7 @@ function V2WorkspacesPage() {
 		setSearchQuery("");
 	}, [setSearchQuery]);
 
-	const { all, counts, hostOptions, projectOptions, hostsById, projectsById } =
+	const { all, isReady, hostOptions, projectOptions, hostsById, projectsById } =
 		useAccessibleV2Workspaces({
 			searchQuery,
 			deviceFilter,
@@ -37,13 +37,12 @@ function V2WorkspacesPage() {
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
 			<V2WorkspacesHeader
-				counts={counts}
 				hostOptions={hostOptions}
 				projectOptions={projectOptions}
 				hostsById={hostsById}
 				projectsById={projectsById}
 			/>
-			<V2WorkspacesList workspaces={all} />
+			<V2WorkspacesList workspaces={all} isReady={isReady} />
 		</div>
 	);
 }

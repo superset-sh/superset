@@ -7,7 +7,20 @@ minimumReleaseAge = 259200
 # this exclusion after 2026-07-16. (addon-ligatures stays on beta.220: its
 # beta.289 bundle imports node:diagnostics_channel, which breaks the vite
 # renderer build.)
+# next 16.2.11 (published 2026-07-21) is a security release fixing the SSRF,
+# cache-confusion, and middleware-bypass advisories flagged by Dependabot;
+# versions are pinned exact. Safe to remove this exclusion after 2026-07-24.
 minimumReleaseAgeExcludes = [
+	"next",
+	"@next/env",
+	"@next/swc-darwin-arm64",
+	"@next/swc-darwin-x64",
+	"@next/swc-linux-arm64-gnu",
+	"@next/swc-linux-arm64-musl",
+	"@next/swc-linux-x64-gnu",
+	"@next/swc-linux-x64-musl",
+	"@next/swc-win32-arm64-msvc",
+	"@next/swc-win32-x64-msvc",
 	"@xterm/xterm",
 	"@xterm/headless",
 	"@xterm/addon-clipboard",

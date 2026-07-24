@@ -7,7 +7,6 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useNavigate } from "@tanstack/react-router";
 import {
 	LuAppWindow,
 	LuEllipsisVertical,
@@ -16,10 +15,8 @@ import {
 	LuSquareTerminal,
 	LuX,
 } from "react-icons/lu";
-import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
-import { electronTrpc } from "renderer/lib/electron-trpc";
-import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { STROKE_WIDTH } from "renderer/screens/main/components/WorkspaceSidebar/constants";
+import { usePortOpenActions } from "../../../../hooks/usePortOpenActions";
 import { useDashboardSidebarPortKill } from "../../hooks/useDashboardSidebarPortKill";
 import type { DashboardSidebarPort } from "../../hooks/useDashboardSidebarPortsData";
 
@@ -30,58 +27,18 @@ interface DashboardSidebarPortBadgeProps {
 export function DashboardSidebarPortBadge({
 	port,
 }: DashboardSidebarPortBadgeProps) {
-	const navigate = useNavigate();
-	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { isPending, killPort } = useDashboardSidebarPortKill();
-	const { preferences } = useV2UserPreferences();
-	const canOpenInBrowser = port.hostType === "local-device";
+	const {
+		canOpenInBrowser,
+		isOpenExternalPending,
+		portOpenAction,
+		openExternal,
+		openInApp,
+		openWorkspace,
+		openPrimary,
+	} = usePortOpenActions(port);
 	const hostLabel =
 		port.hostType === "local-device" ? "Local device" : "Remote host";
-
-	const handleWorkspaceClick = () => {
-		void navigateToV2Workspace(port.workspaceId, navigate, {
-			search: {
-				terminalId: port.terminalId,
-				focusRequestId: crypto.randomUUID(),
-			},
-		});
-	};
-
-	const portUrl = `http://localhost:${port.port}`;
-
-	const handleOpenExternal = () => {
-		if (!canOpenInBrowser || openUrl.isPending) return;
-		openUrl.mutate(portUrl);
-	};
-
-	const handleOpenInApp = (target: "new-tab" | "current-tab") => {
-		if (!canOpenInBrowser) return;
-		void navigateToV2Workspace(port.workspaceId, navigate, {
-			search: {
-				openUrl: portUrl,
-				openUrlTarget: target,
-				openUrlRequestId: crypto.randomUUID(),
-			},
-		});
-	};
-
-	// Where a plain click opens the port is configurable under
-	// Settings → Links → Ports.
-	const handleOpenInBrowser = () => {
-		if (preferences.portOpenAction === "external") {
-			handleOpenExternal();
-			return;
-		}
-		handleOpenInApp(
-			preferences.portOpenAction === "newTab" ? "new-tab" : "current-tab",
-		);
-	};
-
-	// Opening the port is the primary action; remote ports can't open a local
-	// browser tab, so clicking those jumps to the workspace instead.
-	const handlePrimaryClick = canOpenInBrowser
-		? handleOpenInBrowser
-		: handleWorkspaceClick;
 
 	const handleClose = () => {
 		if (isPending) return;
@@ -100,7 +57,7 @@ export function DashboardSidebarPortBadge({
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						onClick={handlePrimaryClick}
+						onClick={openPrimary}
 						disabled={isPending}
 						aria-busy={isPending}
 						className="flex min-w-0 items-center gap-1 rounded-l py-0.5 pl-1.5 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
@@ -168,18 +125,16 @@ export function DashboardSidebarPortBadge({
 					{canOpenInBrowser && (
 						<>
 							<DropdownMenuItem
-								onSelect={handleOpenExternal}
-								disabled={openUrl.isPending}
+								onSelect={openExternal}
+								disabled={isOpenExternalPending}
 							>
 								<LuExternalLink />
 								Open in External Browser
 							</DropdownMenuItem>
 							<DropdownMenuItem
 								onSelect={() =>
-									handleOpenInApp(
-										preferences.portOpenAction === "pane"
-											? "current-tab"
-											: "new-tab",
+									openInApp(
+										portOpenAction === "pane" ? "current-tab" : "new-tab",
 									)
 								}
 							>
@@ -188,7 +143,7 @@ export function DashboardSidebarPortBadge({
 							</DropdownMenuItem>
 						</>
 					)}
-					<DropdownMenuItem onSelect={handleWorkspaceClick}>
+					<DropdownMenuItem onSelect={openWorkspace}>
 						<LuSquareTerminal />
 						Go to Workspace
 					</DropdownMenuItem>

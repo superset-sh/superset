@@ -710,7 +710,7 @@ export const projectRouter = router({
 			try {
 				// Per-row so each deletion broadcasts.
 				for (const ws of localWorkspaces) {
-					deleteLocalWorkspace({ db: ctx.db, eventBus: ctx.eventBus }, ws.id);
+					deleteLocalWorkspace(ctx, ws.id);
 				}
 				ctx.db.delete(projects).where(eq(projects.id, input.projectId)).run();
 				emitProjectChanged(ctx.eventBus, "deleted", input.projectId);

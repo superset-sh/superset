@@ -164,15 +164,15 @@ calls route through the cloud API and the relay.
 
 ```bash
 superset hosts list
-superset workspaces list
-superset workspaces list --host h_…
-superset workspaces list --local
+superset workspaces list              # this machine
+superset workspaces list --host h_…  # another host
 ```
 
-Mutating host commands (`projects create`, `projects setup`,
-`workspaces create`) require an explicit `--host` or `--local`. There's
-no default. `workspaces list` is organization-wide when neither `--host`
-nor `--local` is provided; pass `--local` to restrict it to this machine.
+Every host-scoped command targets exactly one host. Reads
+(`workspaces list`, `projects list`) default to this machine; mutating
+host commands (`projects create`, `projects setup`, `workspaces create`)
+require an explicit `--host` or `--local` — there's no default. There is
+no org-wide listing; the desktop app is the cross-host view.
 
 ## Where state lives
 

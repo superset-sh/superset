@@ -130,8 +130,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -432,8 +432,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT,
 		section: "appearance",
-		title: "Editor Font",
-		description: "Font used in diff views and file editors",
+		title: "Editor Typography",
+		description: "Typography used in V2 diff views and file editors",
 		keywords: [
 			"appearance",
 			"font",
@@ -444,14 +444,19 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
 			"custom",
 		],
 	},
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT,
 		section: "appearance",
-		title: "Terminal Font",
-		description: "Font used in terminal panels",
+		title: "Terminal Typography",
+		description: "Typography and cursor behavior used in V2 terminal panels",
 		keywords: [
 			"appearance",
 			"font",
@@ -461,6 +466,15 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
+			"contrast",
+			"minimum contrast",
+			"cursor",
+			"blink",
 			"custom",
 			"nerd",
 		],
@@ -1448,15 +1462,16 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 ];
 
 export function searchSettings(query: string): SettingsItem[] {
-	if (!query.trim()) return SETTINGS_ITEMS;
+	const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+	if (terms.length === 0) return SETTINGS_ITEMS;
 
-	const q = query.toLowerCase();
-	return SETTINGS_ITEMS.filter(
-		(item) =>
-			item.title.toLowerCase().includes(q) ||
-			item.description.toLowerCase().includes(q) ||
-			item.keywords.some((kw) => kw.toLowerCase().includes(q)),
-	);
+	return SETTINGS_ITEMS.filter((item) => {
+		const searchableText = [item.title, item.description, ...item.keywords]
+			.join(" ")
+			.toLowerCase();
+
+		return terms.every((term) => searchableText.includes(term));
+	});
 }
 
 export function getMatchCountBySection(

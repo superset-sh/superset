@@ -35,15 +35,15 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 					</motion.div>
 
 					<motion.div
-						className="hidden md:flex items-center gap-4"
+						className="hidden lg:flex items-center gap-4"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ duration: 0.3, delay: 0.1 }}
 					>
 						<DesktopNav />
-						<div className="h-4 w-px bg-border" />
-						{starCounter}
-						<div className="flex items-center gap-2">{ctaButtons}</div>
+						<div className="hidden xl:block h-4 w-px bg-border" />
+						<div className="hidden xl:block">{starCounter}</div>
+						<div className="flex items-center gap-2 shrink-0">{ctaButtons}</div>
 					</motion.div>
 
 					<MobileNav ctaButtons={ctaButtons} starCounter={starCounter} />

@@ -36,13 +36,11 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
+	useOpenEmptyProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
-
-// Temporarily hidden, not removed — flip to true to restore the Workspaces tab.
-const SHOW_WORKSPACES_TAB = false;
 
 interface DashboardSidebarHeaderProps {
 	isCollapsed?: boolean;
@@ -52,6 +50,7 @@ export function DashboardSidebarHeader({
 	isCollapsed = false,
 }: DashboardSidebarHeaderProps) {
 	const openModal = useOpenNewWorkspaceModal();
+	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
 	const navigate = useNavigate();
@@ -173,25 +172,23 @@ export function DashboardSidebarHeader({
 					</TooltipContent>
 				</Tooltip>
 
-				{SHOW_WORKSPACES_TAB && (
-					<Tooltip delayDuration={300}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={handleWorkspacesClick}
-								className={cn(
-									"flex size-8 items-center justify-center rounded-md transition-colors",
-									isWorkspacesListOpen
-										? "bg-accent text-foreground"
-										: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-								)}
-							>
-								<LuLayers className="size-4" />
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="right">Workspaces</TooltipContent>
-					</Tooltip>
-				)}
+				<Tooltip delayDuration={300}>
+					<TooltipTrigger asChild>
+						<button
+							type="button"
+							onClick={handleWorkspacesClick}
+							className={cn(
+								"flex size-8 items-center justify-center rounded-md transition-colors",
+								isWorkspacesListOpen
+									? "bg-accent text-foreground"
+									: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+							)}
+						>
+							<LuLayers className="size-4" />
+						</button>
+					</TooltipTrigger>
+					<TooltipContent side="right">Workspaces</TooltipContent>
+				</Tooltip>
 
 				<Tooltip delayDuration={300}>
 					<TooltipTrigger asChild>
@@ -263,6 +260,10 @@ export function DashboardSidebarHeader({
 						align="start"
 						onCloseAutoFocus={(event) => event.preventDefault()}
 					>
+						<DropdownMenuItem onSelect={() => openEmptyProject()}>
+							<LuFolderPlus className="size-4" />
+							Create new project
+						</DropdownMenuItem>
 						<DropdownMenuItem onSelect={() => openNewProject()}>
 							<HiMiniPlus className="size-4" />
 							Clone from URL
@@ -297,21 +298,22 @@ export function DashboardSidebarHeader({
 			    pinned row height it matches is Mac-only; elsewhere the row height (h-8)
 			    scales with zoom, so the controls should scale with it. */}
 			<div
-				className="drag -mx-3 flex h-8 items-center gap-1.5 pr-3"
-				style={
-					isMac
-						? {
-								paddingLeft: `${80 / zoomFactor}px`,
-								height: `${32 / zoomFactor}px`,
-							}
-						: { paddingLeft: "8px" }
-				}
+				// Window-drag regions live on the empty spacer + filler leaves, never
+				// on this row: `no-drag` carve-outs under a `drag` ancestor are lost
+				// inside zoomed wrappers like ZoomStable, deadening the controls.
+				className="-mx-3 flex h-8 items-center pr-3"
+				style={isMac ? { height: `${32 / zoomFactor}px` } : undefined}
 			>
+				<div
+					className="drag h-full shrink-0"
+					style={{ width: isMac ? `${80 / zoomFactor}px` : "8px" }}
+				/>
 				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 					<SidebarToggle />
 					<NavigationControls />
 					<ResourceConsumption surface="v2" />
 				</ZoomStable>
+				<div className="drag h-full min-w-0 flex-1" />
 			</div>
 
 			<button
@@ -350,21 +352,19 @@ export function DashboardSidebarHeader({
 				)}
 			</button>
 
-			{SHOW_WORKSPACES_TAB && (
-				<button
-					type="button"
-					onClick={handleWorkspacesClick}
-					className={cn(
-						"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
-						isWorkspacesListOpen
-							? "bg-accent text-foreground"
-							: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
-					)}
-				>
-					<LuLayers className="size-4 shrink-0" />
-					<span className="flex-1 text-left">Workspaces</span>
-				</button>
-			)}
+			<button
+				type="button"
+				onClick={handleWorkspacesClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium transition-colors",
+					isWorkspacesListOpen
+						? "bg-accent text-foreground"
+						: "text-muted-foreground hover:bg-accent/50 hover:text-foreground",
+				)}
+			>
+				<LuLayers className="size-4 shrink-0" />
+				<span className="flex-1 text-left">Workspaces</span>
+			</button>
 
 			<button
 				type="button"

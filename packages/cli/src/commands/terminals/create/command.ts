@@ -1,12 +1,14 @@
 import { CLIError, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
 import { resolveHostTarget } from "../../../lib/host-target";
-import { findHostWorkspace } from "../../../lib/host-workspaces";
+import { findWorkspaceOnHost } from "../../../lib/host-workspaces";
 
 export default command({
 	description: "Create a terminal session in an existing workspace",
 	options: {
 		workspace: string().required().desc("Workspace ID"),
+		host: string().desc("Host the workspace lives on (default: this machine)"),
 		command: string().desc(
 			"Shell command to run in the terminal. Omit to open an interactive shell",
 		),
@@ -20,23 +22,20 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		// Workspace records are host-owned: resolve the id across the org's
-		// reachable hosts.
-		const { workspace, warnings } = await findHostWorkspace(
-			{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+		const hostId = options.host ?? getHostId();
+		const { workspace } = await findWorkspaceOnHost(
+			{ organizationId, userJwt: ctx.bearer, hostId },
 			options.workspace,
 		);
-		for (const warning of warnings) {
-			process.stderr.write(`Warning: ${warning}\n`);
-		}
 		if (!workspace) {
 			throw new CLIError(
-				`Workspace not found on any reachable host: ${options.workspace}`,
+				`Workspace not found on host ${hostId}: ${options.workspace}`,
+				"Pass --host <id> if it lives on another machine",
 			);
 		}
 
 		const target = resolveHostTarget({
-			requestedHostId: workspace.hostId,
+			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
 		});
