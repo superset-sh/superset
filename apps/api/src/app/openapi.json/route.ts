@@ -101,6 +101,8 @@ const SPEC = {
 				"` and served live via the MCP `tools/list` method.",
 			"",
 			`Authentication is OAuth 2.1 authorization code + PKCE with RFC 7591 dynamic client registration, or a user-issued Superset API key sent as a Bearer token. Agent walkthrough: ${MARKETING_URL}/auth.md`,
+			"",
+			`Versioning and deprecation: the current surface is v2, versioned in the URL path (/api/v2/...). Deprecated surfaces stay available during a migration window — the v1 MCP server at /api/agent/mcp remains served for existing integrations — and deprecations are announced in the changelog (${MARKETING_URL}/changelog).`,
 		].join("\n"),
 		contact: {
 			name: "Superset support",
@@ -406,7 +408,23 @@ const SPEC = {
 							"Resource metadata naming the authorization server and supported scopes.",
 						content: {
 							"application/json": {
-								schema: { type: "object", additionalProperties: true },
+								schema: {
+									type: "object",
+									properties: {
+										resource: { type: "string", format: "uri" },
+										authorization_servers: {
+											type: "array",
+											items: { type: "string", format: "uri" },
+										},
+										scopes_supported: {
+											type: "array",
+											items: { type: "string" },
+										},
+										resource_name: { type: "string" },
+										resource_documentation: { type: "string", format: "uri" },
+									},
+									required: ["resource", "authorization_servers"],
+								},
 							},
 						},
 					},
@@ -426,7 +444,34 @@ const SPEC = {
 						description: "Authorization server metadata.",
 						content: {
 							"application/json": {
-								schema: { type: "object", additionalProperties: true },
+								schema: {
+									type: "object",
+									properties: {
+										issuer: { type: "string", format: "uri" },
+										authorization_endpoint: { type: "string", format: "uri" },
+										token_endpoint: { type: "string", format: "uri" },
+										registration_endpoint: { type: "string", format: "uri" },
+										revocation_endpoint: { type: "string", format: "uri" },
+										scopes_supported: {
+											type: "array",
+											items: { type: "string" },
+										},
+										agent_auth: {
+											type: "object",
+											properties: {
+												skill: { type: "string", format: "uri" },
+												register_uri: { type: "string", format: "uri" },
+												revocation_uri: { type: "string", format: "uri" },
+												identity_types_supported: {
+													type: "array",
+													items: { type: "string", enum: ["anonymous"] },
+												},
+											},
+										},
+									},
+									required: ["issuer"],
+									additionalProperties: true,
+								},
 							},
 						},
 					},
@@ -446,7 +491,43 @@ const SPEC = {
 						description: "MCP server card.",
 						content: {
 							"application/json": {
-								schema: { type: "object", additionalProperties: true },
+								schema: {
+									type: "object",
+									properties: {
+										name: { type: "string" },
+										description: { type: "string" },
+										version: { type: "string" },
+										serverUrl: { type: "string", format: "uri" },
+										transport: { type: "string", enum: ["streamable-http"] },
+										documentationUrl: { type: "string", format: "uri" },
+										authentication: {
+											type: "object",
+											properties: {
+												type: { type: "string" },
+												resourceMetadataUrl: {
+													type: "string",
+													format: "uri",
+												},
+											},
+										},
+										tools: {
+											type: "array",
+											items: {
+												type: "object",
+												properties: {
+													name: { type: "string" },
+													description: { type: "string" },
+													inputSchema: {
+														type: "object",
+														additionalProperties: true,
+													},
+												},
+												required: ["name"],
+											},
+										},
+									},
+									required: ["name", "version", "serverUrl", "tools"],
+								},
 							},
 						},
 					},
@@ -464,7 +545,16 @@ const SPEC = {
 						description: "OpenAPI 3.1 specification.",
 						content: {
 							"application/json": {
-								schema: { type: "object", additionalProperties: true },
+								schema: {
+									type: "object",
+									properties: {
+										openapi: { type: "string" },
+										info: { type: "object", additionalProperties: true },
+										paths: { type: "object", additionalProperties: true },
+										components: { type: "object", additionalProperties: true },
+									},
+									required: ["openapi", "info", "paths"],
+								},
 							},
 						},
 					},

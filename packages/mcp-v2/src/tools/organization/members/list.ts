@@ -6,6 +6,7 @@ import { defineTool } from "../../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "organization_members_list",
+		annotations: { readOnlyHint: true },
 		description:
 			"List members of the active organization. Use this to look up a user's id by name or email before assigning a task or filtering by assignee.",
 		inputSchema: {

@@ -6,6 +6,7 @@ import { hostServiceCall } from "../../host-service-client";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_list",
+		annotations: { readOnlyHint: true },
 		description:
 			"List workspaces (branch-scoped working copies) on a host. Workspaces are host-owned — use hosts_list first to get the hostId. Rows include the host-served projectName. Use this to find a workspace ID for automations_create's v2WorkspaceId.",
 		inputSchema: {

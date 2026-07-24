@@ -15,6 +15,7 @@ async function listTools() {
 		return tools.map((tool) => ({
 			name: tool.name,
 			description: tool.description,
+			...(tool.annotations ? { annotations: tool.annotations } : {}),
 			inputSchema: tool.inputSchema,
 		}));
 	} finally {

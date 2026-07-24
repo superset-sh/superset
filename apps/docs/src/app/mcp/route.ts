@@ -4,13 +4,20 @@ import { z } from "zod";
 import { getLLMText, source } from "@/lib/source";
 
 function createDocsMcpServer(): McpServer {
-	const server = new McpServer({ name: "superset-docs", version: "1.0.0" });
+	const server = new McpServer(
+		{ name: "superset-docs", version: "1.0.0" },
+		{
+			instructions:
+				"Read-only access to the Superset documentation (docs.superset.sh). Superset runs parallel AI coding agents in isolated Git worktrees. Call docs_search to find pages by keyword, then docs_read to fetch a page as markdown. No authentication required; nothing here mutates state. To act on a Superset account (workspaces, agents, tasks), use the product MCP server at https://api.superset.sh/mcp instead.",
+		},
+	);
 
 	server.registerTool(
 		"docs_search",
 		{
 			description:
 				"Search the Superset documentation by keyword. Returns matching pages with path, title, and description. Use docs_read to fetch a page's full content.",
+			annotations: { readOnlyHint: true },
 			inputSchema: {
 				query: z
 					.string()
@@ -60,6 +67,7 @@ function createDocsMcpServer(): McpServer {
 		{
 			description:
 				"Read one Superset documentation page as markdown. Pass the path from docs_search (e.g. /mcp-server, /cli/getting-started).",
+			annotations: { readOnlyHint: true },
 			inputSchema: {
 				path: z.string().describe("Page path, e.g. /automations"),
 			},

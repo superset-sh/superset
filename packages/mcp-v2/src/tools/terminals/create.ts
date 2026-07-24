@@ -6,6 +6,7 @@ import { hostServiceCall } from "../../host-service-client";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "terminals_create",
+		annotations: { destructiveHint: false },
 		description:
 			"Create a terminal session in an existing workspace on its host: opens a fresh PTY in the worktree. Use hosts_list / workspaces_list to find the hostId. Pass `command` to run a one-off shell command, or omit it to open an interactive shell. For create-and-run in a single call, pass `command` to workspaces_create instead.",
 		inputSchema: {

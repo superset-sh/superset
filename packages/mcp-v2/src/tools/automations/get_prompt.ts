@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_get_prompt",
+		annotations: { readOnlyHint: true },
 		description:
 			"Fetch the full prompt body (markdown) for one automation. Use this when you need to read or edit the prompt — automations_get and automations_list omit the body to keep responses small. Caller must be the automation's owner.",
 		inputSchema: {
