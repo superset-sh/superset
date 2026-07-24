@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useNewWorkspaceScreenVariant } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useNewWorkspaceScreenVariant";
+import { NewWorkspaceEmptyScreen } from "./components/NewWorkspaceEmptyScreen";
 import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
 import { V2WorkspacesList } from "./components/V2WorkspacesList";
 import { useAccessibleV2Workspaces } from "./hooks/useAccessibleV2Workspaces";
@@ -33,6 +35,14 @@ function V2WorkspacesPage() {
 			deviceFilter,
 			projectFilter,
 		});
+
+	// Experiment test arm: with zero workspaces the dashboard IS the create
+	// screen — the "No workspaces yet" empty state never shows. Evaluating the
+	// flag here (only when the dashboard is empty) is the exposure moment.
+	const variant = useNewWorkspaceScreenVariant(counts.all === 0);
+	if (variant === "test" && counts.all === 0) {
+		return <NewWorkspaceEmptyScreen />;
+	}
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">

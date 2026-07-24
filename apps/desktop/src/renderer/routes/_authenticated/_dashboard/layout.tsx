@@ -69,6 +69,7 @@ function DashboardLayout() {
 		v2WorkspaceMatch !== false ? v2WorkspaceMatch.workspaceId : null;
 	const onV1WorkspaceRoute = currentWorkspaceMatch !== false;
 	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
+	const onNewWorkspaceRoute = matchRoute({ to: "/new-workspace" }) !== false;
 	const versionMismatch =
 		(isV2CloudEnabled && onV1WorkspaceRoute) ||
 		(!isV2CloudEnabled && onV2WorkspaceRoute);
@@ -185,10 +186,12 @@ function DashboardLayout() {
 
 	// On the v2 workspace route with an expanded sidebar the TopBar row is
 	// merged into the pane tab bar (which provides the drag region and hosts
-	// the right-sidebar toggle). Collapsed/closed sidebars keep the TopBar:
-	// its inset is what keeps content clear of the macOS traffic lights.
+	// the right-sidebar toggle). The new-workspace page brings its own drag
+	// strip. Collapsed/closed sidebars keep the TopBar: its inset is what
+	// keeps content clear of the macOS traffic lights.
 	const hideTopBar =
-		onV2WorkspaceRoute && !versionMismatch && sidebarOutsideColumn;
+		((onV2WorkspaceRoute && !versionMismatch) || onNewWorkspaceRoute) &&
+		sidebarOutsideColumn;
 
 	return (
 		<div className="flex h-full w-full overflow-hidden">
@@ -198,7 +201,7 @@ function DashboardLayout() {
 				{!hideTopBar && <TopBar />}
 				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 					{!sidebarOutsideColumn && sidebarPanel}
-					<div className="flex flex-1 min-h-0 min-w-0">
+					<div className="relative flex flex-1 min-h-0 min-w-0">
 						{versionMismatch ? <CrossVersionMismatchState /> : <Outlet />}
 					</div>
 				</div>
