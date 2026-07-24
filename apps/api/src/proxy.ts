@@ -12,13 +12,24 @@ const desktopDevOrigins =
 			]
 		: [];
 
+const customersDevPort = process.env.CUSTOMERS_PORT || "3005";
+const customersDevOrigins =
+	process.env.NODE_ENV === "development"
+		? [
+				`http://localhost:${customersDevPort}`,
+				`http://127.0.0.1:${customersDevPort}`,
+			]
+		: [];
+
 function getAllowedOrigins(deploymentOrigin: string) {
 	return [
 		env.NEXT_PUBLIC_WEB_URL,
 		env.NEXT_PUBLIC_ADMIN_URL,
 		env.NEXT_PUBLIC_DESKTOP_URL,
+		env.NEXT_PUBLIC_CUSTOMERS_URL,
 		...getTrustedVercelPreviewOrigins(deploymentOrigin),
 		...desktopDevOrigins,
+		...customersDevOrigins,
 	].filter(Boolean);
 }
 

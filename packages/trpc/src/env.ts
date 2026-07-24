@@ -29,6 +29,12 @@ export const env = createEnv({
 		GH_WEBHOOK_SECRET: z.string().min(1),
 		SECRETS_ENCRYPTION_KEY: z.string().min(1),
 		ANTHROPIC_API_KEY: z.string(),
+		EXA_API_KEY: z.string().optional(),
+		/**
+		 * User token (xoxp) for reading our own Slack workspace (customers app) —
+		 * reads whatever the installing user can read, no per-channel invites.
+		 */
+		SLACK_CUSTOMERS_TOKEN: z.string().optional(),
 		RELAY_URL: z.string().url(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),

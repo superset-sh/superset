@@ -24,6 +24,7 @@
 		"dev:all": "turbo dev --concurrency=15",
 		"dev:desktop": "turbo run dev dev:caddy --filter=@superset/api --filter=@superset/desktop --filter=electric-proxy --filter=//",
 		"dev:caddy": "dotenv -- caddy run --config Caddyfile",
+		"dev:customers": "turbo dev --filter=@superset/customers --filter=@superset/api --filter=@superset/web",
 		"dev:docs": "turbo dev --filter=@superset/docs",
 		"dev:marketing": "turbo dev --filter=@superset/marketing --filter=@superset/docs",
 		"dev:relay": "turbo dev --filter=@superset/relay",

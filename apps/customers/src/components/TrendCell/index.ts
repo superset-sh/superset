@@ -1,0 +1,1 @@
+export { TrendCell } from "./TrendCell";

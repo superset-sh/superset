@@ -1,0 +1,1242 @@
+import { db } from "@superset/db/client";
+import {
+	githubPullRequests,
+	members,
+	organizations,
+	type SelectSubscription,
+	subscriptions,
+	users,
+} from "@superset/db/schema";
+import {
+	isActiveSubscriptionStatus,
+	isPaidPlan,
+} from "@superset/shared/billing";
+import {
+	type CustomerHealth,
+	healthFromLastActive,
+	isChurnRisk,
+} from "@superset/shared/customer-health";
+import { stageFromUserCount } from "@superset/shared/customer-stage";
+import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
+import { and, eq, gte, ilike, inArray, isNotNull, or } from "drizzle-orm";
+import { z } from "zod";
+import { adminProcedure } from "../../trpc";
+import { fetchActivityMatrix, MATRIX_USERS_CAP } from "./activity-matrix";
+import {
+	fetchWeeklyActivity,
+	getActivitySnapshot,
+	getMembershipRows,
+	getOrgActivityIndex,
+	getUserDirectory,
+	invalidateMemos,
+	memoizeAsync,
+	type UserActivity,
+	WEEKLY_ACTIVITY_IDS_CAP,
+} from "./activity-snapshot";
+import { startDomainResearchBatch } from "./batch-research";
+import { COMPANY_DOMAIN, domainSchema, FREEMAIL_DOMAINS } from "./domain-utils";
+import {
+	getCachedDomainEnrichment,
+	getCachedPersonEnrichment,
+	getCachedPersonEnrichmentBatch,
+	getDomainEnrichment,
+	getPersonEnrichment,
+} from "./enrichment";
+import { getPinnedDomains, setPinnedDomains } from "./pinned-domains";
+import {
+	getDomainResearchProgress,
+	getDomainResearchSettings,
+	setDomainResearchSettings,
+} from "./research-settings";
+import {
+	getChannelsForDomain,
+	getChannelTaskStore,
+	isSlackConfigured,
+	syncChannelTasks,
+} from "./slack-tasks";
+
+type SubscriptionSummary = {
+	plan: string;
+	status: string;
+	seats: number | null;
+	billingInterval: string | null;
+	periodEnd: Date | null;
+	trialEnd: Date | null;
+	cancelAtPeriodEnd: boolean;
+	stripeCustomerId: string | null;
+	isPaying: boolean;
+};
+
+/** Prefer the currently-paying row; otherwise the most recent one. */
+function pickSubscription(
+	rows: SelectSubscription[],
+): SelectSubscription | null {
+	if (rows.length === 0) return null;
+	const ranked = [...rows].sort((a, b) => {
+		const aActive = isActiveSubscriptionStatus(a.status) ? 1 : 0;
+		const bActive = isActiveSubscriptionStatus(b.status) ? 1 : 0;
+		if (aActive !== bActive) return bActive - aActive;
+		return b.createdAt.getTime() - a.createdAt.getTime();
+	});
+	return ranked[0] ?? null;
+}
+
+function summarizeSubscription(
+	row: SelectSubscription | null,
+): SubscriptionSummary | null {
+	if (!row) return null;
+	return {
+		plan: row.plan,
+		status: row.status,
+		seats: row.seats,
+		billingInterval: row.billingInterval,
+		periodEnd: row.periodEnd,
+		trialEnd: row.trialEnd,
+		cancelAtPeriodEnd: row.cancelAtPeriodEnd ?? false,
+		stripeCustomerId: row.stripeCustomerId,
+		isPaying: isActiveSubscriptionStatus(row.status) && isPaidPlan(row.plan),
+	};
+}
+
+const getSubscriptionsByOrg = memoizeAsync(async () => {
+	const rows = await db.select().from(subscriptions);
+	const grouped = new Map<string, SelectSubscription[]>();
+	for (const row of rows) {
+		const list = grouped.get(row.referenceId);
+		if (list) {
+			list.push(row);
+		} else {
+			grouped.set(row.referenceId, [row]);
+		}
+	}
+	const byOrg = new Map<string, SelectSubscription>();
+	for (const [orgId, list] of grouped) {
+		const picked = pickSubscription(list);
+		if (picked) byOrg.set(orgId, picked);
+	}
+	return byOrg;
+});
+
+function trendPct(current: number, previous: number): number | null {
+	if (previous === 0) return null;
+	return Math.round(((current - previous) / previous) * 100);
+}
+
+type Surface = "desktop" | "cli" | "chat";
+
+function topSurface(activity: UserActivity | undefined): Surface | null {
+	if (!activity) return null;
+	const surfaces: [Surface, number][] = [
+		["desktop", activity.desktopEvents],
+		["cli", activity.cliEvents],
+		["chat", activity.chatEvents],
+	];
+	surfaces.sort((a, b) => b[1] - a[1]);
+	const best = surfaces[0];
+	return best && best[1] > 0 ? best[0] : null;
+}
+
+const healthFilterSchema = z.enum([
+	"all",
+	"active",
+	"idle",
+	"cooling",
+	"dormant",
+	"churnRisk",
+]);
+
+const DOMAIN_USERS_SHOWN_CAP = 200;
+const DOMAIN_ORG_CHIPS_CAP = 30;
+
+type DomainIndexEntry = {
+	domain: string;
+	userCount: number;
+	activeUsers7d: number;
+	events30d: number;
+	events30dPrev: number;
+	lastActiveAt: Date | null;
+	orgIds: Set<string>;
+};
+
+/**
+ * Per-domain aggregates over every user (freemail included — filtered at
+ * query time). Building this walks ~50k users, so it's memoized; requests
+ * only filter/sort/paginate it.
+ */
+const getDomainIndex = memoizeAsync(async () => {
+	const [snapshot, userRows, memberRows] = await Promise.all([
+		getActivitySnapshot(),
+		getUserDirectory(),
+		getMembershipRows(),
+	]);
+
+	const orgIdsByUser = new Map<string, string[]>();
+	for (const { organizationId, userId } of memberRows) {
+		const list = orgIdsByUser.get(userId);
+		if (list) {
+			list.push(organizationId);
+		} else {
+			orgIdsByUser.set(userId, [organizationId]);
+		}
+	}
+
+	const byDomain = new Map<string, DomainIndexEntry>();
+	for (const user of userRows) {
+		const domain = user.email.split("@")[1]?.toLowerCase();
+		if (!domain || domain === COMPANY_DOMAIN) continue;
+
+		let entry = byDomain.get(domain);
+		if (!entry) {
+			entry = {
+				domain,
+				userCount: 0,
+				activeUsers7d: 0,
+				events30d: 0,
+				events30dPrev: 0,
+				lastActiveAt: null,
+				orgIds: new Set(),
+			};
+			byDomain.set(domain, entry);
+		}
+		entry.userCount += 1;
+		for (const orgId of orgIdsByUser.get(user.id) ?? []) {
+			entry.orgIds.add(orgId);
+		}
+
+		const activity = snapshot.byUserId.get(user.id.toLowerCase());
+		if (!activity) continue;
+		entry.events30d += activity.events30d;
+		entry.events30dPrev += activity.events30dPrev;
+		if (activity.events7d > 0) entry.activeUsers7d += 1;
+		if (!entry.lastActiveAt || activity.lastActiveAt > entry.lastActiveAt) {
+			entry.lastActiveAt = activity.lastActiveAt;
+		}
+	}
+	return byDomain;
+});
+
+function makeIsPayingOrg(subsByOrg: Map<string, SelectSubscription>) {
+	return (orgId: string) => {
+		const sub = subsByOrg.get(orgId);
+		return (
+			sub != null &&
+			isActiveSubscriptionStatus(sub.status) &&
+			isPaidPlan(sub.plan)
+		);
+	};
+}
+
+/** One display row for a domain, shared by the rollup and the pinned list. */
+function toDomainRow(
+	entry: DomainIndexEntry,
+	isPayingOrg: (orgId: string) => boolean,
+) {
+	const health = healthFromLastActive(entry.lastActiveAt);
+	const payingOrgCount = [...entry.orgIds].filter(isPayingOrg).length;
+	return {
+		domain: entry.domain,
+		stage: stageFromUserCount(entry.userCount),
+		userCount: entry.userCount,
+		activeUsers7d: entry.activeUsers7d,
+		events30d: entry.events30d,
+		events30dPrev: entry.events30dPrev,
+		trendPct: trendPct(entry.events30d, entry.events30dPrev),
+		lastActiveAt: entry.lastActiveAt,
+		health,
+		churnRisk: isChurnRisk(health, payingOrgCount > 0),
+		totalOrgCount: entry.orgIds.size,
+		payingOrgCount,
+	};
+}
+
+function getUsersByDomain(domain: string) {
+	return db
+		.select({
+			id: users.id,
+			name: users.name,
+			email: users.email,
+			image: users.image,
+			createdAt: users.createdAt,
+		})
+		.from(users)
+		.where(ilike(users.email, `%@${domain}`));
+}
+
+export const customersRouter = {
+	listCompanies: adminProcedure
+		.input(
+			z.object({
+				page: z.number().int().min(1).default(1),
+				pageSize: z.number().int().min(1).max(100).default(50),
+				search: z.string().trim().max(200).optional(),
+				plan: z.enum(["all", "paying", "free"]).default("all"),
+				health: healthFilterSchema.default("all"),
+				scope: z.enum(["customers", "all"]).default("customers"),
+				sort: z
+					.enum(["lastActive", "members", "events30d", "created"])
+					.default("lastActive"),
+			}),
+		)
+		.query(async ({ input }) => {
+			const [index, subsByOrg] = await Promise.all([
+				getOrgActivityIndex(),
+				getSubscriptionsByOrg(),
+			]);
+
+			let searchOrgIds: Set<string> | null = null;
+			if (input.search) {
+				const term = `%${input.search}%`;
+				const [orgMatches, emailMatches] = await Promise.all([
+					db
+						.select({ id: organizations.id })
+						.from(organizations)
+						.where(
+							or(
+								ilike(organizations.name, term),
+								ilike(organizations.slug, term),
+							),
+						),
+					db
+						.select({ orgId: members.organizationId })
+						.from(members)
+						.innerJoin(users, eq(members.userId, users.id))
+						.where(ilike(users.email, term)),
+				]);
+				searchOrgIds = new Set([
+					...orgMatches.map((row) => row.id),
+					...emailMatches.map((row) => row.orgId),
+				]);
+			}
+
+			type Entry = {
+				orgId: string;
+				memberCount: number;
+				lastActiveAt: Date | null;
+				events30d: number;
+				events30dPrev: number;
+				trendPct: number | null;
+				activeMembers7d: number;
+				health: CustomerHealth;
+				churnRisk: boolean;
+				subscription: SubscriptionSummary | null;
+			};
+
+			const candidateOrgIds = new Set([
+				...index.byOrgId.keys(),
+				...subsByOrg.keys(),
+			]);
+
+			const entries: Entry[] = [];
+			for (const orgId of candidateOrgIds) {
+				if (searchOrgIds && !searchOrgIds.has(orgId)) continue;
+
+				const activity = index.byOrgId.get(orgId);
+				const subscription = summarizeSubscription(
+					subsByOrg.get(orgId) ?? null,
+				);
+				const isPaying = subscription?.isPaying ?? false;
+
+				if (
+					input.scope === "customers" &&
+					!subscription &&
+					!activity?.lastActiveAt
+				) {
+					continue;
+				}
+				if (input.plan === "paying" && !isPaying) continue;
+				if (input.plan === "free" && isPaying) continue;
+
+				const health = healthFromLastActive(activity?.lastActiveAt ?? null);
+				const churnRisk = isChurnRisk(health, isPaying);
+				if (input.health === "churnRisk" && !churnRisk) continue;
+				if (
+					input.health !== "all" &&
+					input.health !== "churnRisk" &&
+					health !== input.health
+				) {
+					continue;
+				}
+
+				entries.push({
+					orgId,
+					memberCount: activity?.memberCount ?? 0,
+					lastActiveAt: activity?.lastActiveAt ?? null,
+					events30d: activity?.events30d ?? 0,
+					events30dPrev: activity?.events30dPrev ?? 0,
+					trendPct: trendPct(
+						activity?.events30d ?? 0,
+						activity?.events30dPrev ?? 0,
+					),
+					activeMembers7d: activity?.activeMembers7d ?? 0,
+					health,
+					churnRisk,
+					subscription,
+				});
+			}
+
+			let createdAtByOrg: Map<string, Date> | null = null;
+			if (input.sort === "created") {
+				const rows = await db
+					.select({ id: organizations.id, createdAt: organizations.createdAt })
+					.from(organizations)
+					.where(
+						inArray(
+							organizations.id,
+							entries.map((entry) => entry.orgId),
+						),
+					);
+				createdAtByOrg = new Map(rows.map((row) => [row.id, row.createdAt]));
+			}
+
+			entries.sort((a, b) => {
+				switch (input.sort) {
+					case "members":
+						return b.memberCount - a.memberCount;
+					case "events30d":
+						return b.events30d - a.events30d;
+					case "created":
+						return (
+							(createdAtByOrg?.get(b.orgId)?.getTime() ?? 0) -
+							(createdAtByOrg?.get(a.orgId)?.getTime() ?? 0)
+						);
+					default:
+						return (
+							(b.lastActiveAt?.getTime() ?? 0) -
+							(a.lastActiveAt?.getTime() ?? 0)
+						);
+				}
+			});
+
+			const total = entries.length;
+			const pageEntries = entries.slice(
+				(input.page - 1) * input.pageSize,
+				input.page * input.pageSize,
+			);
+
+			const orgRows =
+				pageEntries.length > 0
+					? await db
+							.select({
+								id: organizations.id,
+								name: organizations.name,
+								slug: organizations.slug,
+								logo: organizations.logo,
+								createdAt: organizations.createdAt,
+							})
+							.from(organizations)
+							.where(
+								inArray(
+									organizations.id,
+									pageEntries.map((entry) => entry.orgId),
+								),
+							)
+					: [];
+			const orgById = new Map(orgRows.map((row) => [row.id, row]));
+
+			return {
+				total,
+				snapshotAt: index.fetchedAt,
+				rows: pageEntries.map((entry) => {
+					const org = orgById.get(entry.orgId);
+					return {
+						...entry,
+						name: org?.name ?? "Unknown org",
+						slug: org?.slug ?? null,
+						logo: org?.logo ?? null,
+						createdAt: org?.createdAt ?? null,
+						stage: stageFromUserCount(
+							entry.memberCount,
+							entry.subscription?.plan === "enterprise",
+						),
+					};
+				}),
+			};
+		}),
+
+	companyDetail: adminProcedure
+		.input(z.object({ orgId: z.string().uuid() }))
+		.query(async ({ input }) => {
+			const [org, subRows, memberRows, snapshot] = await Promise.all([
+				db.query.organizations.findFirst({
+					where: eq(organizations.id, input.orgId),
+				}),
+				db
+					.select()
+					.from(subscriptions)
+					.where(eq(subscriptions.referenceId, input.orgId)),
+				db
+					.select({
+						userId: members.userId,
+						role: members.role,
+						joinedAt: members.createdAt,
+						name: users.name,
+						email: users.email,
+						image: users.image,
+						userCreatedAt: users.createdAt,
+					})
+					.from(members)
+					.innerJoin(users, eq(members.userId, users.id))
+					.where(eq(members.organizationId, input.orgId)),
+				getActivitySnapshot(),
+			]);
+
+			if (!org) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Organization not found",
+				});
+			}
+
+			const subscription = summarizeSubscription(pickSubscription(subRows));
+			const isPaying = subscription?.isPaying ?? false;
+
+			const memberDetails = memberRows.map((member) => {
+				const activity = snapshot.byUserId.get(member.userId.toLowerCase());
+				return {
+					userId: member.userId,
+					name: member.name,
+					email: member.email,
+					image: member.image,
+					role: member.role,
+					joinedAt: member.joinedAt,
+					userCreatedAt: member.userCreatedAt,
+					lastActiveAt: activity?.lastActiveAt ?? null,
+					events7d: activity?.events7d ?? 0,
+					events30d: activity?.events30d ?? 0,
+					activeDays30: activity?.activeDays30 ?? 0,
+					topSurface: topSurface(activity),
+					health: healthFromLastActive(activity?.lastActiveAt ?? null),
+					hasActivityData: activity != null,
+				};
+			});
+			memberDetails.sort(
+				(a, b) =>
+					(b.lastActiveAt?.getTime() ?? 0) - (a.lastActiveAt?.getTime() ?? 0),
+			);
+
+			const lastActiveAt = memberDetails[0]?.lastActiveAt ?? null;
+			const health = healthFromLastActive(lastActiveAt);
+
+			return {
+				org: {
+					id: org.id,
+					name: org.name,
+					slug: org.slug,
+					logo: org.logo,
+					createdAt: org.createdAt,
+					allowedDomains: org.allowedDomains,
+				},
+				subscription,
+				members: memberDetails,
+				lastActiveAt,
+				health,
+				churnRisk: isChurnRisk(health, isPaying),
+				snapshotAt: snapshot.fetchedAt,
+			};
+		}),
+
+	companyActivityTimeseries: adminProcedure
+		.input(
+			z.object({
+				orgId: z.string().uuid(),
+				weeks: z.number().int().min(1).max(52).default(12),
+			}),
+		)
+		.query(async ({ input }) => {
+			const memberRows = await db
+				.select({ userId: members.userId })
+				.from(members)
+				.where(eq(members.organizationId, input.orgId));
+
+			return {
+				points: await fetchWeeklyActivity(
+					memberRows.map((row) => row.userId),
+					input.weeks,
+				),
+			};
+		}),
+
+	domainDetail: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(async ({ input }) => {
+			const [snapshot, domainUsers, subsByOrg, researchSettings] =
+				await Promise.all([
+					getActivitySnapshot(),
+					getUsersByDomain(input.domain),
+					getSubscriptionsByOrg(),
+					getDomainResearchSettings(input.domain),
+				]);
+
+			if (domainUsers.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No users with @${input.domain} emails`,
+				});
+			}
+
+			const memberRows = await db
+				.select({
+					organizationId: members.organizationId,
+					userId: members.userId,
+				})
+				.from(members)
+				.where(
+					inArray(
+						members.userId,
+						domainUsers.map((user) => user.id),
+					),
+				);
+			const orgIdsByUser = new Map<string, string[]>();
+			for (const { organizationId, userId } of memberRows) {
+				const list = orgIdsByUser.get(userId);
+				if (list) {
+					list.push(organizationId);
+				} else {
+					orgIdsByUser.set(userId, [organizationId]);
+				}
+			}
+
+			const isPayingOrg = (orgId: string) => {
+				const sub = subsByOrg.get(orgId);
+				return (
+					sub != null &&
+					isActiveSubscriptionStatus(sub.status) &&
+					isPaidPlan(sub.plan)
+				);
+			};
+
+			const userDetails = domainUsers
+				.map((user) => {
+					const activity = snapshot.byUserId.get(user.id.toLowerCase());
+					return {
+						userId: user.id,
+						name: user.name,
+						email: user.email,
+						image: user.image,
+						userCreatedAt: user.createdAt,
+						orgIds: orgIdsByUser.get(user.id) ?? [],
+						lastActiveAt: activity?.lastActiveAt ?? null,
+						events7d: activity?.events7d ?? 0,
+						events30d: activity?.events30d ?? 0,
+						activeDays30: activity?.activeDays30 ?? 0,
+						topSurface: topSurface(activity),
+						health: healthFromLastActive(activity?.lastActiveAt ?? null),
+						hasActivityData: activity != null,
+					};
+				})
+				.sort(
+					(a, b) =>
+						(b.lastActiveAt?.getTime() ?? 0) - (a.lastActiveAt?.getTime() ?? 0),
+				);
+
+			const shownUsers = userDetails.slice(0, DOMAIN_USERS_SHOWN_CAP);
+			const cachedResearch = await getCachedPersonEnrichmentBatch(
+				shownUsers.map((user) => user.userId),
+			);
+
+			// Auto-research catch-up: anyone new (no cached research yet) at an
+			// auto-enabled domain gets researched in the background, once.
+			if (researchSettings.autoResearch) {
+				const uncovered = shownUsers.filter(
+					(user) => !cachedResearch.has(user.userId),
+				);
+				if (uncovered.length > 0) {
+					startDomainResearchBatch({
+						domain: input.domain,
+						users: uncovered.map((user) => ({
+							id: user.userId,
+							name: user.name,
+							email: user.email,
+						})),
+						includeCompany: false,
+					});
+				}
+			}
+
+			// Hydrate org names for the chips and the shown users' org lists.
+			const allOrgIds = [
+				...new Set(memberRows.map((row) => row.organizationId)),
+			];
+			const chipOrgIds = [...allOrgIds]
+				.sort((a, b) => Number(isPayingOrg(b)) - Number(isPayingOrg(a)))
+				.slice(0, DOMAIN_ORG_CHIPS_CAP);
+			const nameOrgIds = [
+				...new Set([
+					...chipOrgIds,
+					...shownUsers.flatMap((user) => user.orgIds),
+				]),
+			];
+			const orgRows =
+				nameOrgIds.length > 0
+					? await db
+							.select({ id: organizations.id, name: organizations.name })
+							.from(organizations)
+							.where(inArray(organizations.id, nameOrgIds))
+					: [];
+			const orgNameById = new Map(orgRows.map((row) => [row.id, row.name]));
+
+			const lastActiveAt = userDetails[0]?.lastActiveAt ?? null;
+			const payingOrgCount = allOrgIds.filter(isPayingOrg).length;
+
+			return {
+				domain: input.domain,
+				stage: stageFromUserCount(userDetails.length),
+				autoResearch: researchSettings.autoResearch,
+				totalUsers: userDetails.length,
+				activeUsers7d: userDetails.filter((user) => user.events7d > 0).length,
+				events30d: userDetails.reduce((sum, user) => sum + user.events30d, 0),
+				lastActiveAt,
+				health: healthFromLastActive(lastActiveAt),
+				totalOrgCount: allOrgIds.length,
+				payingOrgCount,
+				orgs: chipOrgIds.map((orgId) => ({
+					id: orgId,
+					name: orgNameById.get(orgId) ?? "Unknown org",
+					isPaying: isPayingOrg(orgId),
+				})),
+				users: shownUsers.map(({ orgIds, ...user }) => {
+					const research = cachedResearch.get(user.userId);
+					return {
+						...user,
+						research: research
+							? {
+									title: research.title,
+									seniority: research.seniority,
+									linkedinUrl: research.linkedinUrl,
+									twitterUrl: research.twitterUrl,
+									githubUrl: research.githubUrl,
+									websiteUrl: research.websiteUrl,
+								}
+							: null,
+						orgs: orgIds.slice(0, 3).map((orgId) => ({
+							id: orgId,
+							name: orgNameById.get(orgId) ?? "Unknown org",
+						})),
+						orgCount: orgIds.length,
+					};
+				}),
+				snapshotAt: snapshot.fetchedAt,
+			};
+		}),
+
+	domainActivityTimeseries: adminProcedure
+		.input(
+			z.object({
+				domain: domainSchema,
+				weeks: z.number().int().min(1).max(52).default(12),
+			}),
+		)
+		.query(async ({ input }) => {
+			const [snapshot, domainUsers] = await Promise.all([
+				getActivitySnapshot(),
+				getUsersByDomain(input.domain),
+			]);
+
+			// Most-recently-active first so the IN-list cap keeps the users
+			// that actually contribute to the chart.
+			const ids = domainUsers
+				.map((user) => user.id)
+				.sort(
+					(a, b) =>
+						(snapshot.byUserId.get(b.toLowerCase())?.lastActiveAt.getTime() ??
+							0) -
+						(snapshot.byUserId.get(a.toLowerCase())?.lastActiveAt.getTime() ??
+							0),
+				);
+
+			return {
+				points: await fetchWeeklyActivity(ids, input.weeks),
+				sampled: ids.length > WEEKLY_ACTIVITY_IDS_CAP,
+			};
+		}),
+
+	/**
+	 * Per-user × per-day dot-plot data: activity split by category, plus
+	 * milestones (first day, workspace created) and PR merges (from the DB,
+	 * attributed to the company since author logins aren't mapped to users).
+	 */
+	domainActivityMatrix: adminProcedure
+		.input(
+			z.object({
+				domain: domainSchema,
+				days: z.number().int().min(14).max(120).default(90),
+				users: z.number().int().min(1).max(MATRIX_USERS_CAP).default(10),
+			}),
+		)
+		.query(async ({ input }) => {
+			const [snapshot, domainUsers] = await Promise.all([
+				getActivitySnapshot(),
+				getUsersByDomain(input.domain),
+			]);
+			if (domainUsers.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No users with @${input.domain} emails`,
+				});
+			}
+
+			const dayMs = 24 * 60 * 60 * 1000;
+			const startMs =
+				Math.floor(Date.now() / dayMs) * dayMs - (input.days - 1) * dayMs;
+			const dayIndex = (date: Date) =>
+				Math.floor((date.getTime() - startMs) / dayMs);
+
+			// Most-recently-active first, so the default 10 rows are the users
+			// that matter.
+			const shown = domainUsers
+				.map((user) => ({
+					user,
+					lastActiveMs:
+						snapshot.byUserId
+							.get(user.id.toLowerCase())
+							?.lastActiveAt.getTime() ?? 0,
+				}))
+				.sort((a, b) => b.lastActiveMs - a.lastActiveMs)
+				.slice(0, input.users)
+				.map((entry) => entry.user);
+
+			const [cellsByUser, memberRows] = await Promise.all([
+				fetchActivityMatrix(
+					shown.map((user) => user.id),
+					input.days,
+				),
+				db
+					.select({ organizationId: members.organizationId })
+					.from(members)
+					.where(
+						inArray(
+							members.userId,
+							domainUsers.map((user) => user.id),
+						),
+					),
+			]);
+
+			const orgIds = [...new Set(memberRows.map((row) => row.organizationId))];
+			const prRows =
+				orgIds.length > 0
+					? await db
+							.select({
+								mergedAt: githubPullRequests.mergedAt,
+								authorLogin: githubPullRequests.authorLogin,
+							})
+							.from(githubPullRequests)
+							.where(
+								and(
+									inArray(githubPullRequests.organizationId, orgIds),
+									isNotNull(githubPullRequests.mergedAt),
+									gte(githubPullRequests.mergedAt, new Date(startMs)),
+								),
+							)
+					: [];
+
+			const prByDay = new Map<
+				number,
+				{ count: number; authors: Set<string> }
+			>();
+			for (const row of prRows) {
+				if (!row.mergedAt) continue;
+				const d = dayIndex(row.mergedAt);
+				if (d < 0 || d >= input.days) continue;
+				const entry = prByDay.get(d) ?? { count: 0, authors: new Set() };
+				entry.count += 1;
+				entry.authors.add(row.authorLogin);
+				prByDay.set(d, entry);
+			}
+
+			return {
+				start: new Date(startMs),
+				days: input.days,
+				totalUsers: domainUsers.length,
+				snapshotAt: snapshot.fetchedAt,
+				users: shown.map((user) => {
+					const firstDay = dayIndex(user.createdAt);
+					return {
+						userId: user.id,
+						name: user.name,
+						email: user.email,
+						image: user.image,
+						firstDayIndex:
+							firstDay >= 0 && firstDay < input.days ? firstDay : null,
+						cells: (cellsByUser.get(user.id.toLowerCase()) ?? [])
+							.map((cell) => ({
+								d: dayIndex(new Date(`${cell.day}T00:00:00Z`)),
+								terminal: cell.terminal,
+								chat: cell.chat,
+								workspace: cell.workspace,
+								created: cell.created,
+							}))
+							.filter((cell) => cell.d >= 0 && cell.d < input.days),
+					};
+				}),
+				prCells: [...prByDay.entries()]
+					.sort((a, b) => a[0] - b[0])
+					.map(([d, entry]) => ({
+						d,
+						count: entry.count,
+						authors: [...entry.authors].slice(0, 8),
+					})),
+			};
+		}),
+
+	/** Single-user version of the activity matrix, for the user page. */
+	userActivityMatrix: adminProcedure
+		.input(
+			z.object({
+				userId: z.string().uuid(),
+				days: z.number().int().min(14).max(120).default(90),
+			}),
+		)
+		.query(async ({ input }) => {
+			const user = await db.query.users.findFirst({
+				where: eq(users.id, input.userId),
+				columns: { id: true, createdAt: true },
+			});
+			if (!user) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+			}
+
+			const dayMs = 24 * 60 * 60 * 1000;
+			const startMs =
+				Math.floor(Date.now() / dayMs) * dayMs - (input.days - 1) * dayMs;
+			const dayIndex = (date: Date) =>
+				Math.floor((date.getTime() - startMs) / dayMs);
+
+			const cellsByUser = await fetchActivityMatrix([user.id], input.days);
+			const firstDay = dayIndex(user.createdAt);
+			return {
+				start: new Date(startMs),
+				days: input.days,
+				firstDayIndex: firstDay >= 0 && firstDay < input.days ? firstDay : null,
+				cells: (cellsByUser.get(user.id.toLowerCase()) ?? [])
+					.map((cell) => ({
+						d: dayIndex(new Date(`${cell.day}T00:00:00Z`)),
+						terminal: cell.terminal,
+						chat: cell.chat,
+						workspace: cell.workspace,
+						created: cell.created,
+					}))
+					.filter((cell) => cell.d >= 0 && cell.d < input.days),
+			};
+		}),
+
+	userDetail: adminProcedure
+		.input(z.object({ userId: z.string().uuid() }))
+		.query(async ({ input }) => {
+			const [user, memberRows, subsByOrg, snapshot] = await Promise.all([
+				db.query.users.findFirst({ where: eq(users.id, input.userId) }),
+				db
+					.select({
+						organizationId: members.organizationId,
+						role: members.role,
+						joinedAt: members.createdAt,
+						orgName: organizations.name,
+					})
+					.from(members)
+					.innerJoin(
+						organizations,
+						eq(members.organizationId, organizations.id),
+					)
+					.where(eq(members.userId, input.userId)),
+				getSubscriptionsByOrg(),
+				getActivitySnapshot(),
+			]);
+
+			if (!user) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+			}
+
+			const activity = snapshot.byUserId.get(user.id.toLowerCase());
+			const health = healthFromLastActive(activity?.lastActiveAt ?? null);
+			const orgs = memberRows.map((row) => {
+				const sub = subsByOrg.get(row.organizationId) ?? null;
+				return {
+					id: row.organizationId,
+					name: row.orgName,
+					role: row.role,
+					joinedAt: row.joinedAt,
+					isPaying:
+						sub != null &&
+						isActiveSubscriptionStatus(sub.status) &&
+						isPaidPlan(sub.plan),
+				};
+			});
+
+			return {
+				user: {
+					id: user.id,
+					name: user.name,
+					email: user.email,
+					image: user.image,
+					createdAt: user.createdAt,
+					onboardedAt: user.onboardedAt,
+				},
+				orgs,
+				lastActiveAt: activity?.lastActiveAt ?? null,
+				events7d: activity?.events7d ?? 0,
+				events30d: activity?.events30d ?? 0,
+				events30dPrev: activity?.events30dPrev ?? 0,
+				trendPct: trendPct(
+					activity?.events30d ?? 0,
+					activity?.events30dPrev ?? 0,
+				),
+				activeDays30: activity?.activeDays30 ?? 0,
+				// Per-surface event counts over the snapshot's 90d window.
+				surfaces: {
+					desktop: activity?.desktopEvents ?? 0,
+					cli: activity?.cliEvents ?? 0,
+					chat: activity?.chatEvents ?? 0,
+				},
+				topSurface: topSurface(activity),
+				health,
+				churnRisk: isChurnRisk(
+					health,
+					orgs.some((org) => org.isPaying),
+				),
+				hasActivityData: activity != null,
+				snapshotAt: snapshot.fetchedAt,
+			};
+		}),
+
+	userActivityTimeseries: adminProcedure
+		.input(
+			z.object({
+				userId: z.string().uuid(),
+				weeks: z.number().int().min(1).max(52).default(12),
+			}),
+		)
+		.query(async ({ input }) => {
+			return { points: await fetchWeeklyActivity([input.userId], input.weeks) };
+		}),
+
+	domainEnrichment: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(({ input }) => getDomainEnrichment(input.domain)),
+
+	domainEnrichmentCached: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(({ input }) => getCachedDomainEnrichment(input.domain)),
+
+	userRoleEnrichmentCached: adminProcedure
+		.input(z.object({ userId: z.string().uuid() }))
+		.query(({ input }) => getCachedPersonEnrichment(input.userId)),
+
+	setDomainResearchMode: adminProcedure
+		.input(z.object({ domain: domainSchema, autoResearch: z.boolean() }))
+		.mutation(async ({ input }) => {
+			await setDomainResearchSettings(input.domain, {
+				autoResearch: input.autoResearch,
+			});
+			if (!input.autoResearch) return { queued: 0 };
+
+			// Proactively research the company and its users (most recently
+			// active first), capped like the domain page's user list.
+			const [snapshot, domainUsers] = await Promise.all([
+				getActivitySnapshot(),
+				getUsersByDomain(input.domain),
+			]);
+			const targets = [...domainUsers]
+				.sort(
+					(a, b) =>
+						(snapshot.byUserId
+							.get(b.id.toLowerCase())
+							?.lastActiveAt.getTime() ?? 0) -
+						(snapshot.byUserId
+							.get(a.id.toLowerCase())
+							?.lastActiveAt.getTime() ?? 0),
+				)
+				.slice(0, DOMAIN_USERS_SHOWN_CAP);
+
+			const queued = startDomainResearchBatch({
+				domain: input.domain,
+				users: targets,
+				includeCompany: true,
+			});
+			return { queued };
+		}),
+
+	domainResearchProgress: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(({ input }) => getDomainResearchProgress(input.domain)),
+
+	/** Busts the 15-minute server memos so new signups/subscriptions show up
+	 * immediately. PostHog activity stays on its hourly cache. */
+	refreshData: adminProcedure.mutation(() => {
+		invalidateMemos();
+		return { ok: true };
+	}),
+
+	userRoleEnrichment: adminProcedure
+		.input(z.object({ userId: z.string().uuid() }))
+		.query(async ({ input }) => {
+			const user = await db.query.users.findFirst({
+				where: eq(users.id, input.userId),
+			});
+			if (!user) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "User not found" });
+			}
+			const domain = user.email.split("@")[1]?.toLowerCase() ?? "";
+			return getPersonEnrichment({
+				cacheKey: user.id,
+				name: user.name,
+				domain,
+			});
+		}),
+
+	domainRollup: adminProcedure
+		.input(
+			z.object({
+				page: z.number().int().min(1).default(1),
+				pageSize: z.number().int().min(1).max(100).default(50),
+				search: z.string().trim().max(200).optional(),
+				minUsers: z.number().int().min(1).default(2),
+				includeFreemail: z.boolean().default(false),
+				health: healthFilterSchema.default("all"),
+				trend: z.enum(["all", "growing", "declining"]).default("all"),
+				sort: z
+					.enum(["users", "events30d", "lastActive", "trend"])
+					.default("users"),
+			}),
+		)
+		.query(async ({ input }) => {
+			const [byDomain, subsByOrg, snapshot] = await Promise.all([
+				getDomainIndex(),
+				getSubscriptionsByOrg(),
+				getActivitySnapshot(),
+			]);
+
+			const isPayingOrg = makeIsPayingOrg(subsByOrg);
+
+			const searchTerm = input.search?.toLowerCase();
+			const entries = [...byDomain.values()]
+				.filter(
+					(entry) =>
+						entry.userCount >= input.minUsers &&
+						(input.includeFreemail || !FREEMAIL_DOMAINS.has(entry.domain)) &&
+						(!searchTerm || entry.domain.includes(searchTerm)),
+				)
+				.map((entry) => toDomainRow(entry, isPayingOrg))
+				.filter((entry) => {
+					if (input.health === "churnRisk" && !entry.churnRisk) return false;
+					if (
+						input.health !== "all" &&
+						input.health !== "churnRisk" &&
+						entry.health !== input.health
+					) {
+						return false;
+					}
+					if (input.trend === "growing") {
+						return entry.trendPct != null && entry.trendPct > 0;
+					}
+					if (input.trend === "declining") {
+						return entry.trendPct != null && entry.trendPct < 0;
+					}
+					return true;
+				});
+			entries.sort((a, b) => {
+				switch (input.sort) {
+					case "events30d":
+						return b.events30d - a.events30d;
+					case "lastActive":
+						return (
+							(b.lastActiveAt?.getTime() ?? 0) -
+							(a.lastActiveAt?.getTime() ?? 0)
+						);
+					case "trend":
+						return (b.trendPct ?? -Infinity) - (a.trendPct ?? -Infinity);
+					default:
+						return b.userCount - a.userCount;
+				}
+			});
+
+			const total = entries.length;
+			const pageEntries = entries.slice(
+				(input.page - 1) * input.pageSize,
+				input.page * input.pageSize,
+			);
+
+			return {
+				total,
+				snapshotAt: snapshot.fetchedAt,
+				rows: pageEntries,
+			};
+		}),
+
+	pinnedDomains: adminProcedure.query(async () => {
+		const [pinned, byDomain, subsByOrg, snapshot] = await Promise.all([
+			getPinnedDomains(),
+			getDomainIndex(),
+			getSubscriptionsByOrg(),
+			getActivitySnapshot(),
+		]);
+		const isPayingOrg = makeIsPayingOrg(subsByOrg);
+		return {
+			snapshotAt: snapshot.fetchedAt,
+			rows: pinned.flatMap((domain) => {
+				const entry = byDomain.get(domain);
+				return entry ? [toDomainRow(entry, isPayingOrg)] : [];
+			}),
+		};
+	}),
+
+	setDomainPinned: adminProcedure
+		.input(z.object({ domain: domainSchema, pinned: z.boolean() }))
+		.mutation(async ({ input }) => {
+			const pinned = await getPinnedDomains();
+			const without = pinned.filter((domain) => domain !== input.domain);
+			await setPinnedDomains(
+				input.pinned ? [...without, input.domain] : without,
+			);
+			return { pinned: input.pinned };
+		}),
+
+	/**
+	 * Slack channels matched to this domain, with their cached task lists.
+	 * Read-only — never hits the Slack API history or Claude.
+	 */
+	domainSlackTasks: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.query(async ({ input }) => {
+			if (!isSlackConfigured()) {
+				return { configured: false as const, channels: [] };
+			}
+			const matches = await getChannelsForDomain(input.domain);
+			const channels = await Promise.all(
+				matches.map(async (match) => ({
+					...match,
+					store: await getChannelTaskStore(match.channelId),
+				})),
+			);
+			return { configured: true as const, channels };
+		}),
+
+	/** Sync matched channels' history and re-extract tasks with Claude. */
+	syncDomainSlackTasks: adminProcedure
+		.input(z.object({ domain: domainSchema }))
+		.mutation(async ({ input }) => {
+			if (!isSlackConfigured()) {
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message: "SLACK_CUSTOMERS_TOKEN is not configured",
+				});
+			}
+			const matches = await getChannelsForDomain(input.domain);
+			const joined = matches.filter((match) => match.isMember);
+			const results = await Promise.allSettled(
+				joined.map((match) =>
+					syncChannelTasks({
+						channelId: match.channelId,
+						channelName: match.name,
+						domain: input.domain,
+					}),
+				),
+			);
+			const failures = results
+				.map((result, index) =>
+					result.status === "rejected"
+						? `#${joined[index]?.name}: ${result.reason instanceof Error ? result.reason.message : "failed"}`
+						: null,
+				)
+				.filter((failure): failure is string => failure !== null);
+			return { synced: results.length - failures.length, failures };
+		}),
+} satisfies TRPCRouterRecord;

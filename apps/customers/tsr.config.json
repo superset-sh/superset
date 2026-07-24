@@ -1,0 +1,8 @@
+{
+	"routesDirectory": "./src/routes",
+	"generatedRouteTree": "./src/routeTree.gen.ts",
+	"quoteStyle": "double",
+	"routeToken": "layout",
+	"indexToken": "page",
+	"routeFileIgnorePattern": "^(?!(__root|page|layout)\\.tsx$).*\\.(tsx?|jsx?)$"
+}

@@ -1,0 +1,1 @@
+export { StageBadge } from "./StageBadge";

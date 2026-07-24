@@ -2,7 +2,9 @@ import { kv } from "@vercel/kv";
 import { env } from "../env";
 
 const CACHE_TTL_SECONDS = 60 * 60; // 1 hour
-const CACHE_PREFIX = `posthog:${env.NODE_ENV}:`;
+// Project id in the key so switching POSTHOG_PROJECT_ID never serves
+// another project's cached results.
+const CACHE_PREFIX = `posthog:${env.NODE_ENV}:${env.POSTHOG_PROJECT_ID}:`;
 const isKVConfigured = Boolean(env.KV_REST_API_URL && env.KV_REST_API_TOKEN);
 
 // Fallback in-memory cache for local dev without KV

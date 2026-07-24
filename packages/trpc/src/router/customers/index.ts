@@ -1,0 +1,1 @@
+export { customersRouter } from "./customers";

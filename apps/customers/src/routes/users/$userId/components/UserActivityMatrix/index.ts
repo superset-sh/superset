@@ -1,0 +1,1 @@
+export { UserActivityMatrix } from "./UserActivityMatrix";

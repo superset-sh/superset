@@ -1,0 +1,1 @@
+export { HealthBadge } from "./HealthBadge";

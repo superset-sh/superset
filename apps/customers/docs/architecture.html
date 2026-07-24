@@ -1,0 +1,345 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Superset Customers — Architecture</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=IBM+Plex+Mono:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #090c10;
+    --bg-raise: #0e1319;
+    --ink: #c9d4d8;
+    --ink-dim: #6b7a82;
+    --ink-faint: #3a464d;
+    --phosphor: #5ef2a0;
+    --amber: #f2c14e;
+    --coral: #f0705f;
+    --sky: #6cb8f0;
+    --line: #1c252c;
+    --line-strong: #2a363f;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --serif: "Instrument Serif", Georgia, serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html { scroll-behavior: smooth; }
+  body {
+    background:
+      radial-gradient(ellipse 90% 40% at 50% -5%, rgba(94, 242, 160, 0.055), transparent 60%),
+      radial-gradient(circle at 1px 1px, rgba(94, 242, 160, 0.07) 1px, transparent 0) 0 0 / 28px 28px,
+      var(--bg);
+    color: var(--ink);
+    font-family: var(--mono);
+    font-weight: 300;
+    font-size: 14.5px;
+    line-height: 1.75;
+    padding: 0 24px 120px;
+  }
+  ::selection { background: rgba(94, 242, 160, 0.25); }
+  a { color: var(--sky); }
+  .frame { max-width: 960px; margin: 0 auto; }
+
+  /* ---------- masthead ---------- */
+  header { padding: 72px 0 44px; border-bottom: 1px solid var(--line-strong); position: relative; }
+  .doc-meta {
+    display: flex; flex-wrap: wrap; gap: 10px 26px;
+    font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase;
+    color: var(--ink-dim); margin-bottom: 30px;
+  }
+  .doc-meta span::before { content: "▪ "; color: var(--phosphor); }
+  h1 {
+    font-family: var(--serif); font-weight: 400; font-size: clamp(44px, 7vw, 76px);
+    line-height: 1.02; letter-spacing: -0.01em; color: #eef4f2;
+  }
+  h1 em { font-style: italic; color: var(--phosphor); }
+  .subtitle { margin-top: 20px; max-width: 640px; color: var(--ink-dim); }
+
+  /* ---------- table of contents ---------- */
+  nav { padding: 26px 0; border-bottom: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 22px; font-size: 12px; }
+  nav a { color: var(--ink-dim); text-decoration: none; transition: color .15s; }
+  nav a:hover { color: var(--phosphor); }
+  nav a b { color: var(--ink-faint); font-weight: 400; margin-right: 5px; }
+
+  /* ---------- sections ---------- */
+  section { padding: 64px 0 8px; }
+  .sec-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 26px; }
+  .sec-num {
+    font-size: 11px; color: var(--phosphor); letter-spacing: .2em;
+    border: 1px solid rgba(94,242,160,.35); padding: 3px 9px; border-radius: 2px;
+    background: rgba(94,242,160,.06); white-space: nowrap;
+  }
+  h2 { font-family: var(--serif); font-weight: 400; font-size: 32px; color: #e8efec; letter-spacing: .01em; }
+  h3 { font-size: 13px; letter-spacing: .16em; text-transform: uppercase; color: var(--amber); margin: 34px 0 12px; font-weight: 500; }
+  p { margin-bottom: 14px; max-width: 76ch; }
+  p + p { margin-top: -2px; }
+  strong { color: #e8efec; font-weight: 500; }
+  code {
+    background: var(--bg-raise); border: 1px solid var(--line);
+    padding: 1px 6px; border-radius: 3px; font-size: .92em; color: var(--sky);
+  }
+  ul { margin: 0 0 16px 1.4em; }
+  li { margin-bottom: 7px; max-width: 72ch; }
+  li::marker { color: var(--phosphor); }
+
+  /* ---------- schematic boxes ---------- */
+  .schematic {
+    border: 1px solid var(--line-strong); border-radius: 6px; background: var(--bg-raise);
+    padding: 30px 26px; margin: 26px 0 34px; overflow-x: auto; position: relative;
+  }
+  .schematic::before {
+    content: attr(data-label); position: absolute; top: -9px; left: 18px;
+    background: var(--bg); color: var(--ink-dim); font-size: 10px;
+    letter-spacing: .18em; text-transform: uppercase; padding: 0 8px;
+  }
+  .flow { display: flex; align-items: stretch; gap: 0; min-width: 720px; }
+  .node {
+    border: 1px solid var(--line-strong); border-radius: 4px; padding: 14px 16px;
+    background: var(--bg); flex: 1; min-width: 128px;
+  }
+  .node .t { color: #e8efec; font-weight: 500; font-size: 13px; display: block; }
+  .node .d { color: var(--ink-dim); font-size: 11px; line-height: 1.55; display: block; margin-top: 6px; }
+  .node.hot { border-color: rgba(94,242,160,.5); box-shadow: 0 0 22px rgba(94,242,160,.07) inset; }
+  .node.warm { border-color: rgba(242,193,78,.45); }
+  .arrow {
+    display: flex; align-items: center; color: var(--ink-faint); padding: 0 10px;
+    font-size: 12px; flex-direction: column; justify-content: center; gap: 2px; white-space: nowrap;
+  }
+  .arrow small { font-size: 9.5px; color: var(--ink-faint); letter-spacing: .05em; }
+  .stack { display: grid; gap: 12px; }
+  .stack .row { display: flex; gap: 12px; flex-wrap: wrap; }
+
+  /* ---------- tables ---------- */
+  table { border-collapse: collapse; width: 100%; margin: 18px 0 30px; font-size: 13px; }
+  th {
+    text-align: left; color: var(--ink-dim); font-weight: 400; font-size: 10.5px;
+    text-transform: uppercase; letter-spacing: .16em;
+    border-bottom: 1px solid var(--line-strong); padding: 8px 14px 8px 0;
+  }
+  td { border-bottom: 1px solid var(--line); padding: 9px 14px 9px 0; vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td:first-child { color: #e8efec; white-space: nowrap; }
+  .pill { display: inline-block; padding: 1px 9px; border-radius: 99px; font-size: 11px; border: 1px solid; }
+  .pill.g { color: var(--phosphor); border-color: rgba(94,242,160,.4); }
+  .pill.y { color: var(--amber); border-color: rgba(242,193,78,.4); }
+  .pill.o { color: var(--coral); border-color: rgba(240,112,95,.4); }
+  .pill.b { color: var(--sky); border-color: rgba(108,184,240,.4); }
+
+  /* ---------- file tree ---------- */
+  pre.tree {
+    background: var(--bg-raise); border: 1px solid var(--line-strong); border-radius: 6px;
+    padding: 22px 26px; font-size: 12.5px; line-height: 1.8; color: var(--ink-dim);
+    overflow-x: auto; margin: 20px 0 30px;
+  }
+  pre.tree b { color: #e8efec; font-weight: 500; }
+  pre.tree i { color: var(--phosphor); font-style: normal; }
+
+  .callout {
+    border-left: 2px solid var(--amber); background: rgba(242,193,78,.05);
+    padding: 14px 18px; margin: 22px 0; font-size: 13px; max-width: 78ch;
+  }
+  .callout b { color: var(--amber); font-weight: 500; }
+
+  footer {
+    margin-top: 90px; padding-top: 26px; border-top: 1px solid var(--line);
+    color: var(--ink-faint); font-size: 11px; letter-spacing: .12em; text-transform: uppercase;
+    display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+  }
+  @media (max-width: 720px) { .flow { flex-direction: column; min-width: 0; } .arrow { transform: rotate(90deg); padding: 8px 0; } }
+</style>
+</head>
+<body>
+<div class="frame">
+
+<header>
+  <div class="doc-meta">
+    <span>internal doc</span><span>apps/customers</span><span>rev 2026-07-13</span><span>pr #5657</span>
+  </div>
+  <h1>Customer Tracking Portal<br /><em>architecture &amp; build notes</em></h1>
+  <p class="subtitle">How the Superset team sees every customer — company by company, domain by domain, person by person — with paying status, live product activity, health scoring, and AI-researched context.</p>
+</header>
+
+<nav>
+  <a href="#overview"><b>01</b>overview</a>
+  <a href="#system"><b>02</b>system</a>
+  <a href="#data"><b>03</b>data pipeline</a>
+  <a href="#model"><b>04</b>health &amp; stage</a>
+  <a href="#enrichment"><b>05</b>ai enrichment</a>
+  <a href="#auth"><b>06</b>auth</a>
+  <a href="#perf"><b>07</b>performance</a>
+  <a href="#repo"><b>08</b>repo map</a>
+  <a href="#deploy"><b>09</b>deployment</a>
+</nav>
+
+<!-- ======================================================= -->
+<section id="overview">
+  <div class="sec-head"><span class="sec-num">01</span><h2>Overview</h2></div>
+  <p>The portal is a <strong>Vite single-page app</strong> (<code>apps/customers</code>, port 3005) gated to <code>@superset.sh</code> team members. It answers five questions about any customer: <strong>who are they, do they pay, how active are they, are they slipping away, and what should we know before reaching out.</strong></p>
+  <p>Five surfaces, each one drill-down deeper than the last:</p>
+  <table>
+    <tr><th>Surface</th><th>Route</th><th>What it shows</th></tr>
+    <tr><td>Companies</td><td><code>/companies</code></td><td>Orgs with plan, seats, 30d events + trend, last active, health &amp; stage — filterable, searchable</td></tr>
+    <tr><td>Company detail</td><td><code>/companies/$orgId</code></td><td>Subscription card, weekly activity chart, members with per-user stats</td></tr>
+    <tr><td>Domains</td><td><code>/domains</code></td><td>Users rolled up by email domain (finds multi-user companies without a formal org) + pinned tab</td></tr>
+    <tr><td>Domain detail</td><td><code>/domains/$domain</code></td><td>Aggregate stats, AI company card, activity chart, per-user table with researched roles</td></tr>
+    <tr><td>User detail</td><td><code>/users/$userId</code></td><td>Profile, orgs, activity, surface split, AI-researched role + social links</td></tr>
+  </table>
+  <p>Design constraint honored throughout v1: <strong>no new database tables, no cron jobs.</strong> Everything is computed live from existing data plus layered caches, so the feature shipped without a migration.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="system">
+  <div class="sec-head"><span class="sec-num">02</span><h2>System</h2></div>
+  <div class="schematic" data-label="request path">
+    <div class="flow">
+      <div class="node hot"><span class="t">Vite SPA</span><span class="d">TanStack Router · React Query · @superset/ui · port 3005</span></div>
+      <div class="arrow">──▶<small>tRPC / superjson</small></div>
+      <div class="node"><span class="t">apps/api</span><span class="d">Next.js · customers router · adminProcedure gate · CORS allowlist</span></div>
+      <div class="arrow">──▶<small>reads</small></div>
+      <div class="node" style="flex:1.4">
+        <div class="stack">
+          <div class="row">
+            <div class="node" style="margin:0"><span class="t">Postgres (Neon)</span><span class="d">orgs · members · users · subscriptions</span></div>
+            <div class="node" style="margin:0"><span class="t">PostHog</span><span class="d">HogQL over 12 core events</span></div>
+          </div>
+          <div class="row">
+            <div class="node warm" style="margin:0"><span class="t">Vercel KV</span><span class="d">snapshot cache · enrichment cache · settings · pins</span></div>
+            <div class="node warm" style="margin:0"><span class="t">Exa / Claude</span><span class="d">on-demand AI research</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p>The SPA holds no secrets and does no data access of its own — every byte flows through the <code>customers</code> tRPC router in <code>packages/trpc</code>, where <code>adminProcedure</code> enforces the team-only rule server-side. The frontend's session check is UX, not security.</p>
+  <p>The app deliberately reuses the monorepo's existing rails: <code>@superset/ui</code> for components, <code>@superset/auth</code> for sessions, the shared PostHog query client with its hourly cache, and the same <code>NEXT_PUBLIC_*</code> env vars every other app reads (exposed to Vite via <code>envPrefix</code>).</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="data">
+  <div class="sec-head"><span class="sec-num">03</span><h2>Data pipeline</h2></div>
+  <p>The core join: <strong>companies and money live in Postgres; behavior lives in PostHog.</strong> They meet on <code>distinct_id = users.id</code> — every identified PostHog person carries our user UUID.</p>
+
+  <h3>The activity snapshot</h3>
+  <p>One HogQL query computes per-user aggregates over the last 90 days of <strong>12 curated core events</strong> (<code>workspace_opened</code>, <code>chat_message_sent</code>, <code>cli_command_invoked</code>, …). It deliberately excludes <code>$pageview</code> — anonymous posthog-js IDs are also UUIDs and would flood the join — and funnel events like <code>onboarding_*</code>, which signal intent, not engagement.</p>
+  <ul>
+    <li>Per user: last event timestamp, 7d / 30d / prior-30d counts, active days, and per-surface counters (desktop / CLI / chat).</li>
+    <li><code>ORDER BY last_ts DESC LIMIT 65000</code> — PostHog clamps at ~50k rows, so any truncation drops only the longest-dormant users.</li>
+    <li>Validated against production: a known user's dashboard last-active matches PostHog ground truth <strong>to the millisecond</strong>; 96.7% of core events attribute to real user ids.</li>
+  </ul>
+
+  <h3>Cache layers</h3>
+  <table>
+    <tr><th>Layer</th><th>Holds</th><th>TTL</th><th>Where</th></tr>
+    <tr><td>PostHog query cache</td><td>Raw HogQL results (snapshot, timeseries)</td><td><span class="pill y">1 hour</span></td><td>KV, keyed by project id + query</td></tr>
+    <tr><td>In-process memos</td><td>User directory, memberships, subscriptions, org index, domain index</td><td><span class="pill g">15 min</span></td><td>Server memory (refresh button busts them)</td></tr>
+    <tr><td>Enrichment cache</td><td>AI research per domain / person</td><td><span class="pill b">30 days</span> <span class="pill o">1 day if empty</span></td><td>KV</td></tr>
+    <tr><td>React Query</td><td>Everything on screen</td><td>per-query</td><td>Browser, with <code>keepPreviousData</code> + dim/spinner pending state</td></tr>
+  </table>
+  <p>The <strong>domain index</strong> is the workhorse for the Domains surface: a memoized walk of ~50k users grouping activity, org membership, and counts per email domain (freemail included; filtered at query time). Requests only filter / sort / paginate it — which is why a domain search resolves in ~30ms.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="model">
+  <div class="sec-head"><span class="sec-num">04</span><h2>Health &amp; stage model</h2></div>
+  <p>Both models are <strong>pure, tested functions</strong> in <code>packages/shared</code> — no state, no I/O, thresholds are single constants.</p>
+  <h3>Health — recency of core activity</h3>
+  <table>
+    <tr><th>Tier</th><th>Last core event</th><th>Meaning</th></tr>
+    <tr><td><span class="pill g">Active</span></td><td>≤ 7 days</td><td>Using the product this week</td></tr>
+    <tr><td><span class="pill y">Idle</span></td><td>8–14 days</td><td>Missed a week — light nudge territory</td></tr>
+    <tr><td><span class="pill o">Cooling</span></td><td>15–30 days</td><td>Genuinely drifting</td></tr>
+    <tr><td><span class="pill o">Dormant</span></td><td>&gt; 30 days / never</td><td>Lapsed; <strong>paying + dormant = churn risk</strong></td></tr>
+  </table>
+  <h3>Stage — adoption footprint</h3>
+  <p>Solo (1 user) → Team (2–9) → Scale (10–49) → Enterprise (50+ users at the domain, or an enterprise plan). This measures footprint <em>inside Superset</em>; true firmographics come from enrichment and can differ.</p>
+  <p>Trend everywhere means one thing: <strong>core-event volume, last 30 days vs the 30 days before</strong> — spelled out in every tooltip, with a "no baseline" state when the prior window was empty.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="enrichment">
+  <div class="sec-head"><span class="sec-num">05</span><h2>AI enrichment</h2></div>
+  <p>Firmographics and people-context are researched on demand, never scraped ahead of time. Two backends, split by what a 16-lookup head-to-head benchmark showed each is best at:</p>
+  <div class="schematic" data-label="research routing">
+    <div class="flow">
+      <div class="node hot"><span class="t">People → Exa</span><span class="d">/search + outputSchema, category: people · ~2s · ~1–2¢ · near-100% hit rate · grounding citations for free</span></div>
+      <div class="arrow">│</div>
+      <div class="node warm"><span class="t">Companies → Claude</span><span class="d">opus + server-side web_search · 30s–2min · catches acquisitions &amp; late rounds, avoids wrong-entity hits</span></div>
+      <div class="arrow">──▶<small>both land in</small></div>
+      <div class="node"><span class="t">KV cache</span><span class="d">30-day TTL · empty results retry after 1 day (search variance)</span></div>
+    </div>
+  </div>
+  <ul>
+    <li><strong>Manual by default.</strong> Nothing calls an AI until a human clicks "Research" — but cached results always render instantly via cache-only read procedures.</li>
+    <li><strong>Per-domain auto mode.</strong> A switch fires a one-shot background batch (company + 200 most-active users, concurrency 8, ~1 minute) with a persisted progress bar. New signups at auto domains get caught up on the next page view. Re-research always requires a manual action.</li>
+    <li><strong>Anti-hallucination:</strong> prompts demand null over guesses; person research must match name <em>and</em> employer domain; results carry confidence + source links, labeled "AI-researched".</li>
+    <li>Each backend falls back to the other if its API key is missing.</li>
+  </ul>
+  <div class="callout"><b>Benchmark note.</b> Exa is 10–200× faster and ~5× cheaper but occasionally returns a confident wrong entity (it once answered a Brazilian research lab for railway.app). Claude is slow but current (knew Loom was acquired by Atlassian). Hence the split — and why company research tolerates the wait.</div>
+</section>
+
+<!-- ======================================================= -->
+<section id="auth">
+  <div class="sec-head"><span class="sec-num">06</span><h2>Auth &amp; access</h2></div>
+  <ul>
+    <li><strong>Server truth:</strong> every procedure sits behind <code>adminProcedure</code>, which rejects any session whose email doesn't end in <code>@superset.sh</code>.</li>
+    <li><strong>Client gate:</strong> the SPA checks the better-auth session on load and bounces signed-out visitors to the web app. Cookies are scoped to <code>.superset.sh</code>, so one sign-in covers all subdomains.</li>
+    <li><strong>CORS:</strong> being a browser SPA (unlike the server-rendered admin app), the API had to allowlist the customers origin — <code>NEXT_PUBLIC_CUSTOMERS_URL</code> plus the dev port, in both the CORS proxy and better-auth's trusted origins.</li>
+  </ul>
+</section>
+
+<!-- ======================================================= -->
+<section id="perf">
+  <div class="sec-head"><span class="sec-num">07</span><h2>Performance</h2></div>
+  <table>
+    <tr><th>Operation</th><th>Before</th><th>After</th><th>How</th></tr>
+    <tr><td>Domain search keystroke</td><td>~1.4s</td><td><span class="pill g">30–42ms</span></td><td>Memoized reads + prebuilt domain index</td></tr>
+    <tr><td>Companies list (warm)</td><td>~1s+</td><td><span class="pill g">~480ms</span></td><td>Memoized org index + subscriptions</td></tr>
+    <tr><td>Person research</td><td>25–440s (Claude)</td><td><span class="pill g">~2s</span></td><td>Exa people index</td></tr>
+    <tr><td>200-person auto-research</td><td>~35 min</td><td><span class="pill g">~1 min</span></td><td>Exa + concurrency 8</td></tr>
+  </table>
+  <p>The staleness trade is explicit: lists can lag reality by up to 15 minutes (activity by up to an hour). The <strong>Refresh button</strong> busts all server memos on demand, and every table shows a dim + spinner pending state during refetches so sub-second waits never look frozen.</p>
+</section>
+
+<!-- ======================================================= -->
+<section id="repo">
+  <div class="sec-head"><span class="sec-num">08</span><h2>Repo map</h2></div>
+<pre class="tree">
+<b>apps/customers/</b>                      Vite SPA (this app)
+├── vercel.json                       SPA rewrite → index.html
+├── src/main.tsx                      router + posthog init
+├── src/routes/                       file-based routes (TanStack)
+│   ├── companies/ · domains/ · users/
+│   └── __root.tsx                    auth gate + sidebar shell
+└── src/components/                   shared: badges, charts, pickers
+
+<b>packages/trpc/src/router/customers/</b>  all server logic
+├── <i>customers.ts</i>                      the router (list/detail/rollup/pins/research)
+├── <i>activity-snapshot.ts</i>              HogQL snapshot · memos · weekly series
+├── <i>enrichment.ts</i>                     Exa + Claude backends · KV cache
+├── batch-research.ts                 one-shot batches + progress
+├── research-settings.ts              per-domain auto/manual (KV)
+├── pinned-domains.ts                 team-shared pins (KV)
+└── domain-utils.ts                   freemail list · domain schema
+
+<b>packages/shared/src/</b>
+├── customer-health.ts(.test)         tiers + churn risk
+└── customer-stage.ts(.test)          adoption stage
+</pre>
+</section>
+
+<!-- ======================================================= -->
+<section id="deploy">
+  <div class="sec-head"><span class="sec-num">09</span><h2>Deployment (planned)</h2></div>
+  <p>Vercel via CLI in the <code>superset-sh</code> team: build the SPA locally in the monorepo with production env baked in (Vite inlines at build time), deploy the static output, assign <code>customers.superset.sh</code>. The API project then needs <code>NEXT_PUBLIC_CUSTOMERS_URL</code> (activates CORS), a production <code>POSTHOG_PROJECT_ID</code>, and the permanent <code>ANTHROPIC_API_KEY</code> + <code>EXA_API_KEY</code>.</p>
+  <div class="callout"><b>Known follow-ups.</b> Auto-research batches run in-process — durable on a long-lived server, but serverless deploys should move them to a QStash job. Health transitions over time ("who became dormant this week?") need a small snapshot table + cron, deliberately out of v1 scope.</div>
+</section>
+
+<footer>
+  <span>superset · customer tracking portal</span>
+  <span>built with claude code · 2026-07-13</span>
+</footer>
+
+</div>
+</body>
+</html>
