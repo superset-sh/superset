@@ -141,6 +141,11 @@ interface MarkdownEditorProps {
 	className?: string;
 	editorClassName?: string;
 	onModEnter?: () => void;
+	/**
+	 * If provided, plain Enter fires this instead of inserting a newline
+	 * (Shift+Enter still breaks the line). Composer-style editors only.
+	 */
+	onEnterSubmit?: () => void;
 	/** If provided, enables @-mention file search for the editor. */
 	searchFiles?: FileMentionSearchFn;
 	/** If provided, pasted file items (e.g. clipboard images) are forwarded here. */
@@ -203,6 +208,7 @@ export function MarkdownEditor({
 	className,
 	editorClassName,
 	onModEnter,
+	onEnterSubmit,
 	searchFiles,
 	onPasteFiles,
 	features,
@@ -218,6 +224,8 @@ export function MarkdownEditor({
 	searchFilesRef.current = searchFiles;
 	const onPasteFilesRef = useRef(onPasteFiles);
 	onPasteFilesRef.current = onPasteFiles;
+	const onEnterSubmitRef = useRef(onEnterSubmit);
+	onEnterSubmitRef.current = onEnterSubmit;
 	const editorRef = useRef<Editor | null>(null);
 
 	const urlPolicy = useInlineUrlPolicy();
@@ -351,6 +359,15 @@ export function MarkdownEditor({
 			handleKeyDown: (_, event) => {
 				if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
 					onModEnter?.();
+					return true;
+				}
+				if (
+					onEnterSubmitRef.current &&
+					event.key === "Enter" &&
+					!event.shiftKey &&
+					!event.altKey
+				) {
+					onEnterSubmitRef.current();
 					return true;
 				}
 				return false;

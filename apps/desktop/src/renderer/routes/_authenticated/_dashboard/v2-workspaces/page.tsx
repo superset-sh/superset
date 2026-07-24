@@ -1,9 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect } from "react";
+import { useNewWorkspaceScreenVariant } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/hooks/useNewWorkspaceScreenVariant";
+import { NewWorkspaceEmptyScreen } from "./components/NewWorkspaceEmptyScreen";
 import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
 import { V2WorkspacesList } from "./components/V2WorkspacesList";
 import { useAccessibleV2Workspaces } from "./hooks/useAccessibleV2Workspaces";
-import { useV2WorkspacesFilterStore } from "./stores/v2WorkspacesFilterStore";
+import {
+	PROJECT_FILTER_ALL,
+	useV2WorkspacesFilterStore,
+} from "./stores/v2WorkspacesFilterStore";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/v2-workspaces/",
@@ -33,6 +38,21 @@ function V2WorkspacesPage() {
 			deviceFilter,
 			projectFilter,
 		});
+
+	// Experiment test arm: with zero workspaces the dashboard IS the create
+	// screen — the "No workspaces yet" empty state never shows. Gated on
+	// isReady (never pin over rows that are still settling) and on default
+	// filters so a filtered-to-empty view keeps the normal empty state.
+	// Evaluating the flag here is the exposure moment.
+	const isEmptyDashboard =
+		isReady &&
+		all.length === 0 &&
+		!searchQuery.trim() &&
+		projectFilter === PROJECT_FILTER_ALL;
+	const variant = useNewWorkspaceScreenVariant(isEmptyDashboard);
+	if (variant === "test" && isEmptyDashboard) {
+		return <NewWorkspaceEmptyScreen />;
+	}
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
