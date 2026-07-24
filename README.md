@@ -221,7 +221,7 @@ An iOS app is coming soon so you can check on your agents from your phone.
 
 | Requirement | Details |
 |:------------|:--------|
-| **OS** | macOS (Windows/Linux untested) |
+| **OS** | macOS, Linux (Arch, Ubuntu) |
 | **Runtime** | [Bun](https://bun.sh/) v1.0+ |
 | **Version Control** | Git 2.20+ |
 | **GitHub CLI** | [gh](https://cli.github.com/) |
@@ -229,9 +229,9 @@ An iOS app is coming soon so you can check on your agents from your phone.
 
 ## Install
 
-**[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
+**[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)** &bull; **[Download for Linux](https://github.com/superset-sh/superset/releases/latest)**
 
-Builds for Windows and Linux are not yet available.
+Builds for Windows are not yet available.
 
 ## Development
 
