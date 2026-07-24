@@ -1,15 +1,7 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { settings } from "@superset/local-db";
-import {
-	app,
-	BrowserWindow,
-	dialog,
-	Notification,
-	net,
-	protocol,
-	session,
-} from "electron";
+import { app, dialog, Notification, net, protocol, session } from "electron";
 import { makeAppSetup } from "lib/electron-app/factories/app/setup";
 import {
 	authEvents,
@@ -54,8 +46,15 @@ import {
 	getTerminalHostClient,
 } from "./lib/terminal-host/client";
 import { disposeTray, initTray } from "./lib/tray";
+import { getFocusedOrLastWindow } from "./lib/window-registry/window-registry";
 import { startNetworkLogger, stopNetworkLogger } from "./network-logger";
-import { MainWindow } from "./windows/main";
+import {
+	createPlatformWindow,
+	initAppServices,
+	markAppQuitting,
+	persistOpenWindows,
+	restoreWindows,
+} from "./windows/main";
 
 console.log("[main] Local database ready:", !!localDb);
 const IS_DEV = process.env.NODE_ENV === "development";
@@ -102,10 +101,8 @@ async function processDeepLink(url: string): Promise<void> {
 	const path = `/${url.split("://")[1]}`;
 	focusMainWindow();
 
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		windows[0].webContents.send("deep-link-navigate", path);
-	}
+	const target = getFocusedOrLastWindow();
+	target?.webContents.send("deep-link-navigate", path);
 }
 
 function findDeepLinkInArgv(argv: string[]): string | undefined {
@@ -113,14 +110,13 @@ function findDeepLinkInArgv(argv: string[]): string | undefined {
 }
 
 export function focusMainWindow(): void {
-	const windows = BrowserWindow.getAllWindows();
-	if (windows.length > 0) {
-		const mainWindow = windows[0];
-		if (mainWindow.isMinimized()) {
-			mainWindow.restore();
+	const target = getFocusedOrLastWindow();
+	if (target) {
+		if (target.isMinimized()) {
+			target.restore();
 		}
-		mainWindow.show();
-		mainWindow.focus();
+		target.show();
+		target.focus();
 	} else {
 		// Triggers window creation via makeAppSetup's activate handler
 		app.emit("activate");
@@ -228,6 +224,11 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
+	// Snapshot all open windows (bounds + org) before they close, so relaunch
+	// restores them. markAppQuitting() stops per-window close handlers from
+	// shrinking the set as windows close one-by-one.
+	markAppQuitting();
+	persistOpenWindows();
 	try {
 		stopMemoryTelemetry();
 		getHostServiceCoordinator().stopAll();
@@ -449,7 +450,11 @@ if (!gotTheLock) {
 			});
 		}
 
-		await makeAppSetup(() => MainWindow());
+		initAppServices();
+		await makeAppSetup(
+			() => createPlatformWindow({ orgId: null }),
+			restoreWindows,
+		);
 		setupAutoUpdater();
 		startMemoryTelemetry();
 		initTray();

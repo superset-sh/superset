@@ -28,6 +28,7 @@ import type {
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
+import { ORGANIZATION_HEADER } from "@superset/shared/constants";
 import type { AppRouter } from "@superset/trpc";
 import { toast } from "@superset/ui/sonner";
 import { BasicIndex } from "@tanstack/db";
@@ -212,19 +213,28 @@ function getCollectionsCacheKey(organizationId: string): string {
 	return organizationId;
 }
 
-// Singleton API client with dynamic auth headers
-const apiClient = createTRPCProxyClient<AppRouter>({
-	links: [
-		httpBatchLink({
-			url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
-			headers: () => {
-				const token = getAuthToken();
-				return token ? { Authorization: `Bearer ${token}` } : {};
-			},
-			transformer: superjson,
-		}),
-	],
-});
+// Per-org tRPC client. Each organization's collection callbacks use a client
+// whose `x-superset-organization-id` header is fixed to THAT org (closure-
+// scoped), so a deferred or batched write from one org's collection can never
+// be mis-scoped to whatever org a window later switched to. The auth token is
+// still read dynamically; only the organization is pinned per client.
+function createOrgApiClient(organizationId: string) {
+	return createTRPCProxyClient<AppRouter>({
+		links: [
+			httpBatchLink({
+				url: `${env.NEXT_PUBLIC_API_URL}/api/trpc`,
+				headers: () => {
+					const token = getAuthToken();
+					return {
+						...(token ? { Authorization: `Bearer ${token}` } : {}),
+						[ORGANIZATION_HEADER]: organizationId,
+					};
+				},
+				transformer: superjson,
+			}),
+		],
+	});
+}
 
 const electricHeaders = {
 	Authorization: () => {
@@ -275,6 +285,8 @@ const organizationsCollection = createPersistedElectricCollection(
 );
 
 function createOrgCollections(organizationId: string): OrgCollections {
+	// Org-pinned API client for all of this org's collection write callbacks.
+	const apiClient = createOrgApiClient(organizationId);
 	const tasks = createPersistedElectricCollection(
 		electricCollectionOptions<SelectTask>({
 			id: `tasks-${organizationId}`,
