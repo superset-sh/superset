@@ -1,7 +1,11 @@
 import { COMPANY } from "@superset/shared/constants";
 import type { Metadata } from "next";
 import dynamic from "next/dynamic";
-import { FAQPageJsonLd } from "@/components/JsonLd";
+import {
+	FAQPageJsonLd,
+	HomeWebPageJsonLd,
+	ServiceJsonLd,
+} from "@/components/JsonLd";
 import { FAQ_ITEMS } from "./components/FAQSection";
 import { HeroSection } from "./components/HeroSection";
 
@@ -32,6 +36,8 @@ export default function Home() {
 	return (
 		<main className="flex flex-col bg-background">
 			<FAQPageJsonLd items={FAQ_ITEMS} />
+			<HomeWebPageJsonLd />
+			<ServiceJsonLd />
 			<HeroSection />
 			<TrustedBySection />
 			<FeaturesSection />

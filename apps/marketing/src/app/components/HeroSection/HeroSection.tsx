@@ -87,7 +87,10 @@ export function HeroSection() {
 									/>
 								</span>
 							</h1>
-							<p className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto">
+							<p
+								id="hero-subheadline"
+								className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto"
+							>
 								{copy.subheadline}
 							</p>
 						</div>
