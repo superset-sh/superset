@@ -8,7 +8,7 @@ export const lifecycle = {
 		mutedInk: "#5E5D59",
 		footer: "#000000",
 		footerText: "#FFFFFF",
-		footerMuted: "#B5B2AA",
+		footerMuted: "#C2C0B6",
 	},
 	fonts: {
 		serif: "Georgia, 'Times New Roman', serif",

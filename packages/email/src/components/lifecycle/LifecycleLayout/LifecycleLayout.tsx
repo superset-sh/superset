@@ -26,8 +26,8 @@ interface LifecycleLayoutProps {
 const footerText = {
 	margin: 0,
 	fontFamily: lifecycle.fonts.serif,
-	fontSize: "14px",
-	lineHeight: "21px",
+	fontSize: "12px",
+	lineHeight: "16px",
 	color: lifecycle.colors.footerMuted,
 } as const;
 
@@ -81,7 +81,7 @@ export function LifecycleLayout({
 						}}
 					>
 						<Row>
-							<Column style={{ width: "45%", verticalAlign: "top" }}>
+							<Column style={{ width: "50%", verticalAlign: "top" }}>
 								<Img
 									src={`${assets}/logo-full-white.png`}
 									alt="Superset"
@@ -111,15 +111,15 @@ export function LifecycleLayout({
 									</Column>
 								</Row>
 							</Column>
-							<Column style={{ width: "55%", verticalAlign: "top" }}>
+							<Column style={{ width: "50%", verticalAlign: "top" }}>
 								<Row>
 									<Column style={{ width: "25%", textAlign: "center" }}>
 										<Link href="https://instagram.com/superset">
 											<Img
 												src={`${assets}/icon-instagram-white.png`}
 												alt="Instagram"
-												width="28"
-												height="28"
+												width="32"
+												height="32"
 												style={{ display: "inline-block" }}
 											/>
 										</Link>
@@ -129,8 +129,8 @@ export function LifecycleLayout({
 											<Img
 												src={`${assets}/icon-linkedin-white.png`}
 												alt="LinkedIn"
-												width="28"
-												height="28"
+												width="32"
+												height="32"
 												style={{ display: "inline-block" }}
 											/>
 										</Link>
@@ -140,8 +140,8 @@ export function LifecycleLayout({
 											<Img
 												src={`${assets}/icon-x-white.png`}
 												alt="X"
-												width="28"
-												height="28"
+												width="32"
+												height="32"
 												style={{ display: "inline-block" }}
 											/>
 										</Link>
@@ -151,8 +151,8 @@ export function LifecycleLayout({
 											<Img
 												src={`${assets}/icon-youtube-white.png`}
 												alt="YouTube"
-												width="28"
-												height="28"
+												width="32"
+												height="32"
 												style={{ display: "inline-block" }}
 											/>
 										</Link>
@@ -163,10 +163,10 @@ export function LifecycleLayout({
 										borderTop: "solid 1px #C2C0B6",
 										borderBottom: "none",
 										width: "248px",
-										margin: "26px auto 24px auto",
+										margin: "34px auto 18px auto",
 									}}
 								/>
-								<Text style={{ ...footerText, marginBottom: "14px" }}>
+								<Text style={{ ...footerText, marginBottom: "8px" }}>
 									Superset, Inc., San Francisco, CA
 								</Text>
 								<Text style={footerText}>
