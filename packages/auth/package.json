@@ -30,7 +30,7 @@
 		"@better-auth/api-key": "1.6.13",
 		"@better-auth/expo": "1.6.13",
 		"@better-auth/oauth-provider": "1.6.13",
-		"@better-auth/stripe": "1.6.13",
+		"@better-auth/stripe": "1.6.21",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",
