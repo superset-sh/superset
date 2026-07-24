@@ -5,11 +5,11 @@ import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { derivePullRequestQueryTargets } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
-import { useSelectedHostWorkspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useSelectedHostWorkspaces";
 import {
 	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_ALL,
@@ -134,18 +134,6 @@ function workspaceMatchesSearch(
 	);
 }
 
-function matchesDeviceFilter(
-	workspace: AccessibleV2Workspace,
-	deviceFilter: V2WorkspacesDeviceFilter | undefined,
-	machineId: string | null,
-): boolean {
-	if (deviceFilter === undefined) return true;
-	if (deviceFilter === DEVICE_FILTER_THIS_DEVICE) {
-		return machineId == null || workspace.hostId === machineId;
-	}
-	return workspace.hostId === deviceFilter;
-}
-
 function matchesProjectFilter(
 	workspace: AccessibleV2Workspace,
 	projectFilter: V2WorkspacesProjectFilter,
@@ -246,17 +234,19 @@ export function useAccessibleV2Workspaces(
 
 	// Scoped (the page): a single `workspace.list` against the selected host —
 	// no fan-out, so ten idle hosts can't slow down or silently thin out the
-	// list. Unscoped (palette, dev seeding): the shared provider's merged view.
+	// list. Unscoped (palette, dev seeding): the shared provider's merged view;
+	// the scoped source gets null there, which resolves no target and runs no
+	// queries.
 	const selectedHostId =
 		deviceFilter === undefined
 			? null
 			: deviceFilter === DEVICE_FILTER_THIS_DEVICE
 				? machineId
 				: deviceFilter;
-	const selectedHost = useSelectedHostWorkspaces(selectedHostId);
+	const selectedHost = useHostWorkspacesSource(selectedHostId);
 	const allHosts = useHostWorkspaces();
 	const hostWorkspaces =
-		deviceFilter === undefined ? allHosts.workspaces : selectedHost.rows;
+		deviceFilter === undefined ? allHosts.workspaces : selectedHost.workspaces;
 	const isReady =
 		deviceFilter === undefined ? allHosts.isReady : selectedHost.isReady;
 
@@ -568,20 +558,12 @@ export function useAccessibleV2Workspaces(
 		[enriched, searchQuery],
 	);
 
-	const deviceFiltered = useMemo(
-		() =>
-			searchFiltered.filter((workspace) =>
-				matchesDeviceFilter(workspace, deviceFilter, machineId),
-			),
-		[searchFiltered, deviceFilter, machineId],
-	);
-
 	const fullyFiltered = useMemo(
 		() =>
-			deviceFiltered.filter((workspace) =>
+			searchFiltered.filter((workspace) =>
 				matchesProjectFilter(workspace, projectFilter),
 			),
-		[deviceFiltered, projectFilter],
+		[searchFiltered, projectFilter],
 	);
 
 	const pinned = useMemo(
@@ -621,7 +603,7 @@ export function useAccessibleV2Workspaces(
 
 	const projectOptions = useMemo<V2WorkspaceProjectOption[]>(() => {
 		const byProject = new Map<string, V2WorkspaceProjectOption>();
-		for (const workspace of deviceFiltered) {
+		for (const workspace of searchFiltered) {
 			const existing = byProject.get(workspace.projectId);
 			if (existing) {
 				existing.count += 1;
@@ -637,7 +619,7 @@ export function useAccessibleV2Workspaces(
 		return Array.from(byProject.values()).sort((a, b) =>
 			a.projectName.localeCompare(b.projectName),
 		);
-	}, [deviceFiltered]);
+	}, [searchFiltered]);
 
 	const hostsById = useMemo(() => {
 		const map = new Map<

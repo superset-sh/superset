@@ -237,48 +237,43 @@ export function V2WorkspacesList({
 	);
 
 	if (totalCount === 0) {
-		// Hosts that haven't answered yet must not read as empty (cache-first rule).
-		if (!isReady) {
-			return (
-				<div className="flex min-h-0 flex-1 flex-col">
-					<Table className="table-fixed">{columnHeader}</Table>
-				</div>
-			);
-		}
+		// A host that hasn't answered yet must not read as empty (cache-first rule).
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				<Table className="table-fixed">{columnHeader}</Table>
-				<Empty className="flex-1 border-0">
-					<EmptyHeader>
-						<EmptyMedia
-							variant="icon"
-							className="size-14 [&_svg:not([class*='size-'])]:size-7"
-						>
-							{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
-						</EmptyMedia>
-						<EmptyTitle>
-							{hasActiveFilters
-								? "No workspaces match your filters"
-								: "No workspaces yet"}
-						</EmptyTitle>
-						<EmptyDescription>
-							{hasActiveFilters
-								? "Try a different search term or another device."
-								: "Workspaces on this device will show up here."}
-						</EmptyDescription>
-					</EmptyHeader>
-					{hasActiveFilters ? (
-						<EmptyContent>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => resetFilters()}
+				{isReady ? (
+					<Empty className="flex-1 border-0">
+						<EmptyHeader>
+							<EmptyMedia
+								variant="icon"
+								className="size-14 [&_svg:not([class*='size-'])]:size-7"
 							>
-								Clear filters
-							</Button>
-						</EmptyContent>
-					) : null}
-				</Empty>
+								{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
+							</EmptyMedia>
+							<EmptyTitle>
+								{hasActiveFilters
+									? "No workspaces match your filters"
+									: "No workspaces yet"}
+							</EmptyTitle>
+							<EmptyDescription>
+								{hasActiveFilters
+									? "Try a different search term or another device."
+									: "Workspaces on this device will show up here."}
+							</EmptyDescription>
+						</EmptyHeader>
+						{hasActiveFilters ? (
+							<EmptyContent>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => resetFilters()}
+								>
+									Clear filters
+								</Button>
+							</EmptyContent>
+						) : null}
+					</Empty>
+				) : null}
 			</div>
 		);
 	}
