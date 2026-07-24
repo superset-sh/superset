@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_run",
+		annotations: { destructiveHint: false },
 		description:
 			"Dispatch an automation immediately, outside its normal schedule. Returns the new run ID; does not wait for completion. Use automations_logs to track progress.",
 		inputSchema: {

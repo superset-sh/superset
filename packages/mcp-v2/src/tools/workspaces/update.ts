@@ -6,6 +6,7 @@ import { hostServiceCall } from "../../host-service-client";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_update",
+		annotations: { destructiveHint: false, idempotentHint: true },
 		description:
 			"Rename a workspace on its host. Use hosts_list / workspaces_list to find the hostId.",
 		inputSchema: {

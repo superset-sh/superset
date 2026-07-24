@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "tasks_create",
+		annotations: { destructiveHint: false },
 		description:
 			"Create a task in the active organization. Use this when the user describes work they want to track. The task is auto-assigned a default status if statusId is omitted.",
 		inputSchema: {

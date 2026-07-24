@@ -5,6 +5,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "hosts_list",
+		annotations: { readOnlyHint: true },
 		description:
 			"List the hosts (registered machines) the calling user has access to in the active organization. Use this to find a host's id before creating a workspace or scheduling an automation.",
 		handler: async (_input, ctx) => {

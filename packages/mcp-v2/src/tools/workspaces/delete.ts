@@ -6,6 +6,7 @@ import { hostServiceCall } from "../../host-service-client";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "workspaces_delete",
+		annotations: { destructiveHint: true },
 		description:
 			"Delete a workspace by UUID on its host. The host service removes the git worktree from disk before returning. Cannot delete 'main'-type workspaces. Use hosts_list / workspaces_list to find the hostId.",
 		inputSchema: {

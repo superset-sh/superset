@@ -1,5 +1,8 @@
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { CallToolResult } from "@modelcontextprotocol/sdk/types.js";
+import type {
+	CallToolResult,
+	ToolAnnotations,
+} from "@modelcontextprotocol/sdk/types.js";
 import type { ZodRawShape, z } from "zod";
 import { isMcpUnauthorized, type McpContext } from "./auth";
 import { getMcpContextFromExtra, type McpRequestExtra } from "./context-utils";
@@ -10,6 +13,7 @@ export interface ToolDef<
 > {
 	name: string;
 	description: string;
+	annotations?: ToolAnnotations;
 	inputSchema?: Input;
 	outputSchema?: Output;
 	handler: (
@@ -101,6 +105,7 @@ export function defineTool<
 		def.name,
 		{
 			description: def.description,
+			...(def.annotations ? { annotations: def.annotations } : {}),
 			inputSchema: (def.inputSchema ?? {}) as Input,
 			...(def.outputSchema ? { outputSchema: def.outputSchema } : {}),
 		},

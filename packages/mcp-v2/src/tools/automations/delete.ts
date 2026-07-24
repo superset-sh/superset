@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_delete",
+		annotations: { destructiveHint: true },
 		description:
 			"Delete an automation. The recurring schedule stops immediately; past runs remain. Caller must be the owner.",
 		inputSchema: {
