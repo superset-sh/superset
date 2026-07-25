@@ -5,7 +5,7 @@ import {
 } from "@superset/shared/github-remote";
 import { BRANCH_PREFIX_MODES } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import {
@@ -35,8 +35,33 @@ import {
 	validateDirectoryPath,
 } from "./utils/resolve-repo";
 
+function ensureProjectsForMainWorkspaces(
+	ctx: Parameters<typeof persistLocalProject>[0],
+): void {
+	const orphanedMainWorkspaces = ctx.db
+		.select({
+			projectId: workspaces.projectId,
+			worktreePath: workspaces.worktreePath,
+		})
+		.from(workspaces)
+		.leftJoin(projects, eq(projects.id, workspaces.projectId))
+		.where(and(isNull(projects.id), eq(workspaces.type, "main")))
+		.all();
+
+	for (const workspace of orphanedMainWorkspaces) {
+		persistLocalProject(
+			ctx,
+			workspace.projectId,
+			{ repoPath: workspace.worktreePath, parsed: null, remoteName: null },
+			{ name: basename(workspace.worktreePath) },
+		);
+	}
+}
+
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
+		ensureProjectsForMainWorkspaces(ctx);
+
 		return ctx.db
 			.select()
 			.from(projects)

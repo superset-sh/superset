@@ -12,7 +12,7 @@ export interface ProjectIdentityFields {
 }
 
 export function persistLocalProject(
-	ctx: HostServiceContext,
+	ctx: Pick<HostServiceContext, "db" | "eventBus">,
 	projectId: string,
 	resolved: ResolvedRepo,
 	identity?: ProjectIdentityFields,
