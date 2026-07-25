@@ -38,7 +38,7 @@ export function NavigationControls() {
 						type="button"
 						onClick={() => router.history.back()}
 						disabled={!canGoBack}
-						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-fill-hover transition-colors disabled:opacity-30 disabled:pointer-events-none"
 					>
 						<LuArrowLeft className="size-4" strokeWidth={1.5} />
 					</button>
@@ -54,7 +54,7 @@ export function NavigationControls() {
 						type="button"
 						onClick={() => router.history.forward()}
 						disabled={!canGoForward}
-						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-fill-hover transition-colors disabled:opacity-30 disabled:pointer-events-none"
 					>
 						<LuArrowRight className="size-4" strokeWidth={1.5} />
 					</button>

@@ -43,7 +43,7 @@ export function WorkspacePortGroup({ group }: WorkspacePortGroupProps) {
 							disabled={isPending}
 							aria-busy={isPending}
 							className={cn(
-								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted/50 hover:text-primary",
+								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-fill-hover hover:text-primary",
 								"disabled:pointer-events-none disabled:opacity-60",
 							)}
 						>

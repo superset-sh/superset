@@ -45,7 +45,7 @@ export function PortsList() {
 						<button
 							type="button"
 							onClick={handleOpenPortsDocs}
-							className="ml-auto p-0.5 rounded hover:bg-muted/50 opacity-0 group-hover:opacity-100 transition-opacity"
+							className="ml-auto p-0.5 rounded hover:bg-fill-hover opacity-0 group-hover:opacity-100 transition-opacity"
 						>
 							<LuCircleHelp className="size-3" strokeWidth={STROKE_WIDTH} />
 						</button>

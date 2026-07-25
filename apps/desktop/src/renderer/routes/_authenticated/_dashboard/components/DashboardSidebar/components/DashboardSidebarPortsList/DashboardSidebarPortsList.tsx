@@ -50,7 +50,7 @@ export function DashboardSidebarPortsList() {
 							type="button"
 							onClick={handleOpenPortsDocs}
 							aria-label="Learn about port labels"
-							className="ml-auto rounded p-0.5 opacity-0 transition-opacity hover:bg-muted/50 group-hover:opacity-100"
+							className="ml-auto rounded p-0.5 opacity-0 transition-opacity hover:bg-fill-hover group-hover:opacity-100"
 						>
 							<LuCircleHelp className="size-3" strokeWidth={STROKE_WIDTH} />
 						</button>

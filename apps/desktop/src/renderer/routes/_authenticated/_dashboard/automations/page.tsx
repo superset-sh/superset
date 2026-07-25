@@ -52,6 +52,7 @@ import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
 import type { AutomationTemplate } from "./templates";
 import { isHostOfflineError } from "./utils/hostOfflineError";
+import { isStaleAgentError, STALE_AGENT_HELP } from "./utils/staleAgentError";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -93,6 +94,10 @@ function AutomationsPage() {
 			const message = error instanceof Error ? error.message : null;
 			if (isHostOfflineError(message)) {
 				setHostOfflineRun({ hostId: targetHostId });
+				return;
+			}
+			if (isStaleAgentError(message)) {
+				toast.error(STALE_AGENT_HELP);
 				return;
 			}
 			toast.error(message ?? "Failed to trigger run");

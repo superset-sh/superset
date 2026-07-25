@@ -122,12 +122,10 @@ export function DashboardSidebarWorkspaceItem({
 				onMouseLeave={handleMouseLeave}
 				className="relative flex w-full justify-center"
 			>
-				{(accentColor || isActive) && (
+				{accentColor && (
 					<div
 						className="absolute inset-y-0 left-0 w-0.5"
-						style={{
-							backgroundColor: accentColor ?? "var(--color-foreground)",
-						}}
+						style={{ backgroundColor: accentColor }}
 					/>
 				)}
 				<DashboardSidebarCollapsedWorkspaceButton

@@ -49,7 +49,7 @@ export function DashboardSidebarWorkspaceChips({
 		<div
 			className={cn(
 				"flex h-7 items-center gap-1 pr-2",
-				isInSection ? "pl-[58px]" : "pl-[50px]",
+				isInSection ? "pl-[50px]" : "pl-[42px]",
 				onClick && "cursor-pointer",
 			)}
 			onMouseDown={(event) => event.stopPropagation()}
