@@ -9,7 +9,9 @@ import type { HostDb } from "../db";
 import * as schema from "../db/schema";
 import type { EventBus } from "../events";
 import {
+	deleteLocalWorkspace,
 	getLocalWorkspace,
+	getSubworkspaceDescendants,
 	insertLocalWorkspace,
 	updateLocalWorkspace,
 } from "./local-workspace-store";
@@ -17,6 +19,7 @@ import {
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../drizzle");
 let testRoot: string | null = null;
 
+/** Open an isolated migrated host database with a recording event bus. */
 function createTestContext(path = ":memory:") {
 	const sqlite = new Database(path);
 	sqlite.exec("PRAGMA foreign_keys = ON;");
@@ -130,5 +133,42 @@ describe("local subworkspaces", () => {
 			agentDelegationMode: "workspaces",
 		});
 		reopenedSqlite.close();
+	});
+
+	it("finds nested descendants and applies the parent foreign key action", () => {
+		const ctx = createTestContext();
+		insertLocalWorkspace(ctx, {
+			id: "parent",
+			projectId: "project",
+			worktreePath: "/repo",
+			branch: "main",
+			name: "Parent",
+			type: "main",
+		});
+		insertLocalWorkspace(ctx, {
+			id: "child",
+			projectId: "project",
+			worktreePath: "/repo",
+			branch: "main",
+			name: "Child",
+			type: "subworkspace",
+			parentWorkspaceId: "parent",
+		});
+		insertLocalWorkspace(ctx, {
+			id: "grandchild",
+			projectId: "project",
+			worktreePath: "/repo",
+			branch: "main",
+			name: "Grandchild",
+			type: "subworkspace",
+			parentWorkspaceId: "child",
+		});
+
+		expect(
+			getSubworkspaceDescendants(ctx.db, "parent").map(({ id }) => id),
+		).toEqual(["child", "grandchild"]);
+
+		deleteLocalWorkspace(ctx, "parent");
+		expect(getLocalWorkspace(ctx.db, "child")?.parentWorkspaceId).toBeNull();
 	});
 });

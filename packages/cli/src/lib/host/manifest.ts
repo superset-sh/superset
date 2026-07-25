@@ -23,6 +23,7 @@ export interface HostServiceManifest {
 	organizationId: string;
 }
 
+/** Resolve the per-organization host runtime directory. */
 function manifestDir(
 	organizationId: string,
 	supersetHomeDir = SUPERSET_HOME_DIR,
@@ -30,6 +31,7 @@ function manifestDir(
 	return join(supersetHomeDir, "host", organizationId);
 }
 
+/** Resolve the per-organization host manifest path. */
 function manifestPath(
 	organizationId: string,
 	supersetHomeDir = SUPERSET_HOME_DIR,
@@ -65,6 +67,7 @@ export function readManifest(
 	}
 }
 
+/** Read every valid host-service manifest under the Superset home directory. */
 export function listManifests(
 	supersetHomeDir = SUPERSET_HOME_DIR,
 ): HostServiceManifest[] {

@@ -1,14 +1,13 @@
 import { existsSync } from "node:fs";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import {
 	deleteLocalWorkspace,
+	getSubworkspaceDescendants,
 	type HostWorkspaceRow,
 } from "../../../workspaces/local-workspace-store";
 import type {
@@ -222,7 +221,7 @@ async function runDestroy(
 	}
 
 	const childSubworkspaces = local
-		? getSubworkspaceDescendants(ctx, local.id)
+		? getSubworkspaceDescendants(ctx.db, local.id)
 		: [];
 
 	// ─── Step 0: Preflight ─────────────────────────────────────────
@@ -417,12 +416,13 @@ async function runDestroy(
 	};
 }
 
+/** Remove a logical subworkspace tree without touching its shared checkout. */
 async function destroyLogicalSubworkspace(
 	ctx: HostServiceContext,
 	workspace: HostWorkspaceRow,
 ) {
 	const warnings: string[] = [];
-	const descendants = getSubworkspaceDescendants(ctx, workspace.id);
+	const descendants = getSubworkspaceDescendants(ctx.db, workspace.id);
 	for (const child of [...descendants, workspace]) {
 		await disposeWorkspaceSessions(ctx, child.id, warnings);
 	}
@@ -442,38 +442,7 @@ async function destroyLogicalSubworkspace(
 	};
 }
 
-function getSubworkspaceDescendants(
-	ctx: HostServiceContext,
-	parentWorkspaceId: string,
-): HostWorkspaceRow[] {
-	const candidates = ctx.db
-		.select()
-		.from(workspaces)
-		.where(eq(workspaces.type, "subworkspace"))
-		.all();
-	const descendants: HostWorkspaceRow[] = [];
-	const pendingParentIds = new Set([parentWorkspaceId]);
-	let changed = true;
-
-	while (changed) {
-		changed = false;
-		for (const candidate of candidates) {
-			if (
-				descendants.some((workspace) => workspace.id === candidate.id) ||
-				!candidate.parentWorkspaceId ||
-				!pendingParentIds.has(candidate.parentWorkspaceId)
-			) {
-				continue;
-			}
-			descendants.push(candidate);
-			pendingParentIds.add(candidate.id);
-			changed = true;
-		}
-	}
-
-	return descendants;
-}
-
+/** Stop every agent and terminal session owned by one workspace. */
 async function disposeWorkspaceSessions(
 	ctx: HostServiceContext,
 	workspaceId: string,

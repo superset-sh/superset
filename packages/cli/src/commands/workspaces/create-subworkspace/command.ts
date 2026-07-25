@@ -27,6 +27,7 @@ export default command({
 			.variadic()
 			.desc("Local file path to upload as an attachment. Repeatable"),
 	},
+	/** Create the logical child through the host that owns its parent. */
 	run: async ({ options }) => {
 		const parentWorkspaceId =
 			options.parent ?? process.env.SUPERSET_WORKSPACE_ID;

@@ -130,6 +130,42 @@ export function getLocalWorkspace(
 	return db.query.workspaces.findFirst({ where: eq(workspaces.id, id) }).sync();
 }
 
+/**
+ * Return every logical subworkspace below a workspace, with parents before
+ * their descendants.
+ */
+export function getSubworkspaceDescendants(
+	db: HostDb,
+	parentWorkspaceId: string,
+): HostWorkspaceRow[] {
+	const candidates = db
+		.select()
+		.from(workspaces)
+		.where(eq(workspaces.type, "subworkspace"))
+		.all();
+	const descendants: HostWorkspaceRow[] = [];
+	const pendingParentIds = new Set([parentWorkspaceId]);
+	let changed = true;
+
+	while (changed) {
+		changed = false;
+		for (const candidate of candidates) {
+			if (
+				descendants.some((workspace) => workspace.id === candidate.id) ||
+				!candidate.parentWorkspaceId ||
+				!pendingParentIds.has(candidate.parentWorkspaceId)
+			) {
+				continue;
+			}
+			descendants.push(candidate);
+			pendingParentIds.add(candidate.id);
+			changed = true;
+		}
+	}
+
+	return descendants;
+}
+
 export interface InsertLocalWorkspaceValues {
 	id?: string;
 	projectId: string;

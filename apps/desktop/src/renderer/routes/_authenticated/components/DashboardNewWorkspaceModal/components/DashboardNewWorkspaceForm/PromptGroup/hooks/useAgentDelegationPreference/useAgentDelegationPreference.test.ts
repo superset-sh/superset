@@ -4,6 +4,7 @@ import {
 	writeAgentDelegationPreference,
 } from "./useAgentDelegationPreference";
 
+/** Create a minimal in-memory Storage implementation for preference tests. */
 function createStorage(initialValue: string | null = null) {
 	let value = initialValue;
 	return {

@@ -13,6 +13,7 @@ interface BroadcastedAgentLifecycleEvent {
 	occurredAt: number;
 }
 
+/** Build the focused notification-router context used by these tests. */
 function createContext(
 	originWorkspaceId: string | null,
 	agentDelegationMode: "native" | "workspaces" = "native",

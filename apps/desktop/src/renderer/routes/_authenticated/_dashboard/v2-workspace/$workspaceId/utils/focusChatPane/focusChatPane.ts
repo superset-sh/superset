@@ -2,6 +2,7 @@ import type { WorkspaceStore } from "@superset/panes";
 import type { StoreApi } from "zustand/vanilla";
 import type { ChatPaneData, PaneViewerData } from "../../types";
 
+/** Focus an existing chat pane for a session, or add it in a new tab. */
 export function focusOrAddChatPane(
 	store: StoreApi<WorkspaceStore<PaneViewerData>>,
 	sessionId: string,

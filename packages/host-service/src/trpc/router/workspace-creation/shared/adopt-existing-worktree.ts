@@ -6,6 +6,7 @@ import type { HostServiceContext } from "../../../../types";
 import {
 	deleteLocalWorkspace,
 	getLocalWorkspace,
+	getSubworkspaceDescendants,
 	insertLocalWorkspace,
 	toCloudShape,
 	updateLocalWorkspace,
@@ -220,6 +221,10 @@ function deleteLocalWorkspaceConflicts(
 		)
 		.all();
 	for (const conflict of conflicts) {
+		const descendants = getSubworkspaceDescendants(store.db, conflict.id);
+		for (const descendant of descendants.reverse()) {
+			deleteLocalWorkspace(store, descendant.id);
+		}
 		deleteLocalWorkspace(store, conflict.id);
 	}
 }

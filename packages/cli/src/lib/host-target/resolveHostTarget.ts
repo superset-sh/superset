@@ -38,6 +38,7 @@ export interface ResolveHostTargetOptions {
 	userJwt: string;
 }
 
+/** Build an authenticated loopback client from a local host manifest. */
 export function createLocalHostServiceClient(
 	manifest: HostServiceManifest,
 	hostId = getHostId(),

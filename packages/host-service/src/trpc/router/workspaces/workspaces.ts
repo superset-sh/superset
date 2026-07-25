@@ -84,7 +84,7 @@ const createInputSchema = z
 		pr: z.number().int().positive().optional(),
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
-		agentDelegationMode: agentDelegationModeSchema.default("native"),
+		agentDelegationMode: agentDelegationModeSchema.optional(),
 		agents: z.array(agentLaunchSchema).optional(),
 		command: z.string().min(1).optional(),
 		namingPrompt: z.string().min(1).optional(),
@@ -746,7 +746,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
-								agentDelegationMode: input.agentDelegationMode,
+								agentDelegationMode: input.agentDelegationMode ?? "native",
 								rollbackWorktree: rollbackCreatedWorktree,
 							});
 
@@ -1003,7 +1003,7 @@ export const workspacesRouter = router({
 								branch: resolvedBranch,
 								worktreePath,
 								taskId: input.taskId,
-								agentDelegationMode: input.agentDelegationMode,
+								agentDelegationMode: input.agentDelegationMode ?? "native",
 								rollbackWorktree,
 							});
 						}
@@ -1011,7 +1011,10 @@ export const workspacesRouter = router({
 				}
 			}
 
-			if (workspaceRow.agentDelegationMode !== input.agentDelegationMode) {
+			if (
+				input.agentDelegationMode !== undefined &&
+				workspaceRow.agentDelegationMode !== input.agentDelegationMode
+			) {
 				const updated = updateLocalWorkspace(
 					{ db: ctx.db, eventBus: ctx.eventBus },
 					workspaceRow.id,

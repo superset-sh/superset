@@ -66,7 +66,7 @@ export function DestroyConfirmPane({
 					</AlertDialogTitle>
 					<AlertDialogDescription>
 						{isSubworkspace
-							? "This removes the subworkspace and its agent sessions. The shared working tree and branch are unchanged."
+							? "This removes the subworkspace, its nested subworkspaces, and their agent sessions. The shared working tree and branch are unchanged."
 							: "This removes the worktree from disk. The cloud workspace record will also be removed."}
 					</AlertDialogDescription>
 				</AlertDialogHeader>

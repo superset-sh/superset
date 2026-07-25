@@ -56,6 +56,7 @@ export interface BuildDashboardSidebarProjectsParams {
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
 }
 
+/** Keep each visible subworkspace tree adjacent to its top-level parent. */
 function orderSubWorkspacesAfterParents(
 	workspaces: DashboardSidebarWorkspace[],
 ): DashboardSidebarWorkspace[] {
@@ -78,6 +79,7 @@ function orderSubWorkspacesAfterParents(
 	}
 
 	const ordered: DashboardSidebarWorkspace[] = [];
+	/** Append one workspace followed by its visible descendants. */
 	const appendTree = (workspace: DashboardSidebarWorkspace) => {
 		ordered.push(workspace);
 		for (const child of childrenByParentId.get(workspace.id) ?? []) {
@@ -288,6 +290,7 @@ export function buildDashboardSidebarProjects({
 
 		const orderedChildren: DashboardSidebarProjectChild[] = [];
 		const topLevelWorkspaces: DashboardSidebarWorkspace[] = [];
+		/** Flush one contiguous workspace group without crossing section rows. */
 		const flushTopLevelWorkspaces = () => {
 			orderedChildren.push(
 				...orderSubWorkspacesAfterParents(topLevelWorkspaces).map(
