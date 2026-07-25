@@ -196,7 +196,7 @@ export function NewWorkspaceScreen({
 	// and make switching projects impossible.
 	const appliedPreSelectionRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!isOpen || !areProjectsReady) return;
+		if (!isOpen || (!areProjectsReady && projects.length === 0)) return;
 		const isValid = (id: string | null | undefined) =>
 			Boolean(id && projects.some((project) => project.id === id));
 		if (
@@ -371,6 +371,11 @@ export function NewWorkspaceScreen({
 		const idSet = new Set(fileIdsForCurrentHost);
 		return attachments.files.filter((file) => idSet.has(file.id));
 	}, [attachments.files, fileIdsForCurrentHost]);
+	const isSubmissionEmpty =
+		isPromptEmpty &&
+		!draft.linkedPR &&
+		draft.linkedIssues.length === 0 &&
+		visibleFiles.length === 0;
 	const promptContext = useNewWorkspacePromptContext({
 		projectId,
 		hostId: draft.hostId,
@@ -417,7 +422,7 @@ export function NewWorkspaceScreen({
 			handleGoToSetup();
 			return;
 		}
-		if (isPromptEmpty) return;
+		if (isSubmissionEmpty) return;
 		if (submitBlocker) {
 			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
@@ -435,7 +440,7 @@ export function NewWorkspaceScreen({
 		draft.hostId,
 		handleGoToSetup,
 		hostService,
-		isPromptEmpty,
+		isSubmissionEmpty,
 		machineId,
 		needsSetup,
 		submitBlocker,
@@ -692,7 +697,7 @@ export function NewWorkspaceScreen({
 							</Tooltip>
 							<PromptInputSubmit
 								className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-								disabled={needsSetup || isPromptEmpty}
+								disabled={needsSetup || isSubmissionEmpty}
 								onClick={(e) => {
 									e.preventDefault();
 									handleSubmit();
