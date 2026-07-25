@@ -394,6 +394,31 @@ if (!gotTheLock) {
 				.protocol.handle("superset-font", fontProtocolHandler);
 		}
 
+		if (process.platform === "win32") {
+			// Serve Windows system fonts from C:\Windows\Fonts
+			const WINDOWS_FONT_DIR =
+				process.env.SystemRoot
+					? path.join(process.env.SystemRoot, "Fonts")
+					: "C:\\Windows\\Fonts";
+			const fontProtocolHandlerWin = async (request: Request) => {
+				const url = new URL(request.url);
+				const filename = path.basename(url.pathname);
+				if (!/\.(otf|ttf|woff2?)$/i.test(filename)) {
+					return new Response("Not found", { status: 404 });
+				}
+				const fontPath = path.join(WINDOWS_FONT_DIR, filename);
+				try {
+					return await net.fetch(pathToFileURL(fontPath).toString());
+				} catch {
+					return new Response("Not found", { status: 404 });
+				}
+			};
+			protocol.handle("superset-font", fontProtocolHandlerWin);
+			session
+				.fromPartition("persist:superset")
+				.protocol.handle("superset-font", fontProtocolHandlerWin);
+		}
+
 		ensureProjectIconsDir();
 		setWorkspaceDockIcon();
 		initSentry();

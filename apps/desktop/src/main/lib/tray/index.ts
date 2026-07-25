@@ -255,7 +255,7 @@ export function initTray(): void {
 		return;
 	}
 
-	if (process.platform !== "darwin") {
+	if (process.platform !== "darwin" && process.platform !== "win32" && process.platform !== "linux") {
 		return;
 	}
 
@@ -276,9 +276,26 @@ export function initTray(): void {
 			void updateTrayMenu();
 		});
 
-		tray.on("mouse-enter", () => {
-			void updateTrayMenu();
-		});
+		// On Windows/Linux, a left-click on the tray icon should show the window.
+		// On macOS the menu-bar click shows the menu directly; the activate event
+		// handles window restoration instead.
+		if (process.platform !== "darwin") {
+			tray.on("click", () => {
+				focusMainWindow();
+			});
+			tray.on("double-click", () => {
+				focusMainWindow();
+			});
+		}
+
+		// mouse-enter refreshes the tray menu on macOS menu bar hover.
+		// On Windows/Linux the context menu is shown on right-click and
+		// does not need eager pre-fetching via mouse-enter.
+		if (process.platform === "darwin") {
+			tray.on("mouse-enter", () => {
+				void updateTrayMenu();
+			});
+		}
 
 		console.log("[Tray] Initialized successfully");
 	} catch (error) {
