@@ -94,7 +94,12 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 					<li key={run.id}>
 						{run.error ? (
 							<Tooltip>
-								<TooltipTrigger asChild>{row}</TooltipTrigger>
+								{/* Wrap in a span: runs with no workspace render `row` as a
+								    disabled button, which emits no pointer events and would
+								    otherwise hide the error tooltip on hover. */}
+								<TooltipTrigger asChild>
+									<span className="block">{row}</span>
+								</TooltipTrigger>
 								<TooltipContent
 									side="left"
 									className="max-w-xs whitespace-pre-wrap"

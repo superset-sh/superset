@@ -127,12 +127,12 @@ export function CreateAutomationDialog({
 		if (!initialTemplate?.agentType) return;
 		if (appliedAgentForTemplateRef.current === initialTemplate) return;
 		if (hostAgents.length === 0) return;
-		const match = hostAgents.find(
-			(option) =>
-				option.id === initialTemplate.agentType ||
-				option.presetId === initialTemplate.agentType ||
-				option.iconId === initialTemplate.agentType,
-		);
+		// Resolve id/preset across the whole list first; an earlier agent's
+		// `iconId` override must not win over a later agent whose real presetId
+		// matches, so iconId is only a legacy fallback.
+		const match =
+			matchAgentChoice(hostAgents, initialTemplate.agentType) ??
+			hostAgents.find((option) => option.iconId === initialTemplate.agentType);
 		if (match) setAgent(portableAgentValue(hostAgents, match));
 		appliedAgentForTemplateRef.current = initialTemplate;
 	}, [open, initialTemplate, hostAgents]);
