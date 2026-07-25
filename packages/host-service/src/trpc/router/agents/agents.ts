@@ -233,9 +233,12 @@ async function runTerminalAgent(
 ): Promise<AgentRunResult> {
 	const config = resolveHostAgentConfig(ctx.db, input.agent);
 	if (!config) {
+		// Worded for end users (automation run errors show this verbatim), but
+		// keep "No host agent config matching" — the desktop matches on it to
+		// attach re-select guidance.
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: `No host agent config matching '${input.agent}' (tried instance id then preset id).`,
+			message: `No host agent config matching '${input.agent}' — the agent may have been removed or this host's agents were reset. Re-select an agent (or use a preset id like "claude").`,
 		});
 	}
 

@@ -8,6 +8,17 @@ import {
 	HOST_OFFLINE_HELP,
 	isHostOfflineError,
 } from "../../../utils/hostOfflineError";
+import {
+	isStaleAgentError,
+	STALE_AGENT_HELP,
+} from "../../../utils/staleAgentError";
+
+function describeRunError(error: string): string {
+	if (isHostOfflineError(error)) return `${error}. ${HOST_OFFLINE_HELP}`;
+	// Lead with the plain-language fix; keep the raw host error for reports.
+	if (isStaleAgentError(error)) return `${STALE_AGENT_HELP}\n\n(${error})`;
+	return error;
+}
 
 const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
 	dispatched: "bg-emerald-500",
@@ -88,9 +99,7 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 									side="left"
 									className="max-w-xs whitespace-pre-wrap"
 								>
-									{isHostOfflineError(run.error)
-										? `${run.error}. ${HOST_OFFLINE_HELP}`
-										: run.error}
+									{describeRunError(run.error)}
 								</TooltipContent>
 							</Tooltip>
 						) : (

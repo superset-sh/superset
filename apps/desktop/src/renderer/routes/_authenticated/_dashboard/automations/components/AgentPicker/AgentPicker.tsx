@@ -14,6 +14,10 @@ import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import {
+	matchAgentChoice,
+	portableAgentValue,
+} from "../../utils/agentIdentity";
 
 interface AgentPickerProps {
 	hostId: string | null | undefined;
@@ -32,7 +36,7 @@ export function AgentPicker({
 	const hostUrl = useHostUrl(hostId);
 	const { agents } = useV2AgentChoices(hostUrl);
 	const isDark = useIsDarkTheme();
-	const hostMatch = agents.find((agent) => agent.id === value);
+	const hostMatch = matchAgentChoice(agents, value);
 	const presetMatch = hostMatch ? null : getPresetById(value);
 	const selectedLabel =
 		hostMatch?.label ?? presetMatch?.label ?? (value ? value : null);
@@ -66,7 +70,7 @@ export function AgentPicker({
 					return (
 						<DropdownMenuItem
 							key={agent.id}
-							onSelect={() => onChange(agent.id)}
+							onSelect={() => onChange(portableAgentValue(agents, agent))}
 						>
 							{icon ? (
 								<img
@@ -78,7 +82,7 @@ export function AgentPicker({
 								<LuCpu className="size-4 shrink-0" />
 							)}
 							<span className="flex-1 truncate">{agent.label}</span>
-							{value === agent.id && <HiCheck className="size-4" />}
+							{hostMatch?.id === agent.id && <HiCheck className="size-4" />}
 						</DropdownMenuItem>
 					);
 				})}
