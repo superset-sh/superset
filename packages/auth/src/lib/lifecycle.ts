@@ -28,23 +28,3 @@ export async function getActivationVariant(
 		return "test";
 	}
 }
-
-export async function emitLifecycleEvent(
-	name: string,
-	email: string,
-	payload?: Record<string, string>,
-) {
-	const response = await fetch("https://api.resend.com/events/send", {
-		method: "POST",
-		headers: {
-			Authorization: `Bearer ${env.RESEND_API_KEY}`,
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify({ name, email, payload }),
-	});
-	if (!response.ok) {
-		throw new Error(
-			`Resend event ${name} failed: ${response.status} ${await response.text()}`,
-		);
-	}
-}

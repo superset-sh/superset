@@ -35,7 +35,7 @@
 		"@vercel/kv": "3.0.0",
 		"drizzle-orm": "0.45.2",
 		"posthog-node": "5.28.8",
-		"resend": "4.8.0",
+		"resend": "6.18.0",
 		"superjson": "2.2.6",
 		"zod": "4.3.6"
 	},
