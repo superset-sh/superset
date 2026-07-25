@@ -52,6 +52,7 @@ export function playSoundFile(
 				"-Command",
 				`(New-Object System.Media.SoundPlayer '${escapedPath}').PlaySync()`,
 			],
+			{ windowsHide: true },
 			() => callbacks?.onComplete?.(),
 		);
 	}
