@@ -97,7 +97,7 @@ function asTombstoneArg(collections: Collections) {
 const noopCleanup = () => {};
 
 describe("removeProjectFromSidebarState", () => {
-	it("tombstones the project's worktrees — existing rows and this device's row-less ones — and deletes sections and the project record", () => {
+	it("tombstones the project's worktrees — existing rows and this device's row-less ones — and deletes the project record", () => {
 		const collections = makeCollections();
 		// Explicitly-placed worktree (has a visible local-state row).
 		collections.v2WorkspaceLocalState.insert(
@@ -118,10 +118,6 @@ describe("removeProjectFromSidebarState", () => {
 				type: "worktree",
 			},
 		];
-		collections.v2SidebarSections.insert({
-			sectionId: "sec-1",
-			projectId: "proj-1",
-		});
 		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
 
 		const cleaned: string[] = [];
@@ -143,7 +139,6 @@ describe("removeProjectFromSidebarState", () => {
 			collections.v2WorkspaceLocalState.get("ws-rowless")?.sidebarState
 				.isHidden,
 		).toBe(true);
-		expect(collections.v2SidebarSections.get("sec-1")).toBeUndefined();
 		expect(collections.v2SidebarProjects.get("proj-1")).toBeUndefined();
 		// Only the pre-existing row had live runtimes to tear down.
 		expect(cleaned).toEqual(["ws-placed"]);
@@ -258,7 +253,7 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 		expect(cleaned).toEqual([]);
 	});
 
-	it("hides an existing row, clears its section, and runs pane cleanup", () => {
+	it("hides an existing row, keeps host-owned group membership, and runs pane cleanup", () => {
 		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
 			localStateRow("ws-1", "proj-1", { sectionId: "sec-1" }),
@@ -276,7 +271,8 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 
 		const row = collections.v2WorkspaceLocalState.get("ws-1");
 		expect(row?.sidebarState.isHidden).toBe(true);
-		expect(row?.sidebarState.sectionId).toBeNull();
+		// Group membership is host-owned; the deprecated local field is left as-is.
+		expect(row?.sidebarState.sectionId).toBe("sec-1");
 		expect(cleaned).toEqual(["ws-1"]);
 	});
 });

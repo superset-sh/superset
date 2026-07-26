@@ -13,7 +13,6 @@ import { SortableSectionHeader } from "../../../SortableSectionHeader";
 import { SortableWorkspaceItem } from "../../../SortableWorkspaceItem";
 
 interface DashboardSidebarExpandedProjectContentProps {
-	projectId: string;
 	isCollapsed: boolean;
 	projectChildren: DashboardSidebarProjectChild[];
 	isDragDisabled?: boolean;
@@ -25,7 +24,6 @@ interface DashboardSidebarExpandedProjectContentProps {
 }
 
 export function DashboardSidebarExpandedProjectContent({
-	projectId,
 	isCollapsed,
 	projectChildren,
 	isDragDisabled = false,
@@ -50,7 +48,7 @@ export function DashboardSidebarExpandedProjectContent({
 		workspacesById,
 		sectionsById,
 		handlers,
-	} = useSidebarDnd({ projectId, projectChildren, disabled: isDragDisabled });
+	} = useSidebarDnd({ projectChildren, disabled: isDragDisabled });
 
 	return (
 		<AnimatePresence initial={false}>

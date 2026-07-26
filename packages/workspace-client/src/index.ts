@@ -9,6 +9,8 @@ export {
 	type PortChangedPayload,
 	type ProjectChangedPayload,
 	type ProjectSnapshotPayload,
+	type SectionChangedPayload,
+	type SectionSnapshotPayload,
 	type TerminalLifecyclePayload,
 	type WorkspaceChangedPayload,
 	type WorkspaceSnapshotPayload,

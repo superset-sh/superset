@@ -66,6 +66,8 @@ export interface WorkspaceSnapshot {
 	type: "main" | "worktree";
 	worktreePath: string;
 	taskId: string | null;
+	sectionId: string | null;
+	tabOrder: number;
 	createdByUserId: string | null;
 	createdAt: number;
 	updatedAt: number;
@@ -78,6 +80,16 @@ export interface WorkspaceChangedMessage {
 	/** Null for `deleted` — the row is already gone. */
 	workspace: WorkspaceSnapshot | null;
 	occurredAt: number;
+}
+
+export interface SidebarSectionSnapshot {
+	id: string;
+	projectId: string;
+	name: string;
+	color: string | null;
+	tabOrder: number;
+	createdAt: number;
+	updatedAt: number;
 }
 
 /**
@@ -95,6 +107,17 @@ export interface ProjectSnapshot {
 	worktreeBaseDir: string | null;
 	createdAt: number;
 	updatedAt: number;
+}
+
+/**
+ * Carries the host's FULL sections list rather than a row delta, so client
+ * caches replace and can't get out of order across reorders.
+ */
+export interface SectionChangedMessage {
+	type: "section:changed";
+	eventType: "created" | "updated" | "deleted";
+	sections: SidebarSectionSnapshot[];
+	occurredAt: number;
 }
 
 export interface ProjectChangedMessage {
@@ -118,6 +141,7 @@ export type ServerMessage =
 	| TerminalLifecycleMessage
 	| PortChangedMessage
 	| WorkspaceChangedMessage
+	| SectionChangedMessage
 	| ProjectChangedMessage
 	| EventBusErrorMessage;
 

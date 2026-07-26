@@ -196,6 +196,12 @@ export class EventBus {
 		this.broadcast({ type: "workspace:changed", ...message });
 	}
 
+	broadcastSectionChanged(
+		message: Omit<Extract<ServerMessage, { type: "section:changed" }>, "type">,
+	): void {
+		this.broadcast({ type: "section:changed", ...message });
+	}
+
 	/**
 	 * Fan out project lifecycle changes (create/rename/delete) from the
 	 * host-owned projects table. Broadcast to all clients — list consumers

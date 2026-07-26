@@ -58,6 +58,8 @@ export const workspaceRouter = router({
 			worktreePath: row.worktreePath,
 			worktreeExists: existsSync(row.worktreePath),
 			projectName: projectNameById.get(row.projectId) ?? null,
+			sectionId: row.sectionId,
+			tabOrder: row.tabOrder,
 		}));
 	}),
 

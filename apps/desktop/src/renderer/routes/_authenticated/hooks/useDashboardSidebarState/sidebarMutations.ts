@@ -56,7 +56,6 @@ export function tombstoneSidebarWorkspaceRecord(
 	cleanupPaneRuntimes([existing]);
 	collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 		draft.sidebarState.projectId = projectId;
-		draft.sidebarState.sectionId = null;
 		draft.sidebarState.isHidden = true;
 		draft.paneLayout = createEmptyPaneLayout();
 	});
@@ -84,7 +83,7 @@ export function tombstoneSidebarWorkspaceRecord(
 export function removeProjectFromSidebarState(
 	collections: Pick<
 		AppCollections,
-		"v2WorkspaceLocalState" | "v2SidebarSections" | "v2SidebarProjects"
+		"v2WorkspaceLocalState" | "v2SidebarProjects"
 	>,
 	workspaces: SidebarWorkspaceRow[],
 	projectId: string,
@@ -125,13 +124,8 @@ export function removeProjectFromSidebarState(
 		);
 	}
 
-	const sectionIds = Array.from(collections.v2SidebarSections.state.values())
-		.filter((item) => item.projectId === projectId)
-		.map((item) => item.sectionId);
-	if (sectionIds.length > 0) {
-		collections.v2SidebarSections.delete(sectionIds);
-	}
-
+	// Sections are host-owned data, not sidebar state — removing a project
+	// keeps its groups.
 	if (collections.v2SidebarProjects.get(projectId)) {
 		collections.v2SidebarProjects.delete(projectId);
 	}

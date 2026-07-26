@@ -31,6 +31,7 @@ function makeSection(
 	return {
 		id: "section-1",
 		projectId: "project-1",
+		hostId: MACHINE_ID,
 		name: "Section",
 		createdAt: DATE,
 		isCollapsed: false,

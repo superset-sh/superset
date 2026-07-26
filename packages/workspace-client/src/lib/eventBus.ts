@@ -16,6 +16,7 @@ type EventType =
 	| "terminal:lifecycle"
 	| "port:changed"
 	| "workspace:changed"
+	| "section:changed"
 	| "project:changed";
 
 interface FsEventsPayload {
@@ -71,6 +72,20 @@ export interface WorkspaceChangedPayload {
 	occurredAt: number;
 }
 
+type SectionChangedMessage = Extract<
+	ServerMessage,
+	{ type: "section:changed" }
+>;
+
+export type SectionSnapshotPayload = SectionChangedMessage["sections"][number];
+
+export interface SectionChangedPayload {
+	eventType: SectionChangedMessage["eventType"];
+	/** The host's FULL sections list — replace the cache, don't patch. */
+	sections: SectionChangedMessage["sections"];
+	occurredAt: number;
+}
+
 type ProjectChangedMessage = Extract<
 	ServerMessage,
 	{ type: "project:changed" }
@@ -99,9 +114,11 @@ type EventListener<T extends EventType> = T extends "fs:events"
 					? (workspaceId: string, payload: PortChangedPayload) => void
 					: T extends "workspace:changed"
 						? (workspaceId: string, payload: WorkspaceChangedPayload) => void
-						: T extends "project:changed"
-							? (projectId: string, payload: ProjectChangedPayload) => void
-							: never;
+						: T extends "section:changed"
+							? (workspaceId: null, payload: SectionChangedPayload) => void
+							: T extends "project:changed"
+								? (projectId: string, payload: ProjectChangedPayload) => void
+								: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -216,6 +233,12 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					occurredAt: message.occurredAt,
 				},
 			);
+		} else if (message.type === "section:changed") {
+			(entry.callback as EventListener<"section:changed">)(null, {
+				eventType: message.eventType,
+				sections: message.sections,
+				occurredAt: message.occurredAt,
+			});
 		} else if (message.type === "project:changed") {
 			(entry.callback as EventListener<"project:changed">)(message.projectId, {
 				eventType: message.eventType,

@@ -32,7 +32,7 @@ export default command({
 
 		// The row carries its host-served project name; the host id is
 		// enriched with its cloud name for display only.
-		const [{ hostId, workspace }, hosts] = await Promise.all([
+		const [{ hostId, workspace, sections }, hosts] = await Promise.all([
 			findWorkspaceOnHost(
 				{
 					organizationId,
@@ -57,6 +57,11 @@ export default command({
 			hosts.find((host) => host.id === workspace.hostId)?.name ??
 			workspace.hostId;
 
+		const groupName = workspace.sectionId
+			? (sections.find((section) => section.id === workspace.sectionId)?.name ??
+				workspace.sectionId)
+			: null;
+
 		const detail = {
 			id: workspace.id,
 			name: workspace.name,
@@ -64,6 +69,8 @@ export default command({
 			type: workspace.type,
 			projectId: workspace.projectId,
 			projectName,
+			groupId: workspace.sectionId,
+			groupName,
 			hostId: workspace.hostId,
 			hostName,
 			taskId: workspace.taskId,

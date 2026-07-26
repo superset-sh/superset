@@ -34,6 +34,7 @@ export function makeSection(
 ): DashboardSidebarSection {
 	return {
 		projectId: "project-1",
+		hostId: "host-1",
 		createdAt: new Date("2026-01-01"),
 		isCollapsed: false,
 		tabOrder: 0,

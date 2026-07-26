@@ -53,7 +53,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 			flatItems,
 			workspacesById,
 			handlers,
-		} = useSidebarDnd({ projectId, projectChildren });
+		} = useSidebarDnd({ projectChildren });
 
 		// Sections aren't rendered in the collapsed rail — only workspace icons
 		// are sortable; useSidebarDnd still persists cross-section moves.

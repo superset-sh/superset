@@ -151,6 +151,7 @@ export function DashboardSidebarWorkspaceItem({
 						<DashboardSidebarWorkspaceContextMenu
 							workspaceId={id}
 							projectId={projectId}
+							workspaceHostId={workspace.hostId}
 							isInSection={isInSection}
 							isUnread={isUnread}
 							hasStatus={!!workspaceStatus}
@@ -237,6 +238,7 @@ export function DashboardSidebarWorkspaceItem({
 					<DashboardSidebarWorkspaceContextMenu
 						workspaceId={id}
 						projectId={projectId}
+						workspaceHostId={workspace.hostId}
 						isInSection={isInSection}
 						isUnread={isUnread}
 						hasStatus={!!workspaceStatus}

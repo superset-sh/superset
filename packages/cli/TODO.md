@@ -18,7 +18,7 @@
 
 ## Desktop app changes
 
-- [ ] **Sidebar sections** — does the concept of sidebar sections exist today? If not, need to add data model + UI
+- [x] **Sidebar sections** — host-owned sidebar sections (workspace groups) now exist: `sidebar_sections` table + `section_id`/`tab_order` on workspaces, a `sections` tRPC router, desktop UI, and `superset workspaces groups`/`move` CLI commands.
 - [ ] **Websocket command routing** — CLI spec says device commands route via API → websocket → host service. Is this path built? Or does it still go through `agentCommands` + Electric SQL polling?
 
 ## CLI package

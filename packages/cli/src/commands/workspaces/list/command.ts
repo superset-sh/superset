@@ -16,9 +16,9 @@ export default command({
 	display: (data) =>
 		table(
 			data as Record<string, unknown>[],
-			["name", "branch", "projectName", "id"],
-			["NAME", "BRANCH", "PROJECT", "ID"],
-			[30, 30, 30, 36],
+			["name", "branch", "projectName", "groupName", "id"],
+			["NAME", "BRANCH", "PROJECT", "GROUP", "ID"],
+			[30, 30, 30, 20, 36],
 		),
 	run: async ({ ctx, options }) => {
 		const organizationId = ctx.config.organizationId;
@@ -26,7 +26,7 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const { workspaces } = await listWorkspacesOnHost({
+		const { workspaces, sections } = await listWorkspacesOnHost({
 			organizationId,
 			userJwt: ctx.bearer,
 			hostId: resolveHostFilter({
@@ -35,6 +35,9 @@ export default command({
 			}),
 		});
 
+		const sectionNameById = new Map(
+			sections.map((section) => [section.id, section.name]),
+		);
 		const projectInput = options.project?.toLowerCase();
 		const search = options.search?.toLowerCase();
 		return workspaces
@@ -53,6 +56,9 @@ export default command({
 			.map((workspace) => ({
 				...workspace,
 				projectName: workspace.projectName ?? workspace.projectId,
+				groupName: workspace.sectionId
+					? (sectionNameById.get(workspace.sectionId) ?? workspace.sectionId)
+					: "",
 			}));
 	},
 });
