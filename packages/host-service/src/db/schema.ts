@@ -1,7 +1,7 @@
 import type { HarnessKind, StopReason } from "@superset/session-protocol";
 import type {
 	AgentDefinitionId,
-	BuiltinAgentId,
+	AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { sql } from "drizzle-orm";
@@ -27,6 +27,13 @@ export const terminalSessions = sqliteTable(
 			.$defaultFn(() => Date.now()),
 		lastAttachedAt: integer("last_attached_at"),
 		endedAt: integer("ended_at"),
+		/**
+		 * Set the moment a dispose is requested — durable intent-to-kill. A
+		 * failed kill leaves the row `active` with this stamp, and the reaper
+		 * retries it regardless of workspace liveness (a one-shot renderer
+		 * broadcast must not be the only chance to kill a session).
+		 */
+		disposeRequestedAt: integer("dispose_requested_at"),
 	},
 	(table) => [
 		index("terminal_sessions_origin_workspace_id_idx").on(
@@ -43,7 +50,7 @@ export const terminalAgentBindings = sqliteTable(
 			.primaryKey()
 			.references(() => terminalSessions.id, { onDelete: "cascade" }),
 		workspaceId: text("workspace_id").notNull(),
-		agentId: text("agent_id").notNull().$type<BuiltinAgentId>(),
+		agentId: text("agent_id").notNull().$type<AgentIdentityId>(),
 		agentSessionId: text("agent_session_id"),
 		definitionId: text("definition_id").$type<AgentDefinitionId>(),
 		startedAt: integer("started_at").notNull(),
@@ -70,6 +77,11 @@ export const projects = sqliteTable(
 		// "fall back to the host-wide default" in `host_settings`.
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		// Empty string means "not yet backfilled" — the startup sweep targets
+		// these rows (name from cloud legacy row if reachable, else basename).
+		name: text().notNull().default(""),
+		// 0 means "predates local ownership"; write paths always set it.
+		updatedAt: integer("updated_at").notNull().default(0),
 		createdAt: integer("created_at")
 			.notNull()
 			.$defaultFn(() => Date.now()),

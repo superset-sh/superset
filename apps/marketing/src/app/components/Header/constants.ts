@@ -47,4 +47,5 @@ export const RESOURCE_LINKS: NavLink[] = [
 export const TOP_LEVEL_LINKS: NavLink[] = [
 	{ href: "/pricing", label: "Pricing" },
 	{ href: "/enterprise", label: "Enterprise" },
+	{ href: "/join-us", label: "Join us" },
 ];

@@ -98,6 +98,12 @@ export const AGENT_TABS: AgentTab[] = [
 		label: "vibe",
 		delay: 0.7,
 	},
+	{
+		src: "/app-icons/kimi.svg",
+		alt: "Kimi Code",
+		label: "kimi",
+		delay: 0.8,
+	},
 ];
 
 export const SETUP_STEPS = [

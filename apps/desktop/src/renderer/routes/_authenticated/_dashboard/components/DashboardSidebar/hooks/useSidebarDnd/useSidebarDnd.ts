@@ -114,13 +114,20 @@ function parseFlatItems(items: UniqueIdentifier[]): ParsedFlatItems {
 
 interface UseSidebarDndOptions {
 	projectChildren: DashboardSidebarProjectChild[];
+	// While the sidebar filter is active, projectChildren is a pruned subset —
+	// committing a drop from it would rewrite tabOrder against incomplete data
+	// and corrupt the order of the hidden siblings.
+	disabled?: boolean;
 }
 
-export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
+export function useSidebarDnd({
+	projectChildren,
+	disabled = false,
+}: UseSidebarDndOptions) {
 	const { reorderProjectChildren, reorderSectionMembers } =
 		useDashboardSidebarState();
 
-	const sensors = useSensors(
+	const enabledSensors = useSensors(
 		useSensor(MouseSensor, { activationConstraint: { distance: 8 } }),
 		useSensor(TouchSensor, {
 			activationConstraint: { delay: 200, tolerance: 5 },
@@ -255,6 +262,31 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 		return null; // ungrouped — no section above
 	}, [activeId, overId, activeType, flatItems, sectionsById]);
 
+	// The sidebar data builder always pins local main workspaces first,
+	// so any drop that lands an item above one would silently revert on
+	// the next rebuild (e.g. when the sidebar collapses and remounts).
+	// Normalize drop results to match what actually persists.
+	const normalizePinnedFirst = useCallback(
+		(items: UniqueIdentifier[]) => {
+			const pinned: UniqueIdentifier[] = [];
+			const rest: UniqueIdentifier[] = [];
+			for (const id of items) {
+				const parsed = parseId(id);
+				const ws =
+					parsed?.type === "workspace"
+						? workspacesById.get(parsed.realId)
+						: null;
+				if (ws?.type === "main" && ws.hostType === "local-device") {
+					pinned.push(id);
+				} else {
+					rest.push(id);
+				}
+			}
+			return pinned.length > 0 ? [...pinned, ...rest] : items;
+		},
+		[workspacesById],
+	);
+
 	// ── Persistence ──────────────────────────────────────────────────
 
 	const commitToDb = useCallback(
@@ -276,10 +308,11 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 
 	const onDragStart = useCallback(
 		({ active }: DragStartEvent) => {
+			if (disabled) return;
 			setActiveId(active.id);
 			clonedRef.current = [...flatItems];
 		},
-		[flatItems],
+		[disabled, flatItems],
 	);
 
 	const onDragOver = useCallback(({ over }: DragOverEvent) => {
@@ -321,13 +354,14 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 					}
 				}
 
-				const newItems: UniqueIdentifier[] = [...ungrouped];
+				const rebuilt: UniqueIdentifier[] = [...ungrouped];
 				for (const secSortId of reorderedSections) {
-					newItems.push(secSortId);
+					rebuilt.push(secSortId);
 					const wsInSec = sectionGroups.get(String(secSortId)) ?? [];
-					newItems.push(...wsInSec);
+					rebuilt.push(...wsInSec);
 				}
 
+				const newItems = normalizePinnedFirst(rebuilt);
 				setFlatItems(newItems);
 				commitToDb(newItems);
 			} else {
@@ -337,7 +371,9 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 				if (oldIndex === -1 || overIndex === -1 || oldIndex === overIndex)
 					return;
 
-				const newItems = arrayMove(flatItems, oldIndex, overIndex);
+				const newItems = normalizePinnedFirst(
+					arrayMove(flatItems, oldIndex, overIndex),
+				);
 
 				// A workspace can only join a group on its own host — reject a
 				// cross-host drop and snap back.
@@ -358,7 +394,7 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 				commitToDb(newItems);
 			}
 		},
-		[flatItems, commitToDb, workspacesById, sectionsById],
+		[flatItems, commitToDb, normalizePinnedFirst, workspacesById, sectionsById],
 	);
 
 	const onDragCancel = useCallback(() => {
@@ -371,7 +407,8 @@ export function useSidebarDnd({ projectChildren }: UseSidebarDndOptions) {
 	}, []);
 
 	return {
-		sensors,
+		// No sensors means dnd-kit can never activate a drag.
+		sensors: disabled ? [] : enabledSensors,
 		measuring,
 		collisionDetection: closestCenter,
 		flatItems,

@@ -1,9 +1,9 @@
 import type {
 	AgentDefinitionId,
-	BuiltinAgentId,
+	AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 
-export type TerminalAgentId = BuiltinAgentId;
+export type TerminalAgentId = AgentIdentityId;
 
 /**
  * One live agent process bound to a terminal. Created on the first hook

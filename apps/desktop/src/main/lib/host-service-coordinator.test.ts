@@ -116,8 +116,12 @@ function resetMocks(): void {
 	readManifestMock.mockClear();
 	removeManifestMock.mockClear();
 	isProcessAliveMock.mockClear();
+	isProcessAliveMock.mockImplementation(() => true);
 	killProcessMock.mockClear();
 	pollHealthCheckMock.mockClear();
+	pollHealthCheckMock.mockImplementation(() => Promise.resolve(true));
+	readManifestMock.mockClear();
+	readManifestMock.mockImplementation(() => manifestStore.current);
 	killedPids = [];
 	killProcessError = null;
 }
@@ -236,6 +240,133 @@ describe("HostServiceCoordinator.reset", () => {
 		expect(killedPids).toHaveLength(0);
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(conn.port).toBe(60000);
+	});
+});
+
+interface AdoptableInternals {
+	instances: Map<
+		string,
+		{
+			pid: number;
+			port: number;
+			secret: string;
+			status: string;
+			owned: boolean;
+		}
+	>;
+	spawn: ReturnType<typeof mock>;
+}
+
+describe("HostServiceCoordinator single-flight / adoption", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+	let spawnMock: ReturnType<typeof mock>;
+
+	beforeEach(() => {
+		resetMocks();
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		coordinator = new HostServiceCoordinator();
+		spawnMock = mock(async () => ({
+			port: 60000,
+			secret: "fresh-secret",
+			machineId: "host-1",
+		}));
+		(coordinator as unknown as AdoptableInternals).spawn = spawnMock;
+	});
+
+	afterEach(() => {
+		coordinator.stopAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("adopts a healthy foreign host-service instead of spawning", async () => {
+		manifestStore.current = baseManifest(4321, "http://127.0.0.1:55555");
+		pollHealthCheckMock.mockImplementation(() => Promise.resolve(true));
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(spawnMock).not.toHaveBeenCalled();
+		expect(conn.port).toBe(55555);
+		expect(conn.secret).toBe("manifest-secret");
+
+		const internals = coordinator as unknown as AdoptableInternals;
+		expect(internals.instances.get("org-1")?.owned).toBe(false);
+	});
+
+	test("spawns when the manifest health-check fails", async () => {
+		manifestStore.current = baseManifest(4321, "http://127.0.0.1:55555");
+		pollHealthCheckMock.mockImplementation(() => Promise.resolve(false));
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+	});
+
+	test("under-lock double-check adopts a manifest that appears after the first miss", async () => {
+		manifestStore.current = baseManifest(4321, "http://127.0.0.1:55555");
+		// Outer adopt attempt sees nothing; the re-check under the lock does.
+		readManifestMock.mockImplementationOnce(() => null);
+		pollHealthCheckMock.mockImplementation(() => Promise.resolve(true));
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(spawnMock).not.toHaveBeenCalled();
+		expect(conn.port).toBe(55555);
+	});
+
+	test("adopted fast-path drops a dead foreign entry and re-spawns", async () => {
+		const internals = coordinator as unknown as AdoptableInternals;
+		internals.instances.set("org-1", {
+			pid: 4321,
+			port: 55555,
+			secret: "manifest-secret",
+			status: "running",
+			owned: false,
+		});
+		manifestStore.current = null;
+		isProcessAliveMock.mockImplementation(() => false);
+
+		const conn = await coordinator.start("org-1", spawnConfig);
+
+		expect(spawnMock).toHaveBeenCalledTimes(1);
+		expect(conn.port).toBe(60000);
+	});
+
+	test("stop on an adopted entry does not SIGTERM and keeps the manifest", () => {
+		const internals = coordinator as unknown as AdoptableInternals;
+		internals.instances.set("org-1", {
+			pid: 4321,
+			port: 55555,
+			secret: "manifest-secret",
+			status: "running",
+			owned: false,
+		});
+
+		coordinator.stop("org-1");
+
+		expect(killedPids).toHaveLength(0);
+		expect(removeManifestMock).not.toHaveBeenCalled();
+		expect(internals.instances.get("org-1")).toBeUndefined();
+	});
+
+	test("stop on an owned entry SIGTERMs the child and removes the manifest", () => {
+		const internals = coordinator as unknown as AdoptableInternals;
+		internals.instances.set("org-1", {
+			pid: 4321,
+			port: 55555,
+			secret: "own-secret",
+			status: "running",
+			owned: true,
+		});
+
+		coordinator.stop("org-1");
+
+		expect(killedPids).toContainEqual({ pid: 4321, signal: "SIGTERM" });
+		expect(removeManifestMock).toHaveBeenCalled();
+		expect(internals.instances.get("org-1")).toBeUndefined();
 	});
 });
 

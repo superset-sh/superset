@@ -5,6 +5,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { BackgroundTerminalsSetting } from "./components/BackgroundTerminalsSetting";
 import { LinkBehaviorSetting } from "./components/LinkBehaviorSetting";
 import { PresetsSection } from "./components/PresetsSection";
 import { SessionsSection } from "./components/SessionsSection";
@@ -64,6 +65,10 @@ export function TerminalSettings({
 		SETTING_ITEM_ID.TERMINAL_SESSIONS,
 		visibleItems,
 	);
+	const showBackgroundLimit = isItemVisible(
+		SETTING_ITEM_ID.TERMINAL_BACKGROUND_LIMIT,
+		visibleItems,
+	);
 
 	return (
 		<div className="p-6 max-w-6xl w-full">
@@ -98,6 +103,9 @@ export function TerminalSettings({
 						/>
 					))}
 				{showLinkBehavior && <LinkBehaviorSetting key="link-behavior" />}
+				{showBackgroundLimit && (
+					<BackgroundTerminalsSetting key="background-limit" />
+				)}
 				{showSessions &&
 					(isV2CloudEnabled ? (
 						<V2SessionsSection key="sessions" />

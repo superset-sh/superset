@@ -3,6 +3,7 @@ import {
 	PORT_SCAN_WARMUP_DELAYS_MS,
 	planPortScanSync,
 	REAP_INTERVAL_MS,
+	shouldReapRow,
 } from "./reaper.ts";
 
 const noneLive = () => false;
@@ -112,5 +113,42 @@ describe("planPortScanSync", () => {
 		});
 
 		expect(plan.unregister).toEqual([]);
+	});
+});
+
+describe("shouldReapRow", () => {
+	it("reaps rows whose dispose was requested but never confirmed", () => {
+		expect(
+			shouldReapRow({
+				status: "active",
+				originWorkspaceId: "ws-1",
+				disposeRequestedAt: 1_000,
+			}),
+		).toBe(true);
+	});
+
+	it("keeps live sessions with a workspace and no dispose request", () => {
+		expect(shouldReapRow({ status: "active", originWorkspaceId: "ws-1" })).toBe(
+			false,
+		);
+		expect(
+			shouldReapRow({
+				status: "active",
+				originWorkspaceId: "ws-1",
+				disposeRequestedAt: null,
+			}),
+		).toBe(false);
+	});
+
+	it("still reaps dead-status and workspace-less rows", () => {
+		expect(
+			shouldReapRow({ status: "disposed", originWorkspaceId: "ws-1" }),
+		).toBe(true);
+		expect(shouldReapRow({ status: "exited", originWorkspaceId: "ws-1" })).toBe(
+			true,
+		);
+		expect(shouldReapRow({ status: "active", originWorkspaceId: null })).toBe(
+			true,
+		);
 	});
 });

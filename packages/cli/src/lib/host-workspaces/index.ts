@@ -1,13 +1,9 @@
 export {
-	type FindHostWorkspaceResult,
-	findHostWorkspace,
-	type HostInfo,
+	type FindWorkspaceOnHostResult,
+	findWorkspaceOnHost,
 	type HostSectionRow,
 	type HostWorkspaceRow,
+	type HostWorkspacesOptions,
 	type HostWorkspacesResult,
-	type ListHostWorkspacesOptions,
-	listHostWorkspaces,
-	resolveWorkspacePin,
-	type WorkspacePin,
-	type WorkspacePinInput,
-} from "./listHostWorkspaces";
+	listWorkspacesOnHost,
+} from "./workspacesOnHost";

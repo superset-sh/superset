@@ -3,14 +3,16 @@ import { scheduleBaseRefFetch } from "./base-ref-freshness";
 
 // Distinct remote/branch per test so the module-level TTL/in-flight maps
 // (keyed by commonDir#remote/branch) don't leak state across tests.
-function createGit(options: { fetch?: () => Promise<unknown> } = {}) {
+function createGit(
+	options: { fetch?: () => Promise<unknown>; commonDir?: string } = {},
+) {
 	const fetchCalls: string[][] = [];
 	const revParseCalls: string[][] = [];
 	const git = {
 		raw: mock(async (args: string[]) => {
 			revParseCalls.push(args);
 			if (args[0] === "rev-parse" && args[1] === "--git-common-dir") {
-				return ".git\n";
+				return `${options.commonDir ?? ".git"}\n`;
 			}
 			throw new Error(`Unexpected raw args: ${args.join(" ")}`);
 		}),
@@ -66,6 +68,23 @@ describe("scheduleBaseRefFetch", () => {
 		release();
 		await Promise.all([a, b]);
 		expect(fetchCalls).toHaveLength(1);
+	});
+
+	test("dedupes worktrees that resolve to the same common Git directory", async () => {
+		const target = { remote: "origin", branch: "shared-worktrees-branch" };
+		const a = createGit({ commonDir: "/repo/.git" });
+		const b = createGit({ commonDir: "/repo/.git" });
+		let fetches = 0;
+		const fetchBaseRef = async () => {
+			fetches++;
+		};
+
+		await Promise.all([
+			scheduleBaseRefFetch(a.git, "/repo/wt-a", target, fetchBaseRef),
+			scheduleBaseRefFetch(b.git, "/repo/wt-b", target, fetchBaseRef),
+		]);
+
+		expect(fetches).toBe(1);
 	});
 
 	test("never rejects when the fetch fails", async () => {

@@ -73,7 +73,6 @@ export async function runWorkspaceBackfill(
 				createdByUserId: cloud.createdByUserId,
 				createdAt: cloud.createdAt.getTime(),
 				updatedAt: cloud.updatedAt.getTime(),
-				cloudSyncedAt: Date.now(),
 			})
 			.where(eq(workspaces.id, row.id))
 			.run();

@@ -27,6 +27,7 @@ import { colorPicker } from "@replit/codemirror-css-color-picker";
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 import { type MutableRefObject, useEffect, useRef } from "react";
+import { FONT_SETTINGS_QUERY_KEY } from "renderer/lib/font-settings";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useResolvedTheme } from "renderer/stores/theme";
 import {
@@ -50,6 +51,11 @@ interface CodeEditorProps {
 	editorRef?: MutableRefObject<CodeEditorAdapter | null>;
 	onChange?: (value: string) => void;
 	onSave?: () => void;
+	initialScrollPosition?: { scrollTop: number; scrollLeft: number };
+	onScrollPositionChange?: (position: {
+		scrollTop: number;
+		scrollLeft: number;
+	}) => void;
 }
 
 export function CodeEditor({
@@ -61,6 +67,8 @@ export function CodeEditor({
 	editorRef,
 	onChange,
 	onSave,
+	initialScrollPosition,
+	onScrollPositionChange,
 }: CodeEditorProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -69,19 +77,26 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
+	const onScrollPositionChangeRef = useRef(onScrollPositionChange);
+	const initialScrollPositionRef = useRef(initialScrollPosition);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
-		queryKey: ["electron", "settings", "getFontSettings"],
+		queryKey: FONT_SETTINGS_QUERY_KEY,
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
 		staleTime: 30_000,
 	});
 	const editorFontFamily = fontSettings?.editorFontFamily ?? undefined;
 	const editorFontSize = fontSettings?.editorFontSize ?? undefined;
+	const editorLineHeight = fontSettings?.editorLineHeight ?? undefined;
+	const editorLetterSpacing = fontSettings?.editorLetterSpacing ?? undefined;
+	const editorFontWeight = fontSettings?.editorFontWeight ?? undefined;
+	const editorLigatures = fontSettings?.editorLigatures ?? undefined;
 	const activeTheme = useResolvedTheme();
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
+	onScrollPositionChangeRef.current = onScrollPositionChange;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Editor instance is created once and reconfigured via dedicated effects below
 	useEffect(() => {
@@ -141,7 +156,14 @@ export function CodeEditor({
 					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(
 						activeTheme,
-						{ fontFamily: editorFontFamily, fontSize: editorFontSize },
+						{
+							fontFamily: editorFontFamily,
+							fontSize: editorFontSize,
+							lineHeight: editorLineHeight,
+							letterSpacing: editorLetterSpacing,
+							fontWeight: editorFontWeight,
+							ligatures: editorLigatures,
+						},
 						fillHeight,
 					),
 				]),
@@ -155,6 +177,25 @@ export function CodeEditor({
 			parent: containerRef.current,
 		});
 		const adapter = createCodeMirrorAdapter(view);
+		const reportScrollPosition = () => {
+			onScrollPositionChangeRef.current?.({
+				scrollTop: view.scrollDOM.scrollTop,
+				scrollLeft: view.scrollDOM.scrollLeft,
+			});
+		};
+		view.scrollDOM.addEventListener("scroll", reportScrollPosition, {
+			passive: true,
+		});
+		const savedScrollPosition = initialScrollPositionRef.current;
+		if (savedScrollPosition) {
+			view.requestMeasure({
+				read: () => savedScrollPosition,
+				write: (position) => {
+					view.scrollDOM.scrollTop = position.scrollTop;
+					view.scrollDOM.scrollLeft = position.scrollLeft;
+				},
+			});
+		}
 
 		viewRef.current = view;
 		if (editorRef) {
@@ -162,6 +203,10 @@ export function CodeEditor({
 		}
 
 		return () => {
+			// The passive effect cleanup can run after the editor DOM has been
+			// detached and its scroll offset clamped to zero. The scroll listener
+			// already saved the last real position, so do not overwrite it here.
+			view.scrollDOM.removeEventListener("scroll", reportScrollPosition);
 			if (editorRef?.current === adapter) {
 				editorRef.current = null;
 			}
@@ -201,7 +246,14 @@ export function CodeEditor({
 				getCodeSyntaxHighlighting(activeTheme),
 				createCodeMirrorTheme(
 					activeTheme,
-					{ fontFamily: editorFontFamily, fontSize: editorFontSize },
+					{
+						fontFamily: editorFontFamily,
+						fontSize: editorFontSize,
+						lineHeight: editorLineHeight,
+						letterSpacing: editorLetterSpacing,
+						fontWeight: editorFontWeight,
+						ligatures: editorLigatures,
+					},
 					fillHeight,
 				),
 			]),
@@ -209,7 +261,11 @@ export function CodeEditor({
 	}, [
 		activeTheme,
 		editorFontFamily,
+		editorFontWeight,
 		editorFontSize,
+		editorLetterSpacing,
+		editorLigatures,
+		editorLineHeight,
 		fillHeight,
 		themeCompartment,
 	]);

@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_pause",
+		annotations: { destructiveHint: false, idempotentHint: true },
 		description:
 			"Pause an automation. The recurring schedule stops firing until resumed. Caller must be the owner.",
 		inputSchema: {

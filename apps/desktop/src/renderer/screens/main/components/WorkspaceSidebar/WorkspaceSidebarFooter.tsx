@@ -17,9 +17,11 @@ import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useOpenProject } from "renderer/react-query/projects";
 import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import {
+	useOpenEmptyProjectModal,
 	useOpenNewProjectModal,
 	useOpenTemplateGalleryModal,
 } from "renderer/stores/add-repository-modal";
+import { SettingsButton } from "../SettingsButton";
 import { STROKE_WIDTH } from "./constants";
 
 interface WorkspaceSidebarFooterProps {
@@ -31,6 +33,7 @@ export function WorkspaceSidebarFooter({
 }: WorkspaceSidebarFooterProps) {
 	const { openNew, isPending: isOpenPending } = useOpenProject();
 	const openMainRepoWorkspace = useOpenMainRepoWorkspace();
+	const openEmptyProject = useOpenEmptyProjectModal();
 	const openNewProject = useOpenNewProjectModal();
 	const openTemplateGallery = useOpenTemplateGalleryModal();
 
@@ -74,6 +77,11 @@ export function WorkspaceSidebarFooter({
 		if (result) await openMainWorkspaceForProject(result.projectId);
 	};
 
+	const handleCreateProject = async () => {
+		const result = await openEmptyProject();
+		if (result) await openMainWorkspaceForProject(result.projectId);
+	};
+
 	const handleTemplateProject = async () => {
 		const result = await openTemplateGallery();
 		if (result) await openMainWorkspaceForProject(result.projectId);
@@ -102,6 +110,10 @@ export function WorkspaceSidebarFooter({
 						<TooltipContent side="right">Add repository</TooltipContent>
 					</Tooltip>
 					<DropdownMenuContent side="top" align="start">
+						<DropdownMenuItem onClick={handleCreateProject}>
+							<LuFolderPlus className="size-4" strokeWidth={STROKE_WIDTH} />
+							Create new project
+						</DropdownMenuItem>
 						<DropdownMenuItem onClick={handleOpenProject} disabled={isLoading}>
 							<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 							Open project
@@ -116,6 +128,12 @@ export function WorkspaceSidebarFooter({
 						</DropdownMenuItem>
 					</DropdownMenuContent>
 				</DropdownMenu>
+				<SettingsButton
+					side="right"
+					className="size-8 text-muted-foreground hover:text-foreground"
+					iconClassName="size-4"
+					iconStrokeWidth={STROKE_WIDTH}
+				/>
 			</div>
 		);
 	}
@@ -127,14 +145,21 @@ export function WorkspaceSidebarFooter({
 					<Button
 						variant="ghost"
 						size="sm"
-						className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground"
+						className="min-w-0 flex-1 shrink justify-start gap-2 text-muted-foreground hover:text-foreground"
 						disabled={isLoading}
 					>
-						<LuFolderPlus className="w-4 h-4" strokeWidth={STROKE_WIDTH} />
-						<span>Add repository</span>
+						<LuFolderPlus
+							className="w-4 h-4 shrink-0"
+							strokeWidth={STROKE_WIDTH}
+						/>
+						<span className="truncate">Add repository</span>
 					</Button>
 				</DropdownMenuTrigger>
 				<DropdownMenuContent side="top" align="start">
+					<DropdownMenuItem onClick={handleCreateProject}>
+						<LuFolderPlus className="size-4" strokeWidth={STROKE_WIDTH} />
+						Create new project
+					</DropdownMenuItem>
 					<DropdownMenuItem onClick={handleOpenProject} disabled={isLoading}>
 						<LuFolderOpen className="size-4" strokeWidth={STROKE_WIDTH} />
 						Open project
@@ -150,6 +175,12 @@ export function WorkspaceSidebarFooter({
 				</DropdownMenuContent>
 			</DropdownMenu>
 			<UpdatesPill />
+			<SettingsButton
+				side="top"
+				className="size-8 shrink-0 text-muted-foreground hover:text-foreground"
+				iconClassName="size-4"
+				iconStrokeWidth={STROKE_WIDTH}
+			/>
 		</div>
 	);
 }

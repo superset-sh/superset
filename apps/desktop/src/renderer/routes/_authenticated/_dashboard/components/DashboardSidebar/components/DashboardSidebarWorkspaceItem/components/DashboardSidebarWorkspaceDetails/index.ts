@@ -1,1 +1,0 @@
-export { DashboardSidebarWorkspaceDetails } from "./DashboardSidebarWorkspaceDetails";

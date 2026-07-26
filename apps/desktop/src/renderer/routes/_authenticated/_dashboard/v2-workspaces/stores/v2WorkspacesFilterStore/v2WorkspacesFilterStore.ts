@@ -1,6 +1,5 @@
 import { create } from "zustand";
 
-export const DEVICE_FILTER_ALL = "all";
 export const DEVICE_FILTER_THIS_DEVICE = "this-device";
 export const PROJECT_FILTER_ALL = "all";
 
@@ -20,7 +19,7 @@ interface V2WorkspacesFilterState {
 export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 	(set) => ({
 		searchQuery: "",
-		deviceFilter: DEVICE_FILTER_ALL,
+		deviceFilter: DEVICE_FILTER_THIS_DEVICE,
 		projectFilter: PROJECT_FILTER_ALL,
 		setSearchQuery: (searchQuery) => set({ searchQuery }),
 		setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
@@ -28,7 +27,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 		reset: () =>
 			set({
 				searchQuery: "",
-				deviceFilter: DEVICE_FILTER_ALL,
+				deviceFilter: DEVICE_FILTER_THIS_DEVICE,
 				projectFilter: PROJECT_FILTER_ALL,
 			}),
 	}),

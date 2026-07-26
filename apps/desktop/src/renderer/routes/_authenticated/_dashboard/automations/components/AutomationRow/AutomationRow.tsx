@@ -48,8 +48,8 @@ const LAST_RUN_META: Record<
 > = {
 	dispatched: { dot: "bg-emerald-500", label: "ran" },
 	dispatching: { dot: "bg-amber-500", label: "running" },
-	skipped_offline: { dot: "bg-red-500", label: "failed", failed: true },
-	dispatch_failed: { dot: "bg-red-500", label: "failed", failed: true },
+	skipped_offline: { dot: "bg-destructive", label: "failed", failed: true },
+	dispatch_failed: { dot: "bg-destructive", label: "failed", failed: true },
 };
 
 export function AutomationRow({
@@ -196,7 +196,7 @@ export function AutomationRow({
 									<span
 										className={cn(
 											"flex items-center gap-1.5",
-											meta.failed && "text-red-600 dark:text-red-400",
+											meta.failed && "text-destructive",
 										)}
 									>
 										<span

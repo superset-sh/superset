@@ -7,6 +7,8 @@ export {
 	type GitChangedPayload,
 	getEventBus,
 	type PortChangedPayload,
+	type ProjectChangedPayload,
+	type ProjectSnapshotPayload,
 	type SectionChangedPayload,
 	type SectionSnapshotPayload,
 	type TerminalLifecyclePayload,
@@ -25,6 +27,7 @@ export {
 	setRelaySocketTelemetry,
 } from "./lib/relaySocket";
 export {
+	useMaybeWorkspaceClient,
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
 	useWorkspaceWsUrl,

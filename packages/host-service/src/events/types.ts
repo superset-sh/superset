@@ -93,6 +93,23 @@ export interface SidebarSectionSnapshot {
 }
 
 /**
+ * Snapshot of a host-owned project row as carried on the event bus.
+ * Structural (not the drizzle inferred type) so workspace-client consumers
+ * don't couple to the host's schema module.
+ */
+export interface ProjectSnapshot {
+	id: string;
+	name: string;
+	repoPath: string;
+	repoOwner: string | null;
+	repoName: string | null;
+	repoUrl: string | null;
+	worktreeBaseDir: string | null;
+	createdAt: number;
+	updatedAt: number;
+}
+
+/**
  * Carries the host's FULL sections list rather than a row delta, so client
  * caches replace and can't get out of order across reorders.
  */
@@ -100,6 +117,15 @@ export interface SectionChangedMessage {
 	type: "section:changed";
 	eventType: "created" | "updated" | "deleted";
 	sections: SidebarSectionSnapshot[];
+	occurredAt: number;
+}
+
+export interface ProjectChangedMessage {
+	type: "project:changed";
+	projectId: string;
+	eventType: "created" | "updated" | "deleted";
+	/** Null for `deleted` — the row is already gone. */
+	project: ProjectSnapshot | null;
 	occurredAt: number;
 }
 
@@ -116,6 +142,7 @@ export type ServerMessage =
 	| PortChangedMessage
 	| WorkspaceChangedMessage
 	| SectionChangedMessage
+	| ProjectChangedMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

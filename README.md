@@ -235,16 +235,27 @@ Builds for Windows and Linux are not yet available.
 
 ## Development
 
-Want to hack on Superset or contribute a PR? Spin up a local dev environment in one command:
+Want to hack on Superset or contribute a PR? Clone the repository, add it to the
+installed Superset app, and create a workspace for your change:
 
 ```bash
 git clone https://github.com/superset-sh/superset.git
-cd superset
+```
+
+Then run the development setup from that workspace terminal:
+
+```bash
 ./.superset/setup.local.sh
 bun run dev
 ```
 
-No Neon account or third-party credentials needed. `setup.local.sh` brings up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
+Run `setup.local.sh` once in every new worktree. It configures workspace-specific
+app identity and ports so the development desktop app can run alongside the
+installed Superset app and other development worktrees.
+
+No Neon account or third-party credentials are needed. `setup.local.sh` brings
+up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in
+with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
 Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
 

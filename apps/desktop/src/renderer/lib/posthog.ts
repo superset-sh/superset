@@ -18,18 +18,17 @@ export function initPostHog() {
 		capture_pageview: false,
 		capture_pageleave: false,
 		capture_exceptions: true,
-		person_profiles: "identified_only",
+		person_profiles: "always",
 		persistence: "localStorage",
 		debug: false,
-		loaded: (ph) => {
-			ph.register({
-				app_name: "desktop",
-				// Event-level version (person-profile desktop_version reflects the
-				// current install, not the build that emitted a given event).
-				app_version: window.App.appVersion,
-				platform: window.navigator.platform,
-			});
-		},
+	});
+
+	posthogFull.register({
+		app_name: "desktop",
+		// Event-level version (person-profile desktop_version reflects the
+		// current install, not the build that emitted a given event).
+		app_version: window.App?.appVersion,
+		platform: window.navigator.platform,
 	});
 
 	// Relay socket health (event bus / workspace "disconnected" surface). At

@@ -18,6 +18,7 @@ export function DashboardSidebarHoverCardOverlay({
 		anchorElement,
 		payload,
 		contextMenuOpen,
+		hoverCardSuppressed,
 		cancelClose,
 		requestClose,
 		forceClose,
@@ -26,7 +27,11 @@ export function DashboardSidebarHoverCardOverlay({
 	const virtualRef = useRef<Measurable | null>(null);
 	virtualRef.current = anchorElement;
 
-	const open = hoveredId !== null && payload !== null && !contextMenuOpen;
+	const open =
+		hoveredId !== null &&
+		payload !== null &&
+		!contextMenuOpen &&
+		!hoverCardSuppressed;
 	const diffStats = useDiffStats(hoveredId ?? "");
 
 	// Suppress the transform transition until Radix has placed the popover at

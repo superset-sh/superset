@@ -3,14 +3,12 @@ import { cn } from "@superset/ui/utils";
 interface DeviceOptionLabelProps {
 	icon: React.ReactNode;
 	label: string;
-	count: number;
 	isOnline?: boolean;
 }
 
 export function DeviceOptionLabel({
 	icon,
 	label,
-	count,
 	isOnline,
 }: DeviceOptionLabelProps) {
 	return (
@@ -26,9 +24,6 @@ export function DeviceOptionLabel({
 					)}
 				/>
 			) : null}
-			<span className="tabular-nums text-xs text-muted-foreground">
-				{count}
-			</span>
 		</span>
 	);
 }

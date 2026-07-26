@@ -39,6 +39,8 @@ export function scheduleBaseRefFetch(
 	git: SimpleGit,
 	worktreePath: string,
 	target: BaseRefFetchTarget,
+	fetchBaseRef: () => Promise<unknown> = () =>
+		git.fetch([target.remote, target.branch, "--quiet", "--no-tags"]),
 ): Promise<void> {
 	return (async () => {
 		const commonDir = await resolveCommonDir(git, worktreePath);
@@ -53,8 +55,7 @@ export function scheduleBaseRefFetch(
 		}
 
 		lastFetchStartedAt.set(key, Date.now());
-		const fetchPromise = git
-			.fetch([target.remote, target.branch, "--quiet", "--no-tags"])
+		const fetchPromise = fetchBaseRef()
 			.then(() => undefined)
 			.finally(() => {
 				inFlightFetches.delete(key);

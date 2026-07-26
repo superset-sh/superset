@@ -21,13 +21,6 @@ export type PersistableTransaction = {
 	};
 };
 
-interface V2ProjectPatch {
-	name?: string;
-	slug?: string;
-	repoCloneUrl?: string | null;
-	githubRepositoryId?: string | null;
-}
-
 interface V2WorkspacePatch {
 	name?: string;
 	branch?: string;
@@ -113,11 +106,6 @@ export function useOptimisticCollectionActions() {
 			mutation: () => PersistableTransaction,
 		) => runMutation("optimistic.tasks", failureTitle, mutation);
 
-		const runProjectMutation = (
-			failureTitle: string,
-			mutation: () => PersistableTransaction,
-		) => runMutation("optimistic.v2Projects", failureTitle, mutation);
-
 		const runWorkspaceMutation = (
 			failureTitle: string,
 			mutation: () => PersistableTransaction,
@@ -176,38 +164,6 @@ export function useOptimisticCollectionActions() {
 				deleteTask: (taskId: string) =>
 					runTaskMutation("Failed to delete task", () =>
 						collections.tasks.delete(taskId),
-					),
-			},
-			v2Projects: {
-				updateProject: (projectId: string, patch: V2ProjectPatch) =>
-					runProjectMutation("Failed to update project", () =>
-						collections.v2Projects.update(projectId, (draft) => {
-							if (patch.name !== undefined) {
-								draft.name = patch.name;
-							}
-							if (patch.slug !== undefined) {
-								draft.slug = patch.slug;
-							}
-							if (patch.repoCloneUrl !== undefined) {
-								draft.repoCloneUrl = patch.repoCloneUrl;
-							}
-							if (patch.githubRepositoryId !== undefined) {
-								draft.githubRepositoryId = patch.githubRepositoryId;
-							}
-						}),
-					),
-				renameProject: (projectId: string, name: string) =>
-					runProjectMutation("Failed to rename project", () =>
-						collections.v2Projects.update(projectId, (draft) => {
-							draft.name = name;
-						}),
-					),
-				updateRepository: (projectId: string, repoCloneUrl: string | null) =>
-					runProjectMutation("Failed to update project repository", () =>
-						collections.v2Projects.update(projectId, (draft) => {
-							draft.repoCloneUrl = repoCloneUrl;
-							draft.githubRepositoryId = null;
-						}),
 					),
 			},
 			v2Workspaces: {

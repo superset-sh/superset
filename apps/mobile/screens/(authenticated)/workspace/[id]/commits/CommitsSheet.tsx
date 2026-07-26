@@ -1,6 +1,6 @@
 import { useQueries } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams, useRouter } from "expo-router";
-import { ArrowRight, GitCommitHorizontal } from "lucide-react-native";
+import { ArrowRight, GitCommitVertical } from "lucide-react-native";
 import { useMemo } from "react";
 import { FlatList, View } from "react-native";
 import { Icon } from "@/components/ui/icon";
@@ -68,7 +68,7 @@ export function CommitsSheet() {
 					<Text className="font-semibold text-[17px]">Commits</Text>
 					<View className="flex-row items-center gap-1.5">
 						<Icon
-							as={GitCommitHorizontal}
+							as={GitCommitVertical}
 							className="text-muted-foreground size-3.5"
 						/>
 						<Text className="text-muted-foreground text-xs">

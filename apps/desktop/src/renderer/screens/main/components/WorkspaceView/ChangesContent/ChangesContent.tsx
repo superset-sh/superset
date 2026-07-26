@@ -32,7 +32,7 @@ export function ChangesContent() {
 		);
 	}
 
-	if (isLoading) {
+	if (!status && isLoading) {
 		return (
 			<div className="h-full flex items-center justify-center text-muted-foreground">
 				Loading changes...
@@ -42,7 +42,7 @@ export function ChangesContent() {
 
 	if (!status) {
 		return (
-			<div className="h-full flex items-center justify-center text-muted-foreground">
+			<div className="h-full flex select-text cursor-text items-center justify-center text-muted-foreground">
 				Unable to load changes
 			</div>
 		);

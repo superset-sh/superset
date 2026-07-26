@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "915d2bf8-1ad4-442a-9f6a-eb419a3e9d96",
+  "id": "00579670-b258-4f90-8d99-c0f053274f0c",
   "prevId": "89a9aa1f-c779-400c-a606-0c1ba504c442",
   "tables": {
     "acp_sessions": {
@@ -512,88 +512,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "sidebar_sections": {
-      "name": "sidebar_sections",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "project_id": {
-          "name": "project_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "color": {
-          "name": "color",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "tab_order": {
-          "name": "tab_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "sidebar_sections_project_id_idx": {
-          "name": "sidebar_sections_project_id_idx",
-          "columns": [
-            "project_id"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {
-        "sidebar_sections_project_id_projects_id_fk": {
-          "name": "sidebar_sections_project_id_projects_id_fk",
-          "tableFrom": "sidebar_sections",
-          "tableTo": "projects",
-          "columnsFrom": [
-            "project_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "terminal_agent_bindings": {
       "name": "terminal_agent_bindings",
       "columns": {
@@ -723,6 +641,13 @@
         },
         "ended_at": {
           "name": "ended_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "dispose_requested_at": {
+          "name": "dispose_requested_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
@@ -877,21 +802,6 @@
           "notNull": false,
           "autoincrement": false
         },
-        "section_id": {
-          "name": "section_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "tab_order": {
-          "name": "tab_order",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
         "created_by_user_id": {
           "name": "created_by_user_id",
           "type": "text",
@@ -943,13 +853,6 @@
           "name": "workspaces_pull_request_id_idx",
           "columns": [
             "pull_request_id"
-          ],
-          "isUnique": false
-        },
-        "workspaces_section_id_idx": {
-          "name": "workspaces_section_id_idx",
-          "columns": [
-            "section_id"
           ],
           "isUnique": false
         },

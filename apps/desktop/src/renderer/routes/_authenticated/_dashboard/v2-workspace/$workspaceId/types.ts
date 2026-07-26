@@ -46,8 +46,8 @@ export interface DiffPaneData {
 	path: string;
 	changeKey?: string;
 	collapsedFiles: string[];
-	/** Line to scroll to within `path`. `focusTick` bumps on each request
-	 *  so repeated clicks of the same line still re-scroll. */
+	/** Line to scroll to within `path`. `focusTick` bumps on each navigation
+	 *  request so it can take precedence over an older cached scroll state. */
 	focusLine?: number;
 	focusSide?: DiffFocusSide;
 	focusTick?: number;

@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, jest, test } from "bun:test";
 import {
+	collectWorktreeBatchPaths,
 	DEBOUNCE_MS,
 	GIT_DIR_DEBOUNCE_MS,
 	type GitChangedEvent,
 	GitWatcher,
 	isStatusRelevantGitDirEvent,
+	MAX_WORKTREE_PATHS_PER_BATCH,
 } from "./git-watcher";
 
 /**
@@ -76,6 +78,27 @@ describe("isStatusRelevantGitDirEvent", () => {
 	test("does not confuse a top-level file that merely starts with an ignored name", () => {
 		expect(isStatusRelevantGitDirEvent("objects-are-cool")).toBe(true);
 		expect(isStatusRelevantGitDirEvent("logspam")).toBe(true);
+	});
+});
+
+describe("collectWorktreeBatchPaths", () => {
+	test("duplicate notifications do not hide a later distinct path", () => {
+		const duplicateEvents = Array.from(
+			{ length: MAX_WORKTREE_PATHS_PER_BATCH + 1 },
+			() => ({
+				kind: "update" as const,
+				absolutePath: "/repo/src/duplicate.ts",
+			}),
+		);
+		const paths = collectWorktreeBatchPaths(
+			[
+				...duplicateEvents,
+				{ kind: "update", absolutePath: "/repo/src/later.ts" },
+			],
+			"/repo",
+		);
+
+		expect([...paths]).toEqual(["src/duplicate.ts", "src/later.ts"]);
 	});
 });
 
@@ -153,6 +176,24 @@ describe("GitWatcher adaptive debounce", () => {
 		expect(events).toEqual([
 			{ workspaceId: "workspace-1", paths: ["src/app.ts"] },
 		]);
+	});
+
+	test("large worktree batches collapse to one broad invalidation", () => {
+		const watcher = createWatcher();
+		const events: GitChangedEvent[] = [];
+		watcher.onChanged((event) => events.push(event));
+		const paths = Array.from(
+			{ length: MAX_WORKTREE_PATHS_PER_BATCH + 1 },
+			(_, index) => `src/file-${index}.ts`,
+		);
+
+		internals(watcher).addWorktreePaths("workspace-1", paths);
+		// Once broad, additional paths in the same window stay broad rather than
+		// rebuilding an unbounded Set.
+		internals(watcher).addWorktreePaths("workspace-1", ["src/later.ts"]);
+		jest.advanceTimersByTime(DEBOUNCE_MS);
+
+		expect(events).toEqual([{ workspaceId: "workspace-1" }]);
 	});
 
 	test("a worktree edit joining a `.git/` batch restores the short window", () => {

@@ -1,4 +1,7 @@
 import { randomUUID } from "node:crypto";
+import hostServicePackageJson from "@superset/host-service/package.json" with {
+	type: "json",
+};
 import { getHostId } from "@superset/shared/host-info";
 import {
 	getNextTabOrder,
@@ -6,19 +9,59 @@ import {
 } from "@superset/shared/sidebar-order";
 import { and, eq, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
-import {
-	sidebarSections,
-	workspaceCloudDeletes,
-	workspaces,
-} from "../db/schema";
+import { sidebarSections, workspaces } from "../db/schema";
 import type { EventBus } from "../events";
 import type { WorkspaceSnapshot } from "../events/types";
+import type { ApiClient } from "../types";
 
 export type HostWorkspaceRow = typeof workspaces.$inferSelect;
 
+/**
+ * `api`/`organizationId`/`clientMachineId` mirror `HostServiceContext` field
+ * names so a full request context satisfies this interface as-is. When `api`
+ * is absent the store still works but skips telemetry.
+ */
 export interface WorkspaceStoreContext {
 	db: HostDb;
 	eventBus: EventBus;
+	api?: ApiClient;
+	organizationId?: string;
+	clientMachineId?: string;
+}
+
+/**
+ * Workspaces have no cloud mirror since local-first (#5731), so the cloud
+ * capture in `v2Workspace.create`/`delete` never fires for local rows —
+ * the host relays the event through `analytics.captureEvent` instead.
+ */
+function trackWorkspaceEvent(
+	ctx: WorkspaceStoreContext,
+	event: "workspace_created" | "workspace_deleted",
+	row: HostWorkspaceRow,
+): void {
+	if (!ctx.api) return;
+	const clientMachineId = ctx.clientMachineId ?? getHostId();
+	try {
+		void ctx.api.analytics.captureEvent
+			.mutate({
+				source: "host_service",
+				event,
+				properties: {
+					workspace_id: row.id,
+					project_id: row.projectId,
+					organization_id: ctx.organizationId ?? null,
+					host_id: getHostId(),
+					branch: row.branch,
+					type: row.type,
+					host_kind: clientMachineId === getHostId() ? "local" : "remote",
+					client_machine_id: clientMachineId,
+					host_service_version: hostServicePackageJson.version,
+				},
+			})
+			.catch(() => {});
+	} catch {
+		// Telemetry must never fail the workspace operation.
+	}
 }
 
 /**
@@ -130,8 +173,7 @@ function getDefaultMemberTabOrder(db: HostDb, sectionId: string): number {
 
 /**
  * Insert a fully-populated local workspace row (host mints the id when the
- * caller didn't) and broadcast `workspace:changed`. The row starts
- * cloud-unsynced; callers push to the cloud best-effort afterwards.
+ * caller didn't) and broadcast `workspace:changed`.
  */
 export function insertLocalWorkspace(
 	ctx: WorkspaceStoreContext,
@@ -158,12 +200,12 @@ export function insertLocalWorkspace(
 			createdByUserId: values.createdByUserId ?? null,
 			createdAt: now,
 			updatedAt: now,
-			cloudSyncedAt: null,
 		})
 		.run();
 	const row = getLocalWorkspace(ctx.db, id);
 	if (!row) throw new Error(`Workspace insert readback failed: ${id}`);
 	emitWorkspaceChanged(ctx.eventBus, "created", row);
+	trackWorkspaceEvent(ctx, "workspace_created", row);
 	return row;
 }
 
@@ -179,16 +221,11 @@ export interface UpdateLocalWorkspacePatch {
 	tabOrder?: number;
 }
 
-/**
- * Patch a local row, bump `updatedAt`, broadcast, and (by default) mark it
- * cloud-dirty so the reconciler pushes it. Pass `cloudDirty: false` for
- * machine-state-only changes the cloud doesn't mirror.
- */
+/** Patch a local row, bump `updatedAt`, and broadcast. */
 export function updateLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
 	patch: UpdateLocalWorkspacePatch,
-	opts?: { cloudDirty?: boolean },
 ): HostWorkspaceRow | undefined {
 	const existing = getLocalWorkspace(ctx.db, id);
 	if (!existing) return undefined;
@@ -197,7 +234,6 @@ export function updateLocalWorkspace(
 		.set({
 			...patch,
 			updatedAt: Date.now(),
-			...((opts?.cloudDirty ?? true) ? { cloudSyncedAt: null } : {}),
 		})
 		.where(eq(workspaces.id, id))
 		.run();
@@ -206,47 +242,13 @@ export function updateLocalWorkspace(
 	return row;
 }
 
-/**
- * Mark a row cloud-synced. Pass `expectedUpdatedAt` (the row's updatedAt as
- * of the push) so a write that landed mid-push keeps its dirty flag —
- * otherwise an in-flight push could silently clear a concurrent rename.
- */
-export function markWorkspaceCloudSynced(
-	db: HostDb,
-	id: string,
-	opts?: { expectedUpdatedAt?: number; syncedAt?: number },
-): void {
-	db.update(workspaces)
-		.set({ cloudSyncedAt: opts?.syncedAt ?? Date.now() })
-		.where(
-			opts?.expectedUpdatedAt !== undefined
-				? and(
-						eq(workspaces.id, id),
-						eq(workspaces.updatedAt, opts.expectedUpdatedAt),
-					)
-				: eq(workspaces.id, id),
-		)
-		.run();
-}
-
-/**
- * Delete a local row, broadcast, and tombstone the id so the reconciler can
- * replay the delete against the cloud once it's reachable. Idempotent.
- */
+/** Delete a local row and broadcast. Idempotent. */
 export function deleteLocalWorkspace(
 	ctx: WorkspaceStoreContext,
 	id: string,
-	opts?: { queueCloudDelete?: boolean },
 ): void {
 	const existing = getLocalWorkspace(ctx.db, id);
 	ctx.db.delete(workspaces).where(eq(workspaces.id, id)).run();
-	if (opts?.queueCloudDelete ?? true) {
-		ctx.db
-			.insert(workspaceCloudDeletes)
-			.values({ id, queuedAt: Date.now() })
-			.onConflictDoNothing()
-			.run();
-	}
 	if (existing) {
 		ctx.eventBus.broadcastWorkspaceChanged({
 			workspaceId: id,
@@ -254,81 +256,8 @@ export function deleteLocalWorkspace(
 			workspace: null,
 			occurredAt: Date.now(),
 		});
+		trackWorkspaceEvent(ctx, "workspace_deleted", existing);
 	}
-}
-
-export function clearWorkspaceCloudTombstone(db: HostDb, id: string): void {
-	db.delete(workspaceCloudDeletes)
-		.where(eq(workspaceCloudDeletes.id, id))
-		.run();
-}
-
-export function listUnsyncedWorkspaces(db: HostDb): HostWorkspaceRow[] {
-	return db
-		.select()
-		.from(workspaces)
-		.where(isNull(workspaces.cloudSyncedAt))
-		.all();
-}
-
-export function listWorkspaceCloudTombstones(db: HostDb): { id: string }[] {
-	return db
-		.select({ id: workspaceCloudDeletes.id })
-		.from(workspaceCloudDeletes)
-		.all();
-}
-
-/**
- * Re-key a local row onto a cloud-assigned id (main-workspace dedupe: the
- * cloud already had a main for this project/host under a different id).
- * Emits deleted+created so live consumers converge on the surviving id.
- */
-export function relinkLocalWorkspaceId(
-	ctx: WorkspaceStoreContext,
-	oldId: string,
-	newId: string,
-): HostWorkspaceRow | undefined {
-	const existing = getLocalWorkspace(ctx.db, oldId);
-	if (!existing || oldId === newId) return existing;
-	// A row may already exist under the target id; keep it and drop ours.
-	const target = getLocalWorkspace(ctx.db, newId);
-	if (target) {
-		deleteLocalWorkspace(ctx, oldId, { queueCloudDelete: false });
-		return target;
-	}
-	// Atomic re-key: a crash between delete and insert must not lose the
-	// only record of the workspace. Events broadcast after commit.
-	const now = Date.now();
-	ctx.db.transaction((tx) => {
-		tx.delete(workspaces).where(eq(workspaces.id, oldId)).run();
-		tx.insert(workspaces)
-			.values({
-				id: newId,
-				projectId: existing.projectId,
-				worktreePath: existing.worktreePath,
-				branch: existing.branch,
-				name: existing.name || existing.branch,
-				type: existing.type,
-				taskId: existing.taskId,
-				sectionId: existing.sectionId,
-				tabOrder: existing.tabOrder,
-				createdByUserId: existing.createdByUserId,
-				createdAt: now,
-				updatedAt: now,
-				cloudSyncedAt: null,
-			})
-			.run();
-	});
-	ctx.eventBus.broadcastWorkspaceChanged({
-		workspaceId: oldId,
-		eventType: "deleted",
-		workspace: null,
-		occurredAt: Date.now(),
-	});
-	const row = getLocalWorkspace(ctx.db, newId);
-	if (!row) throw new Error(`Workspace relink readback failed: ${newId}`);
-	emitWorkspaceChanged(ctx.eventBus, "created", row);
-	return row;
 }
 
 function emitWorkspaceChanged(

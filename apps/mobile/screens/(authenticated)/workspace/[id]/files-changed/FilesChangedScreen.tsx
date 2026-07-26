@@ -1,142 +1,96 @@
-import { LegendList } from "@legendapp/list/react-native";
-import { prompt } from "@superset/alert-prompt";
-import { useQueries } from "@tanstack/react-query";
+import { FlashList, type FlashListRef } from "@shopify/flash-list";
+import { useQueries, useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
-import * as Haptics from "expo-haptics";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import {
-	CheckCircle2,
-	ChevronDown,
-	ChevronRight,
-	Circle,
-	FileDiff,
-} from "lucide-react-native";
-import { useCallback, useMemo, useState } from "react";
+import { Stack, useLocalSearchParams, useRouter } from "expo-router";
+import { FileDiff } from "lucide-react-native";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
 	ActionSheetIOS,
 	ActivityIndicator,
+	Alert,
+	Linking,
+	PanResponder,
 	RefreshControl,
+	Share,
+	useWindowDimensions,
 	View,
 } from "react-native";
+import { useSharedValue, withDecay } from "react-native-reanimated";
+import { tokenizeCode } from "@/components/ai-elements/code-block";
 import { Icon } from "@/components/ui/icon";
 import { Text } from "@/components/ui/text";
-import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
-import { cn } from "@/lib/utils";
-import { useStartWorkspaceChat } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useStartWorkspaceChat";
-import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import {
 	type ChangesetFile,
 	useWorkspaceChangeset,
 } from "../hooks/useWorkspaceChangeset";
+import { useWorkspacePullRequest } from "../hooks/useWorkspacePullRequest";
+import { useCommentComposerStore } from "../stores/commentComposerStore";
+import { NO_EXPANSIONS, useDiffViewStore } from "../stores/diffViewStore";
+import {
+	type DraftComment,
+	NO_COMMENTS,
+	useDraftCommentsStore,
+} from "../stores/draftCommentsStore";
+import { languageForPath } from "../utils/languageForPath";
+import {
+	AnimatedCellContainer,
+	CellTransitionsContext,
+} from "./components/AnimatedCellContainer";
+import { CommentCardRow } from "./components/CommentCardRow";
+import { ExpanderRow } from "./components/ExpanderRow";
+import { FileHeaderRow } from "./components/FileHeaderRow";
+import { HunkSegmentCell } from "./components/HunkSegmentCell";
+import { ReviewOverlay } from "./components/ReviewOverlay";
+import { useChangesetListItems } from "./hooks/useChangesetListItems";
 import { useViewedFilesStore } from "./stores/viewedFilesStore";
-import { computeFileDiff, type DiffRow } from "./utils/computeFileDiff";
+import type { LineRow, ListItem } from "./utils/buildListItems";
+import {
+	attachDiffTokens,
+	computeFileDiff,
+	expandTabs,
+	type FileDiffData,
+} from "./utils/computeFileDiff";
+import {
+	CharWidthProbe,
+	contentWidthForChars,
+	DIFF_LINE_HEIGHT,
+	ESTIMATED_CHAR_WIDTH,
+	GUTTER_WIDTH,
+	HUNK_ROW_HEIGHT,
+} from "./utils/diffMetrics";
 
-const AUTO_EXPAND_MAX_FILES = 15;
-
-// Stable fallback: an inline `?? []` makes the zustand snapshot a fresh array
-// every read, which useSyncExternalStore treats as an endless store change.
+const MAX_HIGHLIGHT_BYTES = 200_000;
 const NO_VIEWED_PATHS: string[] = [];
-
-type ListItem =
-	| { kind: "summary" }
-	| { kind: "file"; file: ChangesetFile; expanded: boolean; viewed: boolean }
-	| { kind: "diff-row"; row: DiffRow }
-	| { kind: "note"; key: string; note: "loading" | "error" | "binary" };
-
-function itemKey(item: ListItem): string {
-	switch (item.kind) {
-		case "summary":
-			return "summary";
-		case "file":
-			return `file:${item.file.path}`;
-		case "diff-row":
-			return item.row.key;
-		case "note":
-			return item.key;
-	}
-}
-
-function splitPath(path: string): { name: string; dir: string | null } {
-	const separator = path.lastIndexOf("/");
-	if (separator === -1) return { name: path, dir: null };
-	return {
-		name: path.slice(separator + 1),
-		dir: path.slice(0, separator),
-	};
-}
-
-const LINE_TEXT_CLASS = {
-	add: "text-green-500",
-	del: "text-red-500",
-	context: "text-foreground/80",
-} as const;
-
-const LINE_BG_CLASS = {
-	add: "bg-green-500/10",
-	del: "bg-red-500/10",
-	context: undefined,
-} as const;
-
-const LINE_SIGN = { add: "+", del: "−", context: " " } as const;
-
-function DiffRowView({ row }: { row: DiffRow }) {
-	if (row.kind === "hunk") {
-		return (
-			<View className="bg-muted/40 px-3 py-1">
-				<Text className="text-muted-foreground font-mono text-[11px]">
-					{row.header}
-				</Text>
-			</View>
-		);
-	}
-	if (row.kind === "truncated") {
-		return (
-			<View className="items-center px-3 py-2">
-				<Text className="text-muted-foreground text-xs">
-					Diff truncated — {row.hiddenCount} more lines on the host
-				</Text>
-			</View>
-		);
-	}
-	return (
-		<View className={cn("flex-row", LINE_BG_CLASS[row.type])}>
-			<Text className="text-muted-foreground/50 w-10 pr-1.5 text-right font-mono text-[11px] leading-5">
-				{row.newLineNumber ?? row.oldLineNumber ?? ""}
-			</Text>
-			<Text
-				className={cn(
-					"w-3.5 font-mono text-[11px] leading-5",
-					LINE_TEXT_CLASS[row.type],
-				)}
-			>
-				{LINE_SIGN[row.type]}
-			</Text>
-			<Text
-				className={cn(
-					"flex-1 pr-2 font-mono text-[11px] leading-5",
-					LINE_TEXT_CLASS[row.type],
-				)}
-				numberOfLines={1}
-			>
-				{row.text}
-			</Text>
-		</View>
-	);
-}
+const FETCH_PIPELINE_START = 10;
+const FETCH_PIPELINE_STEP = 6;
+const FETCH_PIPELINE_LOOKAHEAD = 3;
+// Sections taller than this snap instead of animating — sliding multiple
+// viewports of content in 240ms reads as noise and the mid-flight cell
+// mounting stutters.
+const ANIMATED_TOGGLE_MAX_PX = 1_400;
 
 export function FilesChangedScreen() {
 	const { id } = useLocalSearchParams<{ id: string }>();
 	const router = useRouter();
 	const workspaceId = id ?? null;
+	const { width: windowWidth } = useWindowDimensions();
+	const queryClient = useQueryClient();
 
 	const changeset = useWorkspaceChangeset(workspaceId);
 	const { workspace } = useWorkspaceHost(workspaceId);
-	const [collapsedPaths, setCollapsedPaths] = useState<ReadonlySet<string>>(
+	const pullRequest = useWorkspacePullRequest(workspaceId);
+
+	const [collapsedToggles, setCollapsedToggles] = useState<ReadonlySet<string>>(
 		new Set(),
 	);
 	const [refreshing, setRefreshing] = useState(false);
+	const [charWidth, setCharWidth] = useState(ESTIMATED_CHAR_WIDTH);
+	const [enabledCount, setEnabledCount] = useState(FETCH_PIPELINE_START);
+	const [priorityPaths, setPriorityPaths] = useState<ReadonlySet<string>>(
+		new Set(),
+	);
 
 	const viewedPaths = useViewedFilesStore(
 		(state) => state.viewedByWorkspace[workspaceId ?? ""] ?? NO_VIEWED_PATHS,
@@ -144,61 +98,117 @@ export function FilesChangedScreen() {
 	const toggleViewed = useViewedFilesStore((state) => state.toggleViewed);
 	const viewedSet = useMemo(() => new Set(viewedPaths), [viewedPaths]);
 
-	const widgetWorkspaces = useMemo<HostWorkspaceItem[]>(
-		() => (workspace ? [{ ...workspace, hostReachable: true }] : []),
-		[workspace],
+	const comments = useDraftCommentsStore(
+		(state) => state.commentsByWorkspace[workspaceId ?? ""] ?? NO_COMMENTS,
 	);
-	const startWorkspaceChat = useStartWorkspaceChat(widgetWorkspaces);
+	const removeComment = useDraftCommentsStore((state) => state.removeComment);
+	const openComposer = useCommentComposerStore((state) => state.openComposer);
 
-	const toggleCollapsed = useCallback((path: string) => {
-		setCollapsedPaths((previous) => {
-			const next = new Set(previous);
-			if (next.has(path)) next.delete(path);
-			else next.add(path);
-			return next;
-		});
-	}, []);
+	const expansions = useDiffViewStore(
+		(state) => state.expansionsByWorkspace[workspaceId ?? ""] ?? NO_EXPANSIONS,
+	);
+	const addExpansion = useDiffViewStore((state) => state.addExpansion);
+	const jumpTarget = useDiffViewStore((state) => state.jumpTarget);
+	const clearJump = useDiffViewStore((state) => state.clearJump);
 
-	// Above this, every expanded file firing a full-contents git.getDiff on
-	// first open stampedes the relay; large changesets rest collapsed instead.
-	const autoCollapse = changeset.files.length > AUTO_EXPAND_MAX_FILES;
+	const listRef = useRef<FlashListRef<ListItem> | null>(null);
 
 	const isExpanded = useCallback(
 		(file: ChangesetFile) => {
-			// Viewed files (and every file of a large changeset) rest collapsed; a
-			// manual toggle overrides either way.
-			const restingCollapsed = autoCollapse || viewedSet.has(file.path);
-			const toggled = collapsedPaths.has(file.path);
+			const restingCollapsed = viewedSet.has(file.path);
+			const toggled = collapsedToggles.has(file.path);
 			return restingCollapsed ? toggled : !toggled;
 		},
-		[autoCollapse, viewedSet, collapsedPaths],
+		[viewedSet, collapsedToggles],
 	);
 
-	const expandedFiles = useMemo(
-		() =>
-			changeset.files.filter(
-				(file) => isExpanded(file) && file.isBinary !== true,
-			),
-		[changeset.files, isExpanded],
+	// Section collapse/expand: pause cell recycling for the next commit and
+	// open the cell-transition gate so repositioned cells slide into place.
+	// The gate stays shut otherwise — recycled cells must not animate their
+	// reposition during normal scrolling.
+	const [cellTransitions, setCellTransitions] = useState(false);
+	const cellTransitionTimer = useRef<ReturnType<typeof setTimeout> | null>(
+		null,
+	);
+	const animateNextListUpdate = useCallback(() => {
+		listRef.current?.prepareForLayoutAnimationRender();
+		setCellTransitions(true);
+		if (cellTransitionTimer.current) clearTimeout(cellTransitionTimer.current);
+		cellTransitionTimer.current = setTimeout(
+			() => setCellTransitions(false),
+			400,
+		);
+	}, []);
+	useEffect(
+		() => () => {
+			if (cellTransitionTimer.current)
+				clearTimeout(cellTransitionTimer.current);
+		},
+		[],
+	);
+
+	const animateToggleIfSmall = useCallback(
+		(path: string) => {
+			const file = changeset.files.find((entry) => entry.path === path);
+			if (!file) return;
+			const estimate = (file.additions + file.deletions + 8) * DIFF_LINE_HEIGHT;
+			if (estimate <= ANIMATED_TOGGLE_MAX_PX) animateNextListUpdate();
+		},
+		[changeset.files, animateNextListUpdate],
+	);
+
+	const toggleCollapsed = useCallback(
+		(path: string) => {
+			animateToggleIfSmall(path);
+			setCollapsedToggles((previous) => {
+				const next = new Set(previous);
+				if (next.has(path)) next.delete(path);
+				else next.add(path);
+				return next;
+			});
+		},
+		[animateToggleIfSmall],
+	);
+
+	// The toggle bit is relative to the viewed baseline — reset it when the
+	// baseline flips, or marking a collapsed file viewed would re-expand it.
+	const onToggleViewed = useCallback(
+		(path: string) => {
+			if (!workspaceId) return;
+			animateToggleIfSmall(path);
+			toggleViewed(workspaceId, path);
+			setCollapsedToggles((previous) => {
+				if (!previous.has(path)) return previous;
+				const next = new Set(previous);
+				next.delete(path);
+				return next;
+			});
+		},
+		[workspaceId, toggleViewed, animateToggleIfSmall],
+	);
+
+	const fetchableFiles = useMemo(
+		() => changeset.files.filter((file) => file.isBinary !== true),
+		[changeset.files],
 	);
 
 	const diffQueries = useQueries({
-		queries: expandedFiles.map((file) => ({
-			// The per-file stats change with the file's contents, so a fresh edit
-			// busts the otherwise-immortal cache entry.
+		queries: fetchableFiles.map((file, index) => ({
 			queryKey: [
-				"workspace-file-diff-rows",
+				"workspace-file-diff-data",
 				workspaceId,
 				file.source,
 				file.path,
 				file.additions,
 				file.deletions,
 			] as const,
-			enabled: changeset.hostUrl !== null,
+			enabled:
+				changeset.hostUrl !== null &&
+				(index < enabledCount || priorityPaths.has(file.path)),
 			staleTime: Number.POSITIVE_INFINITY,
 			retry: 1,
 			networkMode: "always" as const,
-			queryFn: async () => {
+			queryFn: async (): Promise<FileDiffData> => {
 				const pair = await getHostServiceClientByUrl(
 					changeset.hostUrl as string,
 				).git.getDiff.query({
@@ -206,206 +216,351 @@ export function FilesChangedScreen() {
 					path: file.path,
 					category: file.source,
 				});
-				return computeFileDiff(
-					file.path,
-					pair.oldFile.contents ?? "",
-					pair.newFile.contents ?? "",
-				);
+				const oldContents = expandTabs(pair.oldFile.contents ?? "");
+				const newContents = expandTabs(pair.newFile.contents ?? "");
+				const data = computeFileDiff(file.path, oldContents, newContents);
+				if (
+					oldContents.length > MAX_HIGHLIGHT_BYTES ||
+					newContents.length > MAX_HIGHLIGHT_BYTES
+				) {
+					return data;
+				}
+				const language = languageForPath(file.path);
+				const [oldLines, newLines] = await Promise.all([
+					tokenizeCode(oldContents, language),
+					tokenizeCode(newContents, language),
+				]);
+				return attachDiffTokens(data, oldLines, newLines);
 			},
 		})),
 	});
 
-	const rowsByPath = useMemo(() => {
-		const map = new Map<string, { rows: DiffRow[] | null; isError: boolean }>();
-		expandedFiles.forEach((file, index) => {
+	const settledCount = diffQueries.reduce(
+		(count, query, index) =>
+			index < enabledCount && (query.isSuccess || query.isError)
+				? count + 1
+				: count,
+		0,
+	);
+	useEffect(() => {
+		if (enabledCount >= fetchableFiles.length) return;
+		if (enabledCount - settledCount <= FETCH_PIPELINE_LOOKAHEAD) {
+			setEnabledCount((current) =>
+				Math.min(fetchableFiles.length, current + FETCH_PIPELINE_STEP),
+			);
+		}
+	}, [settledCount, enabledCount, fetchableFiles.length]);
+
+	const dataByPath = useMemo(() => {
+		const map = new Map<
+			string,
+			{ data: FileDiffData | null; isError: boolean }
+		>();
+		fetchableFiles.forEach((file, index) => {
 			const query = diffQueries[index];
 			map.set(file.path, {
-				rows: query?.data ?? null,
+				data: query?.data ?? null,
 				isError: query?.isError ?? false,
 			});
 		});
 		return map;
-	}, [expandedFiles, diffQueries]);
+	}, [fetchableFiles, diffQueries]);
 
-	const addFileComment = useCallback(
-		async (file: ChangesetFile) => {
-			if (!workspace) return;
-			const comment = await prompt({
-				title: file.path.split("/").pop() ?? file.path,
-				confirmText: "Send",
-			});
-			const trimmed = comment?.trim();
-			if (!trimmed) return;
-			startWorkspaceChat.mutate({
-				target: {
-					workspaceId: workspace.id,
-					workspaceName: workspace.name,
-					branch: workspace.branch,
-					hostId: workspace.hostId,
+	const { items, stickyHeaderIndices } = useChangesetListItems({
+		files: changeset.files,
+		dataByPath,
+		expansions,
+		comments,
+		isExpanded,
+		viewedSet,
+	});
+
+	// Horizontal pan: one shared value, per-segment clamping in HunkSegmentCell.
+	const scrollX = useSharedValue(0);
+	const maxScrollX = useSharedValue(0);
+	const codeViewportWidth = windowWidth - GUTTER_WIDTH;
+
+	const contentWidths = useMemo(() => {
+		const byPath = new Map<string, number>();
+		let maxOffset = 0;
+		for (const [path, entry] of dataByPath) {
+			if (!entry.data) continue;
+			const width = contentWidthForChars(
+				entry.data.maxLineChars + 2,
+				charWidth,
+			);
+			byPath.set(path, width);
+			maxOffset = Math.max(maxOffset, width - codeViewportWidth);
+		}
+		return { byPath, maxOffset: Math.max(0, maxOffset) };
+	}, [dataByPath, charWidth, codeViewportWidth]);
+	const contentWidthByPath = contentWidths.byPath;
+	useEffect(() => {
+		maxScrollX.value = contentWidths.maxOffset;
+		if (scrollX.value > contentWidths.maxOffset) {
+			scrollX.value = contentWidths.maxOffset;
+		}
+	}, [contentWidths.maxOffset, maxScrollX, scrollX]);
+
+	const panStartX = useRef(0);
+	const panResponder = useMemo(
+		() =>
+			PanResponder.create({
+				onMoveShouldSetPanResponder: (_, gesture) =>
+					Math.abs(gesture.dx) > 14 && Math.abs(gesture.dy) < 12,
+				onPanResponderGrant: () => {
+					panStartX.current = Math.min(scrollX.value, maxScrollX.value);
 				},
-				message: {
-					text: `Regarding \`${file.path}\`:\n\n${trimmed}`,
-					attachments: [],
+				onPanResponderMove: (_, gesture) => {
+					scrollX.value = Math.min(
+						Math.max(panStartX.current - gesture.dx, 0),
+						maxScrollX.value,
+					);
 				},
-			});
-		},
-		[workspace, startWorkspaceChat],
+				onPanResponderRelease: (_, gesture) => {
+					scrollX.value = withDecay({
+						velocity: -gesture.vx * 1000,
+						clamp: [0, maxScrollX.value],
+					});
+				},
+				// Keep an in-flight horizontal drag: grant is horizontal-intent gated,
+				// so the vertical list must not reclaim it mid-gesture.
+				onPanResponderTerminationRequest: () => false,
+			}),
+		[scrollX, maxScrollX],
 	);
 
-	const openFileMenu = useCallback(
-		(file: ChangesetFile) => {
-			void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+	const openLineComposer = useCallback(
+		(path: string, row: LineRow) => {
+			if (!workspaceId) return;
+			const side = row.type === "del" ? "old" : "new";
+			openComposer({
+				workspaceId,
+				path,
+				side,
+				line: (side === "old" ? row.oldLineNumber : row.newLineNumber) ?? 0,
+				lineText: row.text,
+				lineType: row.type,
+				tokens: row.tokens,
+			});
+			router.push(`/(authenticated)/workspace/${workspaceId}/line-comment`);
+		},
+		[workspaceId, openComposer, router],
+	);
+
+	const onCommentMenu = useCallback(
+		(comment: DraftComment) => {
 			ActionSheetIOS.showActionSheetWithOptions(
 				{
-					title: file.path,
-					options: ["View file", "Add file comment", "Copy path", "Cancel"],
-					cancelButtonIndex: 3,
+					options: ["Edit", "Delete", "Cancel"],
+					destructiveButtonIndex: 1,
+					cancelButtonIndex: 2,
 				},
 				(buttonIndex) => {
-					switch (buttonIndex) {
-						case 0:
-							router.push(
-								`/(authenticated)/workspace/${workspaceId}/file?path=${encodeURIComponent(file.path)}&source=${file.source}`,
-							);
-							return;
-						case 1:
-							void addFileComment(file);
-							return;
-						case 2:
-							void Clipboard.setStringAsync(file.path);
-							return;
+					if (buttonIndex === 0 && workspaceId) {
+						openComposer({
+							workspaceId,
+							path: comment.path,
+							side: comment.side,
+							line: comment.line,
+							lineText: comment.lineText,
+							lineType:
+								comment.lineType ??
+								(comment.line === 0
+									? "file"
+									: comment.side === "old"
+										? "del"
+										: "context"),
+							tokens: comment.tokens,
+							editingDraftId: comment.id,
+							initialBody: comment.body,
+						});
+						router.push(
+							`/(authenticated)/workspace/${workspaceId}/line-comment`,
+						);
+					} else if (buttonIndex === 1 && workspaceId) {
+						removeComment(workspaceId, comment.id);
 					}
 				},
 			);
 		},
-		[router, workspaceId, addFileComment],
+		[workspaceId, openComposer, removeComment, router],
 	);
 
-	const items = useMemo<ListItem[]>(() => {
-		const result: ListItem[] = [{ kind: "summary" }];
-		for (const file of changeset.files) {
-			const expanded = isExpanded(file);
-			result.push({
-				kind: "file",
-				file,
-				expanded,
-				viewed: viewedSet.has(file.path),
-			});
-			if (!expanded) continue;
-			if (file.isBinary === true) {
-				result.push({
-					kind: "note",
-					key: `${file.path}:binary`,
-					note: "binary",
-				});
-				continue;
-			}
-			const diff = rowsByPath.get(file.path);
-			if (diff?.rows) {
-				for (const row of diff.rows) result.push({ kind: "diff-row", row });
-			} else {
-				result.push({
-					kind: "note",
-					key: `${file.path}:${diff?.isError ? "error" : "loading"}`,
-					note: diff?.isError ? "error" : "loading",
-				});
-			}
-		}
-		return result;
-	}, [changeset.files, isExpanded, viewedSet, rowsByPath]);
+	const deleteFile = useCallback(
+		(file: ChangesetFile) => {
+			if (!workspace || !changeset.hostUrl) return;
+			Alert.alert("Delete file", file.path, [
+				{ text: "Cancel", style: "cancel" },
+				{
+					text: "Delete",
+					style: "destructive",
+					onPress: () => {
+						getHostServiceClientByUrl(changeset.hostUrl as string)
+							.filesystem.deletePath.mutate({
+								workspaceId: workspace.id,
+								absolutePath: `${workspace.worktreePath}/${file.path}`,
+							})
+							.then(() => changeset.refetch())
+							.catch((cause: unknown) => {
+								Alert.alert(
+									"Could not delete file",
+									cause instanceof Error ? cause.message : String(cause),
+								);
+							});
+					},
+				},
+			]);
+		},
+		[workspace, changeset.hostUrl, changeset.refetch],
+	);
 
+	const copyFilePath = useCallback((file: ChangesetFile) => {
+		void Clipboard.setStringAsync(file.path);
+	}, []);
+
+	const viewFile = useCallback(
+		(file: ChangesetFile) => {
+			router.push(
+				`/(authenticated)/workspace/${workspaceId}/file?path=${encodeURIComponent(file.path)}&source=${file.source}`,
+			);
+		},
+		[router, workspaceId],
+	);
+
+	const addFileComment = useCallback(
+		(file: ChangesetFile) => {
+			if (!workspaceId) return;
+			openComposer({
+				workspaceId,
+				path: file.path,
+				side: "new",
+				line: 0,
+				lineText: "",
+				lineType: "file",
+			});
+			router.push(`/(authenticated)/workspace/${workspaceId}/line-comment`);
+		},
+		[workspaceId, openComposer, router],
+	);
+
+	useEffect(() => {
+		if (!jumpTarget) return;
+		const { path } = jumpTarget;
+		setPriorityPaths((previous) => {
+			if (previous.has(path)) return previous;
+			const next = new Set(previous);
+			next.add(path);
+			return next;
+		});
+		// Force the target expanded whatever its resting state: viewed files
+		// need the toggle bit set, manually-collapsed unviewed files need it
+		// cleared.
+		setCollapsedToggles((previous) => {
+			const expandToggle = viewedSet.has(path);
+			if (previous.has(path) === expandToggle) return previous;
+			const next = new Set(previous);
+			if (expandToggle) next.add(path);
+			else next.delete(path);
+			return next;
+		});
+		const index = items.findIndex(
+			(item) => item.kind === "file" && item.file.path === path,
+		);
+		if (index >= 0) {
+			listRef.current?.scrollToIndex({ index, animated: true });
+		}
+		clearJump();
+	}, [jumpTarget, items, viewedSet, clearJump]);
+
+	// The per-file diff queries key on +/− counts with infinite staleTime, so a
+	// same-count content change needs an explicit invalidation to show up.
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
 		try {
-			await changeset.refetch();
+			await Promise.all([
+				changeset.refetch(),
+				queryClient.invalidateQueries({
+					queryKey: ["workspace-file-diff-data", workspaceId],
+				}),
+			]);
 		} finally {
 			setRefreshing(false);
 		}
-	}, [changeset.refetch]);
+	}, [changeset.refetch, queryClient, workspaceId]);
 
 	const renderItem = useCallback(
 		({ item }: { item: ListItem }) => {
 			switch (item.kind) {
-				case "summary":
+				case "file":
 					return (
-						<View className="flex-row items-center gap-1.5 px-4 pb-3 pt-1">
-							<Text className="text-green-500 font-semibold text-[15px]">
-								+{changeset.additions}
-							</Text>
-							<Text className="text-red-500 font-semibold text-[15px]">
-								−{changeset.deletions}
-							</Text>
-							<Text className="text-muted-foreground text-[15px]">
-								·{" "}
-								{changeset.files.length === 1
-									? "1 file"
-									: `${changeset.files.length} files`}
+						<FileHeaderRow
+							file={item.file}
+							expanded={item.expanded}
+							viewed={item.viewed}
+							onToggle={toggleCollapsed}
+							onCopyPath={copyFilePath}
+							onViewFile={viewFile}
+							onAddComment={addFileComment}
+							onDelete={deleteFile}
+							onToggleViewed={onToggleViewed}
+						/>
+					);
+				case "hunk":
+					return (
+						<View
+							className="bg-sky-500/10 justify-center px-3"
+							style={{ height: HUNK_ROW_HEIGHT }}
+						>
+							<Text className="text-sky-300/80 font-mono text-[12px]">
+								{item.header}
 							</Text>
 						</View>
 					);
-				case "file": {
-					const { name, dir } = splitPath(item.file.path);
+				case "segment":
 					return (
-						<PressableScale
-							className={cn(
-								"bg-background border-border/60 flex-row items-center gap-2.5 border-t px-4 py-3",
-								item.viewed && "opacity-55",
-							)}
-							onPress={() => toggleCollapsed(item.file.path)}
-							onLongPress={() => openFileMenu(item.file)}
-						>
-							<Icon
-								as={item.expanded ? ChevronDown : ChevronRight}
-								className="text-muted-foreground size-4"
-							/>
-							<Text className="font-semibold text-[14px]" numberOfLines={1}>
-								{name}
-							</Text>
-							{dir ? (
-								<Text
-									className="text-muted-foreground min-w-0 flex-1 text-[12px]"
-									numberOfLines={1}
-								>
-									{dir}
-								</Text>
-							) : (
-								<View className="flex-1" />
-							)}
-							<View className="flex-row items-center gap-1">
-								<Text className="text-green-500 font-medium text-[12px]">
-									+{item.file.additions}
-								</Text>
-								<Text className="text-red-500 font-medium text-[12px]">
-									−{item.file.deletions}
-								</Text>
-							</View>
-							<PressableScale
-								accessibilityLabel={
-									item.viewed ? "Mark as not viewed" : "Mark as viewed"
-								}
-								hitSlop={8}
-								onPress={() => {
-									void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-									if (workspaceId) toggleViewed(workspaceId, item.file.path);
-								}}
-							>
-								<Icon
-									as={item.viewed ? CheckCircle2 : Circle}
-									className={cn(
-										"size-5",
-										item.viewed ? "text-green-500" : "text-muted-foreground/50",
-									)}
-									strokeWidth={1.75}
-								/>
-							</PressableScale>
-						</PressableScale>
+						<HunkSegmentCell
+							segment={item.segment}
+							contentWidth={
+								contentWidthByPath.get(item.path) ?? codeViewportWidth
+							}
+							codeViewportWidth={codeViewportWidth}
+							scrollX={scrollX}
+							onPressLine={openLineComposer}
+						/>
 					);
-				}
-				case "diff-row":
-					return <DiffRowView row={item.row} />;
+				case "expander":
+					return (
+						<ExpanderRow
+							row={item.row}
+							onExpand={(path, range) => {
+								if (workspaceId) addExpansion(workspaceId, path, range);
+							}}
+						/>
+					);
+				case "truncated":
+					return (
+						<View className="items-center px-3 py-2">
+							<Text className="text-muted-foreground text-xs">
+								Diff truncated — {item.hiddenCount} more lines on the host
+							</Text>
+						</View>
+					);
+				case "comment":
+					return (
+						<CommentCardRow
+							comment={item.comment}
+							stale={item.stale}
+							orphaned={item.orphaned}
+							onLongPress={onCommentMenu}
+						/>
+					);
 				case "note":
 					return (
-						<View className="items-center px-4 py-4">
+						<View
+							className="items-center justify-center px-4 py-4"
+							style={{ height: item.height }}
+						>
 							{item.note === "loading" ? (
 								<ActivityIndicator />
 							) : (
@@ -420,43 +575,105 @@ export function FilesChangedScreen() {
 			}
 		},
 		[
-			changeset.additions,
-			changeset.deletions,
-			changeset.files.length,
 			toggleCollapsed,
-			toggleViewed,
-			openFileMenu,
+			copyFilePath,
+			viewFile,
+			addFileComment,
+			deleteFile,
+			onToggleViewed,
 			workspaceId,
+			contentWidthByPath,
+			codeViewportWidth,
+			scrollX,
+			openLineComposer,
+			addExpansion,
+			onCommentMenu,
 		],
 	);
 
+	const shareUrl =
+		pullRequest?.url ??
+		(workspaceId ? `https://app.superset.sh/workspaces/${workspaceId}` : null);
+
 	return (
-		<LegendList
-			className="bg-background flex-1"
-			contentInsetAdjustmentBehavior="automatic"
-			contentContainerStyle={{ paddingBottom: 48, paddingTop: 8 }}
-			data={items}
-			extraData={renderItem}
-			keyExtractor={itemKey}
-			renderItem={renderItem}
-			refreshControl={
-				<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-			}
-			ListEmptyComponent={null}
-			ListFooterComponent={
-				changeset.isReady && changeset.files.length === 0 ? (
-					<View className="items-center gap-2 px-10 py-20">
-						<Icon
-							as={FileDiff}
-							className="text-muted-foreground/50 size-10"
-							strokeWidth={1.4}
-						/>
-						<Text className="text-muted-foreground text-center text-sm">
-							No changes on this branch yet.
-						</Text>
+		<View className="bg-background flex-1">
+			<Stack.Screen options={{ title: "Files changed" }}>
+				<Stack.Title asChild>
+					<View className="items-center">
+						<Text className="font-semibold text-[16px]">Files changed</Text>
+						<View className="flex-row gap-1.5">
+							<Text className="text-green-500 font-semibold text-[11.5px]">
+								+{changeset.additions.toLocaleString()}
+							</Text>
+							<Text className="text-red-500 font-semibold text-[11.5px]">
+								−{changeset.deletions.toLocaleString()}
+							</Text>
+						</View>
 					</View>
-				) : null
-			}
-		/>
+				</Stack.Title>
+				<Stack.Toolbar placement="right">
+					<Stack.Toolbar.Menu icon="ellipsis" accessibilityLabel="More actions">
+						<Stack.Toolbar.MenuAction
+							icon="square.and.arrow.up"
+							onPress={() => {
+								if (shareUrl) void Share.share({ url: shareUrl });
+							}}
+						>
+							Share
+						</Stack.Toolbar.MenuAction>
+						{pullRequest ? (
+							<Stack.Toolbar.MenuAction
+								icon="arrow.up.right.square"
+								onPress={() => void Linking.openURL(pullRequest.url)}
+							>
+								Open on GitHub
+							</Stack.Toolbar.MenuAction>
+						) : null}
+					</Stack.Toolbar.Menu>
+				</Stack.Toolbar>
+			</Stack.Screen>
+			<CharWidthProbe onMeasure={setCharWidth} />
+			<View className="flex-1" {...panResponder.panHandlers}>
+				<CellTransitionsContext.Provider value={cellTransitions}>
+					<FlashList
+						ref={listRef}
+						data={items}
+						renderItem={renderItem}
+						keyExtractor={(item) => item.key}
+						getItemType={(item) => item.kind}
+						CellRendererComponent={AnimatedCellContainer}
+						stickyHeaderIndices={stickyHeaderIndices}
+						stickyHeaderConfig={{ hideRelatedCell: true }}
+						contentContainerStyle={{ paddingBottom: 96 }}
+						refreshControl={
+							<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+						}
+						ListFooterComponent={
+							changeset.isReady && changeset.files.length === 0 ? (
+								<View className="items-center gap-2 px-10 py-20">
+									<Icon
+										as={FileDiff}
+										className="text-muted-foreground/50 size-10"
+										strokeWidth={1.4}
+									/>
+									<Text className="text-muted-foreground text-center text-sm">
+										No changes on this branch yet.
+									</Text>
+								</View>
+							) : null
+						}
+					/>
+				</CellTransitionsContext.Provider>
+			</View>
+			<ReviewOverlay
+				draftCount={comments.length}
+				onFinishReview={() =>
+					router.push(`/(authenticated)/workspace/${workspaceId}/finish-review`)
+				}
+				onJumpToFile={() =>
+					router.push(`/(authenticated)/workspace/${workspaceId}/jump-to-file`)
+				}
+			/>
+		</View>
 	);
 }

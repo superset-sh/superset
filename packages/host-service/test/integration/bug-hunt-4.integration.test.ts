@@ -156,7 +156,7 @@ describe("bug-hunt-4: double-call cloud propagation", () => {
 		expect(second.success).toBe(true);
 		expect(second.cloudDeleted).toBe(false);
 		expect(
-			second.warnings.some((w) => w.includes("Cloud delete deferred")),
+			second.warnings.some((w) => w.includes("Legacy cloud cleanup failed")),
 		).toBe(true);
 	});
 

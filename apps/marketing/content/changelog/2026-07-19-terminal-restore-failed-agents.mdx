@@ -1,0 +1,59 @@
+---
+title: Running terminals come back on open, failed-agent status, and find in Changes
+date: 2026-07-19
+draft: true
+---
+
+{/* TODO: hero + inline shots — capture on a machine that can launch the desktop app (background-terminal restore, red "failed" agent dot, ⌘F in the Changes pane) */}
+
+## Running Terminals Come Back When You Open a Workspace <PRBadge url="https://github.com/superset-sh/superset/pull/5740" />
+
+Sessions started by an automation, a host-side launch, or a previous app run used to sit hidden in the background-terminals dropdown until you adopted them one by one. Now opening a workspace recreates their panes for you, so you see what's actually running.
+
+- Runs once per workspace open, no toggle
+- The background-terminals dropdown still holds sessions you deliberately send to the background mid-session
+
+## Agents That Fail Now Say So <PRBadge url="https://github.com/superset-sh/superset/pull/5697" />
+
+A failed agent turn used to stay stuck on "working" with no signal. Claude Code now reports API errors (rate limits, overloads, auth or billing failures) as a red "failed" status on the pane, and it counts toward your unread and dock-badge totals. The status clears itself when the agent retries.
+
+## Find in the Changes Pane <PRBadge url="https://github.com/superset-sh/superset/pull/5648" />
+
+Press **⌘F** in a workspace Changes pane to search the whole diff, not just the rows currently on screen. Next/previous jumps to matches in collapsed or unscrolled files and expands them for you.
+
+## Confirm Before Closing a Running Terminal <PRBadge url="https://github.com/superset-sh/superset/pull/5517" />
+
+**⌘W** on a terminal pane used to silently kill whatever was running. Now you get a confirmation only when a command is actually running, with a "Don't ask again" checkbox. Closing at an idle prompt still closes instantly, no nag. Covers every close route: ⌘W, the close button, middle-click, and the context menu.
+
+## Improvements
+
+- **Terminal connection status in the pane header** - A dead terminal now shows an amber "Reconnecting…" dot while it retries and a red "Disconnected" dot when it gives up; click it for a plain-language diagnosis, a Reconnect button, and a copyable log <PRBadge url="https://github.com/superset-sh/superset/pull/5652" />
+- **Clear Status now unsticks working agents** - When an agent turn dies silently and the pane is stuck on "running", **Clear Status** clears it <PRBadge url="https://github.com/superset-sh/superset/pull/5744" />
+- **Adding an agent creates its launcher** - Add an agent in **Settings → Agents** and it now shows up everywhere at once: the new-workspace picker, automations, and the terminal presets bar <PRBadge url="https://github.com/superset-sh/superset/pull/5745" />
+- **Better auto-named workspaces** - If you use Gemini, Copilot, Amp, or another agent without Anthropic/OpenAI keys, naming now falls back to your agent's own CLI instead of leaving a random name <PRBadge url="https://github.com/superset-sh/superset/pull/5742" />
+- **Refreshed Cursor models** - The `cursor-agent` model list matches Cursor's live catalog again, so picks like Composer 2.5 no longer fail to launch <PRBadge url="https://github.com/superset-sh/superset/pull/5753" />
+- **Teardown commands run on delete** - Deleting a workspace now runs the `teardown` commands from `.superset/config.json`, not just a `teardown.sh` file, so setup processes get cleaned up, contributed by [@abhay-codes07](https://github.com/abhay-codes07) <PRBadge url="https://github.com/superset-sh/superset/pull/5661" />
+- **Tab-drag merge preview and settings polish** - A drag affordance for merging tabs, plus a cleaner Settings screen and sidebar alignment, contributed by [@mikemilla](https://github.com/mikemilla) <PRBadge url="https://github.com/superset-sh/superset/pull/5647" />
+- **Automations failure badge clears on open** - Opening the Automations page now clears its failure badge <PRBadge url="https://github.com/superset-sh/superset/pull/5689" />
+- **Relay guidance for offline automation hosts** - When an automation targets an offline host, Superset now points you to the relay settings that fix it <PRBadge url="https://github.com/superset-sh/superset/pull/5675" />
+
+---
+
+**Bug fixes**
+
+- Fixed a sign-in redirect loop that could grow renderer memory until the window went white <PRBadge url="https://github.com/superset-sh/superset/pull/5734" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5743" />
+- Fixed garbled terminal text from a shared-atlas rendering bug <PRBadge url="https://github.com/superset-sh/superset/pull/5701" />
+- Updating the app no longer kills your running terminals <PRBadge url="https://github.com/superset-sh/superset/pull/5721" />
+- A single flooding terminal no longer drops every terminal in the workspace <PRBadge url="https://github.com/superset-sh/superset/pull/5747" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5748" />
+- Terminals reconnect reliably after sleep/wake and network drops <PRBadge url="https://github.com/superset-sh/superset/pull/5702" />
+- A recovered pty daemon is re-established on the next request instead of staying wedged <PRBadge url="https://github.com/superset-sh/superset/pull/5759" />
+- Terminals repaint correctly when a hidden pane becomes visible again <PRBadge url="https://github.com/superset-sh/superset/pull/5725" />
+- Closing a workspace now disposes its terminals reliably <PRBadge url="https://github.com/superset-sh/superset/pull/5752" />
+- Automations survive a pinned workspace being deleted instead of erroring <PRBadge url="https://github.com/superset-sh/superset/pull/5741" />
+- Deleting a host now removes its workspaces too <PRBadge url="https://github.com/superset-sh/superset/pull/5727" />
+- The template gallery no longer vanishes when you click outside it <PRBadge url="https://github.com/superset-sh/superset/pull/5720" />
+- Copying or saving a Markdown preview table keeps the table instead of dropping to `[table]`, contributed by [@lizard-kim](https://github.com/lizard-kim) <PRBadge url="https://github.com/superset-sh/superset/pull/5688" />
+- Video previews play again in the file viewer <PRBadge url="https://github.com/superset-sh/superset/pull/5691" />
+- Workspaces no longer get linked to a PR that just targets the default branch <PRBadge url="https://github.com/superset-sh/superset/pull/5692" />
+- Preset bar tooltips show just the hotkey after a longer hover <PRBadge url="https://github.com/superset-sh/superset/pull/5730" />
+- Fixed project settings visibility and the location field layout <PRBadge url="https://github.com/superset-sh/superset/pull/5749" />

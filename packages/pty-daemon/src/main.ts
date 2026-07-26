@@ -17,6 +17,7 @@
 
 import * as os from "node:os";
 import packageJson from "../package.json" with { type: "json" };
+import { drainPendingKills } from "./Pty/index.ts";
 import type { HandoffMessage } from "./protocol/index.ts";
 import { Server } from "./Server/index.ts";
 import { clearSnapshot, readSnapshot } from "./SessionStore/index.ts";
@@ -200,6 +201,9 @@ function wireShutdown(server: Server): void {
 		process.stderr.write(`[pty-daemon] received ${signal}, shutting down\n`);
 		try {
 			await server.close();
+			// A requested close may still be mid-escalation; process.exit()
+			// would drop it and leak the SIGHUP-trapping survivors.
+			await drainPendingKills(2000);
 		} catch (err) {
 			process.stderr.write(
 				`[pty-daemon] shutdown error: ${(err as Error).stack ?? err}\n`,

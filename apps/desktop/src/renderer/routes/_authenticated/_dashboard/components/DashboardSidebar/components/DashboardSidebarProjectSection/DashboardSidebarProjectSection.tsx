@@ -2,7 +2,6 @@ import type {
 	DraggableAttributes,
 	DraggableSyntheticListeners,
 } from "@dnd-kit/core";
-import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import type { DashboardSidebarProject } from "../../types";
@@ -17,6 +16,7 @@ interface DashboardSidebarProjectSectionProps {
 	project: DashboardSidebarProject;
 	isSidebarCollapsed?: boolean;
 	isDraggingProject?: boolean;
+	isDragDisabled?: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: (projectId: string) => void;
@@ -28,6 +28,7 @@ export function DashboardSidebarProjectSection({
 	project,
 	isSidebarCollapsed = false,
 	isDraggingProject = false,
+	isDragDisabled = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onToggleCollapse,
@@ -69,13 +70,14 @@ export function DashboardSidebarProjectSection({
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
 				onRename={startRename}
 			>
-				<div className={cn("border-b border-border last:border-b-0")}>
+				<div className="mt-1 first:mt-0">
 					<DashboardSidebarCollapsedProjectContent
+						projectId={project.id}
 						projectName={project.name}
 						iconUrl={project.iconUrl}
 						isCollapsed={project.isCollapsed}
 						totalWorkspaceCount={totalWorkspaceCount}
-						workspaces={flattenedCollapsedWorkspaces}
+						projectChildren={project.children}
 						workspaceShortcutLabels={workspaceShortcutLabels}
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}
@@ -86,7 +88,7 @@ export function DashboardSidebarProjectSection({
 	}
 
 	return (
-		<div className={cn("border-b border-border last:border-b-0")}>
+		<div className="mt-1 first:mt-0">
 			<DashboardSidebarProjectContextMenu
 				onCreateSection={handleNewSection}
 				onOpenInFinder={handleOpenInFinder}
@@ -97,7 +99,6 @@ export function DashboardSidebarProjectSection({
 				<DashboardSidebarProjectRow
 					projectName={project.name}
 					iconUrl={project.iconUrl}
-					totalWorkspaceCount={totalWorkspaceCount}
 					isCollapsed={project.isCollapsed}
 					isRenaming={isRenaming}
 					renameValue={renameValue}
@@ -124,6 +125,7 @@ export function DashboardSidebarProjectSection({
 						<DashboardSidebarExpandedProjectContent
 							isCollapsed={project.isCollapsed}
 							projectChildren={project.children}
+							isDragDisabled={isDragDisabled}
 							workspaceShortcutLabels={workspaceShortcutLabels}
 							onWorkspaceHover={onWorkspaceHover}
 							onDeleteSection={deleteSection}

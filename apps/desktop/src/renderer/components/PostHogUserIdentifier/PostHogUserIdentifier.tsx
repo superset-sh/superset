@@ -1,9 +1,5 @@
 import { useEffect } from "react";
-import {
-	ACTIVE_ORG_ID_KEY,
-	AUTH_COMPLETED_KEY,
-} from "renderer/hooks/useSignOut";
-import { track } from "renderer/lib/analytics";
+import { ACTIVE_ORG_ID_KEY } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "../../lib/posthog";
@@ -23,12 +19,6 @@ export function PostHogUserIdentifier() {
 		});
 		posthog.reloadFeatureFlags();
 		setUserId({ userId: user.id });
-
-		const trackedUserId = localStorage.getItem(AUTH_COMPLETED_KEY);
-		if (trackedUserId !== user.id) {
-			track("auth_completed");
-			localStorage.setItem(AUTH_COMPLETED_KEY, user.id);
-		}
 	}, [user, setUserId]);
 
 	useEffect(() => {

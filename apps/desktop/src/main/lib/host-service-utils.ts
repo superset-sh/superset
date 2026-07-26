@@ -5,7 +5,14 @@ import path from "node:path";
 /** Rotate per-org host-service.log once it exceeds this size. */
 export const MAX_HOST_LOG_BYTES = 5 * 1024 * 1024;
 
-export const HEALTH_POLL_TIMEOUT_MS = 10_000;
+// Before the server becomes reachable, startup must still clear DB migrate and
+// the daemon bootstrap (the shell-env snapshot now runs in the background, off
+// the critical path). At boot every known org starts at once, and multiple app
+// instances sharing one $SUPERSET_HOME_DIR compound the contention, so a
+// healthy-but-slow child can need well over 10s. Give it generous headroom; a
+// genuinely dead child is detected early via the poll's abort hook rather than
+// by this deadline.
+export const HEALTH_POLL_TIMEOUT_MS = 30_000;
 
 const HEALTH_POLL_INTERVAL_MS = 200;
 
@@ -97,9 +104,14 @@ export async function pollHealthCheck(
 	endpoint: string,
 	secret: string,
 	timeoutMs = HEALTH_POLL_TIMEOUT_MS,
+	// Bail out before the deadline once the child is known dead — otherwise a
+	// crash-on-startup would stall the caller for the full (now generous)
+	// timeout instead of failing fast.
+	shouldAbort?: () => boolean,
 ): Promise<boolean> {
 	const deadline = Date.now() + timeoutMs;
 	while (Date.now() < deadline) {
+		if (shouldAbort?.()) return false;
 		const controller = new AbortController();
 		const timeout = setTimeout(() => controller.abort(), 2_000);
 		try {

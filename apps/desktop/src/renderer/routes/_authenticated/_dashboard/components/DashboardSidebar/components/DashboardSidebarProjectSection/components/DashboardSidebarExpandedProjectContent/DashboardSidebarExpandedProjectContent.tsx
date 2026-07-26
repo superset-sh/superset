@@ -15,6 +15,7 @@ import { SortableWorkspaceItem } from "../../../SortableWorkspaceItem";
 interface DashboardSidebarExpandedProjectContentProps {
 	isCollapsed: boolean;
 	projectChildren: DashboardSidebarProjectChild[];
+	isDragDisabled?: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onDeleteSection: (sectionId: string) => void;
@@ -25,6 +26,7 @@ interface DashboardSidebarExpandedProjectContentProps {
 export function DashboardSidebarExpandedProjectContent({
 	isCollapsed,
 	projectChildren,
+	isDragDisabled = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onDeleteSection,
@@ -46,7 +48,7 @@ export function DashboardSidebarExpandedProjectContent({
 		workspacesById,
 		sectionsById,
 		handlers,
-	} = useSidebarDnd({ projectChildren });
+	} = useSidebarDnd({ projectChildren, disabled: isDragDisabled });
 
 	return (
 		<AnimatePresence initial={false}>

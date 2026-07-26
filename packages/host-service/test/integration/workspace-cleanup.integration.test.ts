@@ -12,7 +12,7 @@ import { join } from "node:path";
 import { Server, type ServerOptions } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
 import { eq } from "drizzle-orm";
-import { workspaceCloudDeletes, workspaces } from "../../src/db/schema";
+import { workspaces } from "../../src/db/schema";
 import { disposeDaemonClient } from "../../src/terminal/daemon-client-singleton";
 import {
 	initTerminalBaseEnv,
@@ -356,7 +356,7 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(branches.all).not.toContain(scenario.branch);
 	});
 
-	test("cloud delete failure still completes locally and tombstones the id", async () => {
+	test("cloud delete failure still completes locally", async () => {
 		let cloudDeleteCalls = 0;
 		scenario.host.setApi("v2Workspace.delete.mutate", () => {
 			cloudDeleteCalls += 1;
@@ -370,7 +370,7 @@ describe("workspaceCleanup.destroy integration", () => {
 		expect(result.cloudDeleted).toBe(false);
 		expect(result.worktreeRemoved).toBe(true);
 		expect(
-			result.warnings.some((w) => w.includes("Cloud delete deferred")),
+			result.warnings.some((w) => w.includes("Legacy cloud cleanup failed")),
 		).toBe(true);
 		expect(cloudDeleteCalls).toBe(1);
 		expect(existsSync(scenario.worktreePath)).toBe(false);
@@ -382,14 +382,6 @@ describe("workspaceCleanup.destroy integration", () => {
 			.where(eq(workspaces.id, scenario.featureWorkspaceId))
 			.all();
 		expect(remaining).toHaveLength(0);
-
-		// The id is tombstoned for the reconciler to replay against the cloud.
-		const tombstones = scenario.host.db
-			.select()
-			.from(workspaceCloudDeletes)
-			.where(eq(workspaceCloudDeletes.id, scenario.featureWorkspaceId))
-			.all();
-		expect(tombstones).toHaveLength(1);
 	});
 
 	test("cloud delete failure does not block the opted-in branch delete", async () => {

@@ -807,13 +807,13 @@ describe("workspaces.create PR checkout integration", () => {
 		expect(
 			(await simpleGit(row.worktreePath).raw(["rev-parse", "HEAD"])).trim(),
 		).toBe(prHeadOid);
+		// Exactly one local row — the second create reused it, no duplicate.
 		expect(
-			scenario.host.apiCalls.filter(
-				(call) =>
-					call.path === "v2Workspace.create.mutate" &&
-					(call.input as { branch?: string }).branch ===
-						"contributor/feature/concurrent",
-			),
+			scenario.host.db
+				.select()
+				.from(workspaces)
+				.where(eq(workspaces.branch, "contributor/feature/concurrent"))
+				.all(),
 		).toHaveLength(1);
 	});
 });

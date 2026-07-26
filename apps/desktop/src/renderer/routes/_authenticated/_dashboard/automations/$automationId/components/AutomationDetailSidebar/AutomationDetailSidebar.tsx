@@ -5,6 +5,9 @@ import type {
 import { formatDateTimeInTimezone } from "@superset/shared/rrule";
 import { cn } from "@superset/ui/utils";
 import { useMutation } from "@tanstack/react-query";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
+import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
@@ -14,7 +17,7 @@ import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
 import { SchedulePicker } from "../../../components/SchedulePicker";
 import { TimezonePicker } from "../../../components/TimezonePicker";
 import { WorkspacePicker } from "../../../components/WorkspacePicker";
-import { useRecentProjects } from "../../../hooks/useRecentProjects";
+import { matchAgentChoice } from "../../../utils/agentIdentity";
 import { PreviousRunsList } from "../PreviousRunsList";
 import { Row } from "./components/Row";
 import { Section } from "./components/Section";
@@ -36,6 +39,14 @@ export function AutomationDetailSidebar({
 	);
 
 	const hostId = automation.targetHostId ?? localHostId ?? null;
+
+	const hostUrl = useHostUrl(hostId);
+	const { agents: hostAgents } = useV2AgentChoices(hostUrl);
+	// Only warn once the host's terminal configs have loaded — the list always
+	// contains the built-in Superset chat entry, so length 1 means "not loaded
+	// yet / host unreachable", not "agent missing".
+	const agentMissing =
+		hostAgents.length > 1 && !matchAgentChoice(hostAgents, automation.agent);
 
 	const updateMutation = useMutation({
 		mutationFn: (
@@ -163,10 +174,12 @@ export function AutomationDetailSidebar({
 								hostId={hostId}
 								value={automation.agent}
 								onChange={(id) => {
-									// The picker is scoped to `hostId`; if the automation
-									// was previously auto-routed (targetHostId null), pin it
-									// to the host this id came from so a UUID-shaped agent
-									// can't be dispatched to a host that's never seen it.
+									// The picker is scoped to `hostId` and emits a preset slug
+									// when unambiguous, falling back to the instance UUID. If
+									// the automation was previously auto-routed (targetHostId
+									// null), pin it to the host this value came from so a
+									// UUID-shaped agent can't be dispatched to a host that's
+									// never seen it.
 									const patch: { agent: string; targetHostId?: string } = {
 										agent: id,
 									};
@@ -178,6 +191,12 @@ export function AutomationDetailSidebar({
 							/>
 						}
 					/>
+					{agentMissing && (
+						<p className="select-text cursor-text text-xs text-amber-600 dark:text-amber-500">
+							This agent no longer exists on the selected device (its agents may
+							have been reset). Runs will fail until you pick a new one.
+						</p>
+					)}
 					<Row
 						label="Timezone"
 						value={

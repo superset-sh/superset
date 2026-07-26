@@ -2,6 +2,7 @@ import { mintUserJwt } from "@superset/auth/server";
 import { dbWs } from "@superset/db/client";
 import {
 	automationRuns,
+	automations,
 	type SelectAutomation,
 	users,
 	v2Hosts,
@@ -101,9 +102,7 @@ export async function dispatchAutomation(
 			host.machineId,
 		);
 
-		if (automation.v2WorkspaceId) {
-			workspaceId = automation.v2WorkspaceId;
-		} else {
+		const createFreshWorkspace = async () => {
 			const created = await createWorkspaceOnHost({
 				relayUrl,
 				hostId: routingKey,
@@ -112,17 +111,52 @@ export async function dispatchAutomation(
 				automation,
 				runId: run.id,
 			});
-			workspaceId = created.workspaceId;
-		}
+			return created.workspaceId;
+		};
 
-		const result = await runAgentOnHost({
-			relayUrl,
-			hostId: routingKey,
-			jwt,
-			workspaceId,
-			agent: automation.agent,
-			prompt: automation.prompt,
-		});
+		const runAgent = (targetWorkspaceId: string) =>
+			runAgentOnHost({
+				relayUrl,
+				hostId: routingKey,
+				jwt,
+				workspaceId: targetWorkspaceId,
+				agent: automation.agent,
+				prompt: automation.prompt,
+			});
+
+		workspaceId = automation.v2WorkspaceId ?? (await createFreshWorkspace());
+
+		let result: AgentRunResult;
+		try {
+			result = await runAgent(workspaceId);
+		} catch (err) {
+			// Fall back only when the host says the pinned workspace is gone:
+			// tRPC NOT_FOUND (404) naming the pinned id. Other NOT_FOUNDs
+			// (agent config, attachments) rethrow.
+			const stalePin = automation.v2WorkspaceId;
+			const pinGone =
+				stalePin !== null &&
+				stalePin === workspaceId &&
+				err instanceof RelayDispatchError &&
+				err.status === 404 &&
+				err.message.includes(stalePin);
+			if (!pinGone) throw err;
+			// Clear the pin (CAS so a concurrent repin is never erased) and use
+			// a fresh workspace from here on.
+			await dbWs
+				.update(automations)
+				.set({ v2WorkspaceId: null })
+				.where(
+					and(
+						eq(automations.id, automation.id),
+						eq(automations.v2WorkspaceId, stalePin),
+					),
+				);
+			// Don't let the outer catch record the dead id if fresh-create throws.
+			workspaceId = null;
+			workspaceId = await createFreshWorkspace();
+			result = await runAgent(workspaceId);
+		}
 
 		await dbWs
 			.update(automationRuns)

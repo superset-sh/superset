@@ -1,8 +1,9 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../../lib/command";
 import { resolveProjectId } from "../../../../lib/host-sections";
 import {
-	requireHostTarget,
+	resolveHostFilter,
 	resolveHostTarget,
 } from "../../../../lib/host-target";
 
@@ -11,7 +12,7 @@ export default command({
 	args: [positional("name").required().desc("Group name")],
 	options: {
 		host: string().desc("Target host machineId"),
-		local: boolean().desc("Target this machine"),
+		local: boolean().desc("Target this machine (the default)"),
 		project: string()
 			.required()
 			.desc("Project name (case-insensitive) or id the group belongs to"),
@@ -23,21 +24,18 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const hostId = requireHostTarget({
-			host: options.host ?? undefined,
-			local: options.local ?? undefined,
-		});
+		const hostId =
+			resolveHostFilter({
+				host: options.host ?? undefined,
+				local: options.local ?? undefined,
+			}) ?? getHostId();
 		const target = resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
 		});
 
-		const projectId = await resolveProjectId(
-			ctx,
-			organizationId,
-			options.project,
-		);
+		const projectId = await resolveProjectId(target.client, options.project);
 
 		const section = await target.client.sections.create.mutate({
 			projectId,

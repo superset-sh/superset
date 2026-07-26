@@ -11,6 +11,7 @@ import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import { isInternalBuild } from "./build-channel";
+import { acquireSpawnLock } from "./host-service-lock";
 import {
 	isProcessAlive,
 	killProcess,
@@ -53,7 +54,34 @@ interface HostServiceProcess {
 	port: number;
 	secret: string;
 	status: HostServiceStatus;
+	/**
+	 * True when this instance spawned the child and owns its lifecycle (may
+	 * SIGTERM it and remove its manifest). False when the entry was *adopted*
+	 * from another live app instance's host-service — we connect to it but must
+	 * never kill it or delete its manifest.
+	 */
+	owned: boolean;
 }
+
+/**
+ * Short health check used when deciding whether to adopt a foreign
+ * host-service — the endpoint either answers within a couple of attempts or it
+ * doesn't. Distinct from the long spawn readiness gate (HEALTH_POLL_TIMEOUT_MS).
+ */
+const ADOPT_HEALTH_TIMEOUT_MS = 2_500;
+
+/**
+ * How long a spawn lock may be held before another instance treats it as
+ * wedged and steals it. A legitimate spawn holds the lock for the full health
+ * poll window, so allow that plus margin.
+ */
+const SPAWN_LOCK_STALE_MS = HEALTH_POLL_TIMEOUT_MS + 5_000;
+
+/** Overall budget for startOrAdopt to wait out a peer's in-flight spawn. */
+const START_OR_ADOPT_DEADLINE_MS = SPAWN_LOCK_STALE_MS + HEALTH_POLL_TIMEOUT_MS;
+
+/** Poll interval while waiting for a peer instance's spawn to go healthy. */
+const ADOPT_WAIT_INTERVAL_MS = 250;
 
 // High, uncommon user-space range: above usual web/dev server ports and below
 // macOS's default ephemeral range, while still falling back if occupied.
@@ -106,17 +134,24 @@ export class HostServiceCoordinator extends EventEmitter {
 	): Promise<Connection> {
 		const existing = this.instances.get(organizationId);
 		if (existing?.status === "running") {
-			return {
-				port: existing.port,
-				secret: existing.secret,
-				machineId: this.machineId,
-			};
+			// An adopted entry points at a foreign instance's child we don't
+			// supervise (no exit handler). Re-validate it's still alive before
+			// handing it back; if the owner died, drop it and start fresh.
+			if (existing.owned || isProcessAlive(existing.pid)) {
+				return {
+					port: existing.port,
+					secret: existing.secret,
+					machineId: this.machineId,
+				};
+			}
+			this.instances.delete(organizationId);
+			this.emitStatus(organizationId, "stopped", "running");
 		}
 
 		const pending = this.pendingStarts.get(organizationId);
 		if (pending) return pending;
 
-		const startPromise = this.spawn(
+		const startPromise = this.startOrAdopt(
 			organizationId,
 			config,
 			preferredPorts ?? this.getPreferredPorts(organizationId),
@@ -161,12 +196,17 @@ export class HostServiceCoordinator extends EventEmitter {
 		instance.status = "stopped";
 		this.rememberPort(organizationId, instance.port);
 
-		try {
-			killProcess(instance.pid, "SIGTERM");
-		} catch {}
+		// Only owned children are ours to kill + de-manifest. Adopted entries
+		// (owned=false) belong to another live instance — fall through and just
+		// drop our local reference below; never SIGTERM it or remove its manifest.
+		if (instance.owned) {
+			try {
+				killProcess(instance.pid, "SIGTERM");
+			} catch {}
+			removeManifest(organizationId);
+		}
 
 		this.instances.delete(organizationId);
-		removeManifest(organizationId);
 		this.emitStatus(organizationId, "stopped", previousStatus);
 	}
 
@@ -263,6 +303,43 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/**
+	 * Start host services for every org this machine has hosted before
+	 * ($SUPERSET_HOME_DIR/host/*). Runs at boot and on sign-in so background
+	 * reachability and port detection never wait for a renderer or cloud sync
+	 * to name orgs; a brand-new org (no dir yet) is started by the renderer
+	 * from its session.
+	 */
+	async startAllKnown(config: SpawnConfig): Promise<void> {
+		const hostRoot = path.join(SUPERSET_HOME_DIR, "host");
+		let entries: fs.Dirent[];
+		try {
+			entries = await fs.promises.readdir(hostRoot, { withFileTypes: true });
+		} catch (error) {
+			// No dir yet = nothing hosted before; anything else is worth seeing.
+			if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
+				log.warn(
+					`[host-service-coordinator] cannot read host root ${hostRoot}:`,
+					error,
+				);
+			}
+			return;
+		}
+		const orgIdPattern = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
+		await Promise.allSettled(
+			entries
+				.filter((e) => e.isDirectory() && orgIdPattern.test(e.name))
+				.map((e) =>
+					this.start(e.name, config).catch((error) => {
+						log.warn(
+							`[host-service-coordinator] boot start failed for org ${e.name}:`,
+							error,
+						);
+					}),
+				),
+		);
+	}
+
+	/**
 	 * Dev-only: watch the built host-service bundle and restart running
 	 * instances when it changes. Gives a fast edit→reload loop for code
 	 * under packages/host-service and src/main/host-service without
@@ -348,6 +425,99 @@ export class HostServiceCoordinator extends EventEmitter {
 		};
 	}
 
+	// ── Adopt + single-flight spawn ────────────────────────────────────
+
+	/**
+	 * Single-flight a host-service for `organizationId` across every app
+	 * instance sharing this machine's `$SUPERSET_HOME_DIR`.
+	 *
+	 * First tries to adopt a healthy host-service another instance already
+	 * spawned (reading its manifest for port + secret). Otherwise it takes a
+	 * cross-process spawn lock and spawns; a peer that can't get the lock waits
+	 * for the winner's manifest to go healthy and adopts it, so only one child
+	 * per org is ever spawned. Stale/dead-owner locks are stolen so a crashed or
+	 * wedged instance never wedges everyone else.
+	 */
+	private async startOrAdopt(
+		organizationId: string,
+		config: SpawnConfig,
+		preferredPorts: Iterable<number>,
+	): Promise<Connection> {
+		const adopted = await this.tryAdopt(organizationId);
+		if (adopted) return adopted;
+
+		const deadline = Date.now() + START_OR_ADOPT_DEADLINE_MS;
+		for (;;) {
+			const lock = acquireSpawnLock(organizationId, {
+				staleMs: SPAWN_LOCK_STALE_MS,
+			});
+			if (lock) {
+				try {
+					// A peer may have finished spawning between our first adopt
+					// attempt and taking the lock — re-check before spawning.
+					const raced = await this.tryAdopt(organizationId);
+					if (raced) return raced;
+					return await this.spawn(organizationId, config, preferredPorts);
+				} finally {
+					lock.release();
+				}
+			}
+
+			// A live peer holds the lock and is mid-spawn: wait for its manifest
+			// to become healthy, then adopt it.
+			const peer = await this.tryAdopt(organizationId);
+			if (peer) return peer;
+
+			if (Date.now() >= deadline) {
+				throw new Error(
+					`Timed out waiting to start or adopt host service for ${organizationId}`,
+				);
+			}
+			await new Promise((r) => setTimeout(r, ADOPT_WAIT_INTERVAL_MS));
+		}
+	}
+
+	/**
+	 * Adopt a host-service another live app instance spawned, if its manifest
+	 * points at a healthy endpoint. Registers a foreign-owned in-process entry
+	 * and returns its connection, or null when there's nothing healthy to adopt.
+	 */
+	private async tryAdopt(organizationId: string): Promise<Connection | null> {
+		const manifest = readManifest(organizationId);
+		if (!manifest) return null;
+
+		let port: number;
+		try {
+			port = Number(new URL(manifest.endpoint).port);
+		} catch {
+			return null;
+		}
+		if (!isValidPort(port)) return null;
+
+		const healthy = await pollHealthCheck(
+			manifest.endpoint,
+			manifest.authToken,
+			ADOPT_HEALTH_TIMEOUT_MS,
+		);
+		if (!healthy) return null;
+
+		const previous = this.instances.get(organizationId);
+		this.instances.set(organizationId, {
+			pid: manifest.pid,
+			port,
+			secret: manifest.authToken,
+			status: "running",
+			owned: false,
+		});
+		this.rememberPort(organizationId, port);
+		this.emitStatus(organizationId, "running", previous?.status ?? null);
+
+		log.info(
+			`[host-service:${organizationId}] adopted existing host on port ${port} (pid ${manifest.pid})`,
+		);
+		return { port, secret: manifest.authToken, machineId: this.machineId };
+	}
+
 	// ── Spawn ─────────────────────────────────────────────────────────
 
 	private async spawn(
@@ -364,6 +534,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			port,
 			secret,
 			status: "starting",
+			owned: true,
 		};
 		this.instances.set(organizationId, instance);
 		this.emitStatus(organizationId, "starting", null);
@@ -417,7 +588,9 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		instance.pid = childPid;
+		let childExited = false;
 		child.on("exit", (code, signal) => {
+			childExited = true;
 			log.info(
 				`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
 			);
@@ -441,12 +614,19 @@ export class HostServiceCoordinator extends EventEmitter {
 		child.unref();
 
 		const endpoint = `http://127.0.0.1:${port}`;
-		const healthy = await pollHealthCheck(endpoint, secret);
+		const healthy = await pollHealthCheck(
+			endpoint,
+			secret,
+			HEALTH_POLL_TIMEOUT_MS,
+			() => childExited,
+		);
 		if (!healthy) {
-			child.kill("SIGTERM");
+			if (!childExited) child.kill("SIGTERM");
 			this.instances.delete(organizationId);
 			throw new Error(
-				`Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
+				childExited
+					? "Host service process exited during startup"
+					: `Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
 			);
 		}
 

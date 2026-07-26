@@ -6,15 +6,21 @@ import {
 import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "@tanstack/react-router";
 import { Bot } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import {
 	V2_AGENT_CONFIGS_QUERY_KEY as QUERY_KEY,
 	useV2AgentConfigs,
 } from "renderer/hooks/useV2AgentConfigs";
+import {
+	findLinkedAgent,
+	getAgentCommandText,
+} from "renderer/lib/agent-launch-command";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useScrollReset } from "renderer/routes/_authenticated/settings/hooks/useScrollReset";
 import { AgentDetail } from "./components/AgentDetail";
@@ -35,20 +41,45 @@ const DESCRIPTION_BY_PRESET_ID = new Map(
 	KNOWN_PRESETS.map((preset) => [preset.presetId, preset.description]),
 );
 
+/** Auto-creates a linked terminal preset for a newly added agent config
+ * (same row shape as the Settings → Terminal "Import agent" flow). */
+function insertLinkedTerminalPreset(
+	collections: ReturnType<typeof useCollections>,
+	agent: HostAgentConfig,
+): void {
+	if (agent.command.trim().length === 0) return;
+	const presets = [...collections.v2TerminalPresets.values()];
+	if (presets.some((preset) => preset.agentId === agent.id)) return;
+	const maxTabOrder = presets.reduce(
+		(max, preset) => Math.max(max, preset.tabOrder),
+		-1,
+	);
+	collections.v2TerminalPresets.insert({
+		id: crypto.randomUUID(),
+		name: agent.label,
+		description: DESCRIPTION_BY_PRESET_ID.get(agent.presetId),
+		cwd: "",
+		commands: [getAgentCommandText(agent)],
+		projectIds: null,
+		executionMode: "new-tab",
+		tabOrder: maxTabOrder + 1,
+		createdAt: new Date(),
+		agentId: agent.id,
+	});
+}
+
 interface V2AgentsSettingsProps {
-	/**
-	 * Builtin preset id to pre-select on mount (e.g. "claude"). Resolved
-	 * against `HostAgentConfig.presetId`. Consumed once per visit.
-	 */
-	initialAgentPresetId?: string | null;
+	/** Config UUID or built-in preset id to select from the current route. */
+	initialAgentId?: string | null;
 }
 
 export function V2AgentsSettings({
-	initialAgentPresetId,
+	initialAgentId,
 }: V2AgentsSettingsProps = {}) {
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const queryClient = useQueryClient();
+	const navigate = useNavigate();
 
 	const configsQuery = useV2AgentConfigs(activeHostUrl);
 	const queryKey = [...QUERY_KEY, activeHostUrl] as const;
@@ -68,6 +99,7 @@ export function V2AgentsSettings({
 	};
 
 	const setupAgentMutation = electronTrpc.settings.setupAgent.useMutation();
+	const collections = useCollections();
 
 	const addMutation = useMutation({
 		mutationFn: async (preset: HostAgentPreset) => {
@@ -100,7 +132,10 @@ export function V2AgentsSettings({
 		onSuccess: (added) => {
 			setIsCreating(false);
 			invalidate();
-			if (added?.id) setSelectedAgentId(added.id);
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				insertLinkedTerminalPreset(collections, added);
+			}
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
@@ -122,7 +157,10 @@ export function V2AgentsSettings({
 		onSuccess: (added) => {
 			setIsCreating(false);
 			invalidate();
-			if (added?.id) setSelectedAgentId(added.id);
+			if (added?.id) {
+				setSelectedAgentId(added.id);
+				insertLinkedTerminalPreset(collections, added);
+			}
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to add agent"),
@@ -183,6 +221,7 @@ export function V2AgentsSettings({
 		onSuccess: () => {
 			setIsCreating(false);
 			setSelectedAgentId(null);
+			void navigate({ to: "/settings/agents" });
 			invalidate();
 		},
 		onError: (err) =>
@@ -204,32 +243,30 @@ export function V2AgentsSettings({
 	const detailRef = useScrollReset<HTMLDivElement>(
 		isCreating ? "new" : selectedAgentId,
 	);
-	const consumedInitialPresetIdRef = useRef(false);
+	const consumedInitialAgentIdRef = useRef<string | null>(null);
 
 	// Auto-select first agent when none selected, and clear selection when the
-	// selected agent disappears. If `initialAgentPresetId` is provided (deep
-	// link from a preset's "Open" button), prefer the matching config the
-	// first time configs become available. The route param accepts both the
-	// unique config id and the built-in preset id for older links.
+	// selected agent disappears. If `initialAgentId` is provided, prefer
+	// the matching config whenever the route target changes. Route targets may
+	// be either a unique config id or a built-in preset id.
 	useEffect(() => {
 		if (configs.length === 0) {
 			if (selectedAgentId !== null) setSelectedAgentId(null);
 			return;
 		}
-		if (initialAgentPresetId && !consumedInitialPresetIdRef.current) {
-			const match = configs.find(
-				(c) =>
-					c.id === initialAgentPresetId || c.presetId === initialAgentPresetId,
-			);
+		if (!initialAgentId) {
+			consumedInitialAgentIdRef.current = null;
+		} else if (consumedInitialAgentIdRef.current !== initialAgentId) {
+			const match = findLinkedAgent(configs, initialAgentId);
 			if (match) {
-				consumedInitialPresetIdRef.current = true;
+				consumedInitialAgentIdRef.current = initialAgentId;
 				setSelectedAgentId(match.id);
 				return;
 			}
 		}
 		const stillExists = configs.some((c) => c.id === selectedAgentId);
 		if (!stillExists) setSelectedAgentId(configs[0].id);
-	}, [configs, selectedAgentId, initialAgentPresetId]);
+	}, [configs, selectedAgentId, initialAgentId]);
 
 	const selectedAgent = configs.find((c) => c.id === selectedAgentId) ?? null;
 
@@ -256,6 +293,10 @@ export function V2AgentsSettings({
 					onSelectAgent={(id) => {
 						setSelectedAgentId(id);
 						setIsCreating(false);
+						void navigate({
+							to: "/settings/agents/$agentId",
+							params: { agentId: id },
+						});
 					}}
 					onAddAgent={(preset) => addMutation.mutate(preset)}
 					onCreateCustomAgent={() => setIsCreating(true)}
@@ -286,6 +327,7 @@ export function V2AgentsSettings({
 						}}
 						onDeleted={() => {
 							setSelectedAgentId(null);
+							void navigate({ to: "/settings/agents" });
 							invalidate();
 						}}
 					/>

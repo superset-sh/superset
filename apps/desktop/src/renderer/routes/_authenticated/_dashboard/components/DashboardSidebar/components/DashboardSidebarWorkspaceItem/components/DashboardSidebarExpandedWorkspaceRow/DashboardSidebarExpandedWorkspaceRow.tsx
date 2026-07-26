@@ -18,6 +18,7 @@ import type {
 } from "../../../../types";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
+import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWorkspaceChips";
 
 const PR_STATE_LABEL: Record<
 	DashboardSidebarWorkspacePullRequest["state"],
@@ -71,13 +72,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			onSubmitRename,
 			onCancelRename,
 			className,
-			children,
 			...props
 		},
 		ref,
 	) => {
 		const {
-			accentColor = null,
 			hostType,
 			hostIsOnline,
 			name,
@@ -86,7 +85,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			pendingTransaction,
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
-		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
 
@@ -116,20 +114,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					else if (ref) ref.current = node;
 				}}
 				className={cn(
-					"relative w-full text-left text-sm",
-					isActive && "bg-muted",
-					onClick && (isActive ? "hover:bg-muted" : "hover:bg-muted/50"),
+					"relative mx-2 rounded-md text-left text-sm transition-colors",
+					isActive && "bg-fill-selected",
+					onClick &&
+						(isActive ? "hover:bg-fill-selected" : "hover:bg-fill-hover"),
 					className,
 				)}
 				{...props}
 			>
-				{isActive && showsStandaloneActiveStripe && (
-					<div
-						className="absolute top-0 bottom-0 left-0 w-0.5 rounded-r"
-						style={{ backgroundColor: "var(--color-foreground)" }}
-					/>
-				)}
-
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: Mirrors the legacy sidebar row UI, which includes nested action buttons. */}
 				<div
 					role={onClick ? "button" : undefined}
@@ -144,8 +136,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					}}
 					onDoubleClick={onDoubleClick}
 					className={cn(
-						"group relative flex w-full items-center py-2 pr-2",
-						isInSection ? "pl-7" : "pl-5",
+						"group relative flex w-full items-center py-1.5 pr-2",
+						isInSection ? "pl-8" : "pl-3",
 						onClick && "cursor-pointer",
 					)}
 				>
@@ -260,6 +252,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									{creationStatusText}
 								</span>
 							) : (
+								isActive &&
 								diffStats &&
 								(diffStats.additions > 0 || diffStats.deletions > 0) && (
 									<DashboardSidebarWorkspaceDiffStats
@@ -270,7 +263,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)
 							)}
 							{!isPending && (
-								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
+								<div className="invisible flex items-center justify-end gap-1.5 group-hover:visible group-focus-within:visible">
 									{shortcutLabel && (
 										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
 											{shortcutLabel}
@@ -300,7 +293,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													<HiMiniMinus className="size-3.5" />
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
+											<TooltipContent side="top">
 												<HotkeyLabel label="Remove from sidebar" />
 											</TooltipContent>
 										</Tooltip>
@@ -328,7 +321,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													<HiMiniXMark className="size-3.5" />
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
+											<TooltipContent side="top">
 												<HotkeyLabel
 													label="Close workspace"
 													id={isActive ? "CLOSE_WORKSPACE" : undefined}
@@ -341,7 +334,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						</div>
 					</div>
 				</div>
-				{children}
+				{!isPending && (
+					<DashboardSidebarWorkspaceChips
+						workspaceId={workspace.id}
+						isInSection={isInSection}
+						onClick={onClick}
+					/>
+				)}
 			</div>
 		);
 	},

@@ -4,7 +4,7 @@
 # host-service endpoint, with a v1 Electron hook fallback while both
 # terminal stacks are supported.
 
-# Codex passes JSON as argv; Claude/Mastra/Droid pipe via stdin.
+# Codex passes JSON as argv; Claude/Mastra/Droid/Kimi pipe via stdin.
 if [ -n "$1" ]; then
   INPUT="$1"
 else
@@ -18,7 +18,7 @@ if [ -z "$RESOURCE_ID" ]; then
 fi
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 
-# Claude/Mastra/Droid use "hook_event_name"; Codex uses "type".
+# Claude/Mastra/Droid/Kimi use "hook_event_name"; Codex uses "type".
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$EVENT_TYPE" ]; then
   CODEX_TYPE=$(echo "$INPUT" | grep -oE '"type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')

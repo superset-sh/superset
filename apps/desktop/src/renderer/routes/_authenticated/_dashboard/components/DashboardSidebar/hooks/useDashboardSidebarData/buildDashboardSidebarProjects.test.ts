@@ -15,8 +15,6 @@ function makeProject(
 	return {
 		id: "project-1",
 		name: "Project",
-		slug: "project",
-		githubRepositoryId: null,
 		githubOwner: null,
 		githubRepoName: null,
 		iconUrl: null,

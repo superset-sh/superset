@@ -8,6 +8,11 @@ import type { RendererContext } from "@superset/panes";
 import { Button } from "@superset/ui/button";
 import { useCallback, useMemo, useRef } from "react";
 import { LuFileCode } from "react-icons/lu";
+import {
+	createPaneScrollStateKey,
+	getPaneScrollState,
+	savePaneScrollState,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/paneScrollStateCache";
 import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/TabView/FileViewerPane/components/MarkdownSearch";
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
@@ -60,6 +65,20 @@ export function DiffPane({
 	const searchContainerRef = useRef<HTMLDivElement>(null);
 
 	const ref = useSidebarDiffRef(workspaceId);
+	const scrollStateKey = useMemo(
+		() =>
+			createPaneScrollStateKey({
+				workspaceId,
+				paneId: context.pane.id,
+				viewId: "diff",
+				resourceId: JSON.stringify(ref),
+			}),
+		[workspaceId, context.pane.id, ref],
+	);
+	const initialScrollState = useMemo(
+		() => getPaneScrollState(scrollStateKey),
+		[scrollStateKey],
+	);
 	const { files, isLoading } = useChangeset({ workspaceId, ref });
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
@@ -138,6 +157,8 @@ export function DiffPane({
 		items,
 		collapsedSet,
 		setCollapsed,
+		scrollStateKey,
+		initialScrollState,
 	});
 
 	// The section bar lives outside the scroller: Pierre pins one header at a
@@ -149,7 +170,13 @@ export function DiffPane({
 		fileByItemId,
 		files,
 	});
-
+	const handleScroll = useCallback(
+		(scrollTop: number) => {
+			savePaneScrollState(scrollStateKey, { scrollTop, scrollLeft: 0 });
+			onScroll();
+		},
+		[scrollStateKey, onScroll],
+	);
 	const { options, style } = useDiffCodeViewTheme();
 
 	const codeViewOptions = useMemo(
@@ -314,7 +341,7 @@ export function DiffPane({
 					style={style}
 					items={items}
 					options={codeViewOptions}
-					onScroll={onScroll}
+					onScroll={handleScroll}
 					renderHeaderPrefix={renderHeaderPrefix}
 					renderHeaderMetadata={renderHeaderMetadata}
 					renderAnnotation={renderAnnotation}

@@ -61,7 +61,10 @@ export function DashboardSidebarWorkspaceIcon({
 	pullRequestState = null,
 }: DashboardSidebarWorkspaceIconProps) {
 	const overlayPosition = OVERLAY_POSITION[variant];
-	const iconColor = isActive ? "text-foreground" : "text-muted-foreground";
+	const iconColor = cn(
+		"text-muted-foreground",
+		isActive ? "opacity-100" : "opacity-80",
+	);
 	const isRemoteDeviceOffline =
 		hostType === "remote-device" && hostIsOnline === false;
 

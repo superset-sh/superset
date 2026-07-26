@@ -1,3 +1,4 @@
+import { selectRuntimesToEvict } from "renderer/lib/terminal/terminal-runtime-eviction";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { BrowserLoadError } from "shared/tabs-types";
 import { sanitizeUrl } from "./sanitizeUrl";
@@ -27,7 +28,16 @@ interface RegistryEntry {
 	placeholder: HTMLElement | null;
 	resizeObserver: ResizeObserver | null;
 	visible: boolean;
+	/** Monotonic use counter; bumped on attach/detach, drives hidden-LRU eviction. */
+	lastUsedAt: number;
 }
+
+/**
+ * Cap on hidden (detached) webviews kept alive. Each one is a full guest
+ * Chromium process; past the cap the least-recently-visible are destroyed
+ * and rebuilt from the pane's persisted URL on next attach. (SUPER-1545)
+ */
+const MAX_HIDDEN_WEBVIEWS = 3;
 
 const EMPTY_STATE: BrowserRuntimeState = Object.freeze({
 	currentUrl: "about:blank",
@@ -44,6 +54,8 @@ const ROOT_CONTAINER_ID = "browser-runtime-root";
 class BrowserRuntimeRegistryImpl {
 	private entries = new Map<string, RegistryEntry>();
 	private listenersByPaneId = new Map<string, Set<() => void>>();
+	private useSeq = 0;
+	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
 	private rootContainer: HTMLDivElement | null = null;
 	private globalListenersInstalled = false;
 	private windowDragPassthrough = false;
@@ -212,6 +224,7 @@ class BrowserRuntimeRegistryImpl {
 			placeholder: null,
 			resizeObserver: null,
 			visible: false,
+			lastUsedAt: 0,
 		};
 
 		const firePersist = () => {
@@ -381,6 +394,7 @@ class BrowserRuntimeRegistryImpl {
 		entry.onPersist = onPersist;
 		entry.placeholder = placeholder;
 		entry.visible = true;
+		entry.lastUsedAt = ++this.useSeq;
 
 		entry.resizeObserver?.disconnect();
 		const observer = new ResizeObserver(() => {
@@ -397,23 +411,59 @@ class BrowserRuntimeRegistryImpl {
 	detach(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
-		entry.onPersist = null;
+		// Keep the persistence callback while hidden. A navigation can finish
+		// after React detaches the pane; clearing it here would leave only the
+		// previous URL to rebuild from if this webview is then LRU-evicted.
 		entry.placeholder = null;
 		entry.resizeObserver?.disconnect();
 		entry.resizeObserver = null;
 		entry.visible = false;
 		entry.webview.style.visibility = "hidden";
+		entry.lastUsedAt = ++this.useSeq;
+		this.scheduleHiddenEviction();
+	}
+
+	/** Deferred so a pane-switch (detach then attach) re-adopts before the sweep counts. */
+	private scheduleHiddenEviction() {
+		if (this.pendingEviction !== null) return;
+		this.pendingEviction = setTimeout(() => {
+			this.pendingEviction = null;
+			this.evictExcessHiddenWebviews();
+		}, 0);
+	}
+
+	private evictExcessHiddenWebviews() {
+		const candidates = Array.from(
+			this.entries.entries(),
+			([paneId, entry]) => ({
+				paneId,
+				runtime: { container: entry.visible ? entry : null },
+				lastUsedAt: entry.lastUsedAt,
+			}),
+		);
+		for (const victim of selectRuntimesToEvict(
+			candidates,
+			MAX_HIDDEN_WEBVIEWS,
+		)) {
+			this.destroy(victim.paneId);
+		}
 	}
 
 	destroy(paneId: string): void {
 		const entry = this.entries.get(paneId);
 		if (!entry) return;
+		entry.onPersist = null;
 		entry.resizeObserver?.disconnect();
 		entry.detachHandlers();
 		entry.webview.remove();
 		this.entries.delete(paneId);
 		this.listenersByPaneId.delete(paneId);
-		electronTrpcClient.browser.unregister.mutate({ paneId }).catch(() => {});
+		electronTrpcClient.browser.unregister.mutate({ paneId }).catch((err) => {
+			console.error(
+				`[browserRuntimeRegistry] unregister failed for ${paneId}:`,
+				err,
+			);
+		});
 	}
 
 	navigate(paneId: string, url: string): void {

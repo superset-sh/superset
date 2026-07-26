@@ -63,7 +63,10 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 
 	const updateBaseBranch = electronTrpc.changes.updateBaseBranch.useMutation({
 		onSuccess: () => {
-			utils.changes.getBranches.invalidate({ worktreePath });
+			void Promise.all([
+				utils.changes.getBranches.invalidate({ worktreePath }),
+				utils.changes.getStatus.invalidate({ worktreePath }),
+			]);
 		},
 	});
 
@@ -111,9 +114,7 @@ function BaseBranchSelector({ worktreePath }: { worktreePath: string }) {
 						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="top" showArrow={false}>
-					Change base branch
-				</TooltipContent>
+				<TooltipContent side="top">Change base branch</TooltipContent>
 			</Tooltip>
 			<PopoverContent align="start" className="w-56 p-0">
 				<Command shouldFilter={false}>
@@ -177,9 +178,7 @@ function StashDropdown({
 						</Button>
 					</DropdownMenuTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="top" showArrow={false}>
-					Stash operations
-				</TooltipContent>
+				<TooltipContent side="top">Stash operations</TooltipContent>
 			</Tooltip>
 			<DropdownMenuContent align="start" className="w-52">
 				<DropdownMenuItem onClick={onStash} className="text-xs">
@@ -232,9 +231,7 @@ function RefreshButton({ onRefresh }: { onRefresh: () => void }) {
 					/>
 				</Button>
 			</TooltipTrigger>
-			<TooltipContent side="top" showArrow={false}>
-				Refresh changes
-			</TooltipContent>
+			<TooltipContent side="top">Refresh changes</TooltipContent>
 		</Tooltip>
 	);
 }

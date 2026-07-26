@@ -6,7 +6,7 @@ import {
 	Circle,
 	CircleDot,
 	FileDiff,
-	GitCommitHorizontal,
+	GitCommitVertical,
 	XCircle,
 } from "lucide-react-native";
 import { useCallback, useState } from "react";
@@ -141,7 +141,7 @@ export function WorkspaceDiffScreen() {
 					}
 				/>
 				<CardRow
-					icon={GitCommitHorizontal}
+					icon={GitCommitVertical}
 					label={
 						commits.length === 1 ? "1 commit" : `${commits.length} commits`
 					}

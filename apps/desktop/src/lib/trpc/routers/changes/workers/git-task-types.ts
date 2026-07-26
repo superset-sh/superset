@@ -1,9 +1,11 @@
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
+import type { PersistedWorktreeBaseBranch } from "../utils/select-effective-base-branch";
 
 export interface GitTaskPayloadMap {
 	getStatus: {
 		worktreePath: string;
-		defaultBranch: string;
+		defaultBranch?: string;
+		persistedWorktree: PersistedWorktreeBaseBranch | null;
 	};
 	getCommitFiles: {
 		worktreePath: string;

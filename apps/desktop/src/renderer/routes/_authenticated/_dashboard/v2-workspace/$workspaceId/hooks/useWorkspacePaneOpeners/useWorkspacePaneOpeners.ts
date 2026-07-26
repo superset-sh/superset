@@ -48,17 +48,13 @@ export function useWorkspacePaneOpeners({
 			changeKey?: string,
 		) => {
 			const state = store.getState();
-			// Bump tick on every request so the scroll effect re-fires on repeat
-			// clicks; clear when no line is given so reused panes don't jump
-			// to a stale focus.
-			const focusFields =
-				line != null
-					? { focusLine: line, focusSide: side, focusTick: Date.now() }
-					: {
-							focusLine: undefined,
-							focusSide: undefined,
-							focusTick: undefined,
-						};
+			// Bump the tick on every request so repeat clicks re-scroll and a
+			// navigation into an unmounted pane wins over its older cached position.
+			const focusFields = {
+				focusLine: line,
+				focusSide: line != null ? side : undefined,
+				focusTick: Date.now(),
+			};
 			if (openInNewTab) {
 				state.addTab({
 					panes: [

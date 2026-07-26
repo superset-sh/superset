@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_logs",
+		annotations: { readOnlyHint: true },
 		description:
 			"List recent runs for an automation. Returns up to `limit` runs ordered newest-first. Caller must be the automation's owner.",
 		inputSchema: {

@@ -1,8 +1,8 @@
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import {
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -16,7 +16,6 @@ import {
 } from "renderer/lib/host-service-auth";
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
 import { MOCK_ORG_ID } from "shared/constants";
-import { useCollections } from "../CollectionsProvider";
 
 interface LocalHostServiceContextValue {
 	machineId: string;
@@ -24,6 +23,12 @@ interface LocalHostServiceContextValue {
 	activeOrganizationId: string | null;
 	activeOrganizationName: string | null;
 	hostServiceStatus: HostServiceAvailabilityStatus;
+	/**
+	 * Resolve once the local host service is live, returning its loopback URL
+	 * (or null on timeout). Use this at the point of a host-backed action so
+	 * local-first UI can act immediately without gating on `activeHostUrl`.
+	 */
+	waitForHostReady: (timeoutMs?: number) => Promise<string | null>;
 }
 
 const LocalHostServiceContext =
@@ -34,8 +39,9 @@ export function LocalHostServiceProvider({
 }: {
 	children: ReactNode;
 }) {
+	const utils = electronTrpc.useUtils();
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
+	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const { mutate: startHostService } =
 		electronTrpc.hostServiceCoordinator.start.useMutation({
 			onError: (error) => {
@@ -43,7 +49,10 @@ export function LocalHostServiceProvider({
 				console.error("[host-service] start failed:", error);
 				// Auth preconditions resolve once the token lands; not a real failure.
 				if (error.data?.code === "UNAUTHORIZED") return;
+				// A stable id collapses repeated retry failures into one toast
+				// instead of stacking a new one every retry interval.
 				toast.error("Host service failed to start", {
+					id: "host-service-start-failed",
 					description: error.message,
 				});
 			},
@@ -52,22 +61,6 @@ export function LocalHostServiceProvider({
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
-
-	const { data: organizations } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
-
-	const organizationIds = useMemo(
-		() => organizations?.map((organization) => organization.id) ?? [],
-		[organizations],
-	);
-
-	useEffect(() => {
-		for (const organizationId of organizationIds) {
-			startHostService({ organizationId });
-		}
-	}, [organizationIds, startHostService]);
 
 	const { data: machineIdData } = electronTrpc.device.getMachineId.useQuery(
 		undefined,
@@ -95,13 +88,59 @@ export function LocalHostServiceProvider({
 			},
 		);
 
-	const activeOrganizationName = useMemo(
-		() =>
-			organizations?.find(
-				(organization) => organization.id === activeOrganizationId,
-			)?.name ?? null,
-		[organizations, activeOrganizationId],
+	// Proactively start the local host when the active org resolves so it's ready
+	// before the user acts. Main already starts previously-hosted orgs at boot and
+	// on token-saved; this covers a brand-new active org (no host dir yet) from the
+	// session. A failed start here (e.g. token not yet persisted) is recovered by
+	// waitForHostReady, which re-attempts on demand.
+	useEffect(() => {
+		if (activeOrganizationId) {
+			startHostService({ organizationId: activeOrganizationId });
+		}
+	}, [activeOrganizationId, startHostService]);
+
+	const waitForHostReady = useCallback(
+		async (timeoutMs = 20_000): Promise<string | null> => {
+			const orgId = activeOrganizationId;
+			if (!orgId) return null;
+			// Resolve the live host URL if a port is up, else null. Swallows
+			// transient IPC/tRPC fetch failures so a poll error never rejects the
+			// nullable contract callers rely on.
+			const tryGetHostUrl = async (): Promise<string | null> => {
+				try {
+					const connection =
+						await utils.hostServiceCoordinator.getConnection.fetch({
+							organizationId: orgId,
+						});
+					if (connection?.port) {
+						const hostUrl = `http://127.0.0.1:${connection.port}`;
+						if (connection.secret)
+							setHostServiceSecret(hostUrl, connection.secret);
+						return hostUrl;
+					}
+				} catch (error) {
+					console.warn("[host-service] connection poll failed:", error);
+				}
+				return null;
+			};
+			const deadline = Date.now() + timeoutMs;
+			while (Date.now() < deadline) {
+				const hostUrl = await tryGetHostUrl();
+				if (hostUrl) return hostUrl;
+				// Re-attempt the idempotent, local-only start each iteration so a
+				// transient failure (auth token not yet persisted, spawn miss)
+				// self-heals instead of polling a host that never came up.
+				startHostService({ organizationId: orgId });
+				await new Promise((resolve) => setTimeout(resolve, 1_000));
+			}
+			// Final check: the last start may have brought the host up during the
+			// trailing sleep, after the deadline elapsed.
+			return await tryGetHostUrl();
+		},
+		[activeOrganizationId, startHostService, utils],
 	);
+
+	const activeOrganizationName = activeOrganization?.name ?? null;
 
 	const value = useMemo<LocalHostServiceContextValue | null>(() => {
 		if (!machineIdData) return null;
@@ -118,6 +157,7 @@ export function LocalHostServiceProvider({
 				activeOrganizationId: activeOrganizationId ?? null,
 				activeOrganizationName,
 				hostServiceStatus,
+				waitForHostReady,
 			};
 		}
 
@@ -132,6 +172,7 @@ export function LocalHostServiceProvider({
 			activeOrganizationId: activeOrganizationId ?? null,
 			activeOrganizationName,
 			hostServiceStatus,
+			waitForHostReady,
 		};
 	}, [
 		machineIdData,
@@ -139,6 +180,7 @@ export function LocalHostServiceProvider({
 		activeOrganizationId,
 		activeOrganizationName,
 		processStatus?.status,
+		waitForHostReady,
 	]);
 
 	if (!value) return null;

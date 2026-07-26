@@ -13,6 +13,8 @@ import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { TRPCClientError } from "@trpc/client";
+import { eq } from "drizzle-orm";
+import { terminalSessions } from "../../src/db/schema";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -21,6 +23,7 @@ import {
 	initTerminalBaseEnv,
 	resetTerminalBaseEnvForTests,
 } from "../../src/terminal/env";
+import { startTerminalReaper } from "../../src/terminal/reaper";
 import { listTerminalResourceSessions } from "../../src/terminal/resource-sessions";
 import {
 	__resetSessionsForTesting,
@@ -291,7 +294,196 @@ describe("terminal router integration", () => {
 			await stopDaemonProcess(daemonProcess);
 			rmSync(tmp, { recursive: true, force: true });
 		}
-	});
+		// Two full kill sequences, each blocking on the ~1s SIGKILL escalation,
+		// plus daemon boot and two login-shell starts — the 5s default budget
+		// is marginal under load.
+	}, 20_000);
+
+	test("reaper kills a dispose-stamped session and spares a live one", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "host-service-reaper-retry-"));
+		const socketPath = join(tmp, "pty-daemon.sock");
+		const stampedId = randomUUID();
+		const sparedId = randomUUID();
+		let daemonProcess: ChildProcess | null = null;
+		let stopReaper: (() => void) | null = null;
+		try {
+			const daemonBundlePath = fileURLToPath(
+				new URL("../../../pty-daemon/dist/pty-daemon.js", import.meta.url),
+			);
+			ensureDaemonBundle(daemonBundlePath);
+			daemonProcess = spawn(
+				"node",
+				[daemonBundlePath, `--socket=${socketPath}`],
+				{
+					stdio: ["ignore", "ignore", "pipe"],
+					env: { ...process.env },
+				},
+			);
+			await waitFor(() => existsSync(socketPath), 3000);
+			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+			process.env.SUPERSET_HOME_DIR = tmp;
+
+			await scenario.host.trpc.terminal.createSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId: stampedId,
+			});
+			await scenario.host.trpc.terminal.createSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId: sparedId,
+			});
+			const daemon = await getDaemonClient();
+			const aliveIds = async () =>
+				new Set(
+					(await daemon.list())
+						.filter((session) => session.alive)
+						.map((session) => session.id),
+				);
+			const waitForAlive = async (
+				predicate: (alive: Set<string>) => boolean,
+				timeoutMs: number,
+				label: string,
+			) => {
+				const deadline = Date.now() + timeoutMs;
+				for (;;) {
+					if (predicate(await aliveIds())) return;
+					if (Date.now() > deadline) {
+						throw new Error(`timed out waiting: ${label}`);
+					}
+					await new Promise((resolve) => setTimeout(resolve, 150));
+				}
+			};
+			await waitForAlive(
+				(alive) => alive.has(stampedId) && alive.has(sparedId),
+				5000,
+				"both sessions alive",
+			);
+
+			// Simulate an earlier dispose whose kill failed: the request was
+			// stamped but the row is still active and the daemon session lives.
+			scenario.host.db
+				.update(terminalSessions)
+				.set({ disposeRequestedAt: Date.now() })
+				.where(eq(terminalSessions.id, stampedId))
+				.run();
+			__resetSessionsForTesting();
+
+			// First reap pass runs immediately on start.
+			stopReaper = startTerminalReaper(scenario.host.db);
+			await waitForAlive(
+				(alive) => !alive.has(stampedId),
+				10_000,
+				"stamped session reaped",
+			);
+			expect((await aliveIds()).has(sparedId)).toBe(true);
+		} finally {
+			stopReaper?.();
+			await scenario.host.trpc.terminal.killSession
+				.mutate({ workspaceId: scenario.workspaceId, terminalId: sparedId })
+				.catch(() => {});
+			await disposeDaemonClient();
+			await stopDaemonProcess(daemonProcess);
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	}, 20_000);
+
+	test("listSessions and countBackgroundSessions see unattached daemon sessions after a host-service restart", async () => {
+		const tmp = mkdtempSync(join(tmpdir(), "host-service-session-truth-"));
+		const socketPath = join(tmp, "pty-daemon.sock");
+		const terminalId = randomUUID();
+		const stampedTerminalId = randomUUID();
+		let daemonProcess: ChildProcess | null = null;
+		try {
+			const daemonBundlePath = fileURLToPath(
+				new URL("../../../pty-daemon/dist/pty-daemon.js", import.meta.url),
+			);
+			ensureDaemonBundle(daemonBundlePath);
+			daemonProcess = spawn(
+				"node",
+				[daemonBundlePath, `--socket=${socketPath}`],
+				{
+					stdio: ["ignore", "ignore", "pipe"],
+					env: { ...process.env },
+				},
+			);
+			await waitFor(() => existsSync(socketPath), 3000);
+			process.env.SUPERSET_PTY_DAEMON_SOCKET = socketPath;
+			process.env.SUPERSET_HOME_DIR = tmp;
+
+			await scenario.host.trpc.terminal.createSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId,
+			});
+			await scenario.host.trpc.terminal.createSession.mutate({
+				workspaceId: scenario.workspaceId,
+				terminalId: stampedTerminalId,
+			});
+			const daemon = await getDaemonClient();
+			const findAlive = async (id: string) =>
+				(await daemon.list()).find(
+					(session) => session.id === id && session.alive,
+				) ?? null;
+			const deadline = Date.now() + 5000;
+			while (
+				(await findAlive(terminalId)) === null ||
+				(await findAlive(stampedTerminalId)) === null
+			) {
+				if (Date.now() > deadline) throw new Error("daemon sessions not alive");
+				await new Promise((resolve) => setTimeout(resolve, 150));
+			}
+			const before = await findAlive(terminalId);
+
+			// A dispose was requested but the kill never confirmed: this row is
+			// the reaper's to kill, and must never resurface in session lists.
+			scenario.host.db
+				.update(terminalSessions)
+				.set({ disposeRequestedAt: Date.now() })
+				.where(eq(terminalSessions.id, stampedTerminalId))
+				.run();
+
+			// Simulate a host-service restart: the daemon keeps both PTYs, this
+			// process forgets them. No renderer pane ever attaches — the
+			// background-agent case. The list must be correct immediately, with
+			// no reaper pass, warm-up, or renderer attach in between.
+			__resetSessionsForTesting();
+
+			const listed = await scenario.host.trpc.terminal.listSessions.query({
+				workspaceId: scenario.workspaceId,
+			});
+			expect(listed.sessions.map((session) => session.terminalId)).toEqual([
+				terminalId,
+			]);
+			const restored = listed.sessions[0];
+			expect(restored?.exited).toBe(false);
+			expect(restored?.attached).toBe(false);
+			expect(restored?.title).toBeNull();
+
+			const count =
+				await scenario.host.trpc.terminal.countBackgroundSessions.query({
+					workspaceId: scenario.workspaceId,
+					attachedTerminalIds: [],
+				});
+			expect(count.count).toBe(1);
+			const excludedCount =
+				await scenario.host.trpc.terminal.countBackgroundSessions.query({
+					workspaceId: scenario.workspaceId,
+					attachedTerminalIds: [terminalId],
+				});
+			expect(excludedCount.count).toBe(0);
+
+			// Listing is read-only: the live PTY must be untouched.
+			const after = await findAlive(terminalId);
+			expect(after?.pid).toBe(before?.pid as number);
+		} finally {
+			for (const id of [terminalId, stampedTerminalId]) {
+				await scenario.host.trpc.terminal.killSession
+					.mutate({ workspaceId: scenario.workspaceId, terminalId: id })
+					.catch(() => {});
+			}
+			await disposeDaemonClient();
+			await stopDaemonProcess(daemonProcess);
+			rmSync(tmp, { recursive: true, force: true });
+		}
+	}, 20_000);
 
 	test("resource sessions are daemon-sourced and joined to active DB rows", () => {
 		const activeTerminalId = randomUUID();

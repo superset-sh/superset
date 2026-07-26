@@ -49,7 +49,10 @@ import {
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
+	DEFAULT_TERMINAL_PARKED_RUNTIME_CAP,
 	DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON,
+	MAX_TERMINAL_PARKED_RUNTIME_CAP,
+	MIN_TERMINAL_PARKED_RUNTIME_CAP,
 } from "shared/constants";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
@@ -894,8 +897,19 @@ export const createSettingsRouter = () => {
 			return {
 				terminalFontFamily: row.terminalFontFamily ?? null,
 				terminalFontSize: row.terminalFontSize ?? null,
+				terminalLineHeight: row.terminalLineHeight ?? null,
+				terminalLetterSpacing: row.terminalLetterSpacing ?? null,
+				terminalFontWeight: row.terminalFontWeight ?? null,
+				terminalLigatures: row.terminalLigatures ?? null,
+				terminalMinimumContrast: row.terminalMinimumContrast ?? null,
+				terminalCursorStyle: row.terminalCursorStyle ?? null,
+				terminalCursorBlink: row.terminalCursorBlink ?? null,
 				editorFontFamily: row.editorFontFamily ?? null,
 				editorFontSize: row.editorFontSize ?? null,
+				editorLineHeight: row.editorLineHeight ?? null,
+				editorLetterSpacing: row.editorLetterSpacing ?? null,
+				editorFontWeight: row.editorFontWeight ?? null,
+				editorLigatures: row.editorLigatures ?? null,
 			};
 		}),
 
@@ -914,6 +928,36 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set,
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getTerminalParkedRuntimeCap: publicProcedure.query(() => {
+			const row = getSettings();
+			return (
+				row.terminalParkedRuntimeCap ?? DEFAULT_TERMINAL_PARKED_RUNTIME_CAP
+			);
+		}),
+
+		setTerminalParkedRuntimeCap: publicProcedure
+			.input(
+				z.object({
+					cap: z
+						.number()
+						.int()
+						.min(MIN_TERMINAL_PARKED_RUNTIME_CAP)
+						.max(MAX_TERMINAL_PARKED_RUNTIME_CAP),
+				}),
+			)
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, terminalParkedRuntimeCap: input.cap })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { terminalParkedRuntimeCap: input.cap },
 					})
 					.run();
 

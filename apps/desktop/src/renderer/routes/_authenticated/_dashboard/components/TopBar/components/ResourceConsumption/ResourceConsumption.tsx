@@ -18,6 +18,7 @@ import {
 	HiOutlineBarsArrowDown,
 	HiOutlineCpuChip,
 } from "react-icons/hi2";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
@@ -136,7 +137,7 @@ export function ResourceConsumption({
 						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
+				<TooltipContent side="bottom" sideOffset={6}>
 					Resources
 				</TooltipContent>
 			</Tooltip>
@@ -222,13 +223,15 @@ function ResourceConsumptionContent({
 		[rawSidebarWorkspaces],
 	);
 
-	const { data: rawV2Projects = [] } = useLiveQuery(
-		(q) =>
-			q.from({ project: collections.v2Projects }).select(({ project }) => ({
-				id: project.id,
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects } = useHostProjects();
+	const rawV2Projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
 				name: project.name,
 			})),
-		[collections],
+		[hostProjects],
 	);
 
 	const { workspaces: rawV2Workspaces } = useHostWorkspaces();
@@ -466,7 +469,7 @@ function ResourceConsumptionContent({
 									/>
 								</div>
 							</TooltipTrigger>
-							<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
+							<TooltipContent side="bottom" sideOffset={6}>
 								Superset uses {formatPercent(trackedMemorySharePercent)} of
 								system RAM
 							</TooltipContent>

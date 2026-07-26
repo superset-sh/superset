@@ -1,4 +1,7 @@
 import { describe, expect, test } from "bun:test";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import {
 	buildV2TerminalEnv,
 	getShellBootstrapEnv,
@@ -8,6 +11,7 @@ import {
 	normalizeUtf8Locale,
 	resetTerminalBaseEnvForTests,
 	resolveLaunchShell,
+	shellLaunchExpectsReadyMarker,
 	stripTerminalRuntimeEnv,
 } from "./env";
 
@@ -288,6 +292,85 @@ describe("getShellLaunchArgs", () => {
 		expect(
 			getShellLaunchArgs({ shell: "/usr/bin/pwsh", supersetHomeDir }),
 		).toEqual([]);
+	});
+});
+
+describe("shellLaunchExpectsReadyMarker", () => {
+	test("recognizes current zsh and bash wrappers", () => {
+		const supersetHomeDir = mkdtempSync(
+			path.join(tmpdir(), "superset-shell-ready-"),
+		);
+		try {
+			mkdirSync(path.join(supersetHomeDir, "zsh"), { recursive: true });
+			mkdirSync(path.join(supersetHomeDir, "bash"), { recursive: true });
+			writeFileSync(path.join(supersetHomeDir, "zsh", ".zshrc"), "# rc\n");
+			writeFileSync(
+				path.join(supersetHomeDir, "zsh", ".zlogin"),
+				'printf "\\033]133;A\\007"\n',
+			);
+			writeFileSync(
+				path.join(supersetHomeDir, "bash", "rcfile"),
+				'printf "\\033]133;A\\007"\n',
+			);
+
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/zsh",
+					supersetHomeDir,
+				}),
+			).toBe(true);
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/bash",
+					supersetHomeDir,
+				}),
+			).toBe(true);
+		} finally {
+			rmSync(supersetHomeDir, { recursive: true, force: true });
+		}
+	});
+
+	test("does not trust stale or incomplete wrapper files", () => {
+		const supersetHomeDir = mkdtempSync(
+			path.join(tmpdir(), "superset-shell-stale-"),
+		);
+		try {
+			mkdirSync(path.join(supersetHomeDir, "zsh"), { recursive: true });
+			mkdirSync(path.join(supersetHomeDir, "bash"), { recursive: true });
+			writeFileSync(path.join(supersetHomeDir, "zsh", ".zshrc"), "# rc\n");
+			writeFileSync(
+				path.join(supersetHomeDir, "zsh", ".zlogin"),
+				"# stale wrapper\n",
+			);
+			writeFileSync(
+				path.join(supersetHomeDir, "bash", "rcfile"),
+				"# stale wrapper\n",
+			);
+
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/zsh",
+					supersetHomeDir,
+				}),
+			).toBe(false);
+			expect(
+				shellLaunchExpectsReadyMarker({
+					shell: "/bin/bash",
+					supersetHomeDir,
+				}),
+			).toBe(false);
+		} finally {
+			rmSync(supersetHomeDir, { recursive: true, force: true });
+		}
+	});
+
+	test("recognizes fish's injected marker without wrapper files", () => {
+		expect(
+			shellLaunchExpectsReadyMarker({
+				shell: "/usr/bin/fish",
+				supersetHomeDir: "/tmp/missing-superset-home",
+			}),
+		).toBe(true);
 	});
 });
 

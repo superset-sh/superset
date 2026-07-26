@@ -2,7 +2,6 @@ import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
 import { and, eq, ne, or } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
-import { pushWorkspaceCreateToCloud } from "../../../../runtime/workspace-cloud-sync";
 import type { HostServiceContext } from "../../../../types";
 import {
 	deleteLocalWorkspace,
@@ -35,7 +34,6 @@ export interface AdoptExistingWorktreeArgs {
 	idempotencyId?: string;
 	/** Task link recorded on the row; ignored on relink. */
 	taskId?: string;
-	hostPromise: Promise<{ machineId: string }>;
 }
 
 export interface AdoptExistingWorktreeResult {
@@ -51,8 +49,8 @@ export interface AdoptExistingWorktreeResult {
  * all the stale-row hygiene (relink by branch, relink-on-rename by path,
  * conflict cleanup) so callers don't reinvent it.
  *
- * Local-first: the host's own table is authoritative; the cloud mirror is
- * pushed best-effort and reconciled later when unreachable.
+ * Fully local — the host's own table is authoritative and workspaces have
+ * no cloud mirror.
  *
  * Cross-project safety is the caller's responsibility — only pass a
  * `worktreePath` that came from `git worktree list` on this project's
@@ -73,20 +71,14 @@ export async function adoptExistingWorktree(
 		existingWorkspaceId,
 		idempotencyId,
 		taskId,
-		hostPromise,
 	} = args;
-	const store: WorkspaceStoreContext = { db: ctx.db, eventBus: ctx.eventBus };
-	const syncCtx = {
-		api: ctx.api,
+	const store: WorkspaceStoreContext = {
 		db: ctx.db,
 		eventBus: ctx.eventBus,
+		api: ctx.api,
 		organizationId: ctx.organizationId,
 		clientMachineId: ctx.clientMachineId,
 	};
-
-	// Cloud-push latency pre-warm; failures surface (non-fatally) inside
-	// pushWorkspaceCreateToCloud's own host.ensure.
-	await hostPromise.catch(() => {});
 
 	if (existingWorkspaceId) {
 		await recordBaseBranch(git, branch, baseBranch);
@@ -104,7 +96,6 @@ export async function adoptExistingWorktree(
 					worktreePath,
 					branch,
 				}) ?? existing;
-			void pushWorkspaceCreateToCloud(syncCtx, updated);
 			return {
 				workspace: toCloudShape(updated, ctx.organizationId),
 				alreadyExists: true,
@@ -118,9 +109,8 @@ export async function adoptExistingWorktree(
 			name: workspaceName,
 			taskId: taskId ?? null,
 		});
-		const cloudRow = await pushWorkspaceCreateToCloud(syncCtx, inserted);
 		return {
-			workspace: cloudRow ?? toCloudShape(inserted, ctx.organizationId),
+			workspace: toCloudShape(inserted, ctx.organizationId),
 			alreadyExists: true,
 		};
 	}
@@ -162,7 +152,6 @@ export async function adoptExistingWorktree(
 		const updated = updateLocalWorkspace(store, existingByPath.id, { branch });
 		await recordBaseBranch(git, branch, baseBranch);
 		if (updated) {
-			void pushWorkspaceCreateToCloud(syncCtx, updated);
 			return {
 				workspace: toCloudShape(updated, ctx.organizationId),
 				alreadyExists: true,
@@ -171,7 +160,7 @@ export async function adoptExistingWorktree(
 	}
 
 	// Fresh registration. Mint the id up front so conflict cleanup can
-	// exclude it, then insert locally and mirror to the cloud best-effort.
+	// exclude it, then insert locally.
 	const id = idempotencyId ?? randomUUID();
 	await recordBaseBranch(git, branch, baseBranch);
 	deleteLocalWorkspaceConflicts(store, {
@@ -198,17 +187,15 @@ export async function adoptExistingWorktree(
 		});
 	}
 
-	const cloudRow = await pushWorkspaceCreateToCloud(syncCtx, inserted);
 	return {
-		workspace: cloudRow ?? toCloudShape(inserted, ctx.organizationId),
+		workspace: toCloudShape(inserted, ctx.organizationId),
 		alreadyExists: false,
 	};
 }
 
 /**
  * Drop rows that claim this (branch or path) other than the surviving id.
- * They are superseded duplicates; tombstoning keeps the cloud mirror in
- * step (cloud delete is idempotent when the row is already gone).
+ * They are superseded duplicates.
  */
 function deleteLocalWorkspaceConflicts(
 	store: WorkspaceStoreContext,

@@ -446,6 +446,13 @@ async function main(): Promise<void> {
 	const hostServiceBundle = await buildHostService();
 	cpSync(hostServiceBundle, join(stagingRoot, "lib", "host-service.js"));
 
+	// host-worker.js ships side-by-side too: the worker pool resolves it
+	// next to host-service.js (falling back to inline execution if absent).
+	cpSync(
+		join(dirname(hostServiceBundle), "host-worker.js"),
+		join(stagingRoot, "lib", "host-worker.js"),
+	);
+
 	// pty-daemon ships side-by-side with host-service.js. The host-service
 	// resolves the script path via `resolveSupervisorScriptPath()` which
 	// looks for `pty-daemon.js` next to itself first; without this copy the

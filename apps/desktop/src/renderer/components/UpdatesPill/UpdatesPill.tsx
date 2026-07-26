@@ -36,11 +36,17 @@ function useAsciiFrame(active: boolean): number {
 /**
  * Compact version for the inline pill — canary builds carry a timestamp
  * suffix ("1.14.1-canary.20260711221936") that would overflow the sidebar
- * footer, so shorten to "1.14.1-ca". The tooltip keeps the full version.
+ * footer, so shorten to "1.14.1-ca".
  */
 function displayVersion(version: string): string {
 	const [base, prereleaseTag] = version.split("-", 2);
 	return prereleaseTag ? `${base}-${prereleaseTag.slice(0, 2)}` : base;
+}
+
+/** Tooltip version — drops the canary timestamp ("1.14.1-canary.20260711221936" → "1.14.1-canary") */
+function tooltipVersion(version: string): string {
+	const [base, prereleaseTag] = version.split("-", 2);
+	return prereleaseTag ? `${base}-${prereleaseTag.split(".")[0]}` : base;
 }
 
 /** Marquee-style terminal progress bar, e.g. `[·##···]` */
@@ -132,19 +138,20 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 		}
 	};
 
+	const shortVersion = version ? ` v${tooltipVersion(version)}` : "";
 	const tooltip = isInstalling
 		? "Installing update…"
 		: isDownloading
-			? `Downloading update${version ? ` v${version}` : ""}`
+			? `Downloading${shortVersion || " update"}`
 			: isError
 				? `${event?.error ?? "Update failed"} — click to retry`
 				: isUpdated
-					? `Updated${version ? ` to v${version}` : ""}`
-					: `Install update${version ? ` v${version}` : ""} — sessions keep running`;
+					? `Updated${shortVersion ? ` to${shortVersion}` : ""}`
+					: `Install${shortVersion || " update"} — sessions keep running`;
 
 	if (isCollapsed) {
 		return (
-			<Tooltip delayDuration={300}>
+			<Tooltip delayDuration={1000}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
@@ -197,7 +204,7 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	}
 
 	return (
-		<Tooltip delayDuration={300}>
+		<Tooltip delayDuration={1000}>
 			<TooltipTrigger asChild>
 				<button
 					type="button"

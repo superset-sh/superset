@@ -1,9 +1,9 @@
 import { existsSync } from "node:fs";
+import { basename } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "../../../db/schema";
-import { pushWorkspaceCreateToCloud } from "../../../runtime/workspace-cloud-sync";
+import { projects, workspaces } from "../../../db/schema";
 import {
 	toCloudShape,
 	updateLocalWorkspace,
@@ -39,10 +39,25 @@ export const workspaceRouter = router({
 	 */
 	list: protectedProcedure.query(({ ctx }) => {
 		const rows = ctx.db.select().from(workspaces).all();
+		const projectNameById = new Map(
+			ctx.db
+				.select({
+					id: projects.id,
+					name: projects.name,
+					repoPath: projects.repoPath,
+				})
+				.from(projects)
+				.all()
+				.map((project) => [
+					project.id,
+					project.name || basename(project.repoPath),
+				]),
+		);
 		return rows.map((row) => ({
 			...toCloudShape(row, ctx.organizationId),
 			worktreePath: row.worktreePath,
 			worktreeExists: existsSync(row.worktreePath),
+			projectName: projectNameById.get(row.projectId) ?? null,
 			sectionId: row.sectionId,
 			tabOrder: row.tabOrder,
 		}));
@@ -99,16 +114,6 @@ export const workspaceRouter = router({
 					message: "Workspace not found",
 				});
 			}
-			void pushWorkspaceCreateToCloud(
-				{
-					api: ctx.api,
-					db: ctx.db,
-					eventBus: ctx.eventBus,
-					organizationId: ctx.organizationId,
-					clientMachineId: ctx.clientMachineId,
-				},
-				updated,
-			);
 			return toCloudShape(updated, ctx.organizationId);
 		}),
 
