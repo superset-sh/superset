@@ -13,7 +13,8 @@ export interface HostWorkspaceRow {
 	hostId: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "subworkspace";
+	parentWorkspaceId: string | null;
 	createdByUserId: string | null;
 	taskId: string | null;
 	createdAt: Date;
@@ -145,7 +146,7 @@ export interface HostWorkspace {
 	projectId: string;
 	/** Absolute path on the host filesystem. */
 	path?: string;
-	type?: "main" | "worktree";
+	type?: "main" | "worktree" | "subworkspace";
 }
 
 export type WorkspaceListResponse = Array<Workspace>;
@@ -227,7 +228,8 @@ export interface WorkspaceUpdateResult {
 	organizationId: string;
 	projectId: string;
 	hostId: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "subworkspace";
+	parentWorkspaceId: string | null;
 	createdByUserId: string | null;
 	taskId: string | null;
 	createdAt: Date;

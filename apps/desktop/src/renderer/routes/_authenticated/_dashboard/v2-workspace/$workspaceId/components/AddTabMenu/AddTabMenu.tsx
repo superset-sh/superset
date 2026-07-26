@@ -13,6 +13,9 @@ interface AddTabMenuProps {
 	onAddBrowser: () => void;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
+	fanOutToPanes: boolean;
+	onToggleFanOutToPanes: (enabled: boolean) => void;
+	isFanOutTogglePending: boolean;
 }
 
 export function AddTabMenu({
@@ -21,6 +24,9 @@ export function AddTabMenu({
 	onAddBrowser,
 	showPresetsBar,
 	onToggleShowPresetsBar,
+	fanOutToPanes,
+	onToggleFanOutToPanes,
+	isFanOutTogglePending,
 }: AddTabMenuProps) {
 	return (
 		<>
@@ -40,6 +46,14 @@ export function AddTabMenu({
 				<HotkeyMenuShortcut hotkeyId="NEW_BROWSER" />
 			</DropdownMenuItem>
 			<DropdownMenuSeparator />
+			<DropdownMenuCheckboxItem
+				checked={fanOutToPanes}
+				disabled={isFanOutTogglePending}
+				onCheckedChange={(checked) => onToggleFanOutToPanes(checked === true)}
+				onSelect={(event) => event.preventDefault()}
+			>
+				Create sub-workspaces for sub-agents
+			</DropdownMenuCheckboxItem>
 			<DropdownMenuCheckboxItem
 				checked={showPresetsBar}
 				onCheckedChange={(checked) => onToggleShowPresetsBar(checked === true)}

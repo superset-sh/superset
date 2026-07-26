@@ -1,4 +1,5 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
+import type { AgentDelegationMode } from "@superset/shared/agent-delegation";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
@@ -7,13 +8,21 @@ import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
  * A workspace row as served by a host (`workspace.list`) — the cloud row
  * shape plus the host-only extras.
  */
-export interface HostWorkspaceRow extends SelectV2Workspace {
+export type HostWorkspaceType = "main" | "worktree" | "subworkspace";
+
+export interface HostWorkspaceRow extends Omit<SelectV2Workspace, "type"> {
+	type: HostWorkspaceType;
+	parentWorkspaceId: string | null;
+	agentDelegationMode: AgentDelegationMode;
 	worktreePath: string;
 	worktreeExists: boolean;
 }
 
 /** Merged item returned by useHostWorkspaces. */
-export interface HostWorkspaceItem extends SelectV2Workspace {
+export interface HostWorkspaceItem extends Omit<SelectV2Workspace, "type"> {
+	type: HostWorkspaceType;
+	parentWorkspaceId: string | null;
+	agentDelegationMode: AgentDelegationMode;
 	worktreePath?: string;
 	worktreeExists?: boolean;
 	/** False when the row came from a snapshot/cloud and the host didn't answer. */
@@ -170,6 +179,8 @@ export function applyWorkspaceChangedEvent(
 		name: snapshot.name,
 		branch: snapshot.branch,
 		type: snapshot.type,
+		parentWorkspaceId: snapshot.parentWorkspaceId,
+		agentDelegationMode: snapshot.agentDelegationMode,
 		createdByUserId: snapshot.createdByUserId,
 		taskId: snapshot.taskId,
 		createdAt: new Date(snapshot.createdAt),
@@ -215,6 +226,8 @@ export function mergeHostWorkspaces({
 			seenIds.add(row.id);
 			items.push({
 				...row,
+				parentWorkspaceId: row.parentWorkspaceId ?? null,
+				agentDelegationMode: row.agentDelegationMode ?? "native",
 				hostReachable: result.reachable,
 				source: "host",
 			});
@@ -226,6 +239,8 @@ export function mergeHostWorkspaces({
 		seenIds.add(row.id);
 		items.push({
 			...row,
+			parentWorkspaceId: null,
+			agentDelegationMode: "native",
 			hostReachable: false,
 			source: "cloud",
 		});

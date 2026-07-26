@@ -1,4 +1,3 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { MIN_HOST_SERVICE_VERSION } from "@superset/shared/host-version";
 import { and, eq } from "@tanstack/db";
@@ -7,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { HostWorkspaceItem } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import semver from "semver";
 
@@ -24,7 +24,7 @@ export type RemoteHostStatus =
 const HOST_INFO_STALE_MS = 30_000;
 
 export function useRemoteHostStatus(
-	workspace: SelectV2Workspace | null,
+	workspace: HostWorkspaceItem | null,
 ): RemoteHostStatus {
 	const collections = useCollections();
 	const { machineId } = useLocalHostService();

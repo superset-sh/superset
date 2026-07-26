@@ -26,6 +26,7 @@ export function DashboardSidebarDeleteDialog({
 }: DashboardSidebarDeleteDialogProps) {
 	const {
 		deleteBranch,
+		isSubworkspace,
 		setDeleteBranch,
 		hasChanges,
 		hasUnpushedCommits,
@@ -61,6 +62,7 @@ export function DashboardSidebarDeleteDialog({
 			open={open}
 			onOpenChange={handleOpenChange}
 			workspaceName={workspaceName}
+			isSubworkspace={isSubworkspace}
 			deleteBranch={deleteBranch}
 			onDeleteBranchChange={setDeleteBranch}
 			hasChanges={hasChanges}

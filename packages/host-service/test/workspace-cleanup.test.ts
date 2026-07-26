@@ -20,7 +20,7 @@ type WorkspaceRow = {
 	projectId: string;
 	worktreePath: string;
 	branch: string;
-	type?: "main" | "worktree";
+	type?: "main" | "worktree" | "subworkspace";
 };
 type ProjectRow = { id: string; repoPath: string };
 

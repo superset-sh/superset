@@ -48,6 +48,7 @@ function makeWorkspace(
 		projectId: "project-1",
 		hostId: MACHINE_ID,
 		type: "worktree",
+		parentWorkspaceId: null,
 		hostIsOnline: true,
 		name: "Workspace",
 		branch: "main",
@@ -164,5 +165,82 @@ describe("buildDashboardSidebarProjects", () => {
 			"orphan-late",
 			"section:section-1",
 		]);
+	});
+
+	it("preserves a delegated workspace's parent relationship", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "parent", tabOrder: 1 }),
+				makeWorkspace({
+					id: "child",
+					type: "subworkspace",
+					parentWorkspaceId: "parent",
+					tabOrder: 1,
+				}),
+			],
+		});
+
+		const child = project.children.find(
+			(entry) => entry.type === "workspace" && entry.workspace.id === "child",
+		);
+		expect(child?.type).toBe("workspace");
+		if (child?.type !== "workspace") throw new Error("expected child");
+		expect(child.workspace.parentWorkspaceId).toBe("parent");
+	});
+
+	it("renders nested delegated workspaces immediately after their parent", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "parent", tabOrder: 1 }),
+				makeWorkspace({ id: "unrelated", tabOrder: 1 }),
+				makeWorkspace({
+					id: "child",
+					type: "subworkspace",
+					parentWorkspaceId: "parent",
+					tabOrder: 1,
+				}),
+				makeWorkspace({
+					id: "grandchild",
+					type: "subworkspace",
+					parentWorkspaceId: "child",
+					tabOrder: 1,
+				}),
+			],
+		});
+
+		expect(
+			project.children.map((entry) =>
+				entry.type === "workspace" ? entry.workspace.id : entry.section.id,
+			),
+		).toEqual(["parent", "child", "grandchild", "unrelated"]);
+	});
+
+	it("renders delegated workspaces immediately after parents inside sections", () => {
+		const [project] = build({
+			sidebarSections: [makeSection()],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({
+					id: "parent",
+					sectionId: "section-1",
+				}),
+				makeWorkspace({
+					id: "unrelated",
+					sectionId: "section-1",
+				}),
+				makeWorkspace({
+					id: "child",
+					type: "subworkspace",
+					parentWorkspaceId: "parent",
+					sectionId: "section-1",
+				}),
+			],
+		});
+
+		const [section] = project.children;
+		expect(section.type).toBe("section");
+		if (section.type !== "section") throw new Error("expected section");
+		expect(section.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["parent", "child", "unrelated"],
+		);
 	});
 });

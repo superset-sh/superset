@@ -7,6 +7,7 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	getAutoIncludedSubWorkspaceIds,
 	getVisibleSidebarWorkspaces,
 	isAutoIncludedLocalMainWorkspace,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
@@ -244,6 +245,7 @@ export function useDashboardSidebarData() {
 						projectId: localState.projectId,
 						hostId: workspace.hostId,
 						type: workspace.type,
+						parentWorkspaceId: workspace.parentWorkspaceId,
 						name: workspace.name,
 						branch: workspace.branch,
 						taskId: workspace.taskId,
@@ -286,6 +288,7 @@ export function useDashboardSidebarData() {
 					projectId: workspace.projectId,
 					hostId: workspace.hostId,
 					type: workspace.type,
+					parentWorkspaceId: workspace.parentWorkspaceId,
 					name: workspace.name,
 					branch: workspace.branch,
 					taskId: workspace.taskId,
@@ -318,13 +321,74 @@ export function useDashboardSidebarData() {
 			}),
 		);
 
-		return [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+		const baseWorkspaces = [...autoLocalMainWorkspaces, ...sidebarWorkspaces];
+		const baseWorkspaceIds = new Set(
+			baseWorkspaces.map((workspace) => workspace.id),
+		);
+		const autoIncludedSubWorkspaceIds = getAutoIncludedSubWorkspaceIds(
+			hostWorkspaces,
+			{
+				localStateWorkspaceIds,
+				sidebarProjectIds,
+				visibleWorkspaceIds: baseWorkspaceIds,
+			},
+		);
+		const visibleById = new Map(
+			baseWorkspaces.map((workspace) => [workspace.id, workspace]),
+		);
+		const pendingIds = new Set(autoIncludedSubWorkspaceIds);
+		const autoIncludedSubWorkspaces: Array<(typeof baseWorkspaces)[number]> =
+			[];
+
+		while (pendingIds.size > 0) {
+			let added = false;
+			for (const workspaceId of pendingIds) {
+				const workspace = hostWorkspacesById.get(workspaceId);
+				if (
+					workspace?.type !== "subworkspace" ||
+					!workspace.parentWorkspaceId
+				) {
+					pendingIds.delete(workspaceId);
+					continue;
+				}
+				const parent = visibleById.get(workspace.parentWorkspaceId);
+				if (!parent) continue;
+				const sidebarWorkspace = {
+					id: workspace.id,
+					projectId: workspace.projectId,
+					hostId: workspace.hostId,
+					type: workspace.type,
+					parentWorkspaceId: workspace.parentWorkspaceId,
+					name: workspace.name,
+					branch: workspace.branch,
+					taskId: workspace.taskId,
+					createdAt: workspace.createdAt,
+					updatedAt: workspace.updatedAt,
+					tabOrder: parent.tabOrder,
+					sectionId: parent.sectionId,
+					hostIsOnline:
+						hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+					pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
+				};
+				autoIncludedSubWorkspaces.push(sidebarWorkspace);
+				visibleById.set(workspace.id, sidebarWorkspace);
+				pendingIds.delete(workspaceId);
+				added = true;
+			}
+			if (!added) break;
+		}
+
+		return [...baseWorkspaces, ...autoIncludedSubWorkspaces];
 	}, [
+		hostWorkspaces,
+		hostWorkspacesById,
+		hostsByMachineId,
 		localMainWorkspaces,
 		localStateWorkspaceIds,
 		machineId,
 		sidebarProjects,
 		sidebarWorkspaces,
+		workspaceTransactionsById,
 	]);
 
 	const pullRequestQueryTargets = useMemo<PullRequestQueryTarget[]>(

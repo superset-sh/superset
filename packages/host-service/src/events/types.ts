@@ -1,4 +1,5 @@
 import type { DetectedPort } from "@superset/port-scanner";
+import type { AgentDelegationMode } from "@superset/shared/agent-delegation";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { AgentLifecycleEventType } from "./map-event-type.ts";
@@ -63,8 +64,10 @@ export interface WorkspaceSnapshot {
 	projectId: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "subworkspace";
 	worktreePath: string;
+	parentWorkspaceId: string | null;
+	agentDelegationMode: AgentDelegationMode;
 	taskId: string | null;
 	createdByUserId: string | null;
 	createdAt: number;

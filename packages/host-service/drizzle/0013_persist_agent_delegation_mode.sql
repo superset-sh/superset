@@ -1,0 +1,1 @@
+ALTER TABLE `workspaces` ADD `agent_delegation_mode` text DEFAULT 'native' NOT NULL;

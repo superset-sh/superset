@@ -5,7 +5,11 @@ import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import SuperJSON from "superjson";
 import { env } from "../env";
-import { isProcessAlive, readManifest } from "../host/manifest";
+import {
+	type HostServiceManifest,
+	isProcessAlive,
+	readManifest,
+} from "../host/manifest";
 
 export type HostServiceClient = ReturnType<
 	typeof createTRPCClient<HostServiceRouter>
@@ -34,6 +38,25 @@ export interface ResolveHostTargetOptions {
 	userJwt: string;
 }
 
+/** Build an authenticated loopback client from a local host manifest. */
+export function createLocalHostServiceClient(
+	manifest: HostServiceManifest,
+	hostId = getHostId(),
+): HostServiceClient {
+	return createTRPCClient<HostServiceRouter>({
+		links: [
+			httpBatchLink({
+				url: `${manifest.endpoint}/trpc`,
+				transformer: SuperJSON,
+				headers: {
+					Authorization: `Bearer ${manifest.authToken}`,
+					"x-superset-client-machine-id": hostId,
+				},
+			}),
+		],
+	});
+}
+
 export function resolveHostTarget(
 	options: ResolveHostTargetOptions,
 ): ResolvedHostTarget {
@@ -57,18 +80,7 @@ export function resolveHostTarget(
 		return {
 			kind: "local",
 			hostId: localHostId,
-			client: createTRPCClient<HostServiceRouter>({
-				links: [
-					httpBatchLink({
-						url: `${manifest.endpoint}/trpc`,
-						transformer: SuperJSON,
-						headers: {
-							Authorization: `Bearer ${manifest.authToken}`,
-							"x-superset-client-machine-id": localHostId,
-						},
-					}),
-				],
-			}),
+			client: createLocalHostServiceClient(manifest, localHostId),
 		};
 	}
 

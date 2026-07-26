@@ -1,4 +1,3 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { createContext, type ReactNode, useContext } from "react";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
@@ -6,11 +5,12 @@ import {
 	getHostServiceHeaders,
 	getHostServiceWsToken,
 } from "renderer/lib/host-service-auth";
+import type { HostWorkspaceItem } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { WorkspaceTrpcProvider } from "../WorkspaceTrpcProvider";
 
 interface WorkspaceContextValue {
-	workspace: SelectV2Workspace;
+	workspace: HostWorkspaceItem;
 	hostUrl: string;
 }
 
@@ -20,7 +20,7 @@ export function WorkspaceProvider({
 	workspace,
 	children,
 }: {
-	workspace: SelectV2Workspace;
+	workspace: HostWorkspaceItem;
 	children: ReactNode;
 }) {
 	const { machineId, activeHostUrl } = useLocalHostService();

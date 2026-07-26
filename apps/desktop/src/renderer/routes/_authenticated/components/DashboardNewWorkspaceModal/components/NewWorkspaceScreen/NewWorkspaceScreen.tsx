@@ -13,6 +13,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Switch } from "@superset/ui/switch";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -50,6 +51,7 @@ import { LinkedGitHubIssuePill } from "../DashboardNewWorkspaceForm/PromptGroup/
 import { LinkedPRPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinkedPRPill";
 import { PRLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand";
 import { ProjectPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/ProjectPickerPill";
+import { useAgentDelegationPreference } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useAgentDelegationPreference";
 import { useBranchPickerController } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useBranchPickerController";
 import { useLinkedContext } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useLinkedContext";
 import { useSubmitWorkspace } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useSubmitWorkspace";
@@ -194,7 +196,7 @@ export function NewWorkspaceScreen({
 	// and make switching projects impossible.
 	const appliedPreSelectionRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!isOpen || !areProjectsReady) return;
+		if (!isOpen || (!areProjectsReady && projects.length === 0)) return;
 		const isValid = (id: string | null | undefined) =>
 			Boolean(id && projects.some((project) => project.id === id));
 		if (
@@ -338,6 +340,7 @@ export function NewWorkspaceScreen({
 		EFFORT_STORAGE_KEY,
 		effortSupport ? selectedPresetId : null,
 	);
+	const { delegationMode, setDelegationMode } = useAgentDelegationPreference();
 
 	// ── Base branch ──────────────────────────────────────────────────
 	const { pickerProps } = useBranchPickerController({
@@ -368,6 +371,11 @@ export function NewWorkspaceScreen({
 		const idSet = new Set(fileIdsForCurrentHost);
 		return attachments.files.filter((file) => idSet.has(file.id));
 	}, [attachments.files, fileIdsForCurrentHost]);
+	const isSubmissionEmpty =
+		isPromptEmpty &&
+		!draft.linkedPR &&
+		draft.linkedIssues.length === 0 &&
+		visibleFiles.length === 0;
 	const promptContext = useNewWorkspacePromptContext({
 		projectId,
 		hostId: draft.hostId,
@@ -379,6 +387,7 @@ export function NewWorkspaceScreen({
 		selectedAgent,
 		modelSupport ? selectedModel : null,
 		effortSupport ? selectedEffort : null,
+		delegationMode,
 		uploadAttachments,
 		promptContext,
 	);
@@ -413,7 +422,7 @@ export function NewWorkspaceScreen({
 			handleGoToSetup();
 			return;
 		}
-		if (isPromptEmpty) return;
+		if (isSubmissionEmpty) return;
 		if (submitBlocker) {
 			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
@@ -431,7 +440,7 @@ export function NewWorkspaceScreen({
 		draft.hostId,
 		handleGoToSetup,
 		hostService,
-		isPromptEmpty,
+		isSubmissionEmpty,
 		machineId,
 		needsSetup,
 		submitBlocker,
@@ -603,6 +612,31 @@ export function NewWorkspaceScreen({
 									triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 								/>
 							)}
+							{selectedAgent !== "none" && (
+								<Tooltip>
+									<TooltipTrigger asChild>
+										<label
+											htmlFor="new-screen-fan-out-to-workspaces"
+											className={`${PILL_BUTTON_CLASS} flex cursor-pointer items-center gap-1.5 px-2 text-foreground`}
+										>
+											<Switch
+												id="new-screen-fan-out-to-workspaces"
+												checked={delegationMode === "workspaces"}
+												onCheckedChange={(checked) =>
+													setDelegationMode(checked ? "workspaces" : "native")
+												}
+												className="scale-75"
+											/>
+											Create sub-workspaces for sub-agents
+										</label>
+									</TooltipTrigger>
+									<TooltipContent>
+										{delegationMode === "workspaces"
+											? "Subagents become visible Superset sub-workspaces"
+											: "Subagents use the agent's native headless mode"}
+									</TooltipContent>
+								</Tooltip>
+							)}
 						</PromptInputTools>
 						<div className="flex items-center gap-2">
 							<IssueLinkCommand
@@ -663,7 +697,7 @@ export function NewWorkspaceScreen({
 							</Tooltip>
 							<PromptInputSubmit
 								className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-								disabled={needsSetup || isPromptEmpty}
+								disabled={needsSetup || isSubmissionEmpty}
 								onClick={(e) => {
 									e.preventDefault();
 									handleSubmit();

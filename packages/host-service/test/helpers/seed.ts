@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { AgentDelegationMode } from "@superset/shared/agent-delegation";
 import {
 	projects,
 	pullRequests,
@@ -56,7 +57,9 @@ export interface SeedWorkspaceOptions {
 	worktreePath: string;
 	branch: string;
 	name?: string;
-	type?: "main" | "worktree";
+	type?: "main" | "worktree" | "subworkspace";
+	parentWorkspaceId?: string | null;
+	agentDelegationMode?: AgentDelegationMode;
 	headSha?: string | null;
 	upstreamOwner?: string | null;
 	upstreamRepo?: string | null;
@@ -78,6 +81,8 @@ export function seedWorkspace(
 			branch: options.branch,
 			name: options.name ?? options.branch,
 			type: options.type ?? "worktree",
+			parentWorkspaceId: options.parentWorkspaceId,
+			agentDelegationMode: options.agentDelegationMode,
 			headSha: options.headSha,
 			upstreamOwner: options.upstreamOwner,
 			upstreamRepo: options.upstreamRepo,

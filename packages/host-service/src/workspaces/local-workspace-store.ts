@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import hostServicePackageJson from "@superset/host-service/package.json" with {
 	type: "json",
 };
+import type { AgentDelegationMode } from "@superset/shared/agent-delegation";
 import { getHostId } from "@superset/shared/host-info";
 import { eq } from "drizzle-orm";
 import type { HostDb } from "../db";
@@ -73,7 +74,9 @@ export interface CloudShapedWorkspace {
 	hostId: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "subworkspace";
+	parentWorkspaceId: string | null;
+	agentDelegationMode: AgentDelegationMode;
 	createdByUserId: string | null;
 	taskId: string | null;
 	createdAt: Date;
@@ -88,6 +91,8 @@ export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
 		branch: row.branch,
 		type: row.type,
 		worktreePath: row.worktreePath,
+		parentWorkspaceId: row.parentWorkspaceId,
+		agentDelegationMode: row.agentDelegationMode,
 		taskId: row.taskId,
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
@@ -109,6 +114,8 @@ export function toCloudShape(
 		name: row.name || row.branch,
 		branch: row.branch,
 		type: row.type,
+		parentWorkspaceId: row.parentWorkspaceId,
+		agentDelegationMode: row.agentDelegationMode,
 		createdByUserId: row.createdByUserId,
 		taskId: row.taskId,
 		createdAt: new Date(row.createdAt),
@@ -123,13 +130,51 @@ export function getLocalWorkspace(
 	return db.query.workspaces.findFirst({ where: eq(workspaces.id, id) }).sync();
 }
 
+/**
+ * Return every logical subworkspace below a workspace, with parents before
+ * their descendants.
+ */
+export function getSubworkspaceDescendants(
+	db: HostDb,
+	parentWorkspaceId: string,
+): HostWorkspaceRow[] {
+	const candidates = db
+		.select()
+		.from(workspaces)
+		.where(eq(workspaces.type, "subworkspace"))
+		.all();
+	const descendants: HostWorkspaceRow[] = [];
+	const pendingParentIds = new Set([parentWorkspaceId]);
+	let changed = true;
+
+	while (changed) {
+		changed = false;
+		for (const candidate of candidates) {
+			if (
+				descendants.some((workspace) => workspace.id === candidate.id) ||
+				!candidate.parentWorkspaceId ||
+				!pendingParentIds.has(candidate.parentWorkspaceId)
+			) {
+				continue;
+			}
+			descendants.push(candidate);
+			pendingParentIds.add(candidate.id);
+			changed = true;
+		}
+	}
+
+	return descendants;
+}
+
 export interface InsertLocalWorkspaceValues {
 	id?: string;
 	projectId: string;
 	worktreePath: string;
 	branch: string;
 	name: string;
-	type?: "main" | "worktree";
+	type?: "main" | "worktree" | "subworkspace";
+	parentWorkspaceId?: string | null;
+	agentDelegationMode?: AgentDelegationMode;
 	taskId?: string | null;
 	createdByUserId?: string | null;
 }
@@ -153,6 +198,8 @@ export function insertLocalWorkspace(
 			branch: values.branch,
 			name: values.name,
 			type: values.type ?? "worktree",
+			parentWorkspaceId: values.parentWorkspaceId ?? null,
+			agentDelegationMode: values.agentDelegationMode ?? "native",
 			taskId: values.taskId ?? null,
 			createdByUserId: values.createdByUserId ?? null,
 			createdAt: now,
@@ -172,6 +219,8 @@ export interface UpdateLocalWorkspacePatch {
 	worktreePath?: string;
 	taskId?: string | null;
 	projectId?: string;
+	parentWorkspaceId?: string | null;
+	agentDelegationMode?: AgentDelegationMode;
 }
 
 /** Patch a local row, bump `updatedAt`, and broadcast. */
@@ -191,7 +240,26 @@ export function updateLocalWorkspace(
 		.where(eq(workspaces.id, id))
 		.run();
 	const row = getLocalWorkspace(ctx.db, id);
-	if (row) emitWorkspaceChanged(ctx.eventBus, "updated", row);
+	if (row) {
+		emitWorkspaceChanged(ctx.eventBus, "updated", row);
+		const sharedContextPatch = {
+			...(patch.branch !== undefined ? { branch: patch.branch } : {}),
+			...(patch.worktreePath !== undefined
+				? { worktreePath: patch.worktreePath }
+				: {}),
+			...(patch.projectId !== undefined ? { projectId: patch.projectId } : {}),
+		};
+		if (Object.keys(sharedContextPatch).length > 0) {
+			const children = ctx.db
+				.select({ id: workspaces.id })
+				.from(workspaces)
+				.where(eq(workspaces.parentWorkspaceId, id))
+				.all();
+			for (const child of children) {
+				updateLocalWorkspace(ctx, child.id, sharedContextPatch);
+			}
+		}
+	}
 	return row;
 }
 

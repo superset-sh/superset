@@ -13,7 +13,11 @@ interface BroadcastedAgentLifecycleEvent {
 	occurredAt: number;
 }
 
-function createContext(originWorkspaceId: string | null): {
+/** Build the focused notification-router context used by these tests. */
+function createContext(
+	originWorkspaceId: string | null,
+	agentDelegationMode: "native" | "workspaces" = "native",
+): {
 	ctx: HostServiceContext;
 	broadcastAgentLifecycle: ReturnType<
 		typeof mock<(event: BroadcastedAgentLifecycleEvent) => void>
@@ -40,6 +44,11 @@ function createContext(originWorkspaceId: string | null): {
 				terminalSessions: {
 					findFirst,
 				},
+				workspaces: {
+					findFirst: () => ({
+						sync: () => ({ agentDelegationMode }),
+					}),
+				},
 			},
 		},
 		eventBus: {
@@ -62,7 +71,11 @@ describe("notificationsRouter.hook", () => {
 			eventType: "task_complete",
 		});
 
-		expect(result).toEqual({ success: true, ignored: false });
+		expect(result).toEqual({
+			success: true,
+			ignored: false,
+			agentDelegationMode: "native",
+		});
 		expect(findFirst).toHaveBeenCalledTimes(1);
 		expect(broadcastAgentLifecycle).toHaveBeenCalledTimes(1);
 		expect(broadcastAgentLifecycle.mock.calls[0]?.[0]).toMatchObject({
@@ -93,6 +106,20 @@ describe("notificationsRouter.hook", () => {
 		expect(unknownResult).toEqual({ success: true, ignored: true });
 		expect(unknownTerminal.findFirst).toHaveBeenCalledTimes(1);
 		expect(unknownTerminal.broadcastAgentLifecycle).not.toHaveBeenCalled();
+	});
+
+	it("returns the owning workspace's current delegation mode", async () => {
+		const { ctx } = createContext("workspace-1", "workspaces");
+		const result = await notificationsRouter.createCaller(ctx).hook({
+			terminalId: "terminal-1",
+			eventType: "UserPromptSubmit",
+		});
+
+		expect(result).toEqual({
+			success: true,
+			ignored: false,
+			agentDelegationMode: "workspaces",
+		});
 	});
 
 	it("ignores unknown event types before looking up the terminal", async () => {
@@ -173,7 +200,11 @@ describe("notificationsRouter.hook", () => {
 			agent: { agentId: "claude", sessionId: "session-abc" },
 		});
 
-		expect(result).toEqual({ success: true, ignored: false });
+		expect(result).toEqual({
+			success: true,
+			ignored: false,
+			agentDelegationMode: "native",
+		});
 		const failedBroadcast = broadcastAgentLifecycle.mock.calls.at(-1)?.[0];
 		expect(failedBroadcast).toMatchObject({
 			workspaceId: "workspace-1",

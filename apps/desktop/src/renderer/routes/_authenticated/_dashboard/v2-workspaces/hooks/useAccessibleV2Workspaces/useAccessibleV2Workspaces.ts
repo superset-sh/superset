@@ -54,7 +54,7 @@ export interface AccessibleV2Workspace {
 	id: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "subworkspace";
 	createdAt: Date;
 	createdByUserId: string | null;
 	createdByName: string | null;

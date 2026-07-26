@@ -1,10 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import { buildWorkspaceDelegationInstructions } from "@superset/shared/agent-delegation";
 import { env } from "shared/env.shared";
 import { HOOKS_DIR } from "./paths";
 
 export const NOTIFY_SCRIPT_NAME = "notify.sh";
-export const NOTIFY_SCRIPT_MARKER = "# Superset agent notification hook v3";
+export const NOTIFY_SCRIPT_MARKER = "# Superset agent notification hook v4";
 
 const NOTIFY_SCRIPT_TEMPLATE_PATH = path.join(
 	__dirname,
@@ -39,8 +40,13 @@ export function getNotifyScriptPath(): string {
 
 export function getNotifyScriptContent(): string {
 	const template = fs.readFileSync(NOTIFY_SCRIPT_TEMPLATE_PATH, "utf-8");
+	const delegationContext = buildWorkspaceDelegationInstructions({
+		workspaceId: "__SUPERSET_WORKSPACE_ID__",
+		agent: "__SUPERSET_AGENT_ID__",
+	});
 	return template
 		.replaceAll("{{MARKER}}", NOTIFY_SCRIPT_MARKER)
+		.replaceAll("{{DELEGATION_CONTEXT}}", delegationContext)
 		.replaceAll("{{DEFAULT_PORT}}", String(env.DESKTOP_NOTIFICATIONS_PORT));
 }
 

@@ -1,5 +1,6 @@
 import { existsSync } from "node:fs";
 import { basename } from "node:path";
+import { agentDelegationModeSchema } from "@superset/shared/agent-delegation";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
@@ -74,6 +75,7 @@ export const workspaceRouter = router({
 				name: z.string().min(1).optional(),
 				branch: z.string().min(1).optional(),
 				taskId: z.string().uuid().nullable().optional(),
+				agentDelegationMode: agentDelegationModeSchema.optional(),
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
@@ -93,11 +95,25 @@ export const workspaceRouter = router({
 						'The local workspace cannot be renamed — it always displays as "local".',
 				});
 			}
-			const patch: { name?: string; branch?: string; taskId?: string | null } =
-				{};
+			if (input.branch !== undefined && current.type === "subworkspace") {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message:
+						"A subworkspace shares its parent's branch and cannot be repointed independently.",
+				});
+			}
+			const patch: {
+				name?: string;
+				branch?: string;
+				taskId?: string | null;
+				agentDelegationMode?: z.infer<typeof agentDelegationModeSchema>;
+			} = {};
 			if (input.name !== undefined) patch.name = input.name;
 			if (input.branch !== undefined) patch.branch = input.branch;
 			if (input.taskId !== undefined) patch.taskId = input.taskId;
+			if (input.agentDelegationMode !== undefined) {
+				patch.agentDelegationMode = input.agentDelegationMode;
+			}
 			if (Object.keys(patch).length === 0) {
 				return toCloudShape(current, ctx.organizationId);
 			}

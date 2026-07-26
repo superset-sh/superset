@@ -3,9 +3,11 @@ import type {
 	AgentDefinitionId,
 	AgentIdentityId,
 } from "@superset/shared/agent-catalog";
+import type { AgentDelegationMode } from "@superset/shared/agent-delegation";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { sql } from "drizzle-orm";
 import {
+	type AnySQLiteColumn,
 	index,
 	integer,
 	sqliteTable,
@@ -195,7 +197,18 @@ export const workspaces = sqliteTable(
 		// Empty string means "not yet backfilled from cloud" — the startup
 		// backfill sweep targets these rows.
 		name: text().notNull().default(""),
-		type: text().$type<"main" | "worktree">().notNull().default("worktree"),
+		type: text()
+			.$type<"main" | "worktree" | "subworkspace">()
+			.notNull()
+			.default("worktree"),
+		parentWorkspaceId: text("parent_workspace_id").references(
+			(): AnySQLiteColumn => workspaces.id,
+			{ onDelete: "set null" },
+		),
+		agentDelegationMode: text("agent_delegation_mode")
+			.$type<AgentDelegationMode>()
+			.notNull()
+			.default("native"),
 		taskId: text("task_id"),
 		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
@@ -215,6 +228,7 @@ export const workspaces = sqliteTable(
 			table.upstreamBranch,
 		),
 		index("workspaces_pull_request_id_idx").on(table.pullRequestId),
+		index("workspaces_parent_workspace_id_idx").on(table.parentWorkspaceId),
 		uniqueIndex("workspaces_one_main_per_project")
 			.on(table.projectId)
 			.where(sql`type = 'main'`),

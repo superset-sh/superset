@@ -1,7 +1,7 @@
 export type LocalWorkspaceForPlacement = {
 	id: string;
 	projectId: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "subworkspace";
 };
 
 /**

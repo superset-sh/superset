@@ -5,7 +5,11 @@ import { invalidateLabelCache } from "../../../ports/static-ports";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
-import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
+import {
+	deleteLocalWorkspace,
+	getSubworkspaceDescendants,
+	type HostWorkspaceRow,
+} from "../../../workspaces/local-workspace-store";
 import type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
@@ -86,6 +90,14 @@ export const workspaceCleanupRouter = router({
 
 			const { local } = main;
 			if (!local) {
+				return {
+					canDelete: true,
+					reason: null,
+					hasChanges: false,
+					hasUnpushedCommits: false,
+				};
+			}
+			if (local.type === "subworkspace") {
 				return {
 					canDelete: true,
 					reason: null,
@@ -204,6 +216,13 @@ async function runDestroy(
 		throw new TRPCError({ code: "BAD_REQUEST", message: main.reason });
 	}
 	const { local, project } = main;
+	if (local?.type === "subworkspace") {
+		return destroyLogicalSubworkspace(ctx, local);
+	}
+
+	const childSubworkspaces = local
+		? getSubworkspaceDescendants(ctx.db, local.id)
+		: [];
 
 	// ─── Step 0: Preflight ─────────────────────────────────────────
 	// Block only on dirty worktree (the common "I forgot to commit"
@@ -255,6 +274,9 @@ async function runDestroy(
 
 	// ─── Step 2: Local cleanup ─────────────────────────────────────
 	// 2a. PTYs
+	for (const child of childSubworkspaces) {
+		await disposeWorkspaceSessions(ctx, child.id, warnings);
+	}
 	try {
 		const killed = await disposeSessionsByWorkspaceId(
 			input.workspaceId,
@@ -341,6 +363,10 @@ async function runDestroy(
 	// The local row is the commit point and the only record. The cloud
 	// delete is best-effort legacy cleanup for rows mirrored before
 	// workspaces went fully local.
+	for (const child of [...childSubworkspaces].reverse()) {
+		deleteLocalWorkspace(ctx, child.id);
+		invalidateLabelCache(child.id);
+	}
 	deleteLocalWorkspace(ctx, input.workspaceId);
 	let cloudDeleted = false;
 	try {
@@ -388,6 +414,53 @@ async function runDestroy(
 		branchDeleted,
 		warnings,
 	};
+}
+
+/** Remove a logical subworkspace tree without touching its shared checkout. */
+async function destroyLogicalSubworkspace(
+	ctx: HostServiceContext,
+	workspace: HostWorkspaceRow,
+) {
+	const warnings: string[] = [];
+	const descendants = getSubworkspaceDescendants(ctx.db, workspace.id);
+	for (const child of [...descendants, workspace]) {
+		await disposeWorkspaceSessions(ctx, child.id, warnings);
+	}
+	for (const child of [...descendants].reverse()) {
+		deleteLocalWorkspace(ctx, child.id);
+		invalidateLabelCache(child.id);
+	}
+	deleteLocalWorkspace(ctx, workspace.id);
+	invalidateLabelCache(workspace.id);
+
+	return {
+		success: true,
+		cloudDeleted: false,
+		worktreeRemoved: false,
+		branchDeleted: false,
+		warnings,
+	};
+}
+
+/** Stop every agent and terminal session owned by one workspace. */
+async function disposeWorkspaceSessions(
+	ctx: HostServiceContext,
+	workspaceId: string,
+	warnings: string[],
+): Promise<void> {
+	try {
+		const killed = await disposeSessionsByWorkspaceId(workspaceId, ctx.db);
+		if (killed.failed > 0) {
+			warnings.push(
+				`${killed.failed} terminal(s) in workspace ${workspaceId} may still be running`,
+			);
+		}
+	} catch (err) {
+		const message = err instanceof Error ? err.message : String(err);
+		warnings.push(
+			`Failed to dispose terminal sessions for workspace ${workspaceId}: ${message}`,
+		);
+	}
 }
 
 // Authoritative "is this still a worktree git tracks" check — reads git's own

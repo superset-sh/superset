@@ -16,6 +16,7 @@ interface DestroyConfirmPaneProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	workspaceName: string;
+	isSubworkspace: boolean;
 	deleteBranch: boolean;
 	onDeleteBranchChange: (next: boolean) => void;
 	hasChanges: boolean;
@@ -30,6 +31,7 @@ export function DestroyConfirmPane({
 	open,
 	onOpenChange,
 	workspaceName,
+	isSubworkspace,
 	deleteBranch,
 	onDeleteBranchChange,
 	hasChanges,
@@ -63,8 +65,9 @@ export function DestroyConfirmPane({
 						Delete workspace "{workspaceName}"?
 					</AlertDialogTitle>
 					<AlertDialogDescription>
-						This removes the worktree from disk. The cloud workspace record will
-						also be removed.
+						{isSubworkspace
+							? "This removes the subworkspace, its nested subworkspaces, and their agent sessions. The shared working tree and branch are unchanged."
+							: "This removes the worktree from disk. The cloud workspace record will also be removed."}
 					</AlertDialogDescription>
 				</AlertDialogHeader>
 				<div className="px-4 pb-2">
@@ -92,23 +95,25 @@ export function DestroyConfirmPane({
 						</div>
 					</div>
 				)}
-				<div className="px-4 pb-2">
-					<div className="flex items-center gap-2">
-						<Checkbox
-							id={checkboxId}
-							checked={deleteBranch}
-							onCheckedChange={(checked) =>
-								onDeleteBranchChange(checked === true)
-							}
-						/>
-						<Label
-							htmlFor={checkboxId}
-							className="text-xs text-muted-foreground cursor-pointer select-none"
-						>
-							Also delete local branch
-						</Label>
+				{!isSubworkspace && (
+					<div className="px-4 pb-2">
+						<div className="flex items-center gap-2">
+							<Checkbox
+								id={checkboxId}
+								checked={deleteBranch}
+								onCheckedChange={(checked) =>
+									onDeleteBranchChange(checked === true)
+								}
+							/>
+							<Label
+								htmlFor={checkboxId}
+								className="text-xs text-muted-foreground cursor-pointer select-none"
+							>
+								Also delete local branch
+							</Label>
+						</div>
 					</div>
-				</div>
+				)}
 				<AlertDialogFooter className="px-4 pb-4 pt-2 flex-row justify-end gap-2">
 					<Button
 						variant="ghost"
