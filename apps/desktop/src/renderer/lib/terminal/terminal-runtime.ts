@@ -4,7 +4,11 @@ import type { ProgressAddon } from "@xterm/addon-progress";
 import type { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal as XTerm } from "@xterm/xterm";
-import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
+import {
+	DEFAULT_TERMINAL_SCROLLBACK,
+	TERMINAL_BUFFER_KEY_PREFIX,
+	TERMINAL_DIMS_KEY_PREFIX,
+} from "shared/constants";
 import {
 	applyTerminalFontFamilyCssVariable,
 	type TerminalAppearance,
@@ -24,8 +28,6 @@ import { getTerminalParkingContainer } from "./terminal-parking";
 import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 const SERIALIZE_SCROLLBACK = 1000;
-const STORAGE_KEY_PREFIX = "terminal-buffer:";
-const DIMS_KEY_PREFIX = "terminal-dims:";
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
@@ -95,7 +97,7 @@ function persistBuffer(
 ): boolean {
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
-		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
+		localStorage.setItem(`${TERMINAL_BUFFER_KEY_PREFIX}${terminalId}`, data);
 		return true;
 	} catch {
 		return false;
@@ -104,7 +106,9 @@ function persistBuffer(
 
 function restoreBuffer(terminalId: string, terminal: XTerm) {
 	try {
-		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
+		const data = localStorage.getItem(
+			`${TERMINAL_BUFFER_KEY_PREFIX}${terminalId}`,
+		);
 		if (data) terminal.write(data);
 	} catch {}
 }
@@ -126,7 +130,7 @@ export function tryPersistRuntimeState(runtime: TerminalRuntime): boolean {
 
 function clearPersistedBuffer(terminalId: string) {
 	try {
-		localStorage.removeItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
+		localStorage.removeItem(`${TERMINAL_BUFFER_KEY_PREFIX}${terminalId}`);
 	} catch {}
 }
 
@@ -137,7 +141,7 @@ function persistDimensions(
 ): boolean {
 	try {
 		localStorage.setItem(
-			`${DIMS_KEY_PREFIX}${terminalId}`,
+			`${TERMINAL_DIMS_KEY_PREFIX}${terminalId}`,
 			JSON.stringify({ cols, rows }),
 		);
 		return true;
@@ -150,7 +154,9 @@ function loadSavedDimensions(
 	terminalId: string,
 ): { cols: number; rows: number } | null {
 	try {
-		const raw = localStorage.getItem(`${DIMS_KEY_PREFIX}${terminalId}`);
+		const raw = localStorage.getItem(
+			`${TERMINAL_DIMS_KEY_PREFIX}${terminalId}`,
+		);
 		if (!raw) return null;
 		const parsed = JSON.parse(raw);
 		if (typeof parsed.cols === "number" && typeof parsed.rows === "number") {
@@ -164,7 +170,7 @@ function loadSavedDimensions(
 
 function clearPersistedDimensions(terminalId: string) {
 	try {
-		localStorage.removeItem(`${DIMS_KEY_PREFIX}${terminalId}`);
+		localStorage.removeItem(`${TERMINAL_DIMS_KEY_PREFIX}${terminalId}`);
 	} catch {}
 }
 

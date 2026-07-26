@@ -431,3 +431,39 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 		}
 	});
 });
+
+describe("terminalRuntimeRegistry.getRegisteredTerminalIds", () => {
+	const keysByTerminalId = (
+		terminalRuntimeRegistry as unknown as {
+			entryKeysByTerminalId: Map<string, Set<string>>;
+		}
+	).entryKeysByTerminalId;
+
+	afterEach(() => {
+		keysByTerminalId.delete("registered-a");
+		keysByTerminalId.delete("registered-b");
+	});
+
+	test("reports every registered terminal, parked ones included", () => {
+		keysByTerminalId.set("registered-a", new Set(["registered-a one"]));
+		keysByTerminalId.set(
+			"registered-b",
+			new Set(["registered-b one", "registered-b two"]),
+		);
+
+		const ids = terminalRuntimeRegistry.getRegisteredTerminalIds();
+
+		expect(ids.has("registered-a")).toBe(true);
+		expect(ids.has("registered-b")).toBe(true);
+		expect(ids.has("never-registered")).toBe(false);
+	});
+
+	test("returns a copy, so reclaim cannot mutate registry state", () => {
+		keysByTerminalId.set("registered-a", new Set(["registered-a one"]));
+
+		const ids = terminalRuntimeRegistry.getRegisteredTerminalIds();
+		ids.delete("registered-a");
+
+		expect(keysByTerminalId.has("registered-a")).toBe(true);
+	});
+});

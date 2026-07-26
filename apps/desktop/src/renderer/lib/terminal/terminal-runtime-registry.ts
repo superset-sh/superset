@@ -125,6 +125,11 @@ class TerminalRuntimeRegistryImpl {
 		return firstKey ? (this.entries.get(firstKey) ?? null) : null;
 	}
 
+	/** Includes parked entries, whose runtime is released but snapshot still live. */
+	getRegisteredTerminalIds(): Set<string> {
+		return new Set(this.entryKeysByTerminalId.keys());
+	}
+
 	private getEntries(terminalId: string): RegistryEntry[] {
 		const keys = this.entryKeysByTerminalId.get(terminalId);
 		if (!keys) return [];

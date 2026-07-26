@@ -40,6 +40,11 @@ export const MOCK_ORG_ID = "mock-org-id";
 
 // Terminal defaults
 export const DEFAULT_TERMINAL_SCROLLBACK = 5000;
+// localStorage keys holding a parked terminal's scrollback and dimensions.
+// Eviction leaves these behind on purpose, so reclaim needs the prefixes to
+// recognise snapshots no live terminal can reach.
+export const TERMINAL_BUFFER_KEY_PREFIX = "terminal-buffer:";
+export const TERMINAL_DIMS_KEY_PREFIX = "terminal-dims:";
 // Hidden (parked) xterm instances kept fully alive before LRU eviction. (SUPER-1545)
 export const DEFAULT_TERMINAL_PARKED_RUNTIME_CAP = 12;
 export const MIN_TERMINAL_PARKED_RUNTIME_CAP = 2;
