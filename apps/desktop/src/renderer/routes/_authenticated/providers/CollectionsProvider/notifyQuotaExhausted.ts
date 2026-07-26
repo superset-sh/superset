@@ -41,10 +41,15 @@ function warnOnce(storageKey: string): void {
 	);
 }
 
-/** Exported so the wording is testable without mocking the storage module. */
+/**
+ * Exported so the wording is testable without mocking the storage module. The
+ * count is storage entries, not terminals — each terminal persists a buffer and
+ * a dimensions key — so it is described as such rather than implying a terminal
+ * count twice the real one.
+ */
 export function describeClearedSnapshots(cleared: number): string {
-	if (cleared === 0) return "No terminal scrollback left to clear";
-	return `Cleared saved scrollback for ${cleared} terminal${cleared === 1 ? "" : "s"}`;
+	if (cleared === 0) return "No saved terminal scrollback left to clear";
+	return `Cleared ${cleared} saved terminal ${cleared === 1 ? "entry" : "entries"}`;
 }
 
 function reclaimFromToast(): void {

@@ -113,16 +113,20 @@ describe("notifyQuotaExhausted", () => {
 describe("describeClearedSnapshots", () => {
 	it("says so plainly when there was nothing to clear", () => {
 		expect(describeClearedSnapshots(0)).toBe(
-			"No terminal scrollback left to clear",
+			"No saved terminal scrollback left to clear",
 		);
 	});
 
-	it("singularises a single terminal", () => {
-		expect(describeClearedSnapshots(1)).toContain("1 terminal");
-		expect(describeClearedSnapshots(1)).not.toContain("1 terminals");
+	// The count is storage entries, not terminals: each terminal persists a
+	// buffer and a dimensions key, so calling 2 entries "2 terminals" would
+	// report double the real number.
+	it("counts storage entries rather than terminals", () => {
+		expect(describeClearedSnapshots(2)).toContain("2 saved terminal entries");
+		expect(describeClearedSnapshots(2)).not.toContain("terminals");
 	});
 
-	it("pluralises several terminals", () => {
-		expect(describeClearedSnapshots(7)).toContain("7 terminals");
+	it("singularises a single entry", () => {
+		expect(describeClearedSnapshots(1)).toContain("1 saved terminal entry");
+		expect(describeClearedSnapshots(1)).not.toContain("entries");
 	});
 });

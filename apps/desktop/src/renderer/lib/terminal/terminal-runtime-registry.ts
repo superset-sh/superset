@@ -58,6 +58,14 @@ class TerminalRuntimeRegistryImpl {
 	private pendingEviction: ReturnType<typeof setTimeout> | null = null;
 	private persistFailureWarnedTerminalIds = new Set<string>();
 	/**
+	 * Terminals whose persisted snapshot outlived their registry entry. Release
+	 * and eviction write the buffer and then drop the entry, so the entry map
+	 * alone would report a still-restorable terminal as unknown — and anything
+	 * reclaiming storage would delete the scrollback of a pane the user still has
+	 * open. Cleared by `dispose`, which is what actually removes the snapshot.
+	 */
+	private preservedSnapshotTerminalIds = new Set<string>();
+	/**
 	 * Cap on parked (hidden) xterm runtimes. Each live runtime holds its full
 	 * scrollback and a WebGL context (~55–70 MB RSS measured), so parked
 	 * instances beyond this are released — buffer persisted to localStorage,
@@ -125,9 +133,30 @@ class TerminalRuntimeRegistryImpl {
 		return firstKey ? (this.entries.get(firstKey) ?? null) : null;
 	}
 
-	/** Includes parked entries, whose runtime is released but snapshot still live. */
+	/**
+	 * Terminals whose persisted snapshot must survive: those with a live entry,
+	 * plus those released or evicted while preserving their buffer for restore.
+	 */
 	getRegisteredTerminalIds(): Set<string> {
-		return new Set(this.entryKeysByTerminalId.keys());
+		return new Set([
+			...this.entryKeysByTerminalId.keys(),
+			...this.preservedSnapshotTerminalIds,
+		]);
+	}
+
+	/**
+	 * Mirrors what `disposeRuntime` does with the snapshot: `preserve` keeps it on
+	 * disk for a later mount, anything else has already cleared it.
+	 */
+	private recordDisposedEntrySnapshot(
+		entry: RegistryEntry,
+		options: { persistedState?: "clear" | "preserve" } = {},
+	) {
+		if (options.persistedState === "preserve") {
+			this.preservedSnapshotTerminalIds.add(entry.terminalId);
+			return;
+		}
+		this.preservedSnapshotTerminalIds.delete(entry.terminalId);
 	}
 
 	private getEntries(terminalId: string): RegistryEntry[] {
@@ -399,6 +428,7 @@ class TerminalRuntimeRegistryImpl {
 		if (entry.runtime) {
 			disposeRuntime(entry.runtime, options);
 		}
+		this.recordDisposedEntrySnapshot(entry, options);
 		this.deleteEntry(entry);
 	}
 
@@ -449,6 +479,7 @@ class TerminalRuntimeRegistryImpl {
 		}
 		// Eviction deletes the live registry entry but deliberately leaves its
 		// snapshot behind. Closing that pane must still clear the orphaned keys.
+		this.preservedSnapshotTerminalIds.delete(terminalId);
 		clearPersistedRuntimeState(terminalId);
 	}
 

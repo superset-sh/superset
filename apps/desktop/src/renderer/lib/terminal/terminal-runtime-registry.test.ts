@@ -445,10 +445,10 @@ describe("terminalRuntimeRegistry.getRegisteredTerminalIds", () => {
 	});
 
 	test("reports every registered terminal, parked ones included", () => {
-		keysByTerminalId.set("registered-a", new Set(["registered-a one"]));
+		keysByTerminalId.set("registered-a", new Set(["registered-a\u0000one"]));
 		keysByTerminalId.set(
 			"registered-b",
-			new Set(["registered-b one", "registered-b two"]),
+			new Set(["registered-b\u0000one", "registered-b\u0000two"]),
 		);
 
 		const ids = terminalRuntimeRegistry.getRegisteredTerminalIds();
@@ -459,11 +459,91 @@ describe("terminalRuntimeRegistry.getRegisteredTerminalIds", () => {
 	});
 
 	test("returns a copy, so reclaim cannot mutate registry state", () => {
-		keysByTerminalId.set("registered-a", new Set(["registered-a one"]));
+		keysByTerminalId.set("registered-a", new Set(["registered-a\u0000one"]));
 
 		const ids = terminalRuntimeRegistry.getRegisteredTerminalIds();
 		ids.delete("registered-a");
 
 		expect(keysByTerminalId.has("registered-a")).toBe(true);
+	});
+
+	test("still reports a released terminal whose snapshot was preserved", () => {
+		// `release` persists the buffer and then drops the registry entry, leaving
+		// the snapshot on disk for the next mount to restore. Reclaim must not read
+		// that missing entry as "orphaned" and delete the scrollback of a pane the
+		// user still has open.
+		const terminalId = "released-but-restorable";
+		const entryKey = `${terminalId}\u0000${terminalId}`;
+		const registryInternals = terminalRuntimeRegistry as unknown as {
+			entries: Map<string, unknown>;
+			entryKeysByTerminalId: Map<string, Set<string>>;
+			disposeEntry: (entry: unknown, options: unknown) => void;
+		};
+		const entry = {
+			terminalId,
+			instanceId: terminalId,
+			runtime: {
+				terminalId,
+				serializeAddon: { serialize: () => "scrollback" },
+				lastCols: 120,
+				lastRows: 32,
+			},
+			transport: {},
+			linkManager: null,
+			pendingLinkHandlers: null,
+			disposeBufferChangeListener: null,
+			lastUsedAt: 1,
+		};
+		const realDisposeEntry = registryInternals.disposeEntry;
+		registryInternals.entries.set(entryKey, entry);
+		registryInternals.entryKeysByTerminalId.set(
+			terminalId,
+			new Set([entryKey]),
+		);
+		// Stub only the runtime teardown (it needs real xterm/DOM), keeping the
+		// bookkeeping under test: deleteEntry plus the preserved-snapshot record.
+		registryInternals.disposeEntry = (disposed, options) => {
+			(
+				terminalRuntimeRegistry as unknown as {
+					recordDisposedEntrySnapshot: (e: unknown, o: unknown) => void;
+					deleteEntry: (e: unknown) => void;
+				}
+			).recordDisposedEntrySnapshot(disposed, options);
+			(
+				terminalRuntimeRegistry as unknown as {
+					deleteEntry: (e: unknown) => void;
+				}
+			).deleteEntry(disposed);
+		};
+
+		try {
+			terminalRuntimeRegistry.release(terminalId);
+
+			expect(fakeStorage.values.has(`terminal-buffer:${terminalId}`)).toBe(
+				true,
+			);
+			expect(registryInternals.entryKeysByTerminalId.has(terminalId)).toBe(
+				false,
+			);
+			expect(
+				terminalRuntimeRegistry.getRegisteredTerminalIds().has(terminalId),
+			).toBe(true);
+		} finally {
+			registryInternals.disposeEntry = realDisposeEntry;
+			registryInternals.entries.delete(entryKey);
+			registryInternals.entryKeysByTerminalId.delete(terminalId);
+			terminalRuntimeRegistry.dispose(terminalId);
+		}
+	});
+
+	test("stops reporting a terminal once dispose clears its snapshot", () => {
+		const terminalId = "disposed-terminal";
+		fakeStorage.values.set(`terminal-buffer:${terminalId}`, "scrollback");
+
+		terminalRuntimeRegistry.dispose(terminalId);
+
+		expect(
+			terminalRuntimeRegistry.getRegisteredTerminalIds().has(terminalId),
+		).toBe(false);
 	});
 });
