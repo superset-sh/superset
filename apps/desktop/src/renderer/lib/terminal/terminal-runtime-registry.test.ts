@@ -537,13 +537,27 @@ describe("terminalRuntimeRegistry.getRegisteredTerminalIds", () => {
 	});
 
 	test("stops reporting a terminal once dispose clears its snapshot", () => {
+		// Seed the preserved record rather than storage: getRegisteredTerminalIds
+		// reads the registry maps, so a storage-only fixture would report absent
+		// before dispose too and assert nothing.
 		const terminalId = "disposed-terminal";
+		const preserved = (
+			terminalRuntimeRegistry as unknown as {
+				preservedSnapshotTerminalIds: Set<string>;
+			}
+		).preservedSnapshotTerminalIds;
 		fakeStorage.values.set(`terminal-buffer:${terminalId}`, "scrollback");
+		preserved.add(terminalId);
+
+		expect(
+			terminalRuntimeRegistry.getRegisteredTerminalIds().has(terminalId),
+		).toBe(true);
 
 		terminalRuntimeRegistry.dispose(terminalId);
 
 		expect(
 			terminalRuntimeRegistry.getRegisteredTerminalIds().has(terminalId),
 		).toBe(false);
+		expect(fakeStorage.values.has(`terminal-buffer:${terminalId}`)).toBe(false);
 	});
 });
