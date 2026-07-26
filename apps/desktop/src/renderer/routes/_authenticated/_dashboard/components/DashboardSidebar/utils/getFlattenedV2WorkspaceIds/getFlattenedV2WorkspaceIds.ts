@@ -1,9 +1,9 @@
+import {
+	compareTopLevelItems,
+	type TopLevelItem,
+} from "@superset/shared/sidebar-order";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 import { getVisibleSidebarWorkspaces } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
-
-type TopLevelItem =
-	| { kind: "workspace"; tabOrder: number; workspaceId: string }
-	| { kind: "section"; tabOrder: number; sectionId: string };
 
 export interface FlattenedSectionInput {
 	id: string;
@@ -70,34 +70,28 @@ export function getFlattenedV2WorkspaceIds(
 		for (const workspace of projectWorkspaces) {
 			if (workspace.sectionId == null) {
 				topLevelItems.push({
-					kind: "workspace",
+					type: "workspace",
 					tabOrder: workspace.tabOrder,
-					workspaceId: workspace.workspaceId,
+					id: workspace.workspaceId,
 				});
 			}
 		}
 		for (const section of projectSections) {
 			topLevelItems.push({
-				kind: "section",
+				type: "section",
 				tabOrder: section.tabOrder,
-				sectionId: section.id,
+				id: section.id,
 			});
 		}
-		topLevelItems.sort((left, right) => {
-			if (left.tabOrder !== right.tabOrder) {
-				return left.tabOrder - right.tabOrder;
-			}
-			if (left.kind === right.kind) return 0;
-			return left.kind === "section" ? -1 : 1;
-		});
+		topLevelItems.sort(compareTopLevelItems);
 
 		for (const item of topLevelItems) {
-			if (item.kind === "workspace") {
-				result.push(item.workspaceId);
+			if (item.type === "workspace") {
+				result.push(item.id);
 				continue;
 			}
 			const sectionWorkspaces = projectWorkspaces
-				.filter((workspace) => workspace.sectionId === item.sectionId)
+				.filter((workspace) => workspace.sectionId === item.id)
 				.sort((left, right) => left.tabOrder - right.tabOrder);
 			for (const workspace of sectionWorkspaces) {
 				result.push(workspace.workspaceId);

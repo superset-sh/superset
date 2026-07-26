@@ -288,22 +288,6 @@ export function useDashboardSidebarState() {
 		[executePlan, plannerData],
 	);
 
-	const moveWorkspaceToSectionAtIndex = useCallback(
-		(workspaceId: string, sectionId: string, index: number) => {
-			if (!hostWorkspacesById.get(workspaceId)) return;
-			const siblings = plannerData.workspaces
-				.filter(
-					(workspace) =>
-						workspace.sectionId === sectionId && workspace.id !== workspaceId,
-				)
-				.sort((left, right) => left.tabOrder - right.tabOrder)
-				.map((workspace) => workspace.id);
-			siblings.splice(index, 0, workspaceId);
-			executePlan(planSectionMembersOrder(plannerData, sectionId, siblings));
-		},
-		[executePlan, hostWorkspacesById, plannerData],
-	);
-
 	// Persist a section's full member order in one plan. Callers pass the
 	// complete ordered id list.
 	const reorderSectionMembers = useCallback(
@@ -584,7 +568,6 @@ export function useDashboardSidebarState() {
 		ensureWorkspaceInSidebar,
 		hideWorkspaceInSidebar,
 		moveWorkspaceToSection,
-		moveWorkspaceToSectionAtIndex,
 		reorderSectionMembers,
 		removeProjectFromSidebar,
 		reorderProjectChildren,
