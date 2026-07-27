@@ -268,7 +268,7 @@ export async function initEmptyRepo(
 	parentDir: string,
 	dirName: string,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName)) {
+	if (!dirName.trim() || /[/\\]/.test(dirName) || /^\.+$/.test(dirName)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Invalid directory name: "${dirName}"`,
@@ -311,7 +311,7 @@ export async function cloneTemplateInto(
 	dirName: string,
 	credentials?: GitCredentialProvider,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName)) {
+	if (!dirName.trim() || /[/\\]/.test(dirName) || /^\.+$/.test(dirName)) {
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Invalid directory name: "${dirName}"`,

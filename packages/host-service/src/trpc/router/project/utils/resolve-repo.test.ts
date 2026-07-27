@@ -17,9 +17,12 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TRPCError } from "@trpc/server";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
 	cloneRepoInto,
+	cloneTemplateInto,
+	initEmptyRepo,
 	initLocalRepoInPlace,
 	resolveLocalRepo,
 } from "./resolve-repo";
@@ -303,6 +306,65 @@ describe("initLocalRepoInPlace", () => {
 		await expect(initLocalRepoInPlace(file)).rejects.toThrow(
 			/Path is not a directory/,
 		);
+	});
+});
+
+// ── initEmptyRepo / cloneTemplateInto ─────────────────────────────
+
+async function expectBadRequestDirName(promise: Promise<unknown>) {
+	const err = await promise.then(
+		() => null,
+		(e: unknown) => e,
+	);
+	expect(err).toBeInstanceOf(TRPCError);
+	expect((err as TRPCError).code).toBe("BAD_REQUEST");
+	expect((err as TRPCError).message).toMatch(/Invalid directory name/);
+}
+
+describe("initEmptyRepo", () => {
+	test("throws when the directory name is '.'", async () => {
+		// "." would join() back to parentDir itself; like
+		// deriveCloneDirectoryName, dot-only segments are reserved.
+		const parentDir = join(workRoot, "projects");
+		mkdirSync(parentDir);
+
+		await expectBadRequestDirName(initEmptyRepo(parentDir, "."));
+		// Nothing was initialized in (or above) the parent directory.
+		expect(existsSync(join(parentDir, ".git"))).toBe(false);
+		expect(existsSync(join(workRoot, ".git"))).toBe(false);
+	});
+
+	test("throws when the directory name is '..'", async () => {
+		// ".." would join() to parentDir's parent — escaping the projects dir.
+		const parentDir = join(workRoot, "projects");
+		mkdirSync(parentDir);
+
+		await expectBadRequestDirName(initEmptyRepo(parentDir, ".."));
+		expect(existsSync(join(workRoot, ".git"))).toBe(false);
+	});
+});
+
+describe("cloneTemplateInto", () => {
+	const templateUrl = "https://github.com/acme/template.git";
+
+	test("throws when the directory name is '.'", async () => {
+		const parentDir = join(workRoot, "projects");
+		mkdirSync(parentDir);
+
+		await expectBadRequestDirName(
+			cloneTemplateInto(templateUrl, parentDir, "."),
+		);
+		expect(existsSync(join(parentDir, ".git"))).toBe(false);
+	});
+
+	test("throws when the directory name is '..'", async () => {
+		const parentDir = join(workRoot, "projects");
+		mkdirSync(parentDir);
+
+		await expectBadRequestDirName(
+			cloneTemplateInto(templateUrl, parentDir, ".."),
+		);
+		expect(existsSync(join(workRoot, ".git"))).toBe(false);
 	});
 });
 
