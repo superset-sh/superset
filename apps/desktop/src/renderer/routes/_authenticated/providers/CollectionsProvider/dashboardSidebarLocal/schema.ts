@@ -322,6 +322,12 @@ function isCompleteLinkTierMap(
 	);
 }
 
+const sidebarProjectSortModeSchema = z.enum(["manual", "created", "updated"]);
+
+export type SidebarProjectSortMode = z.infer<
+	typeof sidebarProjectSortModeSchema
+>;
+
 export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
@@ -334,6 +340,7 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
+	sidebarProjectSortMode: sidebarProjectSortModeSchema.default("manual"),
 });
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
@@ -352,6 +359,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 	showPresetsBar: true,
+	sidebarProjectSortMode: "manual",
 };
 
 /**

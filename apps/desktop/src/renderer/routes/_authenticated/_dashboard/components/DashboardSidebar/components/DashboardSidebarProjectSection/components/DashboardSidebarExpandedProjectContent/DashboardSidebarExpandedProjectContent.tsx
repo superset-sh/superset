@@ -16,6 +16,7 @@ interface DashboardSidebarExpandedProjectContentProps {
 	projectId: string;
 	isCollapsed: boolean;
 	projectChildren: DashboardSidebarProjectChild[];
+	isDragDisabled?: boolean;
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onDeleteSection: (sectionId: string) => void;
@@ -27,6 +28,7 @@ export function DashboardSidebarExpandedProjectContent({
 	projectId,
 	isCollapsed,
 	projectChildren,
+	isDragDisabled = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onDeleteSection,
@@ -48,7 +50,7 @@ export function DashboardSidebarExpandedProjectContent({
 		workspacesById,
 		sectionsById,
 		handlers,
-	} = useSidebarDnd({ projectId, projectChildren });
+	} = useSidebarDnd({ projectId, projectChildren, disabled: isDragDisabled });
 
 	return (
 		<AnimatePresence initial={false}>

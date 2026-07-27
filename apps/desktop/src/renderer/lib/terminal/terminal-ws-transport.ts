@@ -457,7 +457,6 @@ export function connect(
 	}
 
 	const socket = createRelaySocket({
-		name: "desktop-terminal",
 		// buildUrl/getToken read transport state live, so a URL swap or token
 		// rotation is picked up on the next dial without recreating the socket.
 		buildUrl: () => {

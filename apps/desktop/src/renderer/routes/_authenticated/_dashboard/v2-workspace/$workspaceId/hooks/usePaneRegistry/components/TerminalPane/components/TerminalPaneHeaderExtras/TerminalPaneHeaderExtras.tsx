@@ -38,7 +38,7 @@ export function TerminalPaneHeaderExtras({
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						onClick={() => terminalRichInputOpenStore.toggle()}
+						onClick={() => terminalRichInputOpenStore.toggle("header_button")}
 						aria-label={label}
 						aria-pressed={isOpen}
 						className={cn(
