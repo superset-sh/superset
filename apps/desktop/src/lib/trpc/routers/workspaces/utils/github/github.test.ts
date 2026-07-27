@@ -8,6 +8,7 @@ import {
 import { resolveRemoteBranchNameForGitHubStatus } from "./github";
 import {
 	branchMatchesPR,
+	computeChecksStatus,
 	getPRHeadBranchCandidates,
 	prMatchesLocalBranch,
 	shouldAcceptPRMatch,
@@ -42,6 +43,48 @@ describe("branchMatchesPR", () => {
 
 	test("rejects partial suffix match that is not a path segment", () => {
 		expect(branchMatchesPR("my-thing", "thing")).toBe(false);
+	});
+});
+
+describe("computeChecksStatus", () => {
+	test("returns none for a missing or empty rollup", () => {
+		expect(computeChecksStatus(null)).toBe("none");
+		expect(computeChecksStatus([])).toBe("none");
+	});
+
+	test("a single cancelled check rolls up as failure, not success", () => {
+		expect(computeChecksStatus([{ conclusion: "CANCELLED" }])).toBe("failure");
+	});
+
+	test("a cancelled check among successes rolls up as failure", () => {
+		expect(
+			computeChecksStatus([
+				{ conclusion: "SUCCESS" },
+				{ conclusion: "CANCELLED" },
+			]),
+		).toBe("failure");
+	});
+
+	test("failure conclusions roll up as failure", () => {
+		expect(computeChecksStatus([{ conclusion: "FAILURE" }])).toBe("failure");
+		expect(computeChecksStatus([{ state: "ERROR" }])).toBe("failure");
+		expect(computeChecksStatus([{ conclusion: "TIMED_OUT" }])).toBe("failure");
+	});
+
+	test("pending wins when nothing failed", () => {
+		expect(
+			computeChecksStatus([{ conclusion: "SUCCESS" }, { state: "PENDING" }]),
+		).toBe("pending");
+	});
+
+	test("skipped and neutral checks stay non-blocking and fold into success", () => {
+		expect(
+			computeChecksStatus([
+				{ conclusion: "SUCCESS" },
+				{ conclusion: "SKIPPED" },
+				{ conclusion: "NEUTRAL" },
+			]),
+		).toBe("success");
 	});
 });
 
