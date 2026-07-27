@@ -1,0 +1,1 @@
+export { useFactoryData } from "./useFactoryData";

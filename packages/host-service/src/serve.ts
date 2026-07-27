@@ -1,4 +1,5 @@
 import { serve } from "@hono/node-server";
+import { startSupersetFactory } from "@superset/factory-service";
 import { createApp } from "./app";
 import { getSupervisor, startDaemonBootstrap } from "./daemon";
 import { env } from "./env";
@@ -49,7 +50,8 @@ async function main(): Promise<void> {
 		apiUrl: env.SUPERSET_API_URL,
 	});
 
-	const { app, injectWebSocket, api, db } = createApp({
+	const hostAuthProvider = new PskHostAuthProvider(env.HOST_SERVICE_SECRET);
+	const { app, injectWebSocket, api, db, dispose } = createApp({
 		config: {
 			organizationId: env.ORGANIZATION_ID,
 			dbPath: env.HOST_DB_PATH,
@@ -59,10 +61,17 @@ async function main(): Promise<void> {
 		},
 		providers: {
 			auth: authProvider,
-			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
+			hostAuth: hostAuthProvider,
 			credentials: new LocalGitCredentialProvider(),
 			modelResolver: new LocalModelProvider(),
 		},
+	});
+	const factoryRuntime = await startSupersetFactory({
+		app,
+		organizationId: env.ORGANIZATION_ID,
+		hostDbPath: env.HOST_DB_PATH,
+		allowedOrigins: env.CORS_ORIGINS ?? [],
+		authorize: (request) => hostAuthProvider.validate(request),
 	});
 
 	// Dev-mode shutdown: kill the daemon on host-service exit so dev
@@ -86,6 +95,7 @@ async function main(): Promise<void> {
 					err,
 				);
 			} finally {
+				await Promise.allSettled([factoryRuntime.shutdown(), dispose()]);
 				process.exit(0);
 			}
 		};
