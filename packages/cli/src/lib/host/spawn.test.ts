@@ -1,4 +1,8 @@
 import { afterAll, afterEach, describe, expect, mock, test } from "bun:test";
+// Snapshot the real module BEFORE `mock.module` — the mock leaks across test
+// files in the same run, so it must keep every other export intact for suites
+// whose import chains also touch node:child_process (e.g. host-info).
+import * as childProcess from "node:child_process";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -38,6 +42,7 @@ const spawnMock = mock(
 );
 
 mock.module("node:child_process", () => ({
+	...childProcess,
 	spawn: spawnMock,
 }));
 
