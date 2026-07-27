@@ -13,6 +13,7 @@ import {
 	getPrependTabOrder,
 	isSidebarWorkspaceVisible,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type { DashboardSidebarWorkspaceSort } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
@@ -224,6 +225,16 @@ export function useDashboardSidebarState() {
 				collections.v2SidebarProjects.update(projectId, (draft) => {
 					draft.tabOrder = index + 1;
 				});
+			});
+		},
+		[collections],
+	);
+
+	const setProjectWorkspaceSortOrder = useCallback(
+		(projectId: string, workspaceSortOrder: DashboardSidebarWorkspaceSort) => {
+			if (!collections.v2SidebarProjects.get(projectId)) return;
+			collections.v2SidebarProjects.update(projectId, (draft) => {
+				draft.workspaceSortOrder = workspaceSortOrder;
 			});
 		},
 		[collections],
@@ -525,6 +536,7 @@ export function useDashboardSidebarState() {
 		reorderWorkspaces,
 		renameSection,
 		setSectionColor,
+		setProjectWorkspaceSortOrder,
 		setWorkspacePinned,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,

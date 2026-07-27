@@ -22,6 +22,7 @@ interface DashboardSidebarExpandedProjectContentProps {
 	onDeleteSection: (sectionId: string) => void;
 	onRenameSection: (sectionId: string, name: string) => void;
 	onToggleSectionCollapse: (sectionId: string) => void;
+	disableReordering?: boolean;
 }
 
 export function DashboardSidebarExpandedProjectContent({
@@ -34,6 +35,7 @@ export function DashboardSidebarExpandedProjectContent({
 	onDeleteSection,
 	onRenameSection,
 	onToggleSectionCollapse,
+	disableReordering = false,
 }: DashboardSidebarExpandedProjectContentProps) {
 	const {
 		sensors,
@@ -88,6 +90,7 @@ export function DashboardSidebarExpandedProjectContent({
 												onDelete={onDeleteSection}
 												onRename={onRenameSection}
 												onToggleCollapse={onToggleSectionCollapse}
+												disabled={disableReordering}
 											/>
 										);
 									}
@@ -125,8 +128,9 @@ export function DashboardSidebarExpandedProjectContent({
 															parsed.realId,
 														)}
 														disabled={
-															workspace.type === "main" &&
-															workspace.hostType === "local-device"
+															disableReordering ||
+															(workspace.type === "main" &&
+																workspace.hostType === "local-device")
 														}
 													/>
 												</motion.div>

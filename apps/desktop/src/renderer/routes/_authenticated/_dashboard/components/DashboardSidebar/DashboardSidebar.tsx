@@ -27,6 +27,7 @@ import { createPortal } from "react-dom";
 import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { HiringBanner } from "renderer/components/HiringBanner";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
+import { useV2WorkspaceNotificationStatuses } from "renderer/hooks/host-service/useV2NotificationStatus";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
@@ -49,6 +50,7 @@ import { DashboardSidebarPortsProvider } from "./providers/DashboardSidebarPorts
 import type { DashboardSidebarProject } from "./types";
 import { filterDashboardSidebarProjects } from "./utils/filterDashboardSidebarProjects";
 import { sortDashboardSidebarProjects } from "./utils/sortDashboardSidebarProjects";
+import { sortProjectChildren } from "./utils/sortProjectChildren";
 
 interface DashboardSidebarProps {
 	isCollapsed?: boolean;
@@ -162,19 +164,48 @@ export function DashboardSidebar({
 		setProjectOrder(groups.map((p) => p.id));
 	}, [groups]);
 
+	const workspaceIds = useMemo(
+		() =>
+			groups.flatMap((project) =>
+				project.children.flatMap((child) =>
+					child.type === "workspace"
+						? [child.workspace.id]
+						: child.section.workspaces.map((workspace) => workspace.id),
+				),
+			),
+		[groups],
+	);
+	const workspaceStatuses = useV2WorkspaceNotificationStatuses(workspaceIds);
+	const workspaceSortedGroups = useMemo(
+		() =>
+			groups.map((project) => {
+				const children = sortProjectChildren(
+					project.children,
+					project.workspaceSortOrder,
+					workspaceStatuses,
+				);
+				return children === project.children
+					? project
+					: { ...project, children };
+			}),
+		[groups, workspaceStatuses],
+	);
+
 	const orderedGroups = useMemo(() => {
-		const byId = new Map(groups.map((g) => [g.id, g]));
+		const byId = new Map(
+			workspaceSortedGroups.map((group) => [group.id, group]),
+		);
 		return projectOrder
 			.map((id) => byId.get(id))
 			.filter((g): g is DashboardSidebarProject => g != null);
-	}, [groups, projectOrder]);
+	}, [workspaceSortedGroups, projectOrder]);
 
 	const sortedGroups = useMemo(
 		() =>
 			sortMode === "manual"
 				? orderedGroups
-				: sortDashboardSidebarProjects(groups, sortMode),
-		[sortMode, orderedGroups, groups],
+				: sortDashboardSidebarProjects(workspaceSortedGroups, sortMode),
+		[sortMode, orderedGroups, workspaceSortedGroups],
 	);
 
 	const displayedGroups = useMemo(
@@ -274,7 +305,9 @@ export function DashboardSidebar({
 										}}
 										onDragStart={({ active }) => {
 											if (isDragDisabled) return;
-											const project = groups.find((p) => p.id === active.id);
+											const project = displayedGroups.find(
+												(candidate) => candidate.id === active.id,
+											);
 											setActiveProject(project ?? null);
 										}}
 										onDragEnd={handleDragEnd}

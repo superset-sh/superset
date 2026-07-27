@@ -186,6 +186,7 @@ export function useDashboardSidebarData() {
 				.select(({ sidebarProjects }) => ({
 					projectId: sidebarProjects.projectId,
 					isCollapsed: sidebarProjects.isCollapsed,
+					workspaceSortOrder: sidebarProjects.workspaceSortOrder,
 				})),
 		[collections],
 	);
@@ -213,6 +214,7 @@ export function useDashboardSidebarData() {
 					createdAt: new Date(project.createdAt),
 					updatedAt: new Date(project.updatedAt),
 					isCollapsed: row.isCollapsed,
+					workspaceSortOrder: row.workspaceSortOrder,
 				},
 			];
 		});

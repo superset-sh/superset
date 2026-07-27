@@ -3,7 +3,9 @@ import { cn } from "@superset/ui/utils";
 import { type ComponentPropsWithoutRef, forwardRef } from "react";
 import { HiChevronRight, HiMiniPlus } from "react-icons/hi2";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import type { DashboardSidebarWorkspaceSort } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import { DashboardSidebarWorkspaceSortMenu } from "./components/DashboardSidebarWorkspaceSortMenu";
 
 interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
@@ -18,6 +20,8 @@ interface DashboardSidebarProjectRowProps
 	onStartRename: () => void;
 	onToggleCollapse: () => void;
 	onNewWorkspace: () => void;
+	workspaceSortOrder: DashboardSidebarWorkspaceSort;
+	onWorkspaceSortOrderChange: (value: DashboardSidebarWorkspaceSort) => void;
 }
 
 export const DashboardSidebarProjectRow = forwardRef<
@@ -37,6 +41,8 @@ export const DashboardSidebarProjectRow = forwardRef<
 			onStartRename,
 			onToggleCollapse,
 			onNewWorkspace,
+			workspaceSortOrder,
+			onWorkspaceSortOrderChange,
 			className,
 			...props
 		},
@@ -95,7 +101,12 @@ export const DashboardSidebarProjectRow = forwardRef<
 				</div>
 
 				{!isRenaming && (
-					<div className="ml-1 flex size-6 shrink-0 items-center justify-center">
+					<div className="ml-1 flex shrink-0 items-center justify-center">
+						<DashboardSidebarWorkspaceSortMenu
+							projectName={projectName}
+							value={workspaceSortOrder}
+							onValueChange={onWorkspaceSortOrderChange}
+						/>
 						<Tooltip delayDuration={500}>
 							<TooltipTrigger asChild>
 								<button
@@ -107,7 +118,7 @@ export const DashboardSidebarProjectRow = forwardRef<
 									onKeyDown={(event) => event.stopPropagation()}
 									onContextMenu={(event) => event.stopPropagation()}
 									aria-label="New workspace"
-									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-fill-hover group-hover:flex group-has-[:focus]:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="flex size-6 items-center justify-center rounded opacity-0 transition-[background-color,opacity] hover:bg-fill-hover group-hover:opacity-100 group-focus-within:opacity-100 focus-visible:outline-none focus-visible:opacity-100 focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />
 								</button>

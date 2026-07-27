@@ -1,3 +1,4 @@
+import type { DashboardSidebarWorkspaceSort } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
 
 export type DashboardSidebarWorkspaceHostType =
@@ -87,5 +88,6 @@ export interface DashboardSidebarProject {
 	createdAt: Date;
 	updatedAt: Date;
 	isCollapsed: boolean;
+	workspaceSortOrder: DashboardSidebarWorkspaceSort;
 	children: DashboardSidebarProjectChild[];
 }

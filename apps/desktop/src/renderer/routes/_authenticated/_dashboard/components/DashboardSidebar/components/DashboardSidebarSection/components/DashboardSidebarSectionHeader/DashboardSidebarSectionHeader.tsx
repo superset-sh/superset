@@ -18,6 +18,7 @@ interface DashboardSidebarSectionHeaderProps
 	onCancelRename: () => void;
 	onToggleCollapse: () => void;
 	actions?: ReactNode;
+	isReorderable?: boolean;
 }
 
 export const DashboardSidebarSectionHeader = forwardRef<
@@ -34,6 +35,7 @@ export const DashboardSidebarSectionHeader = forwardRef<
 			onCancelRename,
 			onToggleCollapse,
 			actions,
+			isReorderable = true,
 			className,
 			...props
 		},
@@ -63,7 +65,12 @@ export const DashboardSidebarSectionHeader = forwardRef<
 				)}
 				{...props}
 			>
-				<div className="mr-2 grid h-5 w-5 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing [&>*]:col-start-1 [&>*]:row-start-1">
+				<div
+					className={cn(
+						"mr-2 grid h-5 w-5 shrink-0 items-center justify-center [&>*]:col-start-1 [&>*]:row-start-1",
+						isReorderable && "cursor-grab active:cursor-grabbing",
+					)}
+				>
 					<HiChevronRight
 						className={cn(
 							"size-3 text-muted-foreground transition-transform duration-150",

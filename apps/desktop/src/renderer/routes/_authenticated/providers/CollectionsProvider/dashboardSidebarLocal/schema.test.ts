@@ -2,12 +2,34 @@ import { describe, expect, it } from "bun:test";
 import type { WorkspaceState } from "@superset/panes";
 import {
 	DEFAULT_V2_USER_PREFERENCES,
+	dashboardSidebarProjectSchema,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
 	sanitizePaneLayout,
 } from "./schema";
 
 type PaneLayout = WorkspaceState<unknown>;
+
+describe("dashboardSidebarProjectSchema", () => {
+	it("defaults existing project rows to manual workspace order", () => {
+		const row = dashboardSidebarProjectSchema.parse({
+			projectId: "11111111-1111-4111-8111-111111111111",
+			createdAt: "2026-01-01T00:00:00.000Z",
+		});
+
+		expect(row.workspaceSortOrder).toBe("manual");
+	});
+
+	it("preserves an automatic workspace order", () => {
+		const row = dashboardSidebarProjectSchema.parse({
+			projectId: "11111111-1111-4111-8111-111111111111",
+			createdAt: "2026-01-01T00:00:00.000Z",
+			workspaceSortOrder: "status",
+		});
+
+		expect(row.workspaceSortOrder).toBe("status");
+	});
+});
 
 describe("healV2UserPreferences", () => {
 	it("returns full defaults for empty/non-object input", () => {

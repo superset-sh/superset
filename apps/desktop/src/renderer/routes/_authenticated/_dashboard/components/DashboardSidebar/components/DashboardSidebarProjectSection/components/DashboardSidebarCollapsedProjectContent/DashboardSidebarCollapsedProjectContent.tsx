@@ -24,6 +24,7 @@ interface DashboardSidebarCollapsedProjectContentProps
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onToggleCollapse: () => void;
+	disableReordering?: boolean;
 }
 
 export const DashboardSidebarCollapsedProjectContent = forwardRef<
@@ -41,6 +42,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 			workspaceShortcutLabels,
 			onWorkspaceHover,
 			onToggleCollapse,
+			disableReordering = false,
 			className,
 			...props
 		},
@@ -131,8 +133,9 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 														parsed.realId,
 													)}
 													disabled={
-														workspace.type === "main" &&
-														workspace.hostType === "local-device"
+														disableReordering ||
+														(workspace.type === "main" &&
+															workspace.hostType === "local-device")
 													}
 												/>
 											);

@@ -1,5 +1,5 @@
-import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
 	getV2NotificationSourceKey,
 	getV2NotificationSourcesForPane,
@@ -10,6 +10,7 @@ import {
 import {
 	type ActivePaneStatus,
 	getHighestPriorityStatus,
+	type PaneStatus,
 } from "shared/tabs-types";
 import {
 	type TerminalAgentBinding,
@@ -21,6 +22,37 @@ import {
 } from "../useTerminalAgentStatuses";
 
 const TERMINAL_PREFIX = "terminal:";
+const TERMINAL_AGENT_BINDINGS_QUERY_KEY = ["terminal-agent-bindings"] as const;
+
+function useTerminalAgentBindingsCacheSnapshot(
+	queryClient: QueryClient,
+): string {
+	const subscribe = useCallback(
+		(onStoreChange: () => void) =>
+			queryClient.getQueryCache().subscribe((event) => {
+				if (
+					(event.type === "updated" || event.type === "removed") &&
+					event.query.queryKey[0] === TERMINAL_AGENT_BINDINGS_QUERY_KEY[0]
+				) {
+					onStoreChange();
+				}
+			}),
+		[queryClient],
+	);
+	const getSnapshot = useCallback(
+		() =>
+			queryClient
+				.getQueryCache()
+				.findAll({ queryKey: TERMINAL_AGENT_BINDINGS_QUERY_KEY })
+				.filter((query) => query.state.data !== undefined)
+				.map((query) => `${query.queryHash}:${query.state.dataUpdateCount}`)
+				.sort()
+				.join("|"),
+		[queryClient],
+	);
+
+	return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+}
 
 function terminalIdsFromSources(
 	sources: Iterable<V2NotificationSourceInput>,
@@ -74,6 +106,60 @@ export function useV2WorkspaceNotificationStatus(
 	]);
 }
 
+/**
+ * Highest-priority status for each requested workspace. This aggregates the
+ * terminal binding queries already mounted by sidebar rows, so sorting by
+ * agent status does not create a second request per workspace.
+ */
+export function useV2WorkspaceNotificationStatuses(
+	workspaceIds: readonly string[],
+): ReadonlyMap<string, ActivePaneStatus | null> {
+	const queryClient = useQueryClient();
+	const manualUnread = useV2NotificationStore((state) => state.manualUnread);
+	const terminalSeenAt = useV2NotificationStore(
+		(state) => state.terminalSeenAt,
+	);
+	const cacheSnapshot = useTerminalAgentBindingsCacheSnapshot(queryClient);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheSnapshot re-reads the query cache
+	return useMemo(() => {
+		const requestedIds = new Set(workspaceIds);
+		const statusesByWorkspaceId = new Map<
+			string,
+			Array<PaneStatus | undefined>
+		>();
+
+		for (const workspaceId of workspaceIds) {
+			statusesByWorkspaceId.set(workspaceId, [
+				manualUnread[workspaceId] ? "review" : undefined,
+			]);
+		}
+
+		const entries = queryClient.getQueriesData<TerminalAgentBinding[]>({
+			queryKey: TERMINAL_AGENT_BINDINGS_QUERY_KEY,
+		});
+		for (const [, bindings] of entries) {
+			for (const binding of bindings ?? []) {
+				if (!requestedIds.has(binding.workspaceId)) continue;
+				statusesByWorkspaceId.get(binding.workspaceId)?.push(
+					deriveTerminalAgentStatus({
+						lastEventType: binding.lastEventType,
+						lastEventAt: binding.lastEventAt,
+						lastSeenAt: terminalSeenAt[binding.terminalId],
+					}),
+				);
+			}
+		}
+
+		return new Map(
+			[...statusesByWorkspaceId].map(([workspaceId, statuses]) => [
+				workspaceId,
+				getHighestPriorityStatus(statuses),
+			]),
+		);
+	}, [cacheSnapshot, manualUnread, queryClient, terminalSeenAt, workspaceIds]);
+}
+
 export function useV2WorkspaceIsUnread(workspaceId: string): boolean {
 	const statuses = useTerminalAgentStatuses(workspaceId);
 	const manualUnread = useV2NotificationStore((state) =>
@@ -117,21 +203,13 @@ export function useV2AttentionWorkspaceCount(): number {
 	const terminalSeenAt = useV2NotificationStore(
 		(state) => state.terminalSeenAt,
 	);
-	const [cacheVersion, setCacheVersion] = useState(0);
+	const cacheSnapshot = useTerminalAgentBindingsCacheSnapshot(queryClient);
 
-	useEffect(() => {
-		return queryClient.getQueryCache().subscribe((event) => {
-			if (event.query.queryKey[0] === "terminal-agent-bindings") {
-				setCacheVersion((version) => version + 1);
-			}
-		});
-	}, [queryClient]);
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheVersion re-reads the query cache
+	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheSnapshot re-reads the query cache
 	return useMemo(() => {
 		const workspaceIds = new Set(Object.keys(manualUnread));
 		const entries = queryClient.getQueriesData<TerminalAgentBinding[]>({
-			queryKey: ["terminal-agent-bindings"],
+			queryKey: TERMINAL_AGENT_BINDINGS_QUERY_KEY,
 		});
 		for (const [, bindings] of entries) {
 			for (const binding of bindings ?? []) {
@@ -150,5 +228,5 @@ export function useV2AttentionWorkspaceCount(): number {
 			}
 		}
 		return workspaceIds.size;
-	}, [cacheVersion, manualUnread, terminalSeenAt, queryClient]);
+	}, [cacheSnapshot, manualUnread, terminalSeenAt, queryClient]);
 }
