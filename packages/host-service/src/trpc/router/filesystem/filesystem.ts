@@ -1,6 +1,7 @@
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, normalize, resolve } from "node:path";
+import { writeFileContentSchema } from "@superset/shared/write-file-limits";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import type { HostServiceContext } from "../../../types";
@@ -60,14 +61,6 @@ function getProjectFilesystemService(
 		throw error;
 	}
 }
-
-const writeFileContentSchema = z.union([
-	z.string(),
-	z.object({
-		kind: z.literal("base64"),
-		data: z.string(),
-	}),
-]);
 
 export const filesystemRouter = router({
 	/**

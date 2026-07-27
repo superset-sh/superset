@@ -2,6 +2,7 @@ import { db } from "@superset/db/client";
 import { chatAttachments } from "@superset/db/schema";
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
+import { MAX_CHAT_ATTACHMENT_BYTES } from "../../../../lib/upload-limits";
 
 const ALLOWED_MEDIA_TYPES = new Set([
 	"image/png",
@@ -19,7 +20,7 @@ const ALLOWED_MEDIA_TYPES = new Set([
 
 // Capped at 3.5 MB raw so the base64-encoded payload stays under Anthropic's
 // 5 MB inline-image limit (base64 inflates by ~4/3).
-const MAX_FILE_SIZE_BYTES = 3.5 * 1024 * 1024;
+const MAX_FILE_SIZE_BYTES = MAX_CHAT_ATTACHMENT_BYTES;
 
 function getFileBuffer(fileData: string): Buffer {
 	const base64Data = fileData.includes("base64,")

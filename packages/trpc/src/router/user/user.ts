@@ -5,6 +5,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { generateImagePathname, uploadImage } from "../../lib/upload";
+import { imageUploadFileDataSchema } from "../../lib/upload-limits";
 import { protectedProcedure } from "../../trpc";
 
 export const userRouter = {
@@ -64,7 +65,7 @@ export const userRouter = {
 	uploadAvatar: protectedProcedure
 		.input(
 			z.object({
-				fileData: z.string(),
+				fileData: imageUploadFileDataSchema,
 				fileName: z.string(),
 				mimeType: z.string(),
 			}),

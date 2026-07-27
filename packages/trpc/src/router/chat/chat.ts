@@ -6,6 +6,7 @@ import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
+import { chatAttachmentFileDataSchema } from "../../lib/upload-limits";
 import { protectedProcedure } from "../../trpc";
 import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
@@ -148,7 +149,7 @@ export const chatRouter = {
 				sessionId: z.uuid(),
 				filename: z.string().min(1).max(255),
 				mediaType: z.string().min(1).max(255),
-				fileData: z.string().min(1),
+				fileData: chatAttachmentFileDataSchema,
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {

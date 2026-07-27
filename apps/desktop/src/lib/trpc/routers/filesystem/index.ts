@@ -1,3 +1,4 @@
+import { writeFileContentSchema } from "@superset/shared/write-file-limits";
 import { toErrorMessage } from "@superset/workspace-fs/host";
 import { observable } from "@trpc/server/observable";
 import { z } from "zod";
@@ -11,14 +12,6 @@ function isClosedStreamError(error: unknown): boolean {
 		error.code === "ERR_INVALID_STATE"
 	);
 }
-
-const writeFileContentSchema = z.union([
-	z.string(),
-	z.object({
-		kind: z.literal("base64"),
-		data: z.string(),
-	}),
-]);
 
 type WatchPathEventBatch = {
 	events: Array<{

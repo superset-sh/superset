@@ -13,6 +13,7 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
+import { imageUploadFileDataSchema } from "../../lib/upload-limits";
 import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
 import { organizationMembersRouter } from "./members";
@@ -316,7 +317,7 @@ export const organizationRouter = {
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
-				fileData: z.string(), // base64 string
+				fileData: imageUploadFileDataSchema,
 				fileName: z.string(),
 				mimeType: z.string(),
 			}),

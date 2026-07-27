@@ -1,8 +1,9 @@
 import { TRPCError } from "@trpc/server";
 import { del, put } from "@vercel/blob";
+import { MAX_IMAGE_UPLOAD_BYTES } from "./upload-limits";
 
 const ALLOWED_IMAGE_TYPES = ["image/png", "image/jpeg", "image/webp"];
-const MAX_SIZE_MB = 4.5;
+const MAX_SIZE_MB = MAX_IMAGE_UPLOAD_BYTES / (1024 * 1024);
 
 export async function uploadImage({
 	fileData,

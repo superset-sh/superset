@@ -14,6 +14,7 @@ import { z } from "zod";
 import { posthog } from "../../lib/analytics";
 import { fetchAndStoreGitHubAvatar } from "../../lib/github-avatar";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
+import { imageUploadFileDataSchema } from "../../lib/upload-limits";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { verifyOrgOwner } from "../integration/utils";
 import { requireActiveOrgId } from "../utils/active-org";
@@ -538,7 +539,7 @@ export const v2ProjectRouter = {
 		.input(
 			z.object({
 				id: z.string().uuid(),
-				fileData: z.string(),
+				fileData: imageUploadFileDataSchema,
 				fileName: z.string(),
 				mimeType: z.string(),
 			}),
