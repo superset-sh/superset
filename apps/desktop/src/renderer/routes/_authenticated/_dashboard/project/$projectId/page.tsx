@@ -372,13 +372,19 @@ function ProjectPage() {
 									<div className="rounded-md border border-border/60 bg-card/40 px-3 py-2 text-sm">
 										<div className="flex items-center gap-2 text-muted-foreground">
 											<GoGitBranch className="size-3.5 shrink-0" />
-											<span className="min-w-0 truncate font-mono">
+											<span
+												className="min-w-0 truncate font-mono"
+												title={generatedBranchName || "branch-name"}
+											>
 												{generatedBranchName || "branch-name"}
 											</span>
 											<span className="shrink-0 text-muted-foreground/50">
 												from
 											</span>
-											<span className="min-w-0 truncate font-mono">
+											<span
+												className="min-w-0 truncate font-mono"
+												title={effectiveCompareBaseBranch}
+											>
 												{effectiveCompareBaseBranch}
 											</span>
 										</div>

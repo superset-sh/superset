@@ -35,7 +35,9 @@ export function BaseBranchSelector({
 					type="button"
 					className="inline-flex min-w-0 items-center gap-0.5 font-medium text-foreground hover:underline"
 				>
-					<span className="min-w-0 truncate">{currentValue}</span>
+					<span className="min-w-0 truncate" title={currentValue}>
+						{currentValue}
+					</span>
 					<ChevronDown className="size-3 shrink-0" />
 				</button>
 			</PopoverTrigger>

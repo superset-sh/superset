@@ -68,7 +68,10 @@ export function ChangesHeader({
 				/>
 			) : (
 				<>
-					<span className="min-w-0 truncate font-medium">
+					<span
+						className="min-w-0 truncate font-medium"
+						title={currentBranch.name}
+					>
 						{currentBranch.name}
 					</span>
 					{canRename && (
