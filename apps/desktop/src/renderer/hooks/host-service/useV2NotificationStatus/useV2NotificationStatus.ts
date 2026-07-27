@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
 	getV2NotificationSourceKey,
@@ -22,6 +22,26 @@ import {
 } from "../useTerminalAgentStatuses";
 
 const TERMINAL_PREFIX = "terminal:";
+const TERMINAL_AGENT_BINDINGS_QUERY_KEY = ["terminal-agent-bindings"] as const;
+
+function useTerminalAgentBindingsCacheVersion(
+	queryClient: QueryClient,
+): number {
+	const [cacheVersion, setCacheVersion] = useState(0);
+
+	useEffect(() => {
+		return queryClient.getQueryCache().subscribe((event) => {
+			if (
+				(event.type === "updated" || event.type === "removed") &&
+				event.query.queryKey[0] === TERMINAL_AGENT_BINDINGS_QUERY_KEY[0]
+			) {
+				setCacheVersion((version) => version + 1);
+			}
+		});
+	}, [queryClient]);
+
+	return cacheVersion;
+}
 
 function terminalIdsFromSources(
 	sources: Iterable<V2NotificationSourceInput>,
@@ -88,18 +108,7 @@ export function useV2WorkspaceNotificationStatuses(
 	const terminalSeenAt = useV2NotificationStore(
 		(state) => state.terminalSeenAt,
 	);
-	const [cacheVersion, setCacheVersion] = useState(0);
-
-	useEffect(() => {
-		return queryClient.getQueryCache().subscribe((event) => {
-			if (
-				event.type === "updated" &&
-				event.query.queryKey[0] === "terminal-agent-bindings"
-			) {
-				setCacheVersion((version) => version + 1);
-			}
-		});
-	}, [queryClient]);
+	const cacheVersion = useTerminalAgentBindingsCacheVersion(queryClient);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheVersion re-reads the query cache
 	return useMemo(() => {
@@ -116,7 +125,7 @@ export function useV2WorkspaceNotificationStatuses(
 		}
 
 		const entries = queryClient.getQueriesData<TerminalAgentBinding[]>({
-			queryKey: ["terminal-agent-bindings"],
+			queryKey: TERMINAL_AGENT_BINDINGS_QUERY_KEY,
 		});
 		for (const [, bindings] of entries) {
 			for (const binding of bindings ?? []) {
@@ -183,21 +192,13 @@ export function useV2AttentionWorkspaceCount(): number {
 	const terminalSeenAt = useV2NotificationStore(
 		(state) => state.terminalSeenAt,
 	);
-	const [cacheVersion, setCacheVersion] = useState(0);
-
-	useEffect(() => {
-		return queryClient.getQueryCache().subscribe((event) => {
-			if (event.query.queryKey[0] === "terminal-agent-bindings") {
-				setCacheVersion((version) => version + 1);
-			}
-		});
-	}, [queryClient]);
+	const cacheVersion = useTerminalAgentBindingsCacheVersion(queryClient);
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheVersion re-reads the query cache
 	return useMemo(() => {
 		const workspaceIds = new Set(Object.keys(manualUnread));
 		const entries = queryClient.getQueriesData<TerminalAgentBinding[]>({
-			queryKey: ["terminal-agent-bindings"],
+			queryKey: TERMINAL_AGENT_BINDINGS_QUERY_KEY,
 		});
 		for (const [, bindings] of entries) {
 			for (const binding of bindings ?? []) {
