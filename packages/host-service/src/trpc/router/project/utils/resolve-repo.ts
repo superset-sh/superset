@@ -256,6 +256,23 @@ export async function resolveMatchingSlug(
 }
 
 /**
+ * Rejects directory names that would escape (or alias) `<parentDir>/<dirName>`:
+ * empty/whitespace-only names, embedded path separators, and dot-only names
+ * (`join(parentDir, "..")` resolves outside the parent). The dot check runs on
+ * the trimmed name so padded variants like `" .. "` — which Windows path
+ * normalization collapses back to `".."` — are rejected too.
+ */
+function validateDirectoryName(dirName: string): void {
+	const trimmed = dirName.trim();
+	if (!trimmed || /[/\\]/.test(dirName) || /^\.+$/.test(trimmed)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid directory name: "${dirName}"`,
+		});
+	}
+}
+
+/**
  * Empty git repo at `<parentDir>/<dirName>`: atomic mkdir (fails on EEXIST,
  * so we never blow away someone else's directory), `git init`, initial
  * empty commit. Cleans up the dir on any post-mkdir failure.
@@ -268,12 +285,7 @@ export async function initEmptyRepo(
 	parentDir: string,
 	dirName: string,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName) || /^\.+$/.test(dirName)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Invalid directory name: "${dirName}"`,
-		});
-	}
+	validateDirectoryName(dirName);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
@@ -311,12 +323,7 @@ export async function cloneTemplateInto(
 	dirName: string,
 	credentials?: GitCredentialProvider,
 ): Promise<ResolvedRepo> {
-	if (!dirName.trim() || /[/\\]/.test(dirName) || /^\.+$/.test(dirName)) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Invalid directory name: "${dirName}"`,
-		});
-	}
+	validateDirectoryName(dirName);
 
 	const resolvedParentDir = resolvePath(parentDir);
 	ensureParentDirectory(resolvedParentDir);
