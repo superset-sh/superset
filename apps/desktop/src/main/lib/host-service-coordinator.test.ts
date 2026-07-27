@@ -594,7 +594,8 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 		internals.handleChildExit("org-1", 9101, null, "SIGKILL");
 
 		const scheduled = pendingRespawns.shift();
-		scheduled?.run(); // fires, then parks on the config promise
+		if (!scheduled) throw new Error("no respawn was scheduled");
+		scheduled.run(); // fires, then parks on the config promise
 		coordinator.stopAll();
 		releaseConfig();
 		await Promise.resolve();
@@ -622,6 +623,9 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 		await flushRespawn();
 
 		const stability = pendingRespawns.shift();
+		// Assert rather than optional-chain: `stability?.run()` would let this pass
+		// without ever exercising the reset path.
+		if (!stability) throw new Error("no stability timer was scheduled");
 		internals.instances.set("org-1", {
 			pid: 9299,
 			port: 55555,
@@ -629,7 +633,7 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 			status: "running",
 			owned: false, // a foreign, adopted instance replaced ours
 		});
-		stability?.run();
+		stability.run();
 
 		expect(internals.respawns.has("org-1")).toBe(true);
 	});
@@ -651,7 +655,8 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 		internals.handleChildExit("org-1", 9102, null, "SIGKILL");
 
 		const scheduled = pendingRespawns.shift();
-		scheduled?.run();
+		if (!scheduled) throw new Error("no respawn was scheduled");
+		scheduled.run();
 		await Promise.resolve();
 		coordinator.stopAll();
 		(coordinator as unknown as { stop: typeof stopSpy }).stop = stopSpy;
