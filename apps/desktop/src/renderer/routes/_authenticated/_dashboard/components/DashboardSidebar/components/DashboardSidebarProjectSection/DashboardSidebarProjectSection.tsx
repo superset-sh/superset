@@ -52,6 +52,7 @@ export function DashboardSidebarProjectSection({
 		renameSection,
 		renameValue,
 		setRenameValue,
+		setWorkspaceSortOrder,
 		startRename,
 		submitRename,
 		toggleSectionCollapsed,
@@ -81,6 +82,7 @@ export function DashboardSidebarProjectSection({
 						workspaceShortcutLabels={workspaceShortcutLabels}
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}
+						disableReordering={project.workspaceSortOrder !== "manual"}
 					/>
 				</div>
 			</DashboardSidebarProjectContextMenu>
@@ -108,6 +110,8 @@ export function DashboardSidebarProjectSection({
 					onStartRename={startRename}
 					onToggleCollapse={() => onToggleCollapse(project.id)}
 					onNewWorkspace={handleNewWorkspace}
+					workspaceSortOrder={project.workspaceSortOrder}
+					onWorkspaceSortOrderChange={setWorkspaceSortOrder}
 					{...(dragHandleAttributes ?? {})}
 					{...(dragHandleListeners ?? {})}
 				/>
@@ -132,6 +136,7 @@ export function DashboardSidebarProjectSection({
 							onDeleteSection={deleteSection}
 							onRenameSection={renameSection}
 							onToggleSectionCollapse={toggleSectionCollapsed}
+							disableReordering={project.workspaceSortOrder !== "manual"}
 						/>
 					</motion.div>
 				)}

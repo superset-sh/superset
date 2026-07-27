@@ -7,12 +7,21 @@ const persistedDateSchema = z
 	.union([z.string(), z.date()])
 	.transform((value) => (typeof value === "string" ? new Date(value) : value));
 
+export const dashboardSidebarWorkspaceSortSchema = z.enum([
+	"manual",
+	"status",
+	"created-desc",
+	"created-asc",
+	"name",
+]);
+
 export const dashboardSidebarProjectSchema = z.object({
 	projectId: z.string().uuid(),
 	createdAt: persistedDateSchema,
 	isCollapsed: z.boolean().default(false),
 	tabOrder: z.number().int().default(0),
 	defaultOpenInApp: z.string().nullable().default(null),
+	workspaceSortOrder: dashboardSidebarWorkspaceSortSchema.default("manual"),
 });
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
@@ -233,6 +242,9 @@ export const v2TerminalPresetSchema = z.object({
 
 export type DashboardSidebarProjectRow = z.infer<
 	typeof dashboardSidebarProjectSchema
+>;
+export type DashboardSidebarWorkspaceSort = z.infer<
+	typeof dashboardSidebarWorkspaceSortSchema
 >;
 export type WorkspaceLocalStateRow = z.infer<typeof workspaceLocalStateSchema>;
 export type WorkspaceRunState = z.infer<typeof workspaceRunStateSchema>;

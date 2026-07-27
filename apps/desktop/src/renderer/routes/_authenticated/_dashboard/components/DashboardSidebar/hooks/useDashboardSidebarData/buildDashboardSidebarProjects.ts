@@ -1,3 +1,4 @@
+import type { DashboardSidebarWorkspaceSort } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
 import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type {
@@ -20,6 +21,7 @@ export interface SidebarProjectInput {
 	createdAt: Date;
 	updatedAt: Date;
 	isCollapsed: boolean;
+	workspaceSortOrder: DashboardSidebarWorkspaceSort;
 }
 
 export interface SidebarSectionInput {

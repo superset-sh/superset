@@ -41,6 +41,7 @@ export function useDashboardSidebarProjectSectionActions({
 		deleteSection,
 		removeProjectFromSidebar,
 		renameSection,
+		setProjectWorkspaceSortOrder,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	} = useDashboardSidebarState();
@@ -114,6 +115,12 @@ export function useDashboardSidebarProjectSectionActions({
 		}
 	};
 
+	const setWorkspaceSortOrder = (
+		workspaceSortOrder: DashboardSidebarProject["workspaceSortOrder"],
+	) => {
+		setProjectWorkspaceSortOrder(project.id, workspaceSortOrder);
+	};
+
 	return {
 		cancelRename,
 		confirmRemoveFromSidebar,
@@ -126,6 +133,7 @@ export function useDashboardSidebarProjectSectionActions({
 		renameSection,
 		renameValue,
 		setRenameValue,
+		setWorkspaceSortOrder,
 		startRename,
 		submitRename,
 		toggleSectionCollapsed,

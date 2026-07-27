@@ -10,6 +10,7 @@ import {
 import {
 	type ActivePaneStatus,
 	getHighestPriorityStatus,
+	type PaneStatus,
 } from "shared/tabs-types";
 import {
 	type TerminalAgentBinding,
@@ -72,6 +73,71 @@ export function useV2WorkspaceNotificationStatus(
 		manualUnread ? "review" : undefined,
 		...statuses.values(),
 	]);
+}
+
+/**
+ * Highest-priority status for each requested workspace. This aggregates the
+ * terminal binding queries already mounted by sidebar rows, so sorting by
+ * agent status does not create a second request per workspace.
+ */
+export function useV2WorkspaceNotificationStatuses(
+	workspaceIds: readonly string[],
+): ReadonlyMap<string, ActivePaneStatus | null> {
+	const queryClient = useQueryClient();
+	const manualUnread = useV2NotificationStore((state) => state.manualUnread);
+	const terminalSeenAt = useV2NotificationStore(
+		(state) => state.terminalSeenAt,
+	);
+	const [cacheVersion, setCacheVersion] = useState(0);
+
+	useEffect(() => {
+		return queryClient.getQueryCache().subscribe((event) => {
+			if (
+				event.type === "updated" &&
+				event.query.queryKey[0] === "terminal-agent-bindings"
+			) {
+				setCacheVersion((version) => version + 1);
+			}
+		});
+	}, [queryClient]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheVersion re-reads the query cache
+	return useMemo(() => {
+		const requestedIds = new Set(workspaceIds);
+		const statusesByWorkspaceId = new Map<
+			string,
+			Array<PaneStatus | undefined>
+		>();
+
+		for (const workspaceId of workspaceIds) {
+			statusesByWorkspaceId.set(workspaceId, [
+				manualUnread[workspaceId] ? "review" : undefined,
+			]);
+		}
+
+		const entries = queryClient.getQueriesData<TerminalAgentBinding[]>({
+			queryKey: ["terminal-agent-bindings"],
+		});
+		for (const [, bindings] of entries) {
+			for (const binding of bindings ?? []) {
+				if (!requestedIds.has(binding.workspaceId)) continue;
+				statusesByWorkspaceId.get(binding.workspaceId)?.push(
+					deriveTerminalAgentStatus({
+						lastEventType: binding.lastEventType,
+						lastEventAt: binding.lastEventAt,
+						lastSeenAt: terminalSeenAt[binding.terminalId],
+					}),
+				);
+			}
+		}
+
+		return new Map(
+			[...statusesByWorkspaceId].map(([workspaceId, statuses]) => [
+				workspaceId,
+				getHighestPriorityStatus(statuses),
+			]),
+		);
+	}, [cacheVersion, manualUnread, queryClient, terminalSeenAt, workspaceIds]);
 }
 
 export function useV2WorkspaceIsUnread(workspaceId: string): boolean {

@@ -17,6 +17,7 @@ interface SortableSectionHeaderProps {
 	onDelete: (sectionId: string) => void;
 	onRename: (sectionId: string, name: string) => void;
 	onToggleCollapse: (sectionId: string) => void;
+	disabled?: boolean;
 }
 
 export function SortableSectionHeader({
@@ -25,6 +26,7 @@ export function SortableSectionHeader({
 	onDelete,
 	onRename,
 	onToggleCollapse,
+	disabled = false,
 }: SortableSectionHeaderProps) {
 	const { setSectionColor } = useDashboardSidebarState();
 	const { clearPendingSectionRename, pendingRenameSectionId } =
@@ -39,7 +41,7 @@ export function SortableSectionHeader({
 		transform,
 		transition,
 		isDragging,
-	} = useSortable({ id: sortableId });
+	} = useSortable({ id: sortableId, disabled });
 
 	const hasColor =
 		section.color != null && section.color !== PROJECT_COLOR_DEFAULT;
@@ -94,6 +96,7 @@ export function SortableSectionHeader({
 						setIsRenaming(false);
 					}}
 					onToggleCollapse={() => onToggleCollapse(section.id)}
+					isReorderable={!disabled}
 					actions={
 						<DashboardSidebarSectionActionsDropdown
 							color={section.color}
