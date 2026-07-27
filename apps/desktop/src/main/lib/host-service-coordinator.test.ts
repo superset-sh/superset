@@ -63,6 +63,8 @@ mock.module("./host-service-utils", () => ({
 	pollHealthCheck: pollHealthCheckMock,
 }));
 
+const showErrorBoxMock = mock(() => {});
+
 mock.module("electron", () => ({
 	app: {
 		getVersion: () => APP_VERSION,
@@ -70,7 +72,7 @@ mock.module("electron", () => ({
 		getAppPath: () => "/tmp/app",
 	},
 	dialog: {
-		showErrorBox: mock(),
+		showErrorBox: showErrorBoxMock,
 	},
 }));
 
@@ -94,6 +96,9 @@ mock.module("./local-db", () => ({
 	},
 }));
 
+const { HOST_SERVICE_RESPAWN_MAX_ATTEMPTS } = await import(
+	"./host-service-respawn"
+);
 const { HostServiceCoordinator } = await import("./host-service-coordinator");
 
 const baseManifest = (pid: number, endpoint = "http://127.0.0.1:55555") => ({
@@ -124,6 +129,7 @@ function resetMocks(): void {
 	readManifestMock.mockImplementation(() => manifestStore.current);
 	killedPids = [];
 	killProcessError = null;
+	showErrorBoxMock.mockClear();
 }
 
 describe("HostServiceCoordinator preferred ports", () => {
@@ -367,6 +373,165 @@ describe("HostServiceCoordinator single-flight / adoption", () => {
 		expect(killedPids).toContainEqual({ pid: 4321, signal: "SIGTERM" });
 		expect(removeManifestMock).toHaveBeenCalled();
 		expect(internals.instances.get("org-1")).toBeUndefined();
+	});
+});
+
+describe("HostServiceCoordinator respawn after a crash", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+	let internals: {
+		instances: Map<string, unknown>;
+		respawns: Map<
+			string,
+			{ attempts: number; timer: unknown; stableTimer: unknown }
+		>;
+		handleChildExit(
+			organizationId: string,
+			childPid: number,
+			code: number | null,
+			signal: NodeJS.Signals | null,
+		): void;
+	};
+	let startMock: ReturnType<typeof mock>;
+
+	/** A running, owned instance, as the exit handler expects to find one. */
+	function trackRunning(pid: number): void {
+		internals.instances.set("org-1", {
+			pid,
+			port: 55555,
+			secret: "secret",
+			status: "running",
+			owned: true,
+		});
+	}
+
+	beforeEach(() => {
+		resetMocks();
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		coordinator = new HostServiceCoordinator();
+		internals = coordinator as unknown as typeof internals;
+		startMock = mock(async () => ({
+			port: 60000,
+			secret: "fresh",
+			machineId: "host-1",
+		}));
+		(
+			coordinator as unknown as { startWithPreferredPorts: typeof startMock }
+		).startWithPreferredPorts = startMock;
+		coordinator.setConfigProvider(async () => spawnConfig);
+	});
+
+	afterEach(() => {
+		coordinator.stopAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("schedules a respawn when a running child crashes", () => {
+		trackRunning(1111);
+
+		internals.handleChildExit("org-1", 1111, null, "SIGKILL");
+
+		expect(internals.respawns.get("org-1")?.attempts).toBe(1);
+		expect(internals.respawns.get("org-1")?.timer).not.toBeNull();
+		// The crash alone must not nag: the modal is for exhaustion only.
+		expect(showErrorBoxMock).not.toHaveBeenCalled();
+	});
+
+	test("respawns through the start path once the delay elapses", async () => {
+		trackRunning(1111);
+
+		internals.handleChildExit("org-1", 1111, null, "SIGKILL");
+		await Bun.sleep(1600); // first band is ~0.5-1.5s
+
+		expect(startMock).toHaveBeenCalled();
+	});
+
+	test("does not respawn after a deliberate stop", () => {
+		trackRunning(2222);
+		coordinator.stop("org-1");
+
+		// stop() marks the instance stopped and deletes it; a late exit event for
+		// the same pid must be inert.
+		internals.handleChildExit("org-1", 2222, 0, null);
+
+		expect(internals.respawns.has("org-1")).toBe(false);
+	});
+
+	test("ignores a stale exit whose pid was already replaced", () => {
+		trackRunning(3333);
+
+		internals.handleChildExit("org-1", 9999, null, "SIGKILL");
+
+		expect(internals.respawns.has("org-1")).toBe(false);
+		expect(internals.instances.get("org-1")).toBeDefined();
+	});
+
+	test("does not respawn a child that never reached running", () => {
+		internals.instances.set("org-1", {
+			pid: 4444,
+			port: 55555,
+			secret: "secret",
+			status: "starting",
+			owned: true,
+		});
+
+		internals.handleChildExit("org-1", 4444, 1, null);
+
+		// Startup deaths surface through start() rejecting instead.
+		expect(internals.respawns.has("org-1")).toBe(false);
+		expect(showErrorBoxMock).not.toHaveBeenCalled();
+	});
+
+	test("stop cancels a pending respawn so quitting cannot resurrect it", () => {
+		trackRunning(5555);
+		internals.handleChildExit("org-1", 5555, null, "SIGKILL");
+		expect(internals.respawns.get("org-1")?.timer).not.toBeNull();
+
+		coordinator.stop("org-1");
+
+		expect(internals.respawns.has("org-1")).toBe(false);
+	});
+
+	test("stopAll cancels a pending respawn with no tracked instance", () => {
+		trackRunning(6666);
+		internals.handleChildExit("org-1", 6666, null, "SIGKILL");
+		// The crashed instance is already deleted, so stopAll's loop over
+		// `instances` cannot reach this org.
+		expect(internals.instances.get("org-1")).toBeUndefined();
+
+		coordinator.stopAll();
+
+		expect(internals.respawns.has("org-1")).toBe(false);
+	});
+
+	test("gives up and alerts once the attempt budget is spent", () => {
+		trackRunning(7777);
+		const state = {
+			attempts: HOST_SERVICE_RESPAWN_MAX_ATTEMPTS,
+			timer: null,
+			stableTimer: null,
+		};
+		internals.respawns.set("org-1", state);
+
+		internals.handleChildExit("org-1", 7777, null, "SIGKILL");
+
+		expect(showErrorBoxMock).toHaveBeenCalledTimes(1);
+		expect(internals.respawns.has("org-1")).toBe(false);
+	});
+
+	test("skips the respawn when the user is signed out", async () => {
+		coordinator.setConfigProvider(async () => null);
+		trackRunning(8888);
+
+		internals.handleChildExit("org-1", 8888, null, "SIGKILL");
+		await Bun.sleep(1600);
+
+		expect(startMock).not.toHaveBeenCalled();
+		// Signed out is not a failure worth a modal.
+		expect(showErrorBoxMock).not.toHaveBeenCalled();
+		expect(internals.respawns.has("org-1")).toBe(false);
 	});
 });
 
