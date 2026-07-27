@@ -33,10 +33,10 @@ export function BaseBranchSelector({
 			<PopoverTrigger asChild>
 				<button
 					type="button"
-					className="inline-flex items-center gap-0.5 font-medium text-foreground hover:underline"
+					className="inline-flex min-w-0 items-center gap-0.5 font-medium text-foreground hover:underline"
 				>
-					{currentValue}
-					<ChevronDown className="size-3" />
+					<span className="min-w-0 truncate">{currentValue}</span>
+					<ChevronDown className="size-3 shrink-0" />
 				</button>
 			</PopoverTrigger>
 			<PopoverContent
