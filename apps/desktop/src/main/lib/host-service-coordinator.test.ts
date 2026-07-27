@@ -435,11 +435,18 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 			pendingRespawns.push({ run, delayMs });
 			return { unref() {} } as unknown as ReturnType<typeof setTimeout>;
 		};
-		startMock = mock(async () => ({
-			port: 60000,
-			secret: "fresh",
-			machineId: "host-1",
-		}));
+		// Registers a running instance like the real start path, so the stability
+		// timer has something to bind its budget reset to.
+		startMock = mock(async () => {
+			internals.instances.set("org-1", {
+				pid: 60001,
+				port: 60000,
+				secret: "fresh",
+				status: "running",
+				owned: true,
+			});
+			return { port: 60000, secret: "fresh", machineId: "host-1" };
+		});
 		(
 			coordinator as unknown as { startWithPreferredPorts: typeof startMock }
 		).startWithPreferredPorts = startMock;
@@ -594,6 +601,37 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 		await Promise.resolve();
 
 		expect(startMock).not.toHaveBeenCalled();
+	});
+
+	test("refills the budget once the respawned instance holds", async () => {
+		trackRunning(9200);
+		internals.handleChildExit("org-1", 9200, null, "SIGKILL");
+		await flushRespawn(); // respawn; startMock registers the new instance
+
+		await flushRespawn(); // the stability timer
+
+		expect(internals.respawns.has("org-1")).toBe(false);
+	});
+
+	test("does not refill the budget for a different instance", async () => {
+		// The reset must be credited to the instance that earned it. Checking only
+		// "something is running" would let this refill on an unrelated child,
+		// including an adopted one owned by another app instance.
+		trackRunning(9210);
+		internals.handleChildExit("org-1", 9210, null, "SIGKILL");
+		await flushRespawn();
+
+		const stability = pendingRespawns.shift();
+		internals.instances.set("org-1", {
+			pid: 9299,
+			port: 55555,
+			secret: "secret",
+			status: "running",
+			owned: false, // a foreign, adopted instance replaced ours
+		});
+		stability?.run();
+
+		expect(internals.respawns.has("org-1")).toBe(true);
 	});
 
 	test("tears the child back down when stopped while starting", async () => {

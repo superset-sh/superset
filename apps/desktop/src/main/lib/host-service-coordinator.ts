@@ -893,10 +893,19 @@ export class HostServiceCoordinator extends EventEmitter {
 	 */
 	private armRespawnBudgetReset(organizationId: string): void {
 		const state = this.respawns.get(organizationId);
-		if (!state) return;
+		const instance = this.instances.get(organizationId);
+		if (!state || instance?.status !== "running") return;
 		if (state.stableTimer) clearTimeout(state.stableTimer);
-		state.stableTimer = setTimeout(() => {
-			if (this.instances.get(organizationId)?.status === "running") {
+		// Bind the reset to the instance that earned it. Checking only "something
+		// is running" would let this credit a different child, including an adopted
+		// one belonging to another app instance, and refill a budget the current
+		// child never stabilised.
+		state.stableTimer = this.scheduleRespawnTimer(() => {
+			if (
+				this.respawns.get(organizationId) === state &&
+				this.instances.get(organizationId) === instance &&
+				instance.status === "running"
+			) {
 				this.clearRespawnState(organizationId);
 			}
 		}, HOST_SERVICE_RESPAWN_STABLE_MS);
@@ -916,10 +925,12 @@ export class HostServiceCoordinator extends EventEmitter {
 	 * Alert on a crash we could not recover from. Recovery is the existing
 	 * tray > Host Service > Restart.
 	 */
-	private alertChildCrashed(_organizationId: string, cause: string): void {
+	private alertChildCrashed(organizationId: string, cause: string): void {
+		// Name the org with the same short id the log tags use, so a multi-org user
+		// can tell which one this is about.
 		dialog.showErrorBox(
 			"Host service crashed",
-			`The Superset host service stopped unexpectedly (${cause}) and could not be restarted automatically. Workspaces and terminals for this organization are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.`,
+			`The Superset host service for organization ${organizationId.slice(0, 8)} stopped unexpectedly (${cause}) and could not be restarted automatically. Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.`,
 		);
 	}
 }

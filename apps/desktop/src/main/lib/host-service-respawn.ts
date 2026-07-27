@@ -1,11 +1,11 @@
 export const HOST_SERVICE_RESPAWN_BASE_DELAY_MS = 1_000;
 export const HOST_SERVICE_RESPAWN_MAX_DELAY_MS = 30_000;
 /**
- * Eight attempts spans roughly 1.5 to 2 minutes (1s, 2s, 4s, 8s, 16s, then the
- * 30s cap). Sized for a crash whose cause outlives the crash: host-service dies
- * with the database or Docker, and a budget measured in seconds would be spent
- * before the dependency is back, leaving the user stuck exactly as they are
- * today.
+ * Eight attempts spans 46s to 108s depending on jitter, about 92s at the
+ * midpoint: 1s, 1s, 2s, 4s, 8s, 16s, then the 30s cap twice. Sized for a crash
+ * whose cause outlives the crash — host-service dying with the database or
+ * Docker — where a budget measured in seconds would be spent before the
+ * dependency is back, leaving the user as stuck as they are today.
  */
 export const HOST_SERVICE_RESPAWN_MAX_ATTEMPTS = 8;
 /**
