@@ -11,6 +11,7 @@ interface DownloadButtonProps {
 	size?: "sm" | "md";
 	className?: string;
 	onJoinWaitlist?: () => void;
+	onCtaClick?: () => void;
 }
 
 const INTERSTITIAL_PATH = "/download";
@@ -19,6 +20,7 @@ export function DownloadButton({
 	size = "md",
 	className = "",
 	onJoinWaitlist,
+	onCtaClick,
 }: DownloadButtonProps) {
 	const router = useRouter();
 	const { platform } = usePlatform();
@@ -100,7 +102,7 @@ export function DownloadButton({
 		];
 
 		const trigger = (
-			<button type="button" className={buttonClasses}>
+			<button type="button" className={buttonClasses} onClick={onCtaClick}>
 				Download
 				<HiMiniArrowDownTray className="size-4" />
 			</button>

@@ -3,12 +3,17 @@
 import { COMPANY } from "@superset/shared/constants";
 import { useScroll } from "framer-motion";
 import { useFeatureFlagVariantKey } from "posthog-js/react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { HERO_POSITIONING_FLAG } from "@/lib/analytics/hero-flag-bootstrap";
-import { isMacPlatform, usePlatform } from "../../hooks/useOS";
+import { track } from "@/lib/analytics";
+import {
+	HERO_POSITIONING_FLAG,
+	MOBILE_HERO_REMINDER_FLAG,
+} from "@/lib/analytics/hero-flag-bootstrap";
+import { isMacPlatform, Platform, usePlatform } from "../../hooks/useOS";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
+import { MobileReminderCta } from "./components/MobileReminderCta";
 import { ProductDemo } from "./components/ProductDemo";
 import { TypewriterText } from "./components/TypewriterText";
 
@@ -51,6 +56,23 @@ export function HeroSection() {
 	const demoRef = useRef<HTMLDivElement>(null);
 	const { platform } = usePlatform();
 	const heroVariant = useFeatureFlagVariantKey(HERO_POSITIONING_FLAG);
+	const reminderVariant = useFeatureFlagVariantKey(MOBILE_HERO_REMINDER_FLAG);
+	const isMobile = platform === Platform.Mobile;
+	const showReminderCta = isMobile && reminderVariant === "test";
+	const reminderImpressionTracked = useRef(false);
+
+	useEffect(() => {
+		if (
+			!isMobile ||
+			typeof reminderVariant !== "string" ||
+			reminderImpressionTracked.current
+		) {
+			return;
+		}
+		reminderImpressionTracked.current = true;
+		track("mobile_hero_cta_impression", { variant: reminderVariant });
+	}, [isMobile, reminderVariant]);
+
 	const copy =
 		isMacPlatform(platform) &&
 		typeof heroVariant === "string" &&
@@ -96,7 +118,21 @@ export function HeroSection() {
 						</div>
 
 						<div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4 mt-6 sm:mt-8">
-							<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
+							{showReminderCta ? (
+								<MobileReminderCta />
+							) : (
+								<DownloadButton
+									onJoinWaitlist={() => setIsWaitlistOpen(true)}
+									onCtaClick={
+										isMobile && typeof reminderVariant === "string"
+											? () =>
+													track("mobile_hero_cta_clicked", {
+														variant: reminderVariant,
+													})
+											: undefined
+									}
+								/>
+							)}
 							<button
 								type="button"
 								className="px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"

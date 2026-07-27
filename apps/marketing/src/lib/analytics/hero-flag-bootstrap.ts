@@ -2,14 +2,26 @@ import { POSTHOG_COOKIE_NAME } from "@superset/shared/constants";
 import type { PostHogConfig } from "posthog-js";
 
 export const HERO_POSITIONING_FLAG = "landing-hero-positioning";
+export const MOBILE_HERO_REMINDER_FLAG = "mobile-hero-reminder-cta";
 
-// Must mirror the PostHog flag config for landing-hero-positioning (variant
-// order and rollout split) and PostHog's cross-SDK assignment hash. Drift is
-// safe but reintroduces the swap-on-/flags-response this bootstrap removes.
-const VARIANTS = [
-	{ key: "control", rolloutPercentage: 50 },
-	{ key: "capability-mac", rolloutPercentage: 50 },
-];
+interface FlagVariant {
+	key: string;
+	rolloutPercentage: number;
+}
+
+// Must mirror the PostHog flag config for each flag (variant order and rollout
+// split) and PostHog's cross-SDK assignment hash. Drift is safe but
+// reintroduces the swap-on-/flags-response this bootstrap removes.
+const FLAG_VARIANTS: Record<string, FlagVariant[]> = {
+	[HERO_POSITIONING_FLAG]: [
+		{ key: "control", rolloutPercentage: 50 },
+		{ key: "capability-mac", rolloutPercentage: 50 },
+	],
+	[MOBILE_HERO_REMINDER_FLAG]: [
+		{ key: "control", rolloutPercentage: 50 },
+		{ key: "test", rolloutPercentage: 50 },
+	],
+};
 
 const LONG_SCALE = 2 ** 60 - 1;
 
@@ -84,18 +96,22 @@ function sha1Hex(input: string): string {
 		.join("");
 }
 
-function variantForDistinctId(distinctId: string): string {
+function variantForDistinctId(
+	flagKey: string,
+	variants: FlagVariant[],
+	distinctId: string,
+): string {
 	const hashValue =
 		Number.parseInt(
-			sha1Hex(`${HERO_POSITIONING_FLAG}.${distinctId}variant`).slice(0, 15),
+			sha1Hex(`${flagKey}.${distinctId}variant`).slice(0, 15),
 			16,
 		) / LONG_SCALE;
 	let cumulative = 0;
-	for (const variant of VARIANTS) {
+	for (const variant of variants) {
 		cumulative += variant.rolloutPercentage / 100;
 		if (hashValue < cumulative) return variant.key;
 	}
-	return VARIANTS[VARIANTS.length - 1]?.key ?? "control";
+	return variants[variants.length - 1]?.key ?? "control";
 }
 
 function distinctIdFromCookie(): string | undefined {
@@ -122,8 +138,11 @@ export function getHeroFlagBootstrap(): NonNullable<
 	return {
 		distinctID: distinctId,
 		isIdentifiedID: false,
-		featureFlags: {
-			[HERO_POSITIONING_FLAG]: variantForDistinctId(distinctId),
-		},
+		featureFlags: Object.fromEntries(
+			Object.entries(FLAG_VARIANTS).map(([flagKey, variants]) => [
+				flagKey,
+				variantForDistinctId(flagKey, variants, distinctId),
+			]),
+		),
 	};
 }
