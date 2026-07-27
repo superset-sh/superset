@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
+import { TRPCClientError } from "@trpc/client";
 
 // Control what `workspace.delete.mutate` does per test. The command imports
 // the host-target helpers from the lib barrel, so mock that module before
@@ -31,6 +32,15 @@ function notFoundError(): Error {
 	return Object.assign(new Error("Workspace not found"), {
 		data: { code: "NOT_FOUND" },
 	});
+}
+
+// What a version-skewed host without the procedure produces: the same
+// NOT_FOUND code, but it must NOT be classified as "already deleted".
+function missingProcedureError(): Error {
+	return Object.assign(
+		new Error('No procedure found on path "workspace.delete"'),
+		{ data: { code: "NOT_FOUND" } },
+	);
 }
 
 function invoke(ids: string[]) {
@@ -100,5 +110,50 @@ describe("workspaces delete", () => {
 		const result = (await invoke(["ws-1", "ws-2"])) as { message: string };
 		expect(result.message).toContain("Warnings:");
 		expect(result.message).toContain("- ws-1: branch left behind");
+	});
+
+	test("exits zero when every ID is already gone", async () => {
+		deleteImpl = async () => {
+			throw notFoundError();
+		};
+		const result = (await invoke(["ws-1", "ws-2"])) as {
+			data: Record<string, unknown>;
+			message: string;
+		};
+		expect(result.data.deleted).toEqual([]);
+		expect(result.data.notFound).toEqual(["ws-1", "ws-2"]);
+		expect(result.data.failed).toEqual([]);
+		expect(result.message).toContain("Not found (already deleted)");
+		expect(result.message).not.toContain("Deleted");
+	});
+
+	test("treats a NOT_FOUND from a missing procedure as a real failure", async () => {
+		deleteImpl = async () => {
+			throw missingProcedureError();
+		};
+		const promise = invoke(["ws-1"]);
+		await expect(promise).rejects.toThrow(/Failed to delete/);
+		await expect(promise).rejects.toThrow(/No procedure found/);
+	});
+
+	test("aborts with one connection error when the host stops answering", async () => {
+		deleteImpl = async (id) => {
+			if (id === "ws-down") throw new TRPCClientError("fetch failed");
+			return { warnings: [] };
+		};
+		const promise = invoke(["ws-1", "ws-down", "ws-3"]);
+		await expect(promise).rejects.toThrow(/Could not reach host host-1/);
+		await expect(promise).rejects.toThrow(/Deleted before the failure: ws-1/);
+		expect(attempted).toEqual(["ws-1", "ws-down"]);
+	});
+
+	test("processes a duplicated ID once", async () => {
+		const result = (await invoke(["ws-1", "ws-1", "ws-2"])) as {
+			data: Record<string, unknown>;
+			message: string;
+		};
+		expect(attempted).toEqual(["ws-1", "ws-2"]);
+		expect(result.data.deleted).toEqual(["ws-1", "ws-2"]);
+		expect(result.message).toBe("Deleted 2 workspaces");
 	});
 });
