@@ -1,12 +1,15 @@
 import { readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { parseStaticPortsConfig } from "@superset/port-scanner";
+import {
+	parseStaticPortsConfig,
+	type StaticPortLabel,
+} from "@superset/port-scanner";
 
 const PROJECT_SUPERSET_DIR_NAME = ".superset";
 const PORTS_FILE_NAME = "ports.json";
 
 interface LabelCacheEntry {
-	labels: Map<number, string> | null;
+	labels: Map<number, StaticPortLabel> | null;
 	portsFileSignature: string | null;
 	worktreePath: string | null;
 }
@@ -51,7 +54,9 @@ function readPortsFile(worktreePath: string): string | null {
 	}
 }
 
-function safeLoadLabels(worktreePath: string): Map<number, string> | null {
+function safeLoadLabels(
+	worktreePath: string,
+): Map<number, StaticPortLabel> | null {
 	try {
 		return loadLabels(worktreePath);
 	} catch (error) {
@@ -68,16 +73,16 @@ function safeLoadLabels(worktreePath: string): Map<number, string> | null {
  * Returns null if the file is missing or malformed — this endpoint is a
  * best-effort label hint, not a validator, so parse errors are silent.
  */
-function loadLabels(worktreePath: string): Map<number, string> | null {
+function loadLabels(worktreePath: string): Map<number, StaticPortLabel> | null {
 	const content = readPortsFile(worktreePath);
 	if (content === null) return null;
 
 	const parsed = parseStaticPortsConfig(content);
 	if (parsed.ports === null) return null;
 
-	const labels = new Map<number, string>();
+	const labels = new Map<number, StaticPortLabel>();
 	for (const port of parsed.ports) {
-		labels.set(port.port, port.label);
+		labels.set(port.port, port);
 	}
 	return labels;
 }
@@ -94,8 +99,8 @@ const labelCache = new Map<string, LabelCacheEntry>();
 function setLabelCache(
 	workspaceId: string,
 	worktreePath: string | null,
-	labels: Map<number, string> | null,
-): Map<number, string> | null {
+	labels: Map<number, StaticPortLabel> | null,
+): Map<number, StaticPortLabel> | null {
 	const portsFileSignature = worktreePath
 		? safeGetPortsFileSignature(worktreePath)
 		: null;
@@ -110,7 +115,7 @@ function setLabelCache(
 export function getLabelsForWorkspace(
 	resolveWorktreePath: (workspaceId: string) => string | null,
 	workspaceId: string,
-): Map<number, string> | null {
+): Map<number, StaticPortLabel> | null {
 	const cached = labelCache.get(workspaceId);
 	if (cached) {
 		if (cached.worktreePath === null) {

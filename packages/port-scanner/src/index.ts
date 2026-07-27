@@ -11,6 +11,7 @@ export {
 export {
 	parseStaticPortsConfig,
 	type StaticPortLabel,
+	type StaticPortProtocol,
 	type StaticPortsParseResult,
 } from "./static-ports.ts";
 export type { DetectedPort } from "./types.ts";

@@ -1,4 +1,4 @@
-import type { DetectedPort } from "@superset/port-scanner";
+import type { DetectedPort, StaticPortProtocol } from "@superset/port-scanner";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { AgentLifecycleEventType } from "./map-event-type.ts";
@@ -50,6 +50,7 @@ export interface PortChangedMessage {
 	eventType: "add" | "remove";
 	port: DetectedPort;
 	label: string | null;
+	protocol: StaticPortProtocol | null;
 	occurredAt: number;
 }
 

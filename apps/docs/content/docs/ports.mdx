@@ -30,7 +30,7 @@ Create `.superset/ports.json` in your repository:
 ```json
 {
   "ports": [
-    { "port": 3000, "label": "Frontend Dev Server" },
+    { "port": 3000, "label": "Frontend Dev Server", "protocol": "https" },
     { "port": 8080, "label": "API Server" },
     { "port": 5432, "label": "PostgreSQL" }
   ]
@@ -40,6 +40,9 @@ Create `.superset/ports.json` in your repository:
 **Fields:**
 - `port` - Port number (1-65535)
 - `label` - Display text shown in tooltip
+- `protocol` - Optional. `"http"` or `"https"`. Sets the scheme used when the
+  port is opened from the browser action. Defaults to `"http"`. Use `"https"`
+  for dev servers behind a local TLS certificate (for example `mkcert`).
 
 **Behavior:**
 - Dynamic port discovery is still authoritative
@@ -48,7 +51,8 @@ Create `.superset/ports.json` in your repository:
 - Label entries for ports that are not currently listening are ignored
 - Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
-- Ports can be opened at `localhost:PORT` from the browser action
+- Ports open at `http://localhost:PORT` from the browser action, or
+  `https://localhost:PORT` when the entry sets `"protocol": "https"`
 
 **Error Handling:**
 

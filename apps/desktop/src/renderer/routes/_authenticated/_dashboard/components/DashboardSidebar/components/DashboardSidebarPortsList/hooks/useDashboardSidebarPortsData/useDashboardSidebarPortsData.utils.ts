@@ -1,6 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { PortChangedPayload } from "@superset/workspace-client";
-import type { DetectedPort } from "shared/types";
+import type { DetectedPort, StaticPortProtocol } from "shared/types";
 import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
 
 export interface DashboardSidebarPort extends RemotePort {
@@ -11,6 +11,7 @@ export interface DashboardSidebarPort extends RemotePort {
 
 interface RemotePort extends DetectedPort {
 	label: string | null;
+	protocol: StaticPortProtocol | null;
 }
 
 export interface DashboardSidebarPortGroup {
@@ -108,7 +109,10 @@ export function applyPortEventsToHostPortsResult(
 		}
 
 		if (event.eventType === "add") {
-			ports = [...portsWithoutEventPort, { ...event.port, label: event.label }];
+			ports = [
+				...portsWithoutEventPort,
+				{ ...event.port, label: event.label, protocol: event.protocol },
+			];
 			changed = true;
 		} else {
 			ports = portsWithoutEventPort;

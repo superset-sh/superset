@@ -16,10 +16,11 @@ export const createPortsRouter = () => {
 		getAll: publicProcedure.query((): EnrichedPort[] => {
 			const detectedPorts = portManager.getAllPorts();
 			return detectedPorts.map((port) => {
-				const labels = getLabelsForWorkspace(port.workspaceId);
+				const entry = getLabelsForWorkspace(port.workspaceId)?.get(port.port);
 				return {
 					...port,
-					label: labels?.get(port.port) ?? null,
+					label: entry?.label ?? null,
+					protocol: entry?.protocol ?? null,
 					hostUrl: null,
 				};
 			});

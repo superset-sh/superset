@@ -72,6 +72,52 @@ describe("loadStaticPorts", () => {
 		expect(result.ports?.[0].label).toBe("Frontend");
 	});
 
+	test("loads an https protocol when provided", () => {
+		const config = {
+			ports: [{ port: 3000, label: "Frontend", protocol: "https" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports).toEqual([
+			{ port: 3000, label: "Frontend", protocol: "https" },
+		]);
+	});
+
+	test("accepts an explicit http protocol", () => {
+		const config = {
+			ports: [{ port: 3000, label: "Frontend", protocol: "http" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports?.[0].protocol).toBe("http");
+	});
+
+	test("omits protocol when not provided", () => {
+		const config = {
+			ports: [{ port: 3000, label: "Frontend" }],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports?.[0]).not.toHaveProperty("protocol");
+	});
+
+	test("returns error when protocol is not http or https", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({
+				ports: [{ port: 3000, label: "Frontend", protocol: "ftp" }],
+			}),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe('ports[0].protocol must be "http" or "https"');
+	});
+
 	test("returns error for invalid JSON syntax", () => {
 		writeFileSync(PORTS_FILE, "{ invalid json }");
 

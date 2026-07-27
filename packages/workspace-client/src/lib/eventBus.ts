@@ -52,6 +52,7 @@ export interface PortChangedPayload {
 	eventType: PortChangedMessage["eventType"];
 	port: PortChangedMessage["port"];
 	label: PortChangedMessage["label"];
+	protocol: PortChangedMessage["protocol"];
 	occurredAt: number;
 }
 
@@ -205,6 +206,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				eventType: message.eventType,
 				port: message.port,
 				label: message.label,
+				protocol: message.protocol,
 				occurredAt: message.occurredAt,
 			});
 		} else if (message.type === "workspace:changed") {

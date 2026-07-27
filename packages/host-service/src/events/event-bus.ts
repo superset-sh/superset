@@ -1,5 +1,5 @@
 import type { NodeWebSocket } from "@hono/node-ws";
-import type { DetectedPort } from "@superset/port-scanner";
+import type { DetectedPort, StaticPortLabel } from "@superset/port-scanner";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
 import type { Hono } from "hono";
 import type { HostDb } from "../db/index.ts";
@@ -219,17 +219,20 @@ export class EventBus {
 		eventType: "add" | "remove";
 		port: DetectedPort;
 	}): void {
+		const entry =
+			eventType === "add" ? this.getStaticPortEntry(port) : undefined;
 		this.broadcast({
 			type: "port:changed",
 			workspaceId: port.workspaceId,
 			eventType,
 			port,
-			label: eventType === "add" ? this.getPortLabel(port) : null,
+			label: entry?.label ?? null,
+			protocol: entry?.protocol ?? null,
 			occurredAt: Date.now(),
 		});
 	}
 
-	private getPortLabel(port: DetectedPort): string | null {
+	private getStaticPortEntry(port: DetectedPort): StaticPortLabel | undefined {
 		const labels = getLabelsForWorkspace((workspaceId) => {
 			try {
 				return this.filesystem.resolveWorkspaceRoot(workspaceId);
@@ -237,7 +240,7 @@ export class EventBus {
 				return null;
 			}
 		}, port.workspaceId);
-		return labels?.get(port.port) ?? null;
+		return labels?.get(port.port);
 	}
 
 	private startFsWatch(

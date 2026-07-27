@@ -1,6 +1,7 @@
 import { statSync } from "node:fs";
 import { join } from "node:path";
 import { workspaces } from "@superset/local-db";
+import type { StaticPortLabel } from "@superset/port-scanner";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { loadStaticPorts } from "main/lib/static-ports";
@@ -8,7 +9,7 @@ import { PORTS_FILE_NAME, PROJECT_SUPERSET_DIR_NAME } from "shared/constants";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
 
 interface LabelCacheEntry {
-	labels: Map<number, string> | null;
+	labels: Map<number, StaticPortLabel> | null;
 	portsFileSignature: string | null;
 	worktreePath: string | null;
 }
@@ -44,7 +45,7 @@ function safeGetPortsFileSignature(worktreePath: string): string | null {
 
 function safeLoadLabelsForWorktree(
 	worktreePath: string,
-): Map<number, string> | null {
+): Map<number, StaticPortLabel> | null {
 	try {
 		return loadLabelsForWorktree(worktreePath);
 	} catch (error) {
@@ -76,15 +77,15 @@ const labelCache = new Map<string, LabelCacheEntry>();
 
 function loadLabelsForWorktree(
 	worktreePath: string,
-): Map<number, string> | null {
+): Map<number, StaticPortLabel> | null {
 	const result = loadStaticPorts(worktreePath);
 	if (!result.exists || result.error || !result.ports) {
 		return null;
 	}
 
-	const labels = new Map<number, string>();
+	const labels = new Map<number, StaticPortLabel>();
 	for (const p of result.ports) {
-		labels.set(p.port, p.label);
+		labels.set(p.port, p);
 	}
 	return labels;
 }
@@ -92,8 +93,8 @@ function loadLabelsForWorktree(
 function setLabelCache(
 	workspaceId: string,
 	worktreePath: string | null,
-	labels: Map<number, string> | null,
-): Map<number, string> | null {
+	labels: Map<number, StaticPortLabel> | null,
+): Map<number, StaticPortLabel> | null {
 	const portsFileSignature = worktreePath
 		? safeGetPortsFileSignature(worktreePath)
 		: null;
@@ -107,7 +108,7 @@ function setLabelCache(
 
 export function getLabelsForWorkspace(
 	workspaceId: string,
-): Map<number, string> | null {
+): Map<number, StaticPortLabel> | null {
 	const cached = labelCache.get(workspaceId);
 	if (cached) {
 		if (cached.worktreePath === null) {

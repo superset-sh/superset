@@ -22,6 +22,7 @@ function createResult(): HostPortsResult {
 				detectedAt: 1,
 				address: "127.0.0.1",
 				label: "Frontend",
+				protocol: null,
 			},
 		],
 	};
@@ -34,6 +35,7 @@ function createPortEvent(
 	return {
 		eventType,
 		label: "Vite",
+		protocol: null,
 		occurredAt: 2,
 		port: {
 			port: 5173,
@@ -63,6 +65,14 @@ describe("applyPortEventsToHostPortsResult", () => {
 			address: "0.0.0.0",
 			label: "Vite",
 		});
+	});
+
+	it("carries the protocol from an add event onto the port row", () => {
+		const result = applyPortEventsToHostPortsResult(createResult(), [
+			{ ...createPortEvent("add"), protocol: "https" },
+		]);
+
+		expect(result?.ports[0]).toMatchObject({ port: 5173, protocol: "https" });
 	});
 
 	it("keeps the same cache object for a remove event that does not match", () => {
@@ -280,6 +290,7 @@ describe("groupDashboardSidebarPorts", () => {
 							detectedAt: 1,
 							address: "127.0.0.1",
 							label: "Frontend",
+							protocol: null,
 						},
 						{
 							port: 3000,
@@ -290,6 +301,7 @@ describe("groupDashboardSidebarPorts", () => {
 							detectedAt: 1,
 							address: "127.0.0.1",
 							label: "Web",
+							protocol: null,
 						},
 						{
 							port: 8080,
@@ -300,6 +312,7 @@ describe("groupDashboardSidebarPorts", () => {
 							detectedAt: 1,
 							address: "127.0.0.1",
 							label: "API",
+							protocol: null,
 						},
 					],
 				},
@@ -343,6 +356,7 @@ describe("groupDashboardSidebarPorts", () => {
 							detectedAt: 1,
 							address: "127.0.0.1",
 							label: "Frontend",
+							protocol: null,
 						},
 					],
 				},
