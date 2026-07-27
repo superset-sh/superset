@@ -39,6 +39,15 @@ if [ -z "$EVENT_TYPE" ]; then
   esac
 fi
 
+# Grok serializes its configured Notification event as lowercase
+# "notification". Only an actual permission prompt means the agent is blocked
+# waiting for the user; ignore unrelated notification subtypes.
+if [ "$EVENT_TYPE" = "notification" ]; then
+  NOTIFICATION_TYPE=$(echo "$INPUT" | grep -oE '"notificationType"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  [ "$NOTIFICATION_TYPE" != "permission_prompt" ] && exit 0
+  EVENT_TYPE="PermissionRequest"
+fi
+
 # UserPromptSubmit normalizes here; other aliases are mapped server-side
 # by mapEventType so the wire stays a single source of truth.
 [ "$EVENT_TYPE" = "UserPromptSubmit" ] && EVENT_TYPE="Start"

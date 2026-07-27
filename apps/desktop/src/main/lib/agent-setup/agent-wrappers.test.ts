@@ -32,7 +32,7 @@ mock.module("shared/env.shared", () => ({
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v4",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v5",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -1805,15 +1805,18 @@ describe("grok hooks json", () => {
 			"PostToolUseFailure",
 			"Stop",
 			"StopFailure",
+			"Notification",
 		]);
 		expect(events).not.toContain("PreToolUse");
 		for (const definitions of Object.values(parsed.hooks)) {
 			const [definition] = definitions as Array<{
+				matcher?: string;
 				hooks: Array<{ type: string; command: string }>;
 			}>;
 			expect(definition.hooks[0].type).toBe("command");
 			expect(definition.hooks[0].command).toContain("SUPERSET_AGENT_ID=grok");
 		}
+		expect(parsed.hooks.Notification[0].matcher).toBe("^permission_prompt$");
 	});
 });
 

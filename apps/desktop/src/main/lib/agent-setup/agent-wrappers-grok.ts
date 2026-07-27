@@ -28,6 +28,7 @@ const GROK_MANAGED_HOOK_EVENTS = [
 	"PostToolUseFailure",
 	"Stop",
 	"StopFailure",
+	"Notification",
 ] as const;
 
 const GROK_MANAGED_HOOK_COMMAND = getManagedNotifyHookCommand("grok");
@@ -57,7 +58,14 @@ export function getGrokHooksJsonContent(): string {
 	const hooks = Object.fromEntries(
 		GROK_MANAGED_HOOK_EVENTS.map((event) => [
 			event,
-			[{ hooks: [{ type: "command", command: GROK_MANAGED_HOOK_COMMAND }] }],
+			[
+				{
+					...(event === "Notification"
+						? { matcher: "^permission_prompt$" }
+						: {}),
+					hooks: [{ type: "command", command: GROK_MANAGED_HOOK_COMMAND }],
+				},
+			],
 		]),
 	);
 	return `${JSON.stringify({ hooks }, null, 2)}\n`;
