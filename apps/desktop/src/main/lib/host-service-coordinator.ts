@@ -136,6 +136,16 @@ export class HostServiceCoordinator extends EventEmitter {
 	private devReloadWatcher: fs.FSWatcher | null = null;
 	private respawns = new Map<string, RespawnState>();
 	private configProvider: (() => Promise<SpawnConfig | null>) | null = null;
+	/**
+	 * Seam for the respawn delay. Production uses `setTimeout`; tests replace it so
+	 * they assert the scheduling decision instead of sleeping through a jittered
+	 * production delay.
+	 */
+	private scheduleRespawnTimer: (
+		run: () => void,
+		delayMs: number,
+	) => ReturnType<typeof setTimeout> = (run, delayMs) =>
+		setTimeout(run, delayMs);
 
 	/**
 	 * Supplies fresh spawn config for automatic respawns. A respawn must not
@@ -797,9 +807,9 @@ export class HostServiceCoordinator extends EventEmitter {
 			`[host-service:${organizationId}] respawn attempt ${attempt} in ${Math.round(delay)}ms`,
 		);
 		if (state.timer) clearTimeout(state.timer);
-		state.timer = setTimeout(() => {
+		state.timer = this.scheduleRespawnTimer(() => {
 			state.timer = null;
-			void this.respawn(organizationId, attempt);
+			void this.respawn(organizationId, attempt, state);
 		}, delay);
 		// A pending respawn must not keep Electron alive on quit.
 		state.timer.unref?.();
@@ -813,7 +823,15 @@ export class HostServiceCoordinator extends EventEmitter {
 	private async respawn(
 		organizationId: string,
 		attempt: number,
+		state: RespawnState,
 	): Promise<void> {
+		// Cancelling a timer only helps before it fires. Past that point this runs
+		// across two awaits, and a stop() or stopAll() in either gap must abandon
+		// the attempt: otherwise a fresh child is spawned and registered after
+		// teardown and outlives the shutdown meant to end it. `clearRespawnState`
+		// drops the state object, so losing our identity in the map is the signal.
+		const cancelled = () => this.respawns.get(organizationId) !== state;
+
 		if (!this.configProvider) {
 			log.error(
 				`[host-service:${organizationId}] cannot respawn: no config provider registered`,
@@ -825,12 +843,21 @@ export class HostServiceCoordinator extends EventEmitter {
 
 		try {
 			const config = await this.configProvider();
-			if (!config) {
-				// Signed out: nothing to respawn into, and not an error worth a modal.
+			if (cancelled()) {
 				log.info(
-					`[host-service:${organizationId}] skipping respawn: no auth token`,
+					`[host-service:${organizationId}] respawn attempt ${attempt} abandoned: stopped while reading config`,
 				);
-				this.clearRespawnState(organizationId);
+				return;
+			}
+			if (!config) {
+				// Not treated as a deliberate sign-out: `loadToken` returns null for a
+				// failed read or decrypt too, and signing out already tears the service
+				// down through stopAll. So retry rather than abandoning recovery for
+				// what is most likely transient.
+				log.warn(
+					`[host-service:${organizationId}] respawn attempt ${attempt}: no config available`,
+				);
+				this.scheduleRespawn(organizationId, "no auth token available");
 				return;
 			}
 			await this.startWithPreferredPorts(
@@ -838,11 +865,19 @@ export class HostServiceCoordinator extends EventEmitter {
 				config,
 				this.getPreferredPorts(organizationId),
 			);
+			if (cancelled()) {
+				log.info(
+					`[host-service:${organizationId}] respawned but stopped meanwhile; tearing the child back down`,
+				);
+				this.stop(organizationId);
+				return;
+			}
 			log.info(
 				`[host-service:${organizationId}] respawned on attempt ${attempt}`,
 			);
 			this.armRespawnBudgetReset(organizationId);
 		} catch (error) {
+			if (cancelled()) return;
 			log.error(
 				`[host-service:${organizationId}] respawn attempt ${attempt} failed:`,
 				error,
