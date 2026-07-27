@@ -1,6 +1,9 @@
+import { Database } from "bun:sqlite";
 import { afterEach, describe, expect, test } from "bun:test";
 import { randomUUID } from "node:crypto";
 import { TRPCClientError } from "@trpc/client";
+import { eq } from "drizzle-orm";
+import { projects } from "../../src/db/schema";
 import { createTestHost } from "../helpers/createTestHost";
 import { createGitFixture } from "../helpers/git-fixture";
 import { createProjectScenario } from "../helpers/scenarios";
@@ -33,6 +36,43 @@ describe("project router integration", () => {
 		const result = await host.trpc.project.list.query();
 		const ids = result.map((p) => p.id).sort();
 		expect(ids).toEqual([a.id, b.id].sort());
+	});
+
+	test("list repairs a main workspace whose project row is missing", async () => {
+		const host = await createTestHost();
+		const repo = await createGitFixture();
+		dispose = async () => {
+			await host.dispose();
+			repo.dispose();
+		};
+
+		const projectId = randomUUID();
+		const workspaceId = randomUUID();
+		const sqlite = new Database(host.dbPath);
+		try {
+			sqlite.exec("PRAGMA foreign_keys = OFF");
+			sqlite
+				.query(
+					`INSERT INTO workspaces (id, project_id, worktree_path, branch, name, type, created_at, updated_at)
+					 VALUES (?, ?, ?, 'main', 'main', 'main', ?, ?)`,
+				)
+				.run(workspaceId, projectId, repo.repoPath, Date.now(), Date.now());
+		} finally {
+			sqlite.close();
+		}
+
+		const result = await host.trpc.project.list.query();
+
+		expect(result).toContainEqual(
+			expect.objectContaining({
+				id: projectId,
+				repoPath: repo.repoPath,
+			}),
+		);
+		const repaired = host.db.query.projects
+			.findFirst({ where: eq(projects.id, projectId) })
+			.sync();
+		expect(repaired?.repoPath).toBe(repo.repoPath);
 	});
 
 	test("get returns project by id, null when missing", async () => {
