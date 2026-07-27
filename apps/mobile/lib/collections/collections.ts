@@ -4,7 +4,6 @@ import {
 	snakeCamelMapper,
 } from "@electric-sql/client";
 import type {
-	SelectChatSession,
 	SelectGithubPullRequest,
 	SelectInvitation,
 	SelectMember,
@@ -72,7 +71,6 @@ interface OrgCollections {
 	v2Projects: Collection<SelectV2Project>;
 	v2Hosts: Collection<SelectV2Host>;
 	subscriptions: Collection<SelectSubscription>;
-	chatSessions: Collection<SelectChatSession>;
 	githubPullRequests: Collection<SelectGithubPullRequest>;
 }
 
@@ -257,21 +255,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		}),
 	);
 
-	const chatSessions = createCollection(
-		electricCollectionOptions<SelectChatSession>({
-			id: `chat-sessions-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: { table: "chat_sessions", organizationId },
-				headers: electricHeaders,
-				columnMapper,
-				parser,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-		}),
-	);
-
 	return {
 		tasks,
 		taskStatuses,
@@ -282,7 +265,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2Projects,
 		v2Hosts,
 		subscriptions,
-		chatSessions,
 		githubPullRequests,
 	};
 }

@@ -59,10 +59,6 @@ export default function AuthenticatedLayout() {
 						options={{ ...glassHeaderOptions, title: "Chat" }}
 					/>
 					<Stack.Screen
-						name="workspace/[id]/chat/acp/[sessionId]"
-						options={{ ...glassHeaderOptions, title: "Chat" }}
-					/>
-					<Stack.Screen
 						name="workspace/[id]/diff"
 						options={{ ...glassHeaderOptions, title: "Changes" }}
 					/>

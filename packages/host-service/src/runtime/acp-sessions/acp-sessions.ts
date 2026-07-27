@@ -210,6 +210,7 @@ export class AcpSessionManager {
 	 * resurrection. Disjoint from `runtimes` by construction.
 	 */
 	private readonly offline = new Map<string, AcpSessionRecord>();
+	private hydrationFailed = false;
 
 	constructor(options: AcpSessionManagerOptions) {
 		this.resolveWorkspaceCwd = options.resolveWorkspaceCwd;
@@ -228,12 +229,17 @@ export class AcpSessionManager {
 					this.offline.set(record.sessionId, record);
 				}
 			} catch (error) {
+				this.hydrationFailed = true;
 				console.warn(
 					"[acp-sessions] failed to load persisted session registry",
 					error,
 				);
 			}
 		}
+	}
+
+	registryHydrationFailed(): boolean {
+		return this.hydrationFailed;
 	}
 
 	/**
@@ -910,6 +916,19 @@ export class AcpSessionManager {
 		dead.sort((a, b) => a.state.updatedAt - b.state.updatedAt);
 		for (const runtime of dead.slice(0, dead.length - MAX_DEAD_RUNTIMES)) {
 			this.runtimes.delete(runtime.state.sessionId);
+			// The session must stay addressable: park it as an offline record so
+			// get() keeps serving it and a live mutation can resurrect it.
+			this.offline.set(runtime.state.sessionId, {
+				sessionId: runtime.state.sessionId,
+				workspaceId: runtime.state.workspaceId,
+				acpSessionId: runtime.acpSessionId,
+				harness: runtime.state.harness,
+				cwd: runtime.state.cwd,
+				title: runtime.state.title,
+				lastStopReason: runtime.state.lastStopReason,
+				createdAt: runtime.state.createdAt,
+				updatedAt: runtime.state.updatedAt,
+			});
 		}
 	}
 

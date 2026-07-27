@@ -1,5 +1,6 @@
-// INTERIM: AppRouter comes from generated dist-types until the wire contract
-// moves to a neutral package — see packages/host-service/docs/interim-router-types.md
+// INTERIM: AppRouter comes from host-service's generated dist-types (compiled
+// declarations, so Expo/RN never typechecks its Node-flavored source) until
+// the wire contract moves to a neutral package.
 import type { AppRouter } from "@superset/host-service/router";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { createTRPCClient, httpLink, type TRPCClient } from "@trpc/client";

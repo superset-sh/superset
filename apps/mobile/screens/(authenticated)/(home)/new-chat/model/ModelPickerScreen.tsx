@@ -1,10 +1,10 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import { Stack, useRouter } from "expo-router";
 import { Pressable, ScrollView } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
 import { useNewChatPreferencesStore } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/stores/newChatPreferencesStore";
+import { CHAT_MODELS } from "@/screens/(authenticated)/(home)/utils/chatModels";
 import { ProviderLogo } from "./components/ProviderLogo";
 
 export function ModelPickerScreen() {
@@ -21,7 +21,7 @@ export function ModelPickerScreen() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
 			</Stack.Toolbar>
-			{SUPERSET_CHAT_MODELS.map((model) => {
+			{CHAT_MODELS.map((model) => {
 				const isSelected = model.id === modelId;
 				return (
 					<Pressable

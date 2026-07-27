@@ -1,5 +1,4 @@
 import { router } from "../index";
-import { acpSessionsRouter } from "./acp-sessions";
 import { agentsRouter } from "./agents";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
@@ -16,6 +15,7 @@ import { notificationsRouter } from "./notifications";
 import { portsRouter } from "./ports";
 import { projectRouter } from "./project";
 import { pullRequestsRouter } from "./pull-requests";
+import { sessionsRouter } from "./sessions";
 import { settingsRouter } from "./settings";
 import { terminalRouter } from "./terminal";
 import { terminalAgentsRouter } from "./terminal-agents";
@@ -25,7 +25,6 @@ import { workspaceCreationRouter } from "./workspace-creation";
 import { workspacesRouter } from "./workspaces";
 
 export const appRouter = router({
-	acpSessions: acpSessionsRouter,
 	agents: agentsRouter,
 	attachments: attachmentsRouter,
 	auth: authRouter,
@@ -42,6 +41,7 @@ export const appRouter = router({
 	pullRequests: pullRequestsRouter,
 	project: projectRouter,
 	ports: portsRouter,
+	sessions: sessionsRouter,
 	settings: settingsRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,

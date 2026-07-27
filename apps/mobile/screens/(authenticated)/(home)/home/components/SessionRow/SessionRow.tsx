@@ -7,19 +7,25 @@ import type { SessionRowData } from "../../utils/sessionRows";
 import { SessionRowMenu } from "./components/SessionRowMenu";
 import { compactTime } from "./utils/compactTime";
 
-// Chat sessions carry no agent/model column yet; they all run through the
-// superset agent on Claude models, hence the fixed logo.
+// Sessions all run the claude-code agent for now, hence the fixed logo.
 export function SessionRow({
 	row,
+	routingKey,
 	onPress,
 	className,
 }: {
 	row: SessionRowData;
+	/** Sessions host for menu actions; null hides the mutating actions. */
+	routingKey: string | null;
 	onPress: () => void;
 	className?: string;
 }) {
 	return (
-		<SessionRowMenu sessionId={row.id} title={row.title}>
+		<SessionRowMenu
+			sessionId={row.id}
+			title={row.title}
+			routingKey={routingKey}
+		>
 			<PressableScale
 				className={cn("flex-row items-center gap-3 px-1 py-3.5", className)}
 				onPress={onPress}

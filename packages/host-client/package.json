@@ -8,9 +8,9 @@
 			"types": "./src/index.ts",
 			"default": "./src/index.ts"
 		},
-		"./acp": {
-			"types": "./src/acp/index.ts",
-			"default": "./src/acp/index.ts"
+		"./sessions": {
+			"types": "./src/sessions/index.ts",
+			"default": "./src/sessions/index.ts"
 		}
 	},
 	"scripts": {
@@ -18,7 +18,7 @@
 		"test": "bun test --pass-with-no-tests"
 	},
 	"dependencies": {
-		"@superset/session-protocol": "workspace:*",
+		"@superset/host-service-sync": "workspace:*",
 		"superjson": "2.2.6"
 	},
 	"devDependencies": {

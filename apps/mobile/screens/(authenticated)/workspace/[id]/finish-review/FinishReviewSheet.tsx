@@ -6,9 +6,12 @@ import { Alert, ScrollView, TextInput, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
-import { createAcpSessionsApi } from "@/lib/host/client";
+import { submitTurn } from "@/lib/host/client";
 import { useStartWorkspaceChat } from "@/screens/(authenticated)/(home)/home/components/NewChatWidget/hooks/useStartWorkspaceChat";
-import { useHostAcpSessions } from "@/screens/(authenticated)/(home)/home/hooks/useHostAcpSessions";
+import {
+	getSessionsQueryKey,
+	useHostSessions,
+} from "@/screens/(authenticated)/(home)/home/hooks/useHostSessions";
 import { buildSessionRows } from "@/screens/(authenticated)/(home)/home/utils/sessionRows";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import {
@@ -43,7 +46,7 @@ export function FinishReviewSheet() {
 	const workspaceId = id ?? "";
 
 	const { workspace, host } = useWorkspaceHost(workspaceId || null);
-	const { sessionsByWorkspace } = useHostAcpSessions(host);
+	const { sessionsByWorkspace } = useHostSessions(host);
 	const comments = useDraftCommentsStore(
 		(state) => state.commentsByWorkspace[workspaceId] ?? NO_COMMENTS,
 	);
@@ -88,22 +91,25 @@ export function FinishReviewSheet() {
 				router.back();
 				return;
 			}
+			const targetSession = (sessionsByWorkspace.get(workspaceId) ?? []).find(
+				(session) => session.id === target,
+			);
+			if (!targetSession) throw new Error("Session no longer exists");
 			const routingKey = buildHostRoutingKey(
 				host.organizationId,
 				host.machineId,
 			);
-			await createAcpSessionsApi(routingKey).prompt({
+			await submitTurn(routingKey, {
 				sessionId: target,
-				prompt: [{ type: "text", text: prompt }],
+				threadId: targetSession.mainThreadId,
+				content: [{ type: "text", text: prompt }],
 			});
 			clearWorkspace(workspaceId);
 			void queryClient.invalidateQueries({
-				queryKey: ["acp-sessions", "list"],
+				queryKey: getSessionsQueryKey(host.machineId),
 			});
 			router.back();
-			router.push(
-				`/(authenticated)/workspace/${workspaceId}/chat/acp/${target}`,
-			);
+			router.push(`/(authenticated)/workspace/${workspaceId}/chat/${target}`);
 		} catch (cause) {
 			Alert.alert(
 				"Could not send review",

@@ -1,5 +1,10 @@
 # V1 -> V2 Fast Migration Plan
 
+> **Status: historical (Mastra-era chat).** The greenfield/event-log docs it
+> references were deleted; local session sync is now specified in
+> `plans/host-sessions-sync.md`. The Mastra chat stack is frozen for existing
+> users and is not the path forward.
+
 A pragmatic plan to ship the v1 chat UX on top of the existing v2 host-service chat architecture. This is **not** the full event-log rearchitect from `v2-chat-greenfield-architecture.md`, and it should **not replace** the host-service chat work that already exists. The current host-service implementation is the foundation; this plan updates the remaining migration work around it.
 
 ## TL;DR
