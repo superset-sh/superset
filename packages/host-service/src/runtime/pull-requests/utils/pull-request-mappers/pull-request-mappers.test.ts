@@ -1,13 +1,31 @@
 import { describe, expect, test } from "bun:test";
+import type { GitHubCheckContextNode } from "../github-query";
 import {
 	coercePullRequestState,
 	computeChecksStatus,
 	mapPullRequestState,
 	type PullRequestCheck,
+	parseCheckContexts,
 } from "./pull-request-mappers";
 
 function check(status: PullRequestCheck["status"]): PullRequestCheck {
 	return { name: `check-${status}`, status, url: null };
+}
+
+function checkRunNode(
+	conclusion: string | null,
+	status = "COMPLETED",
+): GitHubCheckContextNode {
+	return {
+		__typename: "CheckRun",
+		name: `run-${conclusion ?? status}`,
+		conclusion,
+		detailsUrl: null,
+		status,
+		startedAt: null,
+		completedAt: null,
+		checkSuite: null,
+	};
 }
 
 describe("mapPullRequestState", () => {
@@ -57,11 +75,37 @@ describe("computeChecksStatus", () => {
 		);
 	});
 
+	test("cancelled takes precedence over pending", () => {
+		expect(computeChecksStatus([check("pending"), check("cancelled")])).toBe(
+			"failure",
+		);
+	});
+
 	test("skipped checks stay non-blocking and fold into success", () => {
 		expect(computeChecksStatus([check("success"), check("skipped")])).toBe(
 			"success",
 		);
 		expect(computeChecksStatus([check("skipped")])).toBe("success");
+	});
+});
+
+describe("parseCheckContexts", () => {
+	test("maps terminal check-run conclusions to their effective status", () => {
+		const statuses = parseCheckContexts([
+			checkRunNode("CANCELLED"),
+			checkRunNode("ACTION_REQUIRED"),
+			checkRunNode("STARTUP_FAILURE"),
+			checkRunNode("SKIPPED"),
+		]).map((check) => check.status);
+
+		expect(statuses).toEqual(["cancelled", "failure", "failure", "skipped"]);
+	});
+
+	test("keeps a completed run without a conclusion pending", () => {
+		expect(parseCheckContexts([checkRunNode(null)])[0]?.status).toBe("pending");
+		expect(
+			parseCheckContexts([checkRunNode(null, "IN_PROGRESS")])[0]?.status,
+		).toBe("pending");
 	});
 });
 

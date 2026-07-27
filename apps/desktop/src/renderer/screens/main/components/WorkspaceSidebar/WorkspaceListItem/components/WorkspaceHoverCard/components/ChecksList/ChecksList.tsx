@@ -11,10 +11,8 @@ interface ChecksListProps {
 export function ChecksList({ checks }: ChecksListProps) {
 	const [expanded, setExpanded] = useState(false);
 
-	// Filter out skipped/cancelled for display count, but show all when expanded
-	const relevantChecks = checks.filter(
-		(c) => c.status !== "skipped" && c.status !== "cancelled",
-	);
+	// Skipped checks are noise; everything else (including cancelled) counts
+	const relevantChecks = checks.filter((c) => c.status !== "skipped");
 
 	if (relevantChecks.length === 0) return null;
 

@@ -163,6 +163,7 @@ function mapCheckRunStatus(
 		case "FAILURE":
 		case "TIMED_OUT":
 		case "ACTION_REQUIRED":
+		case "STARTUP_FAILURE":
 			return "failure";
 		case "CANCELLED":
 			return "cancelled";

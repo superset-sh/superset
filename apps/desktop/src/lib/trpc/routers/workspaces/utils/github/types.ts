@@ -4,7 +4,9 @@ import { z } from "zod";
 export const GHCheckContextSchema = z.object({
 	name: z.string().optional(),
 	context: z.string().optional(), // StatusContext uses 'context' instead of 'name'
-	state: z.enum(["SUCCESS", "FAILURE", "PENDING", "ERROR"]).optional(),
+	state: z
+		.enum(["SUCCESS", "FAILURE", "PENDING", "ERROR", "EXPECTED"])
+		.optional(),
 	status: z.string().optional(), // CheckRun status: COMPLETED, IN_PROGRESS, etc.
 	conclusion: z
 		.enum([
@@ -14,6 +16,8 @@ export const GHCheckContextSchema = z.object({
 			"SKIPPED",
 			"TIMED_OUT",
 			"ACTION_REQUIRED",
+			"STARTUP_FAILURE",
+			"STALE",
 			"NEUTRAL",
 			"", // Can be empty string when in progress
 		])

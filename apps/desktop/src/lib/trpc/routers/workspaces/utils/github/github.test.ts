@@ -17,6 +17,7 @@ import {
 	getPullRequestRepoArgs,
 	shouldRefreshCachedRepoContext,
 } from "./repo-context";
+import { GHCheckContextSchema } from "./types";
 
 describe("branchMatchesPR", () => {
 	test("matches same-repo branch exactly", () => {
@@ -69,11 +70,32 @@ describe("computeChecksStatus", () => {
 		expect(computeChecksStatus([{ conclusion: "FAILURE" }])).toBe("failure");
 		expect(computeChecksStatus([{ state: "ERROR" }])).toBe("failure");
 		expect(computeChecksStatus([{ conclusion: "TIMED_OUT" }])).toBe("failure");
+		expect(computeChecksStatus([{ conclusion: "ACTION_REQUIRED" }])).toBe(
+			"failure",
+		);
+		expect(computeChecksStatus([{ conclusion: "STARTUP_FAILURE" }])).toBe(
+			"failure",
+		);
+	});
+
+	test("cancelled takes precedence over pending", () => {
+		expect(
+			computeChecksStatus([{ state: "PENDING" }, { conclusion: "CANCELLED" }]),
+		).toBe("failure");
 	});
 
 	test("pending wins when nothing failed", () => {
 		expect(
 			computeChecksStatus([{ conclusion: "SUCCESS" }, { state: "PENDING" }]),
+		).toBe("pending");
+	});
+
+	test("unknown and expected statuses roll up as pending, never success", () => {
+		expect(
+			computeChecksStatus([{ conclusion: "SUCCESS" }, { state: "EXPECTED" }]),
+		).toBe("pending");
+		expect(
+			computeChecksStatus([{ conclusion: "SUCCESS" }, { conclusion: "STALE" }]),
 		).toBe("pending");
 	});
 
@@ -85,6 +107,25 @@ describe("computeChecksStatus", () => {
 				{ conclusion: "NEUTRAL" },
 			]),
 		).toBe("success");
+	});
+});
+
+describe("GHCheckContextSchema", () => {
+	test("accepts every gh conclusion and state so PRs are never dropped", () => {
+		for (const conclusion of [
+			"STARTUP_FAILURE",
+			"STALE",
+			"CANCELLED",
+			"ACTION_REQUIRED",
+		]) {
+			expect(
+				GHCheckContextSchema.safeParse({ name: "ci", conclusion }).success,
+			).toBe(true);
+		}
+		expect(
+			GHCheckContextSchema.safeParse({ context: "ci", state: "EXPECTED" })
+				.success,
+		).toBe(true);
 	});
 });
 
