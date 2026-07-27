@@ -10,7 +10,8 @@ import {
 	DialogTitle,
 } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -48,6 +49,15 @@ export function DashboardNewWorkspaceModal() {
 	const variant = useNewWorkspaceScreenVariant(isOpen);
 	const isScreen = variant === "test";
 
+	// Dismissing (Esc / click outside) without creating discards a seeded
+	// prompt (e.g. the setup-script Configure card) so the next plain open
+	// starts clean. User-typed drafts are untouched — discardSeededPrompt is
+	// a no-op once the prompt has been edited.
+	const handleDismiss = useCallback(() => {
+		useNewWorkspaceDraftStore.getState().discardSeededPrompt();
+		closeModal();
+	}, [closeModal]);
+
 	// Test arm: the create surface is a page, not a modal. Store opens (the
 	// "+" button, hotkey, onboarding hand-off) redirect to the route instead.
 	useEffect(() => {
@@ -71,7 +81,7 @@ export function DashboardNewWorkspaceModal() {
 				<Dialog
 					modal
 					open={isOpen}
-					onOpenChange={(open) => !open && closeModal()}
+					onOpenChange={(open) => !open && handleDismiss()}
 				>
 					<DialogHeader className="sr-only">
 						<DialogTitle>New Workspace</DialogTitle>
