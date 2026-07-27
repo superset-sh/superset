@@ -1,5 +1,5 @@
 import { type QueryClient, useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 import {
 	getV2NotificationSourceKey,
 	getV2NotificationSourcesForPane,
@@ -24,23 +24,34 @@ import {
 const TERMINAL_PREFIX = "terminal:";
 const TERMINAL_AGENT_BINDINGS_QUERY_KEY = ["terminal-agent-bindings"] as const;
 
-function useTerminalAgentBindingsCacheVersion(
+function useTerminalAgentBindingsCacheSnapshot(
 	queryClient: QueryClient,
-): number {
-	const [cacheVersion, setCacheVersion] = useState(0);
+): string {
+	const subscribe = useCallback(
+		(onStoreChange: () => void) =>
+			queryClient.getQueryCache().subscribe((event) => {
+				if (
+					(event.type === "updated" || event.type === "removed") &&
+					event.query.queryKey[0] === TERMINAL_AGENT_BINDINGS_QUERY_KEY[0]
+				) {
+					onStoreChange();
+				}
+			}),
+		[queryClient],
+	);
+	const getSnapshot = useCallback(
+		() =>
+			queryClient
+				.getQueryCache()
+				.findAll({ queryKey: TERMINAL_AGENT_BINDINGS_QUERY_KEY })
+				.filter((query) => query.state.data !== undefined)
+				.map((query) => `${query.queryHash}:${query.state.dataUpdateCount}`)
+				.sort()
+				.join("|"),
+		[queryClient],
+	);
 
-	useEffect(() => {
-		return queryClient.getQueryCache().subscribe((event) => {
-			if (
-				(event.type === "updated" || event.type === "removed") &&
-				event.query.queryKey[0] === TERMINAL_AGENT_BINDINGS_QUERY_KEY[0]
-			) {
-				setCacheVersion((version) => version + 1);
-			}
-		});
-	}, [queryClient]);
-
-	return cacheVersion;
+	return useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
 }
 
 function terminalIdsFromSources(
@@ -108,9 +119,9 @@ export function useV2WorkspaceNotificationStatuses(
 	const terminalSeenAt = useV2NotificationStore(
 		(state) => state.terminalSeenAt,
 	);
-	const cacheVersion = useTerminalAgentBindingsCacheVersion(queryClient);
+	const cacheSnapshot = useTerminalAgentBindingsCacheSnapshot(queryClient);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheVersion re-reads the query cache
+	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheSnapshot re-reads the query cache
 	return useMemo(() => {
 		const requestedIds = new Set(workspaceIds);
 		const statusesByWorkspaceId = new Map<
@@ -146,7 +157,7 @@ export function useV2WorkspaceNotificationStatuses(
 				getHighestPriorityStatus(statuses),
 			]),
 		);
-	}, [cacheVersion, manualUnread, queryClient, terminalSeenAt, workspaceIds]);
+	}, [cacheSnapshot, manualUnread, queryClient, terminalSeenAt, workspaceIds]);
 }
 
 export function useV2WorkspaceIsUnread(workspaceId: string): boolean {
@@ -192,9 +203,9 @@ export function useV2AttentionWorkspaceCount(): number {
 	const terminalSeenAt = useV2NotificationStore(
 		(state) => state.terminalSeenAt,
 	);
-	const cacheVersion = useTerminalAgentBindingsCacheVersion(queryClient);
+	const cacheSnapshot = useTerminalAgentBindingsCacheSnapshot(queryClient);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheVersion re-reads the query cache
+	// biome-ignore lint/correctness/useExhaustiveDependencies: cacheSnapshot re-reads the query cache
 	return useMemo(() => {
 		const workspaceIds = new Set(Object.keys(manualUnread));
 		const entries = queryClient.getQueriesData<TerminalAgentBinding[]>({
@@ -217,5 +228,5 @@ export function useV2AttentionWorkspaceCount(): number {
 			}
 		}
 		return workspaceIds.size;
-	}, [cacheVersion, manualUnread, terminalSeenAt, queryClient]);
+	}, [cacheSnapshot, manualUnread, terminalSeenAt, queryClient]);
 }
