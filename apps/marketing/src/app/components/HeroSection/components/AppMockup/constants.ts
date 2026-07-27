@@ -104,6 +104,12 @@ export const AGENT_TABS: AgentTab[] = [
 		label: "kimi",
 		delay: 0.8,
 	},
+	{
+		src: "/app-icons/grok.svg",
+		alt: "Grok CLI",
+		label: "grok",
+		delay: 0.9,
+	},
 ];
 
 export const SETUP_STEPS = [

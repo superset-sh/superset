@@ -18,6 +18,11 @@ interface DashboardSidebarWorkspaceItemProps {
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
 	isInSection?: boolean;
+	/**
+	 * Set when the row renders inside the top-level Pinned section: shows the
+	 * owning project's avatar for cross-project context.
+	 */
+	pinnedContext?: { projectName: string; projectIconUrl: string | null };
 }
 
 export function DashboardSidebarWorkspaceItem({
@@ -26,6 +31,7 @@ export function DashboardSidebarWorkspaceItem({
 	shortcutLabel,
 	isCollapsed = false,
 	isInSection = false,
+	pinnedContext,
 }: DashboardSidebarWorkspaceItemProps) {
 	const {
 		id,
@@ -51,6 +57,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleTogglePin,
 		handleToggleUnread,
 		isActive,
 		isDeleteDialogOpen,
@@ -68,6 +75,7 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceName: name,
 		branch,
 		isMainWorkspace,
+		isPinned: workspace.isPinned,
 	});
 
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
@@ -155,7 +163,11 @@ export function DashboardSidebarWorkspaceItem({
 							isUnread={isUnread}
 							hasStatus={!!workspaceStatus}
 							isLocalWorkspace={hostType === "local-device"}
-							isPinned={isMainWorkspace && hostType === "local-device"}
+							isLocalMainWorkspace={
+								isMainWorkspace && hostType === "local-device"
+							}
+							isPinned={workspace.isPinned}
+							onTogglePin={handleTogglePin}
 							onCreateSection={handleCreateSection}
 							showDeleteHotkey={isActive}
 							onMoveToSection={(targetSectionId) =>
@@ -214,6 +226,7 @@ export function DashboardSidebarWorkspaceItem({
 				isRenaming={isRenaming}
 				renameValue={renameValue}
 				shortcutLabel={shortcutLabel}
+				pinnedContext={pinnedContext}
 				diffStats={isPending ? null : diffStats}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
@@ -245,7 +258,11 @@ export function DashboardSidebarWorkspaceItem({
 							moveWorkspaceToSection(id, projectId, targetSectionId)
 						}
 						isLocalWorkspace={hostType === "local-device"}
-						isPinned={isMainWorkspace && hostType === "local-device"}
+						isLocalMainWorkspace={
+							isMainWorkspace && hostType === "local-device"
+						}
+						isPinned={workspace.isPinned}
+						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}
 						showDeleteHotkey={isActive}
 						onCopyPath={handleCopyPath}

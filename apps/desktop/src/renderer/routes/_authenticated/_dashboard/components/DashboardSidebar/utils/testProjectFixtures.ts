@@ -24,6 +24,7 @@ export function makeWorkspace(
 		createdAt: new Date("2026-01-01"),
 		updatedAt: new Date("2026-01-01"),
 		taskId: null,
+		isPinned: false,
 		pendingTransaction: null,
 		...overrides,
 	};

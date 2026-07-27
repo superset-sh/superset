@@ -55,4 +55,14 @@ describe("mapEventType", () => {
 		expect(mapEventType("PermissionResult")).toBe("Start");
 		expect(mapEventType("Interrupt")).toBe("Stop");
 	});
+
+	it("maps Grok's snake_case wire values", () => {
+		expect(mapEventType("session_start")).toBe("Attached");
+		expect(mapEventType("user_prompt_submit")).toBe("Start");
+		expect(mapEventType("post_tool_use")).toBe("Start");
+		expect(mapEventType("post_tool_use_failure")).toBe("Start");
+		expect(mapEventType("stop")).toBe("Stop");
+		expect(mapEventType("stop_failure")).toBe("Failed");
+		expect(mapEventType("session_end")).toBe("Detached");
+	});
 });

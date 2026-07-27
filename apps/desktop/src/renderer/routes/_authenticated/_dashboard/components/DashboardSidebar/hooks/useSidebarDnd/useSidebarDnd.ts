@@ -247,13 +247,13 @@ export function useSidebarDnd({
 		return null; // ungrouped — no section above
 	}, [activeId, overId, activeType, flatItems, sectionsById]);
 
-	// The sidebar data builder always pins local main workspaces first,
+	// The sidebar data builder always sorts local main workspaces first,
 	// so any drop that lands an item above one would silently revert on
 	// the next rebuild (e.g. when the sidebar collapses and remounts).
 	// Normalize drop results to match what actually persists.
-	const normalizePinnedFirst = useCallback(
+	const normalizeMainFirst = useCallback(
 		(items: UniqueIdentifier[]) => {
-			const pinned: UniqueIdentifier[] = [];
+			const mains: UniqueIdentifier[] = [];
 			const rest: UniqueIdentifier[] = [];
 			for (const id of items) {
 				const parsed = parseId(id);
@@ -262,12 +262,12 @@ export function useSidebarDnd({
 						? workspacesById.get(parsed.realId)
 						: null;
 				if (ws?.type === "main" && ws.hostType === "local-device") {
-					pinned.push(id);
+					mains.push(id);
 				} else {
 					rest.push(id);
 				}
 			}
-			return pinned.length > 0 ? [...pinned, ...rest] : items;
+			return mains.length > 0 ? [...mains, ...rest] : items;
 		},
 		[workspacesById],
 	);
@@ -348,7 +348,7 @@ export function useSidebarDnd({
 					rebuilt.push(...wsInSec);
 				}
 
-				const newItems = normalizePinnedFirst(rebuilt);
+				const newItems = normalizeMainFirst(rebuilt);
 				setFlatItems(newItems);
 				commitToDb(newItems);
 			} else {
@@ -358,14 +358,14 @@ export function useSidebarDnd({
 				if (oldIndex === -1 || overIndex === -1 || oldIndex === overIndex)
 					return;
 
-				const newItems = normalizePinnedFirst(
+				const newItems = normalizeMainFirst(
 					arrayMove(flatItems, oldIndex, overIndex),
 				);
 				setFlatItems(newItems);
 				commitToDb(newItems);
 			}
 		},
-		[flatItems, commitToDb, normalizePinnedFirst],
+		[flatItems, commitToDb, normalizeMainFirst],
 	);
 
 	const onDragCancel = useCallback(() => {

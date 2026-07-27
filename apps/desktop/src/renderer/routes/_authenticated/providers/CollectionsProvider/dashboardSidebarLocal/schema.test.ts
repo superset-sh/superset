@@ -167,6 +167,18 @@ describe("healWorkspaceLocalState", () => {
 		expect(healed.sidebarState.changesFilter).toEqual({ kind: "all" });
 		expect(healed.sidebarState.activeTab).toBe("changes");
 		expect(healed.sidebarState.isHidden).toBe(false);
+		expect(healed.sidebarState.pinnedAt).toBeNull();
+	});
+
+	it("preserves a stored pinnedAt and defaults it on rows written before the field existed", () => {
+		expect(
+			healWorkspaceLocalState(baseStored).sidebarState.pinnedAt,
+		).toBeNull();
+		const healed = healWorkspaceLocalState({
+			...baseStored,
+			sidebarState: { ...baseStored.sidebarState, pinnedAt: 1753000000000 },
+		});
+		expect(healed.sidebarState.pinnedAt).toBe(1753000000000);
 	});
 
 	it("does not throw on null/non-object input (parser must never throw)", () => {
