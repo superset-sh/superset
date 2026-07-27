@@ -121,7 +121,9 @@ function ensureSidebarProjectRecord(
 	collections.v2SidebarProjects.insert({
 		projectId,
 		createdAt: new Date(),
-		tabOrder: getNextTabOrder([
+		// Prepend, matching new workspaces: the project you just added is
+		// the one you're about to work in.
+		tabOrder: getPrependTabOrder([
 			...collections.v2SidebarProjects.state.values(),
 		]),
 		isCollapsed: false,
