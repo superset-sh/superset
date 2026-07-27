@@ -24,6 +24,7 @@ interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceName: string;
 	branch: string;
 	isMainWorkspace?: boolean;
+	isPinned?: boolean;
 }
 
 export function useDashboardSidebarWorkspaceItemActions({
@@ -32,6 +33,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 	workspaceName,
 	branch,
 	isMainWorkspace = false,
+	isPinned = false,
 }: UseDashboardSidebarWorkspaceItemActionsOptions) {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -51,8 +53,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 		clearManualUnread(workspaceId);
 		markWorkspaceTerminalsSeen();
 	};
-	const { createSection, moveWorkspaceToSection, removeWorkspaceFromSidebar } =
-		useDashboardSidebarState();
+	const {
+		createSection,
+		moveWorkspaceToSection,
+		removeWorkspaceFromSidebar,
+		setWorkspacePinned,
+	} = useDashboardSidebarState();
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
@@ -159,6 +165,10 @@ export function useDashboardSidebarWorkspaceItemActions({
 		}
 	};
 
+	const handleTogglePin = () => {
+		setWorkspacePinned(workspaceId, projectId, !isPinned);
+	};
+
 	// Clears manual + review marks locally, then forces the host's bindings
 	// to Stop — the escape hatch for a wedged working/permission dot (an
 	// interrupted agent fires no Stop hook). Live agents re-assert on their
@@ -205,6 +215,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleTogglePin,
 		handleToggleUnread,
 		isActive,
 		isDeleteDialogOpen,

@@ -36,6 +36,7 @@ import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace
 import { useSidebarWorkspacesCollapseStore } from "renderer/stores/sidebar-workspaces-collapse";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
+import { DashboardSidebarPinnedSection } from "./components/DashboardSidebarPinnedSection";
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
@@ -113,8 +114,12 @@ const SortableProjectWrapper = memo(function SortableProjectWrapper({
 export function DashboardSidebar({
 	isCollapsed = false,
 }: DashboardSidebarProps) {
-	const { groups, refreshWorkspacePullRequest, toggleProjectCollapsed } =
-		useDashboardSidebarData();
+	const {
+		groups,
+		pinnedWorkspaces,
+		refreshWorkspacePullRequest,
+		toggleProjectCollapsed,
+	} = useDashboardSidebarData();
 	const { reorderProjects } = useDashboardSidebarState();
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
@@ -186,6 +191,14 @@ export function DashboardSidebar({
 
 	const activeV2Project = useMemo(() => {
 		if (!activeV2WorkspaceId) return null;
+		// A pinned active workspace renders outside its project group, so
+		// resolve its project by id instead.
+		const pinned = pinnedWorkspaces.find(
+			(workspace) => workspace.id === activeV2WorkspaceId,
+		);
+		if (pinned) {
+			return groups.find((project) => project.id === pinned.projectId) ?? null;
+		}
 		for (const project of groups) {
 			for (const child of project.children) {
 				if (
@@ -202,7 +215,7 @@ export function DashboardSidebar({
 			}
 		}
 		return null;
-	}, [groups, activeV2WorkspaceId]);
+	}, [groups, pinnedWorkspaces, activeV2WorkspaceId]);
 
 	const handleDragEnd = useCallback(
 		({ active, over }: DragEndEvent) => {
@@ -245,6 +258,13 @@ export function DashboardSidebar({
 								fadeEdges={["top", "bottom"]}
 								className="flex-1 overflow-y-auto hide-scrollbar"
 							>
+								{(isCollapsed || !workspacesListCollapsed) && (
+									<DashboardSidebarPinnedSection
+										pinnedWorkspaces={pinnedWorkspaces}
+										isCollapsed={isCollapsed}
+										onWorkspaceHover={refreshWorkspacePullRequest}
+									/>
+								)}
 								{(isCollapsed || !workspacesListCollapsed) && (
 									<DndContext
 										sensors={sensors}

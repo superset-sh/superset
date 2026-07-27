@@ -14,10 +14,15 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import type {
+	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
 	DashboardSidebarWorkspace,
 } from "../../types";
-import { buildDashboardSidebarProjects } from "./buildDashboardSidebarProjects";
+import {
+	buildDashboardSidebarPinnedWorkspaces,
+	buildDashboardSidebarProjects,
+	partitionSidebarWorkspacesByPinned,
+} from "./buildDashboardSidebarProjects";
 import {
 	derivePullRequestQueryTargets,
 	getDashboardSidebarPullRequestQueryKey,
@@ -85,6 +90,26 @@ function useStablePullRequestsByWorkspaceId(
 		previousRef.current = { fingerprint, map };
 		return map;
 	}, [rows]);
+}
+
+/**
+ * Returns the previous reference while the JSON serialization is unchanged.
+ * Same purpose as the fingerprinted hooks below: the sidebar builders produce
+ * fresh arrays every run, and downstream memoization needs stable identities.
+ */
+function useJsonStable<Value>(value: Value): Value {
+	const previousRef = useRef<{ fingerprint: string; value: Value } | null>(
+		null,
+	);
+	return useMemo(() => {
+		const fingerprint = JSON.stringify(value);
+		const previous = previousRef.current;
+		if (previous?.fingerprint === fingerprint) {
+			return previous.value;
+		}
+		previousRef.current = { fingerprint, value };
+		return value;
+	}, [value]);
 }
 
 function useStableDashboardSidebarProjects(
@@ -230,6 +255,7 @@ export function useDashboardSidebarData() {
 					tabOrder: sidebarWorkspaces.sidebarState.tabOrder,
 					sectionId: sidebarWorkspaces.sidebarState.sectionId,
 					isHidden: sidebarWorkspaces.sidebarState.isHidden,
+					pinnedAt: sidebarWorkspaces.sidebarState.pinnedAt,
 				})),
 		[collections],
 	);
@@ -252,6 +278,7 @@ export function useDashboardSidebarData() {
 						tabOrder: localState.tabOrder,
 						sectionId: localState.sectionId,
 						isHidden: localState.isHidden,
+						pinnedAt: localState.pinnedAt,
 					},
 				];
 			}),
@@ -293,6 +320,9 @@ export function useDashboardSidebarData() {
 					updatedAt: workspace.updatedAt,
 					tabOrder: MAIN_WORKSPACE_TAB_ORDER,
 					sectionId: null as string | null,
+					// Auto-included mains have no local-state row; pinning one
+					// creates a row first (see setWorkspacePinned).
+					pinnedAt: null as number | null,
 				})),
 		[hostWorkspaces],
 	);
@@ -392,12 +422,20 @@ export function useDashboardSidebarData() {
 	const pullRequestsByWorkspaceId =
 		useStablePullRequestsByWorkspaceId(pullRequestRows);
 
+	// Pinned rows render only in the top-level Pinned section, so they are
+	// partitioned out before the per-project tree is built. PR polling targets
+	// derive from the pre-partition list above, so pinned rows keep PR status.
+	const { pinned: pinnedRows, unpinned: unpinnedRows } = useMemo(
+		() => partitionSidebarWorkspacesByPinned(visibleSidebarWorkspaces),
+		[visibleSidebarWorkspaces],
+	);
+
 	const computedGroups = useMemo<DashboardSidebarProject[]>(
 		() =>
 			buildDashboardSidebarProjects({
 				sidebarProjects,
 				sidebarSections,
-				visibleSidebarWorkspaces,
+				visibleSidebarWorkspaces: unpinnedRows,
 				machineId,
 				pullRequestsByWorkspaceId,
 			}),
@@ -406,13 +444,26 @@ export function useDashboardSidebarData() {
 			pullRequestsByWorkspaceId,
 			sidebarProjects,
 			sidebarSections,
-			visibleSidebarWorkspaces,
+			unpinnedRows,
 		],
 	);
 	const groups = useStableDashboardSidebarProjects(computedGroups);
 
+	const computedPinnedWorkspaces = useMemo<DashboardSidebarPinnedWorkspace[]>(
+		() =>
+			buildDashboardSidebarPinnedWorkspaces({
+				pinnedSidebarWorkspaces: pinnedRows,
+				sidebarProjects,
+				machineId,
+				pullRequestsByWorkspaceId,
+			}),
+		[machineId, pinnedRows, pullRequestsByWorkspaceId, sidebarProjects],
+	);
+	const pinnedWorkspaces = useJsonStable(computedPinnedWorkspaces);
+
 	return {
 		groups,
+		pinnedWorkspaces,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

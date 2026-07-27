@@ -130,6 +130,9 @@ export const workspaceLocalStateSchema = z.object({
 		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
 		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
 		isHidden: z.boolean().default(false),
+		// Epoch ms when the user pinned this workspace to the sidebar's Pinned
+		// section; null = not pinned. Ordering is pinnedAt ascending.
+		pinnedAt: z.number().int().nullable().default(null),
 	}),
 	paneLayout: paneWorkspaceStateSchema,
 	viewedFiles: z.array(z.string()).default([]),
@@ -168,6 +171,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	changesViewMode: "folders",
 	activeTab: "changes",
 	isHidden: false,
+	pinnedAt: null,
 } as const;
 
 const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
