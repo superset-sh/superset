@@ -9,9 +9,8 @@ import { CommandPaletteHost } from "renderer/commandPalette";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { useArchiveWorkspaceFlow } from "renderer/lib/workspaces/useArchiveWorkspaceFlow";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
@@ -32,26 +31,19 @@ export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
 });
 
-type DeleteTarget =
-	| {
-			version: "v1";
-			workspaceId: string;
-			workspaceName: string;
-			workspaceType: "worktree" | "branch";
-	  }
-	| {
-			version: "v2";
-			workspaceId: string;
-			workspaceName: string;
-			open: boolean;
-	  };
+interface DeleteTarget {
+	version: "v1";
+	workspaceId: string;
+	workspaceName: string;
+	workspaceType: "worktree" | "branch";
+}
 
 function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
+	const { archiveWorkspace } = useArchiveWorkspaceFlow();
 	useDevSeedV2Sidebar();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
@@ -134,11 +126,9 @@ function DashboardLayout() {
 				currentV2Workspace &&
 				currentV2Workspace.type !== "main"
 			) {
-				setDeleteTarget({
+				void archiveWorkspace({
 					workspaceId: currentV2WorkspaceId,
-					workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
-					version: "v2",
-					open: true,
+					source: "hotkey",
 				});
 			}
 		},
@@ -234,22 +224,6 @@ function DashboardLayout() {
 					open={true}
 					onOpenChange={(open) => {
 						if (!open) setDeleteTarget(null);
-					}}
-				/>
-			)}
-			{deleteTarget?.version === "v2" && (
-				<DashboardSidebarDeleteDialog
-					workspaceId={deleteTarget.workspaceId}
-					workspaceName={deleteTarget.workspaceName}
-					open={deleteTarget.open}
-					onOpenChange={(open) => {
-						setDeleteTarget((target) =>
-							target?.version === "v2" ? { ...target, open } : target,
-						);
-					}}
-					onDeleted={() => {
-						removeWorkspaceFromSidebar(deleteTarget.workspaceId);
-						setDeleteTarget(null);
 					}}
 				/>
 			)}

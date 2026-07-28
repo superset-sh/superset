@@ -1,4 +1,5 @@
 import {
+	ArchiveIcon,
 	BeakerIcon,
 	BellIcon,
 	BookmarkIcon,
@@ -65,6 +66,13 @@ const TABS: SettingsTab[] = [
 		icon: TerminalIcon,
 	},
 	{ id: "git", title: "Git", path: "/settings/git", icon: GitBranchIcon },
+	{
+		id: "archived-workspaces",
+		title: "Archived workspaces",
+		path: "/settings/archived-workspaces",
+		icon: ArchiveIcon,
+		keywords: ["archive", "unarchive", "restore", "trash", "workspace"],
+	},
 	{
 		id: "experimental",
 		title: "Experimental",

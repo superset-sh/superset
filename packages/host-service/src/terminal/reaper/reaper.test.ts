@@ -1,6 +1,7 @@
 import { describe, expect, it } from "bun:test";
 import {
 	PORT_SCAN_WARMUP_DELAYS_MS,
+	planArchivedSuspends,
 	planPortScanSync,
 	REAP_INTERVAL_MS,
 	shouldReapRow,
@@ -150,5 +151,50 @@ describe("shouldReapRow", () => {
 		expect(shouldReapRow({ status: "active", originWorkspaceId: null })).toBe(
 			true,
 		);
+	});
+});
+
+describe("planArchivedSuspends", () => {
+	it("suspends live sessions whose workspace is archived", () => {
+		const suspends = planArchivedSuspends({
+			liveSessions: [{ id: "term-1" }, { id: "term-2" }],
+			rowById: new Map([
+				["term-1", { status: "active", originWorkspaceId: "ws-archived" }],
+				["term-2", { status: "active", originWorkspaceId: "ws-live" }],
+			]),
+			archivedWorkspaceIds: new Set(["ws-archived"]),
+		});
+
+		expect(suspends).toEqual(["term-1"]);
+	});
+
+	it("lets dispose supersede suspend for reap-bound rows", () => {
+		const suspends = planArchivedSuspends({
+			liveSessions: [{ id: "term-1" }, { id: "term-2" }],
+			rowById: new Map([
+				[
+					"term-1",
+					{
+						status: "active",
+						originWorkspaceId: "ws-archived",
+						disposeRequestedAt: 1_000,
+					},
+				],
+				["term-2", { status: "disposed", originWorkspaceId: "ws-archived" }],
+			]),
+			archivedWorkspaceIds: new Set(["ws-archived"]),
+		});
+
+		expect(suspends).toEqual([]);
+	});
+
+	it("ignores rowless daemon sessions (two-pass reap owns those)", () => {
+		const suspends = planArchivedSuspends({
+			liveSessions: [{ id: "term-unknown" }],
+			rowById: new Map(),
+			archivedWorkspaceIds: new Set(["ws-archived"]),
+		});
+
+		expect(suspends).toEqual([]);
 	});
 });

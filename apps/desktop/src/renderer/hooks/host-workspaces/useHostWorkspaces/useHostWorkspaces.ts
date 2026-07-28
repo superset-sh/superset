@@ -38,7 +38,10 @@ export interface HostWorkspacesCacheOps {
 }
 
 export interface UseHostWorkspacesResult {
+	/** Active (non-archived) workspaces — what the sidebar and pickers show. */
 	workspaces: HostWorkspaceItem[];
+	/** Archived workspaces — surfaced only in Settings → Archived workspaces. */
+	archivedWorkspaces: HostWorkspaceItem[];
 	/**
 	 * True once every host answered, failed, or served a snapshot. Gates
 	 * empty states only — existing rows always render (cache-first rule).
@@ -205,22 +208,26 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
-	const workspaces = useMemo(
-		() =>
-			mergeHostWorkspaces({
-				hostResults: targets.map((target, index) => {
-					const query = queries[index];
-					const live = query?.data;
-					return {
-						target,
-						rows: live ?? snapshots.get(target.machineId),
-						reachable: live !== undefined && !query?.isError,
-					};
-				}),
-				cloudRows: scopedHostId === undefined ? cloudRows : [],
+	// Split at the source so every existing consumer of `workspaces` (sidebar,
+	// palette, notifications, ports) hides archived rows without opting in.
+	const { workspaces, archivedWorkspaces } = useMemo(() => {
+		const merged = mergeHostWorkspaces({
+			hostResults: targets.map((target, index) => {
+				const query = queries[index];
+				const live = query?.data;
+				return {
+					target,
+					rows: live ?? snapshots.get(target.machineId),
+					reachable: live !== undefined && !query?.isError,
+				};
 			}),
-		[targets, queries, snapshots, cloudRows, scopedHostId],
-	);
+			cloudRows: scopedHostId === undefined ? cloudRows : [],
+		});
+		return {
+			workspaces: merged.filter((item) => !item.archivedAt),
+			archivedWorkspaces: merged.filter((item) => item.archivedAt),
+		};
+	}, [targets, queries, snapshots, cloudRows, scopedHostId]);
 
 	// Readiness reflects host-query settlement only. The Electric collection
 	// is a fallback merge, NOT a gate: an Electric collection can stay
@@ -277,5 +284,5 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
-	return { workspaces, isReady, cache };
+	return { workspaces, archivedWorkspaces, isReady, cache };
 }

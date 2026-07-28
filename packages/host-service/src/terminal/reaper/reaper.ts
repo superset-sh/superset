@@ -1,12 +1,18 @@
+import { isNotNull } from "drizzle-orm";
 import type { HostDb } from "../../db/index.ts";
-import { terminalSessions } from "../../db/schema.ts";
+import { terminalSessions, workspaces } from "../../db/schema.ts";
 import { portManager } from "../../ports/port-manager.ts";
 import { getDaemonClient } from "../daemon-client-singleton.ts";
-import { disposeSessionAndWait, isLiveTerminalSession } from "../terminal.ts";
+import {
+	disposeSessionAndWait,
+	isLiveTerminalSession,
+	suspendSessionAndWait,
+} from "../terminal.ts";
 
 interface ReapResult {
 	reaped: number;
 	failed: number;
+	suspended: number;
 }
 
 export const REAP_INTERVAL_MS = 5 * 60 * 1000;
@@ -44,6 +50,35 @@ export function shouldReapRow(row: TerminalRow): boolean {
 		!row.originWorkspaceId ||
 		row.disposeRequestedAt != null
 	);
+}
+
+/**
+ * Live daemon sessions whose workspace is archived get *suspended*: PTY
+ * killed, row left `active` and unstamped so a later unarchive+attach
+ * respawns via the lost-PTY recovery path. This deferred kill is also the
+ * undo grace period — archive itself no longer touches sessions, so an undo
+ * within a reap interval restores fully warm terminals. Reap-bound rows are
+ * excluded; dispose supersedes suspend. Pure for unit testing.
+ */
+export function planArchivedSuspends({
+	liveSessions,
+	rowById,
+	archivedWorkspaceIds,
+}: {
+	liveSessions: { id: string }[];
+	rowById: Map<string, TerminalRow>;
+	archivedWorkspaceIds: Set<string>;
+}): string[] {
+	const suspends: string[] = [];
+	for (const session of liveSessions) {
+		const row = rowById.get(session.id);
+		if (!row || shouldReapRow(row)) continue;
+		if (!row.originWorkspaceId) continue;
+		if (archivedWorkspaceIds.has(row.originWorkspaceId)) {
+			suspends.push(session.id);
+		}
+	}
+	return suspends;
 }
 
 export interface PortScanSyncPlan {
@@ -192,7 +227,7 @@ async function reapOrphanedSessions(
 
 	if (liveSessions.length === 0) {
 		rowlessPendingSecondPass.clear();
-		return { reaped: 0, failed: 0 };
+		return { reaped: 0, failed: 0, suspended: 0 };
 	}
 
 	const orphans: { id: string; rowless: boolean }[] = [];
@@ -234,7 +269,40 @@ async function reapOrphanedSessions(
 	rowlessPendingSecondPass.clear();
 	for (const id of stillRowless) rowlessPendingSecondPass.add(id);
 
-	return { reaped, failed };
+	// Deferred archive kill: suspend (not dispose) live sessions of archived
+	// workspaces. Idempotent across passes — suspended sessions drop out of
+	// the daemon's live list, so they aren't revisited.
+	let suspended = 0;
+	const archivedWorkspaceIds = new Set(
+		db
+			.select({ id: workspaces.id })
+			.from(workspaces)
+			.where(isNotNull(workspaces.archivedAt))
+			.all()
+			.map((row) => row.id),
+	);
+	if (archivedWorkspaceIds.size > 0) {
+		const suspends = planArchivedSuspends({
+			liveSessions,
+			rowById,
+			archivedWorkspaceIds,
+		});
+		for (const terminalId of suspends) {
+			try {
+				const result = await suspendSessionAndWait(terminalId, db);
+				if (result.daemonCloseSucceeded) {
+					suspended += 1;
+					continue;
+				}
+			} catch {
+				// Leave it for the next pass — the session is still in the
+				// daemon's live list.
+			}
+			failed += 1;
+		}
+	}
+
+	return { reaped, failed, suspended };
 }
 
 export function startTerminalReaper(db: HostDb): () => void {
@@ -245,9 +313,9 @@ export function startTerminalReaper(db: HostDb): () => void {
 		running = true;
 		void reapOrphanedSessions(db, rowlessPendingSecondPass)
 			.then((result) => {
-				if (result.reaped > 0 || result.failed > 0) {
+				if (result.reaped > 0 || result.failed > 0 || result.suspended > 0) {
 					console.log(
-						`[host-service] terminal reaper: ${result.reaped} reaped, ${result.failed} failed`,
+						`[host-service] terminal reaper: ${result.reaped} reaped, ${result.suspended} suspended (archived), ${result.failed} failed`,
 					);
 				}
 			})

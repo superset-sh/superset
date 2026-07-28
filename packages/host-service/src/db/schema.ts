@@ -206,6 +206,12 @@ export const workspaces = sqliteTable(
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
 		cloudSyncedAt: integer("cloud_synced_at"),
+		// Null = active. Set = hidden from the sidebar until unarchived or
+		// permanently destroyed; the worktree and branch stay on disk. Host-local
+		// only — not mirrored to the cloud row, so another machine relying on the
+		// Electric fallback for an offline host may still see the row (rendered
+		// unreachable there; the fallback goes away in R3).
+		archivedAt: integer("archived_at"),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),

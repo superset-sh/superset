@@ -19,6 +19,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useState } from "react";
 import { CgLaptop } from "react-icons/cg";
 import {
+	LuArchive,
 	LuArrowUpRight,
 	LuCircleCheck,
 	LuCircleDashed,
@@ -26,12 +27,11 @@ import {
 	LuGitBranch,
 	LuLaptop,
 	LuMonitor,
-	LuTrash2,
 } from "react-icons/lu";
 import { RiPushpinFill, RiPushpinLine } from "react-icons/ri";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { useArchiveWorkspaceFlow } from "renderer/lib/workspaces/useArchiveWorkspaceFlow";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { V2WorkspacePrHoverCardContent } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/V2WorkspacePrHoverCardContent";
 import type {
@@ -59,14 +59,11 @@ export function V2WorkspaceRow({
 }: V2WorkspaceRowProps) {
 	const navigate = useNavigate();
 	const { gateFeature } = usePaywall();
-	const {
-		ensureWorkspaceInSidebar,
-		removeWorkspaceFromSidebar,
-		hideWorkspaceInSidebar,
-	} = useDashboardSidebarState();
+	const { ensureWorkspaceInSidebar, hideWorkspaceInSidebar } =
+		useDashboardSidebarState();
 	const { copyToClipboard } = useCopyToClipboard();
+	const { archiveWorkspace } = useArchiveWorkspaceFlow();
 	const isMainWorkspace = workspace.type === "main";
-	const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 	const { isDeleting } = useDeletingWorkspaces();
 	const deleting = isDeleting(workspace.id);
 
@@ -130,14 +127,20 @@ export function V2WorkspaceRow({
 		}
 	}, [copyToClipboard, workspace.branch]);
 
-	const handleDeleteClick = useCallback((event: React.MouseEvent) => {
-		event.stopPropagation();
-		setIsDeleteDialogOpen(true);
-	}, []);
+	const handleArchive = useCallback(() => {
+		void archiveWorkspace({
+			workspaceId: workspace.id,
+			source: "workspaces-page",
+		});
+	}, [archiveWorkspace, workspace.id]);
 
-	const handleDeleted = useCallback(() => {
-		removeWorkspaceFromSidebar(workspace.id);
-	}, [removeWorkspaceFromSidebar, workspace.id]);
+	const handleArchiveClick = useCallback(
+		(event: React.MouseEvent) => {
+			event.stopPropagation();
+			handleArchive();
+		},
+		[handleArchive],
+	);
 
 	const creatorLabel = workspace.isCreatedByCurrentUser
 		? "you"
@@ -178,208 +181,185 @@ export function V2WorkspaceRow({
 	);
 
 	return (
-		<>
-			<ContextMenu>
-				<ContextMenuTrigger asChild>
-					<TableRow
-						aria-current={isCurrentRoute ? "page" : undefined}
-						aria-busy={deleting}
-						tabIndex={deleting ? -1 : 0}
-						onClick={handleOpen}
-						onKeyDown={handleRowKeyDown}
-						className={cn(
-							"group/row border-border/50 text-sm outline-none",
-							"cursor-pointer transition-colors",
-							"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
-							isCurrentRoute
-								? "bg-muted hover:bg-muted focus-visible:bg-muted"
-								: "hover:bg-accent/50 focus-visible:bg-accent/50",
-							deleting && "pointer-events-none opacity-50",
-						)}
-					>
-						<TableCell className="py-1.5 pl-6">
-							<div className="flex items-center justify-center">
-								{workspace.isInSidebar ? (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<Button
-												size="icon"
-												variant="ghost"
-												onClick={(event) => {
-													event.stopPropagation();
-													removeFromSidebar();
-												}}
-												aria-disabled={isCurrentRoute}
-												aria-pressed
-												aria-label="Unpin from sidebar"
-												className={cn(
-													"size-7 text-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent",
-													isCurrentRoute && "cursor-not-allowed opacity-50",
-												)}
-											>
-												<RiPushpinFill className="size-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="right">
-											{isCurrentRoute
-												? "Can't unpin the current workspace"
-												: "Unpin from sidebar"}
-										</TooltipContent>
-									</Tooltip>
-								) : (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<Button
-												size="icon"
-												variant="ghost"
-												onClick={(event) => {
-													event.stopPropagation();
-													addToSidebar();
-												}}
-												aria-pressed={false}
-												aria-label="Pin to sidebar"
-												className="size-7 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
-											>
-												<RiPushpinLine className="size-4" />
-											</Button>
-										</TooltipTrigger>
-										<TooltipContent side="right">Pin to sidebar</TooltipContent>
-									</Tooltip>
-								)}
-							</div>
-						</TableCell>
-
-						<TableCell className="py-1.5">
-							<span className="flex min-w-0 items-center gap-2">
-								{isMainWorkspace ? (
-									<Tooltip delayDuration={300}>
-										<TooltipTrigger asChild>
-											<CgLaptop
-												className="size-3.5 shrink-0 text-muted-foreground"
-												aria-label="Main workspace"
-											/>
-										</TooltipTrigger>
-										<TooltipContent side="top">Main workspace</TooltipContent>
-									</Tooltip>
-								) : null}
-								<span
-									className="min-w-0 truncate font-medium text-foreground"
-									title={workspace.name}
-								>
-									{workspace.name}
-								</span>
-								{workspace.pr ? (
-									<WorkspacePrPill
-										pr={workspace.pr}
-										branch={workspace.branch}
-									/>
-								) : null}
-							</span>
-						</TableCell>
-
-						<TableCell className="hidden py-1.5 md:table-cell">
-							{treatAsOffline ? (
+		<ContextMenu>
+			<ContextMenuTrigger asChild>
+				<TableRow
+					aria-current={isCurrentRoute ? "page" : undefined}
+					aria-busy={deleting}
+					tabIndex={deleting ? -1 : 0}
+					onClick={handleOpen}
+					onKeyDown={handleRowKeyDown}
+					className={cn(
+						"group/row border-border/50 text-sm outline-none",
+						"cursor-pointer transition-colors",
+						"focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset",
+						isCurrentRoute
+							? "bg-muted hover:bg-muted focus-visible:bg-muted"
+							: "hover:bg-accent/50 focus-visible:bg-accent/50",
+						deleting && "pointer-events-none opacity-50",
+					)}
+				>
+					<TableCell className="py-1.5 pl-6">
+						<div className="flex items-center justify-center">
+							{workspace.isInSidebar ? (
 								<Tooltip delayDuration={300}>
-									<TooltipTrigger asChild>{hostCell}</TooltipTrigger>
-									<TooltipContent side="top">Host is offline</TooltipContent>
+									<TooltipTrigger asChild>
+										<Button
+											size="icon"
+											variant="ghost"
+											onClick={(event) => {
+												event.stopPropagation();
+												removeFromSidebar();
+											}}
+											aria-disabled={isCurrentRoute}
+											aria-pressed
+											aria-label="Unpin from sidebar"
+											className={cn(
+												"size-7 text-foreground hover:bg-transparent hover:text-muted-foreground dark:hover:bg-transparent",
+												isCurrentRoute && "cursor-not-allowed opacity-50",
+											)}
+										>
+											<RiPushpinFill className="size-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="right">
+										{isCurrentRoute
+											? "Can't unpin the current workspace"
+											: "Unpin from sidebar"}
+									</TooltipContent>
 								</Tooltip>
 							) : (
-								hostCell
+								<Tooltip delayDuration={300}>
+									<TooltipTrigger asChild>
+										<Button
+											size="icon"
+											variant="ghost"
+											onClick={(event) => {
+												event.stopPropagation();
+												addToSidebar();
+											}}
+											aria-pressed={false}
+											aria-label="Pin to sidebar"
+											className="size-7 text-muted-foreground hover:bg-transparent hover:text-foreground dark:hover:bg-transparent"
+										>
+											<RiPushpinLine className="size-4" />
+										</Button>
+									</TooltipTrigger>
+									<TooltipContent side="right">Pin to sidebar</TooltipContent>
+								</Tooltip>
 							)}
-						</TableCell>
+						</div>
+					</TableCell>
 
-						<TableCell className="hidden py-1.5 lg:table-cell">
+					<TableCell className="py-1.5">
+						<span className="flex min-w-0 items-center gap-2">
+							{isMainWorkspace ? (
+								<Tooltip delayDuration={300}>
+									<TooltipTrigger asChild>
+										<CgLaptop
+											className="size-3.5 shrink-0 text-muted-foreground"
+											aria-label="Main workspace"
+										/>
+									</TooltipTrigger>
+									<TooltipContent side="top">Main workspace</TooltipContent>
+								</Tooltip>
+							) : null}
 							<span
-								className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
-								title={workspace.branch}
+								className="min-w-0 truncate font-medium text-foreground"
+								title={workspace.name}
 							>
-								<LuGitBranch className="size-3 shrink-0" />
-								<span className="min-w-0 truncate font-mono text-[11px]">
-									{workspace.branch}
-								</span>
+								{workspace.name}
 							</span>
-						</TableCell>
+							{workspace.pr ? (
+								<WorkspacePrPill pr={workspace.pr} branch={workspace.branch} />
+							) : null}
+						</span>
+					</TableCell>
 
-						<TableCell
-							className="hidden truncate py-1.5 text-xs tabular-nums text-muted-foreground xl:table-cell"
-							title={`Created ${workspace.createdAt.toLocaleString()} by ${creatorLabel}`}
-						>
-							{timeLabel} · {creatorLabel}
-						</TableCell>
+					<TableCell className="hidden py-1.5 md:table-cell">
+						{treatAsOffline ? (
+							<Tooltip delayDuration={300}>
+								<TooltipTrigger asChild>{hostCell}</TooltipTrigger>
+								<TooltipContent side="top">Host is offline</TooltipContent>
+							</Tooltip>
+						) : (
+							hostCell
+						)}
+					</TableCell>
 
-						<TableCell className="py-1.5 pr-6">
-							<div className="flex items-center justify-center">
-								{deleting ? (
-									<AsciiSpinner />
-								) : !isMainWorkspace ? (
-									<Button
-										size="icon"
-										variant="ghost"
-										onClick={handleDeleteClick}
-										aria-label="Delete workspace"
-										className="size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-transparent hover:text-destructive focus-visible:opacity-100 group-hover/row:opacity-100 dark:hover:bg-transparent"
-									>
-										<LuTrash2 className="size-3.5" />
-									</Button>
-								) : null}
-							</div>
-						</TableCell>
-					</TableRow>
-				</ContextMenuTrigger>
-				<ContextMenuContent
-					onCloseAutoFocus={(event) => event.preventDefault()}
-				>
-					<ContextMenuItem onSelect={handleOpen}>
-						<LuArrowUpRight className="size-4" />
-						Open
-					</ContextMenuItem>
-					<ContextMenuItem onSelect={handleCopyBranchName}>
-						<LuGitBranch className="size-4" />
-						Copy Branch Name
-					</ContextMenuItem>
-					<ContextMenuSeparator />
-					{workspace.isInSidebar ? (
-						<ContextMenuItem
-							onSelect={removeFromSidebar}
-							disabled={isCurrentRoute}
+					<TableCell className="hidden py-1.5 lg:table-cell">
+						<span
+							className="flex min-w-0 items-center gap-1.5 text-xs text-muted-foreground"
+							title={workspace.branch}
 						>
-							<RiPushpinLine className="size-4" />
-							Unpin from Sidebar
+							<LuGitBranch className="size-3 shrink-0" />
+							<span className="min-w-0 truncate font-mono text-[11px]">
+								{workspace.branch}
+							</span>
+						</span>
+					</TableCell>
+
+					<TableCell
+						className="hidden truncate py-1.5 text-xs tabular-nums text-muted-foreground xl:table-cell"
+						title={`Created ${workspace.createdAt.toLocaleString()} by ${creatorLabel}`}
+					>
+						{timeLabel} · {creatorLabel}
+					</TableCell>
+
+					<TableCell className="py-1.5 pr-6">
+						<div className="flex items-center justify-center">
+							{deleting ? (
+								<AsciiSpinner />
+							) : !isMainWorkspace ? (
+								<Button
+									size="icon"
+									variant="ghost"
+									onClick={handleArchiveClick}
+									aria-label="Archive workspace"
+									className="size-7 text-muted-foreground opacity-0 transition-opacity hover:bg-transparent hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100 dark:hover:bg-transparent"
+								>
+									<LuArchive className="size-3.5" />
+								</Button>
+							) : null}
+						</div>
+					</TableCell>
+				</TableRow>
+			</ContextMenuTrigger>
+			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
+				<ContextMenuItem onSelect={handleOpen}>
+					<LuArrowUpRight className="size-4" />
+					Open
+				</ContextMenuItem>
+				<ContextMenuItem onSelect={handleCopyBranchName}>
+					<LuGitBranch className="size-4" />
+					Copy Branch Name
+				</ContextMenuItem>
+				<ContextMenuSeparator />
+				{workspace.isInSidebar ? (
+					<ContextMenuItem
+						onSelect={removeFromSidebar}
+						disabled={isCurrentRoute}
+					>
+						<RiPushpinLine className="size-4" />
+						Unpin from Sidebar
+					</ContextMenuItem>
+				) : (
+					<ContextMenuItem onSelect={addToSidebar}>
+						<RiPushpinFill className="size-4" />
+						Pin to Sidebar
+					</ContextMenuItem>
+				)}
+				{!isMainWorkspace ? (
+					<>
+						<ContextMenuSeparator />
+						<ContextMenuItem onSelect={handleArchive}>
+							<LuArchive className="size-4" />
+							Archive
 						</ContextMenuItem>
-					) : (
-						<ContextMenuItem onSelect={addToSidebar}>
-							<RiPushpinFill className="size-4" />
-							Pin to Sidebar
-						</ContextMenuItem>
-					)}
-					{!isMainWorkspace ? (
-						<>
-							<ContextMenuSeparator />
-							<ContextMenuItem
-								onSelect={() => setIsDeleteDialogOpen(true)}
-								className="text-destructive focus:text-destructive"
-							>
-								<LuTrash2 className="size-4 text-destructive" />
-								Delete
-							</ContextMenuItem>
-						</>
-					) : null}
-				</ContextMenuContent>
-			</ContextMenu>
-			{/* Mount the dialog (and its per-workspace live-query subscription) only
-			    while it's open or a delete is in flight — not idle for every row.
-			    `|| deleting` keeps it mounted through the destroy so a
-			    teardown-failure can re-open it to offer force-delete. */}
-			{!isMainWorkspace && (isDeleteDialogOpen || deleting) ? (
-				<DashboardSidebarDeleteDialog
-					workspaceId={workspace.id}
-					workspaceName={workspace.name || workspace.branch}
-					open={isDeleteDialogOpen}
-					onOpenChange={setIsDeleteDialogOpen}
-					onDeleted={handleDeleted}
-				/>
-			) : null}
-		</>
+					</>
+				) : null}
+			</ContextMenuContent>
+		</ContextMenu>
 	);
 }
 

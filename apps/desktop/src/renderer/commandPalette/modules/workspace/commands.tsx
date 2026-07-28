@@ -1,10 +1,4 @@
-import {
-	ArchiveIcon,
-	FileIcon,
-	LinkIcon,
-	PlusIcon,
-	Trash2Icon,
-} from "lucide-react";
+import { ArchiveIcon, FileIcon, LinkIcon, PlusIcon } from "lucide-react";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useNewWorkspaceModalStore } from "renderer/stores/new-workspace-modal";
@@ -71,10 +65,10 @@ export const workspaceProvider: CommandProvider = {
 		if (!isMain) {
 			commands.push({
 				id: `workspace.delete:${workspace.id}`,
-				title: `Delete ${workspace.name}`,
+				title: `Archive ${workspace.name}`,
 				section: "workspace",
-				icon: Trash2Icon,
-				keywords: ["archive", "remove", "close"],
+				icon: ArchiveIcon,
+				keywords: ["delete", "remove", "close"],
 				hotkeyId: "CLOSE_WORKSPACE",
 				run: () =>
 					useDeleteWorkspaceIntent.getState().request({

@@ -18,6 +18,7 @@ export type SettingsSection =
 	| "integrations"
 	| "billing"
 	| "apikeys"
+	| "archivedWorkspaces"
 	| "permissions"
 	| "security"
 	| "project"

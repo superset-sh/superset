@@ -2,6 +2,7 @@ import { cn } from "@superset/ui/utils";
 import { Link, useMatchRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
 import {
+	HiOutlineArchiveBox,
 	HiOutlineBeaker,
 	HiOutlineBell,
 	HiOutlineBuildingOffice2,
@@ -47,6 +48,7 @@ type SettingsRoute =
 	| "/settings/integrations"
 	| "/settings/billing"
 	| "/settings/api-keys"
+	| "/settings/archived-workspaces"
 	| "/settings/security"
 	| "/settings/permissions"
 	| "/settings/projects"
@@ -109,6 +111,12 @@ const SECTION_GROUPS: SectionGroup[] = [
 				section: "git",
 				label: "Git & Worktrees",
 				icon: <LuGitBranch className="h-4 w-4" />,
+			},
+			{
+				id: "/settings/archived-workspaces",
+				section: "archivedWorkspaces",
+				label: "Archived workspaces",
+				icon: <HiOutlineArchiveBox className="h-4 w-4" />,
 			},
 			{
 				id: "/settings/agents",

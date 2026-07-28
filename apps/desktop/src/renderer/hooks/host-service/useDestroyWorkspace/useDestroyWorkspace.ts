@@ -97,7 +97,7 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 					force: input.force ?? false,
 				});
 			} catch (err) {
-				throw normalizeError(err);
+				throw normalizeDestroyWorkspaceError(err);
 			}
 		},
 		[hostUrl, hostStatus, workspaceId],
@@ -108,7 +108,7 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 		try {
 			return await client.workspaceCleanup.inspect.query({ workspaceId });
 		} catch (err) {
-			throw normalizeError(err);
+			throw normalizeDestroyWorkspaceError(err);
 		}
 	}, [hostUrl, hostStatus, workspaceId]);
 
@@ -128,7 +128,9 @@ function getReadyClient(
 	return getHostServiceClientByUrl(hostUrl);
 }
 
-function normalizeError(err: unknown): DestroyWorkspaceError {
+export function normalizeDestroyWorkspaceError(
+	err: unknown,
+): DestroyWorkspaceError {
 	if (isDestroyWorkspaceError(err)) return err;
 	if (err instanceof TRPCClientError) {
 		const data = err.data as

@@ -17,7 +17,12 @@ import { and, eq, inArray, isNull, ne } from "drizzle-orm";
 import type { Hono } from "hono";
 import { isProcessAlive, readPtyDaemonManifest } from "../daemon/manifest.ts";
 import type { HostDb } from "../db/index.ts";
-import { projects, terminalSessions, workspaces } from "../db/schema.ts";
+import {
+	projects,
+	terminalAgentBindings,
+	terminalSessions,
+	workspaces,
+} from "../db/schema.ts";
 import type { EventBus } from "../events/index.ts";
 import { portManager } from "../ports/port-manager.ts";
 import {
@@ -946,23 +951,16 @@ export function disposeSession(terminalId: string, db: HostDb) {
 		});
 }
 
-export async function disposeSessionAndWait(
-	terminalId: string,
-	db: HostDb,
-): Promise<DisposeSessionResult> {
-	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
-	// restart mid-kill), the reaper retries any stamped row — a one-shot
-	// renderer broadcast must not be the only chance to kill a session.
-	// First request time wins so retries don't look like fresh requests.
-	db.update(terminalSessions)
-		.set({ disposeRequestedAt: Date.now() })
-		.where(
-			and(
-				eq(terminalSessions.id, terminalId),
-				isNull(terminalSessions.disposeRequestedAt),
-			),
-		)
-		.run();
+/**
+ * Kill a session's live runtime — sockets, in-memory state, daemon PTY,
+ * port scan — without touching its DB row. Shared by dispose (which then
+ * marks the row dead) and suspend (which deliberately leaves the row
+ * `active` so a later attach respawns via the lost-PTY recovery path).
+ */
+async function killSessionRuntime(terminalId: string): Promise<{
+	session: TerminalSession | undefined;
+	closeResult: DaemonCloseResult;
+}> {
 	const session = sessions.get(terminalId);
 	let closePromise: Promise<DaemonCloseResult> | null = null;
 
@@ -1014,7 +1012,61 @@ export async function disposeSessionAndWait(
 
 	const closeResult = closePromise
 		? await closePromise
-		: { attempted: false, succeeded: true };
+		: ({ attempted: false, succeeded: true } satisfies DaemonCloseResult);
+
+	return { session, closeResult };
+}
+
+/**
+ * Kill a session's PTY but keep its `terminal_sessions` row `active` and
+ * unstamped. The next WS attach then takes the same adopt→respawn path as a
+ * lost-PTY host restart (fresh shell + "session restored" notice) instead of
+ * dead-ending on a missing/disposed row. Used for archived workspaces, where
+ * the kill must stay reversible. No exit broadcast: the workspace is hidden,
+ * and the row must keep reading as a respawnable session.
+ */
+export async function suspendSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
+	const { closeResult } = await killSessionRuntime(terminalId);
+	if (closeResult.succeeded) {
+		// Any terminal agent in the PTY died with it. Agent-binding liveness
+		// queries gate on the session row's `active` status — which suspend
+		// deliberately preserves for respawn — so a surviving binding would
+		// report the dead agent as live indefinitely. Drop it; a respawned
+		// shell starts agent-less. (Dispose gets this for free via the
+		// session-row delete cascade.)
+		db.delete(terminalAgentBindings)
+			.where(eq(terminalAgentBindings.terminalId, terminalId))
+			.run();
+	}
+	return {
+		terminalId,
+		daemonCloseAttempted: closeResult.attempted,
+		daemonCloseSucceeded: closeResult.succeeded,
+	};
+}
+
+export async function disposeSessionAndWait(
+	terminalId: string,
+	db: HostDb,
+): Promise<DisposeSessionResult> {
+	// Durable intent-to-kill: if this attempt fails (daemon hiccup, host
+	// restart mid-kill), the reaper retries any stamped row — a one-shot
+	// renderer broadcast must not be the only chance to kill a session.
+	// First request time wins so retries don't look like fresh requests.
+	db.update(terminalSessions)
+		.set({ disposeRequestedAt: Date.now() })
+		.where(
+			and(
+				eq(terminalSessions.id, terminalId),
+				isNull(terminalSessions.disposeRequestedAt),
+			),
+		)
+		.run();
+
+	const { session, closeResult } = await killSessionRuntime(terminalId);
 
 	if (closeResult.succeeded) {
 		const endedAt = Date.now();

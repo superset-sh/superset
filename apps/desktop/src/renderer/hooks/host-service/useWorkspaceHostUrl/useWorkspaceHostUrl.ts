@@ -23,9 +23,13 @@ export function useWorkspaceHostTarget(
 	const { machineId, activeHostUrl } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 
-	const { workspaces, isReady } = useHostWorkspaces();
+	const { workspaces, archivedWorkspaces, isReady } = useHostWorkspaces();
+	// Archived rows still resolve — Settings needs the owning host to
+	// unarchive or permanently destroy them.
 	const match = workspaceId
-		? (workspaces.find((w) => w.id === workspaceId) ?? null)
+		? (workspaces.find((w) => w.id === workspaceId) ??
+			archivedWorkspaces.find((w) => w.id === workspaceId) ??
+			null)
 		: null;
 
 	return useMemo(() => {

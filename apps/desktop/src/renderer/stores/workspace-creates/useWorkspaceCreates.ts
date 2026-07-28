@@ -114,6 +114,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				updatedAt: now,
 				worktreePath: "",
 				worktreeExists: true,
+				archivedAt: null,
 			});
 
 			const createPromise = getHostServiceClientByUrl(

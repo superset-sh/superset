@@ -69,6 +69,8 @@ export interface WorkspaceSnapshot {
 	createdByUserId: string | null;
 	createdAt: number;
 	updatedAt: number;
+	/** Null = active; set = archived (hidden until unarchive/destroy). */
+	archivedAt: number | null;
 }
 
 export interface WorkspaceChangedMessage {

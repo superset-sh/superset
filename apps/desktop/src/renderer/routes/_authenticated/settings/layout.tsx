@@ -42,6 +42,7 @@ const SECTION_ORDER: SettingsSection[] = [
 	"integrations",
 	"billing",
 	"apikeys",
+	"archivedWorkspaces",
 	"permissions",
 	"hosts",
 	"experimental",
@@ -55,6 +56,8 @@ function getSectionFromPath(pathname: string): SettingsSection | null {
 	if (pathname.includes("/settings/ringtones")) return "ringtones";
 	if (pathname.includes("/settings/keyboard")) return "keyboard";
 	if (pathname.includes("/settings/behavior")) return "behavior";
+	if (pathname.includes("/settings/archived-workspaces"))
+		return "archivedWorkspaces";
 	if (pathname.includes("/settings/git")) return "git";
 	if (pathname.includes("/settings/terminal")) return "terminal";
 	if (pathname.includes("/settings/links")) return "links";
@@ -83,6 +86,8 @@ function getPathFromSection(section: SettingsSection): string {
 			return "/settings/keyboard";
 		case "behavior":
 			return "/settings/behavior";
+		case "archivedWorkspaces":
+			return "/settings/archived-workspaces";
 		case "git":
 			return "/settings/git";
 		case "terminal":

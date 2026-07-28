@@ -12,6 +12,7 @@ import {
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
+	LuArchive,
 	LuArrowRightLeft,
 	LuArrowUp,
 	LuBellOff,
@@ -25,7 +26,6 @@ import {
 	LuPin,
 	LuPinOff,
 	LuRadioTower,
-	LuTrash2,
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
@@ -52,7 +52,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onCopyBranchName: () => void;
 	onRemoveFromSidebar: () => void;
 	onRename?: () => void;
-	onDelete?: () => void;
+	onArchive?: () => void;
 	onToggleUnread: () => void;
 	onClearStatus: () => void;
 	children: React.ReactNode;
@@ -76,7 +76,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onCopyBranchName,
 	onRemoveFromSidebar,
 	onRename,
-	onDelete,
+	onArchive,
 	onToggleUnread,
 	onClearStatus,
 	children,
@@ -232,13 +232,10 @@ export function DashboardSidebarWorkspaceContextMenu({
 					<LuX className="size-4 mr-2 text-destructive" />
 					Remove from Sidebar
 				</ContextMenuItem>
-				{onDelete ? (
-					<ContextMenuItem
-						onSelect={onDelete}
-						className="text-destructive focus:text-destructive"
-					>
-						<LuTrash2 className="size-4 mr-2 text-destructive" />
-						Delete
+				{onArchive ? (
+					<ContextMenuItem onSelect={onArchive}>
+						<LuArchive className="size-4 mr-2" />
+						Archive
 						{showDeleteShortcut && (
 							<ContextMenuShortcut>{deleteHotkeyText}</ContextMenuShortcut>
 						)}

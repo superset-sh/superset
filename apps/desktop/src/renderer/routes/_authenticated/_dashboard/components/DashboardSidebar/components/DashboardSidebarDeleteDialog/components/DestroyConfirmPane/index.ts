@@ -1,1 +1,0 @@
-export { DestroyConfirmPane } from "./DestroyConfirmPane";

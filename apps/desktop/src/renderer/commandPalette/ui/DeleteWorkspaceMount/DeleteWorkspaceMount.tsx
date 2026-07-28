@@ -1,25 +1,25 @@
-import { useCallback } from "react";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { useEffect } from "react";
+import { useArchiveWorkspaceFlow } from "renderer/lib/workspaces/useArchiveWorkspaceFlow";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
+/**
+ * Headless handler for the palette's archive intent. Archiving is instant
+ * (undo lives in the toast), so unlike the old delete dialog there is no UI
+ * to render — the intent fires the flow and immediately clears.
+ */
 export function DeleteWorkspaceMount() {
 	const target = useDeleteWorkspaceIntent((s) => s.target);
 	const close = useDeleteWorkspaceIntent((s) => s.close);
+	const { archiveWorkspace } = useArchiveWorkspaceFlow();
 
-	const handleOpenChange = useCallback(
-		(open: boolean) => {
-			if (!open) close();
-		},
-		[close],
-	);
+	useEffect(() => {
+		if (!target) return;
+		void archiveWorkspace({
+			workspaceId: target.workspaceId,
+			source: "command-palette",
+		});
+		close();
+	}, [target, archiveWorkspace, close]);
 
-	if (!target) return null;
-	return (
-		<DashboardSidebarDeleteDialog
-			workspaceId={target.workspaceId}
-			workspaceName={target.workspaceName}
-			open
-			onOpenChange={handleOpenChange}
-		/>
-	);
+	return null;
 }

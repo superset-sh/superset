@@ -75,6 +75,9 @@ export const SETTING_ITEM_ID = {
 	API_KEYS_LIST: "api-keys-list",
 	API_KEYS_GENERATE: "api-keys-generate",
 
+	ARCHIVED_WORKSPACES_LIST: "archived-workspaces-list",
+	ARCHIVED_WORKSPACES_DELETE_ALL: "archived-workspaces-delete-all",
+
 	PERMISSIONS_FULL_DISK_ACCESS: "permissions-full-disk-access",
 	PERMISSIONS_ACCESSIBILITY: "permissions-accessibility",
 	PERMISSIONS_MICROPHONE: "permissions-microphone",
@@ -188,6 +191,9 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 
 	[SETTING_ITEM_ID.API_KEYS_LIST]: "shared",
 	[SETTING_ITEM_ID.API_KEYS_GENERATE]: "shared",
+
+	[SETTING_ITEM_ID.ARCHIVED_WORKSPACES_LIST]: "v2",
+	[SETTING_ITEM_ID.ARCHIVED_WORKSPACES_DELETE_ALL]: "v2",
 
 	[SETTING_ITEM_ID.PERMISSIONS_FULL_DISK_ACCESS]: "shared",
 	[SETTING_ITEM_ID.PERMISSIONS_ACCESSIBILITY]: "shared",
@@ -1270,6 +1276,29 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"claude desktop",
 			"claude code",
 		],
+	},
+	{
+		id: SETTING_ITEM_ID.ARCHIVED_WORKSPACES_LIST,
+		section: "archivedWorkspaces",
+		title: "Archived workspaces",
+		description: "Restore or permanently delete archived workspaces",
+		keywords: [
+			"archive",
+			"archived",
+			"unarchive",
+			"restore",
+			"delete",
+			"workspace",
+			"trash",
+			"worktree",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.ARCHIVED_WORKSPACES_DELETE_ALL,
+		section: "archivedWorkspaces",
+		title: "Delete all archived workspaces",
+		description: "Permanently delete every archived workspace and its worktree",
+		keywords: ["delete all", "archived", "clean up", "workspace", "purge"],
 	},
 	{
 		id: SETTING_ITEM_ID.PERMISSIONS_FULL_DISK_ACCESS,

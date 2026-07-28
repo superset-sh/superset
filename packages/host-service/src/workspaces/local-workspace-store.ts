@@ -78,6 +78,7 @@ export interface CloudShapedWorkspace {
 	taskId: string | null;
 	createdAt: Date;
 	updatedAt: Date;
+	archivedAt: Date | null;
 }
 
 export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
@@ -92,6 +93,7 @@ export function toWorkspaceSnapshot(row: HostWorkspaceRow): WorkspaceSnapshot {
 		createdByUserId: row.createdByUserId,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
+		archivedAt: row.archivedAt ?? null,
 	};
 }
 
@@ -113,6 +115,7 @@ export function toCloudShape(
 		taskId: row.taskId,
 		createdAt: new Date(row.createdAt),
 		updatedAt: new Date(row.updatedAt || row.createdAt),
+		archivedAt: row.archivedAt ? new Date(row.archivedAt) : null,
 	};
 }
 
@@ -172,6 +175,7 @@ export interface UpdateLocalWorkspacePatch {
 	worktreePath?: string;
 	taskId?: string | null;
 	projectId?: string;
+	archivedAt?: number | null;
 }
 
 /** Patch a local row, bump `updatedAt`, and broadcast. */

@@ -10,6 +10,10 @@ import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 export interface HostWorkspaceRow extends SelectV2Workspace {
 	worktreePath: string;
 	worktreeExists: boolean;
+	/** Null = active; set = archived (host-local flag, no cloud column). */
+	archivedAt: Date | null;
+	/** Served by `workspace.list`; absent on rows built from broadcasts. */
+	projectName?: string | null;
 }
 
 /** Merged item returned by useHostWorkspaces. */
@@ -20,6 +24,10 @@ export interface HostWorkspaceItem extends SelectV2Workspace {
 	hostReachable: boolean;
 	/** "host" = served by a host (live or last-seen); "cloud" = Electric fallback. */
 	source: "host" | "cloud";
+	/** Null = active. Cloud-fallback rows are always null (no cloud column). */
+	archivedAt: Date | null;
+	/** Present on host-served rows; absent on cloud-fallback rows. */
+	projectName?: string | null;
 }
 
 export interface HostWorkspacesQueryTarget {
@@ -178,6 +186,11 @@ export function applyWorkspaceChangedEvent(
 		// A host broadcasting created/updated just acted on the worktree;
 		// keep a known value over assuming.
 		worktreeExists: existing?.worktreeExists ?? true,
+		// Snapshots don't carry projectName (list-only join) — preserve the
+		// cached value or the row's label blanks until the next refetch.
+		projectName: existing?.projectName ?? null,
+		archivedAt:
+			snapshot.archivedAt != null ? new Date(snapshot.archivedAt) : null,
 	};
 	if (!rows) return [nextRow];
 	return existing
@@ -228,6 +241,7 @@ export function mergeHostWorkspaces({
 			...row,
 			hostReachable: false,
 			source: "cloud",
+			archivedAt: null,
 		});
 	}
 

@@ -1,8 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Link } from "@tanstack/react-router";
-import { ArrowRight, FolderX, RefreshCw, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { Archive, ArrowRight, FolderX, RefreshCw } from "lucide-react";
+import { useArchiveWorkspaceFlow } from "renderer/lib/workspaces/useArchiveWorkspaceFlow";
 
 interface WorkspaceMissingWorktreeStateProps {
 	workspaceId: string;
@@ -21,7 +20,7 @@ export function WorkspaceMissingWorktreeState({
 	onRefresh,
 	isRefreshing = false,
 }: WorkspaceMissingWorktreeStateProps) {
-	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+	const { archiveWorkspace } = useArchiveWorkspaceFlow();
 	const displayName = workspaceName || branch;
 
 	return (
@@ -64,12 +63,17 @@ export function WorkspaceMissingWorktreeState({
 				<div className="flex flex-wrap items-center gap-2">
 					<Button
 						size="sm"
-						variant="destructive"
+						variant="secondary"
 						className="h-7 gap-1.5 px-2.5 text-[13px]"
-						onClick={() => setDeleteDialogOpen(true)}
+						onClick={() =>
+							void archiveWorkspace({
+								workspaceId,
+								source: "missing-worktree",
+							})
+						}
 					>
-						<Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
-						Delete workspace
+						<Archive className="size-3.5" strokeWidth={2} aria-hidden="true" />
+						{`Archive ${displayName}`}
 					</Button>
 					<Button
 						size="sm"
@@ -101,13 +105,6 @@ export function WorkspaceMissingWorktreeState({
 						</Link>
 					</Button>
 				</div>
-
-				<DashboardSidebarDeleteDialog
-					workspaceId={workspaceId}
-					workspaceName={displayName}
-					open={deleteDialogOpen}
-					onOpenChange={setDeleteDialogOpen}
-				/>
 			</div>
 		</div>
 	);

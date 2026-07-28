@@ -23,7 +23,12 @@ import { fileURLToPath } from "node:url";
 import { Server } from "@superset/pty-daemon";
 import { eq } from "drizzle-orm";
 import { createDb, type HostDb } from "../db/index.ts";
-import { projects, terminalSessions, workspaces } from "../db/schema.ts";
+import {
+	projects,
+	terminalAgentBindings,
+	terminalSessions,
+	workspaces,
+} from "../db/schema.ts";
 import {
 	disposeDaemonClient,
 	getDaemonClient,
@@ -35,6 +40,7 @@ import {
 	disposeSessionAndWait,
 	listTerminalSessions,
 	replayBuffer,
+	suspendSessionAndWait,
 } from "./terminal.ts";
 import { __setAccountShellForTesting } from "./user-shell.ts";
 
@@ -795,6 +801,113 @@ describe("createTerminalSessionInternal — host-service restart adoption", () =
 			).toString("utf8");
 			return text.includes(LIVE_SENTINEL);
 		}, 3000);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("suspend kills the PTY but leaves the row respawnable (archived-workspace lifecycle)", async () => {
+		// The archive flow: the reaper suspends an archived workspace's live
+		// sessions. The row must stay `active` and unstamped so a later
+		// unarchive+attach takes the adopt→respawn path (fresh shell +
+		// restored notice) instead of dead-ending on a missing/disposed row.
+		const terminalId = `e2e-suspend-${randomUUID().slice(0, 8)}`;
+
+		const first = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in first));
+		if ("error" in first) return;
+		const originalPid = first.pty.pid;
+
+		// A terminal agent bound to this session: its process dies with the
+		// PTY, so suspend must drop the binding (liveness queries gate on the
+		// session row's `active` status, which suspend keeps).
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId,
+				workspaceId,
+				agentId: "claude" as never,
+				startedAt: Date.now(),
+				lastEventAt: Date.now(),
+				lastEventType: "start",
+			})
+			.run();
+
+		await suspendSessionAndWait(terminalId, db);
+
+		const binding = db.query.terminalAgentBindings
+			.findFirst({ where: eq(terminalAgentBindings.terminalId, terminalId) })
+			.sync();
+		assert.equal(
+			binding,
+			undefined,
+			"suspend must drop the agent binding — its process died with the PTY",
+		);
+
+		// PTY gone daemon-side...
+		await new Promise((r) => setTimeout(r, 800));
+		const daemon = await getDaemonClient();
+		const daemonSession = (await daemon.list()).find(
+			(s) => s.id === terminalId && s.alive,
+		);
+		assert.equal(
+			daemonSession,
+			undefined,
+			"daemon should no longer own a live PTY",
+		);
+
+		// ...but the row still reads as a respawnable session.
+		const record = db.query.terminalSessions
+			.findFirst({ where: eq(terminalSessions.id, terminalId) })
+			.sync();
+		assert.equal(
+			record?.status,
+			"active",
+			"row must stay active after suspend",
+		);
+		assert.equal(
+			record?.disposeRequestedAt ?? null,
+			null,
+			"suspend must not stamp intent-to-kill (the reaper would dispose it)",
+		);
+
+		// adoptOnly (the attach handler's first try) fails — the PTY is dead...
+		const adopt = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			adoptOnly: true,
+		});
+		assert.ok("error" in adopt, "adoptOnly must fail for a suspended session");
+
+		// ...so the attach handler's fallback respawns a fresh shell with the
+		// restored-session separator — the exact lost-PTY recovery path.
+		const respawned = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			restoredNotice: true,
+		});
+		assert.ok(!("error" in respawned));
+		if ("error" in respawned) return;
+		assert.notEqual(
+			respawned.pty.pid,
+			originalPid,
+			"respawn should be a fresh shell, not the killed one",
+		);
+
+		const capture = makeCaptureSocket();
+		replayBuffer(respawned, capture.socket);
+		assert.match(
+			capture.received(),
+			/Session Contents Restored/,
+			"respawned session should carry the restored-session separator",
+		);
 
 		await disposeSessionAndWait(terminalId, db);
 	});
