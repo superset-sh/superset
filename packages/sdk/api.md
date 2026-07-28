@@ -96,10 +96,23 @@ Types:
 
 - <code><a href="./src/resources/terminals.ts">TerminalCreateParams</a></code>
 - <code><a href="./src/resources/terminals.ts">TerminalCreateResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalListParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalListResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalSummary</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalSendParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalSendResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalReadParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalReadResult</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalCloseParams</a></code>
+- <code><a href="./src/resources/terminals.ts">TerminalCloseResult</a></code>
 
 Methods:
 
 - <code title="host post /api/trpc/terminal.createSession">client.terminals.<a href="./src/resources/terminals.ts">create</a>({ hostId, workspaceId, command?, cwd? }) -> TerminalCreateResult</code>
+- <code title="host post /api/trpc/terminal.listSessions">client.terminals.<a href="./src/resources/terminals.ts">list</a>({ hostId, workspaceId }) -> TerminalListResult</code>
+- <code title="host post /api/trpc/terminal.send">client.terminals.<a href="./src/resources/terminals.ts">send</a>({ hostId, workspaceId, terminalId, text, submit? }) -> TerminalSendResult</code>
+- <code title="host post /api/trpc/terminal.snapshot">client.terminals.<a href="./src/resources/terminals.ts">read</a>({ hostId, workspaceId, terminalId, maxLines? }) -> TerminalReadResult</code>
+- <code title="host post /api/trpc/terminal.killSession">client.terminals.<a href="./src/resources/terminals.ts">close</a>({ hostId, workspaceId, terminalId }) -> TerminalCloseResult</code>
 
 # Automations
 

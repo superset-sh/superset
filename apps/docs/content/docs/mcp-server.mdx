@@ -17,6 +17,8 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 |----------|------------|
 | **Tasks** | list, get (by id or slug), create, update, delete, list statuses |
 | **Workspaces** | list (per host), create on a host, update, delete |
+| **Agents** | list agents on a host, launch an agent session in a workspace |
+| **Terminals** | create in a workspace, list, send input, read screen, close |
 | **Automations** | list, get metadata, get/set prompt body, create, update metadata, pause, resume, run on demand, list runs, delete |
 | **Projects** | list projects on a host |
 | **Hosts** | list hosts (registered machines) you have access to |
@@ -318,6 +320,10 @@ API keys grant full access to your organization. Keep them secret and never comm
 | Tool | Description |
 |------|-------------|
 | `terminals_create` | Create a terminal session in a workspace, optionally running a command |
+| `terminals_list` | List terminal sessions in a workspace |
+| `terminals_send` | Write text into a running terminal (presses Enter by default) |
+| `terminals_read` | Read the terminal screen as plain text (current screen plus recent scrollback) |
+| `terminals_close` | Close a terminal session and kill its process |
 
 ### Automations
 
