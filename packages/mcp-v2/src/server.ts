@@ -3,6 +3,8 @@ import packageJson from "../package.json" with { type: "json" };
 import type { McpToolCallEmitter } from "./define-tool";
 import { registerTools } from "./tools/register";
 
+export const MCP_SERVER_VERSION = packageJson.version;
+
 export interface McpServerOptions {
 	onToolCall?: McpToolCallEmitter;
 }

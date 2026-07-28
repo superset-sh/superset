@@ -2,6 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import {
 	createMcpServer,
 	isMcpUnauthorized,
+	MCP_SERVER_VERSION,
 	type McpContext,
 	resolveMcpContext,
 } from "@superset/mcp-v2";
@@ -53,7 +54,7 @@ async function handle(req: Request): Promise<Response> {
 					success: event.success,
 					error_message: event.errorMessage,
 					mcp_server: "superset-v2",
-					mcp_server_version: "0.1.0",
+					mcp_server_version: MCP_SERVER_VERSION,
 				},
 				groups: { organization: event.organizationId },
 			});
