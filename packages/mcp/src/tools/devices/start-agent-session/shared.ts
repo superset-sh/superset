@@ -2,7 +2,7 @@ import { db } from "@superset/db/client";
 import { taskStatuses, tasks } from "@superset/db/schema";
 import {
 	type AGENT_TYPES,
-	buildAgentCommand,
+	buildAgentFileCommand,
 	buildAgentPromptCommand,
 	buildAgentTaskPrompt,
 } from "@superset/shared/agent-command";
@@ -161,18 +161,22 @@ export function buildTaskLaunchRequest({
 		};
 	}
 
+	const taskPromptFileName = `task-${task.slug}.md`;
 	return {
 		kind: "terminal",
 		workspaceId,
 		agentType: agent,
 		source: "mcp",
 		terminal: {
-			command: buildAgentCommand({
-				task,
-				randomId: crypto.randomUUID(),
+			// Baked fallback command; a new device re-resolves the effective
+			// command from the file using its local agent presets.
+			command: buildAgentFileCommand({
+				filePath: `.superset/${taskPromptFileName}`,
 				agent: agent as (typeof AGENT_TYPES)[number],
 			}),
 			name: task.slug,
+			taskPromptContent: buildAgentTaskPrompt(task),
+			taskPromptFileName,
 			...(paneId ? { paneId } : {}),
 		},
 	};
@@ -209,12 +213,15 @@ export function buildPromptLaunchRequest({
 		agentType: agent,
 		source: "mcp",
 		terminal: {
+			// Baked fallback command; a new device re-resolves the effective
+			// command from `prompt` using its local agent presets.
 			command: buildAgentPromptCommand({
 				prompt,
 				randomId: crypto.randomUUID(),
 				agent: agent as (typeof AGENT_TYPES)[number],
 			}),
 			name: STARTABLE_AGENT_LABELS[agent],
+			prompt,
 			...(paneId ? { paneId } : {}),
 		},
 	};

@@ -1,3 +1,4 @@
+import { indexResolvedAgentConfigs } from "@superset/shared/agent-settings";
 import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
@@ -37,7 +38,6 @@ export function useCommandWatcher() {
 	const remoteAgentDisabled = useFeatureFlagEnabled(
 		FEATURE_FLAGS.DISABLE_REMOTE_AGENT,
 	);
-	const shouldWatch = !!deviceInfo && !!organizationId && !remoteAgentDisabled;
 
 	const createWorktree = useCreateWorkspace({ skipNavigation: true });
 	const setActive = electronTrpc.workspaces.setActive.useMutation();
@@ -52,6 +52,26 @@ export function useCommandWatcher() {
 	const { data: workspaceGroups } =
 		electronTrpc.workspaces.getAllGrouped.useQuery();
 	const { data: projects } = electronTrpc.projects.getRecents.useQuery();
+	const { data: agentPresets, isFetched: agentPresetsFetched } =
+		electronTrpc.settings.getAgentPresets.useQuery();
+	// `undefined` until the presets query settles, so a command isn't resolved
+	// against an empty index during the startup race and permanently marked
+	// handled with the server-baked command before the overrides load.
+	const resolvedAgentConfigsById = useMemo(
+		() =>
+			agentPresetsFetched
+				? indexResolvedAgentConfigs(agentPresets ?? [])
+				: undefined,
+		[agentPresets, agentPresetsFetched],
+	);
+
+	// Hold off processing commands until device-local agent presets are known,
+	// otherwise MCP launches race the presets query and ignore user overrides.
+	const shouldWatch =
+		!!deviceInfo &&
+		!!organizationId &&
+		!remoteAgentDisabled &&
+		agentPresetsFetched;
 	const worktreePathByWorkspaceId = useMemo(() => {
 		const pathByWorkspaceId = new Map<string, string>();
 
@@ -91,6 +111,7 @@ export function useCommandWatcher() {
 			getActiveWorkspaceId: getCurrentWorkspaceIdFromRoute,
 			getWorktreePathByWorkspaceId: (workspaceId) =>
 				worktreePathByWorkspaceId.get(workspaceId),
+			getResolvedAgentConfigsById: () => resolvedAgentConfigsById,
 		}),
 		[
 			createWorktree,
@@ -104,6 +125,7 @@ export function useCommandWatcher() {
 			projects,
 			getCurrentWorkspaceIdFromRoute,
 			worktreePathByWorkspaceId,
+			resolvedAgentConfigsById,
 		],
 	);
 
