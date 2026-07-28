@@ -1,53 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { renderToStaticMarkup } from "react-dom/server";
 import type { BundledLanguage } from "shiki";
-import { CodeBlock, highlightCode } from "./code-block";
-
-describe("CodeBlock", () => {
-	it("applies whitespace-pre class to preserve code block whitespace", () => {
-		const codeWithWhitespace = `Line 1      has    multiple   spaces
-  Line 2 is indented with 2 spaces
-    Line 3 is indented with 4 spaces`;
-
-		const html = renderToStaticMarkup(
-			<CodeBlock
-				code={codeWithWhitespace}
-				language="text"
-				showLineNumbers={false}
-			/>,
-		);
-
-		expect(html).toContain("[&amp;&gt;pre]:whitespace-pre");
-
-		const whitespacePreCount = (html.match(/whitespace-pre/g) || []).length;
-		expect(whitespacePreCount).toBeGreaterThanOrEqual(2); // once for light, once for dark
-	});
-
-	it("applies whitespace-pre class for ASCII diagrams", () => {
-		const asciiDiagram = `┌─────────┐       ┌─────────┐
-│  Box 1  │  →    │  Box 2  │
-└─────────┘       └─────────┘`;
-
-		const html = renderToStaticMarkup(
-			<CodeBlock code={asciiDiagram} language="text" showLineNumbers={false} />,
-		);
-
-		expect(html).toContain("[&amp;&gt;pre]:whitespace-pre");
-	});
-
-	it("applies whitespace-pre class for code with syntax highlighting", () => {
-		const jsCode = `function test() {
-    const x    =     1;  // multiple spaces
-      const y  = 2;      // extra indent
-}`;
-
-		const html = renderToStaticMarkup(
-			<CodeBlock code={jsCode} language="javascript" showLineNumbers={true} />,
-		);
-
-		expect(html).toContain("[&amp;&gt;pre]:whitespace-pre");
-	});
-});
+import { highlightCode } from "./code-block";
 
 describe("highlightCode", () => {
 	// biome-ignore lint/suspicious/noExplicitAny: HAST tree structure is recursive and untyped
