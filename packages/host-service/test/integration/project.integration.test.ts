@@ -60,6 +60,49 @@ describe("project router integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
+	test("setIcon persists a custom icon and clears it with null", async () => {
+		const scenario = await createProjectScenario();
+		dispose = scenario.dispose;
+
+		const dataUri = "data:image/png;base64,iVBORw0KGgo=";
+		await scenario.host.trpc.project.setIcon.mutate({
+			projectId: scenario.projectId,
+			icon: dataUri,
+		});
+		let got = await scenario.host.trpc.project.get.query({
+			projectId: scenario.projectId,
+		});
+		expect(got?.icon).toBe(dataUri);
+
+		await scenario.host.trpc.project.setIcon.mutate({
+			projectId: scenario.projectId,
+			icon: null,
+		});
+		got = await scenario.host.trpc.project.get.query({
+			projectId: scenario.projectId,
+		});
+		expect(got?.icon).toBeNull();
+	});
+
+	test("setIcon rejects a non-image string and a missing project", async () => {
+		const scenario = await createProjectScenario();
+		dispose = scenario.dispose;
+
+		await expect(
+			scenario.host.trpc.project.setIcon.mutate({
+				projectId: scenario.projectId,
+				icon: "https://example.com/not-a-data-uri.png",
+			}),
+		).rejects.toBeInstanceOf(TRPCClientError);
+
+		await expect(
+			scenario.host.trpc.project.setIcon.mutate({
+				projectId: randomUUID(),
+				icon: "data:image/png;base64,iVBORw0KGgo=",
+			}),
+		).rejects.toBeInstanceOf(TRPCClientError);
+	});
+
 	test("findBackfillConflict always returns conflict: null", async () => {
 		const scenario = await createProjectScenario();
 		dispose = scenario.dispose;

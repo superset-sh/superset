@@ -45,7 +45,7 @@ interface V2WorkspacesListProps {
 interface ProjectGroup {
 	projectId: string;
 	projectName: string;
-	githubOwner: string | null;
+	iconUrl: string | null;
 	workspaces: AccessibleV2Workspace[];
 	latestCreatedAt: number;
 }
@@ -97,7 +97,7 @@ function groupByProject(
 			project = {
 				projectId: workspace.projectId,
 				projectName: workspace.projectName,
-				githubOwner: workspace.projectGithubOwner,
+				iconUrl: workspace.projectIconUrl,
 				workspaces: [],
 				latestCreatedAt: 0,
 			};
@@ -329,7 +329,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 						<Chevron className="size-3 shrink-0 text-muted-foreground" />
 						<V2WorkspaceProjectIcon
 							projectName={project.projectName}
-							githubOwner={project.githubOwner}
+							iconUrl={project.iconUrl}
 							size="sm"
 						/>
 						<h3

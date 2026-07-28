@@ -26,10 +26,14 @@ export function toHostProjectItem(
 	row: Partial<HostProjectRow> & { id: string; repoPath: string },
 ): HostProjectItem {
 	const repoOwner = row.repoOwner ?? null;
+	// Custom local-first icon wins; fall back to the GitHub owner avatar.
+	const iconUrl =
+		row.icon ??
+		(repoOwner ? `https://github.com/${repoOwner}.png?size=64` : null);
 	return {
 		id: row.id,
 		name: row.name || row.repoPath.split(/[\\/]/).pop() || row.id,
-		iconUrl: repoOwner ? `https://github.com/${repoOwner}.png?size=64` : null,
+		iconUrl,
 		repoOwner,
 		repoName: row.repoName ?? null,
 	};

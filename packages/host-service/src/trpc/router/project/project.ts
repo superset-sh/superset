@@ -35,6 +35,10 @@ import {
 	validateDirectoryPath,
 } from "./utils/resolve-repo";
 
+// Icons are downscaled to a small square PNG data-URI client-side; this caps
+// the stored/broadcast value (it rides in project.list and project:changed).
+const MAX_PROJECT_ICON_LENGTH = 256 * 1024;
+
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.db
@@ -51,6 +55,7 @@ export const projectRouter = router({
 				repoName: row.repoName,
 				repoUrl: row.repoUrl,
 				worktreeBaseDir: row.worktreeBaseDir,
+				icon: row.icon,
 				createdAt: row.createdAt,
 				updatedAt: row.updatedAt || row.createdAt,
 			}));
@@ -99,7 +104,39 @@ export const projectRouter = router({
 				worktreeBaseDir: row.worktreeBaseDir,
 				branchPrefixMode: row.branchPrefixMode,
 				branchPrefixCustom: row.branchPrefixCustom,
+				icon: row.icon,
 			};
+		}),
+
+	/**
+	 * Set (or clear) this project's custom icon. Local-first: the icon is a
+	 * small downscaled data-URI stored on the host row. A null clears it so the
+	 * project falls back to the GitHub owner avatar / placeholder.
+	 */
+	setIcon: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				icon: z
+					.string()
+					.max(MAX_PROJECT_ICON_LENGTH, "Icon image is too large")
+					.regex(/^data:image\//, "Icon must be an image data URI")
+					.nullable(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const row = updateLocalProject(
+				{ db: ctx.db, eventBus: ctx.eventBus },
+				input.projectId,
+				{ icon: input.icon },
+			);
+			if (!row) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return toProjectSnapshot(row);
 		}),
 
 	setWorktreeBaseDir: protectedProcedure
