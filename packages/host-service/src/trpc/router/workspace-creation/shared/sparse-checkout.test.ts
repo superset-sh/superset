@@ -50,6 +50,18 @@ describe("normalizeSparseCheckoutPath", () => {
 		expect(() => normalizeSparseCheckoutPath("apps/../../etc")).toThrow();
 	});
 
+	test("rejects segments starting with a dash, which git reads as options", () => {
+		expect(() => normalizeSparseCheckoutPath("--cone")).toThrow();
+		expect(() => normalizeSparseCheckoutPath("-rf")).toThrow();
+		expect(() => normalizeSparseCheckoutPath("apps/-weird")).toThrow();
+	});
+
+	test("allows a dash inside a segment", () => {
+		expect(normalizeSparseCheckoutPath("packages/host-service")).toBe(
+			"packages/host-service",
+		);
+	});
+
 	test("allows dots inside a segment", () => {
 		expect(normalizeSparseCheckoutPath(".github/workflows")).toBe(
 			".github/workflows",
@@ -94,6 +106,21 @@ describe("parse/serialize round-trip", () => {
 		expect(parseSparseCheckoutPaths('{"a":1}')).toEqual([]);
 		expect(parseSparseCheckoutPaths('["apps", 7, null]')).toEqual(["apps"]);
 	});
+
+	test("re-normalizes on read instead of trusting the writer", () => {
+		// A hand-edited row, or any future writer that skips normalization.
+		expect(
+			parseSparseCheckoutPaths(
+				'["./apps/desktop/", "../etc", "-rf", "", "apps/desktop"]',
+			),
+		).toEqual(["apps/desktop"]);
+	});
+
+	test("a bad stored entry is dropped, never thrown", () => {
+		// Throwing here would fail workspace creation outright.
+		expect(() => parseSparseCheckoutPaths('["../etc"]')).not.toThrow();
+		expect(parseSparseCheckoutPaths('["../etc"]')).toEqual([]);
+	});
 });
 
 describe("addWorktreeWithSparseCheckout", () => {
@@ -120,7 +147,7 @@ describe("addWorktreeWithSparseCheckout", () => {
 		});
 		expect(calls).toEqual([
 			["worktree", "add", "--no-checkout", "/wt", "main"],
-			["-C", "/wt", "sparse-checkout", "set", "--cone", "--", "apps/desktop"],
+			["-C", "/wt", "sparse-checkout", "set", "--cone", "apps/desktop"],
 			["-C", "/wt", "checkout"],
 		]);
 	});

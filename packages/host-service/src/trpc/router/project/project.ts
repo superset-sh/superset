@@ -186,7 +186,10 @@ export const projectRouter = router({
 		.input(
 			z.object({
 				projectId: z.string().uuid(),
-				paths: z.array(z.string().max(1024)),
+				// Bounded well above the post-dedupe cap in
+				// `normalizeSparseCheckoutPaths`, so a runaway payload is
+				// rejected before we bother normalizing every entry.
+				paths: z.array(z.string().max(1024)).max(1000),
 			}),
 		)
 		.mutation(({ ctx, input }) => {

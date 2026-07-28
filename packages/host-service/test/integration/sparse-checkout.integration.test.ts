@@ -139,6 +139,10 @@ describe("project sparse checkout", () => {
 			.from(workspaces)
 			.where(eq(workspaces.id, result?.workspace?.id ?? ""))
 			.get()?.worktreePath;
+		// Guard before using it: `join("", ...)` resolves against the process
+		// CWD, which in this repo really does contain `apps/desktop` — so a
+		// missing path would make every assertion below pass on a regression.
+		expect(worktreePath).toBeTruthy();
 		const at = (relative: string) =>
 			existsSync(join(worktreePath ?? "", relative));
 

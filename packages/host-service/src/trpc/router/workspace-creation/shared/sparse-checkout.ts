@@ -15,28 +15,55 @@ import type { GitClient } from "./types";
 /** Keeps a runaway paste from bloating the row and the `git` argv. */
 const MAX_SPARSE_CHECKOUT_PATHS = 200;
 
+type NormalizeResult =
+	| { kind: "ok"; path: string }
+	| { kind: "empty" }
+	| { kind: "invalid"; reason: string };
+
 /**
- * Normalize one user-supplied folder into a cone-mode entry: repo-relative,
- * forward slashes, no leading `./` or trailing separator. Returns null for
- * entries that are empty once trimmed.
+ * Shared normalization core: repo-relative, forward slashes, no leading `./`
+ * or trailing separator. Distinguishes "nothing here" from "can't use this" so
+ * the write path can report a reason and the read path can just drop the entry.
  */
-export function normalizeSparseCheckoutPath(input: string): string | null {
+function normalizeEntry(input: string): NormalizeResult {
 	const trimmed = input.trim().replace(/\\/g, "/");
-	if (!trimmed) return null;
+	if (!trimmed) return { kind: "empty" };
 
 	// Leading "./" and "/" are how people naturally write a repo-relative
 	// folder; git wants neither.
 	const stripped = trimmed.replace(/^(?:\.?\/)+/, "").replace(/\/+$/, "");
-	if (!stripped || stripped === ".") return null;
+	if (!stripped || stripped === ".") return { kind: "empty" };
 
-	if (stripped.split("/").includes("..")) {
-		throw new TRPCError({
-			code: "BAD_REQUEST",
-			message: `Sparse checkout folder cannot escape the repo root: ${input.trim()}`,
-		});
+	const segments = stripped.split("/");
+	if (segments.includes("..")) {
+		return {
+			kind: "invalid",
+			reason: `Sparse checkout folder cannot escape the repo root: ${input.trim()}`,
+		};
+	}
+	// `git sparse-checkout set` reads a leading dash as an option. Rejecting it
+	// here keeps the command free of a `--` separator, whose handling differs
+	// across the git versions this app supports.
+	if (segments.some((segment) => segment.startsWith("-"))) {
+		return {
+			kind: "invalid",
+			reason: `Sparse checkout folder cannot start with "-": ${input.trim()}`,
+		};
 	}
 
-	return stripped;
+	return { kind: "ok", path: stripped };
+}
+
+/**
+ * Normalize one user-supplied folder into a cone-mode entry. Returns null for
+ * entries that are empty once trimmed, and throws on ones git can't be handed.
+ */
+export function normalizeSparseCheckoutPath(input: string): string | null {
+	const result = normalizeEntry(input);
+	if (result.kind === "invalid") {
+		throw new TRPCError({ code: "BAD_REQUEST", message: result.reason });
+	}
+	return result.kind === "ok" ? result.path : null;
 }
 
 /** Normalize, drop blanks, and de-duplicate while preserving input order. */
@@ -56,18 +83,34 @@ export function normalizeSparseCheckoutPaths(inputs: string[]): string[] {
 	return paths;
 }
 
-/** Read the stored column. Anything unreadable degrades to a full checkout. */
+/**
+ * Read the stored column. Re-normalizes rather than trusting what was written,
+ * so the "safe to hand to git" guarantee lives with the consumer instead of
+ * depending on every writer — including a hand-edited row. Anything unreadable
+ * or unusable is dropped, degrading toward a full checkout rather than throwing
+ * and failing workspace creation.
+ */
 export function parseSparseCheckoutPaths(
 	raw: string | null | undefined,
 ): string[] {
 	if (!raw) return [];
+	let parsed: unknown;
 	try {
-		const parsed: unknown = JSON.parse(raw);
-		if (!Array.isArray(parsed)) return [];
-		return parsed.filter((item): item is string => typeof item === "string");
+		parsed = JSON.parse(raw);
 	} catch {
 		return [];
 	}
+	if (!Array.isArray(parsed)) return [];
+
+	const paths: string[] = [];
+	for (const item of parsed) {
+		if (typeof item !== "string") continue;
+		const result = normalizeEntry(item);
+		if (result.kind === "ok" && !paths.includes(result.path)) {
+			paths.push(result.path);
+		}
+	}
+	return paths;
 }
 
 /** Encode for storage. Null means "full checkout", matching the other knobs. */
@@ -109,14 +152,14 @@ export async function addWorktreeWithSparseCheckout(args: {
 		// if git rejects the patterns, fall back to a full checkout rather than
 		// hand back a worktree holding nothing but the root files.
 		try {
-			// `--` keeps a folder starting with a dash from being read as a flag.
+			// No `--` separator: git changed how it handles one here in 2.44, and
+			// normalization already rejects the leading-dash folders it guarded.
 			await git.raw([
 				"-C",
 				worktreePath,
 				"sparse-checkout",
 				"set",
 				"--cone",
-				"--",
 				...sparsePaths,
 			]);
 		} catch (err) {
