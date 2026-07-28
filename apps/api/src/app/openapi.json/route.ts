@@ -180,23 +180,6 @@ const SPEC = {
 					"401": { $ref: "#/components/responses/Unauthorized" },
 				},
 			},
-			delete: {
-				operationId: "mcpEndSession",
-				tags: ["mcp"],
-				summary: "Terminate an MCP session",
-				parameters: [
-					{
-						name: "Mcp-Session-Id",
-						in: "header",
-						required: true,
-						schema: { type: "string" },
-					},
-				],
-				responses: {
-					"200": { description: "Session terminated." },
-					"401": { $ref: "#/components/responses/Unauthorized" },
-				},
-			},
 		},
 		"/api/auth/oauth2/register": {
 			post: {
