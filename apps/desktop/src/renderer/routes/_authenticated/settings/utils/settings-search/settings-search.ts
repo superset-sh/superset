@@ -69,6 +69,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
+	PROJECT_SPARSE_CHECKOUT: "project-sparse-checkout",
 	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
 	PROJECT_ENV_VARS: "project-env-vars",
 
@@ -183,6 +184,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "shared",
 	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
 	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
+	[SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT]: "v2",
 	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
 	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
 
@@ -1203,6 +1205,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"folder",
 			"storage",
 			"override",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT,
+		section: "project",
+		title: "Sparse Checkout",
+		description: "Limit new worktrees to specific folders of the repository",
+		keywords: [
+			"project",
+			"sparse",
+			"checkout",
+			"cone",
+			"worktree",
+			"folders",
+			"directories",
+			"subset",
+			"partial",
+			"monorepo",
+			"size",
 		],
 	},
 	{

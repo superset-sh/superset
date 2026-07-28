@@ -16,6 +16,11 @@ import {
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
+import {
+	normalizeSparseCheckoutPaths,
+	parseSparseCheckoutPaths,
+	serializeSparseCheckoutPaths,
+} from "../workspace-creation/shared/sparse-checkout";
 import { normalizeWorktreeBaseDir } from "../workspace-creation/shared/worktree-paths";
 import {
 	createFromClone,
@@ -105,6 +110,8 @@ export const projectRouter = router({
 				branchPrefixMode: row.branchPrefixMode,
 				branchPrefixCustom: row.branchPrefixCustom,
 				icon: row.icon,
+				// Always an array; the column's JSON encoding stays internal.
+				sparseCheckoutPaths: parseSparseCheckoutPaths(row.sparseCheckoutPaths),
 			};
 		}),
 
@@ -168,6 +175,35 @@ export const projectRouter = router({
 				id: project.id,
 				worktreeBaseDir: project.worktreeBaseDir ?? null,
 			};
+		}),
+
+	/**
+	 * Set the folders new worktrees are sparse-checked-out to. An empty list
+	 * clears the setting so new worktrees get a full checkout again. Existing
+	 * worktrees are left as they are.
+	 */
+	setSparseCheckoutPaths: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				paths: z.array(z.string().max(1024)),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const paths = normalizeSparseCheckoutPaths(input.paths);
+			const updated = ctx.db
+				.update(projects)
+				.set({ sparseCheckoutPaths: serializeSparseCheckoutPaths(paths) })
+				.where(eq(projects.id, input.projectId))
+				.returning({ id: projects.id })
+				.get();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return { sparseCheckoutPaths: paths };
 		}),
 
 	/**

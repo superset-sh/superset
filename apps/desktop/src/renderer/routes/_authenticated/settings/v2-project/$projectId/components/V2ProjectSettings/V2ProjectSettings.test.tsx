@@ -27,10 +27,26 @@ const project = {
 	updatedAt: 0,
 };
 
+// The targeted host's own row, as returned by `project.get`. Sections that
+// need host-sourced values are gated on this being present.
+const hostProject = {
+	id: "project-1",
+	name: "Acme",
+	repoPath: "/repos/acme",
+	repoOwner: "acme-co",
+	repoName: "acme",
+	repoUrl: "https://github.com/acme-co/acme",
+	worktreeBaseDir: null,
+	branchPrefixMode: null,
+	branchPrefixCustom: null,
+	icon: null,
+	sparseCheckoutPaths: ["apps/desktop"],
+};
+
 // External data/host dependencies — stubbed so the component renders in a
 // plain SSR pass without providers.
 mock.module("@tanstack/react-query", () => ({
-	useQuery: () => ({ data: null, refetch: () => {} }),
+	useQuery: () => ({ data: hostProject, refetch: () => {} }),
 }));
 mock.module("@tanstack/react-router", () => ({
 	useNavigate: () => () => {},
@@ -39,7 +55,7 @@ mock.module("renderer/hooks/host-projects/useHostProjects", () => ({
 	useHostProjects: () => ({ projects: [project], isReady: true }),
 }));
 mock.module("renderer/hooks/host-service/useHostTargetUrl", () => ({
-	useHostUrl: () => null,
+	useHostUrl: () => "http://127.0.0.1:7777",
 }));
 mock.module("renderer/lib/host-service-client", () => ({
 	getHostServiceClientByUrl: () => ({}),
@@ -92,6 +108,17 @@ mock.module("./components/WorktreeLocationSection", () => ({
 	WorktreeLocationSection: () => null,
 }));
 
+// Stubbed with a marker for the same reason as the icon picker below: the
+// assertion checks that V2ProjectSettings wires the section in, not how the
+// section renders its textarea.
+mock.module("./components/SparseCheckoutSection", () => ({
+	SparseCheckoutSection: ({ paths }: { paths: string[] }) => (
+		<div data-testid="project-sparse-checkout" data-paths={paths.join(",")}>
+			sparse-checkout
+		</div>
+	),
+}));
+
 // The icon picker itself — stubbed with a recognizable marker so the assertion
 // checks the wiring (that V2ProjectSettings renders it) rather than the
 // picker's internals.
@@ -113,5 +140,14 @@ describe("V2ProjectSettings", () => {
 
 		expect(markup).toContain('data-testid="project-icon-picker"');
 		expect(markup).toContain('data-project-id="project-1"');
+	});
+
+	test("renders the sparse-checkout editor seeded from the targeted host row", () => {
+		const markup = renderToStaticMarkup(
+			<V2ProjectSettings projectId="project-1" hostId="host-1" />,
+		);
+
+		expect(markup).toContain('data-testid="project-sparse-checkout"');
+		expect(markup).toContain('data-paths="apps/desktop"');
 	});
 });
