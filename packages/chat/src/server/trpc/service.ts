@@ -20,7 +20,6 @@ import {
 	subscribeToSessionEvents,
 	syncRuntimeHookSessionId,
 } from "./utils/runtime";
-import { getSupersetMcpTools } from "./utils/runtime/superset-mcp";
 import {
 	approvalRespondInput,
 	displayStateInput,
@@ -139,14 +138,8 @@ export class ChatRuntimeService {
 
 		const creationPromise = (async () => {
 			try {
-				const extraTools = await getSupersetMcpTools(
-					() => Promise.resolve(this.opts.headers()),
-					this.opts.apiUrl,
-				);
-
 				const runtime = await createMastraCode({
 					cwd: runtimeCwd,
-					extraTools,
 					disableMcp: !ENABLE_MASTRA_MCP_SERVERS,
 					memory: new Memory({ options: { observationalMemory: false } }),
 				});
