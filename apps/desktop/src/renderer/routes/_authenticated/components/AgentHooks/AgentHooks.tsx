@@ -9,12 +9,12 @@ import { usePlaceLocalWorktreesInSidebar } from "./hooks/usePlaceLocalWorktreesI
  * useCommandWatcher uses useCollections which must be inside the provider.
  */
 export function AgentHooks() {
-	const { activeHostUrl } = useLocalHostService();
+	const { activeHostUrl, activeOrganizationId } = useLocalHostService();
 	useDevicePresence();
 	useCommandWatcher();
 	// Seeds the default v2 terminal presets and warms the local host's agent
 	// config cache for Settings.
-	useDefaultV2TerminalPresets(activeHostUrl);
+	useDefaultV2TerminalPresets(activeHostUrl, activeOrganizationId);
 	usePlaceLocalWorktreesInSidebar();
 	return null;
 }
