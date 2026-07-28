@@ -70,7 +70,15 @@ describe("createDefaultV2TerminalPresetRows", () => {
 					command: "kimi",
 					order: 4,
 				}),
-				createAgent({ presetId: "amp", order: 5 }),
+				createAgent({
+					id: "grok-config",
+					presetId: "grok",
+					label: "Grok",
+					command: "grok",
+					args: ["--always-approve"],
+					order: 5,
+				}),
+				createAgent({ presetId: "amp", order: 6 }),
 			],
 			existingPresets: [],
 			createId: () =>
@@ -84,6 +92,7 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"opencode-config",
 			"copilot-config",
 			"kimi-config",
+			"grok-config",
 		]);
 		expect(rows.map((row) => row.name)).toEqual([
 			"Claude",
@@ -91,8 +100,9 @@ describe("createDefaultV2TerminalPresetRows", () => {
 			"OpenCode",
 			"Copilot",
 			"Kimi Code",
+			"Grok",
 		]);
-		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3, 4]);
+		expect(rows.map((row) => row.tabOrder)).toEqual([0, 1, 2, 3, 4, 5]);
 		expect(rows[0]?.commands).toEqual([
 			"claude --dangerously-skip-permissions",
 		]);
@@ -102,6 +112,7 @@ describe("createDefaultV2TerminalPresetRows", () => {
 		expect(rows[2]?.commands).toEqual(["opencode"]);
 		expect(rows[3]?.commands).toEqual(["copilot --allow-tool=write"]);
 		expect(rows[4]?.commands).toEqual(["kimi"]);
+		expect(rows[5]?.commands).toEqual(["grok --always-approve"]);
 	});
 
 	it("includes structured agent env in seeded preset command snapshots", () => {

@@ -2,6 +2,10 @@
 For Electron interprocess communication, ALWAYS use trpc as defined in `src/lib/trpc`
 Please use alias as defined in `tsconfig.json` when possible
 
+## Server-driven announcements (desktop notices)
+
+To show an announcement/warning popup in the app without shipping a release, insert a row in the `desktop_notices` table (served by `GET /api/desktop/version`). Authoring guide — markdown-only body, severities, triggers, targeting, QA previews: `docs/DESKTOP_NOTICES.md`.
+
 ## Window-drag regions: `drag` on empty leaves only
 
 Never mark a container with interactive children as `drag` and carve the children out with `no-drag`: Chromium loses the carve-outs when they sit inside masked, scrollable, or CSS-zoomed wrappers (OverflowFadeContainer, ZoomStable), which silently deadens every control under the bar. Instead, put `drag` only on dedicated empty leaf elements — traffic-light spacers and flex fillers (see TopBar, DashboardSidebarHeader, packages/panes TabBar). The worst failure mode then is "empty area not draggable" instead of "chrome swallows clicks".

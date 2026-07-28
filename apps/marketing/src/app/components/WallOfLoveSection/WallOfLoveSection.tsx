@@ -88,10 +88,10 @@ export function WallOfLoveSection() {
 	const rightColumn = TESTIMONIALS.filter((_, i) => i % 3 === 2);
 
 	return (
-		<section className="relative py-24 px-8 lg:px-[30px]">
-			<div className="max-w-6xl mx-auto">
-				<div className="text-center mb-12">
-					<h2 className="text-2xl sm:text-3xl lg:text-4xl font-semibold text-foreground">
+		<section className="relative py-24 sm:py-32">
+			<div className="max-w-7xl mx-auto px-6 sm:px-8">
+				<div className="max-w-2xl mb-12 sm:mb-16">
+					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground">
 						What builders say about Superset
 					</h2>
 				</div>

@@ -1,6 +1,7 @@
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
 import { getV2WorkspaceDisplayName } from "renderer/utils/getV2WorkspaceDisplayName";
 import type {
+	DashboardSidebarPinnedWorkspace,
 	DashboardSidebarProject,
 	DashboardSidebarProjectChild,
 	DashboardSidebarSection,
@@ -44,7 +45,102 @@ export interface SidebarWorkspaceInput {
 	updatedAt: Date;
 	tabOrder: number;
 	sectionId: string | null;
+	pinnedAt: number | null;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
+}
+
+/**
+ * Splits the visible rows into pinned (sorted by pin time ascending, so new
+ * pins append at the bottom of the Pinned section) and everything else. The
+ * caller feeds `unpinned` to {@link buildDashboardSidebarProjects} and
+ * `pinned` to {@link buildDashboardSidebarPinnedWorkspaces} — a pinned
+ * workspace renders only in the Pinned section, never in its project group.
+ */
+export function partitionSidebarWorkspacesByPinned<
+	Workspace extends { pinnedAt: number | null },
+>(workspaces: Workspace[]): { pinned: Workspace[]; unpinned: Workspace[] } {
+	const pinned: Workspace[] = [];
+	const unpinned: Workspace[] = [];
+	for (const workspace of workspaces) {
+		(workspace.pinnedAt != null ? pinned : unpinned).push(workspace);
+	}
+	pinned.sort((left, right) => (left.pinnedAt ?? 0) - (right.pinnedAt ?? 0));
+	return { pinned, unpinned };
+}
+
+function decorateSidebarWorkspace(
+	workspace: SidebarWorkspaceInput,
+	project: Pick<SidebarProjectInput, "githubOwner" | "githubRepoName">,
+	machineId: string,
+	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>,
+): DashboardSidebarWorkspace {
+	const hostType: DashboardSidebarWorkspace["hostType"] =
+		workspace.hostId === machineId ? "local-device" : "remote-device";
+
+	return {
+		id: workspace.id,
+		projectId: workspace.projectId,
+		hostId: workspace.hostId,
+		hostType,
+		type: workspace.type,
+		hostIsOnline: hostType === "remote-device" ? workspace.hostIsOnline : null,
+		accentColor: null,
+		name: getV2WorkspaceDisplayName(workspace),
+		branch: workspace.branch,
+		pullRequest: pullRequestsByWorkspaceId.get(workspace.id) ?? null,
+		repoUrl:
+			project.githubOwner && project.githubRepoName
+				? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
+				: null,
+		branchExistsOnRemote:
+			project.githubOwner !== null && project.githubRepoName !== null,
+		previewUrl: null,
+		needsRebase: null,
+		behindCount: null,
+		createdAt: workspace.createdAt,
+		updatedAt: workspace.updatedAt,
+		taskId: workspace.taskId,
+		isPinned: workspace.pinnedAt != null,
+		pendingTransaction: workspace.pendingTransaction,
+	};
+}
+
+/**
+ * Decorates pinned rows for the sidebar's top-level Pinned section. Rows keep
+ * their partition order (pin time ascending). A pinned workspace whose project
+ * is no longer in the sidebar is dropped, matching how
+ * {@link buildDashboardSidebarProjects} treats project-less rows.
+ */
+export function buildDashboardSidebarPinnedWorkspaces({
+	pinnedSidebarWorkspaces,
+	sidebarProjects,
+	machineId,
+	pullRequestsByWorkspaceId,
+}: {
+	pinnedSidebarWorkspaces: SidebarWorkspaceInput[];
+	sidebarProjects: SidebarProjectInput[];
+	machineId: string;
+	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+}): DashboardSidebarPinnedWorkspace[] {
+	const projectsById = new Map(
+		sidebarProjects.map((project) => [project.id, project]),
+	);
+	return pinnedSidebarWorkspaces.flatMap((workspace) => {
+		const project = projectsById.get(workspace.projectId);
+		if (!project) return [];
+		return [
+			{
+				...decorateSidebarWorkspace(
+					workspace,
+					project,
+					machineId,
+					pullRequestsByWorkspaceId,
+				),
+				projectName: project.name,
+				projectIconUrl: project.iconUrl,
+			},
+		];
+	});
 }
 
 export interface BuildDashboardSidebarProjectsParams {
@@ -110,35 +206,12 @@ export function buildDashboardSidebarProjects({
 		const project = projectsById.get(workspace.projectId);
 		if (!project) continue;
 
-		const hostType: DashboardSidebarWorkspace["hostType"] =
-			workspace.hostId === machineId ? "local-device" : "remote-device";
-
-		const sidebarWorkspace: DashboardSidebarWorkspace = {
-			id: workspace.id,
-			projectId: workspace.projectId,
-			hostId: workspace.hostId,
-			hostType,
-			type: workspace.type,
-			hostIsOnline:
-				hostType === "remote-device" ? workspace.hostIsOnline : null,
-			accentColor: null,
-			name: getV2WorkspaceDisplayName(workspace),
-			branch: workspace.branch,
-			pullRequest: pullRequestsByWorkspaceId.get(workspace.id) ?? null,
-			repoUrl:
-				project.githubOwner && project.githubRepoName
-					? `https://github.com/${project.githubOwner}/${project.githubRepoName}`
-					: null,
-			branchExistsOnRemote:
-				project.githubOwner !== null && project.githubRepoName !== null,
-			previewUrl: null,
-			needsRebase: null,
-			behindCount: null,
-			createdAt: workspace.createdAt,
-			updatedAt: workspace.updatedAt,
-			taskId: workspace.taskId,
-			pendingTransaction: workspace.pendingTransaction,
-		};
+		const sidebarWorkspace = decorateSidebarWorkspace(
+			workspace,
+			project,
+			machineId,
+			pullRequestsByWorkspaceId,
+		);
 
 		if (workspace.sectionId) {
 			const section = project.sectionMap.get(workspace.sectionId);

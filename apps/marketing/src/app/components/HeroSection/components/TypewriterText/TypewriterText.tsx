@@ -101,7 +101,7 @@ export function TypewriterText({
 			{renderText()}
 			{showCursor && (
 				<motion.span
-					className="inline-block ml-0.5 w-3 h-[1em] bg-current translate-y-0.5"
+					className="inline-block ml-0.5 w-3 -mr-3.5 h-[1em] bg-current translate-y-0.5"
 					animate={
 						isTypingComplete ? { opacity: [1, 1, 0, 0] } : { opacity: 1 }
 					}

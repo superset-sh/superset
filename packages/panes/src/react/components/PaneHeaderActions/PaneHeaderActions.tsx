@@ -42,14 +42,7 @@ export function PaneHeaderActions<TData>({
 				return (
 					<Tooltip key={action.key} delayDuration={1000}>
 						<TooltipTrigger asChild>{button}</TooltipTrigger>
-						<TooltipContent
-							side="bottom"
-							sideOffset={4}
-							showArrow={false}
-							className="rounded-sm border border-border bg-background px-1.5 py-0.5 font-medium text-muted-foreground shadow-sm"
-						>
-							{tooltip}
-						</TooltipContent>
+						<TooltipContent side="bottom">{tooltip}</TooltipContent>
 					</Tooltip>
 				);
 			})}

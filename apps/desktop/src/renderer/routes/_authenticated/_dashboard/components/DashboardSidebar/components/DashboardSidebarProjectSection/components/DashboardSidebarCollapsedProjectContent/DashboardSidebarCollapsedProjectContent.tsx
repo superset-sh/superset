@@ -65,10 +65,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 		return (
 			<div
 				ref={ref}
-				className={cn(
-					"flex flex-col items-center py-2 border-b border-border last:border-b-0",
-					className,
-				)}
+				className={cn("flex flex-col items-center py-1", className)}
 				{...props}
 			>
 				<Tooltip delayDuration={300}>
@@ -78,10 +75,14 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 							onClick={onToggleCollapse}
 							className={cn(
 								"flex items-center justify-center size-8 rounded-md",
-								"hover:bg-muted/50 transition-colors",
+								"hover:bg-fill-hover transition-colors",
 							)}
 						>
-							<ProjectThumbnail projectName={projectName} iconUrl={iconUrl} />
+							<ProjectThumbnail
+								projectName={projectName}
+								iconUrl={iconUrl}
+								className="size-4 text-[10px]"
+							/>
 						</button>
 					</TooltipTrigger>
 					<TooltipContent side="right" className="flex flex-col gap-0.5">
@@ -102,7 +103,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 							transition={{ duration: 0.15, ease: "easeOut" }}
 							className="overflow-hidden w-full"
 						>
-							<div className="flex w-full flex-col pt-1">
+							<div className="flex w-full flex-col gap-1 pt-1">
 								<DndContext
 									sensors={sensors}
 									collisionDetection={collisionDetection}

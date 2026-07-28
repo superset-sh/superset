@@ -65,9 +65,7 @@ export function SidebarHeader({
 						return (
 							<Tooltip key={tab.id}>
 								<TooltipTrigger asChild>{btn}</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									{label}
-								</TooltipContent>
+								<TooltipContent side="bottom">{label}</TooltipContent>
 							</Tooltip>
 						);
 					}

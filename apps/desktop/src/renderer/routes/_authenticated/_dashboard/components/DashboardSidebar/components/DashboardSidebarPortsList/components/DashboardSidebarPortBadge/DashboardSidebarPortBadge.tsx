@@ -74,7 +74,7 @@ export function DashboardSidebarPortBadge({
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="top" sideOffset={6} showArrow={false}>
+				<TooltipContent side="top" sideOffset={6}>
 					<div className="space-y-1 text-xs">
 						{port.label && <div className="font-medium">{port.label}</div>}
 						<div

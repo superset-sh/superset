@@ -304,19 +304,15 @@ export function WorkspaceListItem({
 			className={cn(
 				"flex w-full pl-3 pr-2 text-sm",
 				"transition-colors text-left cursor-pointer",
-				isActive ? "hover:bg-muted" : "hover:bg-muted/50",
+				isActive ? "hover:bg-fill-selected" : "hover:bg-fill-hover",
 				"group relative",
 				showBranchSubtitle ? "py-1.5" : "py-2 items-center",
-				isActive && "bg-muted",
+				isActive && "bg-fill-selected",
 				isSelected && "bg-primary/10 ring-1 ring-inset ring-primary/30",
 				(isDragging || isMultiDragging) && "opacity-30",
 			)}
 			style={{ cursor: isDragging ? "grabbing" : "pointer" }}
 		>
-			{isActive && (
-				<div className="absolute left-0 top-0 bottom-0 w-0.5 bg-primary rounded-r" />
-			)}
-
 			<div
 				className={cn(
 					"flex flex-col items-center shrink-0 mr-2.5 gap-0.5",
@@ -425,7 +421,7 @@ export function WorkspaceListItem({
 													<HiMiniXMark className="size-3.5" />
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
+											<TooltipContent side="top">
 												<HotkeyLabel
 													label="Close workspace"
 													id={isActive ? "CLOSE_WORKSPACE" : undefined}

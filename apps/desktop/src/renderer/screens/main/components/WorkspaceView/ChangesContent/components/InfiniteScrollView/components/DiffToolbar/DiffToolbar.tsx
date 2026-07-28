@@ -187,7 +187,7 @@ export function DiffToolbar({
 							<TbFocus2 className="size-4" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
+					<TooltipContent side="bottom">
 						{focusMode ? "Show all files" : "Focus mode"}
 					</TooltipContent>
 				</Tooltip>
@@ -214,7 +214,7 @@ export function DiffToolbar({
 							)}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
+					<TooltipContent side="bottom">
 						{diffViewMode === "side-by-side"
 							? "Switch to inline diff"
 							: "Switch to side by side diff"}
@@ -241,7 +241,7 @@ export function DiffToolbar({
 							<TbFold className="size-4" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
+					<TooltipContent side="bottom">
 						{hideUnchangedRegions ? "Show all lines" : "Hide unchanged regions"}
 					</TooltipContent>
 				</Tooltip>

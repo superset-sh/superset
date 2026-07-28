@@ -44,7 +44,7 @@ export function AnthropicProviderHeading({
 						)}
 					</Button>
 				</TooltipTrigger>
-				<TooltipContent side="top" sideOffset={6} showArrow={false}>
+				<TooltipContent side="top" sideOffset={6}>
 					{tooltipLabel}
 				</TooltipContent>
 			</Tooltip>

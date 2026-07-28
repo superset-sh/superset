@@ -4,7 +4,7 @@
 # host-service endpoint, with a v1 Electron hook fallback while both
 # terminal stacks are supported.
 
-# Codex passes JSON as argv; Claude/Mastra/Droid/Kimi pipe via stdin.
+# Codex passes JSON as argv; Claude/Mastra/Droid/Kimi/Grok pipe via stdin.
 if [ -n "$1" ]; then
   INPUT="$1"
 else
@@ -12,14 +12,22 @@ else
 fi
 
 HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+if [ -z "$HOOK_SESSION_ID" ]; then
+  # Grok's envelope is camelCase.
+  HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
 RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resourceId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$RESOURCE_ID" ]; then
   RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resource_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 fi
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
 
-# Claude/Mastra/Droid/Kimi use "hook_event_name"; Codex uses "type".
+# Claude/Mastra/Droid/Kimi use "hook_event_name"; Grok uses camelCase
+# "hookEventName" (snake_case values, mapped server-side); Codex uses "type".
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+if [ -z "$EVENT_TYPE" ]; then
+  EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hookEventName"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
 if [ -z "$EVENT_TYPE" ]; then
   CODEX_TYPE=$(echo "$INPUT" | grep -oE '"type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
   case "$CODEX_TYPE" in

@@ -125,7 +125,7 @@ export function TabItem<TData>({
 						"group relative flex h-full w-full items-center transition-colors",
 						isActive
 							? "border-x border-t border-border bg-background text-foreground"
-							: "border border-transparent border-b-border bg-border/30 text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground",
+							: "border border-transparent text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
@@ -169,9 +169,7 @@ export function TabItem<TData>({
 										</OverflowFadeText>
 									</div>
 								</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									{title}
-								</TooltipContent>
+								<TooltipContent side="bottom">{title}</TooltipContent>
 							</Tooltip>
 							<div className="relative flex h-full w-7 shrink-0 items-center justify-center">
 								{accessory && (

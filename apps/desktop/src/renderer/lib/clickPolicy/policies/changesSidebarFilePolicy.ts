@@ -22,7 +22,7 @@ function intentFor(
 	if (action === null) return null;
 	if (action === "external") return "external";
 	if (action === "newTab") return "diffNewTab";
-	return tier === "plain" ? "diff" : "file";
+	return tier === "plain" ? "file" : "diff";
 }
 
 function shortIntentLabel(intent: ChangesSidebarFileIntent): string {

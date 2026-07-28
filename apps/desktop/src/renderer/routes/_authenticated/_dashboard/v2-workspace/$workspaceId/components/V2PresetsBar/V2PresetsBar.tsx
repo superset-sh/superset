@@ -210,14 +210,7 @@ export function V2PresetsBar({
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent
-						side="bottom"
-						sideOffset={4}
-						showArrow={false}
-						className="rounded-sm border border-border bg-background px-1.5 py-0.5 font-medium text-muted-foreground shadow-sm"
-					>
-						Manage Presets
-					</TooltipContent>
+					<TooltipContent side="bottom">Manage Presets</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
 					{matchedPresets.map((preset) => {

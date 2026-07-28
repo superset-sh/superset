@@ -20,7 +20,7 @@ export type PaneType =
  * Pane status for agent lifecycle indicators
  * - idle: No indicator shown (default)
  * - working: Agent actively processing (amber)
- * - permission: Agent blocked, needs user action (red)
+ * - permission: Agent blocked, needs user action (yellow)
  * - review: Agent completed, ready for review (green)
  * - failed: Agent turn/process ended in failure, needs attention (red)
  */

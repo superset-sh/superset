@@ -709,6 +709,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mistral",
 			"kimi",
 			"moonshot",
+			"grok",
+			"xai",
 		],
 	},
 	{
@@ -768,6 +770,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mistral",
 			"kimi",
 			"moonshot",
+			"grok",
+			"xai",
 		],
 	},
 	{

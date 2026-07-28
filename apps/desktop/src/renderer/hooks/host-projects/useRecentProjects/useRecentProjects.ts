@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 
@@ -14,9 +15,7 @@ export function useRecentProjects(): ProjectOption[] {
 				name: project.name,
 				githubOwner: project.repoOwner,
 				githubRepoName: project.repoName,
-				iconUrl: project.repoOwner
-					? `https://github.com/${project.repoOwner}.png?size=64`
-					: null,
+				iconUrl: resolveProjectIconUrl(project),
 				needsSetup: null,
 			})),
 		[hostProjects],

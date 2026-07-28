@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
@@ -37,9 +38,7 @@ export function DashboardNewWorkspaceModalContent({
 				name: project.name,
 				githubOwner: project.repoOwner,
 				githubRepoName: project.repoName,
-				iconUrl: project.repoOwner
-					? `https://github.com/${project.repoOwner}.png?size=64`
-					: null,
+				iconUrl: resolveProjectIconUrl(project),
 				needsSetup:
 					setUpProjectIds === null
 						? null

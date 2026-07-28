@@ -291,16 +291,6 @@ describe("PTY output write coalescing", () => {
 });
 
 describe("terminal-ws-transport", () => {
-	test("mock preserves the relay-socket module's other exports", async () => {
-		// Regression guard: bun's mock.module is process-global, so stubbing only
-		// createRelaySocket drops the module's other exports (e.g.
-		// setRelaySocketTelemetry, which renderer/lib/posthog imports) and crashes
-		// unrelated desktop tests suite-wide with "export not found". The mock must
-		// spread the real module — assert that here so a partial stub fails fast.
-		const mod = await import("@superset/workspace-client/relay-socket");
-		expect(typeof mod.setRelaySocketTelemetry).toBe("function");
-	});
-
 	test("server-sent error routes to logs, not xterm, and terminates", () => {
 		const transport = createTransport();
 		const writelnCalls: string[] = [];

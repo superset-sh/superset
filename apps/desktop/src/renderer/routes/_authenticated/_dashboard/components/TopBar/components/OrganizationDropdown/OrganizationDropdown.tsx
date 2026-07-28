@@ -76,7 +76,7 @@ export function OrganizationDropdown({
 		variant === "collapsed" ? (
 			<button
 				type="button"
-				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-fill-hover"
 				aria-label="Organization menu"
 			>
 				<Avatar
@@ -89,7 +89,7 @@ export function OrganizationDropdown({
 		) : variant === "expanded" ? (
 			<button
 				type="button"
-				className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground min-w-0"
+				className="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground min-w-0"
 				aria-label="Organization menu"
 			>
 				<Avatar

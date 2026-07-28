@@ -56,6 +56,7 @@ export function mapEventType(
 		eventType === "user_prompt_submit" ||
 		eventType === "postToolUse" ||
 		eventType === "post_tool_use" ||
+		eventType === "post_tool_use_failure" ||
 		eventType === "task_started" ||
 		eventType === "before_tool"
 	) {

@@ -5,7 +5,7 @@ export function SupersetLogo() {
 			fill="none"
 			xmlns="http://www.w3.org/2000/svg"
 			aria-label="Superset"
-			className="h-5 w-auto"
+			className="h-4 w-auto"
 		>
 			<title>Superset</title>
 			<path

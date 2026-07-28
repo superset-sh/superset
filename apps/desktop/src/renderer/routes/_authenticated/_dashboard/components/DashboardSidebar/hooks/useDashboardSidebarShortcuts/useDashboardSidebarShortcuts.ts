@@ -59,11 +59,7 @@ export function useDashboardSidebarShortcuts(
 		() =>
 			groups
 				.flatMap((project) => getProjectChildrenWorkspaces(project.children))
-				.filter(
-					(workspace) =>
-						workspace.pendingTransaction?.type !== "insert" &&
-						!isDeleting(workspace.id),
-				),
+				.filter((workspace) => !isDeleting(workspace.id)),
 		[groups, isDeleting],
 	);
 	const workspaceShortcutLabels =
@@ -143,7 +139,6 @@ export function useDashboardSidebarShortcuts(
 		const index = flattenedWorkspaces.findIndex(
 			(w) => w.id === currentWorkspaceId,
 		);
-		if (index === -1) return;
 		const prevIndex = index <= 0 ? flattenedWorkspaces.length - 1 : index - 1;
 		const target = flattenedWorkspaces[prevIndex];
 		revealWorkspace(target.id);
@@ -155,7 +150,6 @@ export function useDashboardSidebarShortcuts(
 		const index = flattenedWorkspaces.findIndex(
 			(w) => w.id === currentWorkspaceId,
 		);
-		if (index === -1) return;
 		const nextIndex = index >= flattenedWorkspaces.length - 1 ? 0 : index + 1;
 		const target = flattenedWorkspaces[nextIndex];
 		revealWorkspace(target.id);

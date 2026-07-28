@@ -13,14 +13,14 @@ const map: LinkTierMap = {
 };
 
 describe("changes sidebar file policy", () => {
-	it("keeps plain click on the diff", () => {
+	it("keeps plain click on the file", () => {
 		expect(
 			resolveChangesSidebarFileIntent(map, {
 				metaKey: false,
 				ctrlKey: false,
 				shiftKey: false,
 			}),
-		).toBe("diff");
+		).toBe("file");
 	});
 
 	it("maps shift-click through the settings map", () => {
@@ -33,21 +33,21 @@ describe("changes sidebar file policy", () => {
 		).toBe("diffNewTab");
 	});
 
-	it("maps cmd/ctrl-click to the file when the settings action is pane", () => {
+	it("maps cmd/ctrl-click to the diff when the settings action is pane", () => {
 		expect(
 			resolveChangesSidebarFileIntent(map, {
 				metaKey: true,
 				ctrlKey: false,
 				shiftKey: false,
 			}),
-		).toBe("file");
+		).toBe("diff");
 		expect(
 			resolveChangesSidebarFileIntent(map, {
 				metaKey: false,
 				ctrlKey: true,
 				shiftKey: false,
 			}),
-		).toBe("file");
+		).toBe("diff");
 	});
 
 	it("maps cmd/ctrl-shift-click to the external editor", () => {
@@ -82,7 +82,8 @@ describe("changes sidebar file policy", () => {
 
 	it("finds shortcuts for menu items from the same map", () => {
 		expect(tierForChangesSidebarFileIntent(map, "diffNewTab")).toBe("shift");
-		expect(tierForChangesSidebarFileIntent(map, "file")).toBe("meta");
+		expect(tierForChangesSidebarFileIntent(map, "diff")).toBe("meta");
+		expect(tierForChangesSidebarFileIntent(map, "file")).toBeNull();
 		expect(tierForChangesSidebarFileIntent(map, "external")).toBe("metaShift");
 	});
 });

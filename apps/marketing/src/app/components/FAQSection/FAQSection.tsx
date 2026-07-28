@@ -58,12 +58,12 @@ export function FAQSection() {
 	};
 
 	return (
-		<section className="relative py-24 px-8 lg:px-[30px]">
-			<div className="max-w-7xl mx-auto">
+		<section className="relative py-24 sm:py-32">
+			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				<div className="grid grid-cols-1 xl:grid-cols-[1fr_1.5fr] gap-12 xl:gap-20">
 					{/* Left Column - Title */}
 					<div className="xl:sticky xl:top-24 xl:self-start">
-						<h2 className="text-3xl sm:text-4xl xl:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
+						<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight text-foreground leading-[1.1]">
 							Frequently
 							<br />
 							asked questions

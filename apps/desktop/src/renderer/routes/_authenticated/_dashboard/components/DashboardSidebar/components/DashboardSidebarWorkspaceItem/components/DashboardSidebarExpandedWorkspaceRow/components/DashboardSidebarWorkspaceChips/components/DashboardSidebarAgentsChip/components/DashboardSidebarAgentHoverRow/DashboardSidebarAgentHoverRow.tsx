@@ -14,7 +14,7 @@ import { DashboardSidebarAgentAvatar } from "../DashboardSidebarAgentAvatar";
 const STATUS_TEXT_CLASS: Record<RunningAgentStatus, string> = {
 	idle: "text-muted-foreground",
 	working: "text-amber-500",
-	permission: "text-red-500",
+	permission: "text-yellow-500",
 	failed: "text-red-500",
 	review: "text-green-500",
 };

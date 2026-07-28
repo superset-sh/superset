@@ -18,8 +18,8 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 
 	return (
 		<header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-sm">
-			<div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-				<div className="flex items-center justify-between h-14">
+			<div className="px-4 sm:px-6">
+				<div className="flex items-center justify-between h-16">
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
@@ -35,15 +35,14 @@ export function Header({ ctaButtons, starCounter }: HeaderProps) {
 					</motion.div>
 
 					<motion.div
-						className="hidden lg:flex items-center gap-4"
+						className="hidden lg:flex items-center gap-8"
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						transition={{ duration: 0.3, delay: 0.1 }}
 					>
 						<DesktopNav />
-						<div className="hidden xl:block h-4 w-px bg-border" />
-						<div className="hidden xl:block">{starCounter}</div>
-						<div className="flex items-center gap-2 shrink-0">{ctaButtons}</div>
+						{starCounter}
+						<div className="flex items-center gap-3 shrink-0">{ctaButtons}</div>
 					</motion.div>
 
 					<MobileNav ctaButtons={ctaButtons} starCounter={starCounter} />

@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Superset — Landing Redesign Proposal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #171717;
+    --card: #1d1d1d;
+    --elevated: #232323;
+    --fg: #fafafa;
+    --muted: #a1a1a1;
+    --faint: #6b6b6b;
+    --border: rgba(255, 255, 255, 0.09);
+    --border-strong: rgba(255, 255, 255, 0.18);
+    --brand: #d25611;
+    --brand-light: #e8804a;
+    --sans: "Inter", -apple-system, sans-serif;
+    --mono: "IBM Plex Mono", ui-monospace, monospace;
+    --container: 80rem;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    background: var(--bg);
+    color: var(--fg);
+    font-family: var(--sans);
+    font-size: 16px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: inherit; text-decoration: none; }
+  img { display: block; }
+
+  /* ---------- one section shell, used everywhere ---------- */
+  section { border-top: 1px solid var(--border); padding: 6rem 0; }
+  .container { max-width: var(--container); margin: 0 auto; padding: 0 2rem; }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.8125rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    color: var(--brand);
+  }
+  h2 {
+    margin-top: 0.75rem;
+    font-size: clamp(1.9rem, 4vw, 2.75rem);
+    font-weight: 500;
+    letter-spacing: -0.02em;
+    line-height: 1.12;
+  }
+  .section-sub { margin-top: 1rem; color: var(--muted); max-width: 34rem; font-weight: 300; }
+
+  /* ---------- buttons: square, one accent ---------- */
+  .btn {
+    display: inline-flex; align-items: center; gap: 0.5rem;
+    font-size: 0.9375rem; font-weight: 500;
+    padding: 0.75rem 1.5rem; border: 1px solid transparent;
+    cursor: pointer; transition: all 0.15s ease;
+  }
+  .btn-primary { background: var(--fg); color: var(--bg); }
+  .btn-primary:hover { background: var(--brand); color: #fff; }
+  .btn-secondary { background: transparent; border-color: var(--border-strong); color: var(--fg); }
+  .btn-secondary:hover { border-color: var(--fg); }
+
+  /* ---------- header ---------- */
+  header {
+    position: sticky; top: 0; z-index: 50;
+    border-bottom: 1px solid var(--border);
+    background: rgba(23, 23, 23, 0.82);
+    backdrop-filter: blur(12px);
+  }
+  .nav { max-width: var(--container); margin: 0 auto; padding: 0 2rem; height: 3.5rem; display: flex; align-items: center; gap: 2rem; }
+  .wordmark { font-family: var(--mono); font-weight: 500; font-size: 1rem; letter-spacing: 0.02em; }
+  .wordmark b { color: var(--brand); font-weight: 500; }
+  .nav-links { display: flex; gap: 1.5rem; font-size: 0.875rem; color: var(--muted); }
+  .nav-links a:hover { color: var(--fg); }
+  .nav-right { margin-left: auto; display: flex; align-items: center; gap: 1rem; }
+  .gh-stars { font-family: var(--mono); font-size: 0.8125rem; color: var(--muted); display: flex; align-items: center; gap: 0.4rem; }
+  .btn-nav { padding: 0.4rem 1rem; font-size: 0.875rem; }
+
+  /* ---------- hero ---------- */
+  .hero { border-top: none; position: relative; padding: 8.5rem 0 6rem; overflow: hidden; }
+  .hero .container { position: relative; z-index: 1; text-align: center; }
+  #glyphs { position: absolute; inset: 0; z-index: 0; opacity: 0.5; pointer-events: none; }
+  .hero-fade { position: absolute; inset: 0; z-index: 0; background: radial-gradient(ellipse 60% 55% at 50% 38%, rgba(23,23,23,0.92), rgba(23,23,23,0.25) 60%, transparent); pointer-events: none; }
+  h1 {
+    font-family: var(--mono);
+    font-size: clamp(2.4rem, 6vw, 4.5rem);
+    font-weight: 500; letter-spacing: -0.03em; line-height: 1.1;
+    max-width: 62rem; margin: 0 auto;
+  }
+  .cursor { display: inline-block; width: 0.55em; height: 1em; background: var(--brand); vertical-align: text-bottom; animation: blink 1.1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  .hero-sub { margin: 1.5rem auto 0; font-size: 1.1875rem; font-weight: 300; color: var(--muted); max-width: 40rem; }
+  .hero-ctas { margin-top: 2.25rem; display: flex; gap: 0.75rem; justify-content: center; }
+  .hero-note { margin-top: 0.9rem; font-family: var(--mono); font-size: 0.75rem; color: var(--faint); }
+
+  /* ---------- fake app window ---------- */
+  .window {
+    margin: 4.5rem auto 0; max-width: 62rem;
+    border: 1px solid var(--border-strong); background: var(--card);
+    box-shadow: 0 40px 100px -30px rgba(0, 0, 0, 0.8);
+    text-align: left; font-family: var(--mono); font-size: 0.75rem;
+  }
+  .window-bar { display: flex; align-items: center; gap: 0.5rem; padding: 0.6rem 0.9rem; border-bottom: 1px solid var(--border); background: var(--elevated); }
+  .dot { width: 0.65rem; height: 0.65rem; border-radius: 50%; background: rgba(255,255,255,0.15); }
+  .window-title { margin-left: 0.5rem; color: var(--faint); font-size: 0.7rem; }
+  .window-body { display: grid; grid-template-columns: 12rem 1fr 1fr; min-height: 22rem; }
+  .pane { padding: 1rem; border-right: 1px solid var(--border); }
+  .pane:last-child { border-right: none; }
+  .pane-label { color: var(--faint); font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 0.75rem; }
+  .ws { padding: 0.4rem 0.5rem; color: var(--muted); display: flex; align-items: center; gap: 0.5rem; }
+  .ws.active { background: rgba(255,255,255,0.05); color: var(--fg); }
+  .status { width: 0.45rem; height: 0.45rem; border-radius: 50%; flex: none; }
+  .status.run { background: var(--brand); animation: blink 1.4s steps(1) infinite; }
+  .status.done { background: #4ade80; }
+  .status.idle { background: rgba(255,255,255,0.25); }
+  .line { color: var(--muted); white-space: pre; overflow: hidden; line-height: 1.7; }
+  .line .p { color: var(--brand-light); }
+  .line .g { color: #4ade80; }
+  .line .d { color: var(--faint); }
+
+  /* ---------- metrics band ---------- */
+  .metrics { padding: 0; }
+  .metrics-grid { display: grid; grid-template-columns: repeat(4, 1fr); }
+  .metric { padding: 2.5rem 2rem; border-right: 1px solid var(--border); text-align: center; }
+  .metric:last-child { border-right: none; }
+  .metric-num { font-family: var(--mono); font-size: 2.25rem; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+  .metric-label { margin-top: 0.35rem; font-size: 0.8125rem; color: var(--muted); }
+
+  /* ---------- logos: one quiet row ---------- */
+  .logos { padding: 4rem 0; }
+  .logos-caption { text-align: center; font-size: 0.875rem; color: var(--faint); margin-bottom: 2.25rem; }
+  .logo-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 3.5rem 3.5rem; }
+  .logo { font-family: var(--sans); font-weight: 600; font-size: 1.05rem; color: var(--fg); opacity: 0.38; letter-spacing: -0.01em; transition: opacity 0.15s; cursor: default; }
+  .logo:hover { opacity: 0.75; }
+
+  /* ---------- features ---------- */
+  .feature-head { max-width: 40rem; margin-bottom: 5rem; }
+  .feature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 4rem; align-items: center; }
+  .feature-row + .feature-row { margin-top: 7rem; }
+  .feature-row:nth-child(even) .feature-copy { order: 2; }
+  .feature-num { font-family: var(--mono); font-size: 0.8125rem; color: var(--brand); letter-spacing: 0.14em; }
+  .feature-row h3 { margin-top: 0.6rem; font-size: 1.75rem; font-weight: 500; letter-spacing: -0.02em; line-height: 1.2; }
+  .feature-row p { margin-top: 0.9rem; color: var(--muted); font-weight: 300; max-width: 30rem; }
+  .demo {
+    border: 1px solid var(--border); background: var(--card);
+    aspect-ratio: 4 / 3; padding: 1.25rem; position: relative; overflow: hidden;
+    font-family: var(--mono); font-size: 0.72rem;
+  }
+  .demo::after { content: ""; position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 0%, rgba(210, 86, 17, 0.06), transparent 55%); pointer-events: none; }
+  .chip { display: inline-block; border: 1px solid var(--border); background: var(--elevated); padding: 0.45rem 0.7rem; color: var(--muted); margin: 0 0.4rem 0.4rem 0; }
+  .chip.on { border-color: rgba(210, 86, 17, 0.5); color: var(--fg); }
+  .minicard { border: 1px solid var(--border); background: var(--elevated); padding: 0.7rem 0.85rem; margin-bottom: 0.6rem; display: flex; justify-content: space-between; align-items: center; color: var(--muted); }
+  .minicard b { color: var(--fg); font-weight: 500; }
+  .tag { font-size: 0.62rem; text-transform: uppercase; letter-spacing: 0.1em; padding: 0.15rem 0.45rem; border: 1px solid var(--border); color: var(--faint); }
+  .tag.run { color: var(--brand-light); border-color: rgba(210, 86, 17, 0.45); }
+  .tag.done { color: #4ade80; border-color: rgba(74, 222, 128, 0.35); }
+
+  /* ---------- security / enterprise band ---------- */
+  .sec-grid { margin-top: 4rem; display: grid; grid-template-columns: repeat(3, 1fr); border: 1px solid var(--border); }
+  .sec-card { padding: 2.5rem 2rem; border-right: 1px solid var(--border); }
+  .sec-card:last-child { border-right: none; }
+  .sec-icon { font-family: var(--mono); color: var(--brand); font-size: 1.1rem; }
+  .sec-card h3 { margin-top: 1rem; font-size: 1.125rem; font-weight: 500; }
+  .sec-card p { margin-top: 0.6rem; font-size: 0.9rem; color: var(--muted); font-weight: 300; }
+
+  /* ---------- wall of love ---------- */
+  .wall-grid { margin-top: 4rem; columns: 3; column-gap: 1rem; }
+  .quote-card { break-inside: avoid; border: 1px solid var(--border); background: var(--card); padding: 1.25rem; margin-bottom: 1rem; transition: border-color 0.15s; }
+  .quote-card:hover { border-color: var(--border-strong); }
+  .quote-head { display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.8rem; }
+  .avatar { width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--elevated); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 0.8rem; color: var(--muted); flex: none; }
+  .quote-name { font-size: 0.875rem; font-weight: 600; }
+  .quote-role { font-size: 0.8125rem; color: var(--muted); }
+  .quote-card blockquote { font-size: 0.9375rem; color: rgba(250, 250, 250, 0.85); font-weight: 300; }
+
+  /* ---------- faq ---------- */
+  .faq-grid { display: grid; grid-template-columns: 1fr 1.5fr; gap: 5rem; }
+  details { border-bottom: 1px solid var(--border); }
+  summary { list-style: none; cursor: pointer; padding: 1.5rem 0; display: flex; justify-content: space-between; align-items: center; font-weight: 500; font-size: 1.0625rem; }
+  summary::-webkit-details-marker { display: none; }
+  summary::after { content: "+"; font-family: var(--mono); color: var(--faint); font-size: 1.25rem; transition: transform 0.2s; }
+  details[open] summary::after { transform: rotate(45deg); color: var(--brand); }
+  details p { padding-bottom: 1.5rem; color: var(--muted); font-weight: 300; max-width: 36rem; }
+
+  /* ---------- CTA closer ---------- */
+  .cta { position: relative; padding: 9rem 0; overflow: hidden; text-align: center; }
+  #glyphs2 { position: absolute; inset: 0; opacity: 0.35; pointer-events: none; }
+  .cta .container { position: relative; z-index: 1; }
+  .cta h2 { font-family: var(--mono); font-size: clamp(2rem, 4.5vw, 3.25rem); }
+  .cta-sub { margin: 1rem auto 0; color: var(--muted); font-weight: 300; max-width: 30rem; }
+  .cta-ctas { margin-top: 2.25rem; display: flex; gap: 0.75rem; justify-content: center; }
+
+  /* ---------- footer ---------- */
+  footer { border-top: 1px solid var(--border); padding: 5rem 0; }
+  .footer-grid { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 3rem; }
+  .footer-col h4 { font-size: 0.8125rem; font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; color: var(--faint); margin-bottom: 1rem; }
+  .footer-col a { display: block; font-size: 0.875rem; color: var(--muted); padding: 0.3rem 0; }
+  .footer-col a:hover { color: var(--fg); }
+  .footer-brand p { margin-top: 1rem; font-size: 0.8125rem; color: var(--faint); }
+
+  @media (max-width: 900px) {
+    .metrics-grid { grid-template-columns: repeat(2, 1fr); }
+    .metric:nth-child(2) { border-right: none; }
+    .metric:nth-child(-n+2) { border-bottom: 1px solid var(--border); }
+    .feature-row, .faq-grid { grid-template-columns: 1fr; gap: 2rem; }
+    .feature-row:nth-child(even) .feature-copy { order: 0; }
+    .sec-grid { grid-template-columns: 1fr; }
+    .sec-card { border-right: none; border-bottom: 1px solid var(--border); }
+    .sec-card:last-child { border-bottom: none; }
+    .wall-grid { columns: 1; }
+    .window-body { grid-template-columns: 1fr; }
+    .pane.side { display: none; }
+    .footer-grid { grid-template-columns: 1fr 1fr; }
+    .nav-links { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="nav">
+    <a class="wordmark" href="#">super<b>set</b></a>
+    <nav class="nav-links">
+      <a href="#">Product</a>
+      <a href="#">Pricing</a>
+      <a href="#">Enterprise</a>
+      <a href="#">Docs</a>
+      <a href="#">Blog</a>
+    </nav>
+    <div class="nav-right">
+      <span class="gh-stars">★ 12.4k</span>
+      <a class="btn btn-primary btn-nav" href="#">Download</a>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="hero">
+  <canvas id="glyphs"></canvas>
+  <div class="hero-fade"></div>
+  <div class="container">
+    <h1>The Code Editor for<br />AI&nbsp;Agents.<span class="cursor"></span></h1>
+    <p class="hero-sub">Run parallel coding agents in isolated workspaces on your Mac. Local-first, works with every agent.</p>
+    <div class="hero-ctas">
+      <a class="btn btn-primary" href="#">Download for macOS</a>
+      <a class="btn btn-secondary" href="#">View on GitHub</a>
+    </div>
+    <p class="hero-note">free · source-available · no account required</p>
+
+    <div class="window">
+      <div class="window-bar">
+        <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+        <span class="window-title">superset — my-app</span>
+      </div>
+      <div class="window-body">
+        <div class="pane side">
+          <div class="pane-label">Workspaces</div>
+          <div class="ws active"><span class="status run"></span>fix-auth-flow</div>
+          <div class="ws"><span class="status run"></span>landing-revamp</div>
+          <div class="ws"><span class="status done"></span>db-migration</div>
+          <div class="ws"><span class="status done"></span>refactor-hooks</div>
+          <div class="ws"><span class="status idle"></span>update-deps</div>
+        </div>
+        <div class="pane">
+          <div class="pane-label">claude · fix-auth-flow</div>
+          <div class="line"><span class="p">●</span> Reading src/auth/session.ts…</div>
+          <div class="line"><span class="p">●</span> Found the race: token refresh</div>
+          <div class="line">  fires before hydration.</div>
+          <div class="line"><span class="p">●</span> Editing session.ts</div>
+          <div class="line"><span class="g">✓</span> 14 tests passed</div>
+          <div class="line"><span class="d">$</span> bun test --filter auth<span class="cursor" style="width:0.45em;height:0.9em"></span></div>
+        </div>
+        <div class="pane side">
+          <div class="pane-label">Changes</div>
+          <div class="line"><span class="g">M</span> src/auth/session.ts</div>
+          <div class="line"><span class="g">M</span> src/auth/refresh.ts</div>
+          <div class="line"><span class="g">A</span> session.test.ts</div>
+          <div class="line" style="margin-top:0.9rem"><span class="d">+118 −42 · 3 files</span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- METRICS BAND -->
+<section class="metrics">
+  <div class="container">
+    <div class="metrics-grid">
+      <div class="metric"><div class="metric-num">12.4k</div><div class="metric-label">GitHub stars</div></div>
+      <div class="metric"><div class="metric-num">85k+</div><div class="metric-label">downloads</div></div>
+      <div class="metric"><div class="metric-num">1.2M</div><div class="metric-label">agent sessions run</div></div>
+      <div class="metric"><div class="metric-num">100%</div><div class="metric-label">local — your code never leaves</div></div>
+    </div>
+  </div>
+</section>
+
+<!-- LOGOS -->
+<section class="logos">
+  <div class="container">
+    <p class="logos-caption">Used daily by engineers at</p>
+    <div class="logo-row">
+      <span class="logo">Microsoft</span>
+      <span class="logo">OpenAI</span>
+      <span class="logo">Google</span>
+      <span class="logo">Vercel</span>
+      <span class="logo">Cloudflare</span>
+      <span class="logo">Datadog</span>
+      <span class="logo">Salesforce</span>
+      <span class="logo">Amazon</span>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section>
+  <div class="container">
+    <div class="feature-head">
+      <div class="eyebrow">Why Superset</div>
+      <h2>One window for your whole agent fleet.</h2>
+      <p class="section-sub">Stop juggling terminal tabs. Superset gives every agent its own workspace, and gives you one place to steer them all.</p>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-copy">
+        <div class="feature-num">01 / Parallel execution</div>
+        <h3>Run five agents like you'd run one.</h3>
+        <p>Kick off multiple tasks at once. Each agent works in its own git worktree, so nothing collides — you review and merge when they're done.</p>
+      </div>
+      <div class="demo">
+        <div class="minicard"><span><b>fix-auth-flow</b> · claude</span><span class="tag run">running</span></div>
+        <div class="minicard"><span><b>landing-revamp</b> · claude</span><span class="tag run">running</span></div>
+        <div class="minicard"><span><b>db-migration</b> · codex</span><span class="tag done">review</span></div>
+        <div class="minicard"><span><b>refactor-hooks</b> · gemini</span><span class="tag done">review</span></div>
+        <div class="minicard"><span><b>update-deps</b> · claude</span><span class="tag">queued</span></div>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="demo">
+        <div style="margin-bottom:0.9rem;color:var(--faint)">// bring any agent</div>
+        <span class="chip on">Claude Code</span>
+        <span class="chip on">Codex</span>
+        <span class="chip on">Gemini CLI</span>
+        <span class="chip">Cursor</span>
+        <span class="chip">OpenCode</span>
+        <span class="chip">Amp</span>
+        <span class="chip">Aider</span>
+        <span class="chip">+ any CLI</span>
+        <div style="margin-top:1.2rem" class="line"><span class="d">$</span> superset run --agent claude</div>
+        <div class="line"><span class="g">✓</span> agent attached to workspace</div>
+      </div>
+      <div class="feature-copy">
+        <div class="feature-num">02 / Universal compatibility</div>
+        <h3>Works with every agent you already use.</h3>
+        <p>Claude Code, Codex, Gemini, Cursor — or any CLI. Superset is the surface, you pick the brains. No lock-in, no wrappers.</p>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="feature-copy">
+        <div class="feature-num">03 / Isolation</div>
+        <h3>Every task gets a clean room.</h3>
+        <p>Isolated git worktrees per workspace mean agents can't step on each other — or on you. Experiments stay experiments until you merge.</p>
+      </div>
+      <div class="demo">
+        <div class="line"><span class="d">~/project</span>          main</div>
+        <div class="line" style="color:var(--faint)">│</div>
+        <div class="line">├─ <span class="p">fix-auth-flow</span>    worktree · claude</div>
+        <div class="line">├─ <span class="p">landing-revamp</span>   worktree · claude</div>
+        <div class="line">└─ <span class="p">db-migration</span>     worktree · codex</div>
+        <div class="line" style="margin-top:1rem"><span class="g">✓</span> zero conflicts on main</div>
+      </div>
+    </div>
+
+    <div class="feature-row">
+      <div class="demo">
+        <div class="minicard"><span>Open in <b>VS Code</b></span><span class="tag">⌘O</span></div>
+        <div class="minicard"><span>Open in <b>Cursor</b></span><span class="tag">⌘⇧O</span></div>
+        <div class="minicard"><span>Open in <b>Terminal</b></span><span class="tag">⌘T</span></div>
+        <div class="minicard"><span>Open in <b>GitHub Desktop</b></span><span class="tag">—</span></div>
+      </div>
+      <div class="feature-copy">
+        <div class="feature-num">04 / Open anywhere</div>
+        <h3>Your tools, one keystroke away.</h3>
+        <p>Jump from any workspace into VS Code, Cursor, or your terminal. Superset orchestrates; your editor stays yours.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SECURITY / ENTERPRISE -->
+<section>
+  <div class="container">
+    <div class="eyebrow">Built for trust</div>
+    <h2>Local-first, by design.</h2>
+    <div class="sec-grid">
+      <div class="sec-card">
+        <div class="sec-icon">[~]</div>
+        <h3>Runs on your machine</h3>
+        <p>Agents execute locally against your checkout. No cloud sandbox, no code upload, works offline.</p>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">[⎇]</div>
+        <h3>Isolated by default</h3>
+        <p>Every agent is confined to its own worktree. Blast radius of a bad run: one branch, not your repo.</p>
+      </div>
+      <div class="sec-card">
+        <div class="sec-icon">[&lt;/&gt;]</div>
+        <h3>Source available</h3>
+        <p>Read the code you're trusting with your code. Audit it, build it yourself, or just star it.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- WALL OF LOVE -->
+<section>
+  <div class="container">
+    <div class="eyebrow">Wall of love</div>
+    <h2>What builders say.</h2>
+    <div class="wall-grid">
+      <div class="quote-card">
+        <div class="quote-head"><div class="avatar">AB</div><div><div class="quote-name">Existing testimonial</div><div class="quote-role">CTO, Mastra</div></div></div>
+        <blockquote>Your 11 real testimonials carry over unchanged — same names, avatars, and tweet links. Only the card styling changes.</blockquote>
+      </div>
+      <div class="quote-card">
+        <div class="quote-head"><div class="avatar">CD</div><div><div class="quote-name">Existing testimonial</div><div class="quote-role">Engineer, Cloudflare</div></div></div>
+        <blockquote>Square corners, hairline borders, hover lift to border-strong. The content is already your strongest asset.</blockquote>
+      </div>
+      <div class="quote-card">
+        <div class="quote-head"><div class="avatar">EF</div><div><div class="quote-name">Existing testimonial</div><div class="quote-role">Codex, OpenAI</div></div></div>
+        <blockquote>Real quotes from named engineers beat Factory's anonymous dashboard. Keep all 11.</blockquote>
+      </div>
+      <div class="quote-card">
+        <div class="quote-head"><div class="avatar">GH</div><div><div class="quote-name">Existing testimonial</div><div class="quote-role">Webflow</div></div></div>
+        <blockquote>Masonry stays — it reads as organic, which is right for social proof.</blockquote>
+      </div>
+      <div class="quote-card">
+        <div class="quote-head"><div class="avatar">IJ</div><div><div class="quote-name">Existing testimonial</div><div class="quote-role">Browser Use</div></div></div>
+        <blockquote>The broken "Translated" toggle gets fixed as part of this pass.</blockquote>
+      </div>
+      <div class="quote-card">
+        <div class="quote-head"><div class="avatar">KL</div><div><div class="quote-name">Existing testimonial</div><div class="quote-role">Paraflow</div></div></div>
+        <blockquote>Six shown here for layout; all 11 render on the real page.</blockquote>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section>
+  <div class="container">
+    <div class="faq-grid">
+      <div>
+        <div class="eyebrow">FAQ</div>
+        <h2>Questions,<br />answered.</h2>
+      </div>
+      <div>
+        <details open>
+          <summary>Is my code sent to the cloud?</summary>
+          <p>No. Superset runs entirely on your machine. Agents work against your local checkout in isolated worktrees; nothing is uploaded.</p>
+        </details>
+        <details>
+          <summary>Which agents does it support?</summary>
+          <p>Claude Code, Codex, Gemini CLI, Cursor, OpenCode, Amp, Aider — and any CLI-based agent you point it at.</p>
+        </details>
+        <details>
+          <summary>Do I need an account?</summary>
+          <p>No account required to download and run. Your existing agent subscriptions and API keys just work.</p>
+        </details>
+        <details>
+          <summary>Is it free?</summary>
+          <p>Superset is free for individuals. Team and enterprise plans are on the pricing page.</p>
+        </details>
+        <details>
+          <summary>Windows or Linux?</summary>
+          <p>macOS today. Join the Discord to hear first when other platforms land.</p>
+        </details>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA CLOSER -->
+<section class="cta">
+  <canvas id="glyphs2"></canvas>
+  <div class="hero-fade"></div>
+  <div class="container">
+    <h2>Ship with a fleet,<br />not a tab farm.</h2>
+    <p class="cta-sub">Download Superset and run your first parallel agents in under a minute.</p>
+    <div class="cta-ctas">
+      <a class="btn btn-primary" href="#">Download for macOS</a>
+      <a class="btn btn-secondary" href="#">Read the docs</a>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <a class="wordmark" href="#">super<b>set</b></a>
+        <p>© 2026 Superset Inc.<br />Made in San Francisco.</p>
+      </div>
+      <div class="footer-col">
+        <h4>Product</h4>
+        <a href="#">Download</a><a href="#">Pricing</a><a href="#">Enterprise</a><a href="#">Changelog</a>
+      </div>
+      <div class="footer-col">
+        <h4>Resources</h4>
+        <a href="#">Documentation</a><a href="#">Blog</a><a href="#">Community</a><a href="#">Status</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="#">About</a><a href="#">Careers</a><a href="#">Security</a><a href="#">Privacy</a>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<script>
+  // Lightweight stand-in for the existing BoidsBackground: drifting code glyphs
+  // on a grid. The real page keeps the actual boids sim; this just previews the
+  // "glyph field behind hero + CTA at low opacity, masked under text" treatment.
+  const CODE = 'await agent.spawn({preset:"claude",worktree:true}); merge(review(diff));';
+  function glyphField(id) {
+    const canvas = document.getElementById(id);
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const CELL = 14;
+    let w, h, cols, drops;
+    function resize() {
+      w = canvas.width = canvas.offsetWidth * devicePixelRatio;
+      h = canvas.height = canvas.offsetHeight * devicePixelRatio;
+      ctx.scale(devicePixelRatio, devicePixelRatio);
+      cols = Math.floor(canvas.offsetWidth / CELL);
+      drops = Array.from({ length: Math.floor(cols / 3) }, () => ({
+        x: Math.floor(Math.random() * cols),
+        y: Math.random() * canvas.offsetHeight / CELL,
+        v: 0.04 + Math.random() * 0.08,
+        i: Math.floor(Math.random() * CODE.length),
+      }));
+    }
+    resize();
+    addEventListener('resize', resize);
+    ctx.font = '11px "IBM Plex Mono", monospace';
+    function tick() {
+      ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+      ctx.fillStyle = 'rgba(23,23,23,0.06)';
+      ctx.fillRect(0, 0, canvas.offsetWidth, canvas.offsetHeight);
+      for (const d of drops) {
+        const ch = CODE[d.i % CODE.length];
+        ctx.fillStyle = Math.random() < 0.015 ? 'rgba(210,86,17,0.7)' : 'rgba(160,160,160,0.35)';
+        ctx.fillText(ch, d.x * CELL, Math.floor(d.y) * CELL);
+        d.y += d.v; d.i++;
+        if (d.y * CELL > canvas.offsetHeight + 20) { d.y = -1; d.x = Math.floor(Math.random() * cols); }
+      }
+      requestAnimationFrame(tick);
+    }
+    if (!matchMedia('(prefers-reduced-motion: reduce)').matches) tick();
+  }
+  glyphField('glyphs');
+  glyphField('glyphs2');
+</script>
+</body>
+</html>

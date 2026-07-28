@@ -16,29 +16,27 @@ const DEMO_COMPONENTS = [
 
 export function FeaturesSection() {
 	return (
-		<section className="relative py-24 px-8 lg:px-[30px]">
-			<div className="max-w-7xl mx-auto">
+		<section className="relative py-24 sm:py-32">
+			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				{/* Feature Rows */}
-				<div className="space-y-32">
+				<div className="space-y-24 sm:space-y-32">
 					{FEATURES.map((feature, index) => {
 						const isReversed = index % 2 === 1;
 						const DemoComponent = DEMO_COMPONENTS[index];
 						return (
 							<div
 								key={feature.title}
-								className={`grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center ${
-									isReversed ? "lg:direction-rtl" : ""
-								}`}
+								className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16 items-center"
 							>
 								{/* Text Content */}
 								<div
 									className={`space-y-6 ${isReversed ? "lg:order-2" : "lg:order-1"}`}
 								>
 									<div className="space-y-4">
-										<span className="text-sm font-mono text-muted-foreground uppercase tracking-wider">
+										<span className="text-sm font-mono uppercase tracking-widest text-brand">
 											{feature.tag}
 										</span>
-										<h3 className="text-2xl sm:text-3xl lg:text-4xl font-medium tracking-tight text-foreground">
+										<h3 className="text-2xl sm:text-3xl font-medium tracking-tight text-foreground">
 											{feature.title}
 										</h3>
 									</div>

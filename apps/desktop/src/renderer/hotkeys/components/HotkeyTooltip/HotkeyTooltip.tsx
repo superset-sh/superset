@@ -22,14 +22,7 @@ export function HotkeyTooltip({
 	return (
 		<Tooltip delayDuration={1000}>
 			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent
-				side={side}
-				sideOffset={4}
-				showArrow={false}
-				className="rounded-sm border border-border bg-background px-1.5 py-0.5 font-medium text-muted-foreground shadow-sm"
-			>
-				{text}
-			</TooltipContent>
+			<TooltipContent side={side}>{text}</TooltipContent>
 		</Tooltip>
 	);
 }

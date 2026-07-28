@@ -41,6 +41,7 @@ type LocalStateRow = {
 		tabOrder: number;
 		sectionId: string | null;
 		isHidden: boolean;
+		pinnedAt: number | null;
 	};
 	paneLayout: { version: number; tabs: unknown[]; activeTabId: string | null };
 };
@@ -58,6 +59,7 @@ function localStateRow(
 			tabOrder: 1,
 			sectionId: null,
 			isHidden: false,
+			pinnedAt: null,
 			...overrides,
 		},
 		paneLayout: { version: 1, tabs: [], activeTabId: null },
@@ -183,6 +185,33 @@ describe("removeProjectFromSidebarState", () => {
 		expect(collections.v2SidebarProjects.get("proj-1")).toBeUndefined();
 	});
 
+	it("clears the pin on a kept main-workspace row so it can't become an invisible orphan", () => {
+		// A pinned row is excluded from the project tree, and once the project
+		// record is deleted the pinned section drops it too — with the pin left
+		// set, the workspace would vanish with no context menu to unpin it.
+		const collections = makeCollections();
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-main", "proj-1", { pinnedAt: 1753000000000 }),
+		);
+		const workspaces: SidebarWorkspaceRow[] = [
+			{ id: "ws-main", projectId: "proj-1", hostId: "machine-1", type: "main" },
+		];
+		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
+
+		removeProjectFromSidebarState(
+			asRemoveArg(collections),
+			workspaces,
+			"proj-1",
+			"machine-1",
+			noopCleanup,
+		);
+
+		const row = collections.v2WorkspaceLocalState.get("ws-main");
+		expect(row?.sidebarState.pinnedAt).toBeNull();
+		// Still not hidden — re-adding the project restores the main workspace.
+		expect(row?.sidebarState.isHidden).toBe(false);
+	});
+
 	it("leaves workspaces from other projects untouched", () => {
 		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
@@ -258,10 +287,13 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 		expect(cleaned).toEqual([]);
 	});
 
-	it("hides an existing row, clears its section, and runs pane cleanup", () => {
+	it("hides an existing row, clears its section and pin, and runs pane cleanup", () => {
 		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
-			localStateRow("ws-1", "proj-1", { sectionId: "sec-1" }),
+			localStateRow("ws-1", "proj-1", {
+				sectionId: "sec-1",
+				pinnedAt: 1753000000000,
+			}),
 		);
 		const cleaned: string[] = [];
 
@@ -277,6 +309,7 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 		const row = collections.v2WorkspaceLocalState.get("ws-1");
 		expect(row?.sidebarState.isHidden).toBe(true);
 		expect(row?.sidebarState.sectionId).toBeNull();
+		expect(row?.sidebarState.pinnedAt).toBeNull();
 		expect(cleaned).toEqual(["ws-1"]);
 	});
 });

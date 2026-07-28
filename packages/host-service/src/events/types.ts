@@ -93,6 +93,8 @@ export interface ProjectSnapshot {
 	repoName: string | null;
 	repoUrl: string | null;
 	worktreeBaseDir: string | null;
+	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	icon: string | null;
 	createdAt: number;
 	updatedAt: number;
 }

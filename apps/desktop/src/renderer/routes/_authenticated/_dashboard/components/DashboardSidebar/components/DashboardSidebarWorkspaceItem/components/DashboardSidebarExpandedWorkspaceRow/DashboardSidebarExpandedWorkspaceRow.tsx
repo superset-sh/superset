@@ -10,6 +10,7 @@ import { HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
@@ -41,6 +42,8 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	diffStats: DiffStats | null;
 	workspaceStatus?: ActivePaneStatus | null;
 	isInSection?: boolean;
+	/** Present when rendered in the Pinned section: shows the project avatar. */
+	pinnedContext?: { projectName: string; projectIconUrl: string | null };
 	onClick?: () => void;
 	onDoubleClick?: () => void;
 	onCloseWorkspaceClick: () => void;
@@ -64,6 +67,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			diffStats,
 			workspaceStatus = null,
 			isInSection = false,
+			pinnedContext,
 			onClick,
 			onDoubleClick,
 			onCloseWorkspaceClick,
@@ -77,7 +81,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		ref,
 	) => {
 		const {
-			accentColor = null,
 			hostType,
 			hostIsOnline,
 			name,
@@ -86,7 +89,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			pendingTransaction,
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
-		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
 
@@ -116,20 +118,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					else if (ref) ref.current = node;
 				}}
 				className={cn(
-					"relative w-full text-left text-sm",
-					isActive && "bg-muted",
-					onClick && (isActive ? "hover:bg-muted" : "hover:bg-muted/50"),
+					"relative mx-2 rounded-md text-left text-sm transition-colors",
+					isActive && "bg-fill-selected",
+					onClick &&
+						(isActive ? "hover:bg-fill-selected" : "hover:bg-fill-hover"),
 					className,
 				)}
 				{...props}
 			>
-				{isActive && showsStandaloneActiveStripe && (
-					<div
-						className="absolute top-0 bottom-0 left-0 w-0.5 rounded-r"
-						style={{ backgroundColor: "var(--color-foreground)" }}
-					/>
-				)}
-
 				{/* biome-ignore lint/a11y/noStaticElementInteractions: Mirrors the legacy sidebar row UI, which includes nested action buttons. */}
 				<div
 					role={onClick ? "button" : undefined}
@@ -144,8 +140,8 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					}}
 					onDoubleClick={onDoubleClick}
 					className={cn(
-						"group relative flex w-full items-center py-2 pr-2",
-						isInSection ? "pl-10" : "pl-5",
+						"group relative flex w-full items-center py-1.5 pr-2",
+						isInSection ? "pl-8" : "pl-3",
 						onClick && "cursor-pointer",
 					)}
 				>
@@ -232,6 +228,23 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						</TooltipContent>
 					</Tooltip>
 
+					{pinnedContext && (
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<div className="mr-1.5 flex shrink-0 items-center">
+									<ProjectThumbnail
+										projectName={pinnedContext.projectName}
+										iconUrl={pinnedContext.projectIconUrl}
+										className="size-3.5 text-[8px]"
+									/>
+								</div>
+							</TooltipTrigger>
+							<TooltipContent side="right" sideOffset={8}>
+								{pinnedContext.projectName}
+							</TooltipContent>
+						</Tooltip>
+					)}
+
 					<div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5">
 						{isRenaming ? (
 							<RenameInput
@@ -271,7 +284,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)
 							)}
 							{!isPending && (
-								<div className="invisible flex items-center justify-end gap-1.5 group-hover:visible group-focus-within:visible">
+								<div className="hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex">
 									{shortcutLabel && (
 										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
 											{shortcutLabel}
@@ -301,7 +314,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													<HiMiniMinus className="size-3.5" />
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
+											<TooltipContent side="top">
 												<HotkeyLabel label="Remove from sidebar" />
 											</TooltipContent>
 										</Tooltip>
@@ -329,7 +342,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													<HiMiniXMark className="size-3.5" />
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
+											<TooltipContent side="top">
 												<HotkeyLabel
 													label="Close workspace"
 													id={isActive ? "CLOSE_WORKSPACE" : undefined}
