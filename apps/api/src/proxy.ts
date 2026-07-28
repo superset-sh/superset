@@ -42,12 +42,34 @@ function getCorsHeaders(origin: string | null, deploymentOrigin: string) {
 			"Producer-Expected-Seq",
 			"Producer-Received-Seq",
 			"ETag",
+			// Lets browser MCP clients read the RFC 9728 challenge off a 401
+			"WWW-Authenticate",
 		].join(", "),
 		"Access-Control-Allow-Credentials": "true",
 	};
 }
 
+const wellKnownCorsHeaders = {
+	"Access-Control-Allow-Origin": "*",
+	"Access-Control-Allow-Methods": "GET, OPTIONS",
+	"Access-Control-Allow-Headers":
+		"Content-Type, Authorization, MCP-Protocol-Version",
+};
+
 export default function proxy(req: NextRequest) {
+	// .well-known discovery routes set their own public CORS headers;
+	// overwriting them with the app-origin allowlist breaks browser-based
+	// MCP/OAuth discovery.
+	if (req.nextUrl.pathname.startsWith("/.well-known/")) {
+		if (req.method === "OPTIONS") {
+			return new NextResponse(null, {
+				status: 204,
+				headers: wellKnownCorsHeaders,
+			});
+		}
+		return NextResponse.next();
+	}
+
 	const origin = req.headers.get("origin");
 	const corsHeaders = getCorsHeaders(origin, req.nextUrl.origin);
 
