@@ -142,7 +142,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
-	[SETTING_ITEM_ID.BEHAVIOR_WAIT_FOR_SETUP_BEFORE_AGENT]: "v1",
+	// Gates both the v1 renderer launch and the v2 host-side launch.
+	[SETTING_ITEM_ID.BEHAVIOR_WAIT_FOR_SETUP_BEFORE_AGENT]: "shared",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",

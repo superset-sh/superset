@@ -45,7 +45,15 @@ export function appendLaunchesToPaneLayout({
 			sessionId: entry.sessionId,
 			label: entry.label,
 		}));
-	const launches = [...terminalLaunches, ...agentLaunches];
+	// A wait-for-setup chained agent reuses the setup terminal, so its result
+	// carries the same session id as the setup terminal descriptor — dedupe to
+	// one tab (first entry wins, keeping the setup terminal's label).
+	const seen = new Set<string>();
+	const launches = [...terminalLaunches, ...agentLaunches].filter((launch) => {
+		if (seen.has(launch.sessionId)) return false;
+		seen.add(launch.sessionId);
+		return true;
+	});
 
 	if (launches.length === 0) {
 		return existing ?? EMPTY_STATE;

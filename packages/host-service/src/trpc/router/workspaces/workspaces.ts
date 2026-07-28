@@ -13,7 +13,12 @@ import {
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
-import { type AgentRunResult, runAgentInWorkspace } from "../agents";
+import {
+	type AgentRunResult,
+	buildTerminalAgentLaunch,
+	isChatAgent,
+	runAgentInWorkspace,
+} from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
@@ -82,6 +87,11 @@ const createInputSchema = z
 		baseBranch: z.string().min(1).optional(),
 		taskId: z.string().uuid().optional(),
 		agents: z.array(agentLaunchSchema).optional(),
+		// Desktop "Wait for workspace setup before starting agents" setting,
+		// sent per-request. When true and setup commands resolve, a single
+		// terminal sugar agent is chained behind them in the setup terminal
+		// (`setup && agent`) instead of launching in parallel.
+		waitForSetupBeforeAgents: z.boolean().optional(),
 		command: z.string().min(1).optional(),
 		namingPrompt: z.string().min(1).optional(),
 		id: z.string().uuid().optional(),
@@ -935,12 +945,48 @@ export const workspacesRouter = router({
 			}
 
 			const terminalsResult: Array<{ terminalId: string; label?: string }> = [];
+			const sugarLaunches = input.agents ?? [];
 
+			// Wait-for-setup gate: chain a single terminal agent behind the setup
+			// commands in the setup terminal, so the agent starts only after setup
+			// succeeds and no second terminal is created. Chat agents and
+			// multi-agent launches keep the parallel path, mirroring the renderer's
+			// v1 gating. Build the agent command up-front; if it fails (unknown
+			// agent, missing attachment) fall back to the parallel dispatch, which
+			// surfaces the error in the agents result.
+			let chainAgent: { fullCommand: string; label: string } | null = null;
+			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
+			if (
+				!alreadyExists &&
+				input.waitForSetupBeforeAgents &&
+				soleLaunch &&
+				!isChatAgent(soleLaunch.agent)
+			) {
+				try {
+					chainAgent = buildTerminalAgentLaunch(ctx.db, {
+						workspaceId: workspaceRow.id,
+						agent: soleLaunch.agent,
+						prompt: soleLaunch.prompt,
+						attachmentIds: soleLaunch.attachmentIds,
+						model: soleLaunch.model,
+						effort: soleLaunch.effort,
+					});
+				} catch (err) {
+					console.warn(
+						"[workspaces.create] wait-for-setup chain unavailable, dispatching agent in parallel:",
+						err,
+					);
+				}
+			}
+
+			let chainedAgentResult: AgentLaunchResult | null = null;
 			if (!alreadyExists) {
-				const { terminal, warning } = await startSetupTerminalIfPresent({
-					ctx,
-					workspaceId: workspaceRow.id,
-				});
+				const { terminal, warning, chained } =
+					await startSetupTerminalIfPresent({
+						ctx,
+						workspaceId: workspaceRow.id,
+						...(chainAgent ? { chainCommand: chainAgent.fullCommand } : {}),
+					});
 				if (warning) {
 					console.warn(`[workspaces.create] setup warning: ${warning}`);
 				}
@@ -950,10 +996,22 @@ export const workspacesRouter = router({
 						label: terminal.label,
 					});
 				}
+				if (chained && chainAgent && terminal) {
+					chainedAgentResult = {
+						ok: true,
+						kind: "terminal",
+						sessionId: terminal.id,
+						label: chainAgent.label,
+					};
+				}
 			}
 
 			const [agentsResult, commandResult] = await Promise.all([
-				dispatchSugarAgents(ctx, workspaceRow.id, input.agents ?? []),
+				dispatchSugarAgents(
+					ctx,
+					workspaceRow.id,
+					chainedAgentResult ? [] : sugarLaunches,
+				),
 				input.command
 					? startCommandTerminal({
 							ctx,
@@ -978,7 +1036,9 @@ export const workspacesRouter = router({
 			return {
 				workspace: workspaceRow,
 				terminals: terminalsResult,
-				agents: agentsResult,
+				agents: chainedAgentResult
+					? [chainedAgentResult, ...agentsResult]
+					: agentsResult,
 				alreadyExists,
 				autoNameWarning:
 					autoNameFellBack && !alreadyExists

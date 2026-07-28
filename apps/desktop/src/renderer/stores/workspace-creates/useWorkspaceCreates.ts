@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -43,10 +44,19 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 	const trackWorkspaceTransaction = useWorkspaceTransactionsStore(
 		(state) => state.track,
 	);
+	const { data: waitForSetupBeforeAgent } =
+		electronTrpc.settings.getWaitForSetupBeforeAgent.useQuery();
 
 	const submit = useCallback(
 		(args: SubmitArgs): SubmitHandle => {
-			const workspaceId = args.snapshot.id;
+			// The wait-for-setup gate is a desktop setting the host can't read;
+			// send it with every agent-carrying create so the host chains the
+			// agent behind the setup commands.
+			const snapshot: WorkspacesCreateInput =
+				args.snapshot.agents?.length && waitForSetupBeforeAgent
+					? { ...args.snapshot, waitForSetupBeforeAgents: true }
+					: args.snapshot;
+			const workspaceId = snapshot.id;
 			if (!workspaceId) {
 				throw new Error("workspaces.create requires `id`");
 			}
@@ -58,7 +68,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				collections.failedWorkspaceCreates.insert({
 					id: workspaceId,
 					hostId: args.hostId,
-					input: args.snapshot,
+					input: snapshot,
 					error,
 					failedAt: new Date(),
 				});
@@ -103,26 +113,25 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			hostWorkspacesCache.upsertWorkspace({
 				id: workspaceId,
 				organizationId,
-				projectId: args.snapshot.projectId,
+				projectId: snapshot.projectId,
 				hostId: args.hostId,
-				name: args.snapshot.name ?? args.snapshot.branch ?? "New workspace",
-				branch: args.snapshot.branch ?? args.snapshot.name ?? "New workspace",
+				name: snapshot.name ?? snapshot.branch ?? "New workspace",
+				branch: snapshot.branch ?? snapshot.name ?? "New workspace",
 				type: "worktree",
 				createdByUserId: userId,
-				taskId: args.snapshot.taskId ?? null,
+				taskId: snapshot.taskId ?? null,
 				createdAt: now,
 				updatedAt: now,
 				worktreePath: "",
 				worktreeExists: true,
 			});
 
-			const createPromise = getHostServiceClientByUrl(
-				hostUrl,
-			).workspaces.create.mutate(args.snapshot);
+			const createPromise =
+				getHostServiceClientByUrl(hostUrl).workspaces.create.mutate(snapshot);
 
 			writeWorkspacePaneLayout(
 				collections,
-				{ id: workspaceId, projectId: args.snapshot.projectId },
+				{ id: workspaceId, projectId: snapshot.projectId },
 				[],
 				[],
 			);
@@ -179,6 +188,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			relayUrl,
 			hostService,
 			trackWorkspaceTransaction,
+			waitForSetupBeforeAgent,
 		],
 	);
 
