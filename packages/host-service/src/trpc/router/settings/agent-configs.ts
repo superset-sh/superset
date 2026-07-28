@@ -15,7 +15,16 @@ import { protectedProcedure, router } from "../../index";
 const promptTransportSchema = z.enum(["argv", "stdin"]);
 
 const argvSchema = z.array(z.string());
-const envSchema = z.record(z.string(), z.string());
+// Env keys become `KEY=value` assignments in a PTY launch prefix, so an
+// unconstrained key is a shell-injection vector (RCE). Only accept valid POSIX
+// env-var identifiers; values are still shell-quoted at the launch site.
+const envKeySchema = z
+	.string()
+	.regex(
+		/^[A-Za-z_][A-Za-z0-9_]*$/,
+		"Env var names must be valid POSIX identifiers ([A-Za-z_][A-Za-z0-9_]*)",
+	);
+const envSchema = z.record(envKeySchema, z.string());
 
 export interface HostAgentConfig {
 	id: string;

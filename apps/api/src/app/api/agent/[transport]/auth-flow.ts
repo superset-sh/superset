@@ -4,6 +4,7 @@ import type { createMcpServer } from "@superset/mcp";
 import type { McpContext } from "@superset/mcp/auth";
 import type { verifyAccessToken as verifyOAuthAccessToken } from "better-auth/oauth2";
 import { getOAuthProtectedResourceMetadataUrl } from "@/lib/oauth-metadata";
+import { isUntrustedAuthorizedParty } from "@/lib/trusted-clients";
 
 interface SessionUser {
 	id: string;
@@ -159,6 +160,17 @@ function buildOAuthAuthInfo(
 	bearerToken: string,
 	payload: Record<string, unknown>,
 ): AuthInfo | undefined {
+	// Reject victim-scoped tokens minted to attacker-registered DCR clients:
+	// an untrusted `azp` must not be honored on the MCP surface, otherwise it
+	// grants the attacker the victim's agent context (cross-tenant ATO). This
+	// mirrors the tRPC boundary check in trpc/context.ts.
+	if (isUntrustedAuthorizedParty(payload)) {
+		console.error("[mcp/auth] Access token has untrusted azp; rejecting", {
+			azp: payload.azp,
+		});
+		return undefined;
+	}
+
 	if (
 		typeof payload.sub !== "string" ||
 		typeof payload.organizationId !== "string"

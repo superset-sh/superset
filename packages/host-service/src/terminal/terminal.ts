@@ -1127,6 +1127,12 @@ interface CreateTerminalSessionOptions {
 	db: HostDb;
 	eventBus?: EventBus;
 	initialCommand?: string;
+	/**
+	 * Agent-config env overlay spawned structurally into the PTY. Prefer this
+	 * over prefixing `KEY=value` onto `initialCommand`, which would let a
+	 * crafted key inject shell metacharacters (RCE).
+	 */
+	extraEnv?: Record<string, string>;
 	cwd?: string;
 	/** Hidden sessions are process-internal and should not appear in user pickers. */
 	listed?: boolean;
@@ -1188,6 +1194,7 @@ export async function createTerminalSessionInternal({
 	db,
 	eventBus,
 	initialCommand,
+	extraEnv,
 	cwd: cwdOverride,
 	listed = true,
 	cols: requestedCols,
@@ -1277,6 +1284,7 @@ export async function createTerminalSessionInternal({
 		agentHookPort: process.env.SUPERSET_AGENT_HOOK_PORT || "",
 		agentHookVersion: process.env.SUPERSET_AGENT_HOOK_VERSION || "",
 		hostAgentHookUrl: getHostAgentHookUrl(),
+		...(extraEnv ? { agentEnv: extraEnv } : {}),
 	});
 
 	let daemon: DaemonClient;

