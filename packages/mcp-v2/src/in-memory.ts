@@ -56,10 +56,12 @@ export async function createInMemoryMcpClient({
 		);
 	}
 
+	// Same scoping as resolveMcpContext: the relay trusts this claim, so the
+	// host-call token must carry only the org this client is bound to.
 	const bearerToken = await mintUserJwt({
 		userId,
 		email: user.email,
-		organizationIds,
+		organizationIds: [organizationId],
 		ttlSeconds: 300,
 	});
 

@@ -196,10 +196,13 @@ export async function resolveMcpContext(
 		);
 	}
 
+	// The minted token authorizes host calls through the relay, which trusts
+	// its organizationIds claim. Scope it to the session org only — the full
+	// membership list would let this MCP session reach hosts in other orgs.
 	const bearerToken = await mintUserJwt({
 		userId,
 		email,
-		organizationIds,
+		organizationIds: [organizationId],
 		ttlSeconds: 300,
 	});
 
