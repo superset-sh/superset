@@ -10,8 +10,8 @@ export const HOST_SERVICE_RESPAWN_MAX_DELAY_MS = 30_000;
 export const HOST_SERVICE_RESPAWN_MAX_ATTEMPTS = 8;
 /**
  * Uptime that marks a respawn as having stuck, after which the attempt budget
- * resets. Without it an app left open for days would spend its five attempts on
- * unrelated crashes weeks apart and then stop healing.
+ * resets. Without it an app left open for days would spend its attempt budget
+ * on unrelated crashes weeks apart and then stop healing.
  */
 export const HOST_SERVICE_RESPAWN_STABLE_MS = 60_000;
 

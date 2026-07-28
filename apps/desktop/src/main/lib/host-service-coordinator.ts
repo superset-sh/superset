@@ -3,8 +3,9 @@ import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import path from "node:path";
-import { settings } from "@superset/local-db";
+import { organizations, settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
+import { eq } from "drizzle-orm";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
 import { env as sharedEnv } from "shared/env.shared";
@@ -923,15 +924,31 @@ export class HostServiceCoordinator extends EventEmitter {
 
 	/**
 	 * Alert on a crash we could not recover from. Recovery is the existing
-	 * tray > Host Service > Restart.
+	 * tray > Host Service > Restart. Async on purpose: a synchronous error box
+	 * blocks the main process until dismissed.
 	 */
 	private alertChildCrashed(organizationId: string, cause: string): void {
-		// Name the org with the same short id the log tags use, so a multi-org user
-		// can tell which one this is about.
-		dialog.showErrorBox(
-			"Host service crashed",
-			`The Superset host service for organization ${organizationId.slice(0, 8)} stopped unexpectedly (${cause}) and could not be restarted automatically. Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.`,
-		);
+		const orgName = this.getOrganizationName(organizationId);
+		void dialog.showMessageBox({
+			type: "error",
+			title: "Host service crashed",
+			message: `The Superset host service${orgName ? ` for ${orgName}` : ""} stopped unexpectedly (${cause}) and could not be restarted automatically.`,
+			detail:
+				"Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.",
+		});
+	}
+
+	private getOrganizationName(organizationId: string): string | null {
+		try {
+			const row = localDb
+				.select({ name: organizations.name })
+				.from(organizations)
+				.where(eq(organizations.id, organizationId))
+				.get();
+			return row?.name ?? null;
+		} catch {
+			return null;
+		}
 	}
 }
 

@@ -63,7 +63,10 @@ mock.module("./host-service-utils", () => ({
 	pollHealthCheck: pollHealthCheckMock,
 }));
 
-const showErrorBoxMock = mock(() => {});
+const showAlertMock = mock(async () => ({
+	response: 0,
+	checkboxChecked: false,
+}));
 
 mock.module("electron", () => ({
 	app: {
@@ -72,7 +75,7 @@ mock.module("electron", () => ({
 		getAppPath: () => "/tmp/app",
 	},
 	dialog: {
-		showErrorBox: showErrorBoxMock,
+		showMessageBox: showAlertMock,
 	},
 }));
 
@@ -92,7 +95,9 @@ mock.module("@superset/shared/host-info", () => ({
 }));
 mock.module("./local-db", () => ({
 	localDb: {
-		select: () => ({ from: () => ({ get: () => null }) }),
+		select: () => ({
+			from: () => ({ get: () => null, where: () => ({ get: () => null }) }),
+		}),
 	},
 }));
 
@@ -129,7 +134,7 @@ function resetMocks(): void {
 	readManifestMock.mockImplementation(() => manifestStore.current);
 	killedPids = [];
 	killProcessError = null;
-	showErrorBoxMock.mockClear();
+	showAlertMock.mockClear();
 }
 
 describe("HostServiceCoordinator preferred ports", () => {
@@ -469,7 +474,7 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 		expect(internals.respawns.get("org-1")?.attempts).toBe(1);
 		expect(internals.respawns.get("org-1")?.timer).not.toBeNull();
 		// The crash alone must not nag: the modal is for exhaustion only.
-		expect(showErrorBoxMock).not.toHaveBeenCalled();
+		expect(showAlertMock).not.toHaveBeenCalled();
 	});
 
 	test("respawns through the start path once the delay elapses", async () => {
@@ -524,7 +529,7 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 
 		// Startup deaths surface through start() rejecting instead.
 		expect(internals.respawns.has("org-1")).toBe(false);
-		expect(showErrorBoxMock).not.toHaveBeenCalled();
+		expect(showAlertMock).not.toHaveBeenCalled();
 	});
 
 	test("stop cancels a pending respawn so quitting cannot resurrect it", () => {
@@ -560,7 +565,7 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 
 		internals.handleChildExit("org-1", 7777, null, "SIGKILL");
 
-		expect(showErrorBoxMock).toHaveBeenCalledTimes(1);
+		expect(showAlertMock).toHaveBeenCalledTimes(1);
 		expect(internals.respawns.has("org-1")).toBe(false);
 	});
 
@@ -577,7 +582,7 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 		expect(startMock).not.toHaveBeenCalled();
 		expect(internals.respawns.get("org-1")?.attempts).toBe(2);
 		expect(pendingRespawns).toHaveLength(1);
-		expect(showErrorBoxMock).not.toHaveBeenCalled();
+		expect(showAlertMock).not.toHaveBeenCalled();
 	});
 
 	test("abandons an in-flight respawn when stopped while reading config", async () => {
