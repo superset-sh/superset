@@ -1,4 +1,3 @@
-import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { useMutation } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -13,10 +12,12 @@ interface SparseCheckoutSectionProps {
 	onChanged: () => void;
 }
 
-type SaveStatus = "idle" | "saving" | "saved";
+type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 const SAVE_DEBOUNCE_MS = 500;
 const SAVED_INDICATOR_MS = 2000;
+const RETRY_BASE_MS = 1000;
+const RETRY_MAX_MS = 30000;
 
 function toLines(paths: string[]): string {
 	return paths.join("\n");
@@ -58,6 +59,10 @@ export function SparseCheckoutSection({
 	const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 	const saveInFlightRef = useRef(false);
 	const queuedPathsRef = useRef<string[] | null>(null);
+	const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+	const retryDelayRef = useRef(RETRY_BASE_MS);
+	// Lets the failure path re-enter the save without a circular useCallback.
+	const flushSaveRef = useRef<((next: string[]) => Promise<void>) | null>(null);
 
 	const savedLines = toLines(paths);
 	useEffect(() => {
@@ -74,6 +79,8 @@ export function SparseCheckoutSection({
 		return () => {
 			if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 			if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+			// Without this a failed save keeps retrying after the editor is gone.
+			if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
 		};
 	}, []);
 
@@ -114,6 +121,7 @@ export function SparseCheckoutSection({
 					pathsToSave = queuedPathsRef.current;
 				}
 
+				retryDelayRef.current = RETRY_BASE_MS;
 				setSaveStatus("saved");
 				savedTimerRef.current = setTimeout(() => {
 					setSaveStatus("idle");
@@ -121,18 +129,30 @@ export function SparseCheckoutSection({
 				}, SAVED_INDICATOR_MS);
 				onChanged();
 			} catch (err) {
-				setSaveStatus("idle");
-				toast.error(
-					err instanceof Error
-						? err.message
-						: "Failed to update sparse checkout",
-				);
+				// The debounce that scheduled this save is already spent, and the
+				// loop nulls the queue before each attempt — so without putting the
+				// pending edit back, whatever the user last typed is silently lost.
+				queuedPathsRef.current =
+					queuedPathsRef.current ?? toPaths(latestValueRef.current);
+				setSaveStatus("error");
+				console.warn("[sparse-checkout/save] failed, retrying", err);
+
+				const delay = retryDelayRef.current;
+				retryDelayRef.current = Math.min(delay * 2, RETRY_MAX_MS);
+				if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+				retryTimerRef.current = setTimeout(() => {
+					retryTimerRef.current = null;
+					const pending = queuedPathsRef.current;
+					queuedPathsRef.current = null;
+					if (pending) void flushSaveRef.current?.(pending);
+				}, delay);
 			} finally {
 				saveInFlightRef.current = false;
 			}
 		},
 		[onChanged, saveMutation],
 	);
+	flushSaveRef.current = flushSave;
 
 	const handleChange = useCallback(
 		(nextValue: string) => {
@@ -181,6 +201,14 @@ export function SparseCheckoutSection({
 					<span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400">
 						<HiCheckCircle className="h-3.5 w-3.5" />
 						Saved
+					</span>
+				)}
+				{saveStatus === "error" && (
+					// Shown inline rather than as a toast: the retry loop would
+					// otherwise fire one toast per attempt. Selectable per the
+					// renderer's body-level user-select: none.
+					<span className="select-text cursor-text text-destructive">
+						Couldn't save — retrying…
 					</span>
 				)}
 			</div>
