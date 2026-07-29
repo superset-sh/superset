@@ -84,6 +84,18 @@ describe("getNotifyScriptContent", () => {
 		);
 	});
 
+	it("normalizes Grok ask_user_question notifications to PermissionRequest", () => {
+		const result = runNotifyHook({
+			hookEventName: "notification",
+			notificationType: "elicitation_dialog",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stderr.toString()).toContain(
+			"[notify-hook] event=PermissionRequest",
+		);
+	});
+
 	it("ignores unrelated Grok notification subtypes", () => {
 		const result = runNotifyHook({
 			hookEventName: "notification",

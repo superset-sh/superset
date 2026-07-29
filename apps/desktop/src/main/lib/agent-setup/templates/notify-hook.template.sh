@@ -40,12 +40,17 @@ if [ -z "$EVENT_TYPE" ]; then
 fi
 
 # Grok serializes its configured Notification event as lowercase
-# "notification". Only an actual permission prompt means the agent is blocked
-# waiting for the user; ignore unrelated notification subtypes.
+# "notification". Only subtypes where the agent is blocked waiting on the
+# user count: permission_prompt (tool/plan approval) and elicitation_dialog
+# (ask_user_question — the common case, since Superset launches grok with
+# --always-approve so tool approvals rarely prompt). Keep the case pattern
+# in sync with GROK_BLOCKING_NOTIFICATION_TYPES in agent-wrappers-grok.ts.
 if [ "$EVENT_TYPE" = "notification" ]; then
   NOTIFICATION_TYPE=$(echo "$INPUT" | grep -oE '"notificationType"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
-  [ "$NOTIFICATION_TYPE" != "permission_prompt" ] && exit 0
-  EVENT_TYPE="PermissionRequest"
+  case "$NOTIFICATION_TYPE" in
+    permission_prompt|elicitation_dialog) EVENT_TYPE="PermissionRequest" ;;
+    *) exit 0 ;;
+  esac
 fi
 
 # UserPromptSubmit normalizes here; other aliases are mapped server-side
