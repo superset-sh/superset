@@ -3,6 +3,7 @@ import {
 	type UseHostWorkspacesResult,
 	useHostWorkspacesSource,
 } from "renderer/hooks/host-workspaces/useHostWorkspaces";
+import { useReconcileStaleWorkspaceState } from "./useReconcileStaleWorkspaceState";
 
 const HostWorkspacesContext = createContext<UseHostWorkspacesResult | null>(
 	null,
@@ -16,6 +17,7 @@ const HostWorkspacesContext = createContext<UseHostWorkspacesResult | null>(
  */
 export function HostWorkspacesProvider({ children }: { children: ReactNode }) {
 	const value = useHostWorkspacesSource();
+	useReconcileStaleWorkspaceState(value.workspaces, value.isAuthoritative);
 	return (
 		<HostWorkspacesContext.Provider value={value}>
 			{children}

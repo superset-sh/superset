@@ -1,0 +1,119 @@
+import { describe, expect, test } from "bun:test";
+// biome-ignore lint/style/noRestrictedImports: test file needs fs/path for source verification
+import { readdirSync, readFileSync } from "node:fs";
+// biome-ignore lint/style/noRestrictedImports: test file needs fs/path for source verification
+import { join, relative } from "node:path";
+import {
+	DEAD_KEYS,
+	PERSISTED_KEY_REGISTRY,
+	sweepDeadPersistedKeys,
+} from "./persisted-keys";
+
+function makeStorage(entries: Record<string, string>): Storage {
+	const map = new Map(Object.entries(entries));
+	return {
+		get length() {
+			return map.size;
+		},
+		key: (index: number) => [...map.keys()][index] ?? null,
+		getItem: (key: string) => map.get(key) ?? null,
+		setItem: (key: string, value: string) => void map.set(key, value),
+		removeItem: (key: string) => void map.delete(key),
+		clear: () => map.clear(),
+	};
+}
+
+describe("sweepDeadPersistedKeys", () => {
+	test("removes exact and prefix dead keys, keeps everything else", () => {
+		const storage = makeStorage({
+			"pending-workspaces-org-a": "{}",
+			"pending-workspaces-org-b": "{}",
+			"v1-migration-last-run-at-org-a": "1",
+			"notification-center-store": "{}",
+			"v2-workspace-local-state-org-a": "{}",
+			"changes-store": "{}",
+			ph_project_posthog: "{}",
+		});
+
+		const removed = sweepDeadPersistedKeys(storage);
+
+		expect(removed).toBe(4);
+		expect(storage.getItem("pending-workspaces-org-a")).toBeNull();
+		expect(storage.getItem("pending-workspaces-org-b")).toBeNull();
+		expect(storage.getItem("v1-migration-last-run-at-org-a")).toBeNull();
+		expect(storage.getItem("notification-center-store")).toBeNull();
+		expect(storage.getItem("v2-workspace-local-state-org-a")).toBe("{}");
+		expect(storage.getItem("changes-store")).toBe("{}");
+		expect(storage.getItem("ph_project_posthog")).toBe("{}");
+	});
+
+	test("an exact dead key does not match keys it merely prefixes", () => {
+		const storage = makeStorage({ "settings-v2": "{}" });
+		expect(sweepDeadPersistedKeys(storage)).toBe(0);
+		expect(storage.getItem("settings-v2")).toBe("{}");
+	});
+
+	test("no dead key shadows a registered live key", () => {
+		const liveKeys = PERSISTED_KEY_REGISTRY.flatMap((owner) => owner.keys);
+		for (const dead of DEAD_KEYS) {
+			for (const live of liveKeys) {
+				const literal = live.replaceAll("*", "");
+				const collides =
+					dead.match === "exact"
+						? literal === dead.key
+						: literal.startsWith(dead.key);
+				expect(collides).toBe(false);
+			}
+		}
+	});
+});
+
+// --- registry enforcement -------------------------------------------------
+
+const RENDERER_DIR = join(import.meta.dir, "..", "..");
+
+function walk(dir: string): string[] {
+	return readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
+		const path = join(dir, entry.name);
+		if (entry.isDirectory()) return walk(path);
+		return /\.(ts|tsx)$/.test(entry.name) &&
+			!/\.(test|stories)\.(ts|tsx)$/.test(entry.name)
+			? [path]
+			: [];
+	});
+}
+
+/** Block comments and whole-line // comments; debug hints in comments must
+ * not register a file as a writer. */
+function stripComments(source: string): string {
+	return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+}
+
+function isPersistedKeyWriter(source: string): boolean {
+	const code = stripComments(source);
+	if (/localStorageCollectionOptions\s*\(/.test(code)) return true;
+	if (code.includes("zustand/middleware") && /\bpersist\s*\(/.test(code)) {
+		return true;
+	}
+	return /\.setItem\s*\(/.test(code) && !code.includes("sessionStorage");
+}
+
+describe("persisted-key registry", () => {
+	test("every localStorage writer is registered, and no entry is stale", () => {
+		const writers = walk(RENDERER_DIR)
+			.filter((path) => isPersistedKeyWriter(readFileSync(path, "utf8")))
+			.map((path) => `src/renderer/${relative(RENDERER_DIR, path)}`)
+			.sort();
+		const registered = PERSISTED_KEY_REGISTRY.map((owner) => owner.file).sort();
+
+		const unregistered = writers.filter((file) => !registered.includes(file));
+		const stale = registered.filter((file) => !writers.includes(file));
+
+		// New writer: add a PERSISTED_KEY_REGISTRY entry declaring what bounds
+		// the key and what deletes it (policy in apps/desktop/AGENTS.md).
+		expect(unregistered).toEqual([]);
+		// Removed writer: move its keys to DEAD_KEYS so existing profiles get
+		// swept, then drop the registry entry.
+		expect(stale).toEqual([]);
+	});
+});

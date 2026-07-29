@@ -6,6 +6,16 @@ Please use alias as defined in `tsconfig.json` when possible
 
 To show an announcement/warning popup in the app without shipping a release, insert a row in the `desktop_notices` table (served by `GET /api/desktop/version`). Authoring guide — markdown-only body, severities, triggers, targeting, QA previews: `docs/DESKTOP_NOTICES.md`.
 
+## Persisted renderer state (localStorage) policy
+
+Renderer localStorage has one ~10 MB quota, loads synchronously at boot, and keys outlive the code that wrote them — unbounded growth has frozen the renderer before (23.7 MB profile, GH #5496). Every persisted key must answer three questions, declared in `src/renderer/lib/persisted-keys/persisted-keys.ts` (a test fails on unregistered writers):
+
+1. **What bounds it?** A cap/LRU, a TTL, reconciliation against an owning entity, or "fixed-size singleton". "It's small per write" is not a bound.
+2. **Who deletes it?** Entity-keyed data must be removed when the entity dies — the explicit delete path is not enough (deletes from CLIs/other machines bypass it; `useReconcileStaleWorkspaceState` is the safety net for workspace-keyed state). One-shot payloads must be cleared by their consumer. Deleting a map entry means removing the key, never writing `null`.
+3. **What happens when the feature dies?** Move the keys to `DEAD_KEYS` in the same PR that removes the writer; the boot sweep cleans existing profiles. Deleting the writer without registering the key strands it on user profiles forever.
+
+Guardrail: localStorage is for small singleton UI state. Anything entity-scoped with unbounded cardinality, or payloads beyond a few KB, belongs in the SQLite persistence layer (`createElectronSQLitePersistence`) — localStorage collections re-serialize the whole org blob on every mutation.
+
 ## Window-drag regions: `drag` on empty leaves only
 
 Never mark a container with interactive children as `drag` and carve the children out with `no-drag`: Chromium loses the carve-outs when they sit inside masked, scrollable, or CSS-zoomed wrappers (OverflowFadeContainer, ZoomStable), which silently deadens every control under the bar. Instead, put `drag` only on dedicated empty leaf elements — traffic-light spacers and flex fillers (see TopBar, DashboardSidebarHeader, packages/panes TabBar). The worst failure mode then is "empty area not draggable" instead of "chrome swallows clicks".

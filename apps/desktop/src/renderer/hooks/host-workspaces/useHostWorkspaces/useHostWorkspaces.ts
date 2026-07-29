@@ -44,6 +44,14 @@ export interface UseHostWorkspacesResult {
 	 * empty states only — existing rows always render (cache-first rule).
 	 */
 	isReady: boolean;
+	/**
+	 * True only when `workspaces` provably contains every workspace that
+	 * exists anywhere: the host list synced and every host is represented by
+	 * a live answer or a persisted snapshot. Unlike `isReady`, an errored
+	 * host with no snapshot blocks this — its workspaces would otherwise be
+	 * invisible. Required by destructive consumers (stale-state GC).
+	 */
+	isAuthoritative: boolean;
 	cache: HostWorkspacesCacheOps;
 }
 
@@ -73,7 +81,7 @@ export function useHostWorkspacesSource(
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 
-	const { data: hosts = [] } = useLiveQuery(
+	const { data: hosts = [], isReady: hostsReady } = useLiveQuery(
 		(q) =>
 			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
 				organizationId: hosts.organizationId,
@@ -238,6 +246,17 @@ export function useHostWorkspacesSource(
 				snapshots.has(targets[index]?.machineId ?? ""),
 		);
 
+	// hostsReady guards the target list itself: on an offline cold start the
+	// hosts collection serves cached rows without reaching ready, and a
+	// partial target list would make remote-host workspaces look deleted.
+	const isAuthoritative =
+		hostsReady &&
+		targets.length > 0 &&
+		queries.every(
+			(query, index) =>
+				query.isSuccess || snapshots.has(targets[index]?.machineId ?? ""),
+		);
+
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const targetFor = (hostId: string) =>
 			targets.find((target) => target.machineId === hostId);
@@ -277,5 +296,5 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
-	return { workspaces, isReady, cache };
+	return { workspaces, isReady, isAuthoritative, cache };
 }
