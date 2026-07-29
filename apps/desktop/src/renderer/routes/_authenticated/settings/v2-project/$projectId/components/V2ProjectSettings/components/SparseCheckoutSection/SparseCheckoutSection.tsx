@@ -42,7 +42,16 @@ export function SparseCheckoutSection({
 	const [value, setValue] = useState(() => toLines(paths));
 	const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
 
-	const isFocusedRef = useRef(false);
+	// Asking the DOM beats tracking focus in a ref: a ref set on focus and
+	// cleared on blur stays stuck at `true` if the field is unmounted or
+	// navigated away from while focused, which permanently wedges the re-seed
+	// guard below.
+	const textareaRef = useRef<HTMLTextAreaElement>(null);
+	const isFocused = useCallback(
+		() =>
+			!!textareaRef.current && document.activeElement === textareaRef.current,
+		[],
+	);
 	const latestValueRef = useRef(value);
 	const lastSavedRef = useRef<string[]>(paths);
 	const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -53,17 +62,13 @@ export function SparseCheckoutSection({
 	const savedLines = toLines(paths);
 	useEffect(() => {
 		// Don't clobber an in-progress edit when the host row refetches.
-		if (
-			isFocusedRef.current ||
-			debounceTimerRef.current ||
-			saveInFlightRef.current
-		) {
+		if (isFocused() || debounceTimerRef.current || saveInFlightRef.current) {
 			return;
 		}
 		setValue(savedLines);
 		latestValueRef.current = savedLines;
 		lastSavedRef.current = toPaths(savedLines);
-	}, [savedLines]);
+	}, [savedLines, isFocused]);
 
 	useEffect(() => {
 		return () => {
@@ -144,7 +149,6 @@ export function SparseCheckoutSection({
 	);
 
 	const handleBlur = useCallback(() => {
-		isFocusedRef.current = false;
 		// Commit immediately on the way out instead of leaving the last
 		// keystrokes sitting in the debounce window.
 		if (debounceTimerRef.current) {
@@ -157,12 +161,10 @@ export function SparseCheckoutSection({
 	return (
 		<div className="space-y-1.5">
 			<Textarea
+				ref={textareaRef}
 				id="project-sparse-checkout"
 				value={value}
 				onChange={(e) => handleChange(e.target.value)}
-				onFocus={() => {
-					isFocusedRef.current = true;
-				}}
 				onBlur={handleBlur}
 				placeholder={"apps/desktop\npackages/ui"}
 				rows={3}

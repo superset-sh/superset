@@ -240,6 +240,10 @@ export function V2ProjectSettings({
 								</p>
 							</div>
 							<SparseCheckoutSection
+								// Remount per project: the editor holds draft text and
+								// pending-save state, and switching projects while the
+								// field is focused must not carry either across.
+								key={projectId}
 								projectId={projectId}
 								hostUrl={targetHostUrl}
 								// Hosts older than this setting omit the field entirely.
