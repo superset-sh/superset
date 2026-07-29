@@ -28,7 +28,6 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
-	BEHAVIOR_WAIT_FOR_SETUP_BEFORE_AGENT: "behavior-wait-for-setup-before-agent",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -56,6 +55,8 @@ export const SETTING_ITEM_ID = {
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
 	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
 	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
+	EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT:
+		"experimental-wait-for-setup-before-agent",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -142,8 +143,6 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
-	// Gates both the v1 renderer launch and the v2 host-side launch.
-	[SETTING_ITEM_ID.BEHAVIOR_WAIT_FOR_SETUP_BEFORE_AGENT]: "shared",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
@@ -172,6 +171,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
+	// Gates both the v1 renderer launch and the v2 host-side launch.
+	[SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT]: "shared",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -649,27 +650,6 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		],
 	},
 	{
-		id: SETTING_ITEM_ID.BEHAVIOR_WAIT_FOR_SETUP_BEFORE_AGENT,
-		section: "behavior",
-		title: "Wait for workspace setup before starting agents",
-		description:
-			"Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it",
-		keywords: [
-			"workspace",
-			"setup",
-			"script",
-			"agent",
-			"terminal",
-			"wait",
-			"gate",
-			"complete",
-			"finish",
-			"reuse",
-			"sequential",
-			"install",
-		],
-	},
-	{
 		id: SETTING_ITEM_ID.AGENTS_ENABLED,
 		section: "agents",
 		title: "Enabled agents",
@@ -1045,6 +1025,28 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"status",
 			"toggle",
 			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT,
+		section: "experimental",
+		title: "Wait for workspace setup before starting agents",
+		description:
+			"Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it",
+		keywords: [
+			"experimental",
+			"workspace",
+			"setup",
+			"script",
+			"agent",
+			"terminal",
+			"wait",
+			"gate",
+			"complete",
+			"finish",
+			"reuse",
+			"sequential",
+			"install",
 		],
 	},
 	{
