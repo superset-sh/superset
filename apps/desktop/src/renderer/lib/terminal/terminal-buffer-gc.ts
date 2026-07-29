@@ -13,6 +13,8 @@ export const TERMINAL_PERSISTED_AT_KEY = "terminal-buffer-persisted-at";
  */
 const MAX_PERSISTED_AGE_MS = 14 * 24 * 60 * 60 * 1000;
 const MAX_TOTAL_BUFFER_CHARS = 2_000_000;
+/** Aggressive TTL for when a quota-exhausted write needs space right now. */
+const QUOTA_PRESSURE_AGE_MS = 24 * 60 * 60 * 1000;
 
 type PersistedAtIndex = Record<string, number>;
 
@@ -58,11 +60,86 @@ export function removeTerminalStatePersistedAt(
 	writeIndex(storage, index);
 }
 
-function removeTerminalState(storage: Storage, terminalId: string): void {
+/** Removes a terminal's buffer + dims keys, reporting how many existed. */
+function removeTerminalState(storage: Storage, terminalId: string): number {
+	let removed = 0;
 	try {
-		storage.removeItem(`${TERMINAL_BUFFER_KEY_PREFIX}${terminalId}`);
-		storage.removeItem(`${TERMINAL_DIMS_KEY_PREFIX}${terminalId}`);
+		for (const key of [
+			`${TERMINAL_BUFFER_KEY_PREFIX}${terminalId}`,
+			`${TERMINAL_DIMS_KEY_PREFIX}${terminalId}`,
+		]) {
+			if (storage.getItem(key) !== null) {
+				storage.removeItem(key);
+				removed++;
+			}
+		}
 	} catch {}
+	return removed;
+}
+
+function collectTerminalIds(storage: Storage): Set<string> {
+	const ids = new Set<string>();
+	for (let i = 0; i < storage.length; i++) {
+		const key = storage.key(i);
+		if (!key) continue;
+		if (key.startsWith(TERMINAL_BUFFER_KEY_PREFIX)) {
+			ids.add(key.slice(TERMINAL_BUFFER_KEY_PREFIX.length));
+		} else if (key.startsWith(TERMINAL_DIMS_KEY_PREFIX)) {
+			ids.add(key.slice(TERMINAL_DIMS_KEY_PREFIX.length));
+		}
+	}
+	return ids;
+}
+
+/**
+ * Quota-pressure reclaim for `withQuotaGuard`: a collection write just failed
+ * on a full store, so shrink the snapshot budget to a 24h TTL and free
+ * everything older (unstamped included). Returns removed key count; 0 tells
+ * the guard a retry is pointless.
+ */
+export function reclaimTerminalStateForQuota(
+	storage: Storage = localStorage,
+	now: number = Date.now(),
+): number {
+	try {
+		const index = readIndex(storage);
+		let removed = 0;
+		for (const id of collectTerminalIds(storage)) {
+			const persistedAt = index[id];
+			if (
+				persistedAt !== undefined &&
+				now - persistedAt <= QUOTA_PRESSURE_AGE_MS
+			) {
+				continue;
+			}
+			removed += removeTerminalState(storage, id);
+			delete index[id];
+		}
+		if (removed > 0) writeIndex(storage, index);
+		return removed;
+	} catch {
+		return 0;
+	}
+}
+
+/**
+ * Drop every persisted terminal snapshot, fresh ones included. Costs parked
+ * terminals their restore, so only call from an explicit user action (the
+ * quota toast's "Free up space"). Returns removed key count.
+ */
+export function clearAllTerminalState(storage: Storage = localStorage): number {
+	try {
+		let removed = 0;
+		for (const id of collectTerminalIds(storage)) {
+			removed += removeTerminalState(storage, id);
+		}
+		if (storage.getItem(TERMINAL_PERSISTED_AT_KEY) !== null) {
+			storage.removeItem(TERMINAL_PERSISTED_AT_KEY);
+		}
+		return removed;
+	} catch {
+		return 0;
+	}
 }
 
 /**
@@ -77,17 +154,7 @@ export function pruneExpiredTerminalState(
 ): void {
 	try {
 		const index = readIndex(storage);
-
-		const ids = new Set<string>();
-		for (let i = 0; i < storage.length; i++) {
-			const key = storage.key(i);
-			if (!key) continue;
-			if (key.startsWith(TERMINAL_BUFFER_KEY_PREFIX)) {
-				ids.add(key.slice(TERMINAL_BUFFER_KEY_PREFIX.length));
-			} else if (key.startsWith(TERMINAL_DIMS_KEY_PREFIX)) {
-				ids.add(key.slice(TERMINAL_DIMS_KEY_PREFIX.length));
-			}
-		}
+		const ids = collectTerminalIds(storage);
 
 		const survivors: Array<{ id: string; persistedAt: number }> = [];
 		for (const id of ids) {

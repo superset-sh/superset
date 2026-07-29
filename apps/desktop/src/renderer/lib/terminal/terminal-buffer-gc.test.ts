@@ -1,6 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import {
+	clearAllTerminalState,
 	pruneExpiredTerminalState,
+	reclaimTerminalStateForQuota,
 	removeTerminalStatePersistedAt,
 	TERMINAL_BUFFER_KEY_PREFIX,
 	TERMINAL_DIMS_KEY_PREFIX,
@@ -117,6 +119,57 @@ describe("pruneExpiredTerminalState", () => {
 		pruneExpiredTerminalState(storage, NOW);
 
 		expect(values.has(`${TERMINAL_DIMS_KEY_PREFIX}dims-only`)).toBe(false);
+	});
+});
+
+describe("reclaimTerminalStateForQuota", () => {
+	test("frees unstamped and older-than-24h entries, keeps fresh ones", () => {
+		const { values, storage } = createFakeStorage();
+		seedTerminal(values, "fresh");
+		seedTerminal(values, "day-old");
+		seedTerminal(values, "legacy");
+		touchTerminalStatePersistedAt("fresh", storage, NOW - 60_000);
+		touchTerminalStatePersistedAt("day-old", storage, NOW - 2 * DAY_MS);
+
+		const removed = reclaimTerminalStateForQuota(storage, NOW);
+
+		expect(removed).toBe(4); // day-old + legacy, buffer and dims each
+		expect(values.has(`${TERMINAL_BUFFER_KEY_PREFIX}fresh`)).toBe(true);
+		expect(values.has(`${TERMINAL_BUFFER_KEY_PREFIX}day-old`)).toBe(false);
+		expect(values.has(`${TERMINAL_DIMS_KEY_PREFIX}legacy`)).toBe(false);
+		expect(Object.keys(readIndex(values))).toEqual(["fresh"]);
+	});
+
+	test("returns 0 when every snapshot is fresh", () => {
+		const { values, storage } = createFakeStorage();
+		seedTerminal(values, "fresh");
+		touchTerminalStatePersistedAt("fresh", storage, NOW);
+
+		expect(reclaimTerminalStateForQuota(storage, NOW)).toBe(0);
+		expect(values.has(`${TERMINAL_BUFFER_KEY_PREFIX}fresh`)).toBe(true);
+	});
+});
+
+describe("clearAllTerminalState", () => {
+	test("removes every snapshot and the index, fresh ones included", () => {
+		const { values, storage } = createFakeStorage();
+		seedTerminal(values, "fresh");
+		seedTerminal(values, "legacy");
+		touchTerminalStatePersistedAt("fresh", storage, NOW);
+		values.set("unrelated-key", "kept");
+
+		const removed = clearAllTerminalState(storage);
+
+		expect(removed).toBe(4);
+		expect(values.has(TERMINAL_PERSISTED_AT_KEY)).toBe(false);
+		expect(values.get("unrelated-key")).toBe("kept");
+		expect(
+			Array.from(values.keys()).filter(
+				(k) =>
+					k.startsWith(TERMINAL_BUFFER_KEY_PREFIX) ||
+					k.startsWith(TERMINAL_DIMS_KEY_PREFIX),
+			),
+		).toEqual([]);
 	});
 });
 
