@@ -160,6 +160,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Nous Research's autonomous agent for coding, research, and terminal workflows.",
 		command: "hermes --yolo",
 		promptCommand: "hermes --yolo chat -q",
+	}),
+	createBuiltinTerminalAgent({
 		id: "grok",
 		label: "Grok",
 		description:
