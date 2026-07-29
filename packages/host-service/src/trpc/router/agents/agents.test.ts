@@ -1,6 +1,7 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, it } from "bun:test";
 import { resolve } from "node:path";
+import { TRPCError } from "@trpc/server";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
@@ -9,6 +10,7 @@ import {
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
 	isChatAgent,
+	validateAgentEffortSelection,
 } from "./agents";
 
 const argvConfig = {
@@ -158,5 +160,45 @@ describe("isChatAgent", () => {
 	it("is true only for the superset chat agent", () => {
 		expect(isChatAgent("superset")).toBe(true);
 		expect(isChatAgent("claude")).toBe(false);
+	});
+});
+
+describe("validateAgentEffortSelection", () => {
+	it("leaves the effort unset so the agent can use its own default", () => {
+		expect(() =>
+			validateAgentEffortSelection("codex", "Codex", undefined),
+		).not.toThrow();
+	});
+
+	it("accepts a supported effort for the selected agent", () => {
+		expect(() =>
+			validateAgentEffortSelection("codex", "Codex", "xhigh"),
+		).not.toThrow();
+	});
+
+	it("rejects an invalid effort with the supported values", () => {
+		try {
+			validateAgentEffortSelection("codex", "Codex", "max");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("BAD_REQUEST");
+			expect((error as Error).message).toBe(
+				'Unsupported reasoning effort "max" for Codex. Choose one of: low, medium, high, xhigh.',
+			);
+		}
+	});
+
+	it("rejects overrides for agents without effort support", () => {
+		try {
+			validateAgentEffortSelection("superset", "Superset", "high");
+			throw new Error("Expected validation to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("BAD_REQUEST");
+			expect((error as Error).message).toBe(
+				"Superset does not support a reasoning effort override. Omit effort to use the agent default.",
+			);
+		}
 	});
 });

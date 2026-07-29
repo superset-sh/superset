@@ -3,6 +3,7 @@ import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
 	buildAgentModelEnv,
+	getAgentEffortSupport,
 } from "@superset/shared/agent-models";
 import {
 	buildArgvCommand,
@@ -169,6 +170,61 @@ export type AgentRunResult =
 const SUPERSET_AGENT_ID = "superset";
 const SUPERSET_AGENT_LABEL = "Superset";
 
+/**
+ * Validate an explicit effort override before launch. Omitting effort always
+ * delegates to the underlying agent's own default.
+ */
+export function validateAgentEffortSelection(
+	presetId: string,
+	label: string,
+	effort: string | undefined,
+): void {
+	if (!effort) return;
+
+	const support = getAgentEffortSupport(presetId);
+	if (!support) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${label} does not support a reasoning effort override. Omit effort to use the agent default.`,
+		});
+	}
+
+	if (!support.efforts.some((option) => option.id === effort)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Unsupported reasoning effort "${effort}" for ${label}. Choose one of: ${support.efforts.map((option) => option.id).join(", ")}.`,
+		});
+	}
+}
+
+/**
+ * Preflight a host-scoped launch before any larger workflow (such as
+ * workspace creation) performs side effects.
+ */
+export function validateAgentLaunchEffort(
+	db: HostDb,
+	input: Pick<AgentRunInput, "agent" | "effort">,
+): void {
+	if (!input.effort) return;
+	if (input.agent === SUPERSET_AGENT_ID) {
+		validateAgentEffortSelection(
+			SUPERSET_AGENT_ID,
+			SUPERSET_AGENT_LABEL,
+			input.effort,
+		);
+		return;
+	}
+
+	const config = resolveHostAgentConfig(db, input.agent);
+	if (!config) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `No host agent config matching '${input.agent}' (tried instance id then preset id).`,
+		});
+	}
+	validateAgentEffortSelection(config.presetId, config.label, input.effort);
+}
+
 async function resolveAttachmentsAsFiles(
 	attachmentIds: string[],
 ): Promise<Array<{ data: string; mediaType: string; filename?: string }>> {
@@ -247,6 +303,7 @@ export function buildTerminalAgentLaunch(
 			message: `No host agent config matching '${input.agent}' — the agent may have been removed or this host's agents were reset. Re-select an agent (or use a preset id like "claude").`,
 		});
 	}
+	validateAgentEffortSelection(config.presetId, config.label, input.effort);
 
 	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
@@ -324,6 +381,11 @@ export async function runAgentInWorkspace(
 		});
 	}
 	if (input.agent === SUPERSET_AGENT_ID) {
+		validateAgentEffortSelection(
+			SUPERSET_AGENT_ID,
+			SUPERSET_AGENT_LABEL,
+			input.effort,
+		);
 		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
 	}
 	return runTerminalAgent(ctx, input);

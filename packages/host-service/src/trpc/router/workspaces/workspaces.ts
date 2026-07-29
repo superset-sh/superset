@@ -18,6 +18,7 @@ import {
 	buildTerminalAgentLaunch,
 	isChatAgent,
 	runAgentInWorkspace,
+	validateAgentLaunchEffort,
 } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
@@ -438,6 +439,10 @@ export const workspacesRouter = router({
 	create: protectedProcedure
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
+			for (const launch of input.agents ?? []) {
+				validateAgentLaunchEffort(ctx.db, launch);
+			}
+
 			const localProject = requireLocalProject(ctx, input.projectId);
 
 			// Kick off AI naming in parallel when the user supplied a prompt

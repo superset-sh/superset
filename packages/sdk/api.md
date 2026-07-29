@@ -88,7 +88,7 @@ Types:
 Methods:
 
 - <code title="host get /api/trpc/settings.agentConfigs.list">client.agents.<a href="./src/resources/agents.ts">list</a>({ hostId }) -> AgentListResponse</code>
-- <code title="host post /api/trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">create</a>({ hostId, workspaceId, agent, prompt, attachmentIds? }) -> AgentCreateResult</code>
+- <code title="host post /api/trpc/agents.run">client.agents.<a href="./src/resources/agents.ts">create</a>({ hostId, workspaceId, agent, prompt, effort?, attachmentIds? }) -> AgentCreateResult</code>
 
 # Terminals
 

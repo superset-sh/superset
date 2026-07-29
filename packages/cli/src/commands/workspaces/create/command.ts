@@ -21,6 +21,9 @@ export default command({
 		prompt: string().desc(
 			"Initial prompt the agent starts with. Required when --agent is set",
 		),
+		effort: string().desc(
+			"Reasoning effort for the spawned agent (agent-specific; omit to use the agent default)",
+		),
 		command: string().desc(
 			"Shell command to run in the new workspace after creation",
 		),
@@ -55,6 +58,12 @@ export default command({
 				"Pass --prompt <text> alongside --agent",
 			);
 		}
+		if (options.effort && !options.agent) {
+			throw new CLIError(
+				"--effort requires --agent",
+				"Pass --agent <id> alongside --effort",
+			);
+		}
 		if (options.attachment && options.attachment.length > 0 && !options.agent) {
 			throw new CLIError(
 				"--attachment requires --agent",
@@ -83,6 +92,7 @@ export default command({
 						{
 							agent: options.agent,
 							prompt: options.prompt,
+							effort: options.effort,
 							...(attachmentIds.length > 0 ? { attachmentIds } : {}),
 						},
 					]

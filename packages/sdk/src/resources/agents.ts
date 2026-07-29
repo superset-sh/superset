@@ -45,6 +45,7 @@ export class Agents extends APIResource {
 				workspaceId: params.workspaceId,
 				agent: params.agent,
 				prompt: params.prompt,
+				effort: params.effort,
 				attachmentIds: params.attachmentIds,
 			},
 		);
@@ -91,6 +92,8 @@ export interface AgentCreateParams {
 	agent: string;
 	/** Prompt sent to the agent. */
 	prompt: string;
+	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
+	effort?: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */
 	attachmentIds?: string[];
 }

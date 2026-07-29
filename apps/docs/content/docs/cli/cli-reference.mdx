@@ -608,6 +608,7 @@ project id when the host doesn't know the project's name.
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
 		{ flag: "--agent <preset|uuid|superset>", description: "Agent to spawn after creation." },
 		{ flag: "--prompt <text>", description: "Initial prompt. Required when `--agent` is set." },
+		{ flag: "--effort <level>", description: "Reasoning effort for the spawned agent. Omit to use the agent default." },
 		{ flag: "--command <cmd>", description: "Shell command to run in the new workspace after creation." },
 		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
 	]}
@@ -616,7 +617,8 @@ project id when the host doesn't know the project's name.
 Create a workspace on the target host. Specify exactly one of `--branch`
 or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
-`--agent`/`--prompt`. Pass either or both.
+`--agent`/`--prompt`. Pass either or both. `--effort` requires `--agent`; see
+the [agent effort levels](#agent-effort-levels) below.
 
 ```bash
 superset workspaces create \
@@ -807,6 +809,7 @@ superset agents list --host host_…
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
 		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
+		{ flag: "--effort <level>", description: "Reasoning effort for this launch. Omit to use the agent default." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
 		{ flag: "--attachment <path>", description: "Local file path to upload as an attachment. Repeatable." },
 	]}
@@ -821,9 +824,27 @@ machine): starts the named preset (or HostAgentConfig instance) in a fresh
 terminal session there.
 
 ```bash
-superset agents create --workspace ws_… --agent claude --prompt "Audit the login flow"
+superset agents create --workspace ws_… --agent claude --effort high --prompt "Audit the login flow"
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
 ```
+
+#### Agent effort levels
+
+Effort is an explicit override for one launch. If you omit `--effort`,
+Superset passes no effort flag and the agent uses its own configured default.
+The host rejects unsupported values before launching the agent.
+
+| Agent | Supported levels |
+| --- | --- |
+| Claude | `low`, `medium`, `high`, `xhigh`, `max` |
+| Amp | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` |
+| Codex | `low`, `medium`, `high`, `xhigh` |
+| Mastracode | `off`, `low`, `medium`, `high`, `xhigh` |
+| Pi | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
+| Copilot | `low`, `medium`, `high`, `xhigh` |
+
+Other agents, including Superset chat, currently use their own default and
+reject an explicit effort override.
 </Command>
 
 ---
