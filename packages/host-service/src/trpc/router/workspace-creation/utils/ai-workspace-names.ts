@@ -77,8 +77,8 @@ const INSTRUCTIONS = [
 	"You name new code workspaces from the user's initial prompt.",
 	"The prompt describes work to do in an existing repository. Name that work; do not answer the prompt, ask questions, or request more context. Always infer useful names, even when the prompt is vague.",
 	"Return a structured object with two fields:",
-	`- title: a short human-readable label (<= ${WORKSPACE_TITLE_MAX} chars). Full words only; never cut mid-word. No trailing punctuation.`,
-	`- branchName: a kebab-case git branch name (<= ${BRANCH_NAME_MAX} chars, 2-4 words). Only a-z 0-9 and dashes. No prefixes.`,
+	`- title: a short human-readable label (<= ${WORKSPACE_TITLE_MAX} chars). Full words only; never cut mid-word. No trailing punctuation. Written in the same language as the user's prompt.`,
+	`- branchName: a kebab-case git branch name (<= ${BRANCH_NAME_MAX} chars, 2-4 words). Only a-z 0-9 and dashes. No prefixes. Always in English, regardless of the prompt language.`,
 	"Both fields must describe the same underlying task; the branch is just a compact slug of the title.",
 ].join("\n");
 

@@ -117,7 +117,7 @@ describe("generateWorkspaceNameFromPrompt", () => {
 			agentId: "workspace-namer",
 			agentName: "Workspace Namer",
 			instructions:
-				"You generate concise workspace titles. 20 characters or less. Return ONLY the title, nothing else.",
+				"You generate concise workspace titles. 20 characters or less. Write the title in the same language as the user's message. Return ONLY the title, nothing else.",
 			tracingContext: { surface: "workspace-auto-name" },
 		});
 	});
