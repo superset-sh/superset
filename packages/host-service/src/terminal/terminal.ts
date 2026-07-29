@@ -158,7 +158,10 @@ type TerminalClientMessage =
 // from live data.
 type TerminalServerMessage =
 	| { type: "attached"; terminalId: string }
-	| { type: "error"; message: string }
+	// `code: "session-gone"` marks the session as permanently destroyed (not
+	// found / disposed / exited) so the renderer can drop persisted scrollback;
+	// plain errors leave it unset and the renderer keeps its snapshot.
+	| { type: "error"; message: string; code?: "session-gone" }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
 
@@ -1635,7 +1638,7 @@ export function registerWorkspaceTerminalRoute({
 				return true;
 			};
 			const resolveSessionForAttach = async (): Promise<
-				TerminalSession | { error: string }
+				TerminalSession | { error: string; code?: "session-gone" }
 			> => {
 				const existing = sessions.get(terminalId);
 				if (existing) {
@@ -1656,13 +1659,20 @@ export function registerWorkspaceTerminalRoute({
 				if (!record) {
 					return {
 						error: `Terminal session "${terminalId}" not found; create it before connecting.`,
+						code: "session-gone",
 					};
 				}
 				if (record.status === "disposed") {
-					return { error: `Terminal session "${terminalId}" is disposed.` };
+					return {
+						error: `Terminal session "${terminalId}" is disposed.`,
+						code: "session-gone",
+					};
 				}
 				if (record.status === "exited") {
-					return { error: `Terminal session "${terminalId}" has exited.` };
+					return {
+						error: `Terminal session "${terminalId}" has exited.`,
+						code: "session-gone",
+					};
 				}
 				if (!record.originWorkspaceId) {
 					return {
@@ -1718,7 +1728,11 @@ export function registerWorkspaceTerminalRoute({
 					void (async () => {
 						const session = await resolveSessionForAttach();
 						if ("error" in session) {
-							sendMessage(ws, { type: "error", message: session.error });
+							sendMessage(ws, {
+								type: "error",
+								message: session.error,
+								code: session.code,
+							});
 							ws.close(1011, session.error);
 							return;
 						}
