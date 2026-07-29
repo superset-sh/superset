@@ -14,6 +14,7 @@ import {
 } from "./lib/boot-errors";
 import { persistentHistory } from "./lib/persistent-hash-history";
 import { posthog } from "./lib/posthog";
+import { pruneExpiredTerminalState } from "./lib/terminal/terminal-buffer-gc";
 import { electronQueryClient } from "./providers/ElectronTRPCProvider";
 import { NotFound } from "./routes/not-found";
 import { routeTree } from "./routeTree.gen";
@@ -23,6 +24,10 @@ import "./styles/bundled-fonts.css";
 
 const rootElement = document.querySelector("app");
 initBootErrorHandling(rootElement);
+
+// Before any terminal mounts: unbounded persisted scrollback wedged the
+// renderer once it grew to hundreds of orphaned buffers (23.7 MB observed).
+pruneExpiredTerminalState();
 
 const router = createRouter({
 	routeTree,

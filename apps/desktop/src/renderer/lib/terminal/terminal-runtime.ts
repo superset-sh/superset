@@ -18,14 +18,20 @@ import {
 	wrapWrite,
 } from "./parser-idle-gate";
 import { loadAddons } from "./terminal-addons";
+import {
+	removeTerminalStatePersistedAt,
+	TERMINAL_BUFFER_KEY_PREFIX,
+	TERMINAL_DIMS_KEY_PREFIX,
+	touchTerminalStatePersistedAt,
+} from "./terminal-buffer-gc";
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
 import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 const SERIALIZE_SCROLLBACK = 1000;
-const STORAGE_KEY_PREFIX = "terminal-buffer:";
-const DIMS_KEY_PREFIX = "terminal-dims:";
+const STORAGE_KEY_PREFIX = TERMINAL_BUFFER_KEY_PREFIX;
+const DIMS_KEY_PREFIX = TERMINAL_DIMS_KEY_PREFIX;
 const DEFAULT_COLS = 120;
 const DEFAULT_ROWS = 32;
 const RESIZE_DEBOUNCE_MS = 75;
@@ -96,6 +102,7 @@ function persistBuffer(
 	try {
 		const data = serializeAddon.serialize({ scrollback: SERIALIZE_SCROLLBACK });
 		localStorage.setItem(`${STORAGE_KEY_PREFIX}${terminalId}`, data);
+		touchTerminalStatePersistedAt(terminalId);
 		return true;
 	} catch {
 		return false;
@@ -105,7 +112,11 @@ function persistBuffer(
 function restoreBuffer(terminalId: string, terminal: XTerm) {
 	try {
 		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
-		if (data) terminal.write(data);
+		if (data) {
+			terminal.write(data);
+			// Restored-but-never-detached terminals must stay fresh for boot GC.
+			touchTerminalStatePersistedAt(terminalId);
+		}
 	} catch {}
 }
 
@@ -172,6 +183,7 @@ function clearPersistedDimensions(terminalId: string) {
 export function clearPersistedRuntimeState(terminalId: string): void {
 	clearPersistedBuffer(terminalId);
 	clearPersistedDimensions(terminalId);
+	removeTerminalStatePersistedAt(terminalId);
 }
 
 function hostIsVisible(container: HTMLDivElement | null): boolean {
