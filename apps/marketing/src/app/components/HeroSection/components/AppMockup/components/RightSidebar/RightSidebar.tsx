@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LuArrowRight, LuGitPullRequest } from "react-icons/lu";
+import { LuArrowRight, LuGitPullRequest, LuPlay } from "react-icons/lu";
 import { FILE_CHANGES } from "../../constants";
 import type { ActiveDemo } from "../../types";
 import { FileChangeItem } from "../FileChangeItem";
@@ -12,29 +12,29 @@ interface RightSidebarProps {
 
 const TABS = ["Files", "Changes", "Review"] as const;
 
-const BRANCH_BY_DEMO: Record<ActiveDemo, string> = {
-	"Use Any Agents": "use-any-agents",
-	"Create Parallel Branches": "create-parallel-branches",
-	"See Changes": "see-changes",
-	"Open in Any IDE": "open-in-any-ide",
-};
-
 export function RightSidebar({ activeDemo }: RightSidebarProps) {
 	const isDiff = activeDemo === "See Changes";
 
 	return (
 		<motion.div
-			className="relative flex shrink-0 flex-col overflow-hidden border-l border-border bg-card text-[11px]"
+			className="relative flex shrink-0 flex-col overflow-hidden border-l border-border/60 bg-card text-[11px]"
 			initial={{ width: 236 }}
 			animate={{ width: isDiff ? 380 : 236 }}
 			transition={{ duration: 0.3, ease: "easeOut" }}
 		>
-			<div className="flex h-9 items-center justify-end border-b border-border px-3">
+			<div className="flex h-9 items-center gap-1 px-2">
 				<button
 					type="button"
-					className="flex h-6 items-center gap-1.5 border border-border bg-background px-2 text-[10px] font-medium uppercase tracking-[0.06em] text-foreground/85 hover:bg-foreground/[0.04]"
+					className="flex h-6 items-center gap-1.5 rounded-sm px-1.5 text-[11px] text-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground/95"
 				>
-					<LuGitPullRequest className="size-2.5 text-brand-light" />
+					<LuPlay className="size-2.5 fill-current text-muted-foreground/65" />
+					<span>Run</span>
+				</button>
+				<button
+					type="button"
+					className="flex h-6 items-center gap-1.5 rounded-sm px-1.5 text-[11px] text-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground/95"
+				>
+					<LuGitPullRequest className="size-2.5 text-brand-light/80" />
 					<span>PR</span>
 					<span className="font-mono tabular-nums text-muted-foreground/55">
 						#827
@@ -42,35 +42,26 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 				</button>
 			</div>
 
-			<div className="flex h-8 items-center gap-3 border-b border-border px-3">
+			<div className="flex h-8 items-stretch">
 				{TABS.map((tab) => {
 					const active = isDiff ? tab === "Changes" : tab === "Files";
 					return (
 						<div
 							key={tab}
-							className={`relative flex h-8 cursor-pointer items-center text-[11px] font-medium ${
+							className={`flex flex-1 cursor-pointer items-center justify-center text-[11px] font-medium ${
 								active
-									? "text-foreground/95"
+									? "bg-background text-foreground/95"
 									: "text-muted-foreground/55 hover:text-foreground/85"
 							}`}
 						>
 							{tab}
-							{active && (
-								<span className="absolute inset-x-0 -bottom-px h-[2px] bg-brand" />
-							)}
 						</div>
 					);
 				})}
 			</div>
 
-			<div className="border-b border-border px-3 py-2.5">
-				<div className="flex items-center gap-2 font-mono text-[11px]">
-					<span className="size-1.5 rounded-full bg-brand" />
-					<span className="truncate font-medium text-foreground/95">
-						{BRANCH_BY_DEMO[activeDemo]}
-					</span>
-				</div>
-				<div className="mt-1 flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/60">
+			<div className="bg-background px-3 pt-3 pb-2">
+				<div className="flex items-center gap-1.5 font-mono text-[10px] text-muted-foreground/60">
 					<span className="tabular-nums text-emerald-400/85">+1,128</span>
 					<span className="tabular-nums text-rose-400/75">−98</span>
 					<span className="text-muted-foreground/45">·</span>
@@ -83,7 +74,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 				</div>
 			</div>
 
-			<div className="relative flex-1">
+			<div className="relative flex-1 bg-background">
 				<motion.div
 					className="absolute inset-0 flex flex-col"
 					initial={{ opacity: 1 }}
@@ -106,16 +97,15 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 				</motion.div>
 
 				<motion.div
-					className="absolute inset-0 flex flex-col bg-card"
+					className="absolute inset-0 flex flex-col bg-background"
 					initial={{ opacity: 0 }}
 					animate={{ opacity: isDiff ? 1 : 0 }}
 					transition={{ duration: 0.25, delay: isDiff ? 0.1 : 0 }}
 					style={{ pointerEvents: isDiff ? "auto" : "none" }}
 				>
-					<div className="flex items-center gap-0 border-b border-border px-2">
-						<span className="relative flex h-7 items-center px-2 font-mono text-[11px] font-medium text-foreground/95">
+					<div className="flex items-center gap-0 bg-card">
+						<span className="flex h-7 items-center bg-background px-2 font-mono text-[11px] font-medium text-foreground/95">
 							cloud-workspace.ts
-							<span className="absolute inset-x-2 -bottom-px h-[2px] bg-brand" />
 						</span>
 						<span className="flex h-7 items-center px-2 font-mono text-[11px] text-muted-foreground/55">
 							enums.ts
@@ -150,7 +140,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 						</div>
 					</div>
 
-					<div className="flex items-center gap-1.5 border-t border-border px-3 py-2">
+					<div className="flex items-center gap-1.5 px-3 py-2">
 						<button
 							type="button"
 							className="h-7 rounded-sm bg-emerald-500/15 px-2.5 text-[11px] font-medium text-emerald-300 hover:bg-emerald-500/25"
@@ -159,7 +149,7 @@ export function RightSidebar({ activeDemo }: RightSidebarProps) {
 						</button>
 						<button
 							type="button"
-							className="h-7 rounded-sm border border-border bg-background px-2.5 text-[11px] font-medium text-foreground/80 hover:bg-foreground/[0.04]"
+							className="h-7 rounded-sm px-2.5 text-[11px] font-medium text-muted-foreground/75 hover:bg-foreground/[0.04] hover:text-foreground/90"
 						>
 							Comment
 						</button>

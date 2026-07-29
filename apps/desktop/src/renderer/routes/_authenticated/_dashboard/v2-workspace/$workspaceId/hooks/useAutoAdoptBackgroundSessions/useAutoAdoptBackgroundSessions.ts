@@ -1,6 +1,6 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useEffect, useRef } from "react";
+import { useEffect } from "react";
 import { logStressEvent } from "renderer/lib/performance/stress-instrumentation";
 import { getTerminalBackgroundMarkerIdsKey } from "renderer/lib/terminal/terminal-background-intents";
 import type { StoreApi } from "zustand/vanilla";
@@ -19,34 +19,37 @@ interface UseAutoAdoptBackgroundSessionsArgs {
 }
 
 /**
- * When a workspace is created or opened, running terminal daemon sessions
- * that have no pane get their panes created automatically instead of sitting
- * behind the background-terminals dropdown.
+ * When a workspace is opened, running terminal daemon sessions that have no
+ * pane get their panes created automatically instead of sitting behind the
+ * background-terminals dropdown — this is the only surface for sessions
+ * launched outside the desktop (e.g. `superset workspaces create --agent …`
+ * from the CLI, which writes no pane layout of its own).
  *
- * One pass per workspace open, gated on pane-layout hydration (adopting
- * earlier would duplicate panes the persisted layout already has, or get
- * clobbered by it). Deliberately backgrounded sessions (marker set) are
- * skipped and never re-adopted mid-session.
+ * Gated on pane-layout hydration so the attached-pane check runs against the
+ * real layout, not an empty store. The adoption itself is idempotent —
+ * already-attached panes are filtered out and re-adoption just focuses the
+ * existing pane — so it reruns freely as the session list settles. That's
+ * what lets a session that lands slightly after open (a CLI race, a poll
+ * refresh) still get a pane, instead of being stranded by a one-shot pass
+ * that fired on a premature or empty list. Deliberately backgrounded sessions
+ * (marker set) are always skipped.
  */
 export function useAutoAdoptBackgroundSessions({
 	store,
 	workspaceId,
 	isLayoutReady,
 }: UseAutoAdoptBackgroundSessionsArgs): void {
-	const adoptedForWorkspaceIdRef = useRef<string | null>(null);
 	const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
 		{ workspaceId },
 		{ enabled: isLayoutReady, refetchOnWindowFocus: false },
 	);
 	const sessions = sessionsQuery.data?.sessions;
-	// While a refetch is in flight, data may be a stale cached list from a
-	// previous open — don't let the one-shot pass latch on it.
+	// Don't act on a cached list still being refetched — it may name a session
+	// killed while the workspace was closed, which would adopt a ghost pane.
 	const isFetchingSessions = sessionsQuery.isFetching;
 
 	useEffect(() => {
 		if (!isLayoutReady || !sessions || isFetchingSessions) return;
-		if (adoptedForWorkspaceIdRef.current === workspaceId) return;
-		adoptedForWorkspaceIdRef.current = workspaceId;
 
 		const state = store.getState();
 		const marked = new Set(

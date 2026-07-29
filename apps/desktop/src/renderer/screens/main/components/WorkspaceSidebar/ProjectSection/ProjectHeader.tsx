@@ -187,7 +187,7 @@ export function ProjectHeader({
 									onClick={onToggleCollapse}
 									className={cn(
 										"flex items-center justify-center size-8 rounded-md",
-										"hover:bg-muted/50 transition-colors",
+										"hover:bg-fill-hover transition-colors",
 									)}
 								>
 									<ProjectThumbnail
@@ -263,7 +263,7 @@ export function ProjectHeader({
 					<div
 						className={cn(
 							"flex items-center w-full pl-3 pr-2 py-1.5 text-sm font-medium",
-							"hover:bg-muted/50 transition-colors",
+							"hover:bg-fill-hover transition-colors",
 						)}
 					>
 						{rename.isRenaming ? (
@@ -315,14 +315,12 @@ export function ProjectHeader({
 										onNewWorkspace();
 									}}
 									onContextMenu={(e) => e.stopPropagation()}
-									className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+									className="p-1 rounded hover:bg-fill-hover transition-colors shrink-0 ml-1"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="bottom" sideOffset={4}>
-								New workspace
-							</TooltipContent>
+							<TooltipContent side="bottom">New workspace</TooltipContent>
 						</Tooltip>
 
 						<button
@@ -330,7 +328,7 @@ export function ProjectHeader({
 							onClick={onToggleCollapse}
 							onContextMenu={(e) => e.stopPropagation()}
 							aria-expanded={!isCollapsed}
-							className="p-1 rounded hover:bg-muted transition-colors shrink-0 ml-1"
+							className="p-1 rounded hover:bg-fill-hover transition-colors shrink-0 ml-1"
 						>
 							<HiChevronRight
 								className={cn(

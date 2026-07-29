@@ -12,12 +12,12 @@ import { devtools, persist } from "zustand/middleware";
  *   2. The toggle UI in `ExperimentalSettings` and its `settings-search` entry
  *      (`EXPERIMENTAL_INLINE_WORKSPACE_PORTS`).
  *   3. The flag branch in `DashboardSidebar` (bottom `DashboardSidebarPortsList`).
- *   4. The flag branch in `DashboardSidebarWorkspaceItem` (inline
- *      `DashboardSidebarWorkspaceDetails`).
+ *   4. The flag branch in `DashboardSidebarWorkspaceChips` (the inline ports
+ *      chip).
  *   5. The components belonging to the losing layout:
  *      - bottom: `DashboardSidebarPortsList` (keep its `hooks/` + `DashboardSidebarPortBadge`).
- *      - inline: `DashboardSidebarWorkspaceDetails` (and its nested
- *        components/hooks).
+ *      - inline: `DashboardSidebarPortsChip` (under
+ *        `DashboardSidebarWorkspaceChips`).
  *
  * Both layouts read port data from `DashboardSidebarPortsProvider`, which stays
  * regardless of the outcome.

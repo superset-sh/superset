@@ -106,10 +106,10 @@ record, and ensures the main workspace.
 
 #### Subsequent machines: `projects setup <id>`
 
-If a teammate (or a previous machine of yours) already created the project,
-adopt it instead of running `create` again: `create` would make a duplicate
-cloud project pointing at the same repo. Pick the ID from `projects list`,
-then:
+If a previous machine of yours already created the project, adopt it
+instead of running `create` again: `create` would register a second,
+unrelated project for the same repo. Projects are host-owned, so pick the
+ID from a machine that has it — `projects list --host <id>` — then:
 
 ```bash
 # Clone the project's repo onto this machine

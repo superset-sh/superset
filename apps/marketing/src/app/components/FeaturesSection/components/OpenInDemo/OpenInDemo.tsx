@@ -48,9 +48,9 @@ export function OpenInDemo() {
 			transition={{ duration: 0.5 }}
 		>
 			{/* Window */}
-			<div className="bg-[#1a1a1a]/90 backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl overflow-hidden">
+			<div className="bg-[#1a1a1a]/90 backdrop-blur-sm rounded-md border border-white/10 shadow-2xl overflow-hidden">
 				{/* Header */}
-				<div className="flex items-center justify-between px-4 py-3 bg-[#2a2a2a]/80 border-b border-white/5 rounded-t-lg">
+				<div className="flex items-center justify-between px-4 py-3 bg-[#2a2a2a]/80 border-b border-white/5 rounded-t-md">
 					<div className="flex items-center gap-2">
 						<div className="flex gap-1.5">
 							<div className="w-3 h-3 rounded-full bg-[#ff5f57]" />

@@ -3,8 +3,9 @@ import { randomBytes } from "node:crypto";
 import { EventEmitter } from "node:events";
 import * as fs from "node:fs";
 import path from "node:path";
-import { settings } from "@superset/local-db";
+import { organizations, settings } from "@superset/local-db";
 import { getHostId, getHostName } from "@superset/shared/host-info";
+import { eq } from "drizzle-orm";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
 import { env as sharedEnv } from "shared/env.shared";
@@ -19,6 +20,10 @@ import {
 	readManifest,
 	removeManifest,
 } from "./host-service-manifest";
+import {
+	HOST_SERVICE_RESPAWN_STABLE_MS,
+	nextRespawnDelayMs,
+} from "./host-service-respawn";
 import {
 	findFreePort,
 	HEALTH_POLL_TIMEOUT_MS,
@@ -47,6 +52,17 @@ export interface HostServiceStatusEvent {
 export interface SpawnConfig {
 	authToken: string;
 	cloudApiUrl: string;
+}
+
+/**
+ * Automatic-respawn bookkeeping for one organization. `attempts` is the budget
+ * spent so far (see `nextRespawnDelayMs`); `timer` is a scheduled respawn that
+ * `stop()` must cancel so quitting cannot resurrect a child mid-shutdown.
+ */
+interface RespawnState {
+	attempts: number;
+	timer: ReturnType<typeof setTimeout> | null;
+	stableTimer: ReturnType<typeof setTimeout> | null;
 }
 
 interface HostServiceProcess {
@@ -119,6 +135,28 @@ export class HostServiceCoordinator extends EventEmitter {
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
+	private respawns = new Map<string, RespawnState>();
+	private configProvider: (() => Promise<SpawnConfig | null>) | null = null;
+	/**
+	 * Seam for the respawn delay. Production uses `setTimeout`; tests replace it so
+	 * they assert the scheduling decision instead of sleeping through a jittered
+	 * production delay.
+	 */
+	private scheduleRespawnTimer: (
+		run: () => void,
+		delayMs: number,
+	) => ReturnType<typeof setTimeout> = (run, delayMs) =>
+		setTimeout(run, delayMs);
+
+	/**
+	 * Supplies fresh spawn config for automatic respawns. A respawn must not
+	 * reuse the config captured when the child was first spawned: `authToken` can
+	 * rotate across a long uptime, and reusing a stale one turns a recoverable
+	 * crash into a failed restart.
+	 */
+	setConfigProvider(provider: () => Promise<SpawnConfig | null>): void {
+		this.configProvider = provider;
+	}
 
 	async start(
 		organizationId: string,
@@ -189,6 +227,11 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	stop(organizationId: string): void {
+		// Cancel first, and unconditionally: a respawn may be pending with no
+		// instance tracked (the crashed one was already deleted), and quitting or
+		// restarting must not let that timer resurrect a child.
+		this.clearRespawnState(organizationId);
+
 		const instance = this.instances.get(organizationId);
 		if (!instance) return;
 
@@ -213,6 +256,11 @@ export class HostServiceCoordinator extends EventEmitter {
 	stopAll(): void {
 		for (const [id] of this.instances) {
 			this.stop(id);
+		}
+		// A crashed instance is deleted before its respawn fires, so an org with a
+		// pending respawn has no entry in `instances` for the loop above to reach.
+		for (const id of Array.from(this.respawns.keys())) {
+			this.clearRespawnState(id);
 		}
 	}
 
@@ -591,24 +639,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		let childExited = false;
 		child.on("exit", (code, signal) => {
 			childExited = true;
-			log.info(
-				`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
-			);
-			const current = this.instances.get(organizationId);
-			if (!current || current.pid !== childPid || current.status === "stopped")
-				return;
-
-			// Only alert a crash of a running child; startup deaths surface via
-			// start()'s rejection instead.
-			const previousStatus = current.status;
-			this.rememberPort(organizationId, current.port);
-			this.instances.delete(organizationId);
-			removeManifest(organizationId);
-			this.emitStatus(organizationId, "stopped", previousStatus);
-
-			if (previousStatus === "running") {
-				this.alertChildCrashed(organizationId, code, signal);
-			}
+			this.handleChildExit(organizationId, childPid, code, signal);
 		});
 		// Don't let the child block Electron's exit — stopAll() handles teardown.
 		child.unref();
@@ -711,21 +742,213 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/**
-	 * Alert on an unexpected crash of a running child. Recovery is the existing
-	 * tray > Host Service > Restart.
+	 * Reconcile state after a spawned child exits, and schedule a respawn when it
+	 * crashed. Extracted from the `exit` listener so it is reachable from tests:
+	 * the suite stubs `spawn` wholesale, so the inline listener never ran.
+	 *
+	 * Returns early for an exit that is not a crash of *this* running child: a
+	 * deliberate `stop()` (which marks the instance stopped first), a stale
+	 * listener whose pid has been replaced, and startup deaths, which surface
+	 * through `start()` rejecting rather than here.
 	 */
-	private alertChildCrashed(
+	private handleChildExit(
 		organizationId: string,
+		childPid: number,
 		code: number | null,
 		signal: NodeJS.Signals | null,
 	): void {
+		log.info(
+			`[host-service:${organizationId}] exited with code ${code} signal ${signal}`,
+		);
+		const current = this.instances.get(organizationId);
+		if (!current || current.pid !== childPid || current.status === "stopped")
+			return;
+
+		const previousStatus = current.status;
+		this.rememberPort(organizationId, current.port);
+		this.instances.delete(organizationId);
+		removeManifest(organizationId);
+		this.emitStatus(organizationId, "stopped", previousStatus);
+
+		if (previousStatus !== "running") return;
+
 		const cause =
 			signal != null ? `signal ${signal}` : `exit code ${code ?? "unknown"}`;
 		log.error(`[host-service:${organizationId}] crashed (${cause})`);
-		dialog.showErrorBox(
-			"Host service crashed",
-			`The Superset host service stopped unexpectedly (${cause}). Workspaces and terminals for this organization are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.`,
+		this.scheduleRespawn(organizationId, cause);
+	}
+
+	/**
+	 * Queue the next respawn attempt, or give up and tell the user once the
+	 * budget is spent. Giving up is what surfaces the dialog now: a crash that
+	 * heals itself should be a log line, not a modal that blocks the main
+	 * process.
+	 */
+	private scheduleRespawn(organizationId: string, cause: string): void {
+		const state = this.respawns.get(organizationId) ?? {
+			attempts: 0,
+			timer: null,
+			stableTimer: null,
+		};
+		this.respawns.set(organizationId, state);
+
+		const delay = nextRespawnDelayMs(state.attempts);
+		if (delay === null) {
+			log.error(
+				`[host-service:${organizationId}] giving up after ${state.attempts} respawn attempts`,
+			);
+			this.clearRespawnState(organizationId);
+			this.alertChildCrashed(organizationId, cause);
+			return;
+		}
+
+		state.attempts += 1;
+		const attempt = state.attempts;
+		log.info(
+			`[host-service:${organizationId}] respawn attempt ${attempt} in ${Math.round(delay)}ms`,
 		);
+		if (state.timer) clearTimeout(state.timer);
+		state.timer = this.scheduleRespawnTimer(() => {
+			state.timer = null;
+			void this.respawn(organizationId, attempt, state);
+		}, delay);
+		// A pending respawn must not keep Electron alive on quit.
+		state.timer.unref?.();
+	}
+
+	/**
+	 * Re-spawn through the normal start path so port preference, the spawn lock
+	 * and adoption all still apply. Config is re-read rather than reused: see
+	 * `setConfigProvider`.
+	 */
+	private async respawn(
+		organizationId: string,
+		attempt: number,
+		state: RespawnState,
+	): Promise<void> {
+		// Cancelling a timer only helps before it fires. Past that point this runs
+		// across two awaits, and a stop() or stopAll() in either gap must abandon
+		// the attempt: otherwise a fresh child is spawned and registered after
+		// teardown and outlives the shutdown meant to end it. `clearRespawnState`
+		// drops the state object, so losing our identity in the map is the signal.
+		const cancelled = () => this.respawns.get(organizationId) !== state;
+
+		if (!this.configProvider) {
+			log.error(
+				`[host-service:${organizationId}] cannot respawn: no config provider registered`,
+			);
+			this.clearRespawnState(organizationId);
+			this.alertChildCrashed(organizationId, "no config provider");
+			return;
+		}
+
+		try {
+			const config = await this.configProvider();
+			if (cancelled()) {
+				log.info(
+					`[host-service:${organizationId}] respawn attempt ${attempt} abandoned: stopped while reading config`,
+				);
+				return;
+			}
+			if (!config) {
+				// Not treated as a deliberate sign-out: `loadToken` returns null for a
+				// failed read or decrypt too, and signing out already tears the service
+				// down through stopAll. So retry rather than abandoning recovery for
+				// what is most likely transient.
+				log.warn(
+					`[host-service:${organizationId}] respawn attempt ${attempt}: no config available`,
+				);
+				this.scheduleRespawn(organizationId, "no auth token available");
+				return;
+			}
+			await this.startWithPreferredPorts(
+				organizationId,
+				config,
+				this.getPreferredPorts(organizationId),
+			);
+			if (cancelled()) {
+				log.info(
+					`[host-service:${organizationId}] respawned but stopped meanwhile; tearing the child back down`,
+				);
+				this.stop(organizationId);
+				return;
+			}
+			log.info(
+				`[host-service:${organizationId}] respawned on attempt ${attempt}`,
+			);
+			this.armRespawnBudgetReset(organizationId);
+		} catch (error) {
+			if (cancelled()) return;
+			log.error(
+				`[host-service:${organizationId}] respawn attempt ${attempt} failed:`,
+				error,
+			);
+			this.scheduleRespawn(organizationId, `respawn attempt ${attempt} failed`);
+		}
+	}
+
+	/**
+	 * Restore the attempt budget once a respawn has held for a while, so an app
+	 * left open for days does not spend its budget on unrelated crashes and then
+	 * stop healing.
+	 */
+	private armRespawnBudgetReset(organizationId: string): void {
+		const state = this.respawns.get(organizationId);
+		const instance = this.instances.get(organizationId);
+		if (!state || instance?.status !== "running") return;
+		if (state.stableTimer) clearTimeout(state.stableTimer);
+		// Bind the reset to the instance that earned it. Checking only "something
+		// is running" would let this credit a different child, including an adopted
+		// one belonging to another app instance, and refill a budget the current
+		// child never stabilised.
+		state.stableTimer = this.scheduleRespawnTimer(() => {
+			if (
+				this.respawns.get(organizationId) === state &&
+				this.instances.get(organizationId) === instance &&
+				instance.status === "running"
+			) {
+				this.clearRespawnState(organizationId);
+			}
+		}, HOST_SERVICE_RESPAWN_STABLE_MS);
+		state.stableTimer.unref?.();
+	}
+
+	/** Drop all respawn bookkeeping and cancel anything still pending. */
+	private clearRespawnState(organizationId: string): void {
+		const state = this.respawns.get(organizationId);
+		if (!state) return;
+		if (state.timer) clearTimeout(state.timer);
+		if (state.stableTimer) clearTimeout(state.stableTimer);
+		this.respawns.delete(organizationId);
+	}
+
+	/**
+	 * Alert on a crash we could not recover from. Recovery is the existing
+	 * tray > Host Service > Restart. Async on purpose: a synchronous error box
+	 * blocks the main process until dismissed.
+	 */
+	private alertChildCrashed(organizationId: string, cause: string): void {
+		const orgName = this.getOrganizationName(organizationId);
+		void dialog.showMessageBox({
+			type: "error",
+			title: "Host service crashed",
+			message: `The Superset host service${orgName ? ` for ${orgName}` : ""} stopped unexpectedly (${cause}) and could not be restarted automatically.`,
+			detail:
+				"Its workspaces and terminals are unavailable until it restarts — use the Superset tray menu > Host Service > Restart.",
+		});
+	}
+
+	private getOrganizationName(organizationId: string): string | null {
+		try {
+			const row = localDb
+				.select({ name: organizations.name })
+				.from(organizations)
+				.where(eq(organizations.id, organizationId))
+				.get();
+			return row?.name ?? null;
+		} catch {
+			return null;
+		}
 	}
 }
 

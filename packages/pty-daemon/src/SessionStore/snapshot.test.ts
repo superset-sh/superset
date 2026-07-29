@@ -21,6 +21,7 @@ function fakePty(pid: number, meta: { cols: number; rows: number }): Pty {
 		kill: () => {},
 		onData: () => {},
 		onExit: () => {},
+		dispose: () => {},
 		getMasterFd: () => -1,
 		pause: () => {},
 		resume: () => {},

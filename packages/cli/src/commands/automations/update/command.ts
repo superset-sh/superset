@@ -1,6 +1,6 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { resolveWorkspacePin } from "../../../lib/host-workspaces";
+import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
 export default command({
 	description: "Update an automation's metadata (name, schedule, agent, host)",
@@ -37,11 +37,10 @@ export default command({
 						.filter(Boolean)
 				: undefined;
 
-		// Workspace records are host-owned: resolve --workspace across the
-		// org's hosts so the mutation carries the denormalized pin
-		// (targetHostId + v2ProjectId) alongside the workspace id.
-		let pin: { targetHostId?: string; v2ProjectId?: string } = {};
-		if (options.workspace) {
+		// Retargeting (--workspace or --project) re-derives targetHostId +
+		// v2ProjectId; the resource must exist on the target host.
+		let target: { targetHostId: string; v2ProjectId: string } | undefined;
+		if (options.workspace || options.project) {
 			const organizationId = ctx.config.organizationId;
 			if (!organizationId) {
 				throw new CLIError(
@@ -49,14 +48,13 @@ export default command({
 					"Run: superset auth login",
 				);
 			}
-			pin = await resolveWorkspacePin(
-				{ api: ctx.api, organizationId, userJwt: ctx.bearer },
-				{
-					workspaceId: options.workspace,
-					hostId: options.host ?? undefined,
-					projectId: options.project ?? undefined,
-				},
-			);
+			target = await resolveAutomationTarget({
+				organizationId,
+				userJwt: ctx.bearer,
+				hostId: options.host ?? undefined,
+				workspaceId: options.workspace ?? undefined,
+				projectId: options.project ?? undefined,
+			});
 		}
 
 		const result = await ctx.api.automation.update.mutate({
@@ -73,7 +71,7 @@ export default command({
 			...(options.workspace !== undefined
 				? { v2WorkspaceId: options.workspace }
 				: {}),
-			...pin,
+			...target,
 			...(mcpScope !== undefined ? { mcpScope } : {}),
 		});
 

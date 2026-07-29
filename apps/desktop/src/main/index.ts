@@ -36,10 +36,6 @@ import { getHostServiceCoordinator } from "./lib/host-service-coordinator";
 import { localDb } from "./lib/local-db";
 import { requestLocalNetworkAccess } from "./lib/local-network-permission";
 import {
-	startMemoryTelemetry,
-	stopMemoryTelemetry,
-} from "./lib/memory-telemetry";
-import {
 	initTanstackDbPersistence,
 	shutdownTanstackDbPersistence,
 } from "./lib/persistence/persistence";
@@ -229,7 +225,6 @@ app.on("before-quit", async (event) => {
 
 	isQuitting = true;
 	try {
-		stopMemoryTelemetry();
 		getHostServiceCoordinator().stopAll();
 		if (isDev || forceFullCleanup) {
 			await teardownTerminalHost();
@@ -441,17 +436,22 @@ if (!gotTheLock) {
 			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
 
+		// Read the token at call time rather than capturing it: an automatic
+		// respawn can happen hours after the original spawn, by which point the
+		// token that spawned the child may have rotated.
+		const hostServiceConfigProvider = async () => {
+			const { token } = await loadToken();
+			if (!token) return null;
+			return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+		};
+		getHostServiceCoordinator().setConfigProvider(hostServiceConfigProvider);
+
 		if (IS_DEV) {
-			getHostServiceCoordinator().enableDevReload(async () => {
-				const { token } = await loadToken();
-				if (!token) return null;
-				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
-			});
+			getHostServiceCoordinator().enableDevReload(hostServiceConfigProvider);
 		}
 
 		await makeAppSetup(() => MainWindow());
 		setupAutoUpdater();
-		startMemoryTelemetry();
 		initTray();
 
 		const coldStartUrl = findDeepLinkInArgv(process.argv);

@@ -6,8 +6,9 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "tasks_delete",
+		annotations: { destructiveHint: true },
 		description:
-			"Delete a task by UUID. This is a hard delete and cannot be undone.",
+			"Delete a task by UUID (soft delete — the row is tombstoned, not purged).",
 		inputSchema: {
 			id: z.string().uuid().describe("Task UUID."),
 		},

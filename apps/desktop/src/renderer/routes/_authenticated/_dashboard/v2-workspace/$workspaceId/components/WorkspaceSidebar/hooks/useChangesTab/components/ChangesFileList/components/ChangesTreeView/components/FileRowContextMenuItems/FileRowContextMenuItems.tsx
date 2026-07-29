@@ -64,8 +64,8 @@ export function FileRowContextMenuItems({
 	const changeKey = getChangesetFileKey(file);
 
 	const policy = useChangesSidebarFilePolicy();
+	const diffTier = policy.tierForIntent("diff");
 	const diffNewTabTier = policy.tierForIntent("diffNewTab");
-	const fileTier = policy.tierForIntent("file");
 	const externalTier = policy.tierForIntent("external");
 
 	return (
@@ -75,6 +75,9 @@ export function FileRowContextMenuItems({
 			>
 				<GitCompare />
 				Open Diff
+				{diffTier && (
+					<DropdownMenuShortcut>{modifierLabel(diffTier)}</DropdownMenuShortcut>
+				)}
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => onSelectFile?.(file.path, true, changeKey)}
@@ -93,9 +96,6 @@ export function FileRowContextMenuItems({
 			>
 				<FileText />
 				Open File
-				{fileTier && (
-					<DropdownMenuShortcut>{modifierLabel(fileTier)}</DropdownMenuShortcut>
-				)}
 			</DropdownMenuItem>
 			<DropdownMenuItem
 				onSelect={() => absolutePath && onOpenFile?.(absolutePath, true)}

@@ -29,12 +29,24 @@ export const COMPANY = {
 	LINKEDIN_URL: "https://www.linkedin.com/company/superset-sh",
 	YOUTUBE_URL: "https://www.youtube.com/@superset-sh",
 	MAIL_TO: "mailto:support@superset.sh",
+	FOUNDERS_EMAIL: "founders@superset.sh",
+	FOUNDERS_MAIL_TO: "mailto:founders@superset.sh",
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
 	STATUS_URL: "https://status.superset.sh",
 	TRUST_URL: "https://trust.superset.sh",
+	JOIN_US_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/join-us`,
+	/** The formal YC listing; product surfaces link here. `JOIN_US_URL` is our own marketing page. */
 	CAREERS_URL: "https://www.ycombinator.com/companies/superset/jobs",
 } as const;
+
+export const OPEN_ROLES = [
+	{
+		title: "Founding Engineer",
+		location: "San Francisco, CA",
+		url: "https://www.ycombinator.com/companies/superset/jobs/Nd9luiP-founding-engineer",
+	},
+] as const;
 
 // Theme
 export const THEME_STORAGE_KEY = "superset-theme";
@@ -79,6 +91,11 @@ export const V2_NEW_USER_V1_EXPERIMENT_START = "2026-06-08T06:59:00.000Z";
 // Bump this if the release slips.
 export const V2_NEW_USER_V2_DEFAULT_START = "2026-07-09T17:00:00.000Z";
 
+// Eligibility cutoff for the new-workspace-screen experiment: only accounts
+// created on/after this date enter the experiment, so exposure stays scoped to
+// new users. Bump only before launch; changing it mid-experiment skews arms.
+export const NEW_WORKSPACE_SCREEN_EXPERIMENT_START = "2026-07-22T00:00:00.000Z";
+
 export const FEATURE_FLAGS = {
 	/** Gates access to experimental Electric SQL tasks feature. */
 	ELECTRIC_TASKS_ACCESS: "electric-tasks-access",
@@ -106,6 +123,30 @@ export const FEATURE_FLAGS = {
 	 * defaults for other users.
 	 */
 	RELAY_URL_OVERRIDE: "relay-url-override",
+	/**
+	 * Shows the "We're Hiring" card in the dashboard sidebar. Targets a static
+	 * PostHog cohort of users who have created 10+ workspaces all-time, which is
+	 * the only place that history exists — workspace rows are hard-deleted, so a
+	 * lifetime count can't be derived from the DB. The cohort is a frozen
+	 * snapshot because PostHog rejects behavioral cohorts in flags; re-populate
+	 * it to reach users who cross the threshold later.
+	 */
+	HIRING_BANNER: "hiring-banner",
+	/**
+	 * Experiment flag (control/test): renders the new-workspace surface as a
+	 * full-screen view with sample prompts instead of the dense modal. Only
+	 * evaluated for accounts created on/after
+	 * NEW_WORKSPACE_SCREEN_EXPERIMENT_START and only when the surface opens,
+	 * so `$feature_flag_called` exposure matches the experiment population.
+	 */
+	NEW_WORKSPACE_SCREEN: "new-workspace-screen",
+	/**
+	 * Boolean override that forces the new-workspace screen (test-arm UI)
+	 * without evaluating the experiment flag — no exposure event, so team
+	 * members and dev accounts can use the screen without contaminating the
+	 * experiment. Checked before eligibility and before the experiment flag.
+	 */
+	NEW_WORKSPACE_SCREEN_OVERRIDE: "new-workspace-screen-override",
 } as const;
 
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:

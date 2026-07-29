@@ -38,9 +38,7 @@ export function DiffPaneHeaderExtras() {
 						<TbScan className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Unified view
-				</TooltipContent>
+				<TooltipContent side="bottom">Unified view</TooltipContent>
 			</Tooltip>
 			<Tooltip>
 				<TooltipTrigger asChild>
@@ -54,9 +52,7 @@ export function DiffPaneHeaderExtras() {
 						<SquareSplitHorizontal className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Split view
-				</TooltipContent>
+				<TooltipContent side="bottom">Split view</TooltipContent>
 			</Tooltip>
 			<div
 				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
@@ -82,7 +78,7 @@ export function DiffPaneHeaderExtras() {
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent side="bottom">
 					{showDiffComments ? "Hide review comments" : "Show review comments"}
 				</TooltipContent>
 			</Tooltip>
@@ -104,7 +100,7 @@ export function DiffPaneHeaderExtras() {
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent side="bottom">
 					{expandUnchanged ? "Hide unchanged regions" : "Show all lines"}
 				</TooltipContent>
 			</Tooltip>

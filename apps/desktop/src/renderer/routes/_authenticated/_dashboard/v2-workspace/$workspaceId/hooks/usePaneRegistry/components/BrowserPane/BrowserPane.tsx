@@ -135,9 +135,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 							<TbDeviceDesktop className="size-3.5" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Open DevTools
-					</TooltipContent>
+					<TooltipContent side="bottom">Open DevTools</TooltipContent>
 				</Tooltip>
 				<BrowserOverflowMenu
 					paneId={paneId}

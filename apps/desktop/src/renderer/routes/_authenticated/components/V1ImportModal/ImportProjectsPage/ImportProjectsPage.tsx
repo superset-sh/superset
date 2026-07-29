@@ -5,11 +5,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { LuFolder } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
-	getHostServiceClientByUrl,
-	type HostServiceClient,
-} from "renderer/lib/host-service-client";
-import { getBaseName } from "renderer/lib/pathBasename";
+	decideProjectImport,
+	expectedRemoteUrlFor,
+	extractExistingPath,
+	importV1Project,
+	isProjectAlreadyImported,
+	type ProjectFindByPathResult,
+	type ProjectImportOutcome,
+	recordV1MigrationOutcome,
+} from "renderer/lib/v1-migration";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { ImportPageShell } from "../components/ImportPageShell";
 import { ImportRow, type RowAction } from "../components/ImportRow";
@@ -28,10 +34,6 @@ type V1Project = {
 	mainRepoPath: string;
 	githubOwner: string | null;
 };
-
-type ProjectFindByPathResult = Awaited<
-	ReturnType<HostServiceClient["project"]["findByPath"]["query"]>
->;
 
 export function ImportProjectsPage({
 	organizationId,
@@ -78,20 +80,12 @@ export function ImportProjectsPage({
 						project,
 						activeHostUrl,
 					);
-					if (isProjectAlreadyImported(findByPathResult)) {
-						continue;
-					}
-					if (findByPathResult.candidates.length > 1) {
-						continue;
-					}
-					if (
-						findByPathResult.candidates.length === 0 &&
-						findByPathResult.cloudErrors.length > 0
-					) {
+					if (decideProjectImport(findByPathResult).kind !== "import") {
 						continue;
 					}
 					const result = await importProject({
 						project,
+						organizationId,
 						activeHostUrl,
 						findByPathResult,
 						finalizeSetup,
@@ -161,29 +155,6 @@ interface ProjectRowProps {
 	activeHostUrl: string;
 }
 
-function isAlreadySetUpElsewhereError(err: unknown): boolean {
-	if (!(err instanceof Error)) return false;
-	return err.message.includes("Project is already set up on this device at");
-}
-
-function extractExistingPath(message: string): string | null {
-	const match = message.match(
-		/already set up on this device at (.+?)\.\s+Remove/,
-	);
-	return match?.[1] ?? null;
-}
-
-function expectedRemoteUrlFor(project: {
-	name: string;
-	mainRepoPath: string;
-	githubOwner: string | null;
-}): string | undefined {
-	if (!project.githubOwner) return undefined;
-	const repoName = getBaseName(project.mainRepoPath);
-	if (!repoName) return undefined;
-	return `https://github.com/${project.githubOwner}/${repoName}`;
-}
-
 function projectFindByPathQueryKey(project: V1Project, activeHostUrl: string) {
 	return [
 		...FIND_BY_PATH_KEY_PREFIX,
@@ -216,16 +187,12 @@ function fetchProjectFindByPath(
 	});
 }
 
-function isProjectAlreadyImported(
-	findByPathResult: ProjectFindByPathResult | undefined,
-) {
-	return !!findByPathResult?.candidates.find((c) => c.source === "local-path");
-}
-
 type FinalizeProjectSetup = ReturnType<typeof useFinalizeProjectSetup>;
 
+/** Shared import plus the wizard's UI side effects and ledger record. */
 async function importProject({
 	project,
+	organizationId,
 	activeHostUrl,
 	findByPathResult,
 	finalizeSetup,
@@ -233,72 +200,34 @@ async function importProject({
 	allowRelocate = false,
 }: {
 	project: V1Project;
+	organizationId: string;
 	activeHostUrl: string;
 	findByPathResult: ProjectFindByPathResult | undefined;
 	finalizeSetup: FinalizeProjectSetup;
 	linkToProjectId?: string;
 	allowRelocate?: boolean;
-}): Promise<
-	| { kind: "imported"; v2ProjectId: string }
-	| { kind: "needs-relocate"; v2ProjectId: string; message: string }
-> {
-	const client = getHostServiceClientByUrl(activeHostUrl);
-	const candidates = findByPathResult?.candidates ?? [];
-
-	let v2ProjectId: string;
-	let mainWorkspaceId: string | null = null;
-	let repoPath = project.mainRepoPath;
-
-	const targetCandidate = linkToProjectId
-		? candidates.find((c) => c.id === linkToProjectId)
-		: candidates[0];
-
-	if (linkToProjectId && !targetCandidate) {
-		throw new Error(
-			"Selected v2 project is no longer in the candidate list. Refresh and pick again.",
-		);
-	}
-
-	if (targetCandidate) {
-		try {
-			const result = await client.project.setup.mutate({
-				projectId: targetCandidate.id,
-				mode: {
-					kind: "import",
-					repoPath: project.mainRepoPath,
-					allowRelocate,
-				},
-			});
-			v2ProjectId = targetCandidate.id;
-			mainWorkspaceId = result.mainWorkspaceId;
-			repoPath = result.repoPath;
-		} catch (err) {
-			if (isAlreadySetUpElsewhereError(err) && !allowRelocate) {
-				return {
-					kind: "needs-relocate",
-					v2ProjectId: targetCandidate.id,
-					message: err instanceof Error ? err.message : String(err),
-				};
-			}
-			throw err;
-		}
-	} else {
-		const result = await client.project.create.mutate({
-			name: project.name,
-			mode: { kind: "importLocal", repoPath: project.mainRepoPath },
-		});
-		v2ProjectId = result.projectId;
-		mainWorkspaceId = result.mainWorkspaceId;
-		repoPath = result.repoPath;
-	}
-
-	finalizeSetup(activeHostUrl, {
-		projectId: v2ProjectId,
-		repoPath,
-		mainWorkspaceId,
+}): Promise<ProjectImportOutcome> {
+	const result = await importV1Project({
+		hostClient: getHostServiceClientByUrl(activeHostUrl),
+		project,
+		findByPathResult,
+		linkToProjectId,
+		allowRelocate,
 	});
-
-	return { kind: "imported", v2ProjectId };
+	if (result.kind === "imported") {
+		finalizeSetup(activeHostUrl, {
+			projectId: result.v2ProjectId,
+			repoPath: result.repoPath,
+			mainWorkspaceId: result.mainWorkspaceId,
+		});
+		recordV1MigrationOutcome(organizationId, {
+			v1Id: project.id,
+			kind: "project",
+			status: "success",
+			v2Id: result.v2ProjectId,
+		});
+	}
+	return result;
 }
 
 function invalidateProjectImportQueries(
@@ -349,6 +278,7 @@ function ProjectRow({
 		try {
 			const result = await importProject({
 				project,
+				organizationId,
 				activeHostUrl,
 				findByPathResult: findByPathQuery.data,
 				finalizeSetup,

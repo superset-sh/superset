@@ -72,7 +72,7 @@ export function FilePaneHeaderExtras({
 						)}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
+				<TooltipContent side="bottom">
 					{copied ? "Copied" : "Copy path"}
 				</TooltipContent>
 			</Tooltip>
@@ -87,9 +87,7 @@ export function FilePaneHeaderExtras({
 						<TbExternalLink className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					Open in editor
-				</TooltipContent>
+				<TooltipContent side="bottom">Open in editor</TooltipContent>
 			</Tooltip>
 		</div>
 	);

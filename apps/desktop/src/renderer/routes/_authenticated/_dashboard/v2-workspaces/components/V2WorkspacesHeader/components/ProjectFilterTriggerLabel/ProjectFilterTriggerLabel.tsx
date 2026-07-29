@@ -4,9 +4,7 @@ import { PROJECT_FILTER_ALL } from "renderer/routes/_authenticated/_dashboard/v2
 
 interface ProjectFilterTriggerLabelProps {
 	projectFilter: string;
-	selectedProject:
-		| { projectName: string; githubOwner: string | null }
-		| undefined;
+	selectedProject: { projectName: string; iconUrl: string | null } | undefined;
 }
 
 export function ProjectFilterTriggerLabel({
@@ -33,7 +31,7 @@ export function ProjectFilterTriggerLabel({
 		<span className="flex min-w-0 items-center gap-2">
 			<V2WorkspaceProjectIcon
 				projectName={selectedProject.projectName}
-				githubOwner={selectedProject.githubOwner}
+				iconUrl={selectedProject.iconUrl}
 				size="sm"
 			/>
 			<span className="min-w-0 truncate">{selectedProject.projectName}</span>

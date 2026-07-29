@@ -121,7 +121,9 @@ function ensureSidebarProjectRecord(
 	collections.v2SidebarProjects.insert({
 		projectId,
 		createdAt: new Date(),
-		tabOrder: getNextTabOrder([
+		// Prepend, matching new workspaces: the project you just added is
+		// the one you're about to work in.
+		tabOrder: getPrependTabOrder([
 			...collections.v2SidebarProjects.state.values(),
 		]),
 		isCollapsed: false,
@@ -444,6 +446,37 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
+	const setWorkspacePinned = useCallback(
+		(workspaceId: string, projectId: string, pinned: boolean) => {
+			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
+			if (!existing) {
+				if (!pinned) return;
+				// Auto-included local main workspaces have no local-state row yet;
+				// pinning is an explicit placement, so create one first.
+				ensureSidebarProjectRecord(collections, projectId);
+				ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+			}
+			// Strictly greater than every existing pin so same-millisecond pins
+			// still order by pin sequence instead of collection iteration order.
+			const maxPinnedAt = Array.from(
+				collections.v2WorkspaceLocalState.state.values(),
+			).reduce((max, row) => Math.max(max, row.sidebarState.pinnedAt ?? 0), 0);
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				if (pinned) {
+					// Keep the original pin time on repeat pins so the row doesn't
+					// jump to the bottom of the Pinned section.
+					draft.sidebarState.pinnedAt ??= Math.max(Date.now(), maxPinnedAt + 1);
+					draft.sidebarState.isHidden = false;
+				} else {
+					// Only clear the pin — projectId/sectionId/tabOrder stay
+					// untouched so the row returns to its previous spot.
+					draft.sidebarState.pinnedAt = null;
+				}
+			});
+		},
+		[collections],
+	);
+
 	const removeWorkspaceFromSidebar = useCallback(
 		(workspaceId: string) => {
 			const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
@@ -494,6 +527,7 @@ export function useDashboardSidebarState() {
 		reorderWorkspaces,
 		renameSection,
 		setSectionColor,
+		setWorkspacePinned,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	};

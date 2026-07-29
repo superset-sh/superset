@@ -145,6 +145,23 @@ export function useChangesTab({
 	const totalAdditions = files.reduce((sum, f) => sum + f.additions, 0);
 	const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
 
+	const handleRefresh = useCallback(async () => {
+		try {
+			await Promise.all([
+				utils.git.getStatus.invalidate({ workspaceId }),
+				utils.git.getDiff.invalidate({ workspaceId }),
+				utils.git.listCommits.invalidate({ workspaceId }),
+				utils.git.listBranches.invalidate({ workspaceId }),
+				utils.git.getBaseBranch.invalidate({ workspaceId }),
+			]);
+		} catch (error) {
+			console.warn("Failed to refresh changes tab", error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to refresh changes",
+			);
+		}
+	}, [utils, workspaceId]);
+
 	const content = (
 		<ChangesTabContent
 			workspaceId={workspaceId}
@@ -166,6 +183,7 @@ export function useChangesTab({
 			onOpenInEditor={handleOpenInEditor}
 			onFilterChange={setFilter}
 			onViewModeChange={setViewMode}
+			onRefresh={handleRefresh}
 			onBaseBranchChange={setBaseBranch}
 			onRenameBranch={handleRenameBranch}
 			canRenameBranch={canRenameBranch}

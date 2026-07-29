@@ -37,6 +37,7 @@ const emptyArgs = {
 	againstBaseFiles: [] as ChangedFile[],
 	onAgainstBaseFileSelect: () => {},
 	commitsWithFiles: [] as CommitInfo[],
+	totalCommitCount: 0,
 	expandedCommits: new Set<string>(),
 	onCommitToggle: () => {},
 	onCommitFileSelect: () => {},
@@ -75,6 +76,7 @@ describe("useOrderedSections", () => {
 					files: [],
 				},
 			],
+			totalCommitCount: 1,
 		});
 
 		const committedSection = sections.find(
@@ -83,6 +85,27 @@ describe("useOrderedSections", () => {
 
 		expect(committedSection).toBeDefined();
 		expect(committedSection?.count).toBe(1);
+	});
+
+	test("shows the true commit total when the list is capped for display", () => {
+		const commitsWithFiles = Array.from({ length: 500 }, (_, index) => ({
+			hash: `hash-${index}`,
+			shortHash: `h${index}`,
+			message: `commit ${index}`,
+			author: "Test User",
+			date: new Date("2026-03-06T12:00:00.000Z"),
+			files: [],
+		}));
+
+		const sections = useOrderedSections({
+			...emptyArgs,
+			commitsWithFiles,
+			totalCommitCount: 512,
+		});
+
+		expect(sections.find((section) => section.id === "committed")?.count).toBe(
+			512,
+		);
 	});
 
 	test("does not change other section counts", () => {

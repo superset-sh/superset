@@ -20,7 +20,7 @@ import {
 
 const triggerClass = cn(
 	navigationMenuTriggerStyle(),
-	"h-8 bg-transparent px-3 text-sm font-normal text-muted-foreground hover:bg-accent/40 hover:text-foreground focus:bg-accent/40 focus:text-foreground data-[state=open]:bg-accent/40 data-[state=open]:text-foreground",
+	"h-8 rounded-none bg-transparent px-4 text-[13px] tracking-[0.01em] font-normal text-muted-foreground transition-colors hover:bg-transparent hover:text-foreground focus:bg-transparent focus:text-foreground data-[state=open]:bg-transparent data-[state=open]:text-foreground",
 );
 
 export function DesktopNav() {

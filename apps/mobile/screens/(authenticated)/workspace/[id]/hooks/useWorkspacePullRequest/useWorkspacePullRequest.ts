@@ -1,6 +1,7 @@
 import type { SelectGithubPullRequest } from "@superset/db/schema";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
+import { useHostProjects } from "@/hooks/useHostProjects";
 import { useWorkspaceHost } from "@/hooks/useWorkspaceHost";
 import { prStateFor } from "@/screens/(authenticated)/(home)/home/utils/prStateFor";
 import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
@@ -12,12 +13,17 @@ export function useWorkspacePullRequest(
 	workspaceId: string | null,
 ): SelectGithubPullRequest | null {
 	const collections = useCollections();
-	const { workspace } = useWorkspaceHost(workspaceId);
-
-	const { data: projects } = useLiveQuery(
-		(q) => q.from({ v2Projects: collections.v2Projects }),
-		[collections],
+	const { workspace, host } = useWorkspaceHost(workspaceId);
+	const { projects } = useHostProjects(
+		host
+			? {
+					organizationId: host.organizationId,
+					machineId: host.machineId,
+					isOnline: host.isOnline,
+				}
+			: null,
 	);
+
 	const { data: pullRequests } = useLiveQuery(
 		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
 		[collections],
@@ -25,13 +31,15 @@ export function useWorkspacePullRequest(
 
 	return useMemo(() => {
 		if (!workspace) return null;
-		const repositoryId = (projects ?? []).find(
-			(project) => project.id === workspace.projectId,
-		)?.githubRepositoryId;
-		if (!repositoryId) return null;
+		// Projects are fully local: match PRs by repo coordinates parsed from
+		// the PR URL (the cloud repo UUID isn't known host-side).
+		const project = projects.find((item) => item.id === workspace.projectId);
+		if (!project?.repoOwner || !project.repoName) return null;
+		const repoPrefix =
+			`https://github.com/${project.repoOwner}/${project.repoName}/`.toLowerCase();
 		const candidates = (pullRequests ?? []).filter(
 			(pullRequest) =>
-				pullRequest.repositoryId === repositoryId &&
+				pullRequest.url.toLowerCase().startsWith(repoPrefix) &&
 				pullRequest.headBranch === workspace.branch,
 		);
 		candidates.sort(

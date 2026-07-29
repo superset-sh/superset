@@ -24,6 +24,7 @@ export async function GET(
 					? authServerMetadata.issuer
 					: undefined,
 			resourceName: "Superset MCP Server",
+			resourceDocumentation: "https://superset.sh/auth.md",
 			scopesSupported: Array.isArray(authServerMetadata.scopes_supported)
 				? authServerMetadata.scopes_supported
 				: undefined,

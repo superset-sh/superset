@@ -2,6 +2,14 @@
 For Electron interprocess communication, ALWAYS use trpc as defined in `src/lib/trpc`
 Please use alias as defined in `tsconfig.json` when possible
 
+## Server-driven announcements (desktop notices)
+
+To show an announcement/warning popup in the app without shipping a release, insert a row in the `desktop_notices` table (served by `GET /api/desktop/version`). Authoring guide — markdown-only body, severities, triggers, targeting, QA previews: `docs/DESKTOP_NOTICES.md`.
+
+## Window-drag regions: `drag` on empty leaves only
+
+Never mark a container with interactive children as `drag` and carve the children out with `no-drag`: Chromium loses the carve-outs when they sit inside masked, scrollable, or CSS-zoomed wrappers (OverflowFadeContainer, ZoomStable), which silently deadens every control under the bar. Instead, put `drag` only on dedicated empty leaf elements — traffic-light spacers and flex fillers (see TopBar, DashboardSidebarHeader, packages/panes TabBar). The worst failure mode then is "empty area not draggable" instead of "chrome swallows clicks".
+
 ## Error text must be selectable
 
 The renderer sets `user-select: none` on `body`, so rendered errors need explicit `select-text cursor-text` classes — otherwise users can't copy them into bug reports. (Sonner toasts are exempt; they manage selection themselves.)
@@ -77,6 +85,8 @@ This credentialed local-dev sign-in creates the browser session cookie needed by
 For a non-local workspace, the normal desktop flow intentionally restores an encrypted bearer token into the renderer's in-memory auth client without creating a browser cookie. If the renderer is on an authenticated route but a raw cookie-only probe returns no session, use `Runtime.evaluate` to import `/lib/auth-client.ts` from the renderer dev server and call `authClient.getSession({ fetchOptions: { throw: false } })`. This still verifies `/api/auth/get-session` through the app's real authenticated request path. Return only the status and `session.activeOrganizationId`; never call or print `getAuthToken()`.
 
 Do not use setup `--force` to fix a stale connection string, a missing CDP cookie, or a corrupt generated Next.js cache. First rerun the applicable setup script without force. If every API route returns Next.js's HTML 404, stop the dev stack, move `apps/api/.next` aside, and restart. `--force` is only appropriate when the user explicitly intends to replace the copied local/host databases and encrypted auth token.
+
+One failure signature where `./.superset/setup.sh --force` IS the fix (verified 2026-07-28): session restore hangs at "Restoring your session", the Local Admin sign-in button returns a bodyless 500, get-session returns 200, and a raw `select 1` against `DATABASE_URL` may still succeed — the worktree's seeded dev state (Neon branch credentials in `.env`, `auth-token.enc`, copied DBs) has gone stale as a set. Rerunning with `--force` recreates the Neon branch, rewrites `.env`, and reseeds `superset-dev-data/` together, which restores sign-in. Two side effects to expect: any manual `.env` edits (e.g. a port remap) are wiped and must be re-applied, and `superset-dev-data/` is reset.
 
 **Use `Runtime.evaluate` (`awaitPromise`, `returnByValue`), not `Network.*` interception** — sniffing misses React-Query-cached responses, and `refetchInterval` is paused while the window is backgrounded. After verifying the session through the applicable cookie or bearer path above, run requests inside the renderer. `API` below is the dev backend origin (`NEXT_PUBLIC_API_URL`, e.g. `http://localhost:5881`):
 

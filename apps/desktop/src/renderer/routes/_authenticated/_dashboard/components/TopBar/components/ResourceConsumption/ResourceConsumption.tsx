@@ -137,7 +137,7 @@ export function ResourceConsumption({
 						</Button>
 					</PopoverTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
+				<TooltipContent side="bottom" sideOffset={6}>
 					Resources
 				</TooltipContent>
 			</Tooltip>
@@ -469,7 +469,7 @@ function ResourceConsumptionContent({
 									/>
 								</div>
 							</TooltipTrigger>
-							<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
+							<TooltipContent side="bottom" sideOffset={6}>
 								Superset uses {formatPercent(trackedMemorySharePercent)} of
 								system RAM
 							</TooltipContent>

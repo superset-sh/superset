@@ -11,11 +11,19 @@ import type { TerminalDescriptor } from "./types";
 interface StartSetupTerminalArgs {
 	ctx: HostServiceContext;
 	workspaceId: string;
+	/**
+	 * Appended to the resolved setup command with ` && `, so it runs in the
+	 * setup terminal only after setup succeeds. Ignored when no setup command
+	 * resolves — the caller must then dispatch it separately.
+	 */
+	chainCommand?: string;
 }
 
 interface StartSetupTerminalResult {
 	terminal: TerminalDescriptor | null;
 	warning: string | null;
+	/** True when `chainCommand` was chained into the started setup terminal. */
+	chained: boolean;
 }
 
 /**
@@ -45,7 +53,7 @@ export async function startSetupTerminalIfPresent(
 		.get();
 
 	if (!row || !row.worktreePath || !row.repoPath) {
-		return { terminal: null, warning: null };
+		return { terminal: null, warning: null, chained: false };
 	}
 
 	const resolved = resolveInitialCommand({
@@ -54,8 +62,12 @@ export async function startSetupTerminalIfPresent(
 		worktreePath: row.worktreePath,
 	});
 	if (!resolved) {
-		return { terminal: null, warning: null };
+		return { terminal: null, warning: null, chained: false };
 	}
+
+	const initialCommand = args.chainCommand
+		? `${resolved.initialCommand} && ${args.chainCommand}`
+		: resolved.initialCommand;
 
 	const terminalId = crypto.randomUUID();
 	const result = await createTerminalSessionInternal({
@@ -63,13 +75,14 @@ export async function startSetupTerminalIfPresent(
 		workspaceId: args.workspaceId,
 		db: args.ctx.db,
 		eventBus: args.ctx.eventBus,
-		initialCommand: resolved.initialCommand,
+		initialCommand,
 		...(resolved.cwd && { cwd: resolved.cwd }),
 	});
 	if ("error" in result) {
 		return {
 			terminal: null,
 			warning: `Failed to start setup terminal: ${result.error}`,
+			chained: false,
 		};
 	}
 
@@ -80,6 +93,7 @@ export async function startSetupTerminalIfPresent(
 			label: "Workspace Setup",
 		},
 		warning: null,
+		chained: Boolean(args.chainCommand),
 	};
 }
 

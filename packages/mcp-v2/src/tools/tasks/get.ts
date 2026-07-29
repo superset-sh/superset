@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "tasks_get",
+		annotations: { readOnlyHint: true },
 		description:
 			"Fetch one task by UUID or human slug. Use this when you have a task ID or slug from a list call or the user.",
 		inputSchema: {

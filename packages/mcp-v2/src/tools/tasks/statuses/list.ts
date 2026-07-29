@@ -5,6 +5,7 @@ import { defineTool } from "../../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "tasks_statuses_list",
+		annotations: { readOnlyHint: true },
 		description:
 			"List the available task statuses in the active organization. Use this to look up a status id by name (e.g. 'In Progress', 'Done') before creating or updating a task.",
 		handler: async (_input, ctx) => {

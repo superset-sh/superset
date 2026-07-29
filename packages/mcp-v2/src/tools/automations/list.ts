@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_list",
+		annotations: { readOnlyHint: true },
 		description:
 			"List automations (scheduled agent runs) the calling user owns in the active organization. Returns a summary shape — call automations_get_prompt to fetch the prompt for one automation, or automations_get for the rest of its config. Pass `name` to filter rows by case-insensitive substring match on the automation name.",
 		inputSchema: {

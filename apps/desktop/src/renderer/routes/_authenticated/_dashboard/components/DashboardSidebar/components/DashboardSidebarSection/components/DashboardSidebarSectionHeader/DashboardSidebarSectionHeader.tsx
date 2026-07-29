@@ -5,7 +5,6 @@ import {
 	type ReactNode,
 } from "react";
 import { HiChevronRight } from "react-icons/hi2";
-import { LuGripVertical } from "react-icons/lu";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { DashboardSidebarSection } from "../../../../types";
 
@@ -58,8 +57,8 @@ export const DashboardSidebarSectionHeader = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-8 w-full items-center pl-5 pr-2 py-1.5 text-[13px] font-medium",
-					"text-muted-foreground hover:bg-muted/50 transition-colors",
+					"group mx-2 flex min-h-7 items-center rounded-md pl-2 pr-2 py-1 text-[13px] font-medium",
+					"text-muted-foreground hover:bg-fill-hover transition-colors",
 					className,
 				)}
 				{...props}
@@ -67,11 +66,10 @@ export const DashboardSidebarSectionHeader = forwardRef<
 				<div className="mr-2 grid h-5 w-5 shrink-0 cursor-grab items-center justify-center active:cursor-grabbing [&>*]:col-start-1 [&>*]:row-start-1">
 					<HiChevronRight
 						className={cn(
-							"size-3 text-muted-foreground transition-[opacity,transform] duration-150 group-hover:opacity-0",
+							"size-3 text-muted-foreground transition-transform duration-150",
 							!section.isCollapsed && "rotate-90",
 						)}
 					/>
-					<LuGripVertical className="size-3 text-muted-foreground opacity-0 transition-opacity duration-150 group-hover:opacity-60" />
 				</div>
 
 				<div className="flex min-w-0 flex-1 items-center gap-1.5">
@@ -93,22 +91,13 @@ export const DashboardSidebarSectionHeader = forwardRef<
 						{actions ? (
 							// biome-ignore lint/a11y/noStaticElementInteractions: Nested action controls handle their own semantics; this wrapper only isolates events from the header toggle.
 							<div
-								className="peer hidden size-full items-center justify-center group-hover:flex group-has-[:focus]:flex has-[[data-state=open]]:flex"
+								className="hidden size-full items-center justify-center group-hover:flex group-has-[:focus]:flex has-[[data-state=open]]:flex"
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}
 							>
 								{actions}
 							</div>
 						) : null}
-						<span
-							className={cn(
-								"text-[10px] font-normal tabular-nums text-muted-foreground",
-								actions &&
-									"group-hover:hidden group-has-[:focus]:hidden peer-has-[[data-state=open]]:hidden",
-							)}
-						>
-							{section.workspaces.length}
-						</span>
 					</div>
 				)}
 			</div>

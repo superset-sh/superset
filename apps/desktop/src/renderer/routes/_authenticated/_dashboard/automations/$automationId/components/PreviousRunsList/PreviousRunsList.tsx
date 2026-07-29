@@ -8,6 +8,17 @@ import {
 	HOST_OFFLINE_HELP,
 	isHostOfflineError,
 } from "../../../utils/hostOfflineError";
+import {
+	isStaleAgentError,
+	STALE_AGENT_HELP,
+} from "../../../utils/staleAgentError";
+
+function describeRunError(error: string): string {
+	if (isHostOfflineError(error)) return `${error}. ${HOST_OFFLINE_HELP}`;
+	// Lead with the plain-language fix; keep the raw host error for reports.
+	if (isStaleAgentError(error)) return `${STALE_AGENT_HELP}\n\n(${error})`;
+	return error;
+}
 
 const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
 	dispatched: "bg-emerald-500",
@@ -83,14 +94,17 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 					<li key={run.id}>
 						{run.error ? (
 							<Tooltip>
-								<TooltipTrigger asChild>{row}</TooltipTrigger>
+								{/* Wrap in a span: runs with no workspace render `row` as a
+								    disabled button, which emits no pointer events and would
+								    otherwise hide the error tooltip on hover. */}
+								<TooltipTrigger asChild>
+									<span className="block">{row}</span>
+								</TooltipTrigger>
 								<TooltipContent
 									side="left"
 									className="max-w-xs whitespace-pre-wrap"
 								>
-									{isHostOfflineError(run.error)
-										? `${run.error}. ${HOST_OFFLINE_HELP}`
-										: run.error}
+									{describeRunError(run.error)}
 								</TooltipContent>
 							</Tooltip>
 						) : (

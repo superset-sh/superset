@@ -13,10 +13,11 @@ import { toast } from "@superset/ui/sonner";
 import { useEffect, useRef } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useOpenProject } from "renderer/react-query/projects";
-import { useOpenNewProjectModal } from "renderer/stores/add-repository-modal";
+import { useOpenEmptyProjectModal } from "renderer/stores/add-repository-modal";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
+	useOpenNewWorkspaceModal,
 	usePreSelectedProjectId,
 } from "renderer/stores/new-workspace-modal";
 import { NewWorkspaceModalContent } from "./components/NewWorkspaceModalContent";
@@ -46,7 +47,8 @@ export function NewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const { openNew } = useOpenProject();
-	const openNewProject = useOpenNewProjectModal();
+	const openEmptyProject = useOpenEmptyProjectModal();
+	const openNewWorkspace = useOpenNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
 
 	// Prevents AgentSelect from flashing "No agent" while presets load after refresh.
@@ -64,9 +66,10 @@ export function NewWorkspaceModal() {
 		}
 	};
 
-	const handleNewProject = () => {
+	const handleNewProject = async () => {
 		closeModal();
-		openNewProject();
+		const result = await openEmptyProject();
+		if (result) openNewWorkspace(result.projectId);
 	};
 
 	return (

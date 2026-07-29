@@ -22,14 +22,14 @@ export function FilesTabHeaderButton({
 				<Button
 					variant="ghost"
 					size="icon"
-					className="size-5"
+					className="size-7 text-muted-foreground hover:text-foreground"
 					onClick={onClick}
 					aria-label={label}
 				>
 					{loading ? (
-						<Loader2 className="size-3 animate-spin" />
+						<Loader2 className="size-3.5 animate-spin" />
 					) : (
-						<Icon className="size-3" />
+						<Icon className="size-3.5" />
 					)}
 				</Button>
 			</TooltipTrigger>

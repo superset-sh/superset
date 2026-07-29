@@ -1,14 +1,14 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
 import { resolveHostFilter, resolveHostTarget } from "../../../lib/host-target";
-import { listHostWorkspaces } from "../../../lib/host-workspaces";
 
 export default command({
-	description: "Delete workspaces by ID",
+	description: "Delete workspaces by ID on a host (default: this machine)",
 	args: [positional("ids").required().variadic().desc("Workspace IDs")],
 	options: {
-		host: string().desc("Skip the cloud lookup and target this host directly"),
-		local: boolean().desc("Skip the cloud lookup and target this machine"),
+		host: string().desc("Host the workspaces live on"),
+		local: boolean().desc("Target this machine (the default)"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const ids = args.ids as string[];
@@ -17,42 +17,20 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		const explicitHostId = resolveHostFilter({
-			host: options.host ?? undefined,
-			local: options.local ?? undefined,
+		const hostId =
+			resolveHostFilter({
+				host: options.host ?? undefined,
+				local: options.local ?? undefined,
+			}) ?? getHostId();
+		const target = resolveHostTarget({
+			requestedHostId: hostId,
+			organizationId,
+			userJwt: ctx.bearer,
 		});
-
-		// Workspace records are host-owned: without an explicit host, fan out
-		// once across the org's reachable hosts to map each id to its host.
-		let hostIdByWorkspaceId: Map<string, string> | undefined;
-		if (!explicitHostId) {
-			const { workspaces, warnings: listWarnings } = await listHostWorkspaces({
-				api: ctx.api,
-				organizationId,
-				userJwt: ctx.bearer,
-			});
-			for (const warning of listWarnings) {
-				process.stderr.write(`Warning: ${warning}\n`);
-			}
-			hostIdByWorkspaceId = new Map(
-				workspaces.map((workspace) => [workspace.id, workspace.hostId]),
-			);
-		}
 
 		const deleted: string[] = [];
 		const warnings: string[] = [];
 		for (const id of ids) {
-			const hostId = explicitHostId ?? hostIdByWorkspaceId?.get(id);
-			if (!hostId) {
-				throw new CLIError(`Workspace not found on any reachable host: ${id}`);
-			}
-
-			const target = resolveHostTarget({
-				requestedHostId: hostId,
-				organizationId,
-				userJwt: ctx.bearer,
-			});
-
 			const result = await target.client.workspace.delete.mutate({ id });
 			deleted.push(id);
 			for (const warning of result.warnings ?? []) {

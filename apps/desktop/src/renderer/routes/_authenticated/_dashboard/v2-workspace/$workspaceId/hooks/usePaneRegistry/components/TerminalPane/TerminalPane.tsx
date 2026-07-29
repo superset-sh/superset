@@ -357,12 +357,12 @@ export function TerminalPane({
 
 	useHotkey(
 		"TOGGLE_TERMINAL_RICH_INPUT",
-		() => terminalRichInputOpenStore.toggle(),
+		() => terminalRichInputOpenStore.toggle("hotkey"),
 		{ enabled: ctx.isActive, preventDefault: true },
 	);
 
 	const closeRichInput = useCallback(() => {
-		terminalRichInputOpenStore.close();
+		terminalRichInputOpenStore.close("escape");
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();

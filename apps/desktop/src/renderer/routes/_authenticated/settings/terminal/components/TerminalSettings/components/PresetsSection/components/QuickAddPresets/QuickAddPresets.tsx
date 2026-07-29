@@ -3,11 +3,13 @@ import {
 	DropdownMenu,
 	DropdownMenuContent,
 	DropdownMenuItem,
+	DropdownMenuSeparator,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
+import { useNavigate } from "@tanstack/react-router";
 import { HiMiniCommandLine } from "react-icons/hi2";
-import { LuCheck, LuChevronDown, LuPlus } from "react-icons/lu";
+import { LuCheck, LuChevronDown, LuPlus, LuSettings } from "react-icons/lu";
 import { getPresetIcon } from "renderer/assets/app-icons/preset-icons";
 
 export interface QuickAddAgentPill {
@@ -35,14 +37,12 @@ export function QuickAddPresets({
 	isPillAdded,
 	onAddPill,
 }: QuickAddPresetsProps) {
+	const navigate = useNavigate();
+
 	return (
 		<DropdownMenu>
 			<DropdownMenuTrigger asChild>
-				<Button
-					size="sm"
-					variant="outline"
-					disabled={isAddDisabled || pills.length === 0}
-				>
+				<Button size="sm" variant="outline" disabled={isAddDisabled}>
 					<LuPlus className="size-4" />
 					Import agent
 					<LuChevronDown className="size-4 opacity-60" />
@@ -94,6 +94,11 @@ export function QuickAddPresets({
 						</DropdownMenuItem>
 					);
 				})}
+				{pills.length > 0 && <DropdownMenuSeparator />}
+				<DropdownMenuItem onSelect={() => navigate({ to: "/settings/agents" })}>
+					<LuSettings className="size-4 shrink-0 text-muted-foreground" />
+					<span className="flex-1">Add agents…</span>
+				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);

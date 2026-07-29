@@ -4,8 +4,12 @@ import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { type FormEvent, type ReactNode, useState } from "react";
-import { LuFolderOpen, LuGitBranch, LuLayoutTemplate } from "react-icons/lu";
-import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
+import {
+	LuFolderOpen,
+	LuFolderPlus,
+	LuGitBranch,
+	LuLayoutTemplate,
+} from "react-icons/lu";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -19,6 +23,7 @@ import {
 } from "renderer/react-query/projects";
 import { useOpenMainRepoWorkspace } from "renderer/react-query/workspaces";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
+import { EmptyProjectModal } from "renderer/routes/_authenticated/components/EmptyProjectModal";
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
@@ -31,14 +36,13 @@ function OnboardingProjectPage() {
 	const navigate = useNavigate();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { refetch: refetchSession } = authClient.useSession();
-	const { activeHostUrl } = useLocalHostService();
-	const hostReady = !isV2CloudEnabled || activeHostUrl !== null;
-	const hostConnectTimedOut = useDelayElapsed(!hostReady, 15_000);
+	const { waitForHostReady } = useLocalHostService();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const { data: homeDir } = electronTrpc.window.getHomeDir.useQuery();
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
 	const [url, setUrl] = useState("");
 	const [busy, setBusy] = useState(false);
+	const [emptyProjectOpen, setEmptyProjectOpen] = useState(false);
 	const [templateOpen, setTemplateOpen] = useState(false);
 
 	const folderImport = useFolderFirstImport({
@@ -111,10 +115,14 @@ function OnboardingProjectPage() {
 		e.preventDefault();
 		const trimmed = url.trim();
 		if (!trimmed || !cloneTargetDir) return;
-		if (isV2CloudEnabled && !activeHostUrl) return;
 		setBusy(true);
 		try {
-			if (isV2CloudEnabled && activeHostUrl) {
+			if (isV2CloudEnabled) {
+				const activeHostUrl = await waitForHostReady();
+				if (!activeHostUrl) {
+					toast.error("Local host service isn't ready yet. Please try again.");
+					return;
+				}
 				const hostService = getHostServiceClientByUrl(activeHostUrl);
 				const created = await hostService.project.create.mutate({
 					name: repoNameFromUrl(trimmed),
@@ -141,6 +149,26 @@ function OnboardingProjectPage() {
 	return (
 		<div className="flex flex-col gap-3">
 			<Card className="flex-row items-center gap-4 p-5">
+				<ProjectIcon icon={<LuFolderPlus className="size-4.5" />} />
+				<div className="min-w-0 flex-1">
+					<p className="text-sm font-medium text-foreground">
+						Create a new project
+					</p>
+					<p className="text-xs text-muted-foreground">
+						Start from scratch in a new folder.
+					</p>
+				</div>
+				<Button
+					variant="outline"
+					size="sm"
+					onClick={() => setEmptyProjectOpen(true)}
+					disabled={busy}
+				>
+					Create
+				</Button>
+			</Card>
+
+			<Card className="flex-row items-center gap-4 p-5">
 				<ProjectIcon icon={<LuFolderOpen className="size-4.5" />} />
 				<div className="min-w-0 flex-1">
 					<p className="text-sm font-medium text-foreground">Open a folder</p>
@@ -152,9 +180,9 @@ function OnboardingProjectPage() {
 					variant="outline"
 					size="sm"
 					onClick={handleOpenFolder}
-					disabled={!hostReady || busy}
+					disabled={busy}
 				>
-					{hostReady ? "Browse…" : "Connecting…"}
+					Browse…
 				</Button>
 			</Card>
 
@@ -174,12 +202,12 @@ function OnboardingProjectPage() {
 						placeholder="git@github.com:org/repo.git"
 						value={url}
 						onChange={(e) => setUrl(e.target.value)}
-						disabled={busy || !hostReady}
+						disabled={busy}
 						className="flex-1"
 					/>
 					<Button
 						type="submit"
-						disabled={!url.trim() || busy || !hostReady || !cloneTargetDir}
+						disabled={!url.trim() || busy || !cloneTargetDir}
 					>
 						{busy ? "Cloning…" : "Clone"}
 					</Button>
@@ -200,31 +228,25 @@ function OnboardingProjectPage() {
 					variant="outline"
 					size="sm"
 					onClick={() => setTemplateOpen(true)}
-					disabled={!hostReady || busy}
+					disabled={busy}
 				>
-					{hostReady ? "Browse…" : "Connecting…"}
+					Browse…
 				</Button>
 			</Card>
-
-			{hostConnectTimedOut && (
-				<p className="text-xs text-muted-foreground text-center select-text cursor-text">
-					Still connecting to the local host service.{" "}
-					<button
-						type="button"
-						className="underline hover:text-foreground transition-colors"
-						onClick={() => window.location.reload()}
-					>
-						Reload
-					</button>{" "}
-					if this persists.
-				</p>
-			)}
 
 			<TemplateGalleryModal
 				open={templateOpen}
 				onOpenChange={setTemplateOpen}
 				onCreated={(result) => {
 					setTemplateOpen(false);
+					finish(result.projectId);
+				}}
+			/>
+			<EmptyProjectModal
+				open={emptyProjectOpen}
+				onOpenChange={setEmptyProjectOpen}
+				onSuccess={(result) => {
+					setEmptyProjectOpen(false);
 					finish(result.projectId);
 				}}
 			/>

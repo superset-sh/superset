@@ -38,7 +38,7 @@ export function TerminalPaneHeaderExtras({
 				<TooltipTrigger asChild>
 					<button
 						type="button"
-						onClick={() => terminalRichInputOpenStore.toggle()}
+						onClick={() => terminalRichInputOpenStore.toggle("header_button")}
 						aria-label={label}
 						aria-pressed={isOpen}
 						className={cn(
@@ -51,14 +51,8 @@ export function TerminalPaneHeaderExtras({
 						<SquarePen className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					{label}
-				</TooltipContent>
+				<TooltipContent side="bottom">{label}</TooltipContent>
 			</Tooltip>
-			<div
-				className="mx-1 h-3.5 w-px bg-muted-foreground/30"
-				aria-hidden="true"
-			/>
 		</div>
 	);
 }

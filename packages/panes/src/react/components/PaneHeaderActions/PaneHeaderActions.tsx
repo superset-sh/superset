@@ -1,4 +1,5 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { Fragment } from "react";
 import type { PaneActionConfig, RendererContext } from "../../types";
 
 export function PaneHeaderActions<TData>({
@@ -24,20 +25,24 @@ export function PaneHeaderActions<TData>({
 						? action.tooltip(context)
 						: action.tooltip;
 
+				const button = (
+					<button
+						type="button"
+						onClick={() => action.onClick(context)}
+						className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+					>
+						{icon}
+					</button>
+				);
+
+				if (tooltip == null) {
+					return <Fragment key={action.key}>{button}</Fragment>;
+				}
+
 				return (
-					<Tooltip key={action.key}>
-						<TooltipTrigger asChild>
-							<button
-								type="button"
-								onClick={() => action.onClick(context)}
-								className="rounded p-0.5 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-							>
-								{icon}
-							</button>
-						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							{tooltip}
-						</TooltipContent>
+					<Tooltip key={action.key} delayDuration={1000}>
+						<TooltipTrigger asChild>{button}</TooltipTrigger>
+						<TooltipContent side="bottom">{tooltip}</TooltipContent>
 					</Tooltip>
 				);
 			})}

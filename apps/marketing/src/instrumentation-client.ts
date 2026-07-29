@@ -3,9 +3,11 @@ import { POSTHOG_COOKIE_NAME } from "@superset/shared/constants";
 import posthog from "posthog-js";
 
 import { env } from "@/env";
+import { getHeroFlagBootstrap } from "@/lib/analytics/hero-flag-bootstrap";
 import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
 
 posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
+	bootstrap: getHeroFlagBootstrap(),
 	api_host: "/ingest",
 	ui_host: "https://us.posthog.com",
 	defaults: "2025-11-30",
@@ -14,20 +16,21 @@ posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
 	capture_exceptions: true,
 	debug: false,
 	cross_subdomain_cookie: true,
+	person_profiles: "always",
 	persistence: "cookie",
 	persistence_name: POSTHOG_COOKIE_NAME,
 	disable_session_recording: true,
 	loaded: (posthog) => {
-		posthog.register({
-			app_name: "marketing",
-			domain: window.location.hostname,
-		});
-
 		const consent = localStorage.getItem(ANALYTICS_CONSENT_KEY);
 		if (consent === "declined") {
 			posthog.opt_out_capturing();
 		}
 	},
+});
+
+posthog.register({
+	app_name: "marketing",
+	domain: window.location.hostname,
 });
 
 Sentry.init({

@@ -17,9 +17,12 @@ interface SidebarDragOverlayProps {
 export function SidebarDragOverlay({ activeItem }: SidebarDragOverlayProps) {
 	if (!activeItem) return null;
 
+	// Transparent on purpose (both branches): the sidebar surface comes from
+	// window vibrancy, so an opaque bg renders as a solid slab under the
+	// dragged row.
 	if (activeItem.type === "workspace") {
 		return (
-			<div className="bg-background shadow-lg">
+			<div>
 				<DashboardSidebarWorkspaceItem workspace={activeItem.workspace} />
 			</div>
 		);
@@ -31,7 +34,6 @@ export function SidebarDragOverlay({ activeItem }: SidebarDragOverlayProps) {
 
 	return (
 		<div
-			className="bg-background shadow-lg"
 			style={{
 				borderLeft: hasColor
 					? `2px solid ${section.color}`

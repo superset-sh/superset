@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
+	partitionSidebarWorkspacesByPinned,
 	type SidebarProjectInput,
 	type SidebarSectionInput,
 	type SidebarWorkspaceInput,
@@ -56,6 +58,7 @@ function makeWorkspace(
 		updatedAt: DATE,
 		tabOrder: 1,
 		sectionId: null,
+		pinnedAt: null,
 		pendingTransaction: null,
 		...overrides,
 	};
@@ -164,5 +167,50 @@ describe("buildDashboardSidebarProjects", () => {
 			"orphan-late",
 			"section:section-1",
 		]);
+	});
+});
+
+describe("partitionSidebarWorkspacesByPinned", () => {
+	it("splits pinned rows out and sorts them by pin time ascending", () => {
+		const { pinned, unpinned } = partitionSidebarWorkspacesByPinned([
+			makeWorkspace({ id: "unpinned-1" }),
+			makeWorkspace({ id: "pinned-late", pinnedAt: 2000 }),
+			makeWorkspace({ id: "unpinned-2" }),
+			makeWorkspace({ id: "pinned-early", pinnedAt: 1000 }),
+		]);
+
+		expect(pinned.map((workspace) => workspace.id)).toEqual([
+			"pinned-early",
+			"pinned-late",
+		]);
+		expect(unpinned.map((workspace) => workspace.id)).toEqual([
+			"unpinned-1",
+			"unpinned-2",
+		]);
+	});
+});
+
+describe("buildDashboardSidebarPinnedWorkspaces", () => {
+	it("decorates pinned rows with project identity and drops project-less rows", () => {
+		const rows = buildDashboardSidebarPinnedWorkspaces({
+			pinnedSidebarWorkspaces: [
+				makeWorkspace({ id: "pinned-1", pinnedAt: 1000 }),
+				makeWorkspace({
+					id: "pinned-orphan",
+					projectId: "removed-project",
+					pinnedAt: 2000,
+				}),
+			],
+			sidebarProjects: [
+				makeProject({ id: "project-1", name: "Superset", iconUrl: "icon.png" }),
+			],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(rows.map((row) => row.id)).toEqual(["pinned-1"]);
+		expect(rows[0].projectName).toBe("Superset");
+		expect(rows[0].projectIconUrl).toBe("icon.png");
+		expect(rows[0].isPinned).toBe(true);
 	});
 });

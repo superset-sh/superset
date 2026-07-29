@@ -195,7 +195,8 @@ function AuthenticatedLayout() {
 	// across re-renders loops the router until the renderer OOMs (#5729).
 	if (isAuthPending) {
 		return (
-			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+			<div className="relative flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+				<div className="drag absolute inset-x-0 top-0 h-12" />
 				<Spinner className="size-8" />
 				{authPendingTimedOut && (
 					<>
@@ -235,7 +236,8 @@ function AuthenticatedLayout() {
 
 	if (!isSignedIn && hasLocalToken && !isOnline) {
 		return (
-			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+			<div className="relative flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+				<div className="drag absolute inset-x-0 top-0 h-12" />
 				<HiOutlineWifi className="size-12 text-muted-foreground" />
 				<div className="text-center">
 					<h2 className="text-lg font-medium">You're offline</h2>

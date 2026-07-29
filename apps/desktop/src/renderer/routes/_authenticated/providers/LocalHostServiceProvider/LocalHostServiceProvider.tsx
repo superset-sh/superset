@@ -2,6 +2,7 @@ import { toast } from "@superset/ui/sonner";
 import {
 	createContext,
 	type ReactNode,
+	useCallback,
 	useContext,
 	useEffect,
 	useMemo,
@@ -22,6 +23,12 @@ interface LocalHostServiceContextValue {
 	activeOrganizationId: string | null;
 	activeOrganizationName: string | null;
 	hostServiceStatus: HostServiceAvailabilityStatus;
+	/**
+	 * Resolve once the local host service is live, returning its loopback URL
+	 * (or null on timeout). Use this at the point of a host-backed action so
+	 * local-first UI can act immediately without gating on `activeHostUrl`.
+	 */
+	waitForHostReady: (timeoutMs?: number) => Promise<string | null>;
 }
 
 const LocalHostServiceContext =
@@ -32,6 +39,7 @@ export function LocalHostServiceProvider({
 }: {
 	children: ReactNode;
 }) {
+	const utils = electronTrpc.useUtils();
 	const { data: session } = authClient.useSession();
 	const { data: activeOrganization } = authClient.useActiveOrganization();
 	const { mutate: startHostService } =
@@ -41,7 +49,10 @@ export function LocalHostServiceProvider({
 				console.error("[host-service] start failed:", error);
 				// Auth preconditions resolve once the token lands; not a real failure.
 				if (error.data?.code === "UNAUTHORIZED") return;
+				// A stable id collapses repeated retry failures into one toast
+				// instead of stacking a new one every retry interval.
 				toast.error("Host service failed to start", {
+					id: "host-service-start-failed",
 					description: error.message,
 				});
 			},
@@ -50,15 +61,6 @@ export function LocalHostServiceProvider({
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
-
-	// Local capability must never wait on cloud sync: main starts services for
-	// every previously-hosted org at boot; this covers a brand-new active org
-	// (no host dir yet) straight from the session.
-	useEffect(() => {
-		if (activeOrganizationId) {
-			startHostService({ organizationId: activeOrganizationId });
-		}
-	}, [activeOrganizationId, startHostService]);
 
 	const { data: machineIdData } = electronTrpc.device.getMachineId.useQuery(
 		undefined,
@@ -86,6 +88,58 @@ export function LocalHostServiceProvider({
 			},
 		);
 
+	// Proactively start the local host when the active org resolves so it's ready
+	// before the user acts. Main already starts previously-hosted orgs at boot and
+	// on token-saved; this covers a brand-new active org (no host dir yet) from the
+	// session. A failed start here (e.g. token not yet persisted) is recovered by
+	// waitForHostReady, which re-attempts on demand.
+	useEffect(() => {
+		if (activeOrganizationId) {
+			startHostService({ organizationId: activeOrganizationId });
+		}
+	}, [activeOrganizationId, startHostService]);
+
+	const waitForHostReady = useCallback(
+		async (timeoutMs = 20_000): Promise<string | null> => {
+			const orgId = activeOrganizationId;
+			if (!orgId) return null;
+			// Resolve the live host URL if a port is up, else null. Swallows
+			// transient IPC/tRPC fetch failures so a poll error never rejects the
+			// nullable contract callers rely on.
+			const tryGetHostUrl = async (): Promise<string | null> => {
+				try {
+					const connection =
+						await utils.hostServiceCoordinator.getConnection.fetch({
+							organizationId: orgId,
+						});
+					if (connection?.port) {
+						const hostUrl = `http://127.0.0.1:${connection.port}`;
+						if (connection.secret)
+							setHostServiceSecret(hostUrl, connection.secret);
+						return hostUrl;
+					}
+				} catch (error) {
+					console.warn("[host-service] connection poll failed:", error);
+				}
+				return null;
+			};
+			const deadline = Date.now() + timeoutMs;
+			while (Date.now() < deadline) {
+				const hostUrl = await tryGetHostUrl();
+				if (hostUrl) return hostUrl;
+				// Re-attempt the idempotent, local-only start each iteration so a
+				// transient failure (auth token not yet persisted, spawn miss)
+				// self-heals instead of polling a host that never came up.
+				startHostService({ organizationId: orgId });
+				await new Promise((resolve) => setTimeout(resolve, 1_000));
+			}
+			// Final check: the last start may have brought the host up during the
+			// trailing sleep, after the deadline elapsed.
+			return await tryGetHostUrl();
+		},
+		[activeOrganizationId, startHostService, utils],
+	);
+
 	const activeOrganizationName = activeOrganization?.name ?? null;
 
 	const value = useMemo<LocalHostServiceContextValue | null>(() => {
@@ -103,6 +157,7 @@ export function LocalHostServiceProvider({
 				activeOrganizationId: activeOrganizationId ?? null,
 				activeOrganizationName,
 				hostServiceStatus,
+				waitForHostReady,
 			};
 		}
 
@@ -117,6 +172,7 @@ export function LocalHostServiceProvider({
 			activeOrganizationId: activeOrganizationId ?? null,
 			activeOrganizationName,
 			hostServiceStatus,
+			waitForHostReady,
 		};
 	}, [
 		machineIdData,
@@ -124,6 +180,7 @@ export function LocalHostServiceProvider({
 		activeOrganizationId,
 		activeOrganizationName,
 		processStatus?.status,
+		waitForHostReady,
 	]);
 
 	if (!value) return null;

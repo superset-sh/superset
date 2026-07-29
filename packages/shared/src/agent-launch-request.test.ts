@@ -45,7 +45,8 @@ describe("buildPromptAgentLaunchRequest", () => {
 			kind: "terminal",
 			agentType: "codex",
 			terminal: {
-				command: "codex --dangerously-bypass-approvals-and-sandbox",
+				command:
+					"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
 			},
 		});
 	});

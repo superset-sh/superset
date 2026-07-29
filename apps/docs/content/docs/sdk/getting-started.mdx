@@ -86,9 +86,10 @@ const urgent = await client.tasks.list({
   creatorMe: true,
 });
 
-// Inspect what else you have
-const projects = await client.projects.list();
-const hosts = await client.hosts.list();
+// Inspect what else you have — projects and workspaces are host-owned
+const [host] = await client.hosts.list();
+if (!host) throw new Error('No hosts registered — run `superset start` on a machine');
+const projects = await client.projects.list({ hostId: host.id });
 const automations = await client.automations.list();
 
 // Trigger an automation off-schedule

@@ -197,6 +197,8 @@ function Header({
 			<span className="text-sm text-muted-foreground font-mono tabular-nums">
 				#{prNumber}
 			</span>
+			{/* Window-drag leaf standing in for the hidden TopBar. */}
+			<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
 			<div className="ml-auto flex items-center gap-1">
 				{url && (
 					<a

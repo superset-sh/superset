@@ -21,7 +21,7 @@ export function HeaderCTA({ isLoggedIn, dashboardUrl }: HeaderCTAProps) {
 	const dashboardLink = isLoggedIn && (
 		<a
 			href={dashboardUrl}
-			className="px-4 py-2 text-sm font-normal text-muted-foreground hover:text-foreground transition-colors text-center"
+			className="px-4 py-2 font-mono text-xs uppercase tracking-wider text-center whitespace-nowrap border border-border text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
 		>
 			Dashboard
 		</a>

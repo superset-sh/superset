@@ -209,7 +209,6 @@ export function PresetEditorDialog({
 		return findLinkedAgent(agents, presetAgentId);
 	}, [preset, agents]);
 	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
-	const isLinked = !!linkedAgentId;
 	const liveCommands = useMemo(
 		() =>
 			preset
@@ -369,7 +368,7 @@ export function PresetEditorDialog({
 						</DialogHeader>
 
 						<div className="space-y-3">
-							{isLinked ? (
+							{linkedAgentId ? (
 								<div className="py-2.5 space-y-2">
 									<div className="flex items-center justify-between gap-3">
 										<Label
@@ -383,8 +382,8 @@ export function PresetEditorDialog({
 											Command
 										</Label>
 										<Link
-											to="/settings/agents"
-											search={{ agent: linkedAgentId }}
+											to="/settings/agents/$agentId"
+											params={{ agentId: linkedAgentId }}
 											onClick={() => onOpenChange(false)}
 											className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
 										>

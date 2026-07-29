@@ -1,6 +1,6 @@
 # Superset TypeScript SDK
 
-Typed wrapper around the Superset API. Mirrors the [`superset` CLI](https://docs.superset.sh/docs/cli/getting-started) 1:1 — same procedures, same shapes.
+Typed wrapper around the Superset API. Follows the [`superset` CLI](https://docs.superset.sh/docs/cli/getting-started) — same procedures, same shapes.
 
 Full docs: **<https://docs.superset.sh/docs/sdk/getting-started>**
 
@@ -28,10 +28,11 @@ const got  = await client.tasks.retrieve('SUPER-172'); // Task | null
 await client.tasks.update({ id: task.id, statusId: '<uuid>' });
 await client.tasks.delete(task.id);
 
-// Read everything else
-await client.workspaces.list();
-await client.projects.list();
-await client.hosts.list();
+// Hosts own workspaces and projects — pick a host, then read from it
+const [host] = await client.hosts.list();
+if (!host) throw new Error('No hosts registered — run `superset start` on a machine');
+await client.workspaces.list({ hostId: host.id });
+await client.projects.list({ hostId: host.id });
 await client.automations.list();
 
 // Trigger an automation now (off-schedule)
@@ -73,7 +74,7 @@ try {
 
 ## Two transport paths
 
-Most methods hit `api.superset.sh` directly. Several methods physically execute on a developer machine and route through the relay tunnel: `workspaces.create`, `workspaces.delete`, `agents.list`, `agents.create`, and `terminals.create`. The SDK transparently exchanges your API key for a short-lived JWT to talk to the relay — no token plumbing required.
+Most methods hit `api.superset.sh` directly. Workspace, project, agent, and terminal operations physically execute on a developer machine and route through the relay tunnel to the host named by `hostId`: `workspaces.list/create/update/delete`, `projects.list`, `agents.list/create`, and `terminals.create`. The SDK transparently exchanges your API key for a short-lived JWT to talk to the relay — no token plumbing required.
 
 For relay-bound calls, the target host has to be online and tunneling, otherwise you'll get a `503 Host not connected`.
 

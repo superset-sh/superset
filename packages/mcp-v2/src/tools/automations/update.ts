@@ -6,6 +6,7 @@ import { defineTool } from "../../define-tool";
 export function register(server: McpServer): void {
 	defineTool(server, {
 		name: "automations_update",
+		annotations: { destructiveHint: false, idempotentHint: true },
 		description:
 			"Update metadata on an existing automation (name, schedule, agent, host). Only the fields you pass change. Caller must be the automation's owner. Use automations_set_prompt to change the prompt body.",
 		inputSchema: {

@@ -598,6 +598,7 @@ export function ChangesView({
 		againstBaseFiles,
 		onAgainstBaseFileSelect: (file) => handleFileSelect(file, "against-base"),
 		commitsWithFiles,
+		totalCommitCount: status?.totalCommitCount ?? commits.length,
 		expandedCommits,
 		onCommitToggle: handleCommitToggle,
 		onCommitFileSelect: handleCommitFileSelect,

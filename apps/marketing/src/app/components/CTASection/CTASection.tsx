@@ -9,9 +9,9 @@ export function CTASection() {
 
 	return (
 		<>
-			<section className="relative py-32 px-8 lg:px-[30px]">
-				<div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-					<h2 className="text-3xl sm:text-4xl xl:text-5xl font-medium tracking-tight leading-[1.1] text-foreground mb-8">
+			<section className="relative py-24 sm:py-32">
+				<div className="max-w-7xl mx-auto px-6 sm:px-8 flex flex-col items-center text-center">
+					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground mb-8">
 						Try Superset now.
 					</h2>
 					<div>

@@ -242,6 +242,31 @@ export function useSidebarDnd({
 		return null; // ungrouped — no section above
 	}, [activeId, overId, activeType, flatItems, sectionsById]);
 
+	// The sidebar data builder always sorts local main workspaces first,
+	// so any drop that lands an item above one would silently revert on
+	// the next rebuild (e.g. when the sidebar collapses and remounts).
+	// Normalize drop results to match what actually persists.
+	const normalizeMainFirst = useCallback(
+		(items: UniqueIdentifier[]) => {
+			const mains: UniqueIdentifier[] = [];
+			const rest: UniqueIdentifier[] = [];
+			for (const id of items) {
+				const parsed = parseId(id);
+				const ws =
+					parsed?.type === "workspace"
+						? workspacesById.get(parsed.realId)
+						: null;
+				if (ws?.type === "main" && ws.hostType === "local-device") {
+					mains.push(id);
+				} else {
+					rest.push(id);
+				}
+			}
+			return mains.length > 0 ? [...mains, ...rest] : items;
+		},
+		[workspacesById],
+	);
+
 	// ── Persistence ──────────────────────────────────────────────────
 
 	const commitToDb = useCallback(
@@ -310,13 +335,14 @@ export function useSidebarDnd({
 					}
 				}
 
-				const newItems: UniqueIdentifier[] = [...ungrouped];
+				const rebuilt: UniqueIdentifier[] = [...ungrouped];
 				for (const secSortId of reorderedSections) {
-					newItems.push(secSortId);
+					rebuilt.push(secSortId);
 					const wsInSec = sectionGroups.get(String(secSortId)) ?? [];
-					newItems.push(...wsInSec);
+					rebuilt.push(...wsInSec);
 				}
 
+				const newItems = normalizeMainFirst(rebuilt);
 				setFlatItems(newItems);
 				commitToDb(newItems);
 			} else {
@@ -326,12 +352,14 @@ export function useSidebarDnd({
 				if (oldIndex === -1 || overIndex === -1 || oldIndex === overIndex)
 					return;
 
-				const newItems = arrayMove(flatItems, oldIndex, overIndex);
+				const newItems = normalizeMainFirst(
+					arrayMove(flatItems, oldIndex, overIndex),
+				);
 				setFlatItems(newItems);
 				commitToDb(newItems);
 			}
 		},
-		[flatItems, commitToDb],
+		[flatItems, commitToDb, normalizeMainFirst],
 	);
 
 	const onDragCancel = useCallback(() => {
