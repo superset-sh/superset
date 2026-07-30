@@ -40,6 +40,7 @@ import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActio
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { createRenderTerminalTabIcon } from "./hooks/usePaneRegistry/components/TerminalPane/components/TerminalPaneIcon";
 import { useSlotElement } from "./hooks/useSlotElement";
 import { useTabCloseGuard } from "./hooks/useTabCloseGuard";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
@@ -311,7 +312,10 @@ function V2WorkspaceContent() {
 							registry={paneRegistry}
 							paneActions={defaultPaneActions}
 							contextMenuActions={defaultContextMenuActions}
-							renderTabIcon={renderBrowserTabIcon}
+							renderTabIcon={(tab) =>
+								renderBrowserTabIcon(tab) ??
+								createRenderTerminalTabIcon(workspaceId)(tab)
+							}
 							renderTabAccessory={(tab) => (
 								<V2NotificationStatusIndicator
 									sources={getV2NotificationSourcesForTab(tab)}

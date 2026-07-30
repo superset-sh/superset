@@ -18,6 +18,7 @@ const agentIdentityInput = z
 const hookInput = z.object({
 	terminalId: z.string().optional(),
 	eventType: z.string().optional(),
+	cwd: z.string().optional(),
 	agent: agentIdentityInput,
 });
 
@@ -73,6 +74,7 @@ export const notificationsRouter = router({
 
 		const agent = normalizeAgentIdentity(input.agent);
 		const occurredAt = Date.now();
+		const cwd = trimOrUndefined(input.cwd);
 
 		ctx.eventBus.broadcastAgentLifecycle({
 			workspaceId: terminalSession.originWorkspaceId,
@@ -90,6 +92,7 @@ export const notificationsRouter = router({
 			...(agent?.sessionId ? { agentSessionId: agent.sessionId } : {}),
 			...(agent?.definitionId ? { definitionId: agent.definitionId } : {}),
 			occurredAt,
+			...(cwd ? { cwd } : {}),
 		});
 
 		return { success: true, ignored: false as const };

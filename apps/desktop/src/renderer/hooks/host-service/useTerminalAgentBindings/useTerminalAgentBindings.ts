@@ -23,7 +23,8 @@ export function getTerminalAgentBindingsQueryKey(workspaceId: string) {
 
 /**
  * Map of `terminalId → agent binding` for a workspace, read from the host
- * store and invalidated on `agent:lifecycle` / `terminal:lifecycle` events.
+ * store and invalidated on `agent:lifecycle` / `agent:meta` /
+ * `terminal:lifecycle` events.
  */
 export function useTerminalAgentBindings(
 	workspaceId: string,
@@ -59,6 +60,7 @@ export function useTerminalAgentBindings(
 	}, [queryClient, queryKey]);
 
 	useWorkspaceEvent("agent:lifecycle", workspaceId, invalidate, enabled);
+	useWorkspaceEvent("agent:meta", workspaceId, invalidate, enabled);
 	useWorkspaceEvent("terminal:lifecycle", workspaceId, invalidate, enabled);
 
 	return useMemo(() => {

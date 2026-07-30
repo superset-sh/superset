@@ -2,6 +2,7 @@ import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { getStatusTooltip } from "renderer/screens/main/components/StatusIndicator";
+import { resolveClaudeAgentColor } from "shared/constants/claude-agent-colors";
 import type {
 	DashboardSidebarRunningAgent,
 	RunningAgentStatus,
@@ -38,6 +39,8 @@ export function DashboardSidebarAgentHoverRow({
 
 	const statusLabel =
 		agent.status === "idle" ? "Idle" : getStatusTooltip(agent.status);
+	const displayLabel = agent.title ?? agent.label;
+	const dotColor = resolveClaudeAgentColor(agent.color);
 
 	return (
 		<div className="flex items-center gap-1.5 rounded-sm px-2 py-1 hover:bg-muted">
@@ -47,7 +50,14 @@ export function DashboardSidebarAgentHoverRow({
 				className="flex min-w-0 flex-1 items-center gap-1.5 text-left focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
 			>
 				<DashboardSidebarAgentAvatar agent={agent} />
-				<span className="min-w-0 truncate text-xs">{agent.label}</span>
+				{dotColor ? (
+					<span
+						className="size-1.5 shrink-0 rounded-full"
+						style={{ backgroundColor: dotColor }}
+						aria-hidden="true"
+					/>
+				) : null}
+				<span className="min-w-0 truncate text-xs">{displayLabel}</span>
 			</button>
 			<span
 				className={cn("shrink-0 text-[10px]", STATUS_TEXT_CLASS[agent.status])}
