@@ -481,13 +481,28 @@ export const HOTKEYS_REGISTRY = {
 			windows: "ctrl+shift+tab",
 			linux: "ctrl+shift+tab",
 		},
-		label: "Previous Tab (Alt)",
+		label: "Next Recent Pane",
 		category: "Terminal",
+		description:
+			"Cycle forwards through recently used panes across all workspaces",
 	},
 	NEXT_TAB_ALT: {
 		key: { mac: "ctrl+tab", windows: "ctrl+tab", linux: "ctrl+tab" },
-		label: "Next Tab (Alt)",
+		label: "Previous Recent Pane",
 		category: "Terminal",
+		description:
+			"Hold Ctrl and tap Tab to walk back through recently used panes; release to switch",
+	},
+	MRU_STEP_FORWARD: {
+		key: {
+			mac: L("ctrl+backquote"),
+			windows: L("ctrl+backquote"),
+			linux: L("ctrl+backquote"),
+		},
+		label: "Next Recent Pane (no Shift)",
+		category: "Terminal",
+		description:
+			"Same as Ctrl+Shift+Tab — step forward through recently used panes while holding Ctrl",
 	},
 	PREV_TAB: {
 		key: {

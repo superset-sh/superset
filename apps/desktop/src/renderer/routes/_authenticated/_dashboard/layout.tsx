@@ -26,7 +26,10 @@ import {
 } from "renderer/stores/workspace-sidebar-state";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
 import { CrossVersionMismatchState } from "./components/CrossVersionMismatchState";
+import { PaneMruSwitcher } from "./components/PaneMruSwitcher";
 import { TopBar } from "./components/TopBar";
+import { usePaneMruSwitcher } from "./hooks/usePaneMruSwitcher";
+import { usePrunePaneMru } from "./hooks/usePrunePaneMru";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
@@ -53,6 +56,13 @@ function DashboardLayout() {
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	useDevSeedV2Sidebar();
+	// Keeps the Ctrl+Tab switcher's list free of panes that have been closed.
+	// Lives here because it needs every workspace's layout, not just the
+	// currently-routed one.
+	usePrunePaneMru();
+	// Ctrl+Tab switcher. Dashboard-level so it works on any route and can
+	// switch to a pane in a workspace that is not currently open.
+	const { cycle: paneMruCycle } = usePaneMruSwitcher();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
@@ -214,6 +224,7 @@ function DashboardLayout() {
 	return (
 		<div className="flex h-full w-full overflow-hidden">
 			<CommandPaletteHost />
+			<PaneMruSwitcher cycle={paneMruCycle} />
 			{sidebarOutsideColumn && sidebarPanel}
 			<div className="flex flex-1 flex-col min-w-0 min-h-0">
 				{!hideTopBar && <TopBar />}

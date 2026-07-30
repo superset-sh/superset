@@ -1,14 +1,8 @@
 import { cn } from "@superset/ui/utils";
 import { CgLaptop } from "react-icons/cg";
-import {
-	LuGitMerge,
-	LuGitPullRequest,
-	LuGitPullRequestClosed,
-	LuGitPullRequestDraft,
-	LuListChecks,
-} from "react-icons/lu";
 import { RxDot } from "react-icons/rx";
 import { TbCloud, TbCloudOff } from "react-icons/tb";
+import { PullRequestStateIcon } from "renderer/routes/_authenticated/_dashboard/components/PullRequestStateIcon";
 import { AsciiSpinner } from "renderer/screens/main/components/AsciiSpinner";
 import { StatusIndicator } from "renderer/screens/main/components/StatusIndicator";
 import type { ActivePaneStatus } from "shared/tabs-types";
@@ -34,22 +28,6 @@ const OVERLAY_POSITION = {
 	expanded: "-top-0.5 -right-0.5",
 } as const;
 
-const PR_ICON_BY_STATE = {
-	open: LuGitPullRequest,
-	merged: LuGitMerge,
-	closed: LuGitPullRequestClosed,
-	draft: LuGitPullRequestDraft,
-	queued: LuListChecks,
-} as const;
-
-const PR_COLOR_BY_STATE = {
-	open: "text-emerald-500",
-	merged: "text-purple-500",
-	closed: "text-destructive",
-	draft: "text-muted-foreground",
-	queued: "text-amber-500",
-} as const;
-
 export function DashboardSidebarWorkspaceIcon({
 	hostType,
 	workspaceType,
@@ -70,13 +48,7 @@ export function DashboardSidebarWorkspaceIcon({
 
 	const renderPrimaryIcon = () => {
 		if (pullRequestState) {
-			const PrIcon = PR_ICON_BY_STATE[pullRequestState];
-			return (
-				<PrIcon
-					className={cn("size-3.5", PR_COLOR_BY_STATE[pullRequestState])}
-					strokeWidth={1.75}
-				/>
-			);
+			return <PullRequestStateIcon state={pullRequestState} />;
 		}
 
 		if (hostType === "local-device") {

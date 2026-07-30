@@ -30,6 +30,7 @@ import { V2WorkspaceRunButton } from "./components/V2WorkspaceRunButton";
 import { WorkspaceEmptyState } from "./components/WorkspaceEmptyState";
 import { WorkspaceMissingWorktreeState } from "./components/WorkspaceMissingWorktreeState";
 import { WorkspaceSidebar } from "./components/WorkspaceSidebar";
+import { useApplyPaneFocusIntent } from "./hooks/useApplyPaneFocusIntent";
 import { useAutoAdoptBackgroundSessions } from "./hooks/useAutoAdoptBackgroundSessions";
 import { useBrowserShellInteractionPassthrough } from "./hooks/useBrowserShellInteractionPassthrough";
 import { useClearActivePaneAttention } from "./hooks/useClearActivePaneAttention";
@@ -40,6 +41,7 @@ import { useDefaultContextMenuActions } from "./hooks/useDefaultContextMenuActio
 import { useDefaultPaneActions } from "./hooks/useDefaultPaneActions";
 import { usePaneRegistry } from "./hooks/usePaneRegistry";
 import { renderBrowserTabIcon } from "./hooks/usePaneRegistry/components/BrowserPane";
+import { useRecordPaneMru } from "./hooks/useRecordPaneMru";
 import { useSlotElement } from "./hooks/useSlotElement";
 import { useTabCloseGuard } from "./hooks/useTabCloseGuard";
 import { useV2PresetExecution } from "./hooks/useV2PresetExecution";
@@ -264,6 +266,14 @@ function V2WorkspaceContent() {
 		paneRegistry,
 		launcher,
 		onBeforeCloseTab,
+	});
+	useApplyPaneFocusIntent({ store, workspaceId, isLayoutReady });
+	useRecordPaneMru({
+		store,
+		workspaceId,
+		// `name` can be empty; the sidebar shows the branch in that case.
+		workspaceName: workspace.name || workspace.branch,
+		paneRegistry,
 	});
 	useHotkey("QUICK_OPEN", handleQuickOpen);
 	useHotkey("RUN_WORKSPACE_COMMAND", () => {

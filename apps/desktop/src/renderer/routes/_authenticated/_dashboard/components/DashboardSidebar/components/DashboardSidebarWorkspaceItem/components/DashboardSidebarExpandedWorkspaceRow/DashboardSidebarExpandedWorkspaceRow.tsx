@@ -10,27 +10,14 @@ import { HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { PR_STATE_LABEL } from "renderer/routes/_authenticated/_dashboard/components/PullRequestStateIcon";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { ActivePaneStatus } from "shared/tabs-types";
-import type {
-	DashboardSidebarWorkspace,
-	DashboardSidebarWorkspacePullRequest,
-} from "../../../../types";
+import type { DashboardSidebarWorkspace } from "../../../../types";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
 import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWorkspaceChips";
-
-const PR_STATE_LABEL: Record<
-	DashboardSidebarWorkspacePullRequest["state"],
-	string
-> = {
-	open: "Open",
-	merged: "Merged",
-	closed: "Closed",
-	draft: "Draft",
-	queued: "Queued",
-};
 
 interface DashboardSidebarExpandedWorkspaceRowProps
 	extends ComponentPropsWithoutRef<"div"> {
