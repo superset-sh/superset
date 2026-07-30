@@ -43,6 +43,11 @@ type HeadlessInternals = {
 	_core?: {
 		_writeBuffer?: { writeSync(data: string | Uint8Array): void };
 		coreService?: { kittyKeyboard?: { flags: number } };
+		// Mouse encoding is not exposed by the public IModes API. Read the
+		// state service that xterm itself uses to implement Terminal.modes.
+		mouseStateService?: {
+			activeEncoding?: "DEFAULT" | "SGR" | "SGR_PIXELS";
+		};
 		optionsService?: {
 			rawOptions: { vtExtensions?: { kittyKeyboard?: boolean } };
 		};
@@ -66,11 +71,17 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 	// rather than silently throwing inside every PTY-output callback.
 	const optionsRaw = internals._core?.optionsService?.rawOptions;
 	const writeBuffer = internals._core?._writeBuffer;
-	if (!optionsRaw || typeof writeBuffer?.writeSync !== "function") {
+	const mouseState = internals._core?.mouseStateService;
+	if (
+		!optionsRaw ||
+		typeof writeBuffer?.writeSync !== "function" ||
+		mouseState?.activeEncoding !== "DEFAULT"
+	) {
 		throw new Error(
 			"@xterm/headless internals not found (optionsService.rawOptions, " +
-				"_writeBuffer.writeSync). Likely a version-pinning regression — " +
-				"check that the pinned version still exposes these.",
+				"_writeBuffer.writeSync, mouseStateService.activeEncoding). Likely a " +
+				"version-pinning regression — check that the pinned version still " +
+				"exposes these.",
 		);
 	}
 
@@ -87,6 +98,11 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 	const buildPreamble = (): Uint8Array | null => {
 		const m = term.modes;
 		const parts: string[] = [];
+
+		// Enter the buffer the running program believes is active before replaying
+		// its recent output. Alt-screen entry is normally emitted only once at TUI
+		// startup and is therefore unavailable to a fresh renderer on reattach.
+		if (term.buffer.active.type === "alternate") parts.push("\x1b[?1049h");
 
 		if (m.applicationCursorKeysMode) parts.push("\x1b[?1h");
 		if (m.applicationKeypadMode) parts.push("\x1b[?66h");
@@ -116,6 +132,16 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 				break;
 			case "none":
 				break;
+		}
+
+		// Tracking and encoding are independent xterm states. IModes exposes the
+		// former but not the latter, so restore SGR explicitly while tracking is
+		// active; otherwise a fresh xterm falls back to legacy X10 reports.
+		if (m.mouseTrackingMode !== "none") {
+			if (mouseState.activeEncoding === "SGR") parts.push("\x1b[?1006h");
+			else if (mouseState.activeEncoding === "SGR_PIXELS") {
+				parts.push("\x1b[?1016h");
+			}
 		}
 
 		const kittyFlags = internals._core?.coreService?.kittyKeyboard?.flags ?? 0;
