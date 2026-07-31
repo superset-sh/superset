@@ -1,31 +1,43 @@
-import { Text } from "@react-email/components";
-import { PersonalLayout } from "../components";
+import { Body, Head, Html, Preview, Text } from "@react-email/components";
 
-const body = "text-base leading-[26px] text-foreground";
+const paragraph = {
+	margin: "0 0 16px 0",
+	fontFamily: "Arial, Helvetica, sans-serif",
+	fontSize: "14px",
+	lineHeight: "21px",
+	color: "#222222",
+} as const;
 
 interface ActivationNudge2Props {
-	unsubscribeUrl?: string;
+	userName?: string;
 }
 
 export function ActivationNudge2({
-	unsubscribeUrl,
+	userName = "there",
 }: ActivationNudge2Props = {}) {
 	return (
-		<PersonalLayout
-			preview="One-line reply is plenty."
-			unsubscribeUrl={unsubscribeUrl}
-		>
-			<Text className={`${body} m-0 mb-4`}>
-				You signed up for Superset last week but never got a workspace running —
-				totally fine, but I’d love to know why. Was it the download? Setup? Not
-				wanting an agent near your repo? Just time?
-			</Text>
-			<Text className={`${body} m-0 mb-4`}>
-				One-line reply is plenty. I read every message, and if something’s
-				broken I’ll fix it this week.
-			</Text>
-			<Text className={`${body} m-0`}>— Satya</Text>
-		</PersonalLayout>
+		<Html>
+			<Head />
+			<Preview>quick question from a Superset founder</Preview>
+			<Body style={{ margin: 0, backgroundColor: "#FFFFFF" }}>
+				<Text style={paragraph}>Hi {userName},</Text>
+				<Text style={paragraph}>
+					I&apos;m Avi, one of the founders of Superset. I saw you signed up
+					last week but it doesn&apos;t look like you&apos;ve gotten a workspace
+					running yet.
+				</Text>
+				<Text style={paragraph}>
+					No worries at all — I&apos;m just trying to understand where people
+					get stuck. Was it the download? Setup? Not wanting to point an agent
+					at your repo yet? Just busy?
+				</Text>
+				<Text style={paragraph}>
+					Even a one-line reply helps us a lot. And if you hit something broken,
+					tell me and I&apos;ll get it fixed this week.
+				</Text>
+				<Text style={{ ...paragraph, margin: 0 }}>Avi</Text>
+			</Body>
+		</Html>
 	);
 }
 
