@@ -1,47 +1,59 @@
-import { Link, Text } from "@react-email/components";
-import { PersonalLayout } from "../components";
+import { Heading, Section, Text } from "@react-email/components";
+import { Button, EmailLayout } from "../components";
 
 const utm =
 	"?utm_source=email&utm_medium=lifecycle&utm_campaign=activation&utm_content=d1-first-workspace";
 
-const body = "text-base leading-[26px] text-foreground";
-
 interface ActivationNudge1Props {
+	userEmail?: string;
 	unsubscribeUrl?: string;
 }
 
 export function ActivationNudge1({
+	userEmail,
 	unsubscribeUrl,
 }: ActivationNudge1Props = {}) {
 	return (
-		<PersonalLayout
+		<EmailLayout
 			preview="The agent never touches your working tree."
+			recipientEmail={userEmail}
 			unsubscribeUrl={unsubscribeUrl}
 		>
-			<Text className={`${body} m-0 mb-4`}>
-				The whole setup is three steps: install, open a repo, hand an agent one
-				task.
-			</Text>
-			<Text className={`${body} m-0 mb-4`}>
+			<Heading className="text-[28px] font-semibold leading-9 text-foreground text-center mt-2 mb-2">
+				Your first agent, safely
+			</Heading>
+			<Text className="text-base leading-6 text-muted text-center m-0 mb-8">
 				The part most people don&apos;t realize: the agent never touches your
-				working tree. Each workspace is an isolated copy of your repo on its own
-				branch. If the result is garbage, delete the workspace — nothing
-				happened.
+				working tree.
 			</Text>
-			<Text className={`${body} m-0 mb-4`}>
-				So pick something small you were already going to do — a flaky test, a
-				TODO, a rename you&apos;ve been putting off — and let an agent take the
-				first swing.
+
+			<Section className="bg-surface border border-solid border-border rounded-2xl p-6 mb-8">
+				<Text className="text-base leading-[26px] text-foreground m-0 mb-3">
+					<strong>Every workspace is an isolated copy of your repo</strong> on
+					its own branch. Your checkout, your uncommitted changes, your local
+					state — untouched.
+				</Text>
+				<Text className="text-base leading-[26px] text-foreground m-0">
+					If the result is garbage, delete the workspace.
+					<br />
+					Nothing happened.
+				</Text>
+			</Section>
+
+			<Text className="text-base leading-6 text-foreground m-0 mb-2 font-semibold">
+				So take the first swing on something small:
 			</Text>
-			<Text className={`${body} m-0`}>
-				<Link
-					href={`https://superset.sh/download${utm}`}
-					className="text-foreground font-semibold underline"
-				>
+			<Text className="text-base leading-[26px] text-foreground m-0 mb-8">
+				A flaky test. A TODO. The rename you&apos;ve been putting off. Something
+				you were going to do anyway this week.
+			</Text>
+
+			<Section className="text-center mb-2">
+				<Button href={`https://superset.sh/download${utm}`}>
 					Get the desktop app
-				</Link>
-			</Text>
-		</PersonalLayout>
+				</Button>
+			</Section>
+		</EmailLayout>
 	);
 }
 
