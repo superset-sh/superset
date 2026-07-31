@@ -113,7 +113,6 @@ export const FEATURE_FLAGS = {
 	 * user's id (the Superset user behind the Slack mention) so it
 	 * piggybacks on the existing All Access cohort. Off → v1.
 	 */
-	SLACK_MCP_V2: "slack-mcp-v2",
 	/**
 	 * Per-user override for the relay base URL. Payload shape:
 	 * `{ "url": "https://..." }`. When set, both the host-service tunnel and
