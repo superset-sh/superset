@@ -24,7 +24,6 @@
 		"@slack/web-api": "7.15.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
-		"@superset/mcp": "workspace:*",
 		"@superset/mcp-v2": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",

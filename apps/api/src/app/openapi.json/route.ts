@@ -102,7 +102,7 @@ const SPEC = {
 			"",
 			`Authentication is OAuth 2.1 authorization code + PKCE with RFC 7591 dynamic client registration, or a user-issued Superset API key sent as a Bearer token. Agent walkthrough: ${MARKETING_URL}/auth.md`,
 			"",
-			`Versioning and deprecation: the current surface is v2, versioned in the URL path (/api/v2/...). Deprecated surfaces stay available during a migration window — the v1 MCP server at /api/agent/mcp remains served for existing integrations — and deprecations are announced in the changelog (${MARKETING_URL}/changelog).`,
+			`Versioning and deprecation: the current surface is v2, versioned in the URL path (/api/v2/...). Deprecations are announced in the changelog (${MARKETING_URL}/changelog). The legacy v1 MCP server at /api/agent/mcp has been removed and returns 410 Gone.`,
 		].join("\n"),
 		contact: {
 			name: "Superset support",
