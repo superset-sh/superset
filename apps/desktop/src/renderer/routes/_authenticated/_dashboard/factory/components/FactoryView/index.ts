@@ -1,0 +1,1 @@
+export { FactoryView } from "./FactoryView";

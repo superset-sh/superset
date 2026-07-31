@@ -10,7 +10,7 @@ import { cn } from "@superset/ui/utils";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
-import { LuClock, LuLayers, LuPlus, LuSearch } from "react-icons/lu";
+import { LuClock, LuFactory, LuLayers, LuPlus, LuSearch } from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -100,6 +100,7 @@ export function DashboardSidebarHeader({
 		fuzzy: true,
 	});
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
+	const isFactoryOpen = !!matchRoute({ to: "/factory", fuzzy: true });
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
 	const { myFailedCount } = useFailedAutomations();
 
@@ -118,6 +119,10 @@ export function DashboardSidebarHeader({
 
 	const handleAutomationsClick = () => {
 		navigate({ to: "/automations" });
+	};
+
+	const handleFactoryClick = () => {
+		navigate({ to: "/factory" });
 	};
 
 	const handleTasksClick = () => {
@@ -206,6 +211,25 @@ export function DashboardSidebarHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="right">Workspaces</TooltipContent>
+					</Tooltip>
+
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handleFactoryClick}
+								aria-label="Factory"
+								className={cn(
+									"flex size-7 items-center justify-center rounded-md transition-colors",
+									isFactoryOpen
+										? "bg-fill-selected text-muted-foreground"
+										: "text-muted-foreground hover:bg-fill-hover",
+								)}
+							>
+								<LuFactory className="size-3.5" strokeWidth={1.5} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">Factory</TooltipContent>
 					</Tooltip>
 
 					<Tooltip delayDuration={300}>
@@ -380,6 +404,23 @@ export function DashboardSidebarHeader({
 					strokeWidth={1.5}
 				/>
 				<span className="flex-1 text-left">Workspaces</span>
+			</button>
+
+			<button
+				type="button"
+				onClick={handleFactoryClick}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					isFactoryOpen
+						? "bg-fill-selected text-foreground"
+						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+				)}
+			>
+				<LuFactory
+					className="size-3.5 shrink-0 text-muted-foreground"
+					strokeWidth={1.5}
+				/>
+				<span className="flex-1 text-left">Factory</span>
 			</button>
 
 			<button

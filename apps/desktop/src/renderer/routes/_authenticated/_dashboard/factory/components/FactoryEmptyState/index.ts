@@ -1,0 +1,1 @@
+export { FactoryEmptyState } from "./FactoryEmptyState";

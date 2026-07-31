@@ -9,8 +9,10 @@ fi
 
 export SUPERSET_POSTINSTALL_RUNNING=1
 
-# Run sherif for workspace validation
-sherif
+# Run sherif for workspace validation. Mastra Factory requires the current
+# @mastra/core generation while mastracode still pins its prior generation;
+# both are upstream packages and intentionally isolated by package boundary.
+sherif -i @mastra/core
 
 # GitHub CI runs multiple Bun install jobs that do not need desktop native rebuilds.
 # Running electron-builder here can trigger nested Bun installs while the main
