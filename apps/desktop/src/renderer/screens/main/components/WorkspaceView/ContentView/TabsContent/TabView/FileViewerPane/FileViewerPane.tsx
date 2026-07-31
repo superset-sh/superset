@@ -199,7 +199,9 @@ export function FileViewerPane({
 
 	const getEditor = useCallback(() => editorRef.current, []);
 	const copyPathWithLine = useCopyPathWithLine({ getEditor, filePath });
-	useHotkey("COPY_PATH_WITH_LINE", copyPathWithLine, { enabled: isFocused });
+	useHotkey("COPY_PATH_WITH_LINE", copyPathWithLine, {
+		enabled: isFocused && filePath.length > 0,
+	});
 
 	const getCurrentContent = useCallback(() => {
 		if (hasEditorDocumentInitialized(documentKey)) {
