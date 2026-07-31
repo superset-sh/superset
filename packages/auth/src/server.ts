@@ -246,6 +246,7 @@ export const auth = betterAuth({
 				`${env.NEXT_PUBLIC_API_URL}/`,
 				`${env.NEXT_PUBLIC_API_URL}/api/agent/mcp`,
 				`${env.NEXT_PUBLIC_API_URL}/api/v2/agent/mcp`,
+				`${env.NEXT_PUBLIC_API_URL}/mcp`,
 			],
 			silenceWarnings: {
 				oauthAuthServerConfig: true,

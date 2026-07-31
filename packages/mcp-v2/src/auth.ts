@@ -133,7 +133,12 @@ async function resolveOAuth(
 			jwksUrl: `${apiUrl}/api/auth/jwks`,
 			verifyOptions: {
 				issuer: apiUrl,
-				audience: [apiUrl, `${apiUrl}/`, `${apiUrl}/api/v2/agent/mcp`],
+				audience: [
+					apiUrl,
+					`${apiUrl}/`,
+					`${apiUrl}/api/v2/agent/mcp`,
+					`${apiUrl}/mcp`,
+				],
 			},
 		})) as Record<string, unknown>;
 	} catch {
