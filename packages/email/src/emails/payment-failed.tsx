@@ -1,5 +1,5 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
-import { Button, StandardLayout } from "../components";
+import { Button, EmailLayout } from "../components";
 
 interface PaymentFailedEmailProps {
 	ownerName?: string | null;
@@ -19,7 +19,7 @@ export function PaymentFailedEmail({
 	billingPortalUrl,
 }: PaymentFailedEmailProps) {
 	return (
-		<StandardLayout preview={`Payment failed for ${organizationName}`}>
+		<EmailLayout preview={`Payment failed for ${organizationName}`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				Payment failed
 			</Heading>
@@ -81,7 +81,7 @@ export function PaymentFailedEmail({
 				</Link>{" "}
 				and we'll get you sorted out.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 

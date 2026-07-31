@@ -1,5 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
-import { Button, StandardLayout } from "../components";
+import { Button, EmailLayout } from "../components";
 
 export interface DisconnectedConnection {
 	orgName: string;
@@ -30,7 +30,7 @@ export function IntegrationDisconnectedEmail({
 	const first = connections[0];
 
 	return (
-		<StandardLayout preview="A Superset integration was disconnected">
+		<EmailLayout preview="A Superset integration was disconnected">
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				A Superset integration was disconnected
 			</Heading>
@@ -81,7 +81,7 @@ export function IntegrationDisconnectedEmail({
 			<Text className="text-xs leading-5 text-muted">
 				Reply to this email if you have questions.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 

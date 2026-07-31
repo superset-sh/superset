@@ -1,5 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
-import { StandardLayout } from "../components";
+import { EmailLayout } from "../components";
 
 interface SubscriptionStartedEmailProps {
 	ownerName?: string | null;
@@ -21,7 +21,7 @@ export function SubscriptionStartedEmail({
 	const intervalText = billingInterval === "monthly" ? "month" : "year";
 
 	return (
-		<StandardLayout preview={`Welcome to Superset ${planName}!`}>
+		<EmailLayout preview={`Welcome to Superset ${planName}!`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				Welcome to <strong>Superset {planName}</strong>! 🎉
 			</Heading>
@@ -67,7 +67,7 @@ export function SubscriptionStartedEmail({
 			<Text className="text-xs leading-5 text-muted">
 				You're receiving this because you're an owner of {organizationName}.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 

@@ -1,6 +1,6 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
 import { format } from "date-fns";
-import { Button, StandardLayout } from "../components";
+import { Button, EmailLayout } from "../components";
 
 interface SubscriptionCancelledEmailProps {
 	ownerName?: string | null;
@@ -20,9 +20,7 @@ export function SubscriptionCancelledEmail({
 	const formattedEndDate = format(accessEndsAt, "MMMM d, yyyy");
 
 	return (
-		<StandardLayout
-			preview={`Your ${planName} subscription has been cancelled`}
-		>
+		<EmailLayout preview={`Your ${planName} subscription has been cancelled`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				Subscription cancelled
 			</Heading>
@@ -68,7 +66,7 @@ export function SubscriptionCancelledEmail({
 				</Link>{" "}
 				why you cancelled so we can improve.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 

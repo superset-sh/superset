@@ -1,5 +1,5 @@
 import { Heading, Text } from "@react-email/components";
-import { StandardLayout } from "../components";
+import { EmailLayout } from "../components";
 
 interface MemberRemovedEmailProps {
 	memberName?: string | null;
@@ -13,7 +13,7 @@ export function MemberRemovedEmail({
 	removedByName = "John Smith",
 }: MemberRemovedEmailProps) {
 	return (
-		<StandardLayout preview={`You've been removed from ${organizationName}`}>
+		<EmailLayout preview={`You've been removed from ${organizationName}`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				You've been removed from <strong>{organizationName}</strong>
 			</Heading>
@@ -36,7 +36,7 @@ export function MemberRemovedEmail({
 				If you believe this was a mistake, please contact {removedByName} or
 				your team administrator.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 

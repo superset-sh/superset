@@ -1,6 +1,6 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
 import { differenceInDays } from "date-fns";
-import { Button, StandardLayout } from "../components";
+import { Button, EmailLayout } from "../components";
 
 interface OrganizationInvitationEmailProps {
 	organizationName: string;
@@ -29,7 +29,7 @@ export function OrganizationInvitationEmail({
 		daysUntilExpiration === 1 ? "1 day" : `${daysUntilExpiration} days`;
 
 	return (
-		<StandardLayout
+		<EmailLayout
 			preview={`${inviterName} invited you to join ${organizationName}`}
 		>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
@@ -71,7 +71,7 @@ export function OrganizationInvitationEmail({
 				This invitation expires in {expirationText}. If you didn't expect this
 				invitation, you can safely ignore this email.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 

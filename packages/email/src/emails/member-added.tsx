@@ -1,5 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
-import { Button, StandardLayout } from "../components";
+import { Button, EmailLayout } from "../components";
 
 interface MemberAddedEmailProps {
 	memberName?: string | null;
@@ -20,7 +20,7 @@ export function MemberAddedEmail({
 		role === "member" ? "Member" : role === "admin" ? "Admin" : "Owner";
 
 	return (
-		<StandardLayout preview={`You've been added to ${organizationName}`}>
+		<EmailLayout preview={`You've been added to ${organizationName}`}>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
 				You're now part of <strong>{organizationName}</strong>
 			</Heading>
@@ -47,7 +47,7 @@ export function MemberAddedEmail({
 				If you have any questions, reach out to {addedByName} or your team
 				administrator.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 

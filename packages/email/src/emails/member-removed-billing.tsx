@@ -1,5 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
-import { StandardLayout } from "../components";
+import { EmailLayout } from "../components";
 
 interface MemberRemovedBillingEmailProps {
 	ownerName?: string | null;
@@ -21,7 +21,7 @@ export function MemberRemovedBillingEmail({
 	newMonthlyTotal = "$40.00",
 }: MemberRemovedBillingEmailProps) {
 	return (
-		<StandardLayout
+		<EmailLayout
 			preview={`Billing update: ${removedMemberName} was removed from ${organizationName}`}
 		>
 			<Heading className="text-lg font-normal leading-7 mb-8 text-foreground text-center">
@@ -66,7 +66,7 @@ export function MemberRemovedBillingEmail({
 			<Text className="text-xs leading-5 text-muted">
 				You're receiving this because you're an owner of {organizationName}.
 			</Text>
-		</StandardLayout>
+		</EmailLayout>
 	);
 }
 
