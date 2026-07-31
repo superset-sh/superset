@@ -25,6 +25,11 @@ export const env = createEnv({
 	},
 	clientPrefix: "NEXT_PUBLIC_",
 	client: {
+		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+		NEXT_PUBLIC_POSTHOG_HOST: z
+			.string()
+			.url()
+			.default("https://us.i.posthog.com"),
 		NEXT_PUBLIC_COOKIE_DOMAIN: z.string(),
 		NEXT_PUBLIC_API_URL: z.string().url(),
 		NEXT_PUBLIC_WEB_URL: z.string().url(),

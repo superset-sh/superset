@@ -15,6 +15,7 @@ import { OrganizationInvitationEmail } from "@superset/email/emails/organization
 import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
 import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
 import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
+import { WelcomeEmail } from "@superset/email/emails/welcome";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
@@ -27,6 +28,7 @@ import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { emitLifecycleEvent, getActivationVariant } from "./lib/lifecycle";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import {
@@ -196,6 +198,35 @@ export const auth = betterAuth({
 							.update(authSchema.sessions)
 							.set({ activeOrganizationId: enrolledOrgId })
 							.where(eq(authSchema.sessions.userId, user.id));
+					}
+
+					try {
+						await resend.emails.send({
+							from: "Superset <noreply@superset.sh>",
+							to: user.email,
+							subject: "Welcome to Superset",
+							react: WelcomeEmail({ userName: user.name }),
+						});
+					} catch (error) {
+						console.error(
+							`[lifecycle] Failed to send welcome email to ${user.id}:`,
+							error,
+						);
+					}
+
+					try {
+						const variant = await getActivationVariant(user.id);
+						if (variant === "test") {
+							await emitLifecycleEvent("user.signed_up", user.email, {
+								userId: user.id,
+								name: user.name,
+							});
+						}
+					} catch (error) {
+						console.error(
+							`[lifecycle] Failed to emit signup event for ${user.id}:`,
+							error,
+						);
 					}
 				},
 			},
@@ -1005,6 +1036,22 @@ export const auth = betterAuth({
 							}),
 						})),
 					);
+
+					for (const owner of owners) {
+						try {
+							await emitLifecycleEvent("subscription.canceled", owner.email, {
+								organizationId: subscription.referenceId,
+								organizationName: org.name,
+								plan: subscription.plan,
+								ownerName: owner.name,
+							});
+						} catch (error) {
+							console.error(
+								`[lifecycle] Failed to emit cancel event for ${owner.email}:`,
+								error,
+							);
+						}
+					}
 
 					try {
 						await qstash.publishJSON({
