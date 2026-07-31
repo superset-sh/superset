@@ -29,6 +29,9 @@ export const execGh: ExecGh = async (args, options) => {
 		timeout: options?.timeout ?? 10_000,
 		cwd: options?.cwd,
 		env,
+		// Node's 1MB default dies on repos with ~100 open PRs carrying large
+		// bot-generated bodies (ERR_CHILD_PROCESS_STDIO_MAXBUFFER).
+		maxBuffer: 16 * 1024 * 1024,
 	});
 	const trimmed = stdout.trim();
 	if (!trimmed) return {};

@@ -88,6 +88,8 @@ describe("GitHub pull request REST queries", () => {
 					"direction=desc",
 					"-f",
 					"per_page=10",
+					"--jq",
+					expect.any(String),
 				],
 			},
 		]);
@@ -245,6 +247,8 @@ describe("GitHub pull request REST queries", () => {
 					"direction=desc",
 					"-f",
 					"per_page=100",
+					"--jq",
+					expect.any(String),
 				],
 			},
 		]);

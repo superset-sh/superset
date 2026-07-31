@@ -960,9 +960,11 @@ export class PullRequestRuntimeManager {
 						head,
 					);
 				} catch (ghError) {
+					// String(error) only — exec errors carry the child's full stdout,
+					// and inspecting megabyte payloads blocks the event loop.
 					console.warn(
 						"[host-service:pull-request-runtime] gh PR head lookup failed; falling back to Octokit",
-						{ owner: repo.owner, name: repo.name, head, error: ghError },
+						{ owner: repo.owner, name: repo.name, head, error: String(ghError) },
 					);
 					const octokit = await this.github();
 					return fetchPullRequestByHead(
@@ -996,7 +998,7 @@ export class PullRequestRuntimeManager {
 				} catch (ghError) {
 					console.warn(
 						"[host-service:pull-request-runtime] gh open-PR sweep failed; falling back to Octokit",
-						{ owner: repo.owner, name: repo.name, error: ghError },
+						{ owner: repo.owner, name: repo.name, error: String(ghError) },
 					);
 					const octokit = await this.github();
 					return fetchOpenPullRequests(octokit, {

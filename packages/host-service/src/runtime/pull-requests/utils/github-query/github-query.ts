@@ -204,6 +204,14 @@ function toStatusContextNode(
 	};
 }
 
+// Project each PR down to the fields normalizePullRequest reads. The full
+// REST objects are ~10KB each before bodies (bot-generated bodies alone can
+// reach 100KB), so a 100-PR page overflows exec buffers and wedges the event
+// loop during parse; the projection keeps null head.repo/user (deleted forks)
+// intact for the fallback chain in normalizePullRequest.
+const PULL_REQUEST_LIST_JQ =
+	"map({number, title, html_url, state, merged_at, draft, updated_at, head: {ref: .head.ref, sha: .head.sha, repo: (.head.repo | if . == null then null else {name, owner: (.owner | if . == null then null else {login} end)} end), user: (.head.user | if . == null then null else {login} end)}, base: {repo: (.base.repo | if . == null then null else {full_name} end)}})";
+
 export async function fetchPullRequestByHeadFromGh(
 	execGh: ExecGh,
 	repository: {
@@ -227,6 +235,8 @@ export async function fetchPullRequestByHeadFromGh(
 		"direction=desc",
 		"-f",
 		"per_page=10",
+		"--jq",
+		PULL_REQUEST_LIST_JQ,
 	]);
 
 	return normalizePullRequestCandidates(raw, head);
@@ -276,6 +286,8 @@ export async function fetchOpenPullRequestsFromGh(
 		"direction=desc",
 		"-f",
 		"per_page=100",
+		"--jq",
+		PULL_REQUEST_LIST_JQ,
 	]);
 
 	return asArray(raw)
