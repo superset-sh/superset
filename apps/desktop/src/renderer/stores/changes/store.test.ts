@@ -9,6 +9,34 @@ beforeEach(() => {
 });
 
 describe("changes-store selectedFiles", () => {
+	test("migrates version 5 persistence without tombstones or rendered-markdown state", async () => {
+		const selectedFile = {
+			absolutePath: "/tmp/ws-live/a.ts",
+			file: someFile,
+			category: "against-base" as const,
+			commitHash: null,
+		};
+		localStorage.setItem(
+			"changes-store",
+			JSON.stringify({
+				version: 5,
+				state: {
+					selectedFiles: {
+						"ws-dead": null,
+						"ws-live": selectedFile,
+					},
+					showRenderedMarkdown: { "ws-live": true },
+				},
+			}),
+		);
+
+		await useChangesStore.persist.rehydrate();
+
+		const state = useChangesStore.getState();
+		expect(state.selectedFiles).toEqual({ "ws-live": selectedFile });
+		expect("showRenderedMarkdown" in state).toBe(false);
+	});
+
 	test("selecting then deselecting removes the workspace key entirely", () => {
 		const { selectFile } = useChangesStore.getState();
 

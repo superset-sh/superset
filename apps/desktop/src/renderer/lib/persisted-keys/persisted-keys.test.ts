@@ -33,11 +33,12 @@ describe("sweepDeadPersistedKeys", () => {
 			"v2-workspace-local-state-org-a": "{}",
 			"changes-store": "{}",
 			ph_project_posthog: "{}",
+			outlit_session: "{}",
 		});
 
 		const removed = sweepDeadPersistedKeys(storage);
 
-		expect(removed).toBe(4);
+		expect(removed).toBe(5);
 		expect(storage.getItem("pending-workspaces-org-a")).toBeNull();
 		expect(storage.getItem("pending-workspaces-org-b")).toBeNull();
 		expect(storage.getItem("v1-migration-last-run-at-org-a")).toBeNull();
@@ -45,12 +46,13 @@ describe("sweepDeadPersistedKeys", () => {
 		expect(storage.getItem("v2-workspace-local-state-org-a")).toBe("{}");
 		expect(storage.getItem("changes-store")).toBe("{}");
 		expect(storage.getItem("ph_project_posthog")).toBe("{}");
+		expect(storage.getItem("outlit_session")).toBeNull();
 	});
 
 	test("an exact dead key does not match keys it merely prefixes", () => {
-		const storage = makeStorage({ "settings-v2": "{}" });
+		const storage = makeStorage({ "notification-center-store-v2": "{}" });
 		expect(sweepDeadPersistedKeys(storage)).toBe(0);
-		expect(storage.getItem("settings-v2")).toBe("{}");
+		expect(storage.getItem("notification-center-store-v2")).toBe("{}");
 	});
 
 	test("no dead key shadows a registered live key", () => {
@@ -95,8 +97,29 @@ function isPersistedKeyWriter(source: string): boolean {
 	if (code.includes("zustand/middleware") && /\bpersist\s*\(/.test(code)) {
 		return true;
 	}
-	return /\.setItem\s*\(/.test(code) && !code.includes("sessionStorage");
+	const withoutSessionStorageWrites = code.replace(
+		/\bsessionStorage\s*\.\s*setItem\s*\(/g,
+		"",
+	);
+	return /\.setItem\s*\(/.test(withoutSessionStorageWrites);
 }
+
+describe("isPersistedKeyWriter", () => {
+	test("ignores sessionStorage writes", () => {
+		expect(isPersistedKeyWriter('sessionStorage.setItem("key", "value")')).toBe(
+			false,
+		);
+	});
+
+	test("detects localStorage writes in files that also use sessionStorage", () => {
+		expect(
+			isPersistedKeyWriter(`
+				sessionStorage.setItem("temporary", "value");
+				localStorage.setItem("persistent", "value");
+			`),
+		).toBe(true);
+	});
+});
 
 describe("persisted-key registry", () => {
 	test("every localStorage writer is registered, and no entry is stale", () => {

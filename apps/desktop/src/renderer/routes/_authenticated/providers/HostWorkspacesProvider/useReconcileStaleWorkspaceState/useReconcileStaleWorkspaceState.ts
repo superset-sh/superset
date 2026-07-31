@@ -61,9 +61,6 @@ export function useReconcileStaleWorkspaceState(
 	useEffect(() => {
 		if (!isAuthoritative || !organizationId) return;
 		if (reconciledOrgs.has(organizationId)) return;
-		// An org with zero workspaces everywhere offers nothing to reconcile
-		// against; skipping also shields against a pathological empty merge.
-		if (workspaces.length === 0) return;
 		reconciledOrgs.add(organizationId);
 
 		const liveIds = new Set(workspaces.map((workspace) => workspace.id));

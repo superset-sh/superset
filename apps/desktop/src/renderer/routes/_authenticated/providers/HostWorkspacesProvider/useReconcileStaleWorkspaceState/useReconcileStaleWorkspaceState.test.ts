@@ -51,6 +51,18 @@ describe("reconcileStaleWorkspaceState", () => {
 		expect(localState.ids()).toEqual(["in-flight"]);
 	});
 
+	test("deletes aged rows when the authoritative workspace list is empty", () => {
+		const localState = fakeLocalState([
+			["last-deleted", new Date(NOW - 8 * DAY_MS)],
+			["in-flight", new Date(NOW - 2 * DAY_MS)],
+		]);
+
+		const removed = reconcileStaleWorkspaceState(localState, new Set(), NOW);
+
+		expect(removed).toBe(1);
+		expect(localState.ids()).toEqual(["in-flight"]);
+	});
+
 	test("treats a row with an invalid createdAt as past the grace", () => {
 		const localState = fakeLocalState([["legacy", new Date(Number.NaN)]]);
 

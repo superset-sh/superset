@@ -22,6 +22,13 @@ export type { HostWorkspaceItem } from "./useHostWorkspaces.utils";
 
 const WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
 
+function getSnapshotCacheKey(
+	organizationId: string,
+	machineId: string,
+): string {
+	return `${organizationId}:${machineId}`;
+}
+
 export interface HostWorkspacesCacheOps {
 	/** Resolve the URL to reach the host owning `hostId` (null = unreachable). */
 	resolveHostUrl: (hostId: string) => string | null;
@@ -115,16 +122,20 @@ export function useHostWorkspacesSource(
 	useEffect(() => {
 		let cancelled = false;
 		for (const target of targets) {
-			if (snapshots.has(target.machineId)) continue;
+			const cacheKey = getSnapshotCacheKey(
+				target.organizationId,
+				target.machineId,
+			);
+			if (snapshots.has(cacheKey)) continue;
 			void loadHostWorkspacesSnapshot(
 				target.organizationId,
 				target.machineId,
 			).then((rows) => {
 				if (cancelled || !rows) return;
 				setSnapshots((prev) => {
-					if (prev.has(target.machineId)) return prev;
+					if (prev.has(cacheKey)) return prev;
 					const next = new Map(prev);
-					next.set(target.machineId, rows);
+					next.set(cacheKey, rows);
 					return next;
 				});
 			});
@@ -221,7 +232,11 @@ export function useHostWorkspacesSource(
 					const live = query?.data;
 					return {
 						target,
-						rows: live ?? snapshots.get(target.machineId),
+						rows:
+							live ??
+							snapshots.get(
+								getSnapshotCacheKey(target.organizationId, target.machineId),
+							),
 						reachable: live !== undefined && !query?.isError,
 					};
 				}),
@@ -243,7 +258,13 @@ export function useHostWorkspacesSource(
 				query.isSuccess ||
 				query.isError ||
 				targets[index]?.hostUrl === null ||
-				snapshots.has(targets[index]?.machineId ?? ""),
+				(targets[index] !== undefined &&
+					snapshots.has(
+						getSnapshotCacheKey(
+							targets[index].organizationId,
+							targets[index].machineId,
+						),
+					)),
 		);
 
 	// hostsReady guards the target list itself: on an offline cold start the
@@ -254,7 +275,14 @@ export function useHostWorkspacesSource(
 		targets.length > 0 &&
 		queries.every(
 			(query, index) =>
-				query.isSuccess || snapshots.has(targets[index]?.machineId ?? ""),
+				query.isSuccess ||
+				(targets[index] !== undefined &&
+					snapshots.has(
+						getSnapshotCacheKey(
+							targets[index].organizationId,
+							targets[index].machineId,
+						),
+					)),
 		);
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {

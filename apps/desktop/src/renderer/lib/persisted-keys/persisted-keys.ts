@@ -312,7 +312,6 @@ export const LIBRARY_OWNED_KEY_PREFIXES = [
 	"electric_expired_shapes", // @electric-sql/client
 	"electric_up_to_date_tracker", // @electric-sql/client
 	"better-auth.", // better-auth broadcast channel
-	"outlit_", // unattributed analytics remnant; no writer in repo or deps
 ] as const;
 
 interface DeadKey {
@@ -340,6 +339,8 @@ export const DEAD_KEYS: DeadKey[] = [
 	{ key: "superset_auth_completed", match: "exact" },
 	// One-shot hotkey migration marker; migration removed (#3391)
 	{ key: "hotkey-overrides-migrated-v2", match: "exact" },
+	// Unattributed analytics remnants; no writer remains in repo or dependencies
+	{ key: "outlit_", match: "prefix" },
 	// Superseded by v2-workspace-local-state.sidebarState; store deleted in
 	// SUPER-1686 after the audit found no consumers
 	{ key: "v2-workspace-local-meta", match: "exact" },
