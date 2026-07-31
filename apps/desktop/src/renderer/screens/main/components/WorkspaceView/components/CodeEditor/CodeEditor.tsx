@@ -41,7 +41,6 @@ interface CodeEditorProps {
 	editorRef?: MutableRefObject<CodeEditorAdapter | null>;
 	onChange?: (value: string) => void;
 	onSave?: () => void;
-	onCopyPathWithLine?: () => void;
 }
 
 function createCodeMirrorAdapter(view: EditorView): CodeEditorAdapter {
@@ -171,7 +170,6 @@ export function CodeEditor({
 	editorRef,
 	onChange,
 	onSave,
-	onCopyPathWithLine,
 }: CodeEditorProps) {
 	const containerRef = useRef<HTMLDivElement | null>(null);
 	const viewRef = useRef<EditorView | null>(null);
@@ -180,7 +178,6 @@ export function CodeEditor({
 	const editableCompartment = useRef(new Compartment()).current;
 	const onChangeRef = useRef(onChange);
 	const onSaveRef = useRef(onSave);
-	const onCopyPathWithLineRef = useRef(onCopyPathWithLine);
 	// Guards against re-entrant onChange calls triggered by the value-sync effect's own dispatch.
 	const isExternalUpdateRef = useRef(false);
 	const { data: fontSettings } = useQuery({
@@ -194,7 +191,6 @@ export function CodeEditor({
 
 	onChangeRef.current = onChange;
 	onSaveRef.current = onSave;
-	onCopyPathWithLineRef.current = onCopyPathWithLine;
 
 	// biome-ignore lint/correctness/useExhaustiveDependencies: Editor instance is created once and reconfigured via dedicated effects below
 	useEffect(() => {
@@ -211,23 +207,6 @@ export function CodeEditor({
 				key: "Mod-s",
 				run: () => {
 					onSaveRef.current?.();
-					return true;
-				},
-			},
-		]);
-
-		// Handled inside the editor so the focused file wins over the
-		// workspace-level COPY_PATH hotkey, which shares this chord.
-		const copyPathWithLineKeymap = keymap.of([
-			{
-				key: "Mod-Shift-c",
-				preventDefault: true,
-				stopPropagation: true,
-				run: () => {
-					const copyPathWithLine = onCopyPathWithLineRef.current;
-					if (!copyPathWithLine) return false;
-
-					copyPathWithLine();
 					return true;
 				},
 			},
@@ -263,7 +242,6 @@ export function CodeEditor({
 					...searchKeymap,
 				]),
 				saveKeymap,
-				copyPathWithLineKeymap,
 				themeCompartment.of([
 					getCodeSyntaxHighlighting(activeTheme),
 					createCodeMirrorTheme(

@@ -4,6 +4,7 @@ import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
 import type { MarkdownEditorAdapter } from "renderer/components/MarkdownRenderer";
+import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { FileSaveConflictDialog } from "renderer/screens/main/components/WorkspaceView/components/FileSaveConflictDialog";
 import { useWorkspaceFileEvents } from "renderer/screens/main/components/WorkspaceView/hooks/useWorkspaceFileEvents";
@@ -40,7 +41,10 @@ import {
 } from "shared/absolute-paths";
 import { isImageFile, isMarkdownFile } from "shared/file-types";
 import type { FileViewerMode } from "shared/tabs-types";
-import type { CodeEditorAdapter } from "../../../components";
+import {
+	type CodeEditorAdapter,
+	useCopyPathWithLine,
+} from "../../../components";
 import { BasePaneWindow } from "../components";
 import { FileViewerContent } from "./components/FileViewerContent";
 import { FileViewerToolbar } from "./components/FileViewerToolbar";
@@ -192,6 +196,10 @@ export function FileViewerPane({
 		isDiffMode: viewMode === "diff",
 		filePath,
 	});
+
+	const getEditor = useCallback(() => editorRef.current, []);
+	const copyPathWithLine = useCopyPathWithLine({ getEditor, filePath });
+	useHotkey("COPY_PATH_WITH_LINE", copyPathWithLine, { enabled: isFocused });
 
 	const getCurrentContent = useCallback(() => {
 		if (hasEditorDocumentInitialized(documentKey)) {
