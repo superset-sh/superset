@@ -1,6 +1,7 @@
 import {
 	type MutableRefObject,
 	type RefObject,
+	useCallback,
 	useEffect,
 	useRef,
 } from "react";
@@ -10,7 +11,10 @@ import {
 	TipTapMarkdownRenderer,
 } from "renderer/components/MarkdownRenderer";
 import { LightDiffViewer } from "renderer/screens/main/components/WorkspaceView/ChangesContent/components/LightDiffViewer";
-import type { CodeEditorAdapter } from "renderer/screens/main/components/WorkspaceView/ContentView/components";
+import {
+	type CodeEditorAdapter,
+	useCopyPathWithLine,
+} from "renderer/screens/main/components/WorkspaceView/ContentView/components";
 import { CodeEditor } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor";
 import type { Tab } from "renderer/stores/tabs/types";
 import type { DiffViewMode } from "shared/changes-types";
@@ -170,6 +174,9 @@ export function FileViewerContent({
 	markdownSearch,
 }: FileViewerContentProps) {
 	const isImage = isImageFile(filePath);
+
+	const getEditor = useCallback(() => editorRef.current, [editorRef]);
+	const copyPathWithLine = useCopyPathWithLine({ getEditor, filePath });
 
 	useScrollToFirstDiffChange({
 		containerRef: diffContainerRef,
@@ -489,6 +496,7 @@ export function FileViewerContent({
 					value={renderedContent}
 					onChange={onContentChange}
 					onSave={onSaveFile}
+					onCopyPathWithLine={copyPathWithLine}
 					editorRef={editorRef}
 					fillHeight
 				/>
