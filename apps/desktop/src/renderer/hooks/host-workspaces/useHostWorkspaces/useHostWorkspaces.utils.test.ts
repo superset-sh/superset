@@ -34,6 +34,7 @@ describe("host workspace cache keys", () => {
 		expect(areHostWorkspaceQueriesAuthoritative(true, 2, [true, true])).toBe(
 			true,
 		);
+		expect(areHostWorkspaceQueriesAuthoritative(true, 2, [true])).toBe(false);
 		expect(areHostWorkspaceQueriesAuthoritative(true, 2, [true, false])).toBe(
 			false,
 		);
