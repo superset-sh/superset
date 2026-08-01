@@ -58,6 +58,30 @@ ANTHROPIC_AUTH_TOKEN=your-openrouter-api-key
 ANTHROPIC_API_KEY=
 ```
 
+## OrcaRouter
+
+[OrcaRouter](https://www.orcarouter.ai) is an OpenAI- and Anthropic-compatible gateway that fronts
+models from many vendors behind one API key. It also runs gateway-level, zero-trust security for AI
+agents on the same endpoint — screening every prompt and response and governing every tool call on a
+default-deny basis, with no changes to your agent.
+
+```bash
+ANTHROPIC_BASE_URL=https://api.orcarouter.ai
+ANTHROPIC_AUTH_TOKEN=your-orcarouter-api-key
+ANTHROPIC_API_KEY=
+```
+
+<Callout type="warn">
+OrcaRouter namespaces model IDs by vendor, so the default Claude model names don't resolve. Pin the
+namespaced IDs:
+
+```bash
+ANTHROPIC_DEFAULT_OPUS_MODEL=anthropic/claude-opus-5
+ANTHROPIC_DEFAULT_SONNET_MODEL=anthropic/claude-sonnet-5
+ANTHROPIC_DEFAULT_HAIKU_MODEL=anthropic/claude-haiku-4.5
+```
+</Callout>
+
 ## AWS Bedrock
 
 Use Claude models through your AWS account with [Amazon Bedrock](https://aws.amazon.com/bedrock/).
