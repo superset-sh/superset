@@ -111,7 +111,7 @@ export function useReconcileStaleWorkspaceState(
 			})
 			.catch((error) => {
 				console.warn(
-					"[workspace-local-state-gc] Reconciliation failed; remains eligible for retry",
+					`[workspace-local-state-gc] Reconciliation failed for organization ${organizationId}; remains eligible for retry`,
 					error,
 				);
 			})
