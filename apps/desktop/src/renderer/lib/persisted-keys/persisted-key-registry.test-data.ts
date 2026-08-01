@@ -74,6 +74,11 @@ export const PERSISTED_KEY_REGISTRY: PersistedKeyOwner[] = [
 			"selectedFiles keyed by v1 workspaceId; deselect deletes the key (v1 surface — move to DEAD_KEYS at v1 sunset)",
 	},
 	{
+		file: "src/renderer/stores/prompt-history.ts",
+		keys: ["prompt-history"],
+		policy: "50 entries capped at 5,000 characters each",
+	},
+	{
 		file: "src/renderer/stores/tabs/store.ts",
 		keys: ["tabs-storage"],
 		policy:
