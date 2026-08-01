@@ -4,6 +4,7 @@ import { useCallback, useMemo, useRef } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
+import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -443,6 +444,44 @@ export function useDashboardSidebarData() {
 	const pullRequestsByWorkspaceId =
 		useStablePullRequestsByWorkspaceId(pullRequestRows);
 
+	// Terminal-agent activity per workspace, for "Last updated" sorting.
+	// `v2_workspaces.updatedAt` only moves on metadata writes (rename, PR
+	// links), so sending an agent a message wouldn't reorder anything — the
+	// hosts' agent bindings track the real activity. Polled only while the
+	// sort mode needs it.
+	const sortMode = useV2UserPreferences().preferences.sidebarProjectSortMode;
+	const agentActivityQueries = useQueries({
+		queries: pullRequestQueryTargets.map((target) => ({
+			queryKey: ["dashboard-sidebar-agent-activity", target.hostUrl] as const,
+			enabled: sortMode === "updated",
+			refetchInterval: 10_000,
+			queryFn: async () => {
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.terminalAgents.list.query();
+			},
+		})),
+	});
+	const agentActivityEntries = useJsonStable(
+		useMemo(() => {
+			const latestByWorkspaceId = new Map<string, number>();
+			for (const query of agentActivityQueries) {
+				for (const binding of query.data ?? []) {
+					const previous = latestByWorkspaceId.get(binding.workspaceId) ?? 0;
+					if (binding.lastEventAt > previous) {
+						latestByWorkspaceId.set(binding.workspaceId, binding.lastEventAt);
+					}
+				}
+			}
+			return [...latestByWorkspaceId.entries()].sort(([left], [right]) =>
+				left.localeCompare(right),
+			);
+		}, [agentActivityQueries]),
+	);
+	const agentActivityByWorkspaceId = useMemo(
+		() => new Map(agentActivityEntries),
+		[agentActivityEntries],
+	);
+
 	// Pinned rows render only in the top-level Pinned section, so they are
 	// partitioned out before the per-project tree is built. PR polling targets
 	// derive from the pre-partition list above, so pinned rows keep PR status.
@@ -459,8 +498,10 @@ export function useDashboardSidebarData() {
 				visibleSidebarWorkspaces: unpinnedRows,
 				machineId,
 				pullRequestsByWorkspaceId,
+				agentActivityByWorkspaceId,
 			}),
 		[
+			agentActivityByWorkspaceId,
 			machineId,
 			pullRequestsByWorkspaceId,
 			sidebarProjects,
@@ -477,8 +518,15 @@ export function useDashboardSidebarData() {
 				sidebarProjects,
 				machineId,
 				pullRequestsByWorkspaceId,
+				agentActivityByWorkspaceId,
 			}),
-		[machineId, pinnedRows, pullRequestsByWorkspaceId, sidebarProjects],
+		[
+			agentActivityByWorkspaceId,
+			machineId,
+			pinnedRows,
+			pullRequestsByWorkspaceId,
+			sidebarProjects,
+		],
 	);
 	const pinnedWorkspaces = useJsonStable(computedPinnedWorkspaces);
 

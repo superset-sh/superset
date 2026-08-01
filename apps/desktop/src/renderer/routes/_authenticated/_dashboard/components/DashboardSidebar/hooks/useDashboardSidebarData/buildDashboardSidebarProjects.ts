@@ -73,6 +73,7 @@ function decorateSidebarWorkspace(
 	project: Pick<SidebarProjectInput, "githubOwner" | "githubRepoName">,
 	machineId: string,
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>,
+	agentActivityByWorkspaceId: Map<string, number>,
 ): DashboardSidebarWorkspace {
 	const hostType: DashboardSidebarWorkspace["hostType"] =
 		workspace.hostId === machineId ? "local-device" : "remote-device";
@@ -99,6 +100,7 @@ function decorateSidebarWorkspace(
 		behindCount: null,
 		createdAt: workspace.createdAt,
 		updatedAt: workspace.updatedAt,
+		lastAgentActivityAt: agentActivityByWorkspaceId.get(workspace.id) ?? null,
 		taskId: workspace.taskId,
 		isPinned: workspace.pinnedAt != null,
 		pendingTransaction: workspace.pendingTransaction,
@@ -116,11 +118,13 @@ export function buildDashboardSidebarPinnedWorkspaces({
 	sidebarProjects,
 	machineId,
 	pullRequestsByWorkspaceId,
+	agentActivityByWorkspaceId,
 }: {
 	pinnedSidebarWorkspaces: SidebarWorkspaceInput[];
 	sidebarProjects: SidebarProjectInput[];
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+	agentActivityByWorkspaceId: Map<string, number>;
 }): DashboardSidebarPinnedWorkspace[] {
 	const projectsById = new Map(
 		sidebarProjects.map((project) => [project.id, project]),
@@ -135,6 +139,7 @@ export function buildDashboardSidebarPinnedWorkspaces({
 					project,
 					machineId,
 					pullRequestsByWorkspaceId,
+					agentActivityByWorkspaceId,
 				),
 				projectName: project.name,
 				projectIconUrl: project.iconUrl,
@@ -149,6 +154,7 @@ export interface BuildDashboardSidebarProjectsParams {
 	visibleSidebarWorkspaces: SidebarWorkspaceInput[];
 	machineId: string;
 	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+	agentActivityByWorkspaceId: Map<string, number>;
 }
 
 export function buildDashboardSidebarProjects({
@@ -157,6 +163,7 @@ export function buildDashboardSidebarProjects({
 	visibleSidebarWorkspaces,
 	machineId,
 	pullRequestsByWorkspaceId,
+	agentActivityByWorkspaceId,
 }: BuildDashboardSidebarProjectsParams): DashboardSidebarProject[] {
 	const projectsById = new Map<
 		string,
@@ -211,6 +218,7 @@ export function buildDashboardSidebarProjects({
 			project,
 			machineId,
 			pullRequestsByWorkspaceId,
+			agentActivityByWorkspaceId,
 		);
 
 		if (workspace.sectionId) {

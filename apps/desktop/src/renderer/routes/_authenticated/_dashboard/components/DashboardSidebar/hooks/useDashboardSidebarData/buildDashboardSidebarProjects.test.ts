@@ -75,6 +75,7 @@ function build(params: {
 		visibleSidebarWorkspaces: params.visibleSidebarWorkspaces ?? [],
 		machineId: MACHINE_ID,
 		pullRequestsByWorkspaceId: new Map(),
+		agentActivityByWorkspaceId: new Map(),
 	});
 }
 
@@ -206,6 +207,7 @@ describe("buildDashboardSidebarPinnedWorkspaces", () => {
 			],
 			machineId: MACHINE_ID,
 			pullRequestsByWorkspaceId: new Map(),
+			agentActivityByWorkspaceId: new Map(),
 		});
 
 		expect(rows.map((row) => row.id)).toEqual(["pinned-1"]);

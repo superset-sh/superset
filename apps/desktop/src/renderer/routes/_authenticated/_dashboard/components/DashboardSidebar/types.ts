@@ -42,6 +42,13 @@ export interface DashboardSidebarWorkspace {
 	behindCount: number | null;
 	createdAt: Date;
 	updatedAt: Date;
+	/**
+	 * Epoch ms of the newest terminal-agent event on this workspace (from the
+	 * host's agent bindings), or null when no agent has run / the host is
+	 * unreachable. `updatedAt` only tracks metadata writes, so "Last updated"
+	 * sorting uses the max of both.
+	 */
+	lastAgentActivityAt: number | null;
 	taskId: string | null;
 	isPinned: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;

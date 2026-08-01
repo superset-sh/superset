@@ -226,6 +226,10 @@ export function mergeHostWorkspaces({
 		seenIds.add(row.id);
 		items.push({
 			...row,
+			// Electric rows carry ISO strings at runtime (the shape parser
+			// doesn't handle timestamptz), despite the SelectV2Workspace type.
+			createdAt: new Date(row.createdAt),
+			updatedAt: new Date(row.updatedAt),
 			hostReachable: false,
 			source: "cloud",
 		});

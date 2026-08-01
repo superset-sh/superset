@@ -6,6 +6,7 @@ import {
 	DEFAULT_V2_USER_PREFERENCES,
 	type LinkAction,
 	type LinkTierMap,
+	type SidebarProjectSortMode,
 	V2_USER_PREFERENCES_ID,
 	type V2UserPreferencesRow,
 } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
@@ -24,6 +25,7 @@ export interface V2UserPreferencesApi {
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
 	toggleShowPresetsBar: () => void;
+	setSidebarProjectSortMode: (next: SidebarProjectSortMode) => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -200,6 +202,25 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setShowPresetsBar((prev) => !prev);
 	}, [setShowPresetsBar]);
 
+	const setSidebarProjectSortMode = useCallback(
+		(next: SidebarProjectSortMode) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					sidebarProjectSortMode: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.sidebarProjectSortMode = next;
+			});
+		},
+		[collections],
+	);
+
 	return {
 		preferences,
 		setFileLinks,
@@ -212,5 +233,6 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setDeleteLocalBranch,
 		setShowPresetsBar,
 		toggleShowPresetsBar,
+		setSidebarProjectSortMode,
 	};
 }
