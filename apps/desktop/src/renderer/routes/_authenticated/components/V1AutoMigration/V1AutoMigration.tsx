@@ -97,6 +97,7 @@ export function V1AutoMigration() {
 
 				console.log("[v1-migration] auto pass finished", summary);
 				if (summary.gateComplete) {
+					const firstCompletion = !isV1MigrationComplete(organizationId);
 					markV1MigrationComplete(organizationId);
 					const bestEffortClean =
 						summary.settings.failed +
@@ -106,7 +107,14 @@ export function V1AutoMigration() {
 							summary.terminals.failed +
 							summary.terminals.deferred ===
 						0;
-					setV1FollowUpPending(organizationId, !bestEffortClean);
+					// First completion always arms a catch-up pass: the user keeps
+					// working on v1 for the REST of this session (the pass ran at
+					// boot), so the first v2 boot must re-sync that tail before the
+					// flag can clear.
+					setV1FollowUpPending(
+						organizationId,
+						firstCompletion || !bestEffortClean,
+					);
 				}
 			} catch (err) {
 				// Retries next boot; the ledger holds whatever progress landed.
