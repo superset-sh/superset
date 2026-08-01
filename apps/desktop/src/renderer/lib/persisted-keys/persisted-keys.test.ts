@@ -3,11 +3,8 @@ import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 // biome-ignore lint/style/noRestrictedImports: test file needs fs/path for source verification
 import { join, relative } from "node:path";
-import {
-	DEAD_KEYS,
-	PERSISTED_KEY_REGISTRY,
-	sweepDeadPersistedKeys,
-} from "./persisted-keys";
+import { PERSISTED_KEY_REGISTRY } from "./persisted-key-registry.test-data";
+import { DEAD_KEYS, sweepDeadPersistedKeys } from "./persisted-keys";
 
 function makeStorage(entries: Record<string, string>): Storage {
 	const map = new Map(Object.entries(entries));

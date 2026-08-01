@@ -17,7 +17,7 @@ const reconciledOrgs = new Set<string>();
 
 /** Structural subset of the v2WorkspaceLocalState collection the GC needs. */
 export interface WorkspaceLocalStateCollectionLike {
-	state: ReadonlyMap<string, { createdAt: Date }>;
+	state: ReadonlyMap<string, { createdAt: Date | string }>;
 	delete: (workspaceId: string) => void;
 }
 
@@ -30,7 +30,9 @@ export function reconcileStaleWorkspaceState(
 	for (const [workspaceId, row] of localState.state) {
 		if (liveWorkspaceIds.has(workspaceId)) continue;
 		const createdAt =
-			row.createdAt instanceof Date ? row.createdAt.getTime() : Number.NaN;
+			row.createdAt instanceof Date
+				? row.createdAt.getTime()
+				: Date.parse(row.createdAt);
 		// Rows with an unparseable createdAt predate the schema default and
 		// can't be in-flight creates — treat them as past the grace.
 		if (Number.isFinite(createdAt) && now - createdAt < CREATE_GRACE_MS) {

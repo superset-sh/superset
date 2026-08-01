@@ -8,7 +8,7 @@ const NOW = Date.UTC(2026, 6, 29);
 const DAY_MS = 24 * 60 * 60 * 1000;
 
 function fakeLocalState(
-	rows: Array<[string, Date]>,
+	rows: Array<[string, Date | string]>,
 ): WorkspaceLocalStateCollectionLike & { ids: () => string[] } {
 	const state = new Map(rows.map(([id, createdAt]) => [id, { createdAt }]));
 	return {
@@ -49,6 +49,21 @@ describe("reconcileStaleWorkspaceState", () => {
 
 		expect(removed).toBe(0);
 		expect(localState.ids()).toEqual(["in-flight"]);
+	});
+
+	test("keeps a recent persisted ISO timestamp within the create grace", () => {
+		const localState = fakeLocalState([
+			["persisted-in-flight", new Date(NOW - 2 * DAY_MS).toISOString()],
+		]);
+
+		const removed = reconcileStaleWorkspaceState(
+			localState,
+			new Set(["live-1"]),
+			NOW,
+		);
+
+		expect(removed).toBe(0);
+		expect(localState.ids()).toEqual(["persisted-in-flight"]);
 	});
 
 	test("deletes aged rows when the authoritative workspace list is empty", () => {

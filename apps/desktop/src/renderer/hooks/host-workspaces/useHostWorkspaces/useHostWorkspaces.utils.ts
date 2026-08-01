@@ -37,15 +37,26 @@ export interface HostRowForTargets {
 }
 
 export function getHostWorkspacesQueryKey(
-	target: Pick<HostWorkspacesQueryTarget, "machineId" | "hostUrl">,
+	target: Pick<
+		HostWorkspacesQueryTarget,
+		"organizationId" | "machineId" | "hostUrl"
+	>,
 ) {
 	return [
 		"host-service",
 		"workspaces",
 		"list",
+		target.organizationId,
 		target.machineId,
 		target.hostUrl,
 	] as const;
+}
+
+export function getHostWorkspacesSnapshotCacheKey(
+	organizationId: string,
+	machineId: string,
+): string {
+	return `${organizationId}:${machineId}`;
 }
 
 /**

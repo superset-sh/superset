@@ -11,6 +11,7 @@ import {
 	applyWorkspaceChangedEvent,
 	deriveHostWorkspacesQueryTargets,
 	getHostWorkspacesQueryKey,
+	getHostWorkspacesSnapshotCacheKey,
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
 	loadHostWorkspacesSnapshot,
@@ -21,13 +22,6 @@ import {
 export type { HostWorkspaceItem } from "./useHostWorkspaces.utils";
 
 const WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
-
-function getSnapshotCacheKey(
-	organizationId: string,
-	machineId: string,
-): string {
-	return `${organizationId}:${machineId}`;
-}
 
 export interface HostWorkspacesCacheOps {
 	/** Resolve the URL to reach the host owning `hostId` (null = unreachable). */
@@ -122,7 +116,7 @@ export function useHostWorkspacesSource(
 	useEffect(() => {
 		let cancelled = false;
 		for (const target of targets) {
-			const cacheKey = getSnapshotCacheKey(
+			const cacheKey = getHostWorkspacesSnapshotCacheKey(
 				target.organizationId,
 				target.machineId,
 			);
@@ -235,7 +229,10 @@ export function useHostWorkspacesSource(
 						rows:
 							live ??
 							snapshots.get(
-								getSnapshotCacheKey(target.organizationId, target.machineId),
+								getHostWorkspacesSnapshotCacheKey(
+									target.organizationId,
+									target.machineId,
+								),
 							),
 						reachable: live !== undefined && !query?.isError,
 					};
@@ -260,7 +257,7 @@ export function useHostWorkspacesSource(
 				targets[index]?.hostUrl === null ||
 				(targets[index] !== undefined &&
 					snapshots.has(
-						getSnapshotCacheKey(
+						getHostWorkspacesSnapshotCacheKey(
 							targets[index].organizationId,
 							targets[index].machineId,
 						),
@@ -278,7 +275,7 @@ export function useHostWorkspacesSource(
 				query.isSuccess ||
 				(targets[index] !== undefined &&
 					snapshots.has(
-						getSnapshotCacheKey(
+						getHostWorkspacesSnapshotCacheKey(
 							targets[index].organizationId,
 							targets[index].machineId,
 						),

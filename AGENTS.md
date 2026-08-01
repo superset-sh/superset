@@ -149,6 +149,7 @@ The `src/components/ui/` and `src/components/ai-elements` directories contain sh
 
 ** IMPORTANT ** - Never touch the production database unless explicitly asked to. Even then, confirm with the user first.
 
+- In this workspace, the database configured in `.env` is an isolated branch, not production. Agents may start and use Electric against it for local development and CDP verification. Re-check this assumption if `.env` changes.
 - Schema in `packages/db/src/`
 - Use Drizzle ORM for all database operations
 
