@@ -3,6 +3,7 @@ import {
 	areHostWorkspaceQueriesAuthoritative,
 	getHostWorkspacesQueryKey,
 	getHostWorkspacesSnapshotCacheKey,
+	isLiveHostWorkspaceQuerySettled,
 } from "./useHostWorkspaces.utils";
 
 describe("host workspace cache keys", () => {
@@ -42,5 +43,22 @@ describe("host workspace cache keys", () => {
 			false,
 		);
 		expect(areHostWorkspaceQueriesAuthoritative(true, 0, [])).toBe(false);
+	});
+
+	it("does not treat an optimistic cache success as a completed host list", () => {
+		expect(
+			isLiveHostWorkspaceQuerySettled({
+				isSuccess: true,
+				isFetching: false,
+				hasLiveList: false,
+			}),
+		).toBe(false);
+		expect(
+			isLiveHostWorkspaceQuerySettled({
+				isSuccess: true,
+				isFetching: false,
+				hasLiveList: true,
+			}),
+		).toBe(true);
 	});
 });

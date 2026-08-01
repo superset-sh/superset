@@ -8,7 +8,7 @@ To show an announcement/warning popup in the app without shipping a release, ins
 
 ## Persisted renderer state (localStorage) policy
 
-Renderer localStorage has one ~10 MB quota, loads synchronously at boot, and keys outlive the code that wrote them — unbounded growth has frozen the renderer before (23.7 MB profile, GH #5496). Every persisted key must answer three questions, declared in `src/renderer/lib/persisted-keys/persisted-keys.ts` (a test fails on unregistered writers):
+Renderer localStorage has one ~10 MB quota, loads synchronously at boot, and keys outlive the code that wrote them — unbounded growth has frozen the renderer before (23.7 MB profile, GH #5496). Every persisted key must answer three questions, declared in `src/renderer/lib/persisted-keys/persisted-key-registry.test-data.ts` (a test fails on unregistered writers):
 
 1. **What bounds it?** A cap/LRU, a TTL, reconciliation against an owning entity, or "fixed-size singleton". "It's small per write" is not a bound.
 2. **Who deletes it?** Entity-keyed data must be removed when the entity dies — the explicit delete path is not enough (deletes from CLIs/other machines bypass it; `useReconcileStaleWorkspaceState` is the safety net for workspace-keyed state). One-shot payloads must be cleared by their consumer. Deleting a map entry means removing the key, never writing `null`.

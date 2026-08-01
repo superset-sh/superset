@@ -2,9 +2,9 @@
  * Registry of every localStorage key family the renderer persists.
  *
  * Policy (see "Persisted renderer state" in apps/desktop/AGENTS.md): every
- * persisted key declares what bounds it and what deletes it, and when a
- * feature stops writing a key the key moves to DEAD_KEYS in persisted-keys.ts
- * — otherwise it survives on user profiles forever. A 2026-07 audit found
+ * live persisted key declares what bounds it and what deletes it in this
+ * module. When a feature stops writing a key, the key moves to DEAD_KEYS in
+ * persisted-keys.ts — otherwise it survives on user profiles forever. A 2026-07 audit found
  * 53 KB of `pending-workspaces-*` records unread since May, plus seven other
  * dead families. The registry-enforcement test fails when a file writes
  * localStorage without an entry here.

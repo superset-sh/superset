@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import type { HostWorkspaceItem } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -80,6 +80,8 @@ export function useReconcileStaleWorkspaceState(
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId;
+	const latestInput = useRef({ organizationId, isAuthoritative, workspaces });
+	latestInput.current = { organizationId, isAuthoritative, workspaces };
 
 	useEffect(() => {
 		if (!isAuthoritative || !organizationId) return;
@@ -91,13 +93,19 @@ export function useReconcileStaleWorkspaceState(
 		}
 		reconcilingOrgs.add(organizationId);
 
-		const liveIds = getAuthoritativeWorkspaceIds(workspaces);
 		void collections.v2WorkspaceLocalState
 			.preload()
 			.then(() => {
+				const latest = latestInput.current;
+				if (
+					latest.organizationId !== organizationId ||
+					!latest.isAuthoritative
+				) {
+					return;
+				}
 				reconcileStaleWorkspaceState(
 					collections.v2WorkspaceLocalState,
-					liveIds,
+					getAuthoritativeWorkspaceIds(latest.workspaces),
 				);
 				reconciledOrgs.add(organizationId);
 			})
@@ -110,5 +118,5 @@ export function useReconcileStaleWorkspaceState(
 			.finally(() => {
 				reconcilingOrgs.delete(organizationId);
 			});
-	}, [isAuthoritative, organizationId, workspaces, collections]);
+	}, [isAuthoritative, organizationId, collections]);
 }

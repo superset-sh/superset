@@ -15,6 +15,7 @@ import {
 	getHostWorkspacesSnapshotCacheKey,
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
+	isLiveHostWorkspaceQuerySettled,
 	loadHostWorkspacesSnapshot,
 	mergeHostWorkspaces,
 	saveHostWorkspacesSnapshot,
@@ -23,6 +24,12 @@ import {
 export type { HostWorkspaceItem } from "./useHostWorkspaces.utils";
 
 const WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
+
+interface HostWorkspaceQueryData {
+	rows: HostWorkspaceRow[];
+	/** True only after workspace.list itself completed successfully. */
+	hasLiveList: boolean;
+}
 
 export interface HostWorkspacesCacheOps {
 	/** Resolve the URL to reach the host owning `hostId` (null = unreachable). */
@@ -156,8 +163,8 @@ export function useHostWorkspacesSource(
 			// Bounded retries so an online-per-cloud but tunnel-less relay
 			// target settles into isError quickly instead of holding isReady.
 			retry: 1,
-			queryFn: async (): Promise<HostWorkspaceRow[]> => {
-				if (!target.hostUrl) return [];
+			queryFn: async (): Promise<HostWorkspaceQueryData> => {
+				if (!target.hostUrl) return { rows: [], hasLiveList: false };
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				const rows =
 					(await client.workspace.list.query()) as HostWorkspaceRow[];
@@ -166,7 +173,7 @@ export function useHostWorkspacesSource(
 					target.machineId,
 					rows,
 				);
-				return rows;
+				return { rows, hasLiveList: true };
 			},
 		})),
 	});
@@ -183,9 +190,10 @@ export function useHostWorkspacesSource(
 				"workspace:changed",
 				"*",
 				(workspaceId, event) => {
-					queryClient.setQueryData<HostWorkspaceRow[] | undefined>(
+					queryClient.setQueryData<HostWorkspaceQueryData | undefined>(
 						getHostWorkspacesQueryKey(target),
-						(rows) => {
+						(data) => {
+							const rows = data?.rows;
 							const next = applyWorkspaceChangedEvent(
 								rows,
 								event,
@@ -202,7 +210,9 @@ export function useHostWorkspacesSource(
 									next,
 								);
 							}
-							return next;
+							return next
+								? { rows: next, hasLiveList: data?.hasLiveList ?? false }
+								: data;
 						},
 					);
 				},
@@ -223,7 +233,7 @@ export function useHostWorkspacesSource(
 			mergeHostWorkspaces({
 				hostResults: targets.map((target, index) => {
 					const query = queries[index];
-					const live = query?.data;
+					const live = query?.data?.rows;
 					return {
 						target,
 						rows:
@@ -270,7 +280,13 @@ export function useHostWorkspacesSource(
 	const isAuthoritative = areHostWorkspaceQueriesAuthoritative(
 		hostsReady,
 		targets.length,
-		queries.map((query) => query.isSuccess && !query.isFetching),
+		queries.map((query) =>
+			isLiveHostWorkspaceQuerySettled({
+				isSuccess: query.isSuccess,
+				isFetching: query.isFetching,
+				hasLiveList: query.data?.hasLiveList === true,
+			}),
+		),
 	);
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
@@ -281,25 +297,33 @@ export function useHostWorkspacesSource(
 			upsertWorkspace: (row) => {
 				const target = targetFor(row.hostId);
 				if (!target) return;
-				queryClient.setQueryData<HostWorkspaceRow[] | undefined>(
+				queryClient.setQueryData<HostWorkspaceQueryData | undefined>(
 					getHostWorkspacesQueryKey(target),
-					(rows) => {
-						if (!rows) return [row];
+					(data) => {
+						const rows = data?.rows;
+						if (!rows) return { rows: [row], hasLiveList: false };
 						const exists = rows.some((existing) => existing.id === row.id);
-						return exists
+						const nextRows = exists
 							? rows.map((existing) =>
 									existing.id === row.id ? { ...existing, ...row } : existing,
 								)
 							: [...rows, row];
+						return { rows: nextRows, hasLiveList: data?.hasLiveList ?? false };
 					},
 				);
 			},
 			removeWorkspace: (hostId, workspaceId) => {
 				const target = targetFor(hostId);
 				if (!target) return;
-				queryClient.setQueryData<HostWorkspaceRow[] | undefined>(
+				queryClient.setQueryData<HostWorkspaceQueryData | undefined>(
 					getHostWorkspacesQueryKey(target),
-					(rows) => rows?.filter((row) => row.id !== workspaceId),
+					(data) =>
+						data
+							? {
+									...data,
+									rows: data.rows.filter((row) => row.id !== workspaceId),
+								}
+							: data,
 				);
 			},
 			invalidateHost: (hostId) => {

@@ -73,6 +73,19 @@ export function areHostWorkspaceQueriesAuthoritative(
 	);
 }
 
+/** Optimistic cache writes are successful query data, but not a host list. */
+export function isLiveHostWorkspaceQuerySettled({
+	isFetching,
+	isSuccess,
+	hasLiveList,
+}: {
+	isFetching: boolean;
+	isSuccess: boolean;
+	hasLiveList: boolean;
+}): boolean {
+	return isSuccess && !isFetching && hasLiveList;
+}
+
 /**
  * One target per known host: the local host always (direct URL), remote
  * hosts via relay when online, and a null-URL placeholder when offline so
