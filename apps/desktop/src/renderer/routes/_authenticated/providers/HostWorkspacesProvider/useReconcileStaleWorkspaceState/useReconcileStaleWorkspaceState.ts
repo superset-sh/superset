@@ -54,9 +54,10 @@ export function reconcileStaleWorkspaceState(
 				: Date.parse(row.createdAt);
 		const age = now - createdAt;
 		// Rows with an unparseable createdAt predate the schema default and
-		// can't be in-flight creates — treat them as past the grace. Future
-		// timestamps are not allowed to extend the grace indefinitely.
-		if (Number.isFinite(age) && age >= 0 && age < CREATE_GRACE_MS) {
+		// can't be in-flight creates — treat them as past the grace. A timestamp
+		// within one grace window in the future is plausible clock skew; farther
+		// future timestamps cannot extend the grace indefinitely.
+		if (Number.isFinite(age) && Math.abs(age) < CREATE_GRACE_MS) {
 			continue;
 		}
 		doomed.push(workspaceId);
@@ -78,6 +79,7 @@ export function useReconcileStaleWorkspaceState(
 	isAuthoritative: boolean,
 ): void {
 	const collections = useCollections();
+	const localState = collections.v2WorkspaceLocalState;
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId;
 	const latestInput = useRef({ organizationId, isAuthoritative, workspaces });
@@ -93,7 +95,7 @@ export function useReconcileStaleWorkspaceState(
 		}
 		reconcilingOrgs.add(organizationId);
 
-		void collections.v2WorkspaceLocalState
+		void localState
 			.preload()
 			.then(() => {
 				const latest = latestInput.current;
@@ -104,19 +106,19 @@ export function useReconcileStaleWorkspaceState(
 					return;
 				}
 				reconcileStaleWorkspaceState(
-					collections.v2WorkspaceLocalState,
+					localState,
 					getAuthoritativeWorkspaceIds(latest.workspaces),
 				);
 				reconciledOrgs.add(organizationId);
 			})
 			.catch((error) => {
 				console.warn(
-					`[workspace-local-state-gc] Reconciliation failed for organization ${organizationId}; remains eligible for retry`,
+					`[workspace-local-state-gc] Reconciliation failed for organization ${organizationId}; will retry after eligibility changes or next session`,
 					error,
 				);
 			})
 			.finally(() => {
 				reconcilingOrgs.delete(organizationId);
 			});
-	}, [isAuthoritative, organizationId, collections]);
+	}, [isAuthoritative, organizationId, localState]);
 }

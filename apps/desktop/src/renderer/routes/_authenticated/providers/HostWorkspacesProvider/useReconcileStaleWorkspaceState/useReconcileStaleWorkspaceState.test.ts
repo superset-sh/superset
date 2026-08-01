@@ -106,4 +106,13 @@ describe("reconcileStaleWorkspaceState", () => {
 		expect(reconcileStaleWorkspaceState(localState, new Set(), NOW)).toBe(1);
 		expect(localState.ids()).toEqual([]);
 	});
+
+	test("keeps a newly seeded row across plausible clock rollback", () => {
+		const localState = fakeLocalState([
+			["future-clock-skew", new Date(NOW + 2 * DAY_MS).toISOString()],
+		]);
+
+		expect(reconcileStaleWorkspaceState(localState, new Set(), NOW)).toBe(0);
+		expect(localState.ids()).toEqual(["future-clock-skew"]);
+	});
 });

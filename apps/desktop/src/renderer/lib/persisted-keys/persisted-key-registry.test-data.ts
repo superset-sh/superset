@@ -53,8 +53,15 @@ export const PERSISTED_KEY_REGISTRY: PersistedKeyOwner[] = [
 	// --- generic persistence infra ---
 	{
 		file: "src/renderer/lib/trpc-storage.ts",
-		keys: ["<store>:version", "<store>:pending-snapshot"],
-		policy: "infra for ringtone/tabs/theme stores; fixed-size markers",
+		keys: ["<store>:version", "<store>:pending", "<store>:pending:updatedAt"],
+		policy:
+			"infra for ringtone/tabs/theme stores; pending snapshots have a 5m TTL and are deleted after a successful flush",
+	},
+	{
+		file: "src/renderer/lib/posthog.ts",
+		keys: ["ph_*_posthog", "__ph_opt_in_out_*"],
+		policy:
+			"SDK-managed singleton analytics identity/consent state per configured project token; reset on sign-out",
 	},
 	{
 		file: "src/renderer/lib/persistent-hash-history/persistent-hash-history.ts",

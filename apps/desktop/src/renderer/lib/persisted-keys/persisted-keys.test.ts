@@ -155,6 +155,7 @@ function stripComments(source: string): string {
 function isPersistedKeyWriter(source: string): boolean {
 	const code = stripComments(source);
 	if (/localStorageCollectionOptions\s*\(/.test(code)) return true;
+	if (/\bpersistence\s*:\s*["']localStorage["']/.test(code)) return true;
 	if (
 		code.includes("zustand/middleware") &&
 		/\bpersist\s*(?:<|\()/.test(code)
@@ -222,6 +223,14 @@ describe("isPersistedKeyWriter", () => {
 				import { persist } from "zustand/middleware";
 				persist<State>(() => ({ value: true }));
 			`),
+		).toBe(true);
+	});
+
+	test("detects SDK localStorage persistence configuration", () => {
+		expect(
+			isPersistedKeyWriter(
+				'client.init(token, { persistence: "localStorage" })',
+			),
 		).toBe(true);
 	});
 });
