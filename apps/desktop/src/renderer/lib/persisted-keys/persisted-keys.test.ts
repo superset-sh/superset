@@ -3,6 +3,12 @@ import { describe, expect, spyOn, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 // biome-ignore lint/style/noRestrictedImports: test file needs fs/path for source verification
 import { join, relative } from "node:path";
+import {
+	createScanner,
+	LanguageVariant,
+	ScriptTarget,
+	SyntaxKind,
+} from "typescript";
 import { PERSISTED_KEY_REGISTRY } from "./persisted-key-registry.test-data";
 import { DEAD_KEYS, sweepDeadPersistedKeys } from "./persisted-keys";
 
@@ -73,7 +79,7 @@ describe("sweepDeadPersistedKeys", () => {
 	});
 
 	test("no dead key shadows a registered live key", () => {
-		const liveKeys = PERSISTED_KEY_REGISTRY.flatMap((owner) => owner.keys);
+		const liveKeys = PERSISTED_KEY_REGISTRY.flatMap(([, keys]) => keys);
 		for (const dead of DEAD_KEYS) {
 			for (const live of liveKeys) {
 				const literal = live.replaceAll("*", "");
@@ -102,54 +108,19 @@ function walk(dir: string): string[] {
 	});
 }
 
-/** Remove comments without treating comment markers inside strings as syntax. */
 function stripComments(source: string): string {
-	let result = "";
-	let quote: '"' | "'" | "`" | undefined;
-	let escaped = false;
-
-	for (let index = 0; index < source.length; index += 1) {
-		const char = source[index];
-		const next = source[index + 1];
-
-		if (quote) {
-			result += char;
-			if (escaped) escaped = false;
-			else if (char === "\\") escaped = true;
-			else if (char === quote) quote = undefined;
-			continue;
-		}
-
-		if (char === '"' || char === "'" || char === "`") {
-			quote = char;
-			result += char;
-			continue;
-		}
-
-		if (char === "/" && next === "/") {
-			index += 2;
-			while (index < source.length && source[index] !== "\n") index += 1;
-			result += source[index] ?? "";
-			continue;
-		}
-
-		if (char === "/" && next === "*") {
-			index += 2;
-			while (
-				index < source.length &&
-				!(source[index] === "*" && source[index + 1] === "/")
-			) {
-				if (source[index] === "\n") result += "\n";
-				index += 1;
-			}
-			index += 1;
-			continue;
-		}
-
-		result += char;
+	const scanner = createScanner(
+		ScriptTarget.Latest,
+		true,
+		LanguageVariant.JSX,
+		source,
+	);
+	const tokens: string[] = [];
+	for (let token = scanner.scan(); token !== SyntaxKind.EndOfFileToken; ) {
+		tokens.push(scanner.getTokenText());
+		token = scanner.scan();
 	}
-
-	return result;
+	return tokens.join(" ");
 }
 
 function isPersistedKeyWriter(source: string): boolean {
@@ -244,7 +215,7 @@ describe("persisted-key registry", () => {
 					`src/renderer/${relative(RENDERER_DIR, path).replaceAll("\\", "/")}`,
 			)
 			.sort();
-		const registered = PERSISTED_KEY_REGISTRY.map((owner) => owner.file).sort();
+		const registered = PERSISTED_KEY_REGISTRY.map(([file]) => file).sort();
 
 		const unregistered = writers.filter((file) => !registered.includes(file));
 		const stale = registered.filter((file) => !writers.includes(file));
