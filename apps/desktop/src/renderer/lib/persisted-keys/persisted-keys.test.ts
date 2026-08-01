@@ -161,11 +161,23 @@ function isPersistedKeyWriter(source: string): boolean {
 	) {
 		return true;
 	}
-	const withoutSessionStorageWrites = code.replace(
-		/\bsessionStorage\s*\.\s*setItem\s*\(/g,
-		"",
+	if (
+		/\b(?:window\s*\.\s*|globalThis\s*\.\s*)?localStorage\s*\.\s*setItem\s*\(/.test(
+			code,
+		)
+	) {
+		return true;
+	}
+	// A few persistence wrappers accept or derive a Storage receiver before
+	// calling setItem. Requiring both the localStorage source and a known
+	// storage-shaped receiver keeps those visible without flagging arbitrary
+	// caches that happen to expose setItem().
+	return (
+		/\blocalStorage\b/.test(code) &&
+		/\b(?:storage|base)\s*\.\s*setItem\s*\(|\bgetStorage\s*\(\s*\)\s*\?\.\s*setItem\s*\(/.test(
+			code,
+		)
 	);
-	return /\.setItem\s*\(/.test(withoutSessionStorageWrites);
 }
 
 describe("isPersistedKeyWriter", () => {
@@ -182,6 +194,10 @@ describe("isPersistedKeyWriter", () => {
 				localStorage.setItem("persistent", "value");
 			`),
 		).toBe(true);
+	});
+
+	test("ignores setItem calls on non-storage objects", () => {
+		expect(isPersistedKeyWriter('cache.setItem("key", "value")')).toBe(false);
 	});
 
 	test("ignores localStorage hints in trailing comments", () => {
