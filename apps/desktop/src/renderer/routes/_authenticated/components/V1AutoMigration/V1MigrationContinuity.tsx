@@ -1,7 +1,6 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import { authClient } from "renderer/lib/auth-client";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import {
 	isTerminalStatus,
 	ledgerKey,
@@ -11,6 +10,7 @@ import {
 	consumeV1ContinuityPending,
 	peekV1ContinuityPending,
 } from "renderer/lib/v1-migration/completion";
+import { electronV1MigrationIpc } from "renderer/lib/v1-migration/ipc";
 
 /**
  * Continuity of place: on the FIRST v2 launch after the auto-migration
@@ -34,11 +34,13 @@ export function V1MigrationContinuity() {
 
 		void (async () => {
 			try {
-				const v1Settings =
-					await electronTrpcClient.migration.readV1Settings.query();
+				const v1Settings = await electronV1MigrationIpc.readV1Settings();
 				const lastActive = v1Settings?.lastActiveWorkspaceId;
 				if (lastActive) {
-					const ledger = await loadV1MigrationLedger(organizationId);
+					const ledger = await loadV1MigrationLedger(
+						electronV1MigrationIpc,
+						organizationId,
+					);
 					const row = ledger.get(ledgerKey("workspace", lastActive));
 					if (row && isTerminalStatus(row.status) && row.v2Id) {
 						await navigate({

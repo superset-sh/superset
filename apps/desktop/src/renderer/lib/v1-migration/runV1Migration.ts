@@ -1,6 +1,6 @@
 import type { HostServiceClient } from "renderer/lib/host-service-client";
-import { electronTrpcClient } from "renderer/lib/trpc-client";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type { V1MigrationIpc } from "./ipc";
 import {
 	isTerminalStatus,
 	ledgerKey,
@@ -47,6 +47,8 @@ export interface V1MigrationSummary {
 export interface RunV1MigrationDeps {
 	organizationId: string;
 	hostClient: HostServiceClient;
+	/** Electron-main reads/writes; inject fakes in tests. */
+	ipc: V1MigrationIpc;
 	/**
 	 * Preset targets live in renderer-only TanStack collections, so the
 	 * caller supplies reads/writes. Omit to skip the preset step (it never
@@ -91,14 +93,14 @@ export async function runV1Migration(
 	deps: RunV1MigrationDeps,
 ): Promise<V1MigrationSummary> {
 	const { organizationId } = deps;
-	const ledger = await loadV1MigrationLedger(organizationId);
+	const ledger = await loadV1MigrationLedger(deps.ipc, organizationId);
 	const outcomes: V1LedgerOutcome[] = [];
 	// Flush between stages (and on failure) so a throw in a later stage
 	// can't discard outcomes for host mutations that already committed.
 	const flush = async () => {
 		const batch = outcomes.splice(0);
 		try {
-			await recordV1MigrationOutcomes(organizationId, batch);
+			await recordV1MigrationOutcomes(deps.ipc, organizationId, batch);
 		} catch (err) {
 			outcomes.unshift(...batch);
 			throw err;
@@ -142,7 +144,7 @@ async function migrateProjects(
 	outcomes: V1LedgerOutcome[],
 ): Promise<KindSummary> {
 	const summary = emptySummary();
-	const v1Projects = await electronTrpcClient.migration.readV1Projects.query();
+	const v1Projects = await deps.ipc.readV1Projects();
 
 	for (const project of v1Projects) {
 		const existing = ledger.get(ledgerKey("project", project.id));
@@ -236,9 +238,9 @@ async function migrateWorkspaces(
 	const summary = emptySummary();
 	const [v1Projects, v1Workspaces, v1Worktrees, hostProjects, hostWorkspaces] =
 		await Promise.all([
-			electronTrpcClient.migration.readV1Projects.query(),
-			electronTrpcClient.migration.readV1Workspaces.query(),
-			electronTrpcClient.migration.readV1Worktrees.query(),
+			deps.ipc.readV1Projects(),
+			deps.ipc.readV1Workspaces(),
+			deps.ipc.readV1Worktrees(),
 			deps.hostClient.project.list.query(),
 			deps.hostClient.workspace.list.query(),
 		]);
@@ -375,8 +377,7 @@ async function migrateSettings(
 	const hostPrefixDone = ledger.get(ledgerKey("settings", "branch-prefix"));
 	if (!hostPrefixDone || !isTerminalStatus(hostPrefixDone.status)) {
 		try {
-			const v1Settings =
-				await electronTrpcClient.migration.readV1Settings.query();
+			const v1Settings = await deps.ipc.readV1Settings();
 			const hostPrefix =
 				await deps.hostClient.settings.branchPrefix.get.query();
 			const plan = planHostBranchPrefix(
@@ -418,7 +419,7 @@ async function migrateSettings(
 	}
 
 	// Per-project overrides (ledger id: "project-prefs:<v1ProjectId>").
-	const v1Projects = await electronTrpcClient.migration.readV1Projects.query();
+	const v1Projects = await deps.ipc.readV1Projects();
 	for (const v1 of v1Projects) {
 		const ledgerId = `project-prefs:${v1.id}`;
 		const done = ledger.get(ledgerKey("settings", ledgerId));
@@ -498,16 +499,14 @@ async function migrateTerminals(
 	const target = deps.terminalTarget;
 	if (!target) return summary;
 
-	const v1Panes =
-		await electronTrpcClient.migration.readV1TerminalPanes.query();
+	const v1Panes = await deps.ipc.readV1TerminalPanes();
 	const pendingPanes = v1Panes.filter((pane) => {
 		const done = ledger.get(ledgerKey("terminal", pane.paneId));
 		return !done || !isTerminalStatus(done.status);
 	});
 	if (pendingPanes.length === 0) return summary;
 
-	const v1Workspaces =
-		await electronTrpcClient.migration.readV1Workspaces.query();
+	const v1Workspaces = await deps.ipc.readV1Workspaces();
 	const v2WorkspaceIdByV1WorkspaceId = new Map<string, string>();
 	for (const w of v1Workspaces) {
 		const row = ledger.get(ledgerKey("workspace", w.id));
@@ -579,8 +578,7 @@ async function migratePresets(
 	const target = deps.presetTarget;
 	if (!target) return summary;
 
-	const v1Presets =
-		await electronTrpcClient.settings.getTerminalPresets.query();
+	const v1Presets = await deps.ipc.readV1TerminalPresets();
 
 	// Mutable copy: an insert this run must count as "existing" for the next
 	// preset so two identically-named v1 presets don't both import.

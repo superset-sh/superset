@@ -5,12 +5,17 @@ export {
 	markV1MigrationComplete,
 } from "./completion";
 export {
+	electronV1MigrationIpc,
+	recordV1MigrationOutcome,
+	type V1MigrationIpc,
+} from "./ipc";
+export {
 	isTerminalStatus,
 	ledgerKey,
 	loadV1MigrationLedger,
-	recordV1MigrationOutcome,
 	recordV1MigrationOutcomes,
 	type V1LedgerOutcome,
+	type V1LedgerRow,
 } from "./ledger";
 export {
 	type AgentConfigLike,

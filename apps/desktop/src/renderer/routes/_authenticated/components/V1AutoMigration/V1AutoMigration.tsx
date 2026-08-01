@@ -15,6 +15,7 @@ import {
 	markV1MigrationComplete,
 	setV1FollowUpPending,
 } from "renderer/lib/v1-migration/completion";
+import { electronV1MigrationIpc } from "renderer/lib/v1-migration/ipc";
 import { v1MigrationEventProps } from "renderer/lib/v1-migration/telemetry";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -86,6 +87,7 @@ export function V1AutoMigration() {
 				const summary = await runV1Migration({
 					organizationId,
 					hostClient: getHostServiceClientByUrl(hostUrl),
+					ipc: electronV1MigrationIpc,
 					presetTarget: {
 						agents,
 						existing: Array.from(
@@ -137,9 +139,8 @@ export function V1AutoMigration() {
 				let failureReasons: string[] = [];
 				if (summary.projects.failed + summary.workspaces.failed > 0) {
 					try {
-						const rows = await electronTrpcClient.migration.ledgerList.query({
-							organizationId,
-						});
+						const rows =
+							await electronV1MigrationIpc.ledgerList(organizationId);
 						failureReasons = [
 							...new Set(
 								rows
