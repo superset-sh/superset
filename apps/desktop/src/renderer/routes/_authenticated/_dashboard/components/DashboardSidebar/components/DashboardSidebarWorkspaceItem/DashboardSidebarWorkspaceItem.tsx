@@ -45,7 +45,6 @@ export function DashboardSidebarWorkspaceItem({
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
-	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
 		cancelRename,
@@ -77,6 +76,10 @@ export function DashboardSidebarWorkspaceItem({
 		isMainWorkspace,
 		isPinned: workspace.isPinned,
 	});
+
+	// Only the active workspace row shows line counts, so skip the per-item
+	// git status query everywhere else.
+	const diffStats = useDiffStats(id, { enabled: isActive });
 
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
