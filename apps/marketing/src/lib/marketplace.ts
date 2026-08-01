@@ -1035,6 +1035,43 @@ export const themeListings: ThemeListing[] = [
 			cyan: "#7dcfff",
 		},
 	},
+	{
+		slug: "tokyo-night-blackout",
+		name: "Tokyo Night Blackout",
+		type: "dark",
+		author: "Enkia (Tokyo Night)",
+		submittedBy: "talarczykco",
+		description:
+			"Tokyo Night with the main content area and terminal forced to pure black for OLED displays, while the sidebar keeps its original navy tones.",
+		addedOn: "August 1, 2026",
+		source: {
+			label: "Download",
+			href: "/marketplace/themes/tokyo-night-blackout.json",
+		},
+		tags: ["Tokyo Night", "Dark", "OLED", "Black"],
+		ui: {
+			background: "#000000",
+			foreground: "#a9b1d6",
+			card: "#000000",
+			cardForeground: "#a9b1d6",
+			primary: "#3d59a1",
+			accent: "#202330",
+			border: "#24283b",
+			sidebar: "#16161e",
+			sidebarForeground: "#787c99",
+		},
+		terminal: {
+			background: "#000000",
+			foreground: "#e1e1e1",
+			cursor: "#c0caf5",
+			red: "#f7768e",
+			green: "#73daca",
+			yellow: "#e0af68",
+			blue: "#7aa2f7",
+			magenta: "#bb9af7",
+			cyan: "#7dcfff",
+		},
+	},
 ];
 
 function buildIssueUrl(title: string) {
