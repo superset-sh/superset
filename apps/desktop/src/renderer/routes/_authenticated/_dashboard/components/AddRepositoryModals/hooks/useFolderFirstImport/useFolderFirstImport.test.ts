@@ -143,6 +143,65 @@ describe("useFolderFirstImport", () => {
 		expect(onError).not.toHaveBeenCalled();
 	});
 
+	// Reproduces #5894 ("not opening at all"): a newly onboarded v2 user who
+	// picks an empty folder gets stuck on the onboarding screen. An empty folder
+	// isn't a git repo, so the flow asks the user to confirm `git init` via the
+	// shared git-init-confirm store. That request is only answered when a mounted
+	// GitInitConfirmDialog calls resolve() — but the dialog was mounted only under
+	// the dashboard layout, never on the onboarding route, so the promise never
+	// settled and start() hung with the page's `busy` flag stuck on. We model the
+	// unmounted (never-answering) dialog with a confirm promise we control.
+	it("blocks on an empty folder until the git-init confirm is answered (#5894)", async () => {
+		findByPathMock.mockResolvedValue({
+			candidates: [],
+			cloudErrors: [],
+			needsGitInit: true,
+		});
+
+		let answerConfirm!: (confirmed: boolean) => void;
+		const confirm = new Promise<boolean>((resolve) => {
+			answerConfirm = resolve;
+		});
+		requestGitInitMock.mockReturnValue(confirm);
+		const onError = mock(() => undefined);
+
+		let settled = false;
+		const startPromise = useFolderFirstImport({ onError })
+			.start()
+			.then((result) => {
+				settled = true;
+				return result;
+			});
+
+		// Let the flow advance to the git-init confirmation step.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(requestGitInitMock).toHaveBeenCalledWith(repoPath);
+
+		// No dialog is mounted to answer the confirm, so start() never settles —
+		// this is the stuck onboarding screen from the bug report.
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		expect(settled).toBe(false);
+		expect(createMock).not.toHaveBeenCalled();
+		expect(onError).not.toHaveBeenCalled();
+
+		// A dialog reachable from the onboarding route (the fix) answers the
+		// confirm and the import completes.
+		answerConfirm(true);
+		const result = await startPromise;
+
+		expect(settled).toBe(true);
+		expect(createMock).toHaveBeenCalledWith({
+			name: "octocat",
+			mode: { kind: "importLocal", repoPath, initIfNeeded: true },
+		});
+		expect(result).toEqual({
+			projectId: "created-project",
+			repoPath,
+			mainWorkspaceId: "workspace-created",
+		});
+		expect(onError).not.toHaveBeenCalled();
+	});
+
 	it("does nothing when the user cancels the git-init confirmation", async () => {
 		findByPathMock.mockResolvedValue({
 			candidates: [],
