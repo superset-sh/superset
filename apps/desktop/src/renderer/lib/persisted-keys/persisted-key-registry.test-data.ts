@@ -132,7 +132,7 @@ export const PERSISTED_KEY_REGISTRY: PersistedKeyOwner[] = [
 	},
 	{
 		file: "src/renderer/stores/workspace-sidebar-state.ts",
-		keys: ["workspace-sidebar-store", "sidebar-store"],
+		keys: ["workspace-sidebar-store"],
 		policy: "singleton UI state",
 	},
 	{

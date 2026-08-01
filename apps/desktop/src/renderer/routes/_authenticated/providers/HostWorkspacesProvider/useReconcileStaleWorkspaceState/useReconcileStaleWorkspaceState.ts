@@ -22,6 +22,24 @@ export interface WorkspaceLocalStateCollectionLike {
 	delete: (workspaceId: string) => void;
 }
 
+type ReconciliationWorkspace = Pick<
+	HostWorkspaceItem,
+	"hostReachable" | "id" | "source"
+>;
+
+/** Cloud/snapshot fallbacks render stale data but cannot prove an ID is live. */
+export function getAuthoritativeWorkspaceIds(
+	workspaces: readonly ReconciliationWorkspace[],
+): Set<string> {
+	return new Set(
+		workspaces
+			.filter(
+				(workspace) => workspace.source === "host" && workspace.hostReachable,
+			)
+			.map((workspace) => workspace.id),
+	);
+}
+
 export function reconcileStaleWorkspaceState(
 	localState: WorkspaceLocalStateCollectionLike,
 	liveWorkspaceIds: ReadonlySet<string>,
@@ -73,7 +91,7 @@ export function useReconcileStaleWorkspaceState(
 		}
 		reconcilingOrgs.add(organizationId);
 
-		const liveIds = new Set(workspaces.map((workspace) => workspace.id));
+		const liveIds = getAuthoritativeWorkspaceIds(workspaces);
 		void collections.v2WorkspaceLocalState
 			.preload()
 			.then(() => {

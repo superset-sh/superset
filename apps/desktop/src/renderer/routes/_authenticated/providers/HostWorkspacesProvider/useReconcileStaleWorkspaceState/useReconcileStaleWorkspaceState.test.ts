@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import {
+	getAuthoritativeWorkspaceIds,
 	reconcileStaleWorkspaceState,
 	type WorkspaceLocalStateCollectionLike,
 } from "./useReconcileStaleWorkspaceState";
@@ -19,6 +20,16 @@ function fakeLocalState(
 }
 
 describe("reconcileStaleWorkspaceState", () => {
+	test("excludes cloud and snapshot fallbacks from destructive live IDs", () => {
+		expect(
+			getAuthoritativeWorkspaceIds([
+				{ id: "live", source: "host", hostReachable: true },
+				{ id: "snapshot", source: "host", hostReachable: false },
+				{ id: "cloud", source: "cloud", hostReachable: false },
+			]),
+		).toEqual(new Set(["live"]));
+	});
+
 	test("deletes rows for workspaces no host lists, keeps live rows", () => {
 		const localState = fakeLocalState([
 			["live-1", new Date(NOW - 90 * DAY_MS)],
