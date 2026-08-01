@@ -3,6 +3,7 @@ import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { posthog } from "renderer/lib/posthog";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { runV1Migration } from "renderer/lib/v1-migration";
 import {
@@ -12,6 +13,7 @@ import {
 	markV1MigrationComplete,
 	setV1FollowUpPending,
 } from "renderer/lib/v1-migration/completion";
+import { v1MigrationEventProps } from "renderer/lib/v1-migration/telemetry";
 import { useFinalizeProjectSetup } from "renderer/react-query/projects";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -62,8 +64,10 @@ export function V1AutoMigration() {
 		startedOrgsRef.current.add(organizationId);
 
 		const hostUrl = activeHostUrl;
+		const trigger = isV2CloudEnabled ? "v2-followup" : "v1-surface";
 		void (async () => {
 			let locked = false;
+			const startedAt = Date.now();
 			try {
 				const lock = await electronTrpcClient.migration.acquireRunLock.mutate();
 				if (!lock.acquired) return;
@@ -96,8 +100,9 @@ export function V1AutoMigration() {
 				});
 
 				console.log("[v1-migration] auto pass finished", summary);
+				let firstCompletion = false;
 				if (summary.gateComplete) {
-					const firstCompletion = !isV1MigrationComplete(organizationId);
+					firstCompletion = !isV1MigrationComplete(organizationId);
 					markV1MigrationComplete(organizationId);
 					const bestEffortClean =
 						summary.settings.failed +
@@ -116,9 +121,44 @@ export function V1AutoMigration() {
 						firstCompletion || !bestEffortClean,
 					);
 				}
+
+				// Failure reasons come from the ledger (the summary only counts)
+				// so the stuck cohort is identifiable, not just sized.
+				let failureReasons: string[] = [];
+				if (summary.projects.failed + summary.workspaces.failed > 0) {
+					try {
+						const rows = await electronTrpcClient.migration.ledgerList.query({
+							organizationId,
+						});
+						failureReasons = [
+							...new Set(
+								rows
+									.filter(
+										(r) =>
+											r.status === "error" &&
+											(r.kind === "project" || r.kind === "workspace"),
+									)
+									.map((r) => r.reason)
+									.filter((r): r is string => !!r),
+							),
+						].slice(0, 5);
+					} catch {}
+				}
+				posthog.capture("v1_auto_migration_completed", {
+					...v1MigrationEventProps(summary),
+					trigger,
+					first_completion: firstCompletion,
+					duration_ms: Date.now() - startedAt,
+					failure_reasons: failureReasons,
+				});
 			} catch (err) {
 				// Retries next boot; the ledger holds whatever progress landed.
 				console.error("[v1-migration] auto pass failed", err);
+				posthog.capture("v1_auto_migration_failed", {
+					trigger,
+					duration_ms: Date.now() - startedAt,
+					error: err instanceof Error ? err.message : String(err),
+				});
 			} finally {
 				if (locked) {
 					void electronTrpcClient.migration.releaseRunLock

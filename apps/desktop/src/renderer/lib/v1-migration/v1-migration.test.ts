@@ -285,6 +285,7 @@ import {
 	setV1FollowUpPending,
 } from "./completion";
 import { computeGateComplete, type KindSummary } from "./summary";
+import { v1MigrationEventProps } from "./telemetry";
 
 const summary = (overrides: Partial<KindSummary> = {}): KindSummary => ({
 	migrated: 0,
@@ -381,5 +382,26 @@ describe("completion markers", () => {
 		expect(isV1FollowUpPending("org-fu")).toBe(true);
 		setV1FollowUpPending("org-fu", false);
 		expect(isV1FollowUpPending("org-fu")).toBe(false);
+	});
+});
+
+describe("v1MigrationEventProps", () => {
+	test("flattens per-kind counts into snake_case numeric props", () => {
+		const props = v1MigrationEventProps({
+			projects: summary({ failed: 2 }),
+			workspaces: summary({ skipped: 23, migrated: 1 }),
+			presets: summary({ linked: 6 }),
+			settings: summary(),
+			terminals: summary({ migrated: 1 }),
+			gateComplete: false,
+		});
+		expect(props.gate_complete).toBe(false);
+		expect(props.projects_failed).toBe(2);
+		expect(props.workspaces_skipped).toBe(23);
+		expect(props.workspaces_migrated).toBe(1);
+		expect(props.presets_linked).toBe(6);
+		expect(props.terminals_migrated).toBe(1);
+		// 5 kinds x 5 counters + gate_complete
+		expect(Object.keys(props)).toHaveLength(26);
 	});
 });
