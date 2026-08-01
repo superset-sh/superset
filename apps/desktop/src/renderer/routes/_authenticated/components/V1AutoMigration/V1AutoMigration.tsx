@@ -1,3 +1,5 @@
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useEffect, useRef } from "react";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
@@ -40,6 +42,12 @@ export function V1AutoMigration() {
 	const finalizeSetup = useFinalizeProjectSetup();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const agentsQuery = useV2AgentConfigs(activeHostUrl);
+	// Rollout pacing: percentage ramp + high-profile org exclusions. Only
+	// gates NEW migrations (v1 surface) — post-flip catch-up must always run.
+	// undefined (flags not loaded / offline) counts as off: stay on v1.
+	const migrationFlagEnabled = useFeatureFlagEnabled(
+		FEATURE_FLAGS.V1_AUTO_MIGRATION,
+	);
 	const startedOrgsRef = useRef<Set<string>>(new Set());
 
 	const organizationId = session?.session?.activeOrganizationId ?? null;
@@ -59,6 +67,8 @@ export function V1AutoMigration() {
 				isV1FollowUpPending(organizationId) ||
 				(isV1ForcedFlipActive() && !isV1MigrationComplete(organizationId));
 			if (!followUp) return;
+		} else if (migrationFlagEnabled !== true) {
+			return;
 		}
 		if (startedOrgsRef.current.has(organizationId)) return;
 		startedOrgsRef.current.add(organizationId);
@@ -172,6 +182,7 @@ export function V1AutoMigration() {
 		onboarded,
 		activeHostUrl,
 		isV2CloudEnabled,
+		migrationFlagEnabled,
 		agentsSettled,
 		agents,
 		collections,

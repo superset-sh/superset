@@ -34,9 +34,16 @@ Decisions made while CDP-verifying and hardening PR #5821 (boot trigger, migrate
 - At flip, v1 UI becomes unreachable (D5) — v1 chat GUI history access ends at flip, not at code deletion. By decision.
 - No "what changed" note (F5) — optional follow-up, feature not bug.
 
+## Paced rollout (decided w/ Satya, 2026-08-01)
+
+- **Flag `v1-auto-migration`** (PostHog 794331) gates NEW migrations on the v1 surface only — post-flip catch-up passes and manual import are ungated, so pausing the flag never strands a flipped machine. Off/unloaded/offline = stay on v1.
+- **Live at 5%**, ramp 5 → 25 → 100 as the blocked-machines tile stays boring. Kill switch = flag off (stops new migrations only; flips are one-way by design).
+- **20 high-profile domains excluded** until deliberately flipped last: wix, rtc-rcloud.jp, doordash, daangn, ziphq, knowbe4, alation, mistral.ai, netflix, microsoft, toss.im, addi, wealthbox, holded, opengov, upgrade, cyera.io, loancrate, ramp, thriveholdings (~650 of the ~5.6k weekly v1 users).
+- Note: the forced-flip backstop bypasses the flag — only set `V1_FORCED_FLIP_VERSION` once the flag is at 100%.
+
 ## Release sequence
 
-1. This release: migrator + fixes + telemetry. `V1_FORCED_FLIP_VERSION=null`, `MINIMUM_DESKTOP_VERSION` unchanged. v1 code stays — migration runs *on* the v1 surface; flip is next-launch.
+1. This release: migrator + fixes + telemetry + flag gate. `V1_FORCED_FLIP_VERSION=null`, `MINIMUM_DESKTOP_VERSION` unchanged. v1 code stays — migration runs *on* the v1 surface; flip is next-launch.
 2. Watch 1–2 weeks: v1-only weekly actives (~5.6k at ship time, 52% of fleet) should collapse toward the stuck-cohort floor.
 3. Next release: set `V1_FORCED_FLIP_VERSION`; optionally bump `MINIMUM_DESKTOP_VERSION` for the ~2.4k on ancient builds (forced update ≠ forced flip — separate levers).
 4. When `surface=v1` is noise: deletion PR per `v1-v2-delete-patterns-audit.md`. Keep forever: local-db read access, migration router + headless migrator, import button.

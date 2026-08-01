@@ -117,6 +117,13 @@ export const FEATURE_FLAGS = {
 	 */
 	RELAY_URL_OVERRIDE: "relay-url-override",
 	/**
+	 * Paces the v1→v2 auto-migration rollout (percentage ramp + high-profile
+	 * org exclusions). Gates only NEW migrations on the v1 surface — post-flip
+	 * catch-up passes are ungated so flipped machines always finish. Off,
+	 * unloaded, or offline all mean "don't migrate yet" (stays on v1).
+	 */
+	V1_AUTO_MIGRATION: "v1-auto-migration",
+	/**
 	 * Shows the "We're Hiring" card in the dashboard sidebar. Targets a static
 	 * PostHog cohort of users who have created 10+ workspaces all-time, which is
 	 * the only place that history exists — workspace rows are hard-deleted, so a
