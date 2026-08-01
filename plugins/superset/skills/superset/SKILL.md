@@ -60,7 +60,7 @@ superset agents create --workspace <id> --agent claude --prompt "..."
 
 `--agent` accepts a preset id (e.g. `claude`, `codex`), a HostAgentConfig instance UUID, or `superset` for a built-in Superset chat session. Pass `--attachment-id <uuid>` once per attachment. Use `agents list` first if you don't already know which agents are installed on the target host.
 
-`agents run --json` returns `{ kind, sessionId, label }`. `kind` is `chat` (the `superset` agent) or `terminal` (e.g. `claude`, `codex`) — you need it to build a session deep link (see [Opening sessions in the desktop app](#opening-sessions-in-the-desktop-app)).
+`agents create --json` returns `{ kind, sessionId, label }`. `kind` is `chat` (the `superset` agent) or `terminal` (e.g. `claude`, `codex`). Use it to build a session deep link when you need to focus that session (see [Opening sessions in the desktop app](#opening-sessions-in-the-desktop-app)).
 
 ## Opening sessions in the desktop app
 
@@ -71,9 +71,9 @@ superset workspaces open <workspaceId>
 superset workspaces open <workspaceId> --print
 ```
 
-A session you start with `agents run` syncs to the desktop app but has **no pane** in the workspace view until you navigate to it, and there is no session list — so a freshly created session is effectively invisible until opened. `workspaces open` targets only the workspace and cannot focus a session, so build the deep link yourself and append a query param chosen by the session `kind`:
+A terminal session started with `agents create` is automatically adopted into a pane when its workspace is open. Opening a workspace later also creates panes for running terminal sessions that are not already attached, while preserving the active tab. `workspaces open` targets only the workspace and does not focus a particular session, so use a session deep link when focus matters. The same deep link creates or focuses the pane for a Superset chat session. Choose the query parameter from the session `kind`:
 
-| `kind` (from `agents run --json`) | Agents | Deep-link param |
+| `kind` (from `agents create --json`) | Agents | Deep-link param |
 | --- | --- | --- |
 | `chat` | `superset` | `?chatSessionId=<sessionId>` |
 | `terminal` | `claude`, `codex` | `?terminalId=<sessionId>` |
@@ -96,9 +96,13 @@ Add `&focusRequestId=<unique>` to force a re-focus when opening the same link re
 ```bash
 superset terminals create --workspace <id> --command "bun test"   # Run a command in a new terminal
 superset terminals create --workspace <id>                        # Open an interactive shell
+superset terminals list --workspace <id>                          # Discover live sessions
+superset terminals read --workspace <id> --terminal <id>          # Read a session snapshot
+superset terminals send --workspace <id> --terminal <id> --text "..."
+superset terminals close --workspace <id> --terminal <id>
 ```
 
-`--command` is optional — omit it to open a bare shell. `--cwd <path>` overrides the working directory (defaults to the worktree).
+`--command` is optional on `terminals create`; omit it to open a bare shell. `--cwd <path>` overrides the working directory (defaults to the worktree). Use `agents create` once for an agent session, then `terminals send` for follow-ups instead of launching replacement agents. Pass `--host <id>` consistently when the workspace is remote.
 
 ## Tasks
 

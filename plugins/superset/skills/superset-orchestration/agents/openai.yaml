@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Orchestration"
+  short_description: "Coordinate coding agents through Superset CLI"
+  default_prompt: "Use $superset-orchestration to delegate this work across terminal agents and coordinate their results."
