@@ -96,13 +96,13 @@ const SPEC = {
 		description: [
 			"Superset (https://superset.sh) runs parallel AI coding agents in isolated Git worktrees.",
 			"",
-			"The primary programmatic surface is the **MCP server** (Model Context Protocol, JSON-RPC 2.0 over Streamable HTTP) at `/api/v2/agent/mcp`. It exposes tools for tasks, workspaces, coding-agent sessions, terminals, automations, hosts, projects, and organization members. The tool catalog with input schemas is published at `" +
+			"The primary programmatic surface is the **MCP server** (Model Context Protocol, JSON-RPC 2.0 over Streamable HTTP) at `/mcp` (legacy alias: `/api/v2/agent/mcp`). It exposes tools for tasks, workspaces, coding-agent sessions, terminals, automations, hosts, projects, and organization members. The tool catalog with input schemas is published at `" +
 				`${API_URL}/.well-known/mcp/server-card.json` +
 				"` and served live via the MCP `tools/list` method.",
 			"",
 			`Authentication is OAuth 2.1 authorization code + PKCE with RFC 7591 dynamic client registration, or a user-issued Superset API key sent as a Bearer token. Agent walkthrough: ${MARKETING_URL}/auth.md`,
 			"",
-			`Versioning and deprecation: the current surface is v2, versioned in the URL path (/api/v2/...). Deprecated surfaces stay available during a migration window — the v1 MCP server at /api/agent/mcp remains served for existing integrations — and deprecations are announced in the changelog (${MARKETING_URL}/changelog).`,
+			`Versioning and deprecation: the current surface is v2, versioned in the URL path (/api/v2/...). Deprecations are announced in the changelog (${MARKETING_URL}/changelog). The legacy v1 MCP server at /api/agent/mcp has been removed and returns 410 Gone.`,
 		].join("\n"),
 		contact: {
 			name: "Superset support",
@@ -123,13 +123,13 @@ const SPEC = {
 	],
 	security: [{ bearerAuth: [] }],
 	paths: {
-		"/api/v2/agent/mcp": {
+		"/mcp": {
 			post: {
 				operationId: "mcpRequest",
 				tags: ["mcp"],
 				summary: "Send an MCP JSON-RPC request",
 				description:
-					"Streamable HTTP transport endpoint for the Superset MCP server. Send `initialize`, then `tools/list` to enumerate the available tools, then `tools/call` to act on the authenticated user's tasks, workspaces, agents, automations, terminals, hosts, and projects. Responses are `application/json` or `text/event-stream` depending on the request's Accept header.",
+					"Streamable HTTP transport endpoint for the Superset MCP server (also served at the legacy alias /api/v2/agent/mcp). Send `initialize`, then `tools/list` to enumerate the available tools, then `tools/call` to act on the authenticated user's tasks, workspaces, agents, automations, terminals, hosts, and projects. Responses are `application/json` or `text/event-stream` depending on the request's Accept header.",
 				requestBody: {
 					required: true,
 					content: {
@@ -177,23 +177,6 @@ const SPEC = {
 						description: "Server-sent event stream.",
 						content: { "text/event-stream": { schema: { type: "string" } } },
 					},
-					"401": { $ref: "#/components/responses/Unauthorized" },
-				},
-			},
-			delete: {
-				operationId: "mcpEndSession",
-				tags: ["mcp"],
-				summary: "Terminate an MCP session",
-				parameters: [
-					{
-						name: "Mcp-Session-Id",
-						in: "header",
-						required: true,
-						schema: { type: "string" },
-					},
-				],
-				responses: {
-					"200": { description: "Session terminated." },
 					"401": { $ref: "#/components/responses/Unauthorized" },
 				},
 			},

@@ -4,6 +4,10 @@
 // the credential provider) and crosses as plain data.
 
 import { createUserSimpleGit } from "../../runtime/git/simple-git.ts";
+import {
+	readWorkspaceRefs,
+	type WorkspaceRefsSnapshot,
+} from "../../runtime/pull-requests/utils/workspace-refs.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
 import { getChangedFilesForDiff } from "../../trpc/router/git/utils/git-helpers.ts";
@@ -58,8 +62,20 @@ export const gitCommitFilesTask = defineWorkerTask<
 	},
 });
 
+export const gitWorkspaceRefsTask = defineWorkerTask<
+	{ worktreePath: string; gitEnv: GitTaskEnv },
+	WorkspaceRefsSnapshot
+>({
+	type: "git/readWorkspaceRefs",
+	handler: async ({ worktreePath, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		return readWorkspaceRefs(git);
+	},
+});
+
 export const gitTasks = [
 	gitStatusSnapshotTask,
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
+	gitWorkspaceRefsTask,
 ];

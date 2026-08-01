@@ -72,6 +72,7 @@
 		"@mastra/core": "1.33.1",
 		"@mastra/memory": "1.18.0",
 		"@octokit/rest": "22.0.1",
+		"@sentry/node": "10.68.0",
 		"@superset/chat": "workspace:*",
 		"@superset/port-scanner": "workspace:*",
 		"@superset/pty-daemon": "workspace:*",

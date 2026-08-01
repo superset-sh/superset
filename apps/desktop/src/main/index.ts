@@ -407,23 +407,52 @@ if (!gotTheLock) {
 		await reconcileDaemonSessions();
 		prewarmTerminalRuntime();
 
-		// Host services for previously-hosted orgs start from main, so
-		// background reachability and port detection never wait on a renderer
-		// or cloud sync. Non-blocking: boot must not wait on spawns.
-		const startKnownHostServices = async () => {
+		const hostServiceCoordinator = getHostServiceCoordinator();
+		hostServiceCoordinator.setConfigProvider(async () => {
+			const { token } = await loadToken();
+			if (!token) return null;
+			return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+		});
+
+		// The authenticated session's cached membership is the source of truth.
+		// Host data on disk can outlive membership and must never resurrect an
+		// obsolete service. This cache keeps subsequent launches offline-capable.
+		let authGeneration = 0;
+		const reconcileHostServices = async (providedAuth?: {
+			token: string;
+			organizationIds: string[];
+		}) => {
+			const generation = authGeneration;
 			try {
-				const { token } = await loadToken();
-				if (!token) return;
-				await getHostServiceCoordinator().startAllKnown({
-					authToken: token,
+				const storedAuth = providedAuth ?? (await loadToken());
+				if (generation !== authGeneration) return;
+				if (!storedAuth.token || !storedAuth.organizationIds) return;
+				await hostServiceCoordinator.reconcile(storedAuth.organizationIds, {
+					authToken: storedAuth.token,
 					cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL,
 				});
 			} catch (error) {
-				console.error("[main] host-service boot reconcile failed:", error);
+				console.error("[main] host-service reconcile failed:", error);
 			}
 		};
-		void startKnownHostServices();
-		authEvents.on("token-saved", () => void startKnownHostServices());
+		void reconcileHostServices();
+		// A new token can belong to a different account. Stop immediately and wait
+		// for that account's session membership before starting anything.
+		authEvents.on("token-saved", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on("token-cleared", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on(
+			"organization-ids-saved",
+			(data: { token: string; organizationIds: string[] }) => {
+				authGeneration++;
+				void reconcileHostServices(data);
+			},
+		);
 
 		try {
 			setupAgentHooks();
@@ -436,18 +465,12 @@ if (!gotTheLock) {
 			console.error("[main] Failed to install bundled CLI shim:", error);
 		}
 
-		// Read the token at call time rather than capturing it: an automatic
-		// respawn can happen hours after the original spawn, by which point the
-		// token that spawned the child may have rotated.
-		const hostServiceConfigProvider = async () => {
-			const { token } = await loadToken();
-			if (!token) return null;
-			return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
-		};
-		getHostServiceCoordinator().setConfigProvider(hostServiceConfigProvider);
-
 		if (IS_DEV) {
-			getHostServiceCoordinator().enableDevReload(hostServiceConfigProvider);
+			hostServiceCoordinator.enableDevReload(async () => {
+				const { token } = await loadToken();
+				if (!token) return null;
+				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+			});
 		}
 
 		await makeAppSetup(() => MainWindow());

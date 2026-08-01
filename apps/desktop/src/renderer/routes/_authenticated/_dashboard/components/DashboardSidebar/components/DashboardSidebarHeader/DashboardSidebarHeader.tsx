@@ -27,7 +27,6 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
-import { ResourceConsumption } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/ResourceConsumption";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import {
 	tasksSearchFromFilters,
@@ -266,7 +265,7 @@ export function DashboardSidebarHeader({
 								<DropdownMenuTrigger asChild>
 									<button
 										type="button"
-										aria-label="Add repository"
+										aria-label="Add project"
 										className="group/addrepo flex size-7 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover"
 									>
 										<VscNewFolder className="size-3.5 group-hover/addrepo:hidden" />
@@ -274,7 +273,7 @@ export function DashboardSidebarHeader({
 									</button>
 								</DropdownMenuTrigger>
 							</TooltipTrigger>
-							<TooltipContent side="right">Add repository</TooltipContent>
+							<TooltipContent side="right">Add project</TooltipContent>
 						</Tooltip>
 						<DropdownMenuContent
 							align="start"
@@ -282,7 +281,7 @@ export function DashboardSidebarHeader({
 						>
 							<DropdownMenuItem onSelect={handleImportFolder}>
 								<VscFolderOpened className="size-4" />
-								Open from folder
+								Open project
 							</DropdownMenuItem>
 							<DropdownMenuItem onSelect={() => openNewProject()}>
 								<VscGithubAlt className="size-4" />
@@ -332,7 +331,6 @@ export function DashboardSidebarHeader({
 				<ZoomStable enabled={isMac} className="flex items-center gap-1.5">
 					<SidebarToggle />
 					<NavigationControls />
-					<ResourceConsumption surface="v2" />
 				</ZoomStable>
 				<div className="drag h-full min-w-0 flex-1" />
 			</div>

@@ -10,7 +10,7 @@ export function GET(request: Request): Response {
 					name: "superset",
 					description:
 						"Superset MCP server — orchestrate parallel coding agents, workspaces, automations, and tasks.",
-					url: `${origin}/api/v2/agent/mcp`,
+					url: `${origin}/mcp`,
 					transport: "streamable-http",
 					serverCard: `${origin}/.well-known/mcp/server-card.json`,
 					authentication: {

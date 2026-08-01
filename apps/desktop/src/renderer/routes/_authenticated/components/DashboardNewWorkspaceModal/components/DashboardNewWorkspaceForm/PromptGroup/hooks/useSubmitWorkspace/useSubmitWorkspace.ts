@@ -5,6 +5,7 @@ import { authClient } from "renderer/lib/auth-client";
 import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
+import { usePromptHistoryStore } from "renderer/stores/prompt-history";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
 import type { WorkspaceCreateAgent } from "../../types";
@@ -122,6 +123,10 @@ export function useSubmitWorkspace(
 					? trimmedPrompt
 					: undefined,
 		};
+
+		if (trimmedPrompt) {
+			usePromptHistoryStore.getState().recordPrompt(trimmedPrompt);
+		}
 
 		closeAndResetDraft();
 		const { completed } = submit({ hostId, snapshot });

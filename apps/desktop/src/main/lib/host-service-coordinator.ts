@@ -10,6 +10,7 @@ import { app, dialog } from "electron";
 import log from "electron-log/main";
 import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
+import { env as mainEnv } from "../env.main";
 import { SUPERSET_HOME_DIR } from "./app-environment";
 import { isInternalBuild } from "./build-channel";
 import { acquireSpawnLock } from "./host-service-lock";
@@ -79,6 +80,11 @@ interface HostServiceProcess {
 	owned: boolean;
 }
 
+interface PendingStart {
+	generation: number;
+	promise: Promise<Connection>;
+}
+
 /**
  * Short health check used when deciding whether to adopt a foreign
  * host-service — the endpoint either answers within a couple of attempts or it
@@ -103,6 +109,17 @@ const ADOPT_WAIT_INTERVAL_MS = 250;
 // macOS's default ephemeral range, while still falling back if occupied.
 const STABLE_PORT_BASE = 48_000;
 const STABLE_PORT_COUNT = 1_000;
+const SAFE_ORGANIZATION_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+
+export function isSafeOrganizationId(organizationId: string): boolean {
+	return SAFE_ORGANIZATION_ID_PATTERN.test(organizationId);
+}
+
+function assertSafeOrganizationId(organizationId: string): void {
+	if (!isSafeOrganizationId(organizationId)) {
+		throw new Error("Invalid organization ID");
+	}
+}
 
 function getStablePortForOrganization(organizationId: string): number {
 	let hash = 2_166_136_261;
@@ -130,12 +147,14 @@ function isValidPort(port: number | null | undefined): port is number {
  */
 export class HostServiceCoordinator extends EventEmitter {
 	private instances = new Map<string, HostServiceProcess>();
-	private pendingStarts = new Map<string, Promise<Connection>>();
+	private pendingStarts = new Map<string, PendingStart>();
 	private lastKnownPorts = new Map<string, number>();
 	private scriptPath = path.join(__dirname, "host-service.js");
 	private machineId = getHostId();
 	private devReloadWatcher: fs.FSWatcher | null = null;
 	private respawns = new Map<string, RespawnState>();
+	private desiredOrganizationIds = new Set<string>();
+	private startGeneration = 0;
 	private configProvider: (() => Promise<SpawnConfig | null>) | null = null;
 	/**
 	 * Seam for the respawn delay. Production uses `setTimeout`; tests replace it so
@@ -162,6 +181,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		organizationId: string,
 		config: SpawnConfig,
 	): Promise<Connection> {
+		assertSafeOrganizationId(organizationId);
 		return this.startWithPreferredPorts(organizationId, config);
 	}
 
@@ -170,6 +190,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		config: SpawnConfig,
 		preferredPorts?: Iterable<number>,
 	): Promise<Connection> {
+		const generation = this.startGeneration;
 		const existing = this.instances.get(organizationId);
 		if (existing?.status === "running") {
 			// An adopted entry points at a foreign instance's child we don't
@@ -187,19 +208,43 @@ export class HostServiceCoordinator extends EventEmitter {
 		}
 
 		const pending = this.pendingStarts.get(organizationId);
-		if (pending) return pending;
+		if (pending) {
+			if (pending.generation === generation) return pending.promise;
+			try {
+				await pending.promise;
+			} catch {
+				// A superseded start is expected to reject after teardown.
+			}
+			return this.startWithPreferredPorts(
+				organizationId,
+				config,
+				preferredPorts,
+			);
+		}
+
+		const isStartAllowed = () => this.startGeneration === generation;
 
 		const startPromise = this.startOrAdopt(
 			organizationId,
 			config,
 			preferredPorts ?? this.getPreferredPorts(organizationId),
-		);
-		this.pendingStarts.set(organizationId, startPromise);
+			isStartAllowed,
+		).then((connection) => {
+			if (!isStartAllowed()) {
+				this.stop(organizationId);
+				throw new Error("Host service start cancelled");
+			}
+			return connection;
+		});
+		const pendingStart = { generation, promise: startPromise };
+		this.pendingStarts.set(organizationId, pendingStart);
 
 		try {
 			return await startPromise;
 		} finally {
-			this.pendingStarts.delete(organizationId);
+			if (this.pendingStarts.get(organizationId) === pendingStart) {
+				this.pendingStarts.delete(organizationId);
+			}
 		}
 	}
 
@@ -244,7 +289,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		// drop our local reference below; never SIGTERM it or remove its manifest.
 		if (instance.owned) {
 			try {
-				killProcess(instance.pid, "SIGTERM");
+				if (instance.pid > 0) killProcess(instance.pid, "SIGTERM");
 			} catch {}
 			removeManifest(organizationId);
 		}
@@ -254,6 +299,8 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	stopAll(): void {
+		this.startGeneration++;
+		this.desiredOrganizationIds.clear();
 		for (const [id] of this.instances) {
 			this.stop(id);
 		}
@@ -268,6 +315,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		organizationId: string,
 		config: SpawnConfig,
 	): Promise<Connection> {
+		assertSafeOrganizationId(organizationId);
 		const preferredPorts = this.getPreferredPorts(organizationId);
 		this.stop(organizationId);
 		return this.startWithPreferredPorts(organizationId, config, preferredPorts);
@@ -286,6 +334,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		organizationId: string,
 		config: SpawnConfig,
 	): Promise<Connection> {
+		assertSafeOrganizationId(organizationId);
 		// Capture the manifest pid *before* stop() — stop() removes the manifest
 		// for tracked instances and only sends SIGTERM, which a wedged process
 		// can ignore. We escalate to SIGKILL on whatever pid the manifest named.
@@ -351,40 +400,55 @@ export class HostServiceCoordinator extends EventEmitter {
 	}
 
 	/**
-	 * Start host services for every org this machine has hosted before
-	 * ($SUPERSET_HOME_DIR/host/*). Runs at boot and on sign-in so background
-	 * reachability and port detection never wait for a renderer or cloud sync
-	 * to name orgs; a brand-new org (no dir yet) is started by the renderer
-	 * from its session.
+	 * Reconcile running host services to the authenticated membership set.
+	 * On-disk host directories are storage, not evidence of current membership.
 	 */
-	async startAllKnown(config: SpawnConfig): Promise<void> {
-		const hostRoot = path.join(SUPERSET_HOME_DIR, "host");
-		let entries: fs.Dirent[];
-		try {
-			entries = await fs.promises.readdir(hostRoot, { withFileTypes: true });
-		} catch (error) {
-			// No dir yet = nothing hosted before; anything else is worth seeing.
-			if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-				log.warn(
-					`[host-service-coordinator] cannot read host root ${hostRoot}:`,
-					error,
-				);
-			}
-			return;
-		}
-		const orgIdPattern = /^[0-9a-f]{8}-[0-9a-f-]{27}$/i;
-		await Promise.allSettled(
-			entries
-				.filter((e) => e.isDirectory() && orgIdPattern.test(e.name))
-				.map((e) =>
-					this.start(e.name, config).catch((error) => {
-						log.warn(
-							`[host-service-coordinator] boot start failed for org ${e.name}:`,
-							error,
-						);
-					}),
-				),
+	async reconcile(
+		organizationIds: Iterable<string>,
+		config: SpawnConfig,
+	): Promise<void> {
+		this.startGeneration++;
+		const reconciliationGeneration = this.startGeneration;
+		this.desiredOrganizationIds = new Set(
+			[...organizationIds].filter(isSafeOrganizationId),
 		);
+		this.stopUndesiredOrganizations();
+
+		await Promise.all(
+			[...this.desiredOrganizationIds].map(async (organizationId) => {
+				try {
+					await this.start(organizationId, config);
+				} catch (error) {
+					if (this.startGeneration !== reconciliationGeneration) return;
+					if (!this.desiredOrganizationIds.has(organizationId)) return;
+					log.warn(
+						`[host-service-coordinator] start failed for org ${organizationId}:`,
+						error,
+					);
+					if (!this.respawns.has(organizationId)) {
+						this.scheduleRespawn(organizationId, "initial start failed");
+					}
+				}
+			}),
+		);
+
+		// A newer reconciliation can replace the desired set while an older start
+		// is in flight. Re-check after every start settles so the older call cannot
+		// leave a service running for an organization that is no longer desired.
+		this.stopUndesiredOrganizations();
+	}
+
+	private stopUndesiredOrganizations(): void {
+		const trackedOrganizationIds = new Set([
+			...this.instances.keys(),
+			...this.pendingStarts.keys(),
+			...this.respawns.keys(),
+		]);
+		for (const organizationId of trackedOrganizationIds) {
+			if (!this.desiredOrganizationIds.has(organizationId)) {
+				this.stop(organizationId);
+			}
+		}
 	}
 
 	/**
@@ -490,12 +554,15 @@ export class HostServiceCoordinator extends EventEmitter {
 		organizationId: string,
 		config: SpawnConfig,
 		preferredPorts: Iterable<number>,
+		isStartAllowed: () => boolean,
 	): Promise<Connection> {
-		const adopted = await this.tryAdopt(organizationId);
+		if (!isStartAllowed()) throw new Error("Host service start cancelled");
+		const adopted = await this.tryAdopt(organizationId, isStartAllowed);
 		if (adopted) return adopted;
 
 		const deadline = Date.now() + START_OR_ADOPT_DEADLINE_MS;
 		for (;;) {
+			if (!isStartAllowed()) throw new Error("Host service start cancelled");
 			const lock = acquireSpawnLock(organizationId, {
 				staleMs: SPAWN_LOCK_STALE_MS,
 			});
@@ -503,9 +570,14 @@ export class HostServiceCoordinator extends EventEmitter {
 				try {
 					// A peer may have finished spawning between our first adopt
 					// attempt and taking the lock — re-check before spawning.
-					const raced = await this.tryAdopt(organizationId);
+					const raced = await this.tryAdopt(organizationId, isStartAllowed);
 					if (raced) return raced;
-					return await this.spawn(organizationId, config, preferredPorts);
+					return await this.spawn(
+						organizationId,
+						config,
+						preferredPorts,
+						isStartAllowed,
+					);
 				} finally {
 					lock.release();
 				}
@@ -513,7 +585,7 @@ export class HostServiceCoordinator extends EventEmitter {
 
 			// A live peer holds the lock and is mid-spawn: wait for its manifest
 			// to become healthy, then adopt it.
-			const peer = await this.tryAdopt(organizationId);
+			const peer = await this.tryAdopt(organizationId, isStartAllowed);
 			if (peer) return peer;
 
 			if (Date.now() >= deadline) {
@@ -530,7 +602,11 @@ export class HostServiceCoordinator extends EventEmitter {
 	 * points at a healthy endpoint. Registers a foreign-owned in-process entry
 	 * and returns its connection, or null when there's nothing healthy to adopt.
 	 */
-	private async tryAdopt(organizationId: string): Promise<Connection | null> {
+	private async tryAdopt(
+		organizationId: string,
+		isStartAllowed: () => boolean,
+	): Promise<Connection | null> {
+		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 		const manifest = readManifest(organizationId);
 		if (!manifest) return null;
 
@@ -548,6 +624,7 @@ export class HostServiceCoordinator extends EventEmitter {
 			ADOPT_HEALTH_TIMEOUT_MS,
 		);
 		if (!healthy) return null;
+		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 
 		const previous = this.instances.get(organizationId);
 		this.instances.set(organizationId, {
@@ -572,8 +649,11 @@ export class HostServiceCoordinator extends EventEmitter {
 		organizationId: string,
 		config: SpawnConfig,
 		preferredPorts: Iterable<number> = this.getPreferredPorts(organizationId),
+		isStartAllowed: () => boolean = () => true,
 	): Promise<Connection> {
+		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 		const port = await findFreePort(preferredPorts);
+		if (!isStartAllowed()) throw new Error("Host service start cancelled");
 		this.rememberPort(organizationId, port);
 		const secret = randomBytes(32).toString("hex");
 
@@ -588,6 +668,12 @@ export class HostServiceCoordinator extends EventEmitter {
 		this.emitStatus(organizationId, "starting", null);
 
 		const childEnv = await this.buildEnv(organizationId, port, secret, config);
+		if (!isStartAllowed()) {
+			if (this.instances.get(organizationId) === instance) {
+				this.instances.delete(organizationId);
+			}
+			throw new Error("Host service start cancelled");
+		}
 		const logFd = openRotatingLogFd(
 			path.join(manifestDir(organizationId), "host-service.log"),
 			MAX_HOST_LOG_BYTES,
@@ -649,15 +735,20 @@ export class HostServiceCoordinator extends EventEmitter {
 			endpoint,
 			secret,
 			HEALTH_POLL_TIMEOUT_MS,
-			() => childExited,
+			() => childExited || !isStartAllowed(),
 		);
-		if (!healthy) {
+		if (!healthy || !isStartAllowed()) {
 			if (!childExited) child.kill("SIGTERM");
-			this.instances.delete(organizationId);
+			if (this.instances.get(organizationId) === instance) {
+				this.instances.delete(organizationId);
+			}
+			if (!isStartAllowed()) removeManifest(organizationId);
 			throw new Error(
-				childExited
-					? "Host service process exited during startup"
-					: `Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
+				!isStartAllowed()
+					? "Host service start cancelled"
+					: childExited
+						? "Host service process exited during startup"
+						: `Host service failed to start within ${HEALTH_POLL_TIMEOUT_MS}ms`,
 			);
 		}
 
@@ -706,6 +797,13 @@ export class HostServiceCoordinator extends EventEmitter {
 			// canary and dev builds, never on stable. The host gates its router
 			// and WS stream route on this env var.
 			...(isInternalBuild() ? { SUPERSET_ACP_SESSIONS: "1" } : {}),
+			...(app.isPackaged && mainEnv.SENTRY_DSN_HOST_SERVICE
+				? {
+						SENTRY_DSN: mainEnv.SENTRY_DSN_HOST_SERVICE,
+						SENTRY_RELEASE: app.getVersion(),
+						SENTRY_ENVIRONMENT: "production",
+					}
+				: {}),
 			// Read by the child's parent watchdog so it can self-exit if
 			// Electron crashes without sending SIGTERM (orphan reparenting).
 			HOST_PARENT_PID: String(process.pid),
@@ -775,6 +873,25 @@ export class HostServiceCoordinator extends EventEmitter {
 		const cause =
 			signal != null ? `signal ${signal}` : `exit code ${code ?? "unknown"}`;
 		log.error(`[host-service:${organizationId}] crashed (${cause})`);
+		// The child cannot report its own death for hard kills (SIGSEGV, OOM),
+		// so the supervisor is the only place these are observable. Imported
+		// lazily: a static @sentry/electron import needs electron APIs the
+		// coordinator tests' stub does not provide.
+		void import("@sentry/electron/main")
+			.then((Sentry) =>
+				Sentry.captureMessage(`host-service crashed (${cause})`, {
+					level: "error",
+					tags: {
+						exit_code: String(code ?? "none"),
+						exit_signal: signal ?? "none",
+					},
+					extra: {
+						organizationId,
+						respawnAttempts: this.respawns.get(organizationId)?.attempts ?? 0,
+					},
+				}),
+			)
+			.catch(() => {});
 		this.scheduleRespawn(organizationId, cause);
 	}
 

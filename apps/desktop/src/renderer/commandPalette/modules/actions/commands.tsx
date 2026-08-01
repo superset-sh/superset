@@ -25,6 +25,7 @@ import { SYSTEM_THEME_ID, useThemeStore } from "renderer/stores/theme/store";
 import { useWorkspaceSidebarStore } from "renderer/stores/workspace-sidebar-state";
 import type { Command, CommandProvider } from "../../core/types";
 import { ThemeFrame } from "../../ui/ThemeFrame/ThemeFrame";
+import { checkResourcesCommand } from "../resources/commands";
 
 /** Dev-only fake notices for previewing each surface via the command palette. */
 const PREVIEW_NOTICES = {
@@ -115,6 +116,18 @@ export const actionsProvider: CommandProvider = {
 				renderFrame: () => <ThemeFrame />,
 			},
 			{
+				id: "actions.toggleNotificationSounds",
+				title: context.notificationSoundsMuted
+					? "Unmute notifications"
+					: "Mute notifications",
+				section: "actions",
+				icon: context.notificationSoundsMuted ? BellIcon : BellOffIcon,
+				keywords: ["dnd", "silence", "notifications", "ringtone"],
+				run: () =>
+					toggleNotificationSoundsMuted(context.notificationSoundsMuted),
+			},
+			checkResourcesCommand,
+			{
 				id: "actions.toggleLeftSidebar",
 				title: "Toggle left sidebar",
 				section: "actions",
@@ -136,17 +149,6 @@ export const actionsProvider: CommandProvider = {
 		}
 
 		commands.push(
-			{
-				id: "actions.toggleNotificationSounds",
-				title: context.notificationSoundsMuted
-					? "Unmute notifications"
-					: "Mute notifications",
-				section: "actions",
-				icon: context.notificationSoundsMuted ? BellIcon : BellOffIcon,
-				keywords: ["dnd", "silence", "notifications", "ringtone"],
-				run: () =>
-					toggleNotificationSoundsMuted(context.notificationSoundsMuted),
-			},
 			{
 				id: "actions.showShortcuts",
 				title: "Show keyboard shortcuts",

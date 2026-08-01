@@ -14,7 +14,7 @@
 		"@paper-design/shaders-react": "0.0.77",
 		"@react-three/drei": "10.7.7",
 		"@react-three/fiber": "9.5.0",
-		"@sentry/nextjs": "10.46.0",
+		"@sentry/nextjs": "10.68.0",
 		"@superset/auth": "workspace:*",
 		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",

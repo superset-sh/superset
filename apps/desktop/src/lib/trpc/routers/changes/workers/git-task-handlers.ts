@@ -6,16 +6,27 @@ import {
 } from "@superset/shared/media-files";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import type { SimpleGit, StatusResult } from "simple-git";
-import { getStatusNoLock } from "../../workspaces/utils/git";
+import { getBranchBaseConfig } from "../../workspaces/utils/base-branch-config";
+import {
+	getAheadBehindCount,
+	getCurrentBranch,
+	getStatusNoLock,
+} from "../../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../../workspaces/utils/git-client";
 import { applyNumstatToFiles } from "../utils/apply-numstat";
-import { resolveEffectiveBaseBranch } from "../utils/git-base-branch";
+import {
+	getDefaultBranch,
+	resolveEffectiveBaseBranch,
+} from "../utils/git-base-branch";
 import {
 	parseGitLog,
 	parseGitStatus,
 	parseNameStatus,
 } from "../utils/parse-status";
+import { selectEffectiveBaseBranch } from "../utils/select-effective-base-branch";
 import type {
+	GitBranchesResult,
+	GitFileVersions,
 	GitTaskPayloadMap,
 	GitTaskResultMap,
 	GitTaskType,
@@ -319,6 +330,181 @@ async function computeCommitFiles({
 	return files;
 }
 
+async function getLocalBranchesWithDates(
+	git: SimpleGit,
+	localBranches: string[],
+): Promise<Array<{ branch: string; lastCommitDate: number }>> {
+	try {
+		const branchInfo = await git.raw([
+			"for-each-ref",
+			"--sort=-committerdate",
+			"--format=%(refname:short) %(committerdate:unix)",
+			"refs/heads/",
+		]);
+
+		const local: Array<{ branch: string; lastCommitDate: number }> = [];
+		for (const line of branchInfo.trim().split("\n")) {
+			if (!line) continue;
+			const lastSpaceIdx = line.lastIndexOf(" ");
+			const branch = line.substring(0, lastSpaceIdx);
+			const timestamp = Number.parseInt(line.substring(lastSpaceIdx + 1), 10);
+			if (localBranches.includes(branch)) {
+				local.push({
+					branch,
+					lastCommitDate: timestamp * 1000,
+				});
+			}
+		}
+		return local;
+	} catch (error) {
+		console.warn("[git-task] branch dates unavailable, sorting degraded", {
+			error,
+		});
+		return localBranches.map((branch) => ({ branch, lastCommitDate: 0 }));
+	}
+}
+
+async function getCheckedOutBranches(
+	git: SimpleGit,
+	currentWorktreePath: string,
+): Promise<Record<string, string>> {
+	const checkedOutBranches: Record<string, string> = {};
+
+	try {
+		const worktreeList = await git.raw(["worktree", "list", "--porcelain"]);
+		const lines = worktreeList.split("\n");
+		let currentPath: string | null = null;
+
+		for (const line of lines) {
+			if (line.startsWith("worktree ")) {
+				currentPath = line.substring(9).trim();
+			} else if (line.startsWith("branch ")) {
+				const branch = line.substring(7).trim().replace("refs/heads/", "");
+				if (currentPath && currentPath !== currentWorktreePath) {
+					checkedOutBranches[branch] = currentPath;
+				}
+			}
+		}
+	} catch (error) {
+		console.warn("[git-task] worktree list failed, checked-out map empty", {
+			error,
+		});
+	}
+
+	return checkedOutBranches;
+}
+
+async function computeBranches({
+	worktreePath,
+	persistedWorktree,
+}: GitTaskPayloadMap["getBranches"]): Promise<GitBranchesResult> {
+	const git = await getSimpleGitWithShellPath(worktreePath);
+
+	const branchSummary = await git.branch(["-a"]);
+	const currentBranch = await getCurrentBranch(worktreePath);
+	const { compareBaseBranch } = currentBranch
+		? await getBranchBaseConfig({
+				repoPath: worktreePath,
+				branch: currentBranch,
+			})
+		: { compareBaseBranch: null };
+	const worktreeBaseBranch = selectEffectiveBaseBranch({
+		configuredBaseBranch: compareBaseBranch,
+		persistedWorktree,
+		currentBranch,
+		defaultBranch: null,
+	});
+
+	const localBranches: string[] = [];
+	const remote: string[] = [];
+
+	for (const name of Object.keys(branchSummary.branches)) {
+		if (name.startsWith("remotes/origin/")) {
+			if (name === "remotes/origin/HEAD") continue;
+			const remoteName = name.replace("remotes/origin/", "");
+			remote.push(remoteName);
+		} else {
+			localBranches.push(name);
+		}
+	}
+
+	const local = await getLocalBranchesWithDates(git, localBranches);
+	const defaultBranch = await getDefaultBranch(git, remote);
+	const checkedOutBranches = await getCheckedOutBranches(git, worktreePath);
+
+	return {
+		local,
+		remote: remote.sort(),
+		defaultBranch,
+		checkedOutBranches,
+		worktreeBaseBranch,
+		currentBranch,
+	};
+}
+
+const MAX_FILE_SIZE = 2 * 1024 * 1024;
+
+async function safeGitShow(
+	git: SimpleGit,
+	spec: string,
+): Promise<string | null> {
+	try {
+		// Guard against memory spikes from large blobs in git history
+		try {
+			const sizeOutput = await git.raw(["cat-file", "-s", spec]);
+			const blobSize = Number.parseInt(sizeOutput.trim(), 10);
+			if (!Number.isNaN(blobSize) && blobSize > MAX_FILE_SIZE) {
+				return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
+			}
+		} catch {}
+
+		const content = await git.show([spec]);
+		return content;
+	} catch {
+		return null;
+	}
+}
+
+async function computeFileContents(
+	payload: GitTaskPayloadMap["getFileContents"],
+): Promise<GitFileVersions> {
+	const git = await getSimpleGitWithShellPath(payload.worktreePath);
+
+	switch (payload.category) {
+		case "against-base": {
+			const [original, modified] = await Promise.all([
+				safeGitShow(
+					git,
+					`origin/${payload.defaultBranch}:${payload.originalPath}`,
+				),
+				safeGitShow(git, `HEAD:${payload.filePath}`),
+			]);
+			return { original, modified };
+		}
+		case "committed": {
+			const [original, modified] = await Promise.all([
+				safeGitShow(git, `${payload.commitHash}^:${payload.originalPath}`),
+				safeGitShow(git, `${payload.commitHash}:${payload.filePath}`),
+			]);
+			return { original, modified };
+		}
+		case "staged": {
+			const [original, modified] = await Promise.all([
+				safeGitShow(git, `HEAD:${payload.originalPath}`),
+				safeGitShow(git, `:0:${payload.filePath}`),
+			]);
+			return { original, modified };
+		}
+		case "original": {
+			// Sequential on purpose: skip the HEAD lookup when a staged blob exists.
+			const modified = await safeGitShow(git, `:0:${payload.originalPath}`);
+			if (modified !== null) return { original: null, modified };
+			const original = await safeGitShow(git, `HEAD:${payload.originalPath}`);
+			return { original, modified: null };
+		}
+	}
+}
+
 export async function executeGitTask<TTask extends GitTaskType>(
 	taskType: TTask,
 	payload: GitTaskPayloadMap[TTask],
@@ -331,6 +517,18 @@ export async function executeGitTask<TTask extends GitTaskType>(
 		case "getCommitFiles":
 			return computeCommitFiles(
 				payload as GitTaskPayloadMap["getCommitFiles"],
+			) as Promise<GitTaskResultMap[TTask]>;
+		case "getBranches":
+			return computeBranches(
+				payload as GitTaskPayloadMap["getBranches"],
+			) as Promise<GitTaskResultMap[TTask]>;
+		case "getAheadBehind":
+			return getAheadBehindCount(
+				payload as GitTaskPayloadMap["getAheadBehind"],
+			) as Promise<GitTaskResultMap[TTask]>;
+		case "getFileContents":
+			return computeFileContents(
+				payload as GitTaskPayloadMap["getFileContents"],
 			) as Promise<GitTaskResultMap[TTask]>;
 		default: {
 			const exhaustive: never = taskType;

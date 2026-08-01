@@ -17,16 +17,28 @@ export interface BaseRefFetchTarget {
 const lastFetchStartedAt = new Map<string, number>();
 const inFlightFetches = new Map<string, Promise<void>>();
 
-// Resolved fresh, not path-cached: a worktree path can be reused by a
-// different repo, and a stale mapping would key the dedup off the wrong repo
-// and suppress a needed fetch.
+// TTL-cached per worktree path: resolving spawns a git subprocess on the
+// event loop BEFORE the fetch-TTL check, i.e. every status poll pays it even
+// when the fetch is suppressed. A worktree path re-pointed at a different
+// repo within the TTL only mis-keys the dedupe entry (one extra or one
+// suppressed fetch, bounded by the TTL) — the fetch itself always runs in
+// `worktreePath`, so it can never hit the wrong repo.
+const COMMON_DIR_TTL_MS = 5 * 60_000;
+const commonDirCache = new Map<string, { dir: string; resolvedAt: number }>();
+
 async function resolveCommonDir(
 	git: SimpleGit,
 	worktreePath: string,
 ): Promise<string> {
+	const cached = commonDirCache.get(worktreePath);
+	if (cached && Date.now() - cached.resolvedAt < COMMON_DIR_TTL_MS) {
+		return cached.dir;
+	}
 	// `--git-common-dir` may print a path relative to the worktree root.
 	const raw = (await git.raw(["rev-parse", "--git-common-dir"])).trim();
-	return resolve(worktreePath, raw);
+	const dir = resolve(worktreePath, raw);
+	commonDirCache.set(worktreePath, { dir, resolvedAt: Date.now() });
+	return dir;
 }
 
 /**

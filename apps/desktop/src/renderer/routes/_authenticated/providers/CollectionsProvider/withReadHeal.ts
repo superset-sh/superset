@@ -13,10 +13,16 @@ import type { Parser } from "@tanstack/react-db";
  *
  * The library expects parsed entries to have `{ versionKey, data }` — we
  * preserve that envelope and only reshape `data`.
+ *
+ * Parsing is per-row tolerant, which is why every localStorage collection
+ * applies this wrapper even without a custom `heal`: the library hydrates the
+ * whole store inside one try/catch, so a single malformed entry (or a heal
+ * throw) escaping to it discards every row — and the next mutation persists
+ * that emptiness. Bad entries are dropped here instead, so the rest survive.
  */
 export function withReadHeal<T>(
 	options: T,
-	heal: (raw: unknown) => unknown,
+	heal: (raw: unknown) => unknown = (raw) => raw,
 ): T {
 	const baseParser: Parser = (options as { parser?: Parser }).parser ?? JSON;
 	const healingParser: Parser = {
@@ -33,15 +39,24 @@ export function withReadHeal<T>(
 			const result: Record<string, unknown> = {};
 			for (const [key, value] of Object.entries(parsed)) {
 				if (
-					value &&
-					typeof value === "object" &&
-					"versionKey" in value &&
-					"data" in value
+					!value ||
+					typeof value !== "object" ||
+					!("versionKey" in value) ||
+					!("data" in value)
 				) {
-					const entry = value as { versionKey: unknown; data: unknown };
+					console.warn(
+						`[withReadHeal] Dropping malformed stored entry "${key}"`,
+					);
+					continue;
+				}
+				const entry = value as { versionKey: unknown; data: unknown };
+				try {
 					result[key] = { ...entry, data: heal(entry.data) };
-				} else {
-					result[key] = value;
+				} catch (error) {
+					console.warn(
+						`[withReadHeal] Dropping unhealable stored entry "${key}"`,
+						error,
+					);
 				}
 			}
 			return result;

@@ -1,3 +1,4 @@
+import { toast } from "@superset/ui/sonner";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
@@ -21,6 +22,14 @@ export function useSignOut() {
 				window.setTimeout(resolve, SERVER_REVOKE_TIMEOUT_MS),
 			),
 		]);
-		signOutMutation.mutate();
+		try {
+			await signOutMutation.mutateAsync();
+		} catch (error) {
+			toast.error("Couldn't remove the local sign-in", {
+				description:
+					"Superset may sign you back in after restart. Please try signing out again.",
+			});
+			throw error;
+		}
 	};
 }

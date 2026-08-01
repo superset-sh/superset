@@ -14,7 +14,7 @@
 		"@modelcontextprotocol/sdk": "1.28.0",
 		"@radix-ui/react-collapsible": "1.1.12",
 		"@radix-ui/react-scroll-area": "1.2.10",
-		"@sentry/nextjs": "10.46.0",
+		"@sentry/nextjs": "10.68.0",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-nextjs": "0.13.11",
 		"class-variance-authority": "0.7.1",

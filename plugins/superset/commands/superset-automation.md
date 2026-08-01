@@ -1,6 +1,6 @@
 ---
-description: Manage a single Superset automation — edit its prompt in $EDITOR, view recent runs, or trigger a one-off run.
-argument-hint: <id-or-slug> [edit | logs | run] (default: edit)
+description: "Manage a single Superset automation — edit its prompt in $EDITOR, view recent runs, or trigger a one-off run."
+argument-hint: "<id-or-slug> [edit | logs | run] (default: edit)"
 allowed-tools: Bash(superset:*), Bash(mktemp:*), Bash(${EDITOR}:*), Bash(${VISUAL}:*), Bash(vi:*), Bash(vim:*), Bash(nano:*), Bash(jq:*), AskUserQuestion
 ---
 

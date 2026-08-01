@@ -1,5 +1,4 @@
 import crypto from "node:crypto";
-import fs from "node:fs/promises";
 import { AUTH_PROVIDERS } from "@superset/shared/constants";
 import { getHostId, getHostName } from "@superset/shared/host-info";
 import { observable } from "@trpc/server/observable";
@@ -12,10 +11,11 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import {
 	authEvents,
+	clearToken,
 	loadToken,
+	saveOrganizationIds,
 	saveToken,
 	stateStore,
-	TOKEN_FILE,
 } from "./utils/auth-functions";
 
 export const createAuthRouter = () => {
@@ -37,6 +37,18 @@ export const createAuthRouter = () => {
 			.mutation(async ({ input }) => {
 				await saveToken(input);
 				return { success: true };
+			}),
+
+		persistOrganizationIds: publicProcedure
+			.input(
+				z.object({
+					token: z.string(),
+					organizationIds: z.array(z.string()),
+					expectedRevision: z.number().int().nonnegative(),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				return await saveOrganizationIds(input);
 			}),
 
 		/**
@@ -110,8 +122,7 @@ export const createAuthRouter = () => {
 
 		signOut: publicProcedure.mutation(async () => {
 			getHostServiceCoordinator().stopAll();
-			await fs.unlink(TOKEN_FILE).catch(() => {});
-			authEvents.emit("token-cleared");
+			await clearToken();
 			return { success: true };
 		}),
 	});

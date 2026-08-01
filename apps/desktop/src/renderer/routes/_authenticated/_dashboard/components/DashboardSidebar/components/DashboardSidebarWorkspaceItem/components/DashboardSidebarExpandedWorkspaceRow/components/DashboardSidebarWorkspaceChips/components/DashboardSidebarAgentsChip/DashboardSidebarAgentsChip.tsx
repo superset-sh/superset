@@ -24,16 +24,16 @@ interface DashboardSidebarAgentsChipProps {
 /**
  * Running-agents chip on the workspace row: one avatar (the agent whose
  * status most needs attention, newest session on ties) plus the total count.
- * Hovering the row swaps the count for an × — clicking then stops every
- * agent; hovering the chip opens a card listing each agent with its own
- * open/stop actions.
+ * Hovering or clicking the chip opens a card listing each agent with its own
+ * open/stop actions; clicking the chip again closes the card.
  */
 export function DashboardSidebarAgentsChip({
 	workspaceId,
 	agents,
 }: DashboardSidebarAgentsChipProps) {
 	const { isPending, killAgents } = useDashboardSidebarAgentKill(workspaceId);
-	const { hold, release } = useDashboardSidebarChipHoverSuppression();
+	const { isOpen, onOpenChange, onPointerEnter, onPointerLeave, toggleOpen } =
+		useDashboardSidebarChipHoverSuppression();
 
 	const primaryAgent = agents.reduce((best, agent) => {
 		if (STATUS_PRIORITY[agent.status] !== STATUS_PRIORITY[best.status]) {
@@ -60,19 +60,23 @@ export function DashboardSidebarAgentsChip({
 
 	return (
 		<HoverCard
+			open={isOpen}
 			openDelay={150}
 			closeDelay={120}
-			onOpenChange={(open) => (open ? hold() : release())}
+			onOpenChange={onOpenChange}
 		>
 			<HoverCardTrigger asChild>
 				<Badge asChild variant="secondary">
 					<button
 						type="button"
-						onPointerEnter={hold}
-						onPointerLeave={release}
+						onPointerEnter={onPointerEnter}
+						onPointerLeave={onPointerLeave}
+						onPointerDown={(event) => {
+							event.stopPropagation();
+						}}
 						onClick={(event) => {
 							event.stopPropagation();
-							void handleStopAll();
+							toggleOpen();
 						}}
 						onKeyDown={(event) => {
 							if (event.key === "Enter" || event.key === " ") {
@@ -81,7 +85,8 @@ export function DashboardSidebarAgentsChip({
 						}}
 						disabled={isPending}
 						aria-busy={isPending}
-						aria-label={`${agents.length} running agents — stop all`}
+						aria-expanded={isOpen}
+						aria-label={`${agents.length} running agents — ${isOpen ? "hide" : "show"} details`}
 						className={cn(
 							"group/chip h-[18px] overflow-visible bg-muted/60 px-1.5 py-0 text-[9px] font-medium tabular-nums text-muted-foreground",
 							"[&>svg]:size-2.5 hover:bg-muted hover:text-foreground disabled:opacity-70",
@@ -94,17 +99,7 @@ export function DashboardSidebarAgentsChip({
 								strokeWidth={STROKE_WIDTH}
 							/>
 						) : (
-							// The count and the × share one grid cell and cross-fade while
-							// the chip itself is hovered, so it never changes width.
-							<span className="grid shrink-0 items-center justify-items-center [&>*]:col-start-1 [&>*]:row-start-1">
-								<span className="transition-opacity group-focus-within/chip:opacity-0 group-hover/chip:opacity-0 motion-reduce:transition-none">
-									{agents.length}
-								</span>
-								<LuX
-									className="size-2.5 opacity-0 transition-opacity group-focus-within/chip:opacity-100 group-hover/chip:opacity-100 motion-reduce:transition-none"
-									strokeWidth={STROKE_WIDTH}
-								/>
-							</span>
+							<span className="shrink-0">{agents.length}</span>
 						)}
 					</button>
 				</Badge>

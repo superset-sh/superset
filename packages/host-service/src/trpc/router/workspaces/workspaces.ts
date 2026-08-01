@@ -5,8 +5,11 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
+import { createGitEnvResolver } from "../../../runtime/git";
 import { type ResolvedRef, resolveRef } from "../../../runtime/git/refs";
 import type { HostServiceContext } from "../../../types";
+import { getHostWorkerPool } from "../../../workers/host-worker-pool";
+import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
 import {
 	getLocalWorkspace,
 	insertLocalWorkspace,
@@ -50,7 +53,10 @@ import {
 	PrBranchConflictError,
 } from "../workspace-creation/utils/pr-branch-materialize";
 import { derivePrLocalBranchName } from "../workspace-creation/utils/pr-branch-name";
-import { resolveNewBranchStartPoint } from "../workspace-creation/utils/resolve-new-branch-start-point";
+import {
+	type BaseRefFetcher,
+	resolveNewBranchStartPoint,
+} from "../workspace-creation/utils/resolve-new-branch-start-point";
 import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-branch";
 
 /**
@@ -250,10 +256,32 @@ interface BranchSourcePlan {
 	usedExistingBranch: boolean;
 }
 
+/** Base-ref fetch for workspace creation, executed in the worker pool so the
+ * network fetch's spawn + stdout drain stay off the host-service event loop.
+ * Concurrent creates on the same base coalesce into one fetch. */
+function createWorkerBaseRefFetcher(
+	ctx: Pick<HostServiceContext, "credentials">,
+	repoPath: string,
+): BaseRefFetcher {
+	return async (target) => {
+		const gitEnv = await createGitEnvResolver(ctx.credentials)(repoPath);
+		return getHostWorkerPool().run(
+			gitFetchBaseRefTask,
+			{ worktreePath: repoPath, target, gitEnv },
+			{
+				timeoutMs: 30_000,
+				strategy: "coalesce",
+				dedupeKey: `${repoPath}:base-ref:${target.remote}/${target.branch}`,
+			},
+		);
+	};
+}
+
 async function planBranchSource(
 	git: GitClient,
 	branch: string,
 	baseBranch: string | undefined,
+	fetchRemoteRef?: BaseRefFetcher,
 ): Promise<BranchSourcePlan> {
 	const resolved = await resolveRef(git, branch);
 
@@ -278,7 +306,11 @@ async function planBranchSource(
 		});
 	}
 
-	const startPoint = await resolveNewBranchStartPoint(git, baseBranch);
+	const startPoint = await resolveNewBranchStartPoint(
+		git,
+		baseBranch,
+		fetchRemoteRef,
+	);
 	return { branch, startPoint, usedExistingBranch: false };
 }
 
@@ -477,6 +509,10 @@ export const workspacesRouter = router({
 			await ensureMainWorkspace(ctx, input.projectId, localProject.repoPath);
 
 			const git = await ctx.git(localProject.repoPath);
+			const fetchBaseRefOffLoop = createWorkerBaseRefFetcher(
+				ctx,
+				localProject.repoPath,
+			);
 			const worktreeBaseDir =
 				localProject.worktreeBaseDir ?? getHostWorktreeBaseDir(ctx);
 
@@ -746,7 +782,12 @@ export const workspacesRouter = router({
 					// aware planner. Title-rename can race with that lookup.
 					resolvedBranch = typedBranch;
 					const [planResult, aiNames, existing] = await Promise.all([
-						planBranchSource(git, resolvedBranch, input.baseBranch),
+						planBranchSource(
+							git,
+							resolvedBranch,
+							input.baseBranch,
+							fetchBaseRefOffLoop,
+						),
 						aiNamesPromise ?? Promise.resolve(null),
 						listBranchNames(ctx, localProject.repoPath),
 					]);
@@ -781,7 +822,11 @@ export const workspacesRouter = router({
 					// is a fallback for no-prompt or LLM failure.
 					const [aiNames, startPoint, existing] = await Promise.all([
 						aiNamesPromise ?? Promise.resolve(null),
-						resolveNewBranchStartPoint(git, input.baseBranch),
+						resolveNewBranchStartPoint(
+							git,
+							input.baseBranch,
+							fetchBaseRefOffLoop,
+						),
 						listBranchNames(ctx, localProject.repoPath),
 					]);
 					autoNameFellBack = wantAi && aiNames === null;

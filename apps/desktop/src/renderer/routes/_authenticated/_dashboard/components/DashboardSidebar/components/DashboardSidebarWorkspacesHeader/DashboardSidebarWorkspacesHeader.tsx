@@ -80,7 +80,7 @@ export function DashboardSidebarWorkspacesHeader() {
 						<DropdownMenuTrigger asChild>
 							<button
 								type="button"
-								aria-label="Add repository"
+								aria-label="Add project"
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}
 								className="group/addrepo flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
@@ -90,7 +90,7 @@ export function DashboardSidebarWorkspacesHeader() {
 							</button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Add repository</TooltipContent>
+					<TooltipContent side="bottom">Add project</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent
 					align="end"
@@ -103,7 +103,7 @@ export function DashboardSidebarWorkspacesHeader() {
 				>
 					<DropdownMenuItem onSelect={handleImportFolder}>
 						<VscFolderOpened className="size-4" />
-						Open from folder
+						Open project
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openNewProject()}>
 						<VscGithubAlt className="size-4" />

@@ -4,7 +4,7 @@ description: Connect AI agents directly to Superset via MCP
 ---
 
 <Callout type="info">
-This document covers **MCP v2**. The v1 server is deprecated but still available at `https://api.superset.sh/api/agent/mcp` for existing integrations.
+The Superset MCP server lives at `https://api.superset.sh/mcp`. The versioned URL (`/api/v2/agent/mcp`) keeps working for existing configurations; the legacy v1 server (`/api/agent/mcp`) has been removed and returns `410 Gone`.
 </Callout>
 
 ## Overview
@@ -17,6 +17,8 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 |----------|------------|
 | **Tasks** | list, get (by id or slug), create, update, delete, list statuses |
 | **Workspaces** | list (per host), create on a host, update, delete |
+| **Agents** | list agents on a host, launch an agent session in a workspace |
+| **Terminals** | create in a workspace, list, send input, read screen, close |
 | **Automations** | list, get metadata, get/set prompt body, create, update metadata, pause, resume, run on demand, list runs, delete |
 | **Projects** | list projects on a host |
 | **Hosts** | list hosts (registered machines) you have access to |
@@ -29,17 +31,17 @@ Superset provides an [MCP (Model Context Protocol)](https://modelcontextprotocol
 <Tabs items={["Claude Code", "Codex", "Gemini CLI", "Open Code", "Amp CLI", "Mistral Vibe", "Kimi Code", "Grok"]}>
 <Tab value="Claude Code">
 ```bash title="terminal"
-claude mcp add superset --transport http https://api.superset.sh/api/v2/agent/mcp
+claude mcp add superset --transport http https://api.superset.sh/mcp
 ```
 </Tab>
 <Tab value="Codex">
 ```bash title="terminal"
-codex mcp add superset --url https://api.superset.sh/api/v2/agent/mcp
+codex mcp add superset --url https://api.superset.sh/mcp
 ```
 </Tab>
 <Tab value="Gemini CLI">
 ```bash title="terminal"
-gemini mcp add --transport http superset https://api.superset.sh/api/v2/agent/mcp
+gemini mcp add --transport http superset https://api.superset.sh/mcp
 ```
 </Tab>
 <Tab value="Open Code">
@@ -60,7 +62,7 @@ opencode mcp add
 [2m│[0m  [36mRemote[0m
 [2m│[0m
 [2m◇[0m  Enter MCP server URL
-[2m│[0m  [36mhttps://api.superset.sh/api/v2/agent/mcp[0m
+[2m│[0m  [36mhttps://api.superset.sh/mcp[0m
 [2m│[0m
 [2m◇[0m  Does this server require OAuth authentication?
 [2m│[0m  [36mYes[0m
@@ -73,7 +75,7 @@ opencode mcp add
 </Tab>
 <Tab value="Amp CLI">
 ```bash title="terminal"
-amp mcp add --workspace superset https://api.superset.sh/api/v2/agent/mcp
+amp mcp add --workspace superset https://api.superset.sh/mcp
 ```
 </Tab>
 <Tab value="Mistral Vibe">
@@ -83,14 +85,14 @@ Add to your `.vibe/config.toml`:
 [[mcp_servers]]
 name = "superset"
 transport = "http"
-url = "https://api.superset.sh/api/v2/agent/mcp"
+url = "https://api.superset.sh/mcp"
 ```
 </Tab>
 <Tab value="Kimi Code">
 Run `kimi`, enter `/mcp-config`, and add an HTTP server named `superset` with this URL:
 
 ```text title="Kimi Code"
-https://api.superset.sh/api/v2/agent/mcp
+https://api.superset.sh/mcp
 ```
 
 Then enter `/mcp-config login superset` to authorize it.
@@ -99,7 +101,7 @@ Then enter `/mcp-config login superset` to authorize it.
 Run `grok`, enter `/mcps`, and add an HTTP server named `superset` with this URL:
 
 ```text title="Grok"
-https://api.superset.sh/api/v2/agent/mcp
+https://api.superset.sh/mcp
 ```
 </Tab>
 </Tabs>
@@ -117,7 +119,7 @@ Add a `.mcp.json` to your project root. Claude Code auto-discovers this file and
   "mcpServers": {
     "superset": {
       "type": "http",
-      "url": "https://api.superset.sh/api/v2/agent/mcp"
+      "url": "https://api.superset.sh/mcp"
     }
   }
 }
@@ -131,7 +133,7 @@ Add to your `claude_desktop_config.json`:
   "mcpServers": {
     "superset": {
       "type": "http",
-      "url": "https://api.superset.sh/api/v2/agent/mcp"
+      "url": "https://api.superset.sh/mcp"
     }
   }
 }
@@ -144,7 +146,7 @@ Add to `.cursor/mcp.json` in your project root:
 {
   "mcpServers": {
     "superset": {
-      "url": "https://api.superset.sh/api/v2/agent/mcp"
+      "url": "https://api.superset.sh/mcp"
     }
   }
 }
@@ -155,7 +157,7 @@ Add to your `~/.codex/config.toml`:
 
 ```toml title="config.toml"
 [mcp_servers.superset]
-url = "https://api.superset.sh/api/v2/agent/mcp"
+url = "https://api.superset.sh/mcp"
 ```
 </Tab>
 <Tab value="Gemini CLI">
@@ -165,7 +167,7 @@ Add to your `.gemini/settings.json`:
 {
   "mcpServers": {
     "superset": {
-      "httpUrl": "https://api.superset.sh/api/v2/agent/mcp"
+      "httpUrl": "https://api.superset.sh/mcp"
     }
   }
 }
@@ -180,7 +182,7 @@ Add to your `opencode.json`:
   "mcp": {
     "superset": {
       "type": "remote",
-      "url": "https://api.superset.sh/api/v2/agent/mcp"
+      "url": "https://api.superset.sh/mcp"
     }
   }
 }
@@ -193,7 +195,7 @@ Add to `.amp/settings.json` in your project root:
 {
   "amp.mcpServers": {
     "superset": {
-      "url": "https://api.superset.sh/api/v2/agent/mcp"
+      "url": "https://api.superset.sh/mcp"
     }
   }
 }
@@ -206,7 +208,7 @@ Add to `.vibe/config.toml` in your project root (or `~/.vibe/config.toml` for gl
 [[mcp_servers]]
 name = "superset"
 transport = "http"
-url = "https://api.superset.sh/api/v2/agent/mcp"
+url = "https://api.superset.sh/mcp"
 ```
 </Tab>
 <Tab value="Kimi Code">
@@ -216,7 +218,7 @@ Add to `.kimi-code/mcp.json` in your project root (or `~/.kimi-code/mcp.json` fo
 {
   "mcpServers": {
     "superset": {
-      "url": "https://api.superset.sh/api/v2/agent/mcp"
+      "url": "https://api.superset.sh/mcp"
     }
   }
 }
@@ -229,7 +231,7 @@ Add to your `~/.grok/config.toml`:
 
 ```toml title="~/.grok/config.toml"
 [mcp_servers.superset]
-url = "https://api.superset.sh/api/v2/agent/mcp"
+url = "https://api.superset.sh/mcp"
 ```
 </Tab>
 </Tabs>
@@ -264,7 +266,7 @@ MCP clients that support custom headers can use this directly. For Claude Code, 
   "mcpServers": {
     "superset": {
       "type": "http",
-      "url": "https://api.superset.sh/api/v2/agent/mcp",
+      "url": "https://api.superset.sh/mcp",
       "headers": {
         "Authorization": "Bearer sk_live_your_api_key_here"
       }
@@ -318,6 +320,10 @@ API keys grant full access to your organization. Keep them secret and never comm
 | Tool | Description |
 |------|-------------|
 | `terminals_create` | Create a terminal session in a workspace, optionally running a command |
+| `terminals_list` | List terminal sessions in a workspace |
+| `terminals_send` | Write text into a running terminal (presses Enter by default) |
+| `terminals_read` | Read the terminal screen as plain text (current screen plus recent scrollback) |
+| `terminals_close` | Close a terminal session and kill its process |
 
 ### Automations
 

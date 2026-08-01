@@ -733,12 +733,14 @@ superset workspaces open ws_… --print
 
 #### Opening a specific session
 
-`workspaces open` targets a workspace, not a session. A session started with
-[`agents create`](#superset-agents-create) syncs to the desktop app but has no pane in
-the workspace view until you navigate to it, and there is no session list, so a
-freshly created session is effectively invisible until opened. `workspaces open`
-can't focus a session, so build the deep link yourself and append a query param
-chosen by the session `kind` returned by `agents create`:
+`workspaces open` targets a workspace, not a session. Terminal sessions started
+with [`agents create`](#superset-agents-create) are automatically adopted into
+panes while their workspace is open. Opening the workspace later also creates
+panes for running terminal sessions that aren't already attached, without
+stealing focus from the active tab. `workspaces open` can't focus a specific
+session, so use a session deep link when focus matters. The same deep link
+creates or focuses the pane for a Superset chat session. Choose the query param
+from the session `kind` returned by `agents create`:
 
 | `kind` | Example agents | Query param |
 | --- | --- | --- |
