@@ -383,7 +383,7 @@ function ProjectPage() {
 											</span>
 											<span
 												className="min-w-0 truncate font-mono"
-												title={effectiveCompareBaseBranch}
+												title={effectiveCompareBaseBranch ?? undefined}
 											>
 												{effectiveCompareBaseBranch}
 											</span>
