@@ -2,6 +2,10 @@
 {{MARKER}}
 # cursor-agent lifecycle hook. Event name comes via argv from hooks.json.
 
+# GREP_OPTIONS from the user's shell (e.g. --color=always) makes grep wrap
+# piped matches in ANSI codes, emptying the session-id extraction below.
+unset GREP_OPTIONS
+
 INPUT=$(cat)
 HOOK_SESSION_ID=$(printf '%s' "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 

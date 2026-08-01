@@ -4,6 +4,11 @@
 # host-service endpoint, with a v1 Electron hook fallback while both
 # terminal stacks are supported.
 
+# GREP_OPTIONS from the user's shell (e.g. --color=always) makes grep wrap
+# piped matches in ANSI codes, emptying every extraction below — events
+# would be silently dropped.
+unset GREP_OPTIONS
+
 # Codex passes JSON as argv; Claude/Mastra/Droid/Kimi/Grok pipe via stdin.
 if [ -n "$1" ]; then
   INPUT="$1"
