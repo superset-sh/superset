@@ -9,7 +9,8 @@ interface GitInitConfirmState {
 	 * `git init` the folder, `false` if they cancel/dismiss. Only one request
 	 * can be in flight at a time — a second call resolves the prior request to
 	 * `false` before opening fresh. Safe today because there is a single global
-	 * dialog instance (rendered by AddRepositoryModals).
+	 * dialog instance (rendered by the _authenticated layout). A caller rendered
+	 * outside that layout has nothing to settle its promise and will hang.
 	 */
 	request: (repoPath: string) => Promise<boolean>;
 	resolve: (confirmed: boolean) => void;
