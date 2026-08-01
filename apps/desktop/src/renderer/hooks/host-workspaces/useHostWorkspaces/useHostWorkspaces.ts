@@ -9,13 +9,10 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	applyWorkspaceChangedEvent,
-	areHostWorkspaceQueriesAuthoritative,
 	deriveHostWorkspacesQueryTargets,
 	getHostWorkspacesQueryKey,
-	getHostWorkspacesSnapshotCacheKey,
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
-	isLiveHostWorkspaceQuerySettled,
 	loadHostWorkspacesSnapshot,
 	mergeHostWorkspaces,
 	saveHostWorkspacesSnapshot,
@@ -24,12 +21,6 @@ import {
 export type { HostWorkspaceItem } from "./useHostWorkspaces.utils";
 
 const WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS = 30_000;
-
-interface HostWorkspaceQueryData {
-	rows: HostWorkspaceRow[];
-	/** True only after workspace.list itself completed successfully. */
-	hasLiveList: boolean;
-}
 
 export interface HostWorkspacesCacheOps {
 	/** Resolve the URL to reach the host owning `hostId` (null = unreachable). */
@@ -53,13 +44,6 @@ export interface UseHostWorkspacesResult {
 	 * empty states only — existing rows always render (cache-first rule).
 	 */
 	isReady: boolean;
-	/**
-	 * True only when the host list synced and every host returned a current,
-	 * successful live answer. Persisted snapshots are display-only because
-	 * they have no completeness guarantee. Required by destructive consumers
-	 * such as stale-state GC.
-	 */
-	isAuthoritative: boolean;
 	cache: HostWorkspacesCacheOps;
 }
 
@@ -89,7 +73,7 @@ export function useHostWorkspacesSource(
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 
-	const { data: hosts = [], isReady: hostsReady } = useLiveQuery(
+	const { data: hosts = [] } = useLiveQuery(
 		(q) =>
 			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
 				organizationId: hosts.organizationId,
@@ -123,20 +107,16 @@ export function useHostWorkspacesSource(
 	useEffect(() => {
 		let cancelled = false;
 		for (const target of targets) {
-			const cacheKey = getHostWorkspacesSnapshotCacheKey(
-				target.organizationId,
-				target.machineId,
-			);
-			if (snapshots.has(cacheKey)) continue;
+			if (snapshots.has(target.machineId)) continue;
 			void loadHostWorkspacesSnapshot(
 				target.organizationId,
 				target.machineId,
 			).then((rows) => {
 				if (cancelled || !rows) return;
 				setSnapshots((prev) => {
-					if (prev.has(cacheKey)) return prev;
+					if (prev.has(target.machineId)) return prev;
 					const next = new Map(prev);
-					next.set(cacheKey, rows);
+					next.set(target.machineId, rows);
 					return next;
 				});
 			});
@@ -163,8 +143,8 @@ export function useHostWorkspacesSource(
 			// Bounded retries so an online-per-cloud but tunnel-less relay
 			// target settles into isError quickly instead of holding isReady.
 			retry: 1,
-			queryFn: async (): Promise<HostWorkspaceQueryData> => {
-				if (!target.hostUrl) return { rows: [], hasLiveList: false };
+			queryFn: async (): Promise<HostWorkspaceRow[]> => {
+				if (!target.hostUrl) return [];
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				const rows =
 					(await client.workspace.list.query()) as HostWorkspaceRow[];
@@ -173,7 +153,7 @@ export function useHostWorkspacesSource(
 					target.machineId,
 					rows,
 				);
-				return { rows, hasLiveList: true };
+				return rows;
 			},
 		})),
 	});
@@ -190,10 +170,9 @@ export function useHostWorkspacesSource(
 				"workspace:changed",
 				"*",
 				(workspaceId, event) => {
-					queryClient.setQueryData<HostWorkspaceQueryData | undefined>(
+					queryClient.setQueryData<HostWorkspaceRow[] | undefined>(
 						getHostWorkspacesQueryKey(target),
-						(data) => {
-							const rows = data?.rows;
+						(rows) => {
 							const next = applyWorkspaceChangedEvent(
 								rows,
 								event,
@@ -210,9 +189,7 @@ export function useHostWorkspacesSource(
 									next,
 								);
 							}
-							return next
-								? { rows: next, hasLiveList: data?.hasLiveList ?? false }
-								: data;
+							return next;
 						},
 					);
 				},
@@ -233,17 +210,10 @@ export function useHostWorkspacesSource(
 			mergeHostWorkspaces({
 				hostResults: targets.map((target, index) => {
 					const query = queries[index];
-					const live = query?.data?.rows;
+					const live = query?.data;
 					return {
 						target,
-						rows:
-							live ??
-							snapshots.get(
-								getHostWorkspacesSnapshotCacheKey(
-									target.organizationId,
-									target.machineId,
-								),
-							),
+						rows: live ?? snapshots.get(target.machineId),
 						reachable: live !== undefined && !query?.isError,
 					};
 				}),
@@ -265,29 +235,8 @@ export function useHostWorkspacesSource(
 				query.isSuccess ||
 				query.isError ||
 				targets[index]?.hostUrl === null ||
-				(targets[index] !== undefined &&
-					snapshots.has(
-						getHostWorkspacesSnapshotCacheKey(
-							targets[index].organizationId,
-							targets[index].machineId,
-						),
-					)),
+				snapshots.has(targets[index]?.machineId ?? ""),
 		);
-
-	// Snapshots can be arbitrarily old and are not proof that an omitted
-	// workspace was deleted. Only current successful host lists may authorize
-	// destructive reconciliation.
-	const isAuthoritative = areHostWorkspaceQueriesAuthoritative(
-		hostsReady,
-		targets.length,
-		queries.map((query) =>
-			isLiveHostWorkspaceQuerySettled({
-				isSuccess: query.isSuccess,
-				isFetching: query.isFetching,
-				hasLiveList: query.data?.hasLiveList === true,
-			}),
-		),
-	);
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const targetFor = (hostId: string) =>
@@ -297,33 +246,25 @@ export function useHostWorkspacesSource(
 			upsertWorkspace: (row) => {
 				const target = targetFor(row.hostId);
 				if (!target) return;
-				queryClient.setQueryData<HostWorkspaceQueryData | undefined>(
+				queryClient.setQueryData<HostWorkspaceRow[] | undefined>(
 					getHostWorkspacesQueryKey(target),
-					(data) => {
-						const rows = data?.rows;
-						if (!rows) return { rows: [row], hasLiveList: false };
+					(rows) => {
+						if (!rows) return [row];
 						const exists = rows.some((existing) => existing.id === row.id);
-						const nextRows = exists
+						return exists
 							? rows.map((existing) =>
 									existing.id === row.id ? { ...existing, ...row } : existing,
 								)
 							: [...rows, row];
-						return { rows: nextRows, hasLiveList: data?.hasLiveList ?? false };
 					},
 				);
 			},
 			removeWorkspace: (hostId, workspaceId) => {
 				const target = targetFor(hostId);
 				if (!target) return;
-				queryClient.setQueryData<HostWorkspaceQueryData | undefined>(
+				queryClient.setQueryData<HostWorkspaceRow[] | undefined>(
 					getHostWorkspacesQueryKey(target),
-					(data) =>
-						data
-							? {
-									...data,
-									rows: data.rows.filter((row) => row.id !== workspaceId),
-								}
-							: data,
+					(rows) => rows?.filter((row) => row.id !== workspaceId),
 				);
 			},
 			invalidateHost: (hostId) => {
@@ -336,5 +277,5 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
-	return { workspaces, isReady, isAuthoritative, cache };
+	return { workspaces, isReady, cache };
 }

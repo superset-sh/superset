@@ -37,53 +37,15 @@ export interface HostRowForTargets {
 }
 
 export function getHostWorkspacesQueryKey(
-	target: Pick<
-		HostWorkspacesQueryTarget,
-		"organizationId" | "machineId" | "hostUrl"
-	>,
+	target: Pick<HostWorkspacesQueryTarget, "machineId" | "hostUrl">,
 ) {
 	return [
 		"host-service",
 		"workspaces",
 		"list",
-		target.organizationId,
 		target.machineId,
 		target.hostUrl,
 	] as const;
-}
-
-export function getHostWorkspacesSnapshotCacheKey(
-	organizationId: string,
-	machineId: string,
-): string {
-	return `${organizationId}:${machineId}`;
-}
-
-/** Destructive consumers require a current successful list from every host. */
-export function areHostWorkspaceQueriesAuthoritative(
-	hostsReady: boolean,
-	targetCount: number,
-	querySuccesses: readonly boolean[],
-): boolean {
-	return (
-		hostsReady &&
-		targetCount > 0 &&
-		querySuccesses.length === targetCount &&
-		querySuccesses.every(Boolean)
-	);
-}
-
-/** Optimistic cache writes are successful query data, but not a host list. */
-export function isLiveHostWorkspaceQuerySettled({
-	isFetching,
-	isSuccess,
-	hasLiveList,
-}: {
-	isFetching: boolean;
-	isSuccess: boolean;
-	hasLiveList: boolean;
-}): boolean {
-	return isSuccess && !isFetching && hasLiveList;
 }
 
 /**

@@ -32,7 +32,7 @@ export const PERSISTED_KEY_REGISTRY: PersistedKeyOwner[] = [
 			"failed-workspace-creates-*",
 		],
 		policy:
-			"rows deleted with their workspace/project/section; workspace rows also reconcile-GC'd against live v2Workspaces (useReconcileStaleWorkspaceState)",
+			"rows deleted with their workspace/project/section; collection blobs are isolated per organization",
 	},
 	{
 		file: "src/renderer/routes/_authenticated/providers/CollectionsProvider/withQuotaGuard.ts",
