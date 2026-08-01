@@ -1039,7 +1039,7 @@ export const themeListings: ThemeListing[] = [
 		slug: "tokyo-night-blackout",
 		name: "Tokyo Night Blackout",
 		type: "dark",
-		author: "Enkia (port: Baris Can Sayin)",
+		author: "Enkia (port: Baris Can Sayin); adapted by Michael Talarczyk",
 		submittedBy: "talarczykco",
 		description:
 			"Tokyo Night with the main content area and terminal forced to pure black for OLED displays, while the sidebar keeps its original navy tones.",
