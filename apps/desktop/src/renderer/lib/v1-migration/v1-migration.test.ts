@@ -273,3 +273,113 @@ describe("planTerminalMigration", () => {
 		expect(plan.terminalIdByPaneId.has("pane-3")).toBe(false);
 	});
 });
+
+// --- flip gate + completion markers (2026-08-01 fixes) ---
+
+import {
+	consumeV1ContinuityPending,
+	isForcedFlipVersion,
+	isV1FollowUpPending,
+	markV1MigrationComplete,
+	peekV1ContinuityPending,
+	setV1FollowUpPending,
+} from "./completion";
+import { computeGateComplete, type KindSummary } from "./summary";
+
+const summary = (overrides: Partial<KindSummary> = {}): KindSummary => ({
+	migrated: 0,
+	linked: 0,
+	skipped: 0,
+	failed: 0,
+	deferred: 0,
+	...overrides,
+});
+
+describe("computeGateComplete", () => {
+	test("deliberate skips do not block the flip", () => {
+		// The common aged-install shape: some workspaces have no worktree on
+		// disk anymore, some repos are ambiguous — nothing left to migrate.
+		expect(
+			computeGateComplete(summary({ skipped: 2 }), summary({ skipped: 24 })),
+		).toBe(true);
+	});
+
+	test("failures block the flip", () => {
+		expect(computeGateComplete(summary({ failed: 1 }), summary())).toBe(false);
+		expect(computeGateComplete(summary(), summary({ failed: 1 }))).toBe(false);
+	});
+
+	test("deferred work blocks the flip", () => {
+		expect(computeGateComplete(summary({ deferred: 1 }), summary())).toBe(
+			false,
+		);
+		expect(computeGateComplete(summary(), summary({ deferred: 3 }))).toBe(
+			false,
+		);
+	});
+
+	test("clean pass completes the gate", () => {
+		expect(
+			computeGateComplete(
+				summary({ migrated: 2, linked: 1 }),
+				summary({ migrated: 5, linked: 3 }),
+			),
+		).toBe(true);
+	});
+});
+
+describe("isForcedFlipVersion", () => {
+	test("disabled while unset", () => {
+		expect(isForcedFlipVersion("1.19.0", null)).toBe(false);
+	});
+
+	test("flips at or past the forced version", () => {
+		expect(isForcedFlipVersion("1.19.0", "1.19.0")).toBe(true);
+		expect(isForcedFlipVersion("1.20.1", "1.19.0")).toBe(true);
+		expect(isForcedFlipVersion("1.18.2", "1.19.0")).toBe(false);
+	});
+
+	test("tolerates missing or invalid versions", () => {
+		expect(isForcedFlipVersion(undefined, "1.19.0")).toBe(false);
+		expect(isForcedFlipVersion("not-a-version", "1.19.0")).toBe(false);
+	});
+});
+
+describe("completion markers", () => {
+	// completion.ts reads the global localStorage inside try/catch; give the
+	// bun test runtime a Map-backed shim.
+	const store = new Map<string, string>();
+	// @ts-expect-error minimal Storage shim for tests
+	globalThis.localStorage = {
+		getItem: (k: string) => store.get(k) ?? null,
+		setItem: (k: string, v: string) => void store.set(k, String(v)),
+		removeItem: (k: string) => void store.delete(k),
+		get length() {
+			return store.size;
+		},
+	};
+
+	test("continuity peek is non-destructive; consume is one-shot", () => {
+		markV1MigrationComplete("org-peek");
+		expect(peekV1ContinuityPending("org-peek")).toBe(true);
+		expect(peekV1ContinuityPending("org-peek")).toBe(true);
+		expect(consumeV1ContinuityPending("org-peek")).toBe(true);
+		expect(peekV1ContinuityPending("org-peek")).toBe(false);
+		expect(consumeV1ContinuityPending("org-peek")).toBe(false);
+	});
+
+	test("re-completion does not re-arm continuity", () => {
+		markV1MigrationComplete("org-rearm");
+		expect(consumeV1ContinuityPending("org-rearm")).toBe(true);
+		markV1MigrationComplete("org-rearm");
+		expect(peekV1ContinuityPending("org-rearm")).toBe(false);
+	});
+
+	test("follow-up flag set/clear round-trips", () => {
+		expect(isV1FollowUpPending("org-fu")).toBe(false);
+		setV1FollowUpPending("org-fu", true);
+		expect(isV1FollowUpPending("org-fu")).toBe(true);
+		setV1FollowUpPending("org-fu", false);
+		expect(isV1FollowUpPending("org-fu")).toBe(false);
+	});
+});

@@ -79,11 +79,26 @@ export const createMigrationRouter = () => {
 		/**
 		 * Cross-instance single-flight for the auto-migrator (cf. #5791 for
 		 * host services): one lock file per home dir — instances sharing it
-		 * share local.db, so one runner suffices. Stale (dead pid or aged)
-		 * locks are stolen.
+		 * share local.db, so one runner suffices. Acquisition is atomic (`wx`
+		 * create). Locks are stolen only from dead owners — a live pass is
+		 * never preempted however long it runs; the 24h age escape only
+		 * covers pid reuse by an unrelated long-lived process.
 		 */
 		acquireRunLock: publicProcedure.mutation(() => {
 			const path = join(SUPERSET_HOME_DIR, "v1-migration.lock");
+			const tryExclusiveWrite = () => {
+				try {
+					writeFileSync(
+						path,
+						JSON.stringify({ pid: process.pid, at: Date.now() }),
+						{ flag: "wx" },
+					);
+					return true;
+				} catch {
+					return false;
+				}
+			};
+			if (tryExclusiveWrite()) return { acquired: true as const };
 			try {
 				const lock = JSON.parse(readFileSync(path, "utf8")) as {
 					pid: number;
@@ -97,13 +112,17 @@ export const createMigrationRouter = () => {
 						return false;
 					}
 				})();
-				const stale = Date.now() - lock.at > 10 * 60 * 1000;
-				if (alive && !stale && lock.pid !== process.pid) {
+				const ancient = Date.now() - lock.at > 24 * 60 * 60 * 1000;
+				if (alive && lock.pid !== process.pid && !ancient) {
 					return { acquired: false as const };
 				}
+			} catch {
+				// Unreadable/corrupt lock: treat as dead and steal.
+			}
+			try {
+				unlinkSync(path);
 			} catch {}
-			writeFileSync(path, JSON.stringify({ pid: process.pid, at: Date.now() }));
-			return { acquired: true as const };
+			return { acquired: tryExclusiveWrite() };
 		}),
 
 		releaseRunLock: publicProcedure.mutation(() => {

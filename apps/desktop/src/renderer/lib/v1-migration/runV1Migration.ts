@@ -21,6 +21,7 @@ import {
 	importV1Project,
 } from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
+import { computeGateComplete, emptySummary, type KindSummary } from "./summary";
 import {
 	type PendingMigratedTerminal,
 	planTerminalMigration,
@@ -31,14 +32,7 @@ import {
 	type V1WorktreeLike,
 } from "./workspaces";
 
-export interface KindSummary {
-	migrated: number;
-	linked: number;
-	skipped: number;
-	failed: number;
-	/** Entities we deliberately left for a later run (e.g. project not yet imported). */
-	deferred: number;
-}
+export { computeGateComplete, type KindSummary } from "./summary";
 
 export interface V1MigrationSummary {
 	projects: KindSummary;
@@ -46,7 +40,7 @@ export interface V1MigrationSummary {
 	presets: KindSummary;
 	settings: KindSummary;
 	terminals: KindSummary;
-	/** D4 flip gate: every v1 project and workspace is success/linked in the ledger. */
+	/** D4 flip gate — see computeGateComplete. */
 	gateComplete: boolean;
 }
 
@@ -80,10 +74,6 @@ export interface RunV1MigrationDeps {
 			terminals: PendingMigratedTerminal[],
 		) => void;
 	};
-}
-
-function emptySummary(): KindSummary {
-	return { migrated: 0, linked: 0, skipped: 0, failed: 0, deferred: 0 };
 }
 
 function errorMessage(err: unknown): string {
@@ -136,11 +126,14 @@ export async function runV1Migration(
 		});
 	}
 
-	const gateComplete =
-		projects.failed + projects.skipped + projects.deferred === 0 &&
-		workspaces.failed + workspaces.skipped + workspaces.deferred === 0;
-
-	return { projects, workspaces, presets, settings, terminals, gateComplete };
+	return {
+		projects,
+		workspaces,
+		presets,
+		settings,
+		terminals,
+		gateComplete: computeGateComplete(projects, workspaces),
+	};
 }
 
 async function migrateProjects(
@@ -306,7 +299,11 @@ async function migrateWorkspaces(
 		onDiskBranchesByV2ProjectId,
 	});
 
-	summary.deferred += plan.unmappedProject.length;
+	// A workspace is unmapped exactly when its project's import failed or was
+	// skipped this pass — the project's own outcome already carries any gate
+	// blocking, so count these as skipped, not deferred (deferred would block
+	// the flip forever for workspaces of permanently-skipped projects).
+	summary.skipped += plan.unmappedProject.length;
 
 	for (const adopted of plan.alreadyAdopted) {
 		summary.linked++;

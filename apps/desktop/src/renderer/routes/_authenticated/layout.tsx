@@ -291,11 +291,8 @@ function AuthenticatedLayout() {
 								<DaemonAutoUpdateFailureDialog />
 								<Outlet />
 								<V1ImportModal />
-								{isV2CloudEnabled ? (
-									<V1MigrationContinuity />
-								) : (
-									<V1AutoMigration />
-								)}
+								{isV2CloudEnabled ? <V1MigrationContinuity /> : null}
+								<V1AutoMigration />
 								<WorkspaceInitEffects />
 								{isV2CloudEnabled ? (
 									<DashboardNewWorkspaceModal />
