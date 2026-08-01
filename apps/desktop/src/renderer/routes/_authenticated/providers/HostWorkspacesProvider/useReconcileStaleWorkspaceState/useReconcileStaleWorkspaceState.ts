@@ -12,9 +12,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
  * locally before any host lists them) out of reach.
  */
 const CREATE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
-
-const reconciledOrgs = new Set<string>();
-const reconcilingOrgs = new Set<string>();
+const RECONCILE_ATTEMPTS = 2;
 
 /** Structural subset of the v2WorkspaceLocalState collection the GC needs. */
 export interface WorkspaceLocalStateCollectionLike {
@@ -83,42 +81,66 @@ export function useReconcileStaleWorkspaceState(
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId;
 	const latestInput = useRef({ organizationId, isAuthoritative, workspaces });
+	const reconciledOrgs = useRef(new Set<string>());
+	const reconcileRuns = useRef(new Map<string, symbol>());
 	latestInput.current = { organizationId, isAuthoritative, workspaces };
 
 	useEffect(() => {
 		if (!isAuthoritative || !organizationId) return;
 		if (
-			reconciledOrgs.has(organizationId) ||
-			reconcilingOrgs.has(organizationId)
+			reconciledOrgs.current.has(organizationId) ||
+			reconcileRuns.current.has(organizationId)
 		) {
 			return;
 		}
-		reconcilingOrgs.add(organizationId);
+		const run = Symbol(organizationId);
+		reconcileRuns.current.set(organizationId, run);
+		let cancelled = false;
 
-		void localState
-			.preload()
-			.then(() => {
-				const latest = latestInput.current;
-				if (
-					latest.organizationId !== organizationId ||
-					!latest.isAuthoritative
-				) {
+		void (async () => {
+			for (let attempt = 1; attempt <= RECONCILE_ATTEMPTS; attempt += 1) {
+				try {
+					await localState.preload();
+					if (cancelled) return;
+					const latest = latestInput.current;
+					if (
+						latest.organizationId !== organizationId ||
+						!latest.isAuthoritative
+					) {
+						return;
+					}
+					reconcileStaleWorkspaceState(
+						localState,
+						getAuthoritativeWorkspaceIds(latest.workspaces),
+					);
+					reconciledOrgs.current.add(organizationId);
+					return;
+				} catch (error) {
+					if (cancelled) return;
+					const latest = latestInput.current;
+					const canRetry =
+						attempt < RECONCILE_ATTEMPTS &&
+						latest.organizationId === organizationId &&
+						latest.isAuthoritative;
+					if (canRetry) continue;
+					console.warn(
+						`[workspace-local-state-gc] Reconciliation failed for organization ${organizationId} after ${attempt} attempts; deferred until the next eligibility change or session`,
+						error,
+					);
 					return;
 				}
-				reconcileStaleWorkspaceState(
-					localState,
-					getAuthoritativeWorkspaceIds(latest.workspaces),
-				);
-				reconciledOrgs.add(organizationId);
-			})
-			.catch((error) => {
-				console.warn(
-					`[workspace-local-state-gc] Reconciliation failed for organization ${organizationId}; will retry after eligibility changes or next session`,
-					error,
-				);
-			})
-			.finally(() => {
-				reconcilingOrgs.delete(organizationId);
-			});
+			}
+		})().finally(() => {
+			if (reconcileRuns.current.get(organizationId) === run) {
+				reconcileRuns.current.delete(organizationId);
+			}
+		});
+
+		return () => {
+			cancelled = true;
+			if (reconcileRuns.current.get(organizationId) === run) {
+				reconcileRuns.current.delete(organizationId);
+			}
+		};
 	}, [isAuthoritative, organizationId, localState]);
 }
