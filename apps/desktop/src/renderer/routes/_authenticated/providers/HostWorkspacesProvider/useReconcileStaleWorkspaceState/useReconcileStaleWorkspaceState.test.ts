@@ -86,4 +86,13 @@ describe("reconcileStaleWorkspaceState", () => {
 		).toBe(1);
 		expect(localState.ids()).toEqual([]);
 	});
+
+	test("does not grant an indefinite grace to future timestamps", () => {
+		const localState = fakeLocalState([
+			["future-clock-skew", new Date(NOW + 365 * DAY_MS).toISOString()],
+		]);
+
+		expect(reconcileStaleWorkspaceState(localState, new Set(), NOW)).toBe(1);
+		expect(localState.ids()).toEqual([]);
+	});
 });

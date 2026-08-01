@@ -9,6 +9,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
 	applyWorkspaceChangedEvent,
+	areHostWorkspaceQueriesAuthoritative,
 	deriveHostWorkspacesQueryTargets,
 	getHostWorkspacesQueryKey,
 	getHostWorkspacesSnapshotCacheKey,
@@ -46,11 +47,10 @@ export interface UseHostWorkspacesResult {
 	 */
 	isReady: boolean;
 	/**
-	 * True only when `workspaces` provably contains every workspace that
-	 * exists anywhere: the host list synced and every host is represented by
-	 * a live answer or a persisted snapshot. Unlike `isReady`, an errored
-	 * host with no snapshot blocks this — its workspaces would otherwise be
-	 * invisible. Required by destructive consumers (stale-state GC).
+	 * True only when the host list synced and every host returned a current,
+	 * successful live answer. Persisted snapshots are display-only because
+	 * they have no completeness guarantee. Required by destructive consumers
+	 * such as stale-state GC.
 	 */
 	isAuthoritative: boolean;
 	cache: HostWorkspacesCacheOps;
@@ -264,23 +264,14 @@ export function useHostWorkspacesSource(
 					)),
 		);
 
-	// hostsReady guards the target list itself: on an offline cold start the
-	// hosts collection serves cached rows without reaching ready, and a
-	// partial target list would make remote-host workspaces look deleted.
-	const isAuthoritative =
-		hostsReady &&
-		targets.length > 0 &&
-		queries.every(
-			(query, index) =>
-				query.isSuccess ||
-				(targets[index] !== undefined &&
-					snapshots.has(
-						getHostWorkspacesSnapshotCacheKey(
-							targets[index].organizationId,
-							targets[index].machineId,
-						),
-					)),
-		);
+	// Snapshots can be arbitrarily old and are not proof that an omitted
+	// workspace was deleted. Only current successful host lists may authorize
+	// destructive reconciliation.
+	const isAuthoritative = areHostWorkspaceQueriesAuthoritative(
+		hostsReady,
+		targets.length,
+		queries.map((query) => query.isSuccess && !query.isFetching),
+	);
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const targetFor = (hostId: string) =>

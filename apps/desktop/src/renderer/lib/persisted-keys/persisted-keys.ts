@@ -43,18 +43,18 @@ function matchesDeadKey(key: string): boolean {
  * Run once at renderer boot. Removes keys from features that no longer
  * exist; returns the number of keys removed.
  */
-export function sweepDeadPersistedKeys(
-	storage: Storage = localStorage,
-): number {
+export function sweepDeadPersistedKeys(storage?: Storage): number {
 	try {
+		const resolvedStorage = storage ?? localStorage;
 		const doomed: string[] = [];
-		for (let i = 0; i < storage.length; i++) {
-			const key = storage.key(i);
+		for (let i = 0; i < resolvedStorage.length; i++) {
+			const key = resolvedStorage.key(i);
 			if (key && matchesDeadKey(key)) doomed.push(key);
 		}
-		for (const key of doomed) storage.removeItem(key);
+		for (const key of doomed) resolvedStorage.removeItem(key);
 		return doomed.length;
-	} catch {
+	} catch (error) {
+		console.warn("[persisted-keys] Dead-key sweep failed", error);
 		return 0;
 	}
 }

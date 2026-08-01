@@ -243,7 +243,12 @@ export const PERSISTED_KEY_REGISTRY: PersistedKeyOwner[] = [
 	},
 	{
 		file: "src/renderer/hooks/useAgentLaunchPreferences/useAgentLaunchPreferences.ts",
-		keys: ["lastSelectedV2WorkspaceCreateAgent", "lastOpenedInProjectId"],
+		keys: [
+			"lastSelectedV2WorkspaceCreateAgent",
+			"lastOpenedInProjectId",
+			"lastSelectedAgent",
+			"agentAutoRun",
+		],
 		policy: "singleton ids",
 	},
 	{

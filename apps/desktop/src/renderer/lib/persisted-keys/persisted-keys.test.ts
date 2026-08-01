@@ -1,4 +1,4 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, spyOn, test } from "bun:test";
 // biome-ignore lint/style/noRestrictedImports: test file needs fs/path for source verification
 import { readdirSync, readFileSync } from "node:fs";
 // biome-ignore lint/style/noRestrictedImports: test file needs fs/path for source verification
@@ -52,6 +52,26 @@ describe("sweepDeadPersistedKeys", () => {
 		expect(storage.getItem("notification-center-store-v2")).toBe("{}");
 	});
 
+	test("reports storage failures without breaking renderer boot", () => {
+		const error = new DOMException("storage disabled", "SecurityError");
+		const storage = {
+			get length(): number {
+				throw error;
+			},
+		} as Storage;
+		const warn = spyOn(console, "warn").mockImplementation(() => {});
+
+		try {
+			expect(sweepDeadPersistedKeys(storage)).toBe(0);
+			expect(warn).toHaveBeenCalledWith(
+				"[persisted-keys] Dead-key sweep failed",
+				error,
+			);
+		} finally {
+			warn.mockRestore();
+		}
+	});
+
 	test("no dead key shadows a registered live key", () => {
 		const liveKeys = PERSISTED_KEY_REGISTRY.flatMap((owner) => owner.keys);
 		for (const dead of DEAD_KEYS) {
@@ -82,16 +102,63 @@ function walk(dir: string): string[] {
 	});
 }
 
-/** Block comments and whole-line // comments; debug hints in comments must
- * not register a file as a writer. */
+/** Remove comments without treating comment markers inside strings as syntax. */
 function stripComments(source: string): string {
-	return source.replace(/\/\*[\s\S]*?\*\//g, "").replace(/^\s*\/\/.*$/gm, "");
+	let result = "";
+	let quote: '"' | "'" | "`" | undefined;
+	let escaped = false;
+
+	for (let index = 0; index < source.length; index += 1) {
+		const char = source[index];
+		const next = source[index + 1];
+
+		if (quote) {
+			result += char;
+			if (escaped) escaped = false;
+			else if (char === "\\") escaped = true;
+			else if (char === quote) quote = undefined;
+			continue;
+		}
+
+		if (char === '"' || char === "'" || char === "`") {
+			quote = char;
+			result += char;
+			continue;
+		}
+
+		if (char === "/" && next === "/") {
+			index += 2;
+			while (index < source.length && source[index] !== "\n") index += 1;
+			result += source[index] ?? "";
+			continue;
+		}
+
+		if (char === "/" && next === "*") {
+			index += 2;
+			while (
+				index < source.length &&
+				!(source[index] === "*" && source[index + 1] === "/")
+			) {
+				if (source[index] === "\n") result += "\n";
+				index += 1;
+			}
+			index += 1;
+			continue;
+		}
+
+		result += char;
+	}
+
+	return result;
 }
 
 function isPersistedKeyWriter(source: string): boolean {
 	const code = stripComments(source);
 	if (/localStorageCollectionOptions\s*\(/.test(code)) return true;
-	if (code.includes("zustand/middleware") && /\bpersist\s*\(/.test(code)) {
+	if (
+		code.includes("zustand/middleware") &&
+		/\bpersist\s*(?:<|\()/.test(code)
+	) {
 		return true;
 	}
 	const withoutSessionStorageWrites = code.replace(
@@ -116,13 +183,41 @@ describe("isPersistedKeyWriter", () => {
 			`),
 		).toBe(true);
 	});
+
+	test("ignores localStorage hints in trailing comments", () => {
+		expect(
+			isPersistedKeyWriter(
+				'const value = "temporary"; // localStorage.setItem("key", value)',
+			),
+		).toBe(false);
+	});
+
+	test("does not mistake URLs in strings for comments", () => {
+		expect(
+			isPersistedKeyWriter(
+				'const url = "https://example.com"; localStorage.setItem("key", url)',
+			),
+		).toBe(true);
+	});
+
+	test("detects typed zustand persist calls", () => {
+		expect(
+			isPersistedKeyWriter(`
+				import { persist } from "zustand/middleware";
+				persist<State>(() => ({ value: true }));
+			`),
+		).toBe(true);
+	});
 });
 
 describe("persisted-key registry", () => {
 	test("every localStorage writer is registered, and no entry is stale", () => {
 		const writers = walk(RENDERER_DIR)
 			.filter((path) => isPersistedKeyWriter(readFileSync(path, "utf8")))
-			.map((path) => `src/renderer/${relative(RENDERER_DIR, path)}`)
+			.map(
+				(path) =>
+					`src/renderer/${relative(RENDERER_DIR, path).replaceAll("\\", "/")}`,
+			)
 			.sort();
 		const registered = PERSISTED_KEY_REGISTRY.map((owner) => owner.file).sort();
 

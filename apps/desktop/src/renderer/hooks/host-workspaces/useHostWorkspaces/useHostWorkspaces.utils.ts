@@ -59,6 +59,20 @@ export function getHostWorkspacesSnapshotCacheKey(
 	return `${organizationId}:${machineId}`;
 }
 
+/** Destructive consumers require a current successful list from every host. */
+export function areHostWorkspaceQueriesAuthoritative(
+	hostsReady: boolean,
+	targetCount: number,
+	querySuccesses: readonly boolean[],
+): boolean {
+	return (
+		hostsReady &&
+		targetCount > 0 &&
+		querySuccesses.length === targetCount &&
+		querySuccesses.every(Boolean)
+	);
+}
+
 /**
  * One target per known host: the local host always (direct URL), remote
  * hosts via relay when online, and a null-URL placeholder when offline so

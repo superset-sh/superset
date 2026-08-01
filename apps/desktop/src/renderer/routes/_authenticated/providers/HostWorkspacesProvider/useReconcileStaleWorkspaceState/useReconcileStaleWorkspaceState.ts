@@ -14,6 +14,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 const CREATE_GRACE_MS = 7 * 24 * 60 * 60 * 1000;
 
 const reconciledOrgs = new Set<string>();
+const reconcilingOrgs = new Set<string>();
 
 /** Structural subset of the v2WorkspaceLocalState collection the GC needs. */
 export interface WorkspaceLocalStateCollectionLike {
@@ -33,9 +34,11 @@ export function reconcileStaleWorkspaceState(
 			row.createdAt instanceof Date
 				? row.createdAt.getTime()
 				: Date.parse(row.createdAt);
+		const age = now - createdAt;
 		// Rows with an unparseable createdAt predate the schema default and
-		// can't be in-flight creates — treat them as past the grace.
-		if (Number.isFinite(createdAt) && now - createdAt < CREATE_GRACE_MS) {
+		// can't be in-flight creates — treat them as past the grace. Future
+		// timestamps are not allowed to extend the grace indefinitely.
+		if (Number.isFinite(age) && age >= 0 && age < CREATE_GRACE_MS) {
 			continue;
 		}
 		doomed.push(workspaceId);
@@ -48,9 +51,9 @@ export function reconcileStaleWorkspaceState(
 
 /**
  * One reconcile pass per org per session, and only from an authoritative
- * workspace list — `isAuthoritative` (not `isReady`) is the gate because a
- * host that errored with no snapshot leaves its workspaces invisible, which
- * must block deletion, not enable it.
+ * workspace list — `isAuthoritative` (not `isReady`) requires a settled live
+ * response from every host. Snapshots still render offline, but their age and
+ * completeness are unknown, so they must never authorize deletion.
  */
 export function useReconcileStaleWorkspaceState(
 	workspaces: HostWorkspaceItem[],
@@ -62,12 +65,32 @@ export function useReconcileStaleWorkspaceState(
 
 	useEffect(() => {
 		if (!isAuthoritative || !organizationId) return;
-		if (reconciledOrgs.has(organizationId)) return;
-		reconciledOrgs.add(organizationId);
+		if (
+			reconciledOrgs.has(organizationId) ||
+			reconcilingOrgs.has(organizationId)
+		) {
+			return;
+		}
+		reconcilingOrgs.add(organizationId);
 
 		const liveIds = new Set(workspaces.map((workspace) => workspace.id));
-		void collections.v2WorkspaceLocalState.preload().then(() => {
-			reconcileStaleWorkspaceState(collections.v2WorkspaceLocalState, liveIds);
-		});
+		void collections.v2WorkspaceLocalState
+			.preload()
+			.then(() => {
+				reconcileStaleWorkspaceState(
+					collections.v2WorkspaceLocalState,
+					liveIds,
+				);
+				reconciledOrgs.add(organizationId);
+			})
+			.catch((error) => {
+				console.warn(
+					"[workspace-local-state-gc] Reconciliation failed; remains eligible for retry",
+					error,
+				);
+			})
+			.finally(() => {
+				reconcilingOrgs.delete(organizationId);
+			});
 	}, [isAuthoritative, organizationId, workspaces, collections]);
 }
