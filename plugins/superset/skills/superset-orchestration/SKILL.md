@@ -7,8 +7,6 @@ description: Coordinate multiple terminal coding agents through the Superset CLI
 
 Coordinate terminal agents with Superset's workspace, agent, and terminal commands. Treat this as a coordinator-driven protocol: Superset provides session transport, while the coordinator owns task dependencies and completion state.
 
-For a detailed comparison with Orca's native orchestration runtime, read [references/orca-parity.md](references/orca-parity.md).
-
 ## Establish the control surface
 
 1. Run `superset auth whoami --json`.
