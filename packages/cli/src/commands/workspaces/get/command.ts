@@ -1,6 +1,6 @@
 import { CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { findHostWorkspace } from "../../../lib/host-workspaces";
+import { findWorkspaceOnHost } from "../../../lib/host-workspaces";
 
 export default command({
 	description: "Show details for a single workspace by id",
@@ -8,6 +8,7 @@ export default command({
 		positional("id").desc("Workspace ID (defaults to $SUPERSET_WORKSPACE_ID)"),
 	],
 	options: {
+		host: string().desc("Host the workspace lives on (default: this machine)"),
 		field: string()
 			.alias("f")
 			.desc(
@@ -29,33 +30,29 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		// Workspace records are host-owned: resolve the id across the org's
-		// reachable hosts, then enrich project/host ids with cloud names.
-		const [{ workspace, warnings }, projects, hosts] = await Promise.all([
-			findHostWorkspace(
-				{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+		// The row carries its host-served project name; the host id is
+		// enriched with its cloud name for display only.
+		const [{ hostId, workspace }, hosts] = await Promise.all([
+			findWorkspaceOnHost(
+				{
+					organizationId,
+					userJwt: ctx.bearer,
+					hostId: options.host ?? undefined,
+				},
 				id,
 			),
-			ctx.api.v2Project.list
-				.query({ organizationId })
-				.catch(() => [] as Array<{ id: string; name: string }>),
 			ctx.api.host.list
 				.query({ organizationId })
 				.catch(() => [] as Array<{ id: string; name: string }>),
 		]);
-		for (const warning of warnings) {
-			process.stderr.write(`Warning: ${warning}\n`);
-		}
 		if (!workspace) {
 			throw new CLIError(
-				`Workspace not found on any reachable host: ${id}`,
-				"List workspaces with: superset workspaces list",
+				`Workspace not found on host ${hostId}: ${id}`,
+				"Pass --host <id> if it lives on another machine. List with: superset workspaces list",
 			);
 		}
 
-		const projectName =
-			projects.find((project) => project.id === workspace.projectId)?.name ??
-			workspace.projectId;
+		const projectName = workspace.projectName ?? workspace.projectId;
 		const hostName =
 			hosts.find((host) => host.id === workspace.hostId)?.name ??
 			workspace.hostId;

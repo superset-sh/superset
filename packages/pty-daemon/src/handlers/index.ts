@@ -5,7 +5,6 @@ export {
 	handleList,
 	handleOpen,
 	handleResize,
-	handleSnapshot,
 	handleSubscribe,
 	handleUnsubscribe,
 } from "./handlers.ts";

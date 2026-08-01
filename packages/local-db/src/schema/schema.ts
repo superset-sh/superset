@@ -2,6 +2,7 @@ import {
 	index,
 	integer,
 	primaryKey,
+	real,
 	sqliteTable,
 	text,
 } from "drizzle-orm/sqlite-core";
@@ -211,6 +212,9 @@ export const settings = sqliteTable("settings", {
 	autoApplyDefaultPreset: integer("auto_apply_default_preset", {
 		mode: "boolean",
 	}),
+	waitForSetupBeforeAgent: integer("wait_for_setup_before_agent", {
+		mode: "boolean",
+	}),
 	branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 	branchPrefixCustom: text("branch_prefix_custom"),
 	notificationSoundsMuted: integer("notification_sounds_muted", {
@@ -225,9 +229,22 @@ export const settings = sqliteTable("settings", {
 	}),
 	terminalFontFamily: text("terminal_font_family"),
 	terminalFontSize: integer("terminal_font_size"),
+	terminalLineHeight: real("terminal_line_height"),
+	terminalLetterSpacing: real("terminal_letter_spacing"),
+	terminalFontWeight: integer("terminal_font_weight"),
+	terminalLigatures: integer("terminal_ligatures", { mode: "boolean" }),
+	terminalMinimumContrast: real("terminal_minimum_contrast"),
+	terminalCursorStyle: text("terminal_cursor_style").$type<
+		"block" | "bar" | "underline"
+	>(),
+	terminalCursorBlink: integer("terminal_cursor_blink", { mode: "boolean" }),
 	terminalParkedRuntimeCap: integer("terminal_parked_runtime_cap"),
 	editorFontFamily: text("editor_font_family"),
 	editorFontSize: integer("editor_font_size"),
+	editorLineHeight: real("editor_line_height"),
+	editorLetterSpacing: real("editor_letter_spacing"),
+	editorFontWeight: integer("editor_font_weight"),
+	editorLigatures: integer("editor_ligatures", { mode: "boolean" }),
 	showResourceMonitor: integer("show_resource_monitor", { mode: "boolean" }),
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),

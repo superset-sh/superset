@@ -1,8 +1,9 @@
 import { existsSync } from "node:fs";
+import { basename } from "node:path";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
-import { workspaces } from "../../../db/schema";
+import { projects, workspaces } from "../../../db/schema";
 import {
 	toCloudShape,
 	updateLocalWorkspace,
@@ -38,10 +39,25 @@ export const workspaceRouter = router({
 	 */
 	list: protectedProcedure.query(({ ctx }) => {
 		const rows = ctx.db.select().from(workspaces).all();
+		const projectNameById = new Map(
+			ctx.db
+				.select({
+					id: projects.id,
+					name: projects.name,
+					repoPath: projects.repoPath,
+				})
+				.from(projects)
+				.all()
+				.map((project) => [
+					project.id,
+					project.name || basename(project.repoPath),
+				]),
+		);
 		return rows.map((row) => ({
 			...toCloudShape(row, ctx.organizationId),
 			worktreePath: row.worktreePath,
 			worktreeExists: existsSync(row.worktreePath),
+			projectName: projectNameById.get(row.projectId) ?? null,
 		}));
 	}),
 

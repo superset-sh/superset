@@ -3,16 +3,40 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { NOTIFY_SCRIPT_MARKER } from "./notify-hook";
 
+const notifyHookTemplatePath = path.join(
+	import.meta.dir,
+	"templates",
+	"notify-hook.template.sh",
+);
+
+function readNotifyHookTemplate(): string {
+	return readFileSync(notifyHookTemplatePath, "utf-8");
+}
+
+function runNotifyHook(input: Record<string, unknown>) {
+	const script = readNotifyHookTemplate()
+		.replaceAll("{{MARKER}}", NOTIFY_SCRIPT_MARKER)
+		.replaceAll("{{DEFAULT_PORT}}", "48763");
+	return Bun.spawnSync({
+		cmd: ["bash", "-c", script],
+		env: {
+			...process.env,
+			SUPERSET_AGENT_ID: "grok",
+			SUPERSET_DEBUG_HOOKS: "1",
+		},
+		stdin: Buffer.from(JSON.stringify(input)),
+		stdout: "pipe",
+		stderr: "pipe",
+	});
+}
+
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v3");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v5");
 	});
 
 	it("emits the v2 host-service payload with full agent identity", () => {
-		const script = readFileSync(
-			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
-			"utf-8",
-		);
+		const script = readNotifyHookTemplate();
 
 		expect(script).toContain('HOOK_SESSION_ID=$(echo "$INPUT"');
 		expect(script).toContain(
@@ -26,10 +50,7 @@ describe("getNotifyScriptContent", () => {
 	});
 
 	it("gives the v2 host-service hook enough time to deliver", () => {
-		const script = readFileSync(
-			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
-			"utf-8",
-		);
+		const script = readNotifyHookTemplate();
 
 		expect(script).toContain(
 			'curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \\\n    --connect-timeout 2 --max-time 5',
@@ -37,10 +58,7 @@ describe("getNotifyScriptContent", () => {
 	});
 
 	it("falls back to the v1 Electron hook when v2 is unavailable", () => {
-		const script = readFileSync(
-			path.join(import.meta.dir, "templates", "notify-hook.template.sh"),
-			"utf-8",
-		);
+		const script = readNotifyHookTemplate();
 
 		expect(script).toContain(
 			'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',
@@ -53,23 +71,57 @@ describe("getNotifyScriptContent", () => {
 		expect(script).toContain("SUPERSET_TAB_ID");
 		expect(script).toContain("SUPERSET_PANE_ID");
 	});
+
+	it("normalizes Grok permission notifications to PermissionRequest", () => {
+		const result = runNotifyHook({
+			hookEventName: "notification",
+			notificationType: "permission_prompt",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stderr.toString()).toContain(
+			"[notify-hook] event=PermissionRequest",
+		);
+	});
+
+	it("normalizes Grok ask_user_question notifications to PermissionRequest", () => {
+		const result = runNotifyHook({
+			hookEventName: "notification",
+			notificationType: "elicitation_dialog",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stderr.toString()).toContain(
+			"[notify-hook] event=PermissionRequest",
+		);
+	});
+
+	it("ignores unrelated Grok notification subtypes", () => {
+		const result = runNotifyHook({
+			hookEventName: "notification",
+			notificationType: "idle_prompt",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stderr.toString()).toBe("");
+	});
 });
 
 describe("per-agent hook scripts dispatch to v2", () => {
-	const expectedV2Payload =
-		'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"';
+	const buildExpectedV2Payload = (agentIdVar: string) =>
+		`PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$${agentIdVar}")\\",\\"sessionId\\":\\"$(json_escape "$HOOK_SESSION_ID")\\"}}}"`;
 
-	for (const template of [
-		"cursor-hook.template.sh",
-		"copilot-hook.template.sh",
-		"gemini-hook.template.sh",
-	]) {
+	for (const [template, agentIdVar] of [
+		["cursor-hook.template.sh", "AGENT_ID"],
+		["copilot-hook.template.sh", "SUPERSET_AGENT_ID"],
+		["gemini-hook.template.sh", "SUPERSET_AGENT_ID"],
+	] as const) {
 		it(`${template} posts v2 first and falls back to v1`, () => {
 			const script = readFileSync(
 				path.join(import.meta.dir, "templates", template),
 				"utf-8",
 			);
-			expect(script).toContain(expectedV2Payload);
+			expect(script).toContain(buildExpectedV2Payload(agentIdVar));
 			expect(script).toContain('curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL"');
 			expect(script).toContain(
 				'if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then',

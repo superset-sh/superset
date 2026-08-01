@@ -30,8 +30,20 @@ json_escape() {
   printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
 }
 
+# This script only fires for Cursor sessions, so an unset SUPERSET_AGENT_ID
+# means Cursor ran outside a Superset wrapper: the cursor-agent CLI stamps
+# CURSOR_AGENT/CURSOR_CLI into its env; anything else is the IDE Composer.
+AGENT_ID="$SUPERSET_AGENT_ID"
+if [ -z "$AGENT_ID" ]; then
+  if [ -n "$CURSOR_AGENT" ] || [ -n "$CURSOR_CLI" ]; then
+    AGENT_ID="cursor-agent"
+  else
+    AGENT_ID="cursor-composer"
+  fi
+fi
+
 if [ -n "$SUPERSET_HOST_AGENT_HOOK_URL" ] && [ -n "$SUPERSET_TERMINAL_ID" ]; then
-  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$SUPERSET_AGENT_ID")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\"}}}"
+  PAYLOAD="{\"json\":{\"terminalId\":\"$(json_escape "$SUPERSET_TERMINAL_ID")\",\"eventType\":\"$(json_escape "$EVENT_TYPE")\",\"agent\":{\"agentId\":\"$(json_escape "$AGENT_ID")\",\"sessionId\":\"$(json_escape "$HOOK_SESSION_ID")\"}}}"
 
   STATUS_CODE=$(curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL" \
     --connect-timeout 2 --max-time 5 \

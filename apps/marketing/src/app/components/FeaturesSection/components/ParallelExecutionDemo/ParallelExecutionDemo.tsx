@@ -165,7 +165,7 @@ export function ParallelExecutionDemo() {
 	return (
 		<motion.div
 			ref={ref}
-			className="w-full min-w-[500px] max-w-2xl bg-[#1a1a1a]/90 backdrop-blur-sm rounded-lg border border-white/10 shadow-2xl overflow-hidden"
+			className="w-full min-w-[500px] max-w-2xl bg-[#1a1a1a]/90 backdrop-blur-sm rounded-md border border-white/10 shadow-2xl overflow-hidden"
 			initial={{ opacity: 0, y: 20 }}
 			animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
 			transition={{ duration: 0.5 }}
@@ -299,7 +299,7 @@ export function ParallelExecutionDemo() {
 
 					{/* Input box */}
 					<div className="border-t border-white/5 p-2">
-						<div className="flex items-center gap-2 px-3 py-1.5 bg-[#2a2a2a]/60 rounded-lg border border-white/10">
+						<div className="flex items-center gap-2 px-3 py-1.5 bg-[#2a2a2a]/60 rounded-md border border-white/10">
 							<span className="text-white/30 text-xs">{">"}</span>
 							<input
 								type="text"

@@ -1,4 +1,3 @@
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
 	TbArrowLeft,
@@ -6,6 +5,7 @@ import {
 	TbLoader2,
 	TbRefresh,
 } from "react-icons/tb";
+import { suspendAncestorDragForTextSelection } from "renderer/lib/dnd";
 import { UrlSuggestions } from "./components/UrlSuggestions";
 import { useUrlAutocomplete } from "./hooks/useUrlAutocomplete";
 
@@ -109,54 +109,33 @@ export function BrowserToolbar({
 	return (
 		<div className="flex h-full min-w-0 flex-1 items-center px-2">
 			<div className="flex shrink-0 items-center gap-0.5">
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onGoBack}
-							disabled={!canGoBack}
-							className={`rounded p-1 transition-colors ${canGoBack ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
-						>
-							<TbArrowLeft className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Go Back
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onGoForward}
-							disabled={!canGoForward}
-							className={`rounded p-1 transition-colors ${canGoForward ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
-						>
-							<TbArrowRight className="size-3.5" />
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						Go Forward
-					</TooltipContent>
-				</Tooltip>
-				<Tooltip>
-					<TooltipTrigger asChild>
-						<button
-							type="button"
-							onClick={onReload}
-							className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
-						>
-							{isLoading ? (
-								<TbLoader2 className="size-3.5 animate-spin" />
-							) : (
-								<TbRefresh className="size-3.5" />
-							)}
-						</button>
-					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						{isLoading ? "Loading..." : "Reload"}
-					</TooltipContent>
-				</Tooltip>
+				<button
+					type="button"
+					onClick={onGoBack}
+					disabled={!canGoBack}
+					className={`rounded p-1 transition-colors ${canGoBack ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
+				>
+					<TbArrowLeft className="size-3.5" />
+				</button>
+				<button
+					type="button"
+					onClick={onGoForward}
+					disabled={!canGoForward}
+					className={`rounded p-1 transition-colors ${canGoForward ? "text-muted-foreground/60 hover:text-muted-foreground" : "opacity-30 pointer-events-none"}`}
+				>
+					<TbArrowRight className="size-3.5" />
+				</button>
+				<button
+					type="button"
+					onClick={onReload}
+					className="rounded p-1 text-muted-foreground/60 transition-colors hover:text-muted-foreground"
+				>
+					{isLoading ? (
+						<TbLoader2 className="size-3.5 animate-spin" />
+					) : (
+						<TbRefresh className="size-3.5" />
+					)}
+				</button>
 			</div>
 			<div className="mx-1.5 h-3.5 w-px shrink-0 bg-muted-foreground/60" />
 			<div className="relative flex min-w-0 flex-1 items-center">
@@ -176,6 +155,7 @@ export function BrowserToolbar({
 							className="h-[22px] w-full rounded-sm border border-ring bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
 							spellCheck={false}
 							autoComplete="off"
+							onMouseDown={suspendAncestorDragForTextSelection}
 						/>
 					</form>
 				) : (

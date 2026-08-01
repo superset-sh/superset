@@ -25,12 +25,6 @@ import { eq } from "drizzle-orm";
 import { createDb, type HostDb } from "../db/index.ts";
 import { projects, terminalSessions, workspaces } from "../db/schema.ts";
 import {
-	cleanupAgentLaunch,
-	prepareAgentLaunch,
-	waitForAgentLaunch,
-} from "../trpc/router/agents/agent-launch.ts";
-import { buildAttachmentBlock } from "../trpc/router/agents/attachment-prompt.ts";
-import {
 	disposeDaemonClient,
 	getDaemonClient,
 } from "./daemon-client-singleton.ts";
@@ -56,7 +50,6 @@ let workspaceId: string;
 let otherWorkspaceId: string;
 let worktreePath: string;
 let otherWorktreePath: string;
-let fakeAgentPath: string;
 
 before(async () => {
 	fs.mkdirSync(TEST_HOME, { recursive: true });
@@ -64,32 +57,6 @@ before(async () => {
 	otherWorktreePath = path.join(TEST_HOME, "other-worktree");
 	fs.mkdirSync(worktreePath, { recursive: true });
 	fs.mkdirSync(otherWorktreePath, { recursive: true });
-	fakeAgentPath = path.join(TEST_HOME, "fake-agent.sh");
-	fs.writeFileSync(
-		fakeAgentPath,
-		`#!/bin/sh
-set -u
-mode=$1
-output_path=$2
-pid_path=$3
-shift 3
-
-if [ "$mode" = "argv" ]; then
-	if [ "$1" != "--prompt" ]; then
-		exit 64
-	fi
-	shift
-	printf '%s' "$1" > "$output_path"
-else
-	cat > "$output_path"
-fi
-
-printf '%s' "$TEST_LAUNCH_ENV" > "$output_path.env"
-printf '%s\n' "$$" > "$pid_path"
-sleep 30
-`,
-		{ mode: 0o700 },
-	);
 
 	server = new Server({
 		socketPath: SOCK,
@@ -146,14 +113,6 @@ after(async () => {
 });
 
 describe("createTerminalSessionInternal — host-service restart adoption", () => {
-	test("losslessly launches an argv agent with a large attachment-expanded prompt", async () => {
-		await assertLosslessAgentLaunch("argv");
-	});
-
-	test("losslessly launches a stdin agent with a large attachment-expanded prompt", async () => {
-		await assertLosslessAgentLaunch("stdin");
-	});
-
 	test("fresh open uses requested initial dimensions", async () => {
 		const terminalId = `e2e-dims-${randomUUID().slice(0, 8)}`;
 		const result = await createTerminalSessionInternal({
@@ -955,69 +914,6 @@ async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
 	while (!predicate()) {
 		if (Date.now() - start > ms) throw new Error("waitFor timed out");
 		await new Promise((r) => setTimeout(r, 25));
-	}
-}
-
-async function assertLosslessAgentLaunch(
-	promptTransport: "argv" | "stdin",
-): Promise<void> {
-	const terminalId = `e2e-agent-launch-${promptTransport}-${randomUUID().slice(0, 8)}`;
-	const outputPath = path.join(TEST_HOME, `${terminalId}.prompt`);
-	const pidPath = path.join(TEST_HOME, `${terminalId}.pid`);
-	const prompt = buildAttachmentBlock(
-		`${"large multiline prompt 🎉 中文\n".repeat(2048)}closing prompt bytes\n\n`,
-		Array.from({ length: 300 }, (_, index) => ({
-			attachmentId: `attachment-${index}`,
-			path: `/tmp/attached files/evidence-${index}-é.log`,
-		})),
-	);
-	const launch = prepareAgentLaunch({
-		command: fakeAgentPath,
-		args: [promptTransport, outputPath, pidPath],
-		promptArgs: promptTransport === "argv" ? ["--prompt"] : [],
-		promptTransport,
-		prompt,
-		env: { TEST_LAUNCH_ENV: "launch-env-preserved" },
-	});
-	let terminalCreated = false;
-
-	try {
-		assert.ok(
-			Buffer.byteLength(prompt) > 64 * 1024,
-			"fixture must exceed the old interactive PTY command boundary",
-		);
-		const result = await createTerminalSessionInternal({
-			terminalId,
-			workspaceId,
-			db,
-			listed: true,
-			initialCommand: launch.initialCommand,
-		});
-		if ("error" in result) {
-			assert.fail(`expected session, got error: ${result.error}`);
-		}
-		terminalCreated = true;
-
-		const acknowledgement = await waitForAgentLaunch(launch);
-		await waitFor(
-			() => fs.existsSync(outputPath) && fs.existsSync(pidPath),
-			5000,
-		);
-
-		assert.equal(fs.readFileSync(outputPath, "utf8"), prompt);
-		assert.equal(
-			fs.readFileSync(`${outputPath}.env`, "utf8"),
-			"launch-env-preserved",
-		);
-		const childPid = Number.parseInt(fs.readFileSync(pidPath, "utf8"), 10);
-		assert.equal(acknowledgement.pid, childPid);
-		assert.doesNotThrow(
-			() => process.kill(childPid, 0),
-			"agent child must still be alive when launch reports success",
-		);
-	} finally {
-		cleanupAgentLaunch(launch);
-		if (terminalCreated) await disposeSessionAndWait(terminalId, db);
 	}
 }
 

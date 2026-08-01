@@ -9,7 +9,6 @@ import {
 	handleList,
 	handleOpen,
 	handleResize,
-	handleSnapshot,
 	handleSubscribe,
 	handleUnsubscribe,
 } from "./handlers.ts";
@@ -198,59 +197,6 @@ describe("handlers", () => {
 		handleOpen(ctx, { type: "open", id: "b", meta });
 		const reply = handleList(ctx);
 		expect(reply.sessions).toHaveLength(2);
-	});
-
-	test("snapshot returns bytes repeatedly without subscribing or clearing", () => {
-		const ctx = makeCtx();
-		handleOpen(ctx, {
-			type: "open",
-			id: "s0",
-			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
-		});
-		const session = ctx.store.get("s0");
-		if (!session) throw new Error("no session");
-		ctx.store.appendOutput(session, Buffer.from([0x00, 0xff, 0x41]));
-		const conn = makeConn();
-
-		handleSnapshot(ctx, conn, { type: "snapshot", id: "s0" });
-		handleSnapshot(ctx, conn, { type: "snapshot", id: "s0" });
-
-		expect(conn.subscriptions.size).toBe(0);
-		expect(conn.sent).toHaveLength(2);
-		for (const frame of conn.sent) {
-			expect(frame.message).toEqual({
-				type: "snapshot-reply",
-				id: "s0",
-				cols: 80,
-				rows: 24,
-				truncated: false,
-			});
-			expect(Buffer.from(frame.payload ?? [])).toEqual(
-				Buffer.from([0x00, 0xff, 0x41]),
-			);
-		}
-	});
-
-	test("snapshot reports truncation and unknown sessions", () => {
-		const ctx = makeCtx();
-		handleOpen(ctx, {
-			type: "open",
-			id: "s0",
-			meta: { shell: "/bin/sh", argv: [], cols: 80, rows: 24 },
-		});
-		const session = ctx.store.get("s0");
-		if (!session) throw new Error("no session");
-		session.bufferTruncated = true;
-		const conn = makeConn();
-
-		handleSnapshot(ctx, conn, { type: "snapshot", id: "s0" });
-		handleSnapshot(ctx, conn, { type: "snapshot", id: "missing" });
-
-		expect(conn.sent[0]?.message).toMatchObject({ truncated: true });
-		expect(conn.sent[1]?.message).toMatchObject({
-			type: "error",
-			code: "ENOENT",
-		});
 	});
 
 	test("subscribe with replay sends buffered output", () => {

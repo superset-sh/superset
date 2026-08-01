@@ -1,7 +1,6 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LuArrowUp } from "react-icons/lu";
 import { SETUP_STEPS } from "../../constants";
 import type { ActiveDemo } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
@@ -48,7 +47,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 							<span className="text-brand-light">/mcp</span>
 						</div>
 
-						<div className="space-y-2.5 border-t border-border pt-4">
+						<div className="space-y-2.5 border-t border-border/60 pt-4">
 							<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
 								MCP Servers
 							</div>
@@ -70,15 +69,13 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 						</div>
 					</div>
 
-					<div className="mt-auto border-t border-border pt-4">
-						<div className="flex items-center gap-3 border border-border bg-card/60 px-3 py-2.5">
+					<div className="mt-auto border-t border-border/60 pt-3 pb-1">
+						<div className="flex items-center gap-2.5">
 							<span className="text-muted-foreground/55">❯</span>
-							<span className="flex-1 text-[11px] text-muted-foreground/55">
+							<span className="h-3.5 w-[7px] bg-foreground/60" />
+							<span className="flex-1 text-[11px] text-muted-foreground/40">
 								Type a task for Claude…
 							</span>
-							<div className="flex size-5 items-center justify-center rounded-sm bg-brand/15 text-[11px] text-brand-light">
-								<LuArrowUp className="size-3" />
-							</div>
 						</div>
 					</div>
 				</motion.div>

@@ -10,7 +10,6 @@ export interface Session {
 	buffer: Buffer[];
 	bufferBytes: number;
 	bufferCap: number;
-	bufferTruncated: boolean;
 	exited: boolean;
 	exitCode: number | null;
 	exitSignal: number | null;
@@ -47,7 +46,6 @@ export class SessionStore {
 			buffer: [],
 			bufferBytes: 0,
 			bufferCap: this.bufferCap,
-			bufferTruncated: false,
 			exited: false,
 			exitCode: null,
 			exitSignal: null,
@@ -90,20 +88,12 @@ export class SessionStore {
 	appendOutput(session: Session, chunk: Buffer): void {
 		session.buffer.push(chunk);
 		session.bufferBytes += chunk.byteLength;
-		while (session.bufferBytes > session.bufferCap) {
-			const head = session.buffer[0];
-			if (!head) break;
-			const excess = session.bufferBytes - session.bufferCap;
-			session.bufferTruncated = true;
-			if (head.byteLength <= excess) {
-				session.buffer.shift();
-				session.bufferBytes -= head.byteLength;
-			} else {
-				// Copy the retained tail so a small ring entry does not keep a much
-				// larger evicted output chunk's backing allocation alive.
-				session.buffer[0] = Buffer.from(head.subarray(excess));
-				session.bufferBytes -= excess;
-			}
+		while (
+			session.bufferBytes > session.bufferCap &&
+			session.buffer.length > 0
+		) {
+			const head = session.buffer.shift();
+			if (head) session.bufferBytes -= head.byteLength;
 		}
 	}
 

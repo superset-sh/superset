@@ -19,6 +19,7 @@ import {
 	FoldVertical,
 	Loader2,
 	RefreshCw,
+	Search,
 } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { useGitStatusMap } from "renderer/hooks/host-service/useGitStatusMap";
@@ -46,6 +47,7 @@ import {
 import { useFilesTabActions } from "./hooks/useFilesTabActions";
 import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
 import { useFilesTabDrop } from "./hooks/useFilesTabDrop";
+import { useFileTreeScrollFade } from "./hooks/useFileTreeScrollFade";
 import { buildPierreGitStatus } from "./utils/buildPierreGitStatus";
 import { stripTrailingSlash, toAbs, toRel } from "./utils/treePath";
 
@@ -66,6 +68,7 @@ interface FilesTabProps {
 	} | null;
 	workspaceId: string;
 	gitStatus: GitStatusData | undefined;
+	onSearch?: () => void;
 }
 
 export function FilesTab({
@@ -74,6 +77,7 @@ export function FilesTab({
 	pendingReveal,
 	workspaceId,
 	gitStatus,
+	onSearch,
 }: FilesTabProps) {
 	// Shares the query cache with V2WorkspacePage's workspace.get query, so
 	// the first render after a workspace switch typically already has cached
@@ -262,6 +266,10 @@ export function FilesTab({
 		],
 	);
 
+	const fadeContainerRef = useFileTreeScrollFade<HTMLDivElement>(
+		Boolean(rootPath),
+	);
+
 	if (!rootPath) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
@@ -280,6 +288,7 @@ export function FilesTab({
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
 		<div
+			ref={fadeContainerRef}
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
 			onDragOver={drop.onDragOver}
@@ -292,9 +301,18 @@ export function FilesTab({
 					className="flex-1 min-h-0"
 					style={TREE_STYLE}
 					header={
-						<div className="group flex h-7 items-center justify-between bg-background px-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-							<span className="truncate">Explorer</span>
-							<div className="flex items-center gap-0.5">
+						<div className="group flex h-10 items-center gap-1 bg-background px-2">
+							{onSearch && (
+								<button
+									type="button"
+									onClick={onSearch}
+									className="flex h-8 min-w-0 flex-1 items-center gap-1.5 rounded-md px-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+								>
+									<Search className="size-3.5 shrink-0" />
+									<span className="truncate">Search files</span>
+								</button>
+							)}
+							<div className="ml-auto flex items-center gap-0.5">
 								<FilesTabHeaderButton
 									icon={FilePlus}
 									label="New File"

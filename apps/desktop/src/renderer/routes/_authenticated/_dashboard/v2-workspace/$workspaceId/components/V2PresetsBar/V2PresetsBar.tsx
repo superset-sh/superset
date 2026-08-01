@@ -10,13 +10,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { Eye, EyeOff, Settings } from "lucide-react";
-import {
-	type ReactNode,
-	useCallback,
-	useEffect,
-	useMemo,
-	useState,
-} from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
@@ -33,7 +27,6 @@ interface V2PresetsBarProps {
 	executePreset: (preset: V2TerminalPresetRow) => void | Promise<void>;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
-	trailing?: ReactNode;
 }
 
 // Co-located to keep v2 self-contained. Mirrors the v1 array in
@@ -75,7 +68,6 @@ export function V2PresetsBar({
 	executePreset,
 	showPresetsBar,
 	onToggleShowPresetsBar,
-	trailing,
 }: V2PresetsBarProps) {
 	const navigate = useNavigate();
 	const isDark = useIsDarkTheme();
@@ -202,11 +194,11 @@ export function V2PresetsBar({
 
 	return (
 		<div
-			className="flex h-8 min-w-0 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-border/60 bg-background px-2"
+			className="flex h-10 min-w-0 shrink-0 items-center gap-1.5 overflow-x-auto overflow-y-hidden bg-background px-2"
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>
-				<Tooltip>
+				<Tooltip delayDuration={1000}>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
 							<Button
@@ -218,9 +210,7 @@ export function V2PresetsBar({
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" sideOffset={4}>
-						Manage Presets
-					</TooltipContent>
+					<TooltipContent side="bottom">Manage Presets</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
 					{matchedPresets.map((preset) => {
@@ -281,9 +271,6 @@ export function V2PresetsBar({
 					</DropdownMenuItem>
 				</DropdownMenuContent>
 			</DropdownMenu>
-			{visiblePresets.length > 0 ? (
-				<div className="mx-1 h-3.5 w-px shrink-0 bg-border/60" />
-			) : null}
 			{visiblePresets.map(({ preset }, visibleIndex) => {
 				const hotkeyId = PRESET_HOTKEY_IDS[visibleIndex];
 				return (
@@ -301,9 +288,6 @@ export function V2PresetsBar({
 					/>
 				);
 			})}
-			{trailing ? (
-				<div className="ml-auto shrink-0 pl-1">{trailing}</div>
-			) : null}
 		</div>
 	);
 }

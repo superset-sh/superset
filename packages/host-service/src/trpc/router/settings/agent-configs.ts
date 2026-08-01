@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import {
 	getDefaultSeedPresets,
+	getPresetById,
 	type HostAgentPreset,
 } from "@superset/shared/host-agent-presets";
 import { TRPCError } from "@trpc/server";
@@ -279,6 +280,63 @@ export const agentConfigsRouter = router({
 				});
 			}
 			return toOutput(updated);
+		}),
+
+	/**
+	 * Restore one configured built-in agent to the bundled definition while
+	 * preserving its stable id and display order. This repairs stale defaults
+	 * without replacing unrelated custom agents or breaking linked presets.
+	 */
+	restoreDefault: protectedProcedure
+		.input(z.object({ id: z.string().min(1) }))
+		.mutation(({ ctx, input }) => {
+			const existing = ctx.db
+				.select()
+				.from(hostAgentConfigs)
+				.where(eq(hostAgentConfigs.id, input.id))
+				.get();
+			if (!existing) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Host agent config not found: ${input.id}`,
+				});
+			}
+
+			const preset = getPresetById(existing.presetId);
+			if (!preset) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Agent config '${input.id}' has no bundled default`,
+				});
+			}
+
+			ctx.db
+				.update(hostAgentConfigs)
+				.set({
+					iconId: null,
+					label: preset.label,
+					command: preset.command,
+					argsJson: JSON.stringify(preset.args),
+					promptTransport: preset.promptTransport,
+					promptArgsJson: JSON.stringify(preset.promptArgs),
+					envJson: JSON.stringify(preset.env),
+					updatedAt: Date.now(),
+				})
+				.where(eq(hostAgentConfigs.id, input.id))
+				.run();
+
+			const restored = ctx.db
+				.select()
+				.from(hostAgentConfigs)
+				.where(eq(hostAgentConfigs.id, input.id))
+				.get();
+			if (!restored) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to read back restored host agent config",
+				});
+			}
+			return toOutput(restored);
 		}),
 
 	/** Delete a single host agent config by id. Throws NOT_FOUND if missing. */

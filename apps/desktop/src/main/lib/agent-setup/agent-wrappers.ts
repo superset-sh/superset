@@ -70,6 +70,19 @@ export {
 	getGeminiSettingsJsonPath,
 } from "./agent-wrappers-gemini";
 export {
+	createGrokConfigToml,
+	createGrokHooksJson,
+	createGrokWrapper,
+	GROK_COMPAT_MARKER_END,
+	GROK_COMPAT_MARKER_START,
+	GROK_HOOKS_FILE,
+	getGrokConfigTomlContent,
+	getGrokConfigTomlPath,
+	getGrokHooksJsonContent,
+	getGrokHooksJsonPath,
+	getGrokWrapperScript,
+} from "./agent-wrappers-grok";
+export {
 	createKimiConfigToml,
 	createKimiWrapper,
 	getKimiConfigTomlContent,

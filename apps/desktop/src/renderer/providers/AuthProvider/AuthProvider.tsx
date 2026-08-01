@@ -75,9 +75,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 	electronTrpc.auth.onTokenChanged.useSubscription(undefined, {
 		onData: async (data) => {
 			if (data?.token && data?.expiresAt) {
-				setAuthToken(null);
-				await authClient.signOut({ fetchOptions: { throw: false } });
+				// Swap atomically: a null-token + awaited sign-out gap let a
+				// concurrent get-session read "no session" and unmount the whole
+				// authenticated tree. The stale JWT re-mints on the next 401.
 				setAuthToken(data.token);
+				setJwt(null);
 				try {
 					await refetchSession();
 				} catch (err) {
@@ -124,7 +126,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 	if (!isHydrated) {
 		return (
-			<div className="flex h-screen w-screen items-center justify-center bg-background">
+			<div className="relative flex h-screen w-screen items-center justify-center bg-background">
+				<div className="drag absolute inset-x-0 top-0 h-12" />
 				<SupersetLogo className="h-8 w-auto" gradient />
 			</div>
 		);

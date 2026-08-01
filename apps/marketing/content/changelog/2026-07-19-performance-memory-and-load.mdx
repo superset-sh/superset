@@ -1,11 +1,14 @@
 ---
 title: "Performance: lighter memory and smoother under heavy load"
 date: 2026-07-19
+image: /changelog/2026-07-19-performance-summary.png
 ---
 
 We spent the week on performance: reducing memory consumption, smoothing out git hitches, and cutting background CPU.
 
 Every number below is a measured before/after, not an estimate.
+
+![Renderer memory with 16 terminals open down 26% from 1,127 to 838 MB, worst UI stall while git churns a 20,000-file repo 3 times smaller from 82.3 to 28.0 ms, and background scans per cycle with 15 terminals 15 times fewer from 15 to 1](/changelog/2026-07-19-performance-summary.png)
 
 **TL;DR**
 

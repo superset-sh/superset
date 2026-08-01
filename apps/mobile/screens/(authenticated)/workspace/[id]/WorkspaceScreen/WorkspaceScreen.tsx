@@ -59,9 +59,7 @@ export function WorkspaceScreen() {
 
 	return (
 		<View className="bg-background flex-1">
-			<Stack.Screen
-				options={{ ...glassHeaderOptions, title: workspace?.name ?? "" }}
-			>
+			<Stack.Screen options={{ ...glassHeaderOptions, title: "Workspace" }}>
 				<Stack.Title asChild>
 					<View className="max-w-64 items-center">
 						<Text className="font-semibold text-[17px]" numberOfLines={1}>

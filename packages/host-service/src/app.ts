@@ -21,7 +21,7 @@ import {
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
-import { createGitFactory } from "./runtime/git";
+import { createGitEnvResolver, createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
@@ -37,6 +37,8 @@ import {
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
 import type { ApiClient } from "./types";
+import { getHostWorkerPool } from "./workers/host-worker-pool";
+import { gitWorkspaceRefsTask } from "./workers/tasks/git";
 
 export interface CreateAppOptions {
 	config: {
@@ -104,12 +106,28 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// pull-requests runtime (event-driven branch sync) subscribe to it.
 	const gitWatcher = new GitWatcher(db, filesystem);
 	gitWatcher.start();
+	// Per-workspace branch/HEAD/upstream reads run in the worker pool: the
+	// PR-sync loop fires them for every workspace on each watcher event and
+	// 5-min sweep, which would otherwise spawn+drain git on the event loop.
+	const resolveGitEnv = createGitEnvResolver(providers.credentials);
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
 		execGh,
 		git,
 		github,
 		gitWatcher,
+		readWorkspaceRefs: async (worktreePath) => {
+			const gitEnv = await resolveGitEnv(worktreePath);
+			return getHostWorkerPool().run(
+				gitWorkspaceRefsTask,
+				{ worktreePath, gitEnv },
+				{
+					timeoutMs: 15_000,
+					strategy: "coalesce",
+					dedupeKey: `${worktreePath}:workspace-refs`,
+				},
+			);
+		},
 	});
 	pullRequestRuntime.start();
 	const chatRuntime =

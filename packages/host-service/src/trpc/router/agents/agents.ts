@@ -3,22 +3,23 @@ import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
 	buildAgentModelEnv,
+	getAgentEffortSupport,
 } from "@superset/shared/agent-models";
-import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
+import {
+	buildArgvCommand,
+	buildPromptCommandString,
+	envOverlayPrefix,
+	sanitizePromptForPty,
+} from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
-import {
-	createTerminalSessionInternal,
-	disposeSessionAndWait,
-} from "../../../terminal/terminal";
+import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
 import { resolveAttachmentPath } from "../attachments/storage";
-import { waitForAgentLaunch, withPreparedAgentLaunch } from "./agent-launch";
-import { buildAttachmentBlock } from "./attachment-prompt";
 
 interface ResolvedHostAgentConfig {
 	id: string;
@@ -105,6 +106,54 @@ export function resolveHostAgentConfig(
 	return null;
 }
 
+/**
+ * Build a shell command string that runs the resolved agent config with the
+ * given prompt. argv transport appends the prompt as a quoted positional;
+ * stdin transport delegates heredoc assembly and delimiter collision handling
+ * to the shared prompt-launch pipeline.
+ *
+ * Prompts that sanitize to empty drop `promptArgs` and the prompt payload so
+ * codex/opencode/copilot don't get stray prompt-mode flags during promptless
+ * launches — emptiness is only knowable after sanitization, so the check
+ * lives here rather than in the router's zod schema.
+ */
+export function buildAgentCommandString(
+	config: ResolvedHostAgentConfig,
+	rawPrompt: string,
+	modelArgs: string[] = [],
+	randomId: string = crypto.randomUUID(),
+): string {
+	const prompt = sanitizePromptForPty(rawPrompt);
+	const baseArgv = [config.command, ...config.args, ...modelArgs];
+
+	if (prompt === "") {
+		return buildArgvCommand(baseArgv);
+	}
+
+	if (config.promptTransport === "argv") {
+		// Plain quoted positional, not the shared "$(cat <<…)" form: the command
+		// is typed into the user's configured shell, and fish has no heredocs.
+		return buildArgvCommand([...baseArgv, ...config.promptArgs, prompt]);
+	}
+
+	return buildPromptCommandString({
+		command: buildArgvCommand([...baseArgv, ...config.promptArgs]),
+		transport: "stdin",
+		prompt,
+		randomId,
+	});
+}
+
+function buildAttachmentBlock(
+	prompt: string,
+	resolved: Array<{ attachmentId: string; path: string }>,
+): string {
+	if (resolved.length === 0) return prompt;
+	const lines = resolved.map((item) => `- ${item.path}`);
+	const block = `\n\n# Attached files\n\nThe user attached these files. They are available on this host at:\n\n${lines.join("\n")}`;
+	return prompt + block;
+}
+
 export interface AgentRunInput {
 	workspaceId: string;
 	agent: string;
@@ -120,6 +169,61 @@ export type AgentRunResult =
 
 const SUPERSET_AGENT_ID = "superset";
 const SUPERSET_AGENT_LABEL = "Superset";
+
+/**
+ * Validate an explicit effort override before launch. Omitting effort always
+ * delegates to the underlying agent's own default.
+ */
+export function validateAgentEffortSelection(
+	presetId: string,
+	label: string,
+	effort: string | undefined,
+): void {
+	if (!effort) return;
+
+	const support = getAgentEffortSupport(presetId);
+	if (!support) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${label} does not support a reasoning effort override. Omit effort to use the agent default.`,
+		});
+	}
+
+	if (!support.efforts.some((option) => option.id === effort)) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Unsupported reasoning effort "${effort}" for ${label}. Choose one of: ${support.efforts.map((option) => option.id).join(", ")}.`,
+		});
+	}
+}
+
+/**
+ * Preflight a host-scoped launch before any larger workflow (such as
+ * workspace creation) performs side effects.
+ */
+export function validateAgentLaunchEffort(
+	db: HostDb,
+	input: Pick<AgentRunInput, "agent" | "effort">,
+): void {
+	if (!input.effort) return;
+	if (input.agent === SUPERSET_AGENT_ID) {
+		validateAgentEffortSelection(
+			SUPERSET_AGENT_ID,
+			SUPERSET_AGENT_LABEL,
+			input.effort,
+		);
+		return;
+	}
+
+	const config = resolveHostAgentConfig(db, input.agent);
+	if (!config) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `No host agent config matching '${input.agent}' (tried instance id then preset id).`,
+		});
+	}
+	validateAgentEffortSelection(config.presetId, config.label, input.effort);
+}
 
 async function resolveAttachmentsAsFiles(
 	attachmentIds: string[],
@@ -179,17 +283,27 @@ async function runChatAgent(
 	return { kind: "chat", sessionId, label };
 }
 
-async function runTerminalAgent(
-	ctx: HostServiceContext,
+/**
+ * Resolve a terminal agent launch to the shell command that runs it, without
+ * creating a terminal. Used by `runTerminalAgent` and by the workspace-create
+ * wait-for-setup gate, which chains this command behind the setup commands in
+ * the setup terminal. Throws NOT_FOUND for unknown agents or attachments.
+ */
+export function buildTerminalAgentLaunch(
+	db: HostDb,
 	input: AgentRunInput,
-): Promise<AgentRunResult> {
-	const config = resolveHostAgentConfig(ctx.db, input.agent);
+): { fullCommand: string; label: string } {
+	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
+		// Worded for end users (automation run errors show this verbatim), but
+		// keep "No host agent config matching" — the desktop matches on it to
+		// attach re-select guidance.
 		throw new TRPCError({
 			code: "NOT_FOUND",
-			message: `No host agent config matching '${input.agent}' (tried instance id then preset id).`,
+			message: `No host agent config matching '${input.agent}' — the agent may have been removed or this host's agents were reset. Re-select an agent (or use a preset id like "claude").`,
 		});
 	}
+	validateAgentEffortSelection(config.presetId, config.label, input.effort);
 
 	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
@@ -203,57 +317,52 @@ async function runTerminalAgent(
 		resolvedAttachments.push({ attachmentId, path: resolved.path });
 	}
 
-	const prompt = sanitizePromptForPty(
-		buildAttachmentBlock(input.prompt, resolvedAttachments),
-	);
+	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
 	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
+	const command = buildAgentCommandString(config, prompt, [
+		...modelArgs,
+		...effortArgs,
+	]);
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
-	return withPreparedAgentLaunch(
-		{
-			command: config.command,
-			args: [...config.args, ...modelArgs, ...effortArgs],
-			promptArgs: config.promptArgs,
-			promptTransport: config.promptTransport,
-			prompt,
-			env: { ...config.env, ...modelEnv },
-		},
-		async (launch) => {
-			const terminalId = crypto.randomUUID();
-			const result = await createTerminalSessionInternal({
-				terminalId,
-				workspaceId: input.workspaceId,
-				db: ctx.db,
-				eventBus: ctx.eventBus,
-				initialCommand: launch.initialCommand,
-			});
+	return {
+		fullCommand: `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`,
+		label: config.label,
+	};
+}
 
-			if ("error" in result) {
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message: result.error,
-				});
-			}
+async function runTerminalAgent(
+	ctx: { db: HostDb; eventBus: import("../../../events").EventBus },
+	input: AgentRunInput,
+): Promise<AgentRunResult> {
+	const { fullCommand, label } = buildTerminalAgentLaunch(ctx.db, input);
 
-			try {
-				await waitForAgentLaunch(launch);
-			} catch (error) {
-				await disposeSessionAndWait(terminalId, ctx.db).catch(() => undefined);
-				throw new TRPCError({
-					code: "INTERNAL_SERVER_ERROR",
-					message:
-						error instanceof Error ? error.message : "Agent failed to start",
-					cause: error,
-				});
-			}
+	const terminalId = crypto.randomUUID();
+	const result = await createTerminalSessionInternal({
+		terminalId,
+		workspaceId: input.workspaceId,
+		db: ctx.db,
+		eventBus: ctx.eventBus,
+		initialCommand: fullCommand,
+	});
 
-			return {
-				kind: "terminal" as const,
-				sessionId: result.terminalId,
-				label: config.label,
-			};
-		},
-	);
+	if ("error" in result) {
+		throw new TRPCError({
+			code: "INTERNAL_SERVER_ERROR",
+			message: result.error,
+		});
+	}
+
+	return {
+		kind: "terminal",
+		sessionId: result.terminalId,
+		label,
+	};
+}
+
+/** Sugar agents that run as chat sessions rather than terminal commands. */
+export function isChatAgent(agent: string): boolean {
+	return agent === SUPERSET_AGENT_ID;
 }
 
 export async function runAgentInWorkspace(
@@ -272,6 +381,11 @@ export async function runAgentInWorkspace(
 		});
 	}
 	if (input.agent === SUPERSET_AGENT_ID) {
+		validateAgentEffortSelection(
+			SUPERSET_AGENT_ID,
+			SUPERSET_AGENT_LABEL,
+			input.effort,
+		);
 		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
 	}
 	return runTerminalAgent(ctx, input);

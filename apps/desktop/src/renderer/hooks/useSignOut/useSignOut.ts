@@ -1,8 +1,8 @@
+import { toast } from "@superset/ui/sonner";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { posthog } from "renderer/lib/posthog";
 
-export const AUTH_COMPLETED_KEY = "superset_auth_completed";
 export const ACTIVE_ORG_ID_KEY = "active_organization_id";
 
 // An unreachable auth server must not block local sign-out (#5729)
@@ -15,7 +15,6 @@ export function useSignOut() {
 	return async () => {
 		posthog.reset();
 		setAnalyticsUserId.mutate({ userId: null });
-		localStorage.removeItem(AUTH_COMPLETED_KEY);
 		localStorage.removeItem(ACTIVE_ORG_ID_KEY);
 		await Promise.race([
 			authClient.signOut({ fetchOptions: { throw: false } }).catch(() => {}),
@@ -23,6 +22,14 @@ export function useSignOut() {
 				window.setTimeout(resolve, SERVER_REVOKE_TIMEOUT_MS),
 			),
 		]);
-		signOutMutation.mutate();
+		try {
+			await signOutMutation.mutateAsync();
+		} catch (error) {
+			toast.error("Couldn't remove the local sign-in", {
+				description:
+					"Superset may sign you back in after restart. Please try signing out again.",
+			});
+			throw error;
+		}
 	};
 }

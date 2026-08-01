@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `wait_for_setup_before_agent` integer;

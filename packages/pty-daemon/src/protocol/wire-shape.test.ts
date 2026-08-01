@@ -8,7 +8,7 @@ import { decodeFrame, encodeFrame } from "./framing.ts";
 const HEADER = 4;
 const INNER = 4;
 
-describe("binary-tail wire shape", () => {
+describe("v2 wire shape", () => {
 	test("output frames carry bytes in the binary tail, not the JSON header", () => {
 		// Pre-v2 shape was `{ type: "output", id, data: "<base64>" }`. If
 		// anyone reintroduces that, the JSON portion will contain "data".
@@ -84,29 +84,5 @@ describe("binary-tail wire shape", () => {
 		// Defensive: if someone reintroduces base64, the tail would be the
 		// 8-char "aGVsbG8=" instead of the 5-byte "hello".
 		expect(tail.toString("utf8")).not.toBe("aGVsbG8=");
-	});
-
-	test("snapshot replies carry raw bytes and truncation only in metadata", () => {
-		const bytes = Buffer.from([0x00, 0xff, 0x41, 0x42]);
-		const frame = encodeFrame(
-			{
-				type: "snapshot-reply",
-				id: "s0",
-				cols: 80,
-				rows: 24,
-				truncated: true,
-			},
-			bytes,
-		);
-		const decoded = decodeFrame(frame);
-
-		expect(decoded.message).toEqual({
-			type: "snapshot-reply",
-			id: "s0",
-			cols: 80,
-			rows: 24,
-			truncated: true,
-		});
-		expect(Buffer.from(decoded.payload ?? [])).toEqual(bytes);
 	});
 });

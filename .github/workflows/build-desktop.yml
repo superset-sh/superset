@@ -103,6 +103,7 @@ jobs:
           NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
           NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
+          SENTRY_DSN_HOST_SERVICE: ${{ secrets.SENTRY_DSN_HOST_SERVICE }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset
@@ -249,6 +250,7 @@ jobs:
           NEXT_PUBLIC_STREAMS_URL: ${{ secrets.NEXT_PUBLIC_STREAMS_URL }}
           NEXT_PUBLIC_ELECTRIC_URL: ${{ secrets.NEXT_PUBLIC_ELECTRIC_URL }}
           SENTRY_DSN_DESKTOP: ${{ secrets.SENTRY_DSN_DESKTOP }}
+          SENTRY_DSN_HOST_SERVICE: ${{ secrets.SENTRY_DSN_HOST_SERVICE }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
           SUPERSET_WORKSPACE_NAME: superset

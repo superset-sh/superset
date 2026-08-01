@@ -731,6 +731,16 @@ export const HOTKEYS_REGISTRY = {
 		category: "Help",
 		description: "Open the global command palette",
 	},
+	CHECK_RESOURCES: {
+		key: {
+			mac: L("meta+shift+u"),
+			windows: L("ctrl+shift+alt+u"),
+			linux: L("ctrl+shift+alt+u"),
+		},
+		label: "Check Resources",
+		category: "Help",
+		description: "Open the resource usage view in the command palette",
+	},
 } as const satisfies Record<string, HotkeyRegistryDefinition>;
 
 export type HotkeyId = keyof typeof HOTKEYS_REGISTRY;

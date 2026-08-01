@@ -435,6 +435,20 @@
       "when": 1784252857124,
       "tag": "0061_v2_workspaces_host_fk_cascade",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1784739436569,
+      "tag": "0062_drop_automations_v2_project_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1785234213747,
+      "tag": "0063_add_desktop_notices",
+      "breakpoints": true
     }
   ]
 }

@@ -27,6 +27,8 @@ export function TaskDetailHeader({
 				<HiArrowLeft className="w-4 h-4" />
 			</Button>
 			<span className="text-sm text-muted-foreground">{task.slug}</span>
+			{/* Window-drag leaf standing in for the hidden TopBar. */}
+			<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
 			<div className="ml-auto flex items-center gap-1">
 				{task.externalUrl && (
 					<a

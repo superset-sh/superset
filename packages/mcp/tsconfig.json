@@ -2,6 +2,7 @@
 	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
 		"types": ["bun-types"],
+		"jsx": "react-jsx",
 		"paths": {
 			"@/*": ["./src/*"]
 		}

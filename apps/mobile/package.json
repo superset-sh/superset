@@ -17,7 +17,7 @@
 		"lint:fix": "biome check --write ."
 	},
 	"dependencies": {
-		"@better-auth/expo": "1.6.13",
+		"@better-auth/expo": "1.6.22",
 		"@electric-sql/client": "1.5.23",
 		"@expo/ui": "56.0.16",
 		"@expo/vector-icons": "15.1.1",
@@ -51,6 +51,7 @@
 		"@shikijs/core": "4.2.0",
 		"@shikijs/langs": "4.2.0",
 		"@shikijs/themes": "4.2.0",
+		"@shopify/flash-list": "2.3.2",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/host-client": "workspace:*",
@@ -63,7 +64,7 @@
 		"@tanstack/react-query": "5.101.1",
 		"@trpc/client": "11.16.0",
 		"@trpc/react-query": "11.16.0",
-		"better-auth": "1.6.13",
+		"better-auth": "1.6.22",
 		"class-variance-authority": "0.7.1",
 		"clsx": "2.1.1",
 		"date-fns": "4.1.0",

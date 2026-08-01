@@ -9,7 +9,6 @@ interface DashboardSidebarProjectRowProps
 	extends ComponentPropsWithoutRef<"div"> {
 	projectName: string;
 	iconUrl: string | null;
-	totalWorkspaceCount: number;
 	isCollapsed: boolean;
 	isRenaming: boolean;
 	renameValue: string;
@@ -29,7 +28,6 @@ export const DashboardSidebarProjectRow = forwardRef<
 		{
 			projectName,
 			iconUrl,
-			totalWorkspaceCount,
 			isCollapsed,
 			isRenaming,
 			renameValue,
@@ -63,8 +61,8 @@ export const DashboardSidebarProjectRow = forwardRef<
 							}
 				}
 				className={cn(
-					"group flex min-h-10 w-full items-center pl-3 pr-2 py-1.5 text-sm font-medium",
-					"hover:bg-muted/50 transition-colors",
+					"group mx-2 flex min-h-8 items-center rounded-md pl-2 pr-1 py-1 text-[13px] font-medium",
+					"hover:bg-fill-hover transition-colors",
 					className,
 				)}
 				{...props}
@@ -109,18 +107,13 @@ export const DashboardSidebarProjectRow = forwardRef<
 									onKeyDown={(event) => event.stopPropagation()}
 									onContextMenu={(event) => event.stopPropagation()}
 									aria-label="New workspace"
-									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-muted group-hover:flex group-has-[:focus]:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+									className="hidden size-full items-center justify-center rounded transition-colors hover:bg-fill-hover group-hover:flex group-has-[:focus]:flex focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
 								>
 									<HiMiniPlus className="size-4 text-muted-foreground" />
 								</button>
 							</TooltipTrigger>
-							<TooltipContent side="bottom" sideOffset={4}>
-								New workspace
-							</TooltipContent>
+							<TooltipContent side="bottom">New workspace</TooltipContent>
 						</Tooltip>
-						<span className="text-[10px] font-normal tabular-nums text-muted-foreground group-hover:hidden group-has-[:focus]:hidden">
-							{totalWorkspaceCount}
-						</span>
 					</div>
 				)}
 			</div>

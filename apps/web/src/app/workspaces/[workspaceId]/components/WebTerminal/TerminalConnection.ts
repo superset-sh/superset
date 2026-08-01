@@ -80,7 +80,6 @@ export class TerminalConnection {
 		}
 
 		const socket = createRelaySocket({
-			name: "web-terminal",
 			buildUrl: () => this.buildUrl(),
 			getToken: () => this.deps.getToken(),
 			// Definitive access denial: retrying can't change the answer.

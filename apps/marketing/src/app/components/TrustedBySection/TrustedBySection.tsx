@@ -107,16 +107,16 @@ export function TrustedBySection() {
 	];
 
 	return (
-		<section className="py-6 sm:py-12 md:py-18 bg-background overflow-hidden">
-			<div className="max-w-7xl mx-auto">
+		<section className="py-16 sm:py-20 bg-background overflow-hidden">
+			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				<div>
-					<h2 className="text-base sm:text-xl font-semibold text-center mb-4 sm:mb-8 text-foreground px-4">
+					<h2 className="text-base sm:text-xl font-medium text-center mb-4 sm:mb-8 text-foreground">
 						Trusted by builders from
 					</h2>
 				</div>
 
 				{/* Mobile/tablet: responsive grid to avoid horizontal overflow */}
-				<div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 px-4 md:hidden">
+				<div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3.5 md:hidden">
 					{CLIENT_LOGOS.map((client) => (
 						<div
 							key={client.name}
@@ -141,7 +141,7 @@ export function TrustedBySection() {
 				</div>
 
 				{/* Desktop: two explicit rows */}
-				<div className="hidden md:block space-y-3 sm:space-y-4 px-4">
+				<div className="hidden md:block space-y-3 sm:space-y-4">
 					{logoRows.map((row) => (
 						<div
 							key={row.map((client) => client.name).join("-")}

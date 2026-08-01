@@ -57,7 +57,6 @@ describe("SessionStore", () => {
 		store.appendOutput(session, Buffer.from(" world"));
 		expect(store.snapshotBuffer(session).toString()).toBe("hello world");
 		expect(session.bufferBytes).toBe(11);
-		expect(session.bufferTruncated).toBe(false);
 	});
 
 	test("appendOutput evicts oldest chunks when exceeding cap", () => {
@@ -69,21 +68,6 @@ describe("SessionStore", () => {
 		const snap = store.snapshotBuffer(session).toString();
 		expect(snap).toBe("BBBBCCCCCC");
 		expect(session.bufferBytes).toBe(10);
-		expect(session.bufferTruncated).toBe(true);
-	});
-
-	test("appendOutput retains the exact tail of a chunk larger than the cap", () => {
-		const store = new SessionStore({ bufferCap: 4 });
-		const session = store.add("s0", fakePty({ cols: 80, rows: 24 }));
-		store.appendOutput(
-			session,
-			Buffer.from([0x00, 0x01, 0x02, 0x03, 0xfe, 0xff]),
-		);
-		expect(store.snapshotBuffer(session)).toEqual(
-			Buffer.from([0x02, 0x03, 0xfe, 0xff]),
-		);
-		expect(session.bufferBytes).toBe(4);
-		expect(session.bufferTruncated).toBe(true);
 	});
 
 	test("appendOutput keeps buffer within cap across many writes", () => {

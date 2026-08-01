@@ -89,7 +89,11 @@ class TerminalRuntimeRegistryImpl {
 			terminalId,
 			instanceId,
 			runtime: null,
-			transport: createTransport(),
+			// A destroyed PTY (exit / session-gone) has nothing left to restore —
+			// drop the persisted scrollback the moment the server says so.
+			transport: createTransport({
+				onSessionEnded: () => clearPersistedRuntimeState(terminalId),
+			}),
 			linkManager: null,
 			pendingLinkHandlers: null,
 			disposeBufferChangeListener: null,
@@ -293,6 +297,11 @@ class TerminalRuntimeRegistryImpl {
 
 		entry.lastUsedAt = ++this.useSeq;
 		detachFromContainer(entry.runtime);
+		// detachFromContainer persists unconditionally; a dead session's snapshot
+		// must not outlive the PTY.
+		if (entry.transport.sessionEnded) {
+			clearPersistedRuntimeState(terminalId);
+		}
 		this.scheduleParkedEviction();
 	}
 
@@ -339,6 +348,10 @@ class TerminalRuntimeRegistryImpl {
 			(entry) => entry.runtime?.terminal.buffer.active.type === "alternate",
 		);
 		for (const entry of victims) {
+			if (entry.transport.sessionEnded) {
+				this.disposeEntry(entry, { persistedState: "clear" });
+				continue;
+			}
 			if (!entry.runtime || !tryPersistRuntimeState(entry.runtime)) {
 				this.warnPersistFailureOnce(entry.terminalId);
 				continue;
@@ -367,6 +380,22 @@ class TerminalRuntimeRegistryImpl {
 		});
 	}
 
+	/** Apply settings changes to every live runtime, including parked runtimes. */
+	updateAllAppearances(appearance: TerminalAppearance) {
+		for (const entry of this.entries.values()) {
+			if (!entry.runtime) continue;
+			updateRuntimeAppearance(entry.runtime, appearance, () => {
+				const runtime = entry.runtime;
+				if (!runtime) return;
+				sendResize(
+					entry.transport,
+					runtime.terminal.cols,
+					runtime.terminal.rows,
+				);
+			});
+		}
+	}
+
 	private disposeEntry(
 		entry: RegistryEntry,
 		options: { persistedState?: "clear" | "preserve" } = {},
@@ -393,6 +422,10 @@ class TerminalRuntimeRegistryImpl {
 				)
 			: this.getEntries(terminalId);
 		for (const entry of entries) {
+			if (entry.transport.sessionEnded) {
+				this.disposeEntry(entry, { persistedState: "clear" });
+				continue;
+			}
 			if (entry.runtime && !tryPersistRuntimeState(entry.runtime)) {
 				this.warnPersistFailureOnce(entry.terminalId);
 				continue;

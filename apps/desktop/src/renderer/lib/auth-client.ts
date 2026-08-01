@@ -7,17 +7,38 @@ import {
 	organizationClient,
 } from "better-auth/client/plugins";
 import { createAuthClient } from "better-auth/react";
+import { useSyncExternalStore } from "react";
 import { env } from "renderer/env.renderer";
 import { decodeJwtExpiresAtMs } from "renderer/lib/jwt-expiry";
 
 let authToken: string | null = null;
+const authTokenListeners = new Set<() => void>();
+
+function subscribeAuthToken(listener: () => void): () => void {
+	authTokenListeners.add(listener);
+	return () => authTokenListeners.delete(listener);
+}
+
+function getServerAuthToken(): null {
+	return null;
+}
 
 export function setAuthToken(token: string | null) {
+	if (authToken === token) return;
 	authToken = token;
+	for (const listener of authTokenListeners) listener();
 }
 
 export function getAuthToken(): string | null {
 	return authToken;
+}
+
+export function useAuthToken(): string | null {
+	return useSyncExternalStore(
+		subscribeAuthToken,
+		getAuthToken,
+		getServerAuthToken,
+	);
 }
 
 let jwt: string | null = null;

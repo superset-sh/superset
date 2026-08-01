@@ -48,13 +48,6 @@ When a user asks for UI verification through the Chrome DevTools Protocol (CDP):
 5. **Treat a mismatch as an incomplete reproduction** - if the test passes but the user still observes the bug, re-check the target instance, exact steps, input method, persisted keys, and lifecycle timing. Reproduce the failure before changing code; do not assume the report is disproven by a synthetic smoke test.
 6. **Use an evidence gate** - for a reported bug or regression, do not claim it is verified until the original interaction demonstrably fails before the fix and passes after it under the same observations. For a new feature, record equivalent baseline evidence and demonstrate the expected behavior. In all cases, state clearly which checks were end-to-end, which were synthetic, and whether screenshots were actually captured.
 
-## CLI End-to-End Verification
-
-Run cross-process agent-session coverage with `bun run test:cli-e2e`; it uses an
-isolated home and a production-ABI PTY daemon. When the acceptance criterion
-includes the real desktop UI, follow `apps/desktop/docs/CLI_CDP_E2E.md` and
-preserve CLI output separately from genuine CDP screenshot evidence.
-
 ## Agent Rules
 1. **Type safety** - avoid `any` unless necessary
 2. **Prefer `gh` CLI** - when performing git operations (PRs, issues, checkout, etc.), prefer the GitHub CLI (`gh`) over raw `git` commands where possible
@@ -64,6 +57,8 @@ preserve CLI output separately from genuine CDP screenshot evidence.
    > **Mistral Vibe compatibility**: Vibe reads `AGENTS.md` + `.agents/skills/` natively (trust granted via `--trust`; no `.agents/commands` support). Configure it via `.vibe/config.toml`; it consumes MCP servers as `[[mcp_servers]]` TOML entries (not `.mcp.json`).
 
    > **Kimi Code compatibility**: Kimi reads `AGENTS.md` + `.agents/skills/` natively. It does not discover `.agents/commands`; configure it through `~/.kimi-code/config.toml` or `KIMI_CODE_HOME`.
+
+   > **Grok compatibility**: Grok Build reads `AGENTS.md` per directory plus Claude Code files (`CLAUDE.md`, `.claude/rules/`) natively. It does not discover this repo's project-local `.agents/commands` (only user-level `~/.agents/commands/`); configure it through `~/.grok/config.toml`.
 
 5. **Mastra dependencies** - use the published upstream `mastracode` and `@mastra/*` packages. Do not add fork tarball overrides or custom patch steps unless explicitly requested.
 6. **Plan & doc placement** - implementation plans go in `plans/` (cross-cutting) or `apps/<app>/plans/` (app-scoped); shipped plans move to `plans/done/`. Architecture/reference docs go in `<app>/docs/`. Never drop `*_PLAN.md` at an app root or inside `src/`.

@@ -9,6 +9,7 @@ import {
 	DialogHeader,
 	DialogTitle,
 } from "@superset/ui/dialog";
+import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
 import {
 	useCloseNewWorkspaceModal,
@@ -20,6 +21,7 @@ import {
 	DashboardNewWorkspaceDraftProvider,
 	useDashboardNewWorkspaceDraft,
 } from "./DashboardNewWorkspaceDraftContext";
+import { useNewWorkspaceScreenVariant } from "./hooks/useNewWorkspaceScreenVariant";
 
 /** Clears the PromptInputProvider text & attachments when the draft resets. */
 function PromptInputResetSync() {
@@ -42,6 +44,25 @@ export function DashboardNewWorkspaceModal() {
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();
+	const navigate = useNavigate();
+	const variant = useNewWorkspaceScreenVariant(isOpen);
+	const isScreen = variant === "test";
+
+	// Test arm: the create surface is a page, not a modal. Store opens (the
+	// "+" button, hotkey, onboarding hand-off) redirect to the route instead.
+	useEffect(() => {
+		if (!isScreen || !isOpen) return;
+		closeModal();
+		void navigate({
+			to: "/new-workspace",
+			search: preSelectedProjectId
+				? { projectId: preSelectedProjectId }
+				: undefined,
+		});
+	}, [isScreen, isOpen, closeModal, navigate, preSelectedProjectId]);
+
+	if (isOpen && variant === null) return null;
+	if (isScreen) return null;
 
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={closeModal}>

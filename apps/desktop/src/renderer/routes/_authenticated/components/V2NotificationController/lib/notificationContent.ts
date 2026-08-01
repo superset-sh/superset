@@ -1,6 +1,6 @@
 import {
-	BUILTIN_AGENT_LABELS,
-	type BuiltinAgentId,
+	AGENT_IDENTITY_LABELS,
+	type AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import type {
 	AgentIdentity,
@@ -30,8 +30,8 @@ export function getV2NativeNotificationContent({
 function getAgentLabel(agent: AgentIdentity | undefined): string {
 	const agentId = cleanLabel(agent?.agentId);
 	if (!agentId) return "Agent";
-	if (agentId in BUILTIN_AGENT_LABELS) {
-		return BUILTIN_AGENT_LABELS[agentId as BuiltinAgentId];
+	if (agentId in AGENT_IDENTITY_LABELS) {
+		return AGENT_IDENTITY_LABELS[agentId as AgentIdentityId];
 	}
 	return humanizeIdentifier(agentId);
 }

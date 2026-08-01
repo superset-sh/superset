@@ -13,7 +13,7 @@
 		"agent-integration",
 		"remote-workspaces",
 		"automations",
-		"mcp",
+		"mcp-server",
 		"---Terminal CLI---",
 		"cli/getting-started",
 		"cli/cli-reference",

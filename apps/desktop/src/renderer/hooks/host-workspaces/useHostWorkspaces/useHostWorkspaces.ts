@@ -48,19 +48,26 @@ export interface UseHostWorkspacesResult {
 }
 
 /**
- * The workspace read path: fan out `workspace.list` to every known host
- * (local direct, remote via relay), merge, live-update from each host's
- * `workspace:changed` events, and persist last-seen lists per host to
- * IndexedDB so remote machines still render offline.
+ * The workspace read path: `workspace.list` per host (local direct, remote
+ * via relay), merged, live-updated from each host's `workspace:changed`
+ * events, with last-seen lists persisted per host to IndexedDB so remote
+ * machines still render offline.
  *
- * Cloud rows from the still-synced Electric collection fill in only for
- * hosts that served nothing (pre-R1 builds, no snapshot) — that fallback
- * disappears in R3.
+ * Unscoped (`scopedHostId` omitted): fans out to every known host — runs
+ * once inside HostWorkspacesProvider; consumers read the shared result via
+ * that provider's useHostWorkspaces. Cloud rows from the still-synced
+ * Electric collection fill in only for hosts that served nothing (pre-R1
+ * builds, no snapshot) — that fallback disappears in R3.
  *
- * Runs once inside HostWorkspacesProvider; consumers read the shared
- * result via that provider's useHostWorkspaces.
+ * Scoped (`scopedHostId` a machine id): a single host, no fan-out and no
+ * cloud fallback — an unreachable host shows its snapshot or nothing, never
+ * stale cloud rows. Query keys are shared with the provider, so a scoped
+ * call where the provider is mounted fetches the host once, not twice.
+ * Passing null resolves no target and runs nothing (stays !isReady).
  */
-export function useHostWorkspacesSource(): UseHostWorkspacesResult {
+export function useHostWorkspacesSource(
+	scopedHostId?: string | null,
+): UseHostWorkspacesResult {
 	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
@@ -81,16 +88,17 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 		[collections],
 	);
 
-	const targets = useMemo(
-		() =>
-			deriveHostWorkspacesQueryTargets({
-				activeHostUrl,
-				hosts,
-				machineId,
-				relayUrl,
-			}),
-		[activeHostUrl, hosts, machineId, relayUrl],
-	);
+	const targets = useMemo(() => {
+		const all = deriveHostWorkspacesQueryTargets({
+			activeHostUrl,
+			hosts,
+			machineId,
+			relayUrl,
+		});
+		return scopedHostId === undefined
+			? all
+			: all.filter((target) => target.machineId === scopedHostId);
+	}, [activeHostUrl, hosts, machineId, relayUrl, scopedHostId]);
 
 	// Last-seen snapshots hydrate once per (org, host); live data always wins.
 	const [snapshots, setSnapshots] = useState<Map<string, HostWorkspaceRow[]>>(
@@ -209,9 +217,9 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 						reachable: live !== undefined && !query?.isError,
 					};
 				}),
-				cloudRows,
+				cloudRows: scopedHostId === undefined ? cloudRows : [],
 			}),
-		[targets, queries, snapshots, cloudRows],
+		[targets, queries, snapshots, cloudRows, scopedHostId],
 	);
 
 	// Readiness reflects host-query settlement only. The Electric collection
@@ -219,13 +227,16 @@ export function useHostWorkspacesSource(): UseHostWorkspacesResult {
 	// !isReady indefinitely on an offline cold start (it serves persisted
 	// rows without reaching ready), so gating on cloudReady would hang the
 	// empty state forever for a genuinely-empty local host while offline.
-	const isReady = queries.every(
-		(query, index) =>
-			query.isSuccess ||
-			query.isError ||
-			targets[index]?.hostUrl === null ||
-			snapshots.has(targets[index]?.machineId ?? ""),
-	);
+	// A scoped host that hasn't resolved to a target yet is still loading.
+	const isReady =
+		(scopedHostId === undefined || targets.length > 0) &&
+		queries.every(
+			(query, index) =>
+				query.isSuccess ||
+				query.isError ||
+				targets[index]?.hostUrl === null ||
+				snapshots.has(targets[index]?.machineId ?? ""),
+		);
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const targetFor = (hostId: string) =>

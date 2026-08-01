@@ -1,7 +1,7 @@
 import type { HarnessKind, StopReason } from "@superset/session-protocol";
 import type {
 	AgentDefinitionId,
-	BuiltinAgentId,
+	AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import type { BranchPrefixMode } from "@superset/shared/workspace-launch";
 import { sql } from "drizzle-orm";
@@ -50,7 +50,7 @@ export const terminalAgentBindings = sqliteTable(
 			.primaryKey()
 			.references(() => terminalSessions.id, { onDelete: "cascade" }),
 		workspaceId: text("workspace_id").notNull(),
-		agentId: text("agent_id").notNull().$type<BuiltinAgentId>(),
+		agentId: text("agent_id").notNull().$type<AgentIdentityId>(),
 		agentSessionId: text("agent_session_id"),
 		definitionId: text("definition_id").$type<AgentDefinitionId>(),
 		startedAt: integer("started_at").notNull(),
@@ -77,6 +77,9 @@ export const projects = sqliteTable(
 		// "fall back to the host-wide default" in `host_settings`.
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		// Custom project icon as a small downscaled data-URI. Null falls back to
+		// the GitHub owner avatar (when a repo is linked) or a placeholder.
+		icon: text("icon"),
 		// Empty string means "not yet backfilled" — the startup sweep targets
 		// these rows (name from cloud legacy row if reachable, else basename).
 		name: text().notNull().default(""),

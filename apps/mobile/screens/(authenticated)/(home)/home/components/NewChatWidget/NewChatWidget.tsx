@@ -48,11 +48,16 @@ import {
 	StyleSheet,
 	View,
 } from "react-native";
-import Animated, { FadeIn, FadeOut } from "react-native-reanimated";
+import Animated, {
+	FadeIn,
+	FadeOut,
+	LinearTransition,
+} from "react-native-reanimated";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { usePromptInputController } from "@/components/ai-elements/prompt-input";
 import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
 import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import { cn } from "@/lib/utils";
 import { useAfterTransitionEnd } from "@/screens/(authenticated)/(home)/hooks/useAfterTransitionEnd";
 import {
 	type ChatTarget,
@@ -334,7 +339,26 @@ export function NewChatWidget({
 					className="px-3"
 					style={{ paddingBottom: focused ? 8 : insets.bottom + 8 }}
 				>
-					{above ? <View className="flex-row pb-2 pl-1">{above}</View> : null}
+					{/* The pill resizes natively (SwiftUI spring) while RN relayouts land
+			    in discrete jumps — the layout spring makes the chip glide between
+			    those jumps; z-10 keeps mid-animation frames above the glass. */}
+					{above ? (
+						<Animated.View
+							className="z-10"
+							layout={LinearTransition.springify().duration(350)}
+						>
+							{/* Extra clearance while expanded: the settled glass renders
+						    taller than the frame matchContents reports. */}
+							<View
+								className={cn(
+									"flex-row pl-1",
+									expanded ? "pb-[26px]" : "pb-2.5",
+								)}
+							>
+								{above}
+							</View>
+						</Animated.View>
+					) : null}
 					<Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
 						<VStack
 							spacing={0}

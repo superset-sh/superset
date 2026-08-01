@@ -13,6 +13,7 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { isHostOfflineError } from "../utils/hostOfflineError";
+import { isStaleAgentError, STALE_AGENT_HELP } from "../utils/staleAgentError";
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
 import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
@@ -78,6 +79,10 @@ function AutomationDetailPage() {
 			const message = error instanceof Error ? error.message : null;
 			if (isHostOfflineError(message)) {
 				setHostOfflineOpen(true);
+				return;
+			}
+			if (isStaleAgentError(message)) {
+				toast.error(STALE_AGENT_HELP);
 				return;
 			}
 			toast.error(message ?? "Failed to trigger run");

@@ -291,16 +291,6 @@ describe("PTY output write coalescing", () => {
 });
 
 describe("terminal-ws-transport", () => {
-	test("mock preserves the relay-socket module's other exports", async () => {
-		// Regression guard: bun's mock.module is process-global, so stubbing only
-		// createRelaySocket drops the module's other exports (e.g.
-		// setRelaySocketTelemetry, which renderer/lib/posthog imports) and crashes
-		// unrelated desktop tests suite-wide with "export not found". The mock must
-		// spread the real module — assert that here so a partial stub fails fast.
-		const mod = await import("@superset/workspace-client/relay-socket");
-		expect(typeof mod.setRelaySocketTelemetry).toBe("function");
-	});
-
 	test("server-sent error routes to logs, not xterm, and terminates", () => {
 		const transport = createTransport();
 		const writelnCalls: string[] = [];
@@ -487,6 +477,74 @@ describe("terminal-ws-transport", () => {
 		disconnect(transport);
 		expect(socket.closed).toBe(true);
 		expect(transport.connectionState).toBe("disconnected");
+	});
+
+	test("PTY exit marks the session ended and fires the callback once", () => {
+		const onSessionEnded = mock(() => {});
+		const transport = createTransport({ onSessionEnded });
+		const terminal = createMockTerminal();
+		connect(transport, terminal, "ws://host/terminal/t1");
+		const socket = FakeRelaySocket.instances.at(-1);
+		if (!socket) throw new Error("expected relay socket instance");
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		expect(transport.sessionEnded).toBe(false);
+
+		socket.message(JSON.stringify({ type: "exit", exitCode: 0, signal: 0 }));
+		expect(transport.sessionEnded).toBe(true);
+		expect(onSessionEnded).toHaveBeenCalledTimes(1);
+	});
+
+	test("a session-gone attach error marks the session ended", () => {
+		const onSessionEnded = mock(() => {});
+		const transport = createTransport({ onSessionEnded });
+		connect(transport, createMockTerminal(), "ws://host/terminal/t1");
+		const socket = FakeRelaySocket.instances.at(-1);
+		if (!socket) throw new Error("expected relay socket instance");
+		socket.open();
+
+		socket.message(
+			JSON.stringify({
+				type: "error",
+				message: 'Terminal session "t1" has exited.',
+				code: "session-gone",
+			}),
+		);
+
+		expect(transport.sessionEnded).toBe(true);
+		expect(onSessionEnded).toHaveBeenCalledTimes(1);
+	});
+
+	test("a plain server error does not mark the session ended", () => {
+		const onSessionEnded = mock(() => {});
+		const transport = createTransport({ onSessionEnded });
+		connect(transport, createMockTerminal(), "ws://host/terminal/t1");
+		const socket = FakeRelaySocket.instances.at(-1);
+		if (!socket) throw new Error("expected relay socket instance");
+		socket.open();
+
+		socket.message(
+			JSON.stringify({
+				type: "error",
+				message: "Internal terminal attach error",
+			}),
+		);
+
+		expect(transport.sessionEnded).toBe(false);
+		expect(onSessionEnded).not.toHaveBeenCalled();
+	});
+
+	test("a successful re-attach resets the session-ended flag", () => {
+		const { transport, socket } = connectAttached();
+
+		socket.message(JSON.stringify({ type: "exit", exitCode: 0, signal: 0 }));
+		expect(transport.sessionEnded).toBe(true);
+
+		// The session was re-created under the same id and the retry attached.
+		reconnect(transport);
+		socket.open();
+		socket.message(JSON.stringify({ type: "attached", terminalId: "t1" }));
+		expect(transport.sessionEnded).toBe(false);
 	});
 
 	test("ignores late events from a socket detached during teardown", () => {

@@ -18,14 +18,17 @@
 		}
 	},
 	"scripts": {
-		"test": "bun test",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
 		"@modelcontextprotocol/sdk": "1.28.0",
+		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
+		"@superset/trpc": "workspace:*",
+		"better-auth": "1.6.22",
 		"drizzle-orm": "0.45.2",
+		"superjson": "2.2.6",
 		"zod": "4.3.6"
 	},
 	"devDependencies": {

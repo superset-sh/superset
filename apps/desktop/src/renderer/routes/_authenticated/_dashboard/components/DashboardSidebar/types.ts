@@ -43,8 +43,19 @@ export interface DashboardSidebarWorkspace {
 	createdAt: Date;
 	updatedAt: Date;
 	taskId: string | null;
+	isPinned: boolean;
 	pendingTransaction: WorkspaceTransactionSnapshot | null;
 }
+
+/**
+ * A pinned workspace rendered in the sidebar's top-level Pinned section.
+ * Carries its project's identity since the row renders outside any project
+ * group.
+ */
+export type DashboardSidebarPinnedWorkspace = DashboardSidebarWorkspace & {
+	projectName: string;
+	projectIconUrl: string | null;
+};
 
 export interface DashboardSidebarSection {
 	id: string;

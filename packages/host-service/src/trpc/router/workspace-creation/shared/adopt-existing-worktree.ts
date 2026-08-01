@@ -72,7 +72,13 @@ export async function adoptExistingWorktree(
 		idempotencyId,
 		taskId,
 	} = args;
-	const store: WorkspaceStoreContext = { db: ctx.db, eventBus: ctx.eventBus };
+	const store: WorkspaceStoreContext = {
+		db: ctx.db,
+		eventBus: ctx.eventBus,
+		api: ctx.api,
+		organizationId: ctx.organizationId,
+		clientMachineId: ctx.clientMachineId,
+	};
 
 	if (existingWorkspaceId) {
 		await recordBaseBranch(git, branch, baseBranch);

@@ -12,8 +12,6 @@ import type {
 	OutputMessage,
 	ResizeMessage,
 	ServerMessage,
-	SnapshotMessage,
-	SnapshotReplyMessage,
 	SubscribeMessage,
 	UnsubscribeMessage,
 } from "../protocol/index.ts";
@@ -164,27 +162,6 @@ export function handleClose(ctx: HandlerCtx, msg: CloseMessage): ServerMessage {
 
 export function handleList(ctx: HandlerCtx): ListReplyMessage {
 	return { type: "list-reply", sessions: ctx.store.list() };
-}
-
-/** Return current ring bytes without subscribing or mutating session state. */
-export function handleSnapshot(
-	ctx: HandlerCtx,
-	conn: Conn,
-	msg: SnapshotMessage,
-): void {
-	const session = ctx.store.get(msg.id);
-	if (!session) {
-		conn.send(errorFor(msg.id, `unknown session: ${msg.id}`, "ENOENT"));
-		return;
-	}
-	const reply: SnapshotReplyMessage = {
-		type: "snapshot-reply",
-		id: msg.id,
-		cols: session.pty.meta.cols,
-		rows: session.pty.meta.rows,
-		truncated: session.bufferTruncated,
-	};
-	conn.send(reply, ctx.store.snapshotBuffer(session));
 }
 
 /**

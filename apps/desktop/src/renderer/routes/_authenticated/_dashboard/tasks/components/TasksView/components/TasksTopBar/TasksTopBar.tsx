@@ -190,6 +190,9 @@ export function TasksTopBar({
 					)}
 				</div>
 
+				{/* Window-drag leaf standing in for the hidden TopBar. */}
+				<div className="drag h-full min-w-0 flex-1" />
+
 				{/* Right side: create + view toggle + search */}
 				<div className="flex items-center gap-2">
 					{showTaskOnlyControls && (

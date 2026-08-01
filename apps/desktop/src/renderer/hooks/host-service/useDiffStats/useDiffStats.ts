@@ -9,7 +9,11 @@ export interface DiffStats {
 	deletions: number;
 }
 
-export function useDiffStats(workspaceId: string): DiffStats | null {
+export function useDiffStats(
+	workspaceId: string,
+	options?: { enabled?: boolean },
+): DiffStats | null {
+	const enabled = options?.enabled ?? true;
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
@@ -19,7 +23,7 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 
 	const { data: status } = useQuery({
 		queryKey,
-		enabled: Boolean(workspaceId) && Boolean(hostUrl),
+		enabled: enabled && Boolean(workspaceId) && Boolean(hostUrl),
 		queryFn: () => {
 			if (!hostUrl) return null;
 			return getHostServiceClientByUrl(hostUrl).git.getStatus.query({
@@ -35,6 +39,9 @@ export function useDiffStats(workspaceId: string): DiffStats | null {
 		void queryClient.invalidateQueries({ queryKey });
 	}, [queryClient, queryKey]);
 
+	// Stays subscribed while disabled: invalidation marks the cached stats
+	// stale so they refetch when the query is re-enabled (staleTime is
+	// Infinity, so a gated subscription would freeze counts).
 	useWorkspaceEvent(
 		"git:changed",
 		workspaceId,

@@ -76,6 +76,9 @@ export default defineConfig({
 			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
 			),
+			"process.env.SENTRY_DSN_HOST_SERVICE": defineEnv(
+				process.env.SENTRY_DSN_HOST_SERVICE,
+			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
 			// Must match renderer for analytics in main process
 			"process.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(

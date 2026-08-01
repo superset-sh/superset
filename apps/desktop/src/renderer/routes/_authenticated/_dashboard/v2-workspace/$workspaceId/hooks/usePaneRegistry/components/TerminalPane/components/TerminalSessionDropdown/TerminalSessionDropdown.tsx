@@ -11,7 +11,7 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { Check, ChevronDown, LoaderCircle, Plus, Trash2 } from "lucide-react";
+import { Check, LoaderCircle, Plus, Trash2 } from "lucide-react";
 import { useCallback, useMemo, useState, useSyncExternalStore } from "react";
 import { useRenderStressInstrumentation } from "renderer/lib/performance/stress-instrumentation";
 import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
@@ -310,10 +310,8 @@ export function TerminalSessionDropdown({
 					<span className="min-w-0 flex-1 truncate text-left">
 						{triggerTitle}
 					</span>
-					{sessionsQuery.isFetching && isOpen ? (
+					{sessionsQuery.isFetching && isOpen && (
 						<LoaderCircle className="size-3 shrink-0 animate-spin" />
-					) : (
-						<ChevronDown className="size-3 shrink-0" />
 					)}
 				</button>
 			</DropdownMenuTrigger>

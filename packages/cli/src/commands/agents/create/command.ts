@@ -1,19 +1,24 @@
 import { CLIError, string } from "@superset/cli-framework";
+import { getHostId } from "@superset/shared/host-info";
 import { command } from "../../../lib/command";
 import { resolveHostTarget } from "../../../lib/host-target";
-import { findHostWorkspace } from "../../../lib/host-workspaces";
+import { findWorkspaceOnHost } from "../../../lib/host-workspaces";
 import { uploadAttachments } from "../../../lib/upload-attachments";
 
 export default command({
 	description: "Create an agent session in an existing workspace",
 	options: {
 		workspace: string().required().desc("Workspace ID"),
+		host: string().desc("Host the workspace lives on (default: this machine)"),
 		agent: string()
 			.required()
 			.desc(
 				"Agent preset id (e.g. `claude`), HostAgentConfig instance UUID, or `superset` for a Superset session",
 			),
 		prompt: string().required().desc("Prompt sent to the agent"),
+		effort: string().desc(
+			"Reasoning effort for this launch (agent-specific; omit to use the agent default)",
+		),
 		attachmentId: string()
 			.variadic()
 			.desc("Pre-uploaded attachment UUID; pass --attachment-id repeatedly"),
@@ -29,23 +34,20 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		// Workspace records are host-owned: resolve the id across the org's
-		// reachable hosts.
-		const { workspace, warnings } = await findHostWorkspace(
-			{ api: ctx.api, organizationId, userJwt: ctx.bearer },
+		const hostId = options.host ?? getHostId();
+		const { workspace } = await findWorkspaceOnHost(
+			{ organizationId, userJwt: ctx.bearer, hostId },
 			options.workspace,
 		);
-		for (const warning of warnings) {
-			process.stderr.write(`Warning: ${warning}\n`);
-		}
 		if (!workspace) {
 			throw new CLIError(
-				`Workspace not found on any reachable host: ${options.workspace}`,
+				`Workspace not found on host ${hostId}: ${options.workspace}`,
+				"Pass --host <id> if it lives on another machine",
 			);
 		}
 
 		const target = resolveHostTarget({
-			requestedHostId: workspace.hostId,
+			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
 		});
@@ -59,6 +61,7 @@ export default command({
 			workspaceId: options.workspace,
 			agent: options.agent,
 			prompt: options.prompt,
+			effort: options.effort,
 			attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 		});
 

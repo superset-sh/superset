@@ -1,41 +1,104 @@
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
+import { mintUserJwt } from "@superset/auth/server";
+import { db } from "@superset/db/client";
+import { members, users } from "@superset/db/schema";
+import { eq } from "drizzle-orm";
 import type { McpContext } from "./auth";
-import { createMcpServer, type McpServerOptions } from "./server";
+import type { McpToolCallEmitter } from "./define-tool";
+import { createMcpServer } from "./server";
 
-export async function createInMemoryMcpClient({
-	organizationId,
-	userId,
-	source,
-	onToolCall,
-}: {
-	organizationId: string;
+export interface InMemoryClientOptions {
 	userId: string;
-	source?: McpContext["source"];
-	onToolCall?: McpServerOptions["onToolCall"];
-}): Promise<{ client: Client; cleanup: () => Promise<void> }> {
+	organizationId: string;
+	clientLabel: string;
+	relayUrl: string;
+	onToolCall?: McpToolCallEmitter;
+}
+
+/**
+ * Build an in-memory MCP client/server pair for server-side agent integrations
+ * (the Slack agent, the automations dispatcher, etc.). Auth context is wired
+ * directly through the SDK's documented `authInfo` option on each request —
+ * no transport monkey-patching.
+ *
+ * Callers MUST await the returned `cleanup()` to free the in-memory transport.
+ * Use it inside a `try/finally` or with `await using` if your runtime supports it.
+ */
+export async function createInMemoryMcpClient({
+	userId,
+	organizationId,
+	clientLabel,
+	relayUrl,
+	onToolCall,
+}: InMemoryClientOptions): Promise<{
+	client: Client;
+	cleanup: () => Promise<void>;
+}> {
+	const [user] = await db
+		.select({ email: users.email })
+		.from(users)
+		.where(eq(users.id, userId))
+		.limit(1);
+	if (!user) {
+		throw new Error(`User ${userId} not found`);
+	}
+	const memberships = await db
+		.select({ organizationId: members.organizationId })
+		.from(members)
+		.where(eq(members.userId, userId));
+	const organizationIds = [
+		...new Set(memberships.map((m) => m.organizationId)),
+	];
+	if (!organizationIds.includes(organizationId)) {
+		throw new Error(
+			`User ${userId} is not a member of organization ${organizationId}`,
+		);
+	}
+
+	// Same scoping as resolveMcpContext: the relay trusts this claim, so the
+	// host-call token must carry only the org this client is bound to.
+	const bearerToken = await mintUserJwt({
+		userId,
+		email: user.email,
+		organizationIds: [organizationId],
+		ttlSeconds: 300,
+	});
+
+	const mcpContext: McpContext = {
+		userId,
+		email: user.email,
+		organizationId,
+		organizationIds,
+		source: "api-key",
+		clientLabel,
+		requestId: crypto.randomUUID(),
+		bearerToken,
+		relayUrl,
+	};
+
 	const server = createMcpServer({ onToolCall });
 	const [serverTransport, clientTransport] =
 		InMemoryTransport.createLinkedPair();
 
-	// Inject auth context into every message from client → server
 	const originalSend = clientTransport.send.bind(clientTransport);
 	clientTransport.send = (message, options) =>
 		originalSend(message, {
 			...options,
 			authInfo: {
 				token: "internal",
-				clientId: "slack-agent",
+				clientId: "mcp-internal",
 				scopes: ["mcp:full"],
-				extra: {
-					mcpContext: { userId, organizationId, source } satisfies McpContext,
-				},
+				extra: { mcpContext },
 			},
 		});
 
 	await server.connect(serverTransport);
 
-	const client = new Client({ name: "superset-internal", version: "1.0.0" });
+	const client = new Client({
+		name: "superset-internal",
+		version: "1.0.0",
+	});
 	await client.connect(clientTransport);
 
 	return {

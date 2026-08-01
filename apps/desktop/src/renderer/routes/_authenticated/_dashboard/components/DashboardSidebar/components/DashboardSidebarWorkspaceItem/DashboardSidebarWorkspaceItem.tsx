@@ -10,7 +10,6 @@ import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
-import { DashboardSidebarWorkspaceDetails } from "./components/DashboardSidebarWorkspaceDetails";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
 interface DashboardSidebarWorkspaceItemProps {
@@ -19,6 +18,11 @@ interface DashboardSidebarWorkspaceItemProps {
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
 	isInSection?: boolean;
+	/**
+	 * Set when the row renders inside the top-level Pinned section: shows the
+	 * owning project's avatar for cross-project context.
+	 */
+	pinnedContext?: { projectName: string; projectIconUrl: string | null };
 }
 
 export function DashboardSidebarWorkspaceItem({
@@ -27,6 +31,7 @@ export function DashboardSidebarWorkspaceItem({
 	shortcutLabel,
 	isCollapsed = false,
 	isInSection = false,
+	pinnedContext,
 }: DashboardSidebarWorkspaceItemProps) {
 	const {
 		id,
@@ -40,7 +45,6 @@ export function DashboardSidebarWorkspaceItem({
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
-	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
 		cancelRename,
@@ -52,6 +56,7 @@ export function DashboardSidebarWorkspaceItem({
 		handleDeleted,
 		handleOpenInFinder,
 		handleRemoveFromSidebar,
+		handleTogglePin,
 		handleToggleUnread,
 		isActive,
 		isDeleteDialogOpen,
@@ -69,7 +74,12 @@ export function DashboardSidebarWorkspaceItem({
 		workspaceName: name,
 		branch,
 		isMainWorkspace,
+		isPinned: workspace.isPinned,
 	});
+
+	// Only the active workspace row shows line counts, so skip the per-item
+	// git status query everywhere else.
+	const diffStats = useDiffStats(id, { enabled: isActive });
 
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
@@ -123,12 +133,10 @@ export function DashboardSidebarWorkspaceItem({
 				onMouseLeave={handleMouseLeave}
 				className="relative flex w-full justify-center"
 			>
-				{(accentColor || isActive) && (
+				{accentColor && (
 					<div
 						className="absolute inset-y-0 left-0 w-0.5"
-						style={{
-							backgroundColor: accentColor ?? "var(--color-foreground)",
-						}}
+						style={{ backgroundColor: accentColor }}
 					/>
 				)}
 				<DashboardSidebarCollapsedWorkspaceButton
@@ -158,7 +166,11 @@ export function DashboardSidebarWorkspaceItem({
 							isUnread={isUnread}
 							hasStatus={!!workspaceStatus}
 							isLocalWorkspace={hostType === "local-device"}
-							isPinned={isMainWorkspace && hostType === "local-device"}
+							isLocalMainWorkspace={
+								isMainWorkspace && hostType === "local-device"
+							}
+							isPinned={workspace.isPinned}
+							onTogglePin={handleTogglePin}
 							onCreateSection={handleCreateSection}
 							showDeleteHotkey={isActive}
 							onMoveToSection={(targetSectionId) =>
@@ -210,11 +222,6 @@ export function DashboardSidebarWorkspaceItem({
 			ref={rowRef}
 			onMouseEnter={handleMouseEnter}
 			onMouseLeave={handleMouseLeave}
-			// Hover/focus scope for the details strip below the row: it swaps its
-			// summary cluster for the full badges while the item is hovered, or
-			// while this is the active workspace.
-			data-active={isActive || undefined}
-			className="group/item"
 		>
 			<DashboardSidebarExpandedWorkspaceRow
 				workspace={workspace}
@@ -222,6 +229,7 @@ export function DashboardSidebarWorkspaceItem({
 				isRenaming={isRenaming}
 				renameValue={renameValue}
 				shortcutLabel={shortcutLabel}
+				pinnedContext={pinnedContext}
 				diffStats={isPending ? null : diffStats}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
@@ -232,15 +240,7 @@ export function DashboardSidebarWorkspaceItem({
 				onRenameValueChange={setRenameValue}
 				onSubmitRename={submitRename}
 				onCancelRename={cancelRename}
-			>
-				{!isPending && (
-					<DashboardSidebarWorkspaceDetails
-						workspaceId={id}
-						isInSection={isInSection}
-						onClick={handleClick}
-					/>
-				)}
-			</DashboardSidebarExpandedWorkspaceRow>
+			/>
 		</div>
 	);
 
@@ -261,7 +261,11 @@ export function DashboardSidebarWorkspaceItem({
 							moveWorkspaceToSection(id, projectId, targetSectionId)
 						}
 						isLocalWorkspace={hostType === "local-device"}
-						isPinned={isMainWorkspace && hostType === "local-device"}
+						isLocalMainWorkspace={
+							isMainWorkspace && hostType === "local-device"
+						}
+						isPinned={workspace.isPinned}
+						onTogglePin={handleTogglePin}
 						onOpenInFinder={handleOpenInFinder}
 						showDeleteHotkey={isActive}
 						onCopyPath={handleCopyPath}

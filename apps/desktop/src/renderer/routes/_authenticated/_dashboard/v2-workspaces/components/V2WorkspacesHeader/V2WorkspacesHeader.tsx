@@ -14,21 +14,12 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
-import {
-	LuFolders,
-	LuLaptop,
-	LuLayers,
-	LuMonitor,
-	LuSearch,
-	LuX,
-} from "react-icons/lu";
+import { LuFolders, LuLaptop, LuMonitor, LuSearch, LuX } from "react-icons/lu";
 import type {
-	V2WorkspaceDeviceCounts,
 	V2WorkspaceHostOption,
 	V2WorkspaceProjectOption,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
-	DEVICE_FILTER_ALL,
 	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_ALL,
 	useV2WorkspacesFilterStore,
@@ -39,21 +30,16 @@ import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
 import { ProjectFilterTriggerLabel } from "./components/ProjectFilterTriggerLabel";
 
 interface V2WorkspacesHeaderProps {
-	counts: V2WorkspaceDeviceCounts;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
 	hostsById: Map<
 		string,
 		{ hostName: string; isOnline: boolean; isLocal: boolean }
 	>;
-	projectsById: Map<
-		string,
-		{ projectName: string; githubOwner: string | null }
-	>;
+	projectsById: Map<string, { projectName: string; iconUrl: string | null }>;
 }
 
 export function V2WorkspacesHeader({
-	counts,
 	hostOptions,
 	projectOptions,
 	hostsById,
@@ -81,9 +67,7 @@ export function V2WorkspacesHeader({
 		(host) => host.hostId === deviceFilter,
 	);
 	const selectedHostFallback =
-		!selectedRemoteHostFromOptions &&
-		deviceFilter !== DEVICE_FILTER_ALL &&
-		deviceFilter !== DEVICE_FILTER_THIS_DEVICE
+		!selectedRemoteHostFromOptions && deviceFilter !== DEVICE_FILTER_THIS_DEVICE
 			? hostsById.get(deviceFilter)
 			: undefined;
 	const selectedHostLabel = selectedRemoteHostFromOptions
@@ -108,12 +92,12 @@ export function V2WorkspacesHeader({
 	const selectedProjectLabel = selectedProjectFromOptions
 		? {
 				projectName: selectedProjectFromOptions.projectName,
-				githubOwner: selectedProjectFromOptions.githubOwner,
+				iconUrl: selectedProjectFromOptions.iconUrl,
 			}
 		: selectedProjectFallback
 			? {
 					projectName: selectedProjectFallback.projectName,
-					githubOwner: selectedProjectFallback.githubOwner,
+					iconUrl: selectedProjectFallback.iconUrl,
 				}
 			: undefined;
 
@@ -121,6 +105,9 @@ export function V2WorkspacesHeader({
 		<div className="border-b border-border">
 			<div className="flex w-full flex-wrap items-center justify-between gap-3 px-6 py-4">
 				<h1 className="text-sm font-semibold tracking-tight">Workspaces</h1>
+
+				{/* Window-drag leaf standing in for the hidden TopBar. */}
+				<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
 
 				<div className="flex flex-wrap items-center gap-2">
 					<InputGroup className="w-72">
@@ -182,7 +169,7 @@ export function V2WorkspacesHeader({
 												<span className="flex w-full min-w-0 items-center gap-2">
 													<V2WorkspaceProjectIcon
 														projectName={project.projectName}
-														githubOwner={project.githubOwner}
+														iconUrl={project.iconUrl}
 														size="sm"
 													/>
 													<span className="min-w-0 flex-1 truncate">
@@ -215,14 +202,6 @@ export function V2WorkspacesHeader({
 									<DeviceOptionLabel
 										icon={<LuLaptop className="size-3.5" />}
 										label="This device"
-										count={counts.thisDevice}
-									/>
-								</SelectItem>
-								<SelectItem value={DEVICE_FILTER_ALL}>
-									<DeviceOptionLabel
-										icon={<LuLayers className="size-3.5" />}
-										label="All devices"
-										count={counts.all}
 									/>
 								</SelectItem>
 							</SelectGroup>
@@ -239,7 +218,6 @@ export function V2WorkspacesHeader({
 												<DeviceOptionLabel
 													icon={<LuMonitor className="size-3.5" />}
 													label={host.hostName}
-													count={host.count}
 													isOnline={host.isOnline}
 												/>
 											</SelectItem>

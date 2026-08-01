@@ -81,8 +81,10 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Codex",
 		description:
 			"OpenAI's coding agent for reading, modifying, and running code across tasks.",
-		command: "codex --dangerously-bypass-approvals-and-sandbox",
-		promptCommand: "codex --dangerously-bypass-approvals-and-sandbox --",
+		command:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
+		promptCommand:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust --",
 		nonInteractiveCommand: "codex exec --skip-git-repo-check",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -149,6 +151,15 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "kimi",
 		promptCommand: "kimi -p",
 		promptCommandSuffix: "; kimi --auto --continue",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
+		id: "grok",
+		label: "Grok",
+		description:
+			"xAI's coding agent for reading, editing, and running code from the terminal.",
+		command: "grok --always-approve",
+		nonInteractiveCommand: "grok --permission-mode plan -p",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({

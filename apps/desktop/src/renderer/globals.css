@@ -6,23 +6,6 @@
 @source "../../../../packages/ui/src/**/*.{ts,tsx}";
 @source "../../../../packages/ui/node_modules/streamdown/dist/*.js";
 
-/*
- * Active when the sidebar workspace activity strip should show its expanded
- * (pill) state: the workspace item (`group/item`) is hovered, keyboard
- * focused, or the active workspace (`data-active`), or one of the strip's own
- * dropdown menus (`group/details` scope) is open so it can't collapse under
- * the pointer.
- */
-@custom-variant details-expanded (&:is(
-		:where(
-				.group\/item:hover,
-				.group\/item:focus-within,
-				.group\/item[data-active]
-			)
-			*,
-		.group\/details:has([data-state="open"]) *
-	));
-
 /**
  * Theme CSS Variables
  *
@@ -72,6 +55,9 @@
 	--highlight-active: rgba(224, 120, 80, 0.5);
 	--highlight: #e07850;
 	--highlight-foreground: #151110;
+	/* Sidebar row fills: low-opacity foreground washes so they track any theme */
+	--fill-hover: color-mix(in oklab, var(--foreground) 7%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 10%, transparent);
 }
 
 /* Light theme fallback values - applied before hydration if user has light theme saved */
@@ -114,6 +100,8 @@
 	--highlight-active: rgba(255, 150, 50, 0.55);
 	--highlight: oklch(0.646 0.222 41.116);
 	--highlight-foreground: oklch(0.985 0 0);
+	--fill-hover: color-mix(in oklab, var(--foreground) 4%, transparent);
+	--fill-selected: color-mix(in oklab, var(--foreground) 6%, transparent);
 }
 
 @theme inline {
@@ -157,6 +145,8 @@
 	--color-sidebar-ring: var(--sidebar-ring);
 	--color-highlight: var(--highlight);
 	--color-highlight-foreground: var(--highlight-foreground);
+	--color-fill-hover: var(--fill-hover);
+	--color-fill-selected: var(--fill-selected);
 }
 
 @layer base {

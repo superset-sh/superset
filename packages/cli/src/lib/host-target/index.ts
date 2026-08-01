@@ -1,9 +1,4 @@
 export {
-	type HostInfo,
-	type HostQueryResult,
-	queryHostTargets,
-} from "./queryHostTargets";
-export {
 	type HostFlags,
 	requireHostTarget,
 	resolveHostFilter,

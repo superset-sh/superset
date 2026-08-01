@@ -52,6 +52,7 @@ import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
 import type { AutomationTemplate } from "./templates";
 import { isHostOfflineError } from "./utils/hostOfflineError";
+import { isStaleAgentError, STALE_AGENT_HELP } from "./utils/staleAgentError";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 	{
@@ -93,6 +94,10 @@ function AutomationsPage() {
 			const message = error instanceof Error ? error.message : null;
 			if (isHostOfflineError(message)) {
 				setHostOfflineRun({ hostId: targetHostId });
+				return;
+			}
+			if (isStaleAgentError(message)) {
+				toast.error(STALE_AGENT_HELP);
 				return;
 			}
 			toast.error(message ?? "Failed to trigger run");
@@ -289,6 +294,9 @@ function AutomationsPage() {
 						</TabsList>
 					</Tabs>
 				</div>
+
+				{/* Window-drag leaf standing in for the hidden TopBar. */}
+				<div className="drag h-full min-w-0 flex-1" />
 
 				<div className="flex items-center gap-2">
 					<Button

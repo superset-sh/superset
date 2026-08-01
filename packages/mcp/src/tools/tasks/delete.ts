@@ -1,0 +1,20 @@
+import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { z } from "zod";
+import { createMcpCaller } from "../../caller";
+import { defineTool } from "../../define-tool";
+
+export function register(server: McpServer): void {
+	defineTool(server, {
+		name: "tasks_delete",
+		annotations: { destructiveHint: true },
+		description:
+			"Delete a task by UUID (soft delete — the row is tombstoned, not purged).",
+		inputSchema: {
+			id: z.string().uuid().describe("Task UUID."),
+		},
+		handler: async (input, ctx) => {
+			const caller = createMcpCaller(ctx);
+			return caller.task.delete(input.id);
+		},
+	});
+}
