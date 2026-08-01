@@ -37,7 +37,7 @@ Decisions made while CDP-verifying and hardening PR #5821 (boot trigger, migrate
 ## Paced rollout (decided w/ Satya, 2026-08-01)
 
 - **Flag `v1-auto-migration`** (PostHog 794331) gates NEW migrations on the v1 surface only — post-flip catch-up passes and manual import are ungated, so pausing the flag never strands a flipped machine. Off/unloaded/offline = stay on v1.
-- **Live at 5%**, ramp 5 → 25 → 100 as the blocked-machines tile stays boring. Kill switch = flag off (stops new migrations only; flips are one-way by design).
+- **Live at 1%** (revised 2026-08-01; @superset.sh dogfoods at 100%), ramp 1 → 5 → 25 → 100 as the blocked-machines tile stays boring. Kill switch = flag off (stops new migrations only; flips are one-way by design).
 - **20 high-profile domains excluded** until deliberately flipped last: wix, rtc-rcloud.jp, doordash, daangn, ziphq, knowbe4, alation, mistral.ai, netflix, microsoft, toss.im, addi, wealthbox, holded, opengov, upgrade, cyera.io, loancrate, ramp, thriveholdings (~650 of the ~5.6k weekly v1 users).
 - Note: the forced-flip backstop bypasses the flag — only set `V1_FORCED_FLIP_VERSION` once the flag is at 100%.
 
