@@ -50,4 +50,29 @@ describe("ProviderUsageRow", () => {
 		expect(markup).toContain("Sign in with Claude CLI to see limits.");
 		expect(markup).not.toContain('role="progressbar"');
 	});
+
+	test("blurs email-like account labels when email privacy is enabled", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow
+				provider={{
+					...claudeProvider,
+					accountLabel: "person@example.com",
+				}}
+				blurEmails
+			/>,
+		);
+
+		expect(markup).toContain("person@example.com");
+		expect(markup).toContain("Email hidden");
+		expect(markup).toContain("blur-[3px]");
+	});
+
+	test("keeps non-email account labels readable while email privacy is enabled", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow provider={claudeProvider} blurEmails />,
+		);
+
+		expect(markup).toContain("Max");
+		expect(markup).not.toContain("Email hidden");
+	});
 });

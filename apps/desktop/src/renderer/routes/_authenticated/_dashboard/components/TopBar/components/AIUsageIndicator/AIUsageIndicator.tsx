@@ -3,7 +3,12 @@ import { cn } from "@superset/ui/lib/utils";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useState } from "react";
-import { HiOutlineArrowPath, HiOutlineChartPie } from "react-icons/hi2";
+import {
+	HiOutlineArrowPath,
+	HiOutlineChartPie,
+	HiOutlineEye,
+	HiOutlineEyeSlash,
+} from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ProviderUsageRow } from "./components/ProviderUsageRow";
 import {
@@ -16,6 +21,7 @@ import {
 export function AIUsageIndicator() {
 	const [open, setOpen] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [blurEmails, setBlurEmails] = useState(false);
 	const utils = electronTrpc.useUtils();
 	const { data, isFetching } = electronTrpc.providerUsage.getSnapshot.useQuery(
 		undefined,
@@ -77,23 +83,43 @@ export function AIUsageIndicator() {
 							Remaining subscription capacity
 						</p>
 					</div>
-					<button
-						type="button"
-						onClick={() => void refreshNow()}
-						disabled={isRefreshing}
-						className="inline-flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
-						aria-label="Refresh AI usage"
-					>
-						<HiOutlineArrowPath
-							className={cn(
-								"size-3.5",
-								(isFetching || isRefreshing) && "animate-spin",
+					<div className="flex items-center gap-1">
+						<button
+							type="button"
+							onClick={() => setBlurEmails((value) => !value)}
+							aria-pressed={blurEmails}
+							className="inline-flex h-6 items-center gap-1 rounded border border-border/60 bg-card/80 px-2 text-[10px] font-medium text-muted-foreground shadow-sm backdrop-blur-sm transition-colors hover:bg-foreground/[0.06] hover:text-foreground aria-pressed:bg-foreground/[0.08] aria-pressed:text-foreground"
+							aria-label={blurEmails ? "Show emails" : "Blur emails"}
+						>
+							{blurEmails ? (
+								<HiOutlineEyeSlash className="size-3" />
+							) : (
+								<HiOutlineEye className="size-3" />
 							)}
-						/>
-					</button>
+							<span>{blurEmails ? "Blurred" : "Blur"}</span>
+						</button>
+						<button
+							type="button"
+							onClick={() => void refreshNow()}
+							disabled={isRefreshing}
+							className="inline-flex size-6 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground"
+							aria-label="Refresh AI usage"
+						>
+							<HiOutlineArrowPath
+								className={cn(
+									"size-3.5",
+									(isFetching || isRefreshing) && "animate-spin",
+								)}
+							/>
+						</button>
+					</div>
 				</div>
 				{data?.providers.map((provider) => (
-					<ProviderUsageRow key={provider.providerId} provider={provider} />
+					<ProviderUsageRow
+						key={provider.providerId}
+						provider={provider}
+						blurEmails={blurEmails}
+					/>
 				))}
 				{!data && (
 					<p className="border-t border-border/60 px-3.5 py-3 text-[10px] text-muted-foreground">

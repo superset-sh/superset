@@ -1,12 +1,52 @@
 import { cn } from "@superset/ui/lib/utils";
 import type { ProviderUsage } from "lib/trpc/routers/provider-usage.schema";
+import type { ReactNode } from "react";
 import { formatResetLabel } from "../../usageIndicatorPolicy";
 
 interface ProviderUsageRowProps {
 	provider: ProviderUsage;
+	blurEmails?: boolean;
 }
 
-export function ProviderUsageRow({ provider }: ProviderUsageRowProps) {
+const emailPattern = /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi;
+
+function renderEmailText(value: string, blurEmails: boolean): ReactNode {
+	if (!blurEmails) return value;
+
+	const parts: ReactNode[] = [];
+	let lastIndex = 0;
+
+	for (const match of value.matchAll(emailPattern)) {
+		const email = match[0];
+		const index = match.index ?? 0;
+
+		if (index > lastIndex) {
+			parts.push(value.slice(lastIndex, index));
+		}
+
+		parts.push(
+			<span key={`${email}-${index}`} className="inline-block">
+				<span
+					aria-hidden="true"
+					className="inline-block select-none blur-[3px] transition-[filter] duration-150"
+				>
+					{email}
+				</span>
+				<span className="sr-only">Email hidden</span>
+			</span>,
+		);
+		lastIndex = index + email.length;
+	}
+
+	if (parts.length === 0) return value;
+	if (lastIndex < value.length) parts.push(value.slice(lastIndex));
+	return parts;
+}
+
+export function ProviderUsageRow({
+	provider,
+	blurEmails = false,
+}: ProviderUsageRowProps) {
 	return (
 		<section className="px-3.5 py-3 border-t border-border/60 first:border-t-0">
 			<div className="flex items-center justify-between gap-3">
@@ -16,7 +56,7 @@ export function ProviderUsageRow({ provider }: ProviderUsageRowProps) {
 					</h5>
 					{provider.accountLabel && (
 						<span className="truncate text-[10px] text-muted-foreground">
-							{provider.accountLabel}
+							{renderEmailText(provider.accountLabel, blurEmails)}
 						</span>
 					)}
 				</div>
@@ -77,7 +117,8 @@ export function ProviderUsageRow({ provider }: ProviderUsageRowProps) {
 				<p className="mt-2 text-[10px] leading-relaxed text-muted-foreground select-text cursor-text">
 					{provider.status === "not-configured"
 						? `Sign in with ${provider.providerName} CLI to see limits.`
-						: provider.errorMessage}
+						: provider.errorMessage &&
+							renderEmailText(provider.errorMessage, blurEmails)}
 				</p>
 			)}
 		</section>
