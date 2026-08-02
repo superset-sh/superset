@@ -51,8 +51,8 @@ export function V1FlipNotice() {
 
 	return (
 		<FlipNoticeCard
-			title="The new Superset is ready"
-			body="Your projects and workspaces have been moved to the new Superset experience. The next time you open the app, you'll see the new interface, and your terminals will reopen in their old folders. Terminal scrollback and v1 chat history don't carry over."
+			title="A better Superset is ready"
+			body="Superset has been upgraded: faster, cleaner, and built around your projects. Next launch opens the new interface, and everything you have comes along."
 			ctaLabel="Got it"
 			onDismiss={dismiss}
 		/>

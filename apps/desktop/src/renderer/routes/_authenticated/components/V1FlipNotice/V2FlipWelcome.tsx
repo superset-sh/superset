@@ -41,7 +41,7 @@ export function V2FlipWelcome() {
 	return (
 		<FlipNoticeCard
 			title="Welcome to the new Superset"
-			body="Everything came with you: your projects and workspaces are in the sidebar, and each workspace's terminals reopen in their old folders when you open it. If anything looks missing, Settings → Experimental → Import from v1 can bring it over."
+			body="Same Superset, upgraded. Everything came with you: projects and workspaces in the sidebar, terminals right where they left off."
 			ctaLabel="Got it"
 			onDismiss={dismiss}
 		/>
