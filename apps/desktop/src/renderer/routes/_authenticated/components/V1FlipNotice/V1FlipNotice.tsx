@@ -1,5 +1,3 @@
-import { Button } from "@superset/ui/button";
-import { Sparkles, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
@@ -7,6 +5,7 @@ import {
 	isV1MigrationComplete,
 	V1_MIGRATION_COMPLETED_EVENT,
 } from "renderer/lib/v1-migration/completion";
+import { FlipNoticeCard } from "./components/FlipNoticeCard";
 
 /**
  * One-time heads-up shown on the v1 surface only once this machine is
@@ -45,43 +44,17 @@ export function V1FlipNotice() {
 
 	if (!visible) return null;
 
+	const dismiss = () => {
+		track("v1_flip_notice_dismissed");
+		setDismissed(true);
+	};
+
 	return (
-		<div className="fixed right-4 bottom-4 z-50 w-96 select-text rounded-lg border bg-background p-4 shadow-lg">
-			<div className="flex items-start gap-3">
-				<Sparkles className="mt-0.5 size-5 shrink-0 text-muted-foreground" />
-				<div className="min-w-0 space-y-1.5">
-					<p className="font-medium text-sm">The new Superset is ready</p>
-					<p className="text-muted-foreground text-sm">
-						Your projects and workspaces have been moved to the new Superset
-						experience. The next time you open the app, you'll see the new
-						interface, and your terminals will reopen in their old folders.
-						Terminal scrollback and v1 chat history don't carry over.
-					</p>
-					<div className="pt-1">
-						<Button
-							size="sm"
-							variant="secondary"
-							onClick={() => {
-								track("v1_flip_notice_dismissed");
-								setDismissed(true);
-							}}
-						>
-							Got it
-						</Button>
-					</div>
-				</div>
-				<button
-					type="button"
-					aria-label="Dismiss"
-					className="shrink-0 rounded p-1 text-muted-foreground hover:text-foreground"
-					onClick={() => {
-						track("v1_flip_notice_dismissed");
-						setDismissed(true);
-					}}
-				>
-					<X className="size-4" />
-				</button>
-			</div>
-		</div>
+		<FlipNoticeCard
+			title="The new Superset is ready"
+			body="Your projects and workspaces have been moved to the new Superset experience. The next time you open the app, you'll see the new interface, and your terminals will reopen in their old folders. Terminal scrollback and v1 chat history don't carry over."
+			ctaLabel="Got it"
+			onDismiss={dismiss}
+		/>
 	);
 }
