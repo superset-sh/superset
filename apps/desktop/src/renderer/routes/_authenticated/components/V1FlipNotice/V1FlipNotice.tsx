@@ -52,7 +52,7 @@ export function V1FlipNotice() {
 	return (
 		<FlipNoticeCard
 			title="A better Superset is ready"
-			body="Superset has been upgraded: faster, cleaner, and built around your projects. Next launch opens the new interface, and everything you have comes along."
+			body="Superset has been upgraded: faster, cleaner, and built around your projects. Everything comes along on your next launch, except running terminal sessions, so wrap up anything in flight."
 			ctaLabel="Got it"
 			onDismiss={dismiss}
 		/>
