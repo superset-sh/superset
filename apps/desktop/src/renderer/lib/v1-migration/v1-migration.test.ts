@@ -283,6 +283,7 @@ import {
 	markV1MigrationComplete,
 	peekV1ContinuityPending,
 	setV1FollowUpPending,
+	V1_MIGRATION_COMPLETED_EVENT,
 } from "./completion";
 import { computeGateComplete, type KindSummary } from "./summary";
 import { v1MigrationEventProps } from "./telemetry";
@@ -374,6 +375,29 @@ describe("completion markers", () => {
 		expect(consumeV1ContinuityPending("org-rearm")).toBe(true);
 		markV1MigrationComplete("org-rearm");
 		expect(peekV1ContinuityPending("org-rearm")).toBe(false);
+	});
+
+	test("first completion dispatches the flip-notice event exactly once", () => {
+		const events: string[] = [];
+		// @ts-expect-error minimal DOM shims for the dispatch path
+		globalThis.CustomEvent = class {
+			type: string;
+			detail: unknown;
+			constructor(type: string, init?: { detail?: unknown }) {
+				this.type = type;
+				this.detail = init?.detail;
+			}
+		};
+		// @ts-expect-error window shim: only dispatchEvent is used
+		globalThis.window = {
+			dispatchEvent: (e: { type: string }) => {
+				events.push(e.type);
+				return true;
+			},
+		};
+		markV1MigrationComplete("org-evt");
+		markV1MigrationComplete("org-evt"); // re-completion: no re-dispatch
+		expect(events).toEqual([V1_MIGRATION_COMPLETED_EVENT]);
 	});
 
 	test("follow-up flag set/clear round-trips", () => {

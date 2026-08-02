@@ -72,11 +72,26 @@ export function isV1MigrationCompleteAtBoot(
 	return value;
 }
 
+/**
+ * Fired on window when an org's migration first completes mid-session, so
+ * UI (V1FlipNotice) can react without polling localStorage.
+ */
+export const V1_MIGRATION_COMPLETED_EVENT = "v1-migration-completed";
+
 export function markV1MigrationComplete(organizationId: string): void {
 	const first = !isV1MigrationComplete(organizationId);
 	localStorage.setItem(KEY_PREFIX + organizationId, new Date().toISOString());
 	if (first) {
 		localStorage.setItem(PENDING_CONTINUITY_PREFIX + organizationId, "1");
+		try {
+			window.dispatchEvent(
+				new CustomEvent(V1_MIGRATION_COMPLETED_EVENT, {
+					detail: { organizationId },
+				}),
+			);
+		} catch {
+			// Non-DOM environment (tests): marker semantics don't depend on it.
+		}
 	}
 }
 
