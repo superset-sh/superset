@@ -2,6 +2,10 @@ import type { auth, Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import { COMPANY, ORGANIZATION_HEADER } from "@superset/shared/constants";
+import {
+	DATABASE_UNAVAILABLE_MESSAGE,
+	isDatabaseConnectivityError,
+} from "@superset/shared/db-connectivity-error";
 import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
@@ -18,10 +22,18 @@ export const createTRPCContext = (opts: TRPCContext): TRPCContext => opts;
 const t = initTRPC.context<TRPCContext>().create({
 	transformer: superjson,
 	errorFormatter({ shape, error }) {
+		// A raw driver failure (DB unreachable) isn't a `TRPCError`, so it
+		// reaches here as `error.cause` with tRPC's own generic message —
+		// surface something a developer can act on instead.
+		const databaseUnavailable = isDatabaseConnectivityError(error.cause);
 		return {
 			...shape,
+			message: databaseUnavailable
+				? DATABASE_UNAVAILABLE_MESSAGE
+				: shape.message,
 			data: {
 				...shape.data,
+				databaseUnavailable,
 				zodError:
 					error.cause instanceof ZodError ? error.cause.flatten() : null,
 			},

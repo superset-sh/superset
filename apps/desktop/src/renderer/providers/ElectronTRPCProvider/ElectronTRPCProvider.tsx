@@ -1,10 +1,14 @@
+import { toast } from "@superset/ui/sonner";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
 	defaultShouldDehydrateQuery,
 	focusManager,
+	MutationCache,
+	QueryCache,
 	QueryClient,
 } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { TRPCClientError } from "@trpc/client";
 import { del, get, set } from "idb-keyval";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronReactClient } from "../../lib/trpc-client";
@@ -28,8 +32,38 @@ focusManager.setEventListener((handleFocus) => {
 // Bump when query response shapes change — invalidates the persisted cache.
 const PERSIST_BUSTER = "v1";
 
+// Most query/mutation errors are handled per-call-site (explicit `onError` +
+// toast, or an inline error render) — this only catches the one case that
+// otherwise fails silently everywhere: the DB-connectivity flag set by
+// `packages/trpc`'s errorFormatter (see apps/api's tRPC init) when Postgres/
+// Neon is unreachable, most commonly a forgotten local Docker DB stack.
+const DATABASE_UNAVAILABLE_TOAST_THROTTLE_MS = 10_000;
+let lastDatabaseUnavailableToastAt = 0;
+
+function notifyIfDatabaseUnavailable(error: unknown): void {
+	const isDatabaseUnavailable =
+		error instanceof TRPCClientError &&
+		Boolean(
+			(error.data as { databaseUnavailable?: boolean } | null)
+				?.databaseUnavailable,
+		);
+	if (!isDatabaseUnavailable) return;
+
+	const now = Date.now();
+	if (
+		now - lastDatabaseUnavailableToastAt <
+		DATABASE_UNAVAILABLE_TOAST_THROTTLE_MS
+	)
+		return;
+	lastDatabaseUnavailableToastAt = now;
+
+	toast.error("Database unavailable", { description: error.message });
+}
+
 // Shared QueryClient for tRPC hooks and router loaders
 const queryClient = new QueryClient({
+	queryCache: new QueryCache({ onError: notifyIfDatabaseUnavailable }),
+	mutationCache: new MutationCache({ onError: notifyIfDatabaseUnavailable }),
 	defaultOptions: {
 		queries: {
 			networkMode: "always",
