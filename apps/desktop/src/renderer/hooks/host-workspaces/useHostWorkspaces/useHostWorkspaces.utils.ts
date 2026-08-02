@@ -37,14 +37,17 @@ export interface HostRowForTargets {
 }
 
 export function getHostWorkspacesQueryKey(
-	target: Pick<HostWorkspacesQueryTarget, "machineId" | "hostUrl">,
+	target: Pick<HostWorkspacesQueryTarget, "machineId" | "organizationId">,
 ) {
+	// Host identity (org + machine), never hostUrl: the local port moves on
+	// restarts and a URL-keyed cache goes cold bar-wide every time. The
+	// queryFn resolves the current URL from the target at fetch time.
 	return [
 		"host-service",
 		"workspaces",
 		"list",
+		target.organizationId,
 		target.machineId,
-		target.hostUrl,
 	] as const;
 }
 
@@ -58,11 +61,14 @@ export function deriveHostWorkspacesQueryTargets({
 	hosts,
 	machineId,
 	relayUrl,
+	fallbackOrganizationId,
 }: {
 	activeHostUrl: string | null;
 	hosts: HostRowForTargets[];
 	machineId: string | null;
 	relayUrl: string;
+	/** Org for the synthesized local target — see derivePullRequestQueryTargets. */
+	fallbackOrganizationId?: string | null;
 }): HostWorkspacesQueryTarget[] {
 	const targets: HostWorkspacesQueryTarget[] = hosts.map((host) => {
 		const isLocal = host.machineId === machineId;
@@ -88,7 +94,7 @@ export function deriveHostWorkspacesQueryTargets({
 	) {
 		targets.push({
 			machineId,
-			organizationId: hosts[0]?.organizationId ?? "",
+			organizationId: hosts[0]?.organizationId ?? fallbackOrganizationId ?? "",
 			hostUrl: activeHostUrl,
 			isLocal: true,
 		});

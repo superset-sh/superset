@@ -1,4 +1,5 @@
 import { cn } from "@superset/ui/utils";
+import type { MouseEventHandler } from "react";
 import { useDashboardSidebarWorkspacePorts } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useWorkspaceAgentsRowEnabled } from "renderer/stores/workspace-agents-row";
@@ -10,7 +11,7 @@ interface DashboardSidebarWorkspaceChipsProps {
 	workspaceId: string;
 	isInSection?: boolean;
 	/** Invoked when the strip itself (not one of its chips) is clicked. */
-	onClick?: () => void;
+	onClick?: MouseEventHandler<HTMLDivElement>;
 }
 
 /**
@@ -58,9 +59,16 @@ export function DashboardSidebarWorkspaceChips({
 				if (!onClick) return;
 				const target = event.target as HTMLElement;
 				if (!event.currentTarget.contains(target)) return;
-				if (target.closest("button, a, [role='button'], [role='menuitem']"))
+				const interactiveTarget = target.closest(
+					"button, a, [role='button'], [role='menuitem']",
+				);
+				if (
+					interactiveTarget &&
+					event.currentTarget.contains(interactiveTarget)
+				) {
 					return;
-				onClick();
+				}
+				onClick(event);
 			}}
 		>
 			{agents.length > 0 && (

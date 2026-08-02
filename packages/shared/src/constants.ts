@@ -11,31 +11,35 @@ export const PROTOCOL_SCHEMES = {
 } as const;
 
 // Company
+// Root domain flips the whole brand at cutover. Default keeps superset.sh so
+// nothing changes until NEXT_PUBLIC_ROOT_DOMAIN is set (e.g. boid.so). All
+// domain-derived URLs below build off this; social handles / GitHub / Discord
+// are external identities and are updated by hand on rebrand.
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN || "superset.sh";
+const MARKETING_URL =
+	process.env.NEXT_PUBLIC_MARKETING_URL || `https://${ROOT_DOMAIN}`;
+
 export const COMPANY = {
 	NAME: "Superset",
-	DOMAIN: "superset.sh",
-	EMAIL_DOMAIN: "@superset.sh",
+	DOMAIN: ROOT_DOMAIN,
+	EMAIL_DOMAIN: `@${ROOT_DOMAIN}`,
 	GITHUB_URL: "https://github.com/superset-sh/superset",
-	DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || "https://docs.superset.sh",
-	MARKETING_URL: process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh",
-	TERMS_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/terms`,
-	PRIVACY_URL:
-		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
-		"/privacy",
-	CHANGELOG_URL:
-		(process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh") +
-		"/changelog",
+	DOCS_URL: process.env.NEXT_PUBLIC_DOCS_URL || `https://docs.${ROOT_DOMAIN}`,
+	MARKETING_URL,
+	TERMS_URL: `${MARKETING_URL}/terms`,
+	PRIVACY_URL: `${MARKETING_URL}/privacy`,
+	CHANGELOG_URL: `${MARKETING_URL}/changelog`,
 	X_URL: "https://x.com/superset_sh",
 	LINKEDIN_URL: "https://www.linkedin.com/company/superset-sh",
 	YOUTUBE_URL: "https://www.youtube.com/@superset-sh",
-	MAIL_TO: "mailto:support@superset.sh",
-	FOUNDERS_EMAIL: "founders@superset.sh",
-	FOUNDERS_MAIL_TO: "mailto:founders@superset.sh",
+	MAIL_TO: `mailto:support@${ROOT_DOMAIN}`,
+	FOUNDERS_EMAIL: `founders@${ROOT_DOMAIN}`,
+	FOUNDERS_MAIL_TO: `mailto:founders@${ROOT_DOMAIN}`,
 	REPORT_ISSUE_URL: "https://github.com/superset-sh/superset/issues/new",
 	DISCORD_URL: "https://discord.gg/cZeD9WYcV7",
-	STATUS_URL: "https://status.superset.sh",
-	TRUST_URL: "https://trust.superset.sh",
-	JOIN_US_URL: `${process.env.NEXT_PUBLIC_MARKETING_URL || "https://superset.sh"}/join-us`,
+	STATUS_URL: `https://status.${ROOT_DOMAIN}`,
+	TRUST_URL: `https://trust.${ROOT_DOMAIN}`,
+	JOIN_US_URL: `${MARKETING_URL}/join-us`,
 	/** The formal YC listing; product surfaces link here. `JOIN_US_URL` is our own marketing page. */
 	CAREERS_URL: "https://www.ycombinator.com/companies/superset/jobs",
 } as const;
@@ -116,6 +120,13 @@ export const FEATURE_FLAGS = {
 	 * defaults for other users.
 	 */
 	RELAY_URL_OVERRIDE: "relay-url-override",
+	/**
+	 * Paces the v1→v2 auto-migration rollout (percentage ramp + high-profile
+	 * org exclusions). Gates only NEW migrations on the v1 surface — post-flip
+	 * catch-up passes are ungated so flipped machines always finish. Off,
+	 * unloaded, or offline all mean "don't migrate yet" (stays on v1).
+	 */
+	V1_AUTO_MIGRATION: "v1-auto-migration",
 	/**
 	 * Shows the "We're Hiring" card in the dashboard sidebar. Targets a static
 	 * PostHog cohort of users who have created 10+ workspaces all-time, which is

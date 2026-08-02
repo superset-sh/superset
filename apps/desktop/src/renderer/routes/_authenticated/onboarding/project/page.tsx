@@ -27,10 +27,42 @@ import { EmptyProjectModal } from "renderer/routes/_authenticated/components/Emp
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import { GhAuthDialog } from "../components/GhAuthDialog";
 
 export const Route = createFileRoute("/_authenticated/onboarding/project/")({
 	component: OnboardingProjectPage,
 });
+
+interface CloneError {
+	message: string;
+	needsGhAuth: boolean;
+}
+
+const GH_AUTH_FAILURE_PATTERNS = [
+	"Repository not found",
+	"Authentication failed",
+	"could not read Username",
+];
+
+function toCloneError(err: unknown): CloneError {
+	const message =
+		err instanceof Error ? err.message : "Failed to clone repository";
+	if (message.includes("Permission denied (publickey)")) {
+		return {
+			message:
+				"SSH authentication failed — sign in to GitHub CLI and use the HTTPS URL instead.",
+			needsGhAuth: true,
+		};
+	}
+	if (GH_AUTH_FAILURE_PATTERNS.some((pattern) => message.includes(pattern))) {
+		return {
+			message:
+				"Couldn't access this repository — if it's private, sign in to GitHub CLI first.",
+			needsGhAuth: true,
+		};
+	}
+	return { message, needsGhAuth: false };
+}
 
 function OnboardingProjectPage() {
 	const navigate = useNavigate();
@@ -42,6 +74,8 @@ function OnboardingProjectPage() {
 	const cloneTargetDir = homeDir ? `${homeDir}/.superset/projects` : null;
 	const [url, setUrl] = useState("");
 	const [busy, setBusy] = useState(false);
+	const [cloneError, setCloneError] = useState<CloneError | null>(null);
+	const [ghAuthOpen, setGhAuthOpen] = useState(false);
 	const [emptyProjectOpen, setEmptyProjectOpen] = useState(false);
 	const [templateOpen, setTemplateOpen] = useState(false);
 
@@ -116,31 +150,54 @@ function OnboardingProjectPage() {
 		const trimmed = url.trim();
 		if (!trimmed || !cloneTargetDir) return;
 		setBusy(true);
+		setCloneError(null);
 		try {
 			if (isV2CloudEnabled) {
 				const activeHostUrl = await waitForHostReady();
 				if (!activeHostUrl) {
-					toast.error("Local host service isn't ready yet. Please try again.");
+					setCloneError({
+						message: "Local host service isn't ready yet. Please try again.",
+						needsGhAuth: false,
+					});
 					return;
 				}
 				const hostService = getHostServiceClientByUrl(activeHostUrl);
-				const created = await hostService.project.create.mutate({
-					name: repoNameFromUrl(trimmed),
-					mode: { kind: "clone", parentDir: cloneTargetDir, url: trimmed },
-				});
+				let created: Awaited<
+					ReturnType<typeof hostService.project.create.mutate>
+				>;
+				try {
+					created = await hostService.project.create.mutate({
+						name: repoNameFromUrl(trimmed),
+						mode: { kind: "clone", parentDir: cloneTargetDir, url: trimmed },
+					});
+				} catch (err) {
+					setCloneError(toCloneError(err));
+					return;
+				}
 				finalizeSetup(activeHostUrl, created);
 				await finish(created.projectId);
 			} else {
-				const projectId = await createV1Project.cloneFromUrl({
-					url: trimmed,
-					parentDir: cloneTargetDir,
-				});
+				let projectId: string | null;
+				try {
+					projectId = await createV1Project.cloneFromUrl({
+						url: trimmed,
+						parentDir: cloneTargetDir,
+					});
+				} catch (err) {
+					setCloneError(toCloneError(err));
+					return;
+				}
 				if (projectId) await finish(projectId);
 			}
 		} catch (err) {
-			toast.error(
-				err instanceof Error ? err.message : "Failed to clone repository",
-			);
+			// Non-clone failures (setup, navigation) get the raw message, no gh advice.
+			setCloneError({
+				message:
+					err instanceof Error
+						? err.message
+						: "Something went wrong. Please try again.",
+				needsGhAuth: false,
+			});
 		} finally {
 			setBusy(false);
 		}
@@ -199,9 +256,12 @@ function OnboardingProjectPage() {
 				<form onSubmit={handleClone} className="flex items-center gap-2">
 					<Input
 						type="text"
-						placeholder="git@github.com:org/repo.git"
+						placeholder="https://github.com/org/repo.git"
 						value={url}
-						onChange={(e) => setUrl(e.target.value)}
+						onChange={(e) => {
+							setUrl(e.target.value);
+							if (cloneError) setCloneError(null);
+						}}
 						disabled={busy}
 						className="flex-1"
 					/>
@@ -212,6 +272,23 @@ function OnboardingProjectPage() {
 						{busy ? "Cloning…" : "Clone"}
 					</Button>
 				</form>
+				{cloneError && (
+					<div role="alert" className="flex flex-col items-start gap-2">
+						<p className="select-text cursor-text break-words text-xs text-destructive">
+							{cloneError.message}
+						</p>
+						{cloneError.needsGhAuth && (
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								onClick={() => setGhAuthOpen(true)}
+							>
+								Sign in to GitHub CLI
+							</Button>
+						)}
+					</div>
+				)}
 			</Card>
 
 			<Card className="flex-row items-center gap-4 p-5">
@@ -249,6 +326,11 @@ function OnboardingProjectPage() {
 					setEmptyProjectOpen(false);
 					finish(result.projectId);
 				}}
+			/>
+			<GhAuthDialog
+				open={ghAuthOpen}
+				onOpenChange={setGhAuthOpen}
+				onExit={() => setGhAuthOpen(false)}
 			/>
 		</div>
 	);

@@ -28,7 +28,28 @@
 	},
 	"linter": {
 		"rules": {
-			"recommended": true
+			"recommended": true,
+			"style": {
+				// Sync subprocesses block the serving event loop (Electron main,
+				// host-service, pty-daemon). Companion to the per-package
+				// no-*-blocking ratchet tests, which also catch namespace access
+				// (childProcess.execSync) and allowlist the legacy call sites.
+				"noRestrictedImports": {
+					"level": "error",
+					"options": {
+						"paths": {
+							"node:child_process": {
+								"importNames": ["execSync", "spawnSync", "execFileSync"],
+								"message": "Sync subprocesses freeze the serving event loop (Electron main / host-service / pty-daemon) until the child exits — every request queues behind them. Prefer async spawn/execFile: the caller awaits the same result, but the loop keeps serving while the child runs. Git reads belong in the worker pools."
+							},
+							"child_process": {
+								"importNames": ["execSync", "spawnSync", "execFileSync"],
+								"message": "Sync subprocesses freeze the serving event loop (Electron main / host-service / pty-daemon) until the child exits — every request queues behind them. Prefer async spawn/execFile: the caller awaits the same result, but the loop keeps serving while the child runs. Git reads belong in the worker pools."
+							}
+						}
+					}
+				}
+			}
 		}
 	},
 	"overrides": [
@@ -41,6 +62,44 @@
 					},
 					"style": {
 						"noNonNullAssertion": "off"
+					}
+				}
+			}
+		},
+		{
+			// Tests, scripts, and build tooling don't run on a serving loop.
+			"includes": [
+				"**/*.test.ts",
+				"**/*.test.tsx",
+				"**/*.node-test.ts",
+				"**/*.bench.ts",
+				"**/test/**",
+				"**/test-helpers.ts",
+				"**/scripts/**"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": "off"
+					}
+				}
+			}
+		},
+		{
+			// Legacy on-loop sync-subprocess call sites, frozen by the
+			// no-*-blocking ratchet tests — delete entries here as they're fixed.
+			"includes": [
+				"apps/desktop/src/main/lib/agent-setup/utils.ts",
+				"apps/desktop/src/main/lib/terminal-host/client.ts",
+				"packages/chat/src/server/desktop/auth/anthropic/anthropic.ts",
+				"packages/host-service/src/providers/model-providers/LocalModelProvider/utils/resolveAnthropicCredential.ts",
+				"packages/pty-daemon/src/process-tree.ts",
+				"packages/shared/src/host-info.ts"
+			],
+			"linter": {
+				"rules": {
+					"style": {
+						"noRestrictedImports": "off"
 					}
 				}
 			}

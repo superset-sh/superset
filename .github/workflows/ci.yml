@@ -85,6 +85,11 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen --ignore-scripts
 
+      # The guard scripts run by `bun run lint` scan with ripgrep, which is not
+      # on the runner image.
+      - name: Install ripgrep
+        run: sudo apt-get update && sudo apt-get install -y ripgrep
+
       - name: Lint
         run: bun run lint
 

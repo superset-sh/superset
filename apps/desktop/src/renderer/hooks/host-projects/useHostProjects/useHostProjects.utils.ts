@@ -57,14 +57,15 @@ export interface HostRowForTargets {
 }
 
 export function getHostProjectsQueryKey(
-	target: Pick<HostProjectsQueryTarget, "machineId" | "hostUrl">,
+	target: Pick<HostProjectsQueryTarget, "machineId" | "organizationId">,
 ) {
+	// Host identity, never hostUrl — see getHostWorkspacesQueryKey.
 	return [
 		"host-service",
 		"projects",
 		"list",
+		target.organizationId,
 		target.machineId,
-		target.hostUrl,
 	] as const;
 }
 

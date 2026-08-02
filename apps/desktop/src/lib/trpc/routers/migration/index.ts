@@ -1,3 +1,5 @@
+import { readFileSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import {
 	projects,
 	settings,
@@ -6,6 +8,7 @@ import {
 	worktrees,
 } from "@superset/local-db";
 import { eq, isNotNull, isNull } from "drizzle-orm";
+import { SUPERSET_HOME_DIR } from "main/lib/app-environment";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -71,6 +74,61 @@ export const createMigrationRouter = () => {
 						},
 					];
 				});
+		}),
+
+		/**
+		 * Cross-instance single-flight for the auto-migrator (cf. #5791 for
+		 * host services): one lock file per home dir — instances sharing it
+		 * share local.db, so one runner suffices. Acquisition is atomic (`wx`
+		 * create). Locks are stolen only from dead owners — a live pass is
+		 * never preempted however long it runs; the 24h age escape only
+		 * covers pid reuse by an unrelated long-lived process.
+		 */
+		acquireRunLock: publicProcedure.mutation(() => {
+			const path = join(SUPERSET_HOME_DIR, "v1-migration.lock");
+			const tryExclusiveWrite = () => {
+				try {
+					writeFileSync(
+						path,
+						JSON.stringify({ pid: process.pid, at: Date.now() }),
+						{ flag: "wx" },
+					);
+					return true;
+				} catch {
+					return false;
+				}
+			};
+			if (tryExclusiveWrite()) return { acquired: true as const };
+			try {
+				const lock = JSON.parse(readFileSync(path, "utf8")) as {
+					pid: number;
+					at: number;
+				};
+				const alive = (() => {
+					try {
+						process.kill(lock.pid, 0);
+						return true;
+					} catch {
+						return false;
+					}
+				})();
+				const ancient = Date.now() - lock.at > 24 * 60 * 60 * 1000;
+				if (alive && lock.pid !== process.pid && !ancient) {
+					return { acquired: false as const };
+				}
+			} catch {
+				// Unreadable/corrupt lock: treat as dead and steal.
+			}
+			try {
+				unlinkSync(path);
+			} catch {}
+			return { acquired: tryExclusiveWrite() };
+		}),
+
+		releaseRunLock: publicProcedure.mutation(() => {
+			try {
+				unlinkSync(join(SUPERSET_HOME_DIR, "v1-migration.lock"));
+			} catch {}
 		}),
 
 		ledgerList: publicProcedure

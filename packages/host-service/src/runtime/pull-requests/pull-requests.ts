@@ -4,6 +4,7 @@ import { parseGitHubRemote } from "@superset/shared/github-remote";
 import { and, eq, inArray } from "drizzle-orm";
 import type { HostDb } from "../../db";
 import { projects, pullRequests, workspaces } from "../../db/schema";
+import type { EventBus } from "../../events/event-bus";
 import type { GitWatcher } from "../../events/git-watcher";
 import type { ExecGh } from "../../trpc/router/workspace-creation/utils/exec-gh";
 import { type GitFactory, resolveDefaultBranchName } from "../git";
@@ -159,6 +160,7 @@ export class PullRequestRuntimeManager {
 	private safetyNetTimer: ReturnType<typeof setInterval> | null = null;
 	private projectRefreshTimer: ReturnType<typeof setInterval> | null = null;
 	private unsubscribeFromGitWatcher: (() => void) | null = null;
+	private unsubscribeFromWorkspaceEvents: (() => void) | null = null;
 	private readonly inFlightProjects = new Map<string, Promise<void>>();
 	private readonly workspaceSyncState = new Map<
 		string,
@@ -219,13 +221,34 @@ export class PullRequestRuntimeManager {
 		}, PROJECT_REFRESH_INTERVAL_MS);
 	}
 
+	// A brand-new worktree is git-idle, so `GitWatcher` never fires for it and
+	// its row (NULL upstream/head) is invisible to PR matching until the 5-min
+	// safety net. Reacting to `created` closes that gap via the same coalesced
+	// sync path. Wired post-construction because app.ts builds the EventBus
+	// after this manager. Only `created`: renames/branch edits already arrive
+	// through GitWatcher, and this manager's own row writes bypass the store
+	// emitters, so syncing can't re-trigger itself.
+	subscribeToWorkspaceEvents(
+		eventBus: Pick<EventBus, "onWorkspaceChanged">,
+	): void {
+		if (this.unsubscribeFromWorkspaceEvents) return;
+		this.unsubscribeFromWorkspaceEvents = eventBus.onWorkspaceChanged(
+			(event) => {
+				if (event.eventType !== "created") return;
+				void this.enqueueWorkspaceSync(event.workspaceId);
+			},
+		);
+	}
+
 	stop() {
 		if (this.safetyNetTimer) clearInterval(this.safetyNetTimer);
 		if (this.projectRefreshTimer) clearInterval(this.projectRefreshTimer);
 		this.unsubscribeFromGitWatcher?.();
+		this.unsubscribeFromWorkspaceEvents?.();
 		this.safetyNetTimer = null;
 		this.projectRefreshTimer = null;
 		this.unsubscribeFromGitWatcher = null;
+		this.unsubscribeFromWorkspaceEvents = null;
 	}
 
 	async getPullRequestsByWorkspaces(

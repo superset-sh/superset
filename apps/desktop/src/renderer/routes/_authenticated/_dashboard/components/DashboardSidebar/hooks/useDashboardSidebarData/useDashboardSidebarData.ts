@@ -3,6 +3,7 @@ import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useMemo, useRef } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -162,15 +163,7 @@ export function useDashboardSidebarData() {
 		(state) => state.byWorkspaceId,
 	);
 
-	const { data: hosts = [] } = useLiveQuery(
-		(q) =>
-			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				organizationId: hosts.organizationId,
-				machineId: hosts.machineId,
-				isOnline: hosts.isOnline,
-			})),
-		[collections],
-	);
+	const { hosts, organizationId: knownHostsOrgId } = useKnownHosts();
 	const hostsByMachineId = useMemo(
 		() => new Map(hosts.map((host) => [host.machineId, host])),
 		[hosts],
@@ -386,15 +379,27 @@ export function useDashboardSidebarData() {
 				machineId,
 				relayUrl,
 				workspaces: visibleSidebarWorkspaces,
+				fallbackOrganizationId: knownHostsOrgId,
 			}),
-		[activeHostUrl, hosts, machineId, relayUrl, visibleSidebarWorkspaces],
+		[
+			activeHostUrl,
+			hosts,
+			knownHostsOrgId,
+			machineId,
+			relayUrl,
+			visibleSidebarWorkspaces,
+		],
 	);
 
 	const pullRequestQueries = useQueries({
 		queries: pullRequestQueryTargets.map((target) => ({
 			queryKey: getDashboardSidebarPullRequestQueryKey(target),
 			refetchInterval: 10_000,
+			// Unreachable host: keep the query mounted so cached chips stay
+			// rendered through the outage; fetches resume when the URL returns.
+			enabled: target.hostUrl !== null,
 			queryFn: async () => {
+				if (!target.hostUrl) return { workspaces: [] };
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.pullRequests.getByWorkspaces.query({
 					workspaceIds: target.workspaceIds,
@@ -427,7 +432,7 @@ export function useDashboardSidebarData() {
 			const target = pullRequestQueryTargets.find(
 				(candidate) => candidate.machineId === workspace.hostId,
 			);
-			if (!target) return;
+			if (!target?.hostUrl) return;
 
 			const client = getHostServiceClientByUrl(target.hostUrl);
 			await client.pullRequests.refreshByWorkspaces.mutate({

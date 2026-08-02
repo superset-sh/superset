@@ -75,6 +75,17 @@ Once PostHog shows surface=v1 collapsed to noise:
 
 Remaining open: backstop version for machines whose migration never completes.
 
+## PR 4 implementation sketch (branch v1-migration-boot-flip)
+
+Status: PRs 1–3 merged (#5814, #5816, #5818 — all CDP-verified). PR 4 turns it on:
+
+1. **`V1AutoMigration` component** mounted next to `V1ImportModal` in `_authenticated/layout.tsx` (providers for collections/host exist on both surfaces). Guards: `useIsV2CloudEnabled() === false`, session + activeOrganizationId + onboardedAt, `activeHostUrl` from `useLocalHostService`. Once per boot (ref-guarded), builds deps: `presetTarget` (collections.v2TerminalPresets + useV2AgentConfigs), `terminalTarget` (appendPendingMigratedTerminals), `onProjectImported`/`onWorkspaceAdopted` (finalizeSetup / ensureWorkspaceInSidebar) and calls `runV1Migration`.
+2. **Single-flight lock**: electron-main tRPC `migration.acquireRunLock/releaseRunLock` — pid+timestamp file lock in SUPERSET_HOME_DIR (`v1-migration.lock`, stale after ~10min), cross-instance safe (cf. #5791).
+3. **Completion marker**: on `gateComplete`, write localStorage `v1-migration-complete-<orgId>` = ISO date (sync-readable at next boot).
+4. **Flip gate** in `useIsV2CloudEnabled`: `if (migrationComplete(activeOrgId)) return true;` before the existing `optInV2 ?? (v2Only || dev)` — D5: completion overrides opt-out. Backstop: `V1_FORCED_FLIP_VERSION` constant (null = disabled until release picks it; compare app version, flip regardless of ledger).
+5. **Continuity**: one-shot localStorage flag written at flip time; first v2 boot reads v1 `settings.lastActiveWorkspaceId` → ledger workspace `v2Id` → navigate to `/v2-workspace/<id>`, consume flag. Sidebar seeding already covered by `ensureWorkspaceInSidebar` during migration.
+6. Telemetry events fold into PR 5.
+
 ## Work items
 
 Core (MVP — everything needed to flip and sunset):

@@ -31,6 +31,16 @@ const relayHttpOrigin = process.env.RELAY_URL
 	: isProduction
 		? "https://relay.superset.sh"
 		: null;
+// Failover relay origin. Env-driven so it flips with the domain at cutover;
+// prod default stays superset.sh until RELAY_BACKUP_URL is set (e.g. boid.so).
+const relayBackupHttpOrigin = process.env.RELAY_BACKUP_URL
+	? new URL(process.env.RELAY_BACKUP_URL).origin
+	: isProduction
+		? "https://relay-backup.superset.sh"
+		: null;
+const relayBackupWsOrigin = relayBackupHttpOrigin
+	? relayBackupHttpOrigin.replace(/^http/, "ws")
+	: null;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
@@ -40,8 +50,8 @@ const contentSecurityPolicy = [
 		apiOrigin,
 		relayWsOrigin,
 		relayHttpOrigin,
-		"wss://relay-backup.superset.sh",
-		"https://relay-backup.superset.sh",
+		relayBackupWsOrigin,
+		relayBackupHttpOrigin,
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",

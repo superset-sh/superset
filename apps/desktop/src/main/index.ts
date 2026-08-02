@@ -40,6 +40,7 @@ import {
 	shutdownTanstackDbPersistence,
 } from "./lib/persistence/persistence";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
+import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
@@ -224,21 +225,18 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
-	try {
-		getHostServiceCoordinator().stopAll();
-		if (isDev || forceFullCleanup) {
-			await teardownTerminalHost();
-		} else if (isUpdateReadyToInstall()) {
-			disposeTerminalHostClient();
-		}
-		shutdownTanstackDbPersistence();
-		disposeTray();
-	} catch (error) {
-		console.error("[main] Cleanup during quit failed:", error);
-	} finally {
-		await stopNetworkLogger();
-	}
-	app.exit(0);
+	await runQuitCleanup({
+		isDev,
+		forceFullCleanup,
+		isUpdateInstalling: isUpdateReadyToInstall(),
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		disposeTerminalHostClient,
+		shutdownPersistence: shutdownTanstackDbPersistence,
+		disposeTray,
+		stopNetworkLogger,
+		forceExit: (code) => app.exit(code),
+	});
 });
 
 /**

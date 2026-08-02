@@ -50,6 +50,27 @@ describe("resolveWorkspaceRemovalNavigationTarget", () => {
 		).toEqual({ kind: "workspace", workspaceId: "workspace-b" });
 	});
 
+	test("navigates outside an entire bulk deletion target set", () => {
+		const bulkTargetIds = new Set([
+			"workspace-a",
+			"workspace-b",
+			"workspace-c",
+		]);
+		expect(
+			resolveWorkspaceRemovalNavigationTarget({
+				activeWorkspaceId: "workspace-a",
+				removedWorkspaceId: "workspace-a",
+				orderedWorkspaceIds: [
+					"workspace-a",
+					"workspace-b",
+					"workspace-c",
+					"workspace-d",
+				],
+				isWorkspaceDeleting: (workspaceId) => bulkTargetIds.has(workspaceId),
+			}),
+		).toEqual({ kind: "workspace", workspaceId: "workspace-d" });
+	});
+
 	test("uses the first valid workspace when the removed id is no longer ordered", () => {
 		expect(
 			resolveWorkspaceRemovalNavigationTarget({

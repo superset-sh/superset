@@ -29,7 +29,10 @@ export function useNavigateAwayFromWorkspace() {
 	const { isDeleting } = useDeletingWorkspaces();
 
 	const navigateAwayFromWorkspace = useCallback(
-		(workspaceId: string) => {
+		(
+			workspaceId: string,
+			additionalDeletingWorkspaceIds?: ReadonlySet<string>,
+		) => {
 			const workspaceMatch = matchRoute({
 				to: "/v2-workspace/$workspaceId",
 				fuzzy: true,
@@ -41,7 +44,8 @@ export function useNavigateAwayFromWorkspace() {
 				removedWorkspaceId: workspaceId,
 				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections),
 				isWorkspaceValid: (id) => workspaceIds.has(id),
-				isWorkspaceDeleting: (id) => isDeleting(id),
+				isWorkspaceDeleting: (id) =>
+					additionalDeletingWorkspaceIds?.has(id) === true || isDeleting(id),
 			});
 
 			if (!target) return;

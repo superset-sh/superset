@@ -194,6 +194,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
+	// Post-construction wiring (the runtime is built before the EventBus):
+	// newly created workspaces get their first branch/upstream sync + PR link
+	// immediately instead of waiting for the 5-min safety net.
+	pullRequestRuntime.subscribeToWorkspaceEvents(eventBus);
 
 	const terminalAgentPersistence = new SqliteTerminalAgentBindingPersistence(
 		db,

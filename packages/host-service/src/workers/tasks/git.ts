@@ -3,6 +3,10 @@
 // host-service event loop. Credential env is resolved in-process (it needs
 // the credential provider) and crosses as plain data.
 
+import {
+	type ResolvedGitInfo,
+	readGitIdentity,
+} from "../../runtime/git/identity.ts";
 import { createUserSimpleGit } from "../../runtime/git/simple-git.ts";
 import {
 	readWorkspaceRefs,
@@ -13,6 +17,10 @@ import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-fr
 import { getChangedFilesForDiff } from "../../trpc/router/git/utils/git-helpers.ts";
 import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/git-status.ts";
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
+import {
+	normalizeWorktreePath,
+	parseWorktreeList,
+} from "../../trpc/router/workspace-creation/shared/worktree-list.ts";
 import { defineWorkerTask } from "../define-worker-task.ts";
 
 export interface GitTaskEnv {
@@ -73,9 +81,97 @@ export const gitWorkspaceRefsTask = defineWorkerTask<
 	},
 });
 
+export const gitIdentityTask = defineWorkerTask<
+	{ shellEnv: GitTaskEnv },
+	ResolvedGitInfo
+>({
+	type: "git/readGitIdentity",
+	handler: ({ shellEnv }) => readGitIdentity(shellEnv),
+});
+
+// Delete-preview + destroy-preflight state for workspace cleanup.
+// Unpushed-commit detection uses `rev-list --not --remotes` so brand-new
+// branches with no upstream still report unpushed commits correctly.
+export const gitWorktreeStateTask = defineWorkerTask<
+	{ worktreePath: string; gitEnv: GitTaskEnv },
+	{ hasChanges: boolean; hasUnpushedCommits: boolean }
+>({
+	type: "git/worktreeState",
+	handler: async ({ worktreePath, gitEnv }) => {
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const status = await git.status();
+		let hasUnpushedCommits = false;
+		try {
+			const result = await git.raw([
+				"rev-list",
+				"--count",
+				"HEAD",
+				"--not",
+				"--remotes",
+			]);
+			const count = Number.parseInt(result.trim(), 10);
+			hasUnpushedCommits = Number.isFinite(count) && count > 0;
+		} catch {
+			// Leave false — `rev-list` failure isn't a signal we can act on.
+		}
+		return { hasChanges: !status.isClean(), hasUnpushedCommits };
+	},
+});
+
+export const gitWorktreeRemoveTask = defineWorkerTask<
+	{ repoPath: string; worktreePath: string; gitEnv: GitTaskEnv },
+	{ stillRegistered: boolean }
+>({
+	type: "git/removeWorktree",
+	handler: async ({ repoPath, worktreePath, gitEnv }) => {
+		const git = createUserSimpleGit(repoPath).env(gitEnv);
+		// Remove against git's canonical path so a symlinked stored path
+		// (macOS `/var` → `/private/var`) still matches its registration.
+		const target = normalizeWorktreePath(worktreePath);
+		// Best-effort: the registry read below is authoritative, not the
+		// command's locale- and version-dependent exit text. `--force --force`
+		// also unregisters a worktree whose directory is already gone, so no
+		// separate prune (which would clobber other stale worktrees' metadata)
+		// is needed.
+		await git
+			.raw(["worktree", "remove", "--force", "--force", target])
+			.catch(() => {});
+		// A `worktree list` failure throws out of the task: the post-remove
+		// state is unknown and the caller must not treat it as removed.
+		const raw = await git.raw(["worktree", "list", "--porcelain"]);
+		return {
+			stillRegistered: parseWorktreeList(raw).some(
+				(w) => normalizeWorktreePath(w.path) === target,
+			),
+		};
+	},
+});
+
+export const gitDeleteBranchTask = defineWorkerTask<
+	{ repoPath: string; branch: string; gitEnv: GitTaskEnv },
+	{ deleted: boolean }
+>({
+	type: "git/deleteLocalBranch",
+	handler: async ({ repoPath, branch, gitEnv }) => {
+		const git = createUserSimpleGit(repoPath).env(gitEnv);
+		// `branch --list` exits 0 whether or not the branch exists (empty
+		// output when absent), so an absent ref — renamed, pruned, or never
+		// materialized — already satisfies the goal, while a thrown failure
+		// propagates instead of being misread as "already deleted".
+		const listed = await git.raw(["branch", "--list", branch]);
+		if (listed.trim().length === 0) return { deleted: false };
+		await git.raw(["branch", "-D", branch]);
+		return { deleted: true };
+	},
+});
+
 export const gitTasks = [
 	gitStatusSnapshotTask,
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
 	gitWorkspaceRefsTask,
+	gitIdentityTask,
+	gitWorktreeStateTask,
+	gitWorktreeRemoveTask,
+	gitDeleteBranchTask,
 ];

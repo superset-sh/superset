@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { getTerminalAgentBindingsQueryKey } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 
@@ -43,7 +44,7 @@ export function useDashboardSidebarAgentKill(
 				toast.error("Failed to kill agent");
 			} finally {
 				void queryClient.invalidateQueries({
-					queryKey: ["terminal-agent-bindings", hostUrl, workspaceId],
+					queryKey: getTerminalAgentBindingsQueryKey(workspaceId),
 				});
 				setIsPending(false);
 			}
@@ -83,7 +84,7 @@ export function useDashboardSidebarAgentKill(
 				return results.length - failedCount;
 			} finally {
 				void queryClient.invalidateQueries({
-					queryKey: ["terminal-agent-bindings", hostUrl, workspaceId],
+					queryKey: getTerminalAgentBindingsQueryKey(workspaceId),
 				});
 				setIsPending(false);
 			}

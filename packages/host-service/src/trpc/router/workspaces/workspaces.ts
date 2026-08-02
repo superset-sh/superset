@@ -106,6 +106,9 @@ const createInputSchema = z
 		// inferring the path from `branch`. When present, `branch` is
 		// caller context only; the server reads the current branch from git.
 		worktreePath: z.string().min(1).optional(),
+		// When false, skip the setup terminal. Used by worktree import,
+		// where the worktree is usually already set up.
+		runSetup: z.boolean().optional(),
 	})
 	.refine((value) => !(value.branch && value.pr), {
 		message: "`branch` and `pr` cannot both be set",
@@ -1030,7 +1033,7 @@ export const workspacesRouter = router({
 			}
 
 			let chainedAgentResult: AgentLaunchResult | null = null;
-			if (!alreadyExists) {
+			if (!alreadyExists && input.runSetup !== false) {
 				const { terminal, warning, chained } =
 					await startSetupTerminalIfPresent({
 						ctx,

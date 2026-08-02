@@ -1,13 +1,12 @@
 import { getEventBus } from "@superset/workspace-client";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { env } from "renderer/env.renderer";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 import {
@@ -46,7 +45,6 @@ export interface UseHostProjectsResult {
  * IndexedDB. Projects are fully local — there is no cloud source.
  */
 export function useHostProjects(): UseHostProjectsResult {
-	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
@@ -55,15 +53,7 @@ export function useHostProjects(): UseHostProjectsResult {
 		? MOCK_ORG_ID
 		: (session?.session?.activeOrganizationId ?? null);
 
-	const { data: hosts = [] } = useLiveQuery(
-		(q) =>
-			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				organizationId: hosts.organizationId,
-				machineId: hosts.machineId,
-				isOnline: hosts.isOnline,
-			})),
-		[collections],
-	);
+	const { hosts } = useKnownHosts();
 
 	const targets = useMemo(
 		() =>

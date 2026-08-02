@@ -4,20 +4,10 @@ import {
 } from "@superset/shared/workspace-launch";
 import type { SimpleGit } from "simple-git";
 import { hostSettings } from "../../../../db/schema";
+import { getGitAuthorName } from "../../../../runtime/git/identity";
 import type { HostServiceContext } from "../../../../types";
 import type { LocalProject } from "../shared/local-project";
 import type { ExecGh } from "./exec-gh";
-
-/** Reads `user.name` from git config. Returns null when unset or unreadable. */
-export async function getGitAuthorName(git: SimpleGit): Promise<string | null> {
-	try {
-		const name = await git.getConfig("user.name");
-		return name.value?.trim() || null;
-	} catch (error) {
-		console.warn("[branch-prefix] failed to read git user.name:", error);
-		return null;
-	}
-}
 
 /** Resolves the authenticated GitHub username via `gh api user`. */
 export async function getGitHubUsername(
@@ -30,23 +20,6 @@ export async function getGitHubUsername(
 		console.warn("[branch-prefix] failed to read GitHub username:", error);
 		return null;
 	}
-}
-
-export interface ResolvedGitInfo {
-	githubUsername: string | null;
-	authorName: string | null;
-}
-
-/** Git identity used to preview `author`/`github` prefixes in settings. */
-export async function resolveGitInfo(
-	git: SimpleGit,
-	execGh: ExecGh,
-): Promise<ResolvedGitInfo> {
-	const [githubUsername, authorName] = await Promise.all([
-		getGitHubUsername(execGh),
-		getGitAuthorName(git),
-	]);
-	return { githubUsername, authorName };
 }
 
 /**

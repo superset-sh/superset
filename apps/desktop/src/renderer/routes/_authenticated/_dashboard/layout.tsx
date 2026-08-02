@@ -1,5 +1,6 @@
 import {
 	createFileRoute,
+	Navigate,
 	Outlet,
 	useMatchRoute,
 	useNavigate,
@@ -226,7 +227,19 @@ function DashboardLayout() {
 				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 					{!sidebarOutsideColumn && sidebarPanel}
 					<div className="relative flex flex-1 min-h-0 min-w-0">
-						{versionMismatch ? <CrossVersionMismatchState /> : <Outlet />}
+						{versionMismatch ? (
+							// A v2 user on a stale v1 workspace route has nothing to go
+							// back to, so send them somewhere actionable instead of a
+							// dead-end "pick a workspace" screen. v1 users keep the
+							// static state — /new-workspace is a v2-only surface.
+							isV2CloudEnabled ? (
+								<Navigate to="/new-workspace" replace />
+							) : (
+								<CrossVersionMismatchState />
+							)
+						) : (
+							<Outlet />
+						)}
 					</div>
 				</div>
 			</div>

@@ -1,14 +1,27 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+	type KeyboardEvent,
+	type MouseEvent,
+	useCallback,
+	useEffect,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useDiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { useV2WorkspaceNotificationStatus } from "renderer/hooks/host-service/useV2NotificationStatus";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { RenameBranchDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
 import { useDashboardSidebarHover } from "../../providers/DashboardSidebarHoverProvider";
+import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarDeleteDialog } from "../DashboardSidebarDeleteDialog";
 import { DashboardSidebarCollapsedWorkspaceButton } from "./components/DashboardSidebarCollapsedWorkspaceButton";
 import { DashboardSidebarExpandedWorkspaceRow } from "./components/DashboardSidebarExpandedWorkspaceRow";
+import {
+	DashboardSidebarWorkspaceBulkContextMenu,
+	useWorkspaceRowContextMenu,
+} from "./components/DashboardSidebarWorkspaceBulkContextMenu";
 import { DashboardSidebarWorkspaceContextMenu } from "./components/DashboardSidebarWorkspaceContextMenu/DashboardSidebarWorkspaceContextMenu";
 import { useDashboardSidebarWorkspaceItemActions } from "./hooks/useDashboardSidebarWorkspaceItemActions";
 
@@ -18,6 +31,8 @@ interface DashboardSidebarWorkspaceItemProps {
 	shortcutLabel?: string;
 	isCollapsed?: boolean;
 	isInSection?: boolean;
+	isSelected?: boolean;
+	onSelectionClick?: (event: WorkspaceSelectionEvent) => boolean;
 	/**
 	 * Set when the row renders inside the top-level Pinned section: shows the
 	 * owning project's avatar for cross-project context.
@@ -31,6 +46,8 @@ export function DashboardSidebarWorkspaceItem({
 	shortcutLabel,
 	isCollapsed = false,
 	isInSection = false,
+	isSelected = false,
+	onSelectionClick,
 	pinnedContext,
 }: DashboardSidebarWorkspaceItemProps) {
 	const {
@@ -45,7 +62,6 @@ export function DashboardSidebarWorkspaceItem({
 		pullRequest,
 	} = workspace;
 	const isMainWorkspace = workspace.type === "main";
-	const diffStats = useDiffStats(id);
 	const workspaceStatus = useV2WorkspaceNotificationStatus(id);
 	const {
 		cancelRename,
@@ -77,6 +93,10 @@ export function DashboardSidebarWorkspaceItem({
 		isMainWorkspace,
 		isPinned: workspace.isPinned,
 	});
+
+	// Only the active workspace row shows line counts, so skip the per-item
+	// git status query everywhere else.
+	const diffStats = useDiffStats(id, { enabled: isActive });
 
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticCollectionActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
@@ -121,6 +141,53 @@ export function DashboardSidebarWorkspaceItem({
 		hoverSyncIfHovered(id, hoverPayload);
 	}, [isHovered, hoverSyncIfHovered, id, hoverPayload]);
 
+	const handleExpandedClick = useCallback(
+		(event: MouseEvent<HTMLElement>) => {
+			if (
+				onSelectionClick &&
+				(event.ctrlKey || event.metaKey || event.shiftKey)
+			) {
+				event.preventDefault();
+				event.stopPropagation();
+				return;
+			}
+			if (onSelectionClick?.(event)) return;
+			handleClick();
+		},
+		[handleClick, onSelectionClick],
+	);
+	const handleExpandedMouseDown = useCallback(
+		(event: MouseEvent<HTMLElement>) => {
+			if (!event.ctrlKey && !event.metaKey && !event.shiftKey) return;
+			if (
+				event.target instanceof Element &&
+				event.target.closest("button, input, textarea, [role='menuitem']")
+			) {
+				return;
+			}
+			onSelectionClick?.(event);
+		},
+		[onSelectionClick],
+	);
+	const { isBulkMenu, onRowContextMenu: handleExpandedContextMenu } =
+		useWorkspaceRowContextMenu({
+			isSelected,
+			canBulkSelect: onSelectionClick != null,
+		});
+	const handleExpandedKeyboardActivate = useCallback(
+		(event: KeyboardEvent<HTMLElement>) => {
+			if (onSelectionClick?.(event)) return;
+			handleClick();
+		},
+		[handleClick, onSelectionClick],
+	);
+	const handleWorkspaceChipsClick = useCallback(
+		(event: MouseEvent<HTMLElement>) => {
+			if (onSelectionClick?.(event)) return;
+			handleClick();
+		},
+		[handleClick, onSelectionClick],
+	);
 	if (isCollapsed) {
 		const content = (
 			// biome-ignore lint/a11y/noStaticElementInteractions: hover handlers drive a non-interactive popover, no new keyboard semantics
@@ -230,7 +297,13 @@ export function DashboardSidebarWorkspaceItem({
 				diffStats={isPending ? null : diffStats}
 				workspaceStatus={workspaceStatus}
 				isInSection={isInSection}
-				onClick={handleClick}
+				isBulkSelectable={onSelectionClick != null}
+				isSelected={isSelected}
+				onClick={handleExpandedClick}
+				onMouseDown={handleExpandedMouseDown}
+				onContextMenu={handleExpandedContextMenu}
+				onKeyboardActivate={handleExpandedKeyboardActivate}
+				onWorkspaceChipsClick={handleWorkspaceChipsClick}
 				onDoubleClick={isPending || isMainWorkspace ? undefined : startRename}
 				onRemoveFromSidebarClick={handleRemoveFromSidebar}
 				onCloseWorkspaceClick={() => setIsDeleteDialogOpen(true)}
@@ -246,6 +319,10 @@ export function DashboardSidebarWorkspaceItem({
 			<div hidden={isDeleting}>
 				{isPending ? (
 					expandedContent
+				) : isBulkMenu ? (
+					<DashboardSidebarWorkspaceBulkContextMenu>
+						{expandedContent}
+					</DashboardSidebarWorkspaceBulkContextMenu>
 				) : (
 					<DashboardSidebarWorkspaceContextMenu
 						workspaceId={id}

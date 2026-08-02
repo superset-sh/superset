@@ -1,6 +1,9 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useEffectEvent } from "react";
-import { useTerminalAgentBinding } from "renderer/hooks/host-service/useTerminalAgentBindings";
+import {
+	getTerminalAgentBindingsQueryKey,
+	useTerminalAgentBinding,
+} from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import {
@@ -43,7 +46,7 @@ export function useTerminalInterruptClear({
 			.terminalAgents.clearWorkspaceStatuses.mutate({ workspaceId, terminalId })
 			.then(() =>
 				queryClient.invalidateQueries({
-					queryKey: ["terminal-agent-bindings", hostUrl, workspaceId],
+					queryKey: getTerminalAgentBindingsQueryKey(workspaceId),
 				}),
 			)
 			.catch((error) => {
