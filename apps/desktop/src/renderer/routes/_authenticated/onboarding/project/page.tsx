@@ -27,6 +27,11 @@ import { EmptyProjectModal } from "renderer/routes/_authenticated/components/Emp
 import { TemplateGalleryModal } from "renderer/routes/_authenticated/components/TemplateGalleryModal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
+import {
+	markOnboardingFinished,
+	trackOnboardingError,
+	trackOnboardingStepCompleted,
+} from "../utils/onboardingAnalytics";
 
 export const Route = createFileRoute("/_authenticated/onboarding/project/")({
 	component: OnboardingProjectPage,
@@ -57,6 +62,8 @@ function OnboardingProjectPage() {
 	// Adding a project finishes onboarding: mark onboarded, then hand off to the
 	// dashboard's new-workspace modal pre-selected to the project just added.
 	const finish = async (projectId: string) => {
+		trackOnboardingStepCompleted("project");
+		markOnboardingFinished();
 		track("onboarding_finished", { outcome: "completed" });
 		try {
 			await apiTrpcClient.user.completeOnboarding.mutate();
@@ -65,6 +72,11 @@ function OnboardingProjectPage() {
 			// _authenticated guard bounces /v2-workspaces back to /onboarding.
 			await refetchSession({ query: { disableCookieCache: true } });
 		} catch (error) {
+			trackOnboardingError(
+				"project",
+				"complete_onboarding",
+				requestFailureReason(error),
+			);
 			console.error("[onboarding] completeOnboarding failed", error);
 			toast.error("Could not finish onboarding. Please try again.");
 			return;
@@ -120,6 +132,7 @@ function OnboardingProjectPage() {
 			if (isV2CloudEnabled) {
 				const activeHostUrl = await waitForHostReady();
 				if (!activeHostUrl) {
+					trackOnboardingError("project", "clone", "host_not_ready");
 					toast.error("Local host service isn't ready yet. Please try again.");
 					return;
 				}
@@ -138,6 +151,7 @@ function OnboardingProjectPage() {
 				if (projectId) await finish(projectId);
 			}
 		} catch (err) {
+			trackOnboardingError("project", "clone", cloneFailureReason(err));
 			toast.error(
 				err instanceof Error ? err.message : "Failed to clone repository",
 			);
@@ -252,6 +266,35 @@ function OnboardingProjectPage() {
 			/>
 		</div>
 	);
+}
+
+// Reason codes only — error messages can contain URLs/paths, never log them.
+function cloneFailureReason(err: unknown): string {
+	const msg = err instanceof Error ? err.message.toLowerCase() : "";
+	if (msg.includes("not found") || msg.includes("does not exist"))
+		return "repo_not_found";
+	if (
+		msg.includes("auth") ||
+		msg.includes("permission denied") ||
+		msg.includes("403")
+	)
+		return "auth_failed";
+	if (msg.includes("could not resolve host") || msg.includes("network"))
+		return "network_error";
+	if (msg.includes("already exists")) return "already_exists";
+	return "clone_failed";
+}
+
+function requestFailureReason(err: unknown): string {
+	const msg = err instanceof Error ? err.message.toLowerCase() : "";
+	if (
+		msg.includes("fetch failed") ||
+		msg.includes("load failed") ||
+		msg.includes("network")
+	)
+		return "api_unreachable";
+	if (msg.includes("unauthorized") || msg.includes("401")) return "auth_failed";
+	return "request_failed";
 }
 
 function repoNameFromUrl(url: string): string {

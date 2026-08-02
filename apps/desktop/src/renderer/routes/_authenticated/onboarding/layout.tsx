@@ -6,12 +6,18 @@ import {
 	useLocation,
 	useNavigate,
 } from "@tanstack/react-router";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { OnboardingNavigation } from "./components/OnboardingNavigation";
+import {
+	flushOnboardingAbandoned,
+	scheduleOnboardingAbandoned,
+	trackOnboardingEntered,
+	trackOnboardingStepCompleted,
+} from "./utils/onboardingAnalytics";
 
 export const Route = createFileRoute("/_authenticated/onboarding")({
 	component: OnboardingFlowLayout,
@@ -24,12 +30,14 @@ const STEPS = [
 	{
 		path: "/onboarding",
 		match: (p: string) => p === "/onboarding",
+		slug: "providers",
 		title: "Setup Superset",
 		subtitle: "Connect your agents and tools to get started.",
 	},
 	{
 		path: "/onboarding/project",
 		match: (p: string) => p === "/onboarding/project",
+		slug: "project",
 		title: "Create or add a project",
 		subtitle: "Start from scratch, open a folder, or clone a repo.",
 	},
@@ -42,6 +50,22 @@ function OnboardingFlowLayout() {
 	const chatClient = useMemo(() => createChatServiceIpcClient(), []);
 	const location = useLocation();
 	const navigate = useNavigate();
+
+	const onboarded = Boolean(session?.user?.onboardedAt);
+	const pathname = location.pathname;
+	useEffect(() => {
+		if (isPending || onboarded) return;
+		const step = STEPS.find((s) => s.match(pathname));
+		if (step) trackOnboardingEntered(step.slug);
+	}, [isPending, onboarded, pathname]);
+
+	useEffect(() => {
+		window.addEventListener("beforeunload", flushOnboardingAbandoned);
+		return () => {
+			window.removeEventListener("beforeunload", flushOnboardingAbandoned);
+			scheduleOnboardingAbandoned();
+		};
+	}, []);
 
 	if (isPending) return null;
 	if (session?.user?.onboardedAt) {
@@ -63,7 +87,10 @@ function OnboardingFlowLayout() {
 	// Step 1 advances to the project step; the project step finishes onboarding
 	// itself the moment a project is added, so it has no footer Continue.
 	const handleContinue = isFirstStep
-		? () => navigate({ to: "/onboarding/project" })
+		? () => {
+				trackOnboardingStepCompleted("providers");
+				navigate({ to: "/onboarding/project" });
+			}
 		: null;
 
 	return (

@@ -16,6 +16,7 @@ import { OpenAIOAuthDialog } from "renderer/components/Chat/ChatInterface/compon
 import { useAnthropicOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useAnthropicOAuth";
 import { useOpenAIOAuth } from "renderer/components/Chat/ChatInterface/components/ModelPicker/hooks/useOpenAIOAuth";
 import { track } from "renderer/lib/analytics";
+import { trackOnboardingError } from "../../utils/onboardingAnalytics";
 
 export type Provider = "anthropic" | "openai";
 
@@ -61,7 +62,12 @@ function AnthropicConnectDialog({
 		});
 
 	const handleApiKeySubmit = async (rawKey: string) => {
-		await setApiKey.mutateAsync({ apiKey: rawKey });
+		try {
+			await setApiKey.mutateAsync({ apiKey: rawKey });
+		} catch (err) {
+			trackOnboardingError("providers", "provider_connect", "api_key_failed");
+			throw err;
+		}
 		track("onboarding_provider_connected", {
 			provider: "anthropic",
 			method: "api-key",
@@ -121,7 +127,12 @@ function OpenAIConnectDialog({
 	});
 
 	const handleApiKeySubmit = async (rawKey: string) => {
-		await setApiKey.mutateAsync({ apiKey: rawKey });
+		try {
+			await setApiKey.mutateAsync({ apiKey: rawKey });
+		} catch (err) {
+			trackOnboardingError("providers", "provider_connect", "api_key_failed");
+			throw err;
+		}
 		track("onboarding_provider_connected", {
 			provider: "openai",
 			method: "api-key",

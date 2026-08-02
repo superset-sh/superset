@@ -14,6 +14,7 @@ import {
 	ProviderConnectModal,
 } from "./components/ProviderConnectModal";
 import { ClaudeLogo } from "./providers/components/ClaudeLogo";
+import { trackOnboardingError } from "./utils/onboardingAnalytics";
 
 export const Route = createFileRoute("/_authenticated/onboarding/")({
 	component: OnboardingDashboardPage,
@@ -134,7 +135,12 @@ function OnboardingDashboardPage() {
 			<GhAuthDialog
 				open={ghAuthOpen}
 				onOpenChange={setGhAuthOpen}
-				onExit={() => void refetchGh()}
+				onExit={async () => {
+					const result = await refetchGh();
+					if (!(result.data?.installed && result.data.authenticated)) {
+						trackOnboardingError("providers", "gh_auth", "auth_incomplete");
+					}
+				}}
 			/>
 		</>
 	);
