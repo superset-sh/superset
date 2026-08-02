@@ -17,8 +17,8 @@ export function getSingleTerminalPane(
  * (`TerminalPaneIcon`), so the always-visible tab carries the same signal
  * as the in-pane one. Multi-pane tabs get no icon, matching
  * `renderBrowserTabIcon`'s single-pane-only behavior. The agent-color dot
- * is off here — `createRenderTerminalTabLabelWrapper` shows it as a
- * background tint on the whole label instead.
+ * is off here — `createRenderTerminalTabContentWrapper` shows it as a
+ * background tint on the whole tab instead.
  */
 export function createRenderTerminalTabIcon(workspaceId: string) {
 	return function renderTerminalTabIcon(tab: Tab<PaneViewerData>) {

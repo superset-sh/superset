@@ -3,6 +3,7 @@ import { db } from "@superset/db/client";
 import { members } from "@superset/db/schema";
 import { COMPANY, ORGANIZATION_HEADER } from "@superset/shared/constants";
 import {
+	DATABASE_UNAVAILABLE_DATA_KEY,
 	DATABASE_UNAVAILABLE_MESSAGE,
 	isDatabaseConnectivityError,
 } from "@superset/shared/db-connectivity-error";
@@ -33,7 +34,7 @@ const t = initTRPC.context<TRPCContext>().create({
 				: shape.message,
 			data: {
 				...shape.data,
-				databaseUnavailable,
+				[DATABASE_UNAVAILABLE_DATA_KEY]: databaseUnavailable,
 				zodError:
 					error.cause instanceof ZodError ? error.cause.flatten() : null,
 			},

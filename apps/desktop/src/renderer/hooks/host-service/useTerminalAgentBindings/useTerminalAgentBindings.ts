@@ -22,14 +22,20 @@ export function getTerminalAgentBindingsQueryKey(workspaceId: string) {
 }
 
 /**
- * Map of `terminalId → agent binding` for a workspace, read from the host
- * store and invalidated on `agent:lifecycle` / `agent:meta` /
- * `terminal:lifecycle` events.
+ * Shared query/invalidation plumbing behind both hooks below. `select` scopes
+ * what a caller re-renders on: React Query's default structural sharing keeps
+ * a `select` result referentially stable across refetches unless the
+ * selected slice itself changed, so `useTerminalAgentBinding` (below) only
+ * re-renders when *its* terminal's binding actually changes, not on every
+ * unrelated binding update in the workspace.
  */
-export function useTerminalAgentBindings(
+function useTerminalAgentBindingsQuery<TData>(
 	workspaceId: string,
-	options?: { enabled?: boolean },
-): Map<string, TerminalAgentBinding> {
+	options: {
+		enabled?: boolean;
+		select: (bindings: TerminalAgentBindings) => TData;
+	},
+): TData | undefined {
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
@@ -38,7 +44,7 @@ export function useTerminalAgentBindings(
 	);
 
 	const enabled =
-		(options?.enabled ?? true) && Boolean(workspaceId) && Boolean(hostUrl);
+		(options.enabled ?? true) && Boolean(workspaceId) && Boolean(hostUrl);
 
 	const { data } = useQuery({
 		queryKey,
@@ -53,6 +59,7 @@ export function useTerminalAgentBindings(
 		// staleTime lets focus/remount refetches self-heal any staleness
 		// from events missed while the WS was down (host restart, sleep).
 		staleTime: 30_000,
+		select: options.select,
 	});
 
 	const invalidate = useCallback(() => {
@@ -63,19 +70,46 @@ export function useTerminalAgentBindings(
 	useWorkspaceEvent("agent:meta", workspaceId, invalidate, enabled);
 	useWorkspaceEvent("terminal:lifecycle", workspaceId, invalidate, enabled);
 
-	return useMemo(() => {
-		const map = new Map<string, TerminalAgentBinding>();
-		for (const binding of data ?? []) {
-			map.set(binding.terminalId, binding);
-		}
-		return map;
-	}, [data]);
+	return data;
+}
+
+const EMPTY_BINDINGS_MAP: Map<string, TerminalAgentBinding> = new Map();
+
+const selectAsMap = (
+	bindings: TerminalAgentBindings,
+): Map<string, TerminalAgentBinding> => {
+	const map = new Map<string, TerminalAgentBinding>();
+	for (const binding of bindings) {
+		map.set(binding.terminalId, binding);
+	}
+	return map;
+};
+
+/**
+ * Map of `terminalId → agent binding` for a workspace, read from the host
+ * store and invalidated on `agent:lifecycle` / `agent:meta` /
+ * `terminal:lifecycle` events.
+ */
+export function useTerminalAgentBindings(
+	workspaceId: string,
+	options?: { enabled?: boolean },
+): Map<string, TerminalAgentBinding> {
+	return (
+		useTerminalAgentBindingsQuery(workspaceId, {
+			enabled: options?.enabled,
+			select: selectAsMap,
+		}) ?? EMPTY_BINDINGS_MAP
+	);
 }
 
 export function useTerminalAgentBinding(
 	workspaceId: string,
 	terminalId: string,
 ): TerminalAgentBinding | undefined {
-	const bindings = useTerminalAgentBindings(workspaceId);
-	return bindings.get(terminalId);
+	const select = useCallback(
+		(bindings: TerminalAgentBindings) =>
+			bindings.find((binding) => binding.terminalId === terminalId),
+		[terminalId],
+	);
+	return useTerminalAgentBindingsQuery(workspaceId, { select });
 }

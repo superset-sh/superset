@@ -14,3 +14,11 @@ export function isDatabaseConnectivityError(error: unknown): boolean {
 
 export const DATABASE_UNAVAILABLE_MESSAGE =
 	"Could not reach the database. Is your local dev DB stack (Docker) running?";
+
+/** Key set on tRPC's `errorFormatter` `data` field — shared so the client
+ * doesn't have to re-declare the same shape by hand when reading it back. */
+export const DATABASE_UNAVAILABLE_DATA_KEY = "databaseUnavailable" as const;
+
+export interface DatabaseUnavailableErrorData {
+	[DATABASE_UNAVAILABLE_DATA_KEY]?: boolean;
+}

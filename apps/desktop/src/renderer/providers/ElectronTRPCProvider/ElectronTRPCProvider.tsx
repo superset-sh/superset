@@ -1,3 +1,7 @@
+import {
+	DATABASE_UNAVAILABLE_DATA_KEY,
+	type DatabaseUnavailableErrorData,
+} from "@superset/shared/db-connectivity-error";
 import { toast } from "@superset/ui/sonner";
 import { createAsyncStoragePersister } from "@tanstack/query-async-storage-persister";
 import {
@@ -44,8 +48,9 @@ function notifyIfDatabaseUnavailable(error: unknown): void {
 	const isDatabaseUnavailable =
 		error instanceof TRPCClientError &&
 		Boolean(
-			(error.data as { databaseUnavailable?: boolean } | null)
-				?.databaseUnavailable,
+			(error.data as DatabaseUnavailableErrorData | null)?.[
+				DATABASE_UNAVAILABLE_DATA_KEY
+			],
 		);
 	if (!isDatabaseUnavailable) return;
 

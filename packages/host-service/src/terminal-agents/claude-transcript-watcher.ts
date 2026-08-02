@@ -84,12 +84,7 @@ export class ClaudeTranscriptWatcher {
 		const eligible = new Map<string, TerminalAgentBinding>();
 		for (const binding of this.store.list()) {
 			if (binding.agentId !== CLAUDE_AGENT_ID) continue;
-			if (!binding.cwd || !binding.agentSessionId) {
-				console.log(
-					`[claude-transcript-watcher] skipping terminalId=${binding.terminalId} cwd=${binding.cwd} agentSessionId=${binding.agentSessionId}`,
-				);
-				continue;
-			}
+			if (!binding.cwd || !binding.agentSessionId) continue;
 			eligible.set(binding.terminalId, binding);
 		}
 
@@ -171,9 +166,6 @@ export class ClaudeTranscriptWatcher {
 		path: string,
 	): void {
 		const result = readLatestColorAndTitle(path);
-		console.log(
-			`[claude-transcript-watcher] checkAndEmit terminalId=${terminalId} path=${path} result=${JSON.stringify(result)}`,
-		);
 		// Omit undefined keys entirely rather than setting them — the store
 		// merges this object onto prior state, and an explicit `undefined`
 		// value would clobber an already-known title/color.

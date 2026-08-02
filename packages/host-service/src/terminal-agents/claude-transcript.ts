@@ -33,13 +33,24 @@ export function encodeProjectDirName(cwd: string): string {
 	return cwd.replace(/[^a-zA-Z0-9]/g, "-");
 }
 
+/**
+ * sessionId is attacker-influenceable (forwarded verbatim from the
+ * unauthenticated hook payload), so it's constrained to Claude Code's actual
+ * session-id charset (UUID-like: hex digits and hyphens only) before being
+ * interpolated into a filesystem path — never trust it enough to allow `/` or
+ * `..` segments that could traverse out of the project's transcript directory.
+ */
+function sanitizeSessionId(sessionId: string): string {
+	return sessionId.replace(/[^a-zA-Z0-9-]/g, "-");
+}
+
 export function resolveTranscriptPath(cwd: string, sessionId: string): string {
 	return join(
 		homedir(),
 		".claude",
 		"projects",
 		encodeProjectDirName(cwd),
-		`${sessionId}.jsonl`,
+		`${sanitizeSessionId(sessionId)}.jsonl`,
 	);
 }
 
