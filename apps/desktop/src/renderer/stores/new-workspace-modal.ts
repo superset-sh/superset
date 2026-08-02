@@ -25,9 +25,10 @@ export interface StashedDraft {
 interface NewWorkspaceModalState {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	preSelectedSectionId: string | null;
 	pendingWorkspace: PendingWorkspace | null;
 	stashedDraft: StashedDraft | null;
-	openModal: (projectId?: string) => void;
+	openModal: (projectId?: string, sectionId?: string) => void;
 	closeModal: () => void;
 	setPendingWorkspace: (workspace: PendingWorkspace | null) => void;
 	clearPendingWorkspace: (id: string) => void;
@@ -45,15 +46,24 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 		(set, get) => ({
 			isOpen: false,
 			preSelectedProjectId: null,
+			preSelectedSectionId: null,
 			pendingWorkspace: null,
 			stashedDraft: null,
 
-			openModal: (projectId?: string) => {
-				set({ isOpen: true, preSelectedProjectId: projectId ?? null });
+			openModal: (projectId?: string, sectionId?: string) => {
+				set({
+					isOpen: true,
+					preSelectedProjectId: projectId ?? null,
+					preSelectedSectionId: sectionId ?? null,
+				});
 			},
 
 			closeModal: () => {
-				set({ isOpen: false, preSelectedProjectId: null });
+				set({
+					isOpen: false,
+					preSelectedProjectId: null,
+					preSelectedSectionId: null,
+				});
 			},
 
 			setPendingWorkspace: (workspace: PendingWorkspace | null) => {
@@ -109,6 +119,8 @@ export const useCloseNewWorkspaceModal = () =>
 	useNewWorkspaceModalStore((state) => state.closeModal);
 export const usePreSelectedProjectId = () =>
 	useNewWorkspaceModalStore((state) => state.preSelectedProjectId);
+export const usePreSelectedSectionId = () =>
+	useNewWorkspaceModalStore((state) => state.preSelectedSectionId);
 export const usePendingWorkspace = () =>
 	useNewWorkspaceModalStore((state) => state.pendingWorkspace);
 export const useSetPendingWorkspace = () =>

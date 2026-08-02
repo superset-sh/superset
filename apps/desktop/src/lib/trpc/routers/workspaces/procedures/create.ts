@@ -1,4 +1,9 @@
-import { projects, workspaces, worktrees } from "@superset/local-db";
+import {
+	projects,
+	workspaceSections,
+	workspaces,
+	worktrees,
+} from "@superset/local-db";
 import { and, eq, isNull, not } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -39,6 +44,7 @@ import {
 	worktreeExists,
 } from "../utils/git";
 import { resolveWorktreePath } from "../utils/resolve-worktree-path";
+import { assertSectionMatchesProject } from "../utils/section-project-guard";
 import { selectExternalWorktreesForImport } from "../utils/select-external-worktrees-for-import";
 import { copySupersetConfigToWorktree, loadSetupConfig } from "../utils/setup";
 import {
@@ -445,6 +451,7 @@ export const createCreateProcedures = () => {
 						sourceWorkspaceId: z.string().optional(),
 						useExistingBranch: z.boolean().optional(),
 						applyPrefix: z.boolean().optional().default(true),
+						sectionId: z.string().optional(),
 					})
 					.refine(
 						(data) => !(data.compareBaseBranch && data.sourceWorkspaceId),
@@ -469,6 +476,17 @@ export const createCreateProcedures = () => {
 					.get();
 				if (!project) {
 					throw new Error(`Project ${input.projectId} not found`);
+				}
+				if (input.sectionId) {
+					const section = localDb
+						.select({
+							id: workspaceSections.id,
+							projectId: workspaceSections.projectId,
+						})
+						.from(workspaceSections)
+						.where(eq(workspaceSections.id, input.sectionId))
+						.get();
+					assertSectionMatchesProject(section, input.projectId);
 				}
 				const requestedCompareBaseBranch = input.compareBaseBranch;
 
@@ -664,6 +682,7 @@ export const createCreateProcedures = () => {
 						name: input.name ?? branch,
 						isUnnamed: !input.name,
 						tabOrder: maxTabOrder + 1,
+						sectionId: input.sectionId ?? null,
 					})
 					.returning()
 					.get();
