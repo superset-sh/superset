@@ -964,7 +964,12 @@ export class PullRequestRuntimeManager {
 					// and inspecting megabyte payloads blocks the event loop.
 					console.warn(
 						"[host-service:pull-request-runtime] gh PR head lookup failed; falling back to Octokit",
-						{ owner: repo.owner, name: repo.name, head, error: String(ghError) },
+						{
+							owner: repo.owner,
+							name: repo.name,
+							head,
+							error: String(ghError),
+						},
 					);
 					const octokit = await this.github();
 					return fetchPullRequestByHead(
