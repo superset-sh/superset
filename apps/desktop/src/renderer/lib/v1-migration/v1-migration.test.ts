@@ -381,25 +381,36 @@ describe("completion markers", () => {
 
 	test("first completion dispatches the flip-notice event exactly once", () => {
 		const events: string[] = [];
-		// @ts-expect-error minimal DOM shims for the dispatch path
-		globalThis.CustomEvent = class {
-			type: string;
-			detail: unknown;
-			constructor(type: string, init?: { detail?: unknown }) {
-				this.type = type;
-				this.detail = init?.detail;
-			}
-		};
-		// @ts-expect-error window shim: only dispatchEvent is used
-		globalThis.window = {
-			dispatchEvent: (e: { type: string }) => {
-				events.push(e.type);
-				return true;
-			},
-		};
-		markV1MigrationComplete("org-evt");
-		markV1MigrationComplete("org-evt"); // re-completion: no re-dispatch
-		expect(events).toEqual([V1_MIGRATION_COMPLETED_EVENT]);
+		// Scoped DOM shims: bun runs every test file in one process, so a
+		// leaked global `window` makes browser-gated modules in OTHER files
+		// (theme store) take their renderer-only paths and crash.
+		const g = globalThis as Record<string, unknown>;
+		const prevWindow = g.window;
+		const prevCustomEvent = g.CustomEvent;
+		try {
+			g.CustomEvent = class {
+				type: string;
+				detail: unknown;
+				constructor(type: string, init?: { detail?: unknown }) {
+					this.type = type;
+					this.detail = init?.detail;
+				}
+			};
+			g.window = {
+				dispatchEvent: (e: { type: string }) => {
+					events.push(e.type);
+					return true;
+				},
+			};
+			markV1MigrationComplete("org-evt");
+			markV1MigrationComplete("org-evt"); // re-completion: no re-dispatch
+			expect(events).toEqual([V1_MIGRATION_COMPLETED_EVENT]);
+		} finally {
+			if (prevWindow === undefined) delete g.window;
+			else g.window = prevWindow;
+			if (prevCustomEvent === undefined) delete g.CustomEvent;
+			else g.CustomEvent = prevCustomEvent;
+		}
 	});
 
 	test("first completion arms the post-flip welcome; consume is dismiss-time", () => {

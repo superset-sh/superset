@@ -21,6 +21,7 @@ export function V2FlipWelcome() {
 	const trackedRef = useRef(false);
 
 	useEffect(() => {
+		trackedRef.current = false;
 		setVisible(!!organizationId && isV1WelcomePending(organizationId));
 	}, [organizationId]);
 

@@ -27,6 +27,7 @@ export function V1FlipNotice() {
 	useEffect(() => {
 		if (!organizationId) return;
 		setDismissed(false);
+		trackedRef.current = false;
 		const check = () => setComplete(isV1MigrationComplete(organizationId));
 		check();
 		window.addEventListener(V1_MIGRATION_COMPLETED_EVENT, check);
@@ -51,10 +52,10 @@ export function V1FlipNotice() {
 				<div className="min-w-0 space-y-1.5">
 					<p className="font-medium text-sm">The new Superset is ready</p>
 					<p className="text-muted-foreground text-sm">
-						Your projects, workspaces, and terminals have been moved to the new
-						Superset experience. The next time you open the app, you'll see the
-						new interface. Terminal scrollback and v1 chat history don't carry
-						over.
+						Your projects and workspaces have been moved to the new Superset
+						experience. The next time you open the app, you'll see the new
+						interface, and your terminals will reopen in their old folders.
+						Terminal scrollback and v1 chat history don't carry over.
 					</p>
 					<div className="pt-1">
 						<Button
