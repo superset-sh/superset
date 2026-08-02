@@ -31,7 +31,10 @@ import {
 	V1AutoMigration,
 	V1MigrationContinuity,
 } from "renderer/routes/_authenticated/components/V1AutoMigration";
-import { V1FlipNotice } from "renderer/routes/_authenticated/components/V1FlipNotice";
+import {
+	V1FlipNotice,
+	V2FlipWelcome,
+} from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -293,7 +296,10 @@ function AuthenticatedLayout() {
 								<Outlet />
 								<V1ImportModal />
 								{isV2CloudEnabled ? (
-									<V1MigrationContinuity />
+									<>
+										<V1MigrationContinuity />
+										<V2FlipWelcome />
+									</>
 								) : (
 									<V1FlipNotice />
 								)}
