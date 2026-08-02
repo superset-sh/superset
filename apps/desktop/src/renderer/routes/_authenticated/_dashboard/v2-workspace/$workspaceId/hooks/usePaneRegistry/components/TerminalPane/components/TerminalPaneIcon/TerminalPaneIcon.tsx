@@ -7,6 +7,8 @@ import { resolveClaudeAgentColor } from "shared/constants/claude-agent-colors";
 interface TerminalPaneIconProps {
 	workspaceId: string;
 	terminalId: string;
+	/** Off for the tab bar icon, which shows the color as a background tint instead. */
+	showColorDot?: boolean;
 }
 
 /**
@@ -19,11 +21,14 @@ interface TerminalPaneIconProps {
 export function TerminalPaneIcon({
 	workspaceId,
 	terminalId,
+	showColorDot = true,
 }: TerminalPaneIconProps) {
 	const binding = useTerminalAgentBinding(workspaceId, terminalId);
 	const agentId = binding?.agentId;
 	const iconSrc = usePresetIcon(agentId ?? "");
-	const dotColor = resolveClaudeAgentColor(binding?.color);
+	const dotColor = showColorDot
+		? resolveClaudeAgentColor(binding?.color)
+		: undefined;
 
 	const colorDot = dotColor ? (
 		<span

@@ -103,6 +103,13 @@ export interface WorkspaceProps<TData> {
 	className?: string;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
+	/**
+	 * Wraps the tab's icon+title content jointly (rather than a separate
+	 * slot) — e.g. for a colored accent background. Receives the default
+	 * icon+title markup as `children`; return it unwrapped to opt out for a
+	 * given tab.
+	 */
+	renderTabContentWrapper?: (tab: Tab<TData>, children: ReactNode) => ReactNode;
 	renderEmptyState?: () => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
 	/** Rendered at the leading (left) edge of the tab bar row, before the tabs. */

@@ -21,3 +21,12 @@ export function resolveClaudeAgentColor(
 	if (!color) return undefined;
 	return CLAUDE_AGENT_COLOR_VALUES[color];
 }
+
+/** Low-alpha tint of a resolved agent color, for a background-decoration look. */
+export function resolveClaudeAgentAccentBackground(
+	color: string | undefined,
+): string | undefined {
+	const resolved = resolveClaudeAgentColor(color);
+	if (!resolved) return undefined;
+	return `color-mix(in srgb, ${resolved} 18%, transparent)`;
+}

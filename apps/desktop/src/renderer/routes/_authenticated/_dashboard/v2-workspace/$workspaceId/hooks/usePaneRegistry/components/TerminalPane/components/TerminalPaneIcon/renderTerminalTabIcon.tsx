@@ -2,7 +2,7 @@ import type { Tab } from "@superset/panes";
 import type { PaneViewerData, TerminalPaneData } from "../../../../../../types";
 import { TerminalPaneIcon } from "./TerminalPaneIcon";
 
-function getSingleTerminalPane(
+export function getSingleTerminalPane(
 	tab: Tab<PaneViewerData>,
 ): { terminalId: string } | null {
 	const paneIds = Object.keys(tab.panes);
@@ -13,10 +13,12 @@ function getSingleTerminalPane(
 }
 
 /**
- * Tab-bar icon for single-pane terminal tabs — same icon + agent-color dot
- * as the pane's own icon (`TerminalPaneIcon`), so the always-visible tab
- * carries the same signal as the in-pane one. Multi-pane tabs get no icon,
- * matching `renderBrowserTabIcon`'s single-pane-only behavior.
+ * Tab-bar icon for single-pane terminal tabs — same icon as the pane's own
+ * (`TerminalPaneIcon`), so the always-visible tab carries the same signal
+ * as the in-pane one. Multi-pane tabs get no icon, matching
+ * `renderBrowserTabIcon`'s single-pane-only behavior. The agent-color dot
+ * is off here — `createRenderTerminalTabLabelWrapper` shows it as a
+ * background tint on the whole label instead.
  */
 export function createRenderTerminalTabIcon(workspaceId: string) {
 	return function renderTerminalTabIcon(tab: Tab<PaneViewerData>) {
@@ -26,6 +28,7 @@ export function createRenderTerminalTabIcon(workspaceId: string) {
 			<TerminalPaneIcon
 				workspaceId={workspaceId}
 				terminalId={terminal.terminalId}
+				showColorDot={false}
 			/>
 		);
 	};

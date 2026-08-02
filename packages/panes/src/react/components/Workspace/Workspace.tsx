@@ -15,6 +15,7 @@ export function Workspace<TData>({
 	className,
 	renderTabAccessory,
 	renderTabIcon,
+	renderTabContentWrapper,
 	renderEmptyState,
 	renderAddTabMenu,
 	renderTabBarLeading,
@@ -121,6 +122,7 @@ export function Workspace<TData>({
 					store.getState().movePaneToNewTab({ paneId, toIndex })
 				}
 				renderTabIcon={renderTabIcon}
+				renderTabContentWrapper={renderTabContentWrapper}
 				renderAddTabMenu={renderAddTabMenu}
 				renderTabBarLeading={renderTabBarLeading}
 				renderTabBarTrailing={renderTabBarTrailing}

@@ -32,6 +32,8 @@ interface TabItemProps<TData> {
 	onCloseAll: () => void;
 	onRename: (title: string | undefined) => void;
 	icon?: ReactNode;
+	/** Wraps the tab's full content (icon, title, AND the accessory/close-button area). */
+	renderContentWrapper?: (tab: Tab<TData>, children: ReactNode) => ReactNode;
 	accessory?: ReactNode;
 }
 
@@ -47,6 +49,7 @@ export function TabItem<TData>({
 	onCloseAll,
 	onRename,
 	icon,
+	renderContentWrapper,
 	accessory,
 }: TabItemProps<TData>) {
 	const [isEditing, setIsEditing] = useState(false);
@@ -108,6 +111,56 @@ export function TabItem<TData>({
 		[connectDrag, connectPaneDrop],
 	);
 
+	const tabContent = (
+		<>
+			<Tooltip delayDuration={500} open={isDragging ? false : undefined}>
+				<TooltipTrigger asChild>
+					{/* biome-ignore lint/a11y/noStaticElementInteractions: tab selection is handled by the wrapper's mousedown; this title element is intentionally a non-focusable div so clicking a tab never steals focus from the active pane (issue #4967) */}
+					<div
+						className="flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-colors"
+						onAuxClick={(event) => {
+							if (event.button === 1) {
+								event.preventDefault();
+								onClose();
+							}
+						}}
+						onDoubleClick={startEditing}
+					>
+						{icon && <span className="shrink-0">{icon}</span>}
+						<OverflowFadeText className="flex-1">{title}</OverflowFadeText>
+					</div>
+				</TooltipTrigger>
+				<TooltipContent side="bottom">{title}</TooltipContent>
+			</Tooltip>
+			<div className="relative flex h-full w-7 shrink-0 items-center justify-center">
+				{accessory && (
+					<span className="pointer-events-none absolute inset-0 flex items-center justify-center leading-none opacity-100 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
+						{accessory}
+					</span>
+				)}
+				<Button
+					aria-label="Close tab"
+					className={cn(
+						"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
+						isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
+					)}
+					onClick={(event) => {
+						event.stopPropagation();
+						onClose();
+					}}
+					onMouseDown={(event) => {
+						event.stopPropagation();
+					}}
+					size="icon"
+					type="button"
+					variant="ghost"
+				>
+					<XIcon className="size-3.5" />
+				</Button>
+			</div>
+		</>
+	);
+
 	return (
 		<ContextMenu>
 			<ContextMenuTrigger asChild>
@@ -146,58 +199,7 @@ export function TabItem<TData>({
 							/>
 						</div>
 					) : (
-						<>
-							<Tooltip
-								delayDuration={500}
-								open={isDragging ? false : undefined}
-							>
-								<TooltipTrigger asChild>
-									{/* biome-ignore lint/a11y/noStaticElementInteractions: tab selection is handled by the wrapper's mousedown; this title element is intentionally a non-focusable div so clicking a tab never steals focus from the active pane (issue #4967) */}
-									<div
-										className="flex h-full min-w-0 flex-1 items-center gap-1.5 pl-3 pr-1 text-left text-xs transition-colors"
-										onAuxClick={(event) => {
-											if (event.button === 1) {
-												event.preventDefault();
-												onClose();
-											}
-										}}
-										onDoubleClick={startEditing}
-									>
-										{icon && <span className="shrink-0">{icon}</span>}
-										<OverflowFadeText className="flex-1">
-											{title}
-										</OverflowFadeText>
-									</div>
-								</TooltipTrigger>
-								<TooltipContent side="bottom">{title}</TooltipContent>
-							</Tooltip>
-							<div className="relative flex h-full w-7 shrink-0 items-center justify-center">
-								{accessory && (
-									<span className="pointer-events-none absolute inset-0 flex items-center justify-center leading-none opacity-100 transition-opacity group-hover:opacity-0 group-focus-within:opacity-0">
-										{accessory}
-									</span>
-								)}
-								<Button
-									aria-label="Close tab"
-									className={cn(
-										"pointer-events-none size-5 cursor-pointer text-current opacity-0 transition-opacity group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100",
-										isActive ? "hover:bg-muted" : "hover:bg-foreground/10",
-									)}
-									onClick={(event) => {
-										event.stopPropagation();
-										onClose();
-									}}
-									onMouseDown={(event) => {
-										event.stopPropagation();
-									}}
-									size="icon"
-									type="button"
-									variant="ghost"
-								>
-									<XIcon className="size-3.5" />
-								</Button>
-							</div>
-						</>
+						(renderContentWrapper?.(tab, tabContent) ?? tabContent)
 					)}
 				</div>
 			</ContextMenuTrigger>

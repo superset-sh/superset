@@ -29,6 +29,7 @@ import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useClaudeTabDecorationEnabled } from "renderer/stores/claude-tab-decoration";
 import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
@@ -124,6 +125,7 @@ export function usePaneRegistry({
 	// title, which only updates whenever Claude Code's TUI happens to next
 	// re-emit its own title escape — always one step stale relative to this.
 	const terminalAgentBindings = useTerminalAgentBindings(workspaceId);
+	const claudeTabDecorationEnabled = useClaudeTabDecorationEnabled();
 	const runAgent = workspaceTrpc.agents.run.useMutation();
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
@@ -176,6 +178,7 @@ export function usePaneRegistry({
 	// derived title to show instead. (A genuine user rename lives on
 	// `tab.titleOverride`, which this never touches.)
 	useEffect(() => {
+		if (!claudeTabDecorationEnabled) return;
 		const state = store.getState();
 		for (const tab of state.tabs) {
 			for (const pane of Object.values(tab.panes)) {
@@ -189,7 +192,7 @@ export function usePaneRegistry({
 				});
 			}
 		}
-	}, [store, terminalAgentBindings]);
+	}, [store, terminalAgentBindings, claudeTabDecorationEnabled]);
 
 	const createNewAgentSession = useCallback(
 		async (input: {
@@ -348,7 +351,9 @@ export function usePaneRegistry({
 								instanceId,
 							),
 						getSnapshot: () =>
-							terminalAgentBindings.get(terminalId)?.title ||
+							(claudeTabDecorationEnabled
+								? terminalAgentBindings.get(terminalId)?.title
+								: undefined) ||
 							terminalRuntimeRegistry
 								.getTitle(terminalId, instanceId)
 								?.trim() ||
@@ -615,6 +620,7 @@ export function usePaneRegistry({
 			createNewAgentSession,
 			workspaceTrpcUtils,
 			terminalAgentBindings,
+			claudeTabDecorationEnabled,
 		],
 	);
 }

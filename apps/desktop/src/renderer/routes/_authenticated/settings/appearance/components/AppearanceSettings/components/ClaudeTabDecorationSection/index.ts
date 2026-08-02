@@ -1,0 +1,1 @@
+export { ClaudeTabDecorationSection } from "./ClaudeTabDecorationSection";
