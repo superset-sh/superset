@@ -14,6 +14,7 @@ interface ChangesToolbarProps {
 	filter: ChangesFilter;
 	onFilterChange: (filter: ChangesFilter) => void;
 	commits: Commit[];
+	workspaceId: string;
 	uncommittedCount: number;
 	totalFiles: number;
 	totalAdditions: number;
@@ -39,6 +40,7 @@ export function ChangesToolbar({
 	filter,
 	onFilterChange,
 	commits,
+	workspaceId,
 	uncommittedCount,
 	totalFiles,
 	totalAdditions,
@@ -59,6 +61,7 @@ export function ChangesToolbar({
 					filter={filter}
 					onFilterChange={onFilterChange}
 					commits={commits}
+					workspaceId={workspaceId}
 					uncommittedCount={uncommittedCount}
 				/>
 				<span className="whitespace-nowrap">

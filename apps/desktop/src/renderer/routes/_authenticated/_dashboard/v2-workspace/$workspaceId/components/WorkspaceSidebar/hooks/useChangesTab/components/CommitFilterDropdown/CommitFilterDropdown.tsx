@@ -32,6 +32,7 @@ interface CommitFilterDropdownProps {
 	filter: ChangesFilter;
 	onFilterChange: (filter: ChangesFilter) => void;
 	commits: Commit[];
+	workspaceId: string;
 	uncommittedCount?: number;
 }
 
@@ -39,6 +40,7 @@ export function CommitFilterDropdown({
 	filter,
 	onFilterChange,
 	commits,
+	workspaceId,
 	uncommittedCount,
 }: CommitFilterDropdownProps) {
 	const [rangeModalOpen, setRangeModalOpen] = useState(false);
@@ -106,6 +108,7 @@ export function CommitFilterDropdown({
 								>
 									<CommitRow
 										commit={commit}
+										workspaceId={workspaceId}
 										isSelected={
 											filter.kind === "commit" && filter.hash === commit.hash
 										}
@@ -121,6 +124,7 @@ export function CommitFilterDropdown({
 				open={rangeModalOpen}
 				onOpenChange={setRangeModalOpen}
 				commits={commits}
+				workspaceId={workspaceId}
 				onSelect={(fromHash, toHash) =>
 					onFilterChange({ kind: "range", fromHash, toHash })
 				}

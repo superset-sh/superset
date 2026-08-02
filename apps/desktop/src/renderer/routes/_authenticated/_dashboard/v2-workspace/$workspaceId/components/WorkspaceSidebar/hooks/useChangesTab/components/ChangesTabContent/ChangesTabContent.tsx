@@ -125,6 +125,7 @@ export const ChangesTabContent = memo(function ChangesTabContent({
 					filter={filter}
 					onFilterChange={onFilterChange}
 					commits={commits.data?.commits ?? []}
+					workspaceId={workspaceId}
 					uncommittedCount={
 						status.data.staged.length + status.data.unstaged.length
 					}
