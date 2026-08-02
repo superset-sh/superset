@@ -329,6 +329,7 @@ function OnboardingProjectPage() {
 			/>
 			<GhAuthDialog
 				open={ghAuthOpen}
+				mode="auth"
 				onOpenChange={setGhAuthOpen}
 				onExit={() => setGhAuthOpen(false)}
 			/>

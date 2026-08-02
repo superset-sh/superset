@@ -33,6 +33,15 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/lib/trpc-storage.ts",
 		["<store>:version", "<store>:pending", "<store>:pending:updatedAt"],
 	],
+	[
+		"src/renderer/lib/v1-migration/completion.ts",
+		[
+			"v1-migration-complete-*",
+			"v1-migration-continuity-pending-*",
+			"v1-migration-welcome-pending-*",
+			"v1-migration-followup-pending-*",
+		],
+	],
 	["src/renderer/lib/posthog.ts", ["ph_*_posthog", "__ph_opt_in_out_*"]],
 	[
 		"src/renderer/lib/persistent-hash-history/persistent-hash-history.ts",
