@@ -278,8 +278,10 @@ describe("planTerminalMigration", () => {
 
 import {
 	consumeV1ContinuityPending,
+	consumeV1WelcomePending,
 	isForcedFlipVersion,
 	isV1FollowUpPending,
+	isV1WelcomePending,
 	markV1MigrationComplete,
 	peekV1ContinuityPending,
 	setV1FollowUpPending,
@@ -398,6 +400,16 @@ describe("completion markers", () => {
 		markV1MigrationComplete("org-evt");
 		markV1MigrationComplete("org-evt"); // re-completion: no re-dispatch
 		expect(events).toEqual([V1_MIGRATION_COMPLETED_EVENT]);
+	});
+
+	test("first completion arms the post-flip welcome; consume is dismiss-time", () => {
+		markV1MigrationComplete("org-welcome");
+		expect(isV1WelcomePending("org-welcome")).toBe(true);
+		expect(isV1WelcomePending("org-welcome")).toBe(true); // read is non-destructive
+		consumeV1WelcomePending("org-welcome");
+		expect(isV1WelcomePending("org-welcome")).toBe(false);
+		markV1MigrationComplete("org-welcome"); // re-completion never re-arms
+		expect(isV1WelcomePending("org-welcome")).toBe(false);
 	});
 
 	test("follow-up flag set/clear round-trips", () => {
