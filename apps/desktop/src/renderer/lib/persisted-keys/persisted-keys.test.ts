@@ -33,6 +33,7 @@ describe("sweepDeadPersistedKeys", () => {
 			"pending-workspaces-org-b": "{}",
 			"v1-migration-last-run-at-org-a": "1",
 			"notification-center-store": "{}",
+			"v2-section-local-meta": "{}",
 			"v2-workspace-local-state-org-a": "{}",
 			"changes-store": "{}",
 			ph_project_posthog: "{}",
@@ -41,11 +42,12 @@ describe("sweepDeadPersistedKeys", () => {
 
 		const removed = sweepDeadPersistedKeys(storage);
 
-		expect(removed).toBe(5);
+		expect(removed).toBe(6);
 		expect(storage.getItem("pending-workspaces-org-a")).toBeNull();
 		expect(storage.getItem("pending-workspaces-org-b")).toBeNull();
 		expect(storage.getItem("v1-migration-last-run-at-org-a")).toBeNull();
 		expect(storage.getItem("notification-center-store")).toBeNull();
+		expect(storage.getItem("v2-section-local-meta")).toBeNull();
 		expect(storage.getItem("v2-workspace-local-state-org-a")).toBe("{}");
 		expect(storage.getItem("changes-store")).toBe("{}");
 		expect(storage.getItem("ph_project_posthog")).toBe("{}");

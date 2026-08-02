@@ -28,6 +28,8 @@ export const DEAD_KEYS: DeadKey[] = [
 	// Superseded by v2-workspace-local-state.sidebarState; store deleted in
 	// SUPER-1686 after the audit found no consumers
 	{ key: "v2-workspace-local-meta", match: "exact" },
+	// Section metadata store had no consumers; writer removed in SUPER-1686
+	{ key: "v2-section-local-meta", match: "exact" },
 	// v1→v2 migration ledger markers; superseded by the importer ledger
 	{ key: "v1-migration-last-run-at-", match: "prefix" },
 	{ key: "v1-migration-modal-shown-", match: "prefix" },

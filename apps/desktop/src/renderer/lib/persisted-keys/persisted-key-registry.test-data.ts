@@ -74,7 +74,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["v2-workspace-create-defaults"],
 	],
 	["src/renderer/stores/v2-project-local-meta.ts", ["v2-project-local-meta"]],
-	["src/renderer/stores/v2-section-local-meta.ts", ["v2-section-local-meta"]],
 	[
 		"src/renderer/stores/v2-changes-sections/store.ts",
 		["v2-changes-sections-v1"],
