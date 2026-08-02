@@ -52,7 +52,8 @@ export function V1FlipNotice() {
 	return (
 		<FlipNoticeCard
 			title="A better Superset is ready"
-			body="Superset has been upgraded: faster, cleaner, and built around your projects. Everything comes along on your next launch. Heads up: running terminal sessions won't carry over."
+			body="Superset has been upgraded: faster, cleaner, and built around your projects. Everything comes along on your next launch."
+			warning="Running terminal sessions won't carry over."
 			ctaLabel="Got it"
 			onDismiss={dismiss}
 		/>
