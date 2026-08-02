@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { getTerminalAgentBindingsQueryKey } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { confirmStopAgents } from "./confirmStopAgents";
 
 interface UseDashboardSidebarAgentKillResult {
 	isPending: boolean;
@@ -27,6 +28,7 @@ export function useDashboardSidebarAgentKill(
 
 	const killAgent = useCallback(
 		async (terminalId: string): Promise<void> => {
+			if (!(await confirmStopAgents(1))) return;
 			if (!hostUrl) {
 				toast.error("Failed to kill agent", {
 					description: "No host is available for this workspace",
@@ -55,6 +57,7 @@ export function useDashboardSidebarAgentKill(
 	const killAgents = useCallback(
 		async (terminalIds: string[]): Promise<number> => {
 			if (terminalIds.length === 0) return 0;
+			if (!(await confirmStopAgents(terminalIds.length))) return 0;
 			if (!hostUrl) {
 				toast.error("Failed to stop agents", {
 					description: "No host is available for this workspace",
