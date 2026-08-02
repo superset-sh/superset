@@ -1,6 +1,6 @@
 import { execFile, spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { statSync } from "node:fs";
+import { realpathSync, statSync } from "node:fs";
 import { mkdir, rename } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
@@ -835,6 +835,22 @@ export async function getGitRoot(path: string): Promise<string> {
 	}
 }
 
+/**
+ * Normalizes a filesystem path for reliable comparison against git's recorded
+ * worktree paths. Resolves symlinks when the path exists (e.g. macOS
+ * /var -> /private/var) and otherwise falls back to `resolve`, which still
+ * collapses trailing slashes and "." / ".." segments. Comparing raw strings
+ * causes false negatives that make the delete flow skip on-disk cleanup and
+ * orphan worktree directories (tracker #5611: #2863, #4555).
+ */
+function normalizeWorktreePath(path: string): string {
+	try {
+		return realpathSync(path);
+	} catch {
+		return resolve(path);
+	}
+}
+
 export async function worktreeExists(
 	mainRepoPath: string,
 	worktreePath: string,
@@ -843,9 +859,14 @@ export async function worktreeExists(
 		const git = await getSimpleGitWithShellPath(mainRepoPath);
 		const worktrees = await git.raw(["worktree", "list", "--porcelain"]);
 
-		const lines = worktrees.split("\n");
-		const worktreePrefix = `worktree ${worktreePath}`;
-		return lines.some((line) => line.trim() === worktreePrefix);
+		const expectedPath = normalizeWorktreePath(worktreePath);
+		return worktrees.split("\n").some((line) => {
+			if (!line.startsWith("worktree ")) {
+				return false;
+			}
+			const listedPath = line.slice("worktree ".length).trim();
+			return normalizeWorktreePath(listedPath) === expectedPath;
+		});
 	} catch (error) {
 		console.error(`Failed to check worktree existence: ${error}`);
 		throw error;
