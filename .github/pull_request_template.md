@@ -10,7 +10,11 @@ PR titles become the squash-merge commit subject, so use conventional commit for
 
 ## How I tested it
 
-<!-- What you ran or clicked to verify this works. For UI changes, add a screenshot or recording below. -->
+<!--
+What you ran or clicked to verify this works. Screenshots are strongly preferred
+for anything user-visible — before/after for bug fixes. See "Capturing screenshots
+via CDP" in CONTRIBUTING.md for how to capture them from the dev app.
+-->
 
 ## Checklist
 
