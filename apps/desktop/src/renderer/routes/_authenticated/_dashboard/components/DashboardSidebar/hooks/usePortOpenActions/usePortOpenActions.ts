@@ -24,7 +24,7 @@ export function usePortOpenActions(
 	const openUrl = electronTrpc.external.openUrl.useMutation();
 	const { preferences } = useV2UserPreferences();
 	const canOpenInBrowser = port.hostType === "local-device";
-	const portUrl = `http://localhost:${port.port}`;
+	const portUrl = `${port.protocol ?? "http"}://localhost:${port.port}`;
 
 	const openExternal = () => {
 		if (!canOpenInBrowser || openUrl.isPending) return;

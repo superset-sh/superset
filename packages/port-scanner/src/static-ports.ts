@@ -1,6 +1,9 @@
+export type StaticPortProtocol = "http" | "https";
+
 export interface StaticPortLabel {
 	port: number;
 	label: string;
+	protocol?: StaticPortProtocol;
 }
 
 export type StaticPortsParseResult =
@@ -11,7 +14,7 @@ function validatePortEntry(
 	entry: unknown,
 	index: number,
 ):
-	| { valid: true; port: number; label: string }
+	| { valid: true; port: number; label: string; protocol?: StaticPortProtocol }
 	| { valid: false; error: string } {
 	if (typeof entry !== "object" || entry === null) {
 		return { valid: false, error: `ports[${index}] must be an object` };
@@ -50,6 +53,17 @@ function validatePortEntry(
 
 	if (label.trim() === "") {
 		return { valid: false, error: `ports[${index}].label cannot be empty` };
+	}
+
+	if ("protocol" in entry) {
+		const { protocol } = entry as { protocol: unknown };
+		if (protocol !== "http" && protocol !== "https") {
+			return {
+				valid: false,
+				error: `ports[${index}].protocol must be "http" or "https"`,
+			};
+		}
+		return { valid: true, port, label: label.trim(), protocol };
 	}
 
 	return { valid: true, port, label: label.trim() };
@@ -96,7 +110,11 @@ export function parseStaticPortsConfig(
 			};
 		}
 		seenPorts.add(result.port);
-		ports.push({ port: result.port, label: result.label });
+		ports.push({
+			port: result.port,
+			label: result.label,
+			...(result.protocol ? { protocol: result.protocol } : {}),
+		});
 	}
 
 	return { ports, error: null };

@@ -27,7 +27,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 
 	const handleOpenInBrowser = () => {
 		if (openUrl.isPending) return;
-		const url = `http://localhost:${port.port}`;
+		const url = `${port.protocol ?? "http"}://localhost:${port.port}`;
 
 		if (openLinksInApp) {
 			navigateToWorkspace(port.workspaceId, navigate);

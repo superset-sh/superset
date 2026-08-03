@@ -1,4 +1,4 @@
-import type { DetectedPort } from "@superset/port-scanner";
+import type { DetectedPort, StaticPortProtocol } from "@superset/port-scanner";
 import { z } from "zod";
 import { portManager } from "../../../ports/port-manager";
 import { getLabelsForWorkspace } from "../../../ports/static-ports";
@@ -6,6 +6,7 @@ import { protectedProcedure, router } from "../../index";
 
 export interface EnrichedPort extends DetectedPort {
 	label: string | null;
+	protocol: StaticPortProtocol | null;
 }
 
 export type PortEvent =
@@ -42,7 +43,12 @@ export const portsRouter = router({
 						labels = getLabelsForWorkspace(resolve, port.workspaceId);
 						labelsByWorkspace.set(port.workspaceId, labels);
 					}
-					return { ...port, label: labels?.get(port.port) ?? null };
+					const entry = labels?.get(port.port);
+					return {
+						...port,
+						label: entry?.label ?? null,
+						protocol: entry?.protocol ?? null,
+					};
 				});
 		}),
 
