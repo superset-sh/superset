@@ -38,6 +38,60 @@ For Anthropic-compatible providers (OpenRouter, Vercel AI Gateway), set `ANTHROP
 
 ---
 
+## MiniMax
+
+Superset Chat supports `MiniMax-M3` and `MiniMax-M2.7` in both API regions.
+Open the provider settings from the model picker and add your API key:
+
+```bash
+MINIMAX_API_KEY=your-minimax-api-key
+```
+
+Select **MiniMax (minimax.io)** for the global endpoint or
+**MiniMax (minimaxi.com)** for the China endpoint. Superset Chat uses the
+Anthropic-compatible adapter for both regions.
+
+Terminal agents that accept custom provider environment variables can use
+either supported protocol. Choose the Base URL for your region.
+
+### Anthropic-Compatible
+
+Global:
+
+```bash
+ANTHROPIC_BASE_URL=https://api.minimax.io/anthropic
+ANTHROPIC_AUTH_TOKEN=your-minimax-api-key
+ANTHROPIC_API_KEY=
+```
+
+China:
+
+```bash
+ANTHROPIC_BASE_URL=https://api.minimaxi.com/anthropic
+ANTHROPIC_AUTH_TOKEN=your-minimax-api-key
+ANTHROPIC_API_KEY=
+```
+
+### OpenAI-Compatible
+
+Global:
+
+```bash
+OPENAI_BASE_URL=https://api.minimax.io/v1
+OPENAI_API_KEY=your-minimax-api-key
+```
+
+China:
+
+```bash
+OPENAI_BASE_URL=https://api.minimaxi.com/v1
+OPENAI_API_KEY=your-minimax-api-key
+```
+
+Use `MiniMax-M3` or `MiniMax-M2.7` as the model ID with either protocol.
+
+---
+
 ## Vercel AI Gateway
 
 Route requests through the [Vercel AI Gateway](https://vercel.com/docs/ai-gateway).

@@ -41,6 +41,26 @@ export interface SupersetChatModel extends AgentModelOption {
  * model edits here so the two never drift.
  */
 export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
+	{
+		id: "minimax/MiniMax-M3",
+		label: "MiniMax-M3",
+		provider: "MiniMax (minimax.io)",
+	},
+	{
+		id: "minimax/MiniMax-M2.7",
+		label: "MiniMax-M2.7",
+		provider: "MiniMax (minimax.io)",
+	},
+	{
+		id: "minimax-cn/MiniMax-M3",
+		label: "MiniMax-M3",
+		provider: "MiniMax (minimaxi.com)",
+	},
+	{
+		id: "minimax-cn/MiniMax-M2.7",
+		label: "MiniMax-M2.7",
+		provider: "MiniMax (minimaxi.com)",
+	},
 	{ id: "anthropic/claude-opus-4-8", label: "Opus 4.8", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-7", label: "Opus 4.7", provider: "Anthropic" },
 	{ id: "anthropic/claude-fable-5", label: "Fable 5", provider: "Anthropic" },
