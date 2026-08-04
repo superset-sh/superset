@@ -60,7 +60,7 @@
 	"overrides": {
 		"@types/hast": "3.0.5",
 		"axios": "1.14.0",
-		"hono": "4.12.27",
+		"hono": "4.12.34",
 		"kysely": "0.28.17",
 		"rollup": "4.62.3",
 		"shell-quote": "1.9.0"
