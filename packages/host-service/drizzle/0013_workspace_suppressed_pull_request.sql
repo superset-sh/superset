@@ -1,1 +1,1 @@
-ALTER TABLE `workspaces` ADD `suppressed_pull_request_id` text REFERENCES pull_requests(id);
+ALTER TABLE `workspaces` ADD `suppressed_pull_request_id` text REFERENCES pull_requests(id) ON DELETE SET NULL;

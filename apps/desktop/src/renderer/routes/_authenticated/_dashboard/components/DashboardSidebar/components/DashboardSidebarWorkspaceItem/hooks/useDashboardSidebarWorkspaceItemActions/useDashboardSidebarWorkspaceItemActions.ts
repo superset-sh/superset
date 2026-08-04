@@ -193,7 +193,12 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleRemovePullRequest = async () => {
-		if (!workspaceHostUrl) return;
+		if (!workspaceHostUrl) {
+			showHostServiceUnavailableToast(hostService, {
+				action: "remove the PR link",
+			});
+			return;
+		}
 		try {
 			await getHostServiceClientByUrl(
 				workspaceHostUrl,
