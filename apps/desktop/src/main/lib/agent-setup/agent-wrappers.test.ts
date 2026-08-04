@@ -87,12 +87,39 @@ const {
 	getPiExtensionPath,
 	PI_EXTENSION_MARKER,
 } = await import("./agent-wrappers");
-const { getManagedNotifyHookCommand, reconcileManagedEntries } = await import(
-	"./agent-wrappers-common"
-);
+const {
+	getManagedNotifyHookCommand,
+	MANAGED_NOTIFY_RUNTIME_PATH,
+	reconcileManagedEntries,
+} = await import("./agent-wrappers-common");
 
 const managedClaudeHookCommand = getClaudeManagedHookCommand();
 const managedCodexHookCommand = getManagedNotifyHookCommand("codex");
+
+describe("getManagedNotifyHookCommand", () => {
+	it("uses the canonical Superset home for direct launches without an environment override", () => {
+		const fallbackHome = path.join(TEST_ROOT, "fallback home");
+		const fallbackHookPath = path.join(
+			fallbackHome,
+			".superset",
+			"hooks",
+			"notify.sh",
+		);
+		mkdirSync(path.dirname(fallbackHookPath), { recursive: true });
+		writeFileSync(
+			fallbackHookPath,
+			'#!/bin/sh\nprintf "%s" "$SUPERSET_AGENT_ID"\n',
+		);
+		chmodSync(fallbackHookPath, 0o755);
+
+		const output = execFileSync("/bin/sh", ["-c", managedCodexHookCommand], {
+			encoding: "utf-8",
+			env: { HOME: fallbackHome },
+		});
+
+		expect(output).toBe("codex");
+	});
+});
 
 describe("reconcileManagedEntries", () => {
 	it("preserves user-managed entries while replacing stale managed entries", () => {
@@ -1226,9 +1253,7 @@ describe("agent-wrappers codex hooks.json", () => {
 				}>
 			>;
 		};
-		expect(managedCodexHookCommand).toContain(
-			"$SUPERSET_HOME_DIR/hooks/notify.sh",
-		);
+		expect(managedCodexHookCommand).toContain(MANAGED_NOTIFY_RUNTIME_PATH);
 		expect(managedCodexHookCommand).toContain("SUPERSET_AGENT_ID=codex");
 		expect(content).not.toContain(notifyPath);
 
@@ -1384,6 +1409,8 @@ describe("agent-wrappers codex hooks.json", () => {
 		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+		const legacyDynamicCommand =
+			'[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/hooks/notify.sh" ] && SUPERSET_AGENT_ID=codex "$SUPERSET_HOME_DIR/hooks/notify.sh" || true';
 
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
 		writeFileSync(
@@ -1393,7 +1420,10 @@ describe("agent-wrappers codex hooks.json", () => {
 					hooks: {
 						SessionStart: [
 							{
-								hooks: [{ type: "command", command: staleHookPath }],
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: legacyDynamicCommand },
+								],
 							},
 						],
 						Stop: [
@@ -1446,6 +1476,11 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(
 				hooks.some((def) =>
 					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				),
+			).toBe(false);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === legacyDynamicCommand),
 				),
 			).toBe(false);
 		}

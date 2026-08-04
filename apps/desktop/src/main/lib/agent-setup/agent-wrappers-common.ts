@@ -10,15 +10,19 @@ export { SUPERSET_MANAGED_BINARIES };
 /** Path (under SUPERSET_HOME_DIR) of the runtime notify hook script. */
 export const MANAGED_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
 
+/** Runtime notify path with the canonical production home as a shell fallback. */
+export const MANAGED_NOTIFY_RUNTIME_PATH = `\${SUPERSET_HOME_DIR:-$HOME/.superset}/${MANAGED_NOTIFY_RELATIVE_PATH}`;
+
 /**
  * Shell command written into an agent's global hook config. The notify path is
  * resolved at runtime from SUPERSET_HOME_DIR so one shared config works for both
- * dev and prod installs, and `SUPERSET_AGENT_ID` is inlined so the v2 hook
- * payload carries wrapper-level identity even when the agent is launched outside
- * the Superset wrapper (system PATH resolves the real binary directly).
+ * dev and prod installs. Direct launches outside a Superset terminal fall back
+ * to the canonical ~/.superset home. `SUPERSET_AGENT_ID` is inlined so the v2
+ * hook payload carries wrapper-level identity even when the system PATH resolves
+ * the real binary directly.
  */
 export function getManagedNotifyHookCommand(agentId: string): string {
-	return `[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" ] && SUPERSET_AGENT_ID=${agentId} "$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}" || true`;
+	return `[ -x "${MANAGED_NOTIFY_RUNTIME_PATH}" ] && SUPERSET_AGENT_ID=${agentId} "${MANAGED_NOTIFY_RUNTIME_PATH}" || true`;
 }
 
 // Dev setup (.superset/lib/setup/steps.sh) points SUPERSET_HOME_DIR at

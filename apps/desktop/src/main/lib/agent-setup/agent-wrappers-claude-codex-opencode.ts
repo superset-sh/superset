@@ -7,6 +7,7 @@ import {
 	getManagedNotifyHookCommand,
 	isSupersetManagedHookCommand,
 	MANAGED_NOTIFY_RELATIVE_PATH,
+	MANAGED_NOTIFY_RUNTIME_PATH,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
@@ -67,7 +68,7 @@ interface ClaudeSettingsJson {
 	[key: string]: unknown;
 }
 
-const DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}`;
+const LEGACY_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}`;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -84,7 +85,8 @@ function isManagedClaudeHookCommand(
 ): boolean {
 	return (
 		command?.includes(notifyScriptPath) ||
-		command?.includes(DYNAMIC_NOTIFY_PATH_MARKER) ||
+		command?.includes(MANAGED_NOTIFY_RUNTIME_PATH) ||
+		command?.includes(LEGACY_DYNAMIC_NOTIFY_PATH_MARKER) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }
@@ -310,7 +312,8 @@ function isManagedCodexHookCommand(
 ): boolean {
 	return (
 		command?.includes(notifyScriptPath) ||
-		command?.includes(DYNAMIC_NOTIFY_PATH_MARKER) ||
+		command?.includes(MANAGED_NOTIFY_RUNTIME_PATH) ||
+		command?.includes(LEGACY_DYNAMIC_NOTIFY_PATH_MARKER) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }
