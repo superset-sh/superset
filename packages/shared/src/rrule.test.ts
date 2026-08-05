@@ -251,6 +251,38 @@ describe("matchPreset", () => {
 		const input = "FREQ=MONTHLY;BYMONTHDAY=15;BYHOUR=8";
 		expect(matchPreset(input)).toEqual({ kind: "custom", rrule: input });
 	});
+
+	// Regression: #5670 — RRULEs outside the five preset shapes must collapse to
+	// custom, or an edit re-serializes preset state through buildRrule and
+	// silently drops the extra run(s)/constraint.
+	it("multi-valued BYHOUR → custom (both run times must survive)", () => {
+		expect(matchPreset("FREQ=DAILY;BYHOUR=9,17;BYMINUTE=0")).toMatchObject({
+			kind: "custom",
+		});
+	});
+
+	it("multi-valued BYMINUTE → custom", () => {
+		expect(matchPreset("FREQ=DAILY;BYHOUR=9;BYMINUTE=0,30")).toMatchObject({
+			kind: "custom",
+		});
+	});
+
+	it("month-restricted DAILY → custom (BYMONTH must not be dropped)", () => {
+		expect(
+			matchPreset("FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYMONTH=6"),
+		).toMatchObject({ kind: "custom" });
+	});
+
+	it("BYMONTHDAY-restricted DAILY → custom", () => {
+		expect(
+			matchPreset("FREQ=DAILY;BYHOUR=9;BYMINUTE=0;BYMONTHDAY=15"),
+		).toMatchObject({ kind: "custom" });
+	});
+
+	it("round-trips a multi-time rule without losing runs", () => {
+		const input = "FREQ=DAILY;BYHOUR=9,17;BYMINUTE=0";
+		expect(buildRrule(matchPreset(input))).toBe(input);
+	});
 });
 
 describe("buildRrule", () => {
