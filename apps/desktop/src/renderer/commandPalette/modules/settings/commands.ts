@@ -10,6 +10,7 @@ import {
 	GitBranchIcon,
 	KeyboardIcon,
 	KeyRoundIcon,
+	LayersIcon,
 	LinkIcon,
 	type LucideIcon,
 	PaletteIcon,
@@ -104,6 +105,13 @@ const TABS: SettingsTab[] = [
 		title: "Projects",
 		path: "/settings/projects",
 		icon: FolderIcon,
+	},
+	{
+		id: "workspaces",
+		title: "Workspaces",
+		path: "/settings/workspaces",
+		icon: LayersIcon,
+		keywords: ["workspace", "worktree"],
 	},
 	{
 		id: "ringtones",
