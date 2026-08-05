@@ -1,11 +1,26 @@
 import { homedir } from "node:os";
-import { isAbsolute, join, normalize, resolve, sep } from "node:path";
+import { basename, isAbsolute, join, normalize, resolve, sep } from "node:path";
 import { TRPCError } from "@trpc/server";
 
 // Kept outside the primary checkout so editors, file watchers, and
 // ignore rules treat worktrees as separate trees, not nested ones.
 export function defaultWorktreesRoot(): string {
 	return join(homedir(), ".superset", "worktrees");
+}
+
+/**
+ * Human-readable directory segment for a project's worktrees. Uses the repo
+ * folder name (matching the desktop path builder) rather than the opaque
+ * project UUID, so worktrees land at `<base>/<repo>/<branch>` — a path users
+ * can recognize on disk (#5763). `basename` guarantees a single, traversal-safe
+ * segment; the UUID id is only a fallback for the (unexpected) empty-basename
+ * case so paths always stay unique.
+ */
+export function projectDirName(project: {
+	id: string;
+	repoPath: string;
+}): string {
+	return basename(project.repoPath) || project.id;
 }
 
 export function normalizeWorktreeBaseDir(
@@ -32,18 +47,18 @@ export function normalizeWorktreeBaseDir(
 }
 
 export function projectWorktreesRoot(
-	projectId: string,
+	projectDir: string,
 	worktreeBaseDir?: string | null,
 ): string {
-	return resolve(worktreeBaseDir ?? defaultWorktreesRoot(), projectId);
+	return resolve(worktreeBaseDir ?? defaultWorktreesRoot(), projectDir);
 }
 
 export function safeResolveWorktreePath(
-	projectId: string,
+	projectDir: string,
 	branchName: string,
 	worktreeBaseDir?: string | null,
 ): string {
-	const projectRoot = projectWorktreesRoot(projectId, worktreeBaseDir);
+	const projectRoot = projectWorktreesRoot(projectDir, worktreeBaseDir);
 	const worktreePath = resolve(projectRoot, branchName);
 	if (
 		worktreePath !== projectRoot &&
