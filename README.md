@@ -254,7 +254,7 @@ No Neon account or third-party credentials are needed. `setup.local.sh` brings
 up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in
 with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
-Prereqs: [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`), `docker`, and `jq`, all required. `caddy` is optional and only used by the dev server (`brew install jq caddy && caddy trust`).
+Prereqs: [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`), `docker`, `jq`, and `caddy`, which `bun dev` runs as the local HTTPS proxy (`brew install jq caddy && caddy trust`).
 
 See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide: what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
@@ -322,8 +322,8 @@ Superset is source available under the Elastic License 2.0 (ELv2). The full text
 - **Use it for free.** Run Superset for yourself, your team, or your company. No payment required.
 - **Read and modify the source.** The entire app is in this repo. Fork it, patch it, build it yourself.
 - **Self-host it.** Run it on your own machines or your company's infrastructure at no cost.
-- **The one restriction:** you may not provide Superset to third parties as a hosted or managed service that gives them a substantial set of its features. This applies whether or not you charge for it. It does not affect using it, modifying it, or self-hosting it for yourself, your team, or your company.
+- **The restriction that matters:** you may not provide Superset to third parties as a hosted or managed service that gives them a substantial set of its features. This applies whether or not you charge for it. It does not affect using it, modifying it, or self-hosting it for yourself, your team, or your company.
 
-ELv2 also has housekeeping terms worth knowing: keep the license and copyright notices intact, state your changes if you distribute a modified copy, pass these terms along to anyone you give a copy to, and don't circumvent license keys. The grant is non-sublicensable and non-transferable. This summary is not the license, so read [LICENSE.md](LICENSE.md) if anything here matters to your situation.
+ELv2 sets out two further limitations: don't circumvent license-key functionality, and don't alter, remove, or obscure licensing or copyright notices. It also asks that you state your changes if you distribute a modified copy and pass these terms along to anyone you give a copy to, and the grant is non-sublicensable and non-transferable. This summary is not the license, so read [LICENSE.md](LICENSE.md) if anything here matters to your situation.
 
 **Our commitment: the core desktop app is free forever.** Orchestrating agents in parallel workspaces on your own machine will never require payment. Anything we charge for will be optional services on top, not the app itself.
