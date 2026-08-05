@@ -1,15 +1,15 @@
 ---
-title: Tasks & PRs
+title: Tasks & Pull Requests
 description: Track work items and pull requests without leaving the app
 ---
 
-The **Tasks & PRs** view brings your issue tracker and open pull requests into Superset, so delegating a task to an agent doesn't start with a copy-paste from Linear.
+The **Tasks** and **Pull requests** views bring your issue tracker and open pull requests into Superset, so delegating a task to an agent doesn't start with a copy-paste from Linear. Each is its own destination in the dashboard sidebar, with independent filters that are restored when you come back.
 
 ![Creating a task from the desktop](/images/create-task.png)
 
 ## Where Tasks Come From
 
-Tasks sync from your connected tracker (see [Linear Integration](/use-with-linear)) alongside Superset-native tasks. The view lists issues from the whole connected Linear workspace; filter by status, priority, or assignee to narrow it to yours.
+Tasks sync from your connected tracker (see [Linear Integration](/use-with-linear)) alongside Superset-native tasks, and GitHub Issues are available as a source inside the Tasks view. The Linear source lists issues from the whole connected workspace; filter by status, priority, or assignee to narrow it to yours.
 
 ## What You Can Do
 
@@ -25,6 +25,6 @@ The point of having tasks in Superset is delegation. Launch an agent from a task
 - The **Task Prompt Template** (per agent, under **Settings → Agents**) controls how the task is turned into a prompt
 - The **Auto-run command** toggle controls whether the agent starts immediately or stages the command for review
 
-## PRs
+## Pull Requests
 
-Pull requests appear alongside tasks, and PR-based workspaces show review status and CI checks in the sidebar. See [Workspaces](/workspaces#pr-status) and the [Diff Viewer](/diff-viewer) for the review loop.
+The **Pull requests** view lists PRs from your projects' repositories, with its own repository, open/closed, and search filters. Open a PR from the list to see its detail view, and PR-based workspaces show review status and CI checks in the sidebar. See [Workspaces](/workspaces#pr-status) and the [Diff Viewer](/diff-viewer) for the review loop.

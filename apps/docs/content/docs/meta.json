@@ -12,6 +12,7 @@
 		"recipes/pr-feedback",
 		"recipes/fan-out-refactor",
 		"recipes/nightly-audit",
+		"recipes/agent-driven-superset",
 		"orchestration",
 		"---Core Features---",
 		"workspaces",

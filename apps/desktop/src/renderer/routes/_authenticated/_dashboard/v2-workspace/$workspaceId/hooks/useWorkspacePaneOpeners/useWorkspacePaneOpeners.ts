@@ -5,6 +5,7 @@ import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	ChatV3PaneData,
 	CommentPaneData,
 	DiffFocusSide,
 	DiffPaneData,
@@ -36,6 +37,7 @@ export function useWorkspacePaneOpeners({
 	) => void;
 	addTerminalTab: () => Promise<void>;
 	addChatTab: () => void;
+	addChatV3Tab: () => void;
 	addBrowserTab: () => void;
 	openCommentPane: (comment: CommentPaneData) => void;
 } {
@@ -145,6 +147,17 @@ export function useWorkspacePaneOpeners({
 		});
 	}, [store]);
 
+	const addChatV3Tab = useCallback(() => {
+		store.getState().addTab({
+			panes: [
+				{
+					kind: "chat-v3",
+					data: { sessionId: null } as ChatV3PaneData,
+				},
+			],
+		});
+	}, [store]);
+
 	const addBrowserTab = useCallback(() => {
 		store.getState().addTab({
 			panes: [
@@ -189,6 +202,7 @@ export function useWorkspacePaneOpeners({
 		openDiffPane,
 		addTerminalTab,
 		addChatTab,
+		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,
 	};

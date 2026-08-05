@@ -55,7 +55,7 @@ function createHarness(): Harness {
 	};
 
 	const query: ClaudeQuery = ({ options }) => {
-		options.abortController.signal.addEventListener("abort", () => {
+		options.abortController?.signal.addEventListener("abort", () => {
 			aborted = true;
 		});
 		return stream;

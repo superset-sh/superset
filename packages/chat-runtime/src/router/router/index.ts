@@ -1,2 +1,7 @@
-export type { ChatRouter, ChatRouterOptions } from "./router";
+export type {
+	ChatRouter,
+	ChatRouterInputs,
+	ChatRouterOptions,
+	ChatRouterOutputs,
+} from "./router";
 export { createChatCallerFactory, createChatRouter } from "./router";

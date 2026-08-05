@@ -9,7 +9,7 @@ CREATE TABLE `chat_journal` (
 --> statement-breakpoint
 CREATE TABLE `chat_sessions_local` (
 	`session_id` text PRIMARY KEY NOT NULL,
-	`workspace_id` text NOT NULL,
+	`scope_id` text NOT NULL,
 	`harness` text NOT NULL,
 	`harness_session_id` text,
 	`epoch` text NOT NULL,
@@ -19,4 +19,4 @@ CREATE TABLE `chat_sessions_local` (
 	`updated_at` integer NOT NULL
 );
 --> statement-breakpoint
-CREATE INDEX `chat_sessions_local_workspace_id_idx` ON `chat_sessions_local` (`workspace_id`);
+CREATE INDEX `chat_sessions_local_scope_id_idx` ON `chat_sessions_local` (`scope_id`);

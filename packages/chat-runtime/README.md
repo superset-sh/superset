@@ -6,6 +6,8 @@ A harness adapter emits protocol events, `LiveSession` turns them into durable e
 
 The runtime speaks only the vocabulary in `plans/chat-protocol-v1.md`; it never resolves workspaces, spawns processes, or touches host.db. Callers pass a resolved `cwd`.
 
+**chat.db columns may only contain values the caller passed in — nothing resolved by the runtime, nothing owned by another database.** That is why sessions are grouped by `scope_id`: an opaque, caller-defined label the runtime stores and filters by but never interprets. The protocol keeps `workspaceId` as product vocabulary and the tRPC router maps `workspaceId → scopeId` at the binding, so a host that groups sessions by something else needs no schema change here.
+
 ## Reading order
 
 | Folder | What lives there |
@@ -19,7 +21,7 @@ The runtime speaks only the vocabulary in `plans/chat-protocol-v1.md`; it never 
 | `stream/` | `subscriptions/` — `SubscriptionHub`: replay-then-live subscribe, per-subscriber delta channels, reset frames, delta coalescing |
 | `commands/` | The client-facing verbs, each parsed with the `@superset/chat` command schemas and deduped by `commandId` |
 | `router/` | `router/` — `createChatRouter(runtime, { resolveCwd })`, the tRPC surface over `commands/` (the package owns its own `initTRPC`; procedures close over the runtime, and the host resolves `cwd` — clients never send it) — and `wsSink/`, the structural WebSocket→`Sink` adapter host-service's stream route mounts |
-| `testing/` | The cross-cutting test helpers no single module owns — `fixtures/` (protocol item factories), `testUtils/` (sinks, schedules, waits) and `testRuntime/` (the bun-sqlite runtime). Internal only: relative imports, no package export. Helpers that do have an owner stay beside it, like `harness/fake/` |
+| `testing/` | The cross-cutting test helpers no single module owns — `fixtures/` (protocol item factories), `testUtils/` (sinks, schedules, waits) and `testRuntime/` (the bun-sqlite runtime). Test-only: exported as `@superset/chat-runtime/testing` so sibling chat packages' headless tests can drive a real runtime, never imported by shipping code. Helpers that do have an owner stay beside it, like `harness/fake/` |
 
 ## Wiring a harness
 
@@ -51,5 +53,7 @@ bun run scripts/recordCodexFixtures.ts approval   # one scenario
 ```
 
 The recorder copies only `auth.json` into a throwaway `CODEX_HOME`, so recordings carry no local hooks, MCP servers or home paths.
+
+Host-service registers the `/chat-v3/*` routes unconditionally: they carry the same auth as every other host route, and the runtime is built on first request, so a host nobody chats with never creates `chat.db`. Rollout is a client concern — the desktop renderer gates the pane on the `chat-v3` PostHog flag, so flips take effect live rather than waiting for a host restart.
 
 When host-service mounts this package it must pass `migrationsFolder`: the generated `src/db/drizzle/` directory is a runtime file dependency that the bundler will not inline.

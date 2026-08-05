@@ -170,12 +170,5 @@ export const SidebarOnly: Story = {
 
 export const HiddenBelowFourMessages: Story = {
 	args: { messages: belowMinimum },
-	render: (args) => (
-		<div className="flex h-screen items-center bg-background pl-3">
-			<ChatHistorySidebar {...args} />
-			<p className="text-sm text-muted-foreground">
-				Rail renders nothing with fewer than 4 user messages.
-			</p>
-		</div>
-	),
+	render: (args) => <ChatDemo sidebarMessages={args.messages} />,
 };

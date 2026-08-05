@@ -12,7 +12,7 @@ function seededRuntime(): { runtime: ChatRuntime; sessionId: string } {
 	const runtime = createTestRuntime({ harnesses });
 	const { sessionId } = runtime.commands.createSession({
 		commandId: randomUUID(),
-		workspaceId: "workspace-1",
+		scopeId: "workspace-1",
 		harness: FAKE_HARNESS,
 		cwd: "/tmp/workspace",
 	});

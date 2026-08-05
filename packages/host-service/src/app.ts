@@ -7,6 +7,7 @@ import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
+import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
 import { workspaces } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
@@ -168,6 +169,13 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			persistence: new SqliteAcpSessionPersistence(db),
 		});
 
+	// Chat v3 runtime (plans/chat-v3-pane-mount.md). Registered unconditionally:
+	// the routes sit behind the same auth as every other host route, and the
+	// runtime is built on first request, so chat.db is never created on a host
+	// nobody chats with. Exposure is a client concern — the renderer gates the
+	// pane on the `chat-v3` PostHog flag.
+	const chatV3 = createChatV3Mount({ db, dbPath: config.dbPath });
+
 	const runtime = {
 		acpSessions,
 		acpSessionsEnabled,
@@ -257,6 +265,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	app.use("/terminal/*", wsAuth);
 	app.use("/events", wsAuth);
 	app.use("/acp-sessions/*", wsAuth);
+	app.use("/chat-v3/*", wsAuth);
 
 	registerEventBusRoute({ app, eventBus, upgradeWebSocket });
 	registerWorkspaceTerminalRoute({
@@ -272,6 +281,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			upgradeWebSocket,
 		});
 	}
+	registerChatV3Routes({ app, db, mount: chatV3, upgradeWebSocket });
 
 	app.use(
 		"/trpc/*",
@@ -312,6 +322,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			await acpSessions.dispose();
 		} catch (err) {
 			console.warn("[host-service] acpSessions.dispose failed:", err);
+		}
+		try {
+			await chatV3.dispose();
+		} catch (err) {
+			console.warn("[host-service] chatV3.dispose failed:", err);
 		}
 		try {
 			eventBus.close();

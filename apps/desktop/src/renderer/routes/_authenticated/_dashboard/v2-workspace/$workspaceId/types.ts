@@ -63,10 +63,15 @@ export interface CommentPaneData {
 	line?: number;
 }
 
+export interface ChatV3PaneData {
+	sessionId: string | null;
+}
+
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
 	| ChatPaneData
+	| ChatV3PaneData
 	| BrowserPaneData
 	| DevtoolsPaneData
 	| DiffPaneData

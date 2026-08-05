@@ -26,7 +26,7 @@ export const chatSessionsLocal = sqliteTable(
 	"chat_sessions_local",
 	{
 		sessionId: text("session_id").primaryKey(),
-		workspaceId: text("workspace_id").notNull(),
+		scopeId: text("scope_id").notNull(),
 		harness: text().notNull(),
 		harnessSessionId: text("harness_session_id"),
 		epoch: text().notNull(),
@@ -35,9 +35,7 @@ export const chatSessionsLocal = sqliteTable(
 		queuedCount: integer("queued_count").notNull().default(0),
 		updatedAt: integer("updated_at").notNull(),
 	},
-	(table) => [
-		index("chat_sessions_local_workspace_id_idx").on(table.workspaceId),
-	],
+	(table) => [index("chat_sessions_local_scope_id_idx").on(table.scopeId)],
 );
 
 export type JournalRow = typeof chatJournal.$inferSelect;

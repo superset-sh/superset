@@ -105,7 +105,7 @@ describe("journal replay parity", () => {
 		const runtime = createTestRuntime();
 		const opened = runtime.journal.open({
 			sessionId: SESSION,
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: "fake",
 		});
 

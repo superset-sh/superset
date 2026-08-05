@@ -147,6 +147,12 @@ export const FEATURE_FLAGS = {
 	 * experiment. Checked before eligibility and before the experiment flag.
 	 */
 	NEW_WORKSPACE_SCREEN_OVERRIDE: "new-workspace-screen-override",
+	/**
+	 * Shows the rebuilt chat pane (ChatV3Pane). UI-only: host-service always
+	 * serves its `/chat-v3/*` routes, so this flag decides who sees the pane,
+	 * not what the host can do — flips take effect live, with no host restart.
+	 */
+	CHAT_V3: "chat-v3",
 } as const;
 
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:

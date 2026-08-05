@@ -192,7 +192,7 @@ describe("ClaudeTranslator", () => {
 		const sessionId = "claude-session";
 		runtime.journal.open({
 			sessionId,
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: "claude-code",
 		});
 

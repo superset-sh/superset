@@ -4,7 +4,6 @@ import type {
 	Cursor,
 	GetItemsInput,
 	GetSessionInput,
-	ListSessionsInput,
 	PromptInput,
 	RespondToApprovalInput,
 	SetModeInput,
@@ -27,11 +26,18 @@ import type { PageResult } from "../../replay";
 import { readPage } from "../../replay";
 import type { LiveSessionRegistry, PromptResult } from "../../sessions";
 
-export const createSessionCommandSchema = createSessionInputSchema.extend({
-	cwd: z.string().min(1),
-});
+export const createSessionCommandSchema = createSessionInputSchema
+	.omit({ workspaceId: true })
+	.extend({ scopeId: z.string().min(1), cwd: z.string().min(1) });
 export type CreateSessionCommandInput = z.input<
 	typeof createSessionCommandSchema
+>;
+
+export const listSessionsCommandSchema = listSessionsInputSchema
+	.omit({ workspaceId: true })
+	.extend({ scopeId: z.string().min(1).optional() });
+export type ListSessionsCommandInput = z.input<
+	typeof listSessionsCommandSchema
 >;
 
 export type CreateSessionResult = {
@@ -51,9 +57,7 @@ export type ChatCommands = {
 	respondToApproval(input: RespondToApprovalInput): void;
 	setMode(input: SetModeInput): void;
 	getSession(input: GetSessionInput): GetSessionResult;
-	listSessions(
-		input: z.input<typeof listSessionsInputSchema>,
-	): ChatSessionRow[];
+	listSessions(input: ListSessionsCommandInput): ChatSessionRow[];
 	getItems(input: z.input<typeof getItemsInputSchema>): PageResult;
 };
 
@@ -69,12 +73,10 @@ export type CommandsOptions = {
 export function createCommands(options: CommandsOptions): ChatCommands {
 	const mintSessionId = options.mintSessionId ?? randomUUID;
 
-	const listSessions = (
-		input: z.input<typeof listSessionsInputSchema>,
-	): ChatSessionRow[] => {
-		const parsed: ListSessionsInput = listSessionsInputSchema.parse(input);
-		const rows = parsed.workspaceId
-			? options.sessions.listByWorkspace(parsed.workspaceId)
+	const listSessions = (input: ListSessionsCommandInput): ChatSessionRow[] => {
+		const parsed = listSessionsCommandSchema.parse(input);
+		const rows = parsed.scopeId
+			? options.sessions.listByScope(parsed.scopeId)
 			: options.sessions.list();
 		return rows.slice(0, parsed.limit);
 	};
@@ -89,13 +91,13 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 				const sessionId = mintSessionId();
 				const opened = options.journal.open({
 					sessionId,
-					workspaceId: parsed.workspaceId,
+					scopeId: parsed.scopeId,
 					harness: parsed.harness,
 				});
 				try {
 					options.live.create({
 						sessionId,
-						workspaceId: parsed.workspaceId,
+						scopeId: parsed.scopeId,
 						harness: parsed.harness,
 						cwd: parsed.cwd,
 						modeId: parsed.modeId,

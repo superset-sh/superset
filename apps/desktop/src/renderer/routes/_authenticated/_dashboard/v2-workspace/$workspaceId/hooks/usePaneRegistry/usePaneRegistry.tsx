@@ -4,11 +4,13 @@ import type {
 	RendererContext,
 	WorkspaceStore,
 } from "@superset/panes";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import {
 	LuArrowDownToLine,
@@ -38,6 +40,7 @@ import {
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	ChatV3PaneData,
 	CommentPaneData,
 	DevtoolsPaneData,
 	FilePaneData,
@@ -48,6 +51,7 @@ import type { TerminalLauncher } from "../useV2TerminalLauncher";
 import { BrowserPane, BrowserPaneToolbar } from "./components/BrowserPane";
 import { ChatPane } from "./components/ChatPane";
 import { ChatPaneTitle } from "./components/ChatPane/components/ChatPaneTitle";
+import { ChatV3Pane } from "./components/ChatV3Pane";
 import { CommentPane } from "./components/CommentPane";
 import { CommentPaneHeaderExtras } from "./components/CommentPane/components/CommentPaneHeaderExtras";
 import { CommentPaneTitle } from "./components/CommentPane/components/CommentPaneTitle";
@@ -118,6 +122,7 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 	const runAgent = workspaceTrpc.agents.run.useMutation();
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
@@ -528,6 +533,33 @@ export function usePaneRegistry({
 						d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,
 					),
 			},
+			...(isChatV3Enabled
+				? {
+						"chat-v3": {
+							getIcon: () => <MessageSquare className="size-3.5" />,
+							getTitle: () => "Chat v3",
+							renderPane: (ctx: RendererContext<PaneViewerData>) => {
+								const data = ctx.pane.data as ChatV3PaneData;
+								return (
+									<ChatV3Pane
+										workspaceId={workspaceId}
+										sessionId={data.sessionId}
+										onSessionIdChange={(id) =>
+											ctx.actions.updateData({ ...data, sessionId: id })
+										}
+									/>
+								);
+							},
+							contextMenuActions: (
+								_ctx: RendererContext<PaneViewerData>,
+								defaults: ContextMenuActionConfig<PaneViewerData>[],
+							) =>
+								defaults.map((d) =>
+									d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,
+								),
+						},
+					}
+				: {}),
 			comment: {
 				getIcon: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as CommentPaneData;
@@ -574,6 +606,7 @@ export function usePaneRegistry({
 		}),
 		[
 			workspaceId,
+			isChatV3Enabled,
 			clearWorkspaceRunTerminal,
 			clearShortcut,
 			scrollToBottomShortcut,

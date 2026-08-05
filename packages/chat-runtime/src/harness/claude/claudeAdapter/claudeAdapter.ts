@@ -1,5 +1,9 @@
 import { randomUUID } from "node:crypto";
 import type {
+	SDKUserMessage,
+	query as sdkQuery,
+} from "@anthropic-ai/claude-agent-sdk";
+import type {
 	ApprovalRequest,
 	Decision,
 	UserContent,
@@ -11,32 +15,37 @@ import type {
 } from "../../types";
 import { ClaudeTranslator } from "../translateStream";
 
-type PermissionResult =
-	| { behavior: "allow"; updatedInput: Record<string, unknown> }
-	| { behavior: "deny"; message: string; interrupt?: boolean };
+type SdkParams = Parameters<typeof sdkQuery>[0];
+type SdkOptions = NonNullable<SdkParams["options"]>;
 
-type QueryOptions = {
-	cwd: string;
-	model?: string;
-	includePartialMessages: boolean;
-	settingSources: never[];
-	permissionMode: string;
-	abortController: AbortController;
-	resume?: string;
-	canUseTool: (
-		toolName: string,
-		input: Record<string, unknown>,
-		options: { toolUseID: string },
-	) => Promise<PermissionResult>;
-};
+/**
+ * Input positions are the SDK's own types: widening them (a bare `string`
+ * permissionMode, an `AsyncIterable<unknown>` prompt) type-checks against the
+ * real `query` only through a cast, and the cast is what hid the mismatch.
+ */
+export type ClaudeQueryOptions = Pick<
+	SdkOptions,
+	| "abortController"
+	| "canUseTool"
+	| "cwd"
+	| "includePartialMessages"
+	| "model"
+	| "permissionMode"
+	| "resume"
+	| "settingSources"
+>;
+
+type PermissionResult = Awaited<
+	ReturnType<NonNullable<SdkOptions["canUseTool"]>>
+>;
 
 export type ClaudeSession = AsyncIterable<unknown> & {
 	interrupt?: () => Promise<void>;
 };
 
 export type ClaudeQuery = (params: {
-	prompt: AsyncIterable<unknown>;
-	options: QueryOptions;
+	prompt: SdkParams["prompt"];
+	options: ClaudeQueryOptions;
 }) => ClaudeSession;
 
 export type ClaudeAdapterOptions = {
@@ -89,11 +98,12 @@ class EventQueue {
 }
 
 class PromptQueue {
-	private readonly buffered: unknown[] = [];
-	private waiting: ((result: IteratorResult<unknown>) => void) | null = null;
+	private readonly buffered: SDKUserMessage[] = [];
+	private waiting: ((result: IteratorResult<SDKUserMessage>) => void) | null =
+		null;
 	private closed = false;
 
-	push(message: unknown): void {
+	push(message: SDKUserMessage): void {
 		const waiting = this.waiting;
 		if (waiting) {
 			this.waiting = null;
@@ -112,7 +122,7 @@ class PromptQueue {
 		}
 	}
 
-	async *stream(): AsyncIterable<unknown> {
+	async *stream(): AsyncIterable<SDKUserMessage> {
 		while (true) {
 			const buffered = this.buffered.shift();
 			if (buffered) {
@@ -120,9 +130,11 @@ class PromptQueue {
 				continue;
 			}
 			if (this.closed) return;
-			const next = await new Promise<IteratorResult<unknown>>((resolve) => {
-				this.waiting = resolve;
-			});
+			const next = await new Promise<IteratorResult<SDKUserMessage>>(
+				(resolve) => {
+					this.waiting = resolve;
+				},
+			);
 			if (next.done) return;
 			yield next.value;
 		}
@@ -165,8 +177,8 @@ export class ClaudeAdapter implements HarnessAdapter {
 				permissionMode: "default",
 				abortController: this.abortController,
 				resume: startOptions.resume?.harnessSessionId,
-				canUseTool: (toolName, input, options) =>
-					this.requestApproval(toolName, input, options.toolUseID),
+				canUseTool: (_toolName, input, { toolUseID }) =>
+					this.requestApproval(input, toolUseID),
 			},
 		});
 
@@ -185,7 +197,6 @@ export class ClaudeAdapter implements HarnessAdapter {
 			type: "user",
 			message: { role: "user", content: promptText(content) },
 			parent_tool_use_id: null,
-			session_id: "",
 		});
 	}
 
@@ -256,7 +267,6 @@ export class ClaudeAdapter implements HarnessAdapter {
 	}
 
 	private requestApproval(
-		_toolName: string,
 		input: Record<string, unknown>,
 		toolUseId: string,
 	): Promise<PermissionResult> {

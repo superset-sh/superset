@@ -1,6 +1,8 @@
 import { Workspace } from "@superset/panes";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { createFileRoute } from "@tanstack/react-router";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useState } from "react";
 import { createPortal } from "react-dom";
 import { useQuickOpenStore } from "renderer/commandPalette/ui/QuickOpen/quickOpenStore";
@@ -200,6 +202,7 @@ function V2WorkspaceContent() {
 		openDiffPane,
 		addTerminalTab,
 		addChatTab,
+		addChatV3Tab,
 		addBrowserTab,
 		openCommentPane,
 	} = useWorkspacePaneOpeners({
@@ -208,6 +211,7 @@ function V2WorkspaceContent() {
 		newTabPresets,
 		executePreset,
 	});
+	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 
 	const quickOpenOpen = useQuickOpenStore(
 		(s) => s.open && s.target?.workspaceId === workspaceId,
@@ -331,6 +335,7 @@ function V2WorkspaceContent() {
 								<AddTabMenu
 									onAddTerminal={addTerminalTab}
 									onAddChat={addChatTab}
+									onAddChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onAddBrowser={addBrowserTab}
 									showPresetsBar={showPresetsBar}
 									onToggleShowPresetsBar={setShowPresetsBar}
@@ -378,6 +383,7 @@ function V2WorkspaceContent() {
 								<WorkspaceEmptyState
 									onOpenBrowser={addBrowserTab}
 									onOpenChat={addChatTab}
+									onOpenChatV3={isChatV3Enabled ? addChatV3Tab : undefined}
 									onOpenQuickOpen={handleQuickOpen}
 									onOpenTerminal={addTerminalTab}
 								/>

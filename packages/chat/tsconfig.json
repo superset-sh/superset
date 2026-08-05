@@ -1,9 +1,13 @@
 {
 	"extends": "@superset/typescript/base.json",
 	"compilerOptions": {
-		"rootDir": "./src",
-		"lib": ["ES2022"]
+		"lib": ["ES2022"],
+		"jsx": "react-jsx",
+		"paths": {
+			"@superset/chat-runtime": ["../chat-runtime/src/index.ts"],
+			"@superset/chat-runtime/testing": ["../chat-runtime/src/testing/index.ts"]
+		}
 	},
-	"include": ["src/**/*.ts"],
-	"exclude": ["node_modules", "dist", "src/**/*.test.ts"]
+	"include": ["src/**/*.ts", "src/**/*.tsx"],
+	"exclude": ["node_modules", "dist", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

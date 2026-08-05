@@ -10,7 +10,7 @@ import { readPage, readSince } from "./replay";
 const SESSION = "session-1";
 
 function init() {
-	return { sessionId: SESSION, workspaceId: "workspace-1", harness: "fake" };
+	return { sessionId: SESSION, scopeId: "workspace-1", harness: "fake" };
 }
 
 function seed(runtime: ChatRuntime, count: number) {

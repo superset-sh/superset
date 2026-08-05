@@ -33,10 +33,10 @@ function newRuntime(): { runtime: ChatRuntime; adapterCount: () => number } {
 	};
 }
 
-function createSession(runtime: ChatRuntime, workspaceId = "workspace-1") {
+function createSession(runtime: ChatRuntime, scopeId = "workspace-1") {
 	return runtime.commands.createSession({
 		commandId: randomUUID(),
-		workspaceId,
+		scopeId,
 		harness: FAKE_HARNESS,
 		cwd: "/tmp/workspace",
 	});
@@ -50,7 +50,7 @@ describe("chat commands", () => {
 		expect(created.sessionId).toMatch(/^[0-9a-f-]{36}$/);
 		expect(adapterCount()).toBe(1);
 		expect(runtime.sessions.get(created.sessionId)).toMatchObject({
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: FAKE_HARNESS,
 			epoch: created.epoch,
 		});
@@ -62,13 +62,13 @@ describe("chat commands", () => {
 		const commandId = randomUUID();
 		const first = runtime.commands.createSession({
 			commandId,
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: FAKE_HARNESS,
 			cwd: "/tmp/workspace",
 		});
 		const second = runtime.commands.createSession({
 			commandId,
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: FAKE_HARNESS,
 			cwd: "/tmp/workspace",
 		});
@@ -111,7 +111,7 @@ describe("chat commands", () => {
 		expect(() =>
 			runtime.commands.createSession({
 				commandId: randomUUID(),
-				workspaceId: "workspace-1",
+				scopeId: "workspace-1",
 				harness: "nope",
 				cwd: "/tmp/workspace",
 			}),
@@ -180,7 +180,7 @@ describe("chat commands", () => {
 
 		expect(runtime.commands.listSessions({})).toHaveLength(2);
 		expect(
-			runtime.commands.listSessions({ workspaceId: "workspace-2" }),
+			runtime.commands.listSessions({ scopeId: "workspace-2" }),
 		).toHaveLength(1);
 		expect(runtime.commands.listSessions({ limit: 1 })).toHaveLength(1);
 		await runtime.dispose();

@@ -10,12 +10,12 @@ describe("ChatSessionStore", () => {
 		runtime = createTestRuntime();
 		runtime.journal.open({
 			sessionId: "s1",
-			workspaceId: "w1",
+			scopeId: "w1",
 			harness: "claude-code",
 		});
 		runtime.journal.open({
 			sessionId: "s2",
-			workspaceId: "w2",
+			scopeId: "w2",
 			harness: "codex",
 		});
 	});
@@ -28,7 +28,7 @@ describe("ChatSessionStore", () => {
 				.sort(),
 		).toEqual(["s1", "s2"]);
 		expect(
-			runtime.sessions.listByWorkspace("w2").map((row) => row.harness),
+			runtime.sessions.listByScope("w2").map((row) => row.harness),
 		).toEqual(["codex"]);
 	});
 

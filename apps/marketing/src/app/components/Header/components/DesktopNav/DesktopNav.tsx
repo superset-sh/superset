@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/navigation-menu";
 import { cn } from "@superset/ui/utils";
 import Link from "next/link";
+import { useState } from "react";
 import {
 	type NavLink,
 	PRODUCT_LINKS,
@@ -24,11 +25,26 @@ const triggerClass = cn(
 );
 
 export function DesktopNav() {
+	// Radix's NavigationMenu is uncontrolled by default, so a hover-opened
+	// trigger and a click on that same trigger both race to set its shared
+	// internal `value` — a click toggles, so clicking a menu that hover just
+	// opened immediately closes it again. Controlling `value` ourselves lets
+	// us make click idempotent (open-only) instead of toggling, so it can
+	// never fight with the hover-intent timers.
+	const [openMenu, setOpenMenu] = useState("");
+
+	const ignoreCloseClick = (menu: string) => (event: React.MouseEvent) => {
+		if (openMenu === menu) event.preventDefault();
+	};
+
 	return (
-		<NavigationMenu>
+		<NavigationMenu value={openMenu} onValueChange={setOpenMenu}>
 			<NavigationMenuList>
-				<NavigationMenuItem>
-					<NavigationMenuTrigger className={triggerClass}>
+				<NavigationMenuItem value="product">
+					<NavigationMenuTrigger
+						className={triggerClass}
+						onClick={ignoreCloseClick("product")}
+					>
 						Product
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>
@@ -40,8 +56,11 @@ export function DesktopNav() {
 					</NavigationMenuContent>
 				</NavigationMenuItem>
 
-				<NavigationMenuItem>
-					<NavigationMenuTrigger className={triggerClass}>
+				<NavigationMenuItem value="resources">
+					<NavigationMenuTrigger
+						className={triggerClass}
+						onClick={ignoreCloseClick("resources")}
+					>
 						Resources
 					</NavigationMenuTrigger>
 					<NavigationMenuContent>

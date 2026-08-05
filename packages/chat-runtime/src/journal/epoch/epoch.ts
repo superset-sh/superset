@@ -9,7 +9,7 @@ import { latestSeq } from "../../replay";
 
 export type ChatSessionInit = {
 	sessionId: string;
-	workspaceId: string;
+	scopeId: string;
 	harness: string;
 	harnessSessionId?: string | null;
 	status?: string;
@@ -32,7 +32,7 @@ export function openEpoch(db: ChatDb, init: ChatSessionInit): OpenedEpoch {
 		const epoch = mintEpoch();
 		insertSessionRow(db, {
 			sessionId: init.sessionId,
-			workspaceId: init.workspaceId,
+			scopeId: init.scopeId,
 			harness: init.harness,
 			harnessSessionId: init.harnessSessionId ?? null,
 			epoch,

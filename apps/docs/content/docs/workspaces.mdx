@@ -17,7 +17,9 @@ Press **⌘N** or click "New Workspace". Create from:
 - **Existing branch** - Continue work on a branch
 - **Pull request** - Review or continue a PR
 
-In the prompt-first workspace flow, **Link pull request** lets you search by title or PR number, or paste the full PR URL to match it directly.
+In the prompt-first workspace flow, **Link pull request** lets you search by title or PR number, or paste the full PR URL to match it directly. The prompt box also keeps a searchable history of your previous prompts — click the history icon to reuse one.
+
+If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset generates a name from your prompt.
 
 Each workspace gets:
 - Own git branch
@@ -28,6 +30,8 @@ Each workspace gets:
 ## Import Worktrees
 
 If you have existing git worktrees on disk, use the **Import** tab in the New Workspace modal to bring them into Superset. Click **Import all** to bulk-import all discovered worktrees at once.
+
+You can also right-click a project in the sidebar and choose **Import untracked worktrees**. A confirmation dialog lists the branches and paths that will be imported; the **Run setup script** checkbox is off by default, since existing worktrees are usually already set up.
 
 ## Ahead/Behind Status
 
@@ -41,6 +45,15 @@ For **local (branch-based) workspaces**, the sidebar shows how far the active br
 PR-based workspaces show pull request state in the sidebar.
 
 Hover a workspace to see review status, CI checks, and GitHub links. If the branch has a deployment preview, you'll also see an **Open Preview** button.
+
+## Bulk Actions
+
+Select multiple workspaces within a project to act on them at once:
+
+- **⌘-click** toggles a workspace in and out of the selection; **Shift-click** selects a range
+- While workspaces are selected, the Projects header becomes a toolbar with **Move**, **Ungroup**, **Delete**, and **Clear**
+- **Move** puts the selection into a new or existing group; **Ungroup** removes grouped members from their group
+- Bulk delete previews every workspace and flags dirty or unpushed changes before you confirm
 
 ## Use Cases
 

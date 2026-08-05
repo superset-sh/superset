@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { query } from "@anthropic-ai/claude-agent-sdk";
 import type { AdapterEvent } from "../../types";
-import { ClaudeAdapter, type ClaudeQuery } from "./claudeAdapter";
+import { ClaudeAdapter } from "./claudeAdapter";
 
 async function drain(
 	iterator: AsyncIterator<AdapterEvent>,
@@ -26,9 +26,7 @@ describe.skip("ClaudeAdapter live", () => {
 		const cwd = mkdtempSync(join(tmpdir(), "claude-live-"));
 		writeFileSync(join(cwd, "note.txt"), "foo\n");
 
-		const adapter = new ClaudeAdapter({
-			query: query as unknown as ClaudeQuery,
-		});
+		const adapter = new ClaudeAdapter({ query });
 		const iterator = adapter
 			.start({
 				cwd,

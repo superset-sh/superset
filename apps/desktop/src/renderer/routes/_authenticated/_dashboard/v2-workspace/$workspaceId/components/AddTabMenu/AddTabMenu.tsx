@@ -10,6 +10,7 @@ import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
 interface AddTabMenuProps {
 	onAddTerminal: () => void;
 	onAddChat: () => void;
+	onAddChatV3?: (() => void) | undefined;
 	onAddBrowser: () => void;
 	showPresetsBar: boolean;
 	onToggleShowPresetsBar: (enabled: boolean) => void;
@@ -18,6 +19,7 @@ interface AddTabMenuProps {
 export function AddTabMenu({
 	onAddTerminal,
 	onAddChat,
+	onAddChatV3,
 	onAddBrowser,
 	showPresetsBar,
 	onToggleShowPresetsBar,
@@ -34,6 +36,12 @@ export function AddTabMenu({
 				<span>Chat</span>
 				<HotkeyMenuShortcut hotkeyId="NEW_CHAT" />
 			</DropdownMenuItem>
+			{onAddChatV3 && (
+				<DropdownMenuItem className="gap-2" onClick={onAddChatV3}>
+					<TbMessageCirclePlus className="size-4" />
+					<span>Chat v3</span>
+				</DropdownMenuItem>
+			)}
 			<DropdownMenuItem className="gap-2" onClick={onAddBrowser}>
 				<TbWorld className="size-4" />
 				<span>Browser</span>

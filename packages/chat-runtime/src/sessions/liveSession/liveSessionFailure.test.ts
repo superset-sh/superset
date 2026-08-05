@@ -46,7 +46,7 @@ function startSession(adapter: HarnessAdapter): {
 	const runtime = createTestRuntime({ harnesses: registryFor(adapter) });
 	const { sessionId } = runtime.commands.createSession({
 		commandId: randomUUID(),
-		workspaceId: "workspace-1",
+		scopeId: "workspace-1",
 		harness: HARNESS,
 		cwd: "/tmp/workspace",
 	});

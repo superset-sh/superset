@@ -51,6 +51,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/state/paneScrollStateCache/paneScrollStateCache.ts",
 		["v2-pane-scroll-state-v1"],
 	],
+	[
+		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatV3Pane/components/Composer/Composer.tsx",
+		["chat-v3-draft:*"],
+	],
 	["src/renderer/stores/changes/store.ts", ["changes-store"]],
 	["src/renderer/stores/prompt-history.ts", ["prompt-history"]],
 	["src/renderer/stores/tabs/store.ts", ["tabs-storage"]],

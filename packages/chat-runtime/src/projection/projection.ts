@@ -85,11 +85,11 @@ export class ChatSessionStore {
 			.all();
 	}
 
-	listByWorkspace(workspaceId: string): ChatSessionRow[] {
+	listByScope(scopeId: string): ChatSessionRow[] {
 		return this.db
 			.select()
 			.from(chatSessionsLocal)
-			.where(eq(chatSessionsLocal.workspaceId, workspaceId))
+			.where(eq(chatSessionsLocal.scopeId, scopeId))
 			.orderBy(desc(chatSessionsLocal.updatedAt))
 			.all();
 	}

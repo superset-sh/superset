@@ -934,13 +934,16 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"auth",
 			"workspace naming",
 			"auto name",
+			"ai",
+			"autocomplete",
+			"auto complete",
 		],
 	},
 	{
 		id: SETTING_ITEM_ID.MODELS_OPENAI,
 		section: "models",
 		title: "OpenAI Model Auth",
-		description: "Connect OpenAI for supported model tasks",
+		description: "Connect OpenAI for workspace naming and other model tasks",
 		keywords: [
 			"models",
 			"openai",
@@ -950,6 +953,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"auth",
 			"workspace naming",
 			"auto name",
+			"ai",
+			"autocomplete",
+			"auto complete",
 		],
 	},
 	{

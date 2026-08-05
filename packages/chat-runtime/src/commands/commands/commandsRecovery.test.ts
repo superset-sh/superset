@@ -35,7 +35,7 @@ describe("createSession failure recovery", () => {
 		expect(() =>
 			runtime.commands.createSession({
 				commandId: randomUUID(),
-				workspaceId: "workspace-1",
+				scopeId: "workspace-1",
 				harness: "nope",
 				cwd: "/tmp/workspace",
 			}),
@@ -51,7 +51,7 @@ describe("createSession failure recovery", () => {
 		expect(() =>
 			runtime.commands.createSession({
 				commandId: randomUUID(),
-				workspaceId: "workspace-1",
+				scopeId: "workspace-1",
 				harness: HARNESS,
 				cwd: "/tmp/workspace",
 			}),
@@ -67,7 +67,7 @@ describe("createSession failure recovery", () => {
 		const runtime = createTestRuntime({ harnesses: explodingRegistry() });
 		const input = {
 			commandId: randomUUID(),
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: HARNESS,
 			cwd: "/tmp/workspace",
 		};
@@ -86,7 +86,7 @@ describe("createSession failure recovery", () => {
 
 		const created = runtime.commands.createSession({
 			commandId,
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: FAKE_HARNESS,
 			cwd: "/tmp/workspace",
 		});
@@ -111,7 +111,7 @@ describe("epoch recovery", () => {
 		const runtime = createTestRuntime({ harnesses });
 		const { sessionId } = runtime.commands.createSession({
 			commandId: randomUUID(),
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: FAKE_HARNESS,
 			cwd: "/tmp/workspace",
 		});
@@ -133,7 +133,7 @@ describe("epoch recovery", () => {
 
 		const reopened = runtime.journal.open({
 			sessionId,
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: FAKE_HARNESS,
 		});
 

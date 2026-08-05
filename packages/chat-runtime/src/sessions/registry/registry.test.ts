@@ -33,7 +33,7 @@ function onDispose(after: () => void): HarnessAdapter {
 function createSession(runtime: ReturnType<typeof createTestRuntime>): string {
 	return runtime.commands.createSession({
 		commandId: randomUUID(),
-		workspaceId: "workspace-1",
+		scopeId: "workspace-1",
 		harness: HARNESS,
 		cwd: "/tmp/workspace",
 	}).sessionId;
@@ -47,7 +47,7 @@ describe("LiveSessionRegistry", () => {
 		expect(() =>
 			runtime.live.create({
 				sessionId,
-				workspaceId: "workspace-1",
+				scopeId: "workspace-1",
 				harness: HARNESS,
 				cwd: "/tmp/workspace",
 			}),

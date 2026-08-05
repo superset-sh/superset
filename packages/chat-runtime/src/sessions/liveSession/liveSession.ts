@@ -17,7 +17,7 @@ import type { ChatJournal } from "../../journal";
 
 export type LiveSessionOptions = {
 	sessionId: string;
-	workspaceId: string;
+	scopeId: string;
 	harness: string;
 	journal: ChatJournal;
 	publish: (envelope: Envelope) => void;

@@ -16,7 +16,7 @@ import { createBunChatDb, createTestRuntime } from "../../testing/testRuntime";
 const SESSION = "session-1";
 
 function init() {
-	return { sessionId: SESSION, workspaceId: "workspace-1", harness: "fake" };
+	return { sessionId: SESSION, scopeId: "workspace-1", harness: "fake" };
 }
 
 describe("ChatJournal", () => {
@@ -32,7 +32,7 @@ describe("ChatJournal", () => {
 		expect(opened.lastSeq).toBe(0);
 		expect(runtime.sessions.get(SESSION)).toMatchObject({
 			sessionId: SESSION,
-			workspaceId: "workspace-1",
+			scopeId: "workspace-1",
 			harness: "fake",
 			epoch: opened.epoch,
 			status: "starting",

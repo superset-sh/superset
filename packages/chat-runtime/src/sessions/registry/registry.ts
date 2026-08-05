@@ -5,7 +5,7 @@ import { LiveSession } from "../liveSession";
 
 export type HarnessFactoryOptions = {
 	sessionId: string;
-	workspaceId: string;
+	scopeId: string;
 	harness: string;
 	cwd: string;
 	modeId?: string;
@@ -43,7 +43,7 @@ export class LiveSessionRegistry {
 
 		const session = new LiveSession({
 			sessionId: options.sessionId,
-			workspaceId: options.workspaceId,
+			scopeId: options.scopeId,
 			harness: options.harness,
 			journal: this.options.journal,
 			publish: this.options.publish,

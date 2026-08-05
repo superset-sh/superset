@@ -235,7 +235,10 @@ export function ModelsSettings({ visibleItems }: ModelsSettingsProps) {
 				<div className="mb-8">
 					<h2 className="text-xl font-semibold">Models</h2>
 					<p className="mt-1 text-sm text-muted-foreground">
-						Manage provider accounts, API keys, and overrides.
+						Manage provider accounts, API keys, and overrides. Connecting
+						Anthropic or OpenAI below is also what powers automatic workspace
+						naming — without one connected, new workspaces fall back to a name
+						derived from your prompt.
 					</p>
 				</div>
 

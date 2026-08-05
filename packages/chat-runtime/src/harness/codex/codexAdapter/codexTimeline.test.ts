@@ -44,7 +44,7 @@ async function foldFixture(
 	const runtime = createTestRuntime({ harnesses });
 	const created = runtime.commands.createSession({
 		commandId: randomUUID(),
-		workspaceId: "workspace-1",
+		scopeId: "workspace-1",
 		harness: CODEX_HARNESS,
 		cwd,
 	});
