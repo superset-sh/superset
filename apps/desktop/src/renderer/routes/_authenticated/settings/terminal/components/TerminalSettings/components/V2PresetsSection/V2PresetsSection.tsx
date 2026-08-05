@@ -1,8 +1,8 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
 import {
-	type ExecutionMode,
-	normalizeExecutionMode,
+	normalizeV2ExecutionMode,
 	type TerminalPreset,
+	type V2ExecutionMode,
 } from "@superset/local-db";
 import { HOST_AGENT_PRESETS } from "@superset/shared/host-agent-presets";
 import { Button } from "@superset/ui/button";
@@ -17,6 +17,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
+import { getLaunchModeValue } from "../PresetRow/PresetRow.utils";
 import { PresetEditorDialog } from "../PresetsSection/components/PresetEditorDialog";
 
 import { PresetsTable } from "../PresetsSection/components/PresetsTable";
@@ -224,7 +225,7 @@ export function V2PresetsSection({
 			projectIds?: string[] | null;
 			pinnedToBar?: boolean;
 			useAsWorkspaceRun?: boolean;
-			executionMode?: ExecutionMode;
+			executionMode?: V2ExecutionMode;
 			agentId?: string;
 		}) => {
 			const maxTabOrder = v2Presets.reduce(
@@ -402,14 +403,17 @@ export function V2PresetsSection({
 	);
 
 	const handleExecutionModeChange = useCallback(
-		(rowIndex: number, mode: ExecutionMode) => {
+		(rowIndex: number, mode: V2ExecutionMode) => {
 			setLocalPresets((currentLocal) => {
 				const preset = currentLocal[rowIndex];
 				if (!preset) return currentLocal;
 
+				// Local rows reuse the v1 TerminalPreset shape for the shared
+				// sub-components (see serverPresets); background is v2-only, so
+				// the optimistic write needs the same cast.
 				const newPresets = currentLocal.map((presetItem, index) =>
 					index === rowIndex
-						? { ...presetItem, executionMode: mode }
+						? ({ ...presetItem, executionMode: mode } as TerminalPreset)
 						: presetItem,
 				);
 
@@ -531,12 +535,10 @@ export function V2PresetsSection({
 	const isWorkspaceRun = !!editingPreset?.useAsWorkspaceRun;
 	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
-	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
-	const modeValue: ExecutionMode = hasMultipleCommands
-		? normalizedMode
-		: normalizedMode === "split-pane" || normalizedMode === "sequential"
-			? "split-pane"
-			: "new-tab";
+	const modeValue = getLaunchModeValue(
+		normalizeV2ExecutionMode(editingPreset?.executionMode),
+		hasMultipleCommands,
+	);
 
 	const handleEditorFieldChange = useCallback(
 		(column: PresetColumnKey, value: string) => {
@@ -598,7 +600,7 @@ export function V2PresetsSection({
 	}, [editingRowIndex, handleCommandsBlur]);
 
 	const handleEditorModeChange = useCallback(
-		(mode: ExecutionMode) => {
+		(mode: V2ExecutionMode) => {
 			if (editingRowIndex < 0) return;
 			handleExecutionModeChange(editingRowIndex, mode);
 		},
@@ -672,6 +674,7 @@ export function V2PresetsSection({
 				projects={projectOptions}
 				agents={agents}
 				onLinkedAgentSaved={syncLinkedPresetSnapshots}
+				supportsBackground
 				open={!!editingPreset}
 				onOpenChange={(open) => !open && handleCloseEditor()}
 				onDeletePreset={handleDeleteEditingPreset}

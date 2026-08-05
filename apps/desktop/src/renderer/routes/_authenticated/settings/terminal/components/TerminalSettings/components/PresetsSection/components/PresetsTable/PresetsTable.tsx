@@ -2,6 +2,7 @@ import type { HostAgentConfig } from "@superset/host-service/settings";
 import type { TerminalPreset } from "@superset/local-db";
 import { cn } from "@superset/ui/utils";
 import type { RefObject } from "react";
+import { useCommandAppIcons } from "renderer/hooks/useCommandAppIcons";
 import { PresetRow } from "../../../PresetRow";
 import type { PresetProjectOption } from "../../preset-project-options";
 
@@ -32,6 +33,7 @@ export function PresetsTable({
 	onToggleVisibility,
 	bordered = true,
 }: PresetsTableProps) {
+	const getCommandAppIcon = useCommandAppIcons(presets, agents);
 	return (
 		<div
 			ref={presetsContainerRef}
@@ -52,6 +54,7 @@ export function PresetsTable({
 						rowIndex={index}
 						projectOptionsById={projectOptionsById}
 						agents={agents}
+						appIcon={getCommandAppIcon(preset)}
 						onEdit={onEdit}
 						onLocalReorder={onLocalReorder}
 						onPersistReorder={onPersistReorder}

@@ -3,17 +3,22 @@ import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
+import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import { resolvePresetLaunchCommands } from "renderer/lib/agent-launch-command";
 import {
 	buildTerminalCommand,
 	normalizeTerminalCommand,
 } from "renderer/lib/terminal/launch-command";
+import { markTerminalForBackground } from "renderer/lib/terminal/terminal-background-intents";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
+import {
+	buildBackgroundTerminalCommand,
+	getPresetLaunchPlan,
+} from "renderer/stores/tabs/preset-launch";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import {
 	filterMatchingPresetsForProject,
@@ -81,6 +86,11 @@ function buildFocusedTerminalCommand({
 	return `cd ${quote([resolvedCwd])} && ${command}`;
 }
 
+// terminalId → preset display name for background launches from this renderer.
+// Module scope so it survives workspace remounts; entries are consumed by the
+// exit listener below, and lost entries just mean a missed failure toast.
+const backgroundPresetLaunches = new Map<string, string>();
+
 function selectAutoApplyPresets(
 	presets: V2TerminalPresetRow[],
 	field: "applyOnWorkspaceCreated" | "applyOnNewTab",
@@ -119,6 +129,7 @@ export function useV2PresetExecution({
 		},
 	);
 	const writeInput = workspaceTrpc.terminal.writeInput.useMutation();
+	const workspaceTrpcUtils = workspaceTrpc.useUtils();
 
 	const { data: allPresets = [] } = useLiveQuery(
 		(query) =>
@@ -142,6 +153,21 @@ export function useV2PresetExecution({
 		() => selectAutoApplyPresets(matchedPresets, "applyOnNewTab"),
 		[matchedPresets],
 	);
+
+	// Failure feedback for background preset runs. The trailing "exit"
+	// preserves the failed command's status, while kills surface as signal
+	// exits or dispose broadcasts with code 0 — so a plain non-zero exit
+	// here is a failed command.
+	useWorkspaceEvent("terminal:lifecycle", workspaceId, (payload) => {
+		if (payload.eventType !== "exit") return;
+		const presetName = backgroundPresetLaunches.get(payload.terminalId);
+		if (presetName === undefined) return;
+		backgroundPresetLaunches.delete(payload.terminalId);
+		if (payload.exitCode === 0 || payload.signal !== 0) return;
+		toast.error(`${presetName} failed`, {
+			description: `Command exited with code ${payload.exitCode}.`,
+		});
+	});
 
 	// `useV2AgentConfigs` is the cached source of truth for agent configs
 	// (`staleTime: Infinity`, invalidated on every Settings → Agents mutation),
@@ -197,6 +223,28 @@ export function useV2PresetExecution({
 			// the pane finally mounts and attaches the WS.
 			try {
 				switch (plan) {
+					case "background": {
+						const command = buildBackgroundTerminalCommand(commands);
+						if (command === null) break;
+						// No pane: the session runs behind the background-terminals
+						// button and disappears once the trailing "exit" ends the
+						// shell. The marker keeps auto-adoption from giving it a pane
+						// and shows it in the button immediately.
+						const terminalId = await launcher.create({ command, cwd });
+						markTerminalForBackground(terminalId, workspaceId);
+						backgroundPresetLaunches.set(
+							terminalId,
+							preset.name.trim() || "Preset",
+						);
+						void workspaceTrpcUtils.terminal.countBackgroundSessions.invalidate(
+							{ workspaceId },
+						);
+						void workspaceTrpcUtils.terminal.listSessions.invalidate({
+							workspaceId,
+						});
+						break;
+					}
+
 					case "active-terminal": {
 						const command = launchCommands[0];
 						if (!activeTerminal || !command) break;
@@ -306,6 +354,7 @@ export function useV2PresetExecution({
 			workspaceId,
 			workspaceQuery.data?.worktreePath,
 			writeInput,
+			workspaceTrpcUtils,
 		],
 	);
 

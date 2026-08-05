@@ -15,6 +15,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorkspace } from "../workspaces/utils/db-helpers";
 import { getWorkspacePath } from "../workspaces/utils/worktree";
+import { getAppIconForExecutable } from "./app-icon";
 import {
 	type ExternalApp,
 	getAppCommand,
@@ -257,6 +258,22 @@ export const createExternalRouter = () => {
 					}
 				}),
 			),
+
+		getCommandAppIcons: publicProcedure
+			.input(
+				z.object({
+					executables: z.array(z.string().trim().min(1)).max(50),
+				}),
+			)
+			.query(async ({ input }) => {
+				const entries = await Promise.all(
+					input.executables.map(
+						async (executable) =>
+							[executable, await getAppIconForExecutable(executable)] as const,
+					),
+				);
+				return Object.fromEntries(entries) as Record<string, string | null>;
+			}),
 
 		openFileInEditor: publicProcedure
 			.input(

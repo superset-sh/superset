@@ -122,9 +122,11 @@ export function useWorkspacePaneOpeners({
 	}, [store, launcher]);
 
 	const addTerminalTab = useCallback(async () => {
-		if (newTabPresets.length === 0) {
+		// Background presets create no tab, and the user still asked for one.
+		if (
+			newTabPresets.every((preset) => preset.executionMode === "background")
+		) {
 			await addBlankTerminalTab();
-			return;
 		}
 
 		// New terminal tabs are the trigger point for applyOnNewTab presets.

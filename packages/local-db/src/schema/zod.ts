@@ -84,6 +84,11 @@ export const EXECUTION_MODES = [
 
 export type ExecutionMode = (typeof EXECUTION_MODES)[number];
 
+/** v2 workspaces additionally run presets in a pane-less background session. */
+export const V2_EXECUTION_MODES = [...EXECUTION_MODES, "background"] as const;
+
+export type V2ExecutionMode = (typeof V2_EXECUTION_MODES)[number];
+
 export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 	if (
 		mode === "split-pane" ||
@@ -98,7 +103,12 @@ export function normalizeExecutionMode(mode: unknown): ExecutionMode {
 		return "split-pane";
 	}
 
+	// "background" is v2-only, so v1 surfaces fall back to new-tab too.
 	return "new-tab";
+}
+
+export function normalizeV2ExecutionMode(mode: unknown): V2ExecutionMode {
+	return mode === "background" ? "background" : normalizeExecutionMode(mode);
 }
 
 /**

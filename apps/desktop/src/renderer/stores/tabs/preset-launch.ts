@@ -1,11 +1,12 @@
-import type { ExecutionMode } from "@superset/local-db/schema/zod";
+import type { V2ExecutionMode } from "@superset/local-db/schema/zod";
 import { buildTerminalCommand } from "renderer/lib/terminal/launch-command";
 import { quote } from "shell-quote";
 
 export type PresetOpenTarget = "new-tab" | "active-tab";
-export type PresetMode = ExecutionMode;
+export type PresetMode = V2ExecutionMode;
 
 export type PresetLaunchPlan =
+	| "background"
 	| "active-terminal"
 	| "new-tab-single"
 	| "new-tab-multi-pane"
@@ -26,6 +27,11 @@ export function getPresetLaunchPlan({
 	hasActiveTab: boolean;
 	hasActiveTerminal?: boolean;
 }): PresetLaunchPlan {
+	// Background presets never open a pane, so the target is irrelevant.
+	if (mode === "background") {
+		return "background";
+	}
+
 	const hasMultipleCommands = commandCount > 1;
 	const shouldUseActiveTab =
 		target === "active-tab" &&
@@ -50,6 +56,18 @@ export function getPresetLaunchPlan({
 	}
 
 	return hasMultipleCommands ? "new-tab-multi-pane" : "new-tab-single";
+}
+
+export function buildBackgroundTerminalCommand(
+	commands: string[] | null | undefined,
+): string | null {
+	const runnableCommands = commands?.filter((command) => command.trim());
+	if (!runnableCommands || runnableCommands.length === 0) return null;
+	const command = buildTerminalCommand(runnableCommands);
+	// The trailing "; exit" always ends the shell once the chain finishes, so
+	// the background session cleans itself up. Bare "exit" preserves the last
+	// command's status, letting exit-event listeners report failures.
+	return `${command}; exit`;
 }
 
 export function buildFocusedTerminalCommand({

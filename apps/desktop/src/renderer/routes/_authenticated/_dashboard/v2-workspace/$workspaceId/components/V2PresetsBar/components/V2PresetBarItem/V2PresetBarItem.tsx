@@ -23,6 +23,8 @@ interface V2PresetBarItemProps {
 	hotkeyId?: HotkeyId;
 	isDark: boolean;
 	agents: HostAgentConfig[] | undefined;
+	/** macOS app-bundle icon fallback for GUI-tool commands (data URI). */
+	appIcon?: string;
 	onExecutePreset: (preset: V2TerminalPresetRow) => void;
 	onEdit: (preset: V2TerminalPresetRow) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
@@ -35,13 +37,14 @@ export function V2PresetBarItem({
 	hotkeyId,
 	isDark,
 	agents,
+	appIcon,
 	onExecutePreset,
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
 }: V2PresetBarItemProps) {
 	const containerRef = useRef<HTMLDivElement>(null);
-	const icon = resolveV2PresetIcon(preset, agents, isDark);
+	const icon = resolveV2PresetIcon(preset, agents, isDark) ?? appIcon;
 
 	const [{ isDragging }, drag] = useDrag(
 		() => ({

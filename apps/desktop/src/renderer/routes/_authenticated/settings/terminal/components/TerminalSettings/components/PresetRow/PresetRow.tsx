@@ -1,5 +1,5 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
-import { normalizeExecutionMode } from "@superset/local-db";
+import { normalizeV2ExecutionMode } from "@superset/local-db";
 import { Badge } from "@superset/ui/badge";
 import { cn } from "@superset/ui/utils";
 import { Eye, EyeOff } from "lucide-react";
@@ -34,6 +34,8 @@ interface PresetRowProps {
 	 * `presetId` fallback. Omitted by v1 callers — no v1 row has `agentId`.
 	 */
 	agents?: HostAgentConfig[];
+	/** macOS app-bundle icon fallback for GUI-tool commands (data URI). */
+	appIcon?: string;
 	onEdit: (presetId: string) => void;
 	onLocalReorder: (fromIndex: number, toIndex: number) => void;
 	onPersistReorder: (presetId: string, targetIndex: number) => void;
@@ -45,6 +47,7 @@ export function PresetRow({
 	rowIndex,
 	projectOptionsById,
 	agents,
+	appIcon,
 	onEdit,
 	onLocalReorder,
 	onPersistReorder,
@@ -85,11 +88,8 @@ export function PresetRow({
 	}, [preview, drop, drag]);
 
 	const isDark = useIsDarkTheme();
-	const presetIcon = resolveV2PresetIcon(
-		preset as PresetWithAgent,
-		agents,
-		isDark,
-	);
+	const presetIcon =
+		resolveV2PresetIcon(preset as PresetWithAgent, agents, isDark) ?? appIcon;
 	const commands = resolvePresetLaunchCommands(
 		preset as PresetWithAgent,
 		agents,
@@ -99,7 +99,7 @@ export function PresetRow({
 	const isWorkspaceRun = !!preset.useAsWorkspaceRun;
 	const isNewTab = !!preset.applyOnNewTab;
 	const isVisibleInBar = preset.pinnedToBar !== false;
-	const modeValue = normalizeExecutionMode(preset.executionMode);
+	const modeValue = normalizeV2ExecutionMode(preset.executionMode);
 	const modeLabel = getPresetModeLabel(modeValue, commands.length);
 	const firstCommand =
 		commands.find((cmd) => cmd.trim().length > 0)?.trim() ?? "Empty command";

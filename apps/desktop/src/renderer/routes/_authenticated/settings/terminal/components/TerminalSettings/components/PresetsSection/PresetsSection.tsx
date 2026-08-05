@@ -2,6 +2,7 @@ import {
 	type ExecutionMode,
 	normalizeExecutionMode,
 	type TerminalPreset,
+	type V2ExecutionMode,
 } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
@@ -11,6 +12,7 @@ import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import type { PresetColumnKey } from "renderer/routes/_authenticated/settings/presets/types";
+import { getLaunchModeValue } from "../PresetRow/PresetRow.utils";
 import { PresetEditorDialog } from "./components/PresetEditorDialog";
 import { PresetsTable } from "./components/PresetsTable";
 import {
@@ -380,12 +382,10 @@ export function PresetsSection({
 	const isWorkspaceRun = !!editingPreset?.useAsWorkspaceRun;
 	const isNewTab = !!editingPreset?.applyOnNewTab;
 	const hasMultipleCommands = (editingPreset?.commands.length ?? 0) > 1;
-	const normalizedMode = normalizeExecutionMode(editingPreset?.executionMode);
-	const modeValue: ExecutionMode = hasMultipleCommands
-		? normalizedMode
-		: normalizedMode === "split-pane" || normalizedMode === "sequential"
-			? "split-pane"
-			: "new-tab";
+	const modeValue = getLaunchModeValue(
+		normalizeExecutionMode(editingPreset?.executionMode),
+		hasMultipleCommands,
+	);
 
 	const handleEditorFieldChange = useCallback(
 		(column: PresetColumnKey, value: string) => {
@@ -453,9 +453,11 @@ export function PresetsSection({
 	}, [editingRowIndex, handleCommandsBlur]);
 
 	const handleEditorModeChange = useCallback(
-		(mode: ExecutionMode) => {
+		(mode: V2ExecutionMode) => {
 			if (editingRowIndex < 0) return;
-			handleExecutionModeChange(editingRowIndex, mode);
+			// The v1 editor never offers background, but the shared dialog is
+			// typed for it — normalize so v1 storage only sees v1 modes.
+			handleExecutionModeChange(editingRowIndex, normalizeExecutionMode(mode));
 		},
 		[editingRowIndex, handleExecutionModeChange],
 	);

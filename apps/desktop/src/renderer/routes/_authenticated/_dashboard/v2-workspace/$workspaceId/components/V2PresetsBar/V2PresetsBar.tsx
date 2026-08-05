@@ -14,6 +14,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiMiniCommandLine } from "react-icons/hi2";
 import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { HotkeyMenuShortcut } from "renderer/components/HotkeyMenuShortcut";
+import { useCommandAppIcons } from "renderer/hooks/useCommandAppIcons";
 import { useV2AgentConfigs } from "renderer/hooks/useV2AgentConfigs";
 import type { HotkeyId } from "renderer/hotkeys";
 import { resolveV2PresetIcon } from "renderer/lib/preset-icon";
@@ -74,6 +75,7 @@ export function V2PresetsBar({
 	const collections = useCollections();
 	const { activeHostUrl } = useLocalHostService();
 	const { data: agents } = useV2AgentConfigs(activeHostUrl);
+	const getCommandAppIcon = useCommandAppIcons(matchedPresets, agents);
 
 	const [localVisiblePresetIds, setLocalVisiblePresetIds] = useState<string[]>(
 		() => getVisiblePresetOrder(matchedPresets),
@@ -214,7 +216,9 @@ export function V2PresetsBar({
 				</Tooltip>
 				<DropdownMenuContent align="end" className="w-56">
 					{matchedPresets.map((preset) => {
-						const icon = resolveV2PresetIcon(preset, agents, isDark);
+						const icon =
+							resolveV2PresetIcon(preset, agents, isDark) ??
+							getCommandAppIcon(preset);
 						const isVisible = isPresetVisibleInBar(preset.pinnedToBar);
 						const visibleIndex = visiblePresetIndexById.get(preset.id);
 						const hotkeyId =
@@ -281,6 +285,7 @@ export function V2PresetsBar({
 						hotkeyId={hotkeyId}
 						isDark={isDark}
 						agents={agents}
+						appIcon={getCommandAppIcon(preset)}
 						onExecutePreset={executePreset}
 						onEdit={(presetToEdit) => handleEditPreset(presetToEdit.id)}
 						onLocalReorder={handleLocalVisibleReorder}

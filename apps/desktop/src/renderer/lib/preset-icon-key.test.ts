@@ -1,6 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import type { HostAgentConfig } from "@superset/host-service/settings";
-import { resolveV2PresetIconKey } from "./preset-icon-key";
+import {
+	resolvePresetCommandExecutable,
+	resolveV2PresetIconKey,
+} from "./preset-icon-key";
 
 function createAgent(
 	overrides: Partial<HostAgentConfig> &
@@ -160,6 +163,39 @@ describe("resolveV2PresetIconKey", () => {
 					createAgent({ id: "codex-config", presetId: "codex" }),
 				],
 			),
+		).toBeUndefined();
+	});
+});
+
+describe("resolvePresetCommandExecutable", () => {
+	it("preserves the parsed executable's casing", () => {
+		expect(resolvePresetCommandExecutable({ commands: ["Fork ."] })).toBe(
+			"Fork",
+		);
+	});
+
+	it("skips path-based commands instead of stripping to a basename", () => {
+		expect(
+			resolvePresetCommandExecutable({ commands: ["./scripts/my-gui"] }),
+		).toBeUndefined();
+		expect(
+			resolvePresetCommandExecutable({
+				commands: ["/opt/homebrew/bin/fork ."],
+			}),
+		).toBeUndefined();
+	});
+
+	it("still resolves a bare command alongside skipped ones", () => {
+		expect(
+			resolvePresetCommandExecutable({
+				commands: ["./scripts/setup.sh", "fork ."],
+			}),
+		).toBe("fork");
+	});
+
+	it("returns undefined for conflicting executables", () => {
+		expect(
+			resolvePresetCommandExecutable({ commands: ["fork .", "zed ."] }),
 		).toBeUndefined();
 	});
 });

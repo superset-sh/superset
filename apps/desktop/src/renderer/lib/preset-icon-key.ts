@@ -94,3 +94,28 @@ export function resolveV2PresetIconKey(
 ): string | undefined {
 	return getLinkedIconKey(preset, agents) ?? getCommandIconKey(preset, agents);
 }
+
+/**
+ * The single executable name a preset's commands run, or undefined when the
+ * commands disagree — mirrors the ambiguity rule used for icon keys. Unlike
+ * `getExecutableName`, path-based commands are skipped (a PATH lookup of
+ * their basename could hit an unrelated binary) and casing is preserved for
+ * the case-sensitive `which` lookup.
+ */
+export function resolvePresetCommandExecutable(
+	preset: PresetIconSource,
+): string | undefined {
+	return singleValue(
+		(preset.commands ?? []).map((command) => {
+			let parsed: ReturnType<typeof parseCommandString>;
+			try {
+				parsed = parseCommandString(command.trim());
+			} catch {
+				return undefined;
+			}
+			const executable = parsed.command.trim();
+			if (!executable || /[\\/]/.test(executable)) return undefined;
+			return executable;
+		}),
+	);
+}

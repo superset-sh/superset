@@ -275,6 +275,13 @@ const localDbMock = () => ({
 		"new-tab-split-pane",
 		"sequential",
 	],
+	V2_EXECUTION_MODES: [
+		"split-pane",
+		"new-tab",
+		"new-tab-split-pane",
+		"sequential",
+		"background",
+	],
 	BRANCH_PREFIX_MODES: ["none", "github", "author", "custom"],
 	TERMINAL_LINK_BEHAVIORS: ["external-editor", "file-viewer"],
 	FILE_OPEN_MODES: ["split-pane", "new-tab"],

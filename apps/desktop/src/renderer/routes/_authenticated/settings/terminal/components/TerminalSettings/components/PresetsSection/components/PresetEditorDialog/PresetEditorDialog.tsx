@@ -1,5 +1,5 @@
 import type { HostAgentConfig } from "@superset/host-service/settings";
-import type { ExecutionMode, TerminalPreset } from "@superset/local-db";
+import type { TerminalPreset, V2ExecutionMode } from "@superset/local-db";
 import { Alert, AlertDescription } from "@superset/ui/alert";
 import { Button } from "@superset/ui/button";
 import {
@@ -45,6 +45,7 @@ import {
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
 import { CommandsEditor } from "../../../PresetRow/components/CommandsEditor";
+import { getLaunchModeValue } from "../../../PresetRow/PresetRow.utils";
 import type { AutoApplyField } from "../../constants";
 import type { PresetProjectOption } from "../../preset-project-options";
 import { ProjectTargetingField } from "./components/ProjectTargetingField";
@@ -79,10 +80,12 @@ interface PresetEditorDialogProps {
 	onDirectorySelect: (path: string) => void;
 	onCommandsChange: (commands: string[]) => void;
 	onCommandsBlur: () => void;
-	onModeChange: (mode: ExecutionMode) => void;
+	onModeChange: (mode: V2ExecutionMode) => void;
 	onToggleAutoApply: (field: AutoApplyField, enabled: boolean) => void;
 	onToggleWorkspaceRun: (enabled: boolean) => void;
-	modeValue: ExecutionMode;
+	modeValue: V2ExecutionMode;
+	/** Offer the background launch mode. Only v2 workspaces run it; the v1 editor omits it. */
+	supportsBackground?: boolean;
 	hasMultipleCommands: boolean;
 	isWorkspaceRun: boolean;
 	isWorkspaceCreation: boolean;
@@ -206,6 +209,7 @@ export function PresetEditorDialog({
 	onToggleAutoApply,
 	onToggleWorkspaceRun,
 	modeValue,
+	supportsBackground,
 	hasMultipleCommands,
 	isWorkspaceRun,
 	isWorkspaceCreation,
@@ -323,25 +327,19 @@ export function PresetEditorDialog({
 		}
 	};
 
-	const launchModeOptions = hasMultipleCommands
-		? [
-				{ value: "sequential", label: "All in current tab" },
-				{ value: "split-pane", label: "All in current tab (split panes)" },
-				{ value: "new-tab", label: "Each in its own new tab" },
-				{
-					value: "new-tab-split-pane",
-					label: "All in a new tab (split panes)",
-				},
-			]
-		: [
-				{ value: "split-pane", label: "Open in current tab" },
-				{ value: "new-tab", label: "Open in new tab" },
-			];
-	const launchModeValue = hasMultipleCommands
-		? modeValue
-		: modeValue === "split-pane" || modeValue === "sequential"
-			? "split-pane"
-			: "new-tab";
+	const launchModeOptions = [
+		{ value: "sequential", label: "All in current tab" },
+		{ value: "split-pane", label: "All in current tab (split panes)" },
+		{ value: "new-tab", label: "Each in its own new tab" },
+		{
+			value: "new-tab-split-pane",
+			label: "All in a new tab (split panes)",
+		},
+		...(supportsBackground
+			? [{ value: "background", label: "In the background" }]
+			: []),
+	];
+	const launchModeValue = getLaunchModeValue(modeValue, hasMultipleCommands);
 
 	const directoryAlert =
 		trimmedCwd && isAbsolutePath && directoryStatus?.exists === false ? (
@@ -522,16 +520,18 @@ export function PresetEditorDialog({
 							<DialogRow
 								label="Launch mode"
 								hint={
-									hasMultipleCommands
-										? "How grouped commands open."
-										: "How the command opens."
+									launchModeValue === "background"
+										? "Runs without opening a tab or taking focus; the terminal closes itself once the commands finish."
+										: hasMultipleCommands
+											? "How grouped commands open."
+											: "How the command opens."
 								}
 							>
 								{hasMultipleCommands ? (
 									<Select
 										value={launchModeValue}
 										onValueChange={(value) =>
-											onModeChange(value as ExecutionMode)
+											onModeChange(value as V2ExecutionMode)
 										}
 									>
 										<SelectTrigger size="sm" className="w-full">
@@ -548,10 +548,13 @@ export function PresetEditorDialog({
 								) : (
 									<Segmented
 										value={launchModeValue}
-										onChange={(value) => onModeChange(value as ExecutionMode)}
+										onChange={(value) => onModeChange(value as V2ExecutionMode)}
 										options={[
 											{ value: "split-pane", label: "Current tab" },
 											{ value: "new-tab", label: "New tab" },
+											...(supportsBackground
+												? [{ value: "background", label: "Background" }]
+												: []),
 										]}
 									/>
 								)}

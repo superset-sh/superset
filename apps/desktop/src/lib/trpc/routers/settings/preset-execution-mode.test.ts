@@ -46,6 +46,7 @@ describe("normalizeTerminalPresets", () => {
 			createPreset("new-tab"),
 			createPreset("new-tab-split-pane"),
 			createPreset("sequential"),
+			createPreset("background"),
 			createPreset("parallel"),
 			createPreset(undefined),
 		]);
@@ -54,6 +55,8 @@ describe("normalizeTerminalPresets", () => {
 			"new-tab",
 			"new-tab-split-pane",
 			"sequential",
+			// v2-only mode falls back for v1 presets
+			"new-tab",
 			"split-pane",
 			"new-tab",
 		] satisfies TerminalPreset["executionMode"][]);
@@ -100,6 +103,9 @@ describe("shouldPersistNormalizedTerminalPresets", () => {
 	it("returns true when legacy mode, project targeting, or default state exists", () => {
 		expect(
 			shouldPersistNormalizedTerminalPresets([createPreset("parallel")]),
+		).toBe(true);
+		expect(
+			shouldPersistNormalizedTerminalPresets([createPreset("background")]),
 		).toBe(true);
 		expect(
 			shouldPersistNormalizedTerminalPresets([createPreset(undefined)]),

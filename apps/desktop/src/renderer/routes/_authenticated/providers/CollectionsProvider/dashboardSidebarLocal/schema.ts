@@ -206,6 +206,7 @@ const v2ExecutionModeSchema = z.enum([
 	"new-tab",
 	"new-tab-split-pane",
 	"sequential",
+	"background",
 ]);
 
 // projectIds uses plain z.string() (not uuid) because v1 accepts arbitrary

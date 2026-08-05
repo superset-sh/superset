@@ -1,6 +1,10 @@
 import { describe, expect, it } from "bun:test";
-import { normalizeExecutionMode } from "@superset/local-db/schema/zod";
 import {
+	normalizeExecutionMode,
+	normalizeV2ExecutionMode,
+} from "@superset/local-db/schema/zod";
+import {
+	buildBackgroundTerminalCommand,
 	buildFocusedTerminalCommand,
 	getPresetLaunchPlan,
 	shouldApplyPresetPaneName,
@@ -23,6 +27,38 @@ describe("normalizeExecutionMode", () => {
 		expect(normalizeExecutionMode("sequential")).toBe("sequential");
 		expect(normalizeExecutionMode(undefined)).toBe("new-tab");
 		expect(normalizeExecutionMode("unknown")).toBe("new-tab");
+	});
+
+	it("maps v2-only background to new-tab", () => {
+		expect(normalizeExecutionMode("background")).toBe("new-tab");
+	});
+});
+
+describe("normalizeV2ExecutionMode", () => {
+	it("keeps background and delegates the rest to v1 normalization", () => {
+		expect(normalizeV2ExecutionMode("background")).toBe("background");
+		expect(normalizeV2ExecutionMode("parallel")).toBe("split-pane");
+		expect(normalizeV2ExecutionMode(undefined)).toBe("new-tab");
+	});
+});
+
+describe("buildBackgroundTerminalCommand", () => {
+	it("chains commands with a trailing exit so the shell always closes", () => {
+		expect(buildBackgroundTerminalCommand(["echo one", "echo two"])).toBe(
+			"echo one && echo two; exit",
+		);
+	});
+
+	it("skips blank commands", () => {
+		expect(buildBackgroundTerminalCommand(["  ", "fork ."])).toBe(
+			"fork .; exit",
+		);
+	});
+
+	it("returns null when no runnable command exists", () => {
+		expect(buildBackgroundTerminalCommand([" "])).toBeNull();
+		expect(buildBackgroundTerminalCommand([])).toBeNull();
+		expect(buildBackgroundTerminalCommand(undefined)).toBeNull();
 	});
 });
 
@@ -174,5 +210,25 @@ describe("getPresetLaunchPlan", () => {
 				hasActiveTab: true,
 			}),
 		).toBe("new-tab-single");
+	});
+
+	it("always plans background mode as background, ignoring the target", () => {
+		expect(
+			getPresetLaunchPlan({
+				mode: "background",
+				target: "active-tab",
+				commandCount: 2,
+				hasActiveTab: true,
+				hasActiveTerminal: true,
+			}),
+		).toBe("background");
+		expect(
+			getPresetLaunchPlan({
+				mode: "background",
+				target: "new-tab",
+				commandCount: 1,
+				hasActiveTab: false,
+			}),
+		).toBe("background");
 	});
 });
