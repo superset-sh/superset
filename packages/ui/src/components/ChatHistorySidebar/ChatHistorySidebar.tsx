@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "motion/react";
 import { useLayoutEffect, useRef, useState } from "react";
 import { cn } from "../../lib/utils";
+import { type Point, useSafeTriangleHover } from "./hooks/useSafeTriangleHover";
 import "./chat-history-rail.css";
 
 export type ChatHistorySidebarMessage = {
@@ -52,6 +53,10 @@ export function ChatHistorySidebar({
 	const wrapperRef = useRef<HTMLElement>(null);
 	const listRef = useRef<HTMLDivElement>(null);
 	const [hovered, setHovered] = useState<HoveredRow | null>(null);
+	const safeTriangle = useSafeTriangleHover<HoveredRow>({
+		onOpen: setHovered,
+		onClose: () => setHovered(null),
+	});
 
 	const items = toRailItems(messages);
 	const activeItems = activeMessageIds
@@ -87,15 +92,23 @@ export function ChatHistorySidebar({
 
 	if (items.length < MIN_ITEMS) return null;
 
-	const handleRowEnter = (row: HTMLElement, item: RailItem) => {
+	const handleRowEnter = (
+		row: HTMLElement,
+		item: RailItem,
+		enterPoint?: Point,
+	) => {
 		const wrapper = wrapperRef.current;
 		if (!wrapper) return;
 		const rowRect = row.getBoundingClientRect();
 		const wrapperRect = wrapper.getBoundingClientRect();
-		setHovered({
-			item,
-			top: rowRect.top - wrapperRect.top + rowRect.height / 2,
-		});
+		safeTriangle.rowPointerEnter(
+			item.message.id,
+			{
+				item,
+				top: rowRect.top - wrapperRect.top + rowRect.height / 2,
+			},
+			enterPoint,
+		);
 	};
 
 	return (
@@ -103,10 +116,16 @@ export function ChatHistorySidebar({
 			ref={wrapperRef}
 			aria-label="User messages"
 			className={cn("chat-history-rail relative", className)}
-			onPointerLeave={() => setHovered(null)}
+			onPointerMove={(event) =>
+				safeTriangle.containerPointerMove({
+					x: event.clientX,
+					y: event.clientY,
+				})
+			}
+			onPointerLeave={() => safeTriangle.containerPointerLeave()}
 			onBlur={(event) => {
 				if (!event.currentTarget.contains(event.relatedTarget)) {
-					setHovered(null);
+					safeTriangle.forceClose();
 				}
 			}}
 		>
@@ -126,7 +145,16 @@ export function ChatHistorySidebar({
 						className="chat-history-rail-row group flex h-2.5 w-9 shrink-0 cursor-pointer items-center outline-none"
 						onClick={() => onMessageSelect?.(item.message)}
 						onPointerEnter={(event) =>
-							handleRowEnter(event.currentTarget, item)
+							handleRowEnter(event.currentTarget, item, {
+								x: event.clientX,
+								y: event.clientY,
+							})
+						}
+						onPointerLeave={(event) =>
+							safeTriangle.rowPointerLeave(item.message.id, {
+								x: event.clientX,
+								y: event.clientY,
+							})
 						}
 						onFocus={(event) => handleRowEnter(event.currentTarget, item)}
 					>
@@ -139,10 +167,12 @@ export function ChatHistorySidebar({
 			<AnimatePresence>
 				{hovered && (
 					<motion.div
-						className="pointer-events-none absolute left-full z-50 w-80 -translate-y-1/2 overflow-hidden rounded-xl bg-popover/95 p-2 text-sm leading-5 text-popover-foreground shadow-xl ring-[0.5px] ring-border backdrop-blur-sm"
+						ref={safeTriangle.setCardElement}
+						onPointerEnter={safeTriangle.cardPointerEnter}
+						className="absolute left-full z-50 w-80 -translate-y-1/2 overflow-hidden rounded-xl bg-popover/95 p-2 text-sm leading-5 text-popover-foreground shadow-xl ring-[0.5px] ring-border backdrop-blur-sm"
 						initial={{ opacity: 0, top: hovered.top }}
 						animate={{ opacity: 1, top: hovered.top }}
-						exit={{ opacity: 0 }}
+						exit={{ opacity: 0, pointerEvents: "none" }}
 						transition={{ duration: 0.15, ease: [0.23, 1, 0.32, 1] }}
 					>
 						<div className="truncate font-medium">
