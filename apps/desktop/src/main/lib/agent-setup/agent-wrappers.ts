@@ -7,6 +7,7 @@ export {
 	getAmpPluginContent,
 } from "./agent-wrappers-amp";
 export {
+	buildClaudeWrapperExecLine,
 	buildCodexWrapperExecLine,
 	cleanupGlobalOpenCodePlugin,
 	createClaudeSettingsJson,
@@ -15,9 +16,9 @@ export {
 	createCodexWrapper,
 	createOpenCodePlugin,
 	createOpenCodeWrapper,
-	getClaudeGlobalSettingsJsonContent,
 	getClaudeGlobalSettingsJsonPath,
 	getClaudeManagedHookCommand,
+	getClaudeSettingsJsonContent,
 	getCodexGlobalHooksJsonContent,
 	getCodexGlobalHooksJsonPath,
 	getOpenCodeGlobalPluginPath,
@@ -25,6 +26,7 @@ export {
 	getOpenCodePluginPath,
 	OPENCODE_PLUGIN_FILE,
 	OPENCODE_PLUGIN_MARKER,
+	syncClaudeSettingsForConfigDir,
 } from "./agent-wrappers-claude-codex-opencode";
 export {
 	buildWrapperScript,
