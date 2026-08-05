@@ -30,7 +30,9 @@ export interface TerminalLogEntry {
 // JSON.
 type TerminalServerMessage =
 	| { type: "attached"; terminalId: string }
-	| { type: "error"; message: string }
+	// `code: "session-gone"` = the server says the session is permanently
+	// destroyed (not found / disposed / exited), not a transient attach failure.
+	| { type: "error"; message: string; code?: string }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null };
 
@@ -55,7 +57,19 @@ export interface TerminalTransport {
 	 * status indicator.
 	 */
 	lastDiagnosis: TerminalFailureClassification | null;
+	/**
+	 * True once the server has said the PTY is gone for good (live `exit`
+	 * message or a `session-gone` attach error). Distinct from `_terminated`,
+	 * which also covers access denials and unknown errors where the PTY may
+	 * still be alive. Persistence paths must clear — never write — the
+	 * persisted scrollback of a session-ended terminal. Reset on `attached`
+	 * (the session was re-created under the same id).
+	 */
+	sessionEnded: boolean;
 
+	/** Internal: invoked once each time the session-ended signal arrives, so
+	 * the owner can drop persisted scrollback immediately. */
+	_onSessionEnded: (() => void) | null;
 	/** Internal: the shared reconnecting relay socket (partysocket). Created
 	 * once on first connect; it re-signs the URL and runs the relay preflight
 	 * before every (re)dial and retries indefinitely. */
@@ -172,6 +186,12 @@ function maybeSurfaceDiagnosis(
 	});
 }
 
+function markSessionEnded(transport: TerminalTransport) {
+	if (transport.sessionEnded) return;
+	transport.sessionEnded = true;
+	transport._onSessionEnded?.();
+}
+
 function setConnectionState(
 	transport: TerminalTransport,
 	state: ConnectionState,
@@ -242,7 +262,9 @@ export function clearLogs(transport: TerminalTransport) {
 	}
 }
 
-export function createTransport(): TerminalTransport {
+export function createTransport(
+	options: { onSessionEnded?: () => void } = {},
+): TerminalTransport {
 	return {
 		connectionState: "disconnected",
 		currentUrl: null,
@@ -252,6 +274,8 @@ export function createTransport(): TerminalTransport {
 		logs: [],
 		logListeners: new Set(),
 		lastDiagnosis: null,
+		sessionEnded: false,
+		_onSessionEnded: options.onSessionEnded ?? null,
 		_socket: null,
 		_terminal: null,
 		_onDataDisposable: null,
@@ -545,6 +569,9 @@ function attachSocketListeners(
 		if (message.type === "attached") {
 			transport.lastDiagnosis = null;
 			transport._diagnosisLogged = false;
+			// A successful attach means the session exists again (re-created or
+			// respawned under the same id) — its scrollback is worth keeping.
+			transport.sessionEnded = false;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
 			return;
@@ -558,6 +585,9 @@ function attachSocketListeners(
 			pushLog(transport, "error", message.message);
 			// Server closes after this; reconnecting would just hit the same error.
 			transport._terminated = true;
+			if (message.code === "session-gone") {
+				markSessionEnded(transport);
+			}
 			socket.close();
 			return;
 		}
@@ -565,6 +595,7 @@ function attachSocketListeners(
 		if (message.type === "exit") {
 			transport._writeCoalescer?.flushSync();
 			transport._terminated = true;
+			markSessionEnded(transport);
 			transport.lastDiagnosis = {
 				category: "unknown",
 				message: `The terminal session ended (exit code ${message.exitCode}).`,
@@ -708,6 +739,8 @@ export function disposeTransport(transport: TerminalTransport) {
 	transport._terminal = null;
 	transport._diagnosisLogged = false;
 	transport._terminated = false;
+	transport.sessionEnded = false;
+	transport._onSessionEnded = null;
 	transport.lastDiagnosis = null;
 	setTerminalTitle(transport, undefined);
 	transport.stateListeners.clear();

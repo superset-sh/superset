@@ -117,6 +117,45 @@ describe("resolveNewBranchStartPoint", () => {
 		expect(git.fetch).not.toHaveBeenCalled();
 	});
 
+	test("uses the injected fetcher instead of git.fetch when provided", async () => {
+		const git = createMockGit({
+			existingRefs: new Set(["refs/heads/main", "refs/remotes/origin/main"]),
+			upstreams: { main: { remote: "origin", remoteBranch: "main" } },
+		});
+		const fetchRemoteRef = mock(async (_target: unknown) => undefined);
+
+		const result = await resolveNewBranchStartPoint(
+			git,
+			"main",
+			fetchRemoteRef,
+		);
+
+		expect(result.kind).toBe("remote-tracking");
+		expect(fetchRemoteRef).toHaveBeenCalledWith({
+			remote: "origin",
+			branch: "main",
+		});
+		expect(git.fetch).not.toHaveBeenCalled();
+	});
+
+	test("swallows injected fetcher errors and still returns the start point", async () => {
+		const git = createMockGit({
+			existingRefs: new Set(["refs/heads/main", "refs/remotes/origin/main"]),
+			upstreams: { main: { remote: "origin", remoteBranch: "main" } },
+		});
+		const fetchRemoteRef = mock(async (_target: unknown) => {
+			throw new Error("worker pool unavailable");
+		});
+
+		const result = await resolveNewBranchStartPoint(
+			git,
+			"main",
+			fetchRemoteRef,
+		);
+
+		expect(result.kind).toBe("remote-tracking");
+	});
+
 	test("swallows fetch errors and still returns the resolved start point", async () => {
 		const git = createMockGit({
 			existingRefs: new Set(["refs/heads/main", "refs/remotes/origin/main"]),

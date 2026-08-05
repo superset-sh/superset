@@ -98,8 +98,8 @@ export const FileRow = memo(function FileRow({
 	};
 
 	const policy = useChangesSidebarFilePolicy();
-	const diffTier = policy.tierForIntent("diff");
 	const diffNewTabTier = policy.tierForIntent("diffNewTab");
+	const fileTier = policy.tierForIntent("file");
 	const externalTier = policy.tierForIntent("external");
 
 	const rowButton = (
@@ -181,11 +181,6 @@ export const FileRow = memo(function FileRow({
 						>
 							<GitCompare />
 							Open Diff
-							{diffTier && (
-								<DropdownMenuShortcut>
-									{modifierLabel(diffTier)}
-								</DropdownMenuShortcut>
-							)}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => onSelect?.(file.path, true, changeKey)}
@@ -204,6 +199,11 @@ export const FileRow = memo(function FileRow({
 						>
 							<FileText />
 							Open File
+							{fileTier && (
+								<DropdownMenuShortcut>
+									{modifierLabel(fileTier)}
+								</DropdownMenuShortcut>
+							)}
 						</DropdownMenuItem>
 						<DropdownMenuItem
 							onSelect={() => absolutePath && onOpenFile?.(absolutePath, true)}
@@ -244,9 +244,6 @@ export const FileRow = memo(function FileRow({
 				>
 					<GitCompare />
 					Open Diff
-					{diffTier && (
-						<ContextMenuShortcut>{modifierLabel(diffTier)}</ContextMenuShortcut>
-					)}
 				</ContextMenuItem>
 				<ContextMenuItem
 					onSelect={() => onSelect?.(file.path, true, changeKey)}
@@ -265,6 +262,9 @@ export const FileRow = memo(function FileRow({
 				>
 					<FileText />
 					Open File
+					{fileTier && (
+						<ContextMenuShortcut>{modifierLabel(fileTier)}</ContextMenuShortcut>
+					)}
 				</ContextMenuItem>
 				<ContextMenuItem
 					onSelect={() => absolutePath && onOpenFile?.(absolutePath, true)}

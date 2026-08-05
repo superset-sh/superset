@@ -64,6 +64,12 @@ interface PresetEditorDialogProps {
 	 * row has agentId, so the linked branch stays dormant.
 	 */
 	agents?: HostAgentConfig[];
+	/**
+	 * Called after a linked-agent command save succeeds so the owner can keep
+	 * the preset rows' `commands` snapshot (the launch fallback when the agent
+	 * config isn't loaded) in sync with the edited command.
+	 */
+	onLinkedAgentSaved?: (updated: HostAgentConfig) => void;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDeletePreset: () => void;
@@ -186,6 +192,7 @@ export function PresetEditorDialog({
 	preset,
 	projects,
 	agents,
+	onLinkedAgentSaved,
 	open,
 	onOpenChange,
 	onDeletePreset,
@@ -256,6 +263,7 @@ export function PresetEditorDialog({
 				),
 			);
 			void queryClient.invalidateQueries(queryFamily);
+			onLinkedAgentSaved?.(updated);
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to save"),

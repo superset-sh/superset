@@ -28,6 +28,16 @@ const GROK_MANAGED_HOOK_EVENTS = [
 	"PostToolUseFailure",
 	"Stop",
 	"StopFailure",
+	"Notification",
+] as const;
+
+// Grok Notification subtypes where the agent is blocked waiting on the user:
+// tool and plan approvals both arrive as permission_prompt; ask_user_question
+// arrives as elicitation_dialog. notify-hook.template.sh filters on the same
+// list — a test asserts the two stay in sync.
+export const GROK_BLOCKING_NOTIFICATION_TYPES = [
+	"permission_prompt",
+	"elicitation_dialog",
 ] as const;
 
 const GROK_MANAGED_HOOK_COMMAND = getManagedNotifyHookCommand("grok");
@@ -57,7 +67,16 @@ export function getGrokHooksJsonContent(): string {
 	const hooks = Object.fromEntries(
 		GROK_MANAGED_HOOK_EVENTS.map((event) => [
 			event,
-			[{ hooks: [{ type: "command", command: GROK_MANAGED_HOOK_COMMAND }] }],
+			[
+				{
+					...(event === "Notification"
+						? {
+								matcher: `^(${GROK_BLOCKING_NOTIFICATION_TYPES.join("|")})$`,
+							}
+						: {}),
+					hooks: [{ type: "command", command: GROK_MANAGED_HOOK_COMMAND }],
+				},
+			],
 		]),
 	);
 	return `${JSON.stringify({ hooks }, null, 2)}\n`;

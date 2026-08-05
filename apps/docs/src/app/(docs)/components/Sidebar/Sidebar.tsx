@@ -1,113 +1,58 @@
 "use client";
 
-import { AnimatePresence, MotionConfig, motion } from "framer-motion";
+import { OverflowFadeContainer } from "@superset/ui/overflow-fade-container";
 import { useSearchContext } from "fumadocs-ui/contexts/search";
-import { ChevronDownIcon, Search } from "lucide-react";
-import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { AsideLink } from "@/components/AsideLink";
 import { cn } from "@/lib/cn";
 import { sections } from "./components/SidebarContent";
 
 export default function Sidebar() {
-	const pathname = usePathname();
-	const [openSections, setOpenSections] = useState<number[]>(() =>
-		Array.from({ length: sections.length }, (_, i) => i),
-	);
-
 	const { setOpenSearch } = useSearchContext();
-
-	useEffect(() => {
-		const currentSection = sections.findIndex((section) =>
-			section.items.some((item) => item.href === pathname),
-		);
-		if (currentSection !== -1) {
-			setOpenSections((prev) =>
-				prev.includes(currentSection) ? prev : [...prev, currentSection],
-			);
-		}
-	}, [pathname]);
-
-	const toggleSection = (index: number) => {
-		setOpenSections((prev) =>
-			prev.includes(index) ? prev.filter((i) => i !== index) : [...prev, index],
-		);
-	};
 
 	return (
 		<div className={cn("fixed start-0 top-0")}>
 			<aside
 				className={cn(
-					"navbar:transition-all",
-					"border-r border-border top-[55px] navbar:flex hidden navbar:w-[268px] lg:w-[286px]! overflow-y-auto absolute h-[calc(100dvh-55px)] pb-2 flex-col justify-between w-[var(--fd-sidebar-width)]",
+					"top-[55px] navbar:flex hidden navbar:w-[268px] lg:w-[286px]! absolute h-[calc(100dvh-55px)] flex-col w-[var(--fd-sidebar-width)]",
 				)}
 			>
-				<div>
+				<div className="shrink-0 px-4 pt-4 pb-2">
 					<button
 						type="button"
-						className="flex w-full items-center gap-2 px-5 py-3 border-b text-muted-foreground dark:bg-zinc-950 dark:border-t-zinc-900/30 dark:border-t"
+						className="flex w-full items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/60 hover:text-foreground"
 						onClick={() => setOpenSearch(true)}
 					>
-						<Search className="size-4 mx-0.5" />
-						<p className="text-sm">Search documentation...</p>
+						<Search className="size-3.5 shrink-0" />
+						<span className="grow truncate text-left">Search docs...</span>
+						<kbd className="rounded border border-border px-1 py-px text-[11px] font-medium text-muted-foreground">
+							⌘K
+						</kbd>
 					</button>
-
-					<MotionConfig
-						transition={{ duration: 0.4, type: "spring", bounce: 0 }}
-					>
-						<div className="flex flex-col">
-							{sections.map((section, index) => (
-								<div key={section.title}>
-									<button
-										type="button"
-										className="border-b w-full hover:underline border-border text-sm px-5 py-2.5 text-left flex items-center gap-2"
-										onClick={() => toggleSection(index)}
-									>
-										<section.Icon className="size-4" />
-										<span className="grow">{section.title}</span>
-										<motion.div
-											animate={{
-												rotate: openSections.includes(index) ? 180 : 0,
-											}}
-										>
-											<ChevronDownIcon
-												className={cn(
-													"h-4 w-4 shrink-0 text-muted-foreground transition-transform duration-200",
-												)}
-											/>
-										</motion.div>
-									</button>
-									<AnimatePresence initial={false}>
-										{openSections.includes(index) && (
-											<motion.div
-												initial={{ opacity: 0, height: 0 }}
-												animate={{ opacity: 1, height: "auto" }}
-												exit={{ opacity: 0, height: 0 }}
-												className="relative overflow-hidden"
-											>
-												<div className="text-sm">
-													{section.items.map((item) => (
-														<AsideLink
-															key={item.href}
-															href={item.href}
-															startWith="/docs"
-															title={item.title}
-															className="min-w-0 pl-9 pr-4"
-														>
-															<span className="block truncate">
-																{item.title}
-															</span>
-														</AsideLink>
-													))}
-												</div>
-											</motion.div>
-										)}
-									</AnimatePresence>
-								</div>
-							))}
-						</div>
-					</MotionConfig>
 				</div>
+				<OverflowFadeContainer
+					fadeEdges={["top", "bottom"]}
+					className="flex flex-1 flex-col gap-7 overflow-y-auto px-4 pt-3 pb-8"
+				>
+					{sections.map((section) => (
+						<div key={section.title}>
+							<p className="px-2 pb-1.5 text-[13px] font-medium text-foreground">
+								{section.title}
+							</p>
+							<div className="flex flex-col">
+								{section.items.map((item) => (
+									<AsideLink
+										key={item.href}
+										href={item.href}
+										title={item.title}
+									>
+										<span className="block truncate">{item.title}</span>
+									</AsideLink>
+								))}
+							</div>
+						</div>
+					))}
+				</OverflowFadeContainer>
 			</aside>
 		</div>
 	);

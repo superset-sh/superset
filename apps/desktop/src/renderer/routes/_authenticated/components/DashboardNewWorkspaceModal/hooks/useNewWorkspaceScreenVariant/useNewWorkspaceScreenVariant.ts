@@ -1,26 +1,19 @@
-import {
-	FEATURE_FLAGS,
-	NEW_WORKSPACE_SCREEN_EXPERIMENT_START,
-} from "@superset/shared/constants";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { useFeatureFlagEnabled, usePostHog } from "posthog-js/react";
 import { useLayoutEffect, useState } from "react";
-import { authClient } from "renderer/lib/auth-client";
-
-function isEligible(createdAt: Date | string | null | undefined): boolean {
-	if (createdAt == null) return false;
-	const created =
-		createdAt instanceof Date
-			? createdAt.getTime()
-			: new Date(createdAt).getTime();
-	if (Number.isNaN(created)) return false;
-	return created >= new Date(NEW_WORKSPACE_SCREEN_EXPERIMENT_START).getTime();
-}
 
 /**
  * Assigns the new-workspace-screen experiment arm. Calls `getFeatureFlag`
  * imperatively (not `useFeatureFlagVariantKey`) so the `$feature_flag_called`
- * exposure event fires only when an eligible user actually reaches the
- * new-workspace surface — never on app load or for pre-cutoff accounts.
+ * exposure event fires only when a user actually reaches the new-workspace
+ * surface — never on app load.
+ *
+ * Eligibility (new accounts only) lives on the flag itself: a release
+ * condition on the `created_at` person property, which the renderer sends
+ * with flag requests at identify time (PostHogUserIdentifier). Ineligible
+ * accounts — and old builds that never send `created_at` — get `false` back,
+ * which renders control; a non-variant response is not counted as experiment
+ * exposure.
  *
  * The override flag short-circuits everything: it forces the screen without
  * ever evaluating the experiment flag, so overridden users (team, dev
@@ -34,8 +27,6 @@ export function useNewWorkspaceScreenVariant(
 	isOpen: boolean,
 ): "control" | "test" | null {
 	const posthog = usePostHog();
-	const { data: session } = authClient.useSession();
-	const eligible = isEligible(session?.user?.createdAt);
 	const overrideEnabled = useFeatureFlagEnabled(
 		FEATURE_FLAGS.NEW_WORKSPACE_SCREEN_OVERRIDE,
 	);
@@ -45,10 +36,6 @@ export function useNewWorkspaceScreenVariant(
 		if (!isOpen) return;
 		if (overrideEnabled) {
 			setVariant("test");
-			return;
-		}
-		if (!eligible) {
-			setVariant("control");
 			return;
 		}
 		// Evaluate only after flags have loaded: getFeatureFlag before the first
@@ -71,7 +58,7 @@ export function useNewWorkspaceScreenVariant(
 			unsubscribe?.();
 			window.clearTimeout(fallback);
 		};
-	}, [isOpen, eligible, overrideEnabled, posthog]);
+	}, [isOpen, overrideEnabled, posthog]);
 
 	return variant;
 }

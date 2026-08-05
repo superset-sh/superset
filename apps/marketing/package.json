@@ -14,7 +14,7 @@
 		"@paper-design/shaders-react": "0.0.77",
 		"@react-three/drei": "10.7.7",
 		"@react-three/fiber": "9.5.0",
-		"@sentry/nextjs": "10.46.0",
+		"@sentry/nextjs": "10.68.0",
 		"@superset/auth": "workspace:*",
 		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",
@@ -42,7 +42,7 @@
 		"simplex-noise": "4.0.3",
 		"stripe-gradient": "1.0.1",
 		"three": "0.181.2",
-		"zod": "4.3.6"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

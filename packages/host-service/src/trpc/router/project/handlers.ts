@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { rmSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../db/schema";
@@ -86,7 +86,7 @@ async function persistFromResolved(
 		}
 		if (args.cleanupRepoPathOnFailure) {
 			try {
-				rmSync(args.resolved.repoPath, { recursive: true, force: true });
+				await rm(args.resolved.repoPath, { recursive: true, force: true });
 			} catch (cleanupErr) {
 				console.warn("[project.create] repo dir cleanup failed", {
 					repoPath: args.resolved.repoPath,

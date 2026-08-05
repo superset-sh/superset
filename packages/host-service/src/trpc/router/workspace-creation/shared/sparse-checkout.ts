@@ -1,3 +1,4 @@
+import { runWithPostCheckoutHookTolerance } from "@superset/shared/git-hook-tolerance";
 import { TRPCError } from "@trpc/server";
 import type { GitClient } from "./types";
 
@@ -134,11 +135,42 @@ export async function addWorktreeWithSparseCheckout(args: {
 	worktreePath: string;
 	sparsePaths: string[];
 	logPrefix: string;
+	/**
+	 * A post-checkout hook that fails can make the checkout-performing
+	 * command report failure even though the worktree was created fine.
+	 * When provided, that command — the plain add below, or the sparse
+	 * path's explicit `checkout` — tolerates that: a failure is treated as
+	 * non-fatal once `didSucceed` confirms the checkout actually landed.
+	 * Not applied to `--no-checkout` add or `sparse-checkout set/disable`,
+	 * which never trigger a post-checkout hook themselves.
+	 */
+	hookTolerance?: { context: string; didSucceed: () => Promise<boolean> };
 }): Promise<void> {
-	const { git, worktreeArgs, worktreePath, sparsePaths, logPrefix } = args;
+	const {
+		git,
+		worktreeArgs,
+		worktreePath,
+		sparsePaths,
+		logPrefix,
+		hookTolerance,
+	} = args;
+
+	const runCheckoutish = async (argv: string[]): Promise<void> => {
+		if (!hookTolerance) {
+			await git.raw(argv);
+			return;
+		}
+		await runWithPostCheckoutHookTolerance({
+			context: hookTolerance.context,
+			didSucceed: hookTolerance.didSucceed,
+			run: async () => {
+				await git.raw(argv);
+			},
+		});
+	};
 
 	if (sparsePaths.length === 0) {
-		await git.raw(["worktree", "add", ...worktreeArgs]);
+		await runCheckoutish(["worktree", "add", ...worktreeArgs]);
 		return;
 	}
 
@@ -146,7 +178,9 @@ export async function addWorktreeWithSparseCheckout(args: {
 
 	// Past this point the worktree exists on disk, so anything that throws has
 	// to take it back down — callers treat a throw from here as "nothing was
-	// created" and run their own rollback only for later failures.
+	// created" and run their own rollback only for later failures. A tolerated
+	// hook failure below never reaches this catch, since runCheckoutish
+	// already swallowed it once didSucceed confirmed the checkout landed.
 	try {
 		// A sparse checkout is an optimization, never a correctness requirement:
 		// if git rejects the patterns, fall back to a full checkout rather than
@@ -172,7 +206,7 @@ export async function addWorktreeWithSparseCheckout(args: {
 				.catch(() => {});
 		}
 
-		await git.raw(["-C", worktreePath, "checkout"]);
+		await runCheckoutish(["-C", worktreePath, "checkout"]);
 	} catch (err) {
 		await git
 			.raw(["worktree", "remove", "--force", worktreePath])

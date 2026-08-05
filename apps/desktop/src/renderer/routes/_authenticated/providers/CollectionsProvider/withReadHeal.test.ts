@@ -56,17 +56,54 @@ describe("withReadHeal parser", () => {
 		expect(parsed["s:bar"]?.data).toEqual({ b: 2, healed: true });
 	});
 
-	it("passes non-envelope values through unchanged", () => {
-		const heal = () => {
-			throw new Error("should not be called for non-envelope values");
+	it("drops non-envelope entries so they never reach the library's hydration", () => {
+		// A non-envelope value passed through would make the library throw
+		// InvalidStorageDataFormatError inside its whole-store try/catch,
+		// hydrating EVERY row as lost.
+		const opts = withReadHeal(
+			{} as {
+				parser?: { parse: (s: string) => unknown };
+			},
+		);
+		const raw = JSON.stringify({
+			"s:foo": "string-not-an-envelope",
+			"s:bar": { versionKey: "v1", data: { b: 2 } },
+		});
+		const parsed = opts.parser?.parse(raw) as Record<string, unknown>;
+		expect(parsed["s:foo"]).toBeUndefined();
+		expect(parsed["s:bar"]).toEqual({ versionKey: "v1", data: { b: 2 } });
+	});
+
+	it("drops only the entry whose heal throws, keeping the rest", () => {
+		const heal = (raw: unknown) => {
+			const data = raw as { poison?: boolean };
+			if (data.poison) throw new Error("unhealable");
+			return data;
 		};
 		const opts = withReadHeal(
 			{} as { parser?: { parse: (s: string) => unknown } },
 			heal,
 		);
-		const raw = JSON.stringify({ "s:foo": "string-not-an-envelope" });
+		const raw = JSON.stringify({
+			"s:bad": { versionKey: "v1", data: { poison: true } },
+			"s:good": { versionKey: "v2", data: { a: 1 } },
+		});
 		const parsed = opts.parser?.parse(raw) as Record<string, unknown>;
-		expect(parsed["s:foo"]).toBe("string-not-an-envelope");
+		expect(parsed["s:bad"]).toBeUndefined();
+		expect(parsed["s:good"]).toEqual({ versionKey: "v2", data: { a: 1 } });
+	});
+
+	it("defaults to an identity heal when none is provided", () => {
+		const opts = withReadHeal(
+			{} as {
+				parser?: { parse: (s: string) => unknown };
+			},
+		);
+		const raw = JSON.stringify({
+			"s:foo": { versionKey: "v1", data: { a: 1 } },
+		});
+		const parsed = opts.parser?.parse(raw) as Record<string, unknown>;
+		expect(parsed["s:foo"]).toEqual({ versionKey: "v1", data: { a: 1 } });
 	});
 });
 
@@ -154,6 +191,50 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 		// buildHint. If this ever starts returning a defined value the wrapper
 		// may no longer be needed.
 		expect(row?.sidebarFileLinks).toBeUndefined();
+	});
+
+	it("hydrates surviving rows when the store holds one corrupt entry", async () => {
+		const { api: storage } = makeMapStorage();
+		const workspaceId = "11111111-1111-1111-1111-111111111111";
+		const projectId = "22222222-2222-2222-2222-222222222222";
+		storage.setItem(
+			"test-corrupt",
+			JSON.stringify({
+				// Not a {versionKey, data} envelope: without the per-row drop the
+				// library throws mid-hydration and treats the WHOLE store as empty,
+				// and the next mutation persists that emptiness.
+				"s:corrupt": 42,
+				[`s:${workspaceId}`]: {
+					versionKey: "v0",
+					data: {
+						workspaceId,
+						createdAt: "2026-01-01T00:00:00.000Z",
+						paneLayout: { version: 1, tabs: [], activeTabId: null },
+						sidebarState: { projectId },
+					},
+				},
+			}),
+		);
+
+		const collection = createCollection(
+			localStorageCollectionOptions(
+				withReadHeal(
+					{
+						id: "test-corrupt",
+						storageKey: "test-corrupt",
+						schema: workspaceLocalStateSchema,
+						getKey: (item: WorkspaceLocalStateRow) => item.workspaceId,
+						storage,
+						storageEventApi: noopEvents,
+					},
+					healWorkspaceLocalState,
+				),
+			),
+		);
+		await collection.preload();
+
+		expect(collection.get(workspaceId)?.sidebarState.projectId).toBe(projectId);
+		expect(collection.size).toBe(1);
 	});
 
 	it("heals a workspaceLocalState row missing optional + nested fields", async () => {

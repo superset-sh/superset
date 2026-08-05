@@ -1,7 +1,7 @@
 import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
-import { ChatService } from "@superset/chat/server/desktop";
+import { ChatService } from "@superset/chat-legacy/server/desktop";
 import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -21,7 +21,7 @@ import {
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
-import { createGitFactory } from "./runtime/git";
+import { createGitEnvResolver, createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
@@ -37,6 +37,8 @@ import {
 	type ExecGh,
 } from "./trpc/router/workspace-creation/utils/exec-gh";
 import type { ApiClient } from "./types";
+import { getHostWorkerPool } from "./workers/host-worker-pool";
+import { gitWorkspaceRefsTask } from "./workers/tasks/git";
 
 export interface CreateAppOptions {
 	config: {
@@ -104,12 +106,28 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// pull-requests runtime (event-driven branch sync) subscribe to it.
 	const gitWatcher = new GitWatcher(db, filesystem);
 	gitWatcher.start();
+	// Per-workspace branch/HEAD/upstream reads run in the worker pool: the
+	// PR-sync loop fires them for every workspace on each watcher event and
+	// 5-min sweep, which would otherwise spawn+drain git on the event loop.
+	const resolveGitEnv = createGitEnvResolver(providers.credentials);
 	const pullRequestRuntime = new PullRequestRuntimeManager({
 		db,
 		execGh,
 		git,
 		github,
 		gitWatcher,
+		readWorkspaceRefs: async (worktreePath) => {
+			const gitEnv = await resolveGitEnv(worktreePath);
+			return getHostWorkerPool().run(
+				gitWorkspaceRefsTask,
+				{ worktreePath, gitEnv },
+				{
+					timeoutMs: 15_000,
+					strategy: "coalesce",
+					dedupeKey: `${worktreePath}:workspace-refs`,
+				},
+			);
+		},
 	});
 	pullRequestRuntime.start();
 	const chatRuntime =
@@ -176,6 +194,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const eventBus = new EventBus({ db, filesystem, gitWatcher });
 	eventBus.start();
+	// Post-construction wiring (the runtime is built before the EventBus):
+	// newly created workspaces get their first branch/upstream sync + PR link
+	// immediately instead of waiting for the 5-min safety net.
+	pullRequestRuntime.subscribeToWorkspaceEvents(eventBus);
 
 	const terminalAgentPersistence = new SqliteTerminalAgentBindingPersistence(
 		db,

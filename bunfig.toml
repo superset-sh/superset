@@ -10,8 +10,12 @@ minimumReleaseAge = 259200
 # next 16.2.11 (published 2026-07-21) is a security release fixing the SSRF,
 # cache-confusion, and middleware-bypass advisories flagged by Dependabot;
 # versions are pinned exact. Safe to remove this exclusion after 2026-07-24.
+# hono 4.12.34 (published 2026-08-03) is a security release fixing a ReDoS
+# in the CORS middleware (GHSA-8j4g-w8fx-2239); version is pinned exact.
+# Safe to remove this exclusion after 2026-08-06.
 minimumReleaseAgeExcludes = [
 	"next",
+	"hono",
 	"@next/env",
 	"@next/swc-darwin-arm64",
 	"@next/swc-darwin-x64",

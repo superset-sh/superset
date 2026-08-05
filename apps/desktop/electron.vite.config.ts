@@ -73,8 +73,15 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
 			),
+			"process.env.NEXT_PUBLIC_ROOT_DOMAIN": defineEnv(
+				process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+				"superset.sh",
+			),
 			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
+			),
+			"process.env.SENTRY_DSN_HOST_SERVICE": defineEnv(
+				process.env.SENTRY_DSN_HOST_SERVICE,
 			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
 			// Must match renderer for analytics in main process
@@ -192,6 +199,10 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_ROOT_DOMAIN": defineEnv(
+				process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+				"superset.sh",
 			),
 			"import.meta.env.DEV_SERVER_PORT": defineEnv(String(DEV_SERVER_PORT)),
 			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(

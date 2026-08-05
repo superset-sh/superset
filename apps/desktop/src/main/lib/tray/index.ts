@@ -140,7 +140,7 @@ function buildHostServiceSubmenu(
 		const status = coordinator.getProcessStatus(orgId);
 		const info = infos.get(orgId);
 		const isRunning = status === "running";
-		const label = info?.organizationName ?? "Loading…";
+		const label = info?.organizationName ?? `Organization ${orgId.slice(0, 8)}`;
 		const versionSuffix = info?.version ? ` (v${info.version})` : "";
 
 		menuItems.push({ label, enabled: false });

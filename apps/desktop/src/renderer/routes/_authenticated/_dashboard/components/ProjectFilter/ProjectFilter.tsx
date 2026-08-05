@@ -1,0 +1,129 @@
+import { Button } from "@superset/ui/button";
+import {
+	Command,
+	CommandEmpty,
+	CommandGroup,
+	CommandInput,
+	CommandItem,
+	CommandList,
+} from "@superset/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
+import { useMemo, useState } from "react";
+import { HiCheck, HiChevronDown, HiOutlineFolder } from "react-icons/hi2";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+
+interface ProjectFilterProps {
+	value: string | null;
+	onChange: (value: string) => void;
+}
+
+export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
+	const [open, setOpen] = useState(false);
+	const [search, setSearch] = useState("");
+
+	// Projects are fully local — identity comes from the host fan-out.
+	const { projects: hostProjects, isReady } = useHostProjects();
+	const projects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
+				name: project.name,
+				iconUrl: resolveProjectIconUrl(project),
+			})),
+		[hostProjects],
+	);
+
+	const selected = useMemo(
+		() => (value ? (projects.find((p) => p.id === value) ?? null) : null),
+		[value, projects],
+	);
+
+	const filtered = useMemo(() => {
+		const q = search.trim().toLowerCase();
+		if (!q) return projects;
+		return projects.filter((p) => p.name.toLowerCase().includes(q));
+	}, [projects, search]);
+
+	const handleSelect = (id: string) => {
+		onChange(id);
+		setOpen(false);
+		setSearch("");
+	};
+	const fallbackLabel = isReady ? "Select project" : "Loading projects";
+
+	return (
+		<Popover
+			open={open}
+			onOpenChange={(next) => {
+				setOpen(next);
+				if (!next) setSearch("");
+			}}
+		>
+			<PopoverTrigger asChild>
+				<Button
+					variant="ghost"
+					size="sm"
+					title={selected ? selected.name : fallbackLabel}
+					aria-label={selected ? `Project: ${selected.name}` : fallbackLabel}
+					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+				>
+					{selected ? (
+						<ProjectThumbnail
+							projectName={selected.name}
+							iconUrl={selected.iconUrl}
+							className="size-4 rounded-[3px]"
+						/>
+					) : (
+						<HiOutlineFolder className="size-4" />
+					)}
+					<span className="hidden max-w-32 truncate text-sm @4xl:inline @6xl:max-w-48">
+						{selected ? selected.name : fallbackLabel}
+					</span>
+					<HiChevronDown className="size-3" />
+				</Button>
+			</PopoverTrigger>
+			<PopoverContent align="start" className="w-60 p-0">
+				<Command shouldFilter={false}>
+					<CommandInput
+						placeholder="Search projects..."
+						value={search}
+						onValueChange={setSearch}
+					/>
+					<CommandList className="max-h-80">
+						{filtered.length === 0 && (
+							<CommandEmpty>
+								{isReady
+									? search
+										? "No projects found."
+										: "No projects available."
+									: "Loading projects…"}
+							</CommandEmpty>
+						)}
+						{filtered.length > 0 && (
+							<CommandGroup>
+								{filtered.map((project) => (
+									<CommandItem
+										key={project.id}
+										onSelect={() => handleSelect(project.id)}
+									>
+										<ProjectThumbnail
+											projectName={project.name}
+											iconUrl={project.iconUrl}
+											className="size-4 shrink-0 rounded-[3px]"
+										/>
+										<span className="text-sm truncate">{project.name}</span>
+										{project.id === value && (
+											<HiCheck className="ml-auto size-3.5 shrink-0" />
+										)}
+									</CommandItem>
+								))}
+							</CommandGroup>
+						)}
+					</CommandList>
+				</Command>
+			</PopoverContent>
+		</Popover>
+	);
+}

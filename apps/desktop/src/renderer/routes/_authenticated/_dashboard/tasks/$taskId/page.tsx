@@ -43,6 +43,7 @@ function TaskDetailPage() {
 		type,
 		project,
 		linearProject,
+		state,
 	} = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
@@ -57,11 +58,12 @@ function TaskDetailPage() {
 			tab: tab ?? "all",
 			assignee: assignee ?? null,
 			search: searchQuery ?? "",
-			typeTab: type ?? "tasks",
+			typeTab: type === "issues" ? "issues" : "tasks",
 			projectFilter: project ?? null,
 			linearProjectFilter: linearProject ?? null,
+			includeClosedIssues: state === "all",
 		});
-	}, [tab, assignee, searchQuery, type, project, linearProject]);
+	}, [tab, assignee, searchQuery, type, project, linearProject, state]);
 	useEscapeToNavigate("/tasks", { search: backSearch });
 
 	// Support both UUID and slug lookups

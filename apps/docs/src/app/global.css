@@ -238,9 +238,3 @@ html:not([data-anchor-scrolling]) {
 	);
 	background-size: 16px 16px;
 }
-
-/* =============================================================================
-   Sidebar Styling - Custom sidebar (Better Auth style)
-   ============================================================================= */
-
-/* Custom sidebar is now fully implemented in React components */

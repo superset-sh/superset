@@ -1,5 +1,6 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import type { WorkspaceSelectionEvent } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
 
@@ -11,6 +12,8 @@ interface SortableWorkspaceItemProps {
 	onHoverCardOpen?: () => void;
 	shortcutLabel?: string;
 	disabled?: boolean;
+	isSelected?: boolean;
+	onSelectionClick?: (event: WorkspaceSelectionEvent) => boolean;
 }
 
 export function SortableWorkspaceItem({
@@ -21,6 +24,8 @@ export function SortableWorkspaceItem({
 	onHoverCardOpen,
 	shortcutLabel,
 	disabled,
+	isSelected = false,
+	onSelectionClick,
 }: SortableWorkspaceItemProps) {
 	const {
 		setNodeRef,
@@ -48,6 +53,8 @@ export function SortableWorkspaceItem({
 				onHoverCardOpen={onHoverCardOpen}
 				shortcutLabel={shortcutLabel}
 				isInSection={isInSection}
+				isSelected={isSelected}
+				onSelectionClick={onSelectionClick}
 			/>
 		</div>
 	);

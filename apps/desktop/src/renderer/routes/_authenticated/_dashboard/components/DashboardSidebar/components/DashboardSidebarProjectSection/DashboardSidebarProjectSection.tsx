@@ -10,6 +10,7 @@ import { DashboardSidebarCollapsedProjectContent } from "./components/DashboardS
 import { DashboardSidebarExpandedProjectContent } from "./components/DashboardSidebarExpandedProjectContent";
 import { DashboardSidebarProjectContextMenu } from "./components/DashboardSidebarProjectContextMenu";
 import { DashboardSidebarProjectRow } from "./components/DashboardSidebarProjectRow";
+import { ImportWorktreesDialog } from "./components/ImportWorktreesDialog";
 import { useDashboardSidebarProjectSectionActions } from "./hooks/useDashboardSidebarProjectSectionActions";
 
 interface DashboardSidebarProjectSectionProps {
@@ -40,15 +41,20 @@ export function DashboardSidebarProjectSection({
 
 	const {
 		cancelRename,
+		confirmImportWorktrees,
 		confirmRemoveFromSidebar,
 		deleteSection,
+		handleImportWorktrees,
 		handleNewSection,
 		handleNewWorkspace,
 		handleOpenInFinder,
 		handleOpenSettings,
+		importableWorktrees,
+		isImportingWorktrees,
 		isRenaming,
 		renameSection,
 		renameValue,
+		setImportableWorktrees,
 		setRenameValue,
 		startRename,
 		submitRename,
@@ -59,10 +65,24 @@ export function DashboardSidebarProjectSection({
 
 	const totalWorkspaceCount = flattenedCollapsedWorkspaces.length;
 
+	// Rendered only while open so the checkbox state resets per invocation.
+	const importWorktreesDialog = importableWorktrees && (
+		<ImportWorktreesDialog
+			open
+			worktrees={importableWorktrees}
+			isImporting={isImportingWorktrees}
+			onOpenChange={(open) => {
+				if (!open) setImportableWorktrees(null);
+			}}
+			onConfirm={confirmImportWorktrees}
+		/>
+	);
+
 	if (isSidebarCollapsed) {
 		return (
 			<DashboardSidebarProjectContextMenu
 				onCreateSection={handleNewSection}
+				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}
 				onOpenSettings={handleOpenSettings}
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
@@ -80,6 +100,7 @@ export function DashboardSidebarProjectSection({
 						onWorkspaceHover={onWorkspaceHover}
 						onToggleCollapse={() => onToggleCollapse(project.id)}
 					/>
+					{importWorktreesDialog}
 				</div>
 			</DashboardSidebarProjectContextMenu>
 		);
@@ -89,6 +110,7 @@ export function DashboardSidebarProjectSection({
 		<div className="mt-1 first:mt-0">
 			<DashboardSidebarProjectContextMenu
 				onCreateSection={handleNewSection}
+				onImportWorktrees={handleImportWorktrees}
 				onOpenInFinder={handleOpenInFinder}
 				onOpenSettings={handleOpenSettings}
 				onRemoveFromSidebar={confirmRemoveFromSidebar}
@@ -133,6 +155,7 @@ export function DashboardSidebarProjectSection({
 					</motion.div>
 				)}
 			</AnimatePresence>
+			{importWorktreesDialog}
 		</div>
 	);
 }

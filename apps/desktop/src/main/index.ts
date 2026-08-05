@@ -40,6 +40,7 @@ import {
 	shutdownTanstackDbPersistence,
 } from "./lib/persistence/persistence";
 import { ensureProjectIconsDir, getProjectIconPath } from "./lib/project-icons";
+import { runQuitCleanup } from "./lib/quit-sequence";
 import { initSentry } from "./lib/sentry";
 import {
 	prewarmTerminalRuntime,
@@ -80,18 +81,32 @@ if (process.defaultApp) {
 }
 
 async function processDeepLink(url: string): Promise<void> {
-	console.log("[main] Processing deep link:", url);
-
-	const authParams = parseAuthDeepLink(url);
-	if (authParams) {
-		const result = await handleAuthCallback(authParams);
+	const authLink = parseAuthDeepLink(url);
+	if (authLink.type !== "not-auth") {
+		// Never log the auth URL: it contains the desktop session token.
+		console.log("[main] Processing auth deep link");
+		const result =
+			authLink.type === "valid"
+				? await handleAuthCallback(authLink.params)
+				: {
+						success: false as const,
+						error: "The sign-in link was incomplete. Please try again.",
+					};
 		if (result.success) {
 			focusMainWindow();
 		} else {
 			console.error("[main] Auth deep link failed:", result.error);
+			focusMainWindow();
+			dialog.showErrorBox(
+				"Sign-in failed",
+				result.error ??
+					"Superset could not complete sign-in. Please try again.",
+			);
 		}
 		return;
 	}
+
+	console.log("[main] Processing deep link:", url);
 
 	// Non-auth deep links: extract path and navigate in renderer
 	// e.g. superset://tasks/my-slug -> /tasks/my-slug
@@ -224,21 +239,18 @@ app.on("before-quit", async (event) => {
 	}
 
 	isQuitting = true;
-	try {
-		getHostServiceCoordinator().stopAll();
-		if (isDev || forceFullCleanup) {
-			await teardownTerminalHost();
-		} else if (isUpdateReadyToInstall()) {
-			disposeTerminalHostClient();
-		}
-		shutdownTanstackDbPersistence();
-		disposeTray();
-	} catch (error) {
-		console.error("[main] Cleanup during quit failed:", error);
-	} finally {
-		await stopNetworkLogger();
-	}
-	app.exit(0);
+	await runQuitCleanup({
+		isDev,
+		forceFullCleanup,
+		isUpdateInstalling: isUpdateReadyToInstall(),
+		stopHostServices: () => getHostServiceCoordinator().stopAll(),
+		teardownTerminalHost,
+		disposeTerminalHostClient,
+		shutdownPersistence: shutdownTanstackDbPersistence,
+		disposeTray,
+		stopNetworkLogger,
+		forceExit: (code) => app.exit(code),
+	});
 });
 
 /**
@@ -407,23 +419,52 @@ if (!gotTheLock) {
 		await reconcileDaemonSessions();
 		prewarmTerminalRuntime();
 
-		// Host services for previously-hosted orgs start from main, so
-		// background reachability and port detection never wait on a renderer
-		// or cloud sync. Non-blocking: boot must not wait on spawns.
-		const startKnownHostServices = async () => {
+		const hostServiceCoordinator = getHostServiceCoordinator();
+		hostServiceCoordinator.setConfigProvider(async () => {
+			const { token } = await loadToken();
+			if (!token) return null;
+			return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };
+		});
+
+		// The authenticated session's cached membership is the source of truth.
+		// Host data on disk can outlive membership and must never resurrect an
+		// obsolete service. This cache keeps subsequent launches offline-capable.
+		let authGeneration = 0;
+		const reconcileHostServices = async (providedAuth?: {
+			token: string;
+			organizationIds: string[];
+		}) => {
+			const generation = authGeneration;
 			try {
-				const { token } = await loadToken();
-				if (!token) return;
-				await getHostServiceCoordinator().startAllKnown({
-					authToken: token,
+				const storedAuth = providedAuth ?? (await loadToken());
+				if (generation !== authGeneration) return;
+				if (!storedAuth.token || !storedAuth.organizationIds) return;
+				await hostServiceCoordinator.reconcile(storedAuth.organizationIds, {
+					authToken: storedAuth.token,
 					cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL,
 				});
 			} catch (error) {
-				console.error("[main] host-service boot reconcile failed:", error);
+				console.error("[main] host-service reconcile failed:", error);
 			}
 		};
-		void startKnownHostServices();
-		authEvents.on("token-saved", () => void startKnownHostServices());
+		void reconcileHostServices();
+		// A new token can belong to a different account. Stop immediately and wait
+		// for that account's session membership before starting anything.
+		authEvents.on("token-saved", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on("token-cleared", () => {
+			authGeneration++;
+			hostServiceCoordinator.stopAll();
+		});
+		authEvents.on(
+			"organization-ids-saved",
+			(data: { token: string; organizationIds: string[] }) => {
+				authGeneration++;
+				void reconcileHostServices(data);
+			},
+		);
 
 		try {
 			setupAgentHooks();
@@ -437,7 +478,7 @@ if (!gotTheLock) {
 		}
 
 		if (IS_DEV) {
-			getHostServiceCoordinator().enableDevReload(async () => {
+			hostServiceCoordinator.enableDevReload(async () => {
 				const { token } = await loadToken();
 				if (!token) return null;
 				return { authToken: token, cloudApiUrl: mainEnv.NEXT_PUBLIC_API_URL };

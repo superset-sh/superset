@@ -23,11 +23,11 @@ type SelectedWorkspace =
 	  }
 	| null;
 
-mock.module("@superset/chat/server/shared", () => ({
+mock.module("@superset/chat-legacy/server/shared", () => ({
 	getSmallModel: getSmallModelMock,
 }));
 
-mock.module("@superset/chat/server/desktop", () => ({
+mock.module("@superset/chat-legacy/server/desktop", () => ({
 	generateTitleFromMessage: generateTitleFromMessageMock,
 }));
 
@@ -117,7 +117,7 @@ describe("generateWorkspaceNameFromPrompt", () => {
 			agentId: "workspace-namer",
 			agentName: "Workspace Namer",
 			instructions:
-				"You generate concise workspace titles. 20 characters or less. Return ONLY the title, nothing else.",
+				"You generate concise workspace titles. 20 characters or less. Write the title in the same language as the user's message. Return ONLY the title, nothing else.",
 			tracingContext: { surface: "workspace-auto-name" },
 		});
 	});

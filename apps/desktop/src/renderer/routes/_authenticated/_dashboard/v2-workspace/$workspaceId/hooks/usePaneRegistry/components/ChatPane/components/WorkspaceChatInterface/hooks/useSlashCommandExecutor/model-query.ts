@@ -1,4 +1,4 @@
-import { tokenizeSlashCommandArguments } from "@superset/chat/shared";
+import { tokenizeSlashCommandArguments } from "@superset/chat-legacy/shared";
 import type { ModelOption } from "renderer/components/Chat/ChatInterface/types";
 
 export function normalizeModelQueryFromActionArgument(

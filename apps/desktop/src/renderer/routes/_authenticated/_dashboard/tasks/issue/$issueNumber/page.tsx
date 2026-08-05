@@ -1,20 +1,22 @@
-import { Button } from "@superset/ui/button";
 import { ScrollArea } from "@superset/ui/scroll-area";
 import { useQuery } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
-import { HiArrowLeft } from "react-icons/hi2";
-import { LuExternalLink, LuPlus } from "react-icons/lu";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { WorkItemDetailHeader } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailHeader";
+import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
+import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
+import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
 } from "renderer/stores/new-workspace-draft";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { Route as TasksLayoutRoute } from "../../layout";
+import { tasksSearchFromFilters } from "../../stores/tasks-filter-state";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/tasks/issue/$issueNumber/",
@@ -24,36 +26,52 @@ export const Route = createFileRoute(
 
 function IssueDetailPage() {
 	const { issueNumber: issueNumberRaw } = Route.useParams();
-	const issueNumber = Number.parseInt(issueNumberRaw, 10);
+	const issueNumber = parsePositiveIntegerParam(issueNumberRaw);
 	const search = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
-	const hostUrl = useHostUrl(null);
 	const projectId = search.project ?? null;
-	const updateDraft = useNewWorkspaceDraftStore((s) => s.updateDraft);
-	const resetDraft = useNewWorkspaceDraftStore((s) => s.resetDraft);
+	const {
+		hostId,
+		isReady: areProjectsReady,
+		project,
+	} = useProjectHost(projectId);
+	const hostUrl = useHostUrl(hostId ?? undefined);
+	const updateDraft = useNewWorkspaceDraftStore((state) => state.updateDraft);
+	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
-	const backSearch = useMemo(() => {
-		const s: Record<string, string> = {};
-		if (search.tab) s.tab = search.tab;
-		if (search.assignee) s.assignee = search.assignee;
-		if (search.search) s.search = search.search;
-		if (search.type) s.type = search.type;
-		if (search.project) s.project = search.project;
-		return s;
-	}, [search]);
+	const backSearch = useMemo(
+		() =>
+			tasksSearchFromFilters({
+				tab: search.tab ?? "all",
+				assignee: search.assignee ?? null,
+				search: search.search ?? "",
+				typeTab: "issues",
+				projectFilter: projectId,
+				linearProjectFilter: search.linearProject ?? null,
+				includeClosedIssues: search.state === "all",
+			}),
+		[
+			projectId,
+			search.assignee,
+			search.linearProject,
+			search.search,
+			search.state,
+			search.tab,
+		],
+	);
 
-	const { data, isLoading, error } = useQuery({
+	const { data, isLoading, error, refetch } = useQuery({
 		queryKey: ["issue-detail", projectId, hostUrl, issueNumber],
 		queryFn: async () => {
-			if (!hostUrl || !projectId) return null;
+			if (!hostUrl || !projectId || issueNumber === null) return null;
 			const client = getHostServiceClientByUrl(hostUrl);
 			return client.issues.getContent.query({
 				projectId,
 				issueNumber,
 			});
 		},
-		enabled: !!hostUrl && !!projectId && Number.isFinite(issueNumber),
+		enabled: !!hostUrl && !!project && !!projectId && issueNumber !== null,
 		retry: false,
 		staleTime: 30_000,
 		gcTime: 10 * 60_000,
@@ -64,7 +82,7 @@ function IssueDetailPage() {
 	};
 
 	const handleAddToWorkspace = () => {
-		if (!projectId || !data) return;
+		if (!projectId || !hostId || !data) return;
 		const linkedIssue: LinkedIssue = {
 			slug: `gh-${data.number}`,
 			title: data.title,
@@ -76,78 +94,114 @@ function IssueDetailPage() {
 		resetDraft();
 		updateDraft({
 			selectedProjectId: projectId,
+			hostId,
 			linkedIssues: [linkedIssue],
 		});
 		openModal(projectId);
 	};
 
+	const isClosed = data?.state.toLowerCase() === "closed";
+	const StateIcon = isClosed ? GoIssueClosed : GoIssueOpened;
+	const stateIconClass = isClosed ? "text-violet-500" : "text-emerald-500";
+	const header = (
+		<WorkItemDetailHeader
+			itemNumber={data?.number ?? issueNumber}
+			icon={<StateIcon className={`size-4 shrink-0 ${stateIconClass}`} />}
+			backLabel="Back to GitHub issues"
+			externalLabel="Open issue in GitHub"
+			url={data?.url ?? null}
+			onBack={handleBack}
+			onAddToWorkspace={data ? handleAddToWorkspace : null}
+		/>
+	);
+
+	if (issueNumber === null) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState message="This issue link is invalid." isError />
+			</div>
+		);
+	}
+
 	if (!projectId) {
 		return (
-			<div className="flex-1 flex items-center justify-center">
-				<span className="text-muted-foreground">No project specified.</span>
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState message="Choose a project from GitHub issues before opening an issue." />
+			</div>
+		);
+	}
+
+	if (!project) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState
+					message={
+						areProjectsReady
+							? "This project is no longer available on your devices."
+							: "Loading project…"
+					}
+					isLoading={!areProjectsReady}
+					isError={areProjectsReady}
+				/>
+			</div>
+		);
+	}
+
+	if (!hostId || !hostUrl) {
+		return (
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState
+					message="The device that hosts this project is unavailable."
+					isError
+				/>
 			</div>
 		);
 	}
 
 	if (isLoading) {
 		return (
-			<div className="flex-1 flex items-center justify-center">
-				<span className="text-muted-foreground">Loading issue…</span>
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState message="Loading issue…" isLoading />
 			</div>
 		);
 	}
 
 	if (error instanceof Error || !data) {
 		return (
-			<div className="flex-1 flex flex-col min-h-0">
-				<Header
-					issueNumber={issueNumber}
-					url={null}
-					isClosed={false}
-					onBack={handleBack}
-					onAddToWorkspace={null}
+			<div className="flex min-h-0 flex-1 flex-col">
+				{header}
+				<WorkItemDetailState
+					message={error instanceof Error ? error.message : "Issue not found."}
+					isError
+					onRetry={() => void refetch()}
 				/>
-				<div className="px-6 py-6 text-sm text-destructive select-text cursor-text">
-					{error instanceof Error ? error.message : "Issue not found."}
-				</div>
 			</div>
 		);
 	}
 
-	const isClosed = data.state.toLowerCase() === "closed";
-	const StateIcon = isClosed ? GoIssueClosed : GoIssueOpened;
-
 	return (
-		<div className="flex-1 flex flex-col min-h-0">
-			<Header
-				issueNumber={data.number}
-				url={data.url}
-				isClosed={isClosed}
-				onBack={handleBack}
-				onAddToWorkspace={handleAddToWorkspace}
-			/>
-
-			<ScrollArea className="flex-1 min-h-0">
-				<div className="px-6 py-6 max-w-4xl">
-					<div className="flex items-start gap-3 mb-4">
-						<StateIcon
-							className={
-								isClosed
-									? "size-5 shrink-0 mt-1 text-violet-500"
-									: "size-5 shrink-0 mt-1 text-emerald-500"
-							}
-						/>
-						<h1 className="text-2xl font-semibold leading-tight">
+		<div className="@container flex min-h-0 flex-1 flex-col">
+			{header}
+			<ScrollArea className="min-h-0 flex-1">
+				<div className="max-w-4xl px-4 py-5 @md:px-6 @md:py-6">
+					<div className="mb-4 flex min-w-0 items-start gap-3">
+						<StateIcon className={`mt-1 size-5 shrink-0 ${stateIconClass}`} />
+						<h1 className="min-w-0 break-words text-2xl font-semibold leading-tight text-wrap-pretty">
 							{data.title}
 						</h1>
 					</div>
 
-					<div className="flex items-center gap-3 text-xs text-muted-foreground mb-6">
+					<div className="mb-6 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
 						<span className="capitalize">{data.state}</span>
 						{data.author && (
 							<>
-								<span>·</span>
-								<span>by {data.author}</span>
+								<span aria-hidden>·</span>
+								<span className="min-w-0 break-words">by {data.author}</span>
 							</>
 						)}
 					</div>
@@ -155,75 +209,12 @@ function IssueDetailPage() {
 					{data.body.trim() ? (
 						<MarkdownRenderer content={data.body} />
 					) : (
-						<p className="text-sm text-muted-foreground italic">
+						<p className="text-sm italic text-muted-foreground">
 							No description provided.
 						</p>
 					)}
 				</div>
 			</ScrollArea>
-		</div>
-	);
-}
-
-interface HeaderProps {
-	issueNumber: number;
-	url: string | null;
-	isClosed: boolean;
-	onBack: () => void;
-	onAddToWorkspace: (() => void) | null;
-}
-
-function Header({
-	issueNumber,
-	url,
-	isClosed,
-	onBack,
-	onAddToWorkspace,
-}: HeaderProps) {
-	const StateIcon = isClosed ? GoIssueClosed : GoIssueOpened;
-	return (
-		<div className="flex items-center gap-3 px-6 py-4 border-b border-border shrink-0">
-			<Button
-				variant="ghost"
-				size="icon"
-				className="h-8 w-8"
-				onClick={onBack}
-				aria-label="Back to tasks"
-			>
-				<HiArrowLeft className="w-4 h-4" />
-			</Button>
-			<StateIcon
-				className={
-					isClosed ? "size-4 text-violet-500" : "size-4 text-emerald-500"
-				}
-			/>
-			<span className="text-sm text-muted-foreground font-mono tabular-nums">
-				#{issueNumber}
-			</span>
-			<div className="ml-auto flex items-center gap-1">
-				{url && (
-					<a
-						href={url}
-						target="_blank"
-						rel="noopener noreferrer"
-						className="text-muted-foreground hover:text-foreground transition-colors p-2"
-						title="Open in GitHub"
-					>
-						<LuExternalLink className="w-4 h-4" />
-					</a>
-				)}
-				{onAddToWorkspace && (
-					<Button
-						variant="outline"
-						size="sm"
-						className="h-8 gap-1.5"
-						onClick={onAddToWorkspace}
-					>
-						<LuPlus className="size-4" />
-						Add to workspace
-					</Button>
-				)}
-			</div>
 		</div>
 	);
 }

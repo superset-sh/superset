@@ -4,6 +4,13 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT_DIR"
 
+# Without this, a missing rg exits 127 and the `if` below reads as "no matches",
+# so the scan silently passes without having run.
+if ! command -v rg >/dev/null 2>&1; then
+	echo "[simple-git] ripgrep (rg) is required but not installed" >&2
+	exit 1
+fi
+
 failures=0
 
 report_violation() {

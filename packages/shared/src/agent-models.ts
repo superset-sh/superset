@@ -139,6 +139,20 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		],
 	},
 	{
+		// Polygraph's picker selects the harness it launches, not a model: the
+		// selection rides `polygraph session start --agent <id>`. The launch
+		// plumbing is flag-agnostic, so it reuses this catalog. Unset
+		// ("Default") omits the flag and polygraph falls back to its own
+		// `--agent auto` resolution.
+		presetId: "polygraph",
+		modelFlag: "--agent",
+		models: [
+			{ id: "claude", label: "Claude" },
+			{ id: "codex", label: "Codex" },
+			{ id: "opencode", label: "OpenCode" },
+		],
+	},
+	{
 		presetId: "superset",
 		modelFlag: null,
 		models: SUPERSET_CHAT_MODELS.map(({ id, label }) => ({ id, label })),

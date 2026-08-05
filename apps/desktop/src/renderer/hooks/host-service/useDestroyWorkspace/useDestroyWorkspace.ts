@@ -56,6 +56,41 @@ export interface UseDestroyWorkspace {
 	inspect: () => Promise<DestroyWorkspacePreview>;
 }
 
+export interface DestroyWorkspaceHostTarget {
+	workspaceId: string;
+	hostUrl: string | null;
+	hostStatus: WorkspaceHostTarget["status"];
+}
+
+export async function destroyWorkspaceAtHost(
+	{ workspaceId, hostUrl, hostStatus }: DestroyWorkspaceHostTarget,
+	input: DestroyWorkspaceInput = {},
+): Promise<DestroyWorkspaceSuccess> {
+	const client = getReadyClient(hostUrl, hostStatus);
+	try {
+		return await client.workspaceCleanup.destroy.mutate({
+			workspaceId,
+			deleteBranch: input.deleteBranch ?? false,
+			force: input.force ?? false,
+		});
+	} catch (error) {
+		throw normalizeDestroyWorkspaceError(error);
+	}
+}
+
+export async function inspectWorkspaceAtHost({
+	workspaceId,
+	hostUrl,
+	hostStatus,
+}: DestroyWorkspaceHostTarget): Promise<DestroyWorkspacePreview> {
+	const client = getReadyClient(hostUrl, hostStatus);
+	try {
+		return await client.workspaceCleanup.inspect.query({ workspaceId });
+	} catch (error) {
+		throw normalizeDestroyWorkspaceError(error);
+	}
+}
+
 /**
  * Calls `workspaceCleanup.{inspect,destroy}` on the workspace's owning
  * host-service. Translates TRPC errors into a typed discriminated union
@@ -89,27 +124,16 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 		async (
 			input: DestroyWorkspaceInput = {},
 		): Promise<DestroyWorkspaceSuccess> => {
-			const client = getReadyClient(hostUrl, hostStatus);
-			try {
-				return await client.workspaceCleanup.destroy.mutate({
-					workspaceId,
-					deleteBranch: input.deleteBranch ?? false,
-					force: input.force ?? false,
-				});
-			} catch (err) {
-				throw normalizeError(err);
-			}
+			return destroyWorkspaceAtHost(
+				{ workspaceId, hostUrl, hostStatus },
+				input,
+			);
 		},
 		[hostUrl, hostStatus, workspaceId],
 	);
 
 	const inspect = useCallback(async (): Promise<DestroyWorkspacePreview> => {
-		const client = getReadyClient(hostUrl, hostStatus);
-		try {
-			return await client.workspaceCleanup.inspect.query({ workspaceId });
-		} catch (err) {
-			throw normalizeError(err);
-		}
+		return inspectWorkspaceAtHost({ workspaceId, hostUrl, hostStatus });
 	}, [hostUrl, hostStatus, workspaceId]);
 
 	return { hostTarget, destroy, inspect };
@@ -128,7 +152,9 @@ function getReadyClient(
 	return getHostServiceClientByUrl(hostUrl);
 }
 
-function normalizeError(err: unknown): DestroyWorkspaceError {
+export function normalizeDestroyWorkspaceError(
+	err: unknown,
+): DestroyWorkspaceError {
 	if (isDestroyWorkspaceError(err)) return err;
 	if (err instanceof TRPCClientError) {
 		const data = err.data as

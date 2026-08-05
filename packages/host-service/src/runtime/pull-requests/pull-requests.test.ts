@@ -7,7 +7,9 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../db";
 import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
+import type { WorkspaceChangedMessage } from "../../events/types";
 import { PullRequestRuntimeManager } from "./pull-requests";
+import type { WorkspaceRefsSnapshot } from "./utils/workspace-refs";
 
 // All tests run the real manager against a real, migrated, in-memory SQLite
 // DB. An earlier hand-faked DB ignored query predicates and could only hold a
@@ -143,6 +145,9 @@ function createManager(
 		execGh?: (args: string[]) => Promise<unknown>;
 		github?: () => Promise<never>;
 		git?: unknown;
+		readWorkspaceRefs?: (
+			worktreePath: string,
+		) => Promise<WorkspaceRefsSnapshot>;
 	} = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -163,6 +168,7 @@ function createManager(
 				throw new Error("octokit should not be used");
 			}) as never),
 		gitWatcher: { onChanged: () => () => {} } as never,
+		readWorkspaceRefs: overrides.readWorkspaceRefs,
 	});
 }
 
@@ -734,5 +740,112 @@ describe("default-branch guard", () => {
 		expect(getWorkspace(db, "ws-fork")?.pullRequestId).toBe(
 			getPrByNumber(db, 88)?.id,
 		);
+	});
+});
+
+type WorkspaceChangedEvent = Omit<WorkspaceChangedMessage, "type">;
+
+// Minimal in-process stand-in for EventBus.onWorkspaceChanged.
+function createFakeWorkspaceEventBus() {
+	const listeners = new Set<(event: WorkspaceChangedEvent) => void>();
+	return {
+		listeners,
+		onWorkspaceChanged(listener: (event: WorkspaceChangedEvent) => void) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
+		emit(event: WorkspaceChangedEvent) {
+			for (const listener of listeners) listener(event);
+		},
+	};
+}
+
+// The subscription handler fires enqueueWorkspaceSync without exposing its
+// promise, so tests observe completion through the DB row.
+async function waitFor(
+	condition: () => boolean,
+	timeoutMs = 2000,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!condition() && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, 10));
+	}
+}
+
+describe("workspace-created event trigger", () => {
+	// The manager only consumes workspaceId (it re-reads the row from the DB),
+	// so the snapshot payload can stay null.
+	const createdEvent: WorkspaceChangedEvent = {
+		workspaceId: "ws-new",
+		eventType: "created",
+		workspace: null,
+		occurredAt: 1,
+	};
+
+	function createEventDrivenManager(db: HostDb) {
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({
+				"feat/new-thing": makePrNode({
+					number: 6123,
+					headRef: "feat/new-thing",
+					headSha: "sha-new",
+				}),
+			}),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/new-thing",
+					headSha: "sha-new",
+					upstream: {
+						owner: REPO.owner,
+						name: REPO.name,
+						branch: "feat/new-thing",
+					},
+				};
+			},
+		});
+		return { manager, refsReads: () => refsReads };
+	}
+
+	test("links the PR on a created event without timers or gitWatcher activity", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		// Fresh-insert shape: branch set, headSha/upstream all NULL.
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const { manager } = createEventDrivenManager(db);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		// start() is deliberately never called: no safety-net/refresh timers,
+		// and the fake gitWatcher never emits. The event alone must do it.
+		bus.emit(createdEvent);
+		await waitFor(() => Boolean(getWorkspace(db, "ws-new")?.pullRequestId));
+
+		const ws = getWorkspace(db, "ws-new");
+		expect(ws?.headSha).toBe("sha-new");
+		expect(ws?.upstreamOwner).toBe(REPO.owner);
+		expect(ws?.upstreamRepo).toBe(REPO.name);
+		expect(ws?.upstreamBranch).toBe("feat/new-thing");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 6123)?.id);
+
+		manager.stop();
+		expect(bus.listeners.size).toBe(0);
+	});
+
+	test("ignores updated and deleted events", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const { manager, refsReads } = createEventDrivenManager(db);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emit({ ...createdEvent, eventType: "updated" });
+		bus.emit({ ...createdEvent, eventType: "deleted" });
+		await waitFor(() => refsReads() > 0, 100);
+
+		expect(refsReads()).toBe(0);
+		expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeNull();
 	});
 });

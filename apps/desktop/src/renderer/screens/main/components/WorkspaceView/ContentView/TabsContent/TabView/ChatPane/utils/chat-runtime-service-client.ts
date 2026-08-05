@@ -1,5 +1,5 @@
-import { createChatRuntimeServiceClient } from "@superset/chat/client";
-import type { ChatRuntimeServiceRouter } from "@superset/chat/server/trpc";
+import { createChatRuntimeServiceClient } from "@superset/chat-legacy/client";
+import type { ChatRuntimeServiceRouter } from "@superset/chat-legacy/server/trpc";
 import type { TRPCLink } from "@trpc/client";
 import type { AnyRouter } from "@trpc/server";
 import { observable } from "@trpc/server/observable";

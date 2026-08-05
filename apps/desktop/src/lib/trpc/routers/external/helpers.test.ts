@@ -166,6 +166,42 @@ describe("getAppCommand", () => {
 		});
 	});
 
+	describe("Zed (multi-channel)", () => {
+		// `open -a Zed` fails for a user whose only install is Zed Preview (its
+		// app is "Zed Preview", not "Zed"). Resolving by bundle ID across release
+		// channels launches whichever channel is installed.
+		test("returns bundle ID candidates across release channels", () => {
+			const result = getAppCommand("zed", "/path/to/file");
+			expect(result).toEqual([
+				{ command: "open", args: ["-b", "dev.zed.Zed", "/path/to/file"] },
+				{
+					command: "open",
+					args: ["-b", "dev.zed.Zed-Preview", "/path/to/file"],
+				},
+				{
+					command: "open",
+					args: ["-b", "dev.zed.Zed-Nightly", "/path/to/file"],
+				},
+				{ command: "open", args: ["-b", "dev.zed.Zed-Dev", "/path/to/file"] },
+			]);
+		});
+
+		// Zed opens a directory as a project via a plain open-document event, so
+		// (unlike JetBrains, #5090) it must NOT get the `-n ... --args` treatment.
+		test("opens a folder directly, without -n/--args", () => {
+			const result = getAppCommand("zed", "/Users/me/worktree");
+			for (const cmd of result ?? []) {
+				expect(cmd.args).not.toContain("-n");
+				expect(cmd.args).not.toContain("--args");
+			}
+		});
+
+		test("still resolves via the `zed` CLI on Linux", () => {
+			const result = getAppCommand("zed", "/path/to/file", "linux");
+			expect(result).toEqual([{ command: "zed", args: ["/path/to/file"] }]);
+		});
+	});
+
 	// Regression test for #5090: "Open in IntelliJ opens the base project
 	// instead of the worktree".
 	//

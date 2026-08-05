@@ -11,25 +11,25 @@
 		"postinstall": "fumadocs-mdx"
 	},
 	"dependencies": {
-		"@modelcontextprotocol/sdk": "1.28.0",
+		"@modelcontextprotocol/sdk": "1.30.0",
 		"@radix-ui/react-collapsible": "1.1.12",
 		"@radix-ui/react-scroll-area": "1.2.10",
-		"@sentry/nextjs": "10.46.0",
+		"@sentry/nextjs": "10.68.0",
 		"@superset/shared": "workspace:*",
+		"@superset/ui": "workspace:*",
 		"@t3-oss/env-nextjs": "0.13.11",
 		"class-variance-authority": "0.7.1",
 		"dotenv": "17.3.1",
-		"framer-motion": "12.38.0",
-		"fumadocs-core": "16.4.7",
-		"fumadocs-mdx": "14.2.5",
-		"fumadocs-ui": "16.4.7",
+		"fumadocs-core": "16.13.0",
+		"fumadocs-mdx": "15.2.0",
+		"fumadocs-ui": "16.13.0",
 		"lucide-react": "0.563.0",
 		"next": "16.2.11",
 		"posthog-js": "1.310.1",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
 		"tailwind-merge": "3.5.0",
-		"zod": "4.3.6"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
@@ -38,7 +38,7 @@
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
-		"postcss": "8.5.18",
+		"postcss": "8.5.25",
 		"tailwindcss": "4.2.2",
 		"tailwindcss-animate": "1.0.7",
 		"typescript": "6.0.3"

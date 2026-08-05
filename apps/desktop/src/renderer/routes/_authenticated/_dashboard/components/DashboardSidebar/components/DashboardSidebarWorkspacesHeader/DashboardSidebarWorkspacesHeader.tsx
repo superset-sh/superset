@@ -69,8 +69,12 @@ export function DashboardSidebarWorkspacesHeader() {
 			<span className="min-w-0 truncate text-left">Projects</span>
 			<HiChevronRight
 				className={cn(
-					"size-3 shrink-0 text-muted-foreground opacity-0 transition-[opacity,transform] duration-150 group-hover:opacity-100 group-focus-visible:opacity-100",
-					!isCollapsed && "rotate-90",
+					"size-3 shrink-0 text-muted-foreground transition-[opacity,transform] duration-150",
+					// Stays visible while collapsed — it's the only cue that the
+					// project rows are hidden rather than missing (GH #6009).
+					isCollapsed
+						? "opacity-100"
+						: "rotate-90 opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
 				)}
 			/>
 			<div className="min-w-0 flex-1" />
@@ -80,7 +84,7 @@ export function DashboardSidebarWorkspacesHeader() {
 						<DropdownMenuTrigger asChild>
 							<button
 								type="button"
-								aria-label="Add repository"
+								aria-label="Add project"
 								onClick={(event) => event.stopPropagation()}
 								onKeyDown={(event) => event.stopPropagation()}
 								className="group/addrepo flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground"
@@ -90,7 +94,7 @@ export function DashboardSidebarWorkspacesHeader() {
 							</button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom">Add repository</TooltipContent>
+					<TooltipContent side="bottom">Add project</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent
 					align="end"
@@ -103,7 +107,7 @@ export function DashboardSidebarWorkspacesHeader() {
 				>
 					<DropdownMenuItem onSelect={handleImportFolder}>
 						<VscFolderOpened className="size-4" />
-						Open from folder
+						Open project
 					</DropdownMenuItem>
 					<DropdownMenuItem onSelect={() => openNewProject()}>
 						<VscGithubAlt className="size-4" />

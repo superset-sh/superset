@@ -12,6 +12,7 @@
 		"./overflow-fade-text": "./src/components/overflow-fade/OverflowFadeText/index.ts",
 		"./overflow-fade.css": "./src/components/overflow-fade/fade-edge.css",
 		"./ai-elements/*": "./src/components/ai-elements/*.tsx",
+		"./chat-history-sidebar": "./src/components/ChatHistorySidebar/index.ts",
 		"./mesh-gradient": "./src/components/mesh-gradient.tsx",
 		"./icons/preset-icons": "./src/assets/icons/preset-icons/index.ts",
 		"./icons/preset-icons/*": "./src/assets/icons/preset-icons/*.svg",
@@ -21,7 +22,9 @@
 	"scripts": {
 		"clean": "git clean -xdf .cache .turbo dist node_modules",
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false",
-		"ui-add": "bunx shadcn@latest add"
+		"ui-add": "bunx shadcn@latest add",
+		"storybook": "storybook dev -p 6006",
+		"build-storybook": "storybook build"
 	},
 	"dependencies": {
 		"@hookform/resolvers": "5.2.2",
@@ -52,10 +55,11 @@
 		"@radix-ui/react-toggle-group": "1.1.11",
 		"@radix-ui/react-tooltip": "1.2.8",
 		"@radix-ui/react-use-controllable-state": "1.2.2",
+		"@shadcn/react": "0.2.1",
 		"@streamdown/mermaid": "1.0.2",
 		"@superset/shared": "workspace:*",
 		"@xyflow/react": "12.10.2",
-		"ai": "6.0.141",
+		"ai": "6.0.235",
 		"class-variance-authority": "0.7.1",
 		"clsx": "2.1.1",
 		"cmdk": "1.1.1",
@@ -82,19 +86,23 @@
 		"tw-animate-css": "1.4.0",
 		"use-stick-to-bottom": "1.1.3",
 		"vaul": "1.1.2",
-		"zod": "4.3.6"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
+		"@storybook/react-vite": "10.4.2",
 		"@superset/typescript": "workspace:*",
 		"@tailwindcss/postcss": "4.2.2",
+		"@tailwindcss/vite": "4.2.2",
 		"@types/bun": "1.3.14",
 		"@types/node": "24.12.0",
 		"@types/react": "19.2.14",
 		"@types/react-dom": "19.2.3",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
+		"storybook": "10.4.2",
 		"tailwindcss": "4.2.2",
-		"typescript": "6.0.3"
+		"typescript": "6.0.3",
+		"vite": "7.3.5"
 	},
 	"peerDependencies": {
 		"react": "19.2.3"

@@ -21,6 +21,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { WaitForSetupBeforeAgentSetting } from "./components/WaitForSetupBeforeAgentSetting";
 
 interface ExperimentalSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -43,6 +44,10 @@ export function ExperimentalSettings({
 	);
 	const showWorkspaceAgents = isItemVisible(
 		SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS,
+		visibleItems,
+	);
+	const showWaitForSetupBeforeAgent = isItemVisible(
+		SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT,
 		visibleItems,
 	);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
@@ -156,6 +161,7 @@ export function ExperimentalSettings({
 						/>
 					</div>
 				)}
+				{showWaitForSetupBeforeAgent && <WaitForSetupBeforeAgentSetting />}
 			</div>
 		</div>
 	);

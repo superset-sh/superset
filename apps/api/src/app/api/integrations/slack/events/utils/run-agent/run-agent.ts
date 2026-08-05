@@ -1,15 +1,12 @@
 import Anthropic from "@anthropic-ai/sdk";
 import type { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { WebClient } from "@slack/web-api";
-import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { env } from "@/env";
-import { posthog } from "@/lib/analytics";
 import { DEFAULT_SLACK_MODEL } from "../../../constants";
 import type { AgentAction } from "../slack-blocks";
 import type { SlackImageAsset } from "../slack-image-assets";
 import {
 	createSupersetMcpClient,
-	createSupersetMcpV2Client,
 	mcpToolToAnthropicTool,
 	parseToolName,
 } from "./mcp-clients";
@@ -328,17 +325,8 @@ const TOOL_PROGRESS_STATUS: Record<string, string> = {
 	slack_get_channel_history: "Reading channel history...",
 };
 
-// v1 tools excluded from the Slack agent's tool list (preloaded as context).
-const DENIED_SUPERSET_TOOLS_V1 = new Set([
-	"switch_workspace",
-	"get_app_context",
-	"list_members",
-	"list_task_statuses",
-	"list_devices",
-]);
-
-// v2 tools excluded for the same reason.
-const DENIED_SUPERSET_TOOLS_V2 = new Set([
+// Tools excluded from the Slack agent's tool list (preloaded as context).
+const DENIED_SUPERSET_TOOLS = new Set([
 	"organization_members_list",
 	"tasks_statuses_list",
 	"hosts_list",
@@ -425,28 +413,14 @@ Context gathering:
 async function fetchAgentContext({
 	mcpClient,
 	userId,
-	useV2,
 }: {
 	mcpClient: Client;
 	userId: string;
-	useV2: boolean;
 }): Promise<string> {
-	const toolNames = useV2
-		? {
-				members: "organization_members_list",
-				statuses: "tasks_statuses_list",
-				hosts: "hosts_list",
-			}
-		: {
-				members: "list_members",
-				statuses: "list_task_statuses",
-				hosts: "list_devices",
-			};
-
 	const [membersResult, statusesResult, hostsResult] = await Promise.all([
-		mcpClient.callTool({ name: toolNames.members, arguments: {} }),
-		mcpClient.callTool({ name: toolNames.statuses, arguments: {} }),
-		mcpClient.callTool({ name: toolNames.hosts, arguments: {} }),
+		mcpClient.callTool({ name: "organization_members_list", arguments: {} }),
+		mcpClient.callTool({ name: "tasks_statuses_list", arguments: {} }),
+		mcpClient.callTool({ name: "hosts_list", arguments: {} }),
 	]);
 
 	const sections: string[] = [];
@@ -478,33 +452,15 @@ async function fetchAgentContext({
 		sections.push(`Task statuses:\n${lines.join("\n")}`);
 	}
 
-	if (useV2) {
-		// v2 hosts_list returns a bare array, which the SDK wraps as `{ result }`.
-		const hostsData = hostsResult.structuredContent as {
-			result: { id: string; name: string; online: boolean }[];
-		} | null;
-		if (hostsData?.result?.length) {
-			const lines = hostsData.result.map(
-				(h) => `- ${h.name} (id: ${h.id}, online: ${h.online ? "yes" : "no"})`,
-			);
-			sections.push(`Hosts:\n${lines.join("\n")}`);
-		}
-	} else {
-		const devicesData = hostsResult.structuredContent as {
-			devices: {
-				deviceId: string;
-				deviceName: string | null;
-				ownerName: string | null;
-				ownerEmail: string;
-			}[];
-		} | null;
-		if (devicesData?.devices?.length) {
-			const lines = devicesData.devices.map(
-				(d) =>
-					`- ${d.deviceName ?? "Unknown"} (id: ${d.deviceId}, owner: ${d.ownerName ?? d.ownerEmail})`,
-			);
-			sections.push(`Devices:\n${lines.join("\n")}`);
-		}
+	// hosts_list returns a bare array, which the SDK wraps as `{ result }`.
+	const hostsData = hostsResult.structuredContent as {
+		result: { id: string; name: string; online: boolean }[];
+	} | null;
+	if (hostsData?.result?.length) {
+		const lines = hostsData.result.map(
+			(h) => `- ${h.name} (id: ${h.id}, online: ${h.online ? "yes" : "no"})`,
+		);
+		sections.push(`Hosts:\n${lines.join("\n")}`);
 	}
 
 	return sections.join("\n\n");
@@ -552,15 +508,6 @@ export async function runSlackAgent(
 	const anthropic = new Anthropic({ apiKey: env.ANTHROPIC_API_KEY });
 	const actions: AgentAction[] = [];
 
-	let useV2 = false;
-	try {
-		useV2 = Boolean(
-			await posthog.getFeatureFlag(FEATURE_FLAGS.SLACK_MCP_V2, params.userId),
-		);
-	} catch (error) {
-		console.warn("[slack-agent] Failed to load mcp-v2 flag:", error);
-	}
-
 	let supersetMcp: Client | null = null;
 	let cleanupSuperset: (() => Promise<void>) | null = null;
 
@@ -571,15 +518,10 @@ export async function runSlackAgent(
 				channelId: params.channelId,
 				threadTs: params.threadTs,
 			}),
-			useV2
-				? createSupersetMcpV2Client({
-						organizationId: params.organizationId,
-						userId: params.userId,
-					})
-				: createSupersetMcpClient({
-						organizationId: params.organizationId,
-						userId: params.userId,
-					}),
+			createSupersetMcpClient({
+				organizationId: params.organizationId,
+				userId: params.userId,
+			}),
 		]);
 
 		supersetMcp = supersetMcpResult.client;
@@ -590,15 +532,11 @@ export async function runSlackAgent(
 			fetchAgentContext({
 				mcpClient: supersetMcp,
 				userId: params.userId,
-				useV2,
 			}),
 		]);
 
-		const deniedTools = useV2
-			? DENIED_SUPERSET_TOOLS_V2
-			: DENIED_SUPERSET_TOOLS_V1;
 		const supersetTools = supersetToolsResult.tools
-			.filter((t) => !deniedTools.has(t.name))
+			.filter((t) => !DENIED_SUPERSET_TOOLS.has(t.name))
 			.map((t) => mcpToolToAnthropicTool(t, "superset"));
 
 		const tools: Anthropic.Messages.ToolUnion[] = [

@@ -21,7 +21,7 @@ export function useNavigateAwayFromWorkspace() {
 	const navigate = useNavigate();
 	const matchRoute = useMatchRoute();
 	const collections = useCollections();
-	const { workspaces } = useHostWorkspaces();
+	const { workspaces, isReady } = useHostWorkspaces();
 	const workspaceIds = useMemo(
 		() => new Set(workspaces.map((workspace) => workspace.id)),
 		[workspaces],
@@ -29,7 +29,10 @@ export function useNavigateAwayFromWorkspace() {
 	const { isDeleting } = useDeletingWorkspaces();
 
 	const navigateAwayFromWorkspace = useCallback(
-		(workspaceId: string) => {
+		(
+			workspaceId: string,
+			additionalDeletingWorkspaceIds?: ReadonlySet<string>,
+		) => {
 			const workspaceMatch = matchRoute({
 				to: "/v2-workspace/$workspaceId",
 				fuzzy: true,
@@ -40,8 +43,12 @@ export function useNavigateAwayFromWorkspace() {
 				activeWorkspaceId,
 				removedWorkspaceId: workspaceId,
 				orderedWorkspaceIds: getFlattenedV2WorkspaceIds(collections),
-				isWorkspaceValid: (id) => workspaceIds.has(id),
-				isWorkspaceDeleting: (id) => isDeleting(id),
+				// Before the host fan-out settles, an unlisted sibling means
+				// "unknown", not "gone" — prefer navigating to it over home; the
+				// workspace route's own not-found handling covers a true miss.
+				isWorkspaceValid: (id) => !isReady || workspaceIds.has(id),
+				isWorkspaceDeleting: (id) =>
+					additionalDeletingWorkspaceIds?.has(id) === true || isDeleting(id),
 			});
 
 			if (!target) return;
@@ -55,7 +62,7 @@ export function useNavigateAwayFromWorkspace() {
 				reportRemovalNavigationError,
 			);
 		},
-		[collections, workspaceIds, isDeleting, matchRoute, navigate],
+		[collections, workspaceIds, isDeleting, matchRoute, navigate, isReady],
 	);
 
 	return { navigateAwayFromWorkspace };

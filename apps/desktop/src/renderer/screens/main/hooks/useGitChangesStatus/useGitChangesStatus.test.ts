@@ -40,9 +40,26 @@ mock.module("renderer/lib/electron-trpc", () => ({
 	},
 }));
 
-const { GIT_CHANGES_QUERY_GC_TIME_MS, useGitChangesStatus } = await import(
-	"./useGitChangesStatus"
-);
+const {
+	ERROR_BACKOFF_REFETCH_INTERVAL_MS,
+	GIT_CHANGES_QUERY_GC_TIME_MS,
+	useGitChangesStatus,
+} = await import("./useGitChangesStatus");
+
+type RefetchIntervalFn = (query: {
+	state: {
+		status: "success" | "error";
+		data?: GitChangesStatus;
+		error?: { data?: { code?: string } } | null;
+	};
+}) => number | false;
+
+function getStatusRefetchInterval(): RefetchIntervalFn {
+	const options = getStatusUseQuery.mock.calls[0]?.[1] as {
+		refetchInterval: RefetchIntervalFn;
+	};
+	return options.refetchInterval;
+}
 
 describe("useGitChangesStatus", () => {
 	beforeEach(() => {
@@ -86,5 +103,66 @@ describe("useGitChangesStatus", () => {
 		expect(result.status).toBe(status);
 		expect(result.isLoading).toBe(false);
 		expect(result.effectiveBaseBranch).toBe("release");
+	});
+
+	test("polls at the configured interval on success", () => {
+		useGitChangesStatus({
+			worktreePath: "/worktrees/one",
+			refetchInterval: 2500,
+		});
+
+		const interval = getStatusRefetchInterval();
+		expect(interval({ state: { status: "success", data: status } })).toBe(2500);
+	});
+
+	test("backs off to the slow interval on deterministic failures", () => {
+		useGitChangesStatus({
+			worktreePath: "/worktrees/one",
+			refetchInterval: 2500,
+		});
+
+		const interval = getStatusRefetchInterval();
+		for (const code of [
+			"BAD_REQUEST",
+			"NOT_FOUND",
+			"PRECONDITION_FAILED",
+			"FORBIDDEN",
+		]) {
+			expect(
+				interval({ state: { status: "error", error: { data: { code } } } }),
+			).toBe(ERROR_BACKOFF_REFETCH_INTERVAL_MS);
+		}
+	});
+
+	test("slows but keeps retrying on transient failures", () => {
+		useGitChangesStatus({
+			worktreePath: "/worktrees/one",
+			refetchInterval: 2500,
+		});
+
+		const interval = getStatusRefetchInterval();
+		expect(
+			interval({
+				state: {
+					status: "error",
+					error: { data: { code: "INTERNAL_SERVER_ERROR" } },
+				},
+			}),
+		).toBe(10_000);
+		expect(interval({ state: { status: "error", error: null } })).toBe(10_000);
+	});
+
+	test("never starts polling on error when no interval is configured", () => {
+		useGitChangesStatus({ worktreePath: "/worktrees/one" });
+
+		const interval = getStatusRefetchInterval();
+		expect(
+			interval({
+				state: {
+					status: "error",
+					error: { data: { code: "NOT_FOUND" } },
+				},
+			}),
+		).toBe(false);
 	});
 });

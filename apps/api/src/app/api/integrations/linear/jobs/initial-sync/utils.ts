@@ -184,7 +184,14 @@ export function mapIssueToTask(
 
 	const statusId = statusByExternalId.get(issue.state.id);
 	if (!statusId) {
-		throw new Error(`Status not found for state ${issue.state.id}`);
+		// A state created after the status-sync step (or from an unsynced
+		// team) shouldn't abort the whole initial sync; the periodic sync
+		// picks the issue up once its status exists. Same policy as the
+		// webhook path (SUPER-237).
+		console.warn(
+			`[linear/initial-sync] Status not found for state ${issue.state.id}, skipping issue ${issue.identifier}`,
+		);
+		return null;
 	}
 
 	return {

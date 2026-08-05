@@ -16,6 +16,7 @@ import {
 import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
+import { stripNullChars } from "@/lib/strip-null-chars";
 
 const webhookClient = new LinearWebhookClient(env.LINEAR_WEBHOOK_SECRET);
 
@@ -92,7 +93,7 @@ async function processForConnection(
 			provider: "linear",
 			eventId,
 			eventType: `${payload.type}.${payload.action}`,
-			payload,
+			payload: stripNullChars(payload),
 			status: "pending",
 		})
 		.onConflictDoUpdate({

@@ -1,5 +1,6 @@
 import {
 	createFileRoute,
+	Navigate,
 	Outlet,
 	useMatchRoute,
 	useNavigate,
@@ -70,6 +71,11 @@ function DashboardLayout() {
 	const onV1WorkspaceRoute = currentWorkspaceMatch !== false;
 	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
 	const onNewWorkspaceRoute = matchRoute({ to: "/new-workspace" }) !== false;
+	const onDashboardViewRoute =
+		matchRoute({ to: "/automations", fuzzy: true }) !== false ||
+		matchRoute({ to: "/tasks", fuzzy: true }) !== false ||
+		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false ||
+		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;
 	const versionMismatch =
 		(isV2CloudEnabled && onV1WorkspaceRoute) ||
 		(!isV2CloudEnabled && onV2WorkspaceRoute);
@@ -202,14 +208,16 @@ function DashboardLayout() {
 	// their header; collapsed rails host it via their headroom spacer plus the
 	// tab bar's leading inset. Only a fully closed sidebar keeps the TopBar,
 	// whose inset then keeps content clear of the macOS traffic lights. The
-	// new-workspace page brings its own drag strip, so it hides the TopBar
-	// whenever the expanded sidebar sits outside the column.
+	// new-workspace page brings its own drag strip, and the dashboard views
+	// (automations/tasks/workspaces) carry drag fillers in their own headers,
+	// so they hide the TopBar whenever the expanded sidebar sits outside the
+	// column — otherwise it renders as an empty strip above their headers.
 	const hideTopBar =
 		(onV2WorkspaceRoute &&
 			!versionMismatch &&
 			isV2CloudEnabled &&
 			isWorkspaceSidebarOpen) ||
-		(onNewWorkspaceRoute && sidebarOutsideColumn);
+		((onNewWorkspaceRoute || onDashboardViewRoute) && sidebarOutsideColumn);
 
 	return (
 		<div className="flex h-full w-full overflow-hidden">
@@ -220,7 +228,19 @@ function DashboardLayout() {
 				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 					{!sidebarOutsideColumn && sidebarPanel}
 					<div className="relative flex flex-1 min-h-0 min-w-0">
-						{versionMismatch ? <CrossVersionMismatchState /> : <Outlet />}
+						{versionMismatch ? (
+							// A v2 user on a stale v1 workspace route has nothing to go
+							// back to, so send them somewhere actionable instead of a
+							// dead-end "pick a workspace" screen. v1 users keep the
+							// static state — /new-workspace is a v2-only surface.
+							isV2CloudEnabled ? (
+								<Navigate to="/new-workspace" replace />
+							) : (
+								<CrossVersionMismatchState />
+							)
+						) : (
+							<Outlet />
+						)}
 					</div>
 				</div>
 			</div>

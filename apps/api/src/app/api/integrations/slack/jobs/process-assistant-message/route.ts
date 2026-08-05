@@ -3,6 +3,7 @@ import { z } from "zod";
 
 import { env } from "@/env";
 import { processAssistantMessage } from "../../events/process-assistant-message";
+import { isUnpostableChannelError } from "../../events/utils/slack-client";
 
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
@@ -61,11 +62,24 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
-	await processAssistantMessage({
-		event: parsed.data.event,
-		teamId: parsed.data.teamId,
-		eventId: parsed.data.eventId,
-	});
+	try {
+		await processAssistantMessage({
+			event: parsed.data.event,
+			teamId: parsed.data.teamId,
+			eventId: parsed.data.eventId,
+		});
+	} catch (error) {
+		// Replies to read-only/archived/unjoined channels can never be
+		// delivered; a 500 would only make Slack redeliver the event.
+		if (isUnpostableChannelError(error)) {
+			console.warn(
+				"[slack/process-assistant-message] channel cannot receive replies; dropping event",
+				{ error: String(error) },
+			);
+			return Response.json({ success: true, status: "undeliverable" });
+		}
+		throw error;
+	}
 
 	return Response.json({ success: true });
 }

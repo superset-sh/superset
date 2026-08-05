@@ -1,4 +1,5 @@
 import { browserHistory } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { like, or, sql } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -42,25 +43,35 @@ export const createBrowserHistoryRouter = () => {
 				}),
 			)
 			.mutation(({ input }) => {
-				localDb
-					.insert(browserHistory)
-					.values({
-						url: input.url,
-						title: input.title,
-						faviconUrl: input.faviconUrl ?? null,
-						lastVisitedAt: Date.now(),
-						visitCount: 1,
-					})
-					.onConflictDoUpdate({
-						target: browserHistory.url,
-						set: {
+				try {
+					localDb
+						.insert(browserHistory)
+						.values({
+							url: input.url,
 							title: input.title,
 							faviconUrl: input.faviconUrl ?? null,
 							lastVisitedAt: Date.now(),
-							visitCount: sql`${browserHistory.visitCount} + 1`,
-						},
-					})
-					.run();
+							visitCount: 1,
+						})
+						.onConflictDoUpdate({
+							target: browserHistory.url,
+							set: {
+								title: input.title,
+								faviconUrl: input.faviconUrl ?? null,
+								lastVisitedAt: Date.now(),
+								visitCount: sql`${browserHistory.visitCount} + 1`,
+							},
+						})
+						.run();
+				} catch (error) {
+					if ((error as { code?: string }).code !== "SQLITE_FULL") {
+						throw error;
+					}
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: error instanceof Error ? error.message : String(error),
+					});
+				}
 			}),
 
 		clear: publicProcedure.mutation(() => {

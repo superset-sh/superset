@@ -18,8 +18,8 @@ import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { ArrowUpIcon, HistoryIcon } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
 import { SiLinear } from "react-icons/si";
@@ -51,6 +51,7 @@ import { LinkedGitHubIssuePill } from "./components/LinkedGitHubIssuePill";
 import { LinkedPRPill } from "./components/LinkedPRPill";
 import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
+import { PromptHistoryCommand } from "./components/PromptHistoryCommand";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
@@ -82,6 +83,10 @@ export function PromptGroup({
 	onSelectProject,
 }: PromptGroupProps) {
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
+	// The markdown editor is uncontrolled after mount, so inserting a history
+	// prompt bumps this seed to remount it with the new content (same pattern
+	// as NewWorkspaceScreen's sample prompts).
+	const [promptSeed, setPromptSeed] = useState(0);
 	const isNewWorkspaceModalOpen = useNewWorkspaceModalOpen();
 	const { closeModal, draft, updateDraft, resetKey } =
 		useDashboardNewWorkspaceDraft();
@@ -205,6 +210,14 @@ export function PromptGroup({
 	const branchPreview = branchNameEdited
 		? sanitizeUserBranchName(branchName)
 		: "";
+
+	const applyPrompt = useCallback(
+		(nextPrompt: string) => {
+			updateDraft({ prompt: nextPrompt });
+			setPromptSeed((seed) => seed + 1);
+		},
+		[updateDraft],
+	);
 
 	// Reset baseBranch on project or host change, defaulting to the user's
 	// last selected branch for that project when one exists.
@@ -394,6 +407,20 @@ export function PromptGroup({
 						}}
 					/>
 				</div>
+				<PromptHistoryCommand
+					onSelect={applyPrompt}
+					tooltipLabel="Previous prompts"
+				>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						aria-label="Previous prompts"
+						className="ml-2 size-6 shrink-0 text-muted-foreground"
+					>
+						<HistoryIcon className="size-3.5" />
+					</Button>
+				</PromptHistoryCommand>
 			</div>
 
 			{/* Prompt input */}
@@ -464,11 +491,11 @@ export function PromptGroup({
 				    listener does the single submit, so onModEnter is intentionally unset
 				    to avoid a double-fire. resetKey remounts a clean editor on reset. */}
 				<MarkdownEditor
-					key={resetKey}
+					key={`${resetKey}-${promptSeed}`}
 					content={prompt}
 					onChange={(markdown) => updateDraft({ prompt: markdown })}
 					onPasteFiles={(files) => attachments.add(files)}
-					autoFocus="start"
+					autoFocus={promptSeed > 0 || prompt ? "end" : "start"}
 					placeholder="What do you want to do?"
 					className="flex flex-col min-h-[100px] max-h-[200px] px-3 pt-3"
 					editorClassName="overflow-y-auto text-sm"

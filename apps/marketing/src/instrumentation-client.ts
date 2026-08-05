@@ -1,13 +1,15 @@
 import * as Sentry from "@sentry/nextjs";
 import { POSTHOG_COOKIE_NAME } from "@superset/shared/constants";
+import {
+	SENTRY_DENY_URLS,
+	SENTRY_IGNORE_ERRORS,
+} from "@superset/shared/sentry";
 import posthog from "posthog-js";
 
 import { env } from "@/env";
-import { getHeroFlagBootstrap } from "@/lib/analytics/hero-flag-bootstrap";
 import { ANALYTICS_CONSENT_KEY } from "@/lib/constants";
 
 posthog.init(env.NEXT_PUBLIC_POSTHOG_KEY, {
-	bootstrap: getHeroFlagBootstrap(),
 	api_host: "/ingest",
 	ui_host: "https://us.posthog.com",
 	defaults: "2025-11-30",
@@ -37,11 +39,18 @@ Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_MARKETING,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production",
-	tracesSampleRate:
-		env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production" ? 0.1 : 1.0,
+	tracesSampleRate: 0.01,
 	replaysSessionSampleRate: 0,
 	replaysOnErrorSampleRate: 0,
 	sendDefaultPii: true,
+	integrations: [
+		Sentry.thirdPartyErrorFilterIntegration({
+			filterKeys: ["superset-marketing"],
+			behaviour: "drop-error-if-exclusively-contains-third-party-frames",
+		}),
+	],
+	ignoreErrors: SENTRY_IGNORE_ERRORS,
+	denyUrls: SENTRY_DENY_URLS,
 	debug: false,
 });
 

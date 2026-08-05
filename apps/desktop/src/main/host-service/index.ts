@@ -7,7 +7,9 @@
 
 import { serve } from "@hono/node-server";
 import {
+	captureFatalStartupError,
 	createApp,
+	initSentry,
 	installProcessSafetyNet,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
@@ -30,6 +32,8 @@ const WATCHDOG_INTERVAL_MS = 2_000;
 type Server = ReturnType<typeof serve>;
 
 async function main(): Promise<void> {
+	initSentry({ organizationId: env.ORGANIZATION_ID });
+
 	// Install the parent watchdog before any awaits so a crash during
 	// startup can still reap this child. `serverRef` is filled in once
 	// serve() returns; shutdown handles both pre- and post-bind states.
@@ -157,7 +161,8 @@ function isParentAlive(parentPid: number): boolean {
 	}
 }
 
-void main().catch((error) => {
+void main().catch(async (error) => {
 	console.error("[host-service] Failed to start:", error);
+	await captureFatalStartupError(error);
 	process.exit(1);
 });

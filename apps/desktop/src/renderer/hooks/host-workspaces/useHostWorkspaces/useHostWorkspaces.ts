@@ -2,6 +2,7 @@ import { getEventBus } from "@superset/workspace-client";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useState } from "react";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -73,15 +74,11 @@ export function useHostWorkspacesSource(
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 
-	const { data: hosts = [] } = useLiveQuery(
-		(q) =>
-			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				organizationId: hosts.organizationId,
-				machineId: hosts.machineId,
-				isOnline: hosts.isOnline,
-			})),
-		[collections],
-	);
+	const {
+		hosts,
+		organizationId: knownHostsOrgId,
+		settled: knownHostsSettled,
+	} = useKnownHosts();
 
 	const { data: cloudRows = [] } = useLiveQuery(
 		(q) => q.from({ workspaces: collections.v2Workspaces }),
@@ -94,11 +91,19 @@ export function useHostWorkspacesSource(
 			hosts,
 			machineId,
 			relayUrl,
+			fallbackOrganizationId: knownHostsOrgId,
 		});
 		return scopedHostId === undefined
 			? all
 			: all.filter((target) => target.machineId === scopedHostId);
-	}, [activeHostUrl, hosts, machineId, relayUrl, scopedHostId]);
+	}, [
+		activeHostUrl,
+		hosts,
+		knownHostsOrgId,
+		machineId,
+		relayUrl,
+		scopedHostId,
+	]);
 
 	// Last-seen snapshots hydrate once per (org, host); live data always wins.
 	const [snapshots, setSnapshots] = useState<Map<string, HostWorkspaceRow[]>>(
@@ -228,7 +233,14 @@ export function useHostWorkspacesSource(
 	// rows without reaching ready), so gating on cloudReady would hang the
 	// empty state forever for a genuinely-empty local host while offline.
 	// A scoped host that hasn't resolved to a target yet is still loading.
+	// Known-hosts settlement IS a gate, though: targets derive from it, and
+	// before it settles the fan-out covers only the local host — every query
+	// answering then means "the hosts we know of answered", not "every host
+	// answered". Reporting ready off that would flash not-found for remote
+	// workspaces right after an org switch (offline stays fine: a prior
+	// session's snapshot settles it without Electric).
 	const isReady =
+		knownHostsSettled &&
 		(scopedHostId === undefined || targets.length > 0) &&
 		queries.every(
 			(query, index) =>

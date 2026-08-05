@@ -420,15 +420,19 @@ export function useAccessibleV2Workspaces(
 
 	const pullRequestQueries = useQueries({
 		queries: pullRequestQueryTargets.map((target) => ({
+			// Host identity only — see getDashboardSidebarPullRequestQueryKey:
+			// URL or membership in the key cold-starts the cache on every
+			// port change / workspace add/remove.
 			queryKey: [
 				"v2-workspaces",
 				"pull-requests",
+				target.organizationId,
 				target.machineId,
-				target.hostUrl,
-				target.workspaceIds,
 			] as const,
 			refetchInterval: 10_000,
+			enabled: target.hostUrl !== null,
 			queryFn: async () => {
+				if (!target.hostUrl) return { workspaces: [] };
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.pullRequests.getByWorkspaces.query({
 					workspaceIds: target.workspaceIds,

@@ -7,6 +7,7 @@ export type TasksSearch = {
 	type?: "tasks" | "prs" | "issues";
 	project?: string;
 	linearProject?: string;
+	state?: "open" | "all";
 };
 
 export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
@@ -25,6 +26,9 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 			typeof search.linearProject === "string"
 				? search.linearProject
 				: undefined,
+		state: ["open", "all"].includes(search.state as string)
+			? (search.state as TasksSearch["state"])
+			: undefined,
 	}),
 });
 

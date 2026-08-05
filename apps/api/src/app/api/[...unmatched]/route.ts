@@ -7,7 +7,7 @@ function notFound(request: Request): Response {
 			error: {
 				code: "NOT_FOUND",
 				message: `No route matches ${new URL(request.url).pathname}.`,
-				hint: `API surface: ${origin}/openapi.json. MCP server: ${origin}/api/v2/agent/mcp. Auth: https://superset.sh/auth.md`,
+				hint: `API surface: ${origin}/openapi.json. MCP server: ${origin}/mcp. Auth: https://superset.sh/auth.md`,
 			},
 		},
 		{ status: 404 },

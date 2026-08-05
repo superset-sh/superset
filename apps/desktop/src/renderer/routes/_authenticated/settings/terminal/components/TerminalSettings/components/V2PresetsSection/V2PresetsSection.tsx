@@ -1,3 +1,4 @@
+import type { HostAgentConfig } from "@superset/host-service/settings";
 import {
 	type ExecutionMode,
 	normalizeExecutionMode,
@@ -288,6 +289,27 @@ export function V2PresetsSection({
 			collections.v2TerminalPresets.delete(id);
 		},
 		[collections.v2TerminalPresets],
+	);
+
+	// The stored `commands` array is the launch fallback used whenever the
+	// agent config isn't loaded, so it must track the edited agent command —
+	// otherwise launches can silently run the command from preset-creation time.
+	const syncLinkedPresetSnapshots = useCallback(
+		(updated: HostAgentConfig) => {
+			const commandText = getAgentCommandText(updated);
+			if (commandText.trim().length === 0) return;
+			for (const preset of serverPresetsRef.current) {
+				const row = preset as V2TerminalPresetRow;
+				if (row.agentId !== updated.id && row.agentId !== updated.presetId) {
+					continue;
+				}
+				if (row.commands.length === 1 && row.commands[0] === commandText) {
+					continue;
+				}
+				updateV2Preset(row.id, { commands: [commandText] });
+			}
+		},
+		[updateV2Preset],
 	);
 
 	const reorderV2Presets = useCallback(
@@ -649,6 +671,7 @@ export function V2PresetsSection({
 				preset={editingPreset}
 				projects={projectOptions}
 				agents={agents}
+				onLinkedAgentSaved={syncLinkedPresetSnapshots}
 				open={!!editingPreset}
 				onOpenChange={(open) => !open && handleCloseEditor()}
 				onDeletePreset={handleDeleteEditingPreset}

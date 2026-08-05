@@ -26,12 +26,13 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { Table, TableBody, TableHead, TableRow } from "@superset/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { LuPlus, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { LuPlus, LuRotateCw, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -64,6 +65,12 @@ type Scope = "mine" | "team";
 
 type AutomationSortField = "name" | "owner" | "project" | "schedule";
 
+function settledErrorMessage(result: PromiseSettledResult<unknown>) {
+	return result.status === "rejected" && result.reason instanceof Error
+		? result.reason.message
+		: null;
+}
+
 function AutomationsPage() {
 	const collections = useCollections();
 	const { data: session } = authClient.useSession();
@@ -80,6 +87,22 @@ function AutomationsPage() {
 	const [hostOfflineRun, setHostOfflineRun] = useState<{
 		hostId: string | null;
 	} | null>(null);
+	const [retryingIds, setRetryingIds] = useState<Set<string>>(new Set());
+
+	const addRetrying = useCallback((ids: string[]) => {
+		setRetryingIds((prev) => {
+			const next = new Set(prev);
+			for (const id of ids) next.add(id);
+			return next;
+		});
+	}, []);
+	const removeRetrying = useCallback((ids: string[]) => {
+		setRetryingIds((prev) => {
+			const next = new Set(prev);
+			for (const id of ids) next.delete(id);
+			return next;
+		});
+	}, []);
 
 	const runNowMutation = useMutation({
 		mutationFn: ({
@@ -89,6 +112,8 @@ function AutomationsPage() {
 			name: string;
 			targetHostId: string | null;
 		}) => apiTrpcClient.automation.runNow.mutate({ id }),
+		onMutate: ({ id }) => addRetrying([id]),
+		onSettled: (_data, _error, { id }) => removeRetrying([id]),
 		onSuccess: (_, { name }) => toast.success(`Running "${name}" now`),
 		onError: (error, { targetHostId }) => {
 			const message = error instanceof Error ? error.message : null;
@@ -101,6 +126,54 @@ function AutomationsPage() {
 				return;
 			}
 			toast.error(message ?? "Failed to trigger run");
+		},
+	});
+
+	const retryAllMutation = useMutation({
+		mutationFn: async (targets: SelectAutomation[]) => {
+			const results = await Promise.allSettled(
+				targets.map((a) =>
+					apiTrpcClient.automation.runNow.mutate({ id: a.id }),
+				),
+			);
+			return targets.map((automation, i) => ({
+				automation,
+				result: results[i],
+			}));
+		},
+		onMutate: (targets) => addRetrying(targets.map((a) => a.id)),
+		onSettled: (_data, _error, targets) =>
+			removeRetrying(targets.map((a) => a.id)),
+		onSuccess: (outcomes) => {
+			const failed = outcomes.filter((o) => o.result.status === "rejected");
+			const retried = outcomes.length - failed.length;
+			if (retried > 0) {
+				toast.success(
+					retried === 1
+						? "Retrying 1 automation"
+						: `Retrying ${retried} automations`,
+				);
+			}
+			if (failed.length === 0) return;
+			const offline = failed.find((o) =>
+				isHostOfflineError(settledErrorMessage(o.result)),
+			);
+			if (offline) {
+				setHostOfflineRun({ hostId: offline.automation.targetHostId });
+			}
+			// The host-offline dialog explains those failures; only toast the rest.
+			const other = failed.filter(
+				(o) => !isHostOfflineError(settledErrorMessage(o.result)),
+			);
+			if (other.length === 0) return;
+			const message = settledErrorMessage(other[0].result);
+			toast.error(
+				other.length === 1
+					? isStaleAgentError(message)
+						? STALE_AGENT_HELP
+						: (message ?? "Failed to retry automation")
+					: `Failed to retry ${other.length} of ${outcomes.length} automations`,
+			);
 		},
 	});
 
@@ -140,7 +213,8 @@ function AutomationsPage() {
 			})),
 		[collections.users],
 	);
-	const { lastRunStatusById, markMyFailuresSeen } = useFailedAutomations();
+	const { lastRunStatusById, failedIds, markMyFailuresSeen } =
+		useFailedAutomations();
 
 	// Opening the page clears the sidebar failure badge; failures that sync in
 	// while it stays open are marked seen too, until a newer run fails.
@@ -195,6 +269,17 @@ function AutomationsPage() {
 		[automations, currentUserId],
 	);
 	const teamCount = automations.length - mineCount;
+
+	// Only owned automations can be retried; runNow is owner-gated server-side.
+	const failedMine = useMemo(
+		() =>
+			currentUserId
+				? automations.filter(
+						(a) => a.ownerUserId === currentUserId && failedIds.has(a.id),
+					)
+				: [],
+		[automations, currentUserId, failedIds],
+	);
 
 	const visible = useMemo(() => {
 		if (!currentUserId) return automations;
@@ -295,7 +380,38 @@ function AutomationsPage() {
 					</Tabs>
 				</div>
 
+				{/* Window-drag leaf standing in for the hidden TopBar. */}
+				<div className="drag h-full min-w-0 flex-1" />
+
 				<div className="flex items-center gap-2">
+					{scope === "mine" && failedMine.length > 0 && (
+						<Tooltip>
+							<TooltipTrigger asChild>
+								<Button
+									type="button"
+									variant="outline"
+									size="sm"
+									className="h-8 gap-1.5 px-3"
+									disabled={retryAllMutation.isPending}
+									onClick={() => retryAllMutation.mutate(failedMine)}
+								>
+									<LuRotateCw
+										className={cn(
+											"size-4",
+											retryAllMutation.isPending && "animate-spin",
+										)}
+									/>
+									<span>Retry all</span>
+									<span className="tabular-nums text-xs text-muted-foreground">
+										{failedMine.length}
+									</span>
+								</Button>
+							</TooltipTrigger>
+							<TooltipContent>
+								Retry every automation whose last run failed
+							</TooltipContent>
+						</Tooltip>
+					)}
 					<Button
 						asChild
 						variant="ghost"
@@ -484,6 +600,7 @@ function AutomationsPage() {
 												lastRunStatusById.get(automation.id) ?? null
 											}
 											isOwner={automation.ownerUserId === currentUserId}
+											isRetrying={retryingIds.has(automation.id)}
 											onRunNow={(a) =>
 												runNowMutation.mutate({
 													id: a.id,

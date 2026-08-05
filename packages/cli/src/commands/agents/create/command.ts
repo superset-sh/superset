@@ -16,6 +16,9 @@ export default command({
 				"Agent preset id (e.g. `claude`), HostAgentConfig instance UUID, or `superset` for a Superset session",
 			),
 		prompt: string().required().desc("Prompt sent to the agent"),
+		effort: string().desc(
+			"Reasoning effort for this launch (agent-specific; omit to use the agent default)",
+		),
 		attachmentId: string()
 			.variadic()
 			.desc("Pre-uploaded attachment UUID; pass --attachment-id repeatedly"),
@@ -58,6 +61,7 @@ export default command({
 			workspaceId: options.workspace,
 			agent: options.agent,
 			prompt: options.prompt,
+			effort: options.effort,
 			attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 		});
 

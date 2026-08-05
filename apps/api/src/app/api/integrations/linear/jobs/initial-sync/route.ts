@@ -160,15 +160,17 @@ async function performInitialSync(
 
 	const userByEmail = new Map(matchedUsers.map((u) => [u.email, u.id]));
 
-	const taskValues = issues.map((issue) =>
-		mapIssueToTask(
-			issue,
-			organizationId,
-			creatorUserId,
-			userByEmail,
-			statusByExternalId,
-		),
-	);
+	const taskValues = issues
+		.map((issue) =>
+			mapIssueToTask(
+				issue,
+				organizationId,
+				creatorUserId,
+				userByEmail,
+				statusByExternalId,
+			),
+		)
+		.filter((task) => task !== null);
 
 	const batches = chunk(taskValues, BATCH_SIZE);
 

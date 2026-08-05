@@ -106,6 +106,9 @@ export function V2WorkspacesHeader({
 			<div className="flex w-full flex-wrap items-center justify-between gap-3 px-6 py-4">
 				<h1 className="text-sm font-semibold tracking-tight">Workspaces</h1>
 
+				{/* Window-drag leaf standing in for the hidden TopBar. */}
+				<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
+
 				<div className="flex flex-wrap items-center gap-2">
 					<InputGroup className="w-72">
 						<InputGroupAddon align="inline-start">

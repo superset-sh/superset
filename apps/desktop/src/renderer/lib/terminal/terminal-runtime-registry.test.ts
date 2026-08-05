@@ -330,6 +330,59 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 		}
 	});
 
+	test("release disposes with clear and never persists an ended session", () => {
+		const terminalId = "release-session-ended";
+		const serialize = mock(() => "dead session scrollback");
+		const entry = {
+			terminalId,
+			instanceId: terminalId,
+			runtime: {
+				terminalId,
+				serializeAddon: { serialize },
+				lastCols: 120,
+				lastRows: 32,
+			},
+			transport: { sessionEnded: true },
+			linkManager: null,
+			pendingLinkHandlers: null,
+			disposeBufferChangeListener: null,
+			lastUsedAt: 1,
+		};
+		const registryInternals = terminalRuntimeRegistry as unknown as {
+			entries: Map<string, typeof entry>;
+			entryKeysByTerminalId: Map<string, Set<string>>;
+			disposeEntry: (
+				disposedEntry: typeof entry,
+				options: { persistedState?: "clear" | "preserve" },
+			) => void;
+		};
+		const entryKey = `${terminalId}\u0000${terminalId}`;
+		const disposeCalls: { persistedState?: "clear" | "preserve" }[] = [];
+		registryInternals.entries.set(entryKey, entry);
+		registryInternals.entryKeysByTerminalId.set(
+			terminalId,
+			new Set([entryKey]),
+		);
+		registryInternals.disposeEntry = (_entry, options) => {
+			disposeCalls.push(options);
+		};
+
+		try {
+			terminalRuntimeRegistry.release(terminalId);
+
+			expect(serialize).not.toHaveBeenCalled();
+			expect(fakeStorage.values.has(`terminal-buffer:${terminalId}`)).toBe(
+				false,
+			);
+			expect(disposeCalls).toEqual([{ persistedState: "clear" }]);
+		} finally {
+			delete (terminalRuntimeRegistry as unknown as { disposeEntry?: unknown })
+				.disposeEntry;
+			registryInternals.entries.delete(entryKey);
+			registryInternals.entryKeysByTerminalId.delete(terminalId);
+		}
+	});
+
 	test("dispose clears persisted state even when eviction already removed the entry", () => {
 		const terminalId = "evicted-terminal";
 		fakeStorage.values.set(`terminal-buffer:${terminalId}`, "scrollback");

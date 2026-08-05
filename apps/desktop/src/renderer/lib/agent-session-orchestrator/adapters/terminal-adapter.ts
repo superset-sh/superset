@@ -183,6 +183,23 @@ async function writeAttachmentFiles(
 	return writtenPaths;
 }
 
+async function writeLaunchFiles(
+	workspaceId: string,
+	terminal: TerminalLaunchRequest["terminal"],
+): Promise<void> {
+	if (terminal.taskPromptContent && terminal.taskPromptFileName) {
+		await writeTaskPromptFile(
+			workspaceId,
+			terminal.taskPromptFileName,
+			terminal.taskPromptContent,
+		);
+	}
+
+	if (terminal.initialFiles?.length) {
+		await writeAttachmentFiles(workspaceId, terminal.initialFiles);
+	}
+}
+
 export async function launchTerminalAdapter(
 	request: TerminalLaunchRequest,
 	context: AgentSessionLaunchContext,
@@ -208,28 +225,35 @@ export async function launchTerminalAdapter(
 			throw new Error(`Tab not found for pane: ${targetPaneId}`);
 		}
 
+		if (request.terminal.reuseExistingPane) {
+			// The target pane belongs to the caller (e.g. the workspace setup
+			// terminal). This launch owns attaching it — the caller must not
+			// createOrAttach it separately — but never removes it on failure.
+			await writeLaunchFiles(workspaceId, request.terminal);
+			await launchCommandInPane({
+				paneId: targetPaneId,
+				tabId: tab.id,
+				workspaceId,
+				command: request.terminal.command,
+				createOrAttach: context.createOrAttach,
+				write: context.write,
+				noExecute,
+			});
+
+			return {
+				tabId: tab.id,
+				paneId: targetPaneId,
+				sessionId: null,
+			};
+		}
+
 		const newPaneId = tabs.addTerminalPane(tab.id);
 		if (!newPaneId) {
 			throw new Error("Failed to add pane");
 		}
 
 		try {
-			if (
-				request.terminal.taskPromptContent &&
-				request.terminal.taskPromptFileName
-			) {
-				await writeTaskPromptFile(
-					workspaceId,
-					request.terminal.taskPromptFileName,
-					request.terminal.taskPromptContent,
-				);
-			}
-
-			// Write attachment files if present
-			if (request.terminal.initialFiles?.length) {
-				await writeAttachmentFiles(workspaceId, request.terminal.initialFiles);
-			}
-
+			await writeLaunchFiles(workspaceId, request.terminal);
 			await launchCommandInPane({
 				paneId: newPaneId,
 				tabId: tab.id,
@@ -255,22 +279,7 @@ export async function launchTerminalAdapter(
 	tabs.setTabAutoTitle(tabId, request.terminal.name ?? "Agent");
 
 	try {
-		if (
-			request.terminal.taskPromptContent &&
-			request.terminal.taskPromptFileName
-		) {
-			await writeTaskPromptFile(
-				workspaceId,
-				request.terminal.taskPromptFileName,
-				request.terminal.taskPromptContent,
-			);
-		}
-
-		// Write attachment files if present
-		if (request.terminal.initialFiles?.length) {
-			await writeAttachmentFiles(workspaceId, request.terminal.initialFiles);
-		}
-
+		await writeLaunchFiles(workspaceId, request.terminal);
 		await launchCommandInPane({
 			paneId,
 			tabId,

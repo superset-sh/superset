@@ -2,14 +2,13 @@ import {
 	getEventBus,
 	type PortChangedPayload,
 } from "@superset/workspace-client";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
+import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
@@ -35,21 +34,12 @@ export function useDashboardSidebarPortsData(): {
 	totalPortCount: number;
 	portLoadErrors: DashboardSidebarPortsLoadError[];
 } {
-	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
 	const relayUrl = useRelayUrl();
 	const visibleWorkspaceIds = useVisibleSidebarWorkspaceIds();
 
-	const { data: hosts = [] } = useLiveQuery(
-		(q) =>
-			q.from({ hosts: collections.v2Hosts }).select(({ hosts }) => ({
-				organizationId: hosts.organizationId,
-				machineId: hosts.machineId,
-				isOnline: hosts.isOnline,
-			})),
-		[collections],
-	);
+	const { hosts, organizationId: knownHostsOrgId } = useKnownHosts();
 
 	const { workspaces: allWorkspaces } = useHostWorkspaces();
 	const workspaces = useMemo(
@@ -72,8 +62,9 @@ export function useDashboardSidebarPortsData(): {
 				machineId,
 				relayUrl,
 				workspaces,
+				fallbackOrganizationId: knownHostsOrgId,
 			}),
-		[activeHostUrl, hosts, machineId, relayUrl, workspaces],
+		[activeHostUrl, hosts, knownHostsOrgId, machineId, relayUrl, workspaces],
 	);
 
 	const queries = useQueries({

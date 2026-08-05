@@ -309,6 +309,13 @@
       "when": 1784479232424,
       "tag": "0043_appearance_typography_controls",
       "breakpoints": true
+    },
+    {
+      "idx": 44,
+      "version": "6",
+      "when": 1784905852439,
+      "tag": "0044_add_wait_for_setup_before_agent_setting",
+      "breakpoints": true
     }
   ]
 }

@@ -16,7 +16,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon, PaperclipIcon } from "lucide-react";
+import { ArrowUpIcon, HistoryIcon, PaperclipIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
@@ -50,6 +50,7 @@ import { LinkedGitHubIssuePill } from "../DashboardNewWorkspaceForm/PromptGroup/
 import { LinkedPRPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/LinkedPRPill";
 import { PRLinkCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PRLinkCommand";
 import { ProjectPickerPill } from "../DashboardNewWorkspaceForm/PromptGroup/components/ProjectPickerPill";
+import { PromptHistoryCommand } from "../DashboardNewWorkspaceForm/PromptGroup/components/PromptHistoryCommand";
 import { useBranchPickerController } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useBranchPickerController";
 import { useLinkedContext } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useLinkedContext";
 import { useSubmitWorkspace } from "../DashboardNewWorkspaceForm/PromptGroup/hooks/useSubmitWorkspace";
@@ -228,6 +229,15 @@ export function NewWorkspaceScreen({
 	const selectedProject = projects.find((project) => project.id === projectId);
 	const needsSetup = selectedProject?.needsSetup === true;
 	const isPromptEmpty = !draft.prompt.trim();
+	// The markdown editor is uncontrolled after mount, so programmatic prompt
+	// insertion bumps promptSeed to remount it with the new content.
+	const applyPrompt = useCallback(
+		(prompt: string) => {
+			updateDraft({ prompt });
+			setPromptSeed((seed) => seed + 1);
+		},
+		[updateDraft],
+	);
 	const {
 		addLinkedIssue,
 		addLinkedGitHubIssue,
@@ -468,6 +478,24 @@ export function NewWorkspaceScreen({
 					</motion.div>
 				)}
 			</AnimatePresence>
+			{/* no-drag + clear of the page's window-drag strip (which ends at
+			    right-12) so the button actually receives clicks. */}
+			<div className="no-drag absolute right-3 top-2.5 z-10">
+				<PromptHistoryCommand
+					onSelect={applyPrompt}
+					tooltipLabel="Previous prompts"
+				>
+					<Button
+						type="button"
+						variant="ghost"
+						size="icon"
+						aria-label="Previous prompts"
+						className="size-7 text-muted-foreground"
+					>
+						<HistoryIcon className="size-4" />
+					</Button>
+				</PromptHistoryCommand>
+			</div>
 			<div className="flex flex-1 flex-col items-center justify-center gap-8">
 				<SupersetIcon className="h-10 w-auto text-muted-foreground/70" />
 				<h1 className="text-center text-3xl font-medium text-foreground/90">
@@ -485,12 +513,7 @@ export function NewWorkspaceScreen({
 							transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
 							className="absolute inset-x-6 bottom-full mb-1"
 						>
-							<SamplePrompts
-								onSelect={(prompt) => {
-									updateDraft({ prompt });
-									setPromptSeed((seed) => seed + 1);
-								}}
-							/>
+							<SamplePrompts onSelect={applyPrompt} />
 						</motion.div>
 					)}
 				</AnimatePresence>
@@ -562,7 +585,7 @@ export function NewWorkspaceScreen({
 						onChange={(markdown) => updateDraft({ prompt: markdown })}
 						onPasteFiles={(files) => attachments.add(files)}
 						onEnterSubmit={handleSubmit}
-						autoFocus={promptSeed > 0 ? "end" : "start"}
+						autoFocus={draft.prompt ? "end" : "start"}
 						placeholder="What do you want to do?"
 						className="flex flex-col min-h-[80px] max-h-[200px] px-3 pt-3"
 						editorClassName="overflow-y-auto text-sm"

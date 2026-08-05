@@ -1,12 +1,10 @@
 import type { FileContents } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
-import type { SimpleGit } from "simple-git";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { toRegisteredWorktreeRelativePath } from "../workspace-fs-service";
-import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
-
-const MAX_FILE_SIZE = 2 * 1024 * 1024;
+import { runGitTask } from "./workers/git-task-runner";
+import type { GitTaskPayloadMap } from "./workers/git-task-types";
 
 export const createFileContentsRouter = () => {
 	return router({
@@ -22,7 +20,6 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<FileContents> => {
-				const git = await getSimpleGitWithShellPath(input.worktreePath);
 				const defaultBranch = input.defaultBranch || "main";
 				const filePath = toRegisteredWorktreeRelativePath(
 					input.worktreePath,
@@ -35,18 +32,32 @@ export const createFileContentsRouter = () => {
 						)
 					: filePath;
 
-				const versions = await getGitOnlyVersions(
-					git,
-					filePath,
-					originalPath,
-					input.category,
-					defaultBranch,
-					input.commitHash,
+				const versions = await runGitTask(
+					"getFileContents",
+					buildFileContentsPayload(input, {
+						filePath,
+						originalPath,
+						defaultBranch,
+					}),
+					{
+						// JSON-encoded: paths may contain the delimiter, and a raw
+						// join could coalesce two different files into one task.
+						dedupeKey: `getFileContents:${JSON.stringify([
+							input.worktreePath,
+							input.category,
+							filePath,
+							originalPath,
+							defaultBranch,
+							input.commitHash ?? "",
+						])}`,
+						strategy: "coalesce",
+						timeoutMs: 30_000,
+					},
 				);
 
 				return {
-					original: versions.original,
-					modified: versions.modified,
+					original: versions.original ?? "",
+					modified: versions.modified ?? "",
 					language: detectLanguage(input.absolutePath),
 				};
 			}),
@@ -60,7 +71,6 @@ export const createFileContentsRouter = () => {
 				}),
 			)
 			.query(async ({ input }): Promise<{ content: string }> => {
-				const git = await getSimpleGitWithShellPath(input.worktreePath);
 				const originalPath = input.oldAbsolutePath
 					? toRegisteredWorktreeRelativePath(
 							input.worktreePath,
@@ -71,100 +81,53 @@ export const createFileContentsRouter = () => {
 							input.absolutePath,
 						);
 
-				const staged = await safeGitShow(git, `:0:${originalPath}`);
-				const content =
-					staged ?? (await safeGitShow(git, `HEAD:${originalPath}`));
-				return { content: content ?? "" };
+				const versions = await runGitTask(
+					"getFileContents",
+					{
+						worktreePath: input.worktreePath,
+						filePath: originalPath,
+						originalPath,
+						category: "original",
+					},
+					{
+						dedupeKey: `getFileContents:${JSON.stringify([
+							input.worktreePath,
+							"original",
+							originalPath,
+						])}`,
+						strategy: "coalesce",
+						timeoutMs: 30_000,
+					},
+				);
+
+				return { content: versions.modified ?? versions.original ?? "" };
 			}),
 	});
 };
 
-interface FileVersions {
-	original: string;
-	modified: string;
-}
-
-async function getGitOnlyVersions(
-	git: SimpleGit,
-	filePath: string,
-	originalPath: string,
-	category: "against-base" | "committed" | "staged",
-	defaultBranch: string,
-	commitHash?: string,
-): Promise<FileVersions> {
-	switch (category) {
+function buildFileContentsPayload(
+	input: {
+		worktreePath: string;
+		category: "against-base" | "committed" | "staged";
+		commitHash?: string;
+	},
+	{
+		filePath,
+		originalPath,
+		defaultBranch,
+	}: { filePath: string; originalPath: string; defaultBranch: string },
+): GitTaskPayloadMap["getFileContents"] {
+	const base = { worktreePath: input.worktreePath, filePath, originalPath };
+	switch (input.category) {
 		case "against-base":
-			return getAgainstBaseVersions(git, filePath, originalPath, defaultBranch);
-
-		case "committed":
-			if (!commitHash) {
+			return { ...base, category: "against-base", defaultBranch };
+		case "committed": {
+			if (!input.commitHash) {
 				throw new Error("commitHash required for committed category");
 			}
-			return getCommittedVersions(git, filePath, originalPath, commitHash);
-
+			return { ...base, category: "committed", commitHash: input.commitHash };
+		}
 		case "staged":
-			return getStagedVersions(git, filePath, originalPath);
+			return { ...base, category: "staged" };
 	}
-}
-
-async function safeGitShow(
-	git: SimpleGit,
-	spec: string,
-): Promise<string | null> {
-	try {
-		// Guard against memory spikes from large blobs in git history
-		try {
-			const sizeOutput = await git.raw(["cat-file", "-s", spec]);
-			const blobSize = Number.parseInt(sizeOutput.trim(), 10);
-			if (!Number.isNaN(blobSize) && blobSize > MAX_FILE_SIZE) {
-				return `[File content truncated - exceeds ${MAX_FILE_SIZE / 1024 / 1024}MB limit]`;
-			}
-		} catch {}
-
-		const content = await git.show([spec]);
-		return content;
-	} catch {
-		return null;
-	}
-}
-
-async function getAgainstBaseVersions(
-	git: SimpleGit,
-	filePath: string,
-	originalPath: string,
-	defaultBranch: string,
-): Promise<FileVersions> {
-	const [original, modified] = await Promise.all([
-		safeGitShow(git, `origin/${defaultBranch}:${originalPath}`),
-		safeGitShow(git, `HEAD:${filePath}`),
-	]);
-
-	return { original: original ?? "", modified: modified ?? "" };
-}
-
-async function getCommittedVersions(
-	git: SimpleGit,
-	filePath: string,
-	originalPath: string,
-	commitHash: string,
-): Promise<FileVersions> {
-	const [original, modified] = await Promise.all([
-		safeGitShow(git, `${commitHash}^:${originalPath}`),
-		safeGitShow(git, `${commitHash}:${filePath}`),
-	]);
-
-	return { original: original ?? "", modified: modified ?? "" };
-}
-
-async function getStagedVersions(
-	git: SimpleGit,
-	filePath: string,
-	originalPath: string,
-): Promise<FileVersions> {
-	const [original, modified] = await Promise.all([
-		safeGitShow(git, `HEAD:${originalPath}`),
-		safeGitShow(git, `:0:${filePath}`),
-	]);
-
-	return { original: original ?? "", modified: modified ?? "" };
 }

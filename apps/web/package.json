@@ -12,7 +12,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@sentry/nextjs": "10.46.0",
+		"@sentry/nextjs": "10.68.0",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/shared": "workspace:*",
@@ -44,7 +44,7 @@
 		"require-in-the-middle": "8.0.1",
 		"server-only": "0.0.1",
 		"superjson": "2.2.6",
-		"zod": "4.3.6"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

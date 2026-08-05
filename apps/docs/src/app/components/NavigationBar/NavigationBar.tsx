@@ -45,10 +45,14 @@ function SidebarTrigger() {
 export default function NavigationBar() {
 	return (
 		<div className="flex flex-col sticky top-0 bg-background backdrop-blur-md z-30">
-			<nav className="md:grid grid-cols-12 border-b flex items-center justify-between">
+			<div
+				aria-hidden
+				className="pointer-events-none absolute inset-x-0 top-full h-5 bg-gradient-to-b from-background to-transparent"
+			/>
+			<nav className="md:grid grid-cols-12 flex items-center justify-between">
 				<a
 					href={COMPANY.MARKETING_URL}
-					className="min-navbar:border-r md:px-5 px-2.5 py-4 text-foreground md:col-span-2 shrink-0 transition-colors md:w-[268px] lg:w-[286px]"
+					className="md:px-5 px-2.5 py-4 text-foreground md:col-span-2 shrink-0 transition-colors md:w-[268px] lg:w-[286px]"
 				>
 					<SupersetLogo />
 				</a>

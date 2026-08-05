@@ -28,6 +28,9 @@ describe("AGENT_MODEL_SUPPORT", () => {
 			} else if (entry.modelEnv) {
 				// env-based presets (Vibe) carry the model via an env var, no flag
 				expect(entry.modelFlag).toBeNull();
+			} else if (entry.presetId === "polygraph") {
+				// polygraph's dropdown picks the harness it launches, not a model
+				expect(entry.modelFlag).toBe("--agent");
 			} else {
 				expect(entry.modelFlag).toBe("--model");
 			}
@@ -107,6 +110,21 @@ describe("buildAgentModelArgs", () => {
 		for (const model of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
 			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
 		}
+	});
+
+	it("builds polygraph harness args for every supported harness", () => {
+		for (const harness of ["claude", "codex", "opencode"]) {
+			expect(buildAgentModelArgs("polygraph", harness)).toEqual([
+				"--agent",
+				harness,
+			]);
+		}
+	});
+
+	it("omits the polygraph harness flag when unset or unknown", () => {
+		expect(buildAgentModelArgs("polygraph", undefined)).toEqual([]);
+		expect(buildAgentModelArgs("polygraph", "")).toEqual([]);
+		expect(buildAgentModelArgs("polygraph", "gemini")).toEqual([]);
 	});
 });
 

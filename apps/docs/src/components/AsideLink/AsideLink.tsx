@@ -7,7 +7,6 @@ import { cn } from "@/lib/cn";
 type Props = {
 	href: string;
 	children: React.ReactNode;
-	startWith: string;
 	title?: string | null;
 	className?: string;
 	activeClassName?: string;
@@ -16,7 +15,6 @@ type Props = {
 export const AsideLink = ({
 	href,
 	children,
-	startWith,
 	title,
 	className,
 	activeClassName,
@@ -30,10 +28,10 @@ export const AsideLink = ({
 			href={href}
 			title={title ?? undefined}
 			className={cn(
+				"flex w-full min-w-0 items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
 				isActive
-					? cn("text-foreground bg-primary/10", activeClassName)
-					: "text-muted-foreground hover:text-foreground hover:bg-primary/10",
-				"flex w-full min-w-0 items-center gap-x-2.5 px-5 py-1 transition-colors hover:bg-primary/10",
+					? cn("bg-accent text-accent-foreground", activeClassName)
+					: "text-muted-foreground hover:text-foreground",
 				className,
 			)}
 			{...props}

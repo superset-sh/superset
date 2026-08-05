@@ -107,7 +107,7 @@ export function useCommandWatcher() {
 		],
 	);
 
-	const { data: pendingCommands } = useLiveQuery(
+	const { data: pendingCommands, isReady: pendingCommandsReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ commands: collections.agentCommands })
@@ -245,8 +245,13 @@ export function useCommandWatcher() {
 	);
 
 	useEffect(() => {
+		// Strict readiness before executing: SQLite-cached rows can carry a
+		// stale "pending" status for commands the server already resolved.
+		// Acting on them re-runs tools (worktree create, terminal writes) and
+		// overwrites the server's final status.
 		if (
 			!shouldWatch ||
+			!pendingCommandsReady ||
 			!deviceInfo?.deviceId ||
 			!pendingCommands ||
 			!organizationId
@@ -303,6 +308,7 @@ export function useCommandWatcher() {
 		}
 	}, [
 		shouldWatch,
+		pendingCommandsReady,
 		deviceInfo?.deviceId,
 		organizationId,
 		pendingCommands,

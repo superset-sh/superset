@@ -37,7 +37,7 @@
 		"posthog-node": "5.28.8",
 		"resend": "4.8.0",
 		"superjson": "2.2.6",
-		"zod": "4.3.6"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

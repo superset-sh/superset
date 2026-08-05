@@ -121,21 +121,39 @@ it shares a pty-daemon with other dev instances, so keep uptime short.
 captures make the feature a tiny sliver of the frame. Before capturing, shrink the
 renderer to a compact viewport and bump the pixel density with
 `Emulation.setDeviceMetricsOverride` (e.g. `{width: 1120, height: 720,
-deviceScaleFactor: 2}`), so UI text renders large and crisp relative to the frame.
-Collapse the sidebar and close side panels unless they're the subject — this also keeps
-internal workspace/branch names out of frame. Two gotchas: the override only lives as
-long as the CDP session that set it, so do size → interact → capture over one WebSocket
-connection; and applying/clearing the override fires a resize that dismisses open
-dropdowns/popovers and reflows terminal TUIs (set the size first, then open the menu /
-render the TUI content). Note the beautify script's crop is cover-fit — very tall,
-narrow crops get over-zoomed, so prefer landscape-ish crops.
+deviceScaleFactor: 2}`; go narrower, like `860x640`, when the subject is the sidebar or
+another edge panel so it fills more of the frame). Collapse the sidebar and close side
+panels unless they're the subject — this also keeps internal workspace/branch names out
+of frame. Two gotchas: the override only lives as long as the CDP session that set it,
+so do size → interact → capture over one WebSocket connection; and applying/clearing
+the override fires a resize that dismisses open dropdowns/popovers and reflows terminal
+TUIs (set the size first, then open the menu / render the TUI content).
+
+**Make every shot legible at a glance.** Zoom in and isolate the feature whenever you
+can; the reader should identify what's being shown before reading the caption:
+
+- **Crop to the feature, not the app.** Cut chrome that isn't the subject (settings
+  nav, empty hero areas). A settings page reads better without the app shell around it.
+- **Show the feature in its active state** — menu open, rows selected, the new agent's
+  own page on screen — not the idle screen it lives behind. If the state needs setup
+  (pin something, select rows), stage it, capture, then revert the state.
+- **Don't cut text mid-word.** Place crop edges on layout boundaries (a pane divider, a
+  column edge), never through a headline. Tall, narrow crops are fine — the script
+  contain-fits them as a floating card — but never crop so tight the surrounding
+  context disappears entirely.
+- **One idea per image.** If a shot needs two callouts, it's two shots. Use
+  `--highlight` to point at the one thing that matters when the frame has competing
+  content.
+- **Glance test before shipping:** shrink the rendered PNG to ~600px wide. If you can't
+  tell what the feature is at that size, re-crop or re-stage.
 
 **2. Beautify** with `.github/prompts/beautify-screenshot.ts` (local headless-Chrome
 render — no upload, unlike Shots.so/Screely/Pika, which matters because these shots can
-contain teammate names and internal branch names). Use **`tilt`** for the header/hero
-image and **`flat`** for inline shots. Pass an optional `x,y,w,h` crop (in source
-pixels) to **zoom into the feature** rather than framing the whole app window — this
-reads much better; the shot doesn't need to be full-screen:
+contain teammate names and internal branch names). It frames the shot on a dithered
+backdrop — the same `@paper-design/shaders` Dithering effect the marketing site and the
+desktop welcome cards use, so changelog media matches the brand. Use **`tilt`** for the
+header/hero image and **`flat`** for inline shots. Pass an optional `x,y,w,h` crop (in
+source pixels) to **zoom into the feature** rather than framing the whole app window:
 
 ```bash
 # tilt hero, zoomed into the agent editor region
@@ -144,6 +162,31 @@ bun .github/prompts/beautify-screenshot.ts raw-agents.png hero.png          tilt
 bun .github/prompts/beautify-screenshot.ts raw-agents.png custom-agents.png flat 480,110,2440,1250
 # a dialog/dropdown — crop tight to just the dialog
 bun .github/prompts/beautify-screenshot.ts raw-dialog.png model-picker.png  flat 990,810,1480,800
+```
+
+Backdrop variation and highlights (all flags optional):
+
+- `--bg flame|ember|moss|indigo|violet` — palettes lifted from the site (flame, the
+  warm brand orange, is the default). **Rotate the palette each week** — check the
+  previous entry's images and pick the next preset in the cycle (flame → ember → moss →
+  indigo → violet → flame …) so consecutive changelogs don't look identical. Within one
+  entry keep the one palette. `--bg plain` renders the legacy glow backdrop; `--bg
+  random` picks per seed. `--accent <hex>` overrides the hue.
+- `--seed <n>` — varies the dither pattern phase and placement deterministically.
+  Change only the seed per image inside an entry (seed 1, 2, 3…) so the set coheres
+  without repeating the exact background.
+- `--shape warp|simplex|dots|wave|ripple|swirl|sphere` and `--px <n>` tune the pattern
+  (warp is the site look; px defaults to 3.5, chunkier than the site's UI dithers so
+  the backdrop reads as texture).
+- `--highlight x,y,w,h` — accent ring + glow around a region (same source-pixel space
+  as the crop) with everything else dimmed; `--hl-dim 0.15-0.45` sets how hard the rest
+  dims (default 0.42, use ~0.2 when the dimmed area must stay readable). Use it to
+  point at the one row/button that matters inside a busier frame.
+
+```bash
+# picker dropdown with the new agent's row highlighted, seed varied per image
+bun .github/prompts/beautify-screenshot.ts raw.png out.png flat 470,100,1770,1060 \
+  --bg flame --seed 2 --highlight 478,634,436,52 --hl-dim 0.22
 ```
 
 **3. Screen recordings for dynamic features.** Some features only make sense in motion —

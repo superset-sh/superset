@@ -27,6 +27,14 @@ import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
+import {
+	V1AutoMigration,
+	V1MigrationContinuity,
+} from "renderer/routes/_authenticated/components/V1AutoMigration";
+import {
+	V1FlipNotice,
+	V2FlipWelcome,
+} from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -287,6 +295,15 @@ function AuthenticatedLayout() {
 								<DaemonAutoUpdateFailureDialog />
 								<Outlet />
 								<V1ImportModal />
+								{isV2CloudEnabled ? (
+									<>
+										<V1MigrationContinuity />
+										<V2FlipWelcome />
+									</>
+								) : (
+									<V1FlipNotice />
+								)}
+								<V1AutoMigration />
 								<WorkspaceInitEffects />
 								{isV2CloudEnabled ? (
 									<DashboardNewWorkspaceModal />

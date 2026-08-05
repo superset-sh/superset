@@ -188,12 +188,14 @@ describe("deriveHostPortQueryTargets", () => {
 
 		expect(targets).toEqual([
 			{
+				organizationId: "org-1",
 				machineId: "remote-machine",
 				hostType: "remote-device",
 				hostUrl: "https://relay.example.com/hosts/org-1:remote-machine",
 				workspaceIds: ["workspace-c"],
 			},
 			{
+				organizationId: "org-1",
 				machineId: "local-machine",
 				hostType: "local-device",
 				hostUrl: "http://127.0.0.1:4567",
@@ -219,6 +221,7 @@ describe("deriveHostPortQueryTargets", () => {
 
 		expect(targets).toEqual([
 			{
+				organizationId: "",
 				machineId: "local-machine",
 				hostType: "local-device",
 				hostUrl: "http://127.0.0.1:4567",

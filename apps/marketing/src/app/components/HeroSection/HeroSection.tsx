@@ -1,11 +1,8 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
-import { useFeatureFlagVariantKey } from "posthog-js/react";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
-import { HERO_POSITIONING_FLAG } from "@/lib/analytics/hero-flag-bootstrap";
-import { isMacPlatform, usePlatform } from "../../hooks/useOS";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
 import { BoidsBackground } from "./components/BoidsBackground";
@@ -16,46 +13,17 @@ const PIXEL_FONT_STYLE = {
 	fontFamily: "var(--font-geist-pixel-grid)",
 } satisfies React.CSSProperties;
 
-interface HeroCopy {
-	headline: string;
-	segments: { text: string; style?: React.CSSProperties }[];
-	subheadline: string;
-}
-
-const TEST_SUBHEADLINE =
-	"Isolated workspaces for Claude Code, Codex, and any CLI agent. Review every change from one dashboard. Free to start.";
-
 const HERO_COPY = {
-	control: {
-		headline: "The Code Editor for AI Agents.",
-		segments: [
-			{ text: "The Code Editor for " },
-			{ text: "AI Agents.", style: PIXEL_FONT_STYLE },
-		],
-		subheadline:
-			"Orchestrate 100+ coding agents in parallel. Works for any agents. Built for the AI era.",
-	},
-	"capability-mac": {
-		headline: "Run parallel coding agents on your Mac.",
-		segments: [
-			{ text: "Run " },
-			{ text: "parallel coding agents", style: PIXEL_FONT_STYLE },
-			{ text: " on your Mac." },
-		],
-		subheadline: TEST_SUBHEADLINE,
-	},
-} satisfies Record<string, HeroCopy>;
+	segments: [
+		{ text: "The Code Editor for " },
+		{ text: "AI Agents.", style: PIXEL_FONT_STYLE },
+	],
+	subheadline:
+		"Orchestrate 100+ coding agents in parallel. Works for any agents. Built for the AI era.",
+};
 
 export function HeroSection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
-	const { platform } = usePlatform();
-	const heroVariant = useFeatureFlagVariantKey(HERO_POSITIONING_FLAG);
-	const copy =
-		isMacPlatform(platform) &&
-		typeof heroVariant === "string" &&
-		heroVariant in HERO_COPY
-			? HERO_COPY[heroVariant as keyof typeof HERO_COPY]
-			: HERO_COPY.control;
 
 	return (
 		<div>
@@ -72,7 +40,7 @@ export function HeroSection() {
 							>
 								{/* Sizer must mirror the visible segments' fonts so wrapping matches */}
 								<span className="invisible" aria-hidden="true">
-									{copy.segments.map((segment) => (
+									{HERO_COPY.segments.map((segment) => (
 										<span key={segment.text} style={segment.style}>
 											{segment.text}
 										</span>
@@ -80,8 +48,7 @@ export function HeroSection() {
 								</span>
 								<span className="absolute inset-0">
 									<TypewriterText
-										key={copy.headline}
-										segments={copy.segments}
+										segments={HERO_COPY.segments}
 										speed={40}
 										delay={600}
 									/>
@@ -91,7 +58,7 @@ export function HeroSection() {
 								id="hero-subheadline"
 								className="text-base sm:text-xl font-light text-muted-foreground max-w-4xl mx-auto"
 							>
-								{copy.subheadline}
+								{HERO_COPY.subheadline}
 							</p>
 						</div>
 

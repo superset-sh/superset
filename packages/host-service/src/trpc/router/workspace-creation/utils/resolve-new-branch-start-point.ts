@@ -3,8 +3,11 @@ import {
 	type ResolvedRef,
 	resolveUpstream,
 } from "../../../../runtime/git/refs";
+import type { BaseRefFetchTarget } from "../../git/utils/base-ref-freshness";
 import type { GitClient } from "../shared/types";
 import { resolveStartPoint } from "./resolve-start-point";
+
+export type BaseRefFetcher = (target: BaseRefFetchTarget) => Promise<unknown>;
 
 /**
  * Resolve the start point a *new* branch should fork from. No
@@ -24,6 +27,10 @@ import { resolveStartPoint } from "./resolve-start-point";
 export async function resolveNewBranchStartPoint(
 	git: GitClient,
 	baseBranch: string | undefined,
+	// Callers on the host-service event loop pass a worker-pool-backed
+	// fetcher so the network fetch doesn't spawn/drain in-process.
+	fetchRemoteRef: BaseRefFetcher = (target) =>
+		git.fetch([target.remote, target.branch, "--quiet", "--no-tags"]),
 ): Promise<ResolvedRef> {
 	let startPoint = await resolveStartPoint(git, baseBranch);
 
@@ -51,12 +58,10 @@ export async function resolveNewBranchStartPoint(
 
 	if (startPoint.kind === "remote-tracking") {
 		try {
-			await git.fetch([
-				startPoint.remote,
-				startPoint.shortName,
-				"--quiet",
-				"--no-tags",
-			]);
+			await fetchRemoteRef({
+				remote: startPoint.remote,
+				branch: startPoint.shortName,
+			});
 		} catch (err) {
 			console.warn(
 				`[workspaces.create] fetch ${startPoint.remoteShortName} failed:`,

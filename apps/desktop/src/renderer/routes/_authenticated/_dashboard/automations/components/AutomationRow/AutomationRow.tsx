@@ -21,7 +21,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { HiOutlineComputerDesktop } from "react-icons/hi2";
-import { LuEllipsis, LuGitBranch, LuSparkles } from "react-icons/lu";
+import {
+	LuEllipsis,
+	LuGitBranch,
+	LuRotateCw,
+	LuSparkles,
+} from "react-icons/lu";
 import type { ProjectOption } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { AgentCell } from "../AgentCell";
@@ -38,6 +43,8 @@ interface AutomationRowProps {
 	/** The automation's most recent run status; null when it has no runs. */
 	lastRunStatus: SelectAutomationRun["status"] | null;
 	isOwner: boolean;
+	/** True while a run/retry dispatch for this automation is in flight. */
+	isRetrying: boolean;
 	onRunNow: (automation: SelectAutomation) => void;
 	onDelete: (automation: SelectAutomation) => void;
 }
@@ -61,6 +68,7 @@ export function AutomationRow({
 	hostLabel,
 	lastRunStatus,
 	isOwner,
+	isRetrying,
 	onRunNow,
 	onDelete,
 }: AutomationRowProps) {
@@ -208,15 +216,47 @@ export function AutomationRow({
 										{meta.label}
 									</span>
 								);
-								return meta.failed ? (
-									<Tooltip>
-										<TooltipTrigger asChild>{cell}</TooltipTrigger>
-										<TooltipContent>
-											The last run failed. Click to see why.
-										</TooltipContent>
-									</Tooltip>
-								) : (
-									cell
+								return (
+									<span className="flex items-center gap-1">
+										{meta.failed ? (
+											<Tooltip>
+												<TooltipTrigger asChild>{cell}</TooltipTrigger>
+												<TooltipContent>
+													The last run failed. Click to see why.
+												</TooltipContent>
+											</Tooltip>
+										) : (
+											cell
+										)}
+										{meta.failed && isOwner && (
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<Button
+														variant="ghost"
+														size="icon-sm"
+														disabled={isRetrying}
+														onClick={(e) => {
+															e.stopPropagation();
+															onRunNow(automation);
+														}}
+														aria-label={`Retry ${automation.name}`}
+														className={cn(
+															"size-5 text-muted-foreground opacity-0 hover:text-foreground focus-visible:opacity-100 group-hover/row:opacity-100",
+															isRetrying && "opacity-100",
+														)}
+													>
+														<LuRotateCw
+															className={cn(
+																"size-3",
+																isRetrying && "animate-spin",
+															)}
+														/>
+													</Button>
+												</TooltipTrigger>
+												<TooltipContent>Retry now</TooltipContent>
+											</Tooltip>
+										)}
+									</span>
 								);
 							})()
 						) : (

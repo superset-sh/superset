@@ -24,6 +24,10 @@ interface ClientState {
 	fsSubscriptions: Map<string, FsSubscription>;
 }
 
+type WorkspaceChangedListener = (
+	message: Omit<Extract<ServerMessage, { type: "workspace:changed" }>, "type">,
+) => void;
+
 function sendMessage(socket: WsSocket, message: ServerMessage): void {
 	if (socket.readyState !== 1) return;
 	socket.send(JSON.stringify(message));
@@ -65,6 +69,8 @@ export interface EventBusOptions {
  */
 export class EventBus {
 	private readonly clients = new Map<WsSocket, ClientState>();
+	private readonly workspaceChangedListeners =
+		new Set<WorkspaceChangedListener>();
 	private readonly gitWatcher: GitWatcher;
 	private readonly filesystem: WorkspaceFilesystemManager;
 	private removeGitListener: (() => void) | null = null;
@@ -193,7 +199,29 @@ export class EventBus {
 			"type"
 		>,
 	): void {
+		// A throwing listener must not fail the emitting store write or skip
+		// the client broadcast.
+		for (const listener of this.workspaceChangedListeners) {
+			try {
+				listener(message);
+			} catch (error) {
+				console.error("[event-bus] workspace-changed listener failed", {
+					error,
+				});
+			}
+		}
 		this.broadcast({ type: "workspace:changed", ...message });
+	}
+
+	/**
+	 * In-process subscription to the same workspace lifecycle events that
+	 * `broadcastWorkspaceChanged` fans out to WebSocket clients. For host-
+	 * internal consumers (e.g. the pull-requests runtime) that need to react
+	 * without holding a socket. Returns an unsubscribe function.
+	 */
+	onWorkspaceChanged(listener: WorkspaceChangedListener): () => void {
+		this.workspaceChangedListeners.add(listener);
+		return () => this.workspaceChangedListeners.delete(listener);
 	}
 
 	/**
