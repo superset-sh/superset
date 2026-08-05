@@ -4,7 +4,7 @@ import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 
 const DEFAULT_MODEL_ID =
-	SUPERSET_CHAT_MODELS[0]?.id ?? "anthropic/claude-opus-4-8";
+	SUPERSET_CHAT_MODELS[0]?.id ?? "anthropic/claude-opus-5";
 
 interface NewChatPreferencesStore {
 	modelId: string;

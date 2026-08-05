@@ -7,6 +7,7 @@ import {
 	buildAgentModelEnv,
 	getAgentEffortSupport,
 	getAgentModelSupport,
+	SUPERSET_CHAT_MODELS,
 } from "./agent-models";
 import { BUILTIN_TERMINAL_AGENT_TYPES } from "./builtin-terminal-agents";
 
@@ -41,6 +42,16 @@ describe("AGENT_MODEL_SUPPORT", () => {
 		for (const entry of AGENT_MODEL_SUPPORT) {
 			expect(entry.models.length).toBeGreaterThan(0);
 		}
+	});
+});
+
+describe("SUPERSET_CHAT_MODELS", () => {
+	it("includes opus 5 and the GPT-5.6 Codex models", () => {
+		const ids = SUPERSET_CHAT_MODELS.map((model) => model.id);
+		expect(ids).toContain("anthropic/claude-opus-5");
+		expect(ids).toContain("openai/gpt-5.6-sol");
+		expect(ids).toContain("openai/gpt-5.6-terra");
+		expect(ids).toContain("openai/gpt-5.6-luna");
 	});
 });
 
@@ -90,6 +101,13 @@ describe("buildAgentModelArgs", () => {
 		]);
 	});
 
+	it("includes opus 5 in claude's curated list", () => {
+		expect(buildAgentModelArgs("claude", "claude-opus-5")).toEqual([
+			"--model",
+			"claude-opus-5",
+		]);
+	});
+
 	it("includes fable for the other CLIs that support it", () => {
 		expect(buildAgentModelArgs("copilot", "claude-fable-5")).toEqual([
 			"--model",
@@ -109,6 +127,30 @@ describe("buildAgentModelArgs", () => {
 	it("includes every GPT-5.6 Codex model", () => {
 		for (const model of ["gpt-5.6-sol", "gpt-5.6-terra", "gpt-5.6-luna"]) {
 			expect(buildAgentModelArgs("codex", model)).toEqual(["--model", model]);
+		}
+	});
+
+	it("includes opus 5 and the GPT-5.6 models for the other CLIs", () => {
+		for (const model of [
+			"claude-opus-5-high",
+			"gpt-5.6-terra-medium",
+			"gpt-5.6-luna-medium",
+		]) {
+			expect(buildAgentModelArgs("cursor-agent", model)).toEqual([
+				"--model",
+				model,
+			]);
+		}
+		for (const model of [
+			"anthropic/claude-opus-5",
+			"openai/gpt-5.6-sol",
+			"openai/gpt-5.6-terra",
+			"openai/gpt-5.6-luna",
+		]) {
+			expect(buildAgentModelArgs("opencode", model)).toEqual([
+				"--model",
+				model,
+			]);
 		}
 	});
 

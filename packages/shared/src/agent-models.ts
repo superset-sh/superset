@@ -41,6 +41,7 @@ export interface SupersetChatModel extends AgentModelOption {
  * model edits here so the two never drift.
  */
 export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
+	{ id: "anthropic/claude-opus-5", label: "Opus 5", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-8", label: "Opus 4.8", provider: "Anthropic" },
 	{ id: "anthropic/claude-opus-4-7", label: "Opus 4.7", provider: "Anthropic" },
 	{ id: "anthropic/claude-fable-5", label: "Fable 5", provider: "Anthropic" },
@@ -54,7 +55,15 @@ export const SUPERSET_CHAT_MODELS: readonly SupersetChatModel[] = [
 		label: "Haiku 4.5",
 		provider: "Anthropic",
 	},
+	{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "OpenAI" },
+	{
+		id: "openai/gpt-5.6-terra",
+		label: "GPT-5.6 Terra",
+		provider: "OpenAI",
+	},
+	{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna", provider: "OpenAI" },
 	{ id: "openai/gpt-5.5", label: "GPT-5.5", provider: "OpenAI" },
+	// Retiring from Codex on 2026-08-31; prefer the GPT-5.6 models above.
 	{ id: "openai/gpt-5.4", label: "GPT-5.4", provider: "OpenAI" },
 	{ id: "openai/gpt-5.3-codex", label: "GPT-5.3 Codex", provider: "OpenAI" },
 ];
@@ -66,6 +75,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		models: [
 			{ id: "fable", label: "Fable" },
 			{ id: "opus", label: "Opus" },
+			{ id: "claude-opus-5", label: "Opus 5" },
 			{ id: "sonnet", label: "Sonnet" },
 			{ id: "haiku", label: "Haiku" },
 		],
@@ -78,6 +88,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
 			{ id: "gpt-5.6-luna", label: "GPT-5.6 Luna" },
 			{ id: "gpt-5.5", label: "GPT-5.5" },
+			// Retiring from Codex on 2026-08-31; superseded by gpt-5.6-terra/luna.
 			{ id: "gpt-5.4", label: "GPT-5.4" },
 			{ id: "gpt-5.3-codex", label: "GPT-5.3 Codex" },
 		],
@@ -105,7 +116,7 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		models: [
 			// cursor-agent has no effort flag, so effort/thinking levels are
 			// baked into the model ids. Ids verified against a live account's
-			// `--list-models` (2026-07-17); the list is account-dependent and
+			// `--list-models` (2026-08-05); the list is account-dependent and
 			// unknown ids are rejected by the CLI, not silently ignored.
 			// "auto" is the only id free-plan accounts can use (besides
 			// composer) — named models fail there with "Named models
@@ -113,9 +124,12 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "auto", label: "Auto" },
 			{ id: "claude-fable-5-thinking-high", label: "Fable 5" },
 			{ id: "claude-fable-5-thinking-xhigh", label: "Fable 5 xHigh" },
+			{ id: "claude-opus-5-high", label: "Opus 5" },
 			{ id: "claude-opus-4-8-high", label: "Opus 4.8" },
 			{ id: "claude-4.6-sonnet-medium", label: "Sonnet 4.6" },
 			{ id: "gpt-5.6-sol-medium", label: "GPT-5.6 Sol" },
+			{ id: "gpt-5.6-terra-medium", label: "GPT-5.6 Terra" },
+			{ id: "gpt-5.6-luna-medium", label: "GPT-5.6 Luna" },
 			{ id: "gpt-5.3-codex", label: "Codex 5.3" },
 			{ id: "composer-2.5", label: "Composer 2.5" },
 		],
@@ -124,9 +138,16 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "opencode",
 		modelFlag: "--model",
 		models: [
+			// openai ids verified against `opencode models` (2026-08-05), which
+			// no longer lists the old `openai/gpt-5`. anthropic ids follow the
+			// same models.dev catalog but need an authed anthropic provider to
+			// appear in that listing.
+			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
 			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
 			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
-			{ id: "openai/gpt-5", label: "GPT-5" },
+			{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
+			{ id: "openai/gpt-5.6-terra", label: "GPT-5.6 Terra" },
+			{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna" },
 		],
 	},
 	{
