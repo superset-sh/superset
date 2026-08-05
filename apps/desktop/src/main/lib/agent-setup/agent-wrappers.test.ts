@@ -64,6 +64,7 @@ const {
 	buildCopilotWrapperExecLine,
 	buildWrapperScript,
 	createClaudeSettingsJson,
+	createClaudeWrapper,
 	createCodexHooksJson,
 	createCodexWrapper,
 	COPILOT_HOOK_MARKER,
@@ -191,7 +192,7 @@ describe("agent-wrappers copilot", () => {
 		const wrapper = readFileSync(wrapperPath, "utf-8");
 
 		expect(wrapper).toContain(
-			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
+			`"$REAL_BIN" "\${_superset_codex_args[@]}" --enable hooks --no-alt-screen -c 'notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]' "$@"`,
 		);
 		expect(wrapper).toContain('export SUPERSET_AGENT_ID="codex"');
 
@@ -230,6 +231,27 @@ describe("agent-wrappers copilot", () => {
 		);
 		expect(execLine).not.toContain("{{NOTIFY_PATH}}");
 		expect(wrapper).toContain(execLine);
+	});
+
+	it("keeps managed Claude and Codex sessions in the primary screen buffer", () => {
+		createClaudeWrapper();
+		createCodexWrapper();
+
+		const claudeWrapper = readFileSync(
+			path.join(TEST_BIN_DIR, "claude"),
+			"utf-8",
+		);
+		const codexWrapper = readFileSync(
+			path.join(TEST_BIN_DIR, "codex"),
+			"utf-8",
+		);
+
+		expect(claudeWrapper).toContain(
+			`export CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN="\${CLAUDE_CODE_DISABLE_ALTERNATE_SCREEN:-1}"`,
+		);
+		expect(codexWrapper).toContain(
+			"--enable hooks --no-alt-screen -c 'notify=",
+		);
 	});
 
 	it("trusts the Superset workspace codex project config without replacing CODEX_HOME", () => {
@@ -275,6 +297,7 @@ exit 0
 				`projects={"${workspacePath}"={trust_level="trusted"}}`,
 				"--enable",
 				"hooks",
+				"--no-alt-screen",
 				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 			].join("\n")}\n`,
@@ -314,6 +337,7 @@ exit 0
 			`${[
 				"--enable",
 				"hooks",
+				"--no-alt-screen",
 				"-c",
 				`notify=["bash","${path.join(TEST_HOOKS_DIR, "notify.sh")}"]`,
 				"exec",
