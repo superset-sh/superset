@@ -613,6 +613,14 @@ describe("env", () => {
 			}
 		});
 
+		it("includes session-location metadata for terminal CLIs", () => {
+			const result = buildTerminalEnv(baseParams);
+			expect(result.SUPERSET_SESSION_LOCATIONS_PATH).toContain(
+				"session-locations.json",
+			);
+			expect(result.SUPERSET_SESSION_LOCATION_KEY).toBe("ws-1:tab-1:pane-1");
+		});
+
 		describe("excludes non-allowlisted vars from terminals", () => {
 			it("should exclude NODE_ENV from Electron's process.env", () => {
 				process.env.NODE_ENV = "production";
