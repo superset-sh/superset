@@ -1,7 +1,7 @@
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
 	resolveBranchPrefix,
-	sanitizeSegment,
+	sanitizeCustomBranchPrefix,
 } from "@superset/shared/workspace-launch";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
@@ -99,7 +99,7 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 	};
 
 	const handleCustomPrefixBlur = () => {
-		const sanitized = sanitizeSegment(customPrefixInput);
+		const sanitized = sanitizeCustomBranchPrefix(customPrefixInput);
 		setCustomPrefixInput(sanitized);
 		setBranchPrefix.mutate({
 			mode: "custom",

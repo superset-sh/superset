@@ -1,7 +1,7 @@
 import type { BranchPrefixMode } from "@superset/local-db";
 import {
 	resolveBranchPrefix,
-	sanitizeSegment,
+	sanitizeCustomBranchPrefix,
 } from "@superset/shared/workspace-launch";
 import {
 	AlertDialog,
@@ -187,7 +187,7 @@ export function ProjectSettings({
 	};
 
 	const handleCustomPrefixBlur = () => {
-		const sanitized = sanitizeSegment(customPrefixInput);
+		const sanitized = sanitizeCustomBranchPrefix(customPrefixInput);
 		setCustomPrefixInput(sanitized);
 		updateProject.mutate({
 			id: projectId,
