@@ -15,6 +15,11 @@ interface WorkspaceSidebarState {
 	lastExpandedWidth: number;
 	// Use string[] instead of Set<string> for JSON serialization with Zustand persist
 	collapsedProjectIds: string[];
+	// Linked-modules reveal per worktree. Default closed, so we store the OPEN ones.
+	openLinkedSectionWorkspaceIds: string[];
+	// Per source-group folder within a worktree's linked modules. Default open, so
+	// we store the COLLAPSED ones. Key = `${workspaceId}::${sourceDir}`.
+	collapsedLinkSourceKeys: string[];
 	isResizing: boolean;
 
 	toggleOpen: () => void;
@@ -23,9 +28,17 @@ interface WorkspaceSidebarState {
 	setIsResizing: (isResizing: boolean) => void;
 	toggleProjectCollapsed: (projectId: string) => void;
 	isProjectCollapsed: (projectId: string) => boolean;
+	toggleLinkedSectionOpen: (workspaceId: string) => void;
+	isLinkedSectionOpen: (workspaceId: string) => boolean;
+	toggleLinkSourceCollapsed: (workspaceId: string, sourceDir: string) => void;
+	isLinkSourceCollapsed: (workspaceId: string, sourceDir: string) => boolean;
 	toggleCollapsed: () => void;
 	isCollapsed: () => boolean;
 }
+
+// Composite key for a source-group folder, scoped to its worktree.
+const linkSourceKey = (workspaceId: string, sourceDir: string) =>
+	`${workspaceId}::${sourceDir}`;
 
 export const useWorkspaceSidebarStore = create<WorkspaceSidebarState>()(
 	devtools(
@@ -35,6 +48,8 @@ export const useWorkspaceSidebarStore = create<WorkspaceSidebarState>()(
 				width: DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
 				lastExpandedWidth: DEFAULT_WORKSPACE_SIDEBAR_WIDTH,
 				collapsedProjectIds: [],
+				openLinkedSectionWorkspaceIds: [],
+				collapsedLinkSourceKeys: [],
 				isResizing: false,
 
 				toggleOpen: () => {
@@ -96,6 +111,36 @@ export const useWorkspaceSidebarStore = create<WorkspaceSidebarState>()(
 					return get().collapsedProjectIds.includes(projectId);
 				},
 
+				toggleLinkedSectionOpen: (workspaceId) => {
+					set((state) => ({
+						openLinkedSectionWorkspaceIds:
+							state.openLinkedSectionWorkspaceIds.includes(workspaceId)
+								? state.openLinkedSectionWorkspaceIds.filter(
+										(id) => id !== workspaceId,
+									)
+								: [...state.openLinkedSectionWorkspaceIds, workspaceId],
+					}));
+				},
+
+				isLinkedSectionOpen: (workspaceId) => {
+					return get().openLinkedSectionWorkspaceIds.includes(workspaceId);
+				},
+
+				toggleLinkSourceCollapsed: (workspaceId, sourceDir) => {
+					const key = linkSourceKey(workspaceId, sourceDir);
+					set((state) => ({
+						collapsedLinkSourceKeys: state.collapsedLinkSourceKeys.includes(key)
+							? state.collapsedLinkSourceKeys.filter((k) => k !== key)
+							: [...state.collapsedLinkSourceKeys, key],
+					}));
+				},
+
+				isLinkSourceCollapsed: (workspaceId, sourceDir) => {
+					return get().collapsedLinkSourceKeys.includes(
+						linkSourceKey(workspaceId, sourceDir),
+					);
+				},
+
 				toggleCollapsed: () => {
 					const { width, lastExpandedWidth } = get();
 					const isCurrentlyCollapsed =
@@ -121,6 +166,8 @@ export const useWorkspaceSidebarStore = create<WorkspaceSidebarState>()(
 					width: state.width,
 					lastExpandedWidth: state.lastExpandedWidth,
 					collapsedProjectIds: state.collapsedProjectIds,
+					openLinkedSectionWorkspaceIds: state.openLinkedSectionWorkspaceIds,
+					collapsedLinkSourceKeys: state.collapsedLinkSourceKeys,
 					// isResizing intentionally excluded - ephemeral UI state
 				}),
 			},
