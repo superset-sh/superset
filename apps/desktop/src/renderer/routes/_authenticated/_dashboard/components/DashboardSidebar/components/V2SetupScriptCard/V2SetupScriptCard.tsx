@@ -41,9 +41,7 @@ export function V2SetupScriptCard({
 	// the agent through writing setup/teardown scripts for this project, rather
 	// than sending the user to the settings page to hand-write config.json.
 	const handleConfigure = () => {
-		const draftStore = useNewWorkspaceDraftStore.getState();
-		draftStore.resetDraft();
-		draftStore.updateDraft({ prompt: setupScriptPrompt });
+		useNewWorkspaceDraftStore.getState().seedSetupPrompt(setupScriptPrompt);
 		openNewWorkspaceModal(projectId);
 	};
 

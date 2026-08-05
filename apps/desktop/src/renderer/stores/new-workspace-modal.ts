@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { useNewWorkspaceDraftStore } from "./new-workspace-draft";
 
 interface PendingWorkspace {
 	id: string;
@@ -53,6 +54,9 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 			},
 
 			closeModal: () => {
+				// Clear an unedited setup-card seed on any close so it can't resurface in a later, unrelated open. Only the prompt is dropped; other draft fields the user filled in are kept (and editing the prompt already cleared the flag).
+				const draft = useNewWorkspaceDraftStore.getState();
+				if (draft.promptSeededFromSetupCard) draft.updateDraft({ prompt: "" });
 				set({ isOpen: false, preSelectedProjectId: null });
 			},
 
