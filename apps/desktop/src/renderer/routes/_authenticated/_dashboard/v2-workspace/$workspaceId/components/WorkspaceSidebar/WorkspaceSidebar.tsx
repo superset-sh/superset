@@ -7,6 +7,7 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useSettings } from "renderer/stores/settings";
 import type { CommentPaneData, DiffFocusSide } from "../../types";
 import { FilesTab } from "./components/FilesTab";
+import { GhCliGateDialog } from "./components/GhCliGateDialog";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
@@ -125,7 +126,7 @@ export function WorkspaceSidebar({
 	});
 
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
-	const dispatch = usePRFlowDispatch({
+	const { dispatch, ghGate, recheckGhGate, dismissGhGate } = usePRFlowDispatch({
 		onOpenChat: onOpenChat ?? (() => {}),
 	});
 
@@ -169,6 +170,13 @@ export function WorkspaceSidebar({
 			<div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
 				{activeTabDef?.content}
 			</div>
+			{ghGate && (
+				<GhCliGateDialog
+					reason={ghGate}
+					onRecheck={recheckGhGate}
+					onDismiss={dismissGhGate}
+				/>
+			)}
 		</div>
 	);
 }

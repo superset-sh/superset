@@ -1,4 +1,4 @@
-import { useCallback } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { ChatPaneData } from "../../../../types";
 import { buildPRContext } from "../../components/PRActionHeader/utils/buildPRContext";
 import type { PRFlowState } from "../../components/PRActionHeader/utils/getPRFlowState";
@@ -19,14 +19,28 @@ export interface PRFlowDispatchArgs {
 
 export type PRFlowDispatch = (args: PRFlowDispatchArgs) => void;
 
+export type GhCliGateReason = "not-installed" | "not-authenticated";
+
 interface UsePRFlowDispatchOptions {
 	onOpenChat: OpenChatFn;
 }
 
+interface UsePRFlowDispatchResult {
+	dispatch: PRFlowDispatch;
+	/** Non-null when the last dispatch was blocked on the GitHub CLI. */
+	ghGate: GhCliGateReason | null;
+	/** Re-detects gh; resumes the blocked dispatch once it's ready. */
+	recheckGhGate: () => void;
+	dismissGhGate: () => void;
+}
+
 export function usePRFlowDispatch({
 	onOpenChat,
-}: UsePRFlowDispatchOptions): PRFlowDispatch {
-	return useCallback(
+}: UsePRFlowDispatchOptions): UsePRFlowDispatchResult {
+	const [ghGate, setGhGate] = useState<GhCliGateReason | null>(null);
+	const pendingRef = useRef<PRFlowDispatchArgs | null>(null);
+
+	const proceed = useCallback(
 		({ state, draft }: PRFlowDispatchArgs) => {
 			const plan = planDispatch(state, { draft: draft === true });
 			if (!plan) return;
@@ -38,6 +52,63 @@ export function usePRFlowDispatch({
 		},
 		[onOpenChat],
 	);
+
+	const dispatch = useCallback<PRFlowDispatch>(
+		(args) => {
+			void (async () => {
+				const gate = await detectGhCliGate();
+				if (gate) {
+					pendingRef.current = args;
+					setGhGate(gate);
+					return;
+				}
+				proceed(args);
+			})();
+		},
+		[proceed],
+	);
+
+	const recheckGhGate = useCallback(() => {
+		void (async () => {
+			const gate = await detectGhCliGate();
+			if (gate) {
+				setGhGate(gate);
+				return;
+			}
+			setGhGate(null);
+			const pending = pendingRef.current;
+			pendingRef.current = null;
+			if (pending) proceed(pending);
+		})();
+	}, [proceed]);
+
+	const dismissGhGate = useCallback(() => {
+		pendingRef.current = null;
+		setGhGate(null);
+	}, []);
+
+	return { dispatch, ghGate, recheckGhGate, dismissGhGate };
+}
+
+async function detectGhCliGate(): Promise<GhCliGateReason | null> {
+	try {
+		// Dynamic import keeps this module loadable outside Electron (tests).
+		const { electronTrpcClient } = await import("renderer/lib/trpc-client");
+		const gh = await electronTrpcClient.system.detectGhCli.query();
+		return getGhCliGateReason(gh);
+	} catch {
+		// Detection failing must not block the PR flow itself.
+		return null;
+	}
+}
+
+export function getGhCliGateReason(gh: {
+	installed: boolean;
+	authenticated: boolean;
+}): GhCliGateReason | null {
+	if (!gh.installed) return "not-installed";
+	if (!gh.authenticated) return "not-authenticated";
+	return null;
 }
 
 interface DispatchPlan {
