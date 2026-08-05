@@ -1,7 +1,7 @@
 import { COMPANY } from "@superset/shared/constants";
 import { getBlogPosts } from "@/lib/blog";
 import { getComparisonPages } from "@/lib/compare";
-import { stripMdxSyntax } from "@/lib/llms";
+import { PRODUCT_SUMMARY, stripMdxSyntax } from "@/lib/llms";
 import { FAQ_ITEMS } from "../components/FAQSection/constants";
 
 export async function GET() {
@@ -19,7 +19,7 @@ export async function GET() {
 			"",
 			"> Run 10+ parallel coding agents on your machine",
 			"",
-			`${COMPANY.NAME} is an open-source desktop application that lets developers run multiple AI coding agents in parallel, each in its own isolated Git worktree. It works with any CLI-based agent including Claude Code, OpenCode, and OpenAI Codex. Agents can work on different branches or features simultaneously without conflicts. ${COMPANY.NAME} is free, does not proxy API calls, and supports macOS with Windows and Linux coming soon.`,
+			PRODUCT_SUMMARY,
 			"",
 			"## Docs",
 			"",

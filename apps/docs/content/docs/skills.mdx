@@ -1,0 +1,52 @@
+---
+title: Skills
+description: Superset abilities your coding agents get automatically — orchestration, automations, feedback, diagnostics, and more
+---
+
+Superset ships a set of skills to the coding agents you already use. The desktop app provisions them automatically at launch — no install step — and keeps them updated as the app updates. In Claude Code they appear under the `superset:` namespace; other agents that read skills (Codex, Kimi, Vibe, Grok) get the same skills with a `superset-` prefix, and the in-app chat exposes the most common ones as slash commands.
+
+## What You Get
+
+| Skill | What it does |
+|:------|:-------------|
+| `superset:setup` | Makes a repo Superset-ready — authors `.superset/config.json` and setup scripts, then verifies with a real workspace |
+| `superset:orchestrate` | Turns the agent you're talking to into a coordinator of parallel agents — see [Agent Orchestration](/orchestration) |
+| `superset:automate` | Turns a recurring chore into a scheduled [automation](/automations) and reviews its first run with you |
+| `superset:standup` | Sweeps your workspaces, tasks, and agent terminals into a digest: what needs you, what's in flight, what's blocked |
+| `superset:doctor` | Diagnoses Superset problems — expired auth, offline hosts, stale versions — and fixes them one step at a time |
+| `superset:feedback` | Files a bug report or feature request: privately to the Superset team (from your account, so we can reply) or as a public GitHub issue |
+| `superset:10x` | Audits how you use Superset and teaches the advanced features you're not using yet |
+| `superset:contribute` | Sets up a Superset open-source contribution end to end, following the repo's contribution rules |
+
+## Using Skills
+
+You usually don't invoke them — agents pick the right skill from context:
+
+- "report this bug to the superset team" → `superset:feedback`
+- "what did my agents do overnight?" → `superset:standup`
+- "run these three refactors in parallel" → `superset:orchestrate`
+
+To invoke one explicitly, use `/superset:feedback` in Claude Code, or `/superset/feedback` in the in-app chat.
+
+## How They're Delivered
+
+The desktop app writes managed copies into the standard discovery locations at launch: `~/.claude/skills/superset/` (loaded by Claude Code as a plugin, which is where the `superset:` namespace comes from), `~/.agents/skills/`, and `~/.agents/commands/`.
+
+Two rules keep this safe:
+
+- **Your files are never touched.** Anything Superset manages carries a marker; a skill or command you authored yourself at the same path is left alone.
+- **Updates and removals are automatic.** Managed skills are refreshed on every app launch, and ones that no longer ship are cleaned up.
+
+## Without the Desktop App
+
+Standalone agents can install the skills directly:
+
+```bash
+npx skills add superset-sh/skills
+```
+
+Claude Code users can also use the plugin marketplace:
+
+```text
+/plugin marketplace add superset-sh/superset
+```

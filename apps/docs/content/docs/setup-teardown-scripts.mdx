@@ -175,6 +175,8 @@ When teardown fails:
 2. Click "Delete Anyway" to force-delete immediately
 3. Or click "View Logs" to review the failure, then force-delete from the dialog
 
+Deleting a workspace through the CLI, SDK, or MCP also runs teardown. Since there's no one to prompt on those surfaces, a teardown failure doesn't block the delete — it's reported in the response's `warnings` instead.
+
 ## Tips
 
 - Keep setup fast: it runs on every workspace creation

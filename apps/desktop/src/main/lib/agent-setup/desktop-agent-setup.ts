@@ -34,11 +34,16 @@ import {
 	DESKTOP_AGENT_SETUP_TARGETS,
 	type DesktopAgentSetupAction,
 } from "./desktop-agent-capabilities";
+import { createManagedSkills } from "./managed-skills";
 import { createNotifyScript } from "./notify-hook";
 
 const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 	{
 		"notify-script": createNotifyScript,
+		// Async fire-and-forget: every fs mutation inside is individually
+		// try/caught and logged, so nothing can reject unhandled, and boot
+		// never blocks on skill provisioning.
+		"managed-skills": () => void createManagedSkills(),
 		"cleanup-global-opencode-plugin": cleanupGlobalOpenCodePlugin,
 		"amp-plugin": createAmpPlugin,
 		"amp-wrapper": createAmpWrapper,
@@ -70,15 +75,41 @@ const DESKTOP_AGENT_SETUP_RUNNERS: Record<DesktopAgentSetupAction, () => void> =
 		"vibe-wrapper": createVibeWrapper,
 	};
 
+/**
+ * One bad $HOME state (permissions, a config another tool corrupted) must not
+ * break app boot or block the remaining agents' setup — isolate every action.
+ */
+export function runSetupAction(label: string, action: () => void): boolean {
+	try {
+		action();
+		return true;
+	} catch (error) {
+		console.warn(`[agent-setup] ${label} failed:`, error);
+		return false;
+	}
+}
+
 export function setupDesktopAgentCapabilities(): void {
+	const failed: string[] = [];
 	for (const action of DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS) {
-		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+		if (!runSetupAction(action, DESKTOP_AGENT_SETUP_RUNNERS[action])) {
+			failed.push(action);
+		}
 	}
 
 	for (const target of DESKTOP_AGENT_SETUP_TARGETS) {
 		for (const action of target.setupActions) {
-			DESKTOP_AGENT_SETUP_RUNNERS[action]();
+			const label = `${target.id}:${action}`;
+			if (!runSetupAction(label, DESKTOP_AGENT_SETUP_RUNNERS[action])) {
+				failed.push(label);
+			}
 		}
+	}
+
+	if (failed.length > 0) {
+		console.warn(
+			`[agent-setup] ${failed.length} setup action(s) failed: ${failed.join(", ")}`,
+		);
 	}
 }
 
@@ -91,10 +122,13 @@ export function setupSingleAgent(agentId: string): boolean {
 	const target = DESKTOP_AGENT_SETUP_TARGETS.find((t) => t.id === agentId);
 	if (!target) return false;
 	for (const action of DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS) {
-		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+		runSetupAction(action, DESKTOP_AGENT_SETUP_RUNNERS[action]);
 	}
 	for (const action of target.setupActions) {
-		DESKTOP_AGENT_SETUP_RUNNERS[action]();
+		runSetupAction(
+			`${target.id}:${action}`,
+			DESKTOP_AGENT_SETUP_RUNNERS[action],
+		);
 	}
 	return true;
 }

@@ -20,12 +20,12 @@ export default function Sidebar() {
 				<div className="shrink-0 px-4 pt-4 pb-2">
 					<button
 						type="button"
-						className="flex w-full items-center gap-2 rounded-lg border border-border px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-ring/60 hover:text-foreground"
+						className="flex w-full items-center gap-2 rounded-md border border-border/50 px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:border-border hover:text-foreground"
 						onClick={() => setOpenSearch(true)}
 					>
-						<Search className="size-3.5 shrink-0" />
+						<Search className="size-3.5 shrink-0 opacity-70" />
 						<span className="grow truncate text-left">Search docs...</span>
-						<kbd className="rounded border border-border px-1 py-px text-[11px] font-medium text-muted-foreground">
+						<kbd className="text-[11px] font-medium text-muted-foreground">
 							⌘K
 						</kbd>
 					</button>
@@ -36,7 +36,7 @@ export default function Sidebar() {
 				>
 					{sections.map((section) => (
 						<div key={section.title}>
-							<p className="px-2 pb-1.5 text-[13px] font-medium text-foreground">
+							<p className="px-2 pb-1.5 text-[11px] font-semibold uppercase tracking-wider text-brand-dark dark:text-brand-light">
 								{section.title}
 							</p>
 							<div className="flex flex-col">

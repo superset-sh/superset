@@ -1,0 +1,30 @@
+---
+title: Tasks & PRs
+description: Track work items and pull requests without leaving the app
+---
+
+The **Tasks & PRs** view brings your issue tracker and open pull requests into Superset, so delegating a task to an agent doesn't start with a copy-paste from Linear.
+
+![Creating a task from the desktop](/images/create-task.png)
+
+## Where Tasks Come From
+
+Tasks sync from your connected tracker (see [Linear Integration](/use-with-linear)) alongside Superset-native tasks. The view lists issues from the whole connected Linear workspace; filter by status, priority, or assignee to narrow it to yours.
+
+## What You Can Do
+
+- **Table view** with filtering and sorting by status, priority, and assignee
+- **Semantic search**: find tasks by meaning, not just keywords
+- **Create tasks** from the desktop with the task create modal
+- **Task detail actions**: quick actions on individual tasks without switching to Linear
+
+## From Task to Workspace
+
+The point of having tasks in Superset is delegation. Launch an agent from a task and the task's content becomes the agent's prompt:
+
+- The **Task Prompt Template** (per agent, under **Settings → Agents**) controls how the task is turned into a prompt
+- The **Auto-run command** toggle controls whether the agent starts immediately or stages the command for review
+
+## PRs
+
+Pull requests appear alongside tasks, and PR-based workspaces show review status and CI checks in the sidebar. See [Workspaces](/workspaces#pr-status) and the [Diff Viewer](/diff-viewer) for the review loop.

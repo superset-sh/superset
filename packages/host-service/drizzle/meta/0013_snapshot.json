@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8e698c9e-3336-42ee-a126-8fc15ccc2634",
+  "id": "79de14c5-c9b9-4a92-8554-1a9b1476f6c0",
   "prevId": "07c5a2e6-720d-426e-b026-dad1ef35d6ee",
   "tables": {
     "acp_sessions": {
@@ -304,13 +304,6 @@
         },
         "icon": {
           "name": "icon",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "sparse_checkout_paths": {
-          "name": "sparse_checkout_paths",
           "type": "text",
           "primaryKey": false,
           "notNull": false,
@@ -809,6 +802,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "suppressed_pull_request_id": {
+          "name": "suppressed_pull_request_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "name": {
           "name": "name",
           "type": "text",
@@ -915,6 +915,19 @@
           "tableTo": "pull_requests",
           "columnsFrom": [
             "pull_request_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        },
+        "workspaces_suppressed_pull_request_id_pull_requests_id_fk": {
+          "name": "workspaces_suppressed_pull_request_id_pull_requests_id_fk",
+          "tableFrom": "workspaces",
+          "tableTo": "pull_requests",
+          "columnsFrom": [
+            "suppressed_pull_request_id"
           ],
           "columnsTo": [
             "id"

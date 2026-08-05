@@ -28,13 +28,8 @@ const config = {
 	async redirects() {
 		return [
 			{
-				source: "/",
-				destination: "/overview",
-				permanent: false,
-			},
-			{
 				source: "/docs",
-				destination: "/overview",
+				destination: "/",
 				permanent: false,
 			},
 			// Legacy /docs-prefixed URLs (e.g. /docs/automations) now live at root.

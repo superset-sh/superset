@@ -1,0 +1,47 @@
+---
+title: Fan Out a Big Refactor
+description: Split a large change into independent slices and run one workspace per slice
+---
+
+<Callout type="info" title="Use when">
+	a refactor is too big for one PR: a rename that touches 200 files, a library migration, deleting a deprecated pattern across the codebase.
+</Callout>
+
+## The Idea
+
+The failure mode of big refactors is one giant branch that rots while it waits for review. Instead: delegate in workspaces, integrate through small PRs. Slice the work so each piece can merge independently, then run one agent per slice.
+
+![One workspace per slice, integrated as small PRs](/images/workspaces-branches.png)
+
+## Steps
+
+1. **Plan the slices first.** In a scratch workspace, have an agent do the survey:
+
+```text
+We're migrating from moment to date-fns. Find every usage and propose
+a split into 3-6 slices that can each merge independently, in any order.
+For each slice: name, files touched, and any shared prep work that must
+land first. Don't change anything yet.
+```
+
+2. If the plan names shared prep (a compat helper, a codemod script), run that slice first and merge it before fanning out.
+3. Press **⌘N** once per slice. Same prompt template, one slice each:
+
+```text
+Migrate the files in [slice] from moment to date-fns, per the plan below.
+Only touch files in your slice. Run the affected tests before finishing.
+
+[paste the slice plan]
+```
+
+4. Review each workspace's diff as it finishes and open a PR per slice from the diff viewer. Small PRs merge fast; that's the point.
+5. Delete each workspace as its PR merges.
+
+## Why Slices Must Be Independent
+
+Two agents editing the same file on different branches means merge conflicts, and you inherit them. The planning step exists to make slice boundaries follow file boundaries. If two slices genuinely overlap, merge them into one workspace.
+
+## Variations
+
+- **Race the risky slice**: if one slice is much harder than the rest, [race two agents on it](/recipes/race-agents) while the easy slices run
+- **Rolling fan-out**: for very large migrations, keep 2-3 slice workspaces active and start the next slice as each PR merges, instead of opening all of them at once

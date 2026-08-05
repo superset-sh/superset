@@ -46,6 +46,7 @@ const RESOURCE_LINKS: FooterLink[] = [
 	{ href: "/community", label: "Community" },
 	{ href: "/enterprise", label: "Enterprise" },
 	{ href: "/changelog", label: "Changelog" },
+	{ href: "/roadmap", label: "Roadmap" },
 ];
 
 const LEGAL_LINKS: FooterLink[] = [

@@ -4,6 +4,7 @@ export type SupersetManagedBinary = AgentType;
 
 export const DESKTOP_AGENT_SETUP_ACTIONS = [
 	"notify-script",
+	"managed-skills",
 	"cleanup-global-opencode-plugin",
 	"amp-plugin",
 	"amp-wrapper",
@@ -47,6 +48,7 @@ interface DesktopAgentSetupTarget {
 export const DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS = [
 	"cleanup-global-opencode-plugin",
 	"notify-script",
+	"managed-skills",
 ] as const satisfies readonly DesktopAgentSetupAction[];
 
 export const DESKTOP_AGENT_SETUP_TARGETS = [

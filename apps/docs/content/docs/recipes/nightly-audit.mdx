@@ -1,0 +1,50 @@
+---
+title: Wake Up to a Finished Audit
+description: Schedule an agent to audit your repo overnight and review the results over coffee
+---
+
+<Callout type="info" title="Use when">
+	there's recurring maintenance work nobody prioritizes during the day: dependency updates, dead code, TODO triage, security sweeps.
+</Callout>
+
+## The Idea
+
+[Automations](/automations) run an agent session on a schedule, and the output is a real workspace you can open, review, and continue. Schedule the boring sweep for 3 AM; your morning job is just reviewing a diff.
+
+## Steps
+
+1. Go to **Automations → New automation**.
+2. Pick the project, this device, an agent, and a daily schedule: `FREQ=DAILY;BYHOUR=3;BYMINUTE=0`.
+3. Write a prompt that produces a reviewable diff and is safe to re-run:
+
+```text
+Audit this repo's dependencies. Find outdated packages with known
+vulnerabilities or major-version lag. Apply the safe minor/patch updates,
+run the test suite, and revert anything that breaks it. Write a summary
+of what you updated and what needs a human decision to AUDIT.md.
+If a previous audit branch already covered today's findings, stop.
+```
+
+4. In the morning, open the run from the automation's detail page. Each run in "new workspace" mode gets a fresh workspace from the project's repo.
+5. Review the diff, read `AUDIT.md`, commit and open a PR, or discard by deleting the workspace.
+
+![The Automations list](/images/automations-hero.png)
+
+## Prompt Rules for Unattended Runs
+
+- **Idempotent**: delivery is at-least-once, so a rare double-dispatch must be harmless. "Stop if already done" costs one sentence.
+- **Self-verifying**: "run the tests, revert what breaks" is the difference between a reviewable diff and a mess
+- **Escalate, don't guess**: anything requiring judgment goes in the summary file, not the diff
+
+## Variations
+
+- **Weekly instead of nightly**: `FREQ=WEEKLY;BYDAY=MO;BYHOUR=3;BYMINUTE=0` for lower-churn repos
+- **Rotate the sweep**: separate automations for deps (Monday), dead code (Wednesday), TODO triage (Friday); one prompt per automation
+- **Test it now**: use **Run now** on the detail page instead of waiting for 3 AM
+
+```bash
+superset automations create --name "Nightly audit" \
+  --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" \
+  --project <projectId> --prompt-file prompt.md --agent claude
+superset automations run <id>
+```

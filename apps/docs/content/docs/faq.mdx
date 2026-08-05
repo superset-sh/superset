@@ -3,41 +3,96 @@ title: FAQ
 description: Frequently asked questions
 ---
 
-## General
+## Platforms
 
-**What platforms?**
-macOS only. Windows/Linux coming soon.
+**What platforms are supported?**
+macOS (Apple Silicon and Intel) is the supported target. A Linux x64 AppImage ships with each release but is experimental and untested. Windows is planned with no date. The CLI additionally supports Linux x64 and arm64.
 
-**How does it work?**
-Uses git worktrees to give each branch its own directory.
+**Is there a mobile app or web dashboard?**
+A mobile app is in progress, no date yet. There's no supported web dashboard today.
 
-**Do I need an account?**
-Yes, for team features and settings sync.
+**Does it work with GitLab or self-hosted remotes?**
+GitHub is fully supported via the `gh` CLI. Repos with other remotes work locally, but cross-machine project identity is currently tied to GitHub, so the same project can show up twice across devices.
 
-## Workspaces
+**I was looking for the Superset hiring platform.**
+That's a different company (joinsuperset.com). This Superset is a desktop app for running AI coding agents.
+
+## Accounts and Billing
+
+**I signed in and everything is gone.**
+GitHub and Google sign-ins create **separate accounts**, even with the same email. Sign out and back in with the provider you originally used. Also check which organization you're in: updates can land you in a different org, and its workspaces live separately.
+
+**I paid for Pro but can't find the features.**
+Pro features (remote workspaces, automations, and more) live in the current v2 interface. If your app looks like the older UI, enable it under **Settings → Experimental**.
+
+**How do I cancel or get a refund?**
+Email [support@superset.sh](mailto:support@superset.sh). Refunds are handled promptly.
+
+**How do I delete my account, change my email, or move projects between orgs?**
+These aren't self-serve yet; email [support@superset.sh](mailto:support@superset.sh).
+
+## Workspaces and Git
+
+**Do I need a git repo?**
+Yes. Every project must be a git repository; workspaces are git worktrees. For a fresh folder, run `git init && git add -A && git commit -m "init"` first.
 
 **Same branch in multiple workspaces?**
 No. One branch = one workspace. Create a new branch if needed.
 
-**Where are workspaces stored?**
-In your Superset data directory as git worktrees.
+**Where are workspaces stored on disk?**
+`~/.superset/worktrees/`, as ordinary git worktrees. Deleting a workspace removes its worktree; Superset never deletes worktrees behind your back.
 
-## Terminal
+**I already have worktrees from another tool.**
+Use the **Import** tab in the New Workspace modal to bring existing worktrees in. See [Workspaces](/workspaces).
 
-**Which shell?**
-Your system default (bash/zsh) with your config files.
+**Why did my branch get a random name like `interesting-forest`?**
+Branch names are generated from your prompt by a small model. When no usable model credential is available, naming falls back to random words; check your connected models in Settings.
 
-**Do sessions persist?**
-Yes, terminals survive app restarts.
+**Does deleting a workspace touch my repo?**
+It removes that worktree and runs your [teardown scripts](/setup-teardown-scripts). Your root checkout and other branches are untouched.
 
-## Git
+## Agents
+
+**Which agents are supported?**
+See [AI Agents](/agent-integration) for the full list. If an installed agent doesn't appear in launchers, check it's **Enabled** under **Settings → Agents**.
+
+**Where do I set the model or reasoning effort an agent launches with?**
+Under **Settings → Agents**, per agent. Preset-level tweaks don't override the agent's own launch settings.
+
+**Why did Superset add hooks to my agent configs?**
+Superset installs lifecycle hooks and command wrappers (in `~/.superset/bin`) so it can show agent status and send finished/waiting notifications. Removing them disables those features.
+
+**Do sessions survive restarts?**
+Yes. Terminals are backed by a background daemon, so running processes and scrollback survive app restarts and updates.
+
+## Remote and Automations
+
+**Why does my host show offline when the machine is up?**
+"Online" means connected to the Superset relay, not "the process is running." Remote access via relay is **off by default**; enable it under **Settings → Security** (or run `superset start --daemon` on CLI hosts). See [Remote Workspaces](/remote-workspaces). The local CLI works regardless of relay state.
+
+**Can I open a remote workspace's ports on my Mac?**
+Not yet; the ports panel shows ports on the host machine. Workaround: `ssh -L 3000:localhost:3000 user@host` or a tailnet.
+
+**Why was my automation run skipped?**
+Runs are marked `skipped (offline)` when the target device isn't relay-connected at fire time. See [Troubleshooting](/troubleshooting#automation-run-was-skipped).
+
+## Privacy
+
+**Does my code leave my machine?**
+No. Superset is local-first: repos, worktrees, terminal output, and agent sessions stay on your machine. Cloud sync covers account and organization metadata only. Remote workspace traffic is routed through the relay only when you explicitly enable it.
 
 **Does it modify git config?**
-No. Uses standard git commands.
+No. Superset uses standard git commands.
 
-**Private repos?**
-Yes. Configure GitHub auth: `gh auth status`
+## CLI
+
+**`superset projects list` / `workspaces list` shows nothing, but I have projects.**
+The CLI works against the v2 local-first model only. If you're on the legacy v1 interface, the CLI won't see those projects; enable v2 under **Settings → Experimental**.
 
 ## Getting Help
 
+- [Troubleshooting](/troubleshooting) for symptom-by-symptom fixes
+- [Discord](https://discord.gg/cZeD9WYcV7) for the fastest answers
 - Report issues: [github.com/superset-sh/superset/issues](https://github.com/superset-sh/superset/issues)
+- Email: [support@superset.sh](mailto:support@superset.sh)
+- All channels: [Community & Support](/community)

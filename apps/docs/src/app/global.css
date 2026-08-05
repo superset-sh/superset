@@ -11,6 +11,9 @@
    ============================================================================= */
 
 :root {
+	--brand: #d25611;
+	--brand-light: #e8804a;
+	--brand-dark: #9e400a;
 	--background: oklch(1 0 0);
 	--foreground: oklch(0.147 0.004 49.25);
 	--card: oklch(1 0 0);
@@ -92,6 +95,9 @@
 
 @theme inline {
 	--breakpoint-navbar: 64rem;
+	--color-brand: var(--brand);
+	--color-brand-light: var(--brand-light);
+	--color-brand-dark: var(--brand-dark);
 	--color-background: var(--background);
 	--color-foreground: var(--foreground);
 	--color-card: var(--card);
@@ -204,12 +210,69 @@ html:not([data-anchor-scrolling]) {
 	background: transparent;
 }
 
+/* Brand dither: halftone dissolve for selected/highlighted surfaces.
+   Brand edge bar + two-tone orange dot grids that fade out to the left. */
+@utility bg-dither {
+	background-color: color-mix(in srgb, var(--accent) 45%, transparent);
+	background-image:
+		linear-gradient(to right, var(--brand) 2px, transparent 2px),
+		linear-gradient(to right, transparent 30%, var(--background)),
+		radial-gradient(
+			color-mix(in srgb, var(--brand-light) 60%, transparent) 1.5px,
+			transparent 1.5px
+		),
+		radial-gradient(
+			color-mix(in srgb, var(--brand-light) 45%, transparent) 1px,
+			transparent 1px
+		),
+		radial-gradient(
+			color-mix(in srgb, var(--brand-dark) 35%, transparent) 1px,
+			transparent 1px
+		);
+	background-size:
+		100% 100%,
+		100% 100%,
+		12px 12px,
+		6px 6px,
+		6px 6px;
+	background-position:
+		0 0,
+		0 0,
+		4px 3px,
+		1px 1px,
+		4px 4px;
+	/* Halo in the page background color knocks the dots back around glyphs */
+	text-shadow:
+		0 0 2px var(--background),
+		0 0 2px var(--background),
+		0 1px 4px var(--background);
+}
+
 @utility no-scrollbar {
 	-ms-overflow-style: none;
 	scrollbar-width: none;
 	&::-webkit-scrollbar {
 		display: none;
 	}
+}
+
+/* =============================================================================
+   Docs prose refinements
+   ============================================================================= */
+
+.prose img {
+	border-radius: calc(var(--radius) + 6px);
+	border: 1px solid var(--border);
+}
+
+.prose :where(a):not(:where(.not-prose *, .prose a[data-card])) {
+	text-decoration-color: color-mix(in oklch, currentColor 35%, transparent);
+	text-underline-offset: 3px;
+	transition: text-decoration-color 0.15s ease;
+}
+
+.prose :where(a):not(:where(.not-prose *, .prose a[data-card])):hover {
+	text-decoration-color: currentColor;
 }
 
 /* =============================================================================

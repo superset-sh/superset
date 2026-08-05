@@ -25,6 +25,7 @@
 		"@linear/sdk": "68.1.1",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
+		"@superset/email": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@t3-oss/env-core": "0.13.11",
 		"@trpc/server": "11.16.0",

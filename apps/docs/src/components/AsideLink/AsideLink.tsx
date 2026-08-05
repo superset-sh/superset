@@ -30,7 +30,7 @@ export const AsideLink = ({
 			className={cn(
 				"flex w-full min-w-0 items-center gap-x-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
 				isActive
-					? cn("bg-accent text-accent-foreground", activeClassName)
+					? cn("bg-dither text-accent-foreground", activeClassName)
 					: "text-muted-foreground hover:text-foreground",
 				className,
 			)}

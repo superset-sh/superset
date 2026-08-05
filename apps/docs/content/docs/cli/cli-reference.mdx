@@ -878,6 +878,67 @@ superset terminals create --workspace ws_…
 ```
 </Command>
 
+<Command
+	name="superset terminals list"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{
+  sessions: Array<TerminalSession>;
+}`}
+>
+List the live terminal sessions in a workspace. Presence in the list means the
+PTY exists, not that an agent inside it is working or idle.
+</Command>
+
+<Command
+	name="superset terminals read"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+		{ flag: "--max-lines <n>", description: "Limit how many trailing lines to return." },
+	]}
+	output={`{
+  terminalId: string;
+  cols: number;
+  rows: number;
+  text: string;
+}`}
+>
+Read a terminal's current screen back as text without mutating the session.
+
+```bash
+superset terminals read --workspace ws_… --terminal term_… --max-lines 240
+```
+</Command>
+
+<Command
+	name="superset terminals send"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
+		{ flag: "--text <string>", required: true, description: "Text to deliver to the terminal." },
+		{ flag: "--no-submit", description: "Stage the text without pressing Enter." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+>
+Send a follow-up message to a terminal already running in a workspace, e.g. to
+give an agent new instructions mid-session.
+</Command>
+
+<Command
+	name="superset terminals close"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+>
+Close (dispose) a terminal running in a workspace. This ends the session.
+</Command>
+
 ---
 
 ### tasks (alias: `t`)

@@ -160,11 +160,15 @@ export const workspaceRouter = router({
 		.input(z.object({ id: z.string() }))
 		.mutation(async ({ ctx, input }) => {
 			// Legacy external surface used by CLI/SDK/MCP. Preserve its
-			// non-interactive contract while reusing the v2 cleanup path.
+			// non-interactive contract while reusing the v2 cleanup path:
+			// force covers the git semantics (no dirty-worktree prompt), but
+			// teardown still runs — a failure lands in `warnings` since there
+			// is nobody to prompt for a force-retry (#6174).
 			return destroyWorkspace(ctx, {
 				workspaceId: input.id,
 				deleteBranch: false,
 				force: true,
+				teardownMode: "best-effort",
 			});
 		}),
 });

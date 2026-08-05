@@ -106,6 +106,11 @@ export function derivePullRequestQueryTargets({
 	return targets;
 }
 
+export const DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX = [
+	"dashboard-sidebar",
+	"pull-requests",
+] as const;
+
 export function getDashboardSidebarPullRequestQueryKey(
 	target: PullRequestQueryTarget,
 ) {
@@ -115,8 +120,7 @@ export function getDashboardSidebarPullRequestQueryKey(
 	// The queryFn reads the latest ids/url from the target; the poll interval
 	// and hover refresh converge changes.
 	return [
-		"dashboard-sidebar",
-		"pull-requests",
+		...DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX,
 		target.organizationId,
 		target.machineId,
 	] as const;

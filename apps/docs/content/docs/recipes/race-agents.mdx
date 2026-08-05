@@ -1,0 +1,43 @@
+---
+title: Race Agents on One Task
+description: Run the same prompt across multiple agents and merge the best result
+---
+
+<Callout type="info" title="Use when">
+	the task is self-contained, you're not sure which approach (or agent) will do it best, and reviewing three diffs is cheaper than iterating on one.
+</Callout>
+
+## The Idea
+
+Agent output varies a lot between attempts and between agents. Instead of prompting, reviewing, and re-prompting one agent serially, run the attempts in parallel on isolated branches and pick the winner.
+
+![Two agents working the same task in isolated workspaces](/images/agents-race.png)
+
+## Steps
+
+1. Press **⌘N** three times. Same prompt each time, different agent each time (or the same agent three times: variance alone makes racing worth it).
+2. Keep **Auto-run command** on so each agent starts immediately.
+3. Write the prompt once and reuse it verbatim. End it with a self-report so comparison is fast:
+
+```text
+Add rate limiting to the public API endpoints. Use the middleware pattern
+already in this codebase. In your final message, list the files you changed
+and any tradeoffs you made.
+```
+
+4. Do something else. Notification sounds tell you when each agent finishes.
+5. Open each workspace's **Changes** tab. Focus mode (target icon) makes stepping through a diff file-by-file fast.
+6. Ship the winner: stage, commit, push, **Create PR** from the diff viewer.
+7. Before deleting the losers, skim their diffs for ideas the winner missed. Select and copy any lines worth keeping.
+8. Delete the losing workspaces.
+
+## Picking a Winner Quickly
+
+- Read the final messages first; disqualify anything that misunderstood the task before reading diffs
+- Prefer the smallest diff that fully does the job
+- Run the test suite in the winner's terminal before you push
+
+## Variations
+
+- **Two agents, two approaches**: same agent, but prompt one toward each design ("use middleware" vs "use a decorator") when you're unsure which is right
+- **Best-of-N on hard bugs**: for a bug that has resisted one agent, three fresh attempts beat continuing a stuck session

@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 		name: "workspaces_delete",
 		annotations: { destructiveHint: true },
 		description:
-			"Delete a workspace by UUID on its host. The host service removes the git worktree from disk before returning. Cannot delete 'main'-type workspaces. Use hosts_list / workspaces_list to find the hostId.",
+			"Delete a workspace by UUID on its host. The host service runs the project's teardown script (.superset/config.json teardown commands or .superset/teardown.sh, if configured), then removes the git worktree from disk before returning. A teardown failure does not block the delete; it is reported in `warnings`. Cannot delete 'main'-type workspaces. Use hosts_list / workspaces_list to find the hostId.",
 		inputSchema: {
 			hostId: z
 				.string()

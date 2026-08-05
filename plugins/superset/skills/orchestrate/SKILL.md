@@ -1,5 +1,5 @@
 ---
-name: superset-orchestration
+name: orchestrate
 description: Coordinate multiple terminal coding agents through the Superset CLI by creating isolated workspaces, launching workers, sending follow-ups, reading terminal output, tracking dependencies, and collecting structured results. Use when asked to delegate or parallelize coding work, coordinate agents across workspaces or hosts, hand work between agents, monitor worker progress, or run a multi-agent workflow with Superset. Do not use for ordinary single-agent workspace, task, or automation management.
 ---
 
