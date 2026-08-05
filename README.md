@@ -317,13 +317,6 @@ Join the Superset community to get help, share feedback, and connect with other 
 
 ## License & what's free forever
 
-Superset is source available under the Elastic License 2.0 (ELv2). The full text is in [LICENSE.md](LICENSE.md), but here is what it means in practice:
+**The desktop app is free forever.** Running agents in parallel on your own machine will never require payment. Anything we charge for will be an optional service on top.
 
-- **Use it for free.** Run Superset for yourself, your team, or your company. No payment required.
-- **Read and modify the source.** The entire app is in this repo. Fork it, patch it, build it yourself.
-- **Self-host it.** Run it on your own machines or your company's infrastructure at no cost.
-- **The restriction that matters:** you may not provide Superset to third parties as a hosted or managed service that gives them a substantial set of its features. This applies whether or not you charge for it. It does not affect using it, modifying it, or self-hosting it for yourself, your team, or your company.
-
-ELv2 sets out two further limitations: don't circumvent license-key functionality, and don't alter, remove, or obscure licensing or copyright notices. It also asks that you state your changes if you distribute a modified copy and pass these terms along to anyone you give a copy to, and the grant is non-sublicensable and non-transferable. This summary is not the license, so read [LICENSE.md](LICENSE.md) if anything here matters to your situation.
-
-**Our commitment: the core desktop app is free forever.** Orchestrating agents in parallel workspaces on your own machine will never require payment. Anything we charge for will be optional services on top, not the app itself.
+The whole app is in this repo under the [Elastic License 2.0](LICENSE.md): use it, fork it, modify it, self-host it for your team. The only thing off the table is repackaging Superset itself as a service you sell to others.
