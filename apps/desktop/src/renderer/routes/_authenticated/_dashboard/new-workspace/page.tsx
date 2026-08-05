@@ -1,7 +1,9 @@
 import { PromptInputProvider } from "@superset/ui/ai-elements/prompt-input";
 import { createFileRoute } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { NewWorkspaceScreen } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/NewWorkspaceScreen";
 import { DashboardNewWorkspaceDraftProvider } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/DashboardNewWorkspaceDraftContext";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/new-workspace/",
@@ -21,6 +23,16 @@ export const Route = createFileRoute(
  */
 function NewWorkspacePage() {
 	const { projectId } = Route.useSearch();
+
+	// The screen has no dismiss interaction — leaving the route is the
+	// dismissal. Discard an unedited seeded prompt (e.g. the setup-script
+	// Configure hand-off) on unmount so it doesn't resurface on the next open.
+	// Successful create resets the draft first, making this a no-op there.
+	useEffect(
+		() => () => useNewWorkspaceDraftStore.getState().discardSeededPrompt(),
+		[],
+	);
+
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={() => {}}>
 			<PromptInputProvider>

@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { useNewWorkspaceDraftStore } from "renderer/stores/new-workspace-draft";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -47,6 +48,23 @@ export function DashboardNewWorkspaceModal() {
 	const navigate = useNavigate();
 	const variant = useNewWorkspaceScreenVariant(isOpen);
 	const isScreen = variant === "test";
+
+	// Any modal close without a successful create (Esc, click outside, and
+	// programmatic closes like "Configure agents" or "Go to setup") discards a
+	// seeded prompt (e.g. the setup-script Configure card) so the next plain
+	// open starts clean. User-typed or edited drafts are untouched — discard is
+	// a no-op unless the prompt is an unedited seed, and a successful create
+	// resets the draft before closing. The test-arm redirect close is excluded
+	// so the seed survives the hand-off to /new-workspace, which discards it
+	// on unmount instead.
+	const wasOpenRef = useRef(isOpen);
+	useEffect(() => {
+		const wasOpen = wasOpenRef.current;
+		wasOpenRef.current = isOpen;
+		if (wasOpen && !isOpen && !isScreen) {
+			useNewWorkspaceDraftStore.getState().discardSeededPrompt();
+		}
+	}, [isOpen, isScreen]);
 
 	// Test arm: the create surface is a page, not a modal. Store opens (the
 	// "+" button, hotkey, onboarding hand-off) redirect to the route instead.

@@ -40,10 +40,10 @@ export function V2SetupScriptCard({
 	// Configure → open the new-workspace modal seeded with a prompt that walks
 	// the agent through writing setup/teardown scripts for this project, rather
 	// than sending the user to the settings page to hand-write config.json.
+	// seedPrompt marks the draft as seeded so dismissing the modal without
+	// creating discards the prefill instead of persisting it like a user draft.
 	const handleConfigure = () => {
-		const draftStore = useNewWorkspaceDraftStore.getState();
-		draftStore.resetDraft();
-		draftStore.updateDraft({ prompt: setupScriptPrompt });
+		useNewWorkspaceDraftStore.getState().seedPrompt(setupScriptPrompt);
 		openNewWorkspaceModal(projectId);
 	};
 

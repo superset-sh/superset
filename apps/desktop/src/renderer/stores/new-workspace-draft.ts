@@ -45,11 +45,21 @@ export interface NewWorkspaceDraft {
 
 interface NewWorkspaceDraftState extends NewWorkspaceDraft {
 	resetKey: number;
+	/**
+	 * True while `prompt` holds prefilled content (e.g. the setup-script
+	 * Configure card) that the user hasn't edited yet. Lets dismissal discard
+	 * the seed without touching user-typed drafts.
+	 */
+	promptSeeded: boolean;
 	updateDraft: (patch: Partial<NewWorkspaceDraft>) => void;
 	addAttachment: (attachment: DraftAttachment) => void;
 	updateAttachment: (localId: string, patch: Partial<DraftAttachment>) => void;
 	removeAttachment: (localId: string) => void;
 	resetDraft: () => void;
+	/** Resets the draft and prefills `prompt` with seeded (non-user) content. */
+	seedPrompt: (prompt: string) => void;
+	/** Clears `prompt` if it still holds an unedited seed; no-op otherwise. */
+	discardSeededPrompt: () => void;
 }
 
 function buildInitialDraft(): NewWorkspaceDraft {
@@ -74,7 +84,17 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 	(set) => ({
 		...buildInitialDraft(),
 		resetKey: 0,
-		updateDraft: (patch) => set((state) => ({ ...state, ...patch })),
+		promptSeeded: false,
+		updateDraft: (patch) =>
+			set((state) => ({
+				...state,
+				...patch,
+				// Any actual prompt edit turns the seed into user content.
+				promptSeeded:
+					patch.prompt !== undefined && patch.prompt !== state.prompt
+						? false
+						: state.promptSeeded,
+			})),
 		addAttachment: (attachment) =>
 			set((state) => ({
 				...state,
@@ -98,11 +118,25 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 			set((state) => ({
 				...buildInitialDraft(),
 				resetKey: state.resetKey + 1,
+				promptSeeded: false,
 				updateDraft: state.updateDraft,
 				addAttachment: state.addAttachment,
 				updateAttachment: state.updateAttachment,
 				removeAttachment: state.removeAttachment,
 				resetDraft: state.resetDraft,
+				seedPrompt: state.seedPrompt,
+				discardSeededPrompt: state.discardSeededPrompt,
 			})),
+		seedPrompt: (prompt) =>
+			set((state) => ({
+				...buildInitialDraft(),
+				resetKey: state.resetKey + 1,
+				prompt,
+				promptSeeded: true,
+			})),
+		discardSeededPrompt: () =>
+			set((state) =>
+				state.promptSeeded ? { prompt: "", promptSeeded: false } : {},
+			),
 	}),
 );
