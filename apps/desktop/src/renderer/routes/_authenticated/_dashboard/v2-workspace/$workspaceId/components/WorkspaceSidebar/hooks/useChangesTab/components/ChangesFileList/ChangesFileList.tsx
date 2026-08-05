@@ -4,6 +4,7 @@ import type { ChangesetFile } from "renderer/routes/_authenticated/_dashboard/v2
 import type { ChangesViewMode } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { ChangesFoldersView } from "./components/ChangesFoldersView";
 import { ChangesSection } from "./components/ChangesSection";
+import { ChangesTreeErrorBoundary } from "./components/ChangesTreeErrorBoundary";
 import { ChangesTreeView } from "./components/ChangesTreeView";
 
 /** Pulse from the toolbar's expand-all / collapse-all buttons. `epoch` is 0 until the first press. */
@@ -70,6 +71,27 @@ export const ChangesFileList = memo(function ChangesFileList({
 		return groups;
 	}, [files]);
 
+	// Boundary reset keys track file identity, not just the count: swapping one
+	// path for another keeps the count identical, and a count-only key would
+	// strand a recovered section on the folders fallback. Hashed rather than
+	// joined so a large changeset doesn't allocate a huge string per refresh.
+	const resetKeys = useMemo(() => {
+		const keys = {} as Record<GroupKey, string>;
+		for (const key of GROUP_ORDER) {
+			const groupFiles = grouped[key];
+			let hash = 0x811c9dc5;
+			for (const file of groupFiles) {
+				const entry = `${file.path}:${file.status}`;
+				for (let i = 0; i < entry.length; i++) {
+					hash ^= entry.charCodeAt(i);
+					hash = Math.imul(hash, 0x01000193);
+				}
+			}
+			keys[key] = `${groupFiles.length}:${(hash >>> 0).toString(36)}`;
+		}
+		return keys;
+	}, [grouped]);
+
 	if (isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
@@ -109,17 +131,33 @@ export const ChangesFileList = memo(function ChangesFileList({
 						}
 					>
 						{viewMode === "tree" ? (
-							<ChangesTreeView
-								files={groupFiles}
+							<ChangesTreeErrorBoundary
 								sectionKind={key}
-								workspaceId={workspaceId}
-								worktreePath={worktreePath}
-								selectedFilePath={selectedFilePath}
-								foldSignal={foldSignal}
-								onSelectFile={onSelectFile}
-								onOpenFile={onOpenFile}
-								onOpenInEditor={onOpenInEditor}
-							/>
+								resetKey={`${key}:${resetKeys[key]}`}
+								fallback={
+									<ChangesFoldersView
+										files={groupFiles}
+										workspaceId={workspaceId}
+										worktreePath={worktreePath}
+										foldSignal={foldSignal}
+										onSelectFile={onSelectFile}
+										onOpenFile={onOpenFile}
+										onOpenInEditor={onOpenInEditor}
+									/>
+								}
+							>
+								<ChangesTreeView
+									files={groupFiles}
+									sectionKind={key}
+									workspaceId={workspaceId}
+									worktreePath={worktreePath}
+									selectedFilePath={selectedFilePath}
+									foldSignal={foldSignal}
+									onSelectFile={onSelectFile}
+									onOpenFile={onOpenFile}
+									onOpenInEditor={onOpenInEditor}
+								/>
+							</ChangesTreeErrorBoundary>
 						) : (
 							<ChangesFoldersView
 								files={groupFiles}

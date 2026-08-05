@@ -43,6 +43,7 @@ import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
 import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
 import { useMeasuredTreeHeight } from "./hooks/useMeasuredTreeHeight";
 import { buildTreeShape } from "./utils/buildTreeShape";
+import { resolvePathTypeCollisions } from "./utils/resolvePathTypeCollisions";
 
 const ITEM_HEIGHT = 24;
 // Pierre rows carry `margin-block: 1px`, so each row occupies ITEM_HEIGHT + 2px.
@@ -104,16 +105,47 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesTreeViewProps) {
-	const paths = useMemo(() => files.map((f) => f.path), [files]);
+	// Git reports one path as both a file and a directory when an entry's
+	// on-disk type flips (symlink ↔ directory). Pierre throws on that, so the
+	// directory wins here and the displaced leaf folds onto its row below.
+	const { paths, foldedPaths } = useMemo(
+		() => resolvePathTypeCollisions(files.map((f) => f.path)),
+		[files],
+	);
 	const fileByPath = useMemo(() => {
 		const map = new Map<string, ChangesetFile>();
 		for (const file of files) map.set(file.path, file);
 		return map;
 	}, [files]);
 
+	// Folded entries keep their stats visible on the directory that absorbed them.
+	const foldedFileByDir = useMemo(() => {
+		const map = new Map<string, ChangesetFile>();
+		if (foldedPaths.size === 0) return map;
+		for (const file of files) {
+			if (foldedPaths.has(file.path)) map.set(file.path, file);
+		}
+		return map;
+	}, [files, foldedPaths]);
+
+	// Keyed on the contents, not the set identity: git refetches rebuild `files`
+	// constantly, and warning once per refresh would flood the console.
+	const foldedSignature = useMemo(
+		() => [...foldedPaths].sort().join(", "),
+		[foldedPaths],
+	);
+	useEffect(() => {
+		if (!foldedSignature) return;
+		console.warn(
+			`[changes-tree] path reported as both file and directory, folded onto the directory row: ${foldedSignature}`,
+		);
+	}, [foldedSignature]);
+
 	const { dirs, dirFileCount } = useMemo(() => buildTreeShape(paths), [paths]);
 
-	const initialGitStatusEntriesRef = useRef(buildPierreGitStatus(files));
+	const initialGitStatusEntriesRef = useRef(
+		buildPierreGitStatus(files, foldedPaths),
+	);
 
 	// Callbacks routed through a ref so Pierre's stable handler closures
 	// (resolved once at `useFileTree` time) always see the latest props.
@@ -150,8 +182,8 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	}, [model, paths]);
 
 	useEffect(() => {
-		model.setGitStatus(buildPierreGitStatus(files));
-	}, [model, files]);
+		model.setGitStatus(buildPierreGitStatus(files, foldedPaths));
+	}, [model, files, foldedPaths]);
 
 	useFallthroughIcons(model);
 
@@ -220,8 +252,18 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	// limitation) and the file count on directories.
 	handlersRef.current.renderRowDecoration = (ctx) => {
 		if (ctx.item.kind === "directory") {
-			const count = dirFileCount.get(stripTrailingSlash(ctx.item.path));
-			return count ? { text: String(count) } : null;
+			const dirPath = stripTrailingSlash(ctx.item.path);
+			const count = dirFileCount.get(dirPath);
+			// A folded entry has no row of its own — surface its stats here so the
+			// change is still accounted for.
+			const folded = foldedFileByDir.get(dirPath);
+			const foldedStats = folded
+				? formatDiffStats(folded.additions, folded.deletions)
+				: "";
+			const text = [count ? String(count) : "", foldedStats]
+				.filter(Boolean)
+				.join(" ");
+			return text ? { text } : null;
 		}
 		const file = fileByPath.get(ctx.item.path);
 		if (!file) return null;
@@ -385,11 +427,21 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	);
 });
 
-function buildPierreGitStatus(files: ChangesetFile[]): PierreGitStatusEntry[] {
-	return files.map((file) => ({
-		path: file.path,
-		status: FILE_STATUS_TO_PIERRE[file.status],
-	}));
+function buildPierreGitStatus(
+	files: ChangesetFile[],
+	foldedPaths: ReadonlySet<string>,
+): PierreGitStatusEntry[] {
+	const entries: PierreGitStatusEntry[] = [];
+	const folded: PierreGitStatusEntry[] = [];
+	for (const file of files) {
+		const status = FILE_STATUS_TO_PIERRE[file.status];
+		// Pierre keys directories with a trailing slash. Folded entries are
+		// appended last so their tint wins over the directory's own children.
+		if (foldedPaths.has(file.path))
+			folded.push({ path: `${file.path}/`, status });
+		else entries.push({ path: file.path, status });
+	}
+	return [...entries, ...folded];
 }
 
 function formatDiffStats(additions: number, deletions: number): string {
