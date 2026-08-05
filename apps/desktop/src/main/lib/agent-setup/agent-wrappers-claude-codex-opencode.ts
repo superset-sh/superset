@@ -7,6 +7,7 @@ import {
 	getManagedNotifyHookCommand,
 	isSupersetManagedHookCommand,
 	MANAGED_NOTIFY_RELATIVE_PATH,
+	MANAGED_NOTIFY_RUNTIME_PATH,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 import { getNotifyScriptPath, NOTIFY_SCRIPT_NAME } from "./notify-hook";
@@ -67,7 +68,7 @@ interface ClaudeSettingsJson {
 	[key: string]: unknown;
 }
 
-const CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}`;
+const LEGACY_DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}`;
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -84,7 +85,8 @@ function isManagedClaudeHookCommand(
 ): boolean {
 	return (
 		command?.includes(notifyScriptPath) ||
-		command?.includes(CLAUDE_DYNAMIC_NOTIFY_PATH_MARKER) ||
+		command?.includes(MANAGED_NOTIFY_RUNTIME_PATH) ||
+		command?.includes(LEGACY_DYNAMIC_NOTIFY_PATH_MARKER) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }
@@ -310,6 +312,8 @@ function isManagedCodexHookCommand(
 ): boolean {
 	return (
 		command?.includes(notifyScriptPath) ||
+		command?.includes(MANAGED_NOTIFY_RUNTIME_PATH) ||
+		command?.includes(LEGACY_DYNAMIC_NOTIFY_PATH_MARKER) ||
 		isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME)
 	);
 }
@@ -353,7 +357,7 @@ export function getCodexGlobalHooksJsonPath(): string {
 
 /**
  * Reads existing ~/.codex/hooks.json, merges our hook definitions
- * (identified by notify script path), and preserves any user-defined hooks.
+ * (identified by the managed notify script), and preserves user-defined hooks.
  *
  * Codex hooks.json uses the same nested structure as Claude/Droid:
  *   { hooks: { EventName: [{ matcher?, hooks: [{ type, command }] }] } }
@@ -394,11 +398,9 @@ export function getCodexGlobalHooksJsonContent(
 		existing.hooks[eventName] = filtered;
 	}
 
-	// Inline SUPERSET_AGENT_ID like getClaudeManagedHookCommand so the v2
-	// payload carries identity even when codex is launched outside the wrapper.
-	// Quote the path: codex executes via /bin/sh -lc, so a space in $HOME
-	// (e.g. "/Users/Some User/...") would otherwise word-split.
-	const codexCommand = `SUPERSET_AGENT_ID=codex "${notifyScriptPath}"`;
+	// Resolve the active Superset home when the hook runs. A global absolute path
+	// becomes stale whenever another dev worktree rewrites hooks.json or is removed.
+	const codexCommand = getManagedNotifyHookCommand("codex");
 
 	const managedEvents: Array<{
 		eventName: "SessionStart" | "UserPromptSubmit" | "Stop";

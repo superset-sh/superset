@@ -87,9 +87,39 @@ const {
 	getPiExtensionPath,
 	PI_EXTENSION_MARKER,
 } = await import("./agent-wrappers");
-const { reconcileManagedEntries } = await import("./agent-wrappers-common");
+const {
+	getManagedNotifyHookCommand,
+	MANAGED_NOTIFY_RUNTIME_PATH,
+	reconcileManagedEntries,
+} = await import("./agent-wrappers-common");
 
 const managedClaudeHookCommand = getClaudeManagedHookCommand();
+const managedCodexHookCommand = getManagedNotifyHookCommand("codex");
+
+describe("getManagedNotifyHookCommand", () => {
+	it("uses the canonical Superset home for direct launches without an environment override", () => {
+		const fallbackHome = path.join(TEST_ROOT, "fallback home");
+		const fallbackHookPath = path.join(
+			fallbackHome,
+			".superset",
+			"hooks",
+			"notify.sh",
+		);
+		mkdirSync(path.dirname(fallbackHookPath), { recursive: true });
+		writeFileSync(
+			fallbackHookPath,
+			'#!/bin/sh\nprintf "%s" "$SUPERSET_AGENT_ID"\n',
+		);
+		chmodSync(fallbackHookPath, 0o755);
+
+		const output = execFileSync("/bin/sh", ["-c", managedCodexHookCommand], {
+			encoding: "utf-8",
+			env: { HOME: fallbackHome },
+		});
+
+		expect(output).toBe("codex");
+	});
+});
 
 describe("reconcileManagedEntries", () => {
 	it("preserves user-managed entries while replacing stale managed entries", () => {
@@ -1223,8 +1253,10 @@ describe("agent-wrappers codex hooks.json", () => {
 				}>
 			>;
 		};
+		expect(managedCodexHookCommand).toContain(MANAGED_NOTIFY_RUNTIME_PATH);
+		expect(managedCodexHookCommand).toContain("SUPERSET_AGENT_ID=codex");
+		expect(content).not.toContain(notifyPath);
 
-		const expectedCommand = `SUPERSET_AGENT_ID=codex "${notifyPath}"`;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1234,7 +1266,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === expectedCommand),
+					def.hooks.some((hook) => hook.command === managedCodexHookCommand),
 				),
 			).toBe(true);
 		}
@@ -1339,7 +1371,6 @@ describe("agent-wrappers codex hooks.json", () => {
 			),
 		).toBe(true);
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${notifyPath}"`;
 		// Adds managed hooks for SessionStart, UserPromptSubmit, Stop
 		for (const eventName of ["SessionStart", "UserPromptSubmit", "Stop"]) {
 			expect(
@@ -1347,7 +1378,7 @@ describe("agent-wrappers codex hooks.json", () => {
 					(def: { hooks: Array<{ command: string }> }) =>
 						def.hooks.some(
 							(hook: { command: string }) =>
-								hook.command === expectedManagedCommand,
+								hook.command === managedCodexHookCommand,
 						),
 				),
 			).toBe(true);
@@ -1359,7 +1390,7 @@ describe("agent-wrappers codex hooks.json", () => {
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
 						(hook: { command: string }) =>
-							hook.command === expectedManagedCommand,
+							hook.command === managedCodexHookCommand,
 					),
 			),
 		).toBe(false);
@@ -1368,16 +1399,18 @@ describe("agent-wrappers codex hooks.json", () => {
 				(def: { hooks: Array<{ command: string }> }) =>
 					def.hooks.some(
 						(hook: { command: string }) =>
-							hook.command === expectedManagedCommand,
+							hook.command === managedCodexHookCommand,
 					),
 			),
 		).toBe(false);
 	});
 
-	it("replaces stale Codex hook commands from old superset paths", () => {
+	it("replaces stale Codex hook commands with a worktree-independent command", () => {
 		const codexHooksPath = path.join(mockedHomeDir, ".codex", "hooks.json");
 		const staleHookPath = "/tmp/.superset-old/hooks/notify.sh";
 		const currentHookPath = "/tmp/.superset-new/hooks/notify.sh";
+		const legacyDynamicCommand =
+			'[ -n "$SUPERSET_HOME_DIR" ] && [ -x "$SUPERSET_HOME_DIR/hooks/notify.sh" ] && SUPERSET_AGENT_ID=codex "$SUPERSET_HOME_DIR/hooks/notify.sh" || true';
 
 		mkdirSync(path.dirname(codexHooksPath), { recursive: true });
 		writeFileSync(
@@ -1387,7 +1420,10 @@ describe("agent-wrappers codex hooks.json", () => {
 					hooks: {
 						SessionStart: [
 							{
-								hooks: [{ type: "command", command: staleHookPath }],
+								hooks: [
+									{ type: "command", command: staleHookPath },
+									{ type: "command", command: legacyDynamicCommand },
+								],
 							},
 						],
 						Stop: [
@@ -1409,9 +1445,11 @@ describe("agent-wrappers codex hooks.json", () => {
 		expect(content).not.toBeNull();
 		if (content === null) throw new Error("Expected content");
 
-		// Second run should be idempotent
+		// A different worktree should keep the same global command and config.
 		writeFileSync(codexHooksPath, content);
-		const content2 = getCodexGlobalHooksJsonContent(currentHookPath);
+		const content2 = getCodexGlobalHooksJsonContent(
+			"/tmp/.superset-another/hooks/notify.sh",
+		);
 
 		const parsed = JSON.parse(content) as {
 			hooks: Record<
@@ -1423,7 +1461,6 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1433,12 +1470,17 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === expectedManagedCommand),
+					def.hooks.some((hook) => hook.command === managedCodexHookCommand),
 				),
 			).toBe(true);
 			expect(
 				hooks.some((def) =>
 					def.hooks.some((hook) => hook.command.includes(staleHookPath)),
+				),
+			).toBe(false);
+			expect(
+				hooks.some((def) =>
+					def.hooks.some((hook) => hook.command === legacyDynamicCommand),
 				),
 			).toBe(false);
 		}
@@ -1499,7 +1541,6 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
 		expect(parsed.hooks.UserPromptSubmit).toBeDefined();
 		expect(
 			parsed.hooks.UserPromptSubmit?.some((def) =>
@@ -1515,7 +1556,7 @@ describe("agent-wrappers codex hooks.json", () => {
 		).toBe(false);
 		expect(
 			parsed.hooks.UserPromptSubmit?.some((def) =>
-				def.hooks.some((hook) => hook.command === expectedManagedCommand),
+				def.hooks.some((hook) => hook.command === managedCodexHookCommand),
 			),
 		).toBe(true);
 	});
@@ -1563,7 +1604,6 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1573,7 +1613,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some((hook) => hook.command === expectedManagedCommand),
+					def.hooks.some((hook) => hook.command === managedCodexHookCommand),
 				),
 			).toBe(true);
 			expect(
