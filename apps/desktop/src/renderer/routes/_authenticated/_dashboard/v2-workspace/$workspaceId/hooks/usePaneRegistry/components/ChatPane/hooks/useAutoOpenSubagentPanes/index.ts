@@ -1,0 +1,1 @@
+export { useAutoOpenSubagentPanes } from "./useAutoOpenSubagentPanes";

@@ -22,6 +22,7 @@ import {
 } from "renderer/lib/dev-chat";
 import { posthog } from "renderer/lib/posthog";
 import { useChatPreferencesStore } from "renderer/stores/chat-preferences";
+import { useAutoOpenSubagentPanes } from "../../hooks/useAutoOpenSubagentPanes";
 import {
 	type UseChatDisplayReturn,
 	useChatDisplay,
@@ -198,6 +199,9 @@ export function ChatPaneInterface({
 	getOrCreateSession,
 	onResetSession,
 	onUserMessageSubmitted,
+	paneId = null,
+	tabId = null,
+	store = null,
 }: ChatPaneInterfaceProps) {
 	const { models: availableModels, defaultModel } = useAvailableModels();
 	const selectedModelId = useChatPreferencesStore(
@@ -309,6 +313,13 @@ export function ChatPaneInterface({
 		pendingPlanApproval = null,
 		pendingQuestion = null,
 	} = chat;
+	useAutoOpenSubagentPanes({
+		store,
+		tabId,
+		parentPaneId: paneId,
+		sessionId,
+		activeSubagents,
+	});
 	const isAwaitingAssistant =
 		isRunning || submitStatus === "submitted" || submitStatus === "streaming";
 

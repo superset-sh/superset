@@ -8,7 +8,13 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
+import {
+	Bot,
+	Circle,
+	GitCompareArrows,
+	Globe,
+	MessageSquare,
+} from "lucide-react";
 import { useCallback, useMemo } from "react";
 import {
 	LuArrowDownToLine,
@@ -42,6 +48,7 @@ import type {
 	DevtoolsPaneData,
 	FilePaneData,
 	PaneViewerData,
+	SubagentPaneData,
 	TerminalPaneData,
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
@@ -55,6 +62,8 @@ import { DiffPane } from "./components/DiffPane";
 import { DiffPaneHeaderExtras } from "./components/DiffPane/components/DiffPaneHeaderExtras";
 import { FilePane } from "./components/FilePane";
 import { FilePaneHeaderExtras } from "./components/FilePane/components/FilePaneHeaderExtras";
+import { SubagentPane } from "./components/SubagentPane";
+import { SubagentPaneTitle } from "./components/SubagentPane/components/SubagentPaneTitle";
 import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
@@ -520,12 +529,32 @@ export function usePaneRegistry({
 							onConsumeLaunchConfig={() =>
 								ctx.actions.updateData({ ...data, launchConfig: null })
 							}
+							paneId={ctx.pane.id}
+							tabId={ctx.tab.id}
+							store={ctx.store}
 						/>
 					);
 				},
 				contextMenuActions: (_ctx, defaults) =>
 					defaults.map((d) =>
 						d.key === "close-pane" ? { ...d, label: "Close Chat" } : d,
+					),
+			},
+			subagent: {
+				getIcon: () => <Bot className="size-3.5" />,
+				getTitle: (pane) => {
+					const data = pane.data as SubagentPaneData;
+					return data.agentType || data.task || "Subagent";
+				},
+				renderTitle: (ctx: RendererContext<PaneViewerData>) => (
+					<SubagentPaneTitle context={ctx} workspaceId={workspaceId} />
+				),
+				renderPane: (ctx: RendererContext<PaneViewerData>) => (
+					<SubagentPane context={ctx} workspaceId={workspaceId} />
+				),
+				contextMenuActions: (_ctx, defaults) =>
+					defaults.map((d) =>
+						d.key === "close-pane" ? { ...d, label: "Close Subagent" } : d,
 					),
 			},
 			comment: {

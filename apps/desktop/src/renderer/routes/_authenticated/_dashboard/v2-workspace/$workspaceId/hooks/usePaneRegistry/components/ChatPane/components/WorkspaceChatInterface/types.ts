@@ -1,4 +1,7 @@
+import type { WorkspaceStore } from "@superset/panes";
 import type { ChatLaunchConfig } from "shared/tabs-types";
+import type { StoreApi } from "zustand/vanilla";
+import type { PaneViewerData } from "../../../../../../types";
 
 export interface ChatPaneInterfaceProps {
 	sessionId: string | null;
@@ -16,4 +19,7 @@ export interface ChatPaneInterfaceProps {
 	getOrCreateSession: () => Promise<string>;
 	onResetSession: () => Promise<void>;
 	onUserMessageSubmitted?: (message: string) => void;
+	paneId?: string | null;
+	tabId?: string | null;
+	store?: StoreApi<WorkspaceStore<PaneViewerData>> | null;
 }
