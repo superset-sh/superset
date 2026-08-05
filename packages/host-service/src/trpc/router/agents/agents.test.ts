@@ -43,18 +43,24 @@ describe("buildAgentCommandString", () => {
 		// Not the shared "$(cat <<…)" form: the command must parse in non-POSIX
 		// shells like fish, which have no heredocs.
 		expect(
-			buildAgentCommandString(argvConfig, "do the thing", [], RANDOM_ID),
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: "do the thing",
+				randomId: RANDOM_ID,
+				shellFamily: "posix",
+			}),
 		).toBe("'claude' '--dangerously-skip-permissions' 'do the thing'");
 	});
 
 	it("inserts model args between base args and the prompt (argv transport)", () => {
 		expect(
-			buildAgentCommandString(
-				argvConfig,
-				"do the thing",
-				["--model", "sonnet"],
-				RANDOM_ID,
-			),
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: "do the thing",
+				modelArgs: ["--model", "sonnet"],
+				randomId: RANDOM_ID,
+				shellFamily: "posix",
+			}),
 		).toBe(
 			"'claude' '--dangerously-skip-permissions' '--model' 'sonnet' 'do the thing'",
 		);
@@ -62,12 +68,13 @@ describe("buildAgentCommandString", () => {
 
 	it("inserts model args before the heredoc (stdin transport)", () => {
 		expect(
-			buildAgentCommandString(
-				stdinConfig,
-				"do the thing",
-				["--model", "sonnet"],
-				RANDOM_ID,
-			),
+			buildAgentCommandString({
+				config: stdinConfig,
+				rawPrompt: "do the thing",
+				modelArgs: ["--model", "sonnet"],
+				randomId: RANDOM_ID,
+				shellFamily: "posix",
+			}),
 		).toBe(
 			`'amp' '--model' 'sonnet' <<'${DELIMITER}'\ndo the thing\n${DELIMITER}`,
 		);
@@ -75,12 +82,13 @@ describe("buildAgentCommandString", () => {
 
 	it("shell-quotes hostile model and prompt values", () => {
 		expect(
-			buildAgentCommandString(
-				argvConfig,
-				"p'; rm -rf /",
-				["--model", "x'; rm -rf /"],
-				RANDOM_ID,
-			),
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: "p'; rm -rf /",
+				modelArgs: ["--model", "x'; rm -rf /"],
+				randomId: RANDOM_ID,
+				shellFamily: "posix",
+			}),
 		).toBe(
 			"'claude' '--dangerously-skip-permissions' '--model' 'x'\\''; rm -rf /' 'p'\\''; rm -rf /'",
 		);
@@ -88,19 +96,125 @@ describe("buildAgentCommandString", () => {
 
 	it("includes promptArgs before the prompt when a prompt is present", () => {
 		const config = { ...argvConfig, promptArgs: ["-p"] };
-		expect(buildAgentCommandString(config, "p", [], RANDOM_ID)).toBe(
-			"'claude' '--dangerously-skip-permissions' '-p' 'p'",
-		);
+		expect(
+			buildAgentCommandString({
+				config,
+				rawPrompt: "p",
+				randomId: RANDOM_ID,
+				shellFamily: "posix",
+			}),
+		).toBe("'claude' '--dangerously-skip-permissions' '-p' 'p'");
 	});
 
 	it("drops promptArgs and the prompt payload when the prompt sanitizes to empty", () => {
 		const config = { ...argvConfig, promptArgs: ["-p"] };
-		expect(buildAgentCommandString(config, "\x1b\x07", [], RANDOM_ID)).toBe(
-			"'claude' '--dangerously-skip-permissions'",
+		expect(
+			buildAgentCommandString({
+				config,
+				rawPrompt: "\x1b\x07",
+				randomId: RANDOM_ID,
+				shellFamily: "posix",
+			}),
+		).toBe("'claude' '--dangerously-skip-permissions'");
+		expect(
+			buildAgentCommandString({
+				config: stdinConfig,
+				rawPrompt: "",
+				randomId: RANDOM_ID,
+				shellFamily: "posix",
+			}),
+		).toBe("'amp'");
+	});
+
+	it("emits nu syntax with an unquoted command name (argv transport)", () => {
+		// nu parses a quoted string in command position as a string literal,
+		// not a command, so the POSIX form fails with nu::parser::parse_mismatch.
+		expect(
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: "do the thing",
+				randomId: RANDOM_ID,
+				shellFamily: "nu",
+			}),
+		).toBe('^"claude" "--dangerously-skip-permissions" "do the thing"');
+	});
+
+	it("pipes the prompt into the agent under nu (stdin transport)", () => {
+		// nu has no heredocs; a string piped to an external command becomes its
+		// stdin.
+		expect(
+			buildAgentCommandString({
+				config: stdinConfig,
+				rawPrompt: "do the thing",
+				randomId: RANDOM_ID,
+				shellFamily: "nu",
+			}),
+		).toBe('"do the thing" | ^"amp"');
+	});
+
+	it("escapes backslashes and double quotes for nu", () => {
+		// nu honors backslash escapes inside double quotes, so an unescaped
+		// literal `\n` in a prompt would reach the agent as a newline. Single
+		// quotes can't be used instead: nu's are fully literal, so a prompt
+		// containing `'` would have no representation at all.
+		expect(
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: 'say "hi" \\n and it\'s fine',
+				randomId: RANDOM_ID,
+				shellFamily: "nu",
+			}),
+		).toBe(
+			'^"claude" "--dangerously-skip-permissions" "say \\"hi\\" \\\\n and it\'s fine"',
 		);
-		expect(buildAgentCommandString(stdinConfig, "", [], RANDOM_ID)).toBe(
-			"'amp'",
+	});
+
+	it("keeps promptless nu launches parseable", () => {
+		expect(
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: "",
+				randomId: RANDOM_ID,
+				shellFamily: "nu",
+			}),
+		).toBe('^"claude" "--dangerously-skip-permissions"');
+	});
+
+	it("escapes backslashes and single quotes for fish (argv transport)", () => {
+		// fish honors `\\` and `\'` inside single quotes, unlike bash, so the
+		// POSIX form reaches the agent with backslash pairs collapsed.
+		expect(
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: "match \\\\d+ in it's path",
+				randomId: RANDOM_ID,
+				shellFamily: "fish",
+			}),
+		).toBe(
+			"'claude' '--dangerously-skip-permissions' 'match \\\\\\\\d+ in it\\'s path'",
 		);
+	});
+
+	it("pipes the prompt into the agent under fish (stdin transport)", () => {
+		expect(
+			buildAgentCommandString({
+				config: stdinConfig,
+				rawPrompt: "do the thing",
+				randomId: RANDOM_ID,
+				shellFamily: "fish",
+			}),
+		).toBe("printf '%s' 'do the thing' | 'amp'");
+	});
+
+	it("falls back to POSIX output for unknown shells", () => {
+		expect(
+			buildAgentCommandString({
+				config: argvConfig,
+				rawPrompt: "do the thing",
+				randomId: RANDOM_ID,
+				shellFamily: "unknown",
+			}),
+		).toBe("'claude' '--dangerously-skip-permissions' 'do the thing'");
 	});
 });
 

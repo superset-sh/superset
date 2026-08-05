@@ -6,9 +6,15 @@ import {
 	getAgentEffortSupport,
 } from "@superset/shared/agent-models";
 import {
+	applyEnvOverlay,
 	buildArgvCommand,
+	buildFishArgvCommand,
+	buildNuArgvCommand,
 	buildPromptCommandString,
-	envOverlayPrefix,
+	getShellFamily,
+	quoteFishString,
+	quoteNuString,
+	type ShellFamily,
 	sanitizePromptForPty,
 } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
@@ -16,6 +22,8 @@ import { asc, eq } from "drizzle-orm";
 import { z } from "zod";
 import type { HostDb } from "../../../db";
 import { hostAgentConfigs, workspaces } from "../../../db/schema";
+import { getTerminalBaseEnv } from "../../../terminal/env";
+import { resolveLaunchShell } from "../../../terminal/shell-launch";
 import { createTerminalSessionInternal } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
@@ -107,6 +115,30 @@ export function resolveHostAgentConfig(
 }
 
 /**
+ * Classify the shell the launch command will be typed into.
+ *
+ * Resolves exactly like `createTerminalSessionInternal` does, from the
+ * preserved shell snapshot rather than `process.env`, so the emitted syntax
+ * matches the shell that actually receives it. The snapshot throws until
+ * startup resolution finishes; an unresolvable shell degrades to `unknown`,
+ * which keeps the POSIX output shipped today instead of guessing.
+ */
+function resolveLaunchShellFamily(): ShellFamily {
+	try {
+		return getShellFamily(resolveLaunchShell(getTerminalBaseEnv()));
+	} catch (error) {
+		// Expected before the startup env snapshot resolves; anything else is a
+		// real fault worth surfacing, since the fallback silently downgrades a
+		// fish/nu user to POSIX syntax.
+		console.warn(
+			"[buildTerminalAgentLaunch] could not resolve launch shell, falling back to POSIX syntax:",
+			error,
+		);
+		return "unknown";
+	}
+}
+
+/**
  * Build a shell command string that runs the resolved agent config with the
  * given prompt. argv transport appends the prompt as a quoted positional;
  * stdin transport delegates heredoc assembly and delimiter collision handling
@@ -116,23 +148,66 @@ export function resolveHostAgentConfig(
  * codex/opencode/copilot don't get stray prompt-mode flags during promptless
  * launches — emptiness is only knowable after sanitization, so the check
  * lives here rather than in the router's zod schema.
+ *
+ * `shellFamily` has no default on purpose: the command is typed into the
+ * user's interactive shell, so a caller that forgets to resolve it must fail
+ * to compile rather than silently emit POSIX syntax into fish or nu.
  */
-export function buildAgentCommandString(
-	config: ResolvedHostAgentConfig,
-	rawPrompt: string,
-	modelArgs: string[] = [],
-	randomId: string = crypto.randomUUID(),
-): string {
+export function buildAgentCommandString({
+	config,
+	rawPrompt,
+	modelArgs = [],
+	randomId = crypto.randomUUID(),
+	shellFamily,
+}: {
+	config: ResolvedHostAgentConfig;
+	rawPrompt: string;
+	modelArgs?: string[];
+	randomId?: string;
+	shellFamily: ShellFamily;
+}): string {
 	const prompt = sanitizePromptForPty(rawPrompt);
 	const baseArgv = [config.command, ...config.args, ...modelArgs];
+
+	if (shellFamily === "nu") {
+		// nu shares no launch syntax with POSIX shells: it rejects a quoted
+		// command name, has no heredocs, and treats single quotes as fully
+		// literal. Pipe the prompt for stdin transport instead.
+		if (prompt === "" || config.promptTransport === "argv") {
+			const argv =
+				prompt === "" ? baseArgv : [...baseArgv, ...config.promptArgs, prompt];
+			return buildNuArgvCommand(argv);
+		}
+
+		return `${quoteNuString(prompt)} | ${buildNuArgvCommand([
+			...baseArgv,
+			...config.promptArgs,
+		])}`;
+	}
+
+	if (shellFamily === "fish") {
+		// fish parses the POSIX argv form, but its single quotes honor `\\` and
+		// `\'`, so bash-style quoting silently collapses backslash pairs in the
+		// prompt. It has no heredocs either, so stdin transport pipes instead.
+		if (prompt === "" || config.promptTransport === "argv") {
+			const argv =
+				prompt === "" ? baseArgv : [...baseArgv, ...config.promptArgs, prompt];
+			return buildFishArgvCommand(argv);
+		}
+
+		return `printf '%s' ${quoteFishString(prompt)} | ${buildFishArgvCommand([
+			...baseArgv,
+			...config.promptArgs,
+		])}`;
+	}
 
 	if (prompt === "") {
 		return buildArgvCommand(baseArgv);
 	}
 
 	if (config.promptTransport === "argv") {
-		// Plain quoted positional, not the shared "$(cat <<…)" form: the command
-		// is typed into the user's configured shell, and fish has no heredocs.
+		// Plain quoted positional rather than the shared "$(cat <<…)" form, so
+		// `unknown` shells get the widest-compatibility syntax available.
 		return buildArgvCommand([...baseArgv, ...config.promptArgs, prompt]);
 	}
 
@@ -320,13 +395,20 @@ export function buildTerminalAgentLaunch(
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
 	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
-	const command = buildAgentCommandString(config, prompt, [
-		...modelArgs,
-		...effortArgs,
-	]);
+	const shellFamily = resolveLaunchShellFamily();
+	const command = buildAgentCommandString({
+		config,
+		rawPrompt: prompt,
+		modelArgs: [...modelArgs, ...effortArgs],
+		shellFamily,
+	});
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
 	return {
-		fullCommand: `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`,
+		fullCommand: applyEnvOverlay({
+			env: { ...config.env, ...modelEnv },
+			command,
+			shellFamily,
+		}),
 		label: config.label,
 	};
 }
