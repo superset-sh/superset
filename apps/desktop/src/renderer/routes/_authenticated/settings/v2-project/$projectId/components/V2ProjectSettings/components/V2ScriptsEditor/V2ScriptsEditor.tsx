@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { trackSetupScriptConfigured } from "renderer/lib/project-scripts";
 import { ScriptField } from "./components/ScriptField";
 
 interface V2ScriptsEditorProps {
@@ -195,6 +196,7 @@ export function V2ScriptsEditor({
 					if (!payloadsEqual(payloadToSave, lastSavedRef.current)) {
 						await updateMutation.mutateAsync({ projectId, ...payloadToSave });
 						lastSavedRef.current = payloadToSave;
+						trackSetupScriptConfigured({ projectId, ...payloadToSave });
 					}
 
 					payloadToSave = queuedPayloadRef.current;

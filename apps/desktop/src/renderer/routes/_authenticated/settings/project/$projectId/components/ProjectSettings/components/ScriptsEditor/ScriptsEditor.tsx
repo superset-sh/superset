@@ -8,7 +8,10 @@ import {
 	HiDocumentArrowUp,
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { invalidateProjectScriptQueries } from "renderer/lib/project-scripts";
+import {
+	invalidateProjectScriptQueries,
+	trackSetupScriptConfigured,
+} from "renderer/lib/project-scripts";
 import { EXTERNAL_LINKS } from "shared/constants";
 
 interface ScriptsEditorProps {
@@ -259,6 +262,7 @@ export function ScriptsEditor({ projectId, className }: ScriptsEditorProps) {
 
 				await updateConfigMutation.mutateAsync(payload);
 				lastSavedPayloadRef.current = serializedPayload;
+				trackSetupScriptConfigured(payload);
 				await invalidateProjectScriptQueries(utils, projectId);
 			} while (saveQueuedRef.current);
 			setSaveStatus("saved");
