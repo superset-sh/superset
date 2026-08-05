@@ -34,6 +34,7 @@ import { app } from "electron";
 import { SUPERSET_DIR_NAME } from "shared/constants";
 import { throwIfAborted } from "../terminal/abort";
 import { TerminalAttachCanceledError } from "../terminal/errors";
+import { computeScriptFingerprint, isScriptStale } from "./script-fingerprint";
 import {
 	type CancelCreateOrAttachRequest,
 	type ClearScrollbackRequest,
@@ -80,7 +81,10 @@ const SOCKET_PATH = join(SUPERSET_HOME_DIR, "terminal-host.sock");
 const TOKEN_PATH = join(SUPERSET_HOME_DIR, "terminal-host.token");
 const PID_PATH = join(SUPERSET_HOME_DIR, "terminal-host.pid");
 const SPAWN_LOCK_PATH = join(SUPERSET_HOME_DIR, "terminal-host.spawn.lock");
-const SCRIPT_MTIME_PATH = join(SUPERSET_HOME_DIR, "terminal-host.mtime");
+const SCRIPT_FINGERPRINT_PATH = join(
+	SUPERSET_HOME_DIR,
+	"terminal-host.fingerprint",
+);
 
 // Connection timeouts
 const CONNECT_TIMEOUT_MS = 5000;
@@ -448,41 +452,41 @@ export class TerminalHostClient extends EventEmitter {
 	}
 
 	/**
-	 * Check if the daemon script has been rebuilt since the daemon was spawned.
-	 * Only used in development mode to detect stale daemons.
+	 * Check if the daemon script has actually changed since the daemon was
+	 * spawned. Only used in development mode to detect stale daemons.
+	 *
+	 * Uses a content fingerprint rather than the script's mtime: `bun run dev`
+	 * re-emits the daemon script on every relaunch and bumps its mtime even when
+	 * the bytes are identical, so an mtime check killed the daemon (and every
+	 * live PTY) on every restart (issue #3611).
 	 */
 	private isDaemonScriptStale(): boolean {
 		try {
-			if (!existsSync(SCRIPT_MTIME_PATH)) {
-				return false; // No mtime file = first run or manual cleanup
+			if (!existsSync(SCRIPT_FINGERPRINT_PATH)) {
+				return false; // No fingerprint file = first run or manual cleanup
 			}
 
-			const savedMtime = readFileSync(SCRIPT_MTIME_PATH, "utf-8").trim();
-			const scriptPath = this.getDaemonScriptPath();
-
-			if (!existsSync(scriptPath)) {
-				return false;
-			}
-
-			const currentMtime = statSync(scriptPath).mtimeMs.toString();
-			return savedMtime !== currentMtime;
+			const savedFingerprint = readFileSync(
+				SCRIPT_FINGERPRINT_PATH,
+				"utf-8",
+			).trim();
+			return isScriptStale(savedFingerprint, this.getDaemonScriptPath());
 		} catch {
 			return false; // On error, don't restart
 		}
 	}
 
 	/**
-	 * Save the daemon script's mtime to detect rebuilds.
+	 * Save the daemon script's content fingerprint to detect rebuilds.
 	 */
 	private saveDaemonScriptMtime(): void {
 		try {
-			const scriptPath = this.getDaemonScriptPath();
-			if (!existsSync(scriptPath)) {
+			const fingerprint = computeScriptFingerprint(this.getDaemonScriptPath());
+			if (fingerprint === null) {
 				return;
 			}
 
-			const mtime = statSync(scriptPath).mtimeMs.toString();
-			writeFileSync(SCRIPT_MTIME_PATH, mtime, { mode: 0o600 });
+			writeFileSync(SCRIPT_FINGERPRINT_PATH, fingerprint, { mode: 0o600 });
 		} catch {
 			// Best-effort
 		}
