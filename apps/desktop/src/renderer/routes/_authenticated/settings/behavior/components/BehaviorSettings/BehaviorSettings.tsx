@@ -9,6 +9,7 @@ import {
 } from "@superset/ui/select";
 import { Switch } from "@superset/ui/switch";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { DEFAULT_FILE_OPEN_MODE } from "shared/constants";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -163,7 +164,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							</p>
 						</div>
 						<Select
-							value={fileOpenMode ?? "split-pane"}
+							value={fileOpenMode ?? DEFAULT_FILE_OPEN_MODE}
 							onValueChange={(value) =>
 								setFileOpenMode.mutate({ mode: value as FileOpenMode })
 							}
