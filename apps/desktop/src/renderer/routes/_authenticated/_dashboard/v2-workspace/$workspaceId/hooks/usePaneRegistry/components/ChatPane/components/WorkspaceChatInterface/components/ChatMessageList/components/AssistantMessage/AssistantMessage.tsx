@@ -1,10 +1,15 @@
 import { Message, MessageContent } from "@superset/ui/ai-elements/message";
 import { ShimmerLabel } from "@superset/ui/ai-elements/shimmer-label";
 import { FileSearchIcon } from "lucide-react";
-import { type ReactNode, useCallback } from "react";
+import { type ReactNode, useCallback, useMemo } from "react";
+import { AssistantTurnGroup } from "renderer/components/Chat/ChatInterface/components/AssistantTurnGroup";
 import { StreamingMessageText } from "renderer/components/Chat/ChatInterface/components/MessagePartsRenderer/components/StreamingMessageText";
-import { ReasoningBlock } from "renderer/components/Chat/ChatInterface/components/ReasoningBlock";
 import { ToolCallBlock } from "renderer/components/Chat/ChatInterface/components/ToolCallBlock";
+import { TurnTextItem } from "renderer/components/Chat/ChatInterface/components/TurnTextItem";
+import {
+	formatTurnSummary,
+	summarizeAssistantTurn,
+} from "renderer/components/Chat/ChatInterface/utils/group-assistant-turn";
 import type { ToolPart } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import { normalizeToolName } from "renderer/components/Chat/ChatInterface/utils/tool-helpers";
 import type { UseChatDisplayReturn } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/ChatPane/hooks/useWorkspaceChatDisplay";
@@ -114,7 +119,25 @@ export function AssistantMessage({
 	onPlanRespond,
 }: AssistantMessageProps) {
 	const addFileViewerPane = useTabsStore((store) => store.addFileViewerPane);
-	const nodes: ReactNode[] = [];
+	// Turn-level grouping ("agent inspector" flavor): intermediate actions
+	// collapse into a single group while the final answer stays visible.
+	const messageMeta = message as {
+		stopReason?: string;
+		errorMessage?: string;
+		createdAt?: string | number | Date;
+	};
+	const errored =
+		messageMeta.stopReason === "error" ||
+		Boolean(messageMeta.errorMessage?.trim());
+	const turnSummary = useMemo(
+		() => summarizeAssistantTurn(message.content, { isStreaming, errored }),
+		[message.content, isStreaming, errored],
+	);
+	const stepNodes: ReactNode[] = [];
+	const lastOutputNodes: ReactNode[] = [];
+	// Required actions (e.g. plan approval) render OUTSIDE the collapsible group so
+	// collapsing a turn can never hide an action the user must take.
+	const pendingActionNodes: ReactNode[] = [];
 	const renderedToolCallIds = new Set<string>();
 	let didRenderPendingPlanApproval = false;
 	const handleAttachmentClick = useCallback(
@@ -155,26 +178,37 @@ export function AssistantMessage({
 		const part = message.content[partIndex];
 
 		if (part.type === "text") {
-			nodes.push(
-				<StreamingMessageText
-					key={`${message.id}-${partIndex}`}
-					text={part.text}
-					isAnimating={isStreaming}
-					mermaid={{
-						config: {
-							theme: "default",
-						},
-					}}
-				/>,
-			);
+			// The final text part is the turn's answer — surfaced outside the
+			// collapsible group so it stays visible even when steps collapse.
+			if (partIndex === turnSummary.lastTextIndex) {
+				lastOutputNodes.push(
+					<StreamingMessageText
+						key={`${message.id}-${partIndex}`}
+						text={part.text}
+						isAnimating={isStreaming}
+						mermaid={{ config: { theme: "default" } }}
+					/>,
+				);
+			} else {
+				// Intermediate narration → collapsible "Output" item row.
+				stepNodes.push(
+					<TurnTextItem
+						key={`${message.id}-${partIndex}`}
+						kind="output"
+						text={part.text}
+						isStreaming={isStreaming}
+					/>,
+				);
+			}
 			continue;
 		}
 
 		if (part.type === "thinking") {
-			nodes.push(
-				<ReasoningBlock
+			stepNodes.push(
+				<TurnTextItem
 					key={`${message.id}-${partIndex}`}
-					reasoning={part.thinking}
+					kind="thinking"
+					text={part.thinking}
 				/>,
 			);
 			continue;
@@ -198,7 +232,7 @@ export function AssistantMessage({
 
 			if (part.type === "image" && "mimeType" in part && !rawPart.mediaType) {
 				const legacySrc = `data:${part.mimeType};base64,${part.data}`;
-				nodes.push(
+				stepNodes.push(
 					<ImageHoverPreview
 						key={`${message.id}-${partIndex}`}
 						src={legacySrc}
@@ -212,7 +246,7 @@ export function AssistantMessage({
 			}
 
 			if (mediaType.startsWith("image/")) {
-				nodes.push(
+				stepNodes.push(
 					<ImageHoverPreview
 						key={`${message.id}-${partIndex}`}
 						src={data}
@@ -240,7 +274,7 @@ export function AssistantMessage({
 					</ImageHoverPreview>,
 				);
 			} else {
-				nodes.push(
+				stepNodes.push(
 					<AttachmentChip
 						key={`${message.id}-${partIndex}`}
 						data={data}
@@ -264,7 +298,7 @@ export function AssistantMessage({
 				startAt: partIndex + 1,
 			});
 
-			nodes.push(
+			stepNodes.push(
 				<ToolCallBlock
 					key={`${message.id}-tool-${part.id}`}
 					part={toToolPartFromCall({
@@ -279,7 +313,7 @@ export function AssistantMessage({
 					isStreaming={isStreaming}
 				/>,
 			);
-			nodes.push(...getInlineToolStateNodes(part.id));
+			pendingActionNodes.push(...getInlineToolStateNodes(part.id));
 
 			if (resultIndex === partIndex + 1) {
 				partIndex++;
@@ -292,7 +326,7 @@ export function AssistantMessage({
 				continue;
 			}
 			renderedToolCallIds.add(part.id);
-			nodes.push(
+			stepNodes.push(
 				<ToolCallBlock
 					key={`${message.id}-tool-result-${part.id}`}
 					part={toToolPartFromResult(part)}
@@ -302,12 +336,12 @@ export function AssistantMessage({
 					workspaceCwd={workspaceCwd}
 				/>,
 			);
-			nodes.push(...getInlineToolStateNodes(part.id));
+			pendingActionNodes.push(...getInlineToolStateNodes(part.id));
 			continue;
 		}
 
 		if (part.type.startsWith("om_")) {
-			nodes.push(
+			stepNodes.push(
 				<div
 					key={`${message.id}-${partIndex}`}
 					className="flex items-center gap-2 text-xs text-muted-foreground"
@@ -321,7 +355,7 @@ export function AssistantMessage({
 
 	for (const previewPart of previewToolParts) {
 		if (renderedToolCallIds.has(previewPart.toolCallId)) continue;
-		nodes.push(
+		stepNodes.push(
 			<ToolCallBlock
 				key={`${message.id}-tool-preview-${previewPart.toolCallId}`}
 				part={previewPart}
@@ -331,19 +365,60 @@ export function AssistantMessage({
 				workspaceCwd={workspaceCwd}
 			/>,
 		);
-		nodes.push(...getInlineToolStateNodes(previewPart.toolCallId));
+		pendingActionNodes.push(...getInlineToolStateNodes(previewPart.toolCallId));
+	}
+
+	const hasPendingAction = pendingActionNodes.length > 0;
+	const hasAnyNode =
+		stepNodes.length > 0 || lastOutputNodes.length > 0 || hasPendingAction;
+
+	if (!hasAnyNode && !isStreaming && !footer) {
+		return null;
+	}
+
+	let body: ReactNode;
+	if (!hasAnyNode && isStreaming) {
+		body = (
+			<ShimmerLabel className="text-sm text-muted-foreground">
+				Thinking...
+			</ShimmerLabel>
+		);
+	} else if (turnSummary.hasSteps) {
+		// Keep the live turn (or one needing attention) open; collapse a finished
+		// turn down to its summary + answer.
+		const defaultOpen =
+			isStreaming ||
+			turnSummary.status === "error" ||
+			hasPendingAction ||
+			lastOutputNodes.length === 0;
+		body = (
+			<AssistantTurnGroup
+				summary={formatTurnSummary(turnSummary)}
+				status={turnSummary.status}
+				pendingAction={hasPendingAction}
+				timestamp={messageMeta.createdAt}
+				defaultOpen={defaultOpen}
+				steps={stepNodes}
+				lastOutput={lastOutputNodes.length > 0 ? lastOutputNodes : null}
+			/>
+		);
+	} else {
+		// No tool/thinking work — render the plain answer (simple Q&A stays clean).
+		body = (
+			<>
+				{stepNodes}
+				{lastOutputNodes}
+			</>
+		);
 	}
 
 	return (
 		<Message from="assistant">
 			<MessageContent>
-				{nodes.length === 0 && isStreaming ? (
-					<ShimmerLabel className="text-sm text-muted-foreground">
-						Thinking...
-					</ShimmerLabel>
-				) : (
-					nodes
-				)}
+				{/* Pending actions sit outside `body` so they stay visible even when
+				    the turn group is collapsed. */}
+				{body}
+				{pendingActionNodes}
 				{footer}
 			</MessageContent>
 		</Message>
