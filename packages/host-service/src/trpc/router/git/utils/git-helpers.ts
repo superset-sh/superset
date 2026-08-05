@@ -6,7 +6,12 @@ import {
 	isBinaryMediaFile,
 } from "@superset/shared/media-files";
 import type { SimpleGit } from "simple-git";
-import { resolveUpstream } from "../../../../runtime/git/refs";
+import {
+	asRemoteRef,
+	refExists,
+	resolveDefaultBranchName,
+	resolveUpstream,
+} from "../../../../runtime/git/refs";
 import { createUserSimpleGit } from "../../../../runtime/git/simple-git";
 import type { Branch, ChangedFile, FileStatus } from "../types";
 
@@ -133,26 +138,17 @@ export function parseNameStatus(
 	return results;
 }
 
-export async function getDefaultBranchName(
-	git: SimpleGit,
-): Promise<string | null> {
-	try {
-		const ref = await git.raw([
-			"symbolic-ref",
-			"refs/remotes/origin/HEAD",
-			"--short",
-		]);
-		return ref.trim().replace(/^origin\//, "");
-	} catch {
-		return null;
-	}
-}
-
 /**
  * Resolve the base comparison for "this branch vs its upstream default"
  * views. Honors the local default branch's configured upstream
  * (e.g. `upstream/main`) before falling back to `origin/<name>`. Returns
  * null when no default branch can be determined.
+ *
+ * A stale `origin/HEAD` must not collapse this to null: the caller then diffs
+ * `HEAD..HEAD` and shows no commits at all. `resolveDefaultBranchName` only
+ * returns branches that exist, so it is safe here, but it may name one that
+ * has no `origin/` counterpart. When nothing was explicitly asked for, the
+ * fallback is offered only if that remote-tracking ref resolves.
  */
 export async function resolveBaseComparison(
 	git: SimpleGit,
@@ -164,7 +160,8 @@ export async function resolveBaseComparison(
 	// tracks another local branch and there is nothing to fetch.
 	fetchTarget: { remote: string; branch: string } | null;
 } | null> {
-	const branchName = explicitBranch ?? (await getDefaultBranchName(git));
+	const branchName =
+		explicitBranch ?? (await resolveDefaultBranchName(git).catch(() => null));
 	if (!branchName) return null;
 	const upstream = await resolveUpstream(git, branchName);
 	// Git encodes a branch tracking another local branch as
@@ -181,6 +178,15 @@ export async function resolveBaseComparison(
 						branch: upstream.remoteBranch,
 					},
 				};
+	}
+	// An explicit pick is honored as-is; it may name a branch that exists
+	// upstream but has not been fetched yet, and `fetchTarget` is what fetches
+	// it. A detected default gets no such benefit of the doubt.
+	if (
+		!explicitBranch &&
+		!(await refExists(git, asRemoteRef("origin", branchName)))
+	) {
+		return null;
 	}
 	return {
 		branchName,

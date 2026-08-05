@@ -4,7 +4,10 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests, workspaces } from "../../../db/schema";
-import { createGitEnvResolver } from "../../../runtime/git";
+import {
+	createGitEnvResolver,
+	resolveDefaultBranchName,
+} from "../../../runtime/git";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
@@ -29,10 +32,7 @@ import type {
 } from "./types";
 import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
 import { gitConfigWrite } from "./utils/config-write";
-import {
-	getDefaultBranchName,
-	resolveBaseComparison,
-} from "./utils/git-helpers";
+import { resolveBaseComparison } from "./utils/git-helpers";
 import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
 import {
 	type GraphQLThreadsResult,
@@ -548,7 +548,9 @@ export const gitRouter = router({
 			).trim();
 			const isDetached = !currentBranch || currentBranch === "HEAD";
 
-			const defaultBranch = await getDefaultBranchName(git);
+			const defaultBranch = await resolveDefaultBranchName(git).catch(
+				() => null,
+			);
 			const isDefaultBranch =
 				!isDetached && !!defaultBranch && currentBranch === defaultBranch;
 
