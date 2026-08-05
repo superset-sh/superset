@@ -31,6 +31,7 @@ import type {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
 import { openUrlInV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/utils/openUrlInV2Workspace";
 import { useWorkspaceWsUrl } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceTrpcProvider/WorkspaceTrpcProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { ScrollToBottomButton } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/ScrollToBottomButton";
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
@@ -163,6 +164,31 @@ export function TerminalPane({
 			terminalRuntimeRegistry.detach(terminalId, terminalInstanceId);
 		};
 	}, [terminalId, terminalInstanceId]);
+
+	const collections = useCollections();
+	// ctx.actions.close is a fresh identity every render; ref it so the exit
+	// listener below isn't re-subscribed on every keystroke.
+	const closePaneRef = useRef(ctx.actions.close);
+	closePaneRef.current = ctx.actions.close;
+
+	// A clean `exit` closes the pane, matching the v1 terminal. A non-zero or
+	// signalled exit leaves it open so the "[terminal] exited with code N" line
+	// stays readable, and a workspace-run pane always stays — its output is the
+	// point of the pane, so it has to outlive the process.
+	useEffect(
+		() =>
+			terminalRuntimeRegistry.onExit(
+				terminalId,
+				({ exitCode, signal }) => {
+					if (exitCode !== 0 || signal !== 0) return;
+					const localState = collections.v2WorkspaceLocalState.get(workspaceId);
+					if (localState?.workspaceRunTerminals?.[terminalId]) return;
+					closePaneRef.current();
+				},
+				terminalInstanceId,
+			),
+		[terminalId, terminalInstanceId, collections, workspaceId],
+	);
 
 	useEffect(() => {
 		if (!ctx.isActive) return;
