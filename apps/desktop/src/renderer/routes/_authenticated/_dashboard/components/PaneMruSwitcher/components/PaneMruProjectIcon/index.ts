@@ -1,0 +1,1 @@
+export { PaneMruProjectIcon } from "./PaneMruProjectIcon";
