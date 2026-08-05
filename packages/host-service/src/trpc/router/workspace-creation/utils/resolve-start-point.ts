@@ -20,7 +20,8 @@ async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
 
 /**
  * Resolve the best start point for a new worktree. Prefers a local branch
- * when it exists, falls back to a remote-tracking ref, then HEAD.
+ * when it exists, then a remote-tracking ref (`upstream` before `origin`
+ * for the fork workflow), then HEAD.
  *
  * Why local-first: users pick branches from a list of refs they can see
  * locally — they expect to fork from that exact local state, not from a
@@ -28,6 +29,12 @@ async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
  * a pruned commit). Workspace branches in particular are local-only and
  * an incidental `refs/remotes/origin/<name>` cache (from a one-off push
  * etc.) would silently win and then break `git worktree add`.
+ *
+ * Why upstream-before-origin: when contributing to a project via a fork,
+ * `origin` is the user's fork (which lags behind) and `upstream` is the
+ * canonical repo, by convention. A new branch should fork from the latest
+ * canonical state, so probe `upstream/<branch>` before `origin/<branch>`.
+ * Falls through to `origin` for the common single-remote case. See #958.
  *
  * Picker-side `refresh` already runs `git fetch --prune` on modal open,
  * so remote staleness for branches we *do* want fresh is bounded.
@@ -41,22 +48,26 @@ export async function resolveStartPoint(
 	baseBranch: string | undefined,
 ): Promise<ResolvedRef> {
 	const branch = baseBranch?.trim() || (await resolveDefaultBranchName(git));
-	const remote = "origin";
 
 	const localRef = asLocalRef(branch);
 	if (await refExists(git, localRef)) {
 		return { kind: "local", fullRef: localRef, shortName: branch };
 	}
 
-	const remoteRef = asRemoteRef(remote, branch);
-	if (await refExists(git, remoteRef)) {
-		return {
-			kind: "remote-tracking",
-			fullRef: remoteRef,
-			shortName: branch,
-			remote,
-			remoteShortName: `${remote}/${branch}`,
-		};
+	// Fork workflow: prefer the canonical `upstream` remote over the user's
+	// `origin` fork. Probes against full refnames, so a remote literally
+	// named `upstream` is matched structurally, never by shortname guessing.
+	for (const remote of ["upstream", "origin"]) {
+		const remoteRef = asRemoteRef(remote, branch);
+		if (await refExists(git, remoteRef)) {
+			return {
+				kind: "remote-tracking",
+				fullRef: remoteRef,
+				shortName: branch,
+				remote,
+				remoteShortName: `${remote}/${branch}`,
+			};
+		}
 	}
 
 	return { kind: "head" };
