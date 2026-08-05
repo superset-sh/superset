@@ -149,7 +149,17 @@ export function useDashboardSidebarProjectSectionActions({
 			).workspaceCreation.listProjectWorktrees.query({
 				projectId: project.id,
 			});
-			// `=== false` also skips hosts too old to report tracked-ness.
+			// Hosts that predate the annotations return entries without the
+			// fields; say so instead of a misleading "already tracked".
+			if (
+				worktrees.length > 0 &&
+				typeof worktrees[0]?.hasWorkspace !== "boolean"
+			) {
+				toast.error(
+					"Project's host runs an older Superset version that cannot report untracked worktrees — update it to import",
+				);
+				return;
+			}
 			const untracked = worktrees.filter(
 				(worktree) =>
 					worktree.hasWorkspace === false && worktree.isMainWorktree === false,
@@ -204,8 +214,11 @@ export function useDashboardSidebarProjectSectionActions({
 			);
 			const imported = outcomes.length - errors.length;
 			if (errors.length > 0) {
+				const uniqueErrors = [...new Set(errors)];
+				const suffix =
+					uniqueErrors.length > 1 ? ` (+${uniqueErrors.length - 1} more)` : "";
 				toast.error(
-					`Imported ${imported} of ${untracked.length} worktrees: ${errors[0]}`,
+					`Imported ${imported} of ${untracked.length} worktrees — ${errors.length} failed: ${uniqueErrors[0]}${suffix}`,
 				);
 			} else {
 				toast.success(
