@@ -8,6 +8,7 @@ import {
 import { resolveRemoteBranchNameForGitHubStatus } from "./github";
 import {
 	branchMatchesPR,
+	computeChecksStatus,
 	getPRHeadBranchCandidates,
 	prMatchesLocalBranch,
 	shouldAcceptPRMatch,
@@ -16,6 +17,7 @@ import {
 	getPullRequestRepoArgs,
 	shouldRefreshCachedRepoContext,
 } from "./repo-context";
+import { GHCheckContextSchema } from "./types";
 
 describe("branchMatchesPR", () => {
 	test("matches same-repo branch exactly", () => {
@@ -42,6 +44,88 @@ describe("branchMatchesPR", () => {
 
 	test("rejects partial suffix match that is not a path segment", () => {
 		expect(branchMatchesPR("my-thing", "thing")).toBe(false);
+	});
+});
+
+describe("computeChecksStatus", () => {
+	test("returns none for a missing or empty rollup", () => {
+		expect(computeChecksStatus(null)).toBe("none");
+		expect(computeChecksStatus([])).toBe("none");
+	});
+
+	test("a single cancelled check rolls up as failure, not success", () => {
+		expect(computeChecksStatus([{ conclusion: "CANCELLED" }])).toBe("failure");
+	});
+
+	test("a cancelled check among successes rolls up as failure", () => {
+		expect(
+			computeChecksStatus([
+				{ conclusion: "SUCCESS" },
+				{ conclusion: "CANCELLED" },
+			]),
+		).toBe("failure");
+	});
+
+	test("failure conclusions roll up as failure", () => {
+		expect(computeChecksStatus([{ conclusion: "FAILURE" }])).toBe("failure");
+		expect(computeChecksStatus([{ state: "ERROR" }])).toBe("failure");
+		expect(computeChecksStatus([{ conclusion: "TIMED_OUT" }])).toBe("failure");
+		expect(computeChecksStatus([{ conclusion: "ACTION_REQUIRED" }])).toBe(
+			"failure",
+		);
+		expect(computeChecksStatus([{ conclusion: "STARTUP_FAILURE" }])).toBe(
+			"failure",
+		);
+	});
+
+	test("cancelled takes precedence over pending", () => {
+		expect(
+			computeChecksStatus([{ state: "PENDING" }, { conclusion: "CANCELLED" }]),
+		).toBe("failure");
+	});
+
+	test("pending wins when nothing failed", () => {
+		expect(
+			computeChecksStatus([{ conclusion: "SUCCESS" }, { state: "PENDING" }]),
+		).toBe("pending");
+	});
+
+	test("unknown and expected statuses roll up as pending, never success", () => {
+		expect(
+			computeChecksStatus([{ conclusion: "SUCCESS" }, { state: "EXPECTED" }]),
+		).toBe("pending");
+		expect(
+			computeChecksStatus([{ conclusion: "SUCCESS" }, { conclusion: "STALE" }]),
+		).toBe("pending");
+	});
+
+	test("skipped and neutral checks stay non-blocking and fold into success", () => {
+		expect(
+			computeChecksStatus([
+				{ conclusion: "SUCCESS" },
+				{ conclusion: "SKIPPED" },
+				{ conclusion: "NEUTRAL" },
+			]),
+		).toBe("success");
+	});
+});
+
+describe("GHCheckContextSchema", () => {
+	test("accepts every gh conclusion and state so PRs are never dropped", () => {
+		for (const conclusion of [
+			"STARTUP_FAILURE",
+			"STALE",
+			"CANCELLED",
+			"ACTION_REQUIRED",
+		]) {
+			expect(
+				GHCheckContextSchema.safeParse({ name: "ci", conclusion }).success,
+			).toBe(true);
+		}
+		expect(
+			GHCheckContextSchema.safeParse({ context: "ci", state: "EXPECTED" })
+				.success,
+		).toBe(true);
 	});
 });
 

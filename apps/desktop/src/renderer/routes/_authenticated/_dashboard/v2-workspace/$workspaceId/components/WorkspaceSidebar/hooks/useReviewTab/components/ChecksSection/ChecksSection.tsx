@@ -54,10 +54,7 @@ export function ChecksSection({
 	const [open, setOpen] = useState(true);
 
 	const relevantChecks = useMemo(
-		() =>
-			checks.filter(
-				(check) => check.status !== "skipped" && check.status !== "cancelled",
-			),
+		() => checks.filter((check) => check.status !== "skipped"),
 		[checks],
 	);
 

@@ -11,9 +11,7 @@ export function ChecksSummary({ checks, status }: ChecksSummaryProps) {
 	if (status === "none") return null;
 
 	const passing = checks.filter((c) => c.status === "success").length;
-	const total = checks.filter(
-		(c) => c.status !== "skipped" && c.status !== "cancelled",
-	).length;
+	const total = checks.filter((c) => c.status !== "skipped").length;
 
 	const config = {
 		success: {

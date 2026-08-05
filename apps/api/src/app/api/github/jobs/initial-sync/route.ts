@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "@/env";
 import { githubApp } from "../../octokit";
+import { computeChecksStatus } from "../../utils/computeChecksStatus";
 
 const receiver = new Receiver({
 	currentSigningKey: env.QSTASH_CURRENT_SIGNING_KEY,
@@ -173,31 +174,7 @@ export async function POST(request: Request) {
 					}),
 				);
 
-				let checksStatus = "none";
-				if (checks.length > 0) {
-					const hasFailure = checks.some(
-						(c: {
-							name: string;
-							status: string;
-							conclusion: string | null;
-							detailsUrl?: string;
-						}) => c.conclusion === "failure" || c.conclusion === "timed_out",
-					);
-					const hasPending = checks.some(
-						(c: {
-							name: string;
-							status: string;
-							conclusion: string | null;
-							detailsUrl?: string;
-						}) => c.status !== "completed",
-					);
-
-					checksStatus = hasFailure
-						? "failure"
-						: hasPending
-							? "pending"
-							: "success";
-				}
+				const checksStatus = computeChecksStatus(checks);
 
 				await db
 					.insert(githubPullRequests)

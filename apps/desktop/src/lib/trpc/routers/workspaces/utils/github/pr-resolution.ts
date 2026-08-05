@@ -432,7 +432,9 @@ function parseChecks(rollup: GHPRResponse["statusCheckRollup"]): CheckItem[] {
 		} else if (
 			rawStatus === "FAILURE" ||
 			rawStatus === "ERROR" ||
-			rawStatus === "TIMED_OUT"
+			rawStatus === "TIMED_OUT" ||
+			rawStatus === "ACTION_REQUIRED" ||
+			rawStatus === "STARTUP_FAILURE"
 		) {
 			status = "failure";
 		} else if (rawStatus === "SKIPPED" || rawStatus === "NEUTRAL") {
@@ -447,32 +449,20 @@ function parseChecks(rollup: GHPRResponse["statusCheckRollup"]): CheckItem[] {
 	});
 }
 
-function computeChecksStatus(
+export function computeChecksStatus(
 	rollup: GHPRResponse["statusCheckRollup"],
 ): NonNullable<GitHubStatus["pr"]>["checksStatus"] {
-	if (!rollup || rollup.length === 0) {
+	const checks = parseChecks(rollup);
+	if (checks.length === 0) {
 		return "none";
 	}
-
-	let hasFailure = false;
-	let hasPending = false;
-
-	for (const ctx of rollup) {
-		const status = ctx.state || ctx.conclusion;
-
-		if (status === "FAILURE" || status === "ERROR" || status === "TIMED_OUT") {
-			hasFailure = true;
-		} else if (
-			status === "PENDING" ||
-			status === "" ||
-			status === null ||
-			status === undefined
-		) {
-			hasPending = true;
-		}
+	if (
+		checks.some(
+			(check) => check.status === "failure" || check.status === "cancelled",
+		)
+	) {
+		return "failure";
 	}
-
-	if (hasFailure) return "failure";
-	if (hasPending) return "pending";
+	if (checks.some((check) => check.status === "pending")) return "pending";
 	return "success";
 }

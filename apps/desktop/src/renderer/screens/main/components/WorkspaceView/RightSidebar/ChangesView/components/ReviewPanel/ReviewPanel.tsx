@@ -182,7 +182,7 @@ export function ReviewPanel({
 	const requestedReviewers = pr.requestedReviewers ?? [];
 
 	const relevantChecks = pr.checks.filter(
-		(check) => check.status !== "skipped" && check.status !== "cancelled",
+		(check) => check.status !== "skipped",
 	);
 	const passingChecks = relevantChecks.filter(
 		(check) => check.status === "success",

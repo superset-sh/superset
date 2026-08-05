@@ -10,6 +10,11 @@ import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
 
+import {
+	computeChecksStatus,
+	type SyncedCheck,
+} from "../utils/computeChecksStatus";
+
 export const webhooks = new Webhooks({ secret: env.GH_WEBHOOK_SECRET });
 
 webhooks.on(
@@ -356,13 +361,7 @@ webhooks.on(
 
 			if (!currentPr) continue;
 
-			const currentChecks =
-				(currentPr.checks as Array<{
-					name: string;
-					status: string;
-					conclusion: string | null;
-					detailsUrl?: string;
-				}>) ?? [];
+			const currentChecks = (currentPr.checks as SyncedCheck[]) ?? [];
 
 			const newCheck = {
 				name: checkRun.name,
@@ -381,21 +380,7 @@ webhooks.on(
 				currentChecks.push(newCheck);
 			}
 
-			const hasFailure = currentChecks.some(
-				(c) =>
-					c.conclusion === "failure" ||
-					c.conclusion === "timed_out" ||
-					c.conclusion === "action_required",
-			);
-			const hasPending = currentChecks.some((c) => c.status !== "completed");
-
-			const checksStatus = hasFailure
-				? "failure"
-				: hasPending
-					? "pending"
-					: currentChecks.length > 0
-						? "success"
-						: "none";
+			const checksStatus = computeChecksStatus(currentChecks);
 
 			console.log(
 				`[github/webhook] Check ${checkRun.status}/${checkRun.conclusion}:`,
