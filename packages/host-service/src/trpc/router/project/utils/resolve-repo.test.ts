@@ -11,15 +11,19 @@ import {
 	existsSync,
 	mkdirSync,
 	mkdtempSync,
+	readdirSync,
 	realpathSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { TRPCError } from "@trpc/server";
 import simpleGit, { type SimpleGit } from "simple-git";
 import {
 	cloneRepoInto,
+	cloneTemplateInto,
+	initEmptyRepo,
 	initLocalRepoInPlace,
 	resolveLocalRepo,
 } from "./resolve-repo";
@@ -303,6 +307,91 @@ describe("initLocalRepoInPlace", () => {
 		await expect(initLocalRepoInPlace(file)).rejects.toThrow(
 			/Path is not a directory/,
 		);
+	});
+});
+
+// ── initEmptyRepo / cloneTemplateInto ─────────────────────────────
+
+async function expectBadRequestDirName(promise: Promise<unknown>) {
+	const err = await promise.then(
+		() => null,
+		(e: unknown) => e,
+	);
+	expect(err).toBeInstanceOf(TRPCError);
+	expect((err as TRPCError).code).toBe("BAD_REQUEST");
+	expect((err as TRPCError).message).toMatch(/Invalid directory name/);
+}
+
+let dotGuardParentDir: string;
+let dotGuardSentinel: string;
+
+/**
+ * parentDir with a sentinel file NEXT TO it: a ".."-escape resolves to
+ * workRoot, so a git init landing there — or the failure-cleanup rmSync
+ * wiping it — is visible from outside parentDir.
+ */
+function setupDotGuardDirs(): void {
+	dotGuardParentDir = join(workRoot, "projects");
+	mkdirSync(dotGuardParentDir);
+	dotGuardSentinel = join(workRoot, "outside.txt");
+	writeFileSync(dotGuardSentinel, "preserved");
+}
+
+function expectNoEscapeSideEffects(): void {
+	// Nothing created inside parentDir, nothing init'ed or deleted above it.
+	expect(readdirSync(dotGuardParentDir)).toEqual([]);
+	expect(existsSync(join(workRoot, ".git"))).toBe(false);
+	expect(existsSync(dotGuardSentinel)).toBe(true);
+}
+
+describe("initEmptyRepo", () => {
+	beforeEach(setupDotGuardDirs);
+
+	test("throws when the directory name is '.'", async () => {
+		// "." would join() back to parentDir itself; like
+		// deriveCloneDirectoryName, dot-only segments are reserved.
+		await expectBadRequestDirName(initEmptyRepo(dotGuardParentDir, "."));
+		expectNoEscapeSideEffects();
+	});
+
+	test("throws when the directory name is '..'", async () => {
+		// ".." would join() to parentDir's parent — escaping the projects dir.
+		await expectBadRequestDirName(initEmptyRepo(dotGuardParentDir, ".."));
+		expectNoEscapeSideEffects();
+	});
+
+	test("throws when the directory name trims to dots (' .. ')", async () => {
+		// Windows path normalization strips trailing dots/spaces, so a padded
+		// " .. " can collapse back to "..". The guard rejects the trimmed form.
+		await expectBadRequestDirName(initEmptyRepo(dotGuardParentDir, " .. "));
+		expectNoEscapeSideEffects();
+	});
+});
+
+describe("cloneTemplateInto", () => {
+	const templateUrl = "https://github.com/acme/template.git";
+
+	beforeEach(setupDotGuardDirs);
+
+	test("throws when the directory name is '.'", async () => {
+		await expectBadRequestDirName(
+			cloneTemplateInto(templateUrl, dotGuardParentDir, "."),
+		);
+		expectNoEscapeSideEffects();
+	});
+
+	test("throws when the directory name is '..'", async () => {
+		await expectBadRequestDirName(
+			cloneTemplateInto(templateUrl, dotGuardParentDir, ".."),
+		);
+		expectNoEscapeSideEffects();
+	});
+
+	test("throws when the directory name trims to dots (' . ')", async () => {
+		await expectBadRequestDirName(
+			cloneTemplateInto(templateUrl, dotGuardParentDir, " . "),
+		);
+		expectNoEscapeSideEffects();
 	});
 });
 
