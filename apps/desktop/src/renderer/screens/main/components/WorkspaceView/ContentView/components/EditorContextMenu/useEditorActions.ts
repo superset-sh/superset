@@ -2,6 +2,7 @@ import { useCallback } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import type { CodeEditorAdapter } from "../CodeEditorAdapter";
 import type { EditorActions } from "./EditorContextMenu";
+import { useCopyPathWithLine } from "./useCopyPathWithLine";
 
 interface UseEditorActionsProps {
 	getEditor: () => CodeEditorAdapter | null | undefined;
@@ -49,27 +50,7 @@ export function useEditorActions({
 		copyToClipboard(filePath);
 	}, [filePath, copyToClipboard]);
 
-	const handleCopyPathWithLine = useCallback(() => {
-		const editor = getEditor();
-		if (!editor) {
-			copyToClipboard(filePath);
-			return;
-		}
-
-		const selection = editor.getSelectionLines();
-		if (!selection) {
-			copyToClipboard(filePath);
-			return;
-		}
-
-		const { startLine, endLine } = selection;
-		const pathWithLine =
-			startLine === endLine
-				? `${filePath}:${startLine}`
-				: `${filePath}:${startLine}-${endLine}`;
-
-		copyToClipboard(pathWithLine);
-	}, [filePath, getEditor, copyToClipboard]);
+	const handleCopyPathWithLine = useCopyPathWithLine({ getEditor, filePath });
 
 	const handleFind = useCallback(() => {
 		const editor = getEditor();

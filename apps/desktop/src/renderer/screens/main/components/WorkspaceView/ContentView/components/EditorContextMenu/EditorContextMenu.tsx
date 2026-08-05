@@ -16,6 +16,7 @@ import {
 	LuScissors,
 	LuSearch,
 } from "react-icons/lu";
+import { useHotkeyDisplay } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	type PaneContextMenuActions,
@@ -50,6 +51,7 @@ export function EditorContextMenu({
 	const { data: platform } = electronTrpc.window.getPlatform.useQuery();
 	const isMac = platform === "darwin";
 	const cmdKey = isMac ? "Cmd" : "Ctrl";
+	const copyPathWithLineDisplay = useHotkeyDisplay("COPY_PATH_WITH_LINE");
 
 	const {
 		onCut,
@@ -96,7 +98,11 @@ export function EditorContextMenu({
 					<ContextMenuItem onSelect={onCopyPathWithLine}>
 						<LuLink className="size-4" />
 						Copy Path:Line
-						<ContextMenuShortcut>{cmdKey}+Shift+C</ContextMenuShortcut>
+						{copyPathWithLineDisplay.text !== "Unassigned" && (
+							<ContextMenuShortcut>
+								{copyPathWithLineDisplay.text}
+							</ContextMenuShortcut>
+						)}
 					</ContextMenuItem>
 				)}
 				{showCutPaste && (

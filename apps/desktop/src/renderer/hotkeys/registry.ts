@@ -701,6 +701,17 @@ export const HOTKEYS_REGISTRY = {
 		category: "Window",
 		description: "Copy the workspace path to the clipboard",
 	},
+	COPY_PATH_WITH_LINE: {
+		key: {
+			mac: L("meta+alt+c"),
+			windows: L("ctrl+alt+c"),
+			linux: L("ctrl+alt+c"),
+		},
+		label: "Copy Path:Line",
+		category: "Window",
+		description:
+			"Copy the focused file's path with its selected line range to the clipboard",
+	},
 
 	// Help
 	OPEN_SETTINGS: {
