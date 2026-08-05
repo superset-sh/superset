@@ -31,6 +31,7 @@ export const env = createEnv({
 		QSTASH_CURRENT_SIGNING_KEY: z.string().min(1),
 		QSTASH_NEXT_SIGNING_KEY: z.string().min(1),
 		RESEND_API_KEY: z.string(),
+		RESEND_WEBHOOK_SECRET: z.string().min(1),
 		KV_REST_API_URL: z.string(),
 		KV_REST_API_TOKEN: z.string(),
 		KV_URL: z.string().url(),
