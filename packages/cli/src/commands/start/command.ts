@@ -43,7 +43,12 @@ export default command({
 			spinner.stop(
 				`Host service running on port ${result.port} (pid ${result.pid})`,
 			);
-			p.log.info("Connected to relay — machine is now accessible.");
+			// The host service opens the relay WebSocket in the background; the
+			// spawn above only confirms the local service is healthy, not that the
+			// tunnel connected. Don't claim "connected" before it actually is.
+			p.log.info(
+				"Connecting to relay in the background — the machine becomes remotely accessible once connected.",
+			);
 
 			if (options.daemon) {
 				p.outro("Running in background.");
