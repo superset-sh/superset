@@ -7,7 +7,13 @@ import {
 	DropdownMenuSeparator,
 } from "@superset/ui/dropdown-menu";
 import type { ReactNode } from "react";
-import { LuClock, LuPencil, LuPlay, LuTrash2 } from "react-icons/lu";
+import {
+	LuBookmarkPlus,
+	LuClock,
+	LuPencil,
+	LuPlay,
+	LuTrash2,
+} from "react-icons/lu";
 
 interface AutomationActionsMenuItemsProps {
 	kind: "context" | "dropdown";
@@ -15,6 +21,7 @@ interface AutomationActionsMenuItemsProps {
 	onEdit: () => void;
 	onRunNow: () => void;
 	onHistory: () => void;
+	onSaveAsTemplate: () => void;
 	onDelete: () => void;
 }
 
@@ -24,6 +31,7 @@ export function AutomationActionsMenuItems({
 	onEdit,
 	onRunNow,
 	onHistory,
+	onSaveAsTemplate,
 	onDelete,
 }: AutomationActionsMenuItemsProps) {
 	const renderItem = ({
@@ -54,6 +62,15 @@ export function AutomationActionsMenuItems({
 					<>
 						<LuPencil className="size-4" />
 						{isOwner ? "Edit" : "View"}
+					</>
+				),
+			})}
+			{renderItem({
+				onSelect: onSaveAsTemplate,
+				children: (
+					<>
+						<LuBookmarkPlus className="size-4" />
+						Save as template
 					</>
 				),
 			})}

@@ -53,6 +53,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	["src/renderer/stores/changes/store.ts", ["changes-store"]],
 	["src/renderer/stores/prompt-history.ts", ["prompt-history"]],
+	[
+		"src/renderer/stores/custom-automation-templates.ts",
+		["custom-automation-templates"],
+	],
 	["src/renderer/stores/tabs/store.ts", ["tabs-storage"]],
 	[
 		"src/renderer/stores/theme/store.ts",

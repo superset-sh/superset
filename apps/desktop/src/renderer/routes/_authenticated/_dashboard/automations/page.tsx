@@ -47,6 +47,7 @@ import {
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useCustomAutomationTemplatesStore } from "renderer/stores/custom-automation-templates";
 import { AutomationRow } from "./components/AutomationRow";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
@@ -336,6 +337,19 @@ function AutomationsPage() {
 		setCreateOpen(true);
 	};
 
+	const saveCustomTemplate = useCustomAutomationTemplatesStore(
+		(state) => state.saveTemplate,
+	);
+	const handleSaveAsTemplate = (automation: SelectAutomation) => {
+		saveCustomTemplate({
+			name: automation.name,
+			prompt: automation.prompt,
+			agentType: automation.agent,
+			rrule: automation.rrule,
+		});
+		toast.success(`Saved "${automation.name}" to your templates`);
+	};
+
 	const handleDialogOpenChange = (next: boolean) => {
 		setCreateOpen(next);
 		if (!next) setInitialTemplate(null);
@@ -608,6 +622,7 @@ function AutomationsPage() {
 													targetHostId: a.targetHostId,
 												})
 											}
+											onSaveAsTemplate={handleSaveAsTemplate}
 											onDelete={setPendingDelete}
 										/>
 									);
