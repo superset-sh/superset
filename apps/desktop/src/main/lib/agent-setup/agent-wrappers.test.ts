@@ -378,6 +378,82 @@ exit 0
 		expect(debugLog).toContain("emitting Start");
 	});
 
+	// Reproduces #5855: Codex CLI never notifies when it is waiting for user
+	// input (exec/patch approvals, "asking a question").
+	//
+	// Codex has no native approval hook (hooks.json only exposes
+	// SessionStart/UserPromptSubmit/PreToolUse/PostToolUse/Stop) and its
+	// `notify` callback only reports turn completion, so the wrapper's
+	// process-scoped TUI session-log watcher is the sole channel for
+	// PermissionRequest events.
+	//
+	// In modern Codex builds the TUI session logger records inbound app events
+	// (codex-rs/tui/src/session_log.rs `log_inbound_app_event`) with only the
+	// PascalCase AppEvent variant name — approvals arrive as
+	// `AppEvent::FullScreenApprovalRequest` and are serialized as
+	// `{"dir":"to_tui","kind":"app_event","variant":"FullScreenApprovalRequest"}`.
+	// The watcher instead greps for the legacy snake_case substring
+	// `_approval_request"`, which never appears in that line, so no
+	// PermissionRequest notification is ever emitted.
+	it("emits codex PermissionRequest when the TUI session log records an approval request", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+		const notifyCapturePath = path.join(
+			TEST_ROOT,
+			"codex-approval-notify-events.txt",
+		);
+		const debugLogPath = path.join(TEST_ROOT, "codex-approval-debug.log");
+
+		mkdirSync(realBinDir, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		writeFileSync(
+			notifyPath,
+			`#!/bin/bash
+printf '%s\n' "$1" >> "$NOTIFY_CAPTURE_PATH"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(notifyPath, 0o755);
+		// Pre-create the capture file so a missed approval surfaces as an empty
+		// notification stream rather than ENOENT.
+		writeFileSync(notifyCapturePath, "");
+		// Mirrors the real modern Codex TUI session log shape for an approval
+		// request (see codex-rs/tui/src/session_log.rs `log_inbound_app_event`).
+		writeFileSync(
+			realCodex,
+			`#!/bin/bash
+set -eu
+: > "$CODEX_TUI_SESSION_LOG_PATH"
+sleep 0.3
+printf '{"ts":"2026-07-21T00:00:00.000Z","dir":"to_tui","kind":"app_event","variant":"FullScreenApprovalRequest"}\n' >> "$CODEX_TUI_SESSION_LOG_PATH"
+sleep 0.3
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(realCodex, 0o755);
+
+		createCodexWrapper();
+
+		execFileSync(wrapperPath, [], {
+			env: {
+				...process.env,
+				NOTIFY_CAPTURE_PATH: notifyCapturePath,
+				PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+				SUPERSET_DEBUG_HOOKS: "1",
+				SUPERSET_HOOK_DEBUG_LOG: debugLogPath,
+				SUPERSET_TERMINAL_ID: "terminal-1",
+			},
+			encoding: "utf-8",
+		});
+
+		const notifications = readFileSync(notifyCapturePath, "utf-8");
+		expect(notifications).toContain('{"hook_event_name":"PermissionRequest"}');
+	});
+
 	it("emits codex Start from legacy TUI session logs with v1 tab context", () => {
 		const realBinDir = path.join(TEST_ROOT, "real-bin");
 		const realCodex = path.join(realBinDir, "codex");
