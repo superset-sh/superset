@@ -10,10 +10,12 @@ import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	gitCommitFilesTask,
+	gitCommitMessageTask,
 	gitFetchBaseRefTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+import { offLoop } from "../../off-loop";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
 import type {
 	ChangedFile,
@@ -28,6 +30,7 @@ import type {
 	PullRequestState,
 } from "./types";
 import { scheduleBaseRefFetch } from "./utils/base-ref-freshness";
+import { isValidCommitHash } from "./utils/commit-message";
 import { gitConfigWrite } from "./utils/config-write";
 import {
 	getDefaultBranchName,
@@ -266,6 +269,37 @@ export const gitRouter = router({
 
 			return { files };
 		}),
+
+	/**
+	 * Subject + body for one commit. listCommits only carries `%s`, so this is
+	 * the only way to read a commit's body without leaving the app.
+	 */
+	getCommitMessage: queryProcedure
+		.meta({ timeoutMs: 15_000 })
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				commitHash: z.string().refine(isValidCommitHash, "Not a commit hash"),
+			}),
+		)
+		.query(
+			offLoop({
+				task: gitCommitMessageTask,
+				prepare: async ({ ctx, input }) => {
+					const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+					return {
+						worktreePath,
+						commitHash: input.commitHash,
+						gitEnv: await resolveGitTaskEnv(ctx, worktreePath),
+					};
+				},
+				options: ({ input }) => ({
+					timeoutMs: 15_000,
+					strategy: "coalesce",
+					dedupeKey: `${input.workspaceId}:commit-message:${input.commitHash}`,
+				}),
+			}),
+		),
 
 	getBaseBranch: queryProcedure
 		.input(z.object({ workspaceId: z.string() }))

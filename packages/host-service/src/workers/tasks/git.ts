@@ -14,6 +14,11 @@ import {
 } from "../../runtime/pull-requests/utils/workspace-refs.ts";
 import type { ChangedFile } from "../../trpc/router/git/types.ts";
 import type { BaseRefFetchTarget } from "../../trpc/router/git/utils/base-ref-freshness.ts";
+import {
+	type CommitMessage,
+	isValidCommitHash,
+	splitCommitMessage,
+} from "../../trpc/router/git/utils/commit-message.ts";
 import { getChangedFilesForDiff } from "../../trpc/router/git/utils/git-helpers.ts";
 import type { GitStatusSnapshotComputation } from "../../trpc/router/git/utils/git-status.ts";
 import { getGitStatusSnapshot } from "../../trpc/router/git/utils/git-status.ts";
@@ -67,6 +72,26 @@ export const gitCommitFilesTask = defineWorkerTask<
 		const git = createUserSimpleGit(worktreePath).env(gitEnv);
 		const from = fromHash ? fromHash : `${commitHash}^`;
 		return getChangedFilesForDiff(git, [from, commitHash]);
+	},
+});
+
+// Read on demand rather than widening the commit list: listCommits is polled
+// and can carry every commit ahead of the base branch, so shipping each body
+// with every refresh would cost far more than a field the UI reads one commit
+// at a time. The hash is re-validated here, not just at the call site, so the
+// task can't be handed a flag or revision expression by a future caller.
+export const gitCommitMessageTask = defineWorkerTask<
+	{ worktreePath: string; commitHash: string; gitEnv: GitTaskEnv },
+	CommitMessage
+>({
+	type: "git/getCommitMessage",
+	handler: async ({ worktreePath, commitHash, gitEnv }) => {
+		if (!isValidCommitHash(commitHash)) {
+			throw new Error(`Not a commit hash: ${commitHash}`);
+		}
+		const git = createUserSimpleGit(worktreePath).env(gitEnv);
+		const raw = await git.raw(["log", "-1", "--format=%B", commitHash, "--"]);
+		return splitCommitMessage(raw);
 	},
 });
 
@@ -169,6 +194,7 @@ export const gitTasks = [
 	gitStatusSnapshotTask,
 	gitFetchBaseRefTask,
 	gitCommitFilesTask,
+	gitCommitMessageTask,
 	gitWorkspaceRefsTask,
 	gitIdentityTask,
 	gitWorktreeStateTask,
