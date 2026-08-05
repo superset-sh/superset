@@ -59,7 +59,13 @@ export default function NavigationBar() {
 				<div className="md:col-span-10 flex items-center justify-end relative px-4 gap-4">
 					<MobileSearchIcon />
 					<SidebarTrigger />
-					<ul className="navbar:flex items-center gap-6 hidden shrink-0">
+					<ul className="navbar:flex items-center gap-2 hidden shrink-0">
+						<NavLink href={`${COMPANY.MARKETING_URL}/changelog`} external>
+							Changelog
+						</NavLink>
+						<NavLink href={COMPANY.MARKETING_URL} external>
+							Website
+						</NavLink>
 						<NavLink
 							href="https://github.com/superset-sh/superset"
 							external
@@ -78,6 +84,12 @@ export default function NavigationBar() {
 								></path>
 							</svg>
 						</NavLink>
+						<a
+							href={`${COMPANY.MARKETING_URL}/download`}
+							className="ml-2 rounded-md bg-primary px-3.5 py-1.5 text-sm font-medium text-primary-foreground transition-opacity hover:opacity-85"
+						>
+							Download
+						</a>
 					</ul>
 				</div>
 			</nav>

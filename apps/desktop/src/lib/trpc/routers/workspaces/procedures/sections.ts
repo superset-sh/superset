@@ -1,4 +1,5 @@
 import { workspaceSections, workspaces } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, inArray, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
@@ -314,7 +315,10 @@ export const createSectionsProcedures = () => {
 					.get();
 
 				if (!workspace) {
-					throw new Error(`Workspace ${input.workspaceId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
 				}
 
 				if (input.sectionId) {

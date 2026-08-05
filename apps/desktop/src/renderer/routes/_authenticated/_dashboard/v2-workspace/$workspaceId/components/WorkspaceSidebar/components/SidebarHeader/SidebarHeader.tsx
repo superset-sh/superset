@@ -21,7 +21,7 @@ export function SidebarHeader({
 	return (
 		<div className="flex h-10 shrink-0 items-stretch">
 			<div className="flex min-w-0 flex-1 items-center h-full overflow-hidden">
-				{tabs.map((tab) => {
+				{tabs.map((tab, index) => {
 					const isActive = activeTab === tab.id;
 					const badge =
 						typeof tab.badge === "number" && tab.badge > 0
@@ -41,6 +41,8 @@ export function SidebarHeader({
 									inverted: true,
 								}),
 								"relative flex-1 justify-center",
+								// The resizable panel already draws the sidebar's left edge.
+								index === 0 && "border-l-transparent",
 							)}
 						>
 							{tab.icon && <tab.icon className="size-3" />}

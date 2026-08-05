@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/node";
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
 import type { HostServiceContext } from "../types";
@@ -64,10 +65,42 @@ const t = initTRPC
 		},
 	});
 
-export const router = t.router;
-export const publicProcedure = t.procedure;
+/**
+ * Middleware that reports unhandled errors to Sentry.
+ *
+ * Contract: expected domain states are translated by routers/adapters into
+ * non-500 TRPCErrors before they get here. Anything still
+ * INTERNAL_SERVER_ERROR at this boundary is a bug and is always reported —
+ * fix the missing translation at the throw site, never add a filter here.
+ */
+const sentryMiddleware = t.middleware(async ({ next, path, type }) => {
+	const result = await next();
 
-export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
+	if (!result.ok && result.error.code === "INTERNAL_SERVER_ERROR") {
+		const error = result.error;
+		const originalError = error.cause instanceof Error ? error.cause : error;
+
+		Sentry.captureException(originalError, {
+			tags: {
+				trpc_path: path,
+				trpc_type: type,
+				trpc_code: error.code,
+			},
+			extra: {
+				trpc_message: error.message,
+			},
+		});
+	}
+
+	return result;
+});
+
+const baseProcedure = t.procedure.use(sentryMiddleware);
+
+export const router = t.router;
+export const publicProcedure = baseProcedure;
+
+export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {
 	if (!ctx.isAuthenticated) {
 		throw new TRPCError({
 			code: "UNAUTHORIZED",

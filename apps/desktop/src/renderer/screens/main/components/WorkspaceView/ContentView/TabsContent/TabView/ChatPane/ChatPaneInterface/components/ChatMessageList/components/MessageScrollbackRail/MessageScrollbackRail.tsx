@@ -1,4 +1,4 @@
-import type { UseChatDisplayReturn } from "@superset/chat/client";
+import type { UseChatDisplayReturn } from "@superset/chat-legacy/client";
 import { useConversationContext } from "@superset/ui/ai-elements/conversation";
 import {
 	HoverCard,

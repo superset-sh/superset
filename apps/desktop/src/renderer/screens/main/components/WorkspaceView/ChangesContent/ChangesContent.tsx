@@ -1,6 +1,9 @@
 import { useParams } from "@tanstack/react-router";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
+import {
+	gitChangesUnavailableCopy,
+	useGitChangesStatus,
+} from "renderer/screens/main/hooks/useGitChangesStatus";
 import {
 	RightSidebarTab,
 	useSidebarStore,
@@ -18,16 +21,25 @@ export function ChangesContent() {
 	);
 	const worktreePath = workspace?.worktreePath;
 
-	const { status, isLoading, effectiveBaseBranch } = useGitChangesStatus({
-		worktreePath,
-		refetchInterval: isChangesSidebarVisible ? undefined : 2500,
-		refetchOnWindowFocus: !isChangesSidebarVisible,
-	});
+	const { status, isLoading, errorCause, effectiveBaseBranch } =
+		useGitChangesStatus({
+			worktreePath,
+			refetchInterval: isChangesSidebarVisible ? undefined : 2500,
+			refetchOnWindowFocus: !isChangesSidebarVisible,
+		});
 
 	if (!worktreePath) {
 		return (
 			<div className="h-full flex items-center justify-center text-muted-foreground">
 				No workspace selected
+			</div>
+		);
+	}
+
+	if (errorCause) {
+		return (
+			<div className="h-full flex select-text cursor-text items-center justify-center text-muted-foreground">
+				{gitChangesUnavailableCopy(errorCause)}
 			</div>
 		);
 	}

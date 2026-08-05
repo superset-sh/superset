@@ -3,7 +3,7 @@ import {
 	chatServiceTrpc,
 	type UseChatDisplayReturn,
 	useChatDisplay,
-} from "@superset/chat/client";
+} from "@superset/chat-legacy/client";
 import {
 	PromptInputAttachment,
 	type PromptInputMessage,

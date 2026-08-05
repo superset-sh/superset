@@ -1,6 +1,7 @@
 import { existsSync } from "node:fs";
 import type { GitHubStatus } from "@superset/local-db";
 import { workspaces, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import { z } from "zod";
@@ -101,7 +102,10 @@ export const createGitStatusProcedures = () => {
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
-					throw new Error(`Workspace ${input.workspaceId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
 				}
 
 				const repoPath = getWorkspacePath(workspace);
@@ -113,7 +117,10 @@ export const createGitStatusProcedures = () => {
 
 				const project = getProject(workspace.projectId);
 				if (!project) {
-					throw new Error(`Project ${workspace.projectId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Project ${workspace.projectId} not found`,
+					});
 				}
 
 				const remoteDefaultBranch = await refreshDefaultBranch(
@@ -272,7 +279,10 @@ export const createGitStatusProcedures = () => {
 			.mutation(async ({ input }) => {
 				const workspace = getWorkspace(input.workspaceId);
 				if (!workspace) {
-					throw new Error(`Workspace ${input.workspaceId} not found`);
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Workspace ${input.workspaceId} not found`,
+					});
 				}
 
 				const repoPath = getWorkspacePath(workspace);

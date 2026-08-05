@@ -145,7 +145,7 @@ export const workspaceCleanupRouter = router({
 	 *                            different beast — another destroy is in
 	 *                            flight for the same workspace; surface as
 	 *                            a toast and do NOT force-retry.
-	 *   - INTERNAL_SERVER_ERROR with `data.teardownFailure` → teardown
+	 *   - PRECONDITION_FAILED with `data.teardownFailure` → teardown
 	 *                            script failed; prompt force-retry
 	 *   - BAD_REQUEST          → main workspace; cannot be deleted
 	 *   - PRECONDITION_FAILED  → no cloud API configured
@@ -250,8 +250,10 @@ async function runDestroy(
 				timedOut: teardown.timedOut,
 				outputTail: teardown.outputTail,
 			};
+			// Recoverable via force-retry — an expected user-script failure, not a
+			// service bug; must not be reported as a 500.
 			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
+				code: "PRECONDITION_FAILED",
 				message: "Teardown script failed",
 				cause,
 			});

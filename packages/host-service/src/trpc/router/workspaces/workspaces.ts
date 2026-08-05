@@ -1,5 +1,6 @@
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
+import { runWithPostCheckoutHookTolerance } from "@superset/shared/git-hook-tolerance";
 import { generateFriendlyBranchName } from "@superset/shared/workspace-launch";
 import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
@@ -27,6 +28,7 @@ import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
 import {
+	findWorktreeAtPath,
 	getWorktreeBranchAtPath,
 	listWorktreeBranches,
 } from "../workspace-creation/shared/branch-search";
@@ -248,7 +250,7 @@ async function getLocalBranchHead(
 	}
 }
 
-interface BranchSourcePlan {
+export interface BranchSourcePlan {
 	branch: string;
 	startPoint: ResolvedRef;
 	usedExistingBranch: boolean;
@@ -324,18 +326,43 @@ function isBranchInUseByWorktreeError(err: unknown): boolean {
 	);
 }
 
-async function addBranchWorktree(args: {
+export async function addBranchWorktree(args: {
 	git: GitClient;
 	plan: BranchSourcePlan;
 	worktreePath: string;
 }): Promise<void> {
 	const { git, plan, worktreePath } = args;
 
+	// Post-checkout hooks run after the checkout itself, so a hook that exits
+	// non-zero fails `worktree add` with the worktree fully in place. Every
+	// branch case below checks out `plan.branch`, so registered-at-path with
+	// that branch is the ground truth.
+	const runWorktreeAdd = (addArgs: string[]) =>
+		runWithPostCheckoutHookTolerance({
+			context: `Worktree created at ${worktreePath}`,
+			run: async () => {
+				await git.raw(addArgs);
+			},
+			didSucceed: async () => {
+				if (!(await findWorktreeAtPath(git, worktreePath, plan.branch))) {
+					return false;
+				}
+				try {
+					// The worktree list can report a branch for a half-created
+					// worktree; require a resolvable HEAD in the worktree itself.
+					await git.raw(["-C", worktreePath, "rev-parse", "--verify", "HEAD"]);
+					return true;
+				} catch {
+					return false;
+				}
+			},
+		});
+
 	if (plan.usedExistingBranch) {
 		// Existing branch — check it out into a fresh worktree. Remote-tracking
 		// refs need explicit --track + -b so the worktree gets a real local
 		// branch, not detached HEAD.
-		await git.raw(
+		await runWorktreeAdd(
 			plan.startPoint.kind === "remote-tracking"
 				? [
 						"worktree",
@@ -367,7 +394,7 @@ async function addBranchWorktree(args: {
 			: plan.startPoint.kind === "remote-tracking"
 				? plan.startPoint.remoteShortName
 				: plan.startPoint.shortName;
-	await git.raw([
+	await runWorktreeAdd([
 		"worktree",
 		"add",
 		"--no-track",

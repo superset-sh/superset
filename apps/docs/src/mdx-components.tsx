@@ -1,5 +1,29 @@
+import { Card, Cards } from "fumadocs-ui/components/card";
+import { Step, Steps } from "fumadocs-ui/components/steps";
 import { Tab, Tabs } from "fumadocs-ui/components/tabs";
 import defaultMdxComponents from "fumadocs-ui/mdx";
+import {
+	BookOpen,
+	Bot,
+	CalendarClock,
+	Download,
+	Github,
+	GitPullRequest,
+	Globe,
+	Layers,
+	Linkedin,
+	Mail,
+	MessageCircle,
+	Newspaper,
+	Package,
+	Plug,
+	Rocket,
+	Split,
+	Terminal,
+	Twitter,
+	Workflow,
+	Youtube,
+} from "lucide-react";
 import type { MDXComponents } from "mdx/types";
 import {
 	Command,
@@ -16,6 +40,30 @@ import { YouTubeVideo } from "@/components/YouTubeVideo";
 export function getMDXComponents(components?: MDXComponents): MDXComponents {
 	return {
 		...defaultMdxComponents,
+		Card,
+		Cards,
+		Step,
+		Steps,
+		BookOpen,
+		Bot,
+		CalendarClock,
+		Github,
+		Linkedin,
+		Mail,
+		MessageCircle,
+		Newspaper,
+		Twitter,
+		Youtube,
+		Download,
+		GitPullRequest,
+		Globe,
+		Layers,
+		Package,
+		Plug,
+		Rocket,
+		Split,
+		Terminal,
+		Workflow,
 		Command,
 		CommandReturns,
 		HumanOutput,

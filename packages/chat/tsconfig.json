@@ -1,11 +1,9 @@
 {
 	"extends": "@superset/typescript/base.json",
 	"compilerOptions": {
-		"outDir": "./dist",
 		"rootDir": "./src",
-		"lib": ["ES2022", "DOM", "DOM.Iterable"],
-		"jsx": "react-jsx"
+		"lib": ["ES2022"]
 	},
-	"include": ["src/**/*.ts", "src/**/*.tsx"],
+	"include": ["src/**/*.ts"],
 	"exclude": ["node_modules", "dist", "src/**/*.test.ts"]
 }

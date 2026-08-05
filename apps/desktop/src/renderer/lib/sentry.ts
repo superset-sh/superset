@@ -19,6 +19,16 @@ export async function initSentry(): Promise<void> {
 			environment: env.NODE_ENV,
 			tracesSampleRate: 0,
 			ignoreErrors: SENTRY_IGNORE_ERRORS,
+			// tRPC failures are reported by the main-process middleware with full
+			// server context; renderer copies (unhandled query/mutation promises)
+			// duplicate them with worse stacks.
+			beforeSend(event, hint) {
+				const original = hint.originalException;
+				if (original instanceof Error && original.name === "TRPCClientError") {
+					return null;
+				}
+				return event;
+			},
 		});
 
 		sentryInitialized = true;

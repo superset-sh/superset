@@ -1,0 +1,44 @@
+---
+title: Agent Orchestration
+description: Turn the agent you're already talking to into a coordinator of other agents
+---
+
+<Callout type="info" title="Use when">
+	the fan-out is mechanical: many similar slices, clear acceptance criteria, and results a coordinator can verify against tests. For work you want to review step by step, use the manual recipes above.
+</Callout>
+
+The `superset-orchestration` skill lets one agent coordinate many. Ask the agent you're already talking to for parallel work, and it runs the whole job through the Superset CLI: an isolated workspace per worker, an agent launched in each, follow-ups sent over their terminals, results collected at the end.
+
+![Agents working in parallel workspaces](/images/agents-race.png)
+
+The coordinator can be Claude Code or Codex; the workers can be any mix of agents Superset runs.
+
+## Install
+
+```bash
+npx skills add superset-sh/skills
+```
+
+Claude Code users can also install via the plugin marketplace:
+
+```text
+/plugin marketplace add superset-sh/superset
+```
+
+## What to Ask For
+
+- **Fan out a refactor or migration** across several worktrees at once ("split this migration into independent slices and run a worker on each")
+- **Hand a branch from one agent to another** with its full terminal context
+- **Dispatch to a remote host** and monitor until every worker reports done or blocked
+
+## How It Works
+
+Under the hood the coordinator uses the [Superset CLI](/cli/getting-started):
+
+- `superset workspaces create` for an isolated branch per worker
+- `superset agents create` to launch a worker with a bounded prompt
+- `superset terminals read` / `send` to monitor progress and deliver follow-ups or dependency results
+
+Workers finish by reporting a structured completion or blocked message, which the coordinator verifies before integrating. You review the results the same way as always: one branch and PR per worker.
+
+Related: [Automations](/automations) for scheduled dispatch, and the [MCP server](/mcp-server) for agents that drive Superset over MCP instead of the CLI.

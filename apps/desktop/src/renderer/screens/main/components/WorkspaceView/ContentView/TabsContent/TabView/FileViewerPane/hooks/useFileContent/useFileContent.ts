@@ -3,6 +3,13 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import type { ChangeCategory } from "shared/changes-types";
 import { detectLanguage } from "shared/detect-language";
 import { getImageMimeType, isImageFile } from "shared/file-types";
+import { isFsErrnoCause } from "shared/fs-error-types";
+
+function isDirectoryReadError(error: unknown): boolean {
+	const cause = (error as { data?: { cause?: unknown } | null } | null)?.data
+		?.cause;
+	return isFsErrnoCause(cause) && cause.errno === "EISDIR";
+}
 
 const BRANCH_QUERY_STALE_TIME_MS = 10_000;
 export const FILE_CONTENT_STALE_TIME_MS = 30_000;
@@ -80,8 +87,7 @@ export function useFileContent({
 
 	const rawFileData = useMemo(() => {
 		if (rawQuery.error) {
-			const msg = rawQuery.error.message;
-			if (msg.includes("EISDIR")) {
+			if (isDirectoryReadError(rawQuery.error)) {
 				return { ok: false as const, reason: "is-directory" as const };
 			}
 			return { ok: false as const, reason: "not-found" as const };
@@ -129,8 +135,7 @@ export function useFileContent({
 			return { ok: true as const, dataUrl: filePath, byteLength: 0 };
 		}
 		if (imageQuery.error) {
-			const msg = imageQuery.error.message;
-			if (msg.includes("EISDIR")) {
+			if (isDirectoryReadError(imageQuery.error)) {
 				return { ok: false as const, reason: "is-directory" as const };
 			}
 			return { ok: false as const, reason: "not-found" as const };

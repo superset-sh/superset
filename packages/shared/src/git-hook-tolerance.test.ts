@@ -21,7 +21,25 @@ describe("runWithPostCheckoutHookTolerance", () => {
 		).resolves.toBeUndefined();
 	});
 
-	test("re-throws hook failures when operation did not succeed", async () => {
+	test("tolerates errors without a post-checkout marker when operation succeeded (e.g. timeout kill mid-hook)", async () => {
+		const timeoutError = new Error(
+			"Command failed: git -C /repo worktree add --no-track -b drew/believed-armadillo /worktrees/drew/believed-armadillo origin/staging\n" +
+				"Updating files: 100% (10925/10925), done.\n" +
+				"Fresh worktree detected — installing dependencies...",
+		);
+
+		await expect(
+			runWithPostCheckoutHookTolerance({
+				context: "Created worktree",
+				run: async () => {
+					throw timeoutError;
+				},
+				didSucceed: async () => true,
+			}),
+		).resolves.toBeUndefined();
+	});
+
+	test("re-throws failures when operation did not succeed", async () => {
 		const hookError = new Error("post-checkout hook failed");
 
 		await expect(
@@ -35,16 +53,18 @@ describe("runWithPostCheckoutHookTolerance", () => {
 		).rejects.toThrow("post-checkout");
 	});
 
-	test("re-throws non-hook failures", async () => {
-		const genericError = new Error("fatal: '../worktree' already exists");
+	test("re-throws failures when the success check itself throws", async () => {
+		const addError = new Error("fatal: '../worktree' already exists");
 
 		await expect(
 			runWithPostCheckoutHookTolerance({
 				context: "Created worktree",
 				run: async () => {
-					throw genericError;
+					throw addError;
 				},
-				didSucceed: async () => true,
+				didSucceed: async () => {
+					throw new Error("git worktree list failed");
+				},
 			}),
 		).rejects.toThrow("already exists");
 	});

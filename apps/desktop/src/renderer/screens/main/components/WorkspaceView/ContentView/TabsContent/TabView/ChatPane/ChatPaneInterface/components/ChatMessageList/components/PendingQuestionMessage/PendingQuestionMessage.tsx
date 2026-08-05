@@ -1,4 +1,4 @@
-import type { UseChatDisplayReturn } from "@superset/chat/client";
+import type { UseChatDisplayReturn } from "@superset/chat-legacy/client";
 import {
 	Message,
 	MessageContent,

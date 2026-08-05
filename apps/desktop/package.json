@@ -87,7 +87,7 @@
 		"@sentry/electron": "7.16.0",
 		"@streamdown/mermaid": "1.0.2",
 		"@superset/auth": "workspace:*",
-		"@superset/chat": "workspace:*",
+		"@superset/chat-legacy": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/host-service": "workspace:*",
 		"@superset/local-db": "workspace:*",

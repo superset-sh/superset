@@ -36,7 +36,7 @@ mock.module("@mastra/core/agent", () => ({
 	Agent: agentConstructorMock,
 }));
 
-mock.module("@superset/chat/server/shared", () => ({
+mock.module("@superset/chat-legacy/server/shared", () => ({
 	getSmallModel: getSmallModelMock,
 }));
 

@@ -19,19 +19,14 @@ function getErrorText(error: unknown): string {
 	return String(error);
 }
 
-export function isPostCheckoutHookFailure(error: unknown): boolean {
-	const text = getErrorText(error).toLowerCase();
-	if (!text.includes("post-checkout")) {
-		return false;
-	}
-
-	return (
-		text.includes("hook") ||
-		text.includes("husky") ||
-		text.includes("command not found")
-	);
-}
-
+/**
+ * Runs a git checkout-ish command whose exit status can lie about the
+ * outcome: post-checkout hooks run after the checkout itself, so a hook
+ * that exits non-zero (or outlives the command timeout and gets killed)
+ * fails the command even though the worktree/branch is fully in place.
+ * `didSucceed` is the ground truth — when it confirms the operation
+ * completed, the error is demoted to a warning.
+ */
 export async function runWithPostCheckoutHookTolerance({
 	run,
 	didSucceed,
@@ -44,10 +39,6 @@ export async function runWithPostCheckoutHookTolerance({
 	try {
 		await run();
 	} catch (error) {
-		if (!isPostCheckoutHookFailure(error)) {
-			throw error;
-		}
-
 		let succeeded = false;
 		try {
 			succeeded = await didSucceed();
@@ -61,7 +52,7 @@ export async function runWithPostCheckoutHookTolerance({
 
 		const message = getErrorText(error);
 		console.warn(
-			`[git] ${context} but post-checkout hook failed (non-fatal): ${message}`,
+			`[git] ${context} but the command reported failure — likely a post-checkout hook (non-fatal): ${message}`,
 		);
 	}
 }

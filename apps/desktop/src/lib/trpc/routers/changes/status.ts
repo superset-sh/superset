@@ -2,6 +2,9 @@ import { TRPCError } from "@trpc/server";
 import type { ChangedFile, GitChangesStatus } from "shared/changes-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
+import { pathExistsCached } from "../utils/path-exists-cache";
+import { NotGitRepoError } from "../workspaces/utils/git";
+import { GitEnvironmentError } from "../workspaces/utils/git-errors";
 import { assertRegisteredWorktree } from "./security/path-validation";
 import { getPersistedWorktreeBaseBranch } from "./utils/effective-base-branch";
 import {
@@ -25,6 +28,18 @@ export const createStatusRouter = () => {
 			)
 			.query(async ({ input }): Promise<GitChangesStatus> => {
 				assertRegisteredWorktree(input.worktreePath);
+				// A worktree deleted outside the app is routine; fail fast instead of
+				// spawning a doomed git task every poll.
+				if (!pathExistsCached(input.worktreePath)) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Worktree no longer exists on disk: ${input.worktreePath}`,
+						cause: {
+							kind: "WORKTREE_MISSING",
+							worktreePath: input.worktreePath,
+						},
+					});
+				}
 
 				const defaultBranch = input.defaultBranch || undefined;
 				const cacheKey = makeStatusCacheKey(input.worktreePath, defaultBranch);
@@ -63,10 +78,18 @@ export const createStatusRouter = () => {
 						}
 						return result;
 					} catch (error) {
-						if (error instanceof Error && error.name === "NotGitRepoError") {
+						if (error instanceof NotGitRepoError) {
 							throw new TRPCError({
 								code: "BAD_REQUEST",
 								message: error.message,
+								cause: { kind: "NOT_GIT_REPO" },
+							});
+						}
+						if (error instanceof GitEnvironmentError) {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: error.message,
+								cause: { kind: "GIT_ENVIRONMENT" },
 							});
 						}
 						throw error;
@@ -92,6 +115,16 @@ export const createStatusRouter = () => {
 			)
 			.query(async ({ input }): Promise<ChangedFile[]> => {
 				assertRegisteredWorktree(input.worktreePath);
+				if (!pathExistsCached(input.worktreePath)) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Worktree no longer exists on disk: ${input.worktreePath}`,
+						cause: {
+							kind: "WORKTREE_MISSING",
+							worktreePath: input.worktreePath,
+						},
+					});
+				}
 
 				try {
 					return await runGitTask(
@@ -107,10 +140,18 @@ export const createStatusRouter = () => {
 						},
 					);
 				} catch (error) {
-					if (error instanceof Error && error.name === "NotGitRepoError") {
+					if (error instanceof NotGitRepoError) {
 						throw new TRPCError({
 							code: "BAD_REQUEST",
 							message: error.message,
+							cause: { kind: "NOT_GIT_REPO" },
+						});
+					}
+					if (error instanceof GitEnvironmentError) {
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message: error.message,
+							cause: { kind: "GIT_ENVIRONMENT" },
 						});
 					}
 					throw error;

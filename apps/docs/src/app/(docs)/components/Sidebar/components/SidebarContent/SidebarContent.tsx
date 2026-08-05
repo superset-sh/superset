@@ -23,12 +23,10 @@ function parseSectionsFromSeparators(nodes: PageTreeNode[]): SidebarSection[] {
 
 	const visit = (node: PageTreeNode) => {
 		if (node.type === "separator") {
-			const name = String(node.name ?? "");
-			// Separator names are "<IconName> <Title>"; the icon prefix is legacy and dropped.
-			const match = name.match(/^(\w+)\s+(.+)$/);
-			if (match) {
+			const name = String(node.name ?? "").trim();
+			if (name) {
 				currentSection = {
-					title: match[2],
+					title: name,
 					items: [],
 				};
 				sections.push(currentSection);

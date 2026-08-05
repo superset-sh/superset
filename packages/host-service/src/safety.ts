@@ -13,6 +13,8 @@
  * remaining iterations, so those sites use inline `try/catch` directly.
  */
 
+import * as Sentry from "@sentry/node";
+
 let safetyNetInstalled = false;
 
 export function installProcessSafetyNet(): void {
@@ -28,5 +30,6 @@ export function installProcessSafetyNet(): void {
 
 	process.on("unhandledRejection", (reason) => {
 		console.error("[host-service] unhandledRejection — staying up", { reason });
+		Sentry.captureException(reason);
 	});
 }

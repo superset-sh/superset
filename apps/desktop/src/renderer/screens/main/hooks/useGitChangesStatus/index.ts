@@ -1,1 +1,4 @@
-export { useGitChangesStatus } from "./useGitChangesStatus";
+export {
+	gitChangesUnavailableCopy,
+	useGitChangesStatus,
+} from "./useGitChangesStatus";
