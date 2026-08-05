@@ -12,6 +12,9 @@ describe("buildMinimalEnv", () => {
 		"HOME",
 		"PATH",
 		"SHELL",
+		"DISPLAY",
+		"XAUTHORITY",
+		"WAYLAND_DISPLAY",
 	];
 	const original: Record<string, string | undefined> = {};
 
@@ -43,6 +46,20 @@ describe("buildMinimalEnv", () => {
 		process.env.SSH_AGENT_PID = "12345";
 		const env = buildMinimalEnv();
 		expect(env.SSH_AGENT_PID).toBe("12345");
+	});
+
+	test("propagates DISPLAY and XAUTHORITY so X11 clipboard reads work (#5003)", () => {
+		process.env.DISPLAY = ":0";
+		process.env.XAUTHORITY = "/tmp/xauth_abc123";
+		const env = buildMinimalEnv();
+		expect(env.DISPLAY).toBe(":0");
+		expect(env.XAUTHORITY).toBe("/tmp/xauth_abc123");
+	});
+
+	test("propagates WAYLAND_DISPLAY so Wayland clipboard reads work (#5003)", () => {
+		process.env.WAYLAND_DISPLAY = "wayland-0";
+		const env = buildMinimalEnv();
+		expect(env.WAYLAND_DISPLAY).toBe("wayland-0");
 	});
 });
 
