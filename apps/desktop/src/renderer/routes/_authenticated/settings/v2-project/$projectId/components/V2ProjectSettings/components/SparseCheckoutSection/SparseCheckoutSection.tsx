@@ -65,6 +65,9 @@ export function SparseCheckoutSection({
 	const retryDelayRef = useRef(RETRY_BASE_MS);
 	// Lets the failure path re-enter the save without a circular useCallback.
 	const flushSaveRef = useRef<((next: string[]) => Promise<void>) | null>(null);
+	// Stops a request that resolves after unmount from scheduling further
+	// work (a retry, a drained queue) that nothing is left to clean up.
+	const isMountedRef = useRef(true);
 
 	const savedLines = toLines(paths);
 	useEffect(() => {
@@ -78,10 +81,14 @@ export function SparseCheckoutSection({
 	}, [savedLines, isFocused]);
 
 	useEffect(() => {
+		isMountedRef.current = true;
 		return () => {
+			isMountedRef.current = false;
 			if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 			if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-			// Without this a failed save keeps retrying after the editor is gone.
+			// Clears an already-scheduled retry. A request still in flight at
+			// unmount can't be cancelled this way — isMountedRef is what stops
+			// *its* completion from scheduling a new one (see flushSave).
 			if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
 		};
 	}, []);
@@ -96,30 +103,26 @@ export function SparseCheckoutSection({
 
 	const flushSave = useCallback(
 		async (next: string[]) => {
-			if (pathsEqual(next, lastSavedRef.current)) {
-				// The user backed the text out to exactly what's already saved
-				// (e.g. undoing a rejected edit) — nothing to send, but a stale
-				// "invalid"/"error" status from the edit they just undid would
-				// otherwise sit on screen forever since nothing else clears it.
-				// Skip this while a save is in flight: that request is for some
-				// other (still pending) value, and its own completion already
-				// owns the status transition.
-				if (!saveInFlightRef.current) {
-					setSaveStatus("idle");
-					setInvalidMessage(null);
-					if (retryTimerRef.current) {
-						clearTimeout(retryTimerRef.current);
-						retryTimerRef.current = null;
-					}
-					queuedPathsRef.current = null;
-				}
+			// Always remember the latest intent while a request is in flight —
+			// even a revert back to the last-saved value. That in-flight request
+			// is for a snapshot from before this call; only the `finally` below,
+			// once it's free, can decide there's truly nothing left to do.
+			if (saveInFlightRef.current) {
+				queuedPathsRef.current = next;
 				return;
 			}
 
-			// Coalesce rather than race: a save landing out of order would
-			// resurrect folders the user already removed.
-			if (saveInFlightRef.current) {
-				queuedPathsRef.current = next;
+			if (pathsEqual(next, lastSavedRef.current)) {
+				// Nothing to send, and nothing in flight — but a stale
+				// "invalid"/"error" status from an edit the user just undid
+				// needs to clear too, or it lingers with nothing left to clear it.
+				setSaveStatus("idle");
+				setInvalidMessage(null);
+				if (retryTimerRef.current) {
+					clearTimeout(retryTimerRef.current);
+					retryTimerRef.current = null;
+				}
+				queuedPathsRef.current = null;
 				return;
 			}
 
@@ -132,15 +135,8 @@ export function SparseCheckoutSection({
 			setInvalidMessage(null);
 			saveInFlightRef.current = true;
 			try {
-				let pathsToSave: string[] | null = next;
-				while (pathsToSave) {
-					queuedPathsRef.current = null;
-					if (!pathsEqual(pathsToSave, lastSavedRef.current)) {
-						await saveMutation.mutateAsync(pathsToSave);
-						lastSavedRef.current = pathsToSave;
-					}
-					pathsToSave = queuedPathsRef.current;
-				}
+				await saveMutation.mutateAsync(next);
+				lastSavedRef.current = next;
 
 				retryDelayRef.current = RETRY_BASE_MS;
 				setSaveStatus("saved");
@@ -161,28 +157,36 @@ export function SparseCheckoutSection({
 					setSaveStatus("invalid");
 					setInvalidMessage(err.message);
 					console.warn("[sparse-checkout/save] rejected, not retrying", err);
-					return;
+				} else {
+					setSaveStatus("error");
+					console.warn("[sparse-checkout/save] failed, retrying", err);
+
+					if (isMountedRef.current) {
+						const delay = retryDelayRef.current;
+						retryDelayRef.current = Math.min(delay * 2, RETRY_MAX_MS);
+						if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+						retryTimerRef.current = setTimeout(() => {
+							retryTimerRef.current = null;
+							// Re-read the latest value rather than replaying `next`:
+							// if the user edited again during the wait, that edit
+							// already owns a fresh attempt (see the in-flight check
+							// above) and this retry would otherwise resend stale
+							// content over it.
+							if (!isMountedRef.current || saveInFlightRef.current) return;
+							void flushSaveRef.current?.(toPaths(latestValueRef.current));
+						}, delay);
+					}
 				}
-
-				// The debounce that scheduled this save is already spent, and the
-				// loop nulls the queue before each attempt — so without putting the
-				// pending edit back, whatever the user last typed is silently lost.
-				queuedPathsRef.current =
-					queuedPathsRef.current ?? toPaths(latestValueRef.current);
-				setSaveStatus("error");
-				console.warn("[sparse-checkout/save] failed, retrying", err);
-
-				const delay = retryDelayRef.current;
-				retryDelayRef.current = Math.min(delay * 2, RETRY_MAX_MS);
-				if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
-				retryTimerRef.current = setTimeout(() => {
-					retryTimerRef.current = null;
-					const pending = queuedPathsRef.current;
-					queuedPathsRef.current = null;
-					if (pending) void flushSaveRef.current?.(pending);
-				}, delay);
 			} finally {
 				saveInFlightRef.current = false;
+				// Something newer arrived while this attempt was busy (a revert,
+				// a correction after a rejection, or just more typing) — resolve
+				// it now instead of leaving it stranded until the next edit/blur.
+				const pending = queuedPathsRef.current;
+				queuedPathsRef.current = null;
+				if (pending && isMountedRef.current) {
+					void flushSave(pending);
+				}
 			}
 		},
 		[onChanged, saveMutation],
