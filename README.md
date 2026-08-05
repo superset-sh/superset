@@ -254,7 +254,7 @@ No Neon account or third-party credentials are needed. `setup.local.sh` brings
 up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in
 with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
-Prereqs: [Bun](https://bun.sh/) (the version in `.bun-version`), `docker`, and `jq`, all required. `caddy` is optional and only used by the dev server (`brew install jq caddy && caddy trust`).
+Prereqs: [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`), `docker`, and `jq`, all required. `caddy` is optional and only used by the dev server (`brew install jq caddy && caddy trust`).
 
 See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide: what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
