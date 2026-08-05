@@ -1,7 +1,7 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { PortChangedPayload } from "@superset/workspace-client";
 import type { DetectedPort } from "shared/types";
-import type { DashboardSidebarWorkspaceHostType } from "../../../../types";
+import type { DashboardSidebarWorkspaceHostType } from "../../types";
 
 export interface DashboardSidebarPort extends RemotePort {
 	hostId: string;

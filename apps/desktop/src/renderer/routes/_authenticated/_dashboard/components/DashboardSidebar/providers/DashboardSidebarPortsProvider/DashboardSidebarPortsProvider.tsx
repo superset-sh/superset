@@ -2,7 +2,7 @@ import { createContext, type ReactNode, useContext, useMemo } from "react";
 import {
 	type DashboardSidebarPortGroup,
 	useDashboardSidebarPortsData,
-} from "../../components/DashboardSidebarPortsList/hooks/useDashboardSidebarPortsData";
+} from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortsData";
 
 interface DashboardSidebarPortsContextValue {
 	workspacePortGroups: DashboardSidebarPortGroup[];

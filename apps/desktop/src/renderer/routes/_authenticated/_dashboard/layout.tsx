@@ -12,12 +12,14 @@ import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
 import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { DashboardSidebarPortsProvider } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarPortsProvider";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
+import { usePortsDisplayMode } from "renderer/stores/inline-workspace-ports";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
@@ -51,6 +53,7 @@ function DashboardLayout() {
 	const navigate = useNavigate();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const portsDisplayMode = usePortsDisplayMode();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	useDevSeedV2Sidebar();
@@ -220,59 +223,77 @@ function DashboardLayout() {
 		((onNewWorkspaceRoute || onDashboardViewRoute) && sidebarOutsideColumn);
 
 	return (
-		<div className="flex h-full w-full overflow-hidden">
-			<CommandPaletteHost />
-			{sidebarOutsideColumn && sidebarPanel}
-			<div className="flex flex-1 flex-col min-w-0 min-h-0">
-				{!hideTopBar && <TopBar />}
-				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
-					{!sidebarOutsideColumn && sidebarPanel}
-					<div className="relative flex flex-1 min-h-0 min-w-0">
-						{versionMismatch ? (
-							// A v2 user on a stale v1 workspace route has nothing to go
-							// back to, so send them somewhere actionable instead of a
-							// dead-end "pick a workspace" screen. v1 users keep the
-							// static state — /new-workspace is a v2-only surface.
-							isV2CloudEnabled ? (
-								<Navigate to="/new-workspace" replace />
+		// The single ports-data provider for both layout modes. It lives up here
+		// (not in the sidebar) because in topbar mode the pill renders inside
+		// subtrees that remount on workspace navigation (TopBar / the workspace
+		// tab bar) — the data must survive those remounts or the pill blinks out
+		// for the first empty-data frames. The inline chip in the sidebar reads
+		// the same context; polling stays off when nothing renders ports (v1, or
+		// a collapsed/closed sidebar in inline mode).
+		<DashboardSidebarPortsProvider
+			enabled={
+				isV2CloudEnabled &&
+				(portsDisplayMode === "topbar" ||
+					(isWorkspaceSidebarOpen && !isWorkspaceSidebarCollapsed()))
+			}
+		>
+			<div className="flex h-full w-full overflow-hidden">
+				<CommandPaletteHost />
+				{sidebarOutsideColumn && sidebarPanel}
+				<div className="flex flex-1 flex-col min-w-0 min-h-0">
+					{!hideTopBar && <TopBar />}
+					<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
+						{!sidebarOutsideColumn && sidebarPanel}
+						<div className="relative flex flex-1 min-h-0 min-w-0">
+							{versionMismatch ? (
+								// A v2 user on a stale v1 workspace route has nothing to go
+								// back to, so send them somewhere actionable instead of a
+								// dead-end "pick a workspace" screen. v1 users keep the
+								// static state — /new-workspace is a v2-only surface.
+								isV2CloudEnabled ? (
+									<Navigate to="/new-workspace" replace />
+								) : (
+									<CrossVersionMismatchState />
+								)
 							) : (
-								<CrossVersionMismatchState />
-							)
-						) : (
-							<Outlet />
-						)}
+								<Outlet />
+							)}
+						</div>
 					</div>
 				</div>
+				<div
+					id="workspace-right-sidebar-slot"
+					className="flex h-full shrink-0"
+				/>
+				<AddRepositoryModals />
+				{deleteTarget?.version === "v1" && (
+					<DeleteWorkspaceDialog
+						workspaceId={deleteTarget.workspaceId}
+						workspaceName={deleteTarget.workspaceName}
+						workspaceType={deleteTarget.workspaceType}
+						open={true}
+						onOpenChange={(open) => {
+							if (!open) setDeleteTarget(null);
+						}}
+					/>
+				)}
+				{deleteTarget?.version === "v2" && (
+					<DashboardSidebarDeleteDialog
+						workspaceId={deleteTarget.workspaceId}
+						workspaceName={deleteTarget.workspaceName}
+						open={deleteTarget.open}
+						onOpenChange={(open) => {
+							setDeleteTarget((target) =>
+								target?.version === "v2" ? { ...target, open } : target,
+							);
+						}}
+						onDeleted={() => {
+							removeWorkspaceFromSidebar(deleteTarget.workspaceId);
+							setDeleteTarget(null);
+						}}
+					/>
+				)}
 			</div>
-			<div id="workspace-right-sidebar-slot" className="flex h-full shrink-0" />
-			<AddRepositoryModals />
-			{deleteTarget?.version === "v1" && (
-				<DeleteWorkspaceDialog
-					workspaceId={deleteTarget.workspaceId}
-					workspaceName={deleteTarget.workspaceName}
-					workspaceType={deleteTarget.workspaceType}
-					open={true}
-					onOpenChange={(open) => {
-						if (!open) setDeleteTarget(null);
-					}}
-				/>
-			)}
-			{deleteTarget?.version === "v2" && (
-				<DashboardSidebarDeleteDialog
-					workspaceId={deleteTarget.workspaceId}
-					workspaceName={deleteTarget.workspaceName}
-					open={deleteTarget.open}
-					onOpenChange={(open) => {
-						setDeleteTarget((target) =>
-							target?.version === "v2" ? { ...target, open } : target,
-						);
-					}}
-					onDeleted={() => {
-						removeWorkspaceFromSidebar(deleteTarget.workspaceId);
-						setDeleteTarget(null);
-					}}
-				/>
-			)}
-		</div>
+		</DashboardSidebarPortsProvider>
 	);
 }

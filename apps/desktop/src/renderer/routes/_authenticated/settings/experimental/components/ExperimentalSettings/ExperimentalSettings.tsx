@@ -7,8 +7,8 @@ import {
 } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import {
-	useInlineWorkspacePortsEnabled,
 	useInlineWorkspacePortsStore,
+	usePortsDisplayMode,
 } from "renderer/stores/inline-workspace-ports";
 import { useOpenV1ImportModal } from "renderer/stores/v1-import-modal";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
@@ -54,9 +54,9 @@ export function ExperimentalSettings({
 	const isV2OnlyUser = useIsV2OnlyUser();
 	const setOptInV2 = useV2LocalOverrideStore((state) => state.setOptInV2);
 	const openV1ImportModal = useOpenV1ImportModal();
-	const inlineWorkspacePortsEnabled = useInlineWorkspacePortsEnabled();
-	const setInlineWorkspacePortsEnabled = useInlineWorkspacePortsStore(
-		(state) => state.setEnabled,
+	const portsDisplayMode = usePortsDisplayMode();
+	const setPortsDisplayMode = useInlineWorkspacePortsStore(
+		(state) => state.setMode,
 	);
 	const workspaceAgentsEnabled = useWorkspaceAgentsRowEnabled();
 	const setWorkspaceAgentsEnabled = useWorkspaceAgentsRowStore(
@@ -129,17 +129,19 @@ export function ExperimentalSettings({
 								htmlFor="inline-workspace-ports"
 								className="text-sm font-medium"
 							>
-								Inline workspace ports
+								Ports in top bar dropdown
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Show detected ports under each workspace in the sidebar instead
-								of a single panel at the bottom.
+								Show detected ports as a dropdown in the top bar instead of a
+								chip under each workspace in the sidebar.
 							</p>
 						</div>
 						<Switch
 							id="inline-workspace-ports"
-							checked={inlineWorkspacePortsEnabled}
-							onCheckedChange={setInlineWorkspacePortsEnabled}
+							checked={portsDisplayMode === "topbar"}
+							onCheckedChange={(checked) =>
+								setPortsDisplayMode(checked ? "topbar" : "inline")
+							}
 						/>
 					</div>
 				)}

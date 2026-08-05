@@ -3,7 +3,7 @@ import { devtools, persist } from "zustand/middleware";
 
 export const DEFAULT_WORKSPACE_SIDEBAR_WIDTH = 280;
 export const COLLAPSED_WORKSPACE_SIDEBAR_WIDTH = 52;
-const MIN_WORKSPACE_SIDEBAR_WIDTH = 220;
+const MIN_WORKSPACE_SIDEBAR_WIDTH = 225;
 export const MAX_WORKSPACE_SIDEBAR_WIDTH = 400;
 
 // Threshold for snapping to collapsed state

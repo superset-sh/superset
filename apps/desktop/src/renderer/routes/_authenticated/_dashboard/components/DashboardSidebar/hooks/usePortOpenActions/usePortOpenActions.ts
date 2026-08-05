@@ -1,9 +1,9 @@
 import { useNavigate } from "@tanstack/react-router";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type { DashboardSidebarPort } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarPortsData";
 import { navigateToV2Workspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import type { LinkAction } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
-import type { DashboardSidebarPort } from "../../components/DashboardSidebarPortsList/hooks/useDashboardSidebarPortsData";
 
 interface UsePortOpenActionsResult {
 	canOpenInBrowser: boolean;

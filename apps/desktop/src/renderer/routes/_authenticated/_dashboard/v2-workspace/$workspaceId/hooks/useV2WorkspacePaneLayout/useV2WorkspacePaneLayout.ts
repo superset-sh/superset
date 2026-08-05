@@ -24,19 +24,29 @@ export function useV2WorkspacePaneLayout() {
 	// workspace switches, live queries can briefly return stale rows; sharing
 	// the same store across that boundary lets panes from one worktree render
 	// and persist under another.
-	const workspaceRuntime = useMemo(
-		() => ({
+	//
+	// Seed the store synchronously from the collection row (keyed by this
+	// workspace's id, so it can't serve a stale neighbor) instead of starting
+	// empty: an empty initial state blanks the whole tab bar for the first
+	// paint after every workspace switch, flashing its contents in one
+	// effect-cycle late.
+	const workspaceRuntime = useMemo(() => {
+		const seededLayout =
+			(collections.v2WorkspaceLocalState.get(workspaceId)?.paneLayout as
+				| WorkspaceState<PaneViewerData>
+				| undefined) ?? EMPTY_STATE;
+		return {
 			workspaceId,
+			seededSnapshot: getSnapshot(seededLayout),
 			store: createWorkspaceStore<PaneViewerData>({
-				initialState: EMPTY_STATE,
+				initialState: seededLayout,
 			}),
-		}),
-		[workspaceId],
-	);
+		};
+	}, [collections, workspaceId]);
 	const { store } = workspaceRuntime;
 	const syncStateRef = useRef({
 		workspaceId,
-		lastSyncedSnapshot: getSnapshot(EMPTY_STATE),
+		lastSyncedSnapshot: workspaceRuntime.seededSnapshot,
 	});
 
 	const { data: localWorkspaceRows = [], isReady: isLayoutReady } =
@@ -63,10 +73,10 @@ export function useV2WorkspacePaneLayout() {
 
 	useEffect(() => {
 		syncStateRef.current = {
-			workspaceId,
-			lastSyncedSnapshot: getSnapshot(EMPTY_STATE),
+			workspaceId: workspaceRuntime.workspaceId,
+			lastSyncedSnapshot: workspaceRuntime.seededSnapshot,
 		};
-	}, [workspaceId]);
+	}, [workspaceRuntime]);
 
 	useEffect(() => {
 		const nextSnapshot = getSnapshot(persistedPaneLayout);
