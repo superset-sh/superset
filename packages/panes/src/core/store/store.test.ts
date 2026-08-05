@@ -722,6 +722,112 @@ describe("moveTabToSplit", () => {
 	});
 });
 
+describe("previousTabId tracking", () => {
+	it("records the prior active tab when adding a tab", () => {
+		const store = makeStore();
+		// First tab: nothing was active before, so previous stays null.
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		expect(store.getState().previousTabId).toBeNull();
+
+		// Adding a second tab switches away from t1, which becomes previous —
+		// so a just-added tab can be dragged back to merge into it.
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		expect(store.getState().activeTabId).toBe("t2");
+		expect(store.getState().previousTabId).toBe("t1");
+	});
+
+	it("records the prior active tab on explicit selection", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().setActiveTab("t1");
+		expect(store.getState().activeTabId).toBe("t1");
+		expect(store.getState().previousTabId).toBe("t2");
+
+		// Re-selecting the same tab must not overwrite the previous pointer.
+		store.getState().setActiveTab("t1");
+		expect(store.getState().previousTabId).toBe("t2");
+
+		store.getState().setActiveTab("t2");
+		expect(store.getState().previousTabId).toBe("t1");
+	});
+
+	it("clears previousTabId when that tab is removed", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().setActiveTab("t1"); // previous = t2
+
+		store.getState().removeTab("t2");
+
+		expect(store.getState().previousTabId).toBeNull();
+	});
+});
+
+describe("moveTabToPreviousSplit", () => {
+	it("merges the source tab's layout into the previously selected tab", () => {
+		const store = makeStore();
+		// t1 is a vertical split of p1/p2 that must survive the merge intact.
+		store
+			.getState()
+			.addTab({ id: "t1", panes: [tp("p1")], activePaneId: "p1" });
+		store.getState().splitPane({
+			tabId: "t1",
+			paneId: "p1",
+			position: "bottom",
+			newPane: tp("p2"),
+		});
+		store.getState().addTab({ id: "t2", panes: [tp("p3")] });
+		// Select t1 then t2 so previousTabId = t1 while t2 is active (dragged).
+		store.getState().setActiveTab("t1");
+		store.getState().setActiveTab("t2");
+		expect(store.getState().previousTabId).toBe("t1");
+
+		store
+			.getState()
+			.moveTabToPreviousSplit({ sourceTabId: "t2", position: "right" });
+
+		const tabs = store.getState().tabs;
+		// Source tab (t2) is removed; the previous tab (t1) survives with both.
+		expect(tabs.map((t) => t.id)).toEqual(["t1"]);
+		const t1 = tabs[0];
+		expect(t1?.panes.p1).toBeDefined();
+		expect(t1?.panes.p2).toBeDefined();
+		expect(t1?.panes.p3).toBeDefined();
+		// t1's p1/p2 split anchored on its active pane (p1), t2's p3 on the right.
+		expect(t1?.layout).toEqual({
+			type: "split",
+			direction: "horizontal",
+			first: {
+				type: "split",
+				direction: "vertical",
+				first: { type: "pane", paneId: "p1" },
+				second: { type: "pane", paneId: "p2" },
+			},
+			second: { type: "pane", paneId: "p3" },
+		});
+		expect(store.getState().activeTabId).toBe("t1");
+		expect(store.getState().previousTabId).toBeNull();
+	});
+
+	it("is a no-op without a previous tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		expect(store.getState().previousTabId).toBeNull();
+
+		store
+			.getState()
+			.moveTabToPreviousSplit({ sourceTabId: "t1", position: "right" });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1"]);
+		expect(store.getState().tabs[0]?.layout).toEqual({
+			type: "pane",
+			paneId: "p1",
+		});
+	});
+});
+
 describe("edge cases", () => {
 	it("invalid IDs are no-ops", () => {
 		const store = makeStore();

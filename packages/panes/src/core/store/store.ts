@@ -109,6 +109,12 @@ export type CreateTabInput<TData> = {
 };
 
 export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
+	/**
+	 * The tab that was active immediately before the current one, updated on
+	 * explicit selection (setActiveTab / setActivePane). Ephemeral — not part
+	 * of the persisted WorkspaceState.
+	 */
+	previousTabId: string | null;
 	addTab: (args: CreateTabInput<TData>) => void;
 	removeTab: (tabId: string) => void;
 	setActiveTab: (tabId: string) => void;
@@ -174,6 +180,16 @@ export interface WorkspaceStore<TData> extends WorkspaceState<TData> {
 		targetPaneId: string;
 		position: SplitPosition;
 	}) => void;
+	/**
+	 * Merge a tab's whole layout into the previously selected tab as a split.
+	 * Used when a tab is dropped onto its own view (you can only see the active
+	 * tab's panes, so a self-merge is impossible). No-op without a valid,
+	 * distinct previous tab.
+	 */
+	moveTabToPreviousSplit: (args: {
+		sourceTabId: string;
+		position: SplitPosition;
+	}) => void;
 
 	reorderTab: (args: { tabId: string; toIndex: number }) => void;
 
@@ -195,6 +211,7 @@ export function createWorkspaceStore<TData>(
 		version: 1,
 		tabs: options?.initialState?.tabs ?? [],
 		activeTabId: options?.initialState?.activeTabId ?? null,
+		previousTabId: null,
 
 		addTab: (args) => {
 			const builtPanes = args.panes.map(buildPane) as [
@@ -205,6 +222,9 @@ export function createWorkspaceStore<TData>(
 			set((s) => ({
 				tabs: [...s.tabs, tab],
 				activeTabId: tab.id,
+				// Adding a tab switches away from the current one, so record it as
+				// previous — this is what a just-added tab merges back into.
+				previousTabId: s.activeTabId,
 			}));
 		},
 
@@ -218,6 +238,7 @@ export function createWorkspaceStore<TData>(
 						s.activeTabId,
 						tabId,
 					),
+					previousTabId: s.previousTabId === tabId ? null : s.previousTabId,
 				};
 			});
 		},
@@ -225,7 +246,8 @@ export function createWorkspaceStore<TData>(
 		setActiveTab: (tabId) => {
 			set((s) => {
 				if (!s.tabs.some((t) => t.id === tabId)) return s;
-				return { activeTabId: tabId };
+				if (s.activeTabId === tabId) return s;
+				return { activeTabId: tabId, previousTabId: s.activeTabId };
 			});
 		},
 
@@ -251,6 +273,8 @@ export function createWorkspaceStore<TData>(
 
 				return {
 					activeTabId: args.tabId,
+					previousTabId:
+						s.activeTabId !== args.tabId ? s.activeTabId : s.previousTabId,
 					tabs: s.tabs.map((t) =>
 						t.id === args.tabId ? { ...t, activePaneId: args.paneId } : t,
 					),
@@ -857,7 +881,11 @@ export function createWorkspaceStore<TData>(
 
 				nextTabs.splice(insertIndex, 0, newTab);
 
-				return { tabs: nextTabs, activeTabId: newTab.id };
+				return {
+					tabs: nextTabs,
+					activeTabId: newTab.id,
+					previousTabId: s.activeTabId,
+				};
 			});
 		},
 
@@ -898,6 +926,49 @@ export function createWorkspaceStore<TData>(
 			});
 		},
 
+		moveTabToPreviousSplit: (args) => {
+			set((s) => {
+				const sourceTab = s.tabs.find((t) => t.id === args.sourceTabId);
+				if (!sourceTab || !sourceTab.layout) return s;
+
+				const targetTab = s.previousTabId
+					? s.tabs.find((t) => t.id === s.previousTabId)
+					: null;
+				if (!targetTab || !targetTab.layout) return s;
+				if (targetTab.id === sourceTab.id) return s;
+
+				// The previous tab isn't on screen during the drag, so combine the
+				// two whole layouts side by side at the root rather than anchoring
+				// on a specific (invisible) pane.
+				const isFirst = args.position === "left" || args.position === "top";
+				const nextTargetLayout: LayoutNode = {
+					type: "split",
+					direction: positionToDirection(args.position),
+					first: isFirst ? sourceTab.layout : targetTab.layout,
+					second: isFirst ? targetTab.layout : sourceTab.layout,
+				};
+
+				const nextTabs = s.tabs
+					.filter((t) => t.id !== sourceTab.id)
+					.map((t) =>
+						t.id === targetTab.id
+							? {
+									...t,
+									layout: nextTargetLayout,
+									panes: { ...t.panes, ...sourceTab.panes },
+									activePaneId: sourceTab.activePaneId ?? t.activePaneId,
+								}
+							: t,
+					);
+
+				return {
+					tabs: nextTabs,
+					activeTabId: targetTab.id,
+					previousTabId: null,
+				};
+			});
+		},
+
 		reorderTab: (args) => {
 			set((s) => {
 				const fromIndex = s.tabs.findIndex((t) => t.id === args.tabId);
@@ -926,6 +997,7 @@ export function createWorkspaceStore<TData>(
 					version: resolved.version,
 					tabs: resolved.tabs,
 					activeTabId: resolved.activeTabId,
+					previousTabId: null,
 				};
 			});
 		},

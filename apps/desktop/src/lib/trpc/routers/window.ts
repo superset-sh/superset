@@ -33,6 +33,20 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			return { success: true };
 		}),
 
+		// Show/hide the macOS traffic-light buttons. Used to keep them out of the
+		// way of full-window overlays (e.g. the folder drop target). No-op on
+		// platforms without native window buttons.
+		setTrafficLightsVisible: publicProcedure
+			.input(z.object({ visible: z.boolean() }))
+			.mutation(({ input }) => {
+				const window = getWindow();
+				if (!window) return { success: false };
+				if (process.platform === "darwin") {
+					window.setWindowButtonVisibility(input.visible);
+				}
+				return { success: true };
+			}),
+
 		isMaximized: publicProcedure.query(() => {
 			const window = getWindow();
 			if (!window) return false;
