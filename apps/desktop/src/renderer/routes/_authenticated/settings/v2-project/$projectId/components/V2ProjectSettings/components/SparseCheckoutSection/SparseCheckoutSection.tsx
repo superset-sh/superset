@@ -137,6 +137,11 @@ export function SparseCheckoutSection({
 			try {
 				await saveMutation.mutateAsync(next);
 				lastSavedRef.current = next;
+				// A project/host switch remounts this component (it's keyed on
+				// both), which can unmount it while this await was pending.
+				// Nothing left to show a status on, and refetching for a screen
+				// the user has already left is pure waste.
+				if (!isMountedRef.current) return;
 
 				retryDelayRef.current = RETRY_BASE_MS;
 				setSaveStatus("saved");
@@ -185,6 +190,15 @@ export function SparseCheckoutSection({
 				const pending = queuedPathsRef.current;
 				queuedPathsRef.current = null;
 				if (pending && isMountedRef.current) {
+					// This drain is about to become the authoritative attempt for
+					// `pending` — a retry the catch block just scheduled above is
+					// for the now-stale value that just failed. Without clearing
+					// it, it can still fire later and, e.g., reset a "Saved"
+					// status this drain is about to set back to idle early.
+					if (retryTimerRef.current) {
+						clearTimeout(retryTimerRef.current);
+						retryTimerRef.current = null;
+					}
 					void flushSave(pending);
 				}
 			}
