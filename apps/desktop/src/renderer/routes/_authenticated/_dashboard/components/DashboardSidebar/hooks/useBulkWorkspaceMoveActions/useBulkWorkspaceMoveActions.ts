@@ -5,7 +5,6 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useDashboardSidebarSectionRename } from "../../components/DashboardSidebarSectionRenameContext";
 import { useDashboardSidebarSelection } from "../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarWorkspace } from "../../types";
-import { workspaceIdsForSectionMove } from "../../utils/bulkWorkspaceActions";
 import { resolveBulkWorkspaceSectionMenuState } from "./bulkWorkspaceMoveActions";
 
 interface UseBulkWorkspaceMoveActionsOptions {
@@ -58,11 +57,11 @@ export function useBulkWorkspaceMoveActions({
 
 	const moveSelectionToSection = (sectionId: string) => {
 		if (!projectId) return;
-		for (const workspaceId of workspaceIdsForSectionMove(
-			selectedIds,
-			sectionIdByWorkspaceId,
-			sectionId,
-		)) {
+		// Each move prepends above the previous one, so walk the selection
+		// bottom-to-top to land it in the group in its original order. Rows
+		// already in the target group move too: leaving them on their old tab
+		// order drops the incoming rows on the wrong side of them.
+		for (const workspaceId of [...selectedIds].reverse()) {
 			moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		}
 		clearSelection();
@@ -71,7 +70,7 @@ export function useBulkWorkspaceMoveActions({
 	const createGroupFromSelection = () => {
 		if (!projectId) return;
 		const sectionId = createSection(projectId);
-		for (const workspaceId of selectedIds) {
+		for (const workspaceId of [...selectedIds].reverse()) {
 			moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		}
 		clearSelection();

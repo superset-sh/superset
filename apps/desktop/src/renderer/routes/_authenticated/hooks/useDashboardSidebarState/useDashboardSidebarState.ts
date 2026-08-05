@@ -398,7 +398,7 @@ export function useDashboardSidebarState() {
 			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 				draft.sidebarState.projectId = projectId;
 				draft.sidebarState.sectionId = sectionId;
-				draft.sidebarState.tabOrder = getNextTabOrder(siblingRows);
+				draft.sidebarState.tabOrder = getPrependTabOrder(siblingRows);
 				draft.sidebarState.isHidden = false;
 			});
 		},
