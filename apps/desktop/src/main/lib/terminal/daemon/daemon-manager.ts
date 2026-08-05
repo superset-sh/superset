@@ -3,6 +3,7 @@ import { workspaces } from "@superset/local-db";
 import { track } from "main/lib/analytics";
 import { appState } from "main/lib/app-state";
 import { localDb } from "main/lib/local-db";
+import { sanitizeColdRestoreScrollback } from "shared/terminal-input-modes";
 import { HistoryReader, truncateUtf8ToLastBytes } from "../../terminal-history";
 import {
 	disposeTerminalHostClient,
@@ -587,11 +588,22 @@ export class DaemonTerminalManager extends EventEmitter {
 			return null;
 		}
 
-		const rawScrollbackBytes = Buffer.byteLength(rawScrollback, "utf8");
+		// Replaying the raw log re-executes every escape sequence in it. Strip
+		// input-mode arming and terminal queries first, so a TUI that died
+		// without disarming cannot re-arm mouse/kitty/paste reporting in the
+		// renderer xterm, and its replayed queries cannot be answered into the
+		// fresh PTY as typed input (#5508).
+		//
+		// Sanitize before truncating so the byte cap bounds *visible* content:
+		// truncating first could keep a tail dominated by soon-to-be-stripped
+		// escape sequences, leaving far less on screen than the cap allows. The
+		// scan is linear and the raw log is disk-capped, so this stays cheap.
+		const sanitized = sanitizeColdRestoreScrollback(rawScrollback);
+		const sanitizedBytes = Buffer.byteLength(sanitized, "utf8");
 		const scrollback =
-			rawScrollbackBytes > MAX_SCROLLBACK_BYTES
-				? truncateUtf8ToLastBytes(rawScrollback, MAX_SCROLLBACK_BYTES)
-				: rawScrollback;
+			sanitizedBytes > MAX_SCROLLBACK_BYTES
+				? truncateUtf8ToLastBytes(sanitized, MAX_SCROLLBACK_BYTES)
+				: sanitized;
 		this.coldRestoreInfo.set(paneId, {
 			scrollback,
 			previousCwd: metadata.cwd,

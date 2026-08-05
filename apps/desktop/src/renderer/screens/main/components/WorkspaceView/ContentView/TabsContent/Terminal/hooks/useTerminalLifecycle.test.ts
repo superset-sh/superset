@@ -167,3 +167,110 @@ describe("scheduleReattachRecovery throttle — issue #1873", () => {
 		expect(calls).toBe(1);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Model of the restart/stream-queue interplay (#5519 S4).
+//
+// Mirrors the production pieces exactly:
+// - useTerminalStream.handleStreamData queues every event while
+//   isStreamReady is false, and useTerminalRestore.finalizeRestore later
+//   sets it true and flushes the queue in order.
+// - useTerminalLifecycle.restartTerminalSession sets isStreamReady=false,
+//   disarms the reused xterm (disarmStaleInputModes), clears it, and
+//   attaches a fresh session.
+//
+// The hazard: with forceRestart, the dying session's in-flight chunks and
+// exit event land in the queue between restart and flush. Unless the restart
+// drops them (as handleStartShell does), the flush replays a dead TUI's
+// re-arm AFTER the disarm and its exit event marks the brand-new session
+// exited.
+// ---------------------------------------------------------------------------
+
+const DISARM = "\x1b[disarm]"; // stands in for INPUT_MODE_DISARM_SEQUENCE
+const STALE_REARM = "\x1b[?1002h\x1b[?1006h";
+
+type StreamEvent =
+	| { type: "data"; data: string }
+	| { type: "exit"; exitCode: number };
+
+function makeRestartModel() {
+	const written: string[] = [];
+	let exited = false;
+	// The dying session's exit handler already ran (handleTerminalExit sets
+	// isStreamReadyRef=false), so late events queue instead of applying.
+	let isStreamReady = false;
+	let pendingEvents: StreamEvent[] = [];
+
+	// Mirrors useTerminalStream.handleStreamData
+	const handleStreamData = (event: StreamEvent) => {
+		if (!isStreamReady) {
+			pendingEvents.push(event);
+			return;
+		}
+		if (event.type === "data") written.push(event.data);
+		else exited = true;
+	};
+
+	// Mirrors useTerminalRestore.finalizeRestore + flushPendingEvents
+	const finalizeRestore = () => {
+		isStreamReady = true;
+		const events = pendingEvents;
+		pendingEvents = [];
+		for (const event of events) {
+			if (event.type === "data") written.push(event.data);
+			else exited = true;
+		}
+	};
+
+	// Mirrors restartTerminalSession's reset block
+	const restart = (options: { dropPendingEvents: boolean }) => {
+		exited = false;
+		isStreamReady = false;
+		if (options.dropPendingEvents) pendingEvents = [];
+		written.push(DISARM);
+	};
+
+	return {
+		handleStreamData,
+		finalizeRestore,
+		restart,
+		written,
+		isExited: () => exited,
+	};
+}
+
+describe("restartTerminalSession drops queued pre-restore events — #5519 S4", () => {
+	it("demonstrates the hazard: without the drop, stale events flush after the disarm", () => {
+		const model = makeRestartModel();
+
+		// The dying TUI's final chunks and exit event were queued while the
+		// stream was not ready, before the user triggered the restart.
+		model.handleStreamData({ type: "data", data: STALE_REARM });
+		model.handleStreamData({ type: "exit", exitCode: 137 });
+		model.restart({ dropPendingEvents: false });
+		model.finalizeRestore();
+
+		// The stale redraw re-armed the modes the disarm just cleared…
+		expect(model.written.indexOf(STALE_REARM)).toBeGreaterThan(
+			model.written.indexOf(DISARM),
+		);
+		// …and the stale exit marked the brand-new session exited.
+		expect(model.isExited()).toBe(true);
+	});
+
+	it("dropping queued events at restart keeps the fresh session clean", () => {
+		const model = makeRestartModel();
+
+		// Events queued before the restart began (dying TUI's chunks).
+		model.handleStreamData({ type: "data", data: STALE_REARM });
+		model.handleStreamData({ type: "exit", exitCode: 137 });
+
+		// restartTerminalSession clears pendingEventsRef, mirroring
+		// handleStartShell's guard.
+		model.restart({ dropPendingEvents: true });
+		model.finalizeRestore();
+
+		expect(model.written).toEqual([DISARM]);
+		expect(model.isExited()).toBe(false);
+	});
+});

@@ -26,8 +26,6 @@ export interface TerminalModes {
 	mouseTrackingX10: boolean;
 	/** Normal mouse tracking - button events (mode 1000) */
 	mouseTrackingNormal: boolean;
-	/** Highlight mouse tracking (mode 1001) */
-	mouseTrackingHighlight: boolean;
 	/** Button-event mouse tracking (mode 1002) */
 	mouseTrackingButtonEvent: boolean;
 	/** Any-event mouse tracking (mode 1003) */
@@ -46,6 +44,12 @@ export interface TerminalModes {
 	originMode: boolean;
 	/** Auto-wrap mode (mode 7) */
 	autoWrap: boolean;
+	/** Insert/replace mode (ANSI mode 4, IRM — CSI 4 h/l, not a DECSET) */
+	insertMode: boolean;
+	/** Reverse wraparound (mode 45) */
+	reverseWraparound: boolean;
+	/** Color-scheme update reports (mode 2031 — unsolicited CSI ?997;{1|2}n) */
+	colorSchemeReporting: boolean;
 }
 
 /**
@@ -56,7 +60,6 @@ export const DEFAULT_MODES: TerminalModes = {
 	bracketedPaste: false,
 	mouseTrackingX10: false,
 	mouseTrackingNormal: false,
-	mouseTrackingHighlight: false,
 	mouseTrackingButtonEvent: false,
 	mouseTrackingAnyEvent: false,
 	focusReporting: false,
@@ -66,6 +69,9 @@ export const DEFAULT_MODES: TerminalModes = {
 	cursorVisible: true,
 	originMode: false,
 	autoWrap: true,
+	insertMode: false,
+	reverseWraparound: false,
+	colorSchemeReporting: false,
 };
 
 // =============================================================================

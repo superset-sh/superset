@@ -2,7 +2,10 @@
  * Headless Terminal Emulator
  *
  * Wraps @xterm/headless with:
- * - Mode tracking (DECSET/DECRST parsing)
+ * - Mode tracking via parser handlers on the internal terminal
+ * - Foreground-reclaim of TUI-leaked input modes at shell prompts (#4949),
+ *   including an injected alt-screen exit when a dead fullscreen TUI leaks
+ *   the alternate buffer
  * - Snapshot generation via @xterm/addon-serialize
  * - Rehydration sequence generation for mode restoration
  */
@@ -11,6 +14,10 @@ import "../../terminal-host/xterm-env-polyfill";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal } from "@xterm/headless";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
+import {
+	FOREGROUND_RECLAIM_RESET_ANSI_PARAMS,
+	FOREGROUND_RECLAIM_RESET_PARAMS,
+} from "shared/terminal-input-modes";
 import {
 	DEFAULT_MODES,
 	type TerminalModes,
@@ -21,15 +28,49 @@ import {
 // Mode Tracking Constants
 // =============================================================================
 
-// Escape character
 const ESC = "\x1b";
-const BEL = "\x07";
 
-const DEBUG_EMULATOR_TIMING =
-	process.env.SUPERSET_TERMINAL_EMULATOR_DEBUG === "1";
+/**
+ * OSC 777;superset-shell-ready — the app-private half of the prompt marker
+ * pair the shell wrappers print before every prompt (see shell-wrappers.ts).
+ * Its arrival means the shell owns the foreground again, so input-reporting
+ * modes armed since the previous prompt were leaked by a TUI that died
+ * without disarming them (#4949).
+ *
+ * The FinalTerm OSC 133;A the wrappers co-emit is deliberately NOT a reclaim
+ * trigger:
+ * - Third-party shell integrations (iTerm2, fish's native integration) emit
+ *   133;A at prompts of shells we did not wrap — including shells running
+ *   *inside* a live tmux, whose forwarded markers must not clear tmux's own
+ *   mouse modes.
+ * - A tmux-passthrough wrapper (`ESC Ptmux; ESC ESC ]133;A BEL ESC \`)
+ *   genuinely dispatches OSC 133 in this xterm build — the doubled ESC exits
+ *   the DCS via the parser's anywhere-ESC rule — so even parser-level
+ *   detection cannot tell it from a real prompt.
+ * - The shell-ready scanner strips the *first* 133;A before it reaches this
+ *   emulator (session.ts), which would skew prompt-epoch tracking.
+ * Only Superset's own wrappers emit the 777 marker, and the scanner never
+ * strips it, so it is visible at every prompt including the first.
+ *
+ * Known residual: replaying a raw log that *contains* captured 777 markers
+ * (e.g. `cat` over an agent session log) re-dispatches them and can reclaim a
+ * concurrently armed TUI's modes. That is in-band indistinguishable from a
+ * real prompt by construction and is accepted (#5519 B2c).
+ */
+const RECLAIM_MARKER_OSC_IDENT = 777;
+const RECLAIM_MARKER_PAYLOAD = "superset-shell-ready";
 
 /**
  * DECSET/DECRST mode numbers we track
+ *
+ * 1001 (highlight mouse tracking) is deliberately absent: this xterm build
+ * implements no such mode — InputHandler has no 1001 case (set or reset),
+ * `modes.mouseTrackingMode` has no 'highlight' member, and SerializeAddon can
+ * never emit `?1001h` — so the internal terminal and the renderer both treat
+ * DECSET/DECRST 1001 as no-ops. Tracking it would make the shadow map diverge
+ * from them: `?1001h` would supersede a level (and its shell-owned grant)
+ * that physically stays armed, and `?1001l` would clear a protocol the
+ * terminal still has active.
  */
 const MODE_MAP: Record<number, keyof TerminalModes> = {
 	1: "applicationCursorKeys",
@@ -37,17 +78,68 @@ const MODE_MAP: Record<number, keyof TerminalModes> = {
 	7: "autoWrap",
 	9: "mouseTrackingX10",
 	25: "cursorVisible",
+	45: "reverseWraparound",
 	47: "alternateScreen", // Legacy alternate screen
 	1000: "mouseTrackingNormal",
-	1001: "mouseTrackingHighlight",
 	1002: "mouseTrackingButtonEvent",
 	1003: "mouseTrackingAnyEvent",
 	1004: "focusReporting",
 	1005: "mouseUtf8",
 	1006: "mouseSgr",
+	1047: "alternateScreen", // Alternate screen without cursor save/restore
 	1049: "alternateScreen", // Modern alternate screen with save/restore
 	2004: "bracketedPaste",
+	2031: "colorSchemeReporting",
 };
+
+/**
+ * ANSI (SM/RM, no `?` prefix) mode numbers we track
+ */
+const ANSI_MODE_MAP: Record<number, keyof TerminalModes> = {
+	4: "insertMode",
+};
+
+/** Shadow-map keys cleared by a foreground reclaim. */
+const RECLAIMABLE_MODE_NAMES: ReadonlySet<keyof TerminalModes> = new Set(
+	[
+		...[...FOREGROUND_RECLAIM_RESET_PARAMS].map((mode) => MODE_MAP[mode]),
+		...[...FOREGROUND_RECLAIM_RESET_ANSI_PARAMS].map(
+			(mode) => ANSI_MODE_MAP[mode],
+		),
+	].filter((name): name is keyof TerminalModes => name !== undefined),
+);
+
+/**
+ * Shadow-map keys whose shell-owned epoch is tracked. RECLAIMABLE_MODE_NAMES
+ * are cleared in the shadow at the marker; the alternate screen is instead
+ * exited by injection at the settled point (takeForegroundReclaimBufferExit),
+ * but shell ownership gates both the same way.
+ */
+const RECLAIM_OWNED_MODE_NAMES: ReadonlySet<keyof TerminalModes> = new Set([
+	...RECLAIMABLE_MODE_NAMES,
+	"alternateScreen",
+]);
+
+const MOUSE_PROTOCOL_MODE_NAMES = [
+	"mouseTrackingX10",
+	"mouseTrackingNormal",
+	"mouseTrackingButtonEvent",
+	"mouseTrackingAnyEvent",
+] as const satisfies readonly (keyof TerminalModes)[];
+
+const MOUSE_PROTOCOL_MODE_NAME_SET: ReadonlySet<keyof TerminalModes> = new Set(
+	MOUSE_PROTOCOL_MODE_NAMES,
+);
+
+/**
+ * The exact single-mode sequences SerializeAddon emits for state this
+ * emulator can reclaim (see reconcileSnapshotModes). Serialized cell content
+ * can never contain these byte strings — escape sequences are consumed by
+ * the parser, never stored in cells — so a global strip is precise.
+ */
+const SERIALIZED_MOUSE_PROTOCOL_SEQUENCES = [9, 1000, 1002, 1003].map(
+	(mode) => `${ESC}[?${mode}h`,
+);
 
 // =============================================================================
 // Headless Emulator Class
@@ -69,12 +161,30 @@ export class HeadlessEmulator {
 	// Pending output buffer for query responses
 	private pendingOutput: string[] = [];
 	private onDataCallback?: (data: string) => void;
+	private onForegroundReclaimCallback?: () => void;
 
-	// Buffer for partial escape sequences that span chunk boundaries
-	private escapeSequenceBuffer = "";
+	// Prompt-epoch tracking. Reclaimable modes armed before the first prompt
+	// marker were set up by shell init files (.zshrc printf and friends) — the
+	// shell owns them, and a reclaim must leave them alone until the owner
+	// releases them with an explicit DECRST.
+	private sawPromptMarker = false;
+	private shellOwnedModes = new Set<keyof TerminalModes>();
 
-	// Maximum buffer size to prevent unbounded growth (safety cap)
-	private static readonly MAX_ESCAPE_BUFFER_SIZE = 1024;
+	// Modes cleared by reclaims whose disarm still has to reach live-attached
+	// clients (see takeForegroundReclaimClientDisarm).
+	private pendingClientDisarmModes = new Set<keyof TerminalModes>();
+
+	// Alt-screen reclaim state. The buffer-switch family (47/1047/1049) is
+	// reclaimed by injecting the matching DECRST at the settled point instead
+	// of by clearing shadow flags: the alternate buffer is content, not
+	// metadata — the post-kill prompt is drawn into it, so a snapshot cannot
+	// be reconciled out of it at read time (see
+	// takeForegroundReclaimBufferExit). The arm param remembers which family
+	// variant armed the buffer, because only the matching low restores what
+	// its high saved (DECRST 1049 restores the cursor; 47/1047 must not, and
+	// `?1049l` is not a no-op while already in the normal buffer).
+	private altScreenArmParam: number | null = null;
+	private pendingBufferReclaimParam: number | null = null;
 
 	constructor(options: HeadlessEmulatorOptions = {}) {
 		const {
@@ -96,6 +206,40 @@ export class HeadlessEmulator {
 		// Initialize mode state
 		this.modes = { ...DEFAULT_MODES };
 
+		// Shadow-track modes with parser handlers on the internal terminal
+		// instead of a regex over raw chunks: handlers fire in exact stream
+		// order at real parse boundaries, are chunk-safe for split sequences,
+		// see C1-introduced (0x9b/0x9d) sequences the same way the terminal
+		// does, and never fire from DCS payload the parser is consuming.
+		// Returning false lets xterm's own handlers apply the modes too.
+		const parser = this.terminal.parser;
+		parser.registerCsiHandler({ prefix: "?", final: "h" }, (params) => {
+			this.applyTrackedModes(MODE_MAP, params, true);
+			return false;
+		});
+		parser.registerCsiHandler({ prefix: "?", final: "l" }, (params) => {
+			this.applyTrackedModes(MODE_MAP, params, false);
+			return false;
+		});
+		parser.registerCsiHandler({ final: "h" }, (params) => {
+			this.applyTrackedModes(ANSI_MODE_MAP, params, true);
+			return false;
+		});
+		parser.registerCsiHandler({ final: "l" }, (params) => {
+			this.applyTrackedModes(ANSI_MODE_MAP, params, false);
+			return false;
+		});
+		parser.registerOscHandler(RECLAIM_MARKER_OSC_IDENT, (data) => {
+			// Exact payload match: OSC 777 is also urxvt's notification channel
+			// (`777;notify;…`), which must not read as a prompt.
+			if (data === RECLAIM_MARKER_PAYLOAD) this.handlePromptMarker();
+			return false;
+		});
+		parser.registerOscHandler(7, (data) => {
+			this.applyOsc7(data);
+			return false;
+		});
+
 		// Listen for terminal output (query responses)
 		this.terminal.onData((data) => {
 			this.pendingOutput.push(data);
@@ -108,6 +252,17 @@ export class HeadlessEmulator {
 	 */
 	onData(callback: (data: string) => void): void {
 		this.onDataCallback = callback;
+	}
+
+	/**
+	 * Set callback fired when a prompt marker reclaims leaked state (shadow
+	 * modes cleared and/or a leaked alt screen recorded). Fires mid-parse;
+	 * consumers should settle their pipeline and then collect
+	 * takeForegroundReclaimClientDisarm() and
+	 * takeForegroundReclaimBufferExit().
+	 */
+	onForegroundReclaim(callback: () => void): void {
+		this.onForegroundReclaimCallback = callback;
 	}
 
 	/**
@@ -126,28 +281,7 @@ export class HeadlessEmulator {
 	 */
 	write(data: string): void {
 		if (this.disposed) return;
-
-		if (!DEBUG_EMULATOR_TIMING) {
-			// Parse escape sequences with chunk-safe buffering
-			this.parseEscapeSequences(data);
-			// Write to headless terminal (buffered/async)
-			this.terminal.write(data);
-			return;
-		}
-
-		const parseStart = performance.now();
-		this.parseEscapeSequences(data);
-		const parseTime = performance.now() - parseStart;
-
-		const terminalStart = performance.now();
 		this.terminal.write(data);
-		const terminalTime = performance.now() - terminalStart;
-
-		if (parseTime > 2 || terminalTime > 2) {
-			console.warn(
-				`[HeadlessEmulator] write(${data.length}b): parse=${parseTime.toFixed(1)}ms, terminal=${terminalTime.toFixed(1)}ms`,
-			);
-		}
 	}
 
 	/**
@@ -156,11 +290,6 @@ export class HeadlessEmulator {
 	 */
 	async writeSync(data: string): Promise<void> {
 		if (this.disposed) return;
-
-		// Parse escape sequences with chunk-safe buffering
-		this.parseEscapeSequences(data);
-
-		// Write to headless terminal and wait for completion
 		return new Promise<void>((resolve) => {
 			this.terminal.write(data, () => resolve());
 		});
@@ -229,10 +358,12 @@ export class HeadlessEmulator {
 	 * Note: Call flush() first if you have pending async writes.
 	 */
 	getSnapshot(): TerminalSnapshot {
-		const snapshotAnsi = this.serializeAddon.serialize({
-			scrollback:
-				this.terminal.options.scrollback ?? DEFAULT_TERMINAL_SCROLLBACK,
-		});
+		const snapshotAnsi = this.reconcileSnapshotModes(
+			this.serializeAddon.serialize({
+				scrollback:
+					this.terminal.options.scrollback ?? DEFAULT_TERMINAL_SCROLLBACK,
+			}),
+		);
 
 		const rehydrateSequences = this.generateRehydrateSequences();
 
@@ -322,6 +453,11 @@ export class HeadlessEmulator {
 		if (this.disposed) return;
 		this.terminal.reset();
 		this.modes = { ...DEFAULT_MODES };
+		this.sawPromptMarker = false;
+		this.shellOwnedModes.clear();
+		this.pendingClientDisarmModes.clear();
+		this.altScreenArmParam = null;
+		this.pendingBufferReclaimParam = null;
 	}
 
 	/**
@@ -333,178 +469,224 @@ export class HeadlessEmulator {
 		this.terminal.dispose();
 	}
 
+	/**
+	 * DECRSTs a live-attached renderer needs after a foreground reclaim: the
+	 * renderer received the leaked armings as raw stream data, so without this
+	 * a TUI SIGKILLed *while the pane is attached* keeps spewing mouse reports
+	 * into the fresh prompt (#4949). Consumes the pending set.
+	 *
+	 * Each group is re-checked against the current shadow state so a TUI that
+	 * armed modes after the marker (fg after ^Z, or a new TUI racing the
+	 * reclaim across chunks) is never disarmed — in xterm, resetting any mouse
+	 * level clears the whole protocol.
+	 */
+	takeForegroundReclaimClientDisarm(): string {
+		if (this.pendingClientDisarmModes.size === 0) return "";
+		const pending = this.pendingClientDisarmModes;
+		this.pendingClientDisarmModes = new Set();
+
+		let disarm = "";
+		const mousePending = MOUSE_PROTOCOL_MODE_NAMES.some((name) =>
+			pending.has(name),
+		);
+		if (mousePending && !this.isAnyMouseProtocolArmed()) {
+			disarm += `${ESC}[?1003l`;
+		}
+		if (pending.has("focusReporting") && !this.modes.focusReporting) {
+			disarm += `${ESC}[?1004l`;
+		}
+		if (
+			pending.has("colorSchemeReporting") &&
+			!this.modes.colorSchemeReporting
+		) {
+			disarm += `${ESC}[?2031l`;
+		}
+		if (pending.has("originMode") && !this.modes.originMode) {
+			disarm += `${ESC}[?6l`;
+		}
+		if (pending.has("reverseWraparound") && !this.modes.reverseWraparound) {
+			disarm += `${ESC}[?45l`;
+		}
+		if (pending.has("insertMode") && !this.modes.insertMode) {
+			disarm += `${ESC}[4l`;
+		}
+		return disarm;
+	}
+
+	/**
+	 * The alt-screen exit owed after a foreground reclaim: a fullscreen TUI
+	 * that died uncleanly leaves the buffer switched, the internal emulator
+	 * and every attached renderer stay in the alternate buffer, and at a
+	 * shell prompt that means wheel events turn into arrow keys (history
+	 * cycling) while the real scrollback is unreachable.
+	 *
+	 * Returns the matching DECRST (`?1049l` for a `?1049h` arm, etc.) and
+	 * writes it into the internal terminal, so the emulator's own buffer
+	 * state and the bytes broadcast to live clients cannot diverge. Consumes
+	 * the pending exit. Call only from a settled pipeline (like
+	 * takeForegroundReclaimClientDisarm): the write lands at a chunk boundary
+	 * there, which is what keeps the mid-sequence injection hazard out.
+	 *
+	 * Re-checked at the settled point: any explicit buffer switch since the
+	 * marker canceled the pending exit (a new TUI owns the buffer; a DECRST
+	 * means nothing is left to exit), so a still-armed shadow here is the
+	 * dead TUI's leak. The physical buffer is checked too because RIS resets
+	 * to the normal buffer without a DECRST the shadow would see — and
+	 * `?1049l` while already in the normal buffer is not a no-op (it performs
+	 * a cursor restore).
+	 */
+	takeForegroundReclaimBufferExit(): string {
+		const param = this.pendingBufferReclaimParam;
+		if (param === null) return "";
+		this.pendingBufferReclaimParam = null;
+		if (!this.modes.alternateScreen) return "";
+		if (this.terminal.buffer.active.type !== "alternate") return "";
+		const exit = `${ESC}[?${param}l`;
+		this.write(exit);
+		return exit;
+	}
+
 	// ===========================================================================
 	// Private Methods
 	// ===========================================================================
 
 	/**
-	 * Parse escape sequences with chunk-safe buffering.
-	 * PTY output can split sequences across chunks, so we buffer partial sequences.
-	 *
-	 * IMPORTANT: We only buffer sequences we actually track (DECSET/DECRST and OSC-7).
-	 * Other escape sequences (colors, cursor moves, etc.) are NOT buffered to prevent
-	 * memory leaks from unbounded buffer growth.
+	 * Apply a DECSET/DECRST or ANSI SM/RM to the shadow map, in stream order
+	 * (this runs from a parser handler at the sequence's dispatch point).
 	 */
-	private parseEscapeSequences(data: string): void {
-		// Prepend any buffered partial sequence from previous chunk
-		const fullData = this.escapeSequenceBuffer + data;
-		this.escapeSequenceBuffer = "";
-
-		// Parse complete sequences in the data
-		this.parseModeChanges(fullData);
-		this.parseOsc7(fullData);
-
-		// Check for incomplete sequences we care about at the end
-		// We only buffer DECSET/DECRST (ESC[?...) and OSC-7 (ESC]7;...)
-		const incompleteSequence = this.findIncompleteTrackedSequence(fullData);
-
-		if (incompleteSequence) {
-			// Cap buffer size to prevent unbounded growth
-			if (
-				incompleteSequence.length <= HeadlessEmulator.MAX_ESCAPE_BUFFER_SIZE
-			) {
-				this.escapeSequenceBuffer = incompleteSequence;
-			}
-			// If buffer too large, just discard it (likely malformed or attack)
-		}
-	}
-
-	/**
-	 * Find an incomplete DECSET/DECRST or OSC-7 sequence at the end of data.
-	 * Returns the incomplete sequence string, or null if none found.
-	 *
-	 * We ONLY buffer sequences we track:
-	 * - DECSET/DECRST: ESC[?...h or ESC[?...l
-	 * - OSC-7: ESC]7;...BEL or ESC]7;...ESC\
-	 *
-	 * Other CSI sequences (ESC[31m, ESC[H, etc.) are NOT buffered.
-	 */
-	private findIncompleteTrackedSequence(data: string): string | null {
-		const escEscaped = escapeRegex(ESC);
-
-		// Look for potential incomplete sequences from the end
-		const lastEscIndex = data.lastIndexOf(ESC);
-		if (lastEscIndex === -1) return null;
-
-		const afterLastEsc = data.slice(lastEscIndex);
-
-		// Check if this looks like a sequence we track
-
-		// Pattern: ESC[? - start of DECSET/DECRST
-		if (afterLastEsc.startsWith(`${ESC}[?`)) {
-			// Check if it's complete (ends with h or l after digits)
-			const completePattern = new RegExp(`${escEscaped}\\[\\?[0-9;]+[hl]`);
-			if (completePattern.test(afterLastEsc)) {
-				// Complete DECSET/DECRST - check if there's another incomplete after
-				const globalPattern = new RegExp(`${escEscaped}\\[\\?[0-9;]+[hl]`, "g");
-				const matches = afterLastEsc.match(globalPattern);
-				if (matches) {
-					const lastMatch = matches[matches.length - 1];
-					const lastMatchEnd =
-						afterLastEsc.lastIndexOf(lastMatch) + lastMatch.length;
-					const remainder = afterLastEsc.slice(lastMatchEnd);
-					if (remainder.includes(ESC)) {
-						return this.findIncompleteTrackedSequence(remainder);
-					}
+	private applyTrackedModes(
+		map: Record<number, keyof TerminalModes>,
+		params: (number | number[])[],
+		enable: boolean,
+	): void {
+		for (const param of params) {
+			// A param with colon sub-parameters arrives as an array; key on the
+			// primary value.
+			const primary = typeof param === "number" ? param : param[0];
+			const modeName = primary === undefined ? undefined : map[primary];
+			if (!modeName) continue;
+			// The mouse protocol is one mutually-exclusive unit in xterm:
+			// arming any level supersedes the previous one, and resetting any
+			// level clears the protocol entirely. Mirror that here, ownership
+			// included — a superseded shell-owned level is physically gone
+			// from the terminal, so its stale grant must not make the mouse
+			// group look armed and shield a dead TUI's protocol from reclaim.
+			if (MOUSE_PROTOCOL_MODE_NAME_SET.has(modeName)) {
+				for (const sibling of MOUSE_PROTOCOL_MODE_NAMES) {
+					if (enable && sibling === modeName) continue;
+					this.modes[sibling] = false;
+					this.shellOwnedModes.delete(sibling);
 				}
-				return null; // Complete
 			}
-			// Incomplete DECSET/DECRST - buffer it
-			return afterLastEsc;
-		}
-
-		// Pattern: ESC]7; - start of OSC-7
-		if (afterLastEsc.startsWith(`${ESC}]7;`)) {
-			// Check if it's complete (ends with BEL or ESC\)
-			if (afterLastEsc.includes(BEL) || afterLastEsc.includes(`${ESC}\\`)) {
-				return null; // Complete
+			if (modeName === "alternateScreen") {
+				// An explicit buffer switch — either direction — supersedes a
+				// pending reclaim exit: a DECSET means a live program owns the
+				// buffer again, a DECRST means there is nothing left to exit.
+				this.pendingBufferReclaimParam = null;
+				this.altScreenArmParam = enable ? (primary ?? null) : null;
 			}
-			// Incomplete OSC-7 - buffer it
-			return afterLastEsc;
-		}
-
-		// Check for partial starts of tracked sequences
-		// These could become tracked sequences with more data
-		if (afterLastEsc === ESC) return afterLastEsc; // Just ESC
-		if (afterLastEsc === `${ESC}[`) return afterLastEsc; // ESC[
-		if (afterLastEsc === `${ESC}]`) return afterLastEsc; // ESC]
-		if (afterLastEsc === `${ESC}]7`) return afterLastEsc; // ESC]7
-		const incompleteDecset = new RegExp(`^${escEscaped}\\[\\?[0-9;]*$`);
-		if (incompleteDecset.test(afterLastEsc)) return afterLastEsc; // ESC[?123
-
-		// Not a sequence we track (e.g., ESC[31m, ESC[H) - don't buffer
-		return null;
-	}
-
-	/**
-	 * Parse DECSET/DECRST sequences from terminal data
-	 */
-	private parseModeChanges(data: string): void {
-		// Match CSI ? Pm h (DECSET) and CSI ? Pm l (DECRST)
-		// Examples: ESC[?1h (enable app cursor), ESC[?2004l (disable bracketed paste)
-		// Also handles multiple modes: ESC[?1;2004h
-		// Using string-based regex to avoid control character linter errors
-		const modeRegex = new RegExp(
-			`${escapeRegex(ESC)}\\[\\?([0-9;]+)([hl])`,
-			"g",
-		);
-
-		for (const match of data.matchAll(modeRegex)) {
-			const modesStr = match[1];
-			const action = match[2]; // 'h' = set (enable), 'l' = reset (disable)
-			const enable = action === "h";
-
-			// Split on semicolons for multiple modes
-			const modeNumbers = modesStr
-				.split(";")
-				.map((s) => Number.parseInt(s, 10));
-
-			for (const modeNum of modeNumbers) {
-				const modeName = MODE_MAP[modeNum];
-				if (modeName) {
-					// For cursor visibility and auto-wrap, 'h' means true, 'l' means false
-					// But their defaults are different (cursorVisible=true, autoWrap=true)
-					this.modes[modeName] = enable;
-				}
+			this.modes[modeName] = enable;
+			if (!RECLAIM_OWNED_MODE_NAMES.has(modeName)) continue;
+			if (enable) {
+				// Armed before the first prompt marker → shell init owns it. A
+				// re-arm after a marker leaves an existing grant intact (the
+				// shell still wants the mode regardless of who re-armed it).
+				if (!this.sawPromptMarker) this.shellOwnedModes.add(modeName);
+			} else {
+				// The owner (or anyone) released it; the next arming decides
+				// ownership afresh.
+				this.shellOwnedModes.delete(modeName);
 			}
 		}
 	}
 
 	/**
-	 * Parse OSC-7 sequences for CWD tracking
-	 * Format: ESC]7;file://hostname/path BEL or ESC]7;file://hostname/path ESC\
+	 * The shell owns the foreground again: clear reclaimable modes that were
+	 * armed since the last prompt and never released — a TUI that exited
+	 * cleanly would have disarmed them itself. Shell-owned modes (armed during
+	 * shell init, before the first marker) survive.
 	 *
-	 * The path part starts after the hostname (after file://hostname).
-	 * Hostname can be empty, localhost, or a machine name.
+	 * Only the shadow map changes here, at the marker's dispatch point.
+	 * Nothing is written into the internal terminal mid-parse: injected bytes
+	 * can land inside an escape sequence split across PTY chunks (session.ts
+	 * hard-splits at 8192 chars), aborting the half-parsed sequence and baking
+	 * its tail into every future snapshot as junk text. Snapshots reconcile
+	 * input modes at read time instead (reconcileSnapshotModes), and live
+	 * clients get a settled, re-checked disarm
+	 * (takeForegroundReclaimClientDisarm).
+	 *
+	 * The alt-screen family is the one exception to read-time reconciliation:
+	 * the alternate buffer is content, not metadata (the shell draws the
+	 * post-kill prompt into it), so it cannot be stripped from a serialized
+	 * snapshot. A leaked buffer switch is recorded here and exited by
+	 * injecting the matching DECRST at the session's settled point
+	 * (takeForegroundReclaimBufferExit) — the one place bytes are written
+	 * into the internal terminal.
 	 */
-	private parseOsc7(data: string): void {
-		// OSC-7 format: \x1b]7;file://hostname/path\x07
-		// We need to extract the /path portion after the hostname
-		// Hostname ends at the first / after file://
+	private handlePromptMarker(): void {
+		this.sawPromptMarker = true;
+		let reclaimed = false;
+		for (const modeName of RECLAIMABLE_MODE_NAMES) {
+			if (!this.modes[modeName]) continue;
+			if (this.shellOwnedModes.has(modeName)) continue;
+			this.modes[modeName] = DEFAULT_MODES[modeName];
+			this.pendingClientDisarmModes.add(modeName);
+			reclaimed = true;
+		}
+		if (
+			this.modes.alternateScreen &&
+			!this.shellOwnedModes.has("alternateScreen")
+		) {
+			this.pendingBufferReclaimParam = this.altScreenArmParam ?? 1049;
+			reclaimed = true;
+		}
+		if (reclaimed) this.onForegroundReclaimCallback?.();
+	}
 
-		// Pattern explanation:
-		// - ESC ]7;file:// - the OSC-7 prefix
-		// - [^/]* - the hostname (anything that's not a slash)
-		// - (/.+?) - capture the path (starts with /, non-greedy)
-		// - (?:BEL|ESC\\) - terminated by BEL or ST
+	private isAnyMouseProtocolArmed(): boolean {
+		return MOUSE_PROTOCOL_MODE_NAMES.some((name) => this.modes[name]);
+	}
 
-		// Using string building to avoid control character linter issues
-		const escEscaped = escapeRegex(ESC);
-		const belEscaped = escapeRegex(BEL);
-
-		// Match OSC-7 with either terminator
-		const osc7Pattern = `${escEscaped}\\]7;file://[^/]*(/.+?)(?:${belEscaped}|${escEscaped}\\\\)`;
-		const osc7Regex = new RegExp(osc7Pattern, "g");
-
-		for (const match of data.matchAll(osc7Regex)) {
-			if (match[1]) {
-				try {
-					this.cwd = decodeURIComponent(match[1]);
-				} catch {
-					// If decoding fails, use the raw path
-					this.cwd = match[1];
-				}
+	/**
+	 * Drop the mode sequences SerializeAddon re-derived from the internal
+	 * terminal when the shadow map says a reclaim turned them off. The two
+	 * only disagree about reclaimed modes — both are fed by the same parse —
+	 * so this is the entire diff, and the snapshot stops re-arming a dead
+	 * TUI's modes on warm reattach without ever injecting bytes into the
+	 * terminal's input stream.
+	 */
+	private reconcileSnapshotModes(snapshotAnsi: string): string {
+		let result = snapshotAnsi;
+		const strip = (sequence: string) => {
+			if (result.includes(sequence)) {
+				result = result.split(sequence).join("");
 			}
+		};
+		if (!this.isAnyMouseProtocolArmed()) {
+			for (const sequence of SERIALIZED_MOUSE_PROTOCOL_SEQUENCES) {
+				strip(sequence);
+			}
+		}
+		if (!this.modes.focusReporting) strip(`${ESC}[?1004h`);
+		if (!this.modes.originMode) strip(`${ESC}[?6h`);
+		if (!this.modes.reverseWraparound) strip(`${ESC}[?45h`);
+		if (!this.modes.insertMode) strip(`${ESC}[4h`);
+		return result;
+	}
+
+	/**
+	 * Track CWD from OSC-7 payloads (`file://hostname/path`). The hostname may
+	 * be empty, localhost, or a machine name; the path starts at the first `/`
+	 * after it.
+	 */
+	private applyOsc7(data: string): void {
+		const match = /^file:\/\/[^/]*(\/.*)$/.exec(data);
+		if (!match?.[1]) return;
+		try {
+			this.cwd = decodeURIComponent(match[1]);
+		} catch {
+			// If decoding fails, use the raw path
+			this.cwd = match[1];
 		}
 	}
 
@@ -540,10 +722,12 @@ export class HeadlessEmulator {
 		// Cursor visibility (mode 25)
 		addModeSequence(25, this.modes.cursorVisible, true);
 
-		// Mouse tracking modes (mutually exclusive typically, but we track all)
+		// Reverse wraparound (mode 45)
+		addModeSequence(45, this.modes.reverseWraparound, false);
+
+		// Mouse tracking modes (one exclusive protocol — at most one is armed)
 		addModeSequence(9, this.modes.mouseTrackingX10, false);
 		addModeSequence(1000, this.modes.mouseTrackingNormal, false);
-		addModeSequence(1001, this.modes.mouseTrackingHighlight, false);
 		addModeSequence(1002, this.modes.mouseTrackingButtonEvent, false);
 		addModeSequence(1003, this.modes.mouseTrackingAnyEvent, false);
 
@@ -557,6 +741,14 @@ export class HeadlessEmulator {
 		// Bracketed paste (mode 2004)
 		addModeSequence(2004, this.modes.bracketedPaste, false);
 
+		// Color-scheme update reports (mode 2031)
+		addModeSequence(2031, this.modes.colorSchemeReporting, false);
+
+		// Insert mode is an ANSI mode (CSI 4 h), not a DECSET
+		if (this.modes.insertMode) {
+			sequences.push(`${ESC}[4h`);
+		}
+
 		// Note: We don't restore alternate screen mode (1049/47) here because
 		// the serialized snapshot already contains the correct screen buffer.
 		// Restoring it would cause incorrect behavior.
@@ -568,13 +760,6 @@ export class HeadlessEmulator {
 // =============================================================================
 // Utility Functions
 // =============================================================================
-
-/**
- * Escape special regex characters in a string
- */
-function escapeRegex(str: string): string {
-	return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
 
 /**
  * Apply a snapshot to a headless emulator (for testing round-trip)
@@ -599,7 +784,6 @@ export function modesEqual(a: TerminalModes, b: TerminalModes): boolean {
 		a.bracketedPaste === b.bracketedPaste &&
 		a.mouseTrackingX10 === b.mouseTrackingX10 &&
 		a.mouseTrackingNormal === b.mouseTrackingNormal &&
-		a.mouseTrackingHighlight === b.mouseTrackingHighlight &&
 		a.mouseTrackingButtonEvent === b.mouseTrackingButtonEvent &&
 		a.mouseTrackingAnyEvent === b.mouseTrackingAnyEvent &&
 		a.focusReporting === b.focusReporting &&
@@ -608,6 +792,9 @@ export function modesEqual(a: TerminalModes, b: TerminalModes): boolean {
 		a.alternateScreen === b.alternateScreen &&
 		a.cursorVisible === b.cursorVisible &&
 		a.originMode === b.originMode &&
-		a.autoWrap === b.autoWrap
+		a.autoWrap === b.autoWrap &&
+		a.insertMode === b.insertMode &&
+		a.reverseWraparound === b.reverseWraparound &&
+		a.colorSchemeReporting === b.colorSchemeReporting
 	);
 }

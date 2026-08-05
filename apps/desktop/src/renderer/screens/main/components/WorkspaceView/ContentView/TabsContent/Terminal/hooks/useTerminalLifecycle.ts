@@ -32,9 +32,10 @@ import type {
 	TerminalCancelCreateOrAttachMutate,
 	TerminalClearScrollbackMutate,
 	TerminalResizeMutate,
+	TerminalStreamEvent,
 	TerminalWriteMutate,
 } from "../types";
-import { scrollToBottom } from "../utils";
+import { disarmStaleInputModes, scrollToBottom } from "../utils";
 import * as v1TerminalCache from "../v1-terminal-cache";
 import { createAttachRequestId } from "./attach-request-id";
 import {
@@ -124,6 +125,7 @@ export interface UseTerminalLifecycleOptions {
 	isStreamReadyRef: MutableRefObject<boolean>;
 	didFirstRenderRef: MutableRefObject<boolean>;
 	pendingInitialStateRef: MutableRefObject<CreateOrAttachResult | null>;
+	pendingEventsRef: MutableRefObject<TerminalStreamEvent[]>;
 	maybeApplyInitialState: () => void;
 	flushPendingEvents: () => void;
 	resetModes: () => void;
@@ -185,6 +187,7 @@ export function useTerminalLifecycle({
 	isStreamReadyRef,
 	didFirstRenderRef,
 	pendingInitialStateRef,
+	pendingEventsRef,
 	maybeApplyInitialState,
 	flushPendingEvents,
 	resetModes,
@@ -361,8 +364,15 @@ export function useTerminalLifecycle({
 				isExitedRef.current = false;
 				isStreamReadyRef.current = false;
 				wasKilledByUserRef.current = false;
+				// Drop any queued events from the pre-restore session. With
+				// forceRestart, a dying TUI's in-flight chunks (queued while the
+				// stream is not ready) would otherwise flush after the disarm — a
+				// redraw re-arming the modes just cleared — and a stale exit event
+				// would mark the brand-new session exited.
+				pendingEventsRef.current = [];
 				setExitStatus(null);
 				resetModes();
+				disarmStaleInputModes(xterm);
 				xterm.clear();
 				const attach = () => {
 					const requestId = nextAttachRequestId();

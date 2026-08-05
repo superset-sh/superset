@@ -336,6 +336,7 @@ export const Terminal = memo(function Terminal({
 		isStreamReadyRef,
 		didFirstRenderRef,
 		pendingInitialStateRef,
+		pendingEventsRef,
 		maybeApplyInitialState,
 		flushPendingEvents,
 		resetModes,

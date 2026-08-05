@@ -82,6 +82,16 @@ const EMULATOR_WRITE_QUEUE_LOW_WATERMARK_BYTES = 250_000;
 const SHELL_READY_TIMEOUT_MS = 15_000;
 
 /**
+ * How long one settle pass may wait before a foreground-reclaim disarm is
+ * broadcast to attached clients, and how many passes to attempt. On
+ * exhaustion the broadcast is skipped — a disarm computed on stale state
+ * could clear a mouse protocol a new TUI just armed — and the pending disarm
+ * survives inside the emulator until the next prompt marker retries it.
+ */
+const RECLAIM_DISARM_FLUSH_TIMEOUT_MS = 5_000;
+const RECLAIM_DISARM_MAX_SETTLE_PASSES = 10;
+
+/**
  * Shell readiness lifecycle:
  * - `pending`     — shell is initializing; escape sequences dropped, other writes pass through
  * - `ready`       — marker detected; writes pass through
@@ -172,6 +182,7 @@ export class Session {
 	private emulatorWriteQueuedBytes = 0;
 	private emulatorWriteScheduled = false;
 	private emulatorFlushWaiters: Array<() => void> = [];
+	private reclaimBroadcastScheduled = false;
 
 	// Snapshot boundary tracking for concurrent attaches.
 	private emulatorWriteProcessedItems = 0;
@@ -235,6 +246,14 @@ export class Session {
 			if (this.subprocess && this.subprocessReady) {
 				this.sendWriteToSubprocess(data);
 			}
+		});
+
+		// When a prompt marker reclaims modes a dead TUI leaked, clients that
+		// are attached right now already received the arming as raw stream
+		// data — the snapshot path never runs for them — so the disarm must be
+		// delivered over the same stream (#4949).
+		this.emulator.onForegroundReclaim(() => {
+			this.scheduleReclaimDisarmBroadcast();
 		});
 	}
 
@@ -674,6 +693,62 @@ export class Session {
 		const waiters = this.emulatorFlushWaiters;
 		this.emulatorFlushWaiters = [];
 		for (const resolve of waiters) resolve();
+	}
+
+	private scheduleReclaimDisarmBroadcast(): void {
+		if (this.reclaimBroadcastScheduled || this.disposed) return;
+		this.reclaimBroadcastScheduled = true;
+		void this.broadcastReclaimDisarmWhenSettled();
+	}
+
+	/**
+	 * Deliver a foreground-reclaim disarm to attached clients (#4949).
+	 *
+	 * The reclaim fires mid-parse inside the emulator, while later PTY chunks
+	 * may already have been broadcast to clients but not yet shadow-parsed. A
+	 * disarm computed now could contradict data clients already received (a
+	 * new TUI re-arming the mouse), and in xterm resetting any mouse level
+	 * clears the whole protocol. So settle first: wait until everything
+	 * broadcast so far has been parsed by the emulator, then let the emulator
+	 * re-check its shadow state and drop any group that got re-armed. Clients
+	 * then receive the disarm strictly after the data that re-armed it, so the
+	 * final state is right in every interleaving.
+	 *
+	 * A leaked alt screen is collected at the same settled point. Its exit is
+	 * written into the internal emulator too (the buffer is content, so
+	 * snapshots cannot reconcile it away at read time), and the settled
+	 * boundary is what keeps that injected write out of a half-parsed escape
+	 * sequence. Collect and broadcast stay in one synchronous block so no PTY
+	 * data can interleave between the re-check and either consumer.
+	 */
+	private async broadcastReclaimDisarmWhenSettled(): Promise<void> {
+		try {
+			for (let pass = 0; pass < RECLAIM_DISARM_MAX_SETTLE_PASSES; pass++) {
+				const reachedBoundary = await this.flushToSnapshotBoundary(
+					RECLAIM_DISARM_FLUSH_TIMEOUT_MS,
+				);
+				if (!reachedBoundary || this.disposed) return;
+				const processedBefore = this.emulatorWriteProcessedItems;
+				await this.emulator.flush();
+				if (this.disposed) return;
+				const settled =
+					this.emulatorWriteQueue.length === 0 &&
+					this.emulatorWriteProcessedItems === processedBefore;
+				if (!settled) continue;
+				const disarm =
+					this.emulator.takeForegroundReclaimClientDisarm() +
+					this.emulator.takeForegroundReclaimBufferExit();
+				if (disarm) {
+					this.broadcastEvent("data", {
+						type: "data",
+						data: disarm,
+					} satisfies TerminalDataEvent);
+				}
+				return;
+			}
+		} finally {
+			this.reclaimBroadcastScheduled = false;
+		}
 	}
 
 	private resolveReachedSnapshotBoundaryWaiters(): void {
