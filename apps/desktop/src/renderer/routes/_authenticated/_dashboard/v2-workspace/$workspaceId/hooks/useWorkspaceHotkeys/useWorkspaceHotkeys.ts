@@ -143,6 +143,10 @@ export function useWorkspaceHotkeys({
 		}
 	});
 
+	useHotkey("REOPEN_TAB", () => {
+		store.getState().reopenClosedTab();
+	});
+
 	useHotkey("PREV_TAB", () => {
 		const state = store.getState();
 		if (!state.activeTabId || state.tabs.length === 0) return;
