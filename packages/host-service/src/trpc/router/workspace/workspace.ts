@@ -176,7 +176,14 @@ export const workspaceRouter = router({
 		}),
 
 	delete: protectedProcedure
-		.input(z.object({ id: z.string() }))
+		.input(
+			z.object({
+				id: z.string(),
+				// Opt-in: the branch outlives the workspace by default, so an
+				// existing caller that omits the flag keeps its exact behavior.
+				deleteBranch: z.boolean().default(false),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			// Legacy external surface used by CLI/SDK/MCP. Preserve its
 			// non-interactive contract while reusing the v2 cleanup path:
@@ -185,7 +192,7 @@ export const workspaceRouter = router({
 			// is nobody to prompt for a force-retry (#6174).
 			return destroyWorkspace(ctx, {
 				workspaceId: input.id,
-				deleteBranch: false,
+				deleteBranch: input.deleteBranch,
 				force: true,
 				teardownMode: "best-effort",
 			});

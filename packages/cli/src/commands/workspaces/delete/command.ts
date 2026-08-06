@@ -9,9 +9,13 @@ export default command({
 	options: {
 		host: string().desc("Host the workspaces live on"),
 		local: boolean().desc("Target this machine (the default)"),
+		deleteBranch: boolean().desc(
+			"Also delete each workspace's local branch (git branch -D; kept by default)",
+		),
 	},
 	run: async ({ ctx, args, options }) => {
 		const ids = args.ids as string[];
+		const deleteBranch = options.deleteBranch ?? false;
 		const organizationId = ctx.config.organizationId;
 		if (!organizationId) {
 			throw new CLIError("No active organization", "Run: superset auth login");
@@ -30,21 +34,31 @@ export default command({
 		});
 
 		const deleted: string[] = [];
+		const branchesDeleted: string[] = [];
 		const warnings: string[] = [];
 		for (const id of ids) {
-			const result = await target.client.workspace.delete.mutate({ id });
+			const result = await target.client.workspace.delete.mutate({
+				id,
+				deleteBranch,
+			});
 			deleted.push(id);
+			if (result.branchDeleted) branchesDeleted.push(id);
 			for (const warning of result.warnings ?? []) {
 				warnings.push(`${id}: ${warning}`);
 			}
 		}
 
-		const deleteMessage =
+		const deletedSummary =
 			deleted.length === 1
 				? `Deleted workspace ${deleted[0]}`
 				: `Deleted ${deleted.length} workspaces`;
+		// Only annotate branches when asked: without --delete-branch the count
+		// is always 0 and would read as a failure.
+		const deleteMessage = deleteBranch
+			? `${deletedSummary} (${branchesDeleted.length}/${deleted.length} branches deleted)`
+			: deletedSummary;
 		return {
-			data: { deleted, warnings },
+			data: { deleted, branchesDeleted, warnings },
 			message:
 				warnings.length > 0
 					? `${deleteMessage}\nWarnings:\n${warnings.map((warning) => `- ${warning}`).join("\n")}`
