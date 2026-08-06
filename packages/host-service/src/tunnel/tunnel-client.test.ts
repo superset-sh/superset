@@ -20,15 +20,11 @@ class FakeWebSocket {
 	}
 }
 
-// Stub global WebSocket with the fake.
-const originalWebSocket = globalThis.WebSocket;
-(globalThis as Record<string, unknown>).WebSocket = FakeWebSocket;
-
 const { TunnelClient } = await import("./tunnel-client");
 
-// Speed up the watchdog for tests: reach into the module via the constants
-// is not possible (not exported), so we drive the timer manually by
-// stubbing timers.
+// Tests exercise forceReconnect / socket identity directly rather than the
+// watchdog timer (which needs real 10s intervals); the module's other
+// constants are not exported, so timers are not driven here.
 function makeClient() {
 	const client = new TunnelClient({
 		relayUrl: "https://relay.example.com",
@@ -46,21 +42,20 @@ function makeClient() {
 		startWatchdog: () => void;
 		stopWatchdog: () => void;
 		forceReconnect: (s: FakeWebSocket, code: number, reason: string) => void;
-		watchdogTimer: ReturnType<typeof setInterval> | null;
-		dispose: () => void;
+		close: () => void;
 	};
 }
 
 describe("TunnelClient watchdog (#6229)", () => {
 	afterEach(() => {
-		(globalThis as Record<string, unknown>).WebSocket = originalWebSocket;
+		// nothing to restore — tests never touch globalThis.WebSocket
 	});
 
 	test("forceReconnect schedules a reconnect without waiting for onclose", () => {
 		const client = makeClient();
 		const sock = new FakeWebSocket();
 		// Simulate an established socket
-		(client as unknown as { socket: FakeWebSocket }).socket = sock;
+		client.socket = sock;
 		client.reconnectAttempts = 0;
 
 		// Patch scheduleReconnect to observe the call.
@@ -84,7 +79,7 @@ describe("TunnelClient watchdog (#6229)", () => {
 	test("forceReconnect ignores a stale socket that is no longer current", () => {
 		const client = makeClient();
 		const stale = new FakeWebSocket();
-		(client as unknown as { socket: FakeWebSocket }).socket = stale;
+		client.socket = stale;
 		let scheduled = 0;
 		(client as unknown as { scheduleReconnect: () => void }).scheduleReconnect =
 			() => {
@@ -93,7 +88,7 @@ describe("TunnelClient watchdog (#6229)", () => {
 
 		// A newer socket replaced the stale one before the watchdog fired.
 		const current = new FakeWebSocket();
-		(client as unknown as { socket: FakeWebSocket }).socket = current;
+		client.socket = current;
 		client.forceReconnect(stale, 4002, "Inbound silence timeout");
 
 		// Stale socket must not be torn down or scheduled.
@@ -105,15 +100,31 @@ describe("TunnelClient watchdog (#6229)", () => {
 	test("forceReconnect is a no-op after close()", () => {
 		const client = makeClient();
 		const sock = new FakeWebSocket();
-		(client as unknown as { socket: FakeWebSocket }).socket = sock;
+		client.socket = sock;
 		let scheduled = 0;
 		(client as unknown as { scheduleReconnect: () => void }).scheduleReconnect =
 			() => {
 				scheduled++;
 			};
-		(client as unknown as { closed: boolean }).closed = true;
+		client.close();
 
 		client.forceReconnect(sock, 4002, "Inbound silence timeout");
 		expect(scheduled).toBe(0);
+	});
+
+	test("late messages from an orphaned socket are ignored", () => {
+		const client = makeClient();
+		const stale = new FakeWebSocket();
+		client.socket = stale;
+		client.lastInboundAt = 1_000;
+
+		// Orphan the stale socket exactly as forceReconnect does.
+		client.forceReconnect(stale, 4002, "Inbound silence timeout");
+		expect(client.socket).toBeNull();
+
+		// A late inbound from the orphaned socket must not touch state.
+		const before = client.lastInboundAt;
+		stale.onmessage?.({ data: "late-frame" });
+		expect(client.lastInboundAt).toBe(before);
 	});
 });

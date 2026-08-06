@@ -105,6 +105,7 @@ export class TunnelClient {
 			this.lastInboundAt = Date.now();
 
 			socket.onopen = () => {
+				if (this.socket !== socket) return;
 				clearTimeout(deadline);
 				this.reconnectAttempts = 0;
 				this.connecting = false;
@@ -116,6 +117,7 @@ export class TunnelClient {
 			};
 
 			socket.onmessage = (event) => {
+				if (this.socket !== socket) return;
 				this.lastInboundAt = Date.now();
 				void this.handleMessage(event.data);
 			};
@@ -156,6 +158,7 @@ export class TunnelClient {
 			};
 
 			socket.onerror = (event) => {
+				if (this.socket !== socket) return;
 				console.error("[host-service:tunnel] socket error:", event);
 			};
 		} catch (error) {
