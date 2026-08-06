@@ -7,6 +7,37 @@ const BRANCH_NAME_INSTRUCTIONS =
 
 const MAX_BRANCH_LENGTH = 100;
 const GENERATE_TIMEOUT_MS = 5_000;
+// A real branch name is 2-4 words. An LLM that ignored the instruction and
+// answered conversationally ("I'd be happy to help you implement that task,
+// but I don't have access to…") produces far more — see #5288.
+const MAX_BRANCH_WORDS = 8;
+
+/** Words that carry no branch-naming signal (copied from the renderer's
+ * slugifier conventions). */
+const STOP_WORDS = new Set([
+	"a",
+	"an",
+	"the",
+	"this",
+	"that",
+	"with",
+	"for",
+	"from",
+	"and",
+	"or",
+	"but",
+	"in",
+	"on",
+	"of",
+	"to",
+	"please",
+	"can",
+	"could",
+	"would",
+	"should",
+	"implement",
+	"implementation",
+]);
 
 /**
  * Light sanitizer for AI-generated branch names — lowercase, kebab-case,
@@ -25,6 +56,39 @@ function sanitizeGeneratedBranchName(raw: string): string {
 		.replace(/\.lock$/g, "")
 		.slice(0, MAX_BRANCH_LENGTH)
 		.replace(/^[-.]+|[-.]+$/g, "");
+}
+
+function wordCount(name: string): number {
+	if (!name) return 0;
+	return name.split("-").filter(Boolean).length;
+}
+
+/**
+ * True when the generated string plausibly is a branch name rather than a
+ * conversational reply. The model is instructed to return ONLY a branch
+ * name, but prompts that include a URL (e.g. a Jira task link) reliably
+ * produce "I'd be happy to help you implement that task, but I don't have
+ * access to…" — a long sentence that sanitizes into a long kebab string
+ * with many segments. Treat anything beyond MAX_BRANCH_WORDS segments as
+ * a miss and fall back to a prompt-derived slug (#5288).
+ */
+export function isPlausibleBranchName(candidate: string): boolean {
+	return wordCount(candidate) <= MAX_BRANCH_WORDS;
+}
+
+/**
+ * Derive a branch name from the prompt itself, used when the model's reply
+ * is not a plausible branch name. Strips URLs, keeps the first few
+ * meaningful words, kebab-cases them.
+ */
+export function slugifyPrompt(prompt: string): string {
+	const withoutUrls = prompt.replace(/https?:\/\/\S+/g, " ");
+	const words = withoutUrls
+		.toLowerCase()
+		.replace(/[^a-z0-9\s]/g, " ")
+		.split(/\s+/)
+		.filter((w) => w.length > 0 && !STOP_WORDS.has(w));
+	return words.slice(0, 4).join("-").replace(/-+$/g, "") || "workspace";
 }
 
 export async function generateBranchNameFromPrompt(
@@ -60,5 +124,13 @@ export async function generateBranchNameFromPrompt(
 	if (!generated) return null;
 	const sanitized = sanitizeGeneratedBranchName(generated);
 	if (!sanitized) return null;
-	return deduplicateBranchName(sanitized, existingBranches);
+	// A conversational reply is not a branch name — fall back to a slug of
+	// the prompt so the workspace/branch gets a sensible, deterministic
+	// name (and the same prompt shape no longer yields the identical name
+	// for different URLs, which the deduplicator then can't separate).
+	const branchName = isPlausibleBranchName(sanitized)
+		? sanitized
+		: slugifyPrompt(prompt);
+	if (!branchName) return null;
+	return deduplicateBranchName(branchName, existingBranches);
 }
