@@ -16,14 +16,19 @@ function errorMessage(error: unknown): string {
 // cloud `v2_workspaces`. The legacy `chat_sessions.v2_workspace_id` FK then
 // rejects any insert for such a workspace. Mirrors the defensive retry in
 // `apps/api/src/app/api/chat/[sessionId]/route.ts`.
+//
+// Match ONLY the specific constraint (or a v2_workspace_id FK violation) so
+// unrelated errors — "column ... does not exist", generic "foreign key"
+// mentions, network failures — never trigger a silent retry that would hide
+// the real cause.
 function shouldRetryWithoutV2WorkspaceId(error: unknown): boolean {
 	const message = errorMessage(error).toLowerCase();
+	if (message.includes("chat_sessions_v2_workspace_id_v2_workspaces_id_fk")) {
+		return true;
+	}
 	return (
-		message.includes("v2_workspace_id") ||
-		message.includes("chat_sessions_v2_workspace_id_v2_workspaces_id_fk") ||
-		message.includes("foreign key") ||
-		message.includes("column") ||
-		message.includes("does not exist")
+		message.includes("v2_workspace_id") &&
+		message.includes("foreign key constraint")
 	);
 }
 
@@ -41,7 +46,6 @@ export interface ChatSessionCreateResult {
 // biome-ignore lint/suspicious/noExplicitAny: transaction type varies by client (Neon, PostgresJs, etc)
 type ChatSessionTx = PgTransaction<any, any, any>;
 
-// biome-ignore lint/suspicious/noExplicitAny: only the transaction callback shape is needed
 type ChatSessionDb = {
 	transaction: <T>(fn: (tx: ChatSessionTx) => Promise<T>) => Promise<T>;
 };

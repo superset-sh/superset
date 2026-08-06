@@ -13,76 +13,131 @@ const BASE_VALUES = {
 	v2WorkspaceId: "44444444-4444-4444-4444-444444444444",
 };
 
-function makeTx(behavior: { inserts: Array<Record<string, unknown> | Error> }) {
-	const returned = behavior.inserts.map((insert) =>
-		insert instanceof Error ? insert : [insert],
-	);
-	return {
-		insert: () => ({
-			values: (values: Record<string, unknown>) => ({
-				onConflictDoNothing: () => ({
-					returning: async () => {
-						const next = returned.shift();
-						if (next instanceof Error) throw next;
-						return next;
-					},
-				}),
+const RETRY_VALUES = {
+	id: BASE_VALUES.id,
+	organizationId: BASE_VALUES.organizationId,
+	createdBy: BASE_VALUES.createdBy,
+};
+
+type InsertOutcome = Record<string, unknown> | Error | undefined;
+
+/**
+ * Each `transaction()` call gets a FRESH transaction whose inserts are drawn
+ * from the shared outcome queue — so the test can assert that the retry runs
+ * in a new transaction (the original one is dead after Postgres aborts it)
+ * rather than reusing the aborted transaction.
+ */
+function makeDb(inserts: InsertOutcome[]) {
+	const outcomes = [...inserts];
+	const txCalls: number[] = [];
+	const capturedValues: Array<Record<string, unknown>> = [];
+	let txCount = 0;
+
+	const makeTx = () => {
+		const txId = txCount++;
+		return {
+			insert: () => ({
+				values: (values: Record<string, unknown>) => {
+					capturedValues.push({ ...values });
+					return {
+						onConflictDoNothing: () => ({
+							returning: async () => {
+								const next = outcomes.shift();
+								// A failed insert aborts the transaction — any
+								// further insert on the SAME tx must fail too.
+								if (next instanceof Error) {
+									throw new Error(`${next.message} (tx ${txId} aborted)`);
+								}
+								return next === undefined ? [] : [next];
+							},
+						}),
+					};
+				},
 			}),
-		}),
+		};
+	};
+
+	return {
+		db: {
+			transaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> => {
+				txCalls.push(txCount);
+				return fn(makeTx());
+			},
+		},
+		txCalls,
+		capturedValues,
 	};
 }
 
-function makeDb(behavior: { inserts: Array<Record<string, unknown> | Error> }) {
-	const tx = makeTx(behavior);
-	return {
-		transaction: async <T>(fn: (tx: unknown) => Promise<T>): Promise<T> =>
-			fn(tx),
-	};
-}
+const FK_ERROR = new Error(
+	'insert or update on table "chat_sessions" violates foreign key constraint "chat_sessions_v2_workspace_id_v2_workspaces_id_fk"',
+);
 
 describe("createChatSession", () => {
 	test("inserts with v2WorkspaceId on success", async () => {
-		const db = makeDb({ inserts: [BASE_VALUES] });
+		const { db, txCalls, capturedValues } = makeDb([BASE_VALUES]);
 		const result = await createChatSession(db as never, BASE_VALUES);
 		expect(result).toEqual({ txid: 42 });
+		// one transaction, one insert, values passed through untouched
+		expect(txCalls).toEqual([0]);
+		expect(capturedValues).toEqual([BASE_VALUES]);
 	});
 
 	test("retries without v2WorkspaceId on FK violation", async () => {
-		const fkError = new Error(
-			'insert or update on table "chat_sessions" violates foreign key constraint "chat_sessions_v2_workspace_id_v2_workspaces_id_fk"',
-		);
-		const retryValues = {
-			id: BASE_VALUES.id,
-			organizationId: BASE_VALUES.organizationId,
-			createdBy: BASE_VALUES.createdBy,
-		};
-		const db = makeDb({ inserts: [fkError, retryValues] });
+		const { db, txCalls, capturedValues } = makeDb([FK_ERROR, RETRY_VALUES]);
 		const result = await createChatSession(db as never, BASE_VALUES);
 		expect(result).toEqual({ txid: 42 });
+		// retry runs in a SECOND transaction (the first aborted)
+		expect(txCalls).toEqual([0, 1]);
+		expect(capturedValues).toEqual([BASE_VALUES, RETRY_VALUES]);
 	});
 
-	test("retries without v2WorkspaceId on generic foreign key error", async () => {
-		const fkError = new Error('violates foreign key constraint "some_fk"');
-		const retryValues = {
-			id: BASE_VALUES.id,
-			organizationId: BASE_VALUES.organizationId,
-			createdBy: BASE_VALUES.createdBy,
-		};
-		const db = makeDb({ inserts: [fkError, retryValues] });
+	test("retries without v2WorkspaceId on generic v2_workspace_id FK error", async () => {
+		const fkError = new Error(
+			'violates foreign key constraint "v2_workspace_id_fkey"',
+		);
+		const { db, txCalls, capturedValues } = makeDb([fkError, RETRY_VALUES]);
 		const result = await createChatSession(db as never, BASE_VALUES);
 		expect(result).toEqual({ txid: 42 });
+		expect(txCalls).toEqual([0, 1]);
+		expect(capturedValues).toEqual([BASE_VALUES, RETRY_VALUES]);
+	});
+
+	test("does NOT retry on unrelated FK errors", async () => {
+		// A different FK constraint (not v2_workspace_id) must propagate.
+		const otherFk = new Error(
+			'violates foreign key constraint "chat_sessions_organization_id_fkey"',
+		);
+		const { db, txCalls, capturedValues } = makeDb([otherFk]);
+		await expect(createChatSession(db as never, BASE_VALUES)).rejects.toThrow(
+			"chat_sessions_organization_id_fkey",
+		);
+		expect(txCalls).toEqual([0]);
+		expect(capturedValues).toEqual([BASE_VALUES]);
+	});
+
+	test("does NOT retry on unrelated column errors", async () => {
+		// Generic errors mentioning "column" / "does not exist" must NOT
+		// trigger the v2_workspace_id retry path.
+		const colError = new Error('column "v2_workspace_id" does not exist');
+		const { db, txCalls } = makeDb([colError]);
+		await expect(createChatSession(db as never, BASE_VALUES)).rejects.toThrow(
+			"does not exist",
+		);
+		expect(txCalls).toEqual([0]);
 	});
 
 	test("propagates non-FK errors", async () => {
 		const otherError = new Error("connection refused");
-		const db = makeDb({ inserts: [otherError] });
+		const { db, txCalls } = makeDb([otherError]);
 		await expect(createChatSession(db as never, BASE_VALUES)).rejects.toThrow(
 			"connection refused",
 		);
+		expect(txCalls).toEqual([0]);
 	});
 
 	test("returns txid null when insert conflicts (onConflictDoNothing)", async () => {
-		const db = makeDb({ inserts: [undefined] });
+		const { db } = makeDb([undefined]);
 		const result = await createChatSession(db as never, BASE_VALUES);
 		expect(result).toEqual({ txid: null });
 	});
@@ -92,15 +147,7 @@ describe("createChatSession", () => {
 		const originalWarn = console.warn;
 		console.warn = warnMock as never;
 		try {
-			const fkError = new Error(
-				'violates foreign key constraint "chat_sessions_v2_workspace_id_v2_workspaces_id_fk"',
-			);
-			const retryValues = {
-				id: BASE_VALUES.id,
-				organizationId: BASE_VALUES.organizationId,
-				createdBy: BASE_VALUES.createdBy,
-			};
-			const db = makeDb({ inserts: [fkError, retryValues] });
+			const { db } = makeDb([FK_ERROR, RETRY_VALUES]);
 			const result = await createChatSession(db as never, BASE_VALUES);
 			expect(result).toEqual({ txid: 42 });
 			expect(warnMock).toHaveBeenCalledTimes(1);
