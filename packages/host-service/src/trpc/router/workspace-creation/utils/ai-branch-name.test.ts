@@ -43,6 +43,11 @@ describe("slugifyPrompt", () => {
 	test("falls back to a default when nothing remains", () => {
 		expect(slugifyPrompt("https://example.com")).toBe("workspace");
 	});
+
+	test("applies the branch-length limit to fallback slugs", () => {
+		const long = `implement ${"a".repeat(200)} ${"b".repeat(200)} ${"c".repeat(200)} ${"d".repeat(200)}`;
+		expect(slugifyPrompt(long).length).toBeLessThanOrEqual(100);
+	});
 });
 
 describe("generateBranchNameFromPrompt", () => {
@@ -81,5 +86,12 @@ describe("generateBranchNameFromPrompt", () => {
 				["jira-task"],
 			),
 		).toBe("jira-task-2");
+	});
+
+	test("falls back to a prompt slug when the reply does not sanitize", async () => {
+		generateTitleMock.mockImplementation(async () => "...");
+		expect(await generateBranchNameFromPrompt("Fix the login flow", [])).toBe(
+			"fix-login-flow",
+		);
 	});
 });

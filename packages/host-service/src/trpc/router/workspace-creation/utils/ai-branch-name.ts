@@ -88,7 +88,10 @@ export function slugifyPrompt(prompt: string): string {
 		.replace(/[^a-z0-9\s]/g, " ")
 		.split(/\s+/)
 		.filter((w) => w.length > 0 && !STOP_WORDS.has(w));
-	return words.slice(0, 4).join("-").replace(/-+$/g, "") || "workspace";
+	// Run the result through the same sanitizer as generated names so the
+	// 100-char branch limit applies to fallback slugs too (#6238).
+	const slug = sanitizeGeneratedBranchName(words.slice(0, 4).join("-"));
+	return slug || "workspace";
 }
 
 export async function generateBranchNameFromPrompt(
@@ -123,14 +126,15 @@ export async function generateBranchNameFromPrompt(
 
 	if (!generated) return null;
 	const sanitized = sanitizeGeneratedBranchName(generated);
-	if (!sanitized) return null;
-	// A conversational reply is not a branch name — fall back to a slug of
-	// the prompt so the workspace/branch gets a sensible, deterministic
-	// name (and the same prompt shape no longer yields the identical name
-	// for different URLs, which the deduplicator then can't separate).
-	const branchName = isPlausibleBranchName(sanitized)
-		? sanitized
-		: slugifyPrompt(prompt);
+	// A conversational reply or un-sanitizable output ("...", emoji-only)
+	// is not a branch name — fall back to a slug of the prompt so the
+	// workspace/branch gets a sensible, deterministic name (and the same
+	// prompt shape no longer yields the identical name for different URLs,
+	// which the deduplicator then can't separate).
+	const branchName =
+		!sanitized || !isPlausibleBranchName(sanitized)
+			? slugifyPrompt(prompt)
+			: sanitized;
 	if (!branchName) return null;
 	return deduplicateBranchName(branchName, existingBranches);
 }
