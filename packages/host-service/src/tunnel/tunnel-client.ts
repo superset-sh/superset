@@ -381,13 +381,44 @@ export class TunnelClient {
 				console.warn(
 					`[host-service:tunnel] no inbound traffic for ${silentFor}ms, forcing reconnect`,
 				);
-				try {
-					this.socket.close(4002, "Inbound silence timeout");
-				} catch {
-					// already closed
-				}
+				this.forceReconnect(this.socket, 4002, "Inbound silence timeout");
 			}
 		}, WATCHDOG_INTERVAL_MS);
+	}
+
+	/**
+	 * Tear down a stale socket and schedule a reconnect WITHOUT waiting for
+	 * the WebSocket `close` event. `socket.close()` performs a graceful
+	 * closing handshake whose completion fires `onclose`; on a blackholed
+	 * TCP path (packets dropped, not reset — a stuck ESTAB with a growing
+	 * send queue) the close frame is never flushed, the handshake never
+	 * completes, and `onclose` never fires. Every reconnect was previously
+	 * scheduled only from `onclose`, so the client parked in CLOSING
+	 * forever while the process stayed alive but unreachable (#6229).
+	 *
+	 * The connect-timeout path already used this pattern (close + null +
+	 * scheduleReconnect); the watchdog now does too. Setting `this.socket =
+	 * null` BEFORE the late `onclose` arrives makes the identity guard at the
+	 * top of the handler (`if (this.socket !== socket) return`) ignore the
+	 * stale socket's eventual close, so we never double-schedule.
+	 */
+	private forceReconnect(
+		socket: WebSocket,
+		code: number,
+		reason: string,
+	): void {
+		if (this.closed) return;
+		if (this.socket !== socket) return;
+		try {
+			socket.close(code, reason);
+		} catch {
+			// already closed
+		}
+		this.socket = null;
+		this.connecting = false;
+		this.stopWatchdog();
+		this.cleanupChannels();
+		this.scheduleReconnect();
 	}
 
 	private stopWatchdog(): void {
