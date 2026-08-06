@@ -147,5 +147,10 @@ describe("TunnelClient watchdog (#6229)", () => {
 		expect(client.lastInboundAt).toBe(before);
 		// reconnect was scheduled exactly once by forceReconnect.
 		expect(scheduled).toBe(1);
+
+		// close() marks the client closed so connect()'s 20s deadline (still
+		// pending on the fake socket, which never opened) becomes a no-op
+		// instead of firing after the test.
+		client.close();
 	});
 });
