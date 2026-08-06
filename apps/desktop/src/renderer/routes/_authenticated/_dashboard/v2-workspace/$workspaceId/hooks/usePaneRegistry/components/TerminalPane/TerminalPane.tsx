@@ -35,6 +35,7 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import { isWebUri } from "shared/external-uri-scheme";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
@@ -295,10 +296,14 @@ export function TerminalPane({
 						return;
 					}
 					event.preventDefault();
-					if (action === "external") {
-						electronTrpcClient.external.openUrl.mutate(url).catch((error) => {
-							console.error("[v2 Terminal] Failed to open URL:", url, error);
-						});
+					// A browser pane can only render http(s); custom app schemes
+					// (cursor:, vscode:, …) always hand off to the OS (#5972).
+					if (action === "external" || !isWebUri(url)) {
+						electronTrpcClient.external.openExternalUri
+							.mutate(url)
+							.catch((error) => {
+								console.error("[v2 Terminal] Failed to open URL:", url, error);
+							});
 					} else {
 						openUrlInV2Workspace({
 							store: ctx.store,

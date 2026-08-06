@@ -8,6 +8,10 @@
  *--------------------------------------------------------------------------------------------*/
 
 import type { ILinkHandler, Terminal as XTerm } from "@xterm/xterm";
+import {
+	classifyExternalUri,
+	externalUriSchemeLabel,
+} from "shared/external-uri-scheme";
 import { UrlLinkProvider } from "../../screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/link-providers";
 import type { DetectedLink } from "./links";
 import {
@@ -149,9 +153,23 @@ export class TerminalLinkManager {
 			// xterm always registers its own OSC 8 hyperlink provider first. Without
 			// this, OSC 8 links use xterm's default confirm() + window.open() path,
 			// which is blocked in Electron and also bypasses our link preferences.
+			//
+			// allowNonHttpProtocols keeps xterm from dropping OSC 8 links with a
+			// custom scheme (cursor:, vscode:, …) before they ever reach a link
+			// provider — without it the text still renders underlined but the click
+			// is silently swallowed (#5972). xterm's own http(s) gate is the only
+			// scheme check it does, so opting out means we own that check: reject
+			// script-executing/local-file schemes here rather than forwarding them.
 			this._oscLinkHandler = {
-				allowNonHttpProtocols: false,
+				allowNonHttpProtocols: true,
 				activate: (event, uri) => {
+					if (classifyExternalUri(uri) === "block") {
+						console.warn(
+							"[Terminal] Blocked OSC 8 link with unsafe scheme:",
+							externalUriSchemeLabel(uri),
+						);
+						return;
+					}
 					onUrlClick(event, uri);
 				},
 				hover: onLinkHover

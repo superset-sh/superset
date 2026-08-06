@@ -24,6 +24,7 @@ import {
 import { TerminalLinkManager } from "renderer/lib/terminal/terminal-link-manager";
 import { electronTrpcClient as trpcClient } from "renderer/lib/trpc-client";
 import { toXtermTheme } from "renderer/stores/theme/utils";
+import { isWebUri } from "shared/external-uri-scheme";
 import {
 	builtInThemes,
 	DEFAULT_THEME_ID,
@@ -204,11 +205,13 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			if (!event.metaKey && !event.ctrlKey) return;
 			event.preventDefault();
 			const handler = urlClickRef?.current;
-			if (handler) {
+			// The in-app browser pane can only render http(s); custom app schemes
+			// (cursor:, vscode:, …) always hand off to the OS instead (#5972).
+			if (handler && isWebUri(uri)) {
 				handler(uri);
 				return;
 			}
-			trpcClient.external.openUrl.mutate(uri).catch((error) => {
+			trpcClient.external.openExternalUri.mutate(uri).catch((error) => {
 				console.error("[Terminal] Failed to open URL:", uri, error);
 				toast.error("Failed to open URL", {
 					description:

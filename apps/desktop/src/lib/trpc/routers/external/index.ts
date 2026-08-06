@@ -8,9 +8,10 @@ import {
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { app, clipboard, shell } from "electron";
+import { app, clipboard, dialog, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { externalUrlLogLabel, isSafeExternalUrl } from "main/lib/safe-url";
+import { classifyExternalUri } from "shared/external-uri-scheme";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getWorkspace } from "../workspaces/utils/db-helpers";
@@ -139,6 +140,57 @@ export const createExternalRouter = () => {
 				});
 			}
 		}),
+
+		/**
+		 * Opens a URI the user explicitly activated in app content (terminal
+		 * OSC 8 hyperlink, detected URL). Unlike `openUrl` this accepts custom
+		 * app schemes such as `cursor://` — but because the link text is
+		 * arbitrary and terminal output is untrusted, anything outside the
+		 * http(s)/mailto allowlist is confirmed with the user first, showing the
+		 * real URI. Script-executing and local-file schemes are refused.
+		 */
+		openExternalUri: publicProcedure
+			.input(z.string())
+			.mutation(async ({ input }) => {
+				const decision = classifyExternalUri(input);
+				if (decision === "block") {
+					console.warn(
+						"[external/openExternalUri] Blocked unsafe URI scheme:",
+						externalUrlLogLabel(input),
+					);
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message: "URL scheme not allowed",
+					});
+				}
+
+				if (decision === "confirm") {
+					const { response } = await dialog.showMessageBox({
+						type: "question",
+						buttons: ["Open", "Cancel"],
+						defaultId: 0,
+						cancelId: 1,
+						message: "Open this link in an external application?",
+						detail: input,
+					});
+					if (response !== 0) return { opened: false };
+				}
+
+				try {
+					await shell.openExternal(input);
+				} catch (error) {
+					console.error(
+						"[external/openExternalUri] Failed to open URI:",
+						externalUrlLogLabel(input),
+						error,
+					);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: error instanceof Error ? error.message : "Unknown error",
+					});
+				}
+				return { opened: true };
+			}),
 
 		openInFinder: publicProcedure
 			.input(z.string())

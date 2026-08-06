@@ -1,6 +1,27 @@
 import { describe, expect, it, mock } from "bun:test";
-import type { ILinkProvider, Terminal as XTerm } from "@xterm/xterm";
+import type {
+	ILinkHandler,
+	ILinkProvider,
+	Terminal as XTerm,
+} from "@xterm/xterm";
 import { TerminalLinkManager } from "./terminal-link-manager";
+
+/**
+ * Mirrors the gate in xterm's OscLinkProvider.provideLinks:
+ * https://github.com/xtermjs/xterm.js/blob/master/src/browser/OscLinkProvider.ts
+ *
+ * When the terminal's `linkHandler` does not set `allowNonHttpProtocols`,
+ * xterm drops the OSC 8 link entirely instead of building an activatable
+ * ILink — so a click on the (still underlined) text is a silent no-op.
+ */
+function oscLinkIsDropped(uri: string, linkHandler: ILinkHandler | null) {
+	if (linkHandler?.allowNonHttpProtocols) return false;
+	try {
+		return !["http:", "https:"].includes(new URL(uri).protocol);
+	} catch {
+		return true;
+	}
+}
 
 function createMockTerminal() {
 	const registeredProviders: ILinkProvider[] = [];
@@ -45,7 +66,7 @@ describe("TerminalLinkManager", () => {
 
 		const linkHandler = terminal.options.linkHandler;
 		expect(linkHandler).toBeTruthy();
-		expect(linkHandler?.allowNonHttpProtocols).toBe(false);
+		expect(linkHandler?.allowNonHttpProtocols).toBe(true);
 
 		const event = {} as MouseEvent;
 		linkHandler?.activate(event, "https://example.com", {
@@ -64,6 +85,51 @@ describe("TerminalLinkManager", () => {
 		expect(onUrlClick).toHaveBeenCalledWith(event, "https://example.com");
 		expect(onLinkHover).toHaveBeenCalledWith(event, { kind: "url" });
 		expect(onLinkLeave).toHaveBeenCalled();
+	});
+
+	it("keeps OSC 8 links with a custom scheme clickable", () => {
+		const { terminal } = createMockTerminal();
+		const manager = new TerminalLinkManager(terminal);
+		const onUrlClick = mock();
+
+		manager.setHandlers({ stat: async () => null, onUrlClick });
+
+		const linkHandler = terminal.options.linkHandler ?? null;
+		const uri = "cursor:///Users/me/project";
+
+		// The regression: xterm never hands the link to us at all.
+		expect(oscLinkIsDropped(uri, linkHandler)).toBe(false);
+
+		const event = {} as MouseEvent;
+		linkHandler?.activate(event, uri, {
+			start: { x: 1, y: 1 },
+			end: { x: 20, y: 1 },
+		});
+		expect(onUrlClick).toHaveBeenCalledWith(event, uri);
+	});
+
+	it("still drops OSC 8 links that use script-executing schemes", () => {
+		const { terminal } = createMockTerminal();
+		const manager = new TerminalLinkManager(terminal);
+		const onUrlClick = mock();
+
+		manager.setHandlers({ stat: async () => null, onUrlClick });
+
+		const linkHandler = terminal.options.linkHandler;
+		const event = {} as MouseEvent;
+		const range = { start: { x: 1, y: 1 }, end: { x: 20, y: 1 } };
+
+		for (const uri of [
+			"javascript:alert(1)",
+			"data:text/html,<script>alert(1)</script>",
+			"vbscript:msgbox(1)",
+			"file:///etc/passwd",
+			"not a url",
+		]) {
+			linkHandler?.activate(event, uri, range);
+		}
+
+		expect(onUrlClick).not.toHaveBeenCalled();
 	});
 
 	it("clears only the OSC link handler it installed", () => {

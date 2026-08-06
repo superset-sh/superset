@@ -1,7 +1,14 @@
+import { externalUriSchemeLabel } from "shared/external-uri-scheme";
+
 /**
- * Schemes safe to hand to Electron's `shell.openExternal`.
- * Anything else (file:, javascript:, custom handlers, etc.) can execute
- * binaries or scripts via the OS URL handler registry.
+ * Schemes safe to hand to Electron's `shell.openExternal` with no further
+ * confirmation. Anything else (file:, javascript:, custom handlers, etc.) can
+ * execute binaries or scripts via the OS URL handler registry.
+ *
+ * This is the gate for programmatic opens (OAuth flows, port forwarding,
+ * window.open from an embedded browser). URIs the user explicitly activates
+ * from app content go through `classifyExternalUri` +
+ * `external.openExternalUri`, which can prompt for custom app schemes.
  */
 const ALLOWED_SCHEMES = new Set(["http:", "https:", "mailto:"]);
 
@@ -14,11 +21,4 @@ export function isSafeExternalUrl(url: string): boolean {
 	}
 }
 
-export function externalUrlLogLabel(url: string): string {
-	if (typeof url !== "string" || url.length === 0) return "empty";
-	try {
-		return new URL(url).protocol || "unknown:";
-	} catch {
-		return "malformed";
-	}
-}
+export const externalUrlLogLabel = externalUriSchemeLabel;
