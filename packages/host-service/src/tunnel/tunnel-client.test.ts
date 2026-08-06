@@ -3,10 +3,11 @@ import { afterEach, describe, expect, test } from "bun:test";
 // Minimal fake WebSocket implementing only what TunnelClient touches.
 class FakeWebSocket {
 	static OPEN = 1;
+	static CONNECTING = 0;
 	static CLOSING = 2;
 	static CLOSED = 3;
 
-	readyState = FakeWebSocket.OPEN;
+	readyState = FakeWebSocket.CONNECTING;
 	onopen: (() => void) | null = null;
 	onmessage: ((event: { data: unknown }) => void) | null = null;
 	onclose: ((event: { code?: number; reason?: string }) => void) | null = null;
@@ -19,6 +20,13 @@ class FakeWebSocket {
 		// onclose is NEVER called — the exact #6229 failure.
 	}
 }
+
+// Registered BEFORE the module import: TunnelClient resolves `WebSocket`
+// at module-evaluation time, so the fake must be in place first. Needed
+// by the late-messages test, which drives the real connect() path to get
+// the guarded handlers; restored in afterEach.
+const originalWebSocket = globalThis.WebSocket;
+(globalThis as Record<string, unknown>).WebSocket = FakeWebSocket;
 
 const { TunnelClient } = await import("./tunnel-client");
 
@@ -48,7 +56,7 @@ function makeClient() {
 
 describe("TunnelClient watchdog (#6229)", () => {
 	afterEach(() => {
-		// nothing to restore — tests never touch globalThis.WebSocket
+		(globalThis as Record<string, unknown>).WebSocket = originalWebSocket;
 	});
 
 	test("forceReconnect schedules a reconnect without waiting for onclose", () => {
@@ -112,19 +120,32 @@ describe("TunnelClient watchdog (#6229)", () => {
 		expect(scheduled).toBe(0);
 	});
 
-	test("late messages from an orphaned socket are ignored", () => {
+	test("late messages from an orphaned socket are ignored", async () => {
 		const client = makeClient();
-		const stale = new FakeWebSocket();
-		client.socket = stale;
+		// Stub scheduleReconnect so the forceReconnect call below doesn't
+		// leave a real reconnect timer that could fire after the test.
+		let scheduled = 0;
+		(client as unknown as { scheduleReconnect: () => void }).scheduleReconnect =
+			() => {
+				scheduled++;
+			};
 		client.lastInboundAt = 1_000;
 
-		// Orphan the stale socket exactly as forceReconnect does.
+		// connect() assigns the REAL guarded handlers on the socket.
+		await client.connect();
+		const stale = client.socket;
+		expect(stale?.onmessage).not.toBeNull();
+		if (!stale) throw new Error("expected a connected socket");
+
+		// Orphan the socket exactly as the watchdog does.
 		client.forceReconnect(stale, 4002, "Inbound silence timeout");
 		expect(client.socket).toBeNull();
 
 		// A late inbound from the orphaned socket must not touch state.
 		const before = client.lastInboundAt;
-		stale.onmessage?.({ data: "late-frame" });
+		stale?.onmessage?.({ data: "late-frame" });
 		expect(client.lastInboundAt).toBe(before);
+		// reconnect was scheduled exactly once by forceReconnect.
+		expect(scheduled).toBe(1);
 	});
 });
