@@ -98,6 +98,16 @@ Levels merge per key: a key one level doesn't define falls through to the next. 
 
 If no commands are configured for a key, Superset looks for a script instead: `.superset/<key>.sh` (`setup.sh`, `teardown.sh`, `run.sh`) in the worktree first, then the main repo. A gitignored script isn't checked out into new worktrees, so it typically exists only in the main repo.
 
+### Credentials Are Not Copied
+
+New worktrees get a copy of the main repo's `.superset` directory so gitignored scripts still resolve. Credential files are left out of that copy: dotenv files (`.env`, `.env.local`, …), `credentials.json`, `.netrc`, and `.pem`/`.key`/`.p12`/`.pfx` files. The copy happens once, at worktree creation, and is never refreshed — a snapshotted API key would keep serving its old value in that worktree long after you rotated it.
+
+Read secrets from the main checkout at run time instead, so every workspace resolves the current value:
+
+```json
+{ "setup": ["cp \"$SUPERSET_ROOT_PATH/.env\" .env"] }
+```
+
 ### Working Directory
 
 Set `cwd` to run commands somewhere other than the workspace root. Relative paths resolve against the worktree:
