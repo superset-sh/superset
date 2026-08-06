@@ -182,21 +182,28 @@ export async function resolveBaseComparison(
 					},
 				};
 	}
-	// No configured upstream. Prefer `origin/<branch>` (the common case),
-	// but when that remote ref does not exist — e.g. a stacked workspace
-	// whose base is another LOCAL branch that has never been pushed — fall
-	// back to the local branch instead of leaving the "Against base" diff
-	// silently empty (#5298).
-	const remoteRefExists = await git
-		.raw(["rev-parse", "--verify", `refs/remotes/origin/${branchName}`])
-		.then(() => true)
-		.catch(() => false);
-	if (remoteRefExists) {
-		return {
-			branchName,
-			baseRef: `origin/${branchName}`,
-			fetchTarget: { remote: "origin", branch: branchName },
-		};
+	// No configured upstream. Prefer the branch's remote ref on whatever
+	// remote actually has it (usually `origin`, but fork workflows and
+	// differently-named remotes are supported), falling back to the local
+	// branch when no remote ref exists — e.g. a stacked workspace whose
+	// base is another LOCAL branch that has never been pushed — instead of
+	// leaving the "Against base" diff silently empty (#5298).
+	const remotes = await git
+		.getRemotes()
+		.then((rs) => rs.map((r) => r.name))
+		.catch(() => []);
+	for (const remote of remotes) {
+		const remoteRefExists = await git
+			.raw(["rev-parse", "--verify", `refs/remotes/${remote}/${branchName}`])
+			.then(() => true)
+			.catch(() => false);
+		if (remoteRefExists) {
+			return {
+				branchName,
+				baseRef: `${remote}/${branchName}`,
+				fetchTarget: { remote, branch: branchName },
+			};
+		}
 	}
 	const localRefExists = await git
 		.raw(["rev-parse", "--verify", `refs/heads/${branchName}`])

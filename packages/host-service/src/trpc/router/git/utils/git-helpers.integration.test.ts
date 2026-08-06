@@ -119,6 +119,7 @@ describe("resolveBaseComparison (integration)", () => {
 		// Simulate a remote so origin/HEAD can be set. We don't need an
 		// actual remote to fetch from — `symbolic-ref` on the remote HEAD
 		// is all getDefaultBranchName reads.
+		await git.raw(["remote", "add", "origin", "https://example.com/repo.git"]);
 		await git.raw(["update-ref", "refs/remotes/origin/main", "HEAD"]);
 		await git.raw([
 			"symbolic-ref",
@@ -173,18 +174,27 @@ describe("resolveBaseComparison (integration)", () => {
 		});
 	});
 
-	test("falls back to the local branch when origin/<branch> does not exist (#5298)", async () => {
-		// Stacked workspace: base is another LOCAL branch that was never
-		// pushed, so refs/remotes/origin/feature exists nowhere. The
-		// "Against base" diff must resolve to the local branch, not to a
-		// missing remote ref (which silently renders an empty Changes tab).
-		await git.raw(["checkout", "-b", "feature/stacked"]);
-		await commitFile(git, repo, "stacked.md", "x", "stacked work");
-		expect(await resolveBaseComparison(git, "feature/stacked")).toEqual({
-			branchName: "feature/stacked",
-			baseRef: "feature/stacked",
+	test("local-only stacked base renders a real diff, not an empty Changes tab (#5298)", async () => {
+		// The actual #5298 scenario: a stacked workspace whose base is
+		// another LOCAL branch that was never pushed. Create the local
+		// parent, then a child branch off it with committed work, and
+		// assert the full chain (resolve → diff) returns the work.
+		await git.raw(["checkout", "-b", "feature/parent"]);
+		await commitFile(git, repo, "parent.md", "p", "parent work");
+		await git.raw(["checkout", "-b", "feature/child"]);
+		await commitFile(git, repo, "child.md", "c", "child work");
+
+		const base = await resolveBaseComparison(git, "feature/parent");
+		expect(base).toEqual({
+			branchName: "feature/parent",
+			baseRef: "feature/parent",
 			fetchTarget: null,
 		});
+
+		// The "Against base" view: diff the base ref against HEAD. This is
+		// the exact pipeline that rendered empty before the fix.
+		const files = await getChangedFilesForDiff(git, [`${base!.baseRef}..HEAD`]);
+		expect(files.map((f) => f.path)).toEqual(["child.md"]);
 	});
 
 	test("prefers origin/<branch> when both remote and local refs exist", async () => {
@@ -195,6 +205,18 @@ describe("resolveBaseComparison (integration)", () => {
 			branchName: "feature",
 			baseRef: "origin/feature",
 			fetchTarget: { remote: "origin", branch: "feature" },
+		});
+	});
+
+	test("finds the base ref on a non-origin remote (fork workflow)", async () => {
+		// Remote named `upstream`, branch exists only there (no local
+		// tracking): the remote-ref probe must not hardcode `origin`.
+		await git.raw(["remote", "add", "upstream", "https://example.com/up.git"]);
+		await git.raw(["update-ref", "refs/remotes/upstream/feature", "HEAD"]);
+		expect(await resolveBaseComparison(git, "feature")).toEqual({
+			branchName: "feature",
+			baseRef: "upstream/feature",
+			fetchTarget: { remote: "upstream", branch: "feature" },
 		});
 	});
 
