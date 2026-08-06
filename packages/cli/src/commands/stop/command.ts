@@ -78,45 +78,56 @@ export default command({
 		// than being orphaned without a manifest. A throw from stopProcess
 		// (e.g. SIGTERM refused) is recorded and daemon cleanup still runs.
 		if (manifest && isProcessAlive(manifest.pid)) {
+			// `survived` is null only on a CONFIRMED clean stop. A throw
+			// from stopProcess (e.g. SIGTERM/SIGKILL refused with EPERM)
+			// leaves the process state unknown — it must NOT collapse to
+			// the clean-stop sentinel, or the manifest would be removed
+			// while the process is still running (cubic P2).
 			let survived: number | null;
+			let stopError: Error | null = null;
 			try {
 				survived = await stopProcess(manifest.pid, "host service", 10_000);
 			} catch (error) {
-				failures.push(
-					`host service (pid ${manifest.pid}): ${
-						error instanceof Error ? error.message : String(error)
-					}`,
-				);
+				stopError = error instanceof Error ? error : new Error(String(error));
 				survived = null;
 			}
-			if (survived !== null) {
+			if (stopError) {
+				failures.push(
+					`host service (pid ${manifest.pid}): ${stopError.message}`,
+				);
+			} else if (survived !== null) {
 				failures.push(`host service (pid ${survived}) survived SIGKILL`);
 			} else {
 				stopped.push({ label: "host service", pid: manifest.pid });
 			}
-			if (survived === null) removeManifest(organization.id);
+			if (stopError === null && survived === null) {
+				removeManifest(organization.id);
+			}
 		} else {
 			removeManifest(organization.id);
 		}
 
 		if (daemonManifest && isProcessAlive(daemonManifest.pid)) {
 			let survived: number | null;
+			let stopError: Error | null = null;
 			try {
 				survived = await stopProcess(daemonManifest.pid, "pty-daemon", 5_000);
 			} catch (error) {
-				failures.push(
-					`pty-daemon (pid ${daemonManifest.pid}): ${
-						error instanceof Error ? error.message : String(error)
-					}`,
-				);
+				stopError = error instanceof Error ? error : new Error(String(error));
 				survived = null;
 			}
-			if (survived !== null) {
+			if (stopError) {
+				failures.push(
+					`pty-daemon (pid ${daemonManifest.pid}): ${stopError.message}`,
+				);
+			} else if (survived !== null) {
 				failures.push(`pty-daemon (pid ${survived}) survived SIGKILL`);
 			} else {
 				stopped.push({ label: "pty-daemon", pid: daemonManifest.pid });
 			}
-			if (survived === null) removePtyDaemonManifest(organization.id);
+			if (stopError === null && survived === null) {
+				removePtyDaemonManifest(organization.id);
+			}
 		} else {
 			removePtyDaemonManifest(organization.id);
 		}
