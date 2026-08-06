@@ -1,0 +1,1 @@
+ALTER TABLE `projects` ADD `naming_instructions` text;

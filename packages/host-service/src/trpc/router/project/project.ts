@@ -44,6 +44,10 @@ import {
 // the stored/broadcast value (it rides in project.list and project:changed).
 const MAX_PROJECT_ICON_LENGTH = 256 * 1024;
 
+// Naming instructions ride inside the naming model's system prompt; a couple
+// of sentences is the intended size, so cap well below prompt-bloat territory.
+const MAX_NAMING_INSTRUCTIONS_LENGTH = 2000;
+
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.db
@@ -112,6 +116,7 @@ export const projectRouter = router({
 				icon: row.icon,
 				// Always an array; the column's JSON encoding stays internal.
 				sparseCheckoutPaths: parseSparseCheckoutPaths(row.sparseCheckoutPaths),
+				namingInstructions: row.namingInstructions,
 			};
 		}),
 
@@ -175,6 +180,41 @@ export const projectRouter = router({
 				id: project.id,
 				worktreeBaseDir: project.worktreeBaseDir ?? null,
 			};
+		}),
+
+	/**
+	 * Set (or clear) this project's AI naming instructions — free text
+	 * injected into workspace/branch name generation. Null or blank clears
+	 * the setting so naming falls back to the default behavior.
+	 */
+	setNamingInstructions: protectedProcedure
+		.input(
+			z.object({
+				projectId: z.string().uuid(),
+				instructions: z
+					.string()
+					.max(
+						MAX_NAMING_INSTRUCTIONS_LENGTH,
+						"Naming instructions are too long",
+					)
+					.nullable(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const namingInstructions = input.instructions?.trim() || null;
+			const updated = ctx.db
+				.update(projects)
+				.set({ namingInstructions })
+				.where(eq(projects.id, input.projectId))
+				.returning({ id: projects.id })
+				.get();
+			if (!updated) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Project is not set up on this host",
+				});
+			}
+			return { namingInstructions };
 		}),
 
 	/**

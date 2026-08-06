@@ -20,6 +20,7 @@ import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
+import { NamingInstructionsSection } from "./components/NamingInstructionsSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 import { SparseCheckoutSection } from "./components/SparseCheckoutSection";
@@ -195,6 +196,19 @@ export function V2ProjectSettings({
 								onChanged={() => refetchHostProject()}
 							/>
 						</SettingsRow>
+					)}
+					{targetHostUrl && hostProject && (
+						<NamingInstructionsSection
+							// Remount per project AND per target host: the editor holds
+							// draft text and pending-save state that must not carry
+							// across either boundary (same rule as SparseCheckoutSection).
+							key={`${projectId}:${targetHostId}`}
+							projectId={projectId}
+							hostUrl={targetHostUrl}
+							// Hosts older than this setting omit the field entirely.
+							instructions={hostProject.namingInstructions ?? null}
+							onChanged={() => refetchHostProject()}
+						/>
 					)}
 				</section>
 

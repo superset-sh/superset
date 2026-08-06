@@ -532,6 +532,7 @@ export const workspacesRouter = router({
 					? generateWorkspaceNamesFromPrompt(
 							composerPrompt,
 							namingAgent ? { db: ctx.db, agent: namingAgent } : undefined,
+							localProject.namingInstructions,
 						).catch((err) => {
 							console.warn("[workspaces.create] AI naming failed", err);
 							return null;
@@ -1210,6 +1211,7 @@ export const workspacesRouter = router({
 				oldBranchName: local.branch,
 				oldWorkspaceName: local.name || local.branch,
 				prompt: input.prompt,
+				namingInstructions: project.namingInstructions,
 				renameTitle: true,
 				renameBranch: true,
 			}).catch((err) => {

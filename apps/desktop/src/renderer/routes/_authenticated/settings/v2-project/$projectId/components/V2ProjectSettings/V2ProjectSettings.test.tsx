@@ -41,6 +41,7 @@ const hostProject = {
 	branchPrefixCustom: null,
 	icon: null,
 	sparseCheckoutPaths: ["apps/desktop"],
+	namingInstructions: "Prefix branches with fix/ or feat/",
 };
 
 // External data/host dependencies — stubbed so the component renders in a
@@ -119,6 +120,23 @@ mock.module("./components/SparseCheckoutSection", () => ({
 	),
 }));
 
+// Stubbed with a marker for the same reason: the assertion checks that
+// V2ProjectSettings wires the section in and seeds it from the host row.
+mock.module("./components/NamingInstructionsSection", () => ({
+	NamingInstructionsSection: ({
+		instructions,
+	}: {
+		instructions: string | null;
+	}) => (
+		<div
+			data-testid="project-naming-instructions"
+			data-instructions={instructions ?? ""}
+		>
+			naming-instructions
+		</div>
+	),
+}));
+
 // The icon picker itself — stubbed with a recognizable marker so the assertion
 // checks the wiring (that V2ProjectSettings renders it) rather than the
 // picker's internals.
@@ -140,6 +158,17 @@ describe("V2ProjectSettings", () => {
 
 		expect(markup).toContain('data-testid="project-icon-picker"');
 		expect(markup).toContain('data-project-id="project-1"');
+	});
+
+	test("renders the naming-instructions editor seeded from the targeted host row", () => {
+		const markup = renderToStaticMarkup(
+			<V2ProjectSettings projectId="project-1" hostId="host-1" />,
+		);
+
+		expect(markup).toContain('data-testid="project-naming-instructions"');
+		expect(markup).toContain(
+			'data-instructions="Prefix branches with fix/ or feat/"',
+		);
 	});
 
 	test("renders the sparse-checkout editor seeded from the targeted host row", () => {
