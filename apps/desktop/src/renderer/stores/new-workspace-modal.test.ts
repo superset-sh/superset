@@ -40,4 +40,21 @@ describe("new workspace modal store (#5372)", () => {
 		useNewWorkspaceModalStore.getState().openModal("project-2");
 		expect(useNewWorkspaceDraftStore.getState().prompt).toBe("");
 	});
+
+	test("full-page handoff preserves the seeded draft", () => {
+		// DashboardNewWorkspaceModal test arm: closes the store modal with
+		// { resetDraft: false } before navigating to /new-workspace, where
+		// the destination screen consumes the seeded prompt.
+		const draftStore = useNewWorkspaceDraftStore.getState();
+		draftStore.resetDraft();
+		draftStore.updateDraft({ prompt: SETUP_SCRIPT_PROMPT });
+		useNewWorkspaceModalStore.getState().openModal("project-1");
+
+		useNewWorkspaceModalStore.getState().closeModal({ resetDraft: false });
+
+		expect(useNewWorkspaceDraftStore.getState().prompt).toBe(
+			SETUP_SCRIPT_PROMPT,
+		);
+		expect(useNewWorkspaceModalStore.getState().isOpen).toBeFalse();
+	});
 });
