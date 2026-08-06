@@ -5,8 +5,9 @@ import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-fro
 
 /**
  * Headless effect that unpins a workspace from the sidebar as soon as a
- * removal is requested. Unpinning is reversible — the workspace itself is not
- * deleted and can be re-pinned from the Workspaces page or sidebar — so it runs
+ * removal is requested. Unpinning is reversible — the workspace is not deleted,
+ * its pane layout is kept on the hidden row, and re-pinning it from the
+ * Workspaces page or sidebar brings back its tabs and splits — so it runs
  * immediately with no confirmation dialog. Lives here (rather than at each call
  * site) because callers like the command palette fire imperatively and can't
  * use the router/collections hooks the removal needs.

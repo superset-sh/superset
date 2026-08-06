@@ -130,7 +130,13 @@ function ensureSidebarProjectRecord(
 	});
 }
 
-function ensureSidebarWorkspaceRecord(
+/**
+ * Re-surfaces a workspace in the sidebar. A hidden ("tombstoned") row is only
+ * un-hidden and re-placed — `paneLayout` is left alone, which is what makes
+ * hiding reversible: the tabs and splits the row still carries come back with
+ * it.
+ */
+export function ensureSidebarWorkspaceRecord(
 	collections: Pick<
 		AppCollections,
 		"v2SidebarSections" | "v2WorkspaceLocalState"

@@ -4,6 +4,7 @@ import {
 	type SidebarWorkspaceRow,
 	tombstoneSidebarWorkspaceRecord,
 } from "./sidebarMutations";
+import { ensureSidebarWorkspaceRecord } from "./useDashboardSidebarState";
 
 /**
  * Minimal in-memory stand-in for a TanStack DB collection, implementing only
@@ -33,6 +34,12 @@ function makeCollection<T>(getKey: (item: T) => string) {
 	};
 }
 
+type PaneLayout = {
+	version: number;
+	tabs: unknown[];
+	activeTabId: string | null;
+};
+
 type LocalStateRow = {
 	workspaceId: string;
 	createdAt: Date;
@@ -43,13 +50,56 @@ type LocalStateRow = {
 		isHidden: boolean;
 		pinnedAt: number | null;
 	};
-	paneLayout: { version: number; tabs: unknown[]; activeTabId: string | null };
+	paneLayout: PaneLayout;
 };
+
+/** A layout with real content: two tabs, one of them split across two panes. */
+function populatedPaneLayout(workspaceId: string): PaneLayout {
+	return {
+		version: 1,
+		tabs: [
+			{
+				id: `${workspaceId}-tab-1`,
+				title: "agent",
+				panes: {
+					"pane-1": {
+						id: "pane-1",
+						kind: "terminal",
+						data: { terminalId: `${workspaceId}-term-1` },
+					},
+					"pane-2": {
+						id: "pane-2",
+						kind: "terminal",
+						data: { terminalId: `${workspaceId}-term-2` },
+					},
+				},
+				layout: {
+					type: "split",
+					direction: "row",
+					first: { type: "pane", paneId: "pane-1" },
+					second: { type: "pane", paneId: "pane-2" },
+				},
+				activePaneId: "pane-1",
+			},
+			{
+				id: `${workspaceId}-tab-2`,
+				title: "docs",
+				panes: {
+					"pane-3": { id: "pane-3", kind: "browser", data: {} },
+				},
+				layout: { type: "pane", paneId: "pane-3" },
+				activePaneId: "pane-3",
+			},
+		],
+		activeTabId: `${workspaceId}-tab-1`,
+	};
+}
 
 function localStateRow(
 	workspaceId: string,
 	projectId: string,
 	overrides: Partial<LocalStateRow["sidebarState"]> = {},
+	paneLayout: PaneLayout = { version: 1, tabs: [], activeTabId: null },
 ): LocalStateRow {
 	return {
 		workspaceId,
@@ -62,7 +112,7 @@ function localStateRow(
 			pinnedAt: null,
 			...overrides,
 		},
-		paneLayout: { version: 1, tabs: [], activeTabId: null },
+		paneLayout,
 	};
 }
 
@@ -93,6 +143,11 @@ function asRemoveArg(collections: Collections) {
 function asTombstoneArg(collections: Collections) {
 	return collections as unknown as Parameters<
 		typeof tombstoneSidebarWorkspaceRecord
+	>[0];
+}
+function asEnsureArg(collections: Collections) {
+	return collections as unknown as Parameters<
+		typeof ensureSidebarWorkspaceRecord
 	>[0];
 }
 
@@ -212,6 +267,35 @@ describe("removeProjectFromSidebarState", () => {
 		expect(row?.sidebarState.isHidden).toBe(false);
 	});
 
+	it("keeps the pane layout of each tombstoned worktree so re-adding the project restores them", () => {
+		const collections = makeCollections();
+		const layout = populatedPaneLayout("ws-placed");
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-placed", "proj-1", {}, layout),
+		);
+		const workspaces: SidebarWorkspaceRow[] = [
+			{
+				id: "ws-placed",
+				projectId: "proj-1",
+				hostId: "machine-1",
+				type: "worktree",
+			},
+		];
+		collections.v2SidebarProjects.insert({ projectId: "proj-1" });
+
+		removeProjectFromSidebarState(
+			asRemoveArg(collections),
+			workspaces,
+			"proj-1",
+			"machine-1",
+			noopCleanup,
+		);
+
+		const row = collections.v2WorkspaceLocalState.get("ws-placed");
+		expect(row?.sidebarState.isHidden).toBe(true);
+		expect(row?.paneLayout).toEqual(layout);
+	});
+
 	it("leaves workspaces from other projects untouched", () => {
 		const collections = makeCollections();
 		collections.v2WorkspaceLocalState.insert(
@@ -311,5 +395,51 @@ describe("tombstoneSidebarWorkspaceRecord", () => {
 		expect(row?.sidebarState.sectionId).toBeNull();
 		expect(row?.sidebarState.pinnedAt).toBeNull();
 		expect(cleaned).toEqual(["ws-1"]);
+	});
+
+	it("keeps the row's pane layout — hiding is a visibility change, not a reset", () => {
+		// Hiding is advertised as reversible, and the re-add path only flips
+		// `isHidden` back to false: dropping paneLayout here loses every tab and
+		// split with no way to get them back.
+		const collections = makeCollections();
+		const layout = populatedPaneLayout("ws-1");
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-1", "proj-1", {}, layout),
+		);
+
+		tombstoneSidebarWorkspaceRecord(
+			asTombstoneArg(collections),
+			"ws-1",
+			"proj-1",
+			noopCleanup,
+		);
+
+		expect(collections.v2WorkspaceLocalState.get("ws-1")?.paneLayout).toEqual(
+			layout,
+		);
+	});
+});
+
+describe("hide → re-add round trip", () => {
+	it("brings the workspace back with its tabs, splits and terminal ids intact", () => {
+		// The journey from the bug report: click "Remove from sidebar", then add
+		// the workspace back. It must return with its work, not empty.
+		const collections = makeCollections();
+		const layout = populatedPaneLayout("ws-1");
+		collections.v2WorkspaceLocalState.insert(
+			localStateRow("ws-1", "proj-1", {}, layout),
+		);
+
+		tombstoneSidebarWorkspaceRecord(
+			asTombstoneArg(collections),
+			"ws-1",
+			"proj-1",
+			noopCleanup,
+		);
+		ensureSidebarWorkspaceRecord(asEnsureArg(collections), "ws-1", "proj-1");
+
+		const row = collections.v2WorkspaceLocalState.get("ws-1");
+		expect(row?.sidebarState.isHidden).toBe(false);
+		expect(row?.paneLayout).toEqual(layout);
 	});
 });

@@ -30,6 +30,9 @@ type CleanupPaneRuntimes = (rows: PaneLifecycleRow[]) => void;
  * with no local-state row is re-surfaced by the gated auto-include path, so
  * hiding one requires a row (`isHidden: true`) to suppress it; a hard-delete
  * would let it reappear.
+ *
+ * Hiding is a visibility change only: the row keeps its `paneLayout`, so
+ * re-adding the workspace restores its tabs and splits.
  */
 export function tombstoneSidebarWorkspaceRecord(
 	collections: Pick<AppCollections, "v2WorkspaceLocalState">,
@@ -53,6 +56,12 @@ export function tombstoneSidebarWorkspaceRecord(
 		return;
 	}
 
+	// Runtimes are released — xterm views detached, WebSockets closed, webviews
+	// destroyed — because nothing renders a hidden workspace. `paneLayout` is
+	// deliberately kept: it is the only record of this workspace's tabs, splits
+	// and terminal ids, and releasing a terminal runtime does not kill its PTY.
+	// Keeping it is what makes hiding reversible — re-adding the workspace
+	// remounts the same panes and reattaches to the still-running sessions.
 	cleanupPaneRuntimes([existing]);
 	collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 		draft.sidebarState.projectId = projectId;
@@ -61,7 +70,6 @@ export function tombstoneSidebarWorkspaceRecord(
 		// A row must never be hidden and pinned at once — a resurrected
 		// workspace would otherwise reappear pre-pinned.
 		draft.sidebarState.pinnedAt = null;
-		draft.paneLayout = createEmptyPaneLayout();
 	});
 }
 
