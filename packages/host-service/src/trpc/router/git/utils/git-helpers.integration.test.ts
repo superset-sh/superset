@@ -173,6 +173,31 @@ describe("resolveBaseComparison (integration)", () => {
 		});
 	});
 
+	test("falls back to the local branch when origin/<branch> does not exist (#5298)", async () => {
+		// Stacked workspace: base is another LOCAL branch that was never
+		// pushed, so refs/remotes/origin/feature exists nowhere. The
+		// "Against base" diff must resolve to the local branch, not to a
+		// missing remote ref (which silently renders an empty Changes tab).
+		await git.raw(["checkout", "-b", "feature/stacked"]);
+		await commitFile(git, repo, "stacked.md", "x", "stacked work");
+		expect(await resolveBaseComparison(git, "feature/stacked")).toEqual({
+			branchName: "feature/stacked",
+			baseRef: "feature/stacked",
+			fetchTarget: null,
+		});
+	});
+
+	test("prefers origin/<branch> when both remote and local refs exist", async () => {
+		await git.raw(["update-ref", "refs/remotes/origin/feature", "HEAD"]);
+		await git.raw(["checkout", "-b", "feature"]);
+		await commitFile(git, repo, "feature.md", "x", "feature work");
+		expect(await resolveBaseComparison(git, "feature")).toEqual({
+			branchName: "feature",
+			baseRef: "origin/feature",
+			fetchTarget: { remote: "origin", branch: "feature" },
+		});
+	});
+
 	test("returns null when no default branch can be resolved", async () => {
 		const emptyRepo = mkTmp();
 		try {

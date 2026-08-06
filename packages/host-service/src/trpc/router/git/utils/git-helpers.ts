@@ -182,6 +182,29 @@ export async function resolveBaseComparison(
 					},
 				};
 	}
+	// No configured upstream. Prefer `origin/<branch>` (the common case),
+	// but when that remote ref does not exist — e.g. a stacked workspace
+	// whose base is another LOCAL branch that has never been pushed — fall
+	// back to the local branch instead of leaving the "Against base" diff
+	// silently empty (#5298).
+	const remoteRefExists = await git
+		.raw(["rev-parse", "--verify", `refs/remotes/origin/${branchName}`])
+		.then(() => true)
+		.catch(() => false);
+	if (remoteRefExists) {
+		return {
+			branchName,
+			baseRef: `origin/${branchName}`,
+			fetchTarget: { remote: "origin", branch: branchName },
+		};
+	}
+	const localRefExists = await git
+		.raw(["rev-parse", "--verify", `refs/heads/${branchName}`])
+		.then(() => true)
+		.catch(() => false);
+	if (localRefExists) {
+		return { branchName, baseRef: branchName, fetchTarget: null };
+	}
 	return {
 		branchName,
 		baseRef: `origin/${branchName}`,
