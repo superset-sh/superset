@@ -7,6 +7,7 @@ import { TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
+import { createChatSession } from "./utils/create-chat-session";
 import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
 // Re-shaped from the canonical catalog in `@superset/shared/agent-models` so
@@ -39,24 +40,11 @@ export const chatRouter = {
 				});
 			}
 
-			const result = await dbWs.transaction(async (tx) => {
-				const [inserted] = await tx
-					.insert(chatSessions)
-					.values({
-						id: input.sessionId,
-						organizationId,
-						createdBy: ctx.session.user.id,
-						v2WorkspaceId: input.v2WorkspaceId,
-					})
-					.onConflictDoNothing()
-					.returning({ id: chatSessions.id });
-
-				if (!inserted) {
-					return { txid: null };
-				}
-
-				const txid = await getCurrentTxid(tx);
-				return { txid };
+			const result = await createChatSession(dbWs, {
+				id: input.sessionId,
+				organizationId,
+				createdBy: ctx.session.user.id,
+				v2WorkspaceId: input.v2WorkspaceId,
 			});
 
 			return {
