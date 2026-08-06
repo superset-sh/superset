@@ -13,7 +13,10 @@ function readNotifyHookTemplate(): string {
 	return readFileSync(notifyHookTemplatePath, "utf-8");
 }
 
-function runNotifyHook(input: Record<string, unknown>) {
+function runNotifyHook(
+	input: Record<string, unknown>,
+	extraEnv: Record<string, string> = {},
+) {
 	const script = readNotifyHookTemplate()
 		.replaceAll("{{MARKER}}", NOTIFY_SCRIPT_MARKER)
 		.replaceAll("{{DEFAULT_PORT}}", "48763");
@@ -23,6 +26,7 @@ function runNotifyHook(input: Record<string, unknown>) {
 			...process.env,
 			SUPERSET_AGENT_ID: "grok",
 			SUPERSET_DEBUG_HOOKS: "1",
+			...extraEnv,
 		},
 		stdin: Buffer.from(JSON.stringify(input)),
 		stdout: "pipe",
@@ -32,7 +36,7 @@ function runNotifyHook(input: Record<string, unknown>) {
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v5");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v6");
 	});
 
 	it("emits the v2 host-service payload with full agent identity", () => {
@@ -105,6 +109,20 @@ describe("getNotifyScriptContent", () => {
 		expect(result.exitCode).toBe(0);
 		expect(result.stderr.toString()).toBe("");
 	});
+
+	// BSD grep honors GREP_OPTIONS and, with --color=always, wraps piped
+	// matches in ANSI codes; without the unset guard every extraction comes
+	// back empty and the hook silently drops the event.
+	it("delivers events when the user's shell exports GREP_OPTIONS", () => {
+		const result = runNotifyHook(
+			{ session_id: "sess-123", hook_event_name: "Stop" },
+			{ GREP_OPTIONS: "--color=always", GREP_COLOR: "1;35;40" },
+		);
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stderr.toString()).toContain("[notify-hook] event=Stop");
+		expect(result.stderr.toString()).toContain("hookSessionId=sess-123");
+	});
 });
 
 describe("per-agent hook scripts dispatch to v2", () => {
@@ -121,6 +139,7 @@ describe("per-agent hook scripts dispatch to v2", () => {
 				path.join(import.meta.dir, "templates", template),
 				"utf-8",
 			);
+			expect(script).toContain("unset GREP_OPTIONS");
 			expect(script).toContain(buildExpectedV2Payload(agentIdVar));
 			expect(script).toContain('curl -sX POST "$SUPERSET_HOST_AGENT_HOOK_URL"');
 			expect(script).toContain(

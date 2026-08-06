@@ -3,6 +3,11 @@
 # Gemini CLI lifecycle hook. JSON in via stdin; MUST print valid JSON to
 # stdout before exit so gemini doesn't block on the hook.
 
+# GREP_OPTIONS from the user's shell (e.g. --color=always) makes grep wrap
+# piped matches in ANSI codes, emptying every extraction below — events
+# would be silently dropped.
+unset GREP_OPTIONS
+
 INPUT=$(cat)
 
 EVENT_TYPE=$(printf '%s' "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')

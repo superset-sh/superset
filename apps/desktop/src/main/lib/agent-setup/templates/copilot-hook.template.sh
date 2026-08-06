@@ -3,6 +3,10 @@
 # GitHub Copilot CLI lifecycle hook. JSON in via stdin; MUST print valid
 # JSON to stdout before exit so copilot doesn't block on the hook.
 
+# GREP_OPTIONS from the user's shell (e.g. --color=always) makes grep wrap
+# piped matches in ANSI codes, emptying the session-id extraction below.
+unset GREP_OPTIONS
+
 INPUT=$(cat)
 HOOK_SESSION_ID=$(printf '%s' "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 
