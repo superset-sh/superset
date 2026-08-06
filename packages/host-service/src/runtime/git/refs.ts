@@ -39,7 +39,10 @@ export function asRemoteRef(
 	return `refs/remotes/${remote}/${name}`;
 }
 
-async function refExists(git: SimpleGit, fullRef: string): Promise<boolean> {
+export async function refExists(
+	git: SimpleGit,
+	fullRef: string,
+): Promise<boolean> {
 	try {
 		// Don't use `--quiet` — simple-git's `raw` mis-resolves on empty
 		// stderr and reports the missing ref as a success with empty stdout.
@@ -200,23 +203,77 @@ export async function resolveRef(
 	return options.headFallback ? { kind: "head" } : null;
 }
 
+// Reached only when `origin/HEAD` cannot answer. The remote is the
+// authoritative source, and `git remote set-head origin --auto` is what asks
+// it; the branch picker runs that whenever it has the network.
+const DEFAULT_BRANCH_CANDIDATES = ["main", "master", "develop", "trunk"];
+
 /**
- * Resolve the repo's default branch name (typically `main`) from
- * `origin/HEAD`. Falls back to `"main"` if symbolic-ref isn't set.
+ * The branch `origin/HEAD` names, or null when unset or stale.
+ *
+ * Git writes `origin/HEAD` at clone time and never refreshes it on fetch, so
+ * it outlives an upstream rename and even the branch being deleted. Trust it
+ * only while the branch it names still resolves.
+ *
+ * That check is local, so it can only catch a stale symref once the branch it
+ * names is gone from `refs/remotes/`. A plain `git fetch` leaves the old
+ * remote-tracking ref in place, so the symref still looks valid until a
+ * `--prune`. `git remote set-head origin --auto` is what actually settles it,
+ * and the branch picker runs both.
+ */
+export async function readOriginHeadBranch(
+	git: SimpleGit,
+): Promise<string | null> {
+	let target: string;
+	try {
+		target = (
+			await git.raw(["symbolic-ref", asRemoteRef("origin", "HEAD")])
+		).trim();
+	} catch {
+		return null;
+	}
+	// Read the full refname, not `--short`: git will happily point this symref
+	// at a local branch, and the short form of `refs/heads/foo` is bare `foo`,
+	// indistinguishable from a real remote-tracking branch. See GIT_REFS.md.
+	const prefix = asRemoteRef("origin", "");
+	if (!target.startsWith(prefix)) return null;
+	const branch = target.slice(prefix.length);
+	if (!branch) return null;
+	return (await refExists(git, asRemoteRef("origin", branch))) ? branch : null;
+}
+
+/**
+ * Resolve the repo's default branch name (typically `main`). Falls back to the
+ * first conventional name that exists — remote-tracking, then local — and then
+ * to any branch at all, rather than naming one the repo may not have.
+ *
+ * Throws if the repo can't be enumerated: a repo we can't read is not a repo
+ * with no branches, and inventing a name here puts new worktrees on a base
+ * that doesn't exist.
  */
 export async function resolveDefaultBranchName(
 	git: SimpleGit,
 ): Promise<string> {
-	try {
-		const ref = await git.raw([
-			"symbolic-ref",
-			"refs/remotes/origin/HEAD",
-			"--short",
-		]);
-		return ref.trim().replace(/^origin\//, "");
-	} catch {
-		return "main";
+	const fromOriginHead = await readOriginHeadBranch(git);
+	if (fromOriginHead) return fromOriginHead;
+
+	const branches = await listBranchShortNames(git, "origin");
+	for (const names of [branches.remoteTracking, branches.local]) {
+		const candidate = DEFAULT_BRANCH_CANDIDATES.find((name) =>
+			names.includes(name),
+		);
+		if (candidate) return candidate;
 	}
+
+	// Nothing conventional. The branch HEAD is on beats an alphabetical pick,
+	// and both beat a made-up `main`; only an empty repo, which has no branch
+	// to name, falls through to that.
+	const head = await git
+		.raw(["symbolic-ref", "--short", "HEAD"])
+		.then((out) => out.trim())
+		.catch(() => "");
+	if (head && branches.local.includes(head)) return head;
+	return branches.remoteTracking[0] ?? branches.local[0] ?? "main";
 }
 
 /**

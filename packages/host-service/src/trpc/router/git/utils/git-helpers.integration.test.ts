@@ -4,12 +4,12 @@ import { writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import simpleGit, { type SimpleGit } from "simple-git";
-import { resolveUpstream } from "../../../../runtime/git/refs";
 import {
-	getChangedFilesForDiff,
-	getDefaultBranchName,
-	resolveBaseComparison,
-} from "./git-helpers";
+	readOriginHeadBranch,
+	resolveDefaultBranchName,
+	resolveUpstream,
+} from "../../../../runtime/git/refs";
+import { getChangedFilesForDiff, resolveBaseComparison } from "./git-helpers";
 
 /**
  * Integration tests that exercise the git-correctness fixes against real
@@ -117,8 +117,8 @@ describe("resolveBaseComparison (integration)", () => {
 		git = await initRepo(repo);
 		await commitFile(git, repo, "README.md", "hello", "initial");
 		// Simulate a remote so origin/HEAD can be set. We don't need an
-		// actual remote to fetch from — `symbolic-ref` on the remote HEAD
-		// is all getDefaultBranchName reads.
+		// actual remote to fetch from — the remote-tracking refs are all
+		// the default-branch lookup reads.
 		await git.raw(["update-ref", "refs/remotes/origin/main", "HEAD"]);
 		await git.raw([
 			"symbolic-ref",
@@ -173,6 +173,21 @@ describe("resolveBaseComparison (integration)", () => {
 		});
 	});
 
+	// A stale symref used to collapse this to null, and the commits view then
+	// diffed HEAD..HEAD and showed nothing. Detection still finds `main`.
+	test("still resolves a base when origin/HEAD names a pruned branch", async () => {
+		await git.raw([
+			"symbolic-ref",
+			"refs/remotes/origin/HEAD",
+			"refs/remotes/origin/master",
+		]);
+		expect(await resolveBaseComparison(git)).toEqual({
+			branchName: "main",
+			baseRef: "origin/main",
+			fetchTarget: { remote: "origin", branch: "main" },
+		});
+	});
+
 	test("returns null when no default branch can be resolved", async () => {
 		const emptyRepo = mkTmp();
 		try {
@@ -185,9 +200,9 @@ describe("resolveBaseComparison (integration)", () => {
 	});
 });
 
-// ── getDefaultBranchName ───────────────────────────────────────────
+// ── readOriginHeadBranch ───────────────────────────────────────────
 
-describe("getDefaultBranchName (integration)", () => {
+describe("readOriginHeadBranch (integration)", () => {
 	let repo: string;
 	let git: SimpleGit;
 
@@ -201,29 +216,61 @@ describe("getDefaultBranchName (integration)", () => {
 		rmSync(repo, { recursive: true, force: true });
 	});
 
+	async function pointOriginHeadAt(branch: string) {
+		await git.raw([
+			"symbolic-ref",
+			"refs/remotes/origin/HEAD",
+			`refs/remotes/origin/${branch}`,
+		]);
+	}
+
 	test("returns null when origin/HEAD not set", async () => {
-		expect(await getDefaultBranchName(git)).toBeNull();
+		expect(await readOriginHeadBranch(git)).toBeNull();
 	});
 
-	test("returns 'main' when origin/HEAD points at origin/main", async () => {
+	test("returns the branch origin/HEAD points at", async () => {
+		await git.raw(["update-ref", "refs/remotes/origin/main", "HEAD"]);
+		await pointOriginHeadAt("main");
+		expect(await readOriginHeadBranch(git)).toBe("main");
+	});
+
+	// git writes origin/HEAD at clone time and never refreshes it, so the
+	// symref outlives the branch it names. Reading it without checking hands
+	// back a branch nothing can be forked from.
+	test("returns null when origin/HEAD points at a branch that is gone", async () => {
+		await git.raw(["update-ref", "refs/remotes/origin/master", "HEAD"]);
+		await pointOriginHeadAt("master");
+		await git.raw(["update-ref", "-d", "refs/remotes/origin/master"]);
+		expect(await readOriginHeadBranch(git)).toBeNull();
+	});
+
+	// The check is local, so it only fires once the branch is actually gone.
+	// A plain `git fetch` keeps the old remote-tracking ref, so after an
+	// upstream rename the symref still looks valid until a `--prune`.
+	// `git remote set-head origin --auto` is what settles it.
+	test("still returns the old branch when it survives unpruned", async () => {
+		await git.raw(["update-ref", "refs/remotes/origin/master", "HEAD"]);
+		await git.raw(["update-ref", "refs/remotes/origin/main", "HEAD"]);
+		await pointOriginHeadAt("master");
+		expect(await readOriginHeadBranch(git)).toBe("master");
+	});
+
+	// git accepts a symref aimed anywhere, and the short form of
+	// `refs/heads/feature` is bare `feature`, which looks exactly like a
+	// remote-tracking branch name. Detection must not read it as one.
+	test("returns null when origin/HEAD points outside refs/remotes/origin", async () => {
+		await git.raw(["branch", "feature"]);
+		await git.raw(["update-ref", "refs/remotes/origin/feature", "HEAD"]);
 		await git.raw(["update-ref", "refs/remotes/origin/main", "HEAD"]);
 		await git.raw([
 			"symbolic-ref",
 			"refs/remotes/origin/HEAD",
-			"refs/remotes/origin/main",
+			"refs/heads/feature",
 		]);
-		expect(await getDefaultBranchName(git)).toBe("main");
-	});
 
-	test("returns 'master' when origin/HEAD points at origin/master", async () => {
-		await git.raw(["branch", "master"]);
-		await git.raw(["update-ref", "refs/remotes/origin/master", "HEAD"]);
-		await git.raw([
-			"symbolic-ref",
-			"refs/remotes/origin/HEAD",
-			"refs/remotes/origin/master",
-		]);
-		expect(await getDefaultBranchName(git)).toBe("master");
+		expect(await readOriginHeadBranch(git)).toBeNull();
+		// Falling through to the candidate scan finds the real default.
+		expect(await resolveDefaultBranchName(git)).toBe("main");
 	});
 });
 
