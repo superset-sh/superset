@@ -11,9 +11,10 @@ import {
 } from "../../lib/host/pty-daemon-manifest";
 
 /**
- * SIGTERM a pid, wait up to `timeoutMs`, then SIGKILL if still alive.
- * Returns the pid if it survived SIGKILL (caller should fail), null on
- * clean stop. `ESRCH` (already gone) is not an error.
+ * SIGTERM a pid, wait up to `timeoutMs`, then SIGKILL if still alive and
+ * poll briefly for it to be reaped. Returns the pid if it survived
+ * everything (caller should fail), null on clean stop. `ESRCH` (already
+ * gone) is not an error.
  */
 async function stopProcess(
 	pid: number,
@@ -44,8 +45,14 @@ async function stopProcess(
 			`Failed to SIGKILL ${label} (pid ${pid}): ${err.message}`,
 		);
 	}
-	// Give SIGKILL a moment to land, then report survival as a failure.
-	await new Promise((r) => setTimeout(r, 200));
+	// Poll after SIGKILL (rather than a single fixed wait): a process in
+	// uninterruptible sleep can take longer than 200ms to be reaped, and
+	// the result should reflect the actual outcome.
+	const reapDeadline = Date.now() + 2_000;
+	while (Date.now() < reapDeadline) {
+		if (!isProcessAlive(pid)) return null;
+		await new Promise((r) => setTimeout(r, 100));
+	}
 	return isProcessAlive(pid) ? pid : null;
 }
 
@@ -63,29 +70,43 @@ export default command({
 		const manifest = readManifest(organization.id);
 		const daemonManifest = readPtyDaemonManifest(organization.id);
 
+		const failures: string[] = [];
 		const stopped: Array<{ label: string; pid: number }> = [];
-		if (manifest && isProcessAlive(manifest.pid)) {
-			await stopProcess(manifest.pid, "host service", 10_000);
-			stopped.push({ label: "host service", pid: manifest.pid });
-		}
-		removeManifest(organization.id);
 
-		let daemonSurvived: number | null = null;
+		// Only remove each manifest once the process is CONFIRMED dead: a
+		// survivor must stay discoverable by `superset start`/`stop` rather
+		// than being orphaned without a manifest.
+		if (manifest && isProcessAlive(manifest.pid)) {
+			const survived = await stopProcess(manifest.pid, "host service", 10_000);
+			if (survived !== null) {
+				failures.push(`host service (pid ${survived}) survived SIGKILL`);
+			} else {
+				stopped.push({ label: "host service", pid: manifest.pid });
+			}
+			removeManifest(organization.id);
+		} else {
+			removeManifest(organization.id);
+		}
+
 		if (daemonManifest && isProcessAlive(daemonManifest.pid)) {
-			daemonSurvived = await stopProcess(
+			const survived = await stopProcess(
 				daemonManifest.pid,
 				"pty-daemon",
 				5_000,
 			);
-			if (daemonSurvived === null) {
+			if (survived !== null) {
+				failures.push(`pty-daemon (pid ${survived}) survived SIGKILL`);
+			} else {
 				stopped.push({ label: "pty-daemon", pid: daemonManifest.pid });
 			}
+			removePtyDaemonManifest(organization.id);
+		} else {
+			removePtyDaemonManifest(organization.id);
 		}
-		removePtyDaemonManifest(organization.id);
 
-		if (daemonSurvived !== null) {
+		if (failures.length > 0) {
 			throw new CLIError(
-				`Failed to stop pty-daemon (pid ${daemonSurvived}): process survived SIGKILL`,
+				`Failed to stop: ${failures.join("; ")} — the process may still be running`,
 			);
 		}
 

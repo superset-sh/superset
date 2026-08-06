@@ -1,11 +1,4 @@
-import {
-	existsSync,
-	mkdirSync,
-	readFileSync,
-	renameSync,
-	rmSync,
-	writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { SUPERSET_HOME_DIR } from "../config";
 
@@ -46,7 +39,12 @@ export function readPtyDaemonManifest(
 		const raw = readFileSync(path, "utf-8");
 		const data = JSON.parse(raw) as Record<string, unknown>;
 		if (
+			// pid must be a positive safe integer: a negative pid (e.g. -1)
+			// would make process.kill target a process group, and a stale
+			// reused pid could kill an unrelated process.
 			typeof data.pid !== "number" ||
+			!Number.isSafeInteger(data.pid) ||
+			data.pid <= 0 ||
 			typeof data.socketPath !== "string" ||
 			!Array.isArray(data.protocolVersions) ||
 			typeof data.startedAt !== "number" ||
@@ -83,21 +81,4 @@ export function removePtyDaemonManifest(organizationId: string): void {
 	if (existsSync(path)) {
 		rmSync(path, { force: true });
 	}
-}
-
-export function writePtyDaemonManifest(manifest: PtyDaemonManifest): void {
-	const dir = join(SUPERSET_HOME_DIR, "host", manifest.organizationId);
-	if (!existsSync(dir)) {
-		mkdirSync(dir, { recursive: true, mode: 0o700 });
-	}
-	// Atomic replace: write a temp file in the same directory, then rename
-	// over the manifest. A concurrent reader never sees truncated JSON
-	// (writeFileSync truncates before writing), which previously made
-	// readPtyDaemonManifest return null and skip daemon shutdown/cleanup.
-	const tmpPath = `${ptyDaemonManifestPath(manifest.organizationId)}.tmp`;
-	writeFileSync(tmpPath, JSON.stringify(manifest), {
-		encoding: "utf-8",
-		mode: 0o600,
-	});
-	renameSync(tmpPath, ptyDaemonManifestPath(manifest.organizationId));
 }
