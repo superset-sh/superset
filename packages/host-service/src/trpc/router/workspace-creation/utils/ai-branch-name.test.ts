@@ -2,7 +2,11 @@ import { afterEach, describe, expect, mock, test } from "bun:test";
 
 // Mock the two module boundaries generateBranchNameFromPrompt crosses:
 // the model provider (getSmallModel) and the chat title generator.
-const getSmallModelMock = mock(async () => ({ id: "small-model" }));
+const getSmallModelMock = mock<() => Promise<{ id: string } | null>>(
+	async () => ({
+		id: "small-model",
+	}),
+);
 const generateTitleMock = mock(async () => "feature-branch");
 
 mock.module("@superset/chat-legacy/server/shared", () => ({
@@ -93,5 +97,25 @@ describe("generateBranchNameFromPrompt", () => {
 		expect(await generateBranchNameFromPrompt("Fix the login flow", [])).toBe(
 			"fix-login-flow",
 		);
+	});
+
+	test("returns null when no model is available", async () => {
+		getSmallModelMock.mockImplementation(async () => null);
+		expect(await generateBranchNameFromPrompt("add auth flow", [])).toBeNull();
+	});
+
+	test("returns null when generation rejects (timeout)", async () => {
+		getSmallModelMock.mockImplementation(async () => ({ id: "small-model" }));
+		generateTitleMock.mockImplementation(async () => {
+			throw new Error("timed out after 5000ms");
+		});
+		expect(await generateBranchNameFromPrompt("add auth flow", [])).toBeNull();
+	});
+
+	test("deduplicates a plausible generated name against existing branches", async () => {
+		generateTitleMock.mockImplementation(async () => "feat-auth-flow");
+		expect(
+			await generateBranchNameFromPrompt("add auth flow", ["feat-auth-flow"]),
+		).toBe("feat-auth-flow-2");
 	});
 });
