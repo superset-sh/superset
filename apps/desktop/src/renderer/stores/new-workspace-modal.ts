@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { useNewWorkspaceDraftStore } from "./new-workspace-draft";
 
 interface PendingWorkspace {
 	id: string;
@@ -54,6 +55,13 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 
 			closeModal: () => {
 				set({ isOpen: false, preSelectedProjectId: null });
+				// #5372: a seeded draft (e.g. the Setup-scripts prompt written
+				// by V2SetupScriptCard) must not survive dismissing the modal —
+				// otherwise the next "New Workspace" opens pre-filled with a
+				// prompt the user never asked for. Every seed path calls
+				// resetDraft() before updateDraft(), so resetting here is safe
+				// and makes the dismiss the single cleanup point.
+				useNewWorkspaceDraftStore.getState().resetDraft();
 			},
 
 			setPendingWorkspace: (workspace: PendingWorkspace | null) => {
