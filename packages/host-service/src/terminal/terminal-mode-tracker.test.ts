@@ -59,16 +59,66 @@ describe("createModeTracker", () => {
 	});
 
 	test("focus reporting and mouse tracking are captured", () => {
-		// `?1002h` is button-tracking, NOT SGR encoding (`?1006h`). xterm.js's
-		// public IModes doesn't expose mouse encoding format, so the preamble
-		// can't restore it — clients reattaching mid-session keep the default
-		// X10 encoding. Acceptable today; revisit if a TUI relying on SGR
-		// breaks on reattach.
+		// `?1002h` is button tracking. The program never opts into SGR encoding,
+		// so a reattached client should retain the default X10 encoding.
 		const t = createModeTracker(120, 32);
 		t.feed(enc.encode("\x1b[?1004h\x1b[?1002h"));
 		const preamble = preambleString(t);
 		expect(preamble).toContain("\x1b[?1004h");
 		expect(preamble).toContain("\x1b[?1002h");
+		expect(preamble).not.toContain("?1006");
+		t.dispose();
+	});
+
+	test("alternate screen buffer is captured", () => {
+		const t = createModeTracker(120, 32);
+		t.feed(enc.encode("\x1b[?1049h"));
+		expect(preambleString(t)).toContain("\x1b[?1049h");
+		t.feed(enc.encode("\x1b[?1049l"));
+		expect(preambleString(t)).not.toContain("?1049");
+		t.dispose();
+	});
+
+	test("SGR mouse encoding is captured alongside tracking", () => {
+		const t = createModeTracker(120, 32);
+		t.feed(enc.encode("\x1b[?1002h\x1b[?1006h"));
+		const preamble = preambleString(t);
+		expect(preamble).toContain("\x1b[?1002h");
+		expect(preamble).toContain("\x1b[?1006h");
+
+		t.feed(enc.encode("\x1b[?1006l"));
+		expect(preambleString(t)).not.toContain("?1006");
+		t.dispose();
+	});
+
+	test("SGR pixel mouse encoding is captured alongside tracking", () => {
+		const t = createModeTracker(120, 32);
+		t.feed(enc.encode("\x1b[?1003h\x1b[?1016h"));
+		const preamble = preambleString(t);
+		expect(preamble).toContain("\x1b[?1003h");
+		expect(preamble).toContain("\x1b[?1016h");
+
+		t.feed(enc.encode("\x1b[?1016l"));
+		expect(preambleString(t)).not.toContain("?1016");
+		t.dispose();
+	});
+
+	test("Amp TUI modes survive unrelated output", () => {
+		const t = createModeTracker(120, 32);
+		t.feed(
+			enc.encode("\x1b[?1049h\x1b[?1002h\x1b[?1003h\x1b[?1004h\x1b[?1006h"),
+		);
+
+		const filler = "x".repeat(2048);
+		for (let i = 0; i < 100; i += 1) {
+			t.feed(enc.encode(filler));
+		}
+
+		const preamble = preambleString(t);
+		expect(preamble).toContain("\x1b[?1049h");
+		expect(preamble).toContain("\x1b[?1003h");
+		expect(preamble).toContain("\x1b[?1004h");
+		expect(preamble).toContain("\x1b[?1006h");
 		t.dispose();
 	});
 
