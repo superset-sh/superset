@@ -3,19 +3,19 @@ title: Skills
 description: Superset abilities your coding agents get automatically — orchestration, automations, feedback, diagnostics, and more
 ---
 
-Superset ships a set of skills to the coding agents you already use. In Claude Code they appear under the `superset:` namespace; other agents that read skills (Codex, Kimi, Vibe, Grok) get the same skills with a `superset-` prefix, and the in-app chat exposes the most common ones as slash commands.
+Skills teach the coding agents you already use how to drive Superset — orchestrate parallel agents, create automations, diagnose problems, and more.
 
 ## Installation
 
-**Using the Superset desktop app?** The skills are already installed. The app provisions them automatically at launch — no install step — and keeps them updated as the app updates. Skip ahead to [What You Get](#what-you-get).
+**Using the Superset desktop app?** Skills are already installed — the app provisions them at launch and keeps them updated.
 
-Without the desktop app, install them directly:
+Otherwise, install them directly:
 
 ```bash
 npx skills add superset-sh/skills
 ```
 
-Claude Code users can also use the plugin marketplace:
+Or, in Claude Code, via the plugin marketplace:
 
 ```text
 /plugin marketplace add superset-sh/superset
@@ -42,13 +42,11 @@ You usually don't invoke them — agents pick the right skill from context:
 - "what did my agents do overnight?" → `superset:standup`
 - "run these three refactors in parallel" → `superset:orchestrate`
 
-To invoke one explicitly, use `/superset:feedback` in Claude Code, or `/superset/feedback` in the in-app chat.
+To invoke one explicitly: `/superset:feedback` in Claude Code, or `/superset/feedback` in the in-app chat. Other agents that read skills (Codex, Kimi, Vibe, Grok) see the same skills with a `superset-` prefix.
 
 ## How They're Delivered
 
-The desktop app writes managed copies into the standard discovery locations at launch: `~/.claude/skills/superset/` (loaded by Claude Code as a plugin, which is where the `superset:` namespace comes from), `~/.agents/skills/`, and `~/.agents/commands/`.
+At launch, the desktop app writes managed copies into the standard discovery locations: `~/.claude/skills/superset/` (loaded by Claude Code as a plugin — hence the `superset:` namespace), `~/.agents/skills/`, and `~/.agents/commands/`.
 
-Two rules keep this safe:
-
-- **Your files are never touched.** Anything Superset manages carries a marker; a skill or command you authored yourself at the same path is left alone.
-- **Updates and removals are automatic.** Managed skills are refreshed on every app launch, and ones that no longer ship are cleaned up.
+- **Your files are never touched.** Managed files carry a marker; a skill or command you authored at the same path is left alone.
+- **Updates are automatic.** Managed skills refresh on every app launch, and ones that no longer ship are cleaned up.
