@@ -75,31 +75,48 @@ export default command({
 
 		// Only remove each manifest once the process is CONFIRMED dead: a
 		// survivor must stay discoverable by `superset start`/`stop` rather
-		// than being orphaned without a manifest.
+		// than being orphaned without a manifest. A throw from stopProcess
+		// (e.g. SIGTERM refused) is recorded and daemon cleanup still runs.
 		if (manifest && isProcessAlive(manifest.pid)) {
-			const survived = await stopProcess(manifest.pid, "host service", 10_000);
+			let survived: number | null;
+			try {
+				survived = await stopProcess(manifest.pid, "host service", 10_000);
+			} catch (error) {
+				failures.push(
+					`host service (pid ${manifest.pid}): ${
+						error instanceof Error ? error.message : String(error)
+					}`,
+				);
+				survived = null;
+			}
 			if (survived !== null) {
 				failures.push(`host service (pid ${survived}) survived SIGKILL`);
 			} else {
 				stopped.push({ label: "host service", pid: manifest.pid });
 			}
-			removeManifest(organization.id);
+			if (survived === null) removeManifest(organization.id);
 		} else {
 			removeManifest(organization.id);
 		}
 
 		if (daemonManifest && isProcessAlive(daemonManifest.pid)) {
-			const survived = await stopProcess(
-				daemonManifest.pid,
-				"pty-daemon",
-				5_000,
-			);
+			let survived: number | null;
+			try {
+				survived = await stopProcess(daemonManifest.pid, "pty-daemon", 5_000);
+			} catch (error) {
+				failures.push(
+					`pty-daemon (pid ${daemonManifest.pid}): ${
+						error instanceof Error ? error.message : String(error)
+					}`,
+				);
+				survived = null;
+			}
 			if (survived !== null) {
 				failures.push(`pty-daemon (pid ${survived}) survived SIGKILL`);
 			} else {
 				stopped.push({ label: "pty-daemon", pid: daemonManifest.pid });
 			}
-			removePtyDaemonManifest(organization.id);
+			if (survived === null) removePtyDaemonManifest(organization.id);
 		} else {
 			removePtyDaemonManifest(organization.id);
 		}
