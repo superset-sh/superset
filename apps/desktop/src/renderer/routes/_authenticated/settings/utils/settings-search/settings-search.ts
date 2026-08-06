@@ -20,6 +20,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_CLAUDE_TAB_DECORATION: "appearance-claude-tab-decoration",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -134,6 +135,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_CLAUDE_TAB_DECORATION]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -454,6 +456,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"weight",
 			"ligatures",
 			"custom",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_CLAUDE_TAB_DECORATION,
+		section: "appearance",
+		title: "Claude Code session name & color",
+		description: "Reflect a Claude Code session's /rename and /color in tabs",
+		keywords: [
+			"appearance",
+			"claude",
+			"claude code",
+			"tab",
+			"tabs",
+			"rename",
+			"color",
+			"title",
+			"session",
+			"decoration",
 		],
 	},
 	{

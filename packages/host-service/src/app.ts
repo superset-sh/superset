@@ -28,6 +28,7 @@ import { PullRequestRuntimeManager } from "./runtime/pull-requests";
 import { runWorkspaceBackfill } from "./runtime/workspace-backfill";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import {
+	ClaudeTranscriptWatcher,
 	SqliteTerminalAgentBindingPersistence,
 	TerminalAgentStore,
 } from "./terminal-agents";
@@ -213,6 +214,15 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		);
 	}
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
+	// Claude Code exposes no API/hook/IPC for a session's `/color` or
+	// auto-generated title — this tails the session's own transcript file for
+	// them (see claude-transcript.ts for why). Purely additive: title/color
+	// stay undefined until the watcher finds them.
+	const claudeTranscriptWatcher = new ClaudeTranscriptWatcher(
+		terminalAgentStore,
+		eventBus,
+	);
+	claudeTranscriptWatcher.start();
 
 	// Startup sweeps run in the background so they don't block server
 	// startup. Ordering matters: the backfills fill identity fields on
@@ -322,6 +332,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			gitWatcher.close();
 		} catch (err) {
 			console.warn("[host-service] gitWatcher.close failed:", err);
+		}
+		try {
+			claudeTranscriptWatcher.close();
+		} catch (err) {
+			console.warn("[host-service] claudeTranscriptWatcher.close failed:", err);
 		}
 		if (ownsDb) {
 			try {

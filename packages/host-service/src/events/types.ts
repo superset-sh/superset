@@ -34,6 +34,19 @@ export interface AgentLifecycleMessage {
 	occurredAt: number;
 }
 
+/**
+ * Fired when a Claude Code binding's live-derived `title`/`color` changes
+ * (see `ClaudeTranscriptWatcher`). Deliberately separate from
+ * `agent:lifecycle` — that type's `eventType` drives the working
+ * indicator/completion chime, and a meta-only change must not trigger those.
+ */
+export interface AgentMetaMessage {
+	type: "agent:meta";
+	workspaceId: string;
+	terminalId: string;
+	occurredAt: number;
+}
+
 export interface TerminalLifecycleMessage {
 	type: "terminal:lifecycle";
 	workspaceId: string;
@@ -117,6 +130,7 @@ export type ServerMessage =
 	| FsEventsMessage
 	| GitChangedMessage
 	| AgentLifecycleMessage
+	| AgentMetaMessage
 	| TerminalLifecycleMessage
 	| PortChangedMessage
 	| WorkspaceChangedMessage

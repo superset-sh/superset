@@ -19,4 +19,12 @@ export interface TerminalAgentBinding {
 	startedAt: number;
 	lastEventAt: number;
 	lastEventType: string;
+	/**
+	 * Ephemeral, never persisted — derived live from the agent's own local
+	 * state (e.g. a Claude Code transcript file) and re-derivable from
+	 * scratch on host-service restart, so it's kept out of the DB schema.
+	 */
+	cwd?: string;
+	title?: string;
+	color?: string;
 }

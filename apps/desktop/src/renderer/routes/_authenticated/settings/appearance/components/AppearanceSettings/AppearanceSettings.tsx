@@ -4,6 +4,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { ClaudeTabDecorationSection } from "./components/ClaudeTabDecorationSection";
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
@@ -45,6 +46,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT,
 		visibleItems,
 	);
+	const showClaudeTabDecoration = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_CLAUDE_TAB_DECORATION,
+		visibleItems,
+	);
 	const showCustomThemes = isItemVisible(
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
@@ -69,6 +74,9 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 						showEditor={showEditorFont}
 						showTerminal={showTerminalFont}
 					/>
+				)}
+				{showClaudeTabDecoration && (
+					<ClaudeTabDecorationSection key="claude-tab-decoration" />
 				)}
 			</SectionList>
 		</div>

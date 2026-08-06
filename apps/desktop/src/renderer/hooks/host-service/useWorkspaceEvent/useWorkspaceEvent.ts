@@ -1,5 +1,6 @@
 import {
 	type AgentLifecyclePayload,
+	type AgentMetaPayload,
 	type GitChangedPayload,
 	getEventBus,
 	type PortChangedPayload,
@@ -33,6 +34,12 @@ export function useWorkspaceEvent(
 	enabled?: boolean,
 ): void;
 export function useWorkspaceEvent(
+	type: "agent:meta",
+	workspaceId: string,
+	callback: (payload: AgentMetaPayload) => void,
+	enabled?: boolean,
+): void;
+export function useWorkspaceEvent(
 	type: "terminal:lifecycle",
 	workspaceId: string,
 	callback: (payload: TerminalLifecyclePayload) => void,
@@ -49,6 +56,7 @@ export function useWorkspaceEvent(
 		| "git:changed"
 		| "fs:events"
 		| "agent:lifecycle"
+		| "agent:meta"
 		| "terminal:lifecycle"
 		| "port:changed",
 	workspaceId: string,
@@ -56,6 +64,7 @@ export function useWorkspaceEvent(
 		| ((event: FsWatchEvent) => void)
 		| ((payload: GitChangedPayload) => void)
 		| ((payload: AgentLifecyclePayload) => void)
+		| ((payload: AgentMetaPayload) => void)
 		| ((payload: TerminalLifecyclePayload) => void)
 		| ((payload: PortChangedPayload) => void),
 	enabled = true,
@@ -87,6 +96,15 @@ export function useWorkspaceEvent(
 				workspaceId,
 				(_wid, payload) => {
 					(handler as (payload: AgentLifecyclePayload) => void)(payload);
+				},
+			);
+			cleanups.push(removeListener);
+		} else if (type === "agent:meta") {
+			const removeListener = bus.on(
+				"agent:meta",
+				workspaceId,
+				(_wid, payload) => {
+					(handler as (payload: AgentMetaPayload) => void)(payload);
 				},
 			);
 			cleanups.push(removeListener);

@@ -3,6 +3,7 @@ export { useGitChangeEvents } from "./hooks/useGitChangeEvents";
 export {
 	type AgentIdentity,
 	type AgentLifecyclePayload,
+	type AgentMetaPayload,
 	type EventBusHandle,
 	type GitChangedPayload,
 	getEventBus,

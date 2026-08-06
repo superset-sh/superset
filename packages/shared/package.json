@@ -12,6 +12,10 @@
 			"types": "./src/sentry.ts",
 			"default": "./src/sentry.ts"
 		},
+		"./db-connectivity-error": {
+			"types": "./src/db-connectivity-error.ts",
+			"default": "./src/db-connectivity-error.ts"
+		},
 		"./terminal-wheel-handler": {
 			"types": "./src/terminal-wheel-handler/index.ts",
 			"default": "./src/terminal-wheel-handler/index.ts"

@@ -175,6 +175,17 @@ export class EventBus {
 	}
 
 	/**
+	 * Fan out a Claude Code binding's live-derived title/color change. Kept
+	 * separate from `broadcastAgentLifecycle` so a meta-only update never
+	 * carries an `eventType` that would trigger the working indicator/chime.
+	 */
+	broadcastAgentMeta(
+		message: Omit<Extract<ServerMessage, { type: "agent:meta" }>, "type">,
+	): void {
+		this.broadcast({ type: "agent:meta", ...message });
+	}
+
+	/**
 	 * Fan out terminal process lifecycle events to renderer clients. Agent hook
 	 * status can otherwise get stuck when a terminal exits while its pane is not
 	 * mounted and therefore cannot observe the terminal websocket `exit` packet.

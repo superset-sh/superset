@@ -10,6 +10,13 @@ interface RecordEventInput {
 	agentSessionId?: string;
 	definitionId?: AgentDefinitionId;
 	occurredAt: number;
+	cwd?: string;
+}
+
+interface LiveAgentMeta {
+	cwd?: string;
+	title?: string;
+	color?: string;
 }
 
 export interface TerminalAgentBindingListFilter {
@@ -51,6 +58,13 @@ export interface TerminalAgentBindingPersistence {
 export class TerminalAgentStore extends EventEmitter {
 	private readonly byTerminal = new Map<string, TerminalAgentBinding>();
 	private readonly persistence: TerminalAgentBindingPersistence | undefined;
+	/**
+	 * Live-derived metadata (cwd/title/color), keyed by terminalId. Never
+	 * persisted — DB-backed reads (`listLiveByWorkspace` etc.) bypass
+	 * `byTerminal` entirely, so this overlay is applied to every read path
+	 * regardless of whether persistence is configured.
+	 */
+	private readonly liveMeta = new Map<string, LiveAgentMeta>();
 
 	constructor(persistence?: TerminalAgentBindingPersistence) {
 		super();
@@ -70,11 +84,19 @@ export class TerminalAgentStore extends EventEmitter {
 			agentSessionId,
 			definitionId,
 			occurredAt,
+			cwd,
 		} = input;
 
 		if (EXIT_EVENT_TYPES.has(eventType)) {
 			this.deleteTerminal(terminalId);
 			return;
+		}
+
+		if (cwd) {
+			this.liveMeta.set(terminalId, {
+				...this.liveMeta.get(terminalId),
+				cwd,
+			});
 		}
 
 		const existing = this.byTerminal.get(terminalId);
@@ -140,8 +162,34 @@ export class TerminalAgentStore extends EventEmitter {
 		if (changed) this.emit("change", workspaceId);
 	}
 
+	/**
+	 * Called by the transcript watcher when it detects a new `agent-color`
+	 * or `ai-title` line. No-ops (and skips the change event) when neither
+	 * value actually changed, so a rescan tick doesn't cause needless
+	 * cache invalidation.
+	 */
+	updateAgentMeta(
+		terminalId: string,
+		workspaceId: string,
+		meta: { title?: string; color?: string },
+	): void {
+		const existing = this.liveMeta.get(terminalId);
+		if (existing?.title === meta.title && existing?.color === meta.color) {
+			return;
+		}
+		this.liveMeta.set(terminalId, { ...existing, ...meta });
+		this.emit("change", workspaceId);
+	}
+
+	private withLiveMeta(binding: TerminalAgentBinding): TerminalAgentBinding {
+		const meta = this.liveMeta.get(binding.terminalId);
+		if (!meta) return binding;
+		return { ...binding, ...meta };
+	}
+
 	get(terminalId: string): TerminalAgentBinding | undefined {
-		return this.byTerminal.get(terminalId);
+		const binding = this.byTerminal.get(terminalId);
+		return binding ? this.withLiveMeta(binding) : undefined;
 	}
 
 	listByWorkspace(
@@ -149,7 +197,9 @@ export class TerminalAgentStore extends EventEmitter {
 		filter?: TerminalAgentBindingListFilter,
 	): TerminalAgentBinding[] {
 		if (this.persistence?.listLiveByWorkspace) {
-			return this.persistence.listLiveByWorkspace(workspaceId, filter);
+			return this.persistence
+				.listLiveByWorkspace(workspaceId, filter)
+				.map((binding) => this.withLiveMeta(binding));
 		}
 		const out: TerminalAgentBinding[] = [];
 		for (const binding of this.byTerminal.values()) {
@@ -157,16 +207,20 @@ export class TerminalAgentStore extends EventEmitter {
 			if (filter?.agentId && binding.agentId !== filter.agentId) continue;
 			if (filter?.definitionId && binding.definitionId !== filter.definitionId)
 				continue;
-			out.push(binding);
+			out.push(this.withLiveMeta(binding));
 		}
 		return out;
 	}
 
 	list(): TerminalAgentBinding[] {
 		if (this.persistence?.listLive) {
-			return this.persistence.listLive();
+			return this.persistence
+				.listLive()
+				.map((binding) => this.withLiveMeta(binding));
 		}
-		return [...this.byTerminal.values()];
+		return [...this.byTerminal.values()].map((binding) =>
+			this.withLiveMeta(binding),
+		);
 	}
 
 	findActive(
@@ -175,11 +229,12 @@ export class TerminalAgentStore extends EventEmitter {
 		definitionId?: AgentDefinitionId,
 	): TerminalAgentBinding | undefined {
 		if (this.persistence?.findLiveActive) {
-			return this.persistence.findLiveActive(
+			const binding = this.persistence.findLiveActive(
 				workspaceId,
 				agentId,
 				definitionId,
 			);
+			return binding ? this.withLiveMeta(binding) : undefined;
 		}
 		let best: TerminalAgentBinding | undefined;
 		for (const binding of this.byTerminal.values()) {
@@ -191,13 +246,14 @@ export class TerminalAgentStore extends EventEmitter {
 				best = binding;
 			}
 		}
-		return best;
+		return best ? this.withLiveMeta(best) : undefined;
 	}
 
 	private deleteTerminal(terminalId: string): void {
 		const existing = this.byTerminal.get(terminalId);
 		if (!existing) return;
 		this.byTerminal.delete(terminalId);
+		this.liveMeta.delete(terminalId);
 		this.persistence?.delete(terminalId);
 		this.emit("change", existing.workspaceId);
 	}

@@ -377,4 +377,105 @@ describe("TerminalAgentStore", () => {
 		persistentStore.markTerminalExited("t1");
 		expect(persisted.has("t1")).toBe(false);
 	});
+
+	it("overlays cwd from recordEvent and title/color from updateAgentMeta onto every read path", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+			cwd: "/repo",
+		});
+		store.updateAgentMeta("t1", WORKSPACE, {
+			title: "My session",
+			color: "blue",
+		});
+
+		const expected = { cwd: "/repo", title: "My session", color: "blue" };
+		expect(store.get("t1")).toMatchObject(expected);
+		expect(store.listByWorkspace(WORKSPACE)[0]).toMatchObject(expected);
+		expect(store.list()[0]).toMatchObject(expected);
+		expect(store.findActive(WORKSPACE, "claude")).toMatchObject(expected);
+	});
+
+	it("overlays live meta on top of DB-backed persistence reads, not just the in-memory map", () => {
+		const persisted: TerminalAgentBinding = {
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			agentId: "claude",
+			startedAt: 100,
+			lastEventAt: 100,
+			lastEventType: "Start",
+		};
+		const persistentStore = new TerminalAgentStore({
+			load: () => [],
+			upsert: () => {},
+			delete: () => {},
+			listLiveByWorkspace: () => [persisted],
+		});
+
+		persistentStore.updateAgentMeta("t1", WORKSPACE, {
+			title: "From transcript",
+			color: "red",
+		});
+
+		expect(persistentStore.listByWorkspace(WORKSPACE)[0]).toMatchObject({
+			title: "From transcript",
+			color: "red",
+		});
+	});
+
+	it("updateAgentMeta merges partial updates without clobbering a previously known field", () => {
+		store.updateAgentMeta("t1", WORKSPACE, { color: "red" });
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.updateAgentMeta("t1", WORKSPACE, { title: "Later title" });
+
+		const binding = store.get("t1");
+		expect(binding?.color).toBe("red");
+		expect(binding?.title).toBe("Later title");
+	});
+
+	it("updateAgentMeta is a no-op (no change event) when nothing actually changed", () => {
+		store.updateAgentMeta("t1", WORKSPACE, { title: "Same", color: "red" });
+
+		const events: string[] = [];
+		store.on("change", (workspaceId: string) => {
+			events.push(workspaceId);
+		});
+		store.updateAgentMeta("t1", WORKSPACE, { title: "Same", color: "red" });
+
+		expect(events).toEqual([]);
+	});
+
+	it("clears live meta when the terminal is deleted", () => {
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 100,
+		});
+		store.updateAgentMeta("t1", WORKSPACE, {
+			title: "Gone soon",
+			color: "red",
+		});
+		store.markTerminalExited("t1");
+
+		store.recordEvent({
+			terminalId: "t1",
+			workspaceId: WORKSPACE,
+			eventType: "Attached",
+			agentId: "claude",
+			occurredAt: 200,
+		});
+		expect(store.get("t1")?.title).toBeUndefined();
+		expect(store.get("t1")?.color).toBeUndefined();
+	});
 });

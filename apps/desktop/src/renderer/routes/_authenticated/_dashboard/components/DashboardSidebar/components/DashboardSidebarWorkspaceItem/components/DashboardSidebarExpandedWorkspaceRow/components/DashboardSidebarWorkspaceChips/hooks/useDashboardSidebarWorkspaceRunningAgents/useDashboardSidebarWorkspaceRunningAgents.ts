@@ -28,6 +28,13 @@ export interface DashboardSidebarRunningAgent {
 	startedAt: number;
 	/** Agent display name (e.g. "Claude"). */
 	label: string;
+	/**
+	 * Session title/color, when known — derived live from the agent's own
+	 * state (e.g. Claude Code's `/color` and auto-generated title) rather
+	 * than a static catalog value. Falls back to `label` when absent.
+	 */
+	title?: string;
+	color?: string;
 }
 
 /**
@@ -56,6 +63,8 @@ export function useDashboardSidebarWorkspaceRunningAgents(
 				status: statuses.get(binding.terminalId) ?? "idle",
 				startedAt: binding.startedAt,
 				label: AGENT_IDENTITY_LABELS[binding.agentId] ?? binding.agentId,
+				...(binding.title ? { title: binding.title } : {}),
+				...(binding.color ? { color: binding.color } : {}),
 			});
 		}
 		agents.sort((a, b) => a.startedAt - b.startedAt);

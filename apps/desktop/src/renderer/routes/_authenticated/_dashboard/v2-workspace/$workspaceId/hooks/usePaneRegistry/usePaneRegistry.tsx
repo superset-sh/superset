@@ -9,7 +9,7 @@ import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import {
 	LuArrowDownToLine,
 	LuClipboard,
@@ -17,6 +17,7 @@ import {
 	LuEraser,
 	LuPower,
 } from "react-icons/lu";
+import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { FileIcon } from "renderer/lib/fileIcons";
 import { getBaseName } from "renderer/lib/pathBasename";
@@ -28,6 +29,7 @@ import { consumeTerminalBackgroundIntent } from "renderer/lib/terminal/terminal-
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useClaudeTabDecorationEnabled } from "renderer/stores/claude-tab-decoration";
 import { getV2NotificationSourcesForPane } from "renderer/stores/v2-notifications";
 import type { StoreApi } from "zustand/vanilla";
 import { V2NotificationStatusIndicator } from "../../components/V2NotificationStatusIndicator";
@@ -118,6 +120,12 @@ export function usePaneRegistry({
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
 	const workspaceId = workspace.id;
+	// Claude Code exposes no live title/rename hook of its own, so this reads
+	// its transcript file directly. It wins below over the PTY's OSC-scanned
+	// title, which only updates whenever Claude Code's TUI happens to next
+	// re-emit its own title escape — always one step stale relative to this.
+	const terminalAgentBindings = useTerminalAgentBindings(workspaceId);
+	const claudeTabDecorationEnabled = useClaudeTabDecorationEnabled();
 	const runAgent = workspaceTrpc.agents.run.useMutation();
 	const collections = useCollections();
 	const clearShortcut = useHotkeyDisplay("CLEAR_TERMINAL").text;
@@ -163,6 +171,28 @@ export function usePaneRegistry({
 		},
 		[collections.v2WorkspaceLocalState, workspaceId],
 	);
+
+	// A terminal pane's `titleOverride` only ever holds the static label set at
+	// launch (e.g. "Claude") — there's no UI that lets a user set it to a
+	// custom string, so it's always safe to clear once the session has a real
+	// derived title to show instead. (A genuine user rename lives on
+	// `tab.titleOverride`, which this never touches.)
+	useEffect(() => {
+		if (!claudeTabDecorationEnabled) return;
+		const state = store.getState();
+		for (const tab of state.tabs) {
+			for (const pane of Object.values(tab.panes)) {
+				if (pane.kind !== "terminal" || !pane.titleOverride) continue;
+				const { terminalId } = pane.data as TerminalPaneData;
+				if (!terminalAgentBindings.get(terminalId)?.title) continue;
+				state.setPaneTitleOverride({
+					tabId: tab.id,
+					paneId: pane.id,
+					titleOverride: undefined,
+				});
+			}
+		}
+	}, [store, terminalAgentBindings, claudeTabDecorationEnabled]);
 
 	const createNewAgentSession = useCallback(
 		async (input: {
@@ -321,9 +351,13 @@ export function usePaneRegistry({
 								instanceId,
 							),
 						getSnapshot: () =>
+							(claudeTabDecorationEnabled
+								? terminalAgentBindings.get(terminalId)?.title
+								: undefined) ||
 							terminalRuntimeRegistry
 								.getTitle(terminalId, instanceId)
-								?.trim() || undefined,
+								?.trim() ||
+							undefined,
 					};
 				},
 				onBeforeClose: (pane) => {
@@ -585,6 +619,8 @@ export function usePaneRegistry({
 			onRevealPath,
 			createNewAgentSession,
 			workspaceTrpcUtils,
+			terminalAgentBindings,
+			claudeTabDecorationEnabled,
 		],
 	);
 }

@@ -1,3 +1,4 @@
+export { ClaudeTranscriptWatcher } from "./claude-transcript-watcher";
 export { SqliteTerminalAgentBindingPersistence } from "./persistence";
 export type {
 	TerminalAgentBindingListFilter,

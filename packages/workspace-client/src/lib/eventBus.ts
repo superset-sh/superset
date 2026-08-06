@@ -13,6 +13,7 @@ type EventType =
 	| "fs:events"
 	| "git:changed"
 	| "agent:lifecycle"
+	| "agent:meta"
 	| "terminal:lifecycle"
 	| "port:changed"
 	| "workspace:changed"
@@ -35,6 +36,11 @@ export interface AgentLifecyclePayload {
 	terminalId: string;
 	// Absent when the hook ran without `SUPERSET_AGENT_ID` set.
 	agent?: AgentIdentity;
+	occurredAt: number;
+}
+
+export interface AgentMetaPayload {
+	terminalId: string;
 	occurredAt: number;
 }
 
@@ -93,15 +99,17 @@ type EventListener<T extends EventType> = T extends "fs:events"
 		? (workspaceId: string, payload: GitChangedPayload) => void
 		: T extends "agent:lifecycle"
 			? (workspaceId: string, payload: AgentLifecyclePayload) => void
-			: T extends "terminal:lifecycle"
-				? (workspaceId: string, payload: TerminalLifecyclePayload) => void
-				: T extends "port:changed"
-					? (workspaceId: string, payload: PortChangedPayload) => void
-					: T extends "workspace:changed"
-						? (workspaceId: string, payload: WorkspaceChangedPayload) => void
-						: T extends "project:changed"
-							? (projectId: string, payload: ProjectChangedPayload) => void
-							: never;
+			: T extends "agent:meta"
+				? (workspaceId: string, payload: AgentMetaPayload) => void
+				: T extends "terminal:lifecycle"
+					? (workspaceId: string, payload: TerminalLifecyclePayload) => void
+					: T extends "port:changed"
+						? (workspaceId: string, payload: PortChangedPayload) => void
+						: T extends "workspace:changed"
+							? (workspaceId: string, payload: WorkspaceChangedPayload) => void
+							: T extends "project:changed"
+								? (projectId: string, payload: ProjectChangedPayload) => void
+								: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -155,6 +163,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			message.type === "fs:events" ||
 			message.type === "git:changed" ||
 			message.type === "agent:lifecycle" ||
+			message.type === "agent:meta" ||
 			message.type === "terminal:lifecycle" ||
 			message.type === "port:changed" ||
 			message.type === "workspace:changed"
@@ -189,6 +198,11 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 					occurredAt: message.occurredAt,
 				},
 			);
+		} else if (message.type === "agent:meta") {
+			(entry.callback as EventListener<"agent:meta">)(message.workspaceId, {
+				terminalId: message.terminalId,
+				occurredAt: message.occurredAt,
+			});
 		} else if (message.type === "terminal:lifecycle") {
 			(entry.callback as EventListener<"terminal:lifecycle">)(
 				message.workspaceId,

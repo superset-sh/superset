@@ -32,6 +32,7 @@ interface TabBarProps<TData> {
 	onReorderTab: (tabId: string, toIndex: number) => void;
 	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
+	renderTabContentWrapper?: (tab: Tab<TData>, children: ReactNode) => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
 	renderTabBarLeading?: () => ReactNode;
 	renderTabBarTrailing?: () => ReactNode;
@@ -83,6 +84,7 @@ export function TabBar<TData>({
 	onReorderTab,
 	onMovePaneToNewTab,
 	renderTabIcon,
+	renderTabContentWrapper,
 	renderAddTabMenu,
 	renderTabBarLeading,
 	renderTabBarTrailing,
@@ -209,6 +211,7 @@ export function TabBar<TData>({
 								onCloseAll={onCloseAllTabs}
 								onRename={(title) => onRenameTab(tab.id, title)}
 								icon={renderTabIcon?.(tab)}
+								renderContentWrapper={renderTabContentWrapper}
 								accessory={renderTabAccessory?.(tab)}
 							/>
 						</div>
