@@ -2,6 +2,7 @@ import {
 	existsSync,
 	mkdirSync,
 	readFileSync,
+	renameSync,
 	rmSync,
 	writeFileSync,
 } from "node:fs";
@@ -42,7 +43,36 @@ export function readPtyDaemonManifest(
 	const path = ptyDaemonManifestPath(organizationId);
 	if (!existsSync(path)) return null;
 	try {
-		return JSON.parse(readFileSync(path, "utf-8")) as PtyDaemonManifest;
+		const raw = readFileSync(path, "utf-8");
+		const data = JSON.parse(raw) as Record<string, unknown>;
+		if (
+			typeof data.pid !== "number" ||
+			typeof data.socketPath !== "string" ||
+			!Array.isArray(data.protocolVersions) ||
+			typeof data.startedAt !== "number" ||
+			typeof data.organizationId !== "string"
+		) {
+			return null;
+		}
+		// Phase 2 (handoff) fields are optional advisory state; validate their
+		// shape if present but never reject the whole manifest for garbage.
+		const out: PtyDaemonManifest = {
+			pid: data.pid,
+			socketPath: data.socketPath,
+			protocolVersions: data.protocolVersions,
+			startedAt: data.startedAt,
+			organizationId: data.organizationId,
+		};
+		if (typeof data.handoffInProgress === "boolean") {
+			out.handoffInProgress = data.handoffInProgress;
+		}
+		if (typeof data.handoffSnapshotPath === "string") {
+			out.handoffSnapshotPath = data.handoffSnapshotPath;
+		}
+		if (typeof data.handoffSuccessorPid === "number") {
+			out.handoffSuccessorPid = data.handoffSuccessorPid;
+		}
+		return out;
 	} catch {
 		return null;
 	}
@@ -60,9 +90,14 @@ export function writePtyDaemonManifest(manifest: PtyDaemonManifest): void {
 	if (!existsSync(dir)) {
 		mkdirSync(dir, { recursive: true, mode: 0o700 });
 	}
-	writeFileSync(
-		ptyDaemonManifestPath(manifest.organizationId),
-		JSON.stringify(manifest),
-		{ encoding: "utf-8", mode: 0o600 },
-	);
+	// Atomic replace: write a temp file in the same directory, then rename
+	// over the manifest. A concurrent reader never sees truncated JSON
+	// (writeFileSync truncates before writing), which previously made
+	// readPtyDaemonManifest return null and skip daemon shutdown/cleanup.
+	const tmpPath = `${ptyDaemonManifestPath(manifest.organizationId)}.tmp`;
+	writeFileSync(tmpPath, JSON.stringify(manifest), {
+		encoding: "utf-8",
+		mode: 0o600,
+	});
+	renameSync(tmpPath, ptyDaemonManifestPath(manifest.organizationId));
 }
