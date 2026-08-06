@@ -3,7 +3,23 @@ title: Skills
 description: Superset abilities your coding agents get automatically — orchestration, automations, feedback, diagnostics, and more
 ---
 
-Superset ships a set of skills to the coding agents you already use. The desktop app provisions them automatically at launch — no install step — and keeps them updated as the app updates. In Claude Code they appear under the `superset:` namespace; other agents that read skills (Codex, Kimi, Vibe, Grok) get the same skills with a `superset-` prefix, and the in-app chat exposes the most common ones as slash commands.
+Superset ships a set of skills to the coding agents you already use. In Claude Code they appear under the `superset:` namespace; other agents that read skills (Codex, Kimi, Vibe, Grok) get the same skills with a `superset-` prefix, and the in-app chat exposes the most common ones as slash commands.
+
+## Installation
+
+**Using the Superset desktop app?** The skills are already installed. The app provisions them automatically at launch — no install step — and keeps them updated as the app updates. Skip ahead to [What You Get](#what-you-get).
+
+Without the desktop app, install them directly:
+
+```bash
+npx skills add superset-sh/skills
+```
+
+Claude Code users can also use the plugin marketplace:
+
+```text
+/plugin marketplace add superset-sh/superset
+```
 
 ## What You Get
 
@@ -36,17 +52,3 @@ Two rules keep this safe:
 
 - **Your files are never touched.** Anything Superset manages carries a marker; a skill or command you authored yourself at the same path is left alone.
 - **Updates and removals are automatic.** Managed skills are refreshed on every app launch, and ones that no longer ship are cleaned up.
-
-## Without the Desktop App
-
-Standalone agents can install the skills directly:
-
-```bash
-npx skills add superset-sh/skills
-```
-
-Claude Code users can also use the plugin marketplace:
-
-```text
-/plugin marketplace add superset-sh/superset
-```
