@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { HiringBanner } from "renderer/components/HiringBanner";
+import { V2AvailableBanner } from "renderer/components/V2AvailableBanner";
 import { useWorkspaceShortcuts } from "renderer/hooks/useWorkspaceShortcuts";
 import { useWorkspaceSelectionStore } from "renderer/stores/workspace-selection";
 import { MultiDragPreview } from "./MultiDragPreview";
@@ -117,6 +118,8 @@ export function WorkspaceSidebar({
 			/>
 
 			<HiringBanner surface="v1" isCollapsed={isCollapsed} />
+
+			{!isCollapsed && <V2AvailableBanner />}
 
 			<WorkspaceSidebarFooter isCollapsed={isCollapsed} />
 			<MultiDragPreview />

@@ -6,6 +6,7 @@ import {
 	isV1MigrationCompleteAtBoot,
 } from "renderer/lib/v1-migration/completion";
 import { useV2LocalOverrideStore } from "renderer/stores/v2-local-override";
+import { deriveIsV2CloudEnabled } from "./deriveIsV2CloudEnabled";
 
 /**
  * True for accounts created on/after V2_ONLY_USER_CUTOFF — these users
@@ -34,5 +35,9 @@ export function useIsV2CloudEnabled(): boolean {
 		return true;
 	}
 	// Dev builds default to v2; an explicit opt-out (optInV2 === false) still wins.
-	return optInV2 ?? (v2Only || env.NODE_ENV === "development");
+	return deriveIsV2CloudEnabled({
+		optInV2,
+		isV2OnlyUser: v2Only,
+		isDev: env.NODE_ENV === "development",
+	});
 }
