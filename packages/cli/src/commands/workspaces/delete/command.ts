@@ -55,7 +55,7 @@ export default command({
 		// Only annotate branches when asked: without --delete-branch the count
 		// is always 0 and would read as a failure.
 		const deleteMessage = deleteBranch
-			? `${deletedSummary} (${branchesDeleted.length}/${deleted.length} branches deleted)`
+			? `${deletedSummary} (${formatBranchNote(branchesDeleted.length, deleted.length)})`
 			: deletedSummary;
 		return {
 			data: { deleted, branchesDeleted, warnings },
@@ -66,3 +66,15 @@ export default command({
 		};
 	},
 });
+
+/** A single workspace has exactly one branch, so the ratio is noise there —
+ *  say what happened to it instead. */
+function formatBranchNote(
+	branchesDeleted: number,
+	workspacesDeleted: number,
+): string {
+	if (workspacesDeleted === 1) {
+		return branchesDeleted === 1 ? "branch deleted" : "branch not deleted";
+	}
+	return `${branchesDeleted}/${workspacesDeleted} branches deleted`;
+}

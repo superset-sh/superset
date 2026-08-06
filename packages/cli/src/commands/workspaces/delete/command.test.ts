@@ -78,6 +78,20 @@ describe("workspaces delete", () => {
 		expect(result.message).toBe("Deleted workspace ws_a");
 	});
 
+	test("says what happened to the branch of a single workspace", async () => {
+		// A ratio is noise for one workspace — and "1/1 branches" reads wrong.
+		const deletedBranch = await invoke(["ws_a"], { deleteBranch: true });
+		expect(deletedBranch.message).toBe(
+			"Deleted workspace ws_a (branch deleted)",
+		);
+
+		branchDeletedByInput = () => false;
+		const keptBranch = await invoke(["ws_a"], { deleteBranch: true });
+		expect(keptBranch.message).toBe(
+			"Deleted workspace ws_a (branch not deleted)",
+		);
+	});
+
 	test("forwards --delete-branch to every workspace on the host", async () => {
 		const result = await invoke(["ws_a", "ws_b"], { deleteBranch: true });
 
