@@ -24,6 +24,7 @@ import { createFileKey, useScrollContext } from "../../../../ChangesContent";
 import { useFileDrag, usePathActions } from "../../hooks";
 import { getStatusColor, getStatusIndicator } from "../../utils";
 import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
+import { LevelIndicators } from "../LevelIndicators";
 import type { RowHoverAction } from "../RowHoverActions";
 import { RowHoverActions } from "../RowHoverActions";
 
@@ -44,19 +45,6 @@ interface FileItemProps {
 	isExpandedView?: boolean;
 	projectId?: string;
 	defaultApp?: ExternalApp | null;
-}
-
-function LevelIndicators({ level }: { level: number }) {
-	if (level === 0) return null;
-
-	return (
-		<div className="flex self-stretch shrink-0">
-			{Array.from({ length: level }).map((_, i) => (
-				// biome-ignore lint/suspicious/noArrayIndexKey: static visual dividers that never reorder
-				<div key={i} className="w-3 self-stretch border-r border-border" />
-			))}
-		</div>
-	);
 }
 
 function getFileName(path: string): string {
