@@ -1,13 +1,13 @@
 ---
 title: Skills
-description: Superset abilities your coding agents get automatically — orchestration, automations, feedback, diagnostics, and more
+description: Superset abilities your coding agents get automatically. Orchestration, automations, feedback, diagnostics, and more
 ---
 
-Skills teach the coding agents you already use how to drive Superset — orchestrate parallel agents, create automations, diagnose problems, and more.
+Skills teach the coding agents you already use how to drive Superset: orchestrate parallel agents, create automations, diagnose problems, and more.
 
 ## Installation
 
-**Using the Superset desktop app?** Skills are already installed — the app provisions them at launch and keeps them updated.
+**Using the Superset desktop app?** Skills are already installed. The app provisions them at launch and keeps them updated.
 
 Otherwise, install them directly:
 
@@ -25,18 +25,18 @@ Or, in Claude Code, via the plugin marketplace:
 
 | Skill | What it does |
 |:------|:-------------|
-| `superset:setup` | Makes a repo Superset-ready — authors `.superset/config.json` and setup scripts, then verifies with a real workspace |
-| `superset:orchestrate` | Turns the agent you're talking to into a coordinator of parallel agents — see [Agent Orchestration](/orchestration) |
+| `superset:setup` | Makes a repo Superset-ready: authors `.superset/config.json` and setup scripts, then verifies with a real workspace |
+| `superset:orchestrate` | Turns the agent you're talking to into a coordinator of parallel agents; see [Agent Orchestration](/orchestration) |
 | `superset:automate` | Turns a recurring chore into a scheduled [automation](/automations) and reviews its first run with you |
 | `superset:standup` | Sweeps your workspaces, tasks, and agent terminals into a digest: what needs you, what's in flight, what's blocked |
-| `superset:doctor` | Diagnoses Superset problems — expired auth, offline hosts, stale versions — and fixes them one step at a time |
+| `superset:doctor` | Diagnoses Superset problems (expired auth, offline hosts, stale versions) and fixes them one step at a time |
 | `superset:feedback` | Files a bug report or feature request: privately to the Superset team (from your account, so we can reply) or as a public GitHub issue |
 | `superset:10x` | Audits how you use Superset and teaches the advanced features you're not using yet |
 | `superset:contribute` | Sets up a Superset open-source contribution end to end, following the repo's contribution rules |
 
 ## Using Skills
 
-You usually don't invoke them — agents pick the right skill from context:
+You usually don't invoke them; agents pick the right skill from context:
 
 - "report this bug to the superset team" → `superset:feedback`
 - "what did my agents do overnight?" → `superset:standup`
@@ -46,7 +46,7 @@ To invoke one explicitly: `/superset:feedback` in Claude Code, or `/superset/fee
 
 ## How They're Delivered
 
-At launch, the desktop app writes managed copies into the standard discovery locations: `~/.claude/skills/superset/` (loaded by Claude Code as a plugin — hence the `superset:` namespace), `~/.agents/skills/`, and `~/.agents/commands/`.
+At launch, the desktop app writes managed copies into the standard discovery locations: `~/.claude/skills/superset/` (loaded by Claude Code as a plugin, hence the `superset:` namespace), `~/.agents/skills/`, and `~/.agents/commands/`.
 
 - **Your files are never touched.** Managed files carry a marker; a skill or command you authored at the same path is left alone.
 - **Updates are automatic.** Managed skills refresh on every app launch, and ones that no longer ship are cleaned up.
