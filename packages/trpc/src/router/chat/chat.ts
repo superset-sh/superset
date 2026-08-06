@@ -1,5 +1,5 @@
 import { db, dbWs } from "@superset/db/client";
-import { chatSessions } from "@superset/db/schema";
+import { chatSessions, v2Workspaces } from "@superset/db/schema";
 import { getCurrentTxid } from "@superset/db/utils";
 import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import type { TRPCRouterRecord } from "@trpc/server";
@@ -40,13 +40,28 @@ export const chatRouter = {
 			}
 
 			const result = await dbWs.transaction(async (tx) => {
+				// Post local-first migration, v2 workspaces are authored in host.db
+				// and the electric-synced cloud `v2_workspaces` table can be empty for
+				// the org. `chat_sessions.v2_workspace_id` FKs into that table, so
+				// trusting the client-supplied id would raise a foreign-key violation
+				// that surfaces as raw SQL in the chat pane (issue #5852). Only pin the
+				// workspace id when it actually exists cloud-side; otherwise persist
+				// NULL, mirroring the REST route's retry-without-workspace fallback.
+				// (A failed insert aborts the transaction, so we must check up front
+				// rather than catch-and-retry inside it.)
+				const [existingWorkspace] = await tx
+					.select({ id: v2Workspaces.id })
+					.from(v2Workspaces)
+					.where(eq(v2Workspaces.id, input.v2WorkspaceId))
+					.limit(1);
+
 				const [inserted] = await tx
 					.insert(chatSessions)
 					.values({
 						id: input.sessionId,
 						organizationId,
 						createdBy: ctx.session.user.id,
-						v2WorkspaceId: input.v2WorkspaceId,
+						v2WorkspaceId: existingWorkspace ? input.v2WorkspaceId : null,
 					})
 					.onConflictDoNothing()
 					.returning({ id: chatSessions.id });
