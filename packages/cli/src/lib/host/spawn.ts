@@ -8,6 +8,7 @@ import {
 	openRotatingLogFd,
 } from "@superset/shared/rotating-log";
 import type { ApiClient } from "../api-client";
+import { SUPERSET_HOME_DIR } from "../config";
 import { env, isDesktopBundled } from "../env";
 import {
 	ensureManifestDir,
@@ -144,6 +145,7 @@ export async function spawnHostService(
 			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
 			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+			SUPERSET_HOME_DIR,
 		},
 	});
 

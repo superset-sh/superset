@@ -45,7 +45,7 @@ mock.module("node:child_process", () => ({
 	spawn: spawnMock,
 }));
 
-const { SUPERSET_CONFIG_PATH } = await import("../config");
+const { SUPERSET_CONFIG_PATH, SUPERSET_HOME_DIR } = await import("../config");
 const { spawnHostService } = await import("./spawn");
 
 function createApi(): ApiClient {
@@ -120,19 +120,32 @@ describe("spawnHostService", () => {
 			async () => new Response("ok", { status: 200 }),
 		) as unknown as typeof fetch;
 
-		await spawnHostService({
-			organizationId: "00000000-0000-0000-0000-000000000001",
-			sessionToken: "session-token",
-			authConfigPath: SUPERSET_CONFIG_PATH,
-			api: createApi(),
-			port: 54879,
-			daemon: true,
-		});
+		const inheritedHomeDir = process.env.SUPERSET_HOME_DIR;
+		delete process.env.SUPERSET_HOME_DIR;
+		try {
+			await spawnHostService({
+				organizationId: "00000000-0000-0000-0000-000000000001",
+				sessionToken: "session-token",
+				authConfigPath: SUPERSET_CONFIG_PATH,
+				api: createApi(),
+				port: 54879,
+				daemon: true,
+			});
+		} finally {
+			if (inheritedHomeDir === undefined) {
+				delete process.env.SUPERSET_HOME_DIR;
+			} else {
+				process.env.SUPERSET_HOME_DIR = inheritedHomeDir;
+			}
+		}
 
 		expect(spawnMock).toHaveBeenCalledTimes(1);
 		expect(spawnCalls[0]?.options.env?.SUPERSET_AUTH_CONFIG_PATH).toBe(
 			SUPERSET_CONFIG_PATH,
 		);
 		expect(spawnCalls[0]?.options.env?.AUTH_TOKEN).toBe("session-token");
+		expect(spawnCalls[0]?.options.env?.SUPERSET_HOME_DIR).toBe(
+			SUPERSET_HOME_DIR,
+		);
 	});
 });
