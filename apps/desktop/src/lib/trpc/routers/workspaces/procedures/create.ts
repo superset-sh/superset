@@ -745,7 +745,12 @@ export const createCreateProcedures = () => {
 				const branch =
 					input.branch || (await getCurrentBranch(project.mainRepoPath));
 				if (!branch) {
-					throw new Error("Could not determine current branch");
+					throw new TRPCError({
+						code: "BAD_REQUEST",
+						message:
+							"Cannot open this repository from detached HEAD. Please checkout a branch and try again.",
+						cause: { kind: "DETACHED_HEAD" },
+					});
 				}
 
 				if (input.branch) {
