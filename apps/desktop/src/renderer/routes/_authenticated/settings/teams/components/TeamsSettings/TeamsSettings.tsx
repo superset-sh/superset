@@ -9,7 +9,6 @@ import {
 } from "@superset/ui/table";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
-import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
@@ -17,10 +16,11 @@ import { CreateTeamButton } from "./components/CreateTeamButton";
 
 export function TeamsSettings() {
 	const searchQuery = useSettingsSearchQuery();
-	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const navigate = useNavigate();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so
+	// a second window on another org would render the first window's org here.
+	const activeOrganizationId = collections.activeOrganizationId;
 
 	const { data: teamsData, isReady } = useLiveQuery(
 		(q) =>

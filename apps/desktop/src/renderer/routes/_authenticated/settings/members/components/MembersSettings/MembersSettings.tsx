@@ -37,7 +37,9 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so
+	// a second window on another org would render the first window's org here.
+	const activeOrganizationId = collections.activeOrganizationId;
 
 	const showMembersList = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_LIST,

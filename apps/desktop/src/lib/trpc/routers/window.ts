@@ -1,22 +1,23 @@
 import fs from "node:fs/promises";
 import { homedir } from "node:os";
-import type { BrowserWindow } from "electron";
 import { dialog } from "electron";
+import { menuEmitter } from "main/lib/menu-events";
+import { getOrg, setOrg } from "main/lib/window-registry/window-registry";
 import { getImageMimeType } from "shared/file-types";
 import { z } from "zod";
 import { publicProcedure, router } from "..";
 
-export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
+export const createWindowRouter = () => {
 	return router({
-		minimize: publicProcedure.mutation(() => {
-			const window = getWindow();
+		minimize: publicProcedure.mutation(({ ctx }) => {
+			const window = ctx.senderWindow;
 			if (!window) return { success: false };
 			window.minimize();
 			return { success: true };
 		}),
 
-		maximize: publicProcedure.mutation(() => {
-			const window = getWindow();
+		maximize: publicProcedure.mutation(({ ctx }) => {
+			const window = ctx.senderWindow;
 			if (!window) return { success: false, isMaximized: false };
 			if (window.isMaximized()) {
 				window.unmaximize();
@@ -26,26 +27,54 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 			return { success: true, isMaximized: window.isMaximized() };
 		}),
 
-		close: publicProcedure.mutation(() => {
-			const window = getWindow();
+		close: publicProcedure.mutation(({ ctx }) => {
+			const window = ctx.senderWindow;
 			if (!window) return { success: false };
 			window.close();
 			return { success: true };
 		}),
 
-		isMaximized: publicProcedure.query(() => {
-			const window = getWindow();
+		isMaximized: publicProcedure.query(({ ctx }) => {
+			const window = ctx.senderWindow;
 			if (!window) return false;
 			return window.isMaximized();
 		}),
+
+		/** Open a new platform window on the same org as the calling window. */
+		openNew: publicProcedure.mutation(({ ctx }) => {
+			// Resolve the caller's org here (deterministic) rather than letting the
+			// menu handler infer it from focus, which can shift before the handler runs.
+			const orgId = ctx.senderWindow ? getOrg(ctx.senderWindow.id) : null;
+			menuEmitter.emit("new-window", { orgId });
+			return { success: true };
+		}),
+
+		/** The organization this window currently shows (per-window). */
+		getActiveOrg: publicProcedure.query(({ ctx }) => {
+			return ctx.senderWindow ? getOrg(ctx.senderWindow.id) : null;
+		}),
+
+		/** Set the organization for the calling window (window-local switch). */
+		setActiveOrg: publicProcedure
+			.input(z.object({ organizationId: z.string() }))
+			.mutation(({ ctx, input }) => {
+				if (!ctx.senderWindow) {
+					return { success: false };
+				}
+				setOrg({
+					windowId: ctx.senderWindow.id,
+					orgId: input.organizationId,
+				});
+				return { success: true };
+			}),
 
 		getPlatform: publicProcedure.query(() => {
 			return process.platform;
 		}),
 
 		// Authoritative page-zoom factor (1 = 100%); see useZoomFactor.
-		getZoomFactor: publicProcedure.query(() => {
-			const window = getWindow();
+		getZoomFactor: publicProcedure.query(({ ctx }) => {
+			const window = ctx.senderWindow;
 			if (!window) return 1;
 			return window.webContents.getZoomFactor();
 		}),
@@ -84,8 +113,8 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 					})
 					.optional(),
 			)
-			.mutation(async ({ input }) => {
-				const window = getWindow();
+			.mutation(async ({ ctx, input }) => {
+				const window = ctx.senderWindow;
 				if (!window) {
 					return { canceled: true, path: null };
 				}
@@ -103,8 +132,8 @@ export const createWindowRouter = (getWindow: () => BrowserWindow | null) => {
 				return { canceled: false, path: result.filePaths[0] };
 			}),
 
-		selectImageFile: publicProcedure.mutation(async () => {
-			const window = getWindow();
+		selectImageFile: publicProcedure.mutation(async ({ ctx }) => {
+			const window = ctx.senderWindow;
 			if (!window) {
 				return { canceled: true, dataUrl: null };
 			}

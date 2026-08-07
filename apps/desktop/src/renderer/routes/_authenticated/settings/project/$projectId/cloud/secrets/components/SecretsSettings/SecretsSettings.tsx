@@ -3,7 +3,6 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiOutlineCloud } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { SettingsSection } from "../../../../components/ProjectSettings";
@@ -71,8 +70,9 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 		return cloudProjects.find((c) => c.id === project.neonProjectId);
 	}, [project?.neonProjectId, cloudProjects]);
 
-	const { data: session } = authClient.useSession();
-	const organizationId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so a
+	// second window on another org would read the first window's secrets.
+	const organizationId = collections.activeOrganizationId;
 	const [isCreatingCloud, setIsCreatingCloud] = useState(false);
 	const [isAddSheetOpen, setIsAddSheetOpen] = useState(false);
 	const [editingSecret, setEditingSecret] = useState<EditingSecret | null>(

@@ -50,7 +50,9 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const activeOrganizationId = session?.session?.activeOrganizationId;
+	// Per-window org: the shared session holds one org for the whole app, so
+	// a second window on another org would render the first window's org here.
+	const activeOrganizationId = collections.activeOrganizationId;
 	const currentUserId = session?.user?.id;
 
 	const { data: teamsData, isReady: teamsReady } = useLiveQuery(

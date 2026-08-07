@@ -3,7 +3,6 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo } from "react";
 import { env } from "renderer/env.renderer";
-import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { MOCK_ORG_ID } from "shared/constants";
 
@@ -13,12 +12,11 @@ export const Route = createFileRoute("/_authenticated/settings/hosts/")({
 
 function HostsIndexPage() {
 	const collections = useCollections();
-	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
+		: (collections.activeOrganizationId ?? null);
 
 	const { data: hosts = [], isReady } = useLiveQuery(
 		(q) =>

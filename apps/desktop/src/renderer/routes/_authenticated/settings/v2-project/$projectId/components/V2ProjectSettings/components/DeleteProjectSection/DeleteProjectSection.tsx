@@ -12,11 +12,13 @@ import {
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useHostUrls } from "renderer/hooks/host-service/useHostTargetUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 
 interface DeleteProjectSectionProps {
 	projectId: string;
@@ -37,11 +39,15 @@ export function DeleteProjectSection({
 			host.url !== null,
 	);
 	const { data: session } = authClient.useSession();
-	const { data: activeOrg } = authClient.useActiveOrganization();
-	const currentUserId = session?.user?.id;
-	const currentMember = activeOrg?.members?.find(
-		(m) => m.userId === currentUserId,
+	// Membership from this window's org, not the session's active organization
+	// — the session holds one org for every window at once.
+	const collections = useCollections();
+	const { data: members } = useLiveQuery(
+		(q) => q.from({ members: collections.members }),
+		[collections],
 	);
+	const currentUserId = session?.user?.id;
+	const currentMember = members?.find((m) => m.userId === currentUserId);
 	const isOwner = currentMember?.role === "owner";
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
