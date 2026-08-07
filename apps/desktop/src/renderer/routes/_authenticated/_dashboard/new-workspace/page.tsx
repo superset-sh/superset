@@ -26,9 +26,10 @@ function NewWorkspacePage() {
 			<PromptInputProvider>
 				<NewWorkspaceScreen isOpen preSelectedProjectId={projectId ?? null} />
 				{/* Window-drag surface replacing the hidden TopBar's drag region.
-				    Stops short of the top-right corner so the screen's prompt
-				    history button underneath stays clickable. */}
-				<div className="drag absolute left-0 right-12 top-0 z-50 h-12" />
+				    Stops short of the top-right corner so the screen's naming
+				    instructions + prompt history buttons underneath stay
+				    clickable. */}
+				<div className="drag absolute left-0 right-20 top-0 z-50 h-12" />
 			</PromptInputProvider>
 		</DashboardNewWorkspaceDraftProvider>
 	);

@@ -15,10 +15,11 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon, HistoryIcon } from "lucide-react";
+import { ArrowUpIcon, HistoryIcon, Settings2Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
@@ -120,6 +121,21 @@ export function PromptGroup({
 			params: { projectId: targetProjectId },
 			search: {
 				hostId: draft.hostId ?? machineId ?? undefined,
+			},
+		});
+	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
+	// AI naming (title + branch) follows the project's naming instructions;
+	// this is the jump from "where do these names come from?" to the setting.
+	const handleGoToNamingInstructions = useCallback(() => {
+		if (!selectedProject?.id) return;
+		const targetProjectId = selectedProject.id;
+		closeModal();
+		void navigate({
+			to: "/settings/projects/$projectId",
+			params: { projectId: targetProjectId },
+			search: {
+				hostId: draft.hostId ?? machineId ?? undefined,
+				focus: "naming-instructions",
 			},
 		});
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
@@ -407,6 +423,25 @@ export function PromptGroup({
 						}}
 					/>
 				</div>
+				{selectedProject && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								aria-label="Update naming instructions"
+								className="ml-2 size-6 shrink-0 text-muted-foreground"
+								onClick={handleGoToNamingInstructions}
+							>
+								<Settings2Icon className="size-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							Update naming instructions for {selectedProject.name}
+						</TooltipContent>
+					</Tooltip>
+				)}
 				<PromptHistoryCommand
 					onSelect={applyPrompt}
 					tooltipLabel="Previous prompts"

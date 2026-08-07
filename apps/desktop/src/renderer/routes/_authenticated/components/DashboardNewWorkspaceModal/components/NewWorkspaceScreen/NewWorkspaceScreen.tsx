@@ -16,7 +16,12 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon, HistoryIcon, PaperclipIcon } from "lucide-react";
+import {
+	ArrowUpIcon,
+	HistoryIcon,
+	PaperclipIcon,
+	Settings2Icon,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
@@ -418,6 +423,22 @@ export function NewWorkspaceScreen({
 		});
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
 
+	// AI naming (title + branch) follows the project's naming instructions;
+	// this is the jump from "where do these names come from?" to the setting.
+	const handleGoToNamingInstructions = useCallback(() => {
+		if (!selectedProject?.id) return;
+		const targetProjectId = selectedProject.id;
+		closeModal();
+		void navigate({
+			to: "/settings/projects/$projectId",
+			params: { projectId: targetProjectId },
+			search: {
+				hostId: draft.hostId ?? machineId ?? undefined,
+				focus: "naming-instructions",
+			},
+		});
+	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
+
 	const handleSubmit = useCallback(() => {
 		if (needsSetup) {
 			handleGoToSetup();
@@ -480,7 +501,26 @@ export function NewWorkspaceScreen({
 			</AnimatePresence>
 			{/* no-drag + clear of the page's window-drag strip (which ends at
 			    right-12) so the button actually receives clicks. */}
-			<div className="no-drag absolute right-3 top-2.5 z-10">
+			<div className="no-drag absolute right-3 top-2.5 z-10 flex items-center gap-0.5">
+				{selectedProject && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								aria-label="Update naming instructions"
+								className="size-7 text-muted-foreground"
+								onClick={handleGoToNamingInstructions}
+							>
+								<Settings2Icon className="size-4" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							Update naming instructions for {selectedProject.name}
+						</TooltipContent>
+					</Tooltip>
+				)}
 				<PromptHistoryCommand
 					onSelect={applyPrompt}
 					tooltipLabel="Previous prompts"

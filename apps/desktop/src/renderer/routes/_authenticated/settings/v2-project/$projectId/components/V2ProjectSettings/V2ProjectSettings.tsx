@@ -1,7 +1,7 @@
 import { Label } from "@superset/ui/label";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -29,11 +29,14 @@ import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
 interface V2ProjectSettingsProps {
 	projectId: string;
 	hostId: string | null;
+	/** One-shot deep-link: scroll to and focus this field after load. */
+	focusField?: string | null;
 }
 
 export function V2ProjectSettings({
 	projectId,
 	hostId,
+	focusField,
 }: V2ProjectSettingsProps) {
 	const navigate = useNavigate();
 	const { machineId } = useLocalHostService();
@@ -108,6 +111,19 @@ export function V2ProjectSettings({
 		if (mergedUpdatedAt === undefined) return;
 		void refetchHostProject();
 	}, [mergedUpdatedAt, refetchHostProject]);
+
+	// Deep-link focus (e.g. "Naming instructions" from the new-workspace
+	// project picker). Wait for the host row: the target fields only render
+	// once it has loaded. One-shot per mount.
+	const focusAppliedRef = useRef(false);
+	useEffect(() => {
+		if (!focusField || !hostProject || focusAppliedRef.current) return;
+		const el = document.getElementById(`project-${focusField}`);
+		if (!el) return;
+		focusAppliedRef.current = true;
+		el.scrollIntoView({ block: "center" });
+		el.focus({ preventScroll: true });
+	}, [focusField, hostProject]);
 
 	if (!project) {
 		if (!isReady) return null;
