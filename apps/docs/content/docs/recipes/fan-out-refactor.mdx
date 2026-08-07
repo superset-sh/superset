@@ -45,3 +45,13 @@ Two agents editing the same file on different branches means merge conflicts, an
 
 - **Race the risky slice**: if one slice is much harder than the rest, [race two agents on it](/recipes/race-agents) while the easy slices run
 - **Rolling fan-out**: for very large migrations, keep 2-3 slice workspaces active and start the next slice as each PR merges, instead of opening all of them at once
+- **From the CLI**: once the plan names the slices, launch every worker in one paste:
+
+```bash
+for slice in api cli web; do
+  superset workspaces create --project <projectId> \
+    --name "migrate-$slice" --branch "migrate/$slice" --local \
+    --agent claude \
+    --prompt "Migrate the $slice slice from moment to date-fns, per plan.md. Only touch files in your slice. Run the affected tests before finishing."
+done
+```

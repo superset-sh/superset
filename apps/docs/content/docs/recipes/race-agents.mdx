@@ -41,3 +41,12 @@ and any tradeoffs you made.
 
 - **Two agents, two approaches**: same agent, but prompt one toward each design ("use middleware" vs "use a decorator") when you're unsure which is right
 - **Best-of-N on hard bugs**: for a bug that has resisted one agent, three fresh attempts beat continuing a stuck session
+- **From the CLI**: write the prompt to `prompt.md`, then start the whole race in one paste — one workspace per agent, same prompt each:
+
+```bash
+for agent in claude codex opencode; do
+  superset workspaces create --project <projectId> \
+    --name "race-$agent" --branch "race/$agent" --local \
+    --agent "$agent" --prompt "$(cat prompt.md)"
+done
+```
