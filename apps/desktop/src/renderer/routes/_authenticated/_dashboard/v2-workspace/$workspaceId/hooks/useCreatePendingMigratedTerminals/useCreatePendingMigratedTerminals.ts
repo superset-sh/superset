@@ -1,5 +1,11 @@
-import { workspaceTrpc } from "@superset/workspace-client";
+import { BUILTIN_AGENT_IDS } from "@superset/shared/agent-catalog";
+import { useWorkspaceClient, workspaceTrpc } from "@superset/workspace-client";
 import { useEffect, useRef } from "react";
+import { electronTrpcClient } from "renderer/lib/trpc-client";
+import {
+	resolveMigratedPaneResume,
+	type V1PaneAgentSessionSnapshot,
+} from "renderer/lib/v1-migration/terminals";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useV2TerminalLauncher } from "../useV2TerminalLauncher";
 
@@ -10,6 +16,13 @@ import { useV2TerminalLauncher } from "../useV2TerminalLauncher";
  * boot). Created entries are removed from the queue; failures stay queued
  * for the next open. Panes come from useAutoAdoptBackgroundSessions once
  * the sessions are running.
+ *
+ * When the source v1 pane had a resumable agent session (captured by the
+ * electron hook server), the fresh terminal is seeded with an ended binding
+ * so the pane surfaces the same resume banner as a killed v2 session. The
+ * capture is read here — not frozen at migration time — because the pane
+ * keeps living in v1 (and its agent keeps reporting) long after the
+ * every-boot migration pass ledgers it.
  */
 export function useCreatePendingMigratedTerminals({
 	workspaceId,
@@ -20,6 +33,7 @@ export function useCreatePendingMigratedTerminals({
 }): void {
 	const collections = useCollections();
 	const launcher = useV2TerminalLauncher();
+	const { trpcClient } = useWorkspaceClient();
 	const utils = workspaceTrpc.useUtils();
 	const runningRef = useRef(false);
 
@@ -32,6 +46,24 @@ export function useCreatePendingMigratedTerminals({
 		runningRef.current = true;
 
 		void (async () => {
+			const paneIds = pending
+				.map((t) => t.v1PaneId)
+				.filter((id): id is string => id !== null);
+			let agentSessions: Record<string, V1PaneAgentSessionSnapshot> = {};
+			if (paneIds.length > 0) {
+				try {
+					agentSessions =
+						await electronTrpcClient.migration.readV1PaneAgentSessions.query({
+							paneIds,
+						});
+				} catch (err) {
+					console.warn("[v1-migration] agent session read failed", {
+						workspaceId,
+						err,
+					});
+				}
+			}
+
 			const created = new Set<string>();
 			for (const terminal of pending) {
 				try {
@@ -44,6 +76,30 @@ export function useCreatePendingMigratedTerminals({
 					created.add(terminal.terminalId);
 				} catch (err) {
 					console.error("[v1-migration] pending terminal create failed", {
+						workspaceId,
+						terminalId: terminal.terminalId,
+						err,
+					});
+					continue;
+				}
+
+				const resume = resolveMigratedPaneResume(
+					terminal.v1PaneId ? agentSessions[terminal.v1PaneId] : undefined,
+				);
+				if (!resume) continue;
+				const agentId = BUILTIN_AGENT_IDS.find((id) => id === resume.agentId);
+				if (!agentId) continue;
+				// Best-effort: a failed seed still leaves a working shell, and
+				// seedResumeCandidate never overwrites a real binding.
+				try {
+					await trpcClient.terminalAgents.seedResumeCandidate.mutate({
+						workspaceId,
+						terminalId: terminal.terminalId,
+						agentId,
+						agentSessionId: resume.agentSessionId,
+					});
+				} catch (err) {
+					console.warn("[v1-migration] resume candidate seed failed", {
 						workspaceId,
 						terminalId: terminal.terminalId,
 						err,
@@ -62,5 +118,5 @@ export function useCreatePendingMigratedTerminals({
 			}
 			runningRef.current = false;
 		})();
-	}, [isLayoutReady, workspaceId, collections, launcher, utils]);
+	}, [isLayoutReady, workspaceId, collections, launcher, trpcClient, utils]);
 }

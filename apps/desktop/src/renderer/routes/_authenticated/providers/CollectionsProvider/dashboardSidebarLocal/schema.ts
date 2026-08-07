@@ -156,6 +156,9 @@ export const workspaceLocalStateSchema = z.object({
 			z.object({
 				terminalId: z.string(),
 				cwd: z.string().nullable().default(null),
+				// Source v1 pane — lets creation seed the pane's captured agent
+				// session as a resume candidate. Null on pre-existing entries.
+				v1PaneId: z.string().nullable().default(null),
 			}),
 		)
 		.default([]),
@@ -188,6 +191,7 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 	pendingMigratedTerminals: [] as Array<{
 		terminalId: string;
 		cwd: string | null;
+		v1PaneId: string | null;
 	}>,
 };
 

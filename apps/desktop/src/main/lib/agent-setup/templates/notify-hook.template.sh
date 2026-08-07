@@ -123,6 +123,9 @@ fi
 # v1 fallback: Electron localhost hook server. Kept while v1 terminals exist.
 [ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 
+# rawEventType keeps the un-collapsed event (SessionStart/SessionEnd survive)
+# so the app can tell an agent's own goodbye from a turn Stop — the v1 pane
+# agent-session capture needs that to mirror v2 resume-candidate detection.
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
     --connect-timeout 1 --max-time 2 \
@@ -134,6 +137,8 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
+    --data-urlencode "rawEventType=$EVENT_TYPE" \
+    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     -o /dev/null -w "%{http_code}" 2>/dev/null)
@@ -151,6 +156,8 @@ else
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
+    --data-urlencode "rawEventType=$EVENT_TYPE" \
+    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     > /dev/null 2>&1

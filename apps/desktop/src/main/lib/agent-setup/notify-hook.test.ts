@@ -37,7 +37,7 @@ function runNotifyHook(
 
 describe("getNotifyScriptContent", () => {
 	it("bumps the notify hook marker when hook semantics change", () => {
-		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v6");
+		expect(NOTIFY_SCRIPT_MARKER).toBe("# Superset agent notification hook v7");
 	});
 
 	it("exits silently outside Superset terminals even with a payload session id", () => {

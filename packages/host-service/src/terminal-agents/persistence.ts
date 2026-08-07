@@ -151,6 +151,65 @@ export function findResumeCandidateBinding(
 	return row ? rowToBinding(row) : undefined;
 }
 
+export type SeedEndedBindingResult =
+	| "seeded"
+	| "already-bound"
+	| "terminal-not-found";
+
+/**
+ * Seed an already-ended binding for a terminal that never hosted the agent —
+ * used by the v1→v2 pane migration to carry a v1 pane's agent session into
+ * the pane's recreated terminal as a resume candidate. `lastEventType` is
+ * "Stop" (not "Attached") because the v1 capture only surfaces sessions that
+ * progressed past their first prompt. Never overwrites: a terminal that
+ * already earned a real binding keeps it ("already-bound").
+ */
+export function seedEndedTerminalAgentBinding(
+	db: HostDb,
+	input: {
+		terminalId: string;
+		workspaceId: string;
+		agentId: TerminalAgentId;
+		agentSessionId: string;
+		definitionId?: AgentDefinitionId;
+		seededAt?: number;
+	},
+): SeedEndedBindingResult {
+	const session = db
+		.select({ originWorkspaceId: terminalSessions.originWorkspaceId })
+		.from(terminalSessions)
+		.where(eq(terminalSessions.id, input.terminalId))
+		.get();
+	if (!session || session.originWorkspaceId !== input.workspaceId) {
+		return "terminal-not-found";
+	}
+
+	const bound = db
+		.select({ terminalId: terminalAgentBindings.terminalId })
+		.from(terminalAgentBindings)
+		.where(eq(terminalAgentBindings.terminalId, input.terminalId))
+		.get();
+	if (bound) return "already-bound";
+
+	const seededAt = input.seededAt ?? Date.now();
+	db.insert(terminalAgentBindings)
+		.values({
+			terminalId: input.terminalId,
+			workspaceId: input.workspaceId,
+			agentId: input.agentId,
+			agentSessionId: input.agentSessionId,
+			definitionId: input.definitionId ?? null,
+			startedAt: seededAt,
+			lastEventAt: seededAt,
+			lastEventType: "Stop",
+			endedAt: seededAt,
+			endReason: "terminal-exited",
+		})
+		.onConflictDoNothing({ target: terminalAgentBindings.terminalId })
+		.run();
+	return "seeded";
+}
+
 export class SqliteTerminalAgentBindingPersistence
 	implements TerminalAgentBindingPersistence
 {

@@ -12,7 +12,10 @@ import type {
 	TerminalAgentBinding,
 	TerminalAgentId,
 } from "../../../terminal-agents";
-import { findResumeCandidateBinding } from "../../../terminal-agents/persistence";
+import {
+	findResumeCandidateBinding,
+	seedEndedTerminalAgentBinding,
+} from "../../../terminal-agents/persistence";
 import { protectedProcedure, router } from "../../index";
 import { resolveHostAgentConfig } from "../agents/agents";
 
@@ -110,6 +113,34 @@ export const terminalAgentsRouter = router({
 				agentLabel: config?.label ?? binding.agentId,
 				resumeSupported: (config?.resumeArgs.length ?? 0) > 0,
 			};
+		}),
+
+	/**
+	 * Seed a resume candidate for a terminal recreated by the v1→v2 pane
+	 * migration: the v1 pane's captured agent session, stamped ended, so the
+	 * migrated pane surfaces the same resume banner and flows through the
+	 * same `agents.run({resumeSessionId})` path as a killed v2 session.
+	 * No-ops when the terminal already earned a real binding.
+	 */
+	seedResumeCandidate: protectedProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				terminalId: z.string(),
+				agentId: terminalAgentIdSchema,
+				agentSessionId: z.string().min(1),
+				definitionId: agentDefinitionIdSchema.optional(),
+			}),
+		)
+		.mutation(({ ctx, input }) => {
+			const result = seedEndedTerminalAgentBinding(ctx.db, input);
+			if (result === "terminal-not-found") {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `No terminal ${input.terminalId} in workspace ${input.workspaceId}`,
+				});
+			}
+			return { seeded: result === "seeded" };
 		}),
 
 	/**

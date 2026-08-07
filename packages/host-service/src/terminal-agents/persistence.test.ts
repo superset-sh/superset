@@ -10,6 +10,7 @@ import {
 	findResumeCandidateBinding,
 	markTerminalAgentBindingEnded,
 	SqliteTerminalAgentBindingPersistence,
+	seedEndedTerminalAgentBinding,
 } from "./persistence";
 import { TerminalAgentStore } from "./store";
 
@@ -322,5 +323,96 @@ describe("binding end marking and resume candidates", () => {
 		expect(
 			persistence.listLiveByWorkspace("ws-1").map((b) => b.agentSessionId),
 		).toEqual(["sess-new"]);
+	});
+});
+
+describe("seedEndedTerminalAgentBinding (v1 pane migration)", () => {
+	function seedBareSession(
+		db: HostDb,
+		id: string,
+		workspaceId: string | null = "ws-1",
+	) {
+		db.insert(terminalSessions)
+			.values({
+				id,
+				status: "active",
+				originWorkspaceId: workspaceId,
+				createdAt: 1,
+			})
+			.run();
+	}
+
+	it("seeds a resume candidate for a bindingless terminal", () => {
+		const db = createTestDb();
+		seedBareSession(db, "t-migrated");
+
+		const result = seedEndedTerminalAgentBinding(db, {
+			terminalId: "t-migrated",
+			workspaceId: "ws-1",
+			agentId: "claude" as never,
+			agentSessionId: "sess-v1",
+			seededAt: 1_000,
+		});
+
+		expect(result).toBe("seeded");
+		const candidate = findResumeCandidateBinding(db, "ws-1", "t-migrated");
+		expect(candidate?.agentSessionId).toBe("sess-v1");
+		expect(candidate?.endReason).toBe("terminal-exited");
+		expect(candidate?.lastEventType).toBe("Stop");
+		// The seeded row is ended — it must never surface as a live agent.
+		const persistence = new SqliteTerminalAgentBindingPersistence(db);
+		expect(persistence.listLiveByWorkspace("ws-1")).toEqual([]);
+	});
+
+	it("never overwrites a terminal that already earned a binding", () => {
+		const db = createTestDb();
+		seedBareSession(db, "t1");
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: "t1",
+				workspaceId: "ws-1",
+				agentId: "claude",
+				agentSessionId: "sess-real",
+				startedAt: 1,
+				lastEventAt: 2,
+				lastEventType: "Start",
+			})
+			.run();
+
+		const result = seedEndedTerminalAgentBinding(db, {
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			agentId: "claude" as never,
+			agentSessionId: "sess-v1",
+		});
+
+		expect(result).toBe("already-bound");
+		expect(
+			new SqliteTerminalAgentBindingPersistence(db)
+				.listLiveByWorkspace("ws-1")
+				.map((b) => b.agentSessionId),
+		).toEqual(["sess-real"]);
+	});
+
+	it("rejects unknown terminals and workspace mismatches", () => {
+		const db = createTestDb();
+		seedBareSession(db, "t-other-ws", "ws-2");
+
+		expect(
+			seedEndedTerminalAgentBinding(db, {
+				terminalId: "t-missing",
+				workspaceId: "ws-1",
+				agentId: "claude" as never,
+				agentSessionId: "sess-v1",
+			}),
+		).toBe("terminal-not-found");
+		expect(
+			seedEndedTerminalAgentBinding(db, {
+				terminalId: "t-other-ws",
+				workspaceId: "ws-1",
+				agentId: "claude" as never,
+				agentSessionId: "sess-v1",
+			}),
+		).toBe("terminal-not-found");
 	});
 });

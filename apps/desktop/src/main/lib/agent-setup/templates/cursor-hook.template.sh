@@ -71,6 +71,8 @@ curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
   --data-urlencode "sessionId=$HOOK_SESSION_ID" \
   --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
   --data-urlencode "eventType=$V1_EVENT_TYPE" \
+  --data-urlencode "rawEventType=$EVENT_TYPE" \
+  --data-urlencode "agentId=$AGENT_ID" \
   --data-urlencode "env=$SUPERSET_ENV" \
   --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
   > /dev/null 2>&1
