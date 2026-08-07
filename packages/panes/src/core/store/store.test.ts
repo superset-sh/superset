@@ -95,6 +95,51 @@ describe("tab operations", () => {
 
 		expect(store.getState().tabs[0]?.titleOverride).toBe("Renamed");
 	});
+
+	it("pins a tab at the end of the pinned group and unpins it at the start of the unpinned group", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+		store.getState().addTab({ id: "t3", panes: [tp("p3")] });
+
+		store.getState().setTabPinned({ tabId: "t2", pinned: true });
+		store.getState().setTabPinned({ tabId: "t3", pinned: true });
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual([
+			"t2",
+			"t3",
+			"t1",
+		]);
+
+		store.getState().setTabPinned({ tabId: "t2", pinned: false });
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual([
+			"t3",
+			"t2",
+			"t1",
+		]);
+	});
+
+	it("adds new tabs after pinned tabs", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "pinned", pinned: true, panes: [tp("p1")] });
+		store.getState().addTab({ id: "regular", panes: [tp("p2")] });
+
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual([
+			"pinned",
+			"regular",
+		]);
+	});
+
+	it("requires a pinned tab to be unpinned before removal", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", pinned: true, panes: [tp("p1")] });
+
+		store.getState().removeTab("t1");
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual(["t1"]);
+
+		store.getState().setTabPinned({ tabId: "t1", pinned: false });
+		store.getState().removeTab("t1");
+		expect(store.getState().tabs).toEqual([]);
+	});
 });
 
 describe("pane operations", () => {
@@ -596,6 +641,60 @@ describe("movePaneToSplit", () => {
 			activeTabId: store.getState().activeTabId,
 		}).toEqual(before);
 	});
+
+	it("does not remove a pinned tab when moving its last pane", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", pinned: true, panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().movePaneToSplit({
+			sourcePaneId: "p1",
+			targetPaneId: "p2",
+			position: "right",
+		});
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().tabs[0]?.panes.p1).toBeDefined();
+		expect(store.getState().tabs[1]?.panes.p1).toBeUndefined();
+	});
+
+	it("still moves a pane out of a pinned tab when other panes remain", () => {
+		const store = makeStore();
+		store.getState().addTab({
+			id: "t1",
+			pinned: true,
+			panes: [tp("p1"), tp("p2")],
+			activePaneId: "p1",
+		});
+		store.getState().addTab({ id: "t2", panes: [tp("p3")] });
+
+		store.getState().movePaneToSplit({
+			sourcePaneId: "p1",
+			targetPaneId: "p3",
+			position: "right",
+		});
+
+		const t1 = store.getState().tabs.find((t) => t.id === "t1");
+		const t2 = store.getState().tabs.find((t) => t.id === "t2");
+		expect(t1?.pinned).toBe(true);
+		expect(t1?.panes.p1).toBeUndefined();
+		expect(t1?.panes.p2).toBeDefined();
+		expect(t2?.panes.p1).toBeDefined();
+	});
+});
+
+describe("movePaneToTab", () => {
+	it("does not remove a pinned tab when moving its last pane", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", pinned: true, panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().movePaneToTab({ paneId: "p1", targetTabId: "t2" });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().tabs[0]?.panes.p1).toBeDefined();
+		expect(store.getState().tabs[1]?.panes.p1).toBeUndefined();
+	});
 });
 
 describe("movePaneToNewTab", () => {
@@ -637,6 +736,17 @@ describe("movePaneToNewTab", () => {
 		expect(tabs.map((t) => t.id)).toEqual([newTab.id, "t2"]);
 		expect(newTab.panes.p1).toBeDefined();
 		expect(store.getState().activeTabId).toBe(newTab.id);
+	});
+
+	it("does not remove a pinned tab when moving its last pane to a new tab", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", pinned: true, panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().movePaneToNewTab({ paneId: "p1", toIndex: 1 });
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().tabs[0]?.panes.p1).toBeDefined();
 	});
 });
 
@@ -720,6 +830,22 @@ describe("moveTabToSplit", () => {
 
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
 	});
+
+	it("is a no-op when the source tab is pinned", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "t1", pinned: true, panes: [tp("p1")] });
+		store.getState().addTab({ id: "t2", panes: [tp("p2")] });
+
+		store.getState().moveTabToSplit({
+			sourceTabId: "t1",
+			targetPaneId: "p2",
+			position: "right",
+		});
+
+		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t1", "t2"]);
+		expect(store.getState().tabs[0]?.pinned).toBe(true);
+		expect(store.getState().tabs[1]?.panes.p1).toBeUndefined();
+	});
 });
 
 describe("edge cases", () => {
@@ -798,5 +924,29 @@ describe("reorderTab", () => {
 		store.getState().reorderTab({ tabId: "t1", toIndex: 100 });
 
 		expect(store.getState().tabs.map((t) => t.id)).toEqual(["t2", "t1"]);
+	});
+
+	it("keeps pinned and unpinned tabs in their own ordering groups", () => {
+		const store = makeStore();
+		store.getState().addTab({ id: "p1", pinned: true, panes: [tp("pane1")] });
+		store.getState().addTab({ id: "p2", pinned: true, panes: [tp("pane2")] });
+		store.getState().addTab({ id: "t1", panes: [tp("pane3")] });
+		store.getState().addTab({ id: "t2", panes: [tp("pane4")] });
+
+		store.getState().reorderTab({ tabId: "p1", toIndex: 3 });
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual([
+			"p2",
+			"p1",
+			"t1",
+			"t2",
+		]);
+
+		store.getState().reorderTab({ tabId: "t2", toIndex: 0 });
+		expect(store.getState().tabs.map((tab) => tab.id)).toEqual([
+			"p2",
+			"p1",
+			"t2",
+			"t1",
+		]);
 	});
 });
