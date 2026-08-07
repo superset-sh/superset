@@ -11,17 +11,27 @@ import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import {
 	gitCommitFilesTask,
 	gitFetchBaseRefTask,
+	gitGraphLogTask,
 	gitStatusSnapshotTask,
 } from "../../../workers/tasks/git";
 import { protectedProcedure, queryProcedure, router } from "../../index";
 import { resolveGithubRepo } from "../workspace-creation/shared/project-helpers";
+import {
+	normalizeWorktreePath,
+	type WorktreeRecord,
+} from "../workspace-creation/shared/worktree-list";
 import type {
 	ChangedFile,
 	CheckConclusionState,
 	CheckRun,
 	CheckStatusState,
 	Commit,
+	CommitMetadata,
+	GraphCommit,
+	GraphRef,
+	GraphRefState,
 	IssueComment,
+	ListGraphResult,
 	MergeableState,
 	PullRequestReviewDecision,
 	PullRequestReviewThread,
@@ -34,6 +44,7 @@ import {
 	resolveBaseComparison,
 } from "./utils/git-helpers";
 import { gitStatusRefreshLimiter } from "./utils/git-status-refresh-limiter";
+import { worktreeByBranch } from "./utils/graph-log";
 import {
 	type GraphQLThreadsResult,
 	parseGraphQLThreads,
@@ -63,11 +74,14 @@ async function withCommitFilesSlot<T>(fn: () => Promise<T>): Promise<T> {
 // Identical requests share one slot AND one task — deduping outside the
 // semaphore keeps same-commit bursts from consuming both cap slots or
 // re-running a task that finished while they waited for a slot.
-const inFlightCommitFiles = new Map<string, Promise<ChangedFile[]>>();
+const inFlightCommitFiles = new Map<
+	string,
+	Promise<{ files: ChangedFile[]; commit: CommitMetadata | null }>
+>();
 function runCommitFilesDeduped(
 	key: string,
-	fn: () => Promise<ChangedFile[]>,
-): Promise<ChangedFile[]> {
+	fn: () => Promise<{ files: ChangedFile[]; commit: CommitMetadata | null }>,
+): Promise<{ files: ChangedFile[]; commit: CommitMetadata | null }> {
 	const existing = inFlightCommitFiles.get(key);
 	if (existing) return existing;
 	const task = withCommitFilesSlot(fn).finally(() => {
@@ -84,6 +98,56 @@ function resolveGitTaskEnv(
 	worktreePath: string,
 ): Promise<Record<string, string>> {
 	return createGitEnvResolver(ctx.credentials)(worktreePath);
+}
+
+/**
+ * Compute the state for a local-branch ref plus its worktree metadata. State
+ * rules (local branches only; remote/tag/head carry `null`):
+ *   - registered worktree git marks prunable (a deleted worktree directory is
+ *     one: "gitdir file points to non-existent location") → prunable
+ *   - registered worktree, matching workspaces row → open
+ *   - registered worktree, no row → detached-worktree
+ *   - no worktree, contained in base → merged
+ *   - no worktree, not contained → orphan-branch
+ *
+ * Containment comes from `git branch --merged <baseRef>` (reachable from the
+ * base), NOT graph topology — a branch merged before the commit window still
+ * reports "merged".
+ */
+function branchRefState(
+	fullRef: string,
+	name: string,
+	branchWorktree: Map<string, WorktreeRecord>,
+	workspaceByPath: Map<string, string>,
+	mergedSet: Set<string>,
+): Pick<
+	GraphRef,
+	"state" | "worktreePath" | "worktreeWorkspaceId" | "pruneReason"
+> {
+	const wt = branchWorktree.get(name);
+	if (wt) {
+		// `git worktree list --porcelain` already flags a missing directory, so
+		// this no longer stats every branch's worktree on the main thread.
+		if (wt.prunable) {
+			return {
+				state: "prunable",
+				pruneReason: wt.prunable.reason || "worktree path missing",
+			};
+		}
+		const wsId = workspaceByPath.get(normalizeWorktreePath(wt.path));
+		if (wsId) {
+			return {
+				state: "open",
+				worktreeWorkspaceId: wsId,
+				worktreePath: wt.path,
+			};
+		}
+		return { state: "detached-worktree", worktreePath: wt.path };
+	}
+	const state: GraphRefState = mergedSet.has(fullRef)
+		? "merged"
+		: "orphan-branch";
+	return { state };
 }
 
 function assertSafeRelativePath(filePath: string): void {
@@ -234,6 +298,129 @@ export const gitRouter = router({
 			return { commits };
 		}),
 
+	listGraph: queryProcedure
+		.meta({ timeoutMs: 30_000 })
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				baseBranch: z.string().optional(),
+				refScope: z
+					.enum(["local", "open-workspaces", "remote", "all", "head"])
+					.default("local"),
+				limit: z.number().int().min(1).max(2000).default(500),
+				cursor: z.string().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			// Fetch the workspace row once for both path and projectId (sibling
+			// workspaces share the project's git dir).
+			const workspace = ctx.db.query.workspaces
+				.findFirst({ where: eq(workspaces.id, input.workspaceId) })
+				.sync();
+			if (!workspace?.worktreePath) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "Workspace not found",
+				});
+			}
+			const worktreePath = workspace.worktreePath;
+
+			// The cursor carries the scope it was issued for: `--skip` counts rows
+			// of one traversal, so replaying a local offset against `head` would
+			// window a list that never had those rows. A foreign cursor restarts
+			// at 0 rather than serving a silently wrong page.
+			let skip = 0;
+			if (input.cursor) {
+				const m = /^skip:(\d+):([a-z-]+)$/.exec(input.cursor);
+				if (m && m[2] === input.refScope) {
+					skip = Number.parseInt(m[1] ?? "0", 10);
+				}
+			}
+
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const result = await getHostWorkerPool().run(
+				gitGraphLogTask,
+				{
+					worktreePath,
+					baseBranch: input.baseBranch,
+					refScope: input.refScope,
+					limit: input.limit,
+					skip,
+					gitEnv,
+				},
+				// ~9 git spawns per call, all in the worker. A `git:changed` storm
+				// during a rebase would fan those out badly; coalesce overlapping
+				// calls for the same workspace onto one in-flight traversal.
+				{
+					timeoutMs: 30_000,
+					strategy: "coalesce",
+					// Scope is part of the key: two scopes are two different
+					// traversals, and coalescing them would serve one the other's rows.
+					dedupeKey: `${input.workspaceId}:graph-log:${input.refScope}`,
+				},
+			);
+
+			const fetched = result.commits;
+			const hasMore = fetched.length > input.limit;
+			const window = hasMore ? fetched.slice(0, input.limit) : fetched;
+			const nextCursor = hasMore
+				? `skip:${skip + input.limit}:${input.refScope}`
+				: null;
+
+			// The worker can't touch the DB, so the path→workspaceId join that
+			// backs the "open" / "detached-worktree" states lives here.
+			const siblings = ctx.db.query.workspaces
+				.findMany({ where: eq(workspaces.projectId, workspace.projectId) })
+				.sync();
+			const workspaceByPath = new Map<string, string>();
+			for (const w of siblings) {
+				workspaceByPath.set(normalizeWorktreePath(w.worktreePath), w.id);
+			}
+
+			const refsBySha = new Map<string, typeof result.refs>();
+			for (const r of result.refs) {
+				const list = refsBySha.get(r.sha);
+				if (list) list.push(r);
+				else refsBySha.set(r.sha, [r]);
+			}
+
+			const branchWorktree = worktreeByBranch(result.worktrees);
+			const mergedSet = new Set(result.mergedBranches);
+
+			const commits: GraphCommit[] = window.map((c) => ({
+				hash: c.hash,
+				shortHash: c.shortHash,
+				message: c.message,
+				author: c.author,
+				authorEmail: c.authorEmail,
+				date: c.date,
+				parents: c.parents,
+				refs: (refsBySha.get(c.hash) ?? []).map((r): GraphRef => {
+					if (r.type !== "branch") {
+						return { name: r.name, type: r.type, state: null };
+					}
+					return {
+						name: r.name,
+						type: r.type,
+						...branchRefState(
+							r.fullRef,
+							r.name,
+							branchWorktree,
+							workspaceByPath,
+							mergedSet,
+						),
+					};
+				}),
+			}));
+
+			const out: ListGraphResult = {
+				commits,
+				nextCursor,
+				totalCommits: result.totalCommits,
+			};
+			return out;
+		}),
+
 	getCommitFiles: queryProcedure
 		.meta({ timeoutMs: 15_000 })
 		.input(
@@ -247,7 +434,7 @@ export const gitRouter = router({
 			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
 			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
 			const dedupeKey = `${input.workspaceId}:commit-files:${input.fromHash ?? ""}:${input.commitHash}`;
-			const files = await runCommitFilesDeduped(dedupeKey, () =>
+			const result = await runCommitFilesDeduped(dedupeKey, () =>
 				getHostWorkerPool().run(
 					gitCommitFilesTask,
 					{
@@ -264,7 +451,7 @@ export const gitRouter = router({
 				),
 			);
 
-			return { files };
+			return result;
 		}),
 
 	getBaseBranch: queryProcedure

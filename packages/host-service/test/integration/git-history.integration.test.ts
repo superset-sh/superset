@@ -52,7 +52,7 @@ describe("git history + diff procedures", () => {
 	});
 
 	test("getCommitFiles lists files changed in a commit", async () => {
-		const sha = await scenario.repo.commit("add files", {
+		const sha = await scenario.repo.commit("add files\n\nwith a body line", {
 			"x.txt": "x content",
 			"y.txt": "y content",
 		});
@@ -64,6 +64,15 @@ describe("git history + diff procedures", () => {
 		const paths = result.files.map((f) => f.path).sort();
 		expect(paths).toContain("x.txt");
 		expect(paths).toContain("y.txt");
+
+		// getCommitFiles also returns the commit's full metadata so a diff pane
+		// can render a header without a second spawn — subject, body, author,
+		// date and parents.
+		expect(result.commit).not.toBeNull();
+		expect(result.commit?.hash).toBe(sha);
+		expect(result.commit?.message).toBe("add files\n\nwith a body line");
+		expect(result.commit?.author).toBe("Test Runner");
+		expect(result.commit?.parents).toHaveLength(1);
 	});
 
 	test("getDiff returns staged content for a staged change", async () => {
