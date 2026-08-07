@@ -1,15 +1,21 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useRef, useState } from "react";
-import { LuFile, LuGitCompareArrows } from "react-icons/lu";
+import { LuFile, LuGitBranch, LuGitCompareArrows } from "react-icons/lu";
 import { useWorkspaceGitStatus } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/providers/WorkspaceGitStatusProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import type { GraphSelection } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import { useSettings } from "renderer/stores/settings";
 import type { CommentPaneData, DiffFocusSide } from "../../types";
 import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
+import { useGraphTab } from "./hooks/useGraphTab";
+import {
+	GRAPH_WIDE_BREAKPOINT,
+	laneCapForWidth,
+} from "./hooks/useGraphTab/components/GraphLanes";
 import { type OpenChatFn, usePRFlowDispatch } from "./hooks/usePRFlowDispatch";
 import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
@@ -20,9 +26,14 @@ import type { SidebarTabDefinition } from "./types";
 // always renders so users can see PR state and merge once a PR exists.
 const CREATE_PR_BUTTON_ENABLED = false;
 
-type SidebarTabId = "changes" | "files" | "review";
+type SidebarTabId = "changes" | "files" | "graph" | "review";
 
-const VALID_TAB_IDS: readonly SidebarTabId[] = ["changes", "files", "review"];
+const VALID_TAB_IDS: readonly SidebarTabId[] = [
+	"changes",
+	"files",
+	"graph",
+	"review",
+];
 
 function isSidebarTabId(tab: string): tab is SidebarTabId {
 	return (VALID_TAB_IDS as readonly string[]).includes(tab);
@@ -43,6 +54,10 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
+	/** Open a commit/range diff pane for a Graph tab click. */
+	onOpenCommitRef?: (ref: GraphSelection, openInNewTab?: boolean) => void;
+	/** Pin the diff pane a Graph single click just opened (double-click). */
+	onPinCommitPane?: () => void;
 	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
 	selectedFilePath?: string;
@@ -54,6 +69,8 @@ export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
+	onOpenCommitRef,
+	onPinCommitPane,
 	onOpenChat,
 	onSearch,
 	selectedFilePath,
@@ -84,6 +101,11 @@ export function WorkspaceSidebar({
 
 	const containerRef = useRef<HTMLDivElement>(null);
 	const [compact, setCompact] = useState(false);
+	// Lane cap + date column are width-bucketed, so they only change when the
+	// sidebar crosses a breakpoint — React dedupes the identical state updates
+	// the ResizeObserver fires on every pixel within a bucket.
+	const [laneCap, setLaneCap] = useState(6);
+	const [showDate, setShowDate] = useState(false);
 	useEffect(() => {
 		const el = containerRef.current;
 		if (!el) return;
@@ -93,6 +115,8 @@ export function WorkspaceSidebar({
 			// Hysteresis: expand back to labels only once we're clearly past
 			// the breakpoint, so the labels don't jitter on the edge.
 			setCompact((prev) => (prev ? width < 280 : width < 260));
+			setLaneCap(laneCapForWidth(width));
+			setShowDate(width >= GRAPH_WIDE_BREAKPOINT);
 		});
 		ro.observe(el);
 		return () => ro.disconnect();
@@ -110,6 +134,19 @@ export function WorkspaceSidebar({
 	const changesTab: SidebarTabDefinition = {
 		...changesTabDef,
 		icon: LuGitCompareArrows,
+	};
+
+	const graphTabDef = useGraphTab({
+		workspaceId,
+		compact,
+		laneCap,
+		showDate,
+		onOpenCommitRef,
+		onPinCommitPane,
+	});
+	const graphTab: SidebarTabDefinition = {
+		...graphTabDef,
+		icon: LuGitBranch,
 	};
 
 	const reviewTab = useReviewTab({
@@ -145,7 +182,12 @@ export function WorkspaceSidebar({
 		),
 	};
 
-	const tabs: SidebarTabDefinition[] = [filesTab, changesTab, reviewTab];
+	const tabs: SidebarTabDefinition[] = [
+		filesTab,
+		changesTab,
+		graphTab,
+		reviewTab,
+	];
 	const activeTabDef = tabs.find((t) => t.id === activeTab);
 
 	return (

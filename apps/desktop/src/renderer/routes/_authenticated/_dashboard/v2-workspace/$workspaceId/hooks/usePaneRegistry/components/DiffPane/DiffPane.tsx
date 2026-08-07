@@ -17,6 +17,7 @@ import { MarkdownSearch } from "renderer/screens/main/components/WorkspaceView/C
 import type { DiffPaneData, PaneViewerData } from "../../../../types";
 import {
 	type ChangesetFile,
+	type DiffRef,
 	getChangesetFileKey,
 	useChangeset,
 } from "../../../useChangeset";
@@ -25,6 +26,7 @@ import { useSidebarDiffRef } from "../../../useSidebarDiffRef";
 import { useViewedFiles } from "../../../useViewedFiles";
 import { AgentCommentComposer } from "./components/AgentCommentComposer";
 import { CommentThread } from "./components/CommentThread";
+import { CommitMetadataHeader } from "./components/CommitMetadataHeader";
 import { DiffHeaderMetadata } from "./components/DiffHeaderMetadata";
 import { DiffHeaderPrefix } from "./components/DiffHeaderPrefix";
 import { DiffSectionBar } from "./components/DiffSectionBar";
@@ -64,7 +66,23 @@ export function DiffPane({
 	const codeViewRef = useRef<CodeViewHandle<DiffAnnotationMetadata>>(null);
 	const searchContainerRef = useRef<HTMLDivElement>(null);
 
-	const ref = useSidebarDiffRef(workspaceId);
+	// A graph-owned pane carries its own commit/range ref; the Changes tab's
+	// follower pane (no ref) falls back to the sidebar changesFilter. The hook
+	// always runs (rules of hooks); its value only feeds the follower path.
+	const sidebarRef = useSidebarDiffRef(workspaceId);
+	const ref = useMemo<DiffRef>(() => {
+		if (data.ref?.kind === "commit") {
+			return { kind: "commit", commitHash: data.ref.hash };
+		}
+		if (data.ref?.kind === "range") {
+			return {
+				kind: "commit",
+				commitHash: data.ref.toHash,
+				fromHash: data.ref.fromHash,
+			};
+		}
+		return sidebarRef;
+	}, [data.ref, sidebarRef]);
 	const scrollStateKey = useMemo(
 		() =>
 			createPaneScrollStateKey({
@@ -79,7 +97,7 @@ export function DiffPane({
 		() => getPaneScrollState(scrollStateKey),
 		[scrollStateKey],
 	);
-	const { files, isLoading } = useChangeset({ workspaceId, ref });
+	const { files, commit, isLoading } = useChangeset({ workspaceId, ref });
 	const { viewedSet, setViewed } = useViewedFiles(workspaceId);
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
 	const threadAnnotationsByPath = useDiffAnnotationsByPath({ workspaceId });
@@ -316,6 +334,7 @@ export function DiffPane({
 
 	return (
 		<div className="flex h-full w-full flex-col">
+			{data.ref && commit ? <CommitMetadataHeader commit={commit} /> : null}
 			{currentSection ? (
 				<DiffSectionBar
 					kind={currentSection.kind}

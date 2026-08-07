@@ -1,3 +1,5 @@
+import type { GraphSelection } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
+
 export interface FilePaneData {
 	filePath: string;
 	mode: "editor" | "diff" | "preview";
@@ -51,6 +53,12 @@ export interface DiffPaneData {
 	focusLine?: number;
 	focusSide?: DiffFocusSide;
 	focusTick?: number;
+	/** Commit/range ref this pane is bound to. Absent (undefined) marks the
+	 *  follower pane that mirrors sidebar changesFilter (the Changes tab);
+	 *  present marks a graph-owned commit preview. Preview reuse only ever
+	 *  recycles panes that already carry a ref, so a graph click can never
+	 *  hijack the Changes tab's own pane. */
+	ref?: GraphSelection;
 }
 
 export interface CommentPaneData {

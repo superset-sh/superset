@@ -1,6 +1,7 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { useCallback } from "react";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type { GraphSelection } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal/schema";
 import type { StoreApi } from "zustand/vanilla";
 import type {
 	BrowserPaneData,
@@ -13,6 +14,16 @@ import type {
 	TerminalPaneData,
 } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+
+/** Structural equality for graph refs, so an already-open commit pane is focused
+ *  instead of duplicated. */
+function sameRef(a: GraphSelection | undefined, b: GraphSelection): boolean {
+	if (!a || a.kind !== b.kind) return false;
+	if (a.kind === "commit" && b.kind === "commit") return a.hash === b.hash;
+	if (a.kind === "range" && b.kind === "range")
+		return a.fromHash === b.fromHash && a.toHash === b.toHash;
+	return false;
+}
 
 export function useWorkspacePaneOpeners({
 	store,
@@ -35,6 +46,8 @@ export function useWorkspacePaneOpeners({
 		side?: DiffFocusSide,
 		changeKey?: string,
 	) => void;
+	openCommitDiffPane: (ref: GraphSelection, openInNewTab?: boolean) => void;
+	pinActiveCommitPane: () => void;
 	addTerminalTab: () => Promise<void>;
 	addChatTab: () => void;
 	addChatV3Tab: () => void;
@@ -198,8 +211,95 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
+	const openCommitDiffPane = useCallback(
+		(ref: GraphSelection, openInNewTab?: boolean) => {
+			const state = store.getState();
+			// A commit pane shows the whole changeset; CodeView renders every file,
+			// so an empty path simply means "no specific file focused".
+			const paneData = {
+				ref,
+				collapsedFiles: [],
+				path: "",
+			} as DiffPaneData;
+
+			// cmd/ctrl-click: always a fresh pane, never a reuse.
+			if (openInNewTab) {
+				state.addTab({ panes: [{ kind: "diff", data: paneData }] });
+				return;
+			}
+
+			// Focus an existing pane already showing this exact ref (any tab)
+			// before reusing or creating — same convention as the file tree.
+			for (const tab of state.tabs) {
+				for (const pane of Object.values(tab.panes)) {
+					if (pane.kind !== "diff") continue;
+					if (sameRef((pane.data as DiffPaneData).ref, ref)) {
+						state.setActiveTab(tab.id);
+						state.setActivePane({ tabId: tab.id, paneId: pane.id });
+						return;
+					}
+				}
+			}
+
+			// Reuse the unpinned ref-carrying diff pane in the active tab; replace
+			// its ref. ONLY ref-carrying panes are eligible — the discriminator
+			// `data.ref === undefined` marks the Changes tab's follower pane, which
+			// a graph click must never hijack.
+			const activeTabId = state.activeTabId;
+			const activeTab = activeTabId
+				? state.tabs.find((t) => t.id === activeTabId)
+				: null;
+			if (activeTab) {
+				const reusable = Object.values(activeTab.panes).find(
+					(p) =>
+						p.kind === "diff" &&
+						!p.pinned &&
+						(p.data as DiffPaneData).ref !== undefined,
+				);
+				if (reusable) {
+					state.replacePane({
+						tabId: activeTab.id,
+						paneId: reusable.id,
+						newPane: { kind: "diff", data: paneData },
+					});
+					return;
+				}
+				// No reusable ref pane: add a new one (split), leaving the Changes
+				// follower pane untouched.
+				state.addPane({
+					tabId: activeTab.id,
+					pane: { kind: "diff", data: paneData },
+				});
+				return;
+			}
+
+			// No active tab: seed one with the commit pane.
+			state.addTab({ panes: [{ kind: "diff", data: paneData }] });
+		},
+		[store],
+	);
+
+	/** Pin the diff pane a single click just opened. No-op unless the active
+	 *  pane is a ref-carrying commit diff (double-clicking the Changes tab's
+	 *  follower pane does nothing). */
+	const pinActiveCommitPane = useCallback(() => {
+		const state = store.getState();
+		const active = state.getActivePane();
+		if (
+			active?.pane.kind === "diff" &&
+			(active.pane.data as DiffPaneData).ref
+		) {
+			state.setPanePinned({
+				paneId: active.pane.id,
+				pinned: true,
+			});
+		}
+	}, [store]);
+
 	return {
 		openDiffPane,
+		openCommitDiffPane,
+		pinActiveCommitPane,
 		addTerminalTab,
 		addChatTab,
 		addChatV3Tab,

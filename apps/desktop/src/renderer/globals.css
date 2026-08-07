@@ -58,6 +58,16 @@
 	/* Sidebar row fills: low-opacity foreground washes so they track any theme */
 	--fill-hover: color-mix(in oklab, var(--foreground) 7%, transparent);
 	--fill-selected: color-mix(in oklab, var(--foreground) 10%, transparent);
+	/* Commit-graph lanes: pre-hydration fallback for the bright ANSI set.
+	   The live values come from shared/themes/graph-lanes via applyGraphLaneColors. */
+	--graph-lane-1: #729fcf;
+	--graph-lane-2: #8ae234;
+	--graph-lane-3: #ef2929;
+	--graph-lane-4: #34e2e2;
+	--graph-lane-5: #ad7fa8;
+	--graph-lane-6: #fce94f;
+	--graph-lane-7: color-mix(in oklch, #729fcf 62%, white);
+	--graph-lane-8: color-mix(in oklch, #8ae234 62%, white);
 }
 
 /* Light theme fallback values - applied before hydration if user has light theme saved */
@@ -102,6 +112,15 @@
 	--highlight-foreground: oklch(0.985 0 0);
 	--fill-hover: color-mix(in oklab, var(--foreground) 4%, transparent);
 	--fill-selected: color-mix(in oklab, var(--foreground) 6%, transparent);
+	/* Standard ANSI set — the bright one washes out on a white ground. */
+	--graph-lane-1: #3465a4;
+	--graph-lane-2: #4e9a06;
+	--graph-lane-3: #cc0000;
+	--graph-lane-4: #06989a;
+	--graph-lane-5: #75507b;
+	--graph-lane-6: #c4a000;
+	--graph-lane-7: color-mix(in oklch, #3465a4 62%, black);
+	--graph-lane-8: color-mix(in oklch, #4e9a06 62%, black);
 }
 
 @theme inline {

@@ -200,6 +200,8 @@ function V2WorkspaceContent() {
 	});
 	const {
 		openDiffPane,
+		openCommitDiffPane,
+		pinActiveCommitPane,
 		addTerminalTab,
 		addChatTab,
 		addChatV3Tab,
@@ -412,6 +414,8 @@ function V2WorkspaceContent() {
 								onSelectFile={openFilePaneFromTreeClick}
 								onSelectDiffFile={openDiffPane}
 								onOpenComment={openCommentPane}
+								onOpenCommitRef={openCommitDiffPane}
+								onPinCommitPane={pinActiveCommitPane}
 								onSearch={handleQuickOpen}
 								selectedFilePath={selectedFilePath}
 								pendingReveal={pendingReveal}
