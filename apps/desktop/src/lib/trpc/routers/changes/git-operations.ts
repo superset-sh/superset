@@ -4,6 +4,7 @@ import { publicProcedure, router } from "../..";
 import { getCurrentBranch } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
 import {
+	isMergeConflictError,
 	isNoPullRequestFoundMessage,
 	isUpstreamMissingError,
 } from "./git-utils";
@@ -45,6 +46,49 @@ async function getLocalBranchOrThrow({
 		});
 	}
 	return branch;
+}
+
+type ExpectedGitFailureKind =
+	| "MERGE_CONFLICT"
+	| "PUSH_REJECTED"
+	| "UPSTREAM_MISSING";
+
+function classifyExpectedGitFailure(
+	message: string,
+): { kind: ExpectedGitFailureKind; message: string } | null {
+	if (isMergeConflictError(message)) {
+		return { kind: "MERGE_CONFLICT", message };
+	}
+	if (isNonFastForwardPushError(message)) {
+		return { kind: "PUSH_REJECTED", message };
+	}
+	if (isUpstreamMissingError(message)) {
+		return {
+			kind: "UPSTREAM_MISSING",
+			message:
+				"No upstream branch to pull from. The remote branch may have been deleted.",
+		};
+	}
+	return null;
+}
+
+// Conflicts, rejected pushes and deleted upstreams live in the user's repo,
+// not in our code — surface them as typed non-500s so they aren't reported,
+// while genuinely unexpected git failures keep escaping as 500s.
+function rethrowClassifiedGitError(error: unknown): never {
+	if (error instanceof TRPCError) {
+		throw error;
+	}
+	const message = error instanceof Error ? error.message : String(error);
+	const expected = classifyExpectedGitFailure(message);
+	if (expected) {
+		throw new TRPCError({
+			code: "PRECONDITION_FAILED",
+			message: expected.message,
+			cause: { kind: expected.kind },
+		});
+	}
+	throw error;
 }
 
 export const createGitOperationsRouter = () => {
@@ -133,14 +177,7 @@ export const createGitOperationsRouter = () => {
 				try {
 					await git.pull(["--rebase"]);
 				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					if (isUpstreamMissingError(message)) {
-						throw new Error(
-							"No upstream branch to pull from. The remote branch may have been deleted.",
-						);
-					}
-					throw error;
+					rethrowClassifiedGitError(error);
 				}
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
@@ -161,32 +198,40 @@ export const createGitOperationsRouter = () => {
 				} catch (error) {
 					const message =
 						error instanceof Error ? error.message : String(error);
-					if (isUpstreamMissingError(message)) {
-						const localBranch = await getLocalBranchOrThrow({
-							worktreePath: input.worktreePath,
-							action: "push",
-						});
+					if (!isUpstreamMissingError(message)) {
+						rethrowClassifiedGitError(error);
+					}
+					const localBranch = await getLocalBranchOrThrow({
+						worktreePath: input.worktreePath,
+						action: "push",
+					});
+					try {
 						await pushWithResolvedUpstream({
 							git,
 							worktreePath: input.worktreePath,
 							localBranch,
 						});
-						await fetchCurrentBranch(git, input.worktreePath);
-						clearStatusCacheForWorktree(input.worktreePath);
-						return { success: true };
+					} catch (pushError) {
+						rethrowClassifiedGitError(pushError);
 					}
-					throw error;
+					await fetchCurrentBranch(git, input.worktreePath);
+					clearStatusCacheForWorktree(input.worktreePath);
+					return { success: true };
 				}
 
 				const localBranch = await getLocalBranchOrThrow({
 					worktreePath: input.worktreePath,
 					action: "push",
 				});
-				await pushCurrentBranch({
-					git,
-					worktreePath: input.worktreePath,
-					localBranch,
-				});
+				try {
+					await pushCurrentBranch({
+						git,
+						worktreePath: input.worktreePath,
+						localBranch,
+					});
+				} catch (error) {
+					rethrowClassifiedGitError(error);
+				}
 				await fetchCurrentBranch(git, input.worktreePath);
 				clearStatusCacheForWorktree(input.worktreePath);
 				return { success: true };
