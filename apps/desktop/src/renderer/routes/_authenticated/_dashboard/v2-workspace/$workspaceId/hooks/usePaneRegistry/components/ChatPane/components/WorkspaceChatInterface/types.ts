@@ -9,6 +9,11 @@ export interface ChatPaneInterfaceProps {
 	 * launchConfig and not re-trigger on re-render.
 	 */
 	onConsumeLaunchConfig?: () => void;
+	/**
+	 * Persists the current textarea draft to the owning pane so it survives
+	 * tab/pane switches. Called with `undefined` to clear the saved draft.
+	 */
+	onSaveDraft?: (draft: string | undefined) => void;
 	workspaceId: string;
 	organizationId: string | null;
 	cwd: string;

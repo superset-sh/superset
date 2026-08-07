@@ -19,6 +19,8 @@ export interface ChatPaneData {
 	 */
 	launchConfig?: {
 		initialPrompt?: string;
+		/** Unsent textarea draft, persisted so it survives tab/pane switches. */
+		draftInput?: string;
 		initialFiles?: Array<{
 			data: string;
 			mediaType: string;

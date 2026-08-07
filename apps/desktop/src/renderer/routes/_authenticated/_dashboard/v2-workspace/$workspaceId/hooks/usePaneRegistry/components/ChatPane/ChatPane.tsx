@@ -8,12 +8,14 @@ export function ChatPane({
 	workspaceId,
 	initialLaunchConfig,
 	onConsumeLaunchConfig,
+	onSaveDraft,
 }: {
 	onSessionIdChange: (sessionId: string | null) => void;
 	sessionId: string | null;
 	workspaceId: string;
 	initialLaunchConfig?: ChatLaunchConfig | null;
 	onConsumeLaunchConfig?: () => void;
+	onSaveDraft?: (draft: string | undefined) => void;
 }) {
 	const { organizationId, workspacePath, handleNewChat, getOrCreateSession } =
 		useWorkspaceChatController({
@@ -27,6 +29,7 @@ export function ChatPane({
 			getOrCreateSession={getOrCreateSession}
 			initialLaunchConfig={initialLaunchConfig ?? null}
 			onConsumeLaunchConfig={onConsumeLaunchConfig}
+			onSaveDraft={onSaveDraft}
 			isFocused
 			onResetSession={handleNewChat}
 			sessionId={sessionId}
