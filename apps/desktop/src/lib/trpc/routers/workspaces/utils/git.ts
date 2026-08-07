@@ -890,10 +890,14 @@ export async function getGitRoot(path: string): Promise<GitRootInfo> {
 		// canonicalizes /tmp to /private/tmp, resolves symlinks to their real
 		// path, and returns the canonical casing on a case-insensitive volume.
 		const output = await git.revparse(["--show-toplevel", "--show-prefix"]);
-		const [root = "", prefix = ""] = output.split("\n");
+		const [rootLine = "", prefixLine = ""] = output.split("\n");
+		// Strip only a trailing CR, never trim: a directory name may legitimately
+		// end in whitespace, and trimming it would hand callers a path that
+		// doesn't exist.
+		const root = rootLine.replace(/\r$/, "");
 		// Emptiness only — `core.quotePath` can C-quote non-ASCII path
 		// components, so the prefix value itself is not safe to parse.
-		return { root: root.trim(), isRoot: prefix.trim() === "" };
+		return { root, isRoot: prefixLine.replace(/\r$/, "") === "" };
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (message.toLowerCase().includes("not a git repository")) {

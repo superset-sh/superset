@@ -1190,7 +1190,7 @@ describe("getGitRoot", () => {
 		const plainPath = join(TEST_DIR, "plain");
 		mkdirSync(plainPath, { recursive: true });
 
-		expect(getGitRoot(plainPath)).rejects.toBeInstanceOf(NotGitRepoError);
+		await expect(getGitRoot(plainPath)).rejects.toBeInstanceOf(NotGitRepoError);
 	});
 
 	// A worktree root keeps `.git` as a FILE, not a directory, so a filesystem
@@ -1251,14 +1251,16 @@ describe("getGitRoot", () => {
 		mkdirSync(barePath, { recursive: true });
 		execSync("git init --bare", { cwd: barePath, stdio: "ignore" });
 
-		expect(getGitRoot(barePath)).rejects.not.toBeInstanceOf(NotGitRepoError);
+		await expect(getGitRoot(barePath)).rejects.not.toBeInstanceOf(
+			NotGitRepoError,
+		);
 	});
 
 	test("does not classify a .git directory as NotGitRepoError", async () => {
 		const repoPath = createTestRepo("dotgit");
 		seedCommit(repoPath);
 
-		expect(getGitRoot(join(repoPath, ".git"))).rejects.not.toBeInstanceOf(
+		await expect(getGitRoot(join(repoPath, ".git"))).rejects.not.toBeInstanceOf(
 			NotGitRepoError,
 		);
 	});
