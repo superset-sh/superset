@@ -9,13 +9,12 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
-import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	HostSelect,
 	type HostSelectOption,
 } from "../../../../components/HostSelect";
 import { SettingsRow } from "../../../../components/SettingsRow";
+import { SettingsSection } from "../../../../components/SettingsSection";
 import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
@@ -37,7 +36,6 @@ export function V2ProjectSettings({
 	hostId,
 }: V2ProjectSettingsProps) {
 	const navigate = useNavigate();
-	const searchQuery = useSettingsSearchQuery();
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
 		useWorkspaceHostOptions();
@@ -156,7 +154,7 @@ export function V2ProjectSettings({
 			</header>
 
 			<div className="space-y-10">
-				<section>
+				<SettingsSection title="General">
 					<SettingsRow label="Name" htmlFor="project-name">
 						<NameSection
 							projectId={projectId}
@@ -183,6 +181,12 @@ export function V2ProjectSettings({
 							hasCustomIcon={Boolean(projectIcon)}
 						/>
 					</SettingsRow>
+				</SettingsSection>
+
+				<SettingsSection
+					title="Branches & naming"
+					description="How branches and workspace names are created for this project."
+				>
 					{targetHostUrl && hostProject && (
 						<SettingsRow
 							label="Branch prefix"
@@ -210,9 +214,12 @@ export function V2ProjectSettings({
 							onChanged={() => refetchHostProject()}
 						/>
 					)}
-				</section>
+				</SettingsSection>
 
-				<section>
+				<SettingsSection
+					title="Location & checkout"
+					description="Where the repository and new worktrees live on this host."
+				>
 					<SettingsRow label="Location">
 						<ProjectLocationSection
 							projectId={projectId}
@@ -271,29 +278,24 @@ export function V2ProjectSettings({
 							/>
 						</div>
 					)}
-					{targetHostUrl && (
-						<div className="pt-4">
-							<div className="mb-3">
-								<h3 className="text-sm font-medium">
-									<HighlightText text="Scripts" query={searchQuery} />
-								</h3>
-								<p className="mt-0.5 text-xs text-muted-foreground">
-									Runs in a terminal for setup, teardown, and the workspace Run
-									button.
-								</p>
-							</div>
-							<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
-						</div>
-					)}
-				</section>
+				</SettingsSection>
 
-				<section>
+				{targetHostUrl && (
+					<SettingsSection
+						title="Scripts"
+						description="Runs in a terminal for setup, teardown, and the workspace Run button."
+					>
+						<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
+					</SettingsSection>
+				)}
+
+				<SettingsSection title="Danger zone">
 					<DeleteProjectSection
 						projectId={projectId}
 						projectName={project.name}
 						hostIds={project.hostIds}
 					/>
-				</section>
+				</SettingsSection>
 			</div>
 		</div>
 	);

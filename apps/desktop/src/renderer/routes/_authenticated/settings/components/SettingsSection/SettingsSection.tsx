@@ -23,7 +23,7 @@ export function SettingsSection({
 		<section className="space-y-3">
 			<div className="flex items-start justify-between gap-4">
 				<div className="min-w-0">
-					<h3 className="flex items-center gap-2 text-sm font-medium">
+					<h3 className="flex items-center gap-2 text-base font-semibold">
 						{icon}
 						<HighlightText text={title} query={searchQuery} />
 					</h3>
