@@ -17,6 +17,14 @@ export const useSidebarPreferencesStore = create<SidebarPreferencesState>()(
 					set({ wrapWorkspaceNames: wrap });
 				},
 			}),
+			// localStorage lifecycle (see apps/desktop/AGENTS.md):
+			// - Bound: fixed-size singleton — one boolean, rewritten in place, so
+			//   the key can't grow with workspaces, projects, or sessions.
+			// - Deletion: nothing entity-scoped to reap; toggling overwrites the
+			//   same key, and a profile that never opens the setting never writes.
+			// - On feature removal: move "sidebar-preferences" to DEAD_KEYS in the
+			//   same change that deletes this writer, so the boot sweep clears it
+			//   from existing profiles.
 			{
 				name: "sidebar-preferences",
 			},
