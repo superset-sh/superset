@@ -1,30 +1,16 @@
 import type { CSSProperties } from "react";
 
 /**
- * Pierre decides "does this name overflow?" entirely in CSS: alongside the
- * visible single-line label it lays out a hidden `word-break: break-all` copy,
- * then reveals the middle-truncation marker — the `…` + fade that paints over
- * the name, in the row's own background color — via
- * `@container measure (height > 1lh)` on the marker cell.
+ * Pierre detects overflow in pure CSS: a hidden `word-break: break-all` copy of
+ * the label sits beside the visible one, and `@container measure (height > 1lh)`
+ * on the marker cell reveals the middle-truncation marker — the `…` + fade that
+ * paints over the name. A name that fits measures exactly `1lh`, so the test has
+ * no margin: any sub-pixel rounding of the line box marks every row as
+ * overflowing and hides ~3 characters mid-name at every sidebar width.
  *
- * That comparison ships with **zero margin**. On a 28px row a name that fits
- * measures exactly 28.00px against a `1lh` of exactly 28px, and only the strict
- * `>` keeps the marker hidden. Anything that rounds the used line box up by any
- * amount — sub-pixel snapping under fractional page zoom, a display scale that
- * doesn't divide evenly, a future font metric change — flips *every* row to
- * "overflowing" at once. The marker then hides ~3 characters mid-name at any
- * sidebar width, which reads as the tree ignoring the width it has rather than
- * as truncation (the text underneath is still laid out at full width).
- *
- * Measured in the running app: nudging the line box by 0.53% (28.147px, the
- * size of a one-device-pixel snap at zoom ~1.31 on a 1x display) turns the
- * marker on for 23 of 23 rows; with the slack below, 0 of 23, while a name too
- * long for the lane still truncates.
- *
- * So give the query 1.5 lines of slack: rounding can't reach it, and a genuine
- * second line (2lh) still trips it. The marker's own box is sized in `lh` too,
- * so pin that back to a single row or it grows with the inflated line-height
- * when it is legitimately shown.
+ * Give the query 1.5 lines of slack — out of reach of rounding, still tripped by
+ * a real second line. The marker's own box is sized in `lh` too, so pin it back
+ * to one row.
  */
 const MIDDLE_TRUNCATE_ZOOM_CSS = `
 	[data-truncate-marker-cell] {
