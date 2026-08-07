@@ -20,6 +20,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_SIDEBAR_WORKSPACE_NAMES: "appearance-sidebar-workspace-names",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -135,6 +136,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -483,6 +485,28 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"blink",
 			"custom",
 			"nerd",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES,
+		section: "appearance",
+		title: "Wrap workspace names",
+		description:
+			"Wrap long workspace names in the sidebar instead of cutting them off",
+		keywords: [
+			"appearance",
+			"sidebar",
+			"workspace",
+			"workspace names",
+			"wrap",
+			"wrapping",
+			"truncate",
+			"truncation",
+			"ellipsis",
+			"multiline",
+			"multiple lines",
+			"long names",
+			"cut off",
 		],
 	},
 	{

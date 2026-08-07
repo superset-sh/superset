@@ -14,6 +14,7 @@ import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
+import { useWrapWorkspaceNames } from "renderer/stores/sidebar-preferences";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
 	DashboardSidebarWorkspace,
@@ -101,6 +102,9 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 		const isPending = pendingTransaction?.type === "insert";
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
+		// Opt-in (Settings → Appearance): let long names run onto extra lines
+		// rather than clipping them with an ellipsis.
+		const wrapName = useWrapWorkspaceNames();
 
 		useEffect(() => {
 			if (isActive) {
@@ -162,7 +166,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					}}
 					onDoubleClick={onDoubleClick}
 					className={cn(
-						"group relative flex w-full items-center py-1.5 pr-2",
+						"group relative flex w-full py-1.5 pr-2",
+						// Wrapped names can span several lines, so pin the icon and the
+						// row actions to the first line instead of centering them.
+						wrapName ? "items-start" : "items-center",
 						isInSection ? "pl-8" : "pl-3",
 						onClick && "cursor-pointer",
 					)}
@@ -273,7 +280,19 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						</Tooltip>
 					)}
 
-					<div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5">
+					<div
+						className={cn(
+							"grid min-w-0 flex-1 gap-x-1.5",
+							wrapName
+								? // Diff stats only exist on the active row and the actions only
+									// on hover, so an auto track would resize the name column as
+									// those come and go — and a wrapped name rewraps with it.
+									// Reserve enough for both; oversized counts still widen it,
+									// but that no longer varies by hover or active state.
+									"grid-cols-[minmax(0,1fr)_minmax(3.5rem,auto)] items-start"
+								: "grid-cols-[minmax(0,1fr)_auto] items-center",
+						)}
+					>
 						{isRenaming ? (
 							<RenameInput
 								value={renameValue}
@@ -287,7 +306,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						) : (
 							<span
 								className={cn(
-									"truncate text-[13px] leading-tight transition-colors",
+									"text-[13px] leading-tight transition-colors",
+									// `break-words` also breaks unbroken strings (long branch
+									// names) so they can't overflow the sidebar.
+									wrapName ? "min-w-0 break-words" : "truncate",
 									isActive || isSelected
 										? "text-foreground"
 										: "text-foreground/80",
@@ -311,11 +333,21 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 										additions={diffStats.additions}
 										deletions={diffStats.deletions}
 										isActive={isActive}
+										keepLayoutOnHover={wrapName}
 									/>
 								)
 							)}
 							{!isPending && !isSelected && (
-								<div className="hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex">
+								<div
+									className={cn(
+										"items-center justify-end gap-1.5",
+										// Wrapped names reflow if this column only claims width on
+										// hover, so keep it in layout and hide it visually instead.
+										wrapName
+											? "flex invisible group-hover:visible group-focus-within:visible"
+											: "hidden group-hover:flex group-focus-within:flex",
+									)}
+								>
 									{shortcutLabel && (
 										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
 											{shortcutLabel}
