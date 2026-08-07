@@ -112,18 +112,20 @@ export function V2ProjectSettings({
 		void refetchHostProject();
 	}, [mergedUpdatedAt, refetchHostProject]);
 
-	// Deep-link focus (e.g. "Naming instructions" from the new-workspace
-	// project picker). Wait for the host row: the target fields only render
-	// once it has loaded. One-shot per mount.
-	const focusAppliedRef = useRef(false);
+	// Deep-link focus (e.g. "Update naming instructions" from the create-
+	// workspace flow). Wait for the host row: the target fields only render
+	// once it has loaded. One-shot per project, not per mount — the route
+	// component instance is reused across projectId changes.
+	const focusAppliedForRef = useRef<string | null>(null);
 	useEffect(() => {
-		if (!focusField || !hostProject || focusAppliedRef.current) return;
+		if (!focusField || !hostProject || focusAppliedForRef.current === projectId)
+			return;
 		const el = document.getElementById(`project-${focusField}`);
 		if (!el) return;
-		focusAppliedRef.current = true;
+		focusAppliedForRef.current = projectId;
 		el.scrollIntoView({ block: "center" });
 		el.focus({ preventScroll: true });
-	}, [focusField, hostProject]);
+	}, [focusField, hostProject, projectId]);
 
 	if (!project) {
 		if (!isReady) return null;

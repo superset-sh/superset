@@ -502,7 +502,7 @@ export function NewWorkspaceScreen({
 			{/* no-drag + clear of the page's window-drag strip (which ends at
 			    right-12) so the button actually receives clicks. */}
 			<div className="no-drag absolute right-3 top-2.5 z-10 flex items-center gap-0.5">
-				{selectedProject && (
+				{selectedProject && !needsSetup && (
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button

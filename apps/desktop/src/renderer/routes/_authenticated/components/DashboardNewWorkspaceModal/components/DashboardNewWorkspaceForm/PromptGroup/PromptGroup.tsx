@@ -423,7 +423,7 @@ export function PromptGroup({
 						}}
 					/>
 				</div>
-				{selectedProject && (
+				{selectedProject && !needsSetup && (
 					<Tooltip>
 						<TooltipTrigger asChild>
 							<Button
