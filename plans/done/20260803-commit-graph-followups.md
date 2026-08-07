@@ -4,7 +4,7 @@ Follow-up to `plans/` sibling work on the sidebar commit graph. The graph ships 
 this document covers what is left. Every item states the files, the acceptance bar, and why the
 decision went the way it did.
 
-Predecessor plan: `plans/20260801-commit-graph-sidebar.md` (phases 0–6). Phases 0–4 are landed;
+Predecessor plan: `plans/done/20260801-commit-graph-sidebar.md` (phases 0–6). Phases 0–4 are landed;
 phase 5 is **superseded** by §2 below; phase 6 is partially landed.
 
 ## Current state (verified, do not redo)
@@ -40,7 +40,7 @@ Both corrupt what everything downstream renders. Cheap.
 
 `packages/host-service/src/workers/tasks/git.ts:211-212`:
 
-```
+```text
 "--topo-order",
 "--date-order",
 ```
@@ -245,6 +245,8 @@ follow-up; same header slot as 4.1/4.2.
 ## 5. Verification debt
 
 Things believed correct but never actually checked. Each is a place a regression can hide today.
+**§5.6 is the authoritative status**: 5.1–5.5 below are the debt as first written, and 5.6 records
+what has since been run and what is still open.
 
 ### 5.1 Phase 6 perf pass never ran
 

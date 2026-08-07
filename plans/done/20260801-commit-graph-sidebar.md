@@ -144,7 +144,7 @@ host event loop. Spawns per call: `for-each-ref` (heads+remotes+tags, one call),
 
 Log format — subject last so embedded tabs can't shift fields:
 
-```
+```sh
 git log --topo-order --date-order --max-count=<limit+1> --skip=<n> <tips...> \
   --format=%H%x09%h%x09%P%x09%an%x09%ae%x09%aI%x09%s
 ```
@@ -168,7 +168,9 @@ Output types go in `trpc/router/git/types.ts` beside `Commit`.
 
 `.../WorkspaceSidebar/hooks/useGraphTab/utils/assignLanes/{assignLanes.ts,assignLanes.test.ts,index.ts}`
 
-`RawGraphCommit[] → GraphRow[]` where `GraphRow = { commit, lane, edges: Array<{fromLane, toLane, kind: "straight"|"fork"|"merge"}>, laneCount }`.
+`RawGraphCommit[] → GraphRow[]` where `GraphRow = { commit, lane, edges: Array<{fromLane, toLane, kind}>, laneCount }`.
+As built, `kind` is `"pass" | "in-straight" | "in-merge" | "out-straight" | "out-fork" | "out-stub"` —
+each row paints its own half-edges, so incoming and outgoing are separate kinds.
 
 Active-lane sweep over topo-ordered input: lanes keyed by expected-next-hash; a commit takes the
 leftmost lane awaiting it or opens a new one; first parent inherits the lane; extra parents open/close
@@ -180,7 +182,7 @@ parent outside the window (renders a stub edge, must not throw); determinism whe
 
 ### (c) Renderer — the tab
 
-```
+```text
 .../WorkspaceSidebar/hooks/useGraphTab/
   useGraphTab.tsx          # returns SidebarTabDefinition, mirrors useChangesTab
   types.ts  index.ts
@@ -220,7 +222,7 @@ graph-selected commit outside that range shows a sliced hash — acceptable in p
 `test/integration/git-graph.integration.test.ts`.
 
 **Edited (6, keep the diff surface minimal — these ship daily upstream; rebase weekly):**
-`packages/ui/src/globals.css` (additive `--graph-lane-1..8`, light + dark) ·
+`apps/desktop/src/renderer/globals.css` (additive `--graph-lane-1..8`, light + dark) ·
 `workers/tasks/git.ts` (task + `gitTasks` registration) · `trpc/router/git/git.ts` (`listGraph`) ·
 `trpc/router/git/types.ts` (output types) · `WorkspaceSidebar.tsx` (union + `VALID_TAB_IDS` + `graphTab`) ·
 `dashboardSidebarLocal/schema.ts` (`activeTab` enum + `graphRefScope` on the project schema).
@@ -273,7 +275,7 @@ locally; a spec gap gets resolved in the spec rather than improvised at the call
 row 28px / compact 24px · lane pitch 14px · node r 3.5px · stroke 1.5px · elbow radius 6px ·
 lane cap 6 visible (84px of 280px) then merge lanes sharing a parent, then a `+N` overflow chip.
 
-**Palette needs new tokens.** `packages/ui/src/globals.css` ships only `--chart-1..5`, and their hues
+**Palette needs new tokens.** The desktop renderer's `globals.css` ships only `--chart-1..5`, and their hues
 are *not* stable across themes (light `--chart-1` is orange, dark is blue) — a lane would change colour
 on a theme switch. The spec adds `--graph-lane-1..8` (light + dark, equal chroma/lightness so lanes read
 as one family) to that file. That makes a 6th edited file; it is additive and touches nothing existing.
@@ -312,7 +314,7 @@ uninterrupted.
 `test/integration/git-history.integration.test.ts` using `createBasicScenario`. Fixture repo with:
 one open workspace, one worktree with **no** `workspaces` row, one orphan local branch, one prunable
 worktree (path deleted from disk), plus a merge commit, a tag, and a branch merged into base. Assert
-all four ref states are returned correctly, that parents are populated, and that a branch merged
+all five ref states are returned correctly, that parents are populated, and that a branch merged
 outside the commit window still reports `merged`. Also assert `bun run lint` passes (it runs both
 guardrail scripts).
 

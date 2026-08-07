@@ -3,7 +3,7 @@
 Design contract for the `Graph` sidebar tab. Covers lane geometry, the lane colour ramp, ref-badge
 treatments, row anatomy at each width, and the empty / loading / truncated states.
 
-Companion to `plans/20260801-commit-graph-sidebar.md` (the implementation plan). This file owns **pixels
+Companion to `plans/done/20260801-commit-graph-sidebar.md` (the implementation plan). This file owns **pixels
 and colour**; that file owns data, algorithm, and wiring.
 
 **Status:** signed off. The three open calls — row tint at 6%/9%, badges inline rather than in a
@@ -12,6 +12,14 @@ components in §8 are landed.
 
 **Ownership:** the files listed in §8 own the presentation. Anything that needs a pixel or a colour
 changed goes through this spec, not through a local override at the call site.
+
+**Superseded where it differs from the shipped code.** One thing moved after sign-off: the lane ramp
+is no longer the fixed OKLCH list in §3. Lanes are derived per theme from its own ANSI palette
+(`src/shared/themes/graph-lanes.ts`), with slots 7–8 as `color-mix()` shifts of the first two, because
+a fixed ramp ignored a user-imported theme entirely. The `--graph-lane-1..8` hex in
+`src/renderer/globals.css` is only the pre-hydration fallback. The §3 constraints — one hue per index,
+equal weight within a theme, adjacent lanes maximally separated — still hold; only the source of the
+values changed.
 
 ---
 
@@ -92,7 +100,7 @@ without relying on the subject text. Root commits (`parents.length === 0`) get a
 
 ## 3. Lane colour ramp
 
-`packages/ui/src/globals.css` ships `--chart-1..5` only, and their hues are **not stable across
+`src/renderer/globals.css` ships `--chart-1..5` only, and their hues are **not stable across
 themes** — light `--chart-1` is orange `oklch(0.646 0.222 41.116)`, dark is blue
 `oklch(0.488 0.243 264.376)`. A lane would change colour on a theme switch. So the spec adds a
 dedicated ramp.
@@ -199,11 +207,11 @@ truncates.
 
 ## 5. Row anatomy
 
-```
+```text
 Wide      ≥400px   [ lanes ][ badges ][ subject ······················ ][ hash ][ date ]
 Standard  260-399  [ lanes ][ badges ][ subject ······················ ][ hash ]
 Compact   <260     [ lanes ][ badges ][ subject ····· ]
-```
+```text
 
 - **subject** — single line, ellipsised, `--foreground`. Merge commits (`parents.length > 1`) render
   at `--muted-foreground`; they are structure, not work. Controlled by the `muteMerges` prop,
@@ -223,10 +231,10 @@ alone, which is what lets `estimateSize` stay measurement-free.
 
 An opt-in that gives refs their own line above the subject:
 
-```
+```text
 Two-line   [ lanes ][ badges, untruncated, full width ················· ]
                    [ subject ······················ ][ hash ][ date ]
-```
+```text
 
 - Only rows that **carry refs** grow. A bare commit stays 28px whatever the toggle says, so the
   virtualizer's estimate is `graphRowHeight({ compact, twoLine: rows[i].commit.refs.length > 0 })`
