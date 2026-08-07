@@ -11,18 +11,31 @@ import { getBaseName } from "renderer/lib/pathBasename";
 import { useGitInitDialogStore } from "renderer/stores/git-init-dialog";
 
 export function InitGitDialog() {
-	const { isOpen, isPending, folders, onConfirm, onOpenEnclosing, onCancel } =
-		useGitInitDialogStore();
+	const {
+		isOpen,
+		pendingAction,
+		folders,
+		onConfirm,
+		onOpenEnclosing,
+		onCancel,
+	} = useGitInitDialogStore();
 
+	const isPending = pendingAction !== null;
 	const isSingle = folders.length === 1;
-	const enclosingRoots = [
-		...new Set(
-			folders
-				.map((folder) => folder.enclosingRepoPath)
-				.filter((root): root is string => !!root),
-		),
-	];
-	const hasEnclosing = enclosingRoots.length > 0;
+	// Only offer "open the enclosing repo" when it accounts for every selected
+	// folder. In a mixed selection the plain folders have no enclosing repo, so
+	// opening only the nested ones would silently drop the rest.
+	const enclosingRoots =
+		folders.length > 0 && folders.every((folder) => folder.enclosingRepoPath)
+			? [
+					...new Set(
+						folders
+							.map((folder) => folder.enclosingRepoPath)
+							.filter((root): root is string => !!root),
+					),
+				]
+			: [];
+	const canOpenEnclosing = enclosingRoots.length > 0;
 	const firstRoot = enclosingRoots[0];
 
 	return (
@@ -35,7 +48,7 @@ export function InitGitDialog() {
 			<AlertDialogContent>
 				<AlertDialogHeader>
 					<AlertDialogTitle>
-						{hasEnclosing
+						{canOpenEnclosing
 							? "Open the enclosing repository?"
 							: "Initialize Git Repository?"}
 					</AlertDialogTitle>
@@ -98,17 +111,19 @@ export function InitGitDialog() {
 						Cancel
 					</Button>
 					<Button
-						variant={hasEnclosing ? "outline" : "default"}
+						variant={canOpenEnclosing ? "outline" : "default"}
 						disabled={isPending}
 						onClick={() => onConfirm?.()}
 					>
-						{isPending ? "Initializing..." : "Initialize Git"}
+						{pendingAction === "init" ? "Initializing..." : "Initialize Git"}
 					</Button>
-					{hasEnclosing ? (
+					{canOpenEnclosing ? (
 						<Button disabled={isPending} onClick={() => onOpenEnclosing?.()}>
-							{enclosingRoots.length === 1 && firstRoot
-								? `Open ${getBaseName(firstRoot)}`
-								: "Open enclosing repositories"}
+							{pendingAction === "openEnclosing"
+								? "Opening..."
+								: enclosingRoots.length === 1 && firstRoot
+									? `Open ${getBaseName(firstRoot)}`
+									: "Open enclosing repositories"}
 						</Button>
 					) : null}
 				</AlertDialogFooter>

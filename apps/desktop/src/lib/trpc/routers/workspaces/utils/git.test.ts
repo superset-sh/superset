@@ -1159,6 +1159,20 @@ describe("getGitRoot", () => {
 		expect(result.isRoot).toBe(true);
 	});
 
+	// Guards the untrimmed read of `--show-toplevel`: a directory name may end
+	// in whitespace, and trimming it hands callers a path that doesn't exist.
+	test("preserves a root whose directory name ends in whitespace", async () => {
+		const repoPath = createTestRepo("trailing space ");
+		seedCommit(repoPath);
+
+		const result = await getGitRoot(repoPath);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.root.endsWith(" ")).toBe(true);
+		expect(existsSync(result.root)).toBe(true);
+		expect(result.isRoot).toBe(true);
+	});
+
 	// The walk-up is deliberate and stays: a subdirectory still resolves to the
 	// repo it belongs to. Only isRoot tells the caller the user picked something
 	// other than that root.

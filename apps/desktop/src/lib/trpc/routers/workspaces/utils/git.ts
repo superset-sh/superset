@@ -884,20 +884,22 @@ export interface GitRootInfo {
 export async function getGitRoot(path: string): Promise<GitRootInfo> {
 	try {
 		const git = await getSimpleGitWithShellPath(path);
+		// Two calls, not one: a directory name may contain a newline, so a single
+		// `rev-parse --show-toplevel --show-prefix` cannot be split back into
+		// its two values unambiguously. `raw` also leaves stdout untrimmed, which
+		// keeps a root whose final directory name ends in whitespace intact —
+		// trimming it would hand callers a path that doesn't exist.
+		const rootOutput = await git.raw(["rev-parse", "--show-toplevel"]);
+		const root = rootOutput.replace(/\r?\n$/, "");
 		// `--show-prefix` is empty exactly when `path` is the work tree root, so
 		// git answers the question in its own terms. Comparing `root` against
 		// `path` would be wrong on macOS three ways: `--show-toplevel`
 		// canonicalizes /tmp to /private/tmp, resolves symlinks to their real
 		// path, and returns the canonical casing on a case-insensitive volume.
-		const output = await git.revparse(["--show-toplevel", "--show-prefix"]);
-		const [rootLine = "", prefixLine = ""] = output.split("\n");
-		// Strip only a trailing CR, never trim: a directory name may legitimately
-		// end in whitespace, and trimming it would hand callers a path that
-		// doesn't exist.
-		const root = rootLine.replace(/\r$/, "");
 		// Emptiness only — `core.quotePath` can C-quote non-ASCII path
 		// components, so the prefix value itself is not safe to parse.
-		return { root, isRoot: prefixLine.replace(/\r$/, "") === "" };
+		const prefix = await git.revparse(["--show-prefix"]);
+		return { root, isRoot: prefix === "" };
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (message.toLowerCase().includes("not a git repository")) {

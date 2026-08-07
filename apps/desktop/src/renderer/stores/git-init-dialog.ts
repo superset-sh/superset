@@ -9,9 +9,12 @@ export interface GitInitDialogFolder {
 	enclosingRepoPath?: string;
 }
 
+/** Which action is running, so each button can label its own progress. */
+export type GitInitDialogAction = "init" | "openEnclosing";
+
 interface GitInitDialogState {
 	isOpen: boolean;
-	isPending: boolean;
+	pendingAction: GitInitDialogAction | null;
 	folders: GitInitDialogFolder[];
 	onConfirm: (() => void) | null;
 	onOpenEnclosing: (() => void) | null;
@@ -22,7 +25,7 @@ interface GitInitDialogState {
 		onOpenEnclosing: () => void;
 		onCancel: () => void;
 	}) => void;
-	setIsPending: (isPending: boolean) => void;
+	setPendingAction: (pendingAction: GitInitDialogAction | null) => void;
 	close: () => void;
 }
 
@@ -30,7 +33,7 @@ export const useGitInitDialogStore = create<GitInitDialogState>()(
 	devtools(
 		(set) => ({
 			isOpen: false,
-			isPending: false,
+			pendingAction: null,
 			folders: [],
 			onConfirm: null,
 			onOpenEnclosing: null,
@@ -39,7 +42,7 @@ export const useGitInitDialogStore = create<GitInitDialogState>()(
 			open: ({ folders, onConfirm, onOpenEnclosing, onCancel }) => {
 				set({
 					isOpen: true,
-					isPending: false,
+					pendingAction: null,
 					folders,
 					onConfirm,
 					onOpenEnclosing,
@@ -47,14 +50,14 @@ export const useGitInitDialogStore = create<GitInitDialogState>()(
 				});
 			},
 
-			setIsPending: (isPending) => {
-				set({ isPending });
+			setPendingAction: (pendingAction) => {
+				set({ pendingAction });
 			},
 
 			close: () => {
 				set({
 					isOpen: false,
-					isPending: false,
+					pendingAction: null,
 					folders: [],
 					onConfirm: null,
 					onOpenEnclosing: null,
