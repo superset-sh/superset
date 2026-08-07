@@ -890,7 +890,11 @@ export async function getGitRoot(path: string): Promise<GitRootInfo> {
 		// keeps a root whose final directory name ends in whitespace intact —
 		// trimming it would hand callers a path that doesn't exist.
 		const rootOutput = await git.raw(["rev-parse", "--show-toplevel"]);
-		const root = rootOutput.replace(/\r?\n$/, "");
+		// Strip exactly the LF git terminates the line with. Not `\r?\n`: a
+		// directory name may itself end in a carriage return, and git round-trips
+		// that as `<name>\r\n`, so consuming the CR would yield a path that
+		// doesn't exist.
+		const root = rootOutput.replace(/\n$/, "");
 		// `--show-prefix` is empty exactly when `path` is the work tree root, so
 		// git answers the question in its own terms. Comparing `root` against
 		// `path` would be wrong on macOS three ways: `--show-toplevel`

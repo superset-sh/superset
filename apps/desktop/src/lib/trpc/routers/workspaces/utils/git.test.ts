@@ -1173,6 +1173,20 @@ describe("getGitRoot", () => {
 		expect(result.isRoot).toBe(true);
 	});
 
+	// Git terminates the line with LF and round-trips a trailing CR that is part
+	// of the name, so the terminator strip must not consume it.
+	test("preserves a root whose directory name ends in a carriage return", async () => {
+		const repoPath = createTestRepo("trailing-cr\r");
+		seedCommit(repoPath);
+
+		const result = await getGitRoot(repoPath);
+
+		expect(result.root).toBe(repoPath);
+		expect(result.root.endsWith("\r")).toBe(true);
+		expect(existsSync(result.root)).toBe(true);
+		expect(result.isRoot).toBe(true);
+	});
+
 	// The walk-up is deliberate and stays: a subdirectory still resolves to the
 	// repo it belongs to. Only isRoot tells the caller the user picked something
 	// other than that root.
