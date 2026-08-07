@@ -82,7 +82,7 @@ const EMPTY_FONT_SETTINGS: FontSettings = {
 const VARIANT_CONFIG = {
 	editor: {
 		title: "Editor typography",
-		description: "Typography used in V2 editors and diff views.",
+		description: "Typography used in editors and diff views.",
 		defaultFamily: DEFAULT_CODE_EDITOR_FONT_FAMILY,
 		defaultSize: DEFAULT_CODE_EDITOR_FONT_SIZE,
 		defaultLineHeight: 1.5,
@@ -103,7 +103,7 @@ const VARIANT_CONFIG = {
 	},
 	terminal: {
 		title: "Terminal typography",
-		description: "Typography and cursor behavior used in V2 terminal panels.",
+		description: "Typography and cursor behavior used in terminal panels.",
 		defaultFamily: DEFAULT_TERMINAL_FONT_FAMILY,
 		defaultSize: DEFAULT_TERMINAL_FONT_SIZE,
 		defaultLineHeight: DEFAULT_TERMINAL_LINE_HEIGHT,
