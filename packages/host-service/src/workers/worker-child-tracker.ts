@@ -44,18 +44,30 @@ function trackChild(child: ChildProcess): void {
  */
 export async function killAndReapTrackedChildren(): Promise<void> {
 	shuttingDown = true;
-	while (liveChildren.size > 0) {
-		await Promise.all(
-			[...liveChildren].map((child) => {
-				if (child.exitCode !== null || child.signalCode !== null) {
-					liveChildren.delete(child);
-					return undefined;
-				}
-				return new Promise<void>((resolve) => {
-					child.once("exit", () => resolve());
-					child.kill("SIGKILL");
-				});
-			}),
-		);
+	// Exit only after two consecutive quiet event-loop turns: the task is
+	// still running, and a killed child's exit/close callbacks can spawn a
+	// successor after the set looks empty (kill-on-arrival doesn't reap it).
+	// setImmediate runs before the same iteration's close callbacks, so one
+	// quiet turn isn't enough. A task spawning later than that (e.g. off a
+	// timer) is inherently uncloseable and bounded by the grace terminate.
+	let quietTurns = 0;
+	while (quietTurns < 2) {
+		while (liveChildren.size > 0) {
+			await Promise.all(
+				[...liveChildren].map((child) => {
+					if (child.exitCode !== null || child.signalCode !== null) {
+						liveChildren.delete(child);
+						return undefined;
+					}
+					return new Promise<void>((resolve) => {
+						child.once("exit", () => resolve());
+						child.kill("SIGKILL");
+					});
+				}),
+			);
+			quietTurns = 0;
+		}
+		await new Promise<void>((resolve) => setImmediate(resolve));
+		quietTurns += 1;
 	}
 }

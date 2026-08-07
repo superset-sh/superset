@@ -23,6 +23,11 @@ const SHUTDOWN_IGNORING_WORKER = path.resolve(
 	"test-fixtures",
 	"shutdown-ignoring-worker.ts",
 );
+const RESPAWNING_WORKER = path.resolve(
+	import.meta.dirname,
+	"test-fixtures",
+	"respawning-worker.ts",
+);
 
 const runners: WorkerTaskRunner[] = [];
 function makeRunner(workerScriptPath: string, shutdownGraceMs?: number) {
@@ -143,6 +148,40 @@ describe("WorkerTaskRunner termination", () => {
 			5_000,
 			`child ${childPid} to be killed and reaped`,
 		);
+		assert.equal(zombieChildCount(), 0);
+	});
+
+	test("children spawned from a killed child's exit callbacks are reaped too", async () => {
+		const file = makePidFile();
+		const runner = makeRunner(RESPAWNING_WORKER);
+
+		await assert.rejects(
+			runner.runTask("test/hang", {}, { timeoutMs: 300 }),
+			/timed out after 300ms/,
+		);
+
+		// The fixture reports child A at spawn and successor B after A is
+		// killed; both must be fully reaped, not just SIGKILLed on arrival.
+		await waitFor(
+			() =>
+				fs.existsSync(file) &&
+				fs.readFileSync(file, "utf8").trim().split("\n").length >= 2,
+			5_000,
+			"fixture to report the successor child pid",
+		);
+		const pids = fs
+			.readFileSync(file, "utf8")
+			.trim()
+			.split("\n")
+			.map((line) => Number.parseInt(line, 10));
+		assert.equal(pids.length, 2);
+		for (const pid of pids) {
+			await waitFor(
+				() => !pidExists(pid),
+				5_000,
+				`child ${pid} to be killed and reaped`,
+			);
+		}
 		assert.equal(zombieChildCount(), 0);
 	});
 
