@@ -363,9 +363,13 @@ export const gitRouter = router({
 				{
 					timeoutMs: 30_000,
 					strategy: "coalesce",
-					// Scope is part of the key: two scopes are two different
-					// traversals, and coalescing them would serve one the other's rows.
-					dedupeKey: `${input.workspaceId}:graph-log:${input.refScope}`,
+					// Every traversal input is part of the key. Two calls that differ
+					// in scope, base, window size or offset are two different
+					// traversals, and coalescing them serves one the other's rows —
+					// `baseBranch` alone decides the `merged` classification, and the
+					// base resolves a tick after mount, so the first two calls of a
+					// cold open genuinely differ.
+					dedupeKey: `${input.workspaceId}:graph-log:${input.refScope}:${input.baseBranch ?? ""}:${input.limit}:${skip}`,
 				},
 			);
 
