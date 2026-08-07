@@ -776,9 +776,9 @@ exit 0
 	});
 
 	it("bumps hook script markers when hook semantics change", () => {
-		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v3");
-		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v5");
-		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v4");
+		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v4");
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v6");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v5");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {

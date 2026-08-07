@@ -18,10 +18,11 @@ function ensureValidShape(data: Partial<AppState>): AppState {
 		...(data.tabsState ?? {}),
 	};
 	// Agent-session captures are keyed by pane id; drop entries whose pane is
-	// gone so the record can't grow past the pane set.
+	// gone so the record can't grow past the pane set. Optional-chain: legacy
+	// app-state.json variants can carry a null panes map.
 	const v1AgentSessions = Object.fromEntries(
 		Object.entries(data.v1AgentSessions ?? {}).filter(
-			([paneId]) => tabsState.panes[paneId] !== undefined,
+			([paneId]) => tabsState.panes?.[paneId] !== undefined,
 		),
 	);
 	return {

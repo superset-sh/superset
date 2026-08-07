@@ -46,9 +46,11 @@ export function useCreatePendingMigratedTerminals({
 		runningRef.current = true;
 
 		void (async () => {
+			// Pre-field entries lack v1PaneId; healed rows may surface it as
+			// undefined rather than null, so filter by type, not by !== null.
 			const paneIds = pending
 				.map((t) => t.v1PaneId)
-				.filter((id): id is string => id !== null);
+				.filter((id): id is string => typeof id === "string" && id.length > 0);
 			let agentSessions: Record<string, V1PaneAgentSessionSnapshot> = {};
 			if (paneIds.length > 0) {
 				try {
@@ -57,14 +59,19 @@ export function useCreatePendingMigratedTerminals({
 							paneIds,
 						});
 				} catch (err) {
+					// Without the capture we can't tell which terminals need a
+					// resume seed — clearing them now would drop it permanently.
+					// Leave the whole queue for the next open (creates no-op).
 					console.warn("[v1-migration] agent session read failed", {
 						workspaceId,
 						err,
 					});
+					runningRef.current = false;
+					return;
 				}
 			}
 
-			const created = new Set<string>();
+			const completed = new Set<string>();
 			for (const terminal of pending) {
 				try {
 					// createSession is idempotent by terminalId, so a re-run after
@@ -73,7 +80,6 @@ export function useCreatePendingMigratedTerminals({
 						terminalId: terminal.terminalId,
 						cwd: terminal.cwd ?? undefined,
 					});
-					created.add(terminal.terminalId);
 				} catch (err) {
 					console.error("[v1-migration] pending terminal create failed", {
 						workspaceId,
@@ -86,32 +92,39 @@ export function useCreatePendingMigratedTerminals({
 				const resume = resolveMigratedPaneResume(
 					terminal.v1PaneId ? agentSessions[terminal.v1PaneId] : undefined,
 				);
-				if (!resume) continue;
-				const agentId = BUILTIN_AGENT_IDS.find((id) => id === resume.agentId);
-				if (!agentId) continue;
-				// Best-effort: a failed seed still leaves a working shell, and
-				// seedResumeCandidate never overwrites a real binding.
-				try {
-					await trpcClient.terminalAgents.seedResumeCandidate.mutate({
-						workspaceId,
-						terminalId: terminal.terminalId,
-						agentId,
-						agentSessionId: resume.agentSessionId,
-					});
-				} catch (err) {
-					console.warn("[v1-migration] resume candidate seed failed", {
-						workspaceId,
-						terminalId: terminal.terminalId,
-						err,
-					});
+				const agentId = resume
+					? BUILTIN_AGENT_IDS.find((id) => id === resume.agentId)
+					: undefined;
+				if (resume && agentId) {
+					// A failed seed keeps the entry queued so the next open
+					// retries it (seedResumeCandidate is idempotent and never
+					// overwrites a binding the terminal earned in the meantime).
+					try {
+						await trpcClient.terminalAgents.seedResumeCandidate.mutate({
+							workspaceId,
+							terminalId: terminal.terminalId,
+							agentId,
+							agentSessionId: resume.agentSessionId,
+						});
+					} catch (err) {
+						console.warn("[v1-migration] resume candidate seed failed", {
+							workspaceId,
+							terminalId: terminal.terminalId,
+							err,
+						});
+						continue;
+					}
 				}
+				completed.add(terminal.terminalId);
 			}
-			if (created.size > 0) {
+			if (completed.size > 0) {
 				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 					draft.pendingMigratedTerminals = (
 						draft.pendingMigratedTerminals ?? []
-					).filter((t) => !created.has(t.terminalId));
+					).filter((t) => !completed.has(t.terminalId));
 				});
+			}
+			if (pending.length > 0) {
 				// Nudge the session list so auto-adopt builds the panes now
 				// rather than on the next natural refetch.
 				await utils.terminal.listSessions.invalidate({ workspaceId });
