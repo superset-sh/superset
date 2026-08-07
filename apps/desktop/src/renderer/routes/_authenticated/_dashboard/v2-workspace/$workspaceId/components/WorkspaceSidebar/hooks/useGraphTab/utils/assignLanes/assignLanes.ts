@@ -141,7 +141,10 @@ export function assignLanes(commits: GraphCommit[]): GraphRowModel[] {
 			const parent = commit.parents[p];
 			let k = lanes.indexOf(parent);
 			if (k === -1) {
-				k = lanes.indexOf(null);
+				// Never reclaim this row's own lane: it was just freed above (root,
+				// or first parent outside the window) and already carries an
+				// out-stub. Reusing it would draw a stub and a live edge on one lane.
+				k = lanes.findIndex((slot, i) => slot === null && i !== mine);
 				if (k === -1) {
 					k = lanes.length;
 					lanes.push(null);

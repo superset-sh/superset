@@ -226,9 +226,13 @@ describe("GraphRow", () => {
 		});
 
 		it("changes nothing when the toggle is off", () => {
-			expect(render(withRefs, 320)).toBe(render(withRefs, 320, false, {}));
-			expect(render(withRefs, 320)).toContain("+5");
-			expect(render(withRefs, 320)).toContain("max-w-[12ch]");
+			const off = render(withRefs, 320, false, { twoLineRefs: false });
+
+			// Off is the one-line layout: chip and width cap both back.
+			expect(off).toContain("+5");
+			expect(off).toContain("max-w-[12ch]");
+			// And it is a real difference, not two spellings of the same render.
+			expect(off).not.toBe(render(withRefs, 320, false, { twoLineRefs: true }));
 		});
 
 		it("keeps the lane SVG spanning the taller row", () => {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { writeFileSync } from "node:fs";
+import { existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { type BasicScenario, createBasicScenario } from "../helpers/scenarios";
 
@@ -73,6 +73,18 @@ describe("git history + diff procedures", () => {
 		expect(result.commit?.message).toBe("add files\n\nwith a body line");
 		expect(result.commit?.author).toBe("Test Runner");
 		expect(result.commit?.parents).toHaveLength(1);
+	});
+
+	test("getCommitFiles rejects an option-shaped revision", async () => {
+		// `git show` reads a leading `-` as an option, and `--output=<file>`
+		// writes wherever it points. Only hash-shaped revisions get through.
+		await expect(
+			scenario.host.trpc.git.getCommitFiles.query({
+				workspaceId: scenario.workspaceId,
+				commitHash: `--output=${join(scenario.repo.repoPath, "pwned")}`,
+			}),
+		).rejects.toThrow();
+		expect(existsSync(join(scenario.repo.repoPath, "pwned"))).toBe(false);
 	});
 
 	test("getDiff returns staged content for a staged change", async () => {

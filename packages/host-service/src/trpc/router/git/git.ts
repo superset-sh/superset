@@ -172,6 +172,15 @@ function assertSafeRelativePath(filePath: string): void {
 	}
 }
 
+/**
+ *  Hash-shaped revisions only. These reach `git show`/`git diff` positionally,
+ *  and git reads a leading `-` as an option — `--output=<path>` on `git show`
+ *  writes an arbitrary file. Callers only ever send real hashes.
+ */
+const commitHashSchema = z
+	.string()
+	.regex(/^[0-9a-f]{4,40}$/i, "Invalid commit hash");
+
 export const gitRouter = router({
 	listBranches: queryProcedure
 		.input(z.object({ workspaceId: z.string() }))
@@ -426,8 +435,10 @@ export const gitRouter = router({
 		.input(
 			z.object({
 				workspaceId: z.string(),
-				commitHash: z.string(),
-				fromHash: z.string().optional(),
+				// `""` is the placeholder the renderer puts in a disabled query's
+				// input while no commit is selected; it never reaches the wire.
+				commitHash: commitHashSchema.or(z.literal("")),
+				fromHash: commitHashSchema.optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
@@ -652,8 +663,8 @@ export const gitRouter = router({
 				path: z.string(),
 				category: z.enum(["against-base", "staged", "unstaged", "commit"]),
 				baseBranch: z.string().optional(),
-				commitHash: z.string().optional(),
-				fromHash: z.string().optional(),
+				commitHash: commitHashSchema.optional(),
+				fromHash: commitHashSchema.optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {

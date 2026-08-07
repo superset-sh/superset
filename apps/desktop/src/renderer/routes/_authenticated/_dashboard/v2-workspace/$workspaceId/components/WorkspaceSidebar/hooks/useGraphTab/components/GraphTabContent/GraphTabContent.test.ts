@@ -32,12 +32,13 @@ describe("resolveRowSelection", () => {
 		expect(inRangeSet.size).toBe(0);
 	});
 
-	test("commit outside the window is simply absent", () => {
-		const { selectedSet } = resolveRowSelection(commit("zzz"), H);
-		expect(selectedSet.has("zzz")).toBe(true);
-		// Unknown hash still recorded in selectedSet (harmless; GraphRow won't
-		// match it), and nothing else is selected.
-		expect(selectedSet.size).toBe(1);
+	test("commit outside the window highlights no row", () => {
+		const { selectedSet, inRangeSet } = resolveRowSelection(commit("zzz"), H);
+		// The hash is still recorded — harmless, since no rendered row matches
+		// it — and no row in the window is marked.
+		expect([...selectedSet]).toEqual(["zzz"]);
+		expect(H.some((hash) => selectedSet.has(hash))).toBe(false);
+		expect(inRangeSet.size).toBe(0);
 	});
 
 	test("range highlights both endpoints and the rows between", () => {

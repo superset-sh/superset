@@ -255,6 +255,24 @@ describe("assignLanes", () => {
 		expect(findRow(rows, "a").laneCount).toBe(1);
 	});
 
+	it("does not fork an extra parent back onto the lane it just stubbed", () => {
+		// First parent outside the window frees this row's own lane; the second
+		// parent must not reclaim that slot, or the row draws a terminator and a
+		// live edge on one lane.
+		const m = commit("m", ["gone", "b"], [branch("main")]);
+		const b = commit("b", [], [branch("topic")]);
+		const rows = assignLanes([m, b]);
+
+		assertValidRows(rows);
+		const mRow = findRow(rows, "m");
+		const stub = mRow.edges.find((e) => e.kind === "out-stub");
+		expect(stub, "first parent stubs off").toBeDefined();
+		const live = mRow.edges.filter((e) => e.kind !== "out-stub");
+		expect(live.length, "one live edge to the present parent").toBe(1);
+		expect(live[0].toLane, "not the stubbed lane").not.toBe(stub?.toLane);
+		expect(findRow(rows, "b").lane).toBe(live[0].toLane);
+	});
+
 	it("keeps older rows geometrically stable when a new tip is prepended", () => {
 		// Realistic growth: the branch ref rides the newest commit, so the lane
 		// colour stays put as history extends. Older rows must not reflow.

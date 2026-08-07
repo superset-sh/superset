@@ -127,7 +127,9 @@ export function GraphHeaderActions({
 						<Unlink className="size-3.5" />
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom">Highlight unreferenced</TooltipContent>
+				<TooltipContent side="bottom">
+					{unreferencedOnly ? "Stop highlighting" : "Highlight unreferenced"}
+				</TooltipContent>
 			</Tooltip>
 		</>
 	);
