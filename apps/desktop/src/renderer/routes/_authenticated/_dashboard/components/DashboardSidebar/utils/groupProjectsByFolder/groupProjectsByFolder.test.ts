@@ -23,6 +23,7 @@ function project(id: string, folderId: string | null): DashboardSidebarProject {
 		githubOwner: null,
 		githubRepoName: null,
 		iconUrl: null,
+		color: null,
 		createdAt: new Date(0),
 		updatedAt: new Date(0),
 		isCollapsed: false,
