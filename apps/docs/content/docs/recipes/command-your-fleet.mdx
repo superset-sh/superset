@@ -11,6 +11,8 @@ description: Read every agent's screen and broadcast follow-ups across workspace
 
 Every terminal Superset runs is addressable from the [CLI](/cli/getting-started): `terminals list`, `read`, and `send`. Compose them with `workspaces list` and one shell loop sweeps a whole project — every agent's screen in one scroll, or one instruction delivered to all of them.
 
+Workspaces are host-owned, and these loops target the machine you run them on. If your fleet spans hosts, add `--host <id>` to each command to sweep a remote host's share of it.
+
 ## Read the Whole Fleet
 
 Print the last few lines of every terminal in every workspace of a project:
