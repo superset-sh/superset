@@ -1,7 +1,11 @@
 import { execGitWithShellPath } from "../git-client";
 import { execWithShellEnv } from "../shell-env";
 import { getCachedRepoContextState, readCachedRepoContext } from "./cache";
-import { GHRepoResponseSchema, type RepoContext } from "./types";
+import {
+	GHMergeSettingsResponseSchema,
+	GHRepoResponseSchema,
+	type RepoContext,
+} from "./types";
 
 async function refreshRepoContext(
 	worktreePath: string,
@@ -82,6 +86,41 @@ export async function getRepoContext(
 			forceFresh,
 		},
 	);
+}
+
+export async function getRepoMergeSettings(worktreePath: string) {
+	try {
+		const repoContext = await getRepoContext(worktreePath);
+		const { stdout } = await execWithShellEnv(
+			"gh",
+			[
+				"repo",
+				"view",
+				...getPullRequestRepoArgs(repoContext),
+				"--json",
+				"mergeCommitAllowed,squashMergeAllowed,rebaseMergeAllowed,viewerDefaultMergeMethod",
+			],
+			{ cwd: worktreePath },
+		);
+		const result = GHMergeSettingsResponseSchema.safeParse(JSON.parse(stdout));
+		if (!result.success) {
+			console.warn(
+				"[GitHub] Merge settings response validation failed:",
+				result.error,
+			);
+			return null;
+		}
+
+		return {
+			allowMergeCommit: result.data.mergeCommitAllowed,
+			allowRebaseMerge: result.data.rebaseMergeAllowed,
+			allowSquashMerge: result.data.squashMergeAllowed,
+			viewerDefaultMergeMethod: result.data.viewerDefaultMergeMethod ?? null,
+		};
+	} catch (error) {
+		console.warn("[GitHub] Failed to fetch repository merge settings:", error);
+		return null;
+	}
 }
 
 export function shouldRefreshCachedRepoContext({

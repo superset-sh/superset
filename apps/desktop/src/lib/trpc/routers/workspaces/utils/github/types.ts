@@ -157,6 +157,13 @@ export const GHPRResponseSchema = z.object({
 	reviewRequests: z.array(GHReviewRequestSchema).nullable().optional(),
 });
 
+export const GHMergeSettingsResponseSchema = z.object({
+	mergeCommitAllowed: z.boolean(),
+	squashMergeAllowed: z.boolean(),
+	rebaseMergeAllowed: z.boolean(),
+	viewerDefaultMergeMethod: z.string().nullable().optional(),
+});
+
 export const GHRepoResponseSchema = z.object({
 	url: z.string(),
 	isFork: z.boolean().optional().default(false),

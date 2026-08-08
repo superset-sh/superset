@@ -1,8 +1,13 @@
+import {
+	GITHUB_MERGE_METHODS,
+	isGitHubMergeMethodDisabled,
+} from "@superset/shared/github-merge-methods";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getCurrentBranch } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { getRepoMergeSettings } from "../workspaces/utils/github";
 import {
 	isNoPullRequestFoundMessage,
 	isUpstreamMissingError,
@@ -301,16 +306,31 @@ export const createGitOperationsRouter = () => {
 				},
 			),
 
+		getMergeSettings: publicProcedure
+			.input(z.object({ worktreePath: z.string() }))
+			.query(async ({ input }) => {
+				assertRegisteredWorktree(input.worktreePath);
+				return getRepoMergeSettings(input.worktreePath);
+			}),
+
 		mergePR: publicProcedure
 			.input(
 				z.object({
 					worktreePath: z.string(),
-					strategy: z.enum(["merge", "squash", "rebase"]).default("squash"),
+					strategy: z.enum(GITHUB_MERGE_METHODS).default("squash"),
 				}),
 			)
 			.mutation(
 				async ({ input }): Promise<{ success: boolean; mergedAt?: string }> => {
 					assertRegisteredWorktree(input.worktreePath);
+					const mergeSettings = await getRepoMergeSettings(input.worktreePath);
+
+					if (isGitHubMergeMethodDisabled(mergeSettings, input.strategy)) {
+						throw new TRPCError({
+							code: "BAD_REQUEST",
+							message: `Repository merge settings do not allow ${input.strategy} merges.`,
+						});
+					}
 
 					try {
 						return await mergePullRequest(input);

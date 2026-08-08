@@ -144,6 +144,10 @@
 			"types": "./src/github-remote.ts",
 			"default": "./src/github-remote.ts"
 		},
+		"./github-merge-methods": {
+			"types": "./src/github-merge-methods.ts",
+			"default": "./src/github-merge-methods.ts"
+		},
 		"./simple-git-options": {
 			"types": "./src/simple-git-options.ts",
 			"default": "./src/simple-git-options.ts"

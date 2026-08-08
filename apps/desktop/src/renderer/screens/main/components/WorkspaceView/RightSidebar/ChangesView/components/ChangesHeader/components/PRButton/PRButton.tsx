@@ -15,6 +15,11 @@ import {
 	VscLoading,
 } from "react-icons/vsc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import {
+	getAvailableMergeMethods,
+	MERGE_METHOD_LABELS,
+	type MergeMethod,
+} from "renderer/lib/githubMergeMethods";
 import { PRIcon } from "renderer/screens/main/components/PRIcon";
 import { useCreateOrOpenPR } from "renderer/screens/main/hooks";
 
@@ -49,6 +54,13 @@ export function PRButton({
 				id: context?.toastId,
 			}),
 	});
+	const mergeSettingsQuery = electronTrpc.changes.getMergeSettings.useQuery(
+		{ worktreePath },
+		{
+			enabled: pr?.state === "open",
+			staleTime: 5 * 60 * 1_000,
+		},
+	);
 
 	const { createOrOpenPR, isPending: isCreateOrOpenPRPending } =
 		useCreateOrOpenPR({
@@ -60,8 +72,10 @@ export function PRButton({
 
 	const handleCreatePR = () => createOrOpenPR();
 
-	const handleMergePR = (strategy: "merge" | "squash" | "rebase") =>
+	const handleMergePR = (strategy: MergeMethod) =>
 		mergePRMutation.mutate({ worktreePath, strategy });
+
+	const mergeMethods = getAvailableMergeMethods(mergeSettingsQuery.data);
 
 	if (isLoading) {
 		return (
@@ -164,30 +178,17 @@ export function PRButton({
 					<DropdownMenuLabel className="text-xs text-muted-foreground font-normal">
 						Merge
 					</DropdownMenuLabel>
-					<DropdownMenuItem
-						onClick={() => handleMergePR("squash")}
-						className="text-xs"
-						disabled={mergePRMutation.isPending}
-					>
-						<VscGitMerge className="size-3.5" />
-						Squash and merge
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={() => handleMergePR("merge")}
-						className="text-xs"
-						disabled={mergePRMutation.isPending}
-					>
-						<VscGitMerge className="size-3.5" />
-						Create merge commit
-					</DropdownMenuItem>
-					<DropdownMenuItem
-						onClick={() => handleMergePR("rebase")}
-						className="text-xs"
-						disabled={mergePRMutation.isPending}
-					>
-						<VscGitMerge className="size-3.5" />
-						Rebase and merge
-					</DropdownMenuItem>
+					{mergeMethods.map((method) => (
+						<DropdownMenuItem
+							key={method}
+							onClick={() => handleMergePR(method)}
+							className="text-xs"
+							disabled={mergePRMutation.isPending}
+						>
+							<VscGitMerge className="size-3.5" />
+							{MERGE_METHOD_LABELS[method]}
+						</DropdownMenuItem>
+					))}
 				</DropdownMenuContent>
 			</DropdownMenu>
 		</div>

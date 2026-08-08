@@ -10,5 +10,6 @@ export {
 	extractNwoFromUrl,
 	getPullRequestRepoArgs,
 	getRepoContext,
+	getRepoMergeSettings,
 	normalizeGitHubUrl,
 } from "./repo-context";
