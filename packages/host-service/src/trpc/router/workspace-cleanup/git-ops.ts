@@ -44,7 +44,11 @@ export const cleanupGitOps = {
 	},
 
 	readWorktreeState(
-		input: { worktreePath: string; gitEnv: GitTaskEnv },
+		input: {
+			worktreePath: string;
+			gitEnv: GitTaskEnv;
+			ignoreInitialCommit?: boolean;
+		},
 		signal?: AbortSignal,
 	): Promise<{ hasChanges: boolean; hasUnpushedCommits: boolean }> {
 		return getHostWorkerPool().run(gitWorktreeStateTask, input, {

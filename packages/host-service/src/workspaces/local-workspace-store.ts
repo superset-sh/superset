@@ -69,11 +69,12 @@ function trackWorkspaceEvent(
 export interface CloudShapedWorkspace {
 	id: string;
 	organizationId: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	hostId: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "session";
 	createdByUserId: string | null;
 	taskId: string | null;
 	createdAt: Date;
@@ -125,11 +126,12 @@ export function getLocalWorkspace(
 
 export interface InsertLocalWorkspaceValues {
 	id?: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	worktreePath: string;
 	branch: string;
 	name: string;
-	type?: "main" | "worktree";
+	type?: "main" | "worktree" | "session";
 	taskId?: string | null;
 	createdByUserId?: string | null;
 }

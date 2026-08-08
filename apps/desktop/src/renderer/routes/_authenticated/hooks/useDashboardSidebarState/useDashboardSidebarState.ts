@@ -45,7 +45,8 @@ function compareProjectTopLevelItems(
 
 function getProjectTopLevelItems(
 	collections: ProjectTopLevelCollections,
-	projectId: string,
+	// Null scopes to the Sessions section (project-less workspaces).
+	projectId: string | null,
 	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
 ): ProjectTopLevelItem[] {
 	return [
@@ -66,8 +67,127 @@ function getProjectTopLevelItems(
 			.filter(
 				(item) =>
 					item.projectId === projectId &&
+					item.parentSectionId === null &&
 					item.sectionId !== options.excludeSectionId,
 			)
+			.map((item) => ({
+				type: "section" as const,
+				id: item.sectionId,
+				tabOrder: item.tabOrder,
+			})),
+	].sort(compareProjectTopLevelItems);
+}
+
+/**
+ * Walks up `parentSectionId` links. Returns true when `candidateAncestorId`
+ * appears in `sectionId`'s ancestor chain — used to refuse cycle-creating
+ * moves. A visited set bounds the walk on already-corrupt data.
+ */
+function isSectionDescendantOf(
+	collections: Pick<AppCollections, "v2SidebarSections">,
+	sectionId: string,
+	candidateAncestorId: string,
+): boolean {
+	const visited = new Set<string>();
+	let current: string | null = sectionId;
+	while (current !== null && !visited.has(current)) {
+		if (current === candidateAncestorId) return true;
+		visited.add(current);
+		current =
+			collections.v2SidebarSections.get(current)?.parentSectionId ?? null;
+	}
+	return false;
+}
+
+/** Mirrors the tree builder's cap: nesting past this splices to root. */
+export const MAX_SECTION_DEPTH = 4;
+
+/** 0 = root. Bounded by a visited set on corrupt data. */
+function getSectionDepth(
+	collections: Pick<AppCollections, "v2SidebarSections">,
+	sectionId: string,
+): number {
+	const visited = new Set<string>();
+	let depth = 0;
+	let current: string | null =
+		collections.v2SidebarSections.get(sectionId)?.parentSectionId ?? null;
+	while (current !== null && !visited.has(current)) {
+		visited.add(current);
+		depth += 1;
+		current =
+			collections.v2SidebarSections.get(current)?.parentSectionId ?? null;
+	}
+	return depth;
+}
+
+/** Longest descendant chain under `sectionId` (0 = leaf). */
+function getSectionSubtreeHeight(
+	collections: Pick<AppCollections, "v2SidebarSections">,
+	sectionId: string,
+	visited: Set<string> = new Set(),
+): number {
+	if (visited.has(sectionId)) return 0;
+	visited.add(sectionId);
+	let height = 0;
+	for (const row of collections.v2SidebarSections.state.values()) {
+		if (row.parentSectionId !== sectionId) continue;
+		height = Math.max(
+			height,
+			1 + getSectionSubtreeHeight(collections, row.sectionId, visited),
+		);
+	}
+	return height;
+}
+
+/**
+ * True when re-parenting `sectionId` under `parentSectionId` keeps the tree
+ * valid: same scope, no cycle, and the moved subtree stays within
+ * MAX_SECTION_DEPTH. Shared by the move mutation and the menu's target list
+ * so users are never offered a move the mutation would refuse.
+ */
+export function canMoveSectionToParent(
+	collections: Pick<AppCollections, "v2SidebarSections">,
+	sectionId: string,
+	parentSectionId: string | null,
+): boolean {
+	const section = collections.v2SidebarSections.get(sectionId);
+	if (!section) return false;
+	if (parentSectionId === null) return true;
+	const parent = collections.v2SidebarSections.get(parentSectionId);
+	if (!parent) return false;
+	if (parent.projectId !== section.projectId) return false;
+	if (isSectionDescendantOf(collections, parentSectionId, sectionId)) {
+		return false;
+	}
+	const depthAfterMove =
+		getSectionDepth(collections, parentSectionId) +
+		1 +
+		getSectionSubtreeHeight(collections, sectionId);
+	return depthAfterMove < MAX_SECTION_DEPTH;
+}
+
+/**
+ * Ordered children of one group: workspaces whose sectionId points at it plus
+ * groups whose parentSectionId points at it.
+ */
+function getSectionChildItems(
+	collections: ProjectTopLevelCollections,
+	sectionId: string,
+): ProjectTopLevelItem[] {
+	return [
+		...Array.from(collections.v2WorkspaceLocalState.state.values())
+			.filter(
+				(item) =>
+					isSidebarWorkspaceVisible(item) &&
+					item.sidebarState.sectionId === sectionId,
+			)
+			.map((item) => ({
+				type: "workspace" as const,
+				id: item.workspaceId,
+				tabOrder: item.sidebarState.tabOrder,
+			})),
+		...Array.from(collections.v2SidebarSections.state.values())
+			.filter((item) => item.parentSectionId === sectionId)
 			.map((item) => ({
 				type: "section" as const,
 				id: item.sectionId,
@@ -87,7 +207,7 @@ function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
  */
 function writeProjectTopLevelOrder(
 	collections: ProjectTopLevelCollections,
-	projectId: string,
+	projectId: string | null,
 	items: ProjectTopLevelItem[],
 ): void {
 	items.forEach((item, index) => {
@@ -136,7 +256,8 @@ function ensureSidebarWorkspaceRecord(
 		"v2SidebarSections" | "v2WorkspaceLocalState"
 	>,
 	workspaceId: string,
-	projectId: string,
+	// Null places the workspace in the Sessions section.
+	projectId: string | null,
 ): void {
 	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 	if (existing && isSidebarWorkspaceVisible(existing)) {
@@ -201,8 +322,12 @@ export function useDashboardSidebarState() {
 	);
 
 	const ensureWorkspaceInSidebar = useCallback(
-		(workspaceId: string, projectId: string) => {
-			ensureSidebarProjectRecord(collections, projectId);
+		(workspaceId: string, projectId: string | null) => {
+			// Sessions (null projectId) have no project placement row — the
+			// Sessions section renders unconditionally.
+			if (projectId !== null) {
+				ensureSidebarProjectRecord(collections, projectId);
+			}
 			ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
 		},
 		[collections],
@@ -246,7 +371,7 @@ export function useDashboardSidebarState() {
 
 	const reorderProjectChildren = useCallback(
 		(
-			projectId: string,
+			projectId: string | null,
 			orderedItems: Array<{ type: "workspace" | "section"; id: string }>,
 		) => {
 			orderedItems.forEach((item, index) => {
@@ -273,7 +398,7 @@ export function useDashboardSidebarState() {
 	const moveWorkspaceToSectionAtIndex = useCallback(
 		(
 			workspaceId: string,
-			projectId: string,
+			projectId: string | null,
 			sectionId: string,
 			index: number,
 		) => {
@@ -305,9 +430,14 @@ export function useDashboardSidebarState() {
 	);
 
 	const createSection = useCallback(
-		(projectId: string, options: { name?: string } = {}) => {
-			const { name = "New group" } = options;
-			ensureSidebarProjectRecord(collections, projectId);
+		(
+			projectId: string | null,
+			options: { name?: string; parentSectionId?: string | null } = {},
+		) => {
+			const { name = "New group", parentSectionId = null } = options;
+			if (projectId !== null) {
+				ensureSidebarProjectRecord(collections, projectId);
+			}
 
 			const sectionId = crypto.randomUUID();
 			const randomColor =
@@ -315,13 +445,15 @@ export function useDashboardSidebarState() {
 					Math.floor(Math.random() * PROJECT_CUSTOM_COLORS.length)
 				].value;
 
-			const tabOrder = getNextTabOrder(
-				getProjectTopLevelItems(collections, projectId),
-			);
+			const tabOrder =
+				parentSectionId === null
+					? getNextTabOrder(getProjectTopLevelItems(collections, projectId))
+					: getNextTabOrder(getSectionChildItems(collections, parentSectionId));
 
 			collections.v2SidebarSections.insert({
 				sectionId,
 				projectId,
+				parentSectionId,
 				name,
 				createdAt: new Date(),
 				tabOrder,
@@ -330,6 +462,32 @@ export function useDashboardSidebarState() {
 			});
 
 			return sectionId;
+		},
+		[collections],
+	);
+
+	/**
+	 * Re-parents a group. `parentSectionId: null` moves it to its scope's top
+	 * level. Refuses self/descendant targets (would orphan the subtree in a
+	 * cycle) and cross-scope targets (a group's workspaces stay in its scope).
+	 */
+	const moveSectionToParent = useCallback(
+		(sectionId: string, parentSectionId: string | null) => {
+			const section = collections.v2SidebarSections.get(sectionId);
+			if (!section) return;
+			if (!canMoveSectionToParent(collections, sectionId, parentSectionId)) {
+				return;
+			}
+			const tabOrder =
+				parentSectionId === null
+					? getNextTabOrder(
+							getProjectTopLevelItems(collections, section.projectId),
+						)
+					: getNextTabOrder(getSectionChildItems(collections, parentSectionId));
+			collections.v2SidebarSections.update(sectionId, (draft) => {
+				draft.parentSectionId = parentSectionId;
+				draft.tabOrder = tabOrder;
+			});
 		},
 		[collections],
 	);
@@ -365,7 +523,11 @@ export function useDashboardSidebarState() {
 	);
 
 	const moveWorkspaceToSection = useCallback(
-		(workspaceId: string, projectId: string, sectionId: string | null) => {
+		(
+			workspaceId: string,
+			projectId: string | null,
+			sectionId: string | null,
+		) => {
 			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) return;
 
@@ -410,6 +572,35 @@ export function useDashboardSidebarState() {
 			const section = collections.v2SidebarSections.get(sectionId);
 			if (!section) return;
 
+			// Child groups climb to the deleted group's parent so their
+			// contents survive; workspaces splice into the parent scope below.
+			for (const child of collections.v2SidebarSections.state.values()) {
+				if (child.parentSectionId !== sectionId) continue;
+				collections.v2SidebarSections.update(child.sectionId, (draft) => {
+					draft.parentSectionId = section.parentSectionId;
+				});
+			}
+			if (section.parentSectionId !== null) {
+				const parentId = section.parentSectionId;
+				const sectionWorkspaces = Array.from(
+					collections.v2WorkspaceLocalState.state.values(),
+				).filter(
+					(item) =>
+						isSidebarWorkspaceVisible(item) &&
+						item.sidebarState.sectionId === sectionId,
+				);
+				for (const workspace of sectionWorkspaces) {
+					collections.v2WorkspaceLocalState.update(
+						workspace.workspaceId,
+						(draft) => {
+							draft.sidebarState.sectionId = parentId;
+						},
+					);
+				}
+				collections.v2SidebarSections.delete(sectionId);
+				return;
+			}
+
 			const topLevelItems = getProjectTopLevelItems(
 				collections,
 				section.projectId,
@@ -447,13 +638,16 @@ export function useDashboardSidebarState() {
 	);
 
 	const setWorkspacePinned = useCallback(
-		(workspaceId: string, projectId: string, pinned: boolean) => {
+		(workspaceId: string, projectId: string | null, pinned: boolean) => {
 			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) {
 				if (!pinned) return;
 				// Auto-included local main workspaces have no local-state row yet;
-				// pinning is an explicit placement, so create one first.
-				ensureSidebarProjectRecord(collections, projectId);
+				// pinning is an explicit placement, so create one first. Sessions
+				// (null projectId) have no project placement row.
+				if (projectId !== null) {
+					ensureSidebarProjectRecord(collections, projectId);
+				}
 				ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
 			}
 			// Strictly greater than every existing pin so same-millisecond pins
@@ -488,7 +682,7 @@ export function useDashboardSidebarState() {
 	);
 
 	const hideWorkspaceInSidebar = useCallback(
-		(workspaceId: string, projectId: string) => {
+		(workspaceId: string, projectId: string | null) => {
 			tombstoneSidebarWorkspaceRecord(
 				collections,
 				workspaceId,
@@ -515,6 +709,7 @@ export function useDashboardSidebarState() {
 	return {
 		createSection,
 		deleteSection,
+		moveSectionToParent,
 		ensureProjectInSidebar,
 		ensureWorkspaceInSidebar,
 		hideWorkspaceInSidebar,

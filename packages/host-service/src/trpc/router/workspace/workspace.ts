@@ -58,7 +58,9 @@ export const workspaceRouter = router({
 			...toCloudShape(row, ctx.organizationId),
 			worktreePath: row.worktreePath,
 			worktreeExists: existsSync(row.worktreePath),
-			projectName: projectNameById.get(row.projectId) ?? null,
+			projectName: row.projectId
+				? (projectNameById.get(row.projectId) ?? null)
+				: null,
 		}));
 	}),
 

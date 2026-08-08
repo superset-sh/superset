@@ -35,6 +35,8 @@ export function ProjectFilterScreen() {
 	const workspaceCounts = useMemo(() => {
 		const counts = new Map<string, number>();
 		for (const workspace of workspaces) {
+			// Session workspaces (null projectId) don't belong to any project.
+			if (workspace.projectId === null) continue;
 			counts.set(
 				workspace.projectId,
 				(counts.get(workspace.projectId) ?? 0) + 1,

@@ -148,7 +148,11 @@ export function HomeScreen() {
 					(workspace) =>
 						workspace.name.toLowerCase().includes(needle) ||
 						workspace.branch.toLowerCase().includes(needle) ||
-						(projectNamesById.get(workspace.projectId) ?? "")
+						(
+							(workspace.projectId
+								? projectNamesById.get(workspace.projectId)
+								: undefined) ?? ""
+						)
 							.toLowerCase()
 							.includes(needle) ||
 						sessionsMatch(workspace.id),
@@ -298,7 +302,9 @@ export function HomeScreen() {
 					);
 				case "workspace": {
 					const { workspace } = item;
-					const repoPrefix = repoPrefixesByProject.get(workspace.projectId);
+					const repoPrefix = workspace.projectId
+						? repoPrefixesByProject.get(workspace.projectId)
+						: undefined;
 					return (
 						<WorkspaceRow
 							workspace={workspace}

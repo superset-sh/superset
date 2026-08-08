@@ -1,10 +1,10 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
 import type { WorkspaceState } from "@superset/panes";
+import type { HostShapedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import type { PaneLifecycleRow } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 
 export type SidebarWorkspaceRow = Pick<
-	SelectV2Workspace,
+	HostShapedWorkspace,
 	"id" | "projectId" | "type" | "hostId"
 >;
 
@@ -34,7 +34,7 @@ type CleanupPaneRuntimes = (rows: PaneLifecycleRow[]) => void;
 export function tombstoneSidebarWorkspaceRecord(
 	collections: Pick<AppCollections, "v2WorkspaceLocalState">,
 	workspaceId: string,
-	projectId: string,
+	projectId: string | null,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
 ): void {
 	const existing = collections.v2WorkspaceLocalState.get(workspaceId);

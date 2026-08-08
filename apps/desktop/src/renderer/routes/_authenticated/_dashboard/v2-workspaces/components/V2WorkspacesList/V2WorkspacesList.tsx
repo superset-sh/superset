@@ -43,7 +43,8 @@ interface V2WorkspacesListProps {
 }
 
 interface ProjectGroup {
-	projectId: string;
+	/** Null groups the project-less "session" workspaces. */
+	projectId: string | null;
 	projectName: string;
 	iconUrl: string | null;
 	workspaces: AccessibleV2Workspace[];
@@ -89,14 +90,14 @@ function groupByProject(
 	sortField: SortField,
 	sortDirection: SortDirection,
 ): ProjectGroup[] {
-	const projectsById = new Map<string, ProjectGroup>();
+	const projectsById = new Map<string | null, ProjectGroup>();
 
 	for (const workspace of workspaces) {
 		let project = projectsById.get(workspace.projectId);
 		if (!project) {
 			project = {
 				projectId: workspace.projectId,
-				projectName: workspace.projectName,
+				projectName: workspace.projectName ?? "Sessions",
 				iconUrl: workspace.projectIconUrl,
 				workspaces: [],
 				latestCreatedAt: 0,
@@ -287,7 +288,7 @@ export function V2WorkspacesList({
 				{columnHeader}
 				{projectGroups.map((project) => (
 					<ProjectSection
-						key={project.projectId}
+						key={project.projectId ?? "__sessions__"}
 						project={project}
 						currentWorkspaceId={currentWorkspaceId}
 					/>
@@ -303,8 +304,10 @@ interface ProjectSectionProps {
 }
 
 function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
+	// Sessions group under a stable pseudo-key for collapse state.
+	const collapseKey = project.projectId ?? "__sessions__";
 	const persistedCollapsed = useV2ProjectLocalMetaStore(
-		(state) => state.projects[project.projectId]?.isCollapsed ?? false,
+		(state) => state.projects[collapseKey]?.isCollapsed ?? false,
 	);
 	const toggleCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.toggleProjectCollapsed,
@@ -321,7 +324,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 				<td colSpan={V2_WORKSPACES_COLUMN_COUNT} className="p-0">
 					<button
 						type="button"
-						onClick={() => toggleCollapsed(project.projectId)}
+						onClick={() => toggleCollapsed(collapseKey)}
 						aria-expanded={!isCollapsed}
 						aria-controls={`v2-workspaces-project-${project.projectId}`}
 						className="flex w-full items-center gap-2 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"

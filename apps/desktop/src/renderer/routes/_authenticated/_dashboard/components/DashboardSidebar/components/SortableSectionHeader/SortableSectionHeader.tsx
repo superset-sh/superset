@@ -78,6 +78,7 @@ export function SortableSectionHeader({
 			}}
 		>
 			<DashboardSidebarSectionContextMenu
+				sectionId={section.id}
 				color={section.color}
 				onRename={startRename}
 				onSetColor={(color) => setSectionColor(section.id, color)}
@@ -96,6 +97,7 @@ export function SortableSectionHeader({
 					onToggleCollapse={() => onToggleCollapse(section.id)}
 					actions={
 						<DashboardSidebarSectionActionsDropdown
+							sectionId={section.id}
 							color={section.color}
 							onRename={startRename}
 							onSetColor={(color) => setSectionColor(section.id, color)}

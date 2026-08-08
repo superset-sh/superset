@@ -201,9 +201,11 @@ export const workspaces = sqliteTable(
 	"workspaces",
 	{
 		id: text().primaryKey(),
-		projectId: text("project_id")
-			.notNull()
-			.references(() => projects.id, { onDelete: "cascade" }),
+		// Null = a project-less "session" workspace (managed folder under
+		// ~/.superset/sessions, its own standalone git repo).
+		projectId: text("project_id").references(() => projects.id, {
+			onDelete: "cascade",
+		}),
 		worktreePath: text("worktree_path").notNull(),
 		branch: text().notNull(),
 		headSha: text("head_sha"),
@@ -222,7 +224,10 @@ export const workspaces = sqliteTable(
 		// Empty string means "not yet backfilled from cloud" — the startup
 		// backfill sweep targets these rows.
 		name: text().notNull().default(""),
-		type: text().$type<"main" | "worktree">().notNull().default("worktree"),
+		type: text()
+			.$type<"main" | "worktree" | "session">()
+			.notNull()
+			.default("worktree"),
 		taskId: text("task_id"),
 		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")

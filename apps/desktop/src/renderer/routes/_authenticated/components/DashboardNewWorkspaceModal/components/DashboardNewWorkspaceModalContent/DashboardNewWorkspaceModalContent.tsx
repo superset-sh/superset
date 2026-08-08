@@ -9,6 +9,8 @@ import { useSelectedHostProjectIds } from "./hooks/useSelectedHostProjectIds";
 interface DashboardNewWorkspaceModalContentProps {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	/** Open with "No project" (session) preselected. */
+	preSelectedSession?: boolean;
 }
 
 /**
@@ -21,6 +23,7 @@ interface DashboardNewWorkspaceModalContentProps {
 export function DashboardNewWorkspaceModalContent({
 	isOpen,
 	preSelectedProjectId,
+	preSelectedSession = false,
 }: DashboardNewWorkspaceModalContentProps) {
 	const { draft, updateDraft } = useDashboardNewWorkspaceDraft();
 	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
@@ -69,6 +72,22 @@ export function DashboardNewWorkspaceModalContent({
 	useEffect(() => {
 		if (!isOpen) return;
 
+		if (preSelectedSession && !hasInitializedSelectionRef.current) {
+			hasInitializedSelectionRef.current = true;
+			// Same clears as the manual "No project" path — a leftover
+			// project draft's PR/base-branch would fail at submit.
+			updateDraft({
+				selectedProjectId: null,
+				isSession: true,
+				linkedPR: null,
+				baseBranch: null,
+				baseBranchSource: null,
+			});
+			return;
+		}
+
+		// An explicit project preselection (e.g. a project's "+" button)
+		// overrides a session mode left behind by an earlier dismissal.
 		if (
 			preSelectedProjectId &&
 			preSelectedProjectId !== appliedPreSelectionRef.current
@@ -80,12 +99,21 @@ export function DashboardNewWorkspaceModalContent({
 			if (hasPreSelectedProject) {
 				appliedPreSelectionRef.current = preSelectedProjectId;
 				hasInitializedSelectionRef.current = true;
-				if (preSelectedProjectId !== draft.selectedProjectId) {
-					updateDraft({ selectedProjectId: preSelectedProjectId });
+				if (
+					preSelectedProjectId !== draft.selectedProjectId ||
+					draft.isSession
+				) {
+					updateDraft({
+						selectedProjectId: preSelectedProjectId,
+						isSession: false,
+					});
 				}
 				return;
 			}
 		}
+
+		// An explicit "No project" choice must survive project-list updates.
+		if (draft.isSession) return;
 
 		if (!areProjectsReady) return;
 
@@ -111,9 +139,11 @@ export function DashboardNewWorkspaceModalContent({
 		hasInitializedSelectionRef.current = true;
 	}, [
 		draft.selectedProjectId,
+		draft.isSession,
 		areProjectsReady,
 		isOpen,
 		preSelectedProjectId,
+		preSelectedSession,
 		recentProjects,
 		updateDraft,
 	]);
@@ -128,9 +158,22 @@ export function DashboardNewWorkspaceModalContent({
 				projectId={draft.selectedProjectId}
 				selectedProject={selectedProject}
 				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
+				isSessionSelected={draft.isSession}
 				onSelectProject={(selectedProjectId) => {
+					if (selectedProjectId === null) {
+						// Sessions can't check out a PR or fork a branch — clear
+						// the repo-scoped inputs instead of failing at submit.
+						updateDraft({
+							selectedProjectId: null,
+							isSession: true,
+							linkedPR: null,
+							baseBranch: null,
+							baseBranchSource: null,
+						});
+						return;
+					}
 					setLastProjectId(selectedProjectId);
-					updateDraft({ selectedProjectId });
+					updateDraft({ selectedProjectId, isSession: false });
 				}}
 			/>
 		</div>

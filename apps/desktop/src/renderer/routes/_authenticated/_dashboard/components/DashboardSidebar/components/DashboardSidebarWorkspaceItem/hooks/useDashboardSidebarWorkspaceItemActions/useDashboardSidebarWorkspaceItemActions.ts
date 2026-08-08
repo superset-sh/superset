@@ -22,7 +22,8 @@ import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 
 interface UseDashboardSidebarWorkspaceItemActionsOptions {
 	workspaceId: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	workspaceName: string;
 	branch: string;
 	isMainWorkspace?: boolean;

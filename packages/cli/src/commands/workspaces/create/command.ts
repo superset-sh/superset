@@ -8,8 +8,10 @@ export default command({
 	options: {
 		host: string().desc("Target host machineId"),
 		local: boolean().desc("Target this machine"),
-		project: string().required().desc("Project ID"),
-		name: string().required().desc("Workspace name"),
+		project: string().desc(
+			"Project ID. Omit to create a project-less session (a managed scratch folder)",
+		),
+		name: string().desc("Workspace name"),
 		branch: string().desc("Git branch (required unless --pr is set)"),
 		pr: number().desc("PR number — checks out the verified PR head"),
 		baseBranch: string().desc(
@@ -39,7 +41,22 @@ export default command({
 			throw new CLIError("No active organization", "Run: superset auth login");
 		}
 
-		if (Boolean(options.branch) === Boolean(options.pr)) {
+		const projectId = options.project;
+		const isSession = projectId === undefined;
+		if (isSession) {
+			for (const [flag, value] of [
+				["--branch", options.branch],
+				["--pr", options.pr],
+				["--base-branch", options.baseBranch],
+			] as const) {
+				if (value !== undefined) {
+					throw new CLIError(
+						`${flag} requires --project`,
+						"Sessions are project-less scratch folders with no git branch semantics",
+					);
+				}
+			}
+		} else if (Boolean(options.branch) === Boolean(options.pr)) {
 			throw new CLIError(
 				"Specify exactly one of --branch or --pr",
 				"Use --branch <name> or --pr <number>",
@@ -82,6 +99,10 @@ export default command({
 			userJwt: ctx.bearer,
 		});
 
+		if (!isSession && !options.name) {
+			throw new CLIError("--name is required when --project is set");
+		}
+
 		const attachmentIds = options.attachment
 			? await uploadAttachments(target.client, options.attachment)
 			: [];
@@ -98,8 +119,23 @@ export default command({
 					]
 				: undefined;
 
+		if (isSession) {
+			const result = await target.client.workspaces.createSession.mutate({
+				name: options.name,
+				agents,
+				command: options.command ?? undefined,
+			});
+			return {
+				data: result,
+				message: `Created session "${result.workspace.name}" on host ${target.hostId}`,
+			};
+		}
+
+		if (!options.name) {
+			throw new CLIError("--name is required when --project is set");
+		}
 		const result = await target.client.workspaces.create.mutate({
-			projectId: options.project,
+			projectId,
 			name: options.name,
 			branch: options.branch,
 			pr: options.pr,

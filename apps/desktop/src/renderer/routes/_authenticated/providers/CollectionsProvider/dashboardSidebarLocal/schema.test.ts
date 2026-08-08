@@ -5,6 +5,7 @@ import {
 	healV2UserPreferences,
 	healWorkspaceLocalState,
 	sanitizePaneLayout,
+	workspaceLocalStateSchema,
 } from "./schema";
 
 type PaneLayout = WorkspaceState<unknown>;
@@ -289,5 +290,39 @@ describe("sanitizePaneLayout", () => {
 			activeTabId: "does-not-exist",
 		});
 		expect(result.activeTabId).toBe("tab-1");
+	});
+});
+
+describe("workspaceLocalStateSchema projectId nullability", () => {
+	const paneLayout: PaneLayout = { version: 1, tabs: [], activeTabId: null };
+	const row = (projectId: unknown) => ({
+		workspaceId: "11111111-1111-4111-8111-111111111111",
+		createdAt: new Date("2026-01-01T00:00:00.000Z"),
+		paneLayout,
+		sidebarState: { projectId },
+	});
+
+	it("parses a pre-widening persisted row (string projectId) unchanged", () => {
+		const parsed = workspaceLocalStateSchema.parse(
+			row("22222222-2222-4222-8222-222222222222"),
+		);
+		expect(parsed.sidebarState.projectId).toBe(
+			"22222222-2222-4222-8222-222222222222",
+		);
+	});
+
+	it("parses a session row (null projectId)", () => {
+		const parsed = workspaceLocalStateSchema.parse(row(null));
+		expect(parsed.sidebarState.projectId).toBeNull();
+	});
+
+	it("still rejects a missing projectId — heal must not synthesize null", () => {
+		expect(workspaceLocalStateSchema.safeParse(row(undefined)).success).toBe(
+			false,
+		);
+		expect(
+			workspaceLocalStateSchema.safeParse({ ...row(null), sidebarState: {} })
+				.success,
+		).toBe(false);
 	});
 });

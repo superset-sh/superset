@@ -55,14 +55,16 @@ export interface AccessibleV2Workspace {
 	id: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "session";
 	createdAt: Date;
 	createdByUserId: string | null;
 	createdByName: string | null;
 	createdByImage: string | null;
 	isCreatedByCurrentUser: boolean;
-	projectId: string;
-	projectName: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
+	/** Null for project-less "session" workspaces. */
+	projectName: string | null;
 	projectRepoId: string | null;
 	projectIconUrl: string | null;
 	hostId: string;
@@ -115,7 +117,7 @@ function workspaceMatchesSearch(
 	const query = searchQuery.trim().toLowerCase();
 	return (
 		workspace.name.toLowerCase().includes(query) ||
-		workspace.projectName.toLowerCase().includes(query) ||
+		(workspace.projectName ?? "Sessions").toLowerCase().includes(query) ||
 		workspace.branch.toLowerCase().includes(query) ||
 		workspace.hostName.toLowerCase().includes(query) ||
 		(workspace.createdByName ?? "").toLowerCase().includes(query) ||
@@ -331,7 +333,27 @@ export function useAccessibleV2Workspaces(
 			creatorRows.map((creator) => [creator.id, creator]),
 		);
 
-		return hostWorkspaces.flatMap((workspace) => {
+		type AccessibleRowDraft = {
+			id: string;
+			name: string;
+			branch: string;
+			type: "main" | "worktree" | "session";
+			createdAt: Date;
+			createdByUserId: string | null;
+			createdByName: string | null;
+			createdByImage: string | null;
+			projectId: string | null;
+			projectName: string | null;
+			projectRepoId: string | null;
+			projectIconUrl: string | null;
+			hostId: string;
+			hostName: string;
+			hostIsOnline: boolean;
+			sidebarProjectId: string | null;
+			sidebarWorkspaceId: string | null;
+			sidebarIsHidden: boolean;
+		};
+		return hostWorkspaces.flatMap((workspace): AccessibleRowDraft[] => {
 			if (workspace.organizationId !== activeOrganizationId) return [];
 			const host = hostsById.get(workspace.hostId);
 			// A host-served row is its own proof of existence and access — the
@@ -343,6 +365,40 @@ export function useAccessibleV2Workspaces(
 				(!host || !accessibleHostIds.has(workspace.hostId))
 			)
 				return [];
+			// Session workspaces (null projectId) skip the project join and
+			// group under the "Sessions" pseudo-project.
+			if (workspace.projectId === null) {
+				const sessionSidebarState = sidebarStateByWorkspaceId.get(workspace.id);
+				const sessionCreator = workspace.createdByUserId
+					? creatorsById.get(workspace.createdByUserId)
+					: undefined;
+				return [
+					{
+						id: workspace.id,
+						name: workspace.name,
+						branch: workspace.branch,
+						type: workspace.type,
+						createdAt: workspace.createdAt,
+						createdByUserId: workspace.createdByUserId,
+						createdByName: sessionCreator?.name ?? null,
+						createdByImage: sessionCreator?.image ?? null,
+						projectId: null,
+						projectName: null,
+						projectRepoId: null,
+						projectIconUrl: null,
+						hostId: workspace.hostId,
+						hostName:
+							host?.name ??
+							(workspace.hostId === machineId
+								? "This device"
+								: "Unknown device"),
+						hostIsOnline: host?.isOnline ?? workspace.hostReachable,
+						sidebarProjectId: null,
+						sidebarWorkspaceId: sessionSidebarState?.workspaceId ?? null,
+						sidebarIsHidden: sessionSidebarState?.isHidden ?? false,
+					},
+				];
+			}
 			const project = projectsById.get(workspace.projectId);
 			if (!project) return [];
 			const sidebarState = sidebarStateByWorkspaceId.get(workspace.id);
@@ -590,6 +646,8 @@ export function useAccessibleV2Workspaces(
 	const projectOptions = useMemo<V2WorkspaceProjectOption[]>(() => {
 		const byProject = new Map<string, V2WorkspaceProjectOption>();
 		for (const workspace of searchFiltered) {
+			// Sessions aren't a project; the filter dropdown stays project-only.
+			if (workspace.projectId === null) continue;
 			const existing = byProject.get(workspace.projectId);
 			if (existing) {
 				existing.count += 1;
@@ -597,7 +655,7 @@ export function useAccessibleV2Workspaces(
 			}
 			byProject.set(workspace.projectId, {
 				projectId: workspace.projectId,
-				projectName: workspace.projectName,
+				projectName: workspace.projectName ?? "",
 				iconUrl: workspace.projectIconUrl,
 				count: 1,
 			});
@@ -633,9 +691,10 @@ export function useAccessibleV2Workspaces(
 			{ projectName: string; iconUrl: string | null }
 		>();
 		for (const workspace of enriched) {
+			if (workspace.projectId === null) continue;
 			if (map.has(workspace.projectId)) continue;
 			map.set(workspace.projectId, {
-				projectName: workspace.projectName,
+				projectName: workspace.projectName ?? "",
 				iconUrl: workspace.projectIconUrl,
 			});
 		}

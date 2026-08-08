@@ -1,4 +1,5 @@
 import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
@@ -13,6 +14,7 @@ import type {
 	TeardownFailureCause,
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
+import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths";
 import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
 
@@ -112,7 +114,11 @@ export const workspaceCleanupRouter = router({
 					local.worktreePath,
 				);
 				const state = await cleanupGitOps.readWorktreeState(
-					{ worktreePath: local.worktreePath, gitEnv },
+					{
+						worktreePath: local.worktreePath,
+						gitEnv,
+						ignoreInitialCommit: local.type === "session",
+					},
 					signal,
 				);
 				return {
@@ -218,7 +224,9 @@ async function runDestroy(
 	// ─── Step 0: Preflight ─────────────────────────────────────────
 	// Block only on dirty worktree (the common "I forgot to commit"
 	// case). Missing/broken local state is handled by the cleanup phase.
-	if (!input.force && local && project) {
+	// Sessions are standalone repos — the same dirty check applies even
+	// though they have no project row.
+	if (!input.force && local && (project || local.type === "session")) {
 		try {
 			const gitEnv = await cleanupGitOps.resolveGitEnv(ctx, local.worktreePath);
 			const state = await cleanupGitOps.readWorktreeState({
@@ -259,7 +267,7 @@ async function runDestroy(
 			workspaceId: input.workspaceId,
 			worktreePath: local.worktreePath,
 			repoPath: project.repoPath,
-			projectId: local.projectId,
+			projectId: project.id,
 		});
 		if (teardown.status === "failed") {
 			if (input.teardownMode === "blocking") {
@@ -304,7 +312,32 @@ async function runDestroy(
 	let worktreeRemoved = false;
 	let branchDeleted = false;
 	let repoGitEnv: GitTaskEnv | null = null;
-	if (local && !project) {
+	if (local?.type === "session") {
+		// Sessions are standalone repos in the managed sessions root — no
+		// `git worktree remove`, just delete the folder. The root guard is
+		// load-bearing: a corrupt worktreePath must never point rm -rf at
+		// user data, so anything outside the root is left on disk (warned)
+		// while the row delete proceeds.
+		worktreeRemoved = !existsSync(local.worktreePath);
+		if (!worktreeRemoved) {
+			if (!isInsideSessionsRoot(local.worktreePath)) {
+				warnings.push(
+					`Skipped folder removal at ${local.worktreePath}: not inside the managed sessions root`,
+				);
+			} else {
+				try {
+					await rm(local.worktreePath, { recursive: true, force: true });
+					worktreeRemoved = true;
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to remove session folder at ${local.worktreePath}: ${message}`,
+					});
+				}
+			}
+		}
+	} else if (local && !project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
 		if (!worktreeRemoved) {
 			warnings.push(
@@ -366,14 +399,17 @@ async function runDestroy(
 	// workspaces went fully local.
 	deleteLocalWorkspace(ctx, input.workspaceId);
 	let cloudDeleted = false;
-	try {
-		await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-		cloudDeleted = true;
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		warnings.push(
-			`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
-		);
+	// Sessions postdate the cloud mirror — there is no legacy row to clean.
+	if (local?.type !== "session") {
+		try {
+			await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
+			cloudDeleted = true;
+		} catch (err) {
+			const message = err instanceof Error ? err.message : String(err);
+			warnings.push(
+				`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
+			);
+		}
 	}
 
 	// ─── Step 4: Optional branch delete ────────────────────────────

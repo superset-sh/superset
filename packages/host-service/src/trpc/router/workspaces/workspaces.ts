@@ -11,20 +11,20 @@ import type { HostServiceContext } from "../../../types";
 import { getHostWorkerPool } from "../../../workers/host-worker-pool";
 import { gitFetchBaseRefTask } from "../../../workers/tasks/git";
 import {
+	type CloudShapedWorkspace,
 	getLocalWorkspace,
 	insertLocalWorkspace,
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
 import { protectedProcedure, router } from "../../index";
 import {
-	type AgentRunResult,
 	buildTerminalAgentLaunch,
 	isChatAgent,
-	runAgentInWorkspace,
 	validateAgentLaunchEffort,
 } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
+import { createSession } from "../workspace-creation/procedures/create-session";
 import { adoptExistingWorktree } from "../workspace-creation/shared/adopt-existing-worktree";
 import {
 	findWorktreeAtPath,
@@ -32,6 +32,11 @@ import {
 	listWorktreeBranches,
 } from "../workspace-creation/shared/branch-search";
 import { startCommandTerminal } from "../workspace-creation/shared/command-terminal";
+import {
+	type AgentLaunchResult,
+	agentLaunchSchema,
+	dispatchSugarAgents,
+} from "../workspace-creation/shared/dispatch-agents";
 import { enablePushAutoSetupRemote } from "../workspace-creation/shared/git-config";
 import { requireLocalProject } from "../workspace-creation/shared/local-project";
 import { startSetupTerminalIfPresent } from "../workspace-creation/shared/setup-terminal";
@@ -65,20 +70,6 @@ import {
 	resolveNewBranchStartPoint,
 } from "../workspace-creation/utils/resolve-new-branch-start-point";
 import { deduplicateBranchName } from "../workspace-creation/utils/sanitize-branch";
-
-const agentLaunchSchema = z
-	.object({
-		agent: z.string().min(1),
-		prompt: z.string(),
-		attachmentIds: z.array(z.string().uuid()).optional(),
-		model: z.string().optional(),
-		effort: z.string().optional(),
-	})
-	.refine(
-		(value) =>
-			value.prompt.length > 0 || (value.attachmentIds?.length ?? 0) > 0,
-		{ message: "Agent launch requires a prompt or attachments" },
-	);
 
 const createInputSchema = z
 	.object({
@@ -140,15 +131,9 @@ async function acquireWorkspaceCreateLock(key: string): Promise<() => void> {
 	};
 }
 
-type AgentLaunchResult =
-	| ({ ok: true } & AgentRunResult)
-	| { ok: false; error: string };
-
-type CloudWorkspace = NonNullable<
-	Awaited<
-		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
-	>
->;
+// Workspaces have no cloud mirror since local-first (#5731); the host's own
+// cloud-compatible row shape is the response type.
+type CloudWorkspace = CloudShapedWorkspace;
 
 function extractCreateTxid(row: CloudWorkspace): number | null {
 	const txid = (row as { txid?: unknown }).txid;
@@ -473,35 +458,8 @@ async function registerLocalWorkspace(args: {
 	return toCloudShape(localRow, ctx.organizationId);
 }
 
-async function dispatchSugarAgents(
-	ctx: HostServiceContext,
-	workspaceId: string,
-	launches: z.infer<typeof agentLaunchSchema>[],
-): Promise<AgentLaunchResult[]> {
-	if (launches.length === 0) return [];
-	return Promise.all(
-		launches.map(async (entry) => {
-			try {
-				const result = await runAgentInWorkspace(ctx, {
-					workspaceId,
-					agent: entry.agent,
-					prompt: entry.prompt,
-					attachmentIds: entry.attachmentIds,
-					model: entry.model,
-					effort: entry.effort,
-				});
-				return { ok: true as const, ...result };
-			} catch (err) {
-				return {
-					ok: false as const,
-					error: err instanceof Error ? err.message : String(err),
-				};
-			}
-		}),
-	);
-}
-
 export const workspacesRouter = router({
+	createSession,
 	create: protectedProcedure
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
@@ -1194,9 +1152,13 @@ export const workspacesRouter = router({
 					message: `Workspace not found: ${input.workspaceId}`,
 				});
 			}
-			const project = ctx.db.query.projects
-				.findFirst({ where: eq(projects.id, local.projectId) })
-				.sync();
+			// AI rename also renames the git branch against the project repo;
+			// session workspaces (null projectId) have neither.
+			const project = local.projectId
+				? ctx.db.query.projects
+						.findFirst({ where: eq(projects.id, local.projectId) })
+						.sync()
+				: undefined;
 			if (!project) {
 				throw new TRPCError({
 					code: "NOT_FOUND",

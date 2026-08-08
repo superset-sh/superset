@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/context-menu";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -37,7 +38,8 @@ import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	workspaceId: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces (no group actions yet). */
+	projectId: string | null;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
 	isLocalMainWorkspace?: boolean;
@@ -95,20 +97,36 @@ export function DashboardSidebarWorkspaceContextMenu({
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
-	const { data: sections = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sidebarSections: collections.v2SidebarSections })
-				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId),
-				)
+	// Project rows keep the index-backed eq() scope. The sessions scope
+	// (projectId null) must scan + filter in JS: TanStack DB's eq(col, null)
+	// never matches. This menu mounts per workspace row, so the common
+	// project case shouldn't pay for the full-collection scan.
+	const { data: scopedSections = [] } = useLiveQuery(
+		(q) => {
+			const base = q.from({ sidebarSections: collections.v2SidebarSections });
+			return (
+				projectId === null
+					? base
+					: base.where(({ sidebarSections }) =>
+							eq(sidebarSections.projectId, projectId),
+						)
+			)
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
 				.select(({ sidebarSections }) => ({
 					id: sidebarSections.sectionId,
+					projectId: sidebarSections.projectId,
 					name: sidebarSections.name,
 					color: sidebarSections.color,
-				})),
+				}));
+		},
 		[collections, projectId],
+	);
+	const sections = useMemo(
+		() =>
+			projectId === null
+				? scopedSections.filter((section) => section.projectId === null)
+				: scopedSections,
+		[scopedSections, projectId],
 	);
 	const handleCloseAllPorts = () => {
 		if (isKillingPorts) return;

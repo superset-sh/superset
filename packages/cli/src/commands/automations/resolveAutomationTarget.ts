@@ -33,6 +33,12 @@ export async function resolveAutomationTarget(args: {
 				"Pass --host <id> if it lives on another machine",
 			);
 		}
+		if (workspace.projectId === null) {
+			throw new CLIError(
+				"Session workspaces (no project) cannot be automation targets",
+				"Target a project workspace, or drop --workspace and pass --project for new-workspace-per-run mode",
+			);
+		}
 		if (args.projectId && args.projectId !== workspace.projectId) {
 			throw new CLIError(
 				"--project does not match the workspace's project",

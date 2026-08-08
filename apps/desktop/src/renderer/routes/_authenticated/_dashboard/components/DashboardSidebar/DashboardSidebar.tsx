@@ -40,6 +40,7 @@ import { DashboardSidebarPinnedSection } from "./components/DashboardSidebarPinn
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
+import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSessionsSection";
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
@@ -47,7 +48,7 @@ import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcu
 import { DashboardSidebarHoverProvider } from "./providers/DashboardSidebarHoverProvider";
 import { DashboardSidebarPortsProvider } from "./providers/DashboardSidebarPortsProvider";
 import { DashboardSidebarSelectionProvider } from "./providers/DashboardSidebarSelectionProvider";
-import type { DashboardSidebarProject } from "./types";
+import type { DashboardSidebarProject, DashboardSidebarSection } from "./types";
 import { getProjectChildrenWorkspaces } from "./utils/projectChildren";
 
 interface DashboardSidebarProps {
@@ -109,6 +110,7 @@ export function DashboardSidebar({
 	const {
 		groups,
 		pinnedWorkspaces,
+		sessionsScope,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	} = useDashboardSidebarData();
@@ -153,7 +155,10 @@ export function DashboardSidebar({
 			.filter((g): g is DashboardSidebarProject => g != null);
 	}, [groups, projectOrder]);
 
-	const workspaceShortcutLabels = useDashboardSidebarShortcuts(orderedGroups);
+	const workspaceShortcutLabels = useDashboardSidebarShortcuts(
+		orderedGroups,
+		sessionsScope,
+	);
 	const selectableWorkspaceIds = useMemo(
 		() =>
 			new Set(
@@ -180,6 +185,10 @@ export function DashboardSidebar({
 		if (pinned) {
 			return groups.find((project) => project.id === pinned.projectId) ?? null;
 		}
+		// Recursive: nested groups hold workspaces too.
+		const sectionContains = (section: DashboardSidebarSection): boolean =>
+			section.workspaces.some((ws) => ws.id === activeV2WorkspaceId) ||
+			section.childSections.some(sectionContains);
 		for (const project of groups) {
 			for (const child of project.children) {
 				if (
@@ -188,10 +197,8 @@ export function DashboardSidebar({
 				) {
 					return project;
 				}
-				if (child.type === "section") {
-					for (const ws of child.section.workspaces) {
-						if (ws.id === activeV2WorkspaceId) return project;
-					}
+				if (child.type === "section" && sectionContains(child.section)) {
+					return project;
 				}
 			}
 		}
@@ -225,12 +232,6 @@ export function DashboardSidebar({
 							<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
 								<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
-								{!isCollapsed && (
-									<DashboardSidebarBulkActions projects={orderedGroups}>
-										<DashboardSidebarWorkspacesHeader />
-									</DashboardSidebarBulkActions>
-								)}
-
 								<OverflowFadeContainer
 									fadeEdges={["top", "bottom"]}
 									className="flex-1 overflow-y-auto hide-scrollbar"
@@ -241,6 +242,17 @@ export function DashboardSidebar({
 											isCollapsed={isCollapsed}
 											onWorkspaceHover={refreshWorkspacePullRequest}
 										/>
+									)}
+									<DashboardSidebarSessionsSection
+										sessionsScope={sessionsScope}
+										isCollapsed={isCollapsed}
+										rowsHidden={!isCollapsed && workspacesListCollapsed}
+										onWorkspaceHover={refreshWorkspacePullRequest}
+									/>
+									{!isCollapsed && (
+										<DashboardSidebarBulkActions projects={orderedGroups}>
+											<DashboardSidebarWorkspacesHeader />
+										</DashboardSidebarBulkActions>
 									)}
 									{(isCollapsed || !workspacesListCollapsed) && (
 										<DndContext

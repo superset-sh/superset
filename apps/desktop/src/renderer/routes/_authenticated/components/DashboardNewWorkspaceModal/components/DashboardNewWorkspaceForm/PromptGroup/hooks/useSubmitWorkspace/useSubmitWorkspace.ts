@@ -33,9 +33,15 @@ export function useSubmitWorkspace(
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
+	const isSession = draft.isSession;
+
 	return useCallback(async () => {
-		if (!projectId) {
+		if (!projectId && !isSession) {
 			toast.error("Select a project first");
+			return;
+		}
+		if (isSession && draft.linkedPR !== null) {
+			toast.error("Checking out a PR requires a project");
 			return;
 		}
 		if (!activeOrganizationId) {
@@ -108,20 +114,28 @@ export function useSubmitWorkspace(
 
 		const trimmedPrompt = draft.prompt.trim();
 		const workspaceId = crypto.randomUUID();
-		const snapshot = {
-			id: workspaceId,
-			projectId,
-			name: isPrCheckout ? prName : (workspaceName ?? undefined),
-			branch: isPrCheckout ? undefined : (branchName ?? undefined),
-			pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
-			baseBranch: draft.baseBranch ?? undefined,
-			taskId: linkedTaskId,
-			agents,
-			namingPrompt:
-				!isPrCheckout && !wantAgent && trimmedPrompt
-					? trimmedPrompt
-					: undefined,
-		};
+		const snapshot = isSession
+			? {
+					id: workspaceId,
+					projectId: null,
+					name: workspaceName ?? undefined,
+					agents,
+					namingPrompt: !wantAgent && trimmedPrompt ? trimmedPrompt : undefined,
+				}
+			: {
+					id: workspaceId,
+					projectId: projectId as string,
+					name: isPrCheckout ? prName : (workspaceName ?? undefined),
+					branch: isPrCheckout ? undefined : (branchName ?? undefined),
+					pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
+					baseBranch: draft.baseBranch ?? undefined,
+					taskId: linkedTaskId,
+					agents,
+					namingPrompt:
+						!isPrCheckout && !wantAgent && trimmedPrompt
+							? trimmedPrompt
+							: undefined,
+				};
 
 		if (trimmedPrompt) {
 			usePromptHistoryStore.getState().recordPrompt(trimmedPrompt);
@@ -167,6 +181,7 @@ export function useSubmitWorkspace(
 		activeOrganizationId,
 		closeAndResetDraft,
 		draft,
+		isSession,
 		matchRoute,
 		machineId,
 		navigate,

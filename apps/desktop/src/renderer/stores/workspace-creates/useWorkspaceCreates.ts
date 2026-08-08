@@ -7,17 +7,22 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { getHostServiceUnavailableMessage } from "renderer/lib/host-service-unavailable";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import type { WorkspacesCreateInput } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
+import type {
+	WorkspacesCreateAnyInput,
+	WorkspacesCreateInput,
+	WorkspacesCreateSessionInput,
+} from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceTransactionsStore } from "./workspaceTransactions";
 import { writeWorkspacePaneLayout } from "./writeWorkspacePaneLayout";
 
-export type { WorkspacesCreateInput };
+export type { WorkspacesCreateInput, WorkspacesCreateSessionInput };
 
 export interface SubmitArgs {
 	hostId: string;
-	snapshot: WorkspacesCreateInput;
+	/** `projectId: null` routes to `workspaces.createSession`. */
+	snapshot: WorkspacesCreateAnyInput;
 }
 
 export type SubmitOutcome =
@@ -102,6 +107,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				collections.failedWorkspaceCreates.delete(workspaceId);
 			}
 
+			const isSession = snapshot.projectId === null;
 			const now = new Date();
 			// Optimistic entry in the host's cached list; the host's
 			// workspace:changed broadcast replaces it with the real row.
@@ -110,11 +116,17 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				organizationId,
 				projectId: snapshot.projectId,
 				hostId: args.hostId,
-				name: snapshot.name ?? snapshot.branch ?? "New workspace",
-				branch: snapshot.branch ?? snapshot.name ?? "New workspace",
-				type: "worktree",
+				name:
+					snapshot.name ??
+					("branch" in snapshot ? snapshot.branch : undefined) ??
+					"New workspace",
+				branch:
+					("branch" in snapshot ? snapshot.branch : undefined) ??
+					snapshot.name ??
+					"New workspace",
+				type: isSession ? "session" : "worktree",
 				createdByUserId: userId,
-				taskId: snapshot.taskId ?? null,
+				taskId: ("taskId" in snapshot ? snapshot.taskId : undefined) ?? null,
 				createdAt: now,
 				updatedAt: now,
 				worktreePath: "",
@@ -127,6 +139,14 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 			// still undefined — resolve it directly so an early create can't
 			// silently skip the gate (failures fall back to default-off).
 			const createPromise = (async () => {
+				const client = getHostServiceClientByUrl(hostUrl);
+				if (snapshot.projectId === null) {
+					// Sessions have no setup scripts, so no wait-for-setup gate.
+					const { projectId: _null, ...sessionInput } = snapshot;
+					const result =
+						await client.workspaces.createSession.mutate(sessionInput);
+					return { ...result, alreadyExists: false };
+				}
 				let waitForSetup = waitForSetupBeforeAgent;
 				if (waitForSetup === undefined && snapshot.agents?.length) {
 					waitForSetup =
@@ -138,9 +158,7 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 					snapshot.agents?.length && waitForSetup
 						? { ...snapshot, waitForSetupBeforeAgents: true }
 						: snapshot;
-				return getHostServiceClientByUrl(hostUrl).workspaces.create.mutate(
-					payload,
-				);
+				return client.workspaces.create.mutate(payload);
 			})();
 
 			writeWorkspacePaneLayout(
@@ -154,7 +172,10 @@ export function useWorkspaceCreates(): UseWorkspaceCreatesApi {
 				.then<SubmitOutcome>((result) => {
 					writeWorkspacePaneLayout(
 						collections,
-						result.workspace,
+						{
+							id: result.workspace.id,
+							projectId: result.workspace.projectId,
+						},
 						result.terminals,
 						result.agents,
 					);

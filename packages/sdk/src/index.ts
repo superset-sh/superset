@@ -71,6 +71,8 @@ export {
 	type WorkspaceCreateAgentResult,
 	type WorkspaceCreateParams,
 	type WorkspaceCreateResult,
+	type WorkspaceCreateSessionParams,
+	type WorkspaceCreateSessionResult,
 	type WorkspaceDeleteResult,
 	type WorkspaceListParams,
 	type WorkspaceListResponse,

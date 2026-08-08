@@ -74,13 +74,17 @@ interface PromptGroupProps {
 	projectId: string | null;
 	selectedProject: ProjectOption | undefined;
 	recentProjects: ProjectOption[];
-	onSelectProject: (projectId: string) => void;
+	/** True when "No project" (session) is the explicit selection. */
+	isSessionSelected?: boolean;
+	/** Null selects "No project" (session). */
+	onSelectProject: (projectId: string | null) => void;
 }
 
 export function PromptGroup({
 	projectId,
 	selectedProject,
 	recentProjects,
+	isSessionSelected = false,
 	onSelectProject,
 }: PromptGroupProps) {
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
@@ -305,7 +309,7 @@ export function PromptGroup({
 	// fall into a toast.
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!projectId) return "Select a project";
+		if (!projectId && !draft.isSession) return "Select a project";
 		const selectedHostId = draft.hostId ?? machineId;
 		if (!selectedHostId) return "No active host";
 		if (selectedHostId !== machineId) {
@@ -315,7 +319,14 @@ export function PromptGroup({
 			return "Host service is not running";
 		}
 		return null;
-	}, [projectId, draft.hostId, machineId, activeHostUrl, otherHosts]);
+	}, [
+		projectId,
+		draft.isSession,
+		draft.hostId,
+		machineId,
+		activeHostUrl,
+		otherHosts,
+	]);
 
 	// ── Linked-context prefetch ──────────────────────────────────────
 	const promptContext = useNewWorkspacePromptContext({
@@ -652,6 +663,7 @@ export function PromptGroup({
 					<ProjectPickerPill
 						selectedProject={selectedProject}
 						projects={recentProjects}
+						isSessionSelected={isSessionSelected}
 						onSelectProject={onSelectProject}
 					/>
 					<AnimatePresence mode="wait" initial={false}>
@@ -676,7 +688,9 @@ export function PromptGroup({
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								<CompareBaseBranchPicker {...pickerProps} />
+								{!draft.isSession && (
+									<CompareBaseBranchPicker {...pickerProps} />
+								)}
 							</motion.div>
 						)}
 					</AnimatePresence>

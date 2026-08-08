@@ -123,7 +123,12 @@ export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
 	createdAt: persistedDateSchema,
 	sidebarState: z.object({
-		projectId: z.string().uuid(),
+		// Null = project-less "session" workspace (renders in the Sessions
+		// section). Identity field: no default — widening string → string|null
+		// keeps every pre-existing persisted row parsing unchanged, and heal
+		// must never synthesize null (that would silently reparent a corrupt
+		// project workspace into Sessions).
+		projectId: z.string().uuid().nullable(),
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
@@ -195,9 +200,17 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 	}>,
 };
 
+/**
+ * A sidebar group ("section" historically — the persisted key and field names
+ * keep that spelling so existing rows parse untouched). Groups form a tree:
+ * `parentSectionId` nests a group inside another, `projectId: null` scopes a
+ * group to the top-level Sessions area instead of a project. Both additions
+ * are widening-with-default, so pre-tree rows heal to flat project groups.
+ */
 export const dashboardSidebarSectionSchema = z.object({
 	sectionId: z.string().uuid(),
-	projectId: z.string().uuid(),
+	projectId: z.string().uuid().nullable(),
+	parentSectionId: z.string().uuid().nullable().default(null),
 	name: z.string().trim().min(1),
 	createdAt: persistedDateSchema,
 	tabOrder: z.number().int().default(0),
@@ -452,10 +465,20 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 export type WorkspacesCreateInput =
 	inferRouterInputs<AppRouter>["workspaces"]["create"];
 
+/** Session create — projectId pinned to null so submit can discriminate. */
+export type WorkspacesCreateSessionInput =
+	inferRouterInputs<AppRouter>["workspaces"]["createSession"] & {
+		projectId: null;
+	};
+
+export type WorkspacesCreateAnyInput =
+	| WorkspacesCreateInput
+	| WorkspacesCreateSessionInput;
+
 export const failedWorkspaceCreateSchema = z.object({
 	id: z.string().uuid(),
 	hostId: z.string(),
-	input: z.custom<WorkspacesCreateInput>(),
+	input: z.custom<WorkspacesCreateAnyInput>(),
 	error: z.string(),
 	failedAt: persistedDateSchema,
 });

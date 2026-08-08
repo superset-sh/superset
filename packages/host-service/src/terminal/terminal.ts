@@ -1400,11 +1400,14 @@ export async function createTerminalSessionInternal({
 		};
 	}
 
-	// Derive root path from the workspace's project
+	// Derive root path from the workspace's project. Session workspaces
+	// (null projectId) have no main repo; the session dir is the only root.
 	let rootPath = "";
-	const project = db.query.projects
-		.findFirst({ where: eq(projects.id, workspace.projectId) })
-		.sync();
+	const project = workspace.projectId
+		? db.query.projects
+				.findFirst({ where: eq(projects.id, workspace.projectId) })
+				.sync()
+		: undefined;
 	if (project?.repoPath) {
 		rootPath = project.repoPath;
 	}

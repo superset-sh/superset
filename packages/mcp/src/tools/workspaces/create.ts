@@ -24,9 +24,15 @@ export function register(server: McpServer): void {
 		name: "workspaces_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. Provide exactly one of `branch` or `pr`. Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace), and/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
+			"Create a workspace on a host. A workspace is a branch-scoped working copy of a project. The host service materializes the git worktree on disk before returning. When `projectId` is set, provide exactly one of `branch` or `pr`. Omit `projectId` (and `branch`/`pr`/`baseBranch`/`taskId`) to create a project-less session instead — a managed scratch folder (its own git repo, no branch/PR semantics). Optionally pass `agents` to spawn one or more agents in the workspace as soon as it is ready (each entry runs the equivalent of `agents_create` against the new workspace), and/or pass `command` to run a one-off shell command in the worktree. Use projects_list and hosts_list first to get the projectId and hostId.",
 		inputSchema: {
-			projectId: z.string().uuid().describe("Project UUID."),
+			projectId: z
+				.string()
+				.uuid()
+				.optional()
+				.describe(
+					"Project UUID. Omit to create a project-less session (managed scratch folder).",
+				),
 			name: z.string().min(1).describe("Workspace name (display)."),
 			branch: z
 				.string()
@@ -71,6 +77,48 @@ export function register(server: McpServer): void {
 				.describe("Shell command to run in the new worktree after creation."),
 		},
 		handler: async (input, ctx) => {
+			if (input.projectId === undefined) {
+				for (const [field, value] of [
+					["branch", input.branch],
+					["pr", input.pr],
+					["baseBranch", input.baseBranch],
+					["taskId", input.taskId],
+				] as const) {
+					if (value !== undefined) {
+						throw new Error(
+							`\`${field}\` requires \`projectId\` — sessions are project-less scratch folders with no git branch semantics`,
+						);
+					}
+				}
+				return hostServiceCall<{
+					workspace: {
+						id: string;
+						projectId: string | null;
+						name: string;
+						branch: string;
+					};
+					terminals: Array<{ terminalId: string; label?: string }>;
+					agents: Array<
+						| { ok: true; kind: "terminal"; sessionId: string; label: string }
+						| { ok: true; kind: "chat"; sessionId: string; label: string }
+						| { ok: false; error: string }
+					>;
+				}>(
+					{
+						relayUrl: ctx.relayUrl,
+						organizationId: ctx.organizationId,
+						hostId: input.hostId,
+						jwt: ctx.bearerToken,
+					},
+					"workspaces.createSession",
+					"mutation",
+					{
+						name: input.name,
+						agents: input.agents,
+						command: input.command,
+					},
+				);
+			}
 			return hostServiceCall<{
 				workspace: {
 					id: string;

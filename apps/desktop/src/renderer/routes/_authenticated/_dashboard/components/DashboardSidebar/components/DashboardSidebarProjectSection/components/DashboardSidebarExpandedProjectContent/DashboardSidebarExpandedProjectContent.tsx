@@ -10,6 +10,7 @@ import { useSidebarDnd } from "../../../../hooks/useSidebarDnd";
 import { parseId } from "../../../../hooks/useSidebarDnd/useSidebarDnd";
 import { useDashboardSidebarSelection } from "../../../../providers/DashboardSidebarSelectionProvider";
 import type { DashboardSidebarProjectChild } from "../../../../types";
+import { DashboardSidebarNestedSection } from "../../../DashboardSidebarNestedSection";
 import { WorkspaceBulkMenuScope } from "../../../DashboardSidebarWorkspaceItem/components/WorkspaceBulkMenuScope";
 import { SidebarDragOverlay } from "../../../SidebarDragOverlay";
 import { SortableSectionHeader } from "../../../SortableSectionHeader";
@@ -108,15 +109,35 @@ export function DashboardSidebarExpandedProjectContent({
 										if (parsed.type === "section") {
 											const section = sectionsById.get(parsed.realId);
 											if (!section) return null;
+											// Nested groups render as a folders-first block
+											// under the header; the flat DnD lane manages only
+											// the header and the group's direct workspaces.
+											const showNested =
+												!section.isCollapsed &&
+												section.childSections.length > 0 &&
+												activeType !== "section";
 											return (
-												<SortableSectionHeader
-													key={String(id)}
-													sortableId={String(id)}
-													section={section}
-													onDelete={onDeleteSection}
-													onRename={onRenameSection}
-													onToggleCollapse={onToggleSectionCollapse}
-												/>
+												<div key={String(id)}>
+													<SortableSectionHeader
+														sortableId={String(id)}
+														section={section}
+														onDelete={onDeleteSection}
+														onRename={onRenameSection}
+														onToggleCollapse={onToggleSectionCollapse}
+													/>
+													{showNested &&
+														section.childSections.map((child) => (
+															<DashboardSidebarNestedSection
+																key={child.id}
+																section={child}
+																depth={1}
+																workspaceShortcutLabels={
+																	workspaceShortcutLabels
+																}
+																onWorkspaceHover={onWorkspaceHover}
+															/>
+														))}
+												</div>
 											);
 										}
 
