@@ -22,6 +22,8 @@ import type {
 	DashboardSidebarWorkspace,
 } from "../../types";
 import { DashboardSidebarBulkDeleteDialog } from "../DashboardSidebarBulkDeleteDialog";
+import { useDashboardSidebarFolders } from "../DashboardSidebarFolderContext";
+import { DashboardSidebarProjectBulkToolbar } from "./components/DashboardSidebarProjectBulkToolbar";
 
 interface DashboardSidebarBulkActionsProps {
 	projects: DashboardSidebarProject[];
@@ -32,8 +34,18 @@ export function DashboardSidebarBulkActions({
 	projects,
 	children,
 }: DashboardSidebarBulkActionsProps) {
-	const { clearSelection, removeSelectedWorkspaces, selectedProjectId } =
-		useDashboardSidebarSelection();
+	const {
+		clearSelection,
+		removeSelectedWorkspaces,
+		selectedProjectId,
+		selectedProjectIds,
+	} = useDashboardSidebarSelection();
+	const { folders, moveProjectToFolder, createFolderForProjects } =
+		useDashboardSidebarFolders();
+	const selectedProjects = useMemo(() => {
+		const selected = new Set(selectedProjectIds);
+		return projects.filter((project) => selected.has(project.id));
+	}, [projects, selectedProjectIds]);
 	const selectedProject = useMemo(
 		() => projects.find((project) => project.id === selectedProjectId) ?? null,
 		[projects, selectedProjectId],
@@ -77,6 +89,28 @@ export function DashboardSidebarBulkActions({
 		selectedWorkspaces,
 		onDeleted: removeSelectedWorkspaces,
 	});
+
+	if (selectedProjects.length > 0) {
+		return (
+			<DashboardSidebarProjectBulkToolbar
+				selectedProjects={selectedProjects}
+				folders={folders}
+				onClearSelection={clearSelection}
+				onMoveToFolder={(folderId) => {
+					for (const project of selectedProjects) {
+						moveProjectToFolder(project.id, folderId);
+					}
+					clearSelection();
+				}}
+				onCreateFolder={() => {
+					createFolderForProjects(
+						selectedProjects.map((project) => project.id),
+					);
+					clearSelection();
+				}}
+			/>
+		);
+	}
 
 	return (
 		<>

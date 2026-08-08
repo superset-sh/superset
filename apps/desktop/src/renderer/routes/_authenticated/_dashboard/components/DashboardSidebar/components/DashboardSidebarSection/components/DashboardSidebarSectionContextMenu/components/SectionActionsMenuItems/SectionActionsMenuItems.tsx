@@ -12,12 +12,8 @@ import {
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
-import { HiCheck } from "react-icons/hi2";
 import { LuPalette, LuPencil, LuTrash2 } from "react-icons/lu";
-import {
-	PROJECT_COLOR_DEFAULT,
-	PROJECT_COLORS,
-} from "shared/constants/project-colors";
+import { ColorMenuItems } from "../../../../../ColorMenuItems";
 import type {
 	DashboardSidebarSectionActionsProps,
 	SectionActionsMenuKind,
@@ -35,11 +31,6 @@ export function SectionActionsMenuItems({
 	onSetColor,
 	onDelete,
 }: SectionActionsMenuItemsProps) {
-	const selectedValue = color ?? PROJECT_COLOR_DEFAULT;
-	const colorOptions = [
-		{ name: "Default", value: PROJECT_COLOR_DEFAULT },
-		...PROJECT_COLORS,
-	];
 	const iconClassName = kind === "context" ? "size-4 mr-2" : "size-4";
 
 	const renderItem = ({
@@ -84,33 +75,6 @@ export function SectionActionsMenuItems({
 		);
 	};
 
-	const colorItems = colorOptions.map((projectColor) => {
-		const isDefault = projectColor.value === PROJECT_COLOR_DEFAULT;
-		const isSelected = selectedValue === projectColor.value;
-
-		return renderItem({
-			key: projectColor.value,
-			onSelect: () => onSetColor(isDefault ? null : projectColor.value),
-			children: (
-				<>
-					<span
-						className="relative inline-flex size-3.5 shrink-0 items-center justify-center rounded-full border border-border/50"
-						style={
-							isDefault ? undefined : { backgroundColor: projectColor.value }
-						}
-					>
-						{isDefault ? (
-							<span className="size-1.5 rounded-full bg-muted-foreground/35" />
-						) : null}
-					</span>
-					<span>{projectColor.name}</span>
-					{isSelected ? (
-						<HiCheck className="ml-auto size-3.5 text-muted-foreground" />
-					) : null}
-				</>
-			),
-		});
-	});
 	const colorTrigger = (
 		<>
 			<LuPalette className={iconClassName} />
@@ -133,14 +97,14 @@ export function SectionActionsMenuItems({
 				<ContextMenuSub>
 					<ContextMenuSubTrigger>{colorTrigger}</ContextMenuSubTrigger>
 					<ContextMenuSubContent className="w-40 max-h-80 overflow-y-auto">
-						{colorItems}
+						<ColorMenuItems kind={kind} color={color} onSelect={onSetColor} />
 					</ContextMenuSubContent>
 				</ContextMenuSub>
 			) : (
 				<DropdownMenuSub>
 					<DropdownMenuSubTrigger>{colorTrigger}</DropdownMenuSubTrigger>
 					<DropdownMenuSubContent className="w-40 max-h-80 overflow-y-auto">
-						{colorItems}
+						<ColorMenuItems kind={kind} color={color} onSelect={onSetColor} />
 					</DropdownMenuSubContent>
 				</DropdownMenuSub>
 			)}

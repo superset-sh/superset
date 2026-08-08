@@ -180,9 +180,40 @@ export function useDashboardSidebarData() {
 					projectId: sidebarProjects.projectId,
 					isCollapsed: sidebarProjects.isCollapsed,
 					tabOrder: sidebarProjects.tabOrder,
+					folderId: sidebarProjects.folderId,
 				})),
 		[collections],
 	);
+
+	// Folders group projects at the sidebar root (the level above projects).
+	const { data: sidebarFolders = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ folders: collections.v2SidebarFolders })
+				.orderBy(({ folders }) => folders.tabOrder, "asc")
+				.select(({ folders }) => ({
+					id: folders.folderId,
+					name: folders.name,
+					isCollapsed: folders.isCollapsed,
+					tabOrder: folders.tabOrder,
+					color: folders.color,
+					icon: folders.icon,
+				})),
+		[collections],
+	);
+	// Same JS re-sort as the project rows below, for the same reason: the
+	// query's incremental orderBy doesn't reliably re-sort after an insert or
+	// a tabOrder renumber, so a new folder could sit in the wrong place until
+	// reload. `folderId` breaks ties so equal tabOrders stay stable.
+	const orderedSidebarFolders = useMemo(
+		() =>
+			[...sidebarFolders].sort(
+				(left, right) =>
+					left.tabOrder - right.tabOrder || left.id.localeCompare(right.id),
+			),
+		[sidebarFolders],
+	);
+
 	// Sorted in JS, not via the query's orderBy: the incremental orderBy
 	// does not reliably re-sort on row inserts/renumbers (a newly added
 	// project stayed appended at the bottom until reload), and tabOrders
@@ -221,6 +252,7 @@ export function useDashboardSidebarData() {
 					createdAt: new Date(project.createdAt),
 					updatedAt: new Date(project.updatedAt),
 					isCollapsed: row.isCollapsed,
+					folderId: row.folderId,
 				},
 			];
 		});
@@ -490,6 +522,7 @@ export function useDashboardSidebarData() {
 
 	return {
 		groups,
+		folders: orderedSidebarFolders,
 		pinnedWorkspaces,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,

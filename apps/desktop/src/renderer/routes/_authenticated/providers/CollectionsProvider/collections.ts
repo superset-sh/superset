@@ -54,12 +54,15 @@ import { reclaimTerminalStateForQuota } from "renderer/lib/terminal/terminal-buf
 import superjson from "superjson";
 import { z } from "zod";
 import {
+	type DashboardSidebarFolderRow,
 	type DashboardSidebarProjectRow,
 	type DashboardSidebarSectionRow,
+	dashboardSidebarFolderSchema,
 	dashboardSidebarProjectSchema,
 	dashboardSidebarSectionSchema,
 	type FailedWorkspaceCreateRow,
 	failedWorkspaceCreateSchema,
+	healSidebarProject,
 	healV2UserPreferences,
 	healWorkspaceLocalState,
 	type V2TerminalPresetRow,
@@ -197,6 +200,13 @@ export interface OrgCollections {
 		LocalStorageCollectionUtils,
 		typeof dashboardSidebarProjectSchema,
 		z.input<typeof dashboardSidebarProjectSchema>
+	>;
+	v2SidebarFolders: Collection<
+		DashboardSidebarFolderRow,
+		string,
+		LocalStorageCollectionUtils,
+		typeof dashboardSidebarFolderSchema,
+		z.input<typeof dashboardSidebarFolderSchema>
 	>;
 	v2WorkspaceLocalState: Collection<
 		WorkspaceLocalStateRow,
@@ -776,21 +786,42 @@ function createOrgCollections(organizationId: string): OrgCollections {
 
 	const v2SidebarProjects = createIndexedCollection(
 		localStorageCollectionOptions(
-			hardenLocalCollection({
-				id: `v2_sidebar_projects-${organizationId}`,
-				storageKey: `v2-sidebar-projects-${organizationId}`,
-				schema: dashboardSidebarProjectSchema,
-				// Explicit type for the same reason `withReadHeal` needs one: a
-				// passthrough generic drops the contextual typing that would
-				// otherwise narrow the key to string.
-				getKey: (item: DashboardSidebarProjectRow) => item.projectId,
-			}),
+			hardenLocalCollection(
+				{
+					id: `v2_sidebar_projects-${organizationId}`,
+					storageKey: `v2-sidebar-projects-${organizationId}`,
+					schema: dashboardSidebarProjectSchema,
+					// Explicit type for the same reason `withReadHeal` needs one: a
+					// passthrough generic drops the contextual typing that would
+					// otherwise narrow the key to string.
+					getKey: (item: DashboardSidebarProjectRow) => item.projectId,
+				},
+				healSidebarProject,
+			),
 		),
 	);
 	v2SidebarProjects.createIndex(
 		(sidebarProject) => sidebarProject.tabOrder,
 		basicIndexConfig,
 	);
+	v2SidebarProjects.createIndex(
+		(sidebarProject) => sidebarProject.folderId,
+		basicIndexConfig,
+	);
+
+	const v2SidebarFolders = createIndexedCollection(
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_sidebar_folders-${organizationId}`,
+				storageKey: `v2-sidebar-folders-${organizationId}`,
+				schema: dashboardSidebarFolderSchema,
+				// Explicit type for the same reason the sibling collections need
+				// one: a passthrough generic drops the contextual typing.
+				getKey: (item: DashboardSidebarFolderRow) => item.folderId,
+			}),
+		),
+	);
+	v2SidebarFolders.createIndex((folder) => folder.tabOrder, basicIndexConfig);
 
 	const v2WorkspaceLocalState = createIndexedCollection(
 		localStorageCollectionOptions(
@@ -903,6 +934,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		automations,
 		automationRuns,
 		v2SidebarProjects,
+		v2SidebarFolders,
 		v2WorkspaceLocalState,
 		v2SidebarSections,
 		v2TerminalPresets,

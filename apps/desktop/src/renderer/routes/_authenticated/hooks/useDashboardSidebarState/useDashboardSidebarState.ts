@@ -17,6 +17,16 @@ import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/Host
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { PROJECT_CUSTOM_COLORS } from "shared/constants/project-colors";
 import {
+	createFolderInState,
+	deleteFolderInState,
+	moveProjectToFolderInState,
+	renameFolderInState,
+	reorderFoldersInState,
+	setFolderColorInState,
+	setFolderIconInState,
+	toggleFolderCollapsedInState,
+} from "./folderMutations";
+import {
 	createEmptyPaneLayout,
 	removeProjectFromSidebarState,
 	tombstoneSidebarWorkspaceRecord,
@@ -512,7 +522,63 @@ export function useDashboardSidebarState() {
 		[collections, hostWorkspaces, machineId],
 	);
 
+	// --- Folders (the grouping level above projects) -----------------------
+	// Thin wrappers over the pure helpers in ./folderMutations.
+
+	const createFolder = useCallback(
+		(options: { name?: string } = {}) =>
+			createFolderInState(collections, options),
+		[collections],
+	);
+
+	const renameFolder = useCallback(
+		(folderId: string, name: string) =>
+			renameFolderInState(collections, folderId, name),
+		[collections],
+	);
+
+	const toggleFolderCollapsed = useCallback(
+		(folderId: string) => toggleFolderCollapsedInState(collections, folderId),
+		[collections],
+	);
+
+	const setFolderColor = useCallback(
+		(folderId: string, color: string | null) =>
+			setFolderColorInState(collections, folderId, color),
+		[collections],
+	);
+
+	const setFolderIcon = useCallback(
+		(folderId: string, icon: string | null) =>
+			setFolderIconInState(collections, folderId, icon),
+		[collections],
+	);
+
+	const moveProjectToFolder = useCallback(
+		(projectId: string, folderId: string | null) =>
+			moveProjectToFolderInState(collections, projectId, folderId),
+		[collections],
+	);
+
+	const deleteFolder = useCallback(
+		(folderId: string) => deleteFolderInState(collections, folderId),
+		[collections],
+	);
+
+	const reorderFolders = useCallback(
+		(folderIds: string[]) => reorderFoldersInState(collections, folderIds),
+		[collections],
+	);
+
 	return {
+		createFolder,
+		deleteFolder,
+		moveProjectToFolder,
+		renameFolder,
+		reorderFolders,
+		setFolderColor,
+		setFolderIcon,
+		toggleFolderCollapsed,
 		createSection,
 		deleteSection,
 		ensureProjectInSidebar,
