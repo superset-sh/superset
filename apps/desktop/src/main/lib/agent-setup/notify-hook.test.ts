@@ -58,7 +58,7 @@ describe("getNotifyScriptContent", () => {
 			'PAYLOAD="{\\"json\\":{\\"terminalId\\":\\"$(json_escape "$SUPERSET_TERMINAL_ID")\\",\\"eventType\\":\\"$(json_escape "$EVENT_TYPE")\\",\\"agent\\":{\\"agentId\\":\\"$(json_escape "$SUPERSET_AGENT_ID")\\",\\"sessionId\\":\\"$(json_escape "$SESSION_ID")\\"}}}"',
 		);
 		expect(script).toContain(
-			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
+			"event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID",
 		);
 		expect(script).toContain('V1_EVENT_TYPE="$EVENT_TYPE"');
 		expect(script).toContain('V1_EVENT_TYPE="Stop"');
@@ -85,6 +85,35 @@ describe("getNotifyScriptContent", () => {
 		expect(script).toContain("terminalId=$SUPERSET_TERMINAL_ID");
 		expect(script).toContain("SUPERSET_TAB_ID");
 		expect(script).toContain("SUPERSET_PANE_ID");
+	});
+
+	it("extracts the codex thread-id as the session id on turn completion", () => {
+		// Exact shape of codex's legacy notify callback (captured from
+		// codex-cli 0.146): the resumable id rides in kebab-case thread-id.
+		const result = runNotifyHook({
+			type: "agent-turn-complete",
+			"thread-id": "019fdecb-edc4-7671-91ba-967a367cda56",
+			"turn-id": "019fdecb-edec-7390-8ccb-50060c49c32f",
+			cwd: "/tmp",
+			"input-messages": ["Reply with exactly: OK"],
+			"last-assistant-message": "OK",
+		});
+
+		expect(result.exitCode).toBe(0);
+		const stderr = result.stderr.toString();
+		expect(stderr).toContain("[notify-hook] event=Stop");
+		expect(stderr).toContain("sessionId=019fdecb-edc4-7671-91ba-967a367cda56");
+	});
+
+	it("prefers an explicit session_id over thread-id", () => {
+		const result = runNotifyHook({
+			hook_event_name: "Stop",
+			session_id: "real-session",
+			"thread-id": "should-not-win",
+		});
+
+		expect(result.exitCode).toBe(0);
+		expect(result.stderr.toString()).toContain("sessionId=real-session");
 	});
 
 	it("normalizes Grok permission notifications to PermissionRequest", () => {

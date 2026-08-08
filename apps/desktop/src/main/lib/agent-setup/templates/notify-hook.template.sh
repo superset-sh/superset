@@ -27,6 +27,11 @@ if [ -z "$RESOURCE_ID" ]; then
   RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resource_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 fi
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
+if [ -z "$SESSION_ID" ]; then
+  # Codex's legacy notify callback (agent-turn-complete) carries the
+  # resumable id as thread-id — the same id `codex resume` takes.
+  SESSION_ID=$(echo "$INPUT" | grep -oE '"thread[-_]id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
 
 # Claude/Mastra/Droid/Kimi use "hook_event_name"; Grok uses camelCase
 # "hookEventName" (snake_case values, mapped server-side); Codex uses "type".
@@ -77,7 +82,7 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
 fi
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 debug_log() {
