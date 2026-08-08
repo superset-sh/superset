@@ -2,6 +2,8 @@
 
 How to run 100 agents in parallel without losing your mind, a practical guide.
 
+<!-- superficial test change -->
+
 ## Table of Contents
 
 1. [Why would I want to do this?](#why-would-i-want-to-do-this)

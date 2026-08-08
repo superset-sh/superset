@@ -2,7 +2,7 @@
 
 <img width="full" alt="Superset" src="apps/marketing/public/images/readme-hero.png" />
 
-### The Code Editor for AI Agents
+### Hello from a README test — something else entirely
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
@@ -35,7 +35,7 @@ Superset orchestrates CLI-based coding agents across isolated git worktrees, wit
 - **Open any workspace where you need it** with one-click handoff to your editor or terminal
 - **Reach your workspaces from anywhere** via remote hosts, the CLI, the SDK, or MCP
 
-Wait less, ship more.
+Wait less, ship more. (readme test note)
 
 ## Features
 
