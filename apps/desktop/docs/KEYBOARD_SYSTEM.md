@@ -139,6 +139,7 @@ The v1→v2 hotkey storage migration was shipped April 2026 and removed in commi
 - **April 2026** — Initial refactor. Unified everything on `event.code` (recorder, dispatch, terminal forwarding). Preserved the bare-string storage shape. See `plans/done/20260412-keyboard-recorder-ctrl-binding-fix.md`.
 - **April 27, 2026** — Layout audit and Phase 0–2 plan. Briefly tried `navigator.keyboard.getLayoutMap()` to avoid the native-keymap dep; switched back after discovering Chromium's `layoutchange` event doesn't fire for macOS input-source switches. native-keymap hooks `kTISNotifySelectedKeyboardInputSourceChanged` directly, which fires reliably. See `plans/done/20260427-keyboard-layout-plan.md`.
 - **April 28, 2026** — Phase 1 (native-keymap) + Phase 2 (dual-mode bindings) shipped. v1 migration removed.
+- **August 2026** — Browser-pane hotkey forwarding. Guest webContents swallow unclaimed chords (⌘B/⌘L dead, ⌘O shadowed by menu); the renderer now pushes its chord index to main and `before-input-event` forwards matches back for re-dispatch on `document`. Guest-owned editing shortcuts (⌘/Ctrl A/C/V/X/Z) and find/print/find-next (⌘F/⌘P/⌘G) stay with the page. See `shared/browser-pane-chords.ts` and `main/lib/browser/browser-manager.ts`.
 
 ## Known gaps / future work
 

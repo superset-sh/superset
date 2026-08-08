@@ -1,6 +1,7 @@
 import { EventEmitter } from "node:events";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
+import { inputToChord, matchAppChord } from "shared/browser-pane-chords";
 
 interface ConsoleEntry {
 	level: "log" | "warn" | "error" | "info" | "debug";
@@ -29,6 +30,15 @@ class BrowserManager extends EventEmitter {
 	private consoleListeners = new Map<string, () => void>();
 	private contextMenuListeners = new Map<string, () => void>();
 	private beforeInputListeners = new Map<string, () => void>();
+	// Canonical chords the app has registered, pushed from the renderer
+	// whenever overrides / layout / adaptive mapping change. Empty until the
+	// first push, so pane hotkeys only activate once the index arrives.
+	private appChords = new Set<string>();
+
+	/** Replace the renderer-pushed app chord index (canonicalized). */
+	setAppChords(chords: string[]): void {
+		this.appChords = new Set(chords);
+	}
 
 	register(paneId: string, webContentsId: number): void {
 		// Clean even when prevId === webContentsId so BrowserManager owns
@@ -242,25 +252,39 @@ class BrowserManager extends EventEmitter {
 	// accelerator closes the whole window. `before-input-event` fires in the
 	// main process before both, and `preventDefault()` suppresses both.
 	//
-	// keyDown guard prevents a second fire on keyUp. Shift guard preserves
-	// Cmd+Shift+W (CLOSE_TAB) and Cmd+Shift+R (forceReload).
+	// The full app chord index is pushed from the renderer (see setAppChords),
+	// so any registered chord is matched here by physical key position and
+	// forwarded to the host renderer to re-dispatch — mirroring how the
+	// terminal short-circuits xterm in-process. Chords the guest page owns
+	// (find / print / find-next) are excluded by matchAppChord, and the
+	// pane-scoped reload (no registry hotkey) keeps its dedicated event.
 	private setupBeforeInput(paneId: string, wc: Electron.WebContents): void {
 		const handler = (event: Electron.Event, input: Electron.Input): void => {
 			if (input.type !== "keyDown") return;
-			if (input.shift || input.alt) return;
-			if (!(input.meta || input.control)) return;
 
-			const key = input.key.toLowerCase();
-			if (key === "w") {
+			const chord = inputToChord(input);
+
+			// Pane-scoped actions keep their dedicated events (the legacy
+			// TabView path has no global CLOSE_PANE hotkey, and reload has no
+			// registry hotkey at all). Physical-position matching via
+			// inputToChord replaces the old `input.key` string compare, which
+			// drifted from the registry on non-QWERTY layouts.
+			if (chord === "meta+w" || chord === "ctrl+w") {
 				event.preventDefault();
 				this.emit(`close-pane:${paneId}`);
 				return;
 			}
-			if (key === "r") {
+			if (chord === "meta+r" || chord === "ctrl+r") {
 				event.preventDefault();
 				this.emit(`reload-pane:${paneId}`);
 				return;
 			}
+
+			const appChord = matchAppChord(input, this.appChords);
+			if (!appChord) return;
+
+			event.preventDefault();
+			this.emit(`app-hotkey:${paneId}`, appChord);
 		};
 
 		wc.on("before-input-event", handler);

@@ -5,6 +5,7 @@ import type {
 	BrowserPaneData,
 	PaneViewerData,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/types";
+import { dispatchChordEvent } from "shared/browser-pane-chords";
 import { browserRuntimeRegistry } from "../../browserRuntimeRegistry";
 import { DEFAULT_BROWSER_URL } from "../../constants";
 
@@ -80,13 +81,35 @@ export function usePersistentWebview({
 					},
 				},
 			);
-		// `ctx.actions.close()` runs the standard onBeforeClose hook chain,
-		// matching the renderer CLOSE_PANE hotkey path.
+		// ⌘W/⌘R stay on the dedicated events: main emits `close-pane` /
+		// `reload-pane` for them BEFORE app-chord matching, so they never
+		// arrive via `app-hotkey`. `ctx.actions.close()` runs the standard
+		// onBeforeClose hook chain, matching the renderer CLOSE_PANE hotkey
+		// path. All other registered chords arrive as `app-hotkey` and are
+		// re-dispatched as synthetic keydowns on `document`, where
+		// react-hotkeys-hook attaches its listeners.
 		const closePaneSub = electronTrpcClient.browser.onClosePane.subscribe(
 			{ paneId },
 			{
 				onData: () => {
-					void ctxRef.current.actions.close();
+					void (async () => {
+						try {
+							await ctxRef.current.actions.close();
+						} catch (error) {
+							console.warn(`Failed to close browser pane (${paneId})`, error);
+						}
+					})();
+				},
+			},
+		);
+		const appHotkeySub = electronTrpcClient.browser.onAppHotkey.subscribe(
+			{ paneId },
+			{
+				onData: (chord: string) => {
+					const event = dispatchChordEvent(chord);
+					if (event) {
+						document.dispatchEvent(event);
+					}
 				},
 			},
 		);
@@ -102,6 +125,7 @@ export function usePersistentWebview({
 			newWindowSub.unsubscribe();
 			contextMenuSub.unsubscribe();
 			closePaneSub.unsubscribe();
+			appHotkeySub.unsubscribe();
 			reloadPaneSub.unsubscribe();
 		};
 	}, [paneId]);

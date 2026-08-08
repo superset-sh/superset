@@ -13,6 +13,27 @@ export const createBrowserRouter = () => {
 				return { success: true };
 			}),
 
+		setAppChords: publicProcedure
+			.input(z.object({ chords: z.array(z.string()) }))
+			.mutation(({ input }) => {
+				browserManager.setAppChords(input.chords);
+				return { success: true };
+			}),
+
+		onAppHotkey: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<string>((emit) => {
+					const handler = (chord: string) => {
+						emit.next(chord);
+					};
+					browserManager.on(`app-hotkey:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`app-hotkey:${input.paneId}`, handler);
+					};
+				});
+			}),
+
 		unregister: publicProcedure
 			.input(z.object({ paneId: z.string() }))
 			.mutation(({ input }) => {
