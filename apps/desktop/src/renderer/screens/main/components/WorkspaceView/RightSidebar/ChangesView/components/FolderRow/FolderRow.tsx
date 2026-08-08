@@ -1,9 +1,5 @@
 import type { ExternalApp } from "@superset/local-db";
-import {
-	Collapsible,
-	CollapsibleContent,
-	CollapsibleTrigger,
-} from "@superset/ui/collapsible";
+import { Collapsible, CollapsibleTrigger } from "@superset/ui/collapsible";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -12,7 +8,7 @@ import {
 	ContextMenuTrigger,
 } from "@superset/ui/context-menu";
 import { cn } from "@superset/ui/utils";
-import { type ReactNode, useState } from "react";
+import { type ReactNode, useId, useState } from "react";
 import {
 	VscAdd,
 	VscChevronRight,
@@ -25,6 +21,7 @@ import {
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import { usePathActions } from "../../hooks";
 import { DiscardConfirmDialog } from "../DiscardConfirmDialog";
+import { PlainCollapsibleContent } from "../PlainCollapsibleContent";
 import type { RowHoverAction } from "../RowHoverActions";
 import { RowHoverActions } from "../RowHoverActions";
 
@@ -123,6 +120,7 @@ export function FolderRow({
 	defaultApp,
 }: FolderRowProps) {
 	const [showDiscardDialog, setShowDiscardDialog] = useState(false);
+	const contentId = useId();
 	const isGrouped = variant === "grouped";
 	const isRoot = folderPath === "";
 	const absolutePath = isRoot
@@ -180,6 +178,7 @@ export function FolderRow({
 
 	const triggerContent = (
 		<CollapsibleTrigger
+			aria-controls={contentId}
 			className={cn(
 				"flex-1 min-w-0 flex gap-1.5 text-left overflow-hidden",
 				"text-xs items-stretch py-0.5",
@@ -268,14 +267,16 @@ export function FolderRow({
 					</ContextMenuTrigger>
 					{contextMenuContent}
 				</ContextMenu>
-				<CollapsibleContent
+				<PlainCollapsibleContent
+					id={contentId}
+					isOpen={isExpanded}
 					className={cn(
 						"min-w-0",
 						isGrouped && "ml-1.5 border-l border-border pl-0.5",
 					)}
 				>
 					{children}
-				</CollapsibleContent>
+				</PlainCollapsibleContent>
 			</Collapsible>
 
 			<DiscardConfirmDialog
