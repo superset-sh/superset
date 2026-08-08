@@ -20,6 +20,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_SIDEBAR_WORKSPACE_NAMES: "appearance-sidebar-workspace-names",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -133,8 +134,13 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
-	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
+	// Typography feeds both UIs: `getFontSettings` drives the v1 terminal,
+	// code editor, and light diff viewer under `screens/main` as well as the
+	// v2 panes, so hiding these in v1 would strand controls that still apply.
+	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+	// Wrapping is implemented in the v2 dashboard sidebar row only.
+	[SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -439,7 +445,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT,
 		section: "appearance",
 		title: "Editor Typography",
-		description: "Typography used in V2 diff views and file editors",
+		description: "Typography used in diff views and file editors",
 		keywords: [
 			"appearance",
 			"font",
@@ -462,7 +468,7 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 		id: SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT,
 		section: "appearance",
 		title: "Terminal Typography",
-		description: "Typography and cursor behavior used in V2 terminal panels",
+		description: "Typography and cursor behavior used in terminal panels",
 		keywords: [
 			"appearance",
 			"font",
@@ -483,6 +489,28 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"blink",
 			"custom",
 			"nerd",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_SIDEBAR_WORKSPACE_NAMES,
+		section: "appearance",
+		title: "Wrap workspace names",
+		description:
+			"Wrap long workspace names in the sidebar instead of cutting them off",
+		keywords: [
+			"appearance",
+			"sidebar",
+			"workspace",
+			"workspace names",
+			"wrap",
+			"wrapping",
+			"truncate",
+			"truncation",
+			"ellipsis",
+			"multiline",
+			"multiple lines",
+			"long names",
+			"cut off",
 		],
 	},
 	{

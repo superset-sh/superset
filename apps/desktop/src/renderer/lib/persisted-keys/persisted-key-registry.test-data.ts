@@ -69,6 +69,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/stores/markdown-preferences/store.ts",
 		["markdown-preferences"],
 	],
+	["src/renderer/stores/sidebar-preferences/store.ts", ["sidebar-preferences"]],
 	["src/renderer/stores/file-explorer.ts", ["file-explorer-store"]],
 	["src/renderer/stores/ports/store.ts", ["ports-store"]],
 	["src/renderer/stores/search-dialog-state.ts", ["search-dialog-store"]],
