@@ -1,4 +1,5 @@
 import { join } from "node:path";
+import * as Sentry from "@sentry/electron/main";
 import { workspaces, worktrees } from "@superset/local-db";
 import { eq } from "drizzle-orm";
 import type { BrowserWindow } from "electron";
@@ -342,6 +343,16 @@ export async function MainWindow() {
 	window.webContents.on("render-process-gone", (_event, details) => {
 		console.error("[main-window] Renderer process gone:", details);
 		log.error("[main-window] Renderer process gone", details);
+		// The Sentry SDK's own capture for this event runs off the app-level
+		// listener it registered at init, so it fires before this one and cannot
+		// be tagged retroactively — report the details separately.
+		Sentry.captureMessage(`renderer process gone (${details.reason})`, {
+			level: "error",
+			tags: {
+				renderer_gone_reason: details.reason,
+				renderer_gone_exit_code: String(details.exitCode),
+			},
+		});
 	});
 
 	window.webContents.on("preload-error", (_event, preloadPath, error) => {

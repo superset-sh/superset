@@ -618,6 +618,8 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 			port: 55555,
 			secret: "secret",
 			status: "running",
+			spawnedAt: Date.now(),
+			outputTail: "",
 			owned: true,
 		});
 	}
