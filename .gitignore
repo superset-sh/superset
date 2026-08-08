@@ -97,3 +97,6 @@ superset-dev-data/
 
 # Local-only plans (not tracked)
 plans/local/
+
+# Bun compile temp artifacts (~60 MB each)
+*.bun-build

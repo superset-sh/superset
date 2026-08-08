@@ -27,4 +27,5 @@ export type {
 	TeardownFailureCause,
 } from "./trpc/error-types";
 export type { AppRouter } from "./trpc/router";
+export type { CommitMetadata } from "./trpc/router/git/types";
 export type { ApiClient, HostServiceContext } from "./types";

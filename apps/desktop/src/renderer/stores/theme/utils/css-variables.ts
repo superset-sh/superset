@@ -1,4 +1,5 @@
-import type { UIColors } from "shared/themes/types";
+import { GRAPH_LANE_CSS_VARS, getGraphLanes } from "shared/themes/graph-lanes";
+import type { Theme, UIColors } from "shared/themes/types";
 
 /**
  * Maps UI color keys to CSS variable names
@@ -59,6 +60,24 @@ export function applyUIColors(colors: UIColors): void {
 }
 
 /**
+ * Apply commit-graph lane colours to CSS variables on :root.
+ *
+ * Kept separate from applyUIColors because lanes are derived from the whole
+ * theme (its ANSI palette), not from UIColors — see shared/themes/graph-lanes.
+ */
+export function applyGraphLaneColors(theme: Theme): void {
+	const root = document.documentElement;
+
+	const lanes = getGraphLanes(theme);
+	for (const [index, cssVar] of GRAPH_LANE_CSS_VARS.entries()) {
+		const value = lanes[index];
+		if (value) {
+			root.style.setProperty(cssVar, value);
+		}
+	}
+}
+
+/**
  * Update dark/light mode class based on theme type
  */
 export function updateThemeClass(type: "dark" | "light"): void {
@@ -78,6 +97,9 @@ export function updateThemeClass(type: "dark" | "light"): void {
 export function clearThemeVariables(): void {
 	const root = document.documentElement;
 	for (const cssVar of Object.values(UI_COLOR_TO_CSS_VAR)) {
+		root.style.removeProperty(cssVar);
+	}
+	for (const cssVar of GRAPH_LANE_CSS_VARS) {
 		root.style.removeProperty(cssVar);
 	}
 }

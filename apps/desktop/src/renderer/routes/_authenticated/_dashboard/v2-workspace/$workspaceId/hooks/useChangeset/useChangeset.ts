@@ -1,3 +1,4 @@
+import type { CommitMetadata } from "@superset/host-service";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import type { FileStatus } from "../../components/StatusIndicator";
@@ -12,6 +13,9 @@ interface UseChangesetArgs {
 
 interface UseChangesetResult {
 	files: ChangesetFile[];
+	/** Commit metadata when `ref` is a commit/range; null otherwise (against-base /
+	 *  uncommitted have no single commit to describe). */
+	commit: CommitMetadata | null;
 	isLoading: boolean;
 	isError: boolean;
 	error: unknown;
@@ -63,6 +67,7 @@ export function useChangeset({
 
 	return {
 		files,
+		commit: commitQuery.data?.commit ?? null,
 		isLoading: activeQuery.isLoading,
 		isError: activeQuery.isError,
 		error: activeQuery.error,

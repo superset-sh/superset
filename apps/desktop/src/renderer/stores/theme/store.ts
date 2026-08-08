@@ -10,7 +10,12 @@ import {
 import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import { trpcThemeStorage } from "../../lib/trpc-storage";
-import { applyUIColors, toXtermTheme, updateThemeClass } from "./utils";
+import {
+	applyGraphLaneColors,
+	applyUIColors,
+	toXtermTheme,
+	updateThemeClass,
+} from "./utils";
 
 /** Special theme ID for system preference (follows OS dark/light mode) */
 export const SYSTEM_THEME_ID = "system";
@@ -138,6 +143,9 @@ function applyTheme(theme: Theme): {
 } {
 	// Apply UI colors to CSS variables
 	applyUIColors(theme.ui);
+
+	// Commit-graph lanes come from the ANSI palette, not from theme.ui
+	applyGraphLaneColors(theme);
 
 	// Update dark/light class
 	updateThemeClass(theme.type);

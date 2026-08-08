@@ -133,3 +133,66 @@ export interface Commit {
 	authorEmail: string;
 	date: string;
 }
+
+/** Full metadata for a single commit — subject + body, authorship, parents.
+ *  Returned alongside `getCommitFiles` so a commit diff pane can render a
+ *  metadata header without a second spawn. */
+export interface CommitMetadata {
+	hash: string;
+	shortHash: string;
+	/** Full commit message — subject and body. */
+	message: string;
+	author: string;
+	authorEmail: string;
+	date: string;
+	parents: string[];
+}
+
+// ---------------------------------------------------------------------------
+// Git graph (listGraph) — sidebar topology view
+// ---------------------------------------------------------------------------
+
+export type GraphRefType = "head" | "branch" | "remote" | "tag";
+
+export type GraphRefState =
+	| "open"
+	| "detached-worktree"
+	| "orphan-branch"
+	| "prunable"
+	| "merged";
+
+/** Which refs seed git.listGraph's traversal. See `buildTipSet`. */
+export type GraphRefScope =
+	| "local"
+	| "open-workspaces"
+	| "remote"
+	| "all"
+	| "head";
+
+export interface GraphRef {
+	name: string;
+	type: GraphRefType;
+	state: GraphRefState | null;
+	worktreePath?: string;
+	worktreeWorkspaceId?: string;
+	pruneReason?: string;
+}
+
+export interface GraphCommit {
+	hash: string;
+	shortHash: string;
+	message: string;
+	author: string;
+	authorEmail: string;
+	date: string;
+	parents: string[];
+	refs: GraphRef[];
+}
+
+export interface ListGraphResult {
+	commits: GraphCommit[];
+	nextCursor: string | null;
+	/** Total commits reachable from the tip set (independent of window), or
+	 * null when the count could not be determined. */
+	totalCommits: number | null;
+}
