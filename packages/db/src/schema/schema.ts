@@ -695,9 +695,9 @@ export const chatSessions = pgTable(
 		workspaceId: uuid("workspace_id").references(() => workspaces.id, {
 			onDelete: "set null",
 		}),
-		v2WorkspaceId: uuid("v2_workspace_id").references(() => v2Workspaces.id, {
-			onDelete: "set null",
-		}),
+		// No FK: v2 workspaces are host-local since local-first (#5731), so
+		// this id has no cloud row to reference.
+		v2WorkspaceId: uuid("v2_workspace_id"),
 		title: text(),
 		lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
 		createdAt: timestamp("created_at").notNull().defaultNow(),

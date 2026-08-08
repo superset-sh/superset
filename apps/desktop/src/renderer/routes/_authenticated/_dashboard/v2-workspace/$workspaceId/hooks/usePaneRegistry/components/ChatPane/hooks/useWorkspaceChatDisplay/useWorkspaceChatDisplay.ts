@@ -16,6 +16,11 @@ interface UseChatDisplayOptions {
 // are freed shortly after their pane unmounts instead of accumulating on the heap.
 const CHAT_QUERY_GC_TIME_MS = 60_000;
 
+// While getSnapshot is failing (e.g. runtime can't start without model
+// provider credentials), the 4fps poll would retry runtime creation — and
+// hit the macOS keychain — four times a second. Back off until it recovers.
+const ERROR_REFETCH_INTERVAL_MS = 5_000;
+
 function toRefetchIntervalMs(fps: number): number {
 	if (!Number.isFinite(fps) || fps <= 0) return Math.floor(1000 / 60);
 	return Math.max(16, Math.floor(1000 / fps));
@@ -125,7 +130,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 	const refetchIntervalMs = toRefetchIntervalMs(fps);
 	const queryOptions = {
 		enabled: isQueryEnabled && queryInput !== undefined,
-		refetchInterval: refetchIntervalMs,
+		refetchInterval: (query: { state: { status: string } }) =>
+			query.state.status === "error"
+				? ERROR_REFETCH_INTERVAL_MS
+				: refetchIntervalMs,
 		refetchIntervalInBackground: true,
 		refetchOnWindowFocus: false,
 		gcTime: CHAT_QUERY_GC_TIME_MS,
@@ -153,10 +161,10 @@ export function useChatDisplay(options: UseChatDisplayOptions) {
 			: null;
 	const currentMessage = displayState?.currentMessage ?? null;
 	const isRunning = displayState?.isRunning ?? false;
-	const isConversationLoading =
-		isQueryEnabled &&
-		snapshotQuery.data === undefined &&
-		(snapshotQuery.isLoading || snapshotQuery.isFetching);
+	// isPending only (not isFetching): once the query errors, background
+	// retries must not flip the pane back to the loading spinner — that
+	// spinner/error alternation reads as the chat constantly reloading.
+	const isConversationLoading = isQueryEnabled && snapshotQuery.isPending;
 	const historicalMessages = snapshot?.messages ?? [];
 	const latestAssistantErrorMessage = isRunning
 		? null

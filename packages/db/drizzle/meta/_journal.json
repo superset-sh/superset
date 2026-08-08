@@ -449,6 +449,13 @@
       "when": 1785234213747,
       "tag": "0063_add_desktop_notices",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1786133533645,
+      "tag": "0064_drop_chat_sessions_v2_workspace_fk",
+      "breakpoints": true
     }
   ]
 }
