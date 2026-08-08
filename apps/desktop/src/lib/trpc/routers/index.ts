@@ -21,6 +21,7 @@ import { createNotificationsRouter } from "./notifications";
 import { createPermissionsRouter } from "./permissions";
 import { createPortsRouter } from "./ports";
 import { createProjectsRouter } from "./projects";
+import { createProviderUsageRouter } from "./provider-usage";
 import { createResourceMetricsRouter } from "./resource-metrics";
 import { createRingtoneRouter } from "./ringtone";
 import { createSettingsRouter } from "./settings";
@@ -49,6 +50,7 @@ export const createAppRouter = (getWindow: () => BrowserWindow | null) => {
 		notifications: createNotificationsRouter(getWindow),
 		permissions: createPermissionsRouter(),
 		ports: createPortsRouter(),
+		providerUsage: createProviderUsageRouter(),
 		resourceMetrics: createResourceMetricsRouter(),
 		menu: createMenuRouter(),
 		external: createExternalRouter(),
