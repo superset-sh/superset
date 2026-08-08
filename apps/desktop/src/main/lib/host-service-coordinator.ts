@@ -818,7 +818,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		// effective URL comes from the PostHog `relay-url-override` flag with
 		// `env.RELAY_URL` as fallback (see main/lib/relay-url) so we can A/B-test
 		// alternate relay deployments per-user.
-		const effectiveRelayUrl = await getRelayUrl();
+		const effectiveRelayUrl = getRelayUrl();
 		if (exposeViaRelay && effectiveRelayUrl) {
 			childEnv.RELAY_URL = effectiveRelayUrl;
 		} else {

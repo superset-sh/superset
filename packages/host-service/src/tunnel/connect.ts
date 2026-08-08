@@ -7,11 +7,34 @@ import { TunnelClientV2 } from "./tunnel-client-v2";
 
 export interface ConnectRelayOptions {
 	api: ApiClient;
+	/** Fallback when the API can't be reached; the API's answer wins. */
 	relayUrl: string;
 	localPort: number;
 	organizationId: string;
 	authProvider: JwtApiAuthProvider;
 	hostServiceSecret: string;
+}
+
+// The API decides which relay this host belongs on, and it is asked here —
+// with the host's own credentials, at connect time — rather than resolved by
+// whatever spawned us. A spawner that resolves it first has to win a race
+// against its own analytics identification, and when it loses it silently
+// picks the default, stranding the host on a different relay than its
+// clients with no way to tell from either side.
+async function resolveRelayUrl(
+	api: ApiClient,
+	fallback: string,
+): Promise<string> {
+	try {
+		const endpoint = await api.host.relayEndpoint.query();
+		if (endpoint?.url) return endpoint.url;
+	} catch (error) {
+		console.warn(
+			"[host-service] relay endpoint lookup failed, using fallback:",
+			error instanceof Error ? error.message : error,
+		);
+	}
+	return fallback;
 }
 
 // The relay advertises its protocol on /health ({proto: 2} for tunnel v2);
@@ -46,15 +69,18 @@ export async function connectRelay(
 		});
 		console.log(`[host-service] registered as host ${host.machineId}`);
 
+		const relayUrl = await resolveRelayUrl(options.api, options.relayUrl);
+		console.log(`[host-service] relay: ${relayUrl}`);
+
 		const clientOptions = {
-			relayUrl: options.relayUrl,
+			relayUrl,
 			hostId: buildHostRoutingKey(options.organizationId, host.machineId),
 			getAuthToken: () => options.authProvider.getJwt(),
 			localPort: options.localPort,
 			hostServiceSecret: options.hostServiceSecret,
 		};
 
-		const proto = await detectRelayProto(options.relayUrl);
+		const proto = await detectRelayProto(relayUrl);
 		console.log(`[host-service] relay protocol: v${proto}`);
 		const tunnel =
 			proto === 2
