@@ -42,6 +42,7 @@ import { FileRowContextMenuItems } from "./components/FileRowContextMenuItems";
 import { FolderContextMenuItems } from "./components/FolderContextMenuItems";
 import { ShadowRowHoverActions } from "./components/ShadowRowHoverActions";
 import { useMeasuredTreeHeight } from "./hooks/useMeasuredTreeHeight";
+import { buildCollisionSafeTreePaths } from "./utils/buildCollisionSafeTreePaths";
 import { buildTreeShape } from "./utils/buildTreeShape";
 
 const ITEM_HEIGHT = 24;
@@ -104,16 +105,29 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	onOpenFile,
 	onOpenInEditor,
 }: ChangesTreeViewProps) {
-	const paths = useMemo(() => files.map((f) => f.path), [files]);
-	const fileByPath = useMemo(() => {
+	// A changeset can contain a path that is both a file and a directory of
+	// other entries (e.g. same-named file deleted + directory added). Pierre
+	// throws on that shape, so colliding file entries get disambiguated tree
+	// paths; map back through `toRealPath` before treating one as a file path.
+	const { treePaths, toTreePath, toRealPath } = useMemo(
+		() => buildCollisionSafeTreePaths(files.map((f) => f.path)),
+		[files],
+	);
+	const fileByTreePath = useMemo(() => {
 		const map = new Map<string, ChangesetFile>();
-		for (const file of files) map.set(file.path, file);
+		for (const file of files)
+			map.set(toTreePath.get(file.path) ?? file.path, file);
 		return map;
-	}, [files]);
+	}, [files, toTreePath]);
 
-	const { dirs, dirFileCount } = useMemo(() => buildTreeShape(paths), [paths]);
+	const { dirs, dirFileCount } = useMemo(
+		() => buildTreeShape(treePaths),
+		[treePaths],
+	);
 
-	const initialGitStatusEntriesRef = useRef(buildPierreGitStatus(files));
+	const initialGitStatusEntriesRef = useRef(
+		buildPierreGitStatus(files, toTreePath),
+	);
 
 	// Callbacks routed through a ref so Pierre's stable handler closures
 	// (resolved once at `useFileTree` time) always see the latest props.
@@ -127,7 +141,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	});
 
 	const { model } = usePierreFileTree({
-		paths,
+		paths: treePaths,
 		initialExpansion: "open",
 		search: false,
 		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
@@ -146,12 +160,12 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 
 	// Keep Pierre's path set in sync as files churn (stage/unstage, new edits).
 	useEffect(() => {
-		model.resetPaths(paths);
-	}, [model, paths]);
+		model.resetPaths(treePaths);
+	}, [model, treePaths]);
 
 	useEffect(() => {
-		model.setGitStatus(buildPierreGitStatus(files));
-	}, [model, files]);
+		model.setGitStatus(buildPierreGitStatus(files, toTreePath));
+	}, [model, files, toTreePath]);
 
 	useFallthroughIcons(model);
 
@@ -162,7 +176,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	const treeHeight =
 		contentHeight != null
 			? contentHeight + HEIGHT_CUSHION
-			: (dirs.length + paths.length) * ROW_BOX + HEIGHT_CUSHION;
+			: (dirs.length + treePaths.length) * ROW_BOX + HEIGHT_CUSHION;
 
 	const setAllDirsExpanded = useCallback(
 		(expanded: boolean) => {
@@ -197,19 +211,22 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			? toRelativeWorkspacePath(worktreePath, selectedFilePath)
 			: selectedFilePath;
 	useEffect(() => {
-		if (!selectedRelPath || !fileByPath.has(selectedRelPath)) return;
+		if (!selectedRelPath) return;
+		const selectedTreePath = toTreePath.get(selectedRelPath) ?? selectedRelPath;
+		if (!fileByTreePath.has(selectedTreePath)) return;
 		if (lastUserSelectRef.current === selectedRelPath) {
 			lastUserSelectRef.current = null;
 			return;
 		}
-		model.focusPath(selectedRelPath);
-	}, [model, selectedRelPath, fileByPath]);
+		model.focusPath(selectedTreePath);
+	}, [model, selectedRelPath, fileByTreePath, toTreePath]);
 
 	handlersRef.current.onSelect = (treePath) => {
-		lastUserSelectRef.current = treePath;
-		const file = fileByPath.get(treePath);
+		const realPath = toRealPath.get(treePath) ?? treePath;
+		lastUserSelectRef.current = realPath;
+		const file = fileByTreePath.get(treePath);
 		onSelectFile?.(
-			treePath,
+			realPath,
 			false,
 			file ? getChangesetFileKey(file) : undefined,
 		);
@@ -223,7 +240,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 			const count = dirFileCount.get(stripTrailingSlash(ctx.item.path));
 			return count ? { text: String(count) } : null;
 		}
-		const file = fileByPath.get(ctx.item.path);
+		const file = fileByTreePath.get(ctx.item.path);
 		if (!file) return null;
 		const text = formatDiffStats(file.additions, file.deletions);
 		return text ? { text } : null;
@@ -234,19 +251,25 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 		{
 			getFileIntent: filePolicy.getIntent,
 			onSelectDiff: (rel, openInNewTab) => {
-				lastUserSelectRef.current = rel;
-				const file = fileByPath.get(rel);
+				const realPath = toRealPath.get(rel) ?? rel;
+				lastUserSelectRef.current = realPath;
+				const file = fileByTreePath.get(rel);
 				onSelectFile?.(
-					rel,
+					realPath,
 					openInNewTab,
 					file ? getChangesetFileKey(file) : undefined,
 				);
 			},
 			onOpenFile: (rel, openInNewTab) => {
 				if (!worktreePath) return;
-				onOpenFile?.(toAbsoluteWorkspacePath(worktreePath, rel), openInNewTab);
+				const realPath = toRealPath.get(rel) ?? rel;
+				onOpenFile?.(
+					toAbsoluteWorkspacePath(worktreePath, realPath),
+					openInNewTab,
+				);
 			},
-			openInExternalEditor: (rel) => onOpenInEditor?.(rel),
+			openInExternalEditor: (rel) =>
+				onOpenInEditor?.(toRealPath.get(rel) ?? rel),
 		},
 	);
 
@@ -291,7 +314,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 					/>
 				);
 			}
-			const file = fileByPath.get(item.path);
+			const file = fileByTreePath.get(item.path);
 			return file ? fileMenuItems(file) : null;
 		})();
 		if (!menuItems) return null;
@@ -308,7 +331,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 
 	const renderHoverInlineActions = (treePath: string) => {
 		if (sectionKind !== "unstaged") return null;
-		const file = fileByPath.get(treePath);
+		const file = fileByTreePath.get(treePath);
 		if (!file) return null;
 		return (
 			<Tooltip>
@@ -331,7 +354,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	};
 
 	const renderHoverMenuContent = (treePath: string) => {
-		const file = fileByPath.get(treePath);
+		const file = fileByTreePath.get(treePath);
 		return file ? fileMenuItems(file) : null;
 	};
 
@@ -385,9 +408,12 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	);
 });
 
-function buildPierreGitStatus(files: ChangesetFile[]): PierreGitStatusEntry[] {
+function buildPierreGitStatus(
+	files: ChangesetFile[],
+	toTreePath: Map<string, string>,
+): PierreGitStatusEntry[] {
 	return files.map((file) => ({
-		path: file.path,
+		path: toTreePath.get(file.path) ?? file.path,
 		status: FILE_STATUS_TO_PIERRE[file.status],
 	}));
 }
