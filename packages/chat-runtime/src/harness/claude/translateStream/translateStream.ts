@@ -339,6 +339,10 @@ export class ClaudeTranslator {
 		return [];
 	}
 
+	private sessionIdle(): AdapterEvent {
+		return { kind: "session", session: { status: "idle" } };
+	}
+
 	private result(envelope: Json): AdapterEvent[] {
 		if (!this.turnId) return [];
 
@@ -347,7 +351,7 @@ export class ClaudeTranslator {
 			this.interruptReason = null;
 			this.settledBlocks.clear();
 			this.streamingBlocks.clear();
-			return this.interrupt(interruptReason);
+			return [...this.interrupt(interruptReason), this.sessionIdle()];
 		}
 
 		const completedAtMs = this.now();
@@ -378,7 +382,7 @@ export class ClaudeTranslator {
 		this.turnId = null;
 		this.settledBlocks.clear();
 		this.streamingBlocks.clear();
-		return [{ kind: "turn", turn }];
+		return [{ kind: "turn", turn }, this.sessionIdle()];
 	}
 
 	private currentMessageId = "";
