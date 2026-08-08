@@ -4,7 +4,7 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import type { ApiClient } from "../api-client";
-import { env } from "../env";
+import { env, isDesktopBundled } from "../env";
 import {
 	type HostServiceManifest,
 	hostDbPath,
@@ -94,6 +94,11 @@ export async function spawnHostService(
 ): Promise<SpawnHostResult> {
 	const hostBin = resolveHostBinary();
 	if (!existsSync(hostBin)) {
+		if (isDesktopBundled()) {
+			throw new Error(
+				"`superset start` is not available in the CLI bundled with the Superset desktop app; the app runs the host service itself. For headless use, install the standalone CLI: curl -fsSL https://superset.sh/cli/install.sh | sh",
+			);
+		}
 		throw new Error(
 			`superset-host binary not found at ${hostBin}. Set SUPERSET_HOST_BIN to override.`,
 		);

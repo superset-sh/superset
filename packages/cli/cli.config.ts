@@ -19,6 +19,9 @@ export default defineConfig({
 			process.env.SUPERSET_WEB_URL ?? "https://app.superset.sh",
 		),
 		"process.env.SUPERSET_VERSION": JSON.stringify(VERSION),
+		"process.env.SUPERSET_CLI_CHANNEL": JSON.stringify(
+			process.env.SUPERSET_CLI_CHANNEL ?? "standalone",
+		),
 	},
 	globals: {
 		json: boolean().desc("Output as JSON (auto-on under CI/agent envs)"),
