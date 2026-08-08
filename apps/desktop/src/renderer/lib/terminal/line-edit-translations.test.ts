@@ -75,4 +75,26 @@ describe("translateLineEditChord", () => {
 			}),
 		).toBeNull();
 	});
+
+	// Regression: macOS-native "delete previous word" (⌥⌫). Sibling chords
+	// (⌥← / ⌥→ word movement, ⌘⌫ delete-to-start) are translated, but
+	// Option+Backspace was falling through to xterm's kitty encoder and doing
+	// nothing in the shell. See #2222.
+	it("maps Mac Option+Backspace to backward-kill-word", () => {
+		expect(
+			translateLineEditChord(event({ key: "Backspace", altKey: true }), {
+				isMac: true,
+				isWindows: false,
+			}),
+		).toBe("\x1b\x7f");
+	});
+
+	it("does not map Option+Backspace on non-Mac platforms", () => {
+		expect(
+			translateLineEditChord(event({ key: "Backspace", altKey: true }), {
+				isMac: false,
+				isWindows: true,
+			}),
+		).toBeNull();
+	});
 });
