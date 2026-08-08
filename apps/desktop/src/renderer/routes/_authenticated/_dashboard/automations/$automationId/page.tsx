@@ -10,6 +10,7 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { isHostOfflineError } from "../utils/hostOfflineError";
@@ -41,6 +42,8 @@ function AutomationDetailPage() {
 	const { history } = Route.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
 
@@ -69,6 +72,10 @@ function AutomationDetailPage() {
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
 			apiTrpcClient.automation.setEnabled.mutate({ id: automationId, enabled }),
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update automation",
+			),
 	});
 
 	const runNowMutation = useMutation({
@@ -103,6 +110,12 @@ function AutomationDetailPage() {
 			</div>
 		);
 	}
+
+	// Every automation mutation is owner-gated server-side; render teammates'
+	// automations read-only instead of letting edits silently bounce. Unknown
+	// session (still loading) stays editable — the server is the enforcement.
+	const readOnly =
+		currentUserId !== undefined && automation.ownerUserId !== currentUserId;
 
 	return (
 		<div className="flex h-full w-full flex-1 overflow-hidden">
@@ -140,14 +153,20 @@ function AutomationDetailPage() {
 					toggleDisabled={setEnabledMutation.isPending}
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
+					readOnly={readOnly}
 				/>
 
-				<AutomationBody key={automation.id} automation={automation} />
+				<AutomationBody
+					key={automation.id}
+					automation={automation}
+					readOnly={readOnly}
+				/>
 			</div>
 
 			<AutomationDetailSidebar
 				automation={automation}
 				recentRuns={recentRuns}
+				readOnly={readOnly}
 			/>
 
 			<HostOfflineRunDialog

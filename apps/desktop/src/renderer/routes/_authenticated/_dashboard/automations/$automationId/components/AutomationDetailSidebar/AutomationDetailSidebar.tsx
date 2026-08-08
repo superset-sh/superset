@@ -3,7 +3,10 @@ import type {
 	SelectAutomationRun,
 } from "@superset/db/schema";
 import { formatDateTimeInTimezone } from "@superset/shared/rrule";
+import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
+import { eq } from "@tanstack/db";
+import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -11,6 +14,7 @@ import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions/useWorkspaceHostOptions";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { AgentPicker } from "../../../components/AgentPicker";
 import { ProjectPicker } from "../../../components/ProjectPicker";
 import { RelayOfflineNotice } from "../../../components/RelayOfflineNotice";
@@ -26,13 +30,17 @@ import { SectionTitle } from "./components/SectionTitle";
 interface AutomationDetailSidebarProps {
 	automation: SelectAutomation;
 	recentRuns: SelectAutomationRun[];
+	/** Disables every editor — automation updates are owner-gated server-side. */
+	readOnly?: boolean;
 }
 
 export function AutomationDetailSidebar({
 	automation,
 	recentRuns,
+	readOnly,
 }: AutomationDetailSidebarProps) {
 	const recentProjects = useRecentProjects();
+	const collections = useCollections();
 	const { localHostId } = useWorkspaceHostOptions();
 	const selectedProject = recentProjects.find(
 		(p) => p.id === automation.v2ProjectId,
@@ -55,7 +63,23 @@ export function AutomationDetailSidebar({
 			>,
 		) =>
 			apiTrpcClient.automation.update.mutate({ id: automation.id, ...patch }),
+		// The pickers re-render from the Electric-synced row, so a rejected
+		// update silently snaps back without this.
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update automation",
+			),
 	});
+
+	const { data: ownerRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ u: collections.users })
+				.where(({ u }) => eq(u.id, automation.ownerUserId))
+				.select(({ u }) => ({ name: u.name, email: u.email })),
+		[collections.users, automation.ownerUserId],
+	);
+	const ownerName = ownerRows[0]?.name ?? ownerRows[0]?.email ?? null;
 
 	const lastRunAt = recentRuns
 		.map((run) => run.scheduledFor)
@@ -105,108 +129,120 @@ export function AutomationDetailSidebar({
 				</Section>
 
 				<Section title="Details">
-					<Row
-						label="Device"
-						value={
-							<DevicePicker
-								className="-mr-4"
-								hostId={hostId}
-								showLocalOnlineState
-								onSelectHostId={(nextHostId) => {
-									updateMutation.mutate({ targetHostId: nextHostId });
-								}}
-							/>
-						}
-					/>
-					<Row
-						label="Project"
-						value={
-							<ProjectPicker
-								className="-mr-4"
-								selectedProject={selectedProject}
-								recentProjects={recentProjects}
-								onSelectProject={(v2ProjectId) =>
-									updateMutation.mutate({ v2ProjectId })
-								}
-							/>
-						}
-					/>
-					<Row
-						label="Workspace"
-						value={
-							<WorkspacePicker
-								className="-mr-4"
-								hostId={hostId}
-								projectId={automation.v2ProjectId}
-								value={automation.v2WorkspaceId}
-								onChange={(v2WorkspaceId) =>
-									updateMutation.mutate({
-										v2WorkspaceId,
-										// Denormalized pin: the picker is scoped to this
-										// host/project, so send both — the cloud stores them
-										// without a workspace-registry lookup.
-										...(v2WorkspaceId && hostId && automation.v2ProjectId
-											? {
-													targetHostId: hostId,
-													v2ProjectId: automation.v2ProjectId,
-												}
-											: {}),
-									})
-								}
-							/>
-						}
-					/>
-					<Row
-						label="Repeats"
-						value={
-							<SchedulePicker
-								className="-mr-4"
-								rrule={automation.rrule}
-								onRruleChange={(rrule) => updateMutation.mutate({ rrule })}
-							/>
-						}
-					/>
-					<Row
-						label="Agent"
-						value={
-							<AgentPicker
-								className="-mr-4"
-								hostId={hostId}
-								value={automation.agent}
-								onChange={(id) => {
-									// The picker is scoped to `hostId` and emits a preset slug
-									// when unambiguous, falling back to the instance UUID. If
-									// the automation was previously auto-routed (targetHostId
-									// null), pin it to the host this value came from so a
-									// UUID-shaped agent can't be dispatched to a host that's
-									// never seen it.
-									const patch: { agent: string; targetHostId?: string } = {
-										agent: id,
-									};
-									if (!automation.targetHostId && hostId) {
-										patch.targetHostId = hostId;
-									}
-									updateMutation.mutate(patch);
-								}}
-							/>
-						}
-					/>
-					{agentMissing && (
-						<p className="select-text cursor-text text-xs text-amber-600 dark:text-amber-500">
-							This agent no longer exists on the selected device (its agents may
-							have been reset). Runs will fail until you pick a new one.
+					{readOnly && (
+						<p className="select-text cursor-text pb-2 text-xs text-muted-foreground">
+							Owned by {ownerName ?? "a teammate"} — only they can edit this
+							automation.
 						</p>
 					)}
-					<Row
-						label="Timezone"
-						value={
-							<TimezonePicker
-								className="-mr-4"
-								value={automation.timezone}
-								onChange={(timezone) => updateMutation.mutate({ timezone })}
-							/>
-						}
-					/>
+					{/* display:contents keeps the rows in the section's flex column;
+					    disabled propagates to every picker's trigger button. */}
+					<fieldset disabled={readOnly} className="contents">
+						<Row
+							label="Device"
+							value={
+								<DevicePicker
+									className="-mr-4"
+									hostId={hostId}
+									showLocalOnlineState
+									disabled={readOnly}
+									onSelectHostId={(nextHostId) => {
+										updateMutation.mutate({ targetHostId: nextHostId });
+									}}
+								/>
+							}
+						/>
+						<Row
+							label="Project"
+							value={
+								<ProjectPicker
+									className="-mr-4"
+									selectedProject={selectedProject}
+									recentProjects={recentProjects}
+									onSelectProject={(v2ProjectId) =>
+										updateMutation.mutate({ v2ProjectId })
+									}
+								/>
+							}
+						/>
+						<Row
+							label="Workspace"
+							value={
+								<WorkspacePicker
+									className="-mr-4"
+									hostId={hostId}
+									projectId={automation.v2ProjectId}
+									value={automation.v2WorkspaceId}
+									onChange={(v2WorkspaceId) =>
+										updateMutation.mutate({
+											v2WorkspaceId,
+											// Denormalized pin: the picker is scoped to this
+											// host/project, so send both — the cloud stores them
+											// without a workspace-registry lookup.
+											...(v2WorkspaceId && hostId && automation.v2ProjectId
+												? {
+														targetHostId: hostId,
+														v2ProjectId: automation.v2ProjectId,
+													}
+												: {}),
+										})
+									}
+								/>
+							}
+						/>
+						<Row
+							label="Repeats"
+							value={
+								<SchedulePicker
+									className="-mr-4"
+									rrule={automation.rrule}
+									onRruleChange={(rrule) => updateMutation.mutate({ rrule })}
+								/>
+							}
+						/>
+						<Row
+							label="Agent"
+							value={
+								<AgentPicker
+									className="-mr-4"
+									hostId={hostId}
+									disabled={readOnly}
+									value={automation.agent}
+									onChange={(id) => {
+										// The picker is scoped to `hostId` and emits a preset slug
+										// when unambiguous, falling back to the instance UUID. If
+										// the automation was previously auto-routed (targetHostId
+										// null), pin it to the host this value came from so a
+										// UUID-shaped agent can't be dispatched to a host that's
+										// never seen it.
+										const patch: { agent: string; targetHostId?: string } = {
+											agent: id,
+										};
+										if (!automation.targetHostId && hostId) {
+											patch.targetHostId = hostId;
+										}
+										updateMutation.mutate(patch);
+									}}
+								/>
+							}
+						/>
+						{agentMissing && (
+							<p className="select-text cursor-text text-xs text-amber-600 dark:text-amber-500">
+								This agent no longer exists on the selected device (its agents
+								may have been reset). Runs will fail until you pick a new one.
+							</p>
+						)}
+						<Row
+							label="Timezone"
+							value={
+								<TimezonePicker
+									className="-mr-4"
+									value={automation.timezone}
+									onChange={(timezone) => updateMutation.mutate({ timezone })}
+								/>
+							}
+						/>
+					</fieldset>
 					<RelayOfflineNotice hostId={hostId} className="mt-2" />
 				</Section>
 			</div>

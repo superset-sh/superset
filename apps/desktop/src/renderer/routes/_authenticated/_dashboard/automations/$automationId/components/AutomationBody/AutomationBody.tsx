@@ -1,4 +1,5 @@
 import type { SelectAutomation } from "@superset/db/schema";
+import { toast } from "@superset/ui/sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { EmojiTextInput } from "renderer/components/EmojiTextInput";
@@ -8,8 +9,10 @@ import { useProjectFileSearch } from "../../../hooks/useProjectFileSearch";
 
 export function AutomationBody({
 	automation,
+	readOnly,
 }: {
 	automation: SelectAutomation;
+	readOnly?: boolean;
 }) {
 	const [name, setName] = useState(automation.name);
 	const [prompt, setPrompt] = useState(automation.prompt);
@@ -26,6 +29,10 @@ export function AutomationBody({
 	const updateMutation = useMutation({
 		mutationFn: (patch: { name?: string }) =>
 			apiTrpcClient.automation.update.mutate({ id: automation.id, ...patch }),
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update automation",
+			),
 	});
 
 	const setPromptMutation = useMutation({
@@ -39,6 +46,10 @@ export function AutomationBody({
 				queryKey: ["automation-versions", automation.id],
 			});
 		},
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update prompt",
+			),
 	});
 
 	const searchFiles = useProjectFileSearch({
@@ -51,7 +62,9 @@ export function AutomationBody({
 			<EmojiTextInput
 				value={name}
 				onChange={setName}
+				editable={!readOnly}
 				onBlur={(next) => {
+					if (readOnly) return;
 					const trimmed = next.trim();
 					if (trimmed && trimmed !== automation.name) {
 						updateMutation.mutate({ name: trimmed });
@@ -63,7 +76,9 @@ export function AutomationBody({
 			<MarkdownEditor
 				content={prompt}
 				onChange={setPrompt}
+				editable={!readOnly}
 				onSave={(next) => {
+					if (readOnly) return;
 					if (next !== automation.prompt) {
 						setPromptMutation.mutate(next);
 					}
