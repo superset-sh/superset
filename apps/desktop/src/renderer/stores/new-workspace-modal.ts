@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { devtools } from "zustand/middleware";
+import { useNewWorkspaceDraftStore } from "./new-workspace-draft";
 
 interface PendingWorkspace {
 	id: string;
@@ -28,7 +29,7 @@ interface NewWorkspaceModalState {
 	pendingWorkspace: PendingWorkspace | null;
 	stashedDraft: StashedDraft | null;
 	openModal: (projectId?: string) => void;
-	closeModal: () => void;
+	closeModal: (options?: { resetDraft?: boolean }) => void;
 	setPendingWorkspace: (workspace: PendingWorkspace | null) => void;
 	clearPendingWorkspace: (id: string) => void;
 	setPendingWorkspaceStatus: (
@@ -52,8 +53,22 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 				set({ isOpen: true, preSelectedProjectId: projectId ?? null });
 			},
 
-			closeModal: () => {
+			closeModal: (options?: { resetDraft?: boolean }) => {
 				set({ isOpen: false, preSelectedProjectId: null });
+				// #5372: a seeded draft (e.g. the Setup-scripts prompt written
+				// by V2SetupScriptCard) must not survive dismissing the modal —
+				// otherwise the next "New Workspace" opens pre-filled with a
+				// prompt the user never asked for. Every seed path calls
+				// resetDraft() before updateDraft(), so resetting here is safe
+				// and makes the dismiss the single cleanup point.
+				//
+				// The full-page handoff (DashboardNewWorkspaceModal test arm)
+				// closes the store modal BEFORE navigating to /new-workspace,
+				// where the destination consumes the seeded draft — so it opts
+				// out with { resetDraft: false } (greptile/cubic P1).
+				if (options?.resetDraft !== false) {
+					useNewWorkspaceDraftStore.getState().resetDraft();
+				}
 			},
 
 			setPendingWorkspace: (workspace: PendingWorkspace | null) => {
