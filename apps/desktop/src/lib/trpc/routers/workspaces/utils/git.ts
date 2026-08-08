@@ -14,18 +14,15 @@ import {
 import friendlyWords from "friendly-words";
 import type { StatusResult } from "simple-git";
 import { execGitWithShellPath, getSimpleGitWithShellPath } from "./git-client";
-import { GitEnvironmentError } from "./git-errors";
+import { GitEnvironmentError, NotGitRepoError } from "./git-errors";
 import { execWithShellEnv, getProcessEnvWithShellPath } from "./shell-env";
 import { resolveTrackingRemoteName } from "./upstream-ref";
 
 const execFileAsync = promisify(execFile);
 
-export class NotGitRepoError extends Error {
-	constructor(message: string) {
-		super(message);
-		this.name = "NotGitRepoError";
-	}
-}
+// Moved to git-errors.ts (next to GitEnvironmentError and the classifier);
+// re-exported so existing importers keep working.
+export { NotGitRepoError };
 
 function getPathCreatedAt(path: string): number | null {
 	const stats = statSync(path);

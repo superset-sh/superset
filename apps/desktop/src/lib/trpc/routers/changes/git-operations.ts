@@ -3,6 +3,7 @@ import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getCurrentBranch } from "../workspaces/utils/git";
 import { getSimpleGitWithShellPath } from "../workspaces/utils/git-client";
+import { rethrowEnvironmentalGitError } from "../workspaces/utils/git-errors";
 import {
 	isNoPullRequestFoundMessage,
 	isUpstreamMissingError,
@@ -28,6 +29,17 @@ export { isUpstreamMissingError };
 
 async function getGitWithShellPath(worktreePath: string) {
 	return getSimpleGitWithShellPath(worktreePath);
+}
+
+/** Runs a git-backed operation, rethrowing environmental git failures
+ * (worktree gone, permission wall, not a repo) as typed non-500 TRPCErrors. */
+async function runGitOperation<T>(operation: () => Promise<T>): Promise<T> {
+	try {
+		return await operation();
+	} catch (error) {
+		rethrowEnvironmentalGitError(error);
+		throw error;
+	}
 }
 
 async function getLocalBranchOrThrow({
@@ -63,10 +75,12 @@ export const createGitOperationsRouter = () => {
 				async ({ input }): Promise<{ success: boolean; hash: string }> => {
 					assertRegisteredWorktree(input.worktreePath);
 
-					const git = await getGitWithShellPath(input.worktreePath);
-					const result = await git.commit(input.message);
-					clearStatusCacheForWorktree(input.worktreePath);
-					return { success: true, hash: result.commit };
+					return runGitOperation(async () => {
+						const git = await getGitWithShellPath(input.worktreePath);
+						const result = await git.commit(input.message);
+						clearStatusCacheForWorktree(input.worktreePath);
+						return { success: true, hash: result.commit };
+					});
 				},
 			),
 
@@ -80,44 +94,46 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = await getGitWithShellPath(input.worktreePath);
-				const hasUpstream = await hasUpstreamBranch(git);
-				const localBranch = await getLocalBranchOrThrow({
-					worktreePath: input.worktreePath,
-					action: "push",
-				});
-
-				try {
-					if (input.setUpstream && !hasUpstream) {
-						await pushWithResolvedUpstream({
-							git,
-							worktreePath: input.worktreePath,
-							localBranch,
-						});
-					} else {
-						await pushCurrentBranch({
-							git,
-							worktreePath: input.worktreePath,
-							localBranch,
-						});
-					}
-				} catch (error) {
-					if (error instanceof TRPCError) {
-						throw error;
-					}
-					// git refuses a push for reasons that live in the user's repo,
-					// remote or hooks — a rejected ref, missing credentials, a
-					// pre-push hook exiting non-zero. Surface git's own text.
-					throw new TRPCError({
-						code: "PRECONDITION_FAILED",
-						message: error instanceof Error ? error.message : String(error),
-						cause: error,
+				return runGitOperation(async () => {
+					const git = await getGitWithShellPath(input.worktreePath);
+					const hasUpstream = await hasUpstreamBranch(git);
+					const localBranch = await getLocalBranchOrThrow({
+						worktreePath: input.worktreePath,
+						action: "push",
 					});
-				}
 
-				await fetchCurrentBranch(git, input.worktreePath);
-				clearStatusCacheForWorktree(input.worktreePath);
-				return { success: true };
+					try {
+						if (input.setUpstream && !hasUpstream) {
+							await pushWithResolvedUpstream({
+								git,
+								worktreePath: input.worktreePath,
+								localBranch,
+							});
+						} else {
+							await pushCurrentBranch({
+								git,
+								worktreePath: input.worktreePath,
+								localBranch,
+							});
+						}
+					} catch (error) {
+						if (error instanceof TRPCError) {
+							throw error;
+						}
+						// git refuses a push for reasons that live in the user's repo,
+						// remote or hooks — a rejected ref, missing credentials, a
+						// pre-push hook exiting non-zero. Surface git's own text.
+						throw new TRPCError({
+							code: "PRECONDITION_FAILED",
+							message: error instanceof Error ? error.message : String(error),
+							cause: error,
+						});
+					}
+
+					await fetchCurrentBranch(git, input.worktreePath);
+					clearStatusCacheForWorktree(input.worktreePath);
+					return { success: true };
+				});
 			}),
 
 		pull: publicProcedure
@@ -129,21 +145,23 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = await getGitWithShellPath(input.worktreePath);
-				try {
-					await git.pull(["--rebase"]);
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					if (isUpstreamMissingError(message)) {
-						throw new Error(
-							"No upstream branch to pull from. The remote branch may have been deleted.",
-						);
+				return runGitOperation(async () => {
+					const git = await getGitWithShellPath(input.worktreePath);
+					try {
+						await git.pull(["--rebase"]);
+					} catch (error) {
+						const message =
+							error instanceof Error ? error.message : String(error);
+						if (isUpstreamMissingError(message)) {
+							throw new Error(
+								"No upstream branch to pull from. The remote branch may have been deleted.",
+							);
+						}
+						throw error;
 					}
-					throw error;
-				}
-				clearStatusCacheForWorktree(input.worktreePath);
-				return { success: true };
+					clearStatusCacheForWorktree(input.worktreePath);
+					return { success: true };
+				});
 			}),
 
 		sync: publicProcedure
@@ -155,51 +173,55 @@ export const createGitOperationsRouter = () => {
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
 
-				const git = await getGitWithShellPath(input.worktreePath);
-				try {
-					await git.pull(["--rebase"]);
-				} catch (error) {
-					const message =
-						error instanceof Error ? error.message : String(error);
-					if (isUpstreamMissingError(message)) {
-						const localBranch = await getLocalBranchOrThrow({
-							worktreePath: input.worktreePath,
-							action: "push",
-						});
-						await pushWithResolvedUpstream({
-							git,
-							worktreePath: input.worktreePath,
-							localBranch,
-						});
-						await fetchCurrentBranch(git, input.worktreePath);
-						clearStatusCacheForWorktree(input.worktreePath);
-						return { success: true };
+				return runGitOperation(async () => {
+					const git = await getGitWithShellPath(input.worktreePath);
+					try {
+						await git.pull(["--rebase"]);
+					} catch (error) {
+						const message =
+							error instanceof Error ? error.message : String(error);
+						if (isUpstreamMissingError(message)) {
+							const localBranch = await getLocalBranchOrThrow({
+								worktreePath: input.worktreePath,
+								action: "push",
+							});
+							await pushWithResolvedUpstream({
+								git,
+								worktreePath: input.worktreePath,
+								localBranch,
+							});
+							await fetchCurrentBranch(git, input.worktreePath);
+							clearStatusCacheForWorktree(input.worktreePath);
+							return { success: true };
+						}
+						throw error;
 					}
-					throw error;
-				}
 
-				const localBranch = await getLocalBranchOrThrow({
-					worktreePath: input.worktreePath,
-					action: "push",
+					const localBranch = await getLocalBranchOrThrow({
+						worktreePath: input.worktreePath,
+						action: "push",
+					});
+					await pushCurrentBranch({
+						git,
+						worktreePath: input.worktreePath,
+						localBranch,
+					});
+					await fetchCurrentBranch(git, input.worktreePath);
+					clearStatusCacheForWorktree(input.worktreePath);
+					return { success: true };
 				});
-				await pushCurrentBranch({
-					git,
-					worktreePath: input.worktreePath,
-					localBranch,
-				});
-				await fetchCurrentBranch(git, input.worktreePath);
-				clearStatusCacheForWorktree(input.worktreePath);
-				return { success: true };
 			}),
 
 		fetch: publicProcedure
 			.input(z.object({ worktreePath: z.string() }))
 			.mutation(async ({ input }): Promise<{ success: boolean }> => {
 				assertRegisteredWorktree(input.worktreePath);
-				const git = await getGitWithShellPath(input.worktreePath);
-				await fetchCurrentBranch(git, input.worktreePath);
-				clearStatusCacheForWorktree(input.worktreePath);
-				return { success: true };
+				return runGitOperation(async () => {
+					const git = await getGitWithShellPath(input.worktreePath);
+					await fetchCurrentBranch(git, input.worktreePath);
+					clearStatusCacheForWorktree(input.worktreePath);
+					return { success: true };
+				});
 			}),
 
 		createPR: publicProcedure
@@ -213,91 +235,95 @@ export const createGitOperationsRouter = () => {
 				async ({ input }): Promise<{ success: boolean; url: string }> => {
 					assertRegisteredWorktree(input.worktreePath);
 
-					const git = await getGitWithShellPath(input.worktreePath);
-					const branch = await getLocalBranchOrThrow({
-						worktreePath: input.worktreePath,
-						action: "create a pull request",
-					});
-
-					const trackingStatus = await getTrackingBranchStatus(git);
-					const hasUpstream = trackingStatus.hasUpstream;
-					const isBehindUpstream =
-						trackingStatus.hasUpstream && trackingStatus.pullCount > 0;
-					const hasUnpushedCommits =
-						trackingStatus.hasUpstream && trackingStatus.pushCount > 0;
-
-					if (isBehindUpstream && !input.allowOutOfDate) {
-						const commitLabel =
-							trackingStatus.pullCount === 1 ? "commit" : "commits";
-						throw new TRPCError({
-							code: "PRECONDITION_FAILED",
-							message: `Branch is behind upstream by ${trackingStatus.pullCount} ${commitLabel}. Pull/rebase first, or continue anyway.`,
-						});
-					}
-
-					// Ensure remote branch exists and local commits are available on remote before PR create.
-					if (!hasUpstream) {
-						await pushWithResolvedUpstream({
-							git,
+					return runGitOperation(async () => {
+						const git = await getGitWithShellPath(input.worktreePath);
+						const branch = await getLocalBranchOrThrow({
 							worktreePath: input.worktreePath,
-							localBranch: branch,
+							action: "create a pull request",
 						});
-					} else {
-						try {
-							await pushCurrentBranch({
+
+						const trackingStatus = await getTrackingBranchStatus(git);
+						const hasUpstream = trackingStatus.hasUpstream;
+						const isBehindUpstream =
+							trackingStatus.hasUpstream && trackingStatus.pullCount > 0;
+						const hasUnpushedCommits =
+							trackingStatus.hasUpstream && trackingStatus.pushCount > 0;
+
+						if (isBehindUpstream && !input.allowOutOfDate) {
+							const commitLabel =
+								trackingStatus.pullCount === 1 ? "commit" : "commits";
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: `Branch is behind upstream by ${trackingStatus.pullCount} ${commitLabel}. Pull/rebase first, or continue anyway.`,
+							});
+						}
+
+						// Ensure remote branch exists and local commits are available on remote before PR create.
+						if (!hasUpstream) {
+							await pushWithResolvedUpstream({
 								git,
 								worktreePath: input.worktreePath,
 								localBranch: branch,
 							});
-						} catch (error) {
-							const message =
-								error instanceof Error ? error.message : String(error);
-							if (
-								input.allowOutOfDate &&
-								isBehindUpstream &&
-								hasUnpushedCommits &&
-								isNonFastForwardPushError(message)
-							) {
-								throw new TRPCError({
-									code: "PRECONDITION_FAILED",
-									message:
-										"Branch has local commits but is behind upstream. Pull/rebase first so local commits can be pushed before creating a PR.",
+						} else {
+							try {
+								await pushCurrentBranch({
+									git,
+									worktreePath: input.worktreePath,
+									localBranch: branch,
 								});
+							} catch (error) {
+								const message =
+									error instanceof Error ? error.message : String(error);
+								if (
+									input.allowOutOfDate &&
+									isBehindUpstream &&
+									hasUnpushedCommits &&
+									isNonFastForwardPushError(message)
+								) {
+									throw new TRPCError({
+										code: "PRECONDITION_FAILED",
+										message:
+											"Branch has local commits but is behind upstream. Pull/rebase first so local commits can be pushed before creating a PR.",
+									});
+								}
+								throw error;
+							}
+						}
+
+						const existingPRUrl = await findExistingOpenPRUrl(
+							input.worktreePath,
+						);
+						if (existingPRUrl) {
+							await fetchCurrentBranch(git, input.worktreePath);
+							clearWorktreeStatusCaches(input.worktreePath);
+							return { success: true, url: existingPRUrl };
+						}
+
+						try {
+							const url = await buildNewPullRequestUrl(
+								input.worktreePath,
+								git,
+								branch,
+							);
+							await fetchCurrentBranch(git, input.worktreePath);
+							clearWorktreeStatusCaches(input.worktreePath);
+
+							return { success: true, url };
+						} catch (error) {
+							// If creation reports branch/tracking mismatch but an open PR exists,
+							// recover by opening that existing PR instead of failing.
+							const recoveredPRUrl = await findExistingOpenPRUrl(
+								input.worktreePath,
+							);
+							if (recoveredPRUrl) {
+								await fetchCurrentBranch(git, input.worktreePath);
+								clearWorktreeStatusCaches(input.worktreePath);
+								return { success: true, url: recoveredPRUrl };
 							}
 							throw error;
 						}
-					}
-
-					const existingPRUrl = await findExistingOpenPRUrl(input.worktreePath);
-					if (existingPRUrl) {
-						await fetchCurrentBranch(git, input.worktreePath);
-						clearWorktreeStatusCaches(input.worktreePath);
-						return { success: true, url: existingPRUrl };
-					}
-
-					try {
-						const url = await buildNewPullRequestUrl(
-							input.worktreePath,
-							git,
-							branch,
-						);
-						await fetchCurrentBranch(git, input.worktreePath);
-						clearWorktreeStatusCaches(input.worktreePath);
-
-						return { success: true, url };
-					} catch (error) {
-						// If creation reports branch/tracking mismatch but an open PR exists,
-						// recover by opening that existing PR instead of failing.
-						const recoveredPRUrl = await findExistingOpenPRUrl(
-							input.worktreePath,
-						);
-						if (recoveredPRUrl) {
-							await fetchCurrentBranch(git, input.worktreePath);
-							clearWorktreeStatusCaches(input.worktreePath);
-							return { success: true, url: recoveredPRUrl };
-						}
-						throw error;
-					}
+					});
 				},
 			),
 
