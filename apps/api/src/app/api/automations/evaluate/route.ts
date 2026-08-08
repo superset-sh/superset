@@ -5,6 +5,7 @@ import { Client, Receiver } from "@upstash/qstash";
 import { and, eq, lte } from "drizzle-orm";
 
 import { env } from "@/env";
+import { bucketToMinute } from "../terminal-occurrence";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +19,6 @@ const receiver = new Receiver({
 });
 
 const BATCH_SIZE = 2000;
-
-function bucketToMinute(d: Date): Date {
-	const copy = new Date(d.getTime());
-	copy.setUTCSeconds(0, 0);
-	return copy;
-}
 
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
@@ -53,14 +48,34 @@ export async function POST(request: Request): Promise<Response> {
 		return Response.json({ enqueued: 0 });
 	}
 
+	const dueWithNext = due.map((automation) => {
+		const next = nextOccurrenceAfter({
+			rrule: automation.rrule,
+			dtstart: automation.dtstart,
+			timezone: automation.timezone,
+			after: automation.nextRunAt,
+		});
+		const terminalDispatchToken =
+			next === null ? new Date(automation.updatedAt.getTime() + 1) : undefined;
+		return {
+			automation,
+			next,
+			terminalDispatchToken,
+		};
+	});
+
 	await qstash.batchJSON(
-		due.map((automation) => {
+		dueWithNext.map(({ automation, next, terminalDispatchToken }) => {
 			const scheduledFor = bucketToMinute(automation.nextRunAt);
 			return {
 				url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${automation.id}`,
 				body: {
 					automationId: automation.id,
 					scheduledFor: scheduledFor.toISOString(),
+					terminal: next === null,
+					terminalDispatchToken: terminalDispatchToken?.toISOString(),
+					terminalPreviousUpdatedAt:
+						next === null ? automation.updatedAt.toISOString() : undefined,
 				},
 				deduplicationId: `${automation.id}_${scheduledFor.getTime()}`,
 				retries: 2,
@@ -70,16 +85,31 @@ export async function POST(request: Request): Promise<Response> {
 	);
 
 	const advanceResults = await Promise.allSettled(
-		due.map((automation) => {
-			const next = nextOccurrenceAfter({
-				rrule: automation.rrule,
-				dtstart: automation.dtstart,
-				timezone: automation.timezone,
-				after: automation.nextRunAt,
-			});
+		dueWithNext.map(({ automation, next, terminalDispatchToken }) => {
+			if (!next) {
+				if (!terminalDispatchToken) {
+					throw new Error("Missing terminal dispatch token");
+				}
+
+				// Keep nextRunAt as the real occurrence for API/UI consumers. The
+				// updatedAt token records that this disabled row belongs to the
+				// evaluator's queued terminal occurrence.
+				return dbWs
+					.update(automations)
+					.set({ enabled: false, updatedAt: terminalDispatchToken })
+					.where(
+						and(
+							eq(automations.id, automation.id),
+							eq(automations.enabled, true),
+							eq(automations.nextRunAt, automation.nextRunAt),
+							eq(automations.updatedAt, automation.updatedAt),
+						),
+					);
+			}
+
 			return dbWs
 				.update(automations)
-				.set(next ? { nextRunAt: next } : { enabled: false })
+				.set({ nextRunAt: next })
 				.where(eq(automations.id, automation.id));
 		}),
 	);
