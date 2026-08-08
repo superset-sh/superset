@@ -10,6 +10,19 @@ export function isUpstreamMissingError(message: string): boolean {
 	);
 }
 
+/**
+ * Check if the error message indicates a rebase/merge conflict — an expected
+ * outcome of pulling into a branch with divergent local commits
+ */
+export function isMergeConflictError(message: string): boolean {
+	return (
+		message.includes("CONFLICT (") ||
+		message.includes("Merge conflict in") ||
+		message.includes("could not apply") ||
+		message.includes("Resolve all conflicts manually")
+	);
+}
+
 export function isNoPullRequestFoundMessage(message: string): boolean {
 	return message.toLowerCase().includes("no pull request");
 }
