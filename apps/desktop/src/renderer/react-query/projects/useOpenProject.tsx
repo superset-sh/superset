@@ -1,6 +1,10 @@
 import { useCallback, useRef } from "react";
 import type { ElectronRouterOutputs } from "renderer/lib/electron-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import type {
+	GitInitDialogAction,
+	GitInitDialogFolder,
+} from "renderer/stores/git-init-dialog";
 import { useGitInitDialogStore } from "renderer/stores/git-init-dialog";
 import { processOpenNewResults } from "./processOpenNewResults";
 import { useOpenFromPath } from "./useOpenFromPath";
@@ -9,9 +13,19 @@ import { useOpenNew } from "./useOpenNew";
 type Project = ElectronRouterOutputs["projects"]["get"];
 
 interface PendingGitInit {
-	paths: string[];
+	folders: GitInitDialogFolder[];
 	immediateSuccesses: Project[];
 	resolve: (projects: Project[]) => void;
+}
+
+/** A repo root selected alongside one of its own subfolders resolves to the
+ *  same project twice, so callers would otherwise see it listed more than once. */
+function dedupeProjects(projects: Project[]): Project[] {
+	const byId = new Map<string, Project>();
+	for (const project of projects) {
+		if (!byId.has(project.id)) byId.set(project.id, project);
+	}
+	return [...byId.values()];
 }
 
 export function useOpenProject() {
@@ -26,36 +40,77 @@ export function useOpenProject() {
 		(pending: PendingGitInit) => {
 			pendingRef.current = pending;
 
+			/** Both dialog actions share this settle flow: open one path at a
+			 *  time, keep going past individual failures, then close and resolve
+			 *  with whatever succeeded. */
+			const runAction = async (
+				action: GitInitDialogAction,
+				paths: string[],
+				openPath: (path: string) => Promise<Project | null>,
+			) => {
+				const p = pendingRef.current;
+				if (!p) return;
+
+				useGitInitDialogStore.getState().setPendingAction(action);
+
+				const projects: Project[] = [...p.immediateSuccesses];
+
+				try {
+					for (const path of paths) {
+						try {
+							const project = await openPath(path);
+							if (project) projects.push(project);
+						} catch (error) {
+							console.error(`[useOpenProject] ${action} failed:`, path, error);
+						}
+					}
+
+					await utils.projects.getRecents.invalidate();
+				} finally {
+					useGitInitDialogStore.getState().close();
+					pendingRef.current = null;
+					p.resolve(dedupeProjects(projects));
+				}
+			};
+
 			useGitInitDialogStore.getState().open({
-				paths: pending.paths,
-				onConfirm: async () => {
+				folders: pending.folders,
+				onConfirm: () => {
 					const p = pendingRef.current;
 					if (!p) return;
-
-					useGitInitDialogStore.getState().setIsPending(true);
-
-					const projects: Project[] = [...p.immediateSuccesses];
-
-					try {
-						for (const path of p.paths) {
-							try {
-								const result = await initGitAndOpen.mutateAsync({ path });
-								projects.push(result.project);
-							} catch (error) {
-								console.error(
-									"[useOpenProject] Failed to init git:",
-									path,
-									error,
-								);
-							}
+					void runAction(
+						"init",
+						p.folders.map((folder) => folder.path),
+						async (path) => {
+							const result = await initGitAndOpen.mutateAsync({ path });
+							return result.project;
+						},
+					);
+				},
+				onOpenEnclosing: () => {
+					const p = pendingRef.current;
+					if (!p) return;
+					// Each enclosing root is itself a repo root, so re-opening it
+					// resolves cleanly and never prompts again.
+					const roots = [
+						...new Set(
+							p.folders
+								.map((folder) => folder.enclosingRepoPath)
+								.filter((root): root is string => !!root),
+						),
+					];
+					void runAction("openEnclosing", roots, async (path) => {
+						const result = await openFromPathMutation.mutateAsync({ path });
+						if ("project" in result) return result.project;
+						if ("error" in result) {
+							console.error(
+								"[useOpenProject] Failed to open enclosing repo:",
+								path,
+								result.error,
+							);
 						}
-
-						await utils.projects.getRecents.invalidate();
-					} finally {
-						useGitInitDialogStore.getState().close();
-						pendingRef.current = null;
-						p.resolve(projects);
-					}
+						return null;
+					});
 				},
 				onCancel: () => {
 					const p = pendingRef.current;
@@ -67,7 +122,7 @@ export function useOpenProject() {
 				},
 			});
 		},
-		[initGitAndOpen, utils],
+		[initGitAndOpen, openFromPathMutation, utils],
 	);
 
 	const openNew = useCallback((): Promise<Project[]> => {
@@ -93,7 +148,10 @@ export function useOpenProject() {
 
 						if (needsGitInit.length > 0) {
 							showDialog({
-								paths: needsGitInit.map((n) => n.selectedPath),
+								folders: needsGitInit.map((n) => ({
+									path: n.selectedPath,
+									enclosingRepoPath: n.enclosingRepoPath,
+								})),
 								immediateSuccesses: immediateProjects,
 								resolve,
 							});
@@ -127,7 +185,12 @@ export function useOpenProject() {
 
 							if ("needsGitInit" in result && result.needsGitInit) {
 								showDialog({
-									paths: [result.selectedPath],
+									folders: [
+										{
+											path: result.selectedPath,
+											enclosingRepoPath: result.enclosingRepoPath,
+										},
+									],
 									immediateSuccesses: [],
 									resolve: (projects) => resolve(projects[0] ?? null),
 								});

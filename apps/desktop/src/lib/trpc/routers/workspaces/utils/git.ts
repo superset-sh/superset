@@ -872,11 +872,38 @@ export async function removeWorktree(
 	}
 }
 
-export async function getGitRoot(path: string): Promise<string> {
+export interface GitRootInfo {
+	/** Absolute path of the work tree root. Git walks up, so this can be an
+	 *  ancestor of the path that was passed in. */
+	root: string;
+	/** True when the requested path is itself that root: a normal clone root,
+	 *  a `git worktree` root, or a submodule root. */
+	isRoot: boolean;
+}
+
+export async function getGitRoot(path: string): Promise<GitRootInfo> {
 	try {
 		const git = await getSimpleGitWithShellPath(path);
-		const root = await git.revparse(["--show-toplevel"]);
-		return root.trim();
+		// Two calls, not one: a directory name may contain a newline, so a single
+		// `rev-parse --show-toplevel --show-prefix` cannot be split back into
+		// its two values unambiguously. `raw` also leaves stdout untrimmed, which
+		// keeps a root whose final directory name ends in whitespace intact —
+		// trimming it would hand callers a path that doesn't exist.
+		const rootOutput = await git.raw(["rev-parse", "--show-toplevel"]);
+		// Strip exactly the LF git terminates the line with. Not `\r?\n`: a
+		// directory name may itself end in a carriage return, and git round-trips
+		// that as `<name>\r\n`, so consuming the CR would yield a path that
+		// doesn't exist.
+		const root = rootOutput.replace(/\n$/, "");
+		// `--show-prefix` is empty exactly when `path` is the work tree root, so
+		// git answers the question in its own terms. Comparing `root` against
+		// `path` would be wrong on macOS three ways: `--show-toplevel`
+		// canonicalizes /tmp to /private/tmp, resolves symlinks to their real
+		// path, and returns the canonical casing on a case-insensitive volume.
+		// Emptiness only — `core.quotePath` can C-quote non-ASCII path
+		// components, so the prefix value itself is not safe to parse.
+		const prefix = await git.revparse(["--show-prefix"]);
+		return { root, isRoot: prefix === "" };
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (message.toLowerCase().includes("not a git repository")) {
