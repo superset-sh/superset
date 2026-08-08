@@ -122,12 +122,15 @@ to the session row on a transient empty read
 (`resolve-session-organization-state.ts` in `packages/auth`) — is still
 open. In production this doesn't self-heal: the server keeps returning null.
 
-### 5. Org switch — BY DESIGN
+### 5. Org switch — FIXED
 
-`CollectionsProvider` returns null during `isSwitching`; full teardown and
-rebuild. Verified via `organization.setActive` round-trip: full clear, full
-recovery. Anything that *looks* like an org change to the app produces a
-total sidebar clear — which is why vector 4 reads as "random".
+Previously `CollectionsProvider` returned null during `isSwitching`: a full
+teardown and rebuild, which left the window blank for the length of the
+switch. #6135 removed the preload gate, so the destination renders
+cache-first while its shapes stream; this stops the window being blank for
+the round trips either side. Anything that *looks* like an org change to the
+app still swaps the sidebar wholesale — which is why vector 4 reads as
+"random".
 
 ## Status summary
 
@@ -138,4 +141,4 @@ total sidebar clear — which is why vector 4 reads as "random".
 | Host restart / port churn | chips blank bar-wide; rows survive | fixed here (identity-keyed caches) |
 | Coordinator no-retry wedge | host-service down until manual restart | open — file ticket |
 | Session null write-back | whole app remounts to /create-organization | open (`packages/auth`) |
-| Org switch | full clear + rebuild | by design |
+| Org switch | window blank for the length of the switch | fixed here (tree stays mounted; destination renders cache-first) |

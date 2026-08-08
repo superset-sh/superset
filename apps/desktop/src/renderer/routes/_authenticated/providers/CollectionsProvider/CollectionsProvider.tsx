@@ -5,7 +5,7 @@ import {
 	useContext,
 	useEffect,
 	useMemo,
-	useState,
+	useRef,
 } from "react";
 import { env } from "renderer/env.renderer";
 import { authClient } from "renderer/lib/auth-client";
@@ -36,7 +36,9 @@ export function preloadActiveOrganizationCollections(
 
 export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const { data: session, refetch: refetchSession } = authClient.useSession();
-	const [isSwitching, setIsSwitching] = useState(false);
+	// A ref, not state: nothing renders differently while a switch is in
+	// flight, it only stops two switches overlapping.
+	const switchInFlightRef = useRef(false);
 	const activeOrganizationId = env.SKIP_ENV_VALIDATION
 		? MOCK_ORG_ID
 		: session?.session?.activeOrganizationId;
@@ -44,13 +46,14 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 	const switchOrganization = useCallback(
 		async (organizationId: string) => {
 			if (organizationId === activeOrganizationId) return;
-			setIsSwitching(true);
+			if (switchInFlightRef.current) return;
+			switchInFlightRef.current = true;
 			try {
 				await authClient.organization.setActive({ organizationId });
 				await preloadCollections(organizationId);
 				await refetchSession();
 			} finally {
-				setIsSwitching(false);
+				switchInFlightRef.current = false;
 			}
 		},
 		[activeOrganizationId, refetchSession],
@@ -78,7 +81,12 @@ export function CollectionsProvider({ children }: { children: ReactNode }) {
 		[collections, switchOrganization],
 	);
 
-	if (!contextValue || isSwitching) {
+	// Only a window with no collections at all renders nothing. Switching used
+	// to return null too, which unmounted the whole authenticated tree — every
+	// pane, terminal and the window-drag regions with it — for the length of
+	// the switch. #6135 made that short rather than unbounded; this stops it
+	// being a blank window at all.
+	if (!contextValue) {
 		return null;
 	}
 
