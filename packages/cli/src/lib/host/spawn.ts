@@ -4,6 +4,7 @@ import { existsSync } from "node:fs";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import type { ApiClient } from "../api-client";
+import { SUPERSET_HOME_DIR } from "../config";
 import { env } from "../env";
 import {
 	type HostServiceManifest,
@@ -121,6 +122,7 @@ export async function spawnHostService(
 			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
 			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+			SUPERSET_HOME_DIR,
 		},
 	});
 
