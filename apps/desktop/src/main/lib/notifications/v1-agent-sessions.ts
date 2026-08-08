@@ -59,7 +59,8 @@ export function applyV1AgentHookEvent(
 
 	if (SESSION_END_EVENTS.has(rawEventType)) {
 		if (!existing || existing.endedAt !== undefined) return undefined;
-		// A goodbye from some other session must not end this one.
+		// A goodbye from some other agent or session must not end this one.
+		if (agentId !== existing.agentId) return undefined;
 		if (
 			agentSessionId !== undefined &&
 			agentSessionId !== existing.agentSessionId
@@ -71,16 +72,15 @@ export function applyV1AgentHookEvent(
 
 	if (SESSION_START_EVENTS.has(rawEventType)) {
 		if (!agentSessionId) return undefined;
-		if (existing?.agentSessionId === agentSessionId) {
+		if (
+			existing?.agentId === agentId &&
+			existing.agentSessionId === agentSessionId
+		) {
 			// Same session starting again (e.g. resumed in place): the
 			// conversation still exists, so keep `prompted`; it is live again,
-			// so drop any goodbye.
-			return {
-				...existing,
-				agentId,
-				endedAt: undefined,
-				updatedAt: at,
-			};
+			// so drop any goodbye. Nothing material changes otherwise.
+			if (existing.endedAt === undefined) return undefined;
+			return { ...existing, endedAt: undefined, updatedAt: at };
 		}
 		return { agentId, agentSessionId, prompted: false, updatedAt: at };
 	}
@@ -89,12 +89,16 @@ export function applyV1AgentHookEvent(
 	// stop, permission request, tool use) means the session has a message.
 	if (mapEventType(rawEventType) === null) return undefined;
 
-	const startsNewSession =
-		agentSessionId !== undefined &&
+	// Never inherit a session id across an agent or session change (mirrors
+	// the v2 store): a codex event landing on a claude record must not mint
+	// a codex candidate pointing at the claude session.
+	const identityChanged =
 		existing !== undefined &&
-		agentSessionId !== existing.agentSessionId;
+		(agentId !== existing.agentId ||
+			(agentSessionId !== undefined &&
+				agentSessionId !== existing.agentSessionId));
 
-	if (existing === undefined || startsNewSession) {
+	if (existing === undefined || identityChanged) {
 		if (!agentSessionId) return undefined;
 		return { agentId, agentSessionId, prompted: true, updatedAt: at };
 	}
@@ -104,16 +108,13 @@ export function applyV1AgentHookEvent(
 		// curls) — reviving would erase the clean-quit marker. An event well
 		// past the goodbye is a real relaunch without session-start hooks.
 		if (at - existing.endedAt <= END_STRAGGLER_WINDOW_MS) return undefined;
-		return {
-			...existing,
-			agentId,
-			prompted: true,
-			endedAt: undefined,
-			updatedAt: at,
-		};
+		return { ...existing, prompted: true, endedAt: undefined, updatedAt: at };
 	}
 
-	return { ...existing, agentId, prompted: true, updatedAt: at };
+	// Only persist material changes — hook events stream steadily while an
+	// agent works, and each write rewrites all of app-state.json.
+	if (existing.prompted) return undefined;
+	return { ...existing, prompted: true, updatedAt: at };
 }
 
 /**

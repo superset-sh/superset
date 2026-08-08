@@ -157,6 +157,64 @@ describe("applyV1AgentHookEvent", () => {
 		});
 	});
 
+	it("never inherits the session id across an agent change", () => {
+		// claude quit cleanly, then codex (whose v1 events carry no session
+		// id) runs in the same pane well past the straggler window — reviving
+		// would mint a codex candidate pointing at the claude session.
+		const next = applyV1AgentHookEvent(record({ endedAt: T0 }), {
+			rawEventType: "Stop",
+			agentId: "codex",
+			at: T0 + 60_000,
+		});
+		expect(next).toBeUndefined();
+	});
+
+	it("a different agent with its own session id replaces the record", () => {
+		const next = applyV1AgentHookEvent(record(), {
+			rawEventType: "Stop",
+			agentId: "codex",
+			agentSessionId: "codex-sess",
+			at: T0 + 1,
+		});
+		expect(next).toEqual({
+			agentId: "codex",
+			agentSessionId: "codex-sess",
+			prompted: true,
+			updatedAt: T0 + 1,
+		});
+	});
+
+	it("ignores a goodbye from a different agent", () => {
+		const next = applyV1AgentHookEvent(record(), {
+			rawEventType: "SessionEnd",
+			agentId: "gemini",
+			at: T0 + 5,
+		});
+		expect(next).toBeUndefined();
+	});
+
+	it("skips persistence when nothing material changes", () => {
+		// Already prompted, same live session: a Stop stream must not
+		// rewrite app-state.json on every turn.
+		const live = record();
+		expect(
+			applyV1AgentHookEvent(live, {
+				rawEventType: "Stop",
+				agentId: "claude",
+				agentSessionId: "session-a",
+				at: T0 + 1,
+			}),
+		).toBeUndefined();
+		expect(
+			applyV1AgentHookEvent(live, {
+				rawEventType: "SessionStart",
+				agentId: "claude",
+				agentSessionId: "session-a",
+				at: T0 + 1,
+			}),
+		).toBeUndefined();
+	});
+
 	it("ignores unknown event types", () => {
 		const next = applyV1AgentHookEvent(record(), {
 			rawEventType: "SomethingNew",
