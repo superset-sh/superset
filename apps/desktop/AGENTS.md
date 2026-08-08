@@ -16,6 +16,11 @@ Renderer localStorage has one ~10 MB quota, loads synchronously at boot, and key
 
 Guardrail: localStorage is for small singleton UI state. Anything entity-scoped with unbounded cardinality, or payloads beyond a few KB, belongs in the SQLite persistence layer (`createElectronSQLitePersistence`) — localStorage collections re-serialize the whole org blob on every mutation.
 
+### v2 dashboard keys
+
+- **`v2-local-override-v2`** (`stores/v2-local-override.ts`) — singleton `boolean | null` opt-in/opt-out for the v2 dashboard. Bounded: one value, written only from Settings → Experimental. Deletion: `setOptInV2(null)` is never written; the key dies with the v2/legacy split (move to `DEAD_KEYS` then). Loss of this key is the #5498 silent-fallback case — see `V2AvailableBanner`.
+- **`v2-available-banner-v1`** (`stores/v2-available-banner/store.ts`) — singleton `boolean` dismissal flag for the legacy-dashboard banner. Bounded: one value, ~30 bytes. Deletion: reset to `false` automatically whenever v2 becomes active (the banner re-arms so a later silent fallback re-surfaces it). No CLI/machine writes this key; when the banner is removed, move the key to `DEAD_KEYS` in the same PR.
+
 ## Window-drag regions: `drag` on empty leaves only
 
 Never mark a container with interactive children as `drag` and carve the children out with `no-drag`: Chromium loses the carve-outs when they sit inside masked, scrollable, or CSS-zoomed wrappers (OverflowFadeContainer, ZoomStable), which silently deadens every control under the bar. Instead, put `drag` only on dedicated empty leaf elements — traffic-light spacers and flex fillers (see TopBar, DashboardSidebarHeader, packages/panes TabBar). The worst failure mode then is "empty area not draggable" instead of "chrome swallows clicks".

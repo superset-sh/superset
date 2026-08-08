@@ -4,6 +4,7 @@ import { devtools, persist } from "zustand/middleware";
 interface V2AvailableBannerState {
 	dismissed: boolean;
 	dismiss: () => void;
+	resetDismiss: () => void;
 }
 
 export const useV2AvailableBannerStore = create<V2AvailableBannerState>()(
@@ -12,6 +13,7 @@ export const useV2AvailableBannerStore = create<V2AvailableBannerState>()(
 			(set) => ({
 				dismissed: false,
 				dismiss: () => set({ dismissed: true }),
+				resetDismiss: () => set({ dismissed: false }),
 			}),
 			{ name: "v2-available-banner-v1" },
 		),
