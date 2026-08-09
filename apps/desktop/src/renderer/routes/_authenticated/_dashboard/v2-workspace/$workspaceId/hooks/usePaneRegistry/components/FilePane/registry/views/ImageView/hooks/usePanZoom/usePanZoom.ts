@@ -1,4 +1,5 @@
 import {
+	type KeyboardEvent as ReactKeyboardEvent,
 	type PointerEvent as ReactPointerEvent,
 	useCallback,
 	useEffect,
@@ -82,14 +83,17 @@ export function usePanZoom() {
 		return () => container.removeEventListener("wheel", handleWheel);
 	}, []);
 
-	const endDrag = () => {
+	const endDrag = (event: ReactPointerEvent<HTMLDivElement>) => {
+		if (dragRef.current?.pointerId !== event.pointerId) {
+			return;
+		}
 		dragRef.current = null;
 		setIsDragging(false);
 	};
 
 	const handlers = {
 		onPointerDown: (event: ReactPointerEvent<HTMLDivElement>) => {
-			if (event.button !== 0) {
+			if (event.button !== 0 || dragRef.current) {
 				return;
 			}
 			event.currentTarget.setPointerCapture(event.pointerId);
@@ -116,6 +120,28 @@ export function usePanZoom() {
 		onPointerUp: endDrag,
 		onPointerCancel: endDrag,
 		onDoubleClick: reset,
+		onKeyDown: (event: ReactKeyboardEvent<HTMLDivElement>) => {
+			const KEYBOARD_PAN_STEP = 50;
+			const actions: Record<string, () => Transform> = {
+				"+": () => zoomAtPoint(transform, transform.scale * 1.25, 0, 0),
+				"=": () => zoomAtPoint(transform, transform.scale * 1.25, 0, 0),
+				"-": () => zoomAtPoint(transform, transform.scale / 1.25, 0, 0),
+				"0": () => DEFAULT_TRANSFORM,
+				ArrowLeft: () => ({ ...transform, x: transform.x + KEYBOARD_PAN_STEP }),
+				ArrowRight: () => ({
+					...transform,
+					x: transform.x - KEYBOARD_PAN_STEP,
+				}),
+				ArrowUp: () => ({ ...transform, y: transform.y + KEYBOARD_PAN_STEP }),
+				ArrowDown: () => ({ ...transform, y: transform.y - KEYBOARD_PAN_STEP }),
+			};
+			const action = actions[event.key];
+			if (!action || event.ctrlKey || event.metaKey || event.altKey) {
+				return;
+			}
+			event.preventDefault();
+			setTransform(action());
+		},
 	};
 
 	const isTransformed =

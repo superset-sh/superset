@@ -32,7 +32,11 @@ export function ImageView({ document, filePath }: ViewProps) {
 	return (
 		<div
 			ref={containerRef}
-			className={`relative flex h-full touch-none items-center justify-center overflow-hidden bg-background p-4 ${
+			role="application"
+			aria-label={`Image preview of ${getBaseName(filePath)}. Zoom with plus and minus, pan with arrow keys, press 0 to reset.`}
+			// biome-ignore lint/a11y/noNoninteractiveTabindex: focus is required for the keyboard pan/zoom handlers
+			tabIndex={0}
+			className={`relative flex h-full touch-none items-center justify-center overflow-hidden bg-background p-4 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring ${
 				isDragging ? "cursor-grabbing" : "cursor-grab"
 			}`}
 			{...handlers}
