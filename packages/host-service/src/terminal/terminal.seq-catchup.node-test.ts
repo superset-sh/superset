@@ -513,8 +513,8 @@ test(
 			// ── Phase 1: two virgin clients attach (tail), streaming keeps them in step
 			await witness.connect(terminalId);
 			await renderer.connect(terminalId);
-			assert.equal(witness.lastSynced?.mode, "tail");
-			assert.equal(renderer.lastSynced?.mode, "tail");
+			assert.equal((await witness.waitSynced()).mode, "tail");
+			assert.equal((await renderer.waitSynced()).mode, "tail");
 			await waitForTrackerText(terminalId, "TUI READY");
 			sendCommand(terminalId, "frames 20");
 			sendCommand(terminalId, "setH 6");
@@ -559,7 +559,7 @@ test(
 			await sleep(300);
 			await renderer.connect(terminalId);
 			assert.equal(
-				renderer.lastSynced?.mode,
+				(await renderer.waitSynced()).mode,
 				"exact",
 				"phase 2: a gapless anchored reattach must be an exact sync",
 			);
@@ -587,9 +587,10 @@ test(
 			await witness.waitVisible("INPUT 000085");
 			const w3t1 = await truthQuiesced();
 			await renderer.connect(terminalId);
-			assert.equal(renderer.lastSynced?.mode, "exact");
+			const synced3 = await renderer.waitSynced();
+			assert.equal(synced3.mode, "exact");
 			assert.equal(
-				renderer.lastSynced?.seq,
+				synced3.seq,
 				gapStart,
 				"phase 3: exact sync must anchor at the client's position",
 			);
@@ -637,7 +638,7 @@ test(
 			const w4t1 = await truthQuiesced();
 			await renderer.connect(terminalId);
 			assert.equal(
-				renderer.lastSynced?.mode,
+				(await renderer.waitSynced()).mode,
 				"exact",
 				"phase 4: a ~105KB gap fits the 2MiB ring and must catch up exactly",
 			);
