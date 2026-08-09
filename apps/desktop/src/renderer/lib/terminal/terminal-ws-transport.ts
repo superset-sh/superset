@@ -141,6 +141,10 @@ export interface TerminalTransport {
 	 * whether the anchor survives persistence (see getPersistableSeqAnchor).
 	 */
 	_seqEverSynced: boolean;
+	/** Binary frames arrived on the current connection (reset on `attached`).
+	 * With `_seqCounting` still false at close time, it means a pre-seq host
+	 * fed the xterm uncounted bytes — the anchor is invalidated. */
+	_bytesSinceAttach: boolean;
 	/**
 	 * True when the xterm was born with content (restored snapshot or seeded
 	 * from a sibling instance). Without an anchor, such an xterm must never
@@ -325,6 +329,7 @@ export function createTransport(
 		seqAnchor: null,
 		_seqCounting: false,
 		_seqEverSynced: false,
+		_bytesSinceAttach: false,
 		_xtermHadContent: false,
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
@@ -604,6 +609,7 @@ function attachSocketListeners(
 			}
 			transport._writeCoalescer?.push(new Uint8Array(data));
 			transport._hasReceivedBytes = true;
+			transport._bytesSinceAttach = true;
 			return;
 		}
 
@@ -631,6 +637,7 @@ function attachSocketListeners(
 			// bytes before it are host-synthesized (preamble/notice) or from a
 			// pre-seq host, and neither advances the stream position.
 			transport._seqCounting = false;
+			transport._bytesSinceAttach = false;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
 			return;
@@ -681,8 +688,15 @@ function attachSocketListeners(
 		// Render whatever arrived before the close instead of holding it for a
 		// frame that may never come (e.g. hidden window).
 		transport._writeCoalescer?.flushSync();
-		// The stream is broken; the anchor keeps its last-counted position and
-		// the next attach's `synced` re-arms counting.
+		// A connection that delivered bytes but never a `synced` was a pre-seq
+		// host (downgrade skew): those bytes advanced the xterm without
+		// advancing the anchor, so the anchor is poisoned — drop it rather
+		// than let a later exact catch-up re-deliver painted bytes.
+		if (transport._bytesSinceAttach && !transport._seqCounting) {
+			transport.seqAnchor = null;
+		}
+		// Otherwise the anchor keeps its last-counted position and the next
+		// attach's `synced` re-arms counting.
 		transport._seqCounting = false;
 		setConnectionState(transport, "closed");
 		// Deliberate/terminal closes (PTY exit, fatal error, cleanup) don't

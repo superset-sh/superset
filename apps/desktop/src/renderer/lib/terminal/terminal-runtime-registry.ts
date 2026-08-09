@@ -317,8 +317,18 @@ class TerminalRuntimeRegistryImpl {
 		// Land any frame-pending output in xterm before the buffer snapshot,
 		// so the persisted snapshot matches the persisted stream position.
 		entry.transport._writeCoalescer?.flushSync();
-		detachFromContainer(entry.runtime);
-		persistSeqAnchor(terminalId, getPersistableSeqAnchor(entry.transport));
+		const snapshotPersisted = detachFromContainer(entry.runtime);
+		// The anchor is only meaningful paired with the snapshot it was counted
+		// against: skip it when the snapshot write failed, and when the parser
+		// still holds unrendered bytes the anchor already counted (the snapshot
+		// would restore short and catch-up would never refill the gap). No
+		// anchor degrades to the safe reanchor path.
+		persistSeqAnchor(
+			terminalId,
+			snapshotPersisted && entry.runtime.gate.pending === 0
+				? getPersistableSeqAnchor(entry.transport)
+				: null,
+		);
 		// detachFromContainer persists unconditionally; a dead session's snapshot
 		// must not outlive the PTY.
 		if (entry.transport.sessionEnded) {
@@ -458,9 +468,13 @@ class TerminalRuntimeRegistryImpl {
 				this.warnPersistFailureOnce(entry.terminalId);
 				continue;
 			}
+			// Anchor only when the snapshot can actually contain every counted
+			// byte — a busy parser means the serialize ran short of the count.
 			persistSeqAnchor(
 				entry.terminalId,
-				getPersistableSeqAnchor(entry.transport),
+				(entry.runtime?.gate.pending ?? 0) === 0
+					? getPersistableSeqAnchor(entry.transport)
+					: null,
 			);
 			this.clearPersistFailureWarning(entry.terminalId);
 			// Persistence succeeded before any runtime or transport cleanup began.

@@ -280,6 +280,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 				serializeAddon: { serialize: () => "serialized scrollback" },
 				lastCols: 120,
 				lastRows: 32,
+				gate: { pending: 0 },
 			},
 			transport: {},
 			linkManager: null,

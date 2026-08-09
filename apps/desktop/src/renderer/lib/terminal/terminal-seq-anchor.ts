@@ -24,7 +24,15 @@ export function persistSeqAnchor(
 		} else {
 			localStorage.removeItem(key);
 		}
-	} catch {}
+	} catch {
+		// A failed write (quota) must not leave a STALE anchor paired with a
+		// newer snapshot — the next attach would skip bytes the pane never
+		// got. No anchor degrades safely to the reanchor path; removeItem
+		// works even under quota pressure.
+		try {
+			localStorage.removeItem(key);
+		} catch {}
+	}
 }
 
 export function loadPersistedSeqAnchor(

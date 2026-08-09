@@ -206,7 +206,9 @@ type SeqAttachRequest =
 function parseSeqAttachParam(
 	value: string | null | undefined,
 ): SeqAttachRequest {
-	if (!value) return { kind: "legacy" };
+	// Absent means a pre-seq client; an explicitly empty value is a malformed
+	// seq-aware dial and falls through to the safe reanchor below.
+	if (value === null || value === undefined) return { kind: "legacy" };
 	if (value === "new") return { kind: "new" };
 	if (value === "none") return { kind: "none" };
 	const sep = value.indexOf(":");
@@ -1000,9 +1002,10 @@ function deliverOutput(session: TerminalSession, bytes: Uint8Array) {
 function nudgeRepaint(session: TerminalSession) {
 	if (!isCurrentLiveSession(session)) return;
 	const { cols, rows } = session;
-	if (rows <= MIN_TERMINAL_ROWS) return;
+	// Shrink by a row, growing instead when already at the minimum.
+	const toggledRows = rows > MIN_TERMINAL_ROWS ? rows - 1 : rows + 1;
 	const generation = session.resizeGeneration;
-	session.pty.resize(cols, rows - 1);
+	session.pty.resize(cols, toggledRows);
 	setTimeout(() => {
 		// A real client resize landed mid-nudge; it owns the dims now.
 		if (!isCurrentLiveSession(session)) return;

@@ -391,8 +391,10 @@ export function attachToContainer(
 	}
 }
 
-export function detachFromContainer(runtime: TerminalRuntime) {
-	persistBuffer(runtime.terminalId, runtime.serializeAddon);
+/** Returns whether the buffer snapshot was persisted, so callers can keep
+ * paired state (the seq anchor) coherent with it. */
+export function detachFromContainer(runtime: TerminalRuntime): boolean {
+	const persisted = persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -403,6 +405,7 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
 	runtime.container = null;
+	return persisted;
 }
 
 export function updateRuntimeAppearance(
