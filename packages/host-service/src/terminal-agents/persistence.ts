@@ -1,7 +1,7 @@
 import type { AgentDefinitionId } from "@superset/shared/agent-catalog";
 import { and, desc, eq, inArray, isNotNull, isNull, ne, or } from "drizzle-orm";
 import type { HostDb } from "../db";
-import { terminalAgentBindings, terminalSessions } from "../db/schema";
+import { terminalAgentBindings, terminalSessions } from "../db/schema.ts";
 import type {
 	TerminalAgentBindingListFilter,
 	TerminalAgentBindingPersistence,

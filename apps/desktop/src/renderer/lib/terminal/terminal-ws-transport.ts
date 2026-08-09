@@ -34,7 +34,17 @@ type TerminalServerMessage =
 	// destroyed (not found / disposed / exited), not a transient attach failure.
 	| { type: "error"; message: string; code?: string }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "title"; title: string | null };
+	| { type: "title"; title: string | null }
+	// Stream-position anchor from a seq-aware host. Arrives after any
+	// host-synthesized bytes (mode preamble/notice) and before catch-up/live
+	// PTY bytes; sets our counter and arms per-frame counting so the next
+	// dial can request exactly the bytes we missed. Old hosts never send it.
+	| {
+			type: "synced";
+			epoch: string;
+			seq: number;
+			mode: "exact" | "tail" | "reanchor";
+	  };
 
 export interface TerminalTransport {
 	connectionState: ConnectionState;
@@ -111,6 +121,32 @@ export interface TerminalTransport {
 	 * with no output still gets replay on the next connect.
 	 */
 	_hasReceivedBytes: boolean;
+	/**
+	 * Position in the host's output stream: every byte of `epoch` up to `seq`
+	 * has been written into this xterm. Seeded from the persisted anchor on
+	 * runtime rebuild, re-anchored by each `synced` message, advanced by every
+	 * counted binary frame. Sent as `?seq=` on each dial so the host can
+	 * deliver exactly the missed bytes.
+	 */
+	seqAnchor: { epoch: string; seq: number } | null;
+	/**
+	 * Armed by `synced`, disarmed on attach/close. While disarmed, binary
+	 * frames are host-synthesized (mode preamble/notice) or from a pre-seq
+	 * host and must not advance the anchor.
+	 */
+	_seqCounting: boolean;
+	/**
+	 * True once any connection on this transport delivered a `synced` — i.e.
+	 * the host speaks seq and every PTY byte since has been counted. Decides
+	 * whether the anchor survives persistence (see getPersistableSeqAnchor).
+	 */
+	_seqEverSynced: boolean;
+	/**
+	 * True when the xterm was born with content (restored snapshot or seeded
+	 * from a sibling instance). Without an anchor, such an xterm must never
+	 * request the ring tail (`seq=new`) — it would double-paint.
+	 */
+	_xtermHadContent: boolean;
 	/** Internal: wall-clock-gap watchdog for laptop sleep/wake detection. */
 	_livenessTimer: ReturnType<typeof setInterval> | null;
 	/** Internal: Date.now() at the last watchdog tick. */
@@ -286,6 +322,10 @@ export function createTransport(
 		_localToken: null,
 		_terminated: false,
 		_hasReceivedBytes: false,
+		seqAnchor: null,
+		_seqCounting: false,
+		_seqEverSynced: false,
+		_xtermHadContent: false,
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
 		_resumeListener: null,
@@ -484,10 +524,22 @@ export function connect(
 		// buildUrl/getToken read transport state live, so a URL swap or token
 		// rotation is picked up on the next dial without recreating the socket.
 		buildUrl: () => {
-			const current = stripToken(transport.currentUrl ?? base);
-			return transport._hasReceivedBytes
-				? appendQueryParam(current, "replay", "0")
-				: current;
+			let current = stripToken(transport.currentUrl ?? base);
+			// Legacy replay suppression — read by pre-seq hosts only.
+			if (transport._hasReceivedBytes) {
+				current = appendQueryParam(current, "replay", "0");
+			}
+			// Stream position for seq-aware hosts: exact anchor when we have
+			// one; "new" (dump the tail) only for a genuinely virgin xterm;
+			// "none" (reanchor, send nothing) when the xterm has content of
+			// unknown position. Pre-seq hosts ignore the param.
+			const anchor = transport.seqAnchor;
+			const seqValue = anchor
+				? `${anchor.epoch}:${anchor.seq}`
+				: transport._xtermHadContent || transport._hasReceivedBytes
+					? "none"
+					: "new";
+			return appendQueryParam(current, "seq", seqValue);
 		},
 		getToken: () =>
 			isRelayHostUrl(transport.currentUrl)
@@ -544,9 +596,12 @@ function attachSocketListeners(
 			// Queue PTY bytes; the coalescer batches them into one xterm.write per
 			// animation frame. There's no output ACK back to host-service:
 			// back-pressure lives entirely on the host side, which bounds this
-			// socket's send buffer and drops us (we reconnect and replay) if we
-			// fall hopelessly behind. A slow renderer can never wedge the shell —
-			// it just loses some scrollback.
+			// socket's send buffer and drops us (we reconnect and catch up by
+			// seq) if we fall hopelessly behind. A slow renderer can never wedge
+			// the shell.
+			if (transport._seqCounting && transport.seqAnchor) {
+				transport.seqAnchor.seq += data.byteLength;
+			}
 			transport._writeCoalescer?.push(new Uint8Array(data));
 			transport._hasReceivedBytes = true;
 			return;
@@ -572,8 +627,19 @@ function attachSocketListeners(
 			// A successful attach means the session exists again (re-created or
 			// respawned under the same id) — its scrollback is worth keeping.
 			transport.sessionEnded = false;
+			// Counting stays disarmed until this attach's `synced` arrives —
+			// bytes before it are host-synthesized (preamble/notice) or from a
+			// pre-seq host, and neither advances the stream position.
+			transport._seqCounting = false;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
+			return;
+		}
+
+		if (message.type === "synced") {
+			transport.seqAnchor = { epoch: message.epoch, seq: message.seq };
+			transport._seqCounting = true;
+			transport._seqEverSynced = true;
 			return;
 		}
 
@@ -615,6 +681,9 @@ function attachSocketListeners(
 		// Render whatever arrived before the close instead of holding it for a
 		// frame that may never come (e.g. hidden window).
 		transport._writeCoalescer?.flushSync();
+		// The stream is broken; the anchor keeps its last-counted position and
+		// the next attach's `synced` re-arms counting.
+		transport._seqCounting = false;
 		setConnectionState(transport, "closed");
 		// Deliberate/terminal closes (PTY exit, fatal error, cleanup) don't
 		// reconnect — partysocket won't re-dial after close(). Synthetic
@@ -699,6 +768,23 @@ export function disconnect(transport: TerminalTransport) {
 	transport.lastDiagnosis = null;
 	setTerminalTitle(transport, undefined);
 	setConnectionState(transport, "disconnected");
+}
+
+/**
+ * The anchor worth persisting next to the buffer snapshot, or null when it
+ * can't be trusted: a pre-seq host advanced the xterm without ever sending
+ * `synced` (`_hasReceivedBytes` without `_seqEverSynced`), so a stale value
+ * would make a future exact catch-up re-deliver bytes already painted. A
+ * restored anchor with no bytes received since restore is still valid.
+ */
+export function getPersistableSeqAnchor(
+	transport: TerminalTransport,
+): { epoch: string; seq: number } | null {
+	if (!transport.seqAnchor) return null;
+	if (transport._seqEverSynced || !transport._hasReceivedBytes) {
+		return { ...transport.seqAnchor };
+	}
+	return null;
 }
 
 export function sendResize(

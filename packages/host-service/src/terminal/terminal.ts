@@ -169,9 +169,77 @@ type TerminalServerMessage =
 	// plain errors leave it unset and the renderer keeps its snapshot.
 	| { type: "error"; message: string; code?: "session-gone" }
 	| { type: "exit"; exitCode: number; signal: number }
-	| { type: "title"; title: string | null };
+	| { type: "title"; title: string | null }
+	// Sequence anchor for seq-aware clients (`?seq=` on the attach URL). Sent
+	// once per attach, AFTER any host-synthesized bytes (mode preamble,
+	// restored notice) and BEFORE catch-up/live PTY bytes. The client sets its
+	// byte counter to `seq` and counts every subsequent binary frame, so both
+	// sides agree on stream position without per-frame headers.
+	// - `exact`:    client's anchor was inside the catch-up ring — the binary
+	//               bytes that follow are exactly the missed suffix.
+	// - `tail`:     client attached empty — whatever ring content exists
+	//               follows as a best-effort scrollback restore.
+	// - `reanchor`: the client's position is unknown or unrecoverable (epoch
+	//               mismatch after a host restart, gap beyond the ring). No
+	//               content bytes are sent — the client's screen is presumed
+	//               better than anything we could synthesize (see #6290) — and
+	//               a repaint nudge asks the running program to redraw itself.
+	| { type: "synced"; epoch: string; seq: number; mode: SyncedMode };
+
+type SyncedMode = "exact" | "tail" | "reanchor";
+
+/**
+ * Parsed `?seq=` attach param.
+ * - absent  → legacy client: byte-identical pre-seq behavior (preamble + FIFO).
+ * - "new"   → seq-aware client with a virgin xterm: wants the ring tail.
+ * - "none"  → seq-aware client with restored content but no trustworthy
+ *             anchor (persisted by an older build, multi-instance seed):
+ *             reanchor without dumping bytes into its existing screen.
+ * - "<epoch>:<n>" → anchored client: exact catch-up when possible.
+ */
+type SeqAttachRequest =
+	| { kind: "legacy" }
+	| { kind: "new" }
+	| { kind: "none" }
+	| { kind: "anchor"; epoch: string; seq: number };
+
+function parseSeqAttachParam(
+	value: string | null | undefined,
+): SeqAttachRequest {
+	if (!value) return { kind: "legacy" };
+	if (value === "new") return { kind: "new" };
+	if (value === "none") return { kind: "none" };
+	const sep = value.indexOf(":");
+	if (sep > 0) {
+		const epoch = value.slice(0, sep);
+		const seq = Number(value.slice(sep + 1));
+		if (epoch && Number.isSafeInteger(seq) && seq >= 0) {
+			return { kind: "anchor", epoch, seq };
+		}
+	}
+	// Malformed → safest degraded mode: reanchor, never dump bytes.
+	return { kind: "none" };
+}
 
 const MAX_BUFFER_BYTES = 64 * 1024;
+/**
+ * Catch-up ring cap per session. Sized so that a renderer that missed output
+ * (laptop sleep, back-pressure drop, parked-runtime eviction) can almost
+ * always be caught up with the exact missed bytes instead of a lossy
+ * reanchor — the deterministic ghost repro from #6279 was ~105 KB of missed
+ * TUI repaints; 2 MiB gives ~20x margin while staying far under the 8 MiB
+ * per-socket send cap. Memory is bounded per session and only holds bytes
+ * actually emitted.
+ */
+const CATCHUP_RING_CAP_BYTES = 2 * 1024 * 1024;
+/**
+ * How long after a reanchor attach to wait for the renderer's own resize
+ * (which fires a natural SIGWINCH when dims changed) before forcing the
+ * repaint nudge anyway.
+ */
+const REPAINT_NUDGE_FALLBACK_MS = 2_000;
+/** Gap between the nudge's shrink and restore resizes. */
+const REPAINT_NUDGE_RESTORE_MS = 60;
 // Dim separator delivered ahead of a respawned shell's output so users can
 // tell restored scrollback from the fresh session (cf. VS Code's "History
 // restored" line).
@@ -332,6 +400,34 @@ interface TerminalSession {
 	 * paste, focus, mouse, etc. that the FIFO can't restore on its own.
 	 */
 	modeTracker: ModeTracker;
+
+	/**
+	 * Stream identity for seq-aware clients. Fresh per TerminalSession object
+	 * (create, adopt, respawn) — a client anchored to a different epoch has an
+	 * unknowable position (the byte counter restarted) and gets a reanchor.
+	 */
+	epoch: string;
+	/** Absolute count of PTY output bytes emitted since this session object was created. */
+	outputSeq: number;
+	/**
+	 * Catch-up ring: the retained tail of the output stream, so a reattaching
+	 * seq-aware client receives exactly the bytes it missed (exactly-once
+	 * delivery, Eternal-Terminal style) instead of a lossy tail dump. Unlike
+	 * the legacy FIFO (`buffer`), this retains regardless of attached sockets.
+	 */
+	retained: Uint8Array[];
+	retainedBytes: number;
+	/** Absolute seq of the first byte still in `retained`. */
+	retainedStartSeq: number;
+	/**
+	 * Armed on a reanchor attach: the client may have missed output we can't
+	 * re-deliver, so once its resize arrives (or the fallback timer fires),
+	 * force a SIGWINCH repaint so the running program redraws itself — the
+	 * only party that always knows the full screen truth.
+	 */
+	pendingRepaintNudge: ReturnType<typeof setTimeout> | null;
+	/** Bumped on every client resize; guards the nudge's delayed restore. */
+	resizeGeneration: number;
 
 	/**
 	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
@@ -837,6 +933,107 @@ function bufferOutput(session: TerminalSession, data: Uint8Array) {
 	}
 }
 
+function retainOutput(session: TerminalSession, data: Uint8Array) {
+	session.retained.push(data);
+	session.retainedBytes += data.byteLength;
+	session.outputSeq += data.byteLength;
+	while (
+		session.retainedBytes > CATCHUP_RING_CAP_BYTES &&
+		session.retained.length > 1
+	) {
+		const removed = session.retained.shift();
+		if (removed) {
+			session.retainedBytes -= removed.byteLength;
+			session.retainedStartSeq += removed.byteLength;
+		}
+	}
+}
+
+/** Concatenate the retained stream from absolute seq `from` to the present. */
+function readRetainedFrom(session: TerminalSession, from: number): Uint8Array {
+	let skip = from - session.retainedStartSeq;
+	const parts: Uint8Array[] = [];
+	let total = 0;
+	for (const chunk of session.retained) {
+		if (skip >= chunk.byteLength) {
+			skip -= chunk.byteLength;
+			continue;
+		}
+		const part = skip > 0 ? chunk.subarray(skip) : chunk;
+		skip = 0;
+		parts.push(part);
+		total += part.byteLength;
+	}
+	const out = new Uint8Array(total);
+	let offset = 0;
+	for (const part of parts) {
+		out.set(part, offset);
+		offset += part.byteLength;
+	}
+	return out;
+}
+
+/**
+ * Single choke point for PTY output: mode tracker, catch-up ring, then
+ * broadcast (falling back to the legacy zero-socket FIFO). Every byte that
+ * counts toward `outputSeq` MUST flow through here and nowhere else, or
+ * seq-aware clients drift out of sync.
+ */
+function deliverOutput(session: TerminalSession, bytes: Uint8Array) {
+	session.modeTracker.feed(bytes);
+	retainOutput(session, bytes);
+	if (broadcastBytes(session, bytes) === 0) {
+		bufferOutput(session, bytes);
+	}
+}
+
+/**
+ * Force the running program to repaint by toggling the PTY one row smaller
+ * and back — two real SIGWINCHes (a same-dims resize emits none). Used after
+ * a reanchor attach, where the renderer may hold a stale frame that only the
+ * program itself can faithfully redraw (the v1 terminal-host's proven
+ * recipe; never synthesize screen content the tracker may not have — #6290).
+ */
+function nudgeRepaint(session: TerminalSession) {
+	if (!isCurrentLiveSession(session)) return;
+	const { cols, rows } = session;
+	if (rows <= MIN_TERMINAL_ROWS) return;
+	const generation = session.resizeGeneration;
+	session.pty.resize(cols, rows - 1);
+	setTimeout(() => {
+		// A real client resize landed mid-nudge; it owns the dims now.
+		if (!isCurrentLiveSession(session)) return;
+		if (session.resizeGeneration !== generation) return;
+		session.pty.resize(cols, rows);
+	}, REPAINT_NUDGE_RESTORE_MS);
+}
+
+/** False once the session exited or was disposed/replaced in the map —
+ * lets delayed nudge timers no-op instead of poking a dead PTY. */
+function isCurrentLiveSession(session: TerminalSession): boolean {
+	return !session.exited && sessions.get(session.terminalId) === session;
+}
+
+/**
+ * Arm the nudge after a reanchor attach. Wait for the client's own resize
+ * first: if its dims differ from the PTY's, that resize already delivers a
+ * natural SIGWINCH and the nudge is unnecessary; if they match, nudge. The
+ * fallback timer covers clients that never send a resize.
+ */
+function schedulePendingRepaintNudge(session: TerminalSession) {
+	if (session.pendingRepaintNudge !== null) return;
+	session.pendingRepaintNudge = setTimeout(() => {
+		session.pendingRepaintNudge = null;
+		nudgeRepaint(session);
+	}, REPAINT_NUDGE_FALLBACK_MS);
+}
+
+function clearPendingRepaintNudge(session: TerminalSession) {
+	if (session.pendingRepaintNudge === null) return;
+	clearTimeout(session.pendingRepaintNudge);
+	session.pendingRepaintNudge = null;
+}
+
 function normalizeTerminalDimension(
 	value: number | null | undefined,
 	min: number,
@@ -931,6 +1128,82 @@ export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
 	sendBytes(socket, combined);
 }
 
+/**
+ * Attach delivery for seq-aware clients. Wire order matters:
+ *   1. binary: host-synthesized bytes (mode preamble, restored notice) —
+ *      NOT part of the PTY stream, so they go out before the anchor and the
+ *      client does not count them;
+ *   2. json `synced`: sets the client's counter and arms counting;
+ *   3. binary: catch-up bytes — pure PTY-stream bytes the client counts.
+ * After this returns, live output broadcast keeps both counters in step.
+ */
+function sendSeqAttach(
+	session: TerminalSession,
+	socket: TerminalSocket,
+	request: Exclude<SeqAttachRequest, { kind: "legacy" }>,
+) {
+	if (socket.readyState !== SOCKET_OPEN) return;
+
+	const preamble = session.modeTracker.buildPreamble();
+	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
+	if (preamble || notice) {
+		const synthesized = new Uint8Array(
+			(preamble?.byteLength ?? 0) + (notice?.byteLength ?? 0),
+		);
+		if (preamble) synthesized.set(preamble, 0);
+		if (notice) synthesized.set(notice, preamble?.byteLength ?? 0);
+		sendBytes(socket, synthesized);
+	}
+	session.restoredNoticePending = false;
+
+	const exact =
+		request.kind === "anchor" &&
+		request.epoch === session.epoch &&
+		request.seq >= session.retainedStartSeq &&
+		request.seq <= session.outputSeq;
+
+	if (exact) {
+		sendMessage(socket, {
+			type: "synced",
+			epoch: session.epoch,
+			seq: request.seq,
+			mode: "exact",
+		});
+		if (request.seq < session.outputSeq) {
+			sendBytes(socket, readRetainedFrom(session, request.seq));
+		}
+		return;
+	}
+
+	if (request.kind === "new") {
+		// Virgin client: best-effort scrollback restore from the ring tail.
+		sendMessage(socket, {
+			type: "synced",
+			epoch: session.epoch,
+			seq: session.retainedStartSeq,
+			mode: "tail",
+		});
+		if (session.retainedBytes > 0) {
+			sendBytes(socket, readRetainedFrom(session, session.retainedStartSeq));
+		}
+		return;
+	}
+
+	// Unknown/unrecoverable position ("none", epoch mismatch, gap beyond the
+	// ring). The client's existing screen beats anything we could synthesize —
+	// never overwrite it (#6290). Re-anchor at the live head and ask the
+	// program to repaint itself.
+	sendMessage(socket, {
+		type: "synced",
+		epoch: session.epoch,
+		seq: session.outputSeq,
+		mode: "reanchor",
+	});
+	if (!session.exited) {
+		schedulePendingRepaintNudge(session);
+	}
+}
+
 function clearShellReadyTimeout(session: TerminalSession): void {
 	if (session.shellReadyTimeoutId) {
 		clearTimeout(session.shellReadyTimeoutId);
@@ -952,10 +1225,7 @@ function resolveShellReady(
 		const heldBytes = Uint8Array.from(session.scanState.heldBytes);
 		session.scanState.heldBytes.length = 0;
 		session.scanState.matchPos = 0;
-		session.modeTracker.feed(heldBytes);
-		if (broadcastBytes(session, heldBytes) === 0) {
-			bufferOutput(session, heldBytes);
-		}
+		deliverOutput(session, heldBytes);
 	}
 	if (session.shellReadyResolve) {
 		session.shellReadyResolve();
@@ -1483,12 +1753,15 @@ export async function createTerminalSessionInternal({
 	}
 
 	const cwd = resolveTerminalCwd(cwdOverride, workspace.worktreePath);
-	const cols = normalizeTerminalDimension(
+	// Adoption overrides these with the PTY's live dims below: the session's
+	// belief must match the kernel's, or the reanchor repaint logic misjudges
+	// whether a client resize will deliver a real SIGWINCH.
+	let cols = normalizeTerminalDimension(
 		requestedCols,
 		MIN_TERMINAL_COLS,
 		DEFAULT_TERMINAL_COLS,
 	);
-	const rows = normalizeTerminalDimension(
+	let rows = normalizeTerminalDimension(
 		requestedRows,
 		MIN_TERMINAL_ROWS,
 		DEFAULT_TERMINAL_ROWS,
@@ -1535,6 +1808,8 @@ export async function createTerminalSessionInternal({
 			}
 			openResult = { pid: found.pid };
 			isAdopted = true;
+			cols = normalizeTerminalDimension(found.cols, MIN_TERMINAL_COLS, cols);
+			rows = normalizeTerminalDimension(found.rows, MIN_TERMINAL_ROWS, rows);
 			console.log(
 				`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
 			);
@@ -1561,6 +1836,16 @@ export async function createTerminalSessionInternal({
 					if (!found) throw err;
 					openResult = { pid: found.pid };
 					isAdopted = true;
+					cols = normalizeTerminalDimension(
+						found.cols,
+						MIN_TERMINAL_COLS,
+						cols,
+					);
+					rows = normalizeTerminalDimension(
+						found.rows,
+						MIN_TERMINAL_ROWS,
+						rows,
+					);
 					console.log(
 						`[terminal] adopted existing daemon session ${terminalId} pid=${found.pid}`,
 					);
@@ -1646,6 +1931,13 @@ export async function createTerminalSessionInternal({
 		launchShellName: basename(shell),
 		portHintDecoder: new StringDecoder("utf8"),
 		modeTracker: createModeTracker(cols, rows),
+		epoch: randomBytes(8).toString("hex"),
+		outputSeq: 0,
+		retained: [],
+		retainedBytes: 0,
+		retainedStartSeq: 0,
+		pendingRepaintNudge: null,
+		resizeGeneration: 0,
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
@@ -1695,13 +1987,7 @@ export async function createTerminalSessionInternal({
 				// — the chunk is still output and must refresh the idle clock.
 				portManager.checkOutputForHint(terminalId, hintText);
 
-				// Feed the tracker on every byte — broadcast skips the FIFO,
-				// so this is the only path that catches startup mode escapes.
-				session.modeTracker.feed(bytes);
-
-				if (broadcastBytes(session, bytes) === 0) {
-					bufferOutput(session, bytes);
-				}
+				deliverOutput(session, bytes);
 			},
 			onExit({ code, signal }) {
 				session.exited = true;
@@ -1849,6 +2135,7 @@ export function registerWorkspaceTerminalRoute({
 		upgradeWebSocket((c) => {
 			const terminalId = c.req.param("terminalId") ?? "";
 			const requestedWorkspaceId = c.req.query("workspaceId") || null;
+			const seqRequest = parseSeqAttachParam(c.req.query("seq"));
 			const attachSocketToSession = (
 				session: TerminalSession,
 				ws: TerminalSocket,
@@ -1863,7 +2150,11 @@ export function registerWorkspaceTerminalRoute({
 					.run();
 
 				sendMessage(ws, { type: "title", title: session.title });
-				replayBuffer(session, ws);
+				if (seqRequest.kind === "legacy") {
+					replayBuffer(session, ws);
+				} else {
+					sendSeqAttach(session, ws, seqRequest);
+				}
 				if (session.exited) {
 					sendMessage(ws, {
 						type: "exit",
@@ -1935,8 +2226,13 @@ export function registerWorkspaceTerminalRoute({
 					db,
 					eventBus,
 					adoptOnly: true,
-					// Renderer passes `?replay=0` on reconnect; see replayOnAdoption.
-					replayOnAdoption: c.req.query("replay") !== "0",
+					// Only a client with an empty xterm wants the daemon ring
+					// dumped at it. Anchored/reanchor clients keep their own
+					// (better) copy; legacy clients signal via `?replay=0`.
+					replayOnAdoption:
+						seqRequest.kind === "legacy"
+							? c.req.query("replay") !== "0"
+							: seqRequest.kind === "new",
 				});
 				if (!("error" in adopted)) return adopted;
 
@@ -2033,10 +2329,20 @@ export function registerWorkspaceTerminalRoute({
 							MIN_TERMINAL_ROWS,
 							DEFAULT_TERMINAL_ROWS,
 						);
+						session.resizeGeneration += 1;
+						// A reanchor attach waits for this first client resize:
+						// changed dims deliver the repaint SIGWINCH naturally;
+						// unchanged dims need the forced nudge.
+						const needsForcedNudge =
+							session.pendingRepaintNudge !== null &&
+							cols === session.cols &&
+							rows === session.rows;
+						clearPendingRepaintNudge(session);
 						session.pty.resize(cols, rows);
 						session.modeTracker.resize(cols, rows);
 						session.cols = cols;
 						session.rows = rows;
+						if (needsForcedNudge) nudgeRepaint(session);
 					}
 				},
 

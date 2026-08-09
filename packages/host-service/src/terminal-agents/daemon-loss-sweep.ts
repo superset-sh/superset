@@ -2,7 +2,7 @@ import type { HostDb } from "../db";
 import {
 	getTerminalAgentBindingSessionId,
 	markTerminalAgentBindingEnded,
-} from "./persistence";
+} from "./persistence.ts";
 
 const DAEMON_LOSS_SWEEP_ATTEMPTS = 5;
 const DAEMON_LOSS_SWEEP_DELAY_MS = 2_000;

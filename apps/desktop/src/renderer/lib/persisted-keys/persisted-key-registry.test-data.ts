@@ -25,6 +25,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		"src/renderer/lib/terminal/terminal-runtime.ts",
 		["terminal-buffer:*", "terminal-dims:*"],
 	],
+	["src/renderer/lib/terminal/terminal-seq-anchor.ts", ["terminal-seq:*"]],
 	[
 		"src/renderer/lib/terminal/terminal-buffer-gc.ts",
 		["terminal-buffer-persisted-at"],
