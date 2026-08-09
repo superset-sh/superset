@@ -6,7 +6,9 @@ import {
 	usePromptInputController,
 } from "@superset/ui/ai-elements/prompt-input";
 import type { ThinkingLevel } from "@superset/ui/ai-elements/thinking-toggle";
+import { Button } from "@superset/ui/button";
 import { workspaceTrpc } from "@superset/workspace-client";
+import { useNavigate } from "@tanstack/react-router";
 import type { ChatStatus, FileUIPart } from "ai";
 import type React from "react";
 import type { ReactNode } from "react";
@@ -27,7 +29,10 @@ import { FileDropOverlay } from "./components/FileDropOverlay";
 import { LinkedIssues } from "./components/LinkedIssues";
 import { SlashCommandPreview } from "./components/SlashCommandPreview";
 import type { LinkedIssue } from "./types";
-import { getErrorMessage } from "./utils/getErrorMessage";
+import {
+	getErrorMessage,
+	isMissingModelProviderError,
+} from "./utils/getErrorMessage";
 
 interface ChatInputFooterProps {
 	workspaceId: string;
@@ -106,7 +111,9 @@ export function ChatInputFooter({
 
 	const [linkedIssues, setLinkedIssues] = useState<LinkedIssue[]>([]);
 	const inputRootRef = useRef<HTMLDivElement>(null);
+	const navigate = useNavigate();
 	const errorMessage = getErrorMessage(error);
+	const showModelProviderSetup = isMissingModelProviderError(errorMessage);
 	const focusShortcutText = useHotkeyDisplay("FOCUS_CHAT_INPUT").text;
 	const showFocusHint = focusShortcutText !== "Unassigned";
 
@@ -153,13 +160,33 @@ export function ChatInputFooter({
 		<ChatInputDropZone className="bg-background px-4 py-3">
 			{(dragType) => (
 				<div className="mx-auto w-full max-w-[680px]">
-					{errorMessage && (
-						<p
+					{showModelProviderSetup ? (
+						<div
 							role="alert"
-							className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+							className="mb-3 flex items-center justify-between gap-3 rounded-md border border-border bg-muted/50 px-4 py-2 text-sm"
 						>
-							{errorMessage}
-						</p>
+							<span className="select-text text-muted-foreground">
+								Chat needs a model provider. Connect Claude or add an API key to
+								get started.
+							</span>
+							<Button
+								size="sm"
+								variant="outline"
+								className="shrink-0"
+								onClick={() => void navigate({ to: "/settings/models" })}
+							>
+								Open Model Settings
+							</Button>
+						</div>
+					) : (
+						errorMessage && (
+							<p
+								role="alert"
+								className="mb-3 select-text rounded-md border border-destructive/20 bg-destructive/10 px-4 py-2 text-sm text-destructive"
+							>
+								{errorMessage}
+							</p>
+						)
 					)}
 					{pendingQuestion && onQuestionRespond && onQuestionCancel ? (
 						<QuestionInputOverlay
