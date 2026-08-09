@@ -345,9 +345,12 @@ interface TerminalSession {
 	unsubscribeDaemon: (() => void) | null;
 	sockets: Set<TerminalSocket>;
 	/**
-	 * Buffered PTY output retained for replay on (re)attach. Bytes, not
-	 * strings — keeping this byte-aligned with the wire frees us from the
-	 * per-chunk UTF-8 decoding that used to mangle TUIs.
+	 * Legacy replay FIFO for clients that attach without `?seq=` (pre-seq
+	 * renderers, raw WS consumers): fills only while zero sockets are
+	 * attached, drained by replayBuffer(). Seq-aware clients are served from
+	 * the `retained` catch-up ring instead. Delete once the renderer floor
+	 * speaks seq. Bytes, not strings — byte-aligned with the wire so
+	 * per-chunk UTF-8 decoding can't mangle TUIs.
 	 */
 	buffer: Uint8Array[];
 	bufferBytes: number;
@@ -1091,41 +1094,46 @@ function broadcastBytes(session: TerminalSession, bytes: Uint8Array): number {
 	return sent;
 }
 
-export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
-	// sendBytes below no-ops on a non-open socket — bail before clearing the
-	// buffer/notice so the next attach can still replay them.
-	if (socket.readyState !== SOCKET_OPEN) return;
-	// Preamble first, then the restored notice, then FIFO. Mode-setting
-	// escapes (kitty keyboard, bracketed paste, focus, …) are typically
-	// emitted once at startup and broadcast away rather than buffered, so a
-	// fresh xterm needs them re-asserted on every attach — even when the
-	// FIFO is empty.
+/**
+ * Host-synthesized attach bytes: the mode preamble plus (at most once) the
+ * restored notice. Mode-setting escapes (kitty keyboard, bracketed paste,
+ * focus, …) are typically emitted once at program startup and broadcast away
+ * rather than buffered, so a fresh xterm needs them re-asserted on every
+ * attach. Consumes the pending notice — only call when actually delivering
+ * to an open socket. Returns null when there is nothing to synthesize.
+ */
+function takeSynthesizedAttachBytes(
+	session: TerminalSession,
+): Uint8Array | null {
 	const preamble = session.modeTracker.buildPreamble();
 	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
-	let bufferTotal = 0;
-	for (const b of session.buffer) bufferTotal += b.byteLength;
-	const preambleLen = preamble?.byteLength ?? 0;
-	const noticeLen = notice?.byteLength ?? 0;
-	if (preambleLen === 0 && noticeLen === 0 && bufferTotal === 0) return;
-
-	const combined = new Uint8Array(preambleLen + noticeLen + bufferTotal);
-	let offset = 0;
-	if (preamble) {
-		combined.set(preamble, offset);
-		offset += preamble.byteLength;
-	}
-	if (notice) {
-		combined.set(notice, offset);
-		offset += notice.byteLength;
-	}
-	for (const b of session.buffer) {
-		combined.set(b, offset);
-		offset += b.byteLength;
-	}
 	session.restoredNoticePending = false;
+	if (!preamble && !notice) return null;
+	const combined = new Uint8Array(
+		(preamble?.byteLength ?? 0) + (notice?.byteLength ?? 0),
+	);
+	if (preamble) combined.set(preamble, 0);
+	if (notice) combined.set(notice, preamble?.byteLength ?? 0);
+	return combined;
+}
+
+export function replayBuffer(session: TerminalSession, socket: TerminalSocket) {
+	// Bail before consuming the notice/FIFO on a non-open socket so the next
+	// attach can still replay them.
+	if (socket.readyState !== SOCKET_OPEN) return;
+	const synthesized = takeSynthesizedAttachBytes(session);
+	if (synthesized) sendBytes(socket, synthesized);
+	if (session.bufferBytes > 0) {
+		const fifo = new Uint8Array(session.bufferBytes);
+		let offset = 0;
+		for (const b of session.buffer) {
+			fifo.set(b, offset);
+			offset += b.byteLength;
+		}
+		sendBytes(socket, fifo);
+	}
 	session.buffer.length = 0;
 	session.bufferBytes = 0;
-	sendBytes(socket, combined);
 }
 
 /**
@@ -1144,17 +1152,8 @@ function sendSeqAttach(
 ) {
 	if (socket.readyState !== SOCKET_OPEN) return;
 
-	const preamble = session.modeTracker.buildPreamble();
-	const notice = session.restoredNoticePending ? SESSION_RESTORED_NOTICE : null;
-	if (preamble || notice) {
-		const synthesized = new Uint8Array(
-			(preamble?.byteLength ?? 0) + (notice?.byteLength ?? 0),
-		);
-		if (preamble) synthesized.set(preamble, 0);
-		if (notice) synthesized.set(notice, preamble?.byteLength ?? 0);
-		sendBytes(socket, synthesized);
-	}
-	session.restoredNoticePending = false;
+	const synthesized = takeSynthesizedAttachBytes(session);
+	if (synthesized) sendBytes(socket, synthesized);
 
 	const exact =
 		request.kind === "anchor" &&
