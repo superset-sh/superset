@@ -150,6 +150,23 @@ while :; do
 done
 `;
 
+// Echo-free line reader that reports focus escapes. Focus sequences arrive
+// with no newline, so they surface glued to the front of the next input
+// line — the pattern match catches them there. `$1 = on` enables mode 1004.
+const FOCUS_SCRIPT = String.raw`
+stty -echo
+if [ "$1" = "on" ]; then printf '\033[?1004h'; fi
+printf 'READY-FOCUS\n'
+while IFS= read -r line; do
+  case $line in
+    *"[I"*) printf 'SAW-FOCUS-IN\n' ;;
+    *"[O"*) printf 'SAW-FOCUS-OUT\n' ;;
+    *) printf 'LINE-OK\n' ;;
+  esac
+  case $line in *stop*) exit 0 ;; esac
+done
+`;
+
 function sleep(ms: number): Promise<void> {
 	return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -293,6 +310,14 @@ class SeqRenderer {
 		this.ws?.send(JSON.stringify({ type: "resize", cols, rows }));
 	}
 
+	sendFocus(focused: boolean): void {
+		this.ws?.send(JSON.stringify({ type: "focus", focused }));
+	}
+
+	sendInput(data: string): void {
+		this.ws?.send(JSON.stringify({ type: "input", data }));
+	}
+
 	disconnect(): Promise<void> {
 		return new Promise((resolve) => {
 			const ws = this.ws;
@@ -381,6 +406,7 @@ before(async () => {
 	const worktreePath = path.join(TEST_HOME, "worktree");
 	fs.mkdirSync(worktreePath, { recursive: true });
 	fs.writeFileSync(path.join(TEST_HOME, "tui.sh"), TUI_SCRIPT);
+	fs.writeFileSync(path.join(TEST_HOME, "focus.sh"), FOCUS_SCRIPT);
 
 	server = new Server({
 		socketPath: SOCK,
@@ -883,5 +909,53 @@ test(
 			term.dispose();
 			await disposeSessionAndWait(terminalId, db).catch(() => {});
 		}
+	},
+);
+
+test(
+	"attach-time focus state reaches the PTY only when the program enabled mode 1004",
+	{ timeout: 90_000 },
+	async () => {
+		const run = async (mode: "on" | "off") => {
+			const terminalId = `seq-focus-${mode}-${randomUUID().slice(0, 8)}`;
+			const session = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				listed: true,
+				cols: COLS,
+				rows: ROWS,
+				initialCommand: `exec bash '${path.join(TEST_HOME, "focus.sh")}' ${mode}`,
+			});
+			if ("error" in session) assert.fail(session.error);
+			const renderer = new SeqRenderer();
+			try {
+				await renderer.connect(terminalId);
+				await renderer.waitVisible("READY-FOCUS");
+				// The transport sends the client focus state on every attach;
+				// the host must forward it iff the program asked for it.
+				renderer.sendFocus(true);
+				renderer.sendInput("ping\n");
+				if (mode === "on") {
+					await renderer.waitVisible("SAW-FOCUS-IN");
+					renderer.sendFocus(false);
+					renderer.sendInput("ping\n");
+					await renderer.waitVisible("SAW-FOCUS-OUT");
+				} else {
+					await renderer.waitVisible("LINE-OK");
+					await renderer.drain();
+					assert.ok(
+						!visibleText(renderer.term).includes("SAW-FOCUS-IN"),
+						"focus escapes must not reach a program that never enabled mode 1004",
+					);
+				}
+			} finally {
+				await renderer.disconnect().catch(() => {});
+				renderer.dispose();
+				await disposeSessionAndWait(terminalId, db).catch(() => {});
+			}
+		};
+		await run("on");
+		await run("off");
 	},
 );

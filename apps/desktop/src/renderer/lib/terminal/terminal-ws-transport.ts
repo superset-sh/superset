@@ -640,6 +640,13 @@ function attachSocketListeners(
 			transport._bytesSinceAttach = false;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
+			// Re-assert current keyboard focus so the running program's focus
+			// state can't stay stale across the reattach. In-band xterm focus
+			// reports can't cover this: a rebuilt xterm learns focus-reporting
+			// mode from the preamble only after its focus has already settled,
+			// and a focus-out sent while disconnected never arrived. The host
+			// forwards it only when the program enabled mode 1004.
+			sendFocusState(transport);
 			return;
 		}
 
@@ -799,6 +806,17 @@ export function getPersistableSeqAnchor(
 		return { ...transport.seqAnchor };
 	}
 	return null;
+}
+
+function sendFocusState(transport: TerminalTransport) {
+	const socket = transport._socket;
+	if (!socket || socket.readyState !== WebSocket.OPEN) return;
+	const textarea = transport._terminal?.textarea ?? null;
+	const focused =
+		textarea !== null &&
+		document.hasFocus() &&
+		document.activeElement === textarea;
+	socket.send(JSON.stringify({ type: "focus", focused }));
 }
 
 export function sendResize(

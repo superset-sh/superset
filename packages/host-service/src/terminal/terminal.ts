@@ -155,6 +155,13 @@ function getHostAgentHookUrl(): string {
 type TerminalClientMessage =
 	| { type: "input"; data: string }
 	| { type: "resize"; cols: number; rows: number }
+	// The client's current keyboard-focus state, sent on every attach. A
+	// reattaching client may hold focus the program last heard it lost (or
+	// vice versa) — a fresh xterm can't self-report because focus-reporting
+	// mode only reaches it via the preamble after its focus already settled.
+	// The host forwards it as \x1b[I / \x1b[O only when the program actually
+	// enabled focus reporting (mode 1004), which the tracker knows.
+	| { type: "focus"; focused: boolean }
 	| { type: "dispose" };
 
 // PTY output bytes travel as binary WebSocket frames — the renderer pipes
@@ -2317,6 +2324,13 @@ export function registerWorkspaceTerminalRoute({
 
 					if (message.type === "input") {
 						session.pty.write(message.data);
+						return;
+					}
+
+					if (message.type === "focus") {
+						if (session.modeTracker.isFocusReportingActive()) {
+							session.pty.write(message.focused ? "\x1b[I" : "\x1b[O");
+						}
 						return;
 					}
 
