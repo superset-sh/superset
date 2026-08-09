@@ -14,7 +14,17 @@ interface PendingGitInit {
 	resolve: (projects: Project[]) => void;
 }
 
-export function useOpenProject() {
+interface UseOpenProjectOptions {
+	/**
+	 * When false, opening a folder registers the project without auto-creating
+	 * its default workspace — callers land on the project page to create one
+	 * explicitly. Defaults to true to preserve the legacy behavior.
+	 */
+	createWorkspace?: boolean;
+}
+
+export function useOpenProject(options?: UseOpenProjectOptions) {
+	const createWorkspace = options?.createWorkspace ?? true;
 	const openNewMutation = useOpenNew();
 	const openFromPathMutation = useOpenFromPath();
 	const initGitAndOpen = electronTrpc.projects.initGitAndOpen.useMutation();
@@ -39,7 +49,10 @@ export function useOpenProject() {
 					try {
 						for (const path of p.paths) {
 							try {
-								const result = await initGitAndOpen.mutateAsync({ path });
+								const result = await initGitAndOpen.mutateAsync({
+									path,
+									createWorkspace,
+								});
 								projects.push(result.project);
 							} catch (error) {
 								console.error(
@@ -67,57 +80,60 @@ export function useOpenProject() {
 				},
 			});
 		},
-		[initGitAndOpen, utils],
+		[initGitAndOpen, utils, createWorkspace],
 	);
 
 	const openNew = useCallback((): Promise<Project[]> => {
 		return new Promise((resolve) => {
-			openNewMutation.mutate(undefined, {
-				onSuccess: (result) => {
-					if (result.canceled) {
-						resolve([]);
-						return;
-					}
-
-					if ("error" in result) {
-						resolve([]);
-						return;
-					}
-
-					if ("results" in result) {
-						const { successes, needsGitInit } = processOpenNewResults({
-							results: result.results,
-						});
-
-						const immediateProjects = successes.map((s) => s.project);
-
-						if (needsGitInit.length > 0) {
-							showDialog({
-								paths: needsGitInit.map((n) => n.selectedPath),
-								immediateSuccesses: immediateProjects,
-								resolve,
-							});
+			openNewMutation.mutate(
+				{ createWorkspace },
+				{
+					onSuccess: (result) => {
+						if (result.canceled) {
+							resolve([]);
 							return;
 						}
 
-						resolve(immediateProjects);
-						return;
-					}
+						if ("error" in result) {
+							resolve([]);
+							return;
+						}
 
-					resolve([]);
+						if ("results" in result) {
+							const { successes, needsGitInit } = processOpenNewResults({
+								results: result.results,
+							});
+
+							const immediateProjects = successes.map((s) => s.project);
+
+							if (needsGitInit.length > 0) {
+								showDialog({
+									paths: needsGitInit.map((n) => n.selectedPath),
+									immediateSuccesses: immediateProjects,
+									resolve,
+								});
+								return;
+							}
+
+							resolve(immediateProjects);
+							return;
+						}
+
+						resolve([]);
+					},
+					onError: () => {
+						resolve([]);
+					},
 				},
-				onError: () => {
-					resolve([]);
-				},
-			});
+			);
 		});
-	}, [openNewMutation, showDialog]);
+	}, [openNewMutation, showDialog, createWorkspace]);
 
 	const openFromPath = useCallback(
 		(path: string): Promise<Project | null> => {
 			return new Promise((resolve) => {
 				openFromPathMutation.mutate(
-					{ path },
+					{ path, createWorkspace },
 					{
 						onSuccess: (result) => {
 							if ("canceled" in result && result.canceled) {
@@ -153,7 +169,7 @@ export function useOpenProject() {
 				);
 			});
 		},
-		[openFromPathMutation, showDialog],
+		[openFromPathMutation, showDialog, createWorkspace],
 	);
 
 	return {
