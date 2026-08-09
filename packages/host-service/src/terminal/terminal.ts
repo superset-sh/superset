@@ -440,6 +440,13 @@ interface TerminalSession {
 	pendingRepaintNudge: ReturnType<typeof setTimeout> | null;
 	/** Bumped on every client resize; guards the nudge's delayed restore. */
 	resizeGeneration: number;
+	/**
+	 * Sockets whose client currently holds keyboard focus. The PTY receives
+	 * the AGGREGATE (any focused socket) — so an unfocused duplicate pane
+	 * attaching can't tell the program the focused pane lost focus (tmux's
+	 * client-focus ownership model).
+	 */
+	focusedSockets: Set<TerminalSocket>;
 
 	/**
 	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
@@ -1025,6 +1032,20 @@ function nudgeRepaint(session: TerminalSession) {
  * lets delayed nudge timers no-op instead of poking a dead PTY. */
 function isCurrentLiveSession(session: TerminalSession): boolean {
 	return !session.exited && sessions.get(session.terminalId) === session;
+}
+
+/**
+ * Write the aggregate client focus state to the PTY when the program asked
+ * for focus reports (mode 1004). Written unconditionally rather than
+ * edge-triggered: the program's belief can drift via in-band reports from
+ * individual xterms, so every focus event re-asserts the aggregate truth —
+ * a redundant \x1b[I is idempotent to the program.
+ */
+function syncPtyFocus(session: TerminalSession) {
+	if (session.exited) return;
+	if (!session.modeTracker.isFocusReportingActive()) return;
+	const aggregate = session.focusedSockets.size > 0;
+	session.pty.write(aggregate ? "\x1b[I" : "\x1b[O");
 }
 
 /**
@@ -1947,6 +1968,7 @@ export async function createTerminalSessionInternal({
 		retainedStartSeq: 0,
 		pendingRepaintNudge: null,
 		resizeGeneration: 0,
+		focusedSockets: new Set(),
 	};
 	sessions.set(terminalId, session);
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
@@ -2328,9 +2350,12 @@ export function registerWorkspaceTerminalRoute({
 					}
 
 					if (message.type === "focus") {
-						if (session.modeTracker.isFocusReportingActive()) {
-							session.pty.write(message.focused ? "\x1b[I" : "\x1b[O");
+						if (message.focused) {
+							session.focusedSockets.add(ws);
+						} else {
+							session.focusedSockets.delete(ws);
 						}
+						syncPtyFocus(session);
 						return;
 					}
 
@@ -2364,12 +2389,18 @@ export function registerWorkspaceTerminalRoute({
 
 				onClose: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (!session) return;
+					session.sockets.delete(ws);
+					// A departing focused client may hand focus-out to the program
+					// (unless another attached client still holds focus).
+					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
 				},
 
 				onError: (_event, ws) => {
 					const session = sessions.get(terminalId ?? "");
-					session?.sockets.delete(ws);
+					if (!session) return;
+					session.sockets.delete(ws);
+					if (session.focusedSockets.delete(ws)) syncPtyFocus(session);
 				},
 			};
 		}),

@@ -157,11 +157,13 @@ const FOCUS_SCRIPT = String.raw`
 stty -echo
 if [ "$1" = "on" ]; then printf '\033[?1004h'; fi
 printf 'READY-FOCUS\n'
+n=0
 while IFS= read -r line; do
+  n=$((n+1))
   case $line in
-    *"[I"*) printf 'SAW-FOCUS-IN\n' ;;
-    *"[O"*) printf 'SAW-FOCUS-OUT\n' ;;
-    *) printf 'LINE-OK\n' ;;
+    *"[I"*) printf 'EVT %03d SAW-FOCUS-IN\n' "$n" ;;
+    *"[O"*) printf 'EVT %03d SAW-FOCUS-OUT\n' "$n" ;;
+    *) printf 'EVT %03d LINE-OK\n' "$n" ;;
   esac
   case $line in *stop*) exit 0 ;; esac
 done
@@ -937,12 +939,36 @@ test(
 				renderer.sendFocus(true);
 				renderer.sendInput("ping\n");
 				if (mode === "on") {
-					await renderer.waitVisible("SAW-FOCUS-IN");
-					renderer.sendFocus(false);
-					renderer.sendInput("ping\n");
-					await renderer.waitVisible("SAW-FOCUS-OUT");
+					await renderer.waitVisible("EVT 001 SAW-FOCUS-IN");
+					// An unfocused duplicate pane must not clobber the focused
+					// pane's state: the program sees the aggregate (still
+					// focused), never a bare focus-out.
+					const second = new SeqRenderer();
+					try {
+						await second.connect(terminalId, { autoResize: false });
+						await second.waitSynced();
+						second.sendFocus(false);
+						// Separate sockets: give the focus write time to land in the
+						// PTY input queue before the probe line flushes it.
+						await sleep(400);
+						renderer.sendInput("ping\n");
+						await renderer.waitVisible("EVT 002");
+						await renderer.drain();
+						assert.ok(
+							visibleText(renderer.term).includes("EVT 002 SAW-FOCUS-IN"),
+							"an unfocused duplicate pane must not report focus-out while the focused pane is attached",
+						);
+						// Once the focused pane blurs too, focus-out flows.
+						renderer.sendFocus(false);
+						await sleep(400);
+						renderer.sendInput("ping\n");
+						await renderer.waitVisible("EVT 003 SAW-FOCUS-OUT");
+					} finally {
+						await second.disconnect().catch(() => {});
+						second.dispose();
+					}
 				} else {
-					await renderer.waitVisible("LINE-OK");
+					await renderer.waitVisible("EVT 001 LINE-OK");
 					await renderer.drain();
 					assert.ok(
 						!visibleText(renderer.term).includes("SAW-FOCUS-IN"),
