@@ -635,6 +635,14 @@ async function waitForAdoptionReplay(session: TerminalSession): Promise<void> {
 }
 
 /**
+ * In-flight headless adoptions by terminal id. Concurrent callers racing an
+ * adoption would each build their own TerminalSession (independent
+ * followUpWriteChain, duplicate daemon subscriptions) — sharing the leader's
+ * attempt keeps session identity unique per terminal.
+ */
+const adoptionsInFlight = new Map<string, Promise<unknown>>();
+
+/**
  * Resolve a session for headless IO. The in-memory map empties on every
  * host-service restart while the detached daemon keeps PTYs alive, so a
  * miss is not "gone" — recover it the same way pane auto-adoption does.
@@ -650,25 +658,44 @@ async function getOrAdoptSession({
 	db: HostDb;
 	eventBus?: EventBus;
 }): Promise<TerminalSession | { error: string }> {
-	const existing = sessions.get(terminalId);
-	if (existing) {
-		if (existing.workspaceId !== workspaceId) {
-			return { error: "Terminal session does not belong to this workspace" };
+	for (;;) {
+		const existing = sessions.get(terminalId);
+		if (existing) {
+			if (existing.workspaceId !== workspaceId) {
+				return { error: "Terminal session does not belong to this workspace" };
+			}
+			return existing;
 		}
-		return existing;
+
+		// Another caller is mid-adoption: wait it out, then re-resolve so
+		// this caller runs its own workspace check (or leads a fresh attempt
+		// if the leader failed).
+		const pending = adoptionsInFlight.get(terminalId);
+		if (pending) {
+			await pending.catch(() => {});
+			continue;
+		}
+
+		const attempt = (async () => {
+			const adopted = await createTerminalSessionInternal({
+				terminalId,
+				workspaceId,
+				db,
+				eventBus,
+				adoptOnly: true,
+			});
+			if ("error" in adopted) return adopted;
+
+			await waitForAdoptionReplay(adopted);
+			return adopted;
+		})();
+		adoptionsInFlight.set(terminalId, attempt);
+		try {
+			return await attempt;
+		} finally {
+			adoptionsInFlight.delete(terminalId);
+		}
 	}
-
-	const adopted = await createTerminalSessionInternal({
-		terminalId,
-		workspaceId,
-		db,
-		eventBus,
-		adoptOnly: true,
-	});
-	if ("error" in adopted) return adopted;
-
-	await waitForAdoptionReplay(adopted);
-	return adopted;
 }
 
 /**

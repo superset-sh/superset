@@ -420,6 +420,70 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("concurrent sends racing a fresh adoption share one session and serialize", async () => {
+		const terminalId = `e2e-adoptrace-${randomUUID().slice(0, 8)}`;
+		const id = randomUUID().slice(0, 6);
+		const captureFile = path.join(TEST_HOME, `adoptrace-${terminalId}`);
+		const doneFile = path.join(TEST_HOME, `adoptrace-done-${terminalId}`);
+
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			initialCommand: `printf '\\033[?2004h'; cat > "${captureFile}"; printf '\\033[?2004l'; echo done > "${doneFile}"`,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+		await waitFor(() => session.modeTracker.isBracketedPasteActive(), 5000);
+
+		// Simulate a host-service restart: memory empties, daemon lives. Both
+		// sends below then race the adoption; without in-flight dedup they get
+		// separate TerminalSession objects whose write chains interleave, and
+		// the draft rides the first send's Enter.
+		__resetSessionsForTesting();
+		await disposeDaemonClient();
+
+		const [first, second] = await Promise.all([
+			writeFramedInputToSession({
+				terminalId,
+				workspaceId,
+				text: `submit-${id}`,
+				submit: true,
+				db,
+			}),
+			writeFramedInputToSession({
+				terminalId,
+				workspaceId,
+				text: `draft-${id}`,
+				submit: false,
+				db,
+			}),
+		]);
+		assert.ok(!("error" in first), JSON.stringify(first));
+		assert.ok(!("error" in second), JSON.stringify(second));
+
+		// First ^D flushes the staged draft line to cat, second at line start
+		// is EOF.
+		writeInputToSession({ terminalId, workspaceId, data: "\x04" });
+		writeInputToSession({ terminalId, workspaceId, data: "\x04" });
+		await waitFor(() => fs.existsSync(doneFile), 5000);
+
+		const captured = fs.readFileSync(captureFile, "latin1");
+		const submitIndex = captured.indexOf(`submit-${id}`);
+		const draftIndex = captured.indexOf(`draft-${id}`);
+		assert.ok(
+			submitIndex >= 0 && draftIndex > submitIndex,
+			`expected submit before draft, got: ${JSON.stringify(captured)}`,
+		);
+		assert.ok(
+			captured.slice(submitIndex, draftIndex).includes("\n"),
+			`Enter must land between the submitted text and the draft, got: ${JSON.stringify(captured)}`,
+		);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
 	test("snapshot reads the alt-screen buffer while a TUI is active", async () => {
 		const terminalId = `e2e-alt-${randomUUID().slice(0, 8)}`;
 		const id = randomUUID().slice(0, 6);
