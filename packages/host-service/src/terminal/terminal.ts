@@ -230,6 +230,15 @@ const SHELL_READY_TIMEOUT_MS = 15_000;
 const INITIAL_COMMAND_ENTER_DELAY_MS = 500;
 
 /**
+ * Gap between a follow-up send's text and the Enter that submits it. TUI
+ * agents treat bytes arriving together as one paste burst, so an Enter
+ * bundled with the text can be swallowed into the draft instead of
+ * submitting it when the session is busy or slow (#6243). The delay puts
+ * the Enter in its own read, where it can only be a keypress.
+ */
+const FOLLOW_UP_ENTER_DELAY_MS = 500;
+
+/**
  * Byte ceiling for typing an initialCommand directly into the PTY. The
  * shell-ready marker fires from precmd, before the line editor switches the
  * TTY to raw mode; input written in that gap queues under the kernel's
@@ -690,7 +699,18 @@ export async function writeFramedInputToSession({
 	const framed = session.modeTracker.isBracketedPasteActive()
 		? `\x1b[200~${text}\x1b[201~`
 		: text;
-	session.pty.write(submit ? `${framed}\r` : framed);
+	if (!submit) {
+		session.pty.write(framed);
+		return { success: true };
+	}
+	if (text.length > 0) {
+		session.pty.write(framed);
+		await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
+		if (session.exited) {
+			return { error: "Terminal session has exited" };
+		}
+	}
+	session.pty.write("\r");
 	return { success: true };
 }
 

@@ -288,6 +288,63 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 		await disposeSessionAndWait(terminalId, db);
 	});
 
+	test("submit Enter is a separate write, delayed past the paste burst", async () => {
+		const terminalId = `e2e-enterdelay-${randomUUID().slice(0, 8)}`;
+		const id = randomUUID().slice(0, 6);
+		const captureFile = path.join(TEST_HOME, `enterdelay-${terminalId}`);
+		const doneFile = path.join(TEST_HOME, `enterdelay-done-${terminalId}`);
+
+		// `cat > file` under canonical mode: nothing reaches the file until a
+		// line terminator arrives, so the capture file is the oracle for
+		// whether the Enter has been written yet.
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+			initialCommand: `printf '\\033[?2004h'; cat > "${captureFile}"; printf '\\033[?2004l'; echo done > "${doneFile}"`,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+
+		await waitFor(() => session.modeTracker.isBracketedPasteActive(), 5000);
+
+		const pending = writeFramedInputToSession({
+			terminalId,
+			workspaceId,
+			text: `delayed-${id}`,
+			submit: true,
+			db,
+		});
+		// Mid-delay: the text write must not have been submitted yet — a
+		// bundled `text\r` write would have flushed the line already.
+		await new Promise((r) => setTimeout(r, 150));
+		const midDelay = fs.existsSync(captureFile)
+			? fs.readFileSync(captureFile, "latin1")
+			: "";
+		assert.ok(
+			!midDelay.includes(`delayed-${id}`),
+			`Enter must be delayed past the text write, got: ${JSON.stringify(midDelay)}`,
+		);
+
+		const sent = await pending;
+		assert.ok(!("error" in sent));
+		await waitFor(
+			() =>
+				fs.existsSync(captureFile) &&
+				fs
+					.readFileSync(captureFile, "latin1")
+					.includes(`\x1b[200~delayed-${id}\x1b[201~`),
+			5000,
+		);
+
+		const eof = writeInputToSession({ terminalId, workspaceId, data: "\x04" });
+		assert.ok(!("error" in eof));
+		await waitFor(() => fs.existsSync(doneFile), 5000);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
 	test("snapshot reads the alt-screen buffer while a TUI is active", async () => {
 		const terminalId = `e2e-alt-${randomUUID().slice(0, 8)}`;
 		const id = randomUUID().slice(0, 6);
