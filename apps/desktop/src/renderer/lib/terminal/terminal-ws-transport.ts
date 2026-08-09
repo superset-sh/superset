@@ -158,6 +158,13 @@ export interface TerminalTransport {
 	/** Internal: bound resume handler shared by the online/focus/visibility
 	 * listeners, so they can be removed on teardown. */
 	_resumeListener: (() => void) | null;
+	/**
+	 * Internal: removes the textarea focus/blur listeners that keep the
+	 * host's declared focus state current. The host aggregates the declared
+	 * state across sockets, so it must track live focus changes — xterm's
+	 * in-band \x1b[I/\x1b[O reports bypass that aggregation.
+	 */
+	_disposeFocusListeners: (() => void) | null;
 }
 
 const MAX_LOG_ENTRIES = 200;
@@ -334,6 +341,7 @@ export function createTransport(
 		_livenessTimer: null,
 		_lastLivenessTick: 0,
 		_resumeListener: null,
+		_disposeFocusListeners: null,
 	};
 }
 
@@ -506,6 +514,20 @@ export function connect(
 	transport.currentUrl = wsUrl;
 	transport._localToken = extractToken(wsUrl);
 	transport._terminal = terminal;
+	// Keep the host's declared focus state current across live focus changes,
+	// not just at attach — the host writes the aggregate across all attached
+	// clients, so a pane whose focus only travelled in-band would be invisible
+	// to it and an unfocused sibling could clobber the program's state.
+	if (!transport._disposeFocusListeners && terminal.textarea) {
+		const textarea = terminal.textarea;
+		const send = () => sendFocusState(transport);
+		textarea.addEventListener("focus", send);
+		textarea.addEventListener("blur", send);
+		transport._disposeFocusListeners = () => {
+			textarea.removeEventListener("focus", send);
+			textarea.removeEventListener("blur", send);
+		};
+	}
 	transport._terminated = false;
 	transport._diagnosisLogged = false;
 	transport.lastDiagnosis = null;
@@ -779,6 +801,8 @@ export function reconnect(transport: TerminalTransport) {
 
 export function disconnect(transport: TerminalTransport) {
 	teardownLiveness(transport);
+	transport._disposeFocusListeners?.();
+	transport._disposeFocusListeners = null;
 	if (transport._socket) {
 		transport._socket.close();
 		transport._socket = null;
@@ -850,6 +874,8 @@ export function sendDispose(transport: TerminalTransport) {
 
 export function disposeTransport(transport: TerminalTransport) {
 	teardownLiveness(transport);
+	transport._disposeFocusListeners?.();
+	transport._disposeFocusListeners = null;
 	if (transport._socket) {
 		transport._socket.close();
 		transport._socket = null;
