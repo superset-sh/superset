@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { newWorkspaceAttachmentsStore } from "renderer/stores/new-workspace-attachments";
 import {
 	useCloseNewWorkspaceModal,
 	useNewWorkspaceModalOpen,
@@ -66,7 +67,7 @@ export function DashboardNewWorkspaceModal() {
 
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={closeModal}>
-			<PromptInputProvider>
+			<PromptInputProvider attachmentsStore={newWorkspaceAttachmentsStore}>
 				<PromptInputResetSync />
 				<Dialog
 					modal

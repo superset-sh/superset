@@ -44,6 +44,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { SupersetIcon } from "renderer/routes/_authenticated/onboarding/providers/components/SupersetIcon";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { newWorkspaceAttachmentPaths } from "renderer/stores/new-workspace-attachments";
 import { useNewWorkspacePromptContext } from "renderer/stores/new-workspace-prompt-context";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
@@ -118,9 +119,6 @@ export function NewWorkspaceScreen({
 	// case (Esc-cancelled drags, drops outside the window) that an enter/leave
 	// counter gets permanently stuck on.
 	const [isDraggingFiles, setIsDraggingFiles] = useState(false);
-	// Source paths for dropped/picked files, keyed by filename — the attachment
-	// items only keep an object URL, and Finder reveal needs the original path.
-	const attachmentPathsRef = useRef(new Map<string, string>());
 	useEffect(() => {
 		if (!isOpen) return;
 		let timer: number | null = null;
@@ -132,8 +130,8 @@ export function NewWorkspaceScreen({
 					// Attachment items only expose the basename, so the map is
 					// name-keyed; a second same-named file from elsewhere makes the
 					// name ambiguous — poison it so no card reveals the wrong file.
-					const existing = attachmentPathsRef.current.get(file.name);
-					attachmentPathsRef.current.set(
+					const existing = newWorkspaceAttachmentPaths.get(file.name);
+					newWorkspaceAttachmentPaths.set(
 						file.name,
 						existing !== undefined && existing !== path ? "" : path,
 					);
@@ -601,7 +599,7 @@ export function NewWorkspaceScreen({
 							))}
 							{visibleFiles.map((file) => {
 								const sourcePath = file.filename
-									? attachmentPathsRef.current.get(file.filename) || null
+									? newWorkspaceAttachmentPaths.get(file.filename) || null
 									: null;
 								return (
 									<AttachmentCard

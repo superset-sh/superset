@@ -1,6 +1,7 @@
 import { PromptInputProvider } from "@superset/ui/ai-elements/prompt-input";
 import { NewWorkspaceScreen } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/NewWorkspaceScreen";
 import { DashboardNewWorkspaceDraftProvider } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/DashboardNewWorkspaceDraftContext";
+import { newWorkspaceAttachmentsStore } from "renderer/stores/new-workspace-attachments";
 
 /**
  * Experiment test arm (new-workspace-screen): replaces the "No workspaces yet"
@@ -12,7 +13,7 @@ import { DashboardNewWorkspaceDraftProvider } from "renderer/routes/_authenticat
 export function NewWorkspaceEmptyScreen() {
 	return (
 		<DashboardNewWorkspaceDraftProvider onClose={() => {}}>
-			<PromptInputProvider>
+			<PromptInputProvider attachmentsStore={newWorkspaceAttachmentsStore}>
 				<NewWorkspaceScreen isOpen preSelectedProjectId={null} />
 			</PromptInputProvider>
 		</DashboardNewWorkspaceDraftProvider>
