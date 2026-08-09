@@ -39,6 +39,7 @@ interface AdoptedForTest {
 	socketPath: string;
 	runningVersion: string;
 	updatePending: boolean;
+	bootstrapHealthy?: boolean;
 }
 
 beforeEach(() => {
@@ -73,6 +74,10 @@ interface FakeDaemonOptions {
 	socketPath?: string;
 	respondWithVersion?: string;
 	daemonPid?: number;
+	/** Included in the hello-ack when defined, like a self-probing daemon. */
+	bootstrapHealthy?: boolean;
+	/** Answer `list` with these sessions. Unset = never answer (wedged list). */
+	sessions?: ReturnType<typeof aliveSession>[];
 	respondRaw?: Buffer;
 	hangUpAfterHello?: boolean;
 	respondWithWrongMessageFirst?: boolean;
@@ -95,6 +100,12 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 			decoder.push(chunk);
 			for (const decoded of decoder.drain()) {
 				const msg = decoded.message as ClientMessage;
+				if (msg.type === "list" && opts.sessions) {
+					sock.write(
+						encodeFrame({ type: "list-reply", sessions: opts.sessions }),
+					);
+					continue;
+				}
 				if (msg.type !== "hello") continue;
 				if (opts.silent) return;
 				if (opts.hangUpAfterHello) {
@@ -122,9 +133,9 @@ async function startFakeDaemon(opts: FakeDaemonOptions): Promise<{
 							protocol: 1,
 							daemonVersion: opts.respondWithVersion,
 							daemonPid: opts.daemonPid,
+							bootstrapHealthy: opts.bootstrapHealthy,
 						}),
 					);
-					return;
 				}
 			}
 		});
@@ -456,6 +467,241 @@ describe("DaemonSupervisor.tryAdopt", () => {
 	}, 15_000);
 });
 
+describe("bootstrap-degraded daemon healing (GH #6127)", () => {
+	let originalHome: string | undefined;
+	let tmpHome: string;
+
+	beforeEach(() => {
+		originalHome = process.env.SUPERSET_HOME_DIR;
+		tmpHome = fs.mkdtempSync(path.join(os.tmpdir(), "pty-daemon-degraded-"));
+		process.env.SUPERSET_HOME_DIR = tmpHome;
+	});
+
+	afterEach(() => {
+		if (originalHome !== undefined) {
+			process.env.SUPERSET_HOME_DIR = originalHome;
+		} else {
+			delete process.env.SUPERSET_HOME_DIR;
+		}
+		fs.rmSync(tmpHome, { recursive: true, force: true });
+	});
+
+	test("tryAdopt carries the daemon's self-reported bootstrap health", async () => {
+		const orgId = "org-degraded-adopt";
+		const socketPath = ptyDaemonSocketPath(orgId);
+		try {
+			fs.unlinkSync(socketPath);
+		} catch {
+			// best-effort cleanup
+		}
+		const fake = await startFakeDaemon({
+			socketPath,
+			respondWithVersion: "0.3.0",
+			daemonPid: process.pid,
+			bootstrapHealthy: false,
+		});
+		try {
+			const sup = new DaemonSupervisor({
+				scriptPath: "/nonexistent",
+				autoUpdate: false,
+			});
+			const adopted = (await invokeTryAdopt(
+				sup,
+				orgId,
+			)) as AdoptedForTest | null;
+			expect(adopted?.bootstrapHealthy).toBe(false);
+		} finally {
+			await fake.close();
+			try {
+				fs.unlinkSync(socketPath);
+			} catch {
+				// best-effort
+			}
+		}
+	});
+
+	test("auto-respawns a degraded daemon only when it holds zero sessions", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.3.0",
+			sessions: [],
+		});
+		try {
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			expect(
+				await invokeShouldAutoRespawnDegraded(sup, "org-empty", {
+					...freshInstance(),
+					socketPath: fake.socketPath,
+					bootstrapHealthy: false,
+				}),
+			).toBe(true);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("never kills a degraded daemon that owns live sessions", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.3.0",
+			sessions: [aliveSession()],
+		});
+		try {
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			expect(
+				await invokeShouldAutoRespawnDegraded(sup, "org-live", {
+					...freshInstance(),
+					socketPath: fake.socketPath,
+					bootstrapHealthy: false,
+				}),
+			).toBe(false);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("never kills when the session list can't be read (unknown ≠ empty)", async () => {
+		// Fake answers hello but not list — a daemon whose session state we
+		// can't see may own shells; killing it blind repeats SUPER-833.
+		const fake = await startFakeDaemon({ respondWithVersion: "0.3.0" });
+		try {
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			expect(
+				await invokeShouldAutoRespawnDegraded(sup, "org-unknown", {
+					...freshInstance(),
+					socketPath: fake.socketPath,
+					bootstrapHealthy: false,
+				}),
+			).toBe(false);
+		} finally {
+			await fake.close();
+		}
+	}, 15_000);
+
+	test("does not respawn a healthy or unknown-health daemon", async () => {
+		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		expect(
+			await invokeShouldAutoRespawnDegraded(sup, "org-healthy", {
+				...freshInstance(),
+				bootstrapHealthy: true,
+			}),
+		).toBe(false);
+		expect(
+			await invokeShouldAutoRespawnDegraded(sup, "org-preprobe", {
+				...freshInstance(),
+			}),
+		).toBe(false);
+	});
+
+	test("only one automatic respawn attempt per org (no churn loop)", async () => {
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.3.0",
+			sessions: [],
+		});
+		try {
+			const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+			(
+				sup as unknown as { bootstrapHealAttempted: Set<string> }
+			).bootstrapHealAttempted.add("org-once");
+			expect(
+				await invokeShouldAutoRespawnDegraded(sup, "org-once", {
+					...freshInstance(),
+					socketPath: fake.socketPath,
+					bootstrapHealthy: false,
+				}),
+			).toBe(false);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("reachability probe discovers degradation and heals a session-less daemon", async () => {
+		// The reporter's path: an auto-update handoff swaps a pre-probe binary
+		// for a probe-capable one that inherited the same broken context. The
+		// periodic probe must pick the flag up and respawn (nothing to lose).
+		const orgId = "org-poll-heal";
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.3.0",
+			daemonPid: process.pid,
+			bootstrapHealthy: false,
+			sessions: [],
+		});
+		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		const forceRestartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { forceRestart: typeof forceRestartMock }).forceRestart =
+			forceRestartMock;
+		try {
+			seedInstance(sup, orgId, {
+				pid: process.pid,
+				socketPath: fake.socketPath,
+				runningVersion: "0.3.0",
+				expectedVersion: "0.3.0",
+				updatePending: false,
+			});
+			await invokeRefreshReachability(sup, orgId, process.pid);
+			// The heal runs detached from the probe (session list is a real
+			// socket round trip) — poll for it instead of a fixed sleep.
+			const deadline = Date.now() + 3_000;
+			while (
+				forceRestartMock.mock.calls.length === 0 &&
+				Date.now() < deadline
+			) {
+				await new Promise((r) => setTimeout(r, 25));
+			}
+			expect(sup.getHealth(orgId)?.bootstrapDegraded).toBe(true);
+			expect(forceRestartMock).toHaveBeenCalledTimes(1);
+			expect(
+				loggedEvents.some(
+					(e) => e.event === "pty_daemon_bootstrap_degraded_detected",
+				),
+			).toBe(true);
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("reachability probe surfaces degradation but leaves live sessions alone", async () => {
+		const orgId = "org-poll-live";
+		const fake = await startFakeDaemon({
+			respondWithVersion: "0.3.0",
+			daemonPid: process.pid,
+			bootstrapHealthy: false,
+			sessions: [aliveSession()],
+		});
+		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		const forceRestartMock = mock(async () => ({ success: true as const }));
+		(sup as unknown as { forceRestart: typeof forceRestartMock }).forceRestart =
+			forceRestartMock;
+		try {
+			seedInstance(sup, orgId, {
+				pid: process.pid,
+				socketPath: fake.socketPath,
+				runningVersion: "0.3.0",
+				expectedVersion: "0.3.0",
+				updatePending: false,
+			});
+			await invokeRefreshReachability(sup, orgId, process.pid);
+			// Give the detached heal path time to complete its session list
+			// (a real socket round trip) before asserting nothing happened.
+			await new Promise((r) => setTimeout(r, 300));
+			// Degraded is visible to the UI (which offers restart)…
+			expect(sup.getHealth(orgId)?.bootstrapDegraded).toBe(true);
+			// …but nothing destructive happened on its own.
+			expect(forceRestartMock).not.toHaveBeenCalled();
+		} finally {
+			await fake.close();
+		}
+	});
+
+	test("getHealth reports bootstrapDegraded=false while health is unknown", () => {
+		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
+		seedInstance(sup, "org-health-unknown", {
+			runningVersion: "0.1.0",
+			expectedVersion: "0.1.0",
+			updatePending: false,
+		});
+		expect(sup.getHealth("org-health-unknown")?.bootstrapDegraded).toBe(false);
+	});
+});
+
 describe("DaemonSupervisor daemon health", () => {
 	test("returns null when there's no daemon for the org", () => {
 		const sup = new DaemonSupervisor({ scriptPath: "/nonexistent" });
@@ -473,6 +719,7 @@ describe("DaemonSupervisor daemon health", () => {
 		expect(sup.getHealth("org-ok")).toEqual({
 			reachable: true,
 			unreachableForMs: 0,
+			bootstrapDegraded: false,
 		});
 	});
 
@@ -531,6 +778,7 @@ describe("DaemonSupervisor daemon health", () => {
 			expect(sup.getHealth("org-recovers")).toEqual({
 				reachable: true,
 				unreachableForMs: 0,
+				bootstrapDegraded: false,
 			});
 			// And the version we couldn't read at adoption is now resolved.
 			expect(sup.getUpdateStatus("org-recovers")?.running).toBe("0.1.0");
@@ -1282,6 +1530,21 @@ function invokeTryAdopt(
 			tryAdopt: (id: string) => Promise<unknown | null>;
 		}
 	).tryAdopt(organizationId);
+}
+
+function invokeShouldAutoRespawnDegraded(
+	sup: DaemonSupervisor,
+	organizationId: string,
+	instance: ReturnType<typeof freshInstance> & { bootstrapHealthy?: boolean },
+): Promise<boolean> {
+	return (
+		sup as unknown as {
+			shouldAutoRespawnDegraded: (
+				id: string,
+				inst: typeof instance,
+			) => Promise<boolean>;
+		}
+	).shouldAutoRespawnDegraded(organizationId, instance);
 }
 
 /** A live pid that is definitely not a pty-daemon. */

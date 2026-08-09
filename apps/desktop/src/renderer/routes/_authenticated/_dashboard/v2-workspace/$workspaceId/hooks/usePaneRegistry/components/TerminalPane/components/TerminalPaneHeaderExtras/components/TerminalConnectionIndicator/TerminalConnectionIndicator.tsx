@@ -136,8 +136,12 @@ export function TerminalConnectionIndicator({
 		!!health &&
 		!health.reachable &&
 		health.unreachableForMs >= DAEMON_UNREACHABLE_WARN_MS;
+	// Broken macOS process context (trustd/opendirectoryd unreachable): every
+	// shell fails `gh`/TLS/user lookups and it never self-heals while shells
+	// exist, so it shows immediately — no stall grace period applies.
+	const daemonDegraded = !!health?.bootstrapDegraded;
 
-	if (connectionHealthy && !daemonUnreachable) {
+	if (connectionHealthy && !daemonUnreachable && !daemonDegraded) {
 		return null;
 	}
 	// First connect hasn't had trouble yet — don't flash a status.
@@ -145,32 +149,39 @@ export function TerminalConnectionIndicator({
 		connectionState === "connecting" &&
 		logs.length === 0 &&
 		!diagnosis &&
-		!daemonUnreachable
+		!daemonUnreachable &&
+		!daemonDegraded
 	) {
 		return null;
 	}
 
-	// Three failure modes so copy + colour name the fix that applies. Amber =
+	// Four failure modes so copy + colour name the fix that applies. Amber =
 	// still working itself out (auto-retry, or a stall that usually self-heals);
 	// red = we've stopped trying and need the user.
 	const gaveUp = diagnosis !== null && connectionState === "closed";
 	const mode = daemonUnreachable
 		? "unresponsive"
-		: gaveUp
-			? "disconnected"
-			: "reconnecting";
+		: daemonDegraded
+			? "degraded"
+			: gaveUp
+				? "disconnected"
+				: "reconnecting";
 	const reconnecting = connectionState === "connecting";
 	const label =
 		mode === "unresponsive"
 			? "Terminals aren't responding"
-			: mode === "disconnected"
-				? "Disconnected"
-				: "Reconnecting…";
+			: mode === "degraded"
+				? "Terminals need a restart"
+				: mode === "disconnected"
+					? "Disconnected"
+					: "Reconnecting…";
 	const StatusIcon = mode === "reconnecting" ? Loader2 : TriangleAlert;
 	const accentClass =
-		mode === "disconnected" ? "text-destructive" : "text-yellow-500";
+		mode === "disconnected" || mode === "degraded"
+			? "text-destructive"
+			: "text-yellow-500";
 	const dotClass =
-		mode === "disconnected"
+		mode === "disconnected" || mode === "degraded"
 			? "bg-destructive"
 			: mode === "unresponsive"
 				? "bg-yellow-500"
@@ -203,6 +214,13 @@ export function TerminalConnectionIndicator({
 						/>
 						<p className="font-medium text-foreground">{label}</p>
 					</div>
+					{mode === "degraded" && (
+						<p className="select-text cursor-text text-xs text-muted-foreground">
+							Terminals lost access to macOS user and security services, so
+							commands like <code>gh</code> and <code>ssh</code> fail.
+							Restarting terminals fixes this.
+						</p>
+					)}
 					{/* Reconnect (solid) leads as the safe primary; Restart (outline)
 					    is distinct but quieter, red only on hover so the destructive path
 					    never looks like the obvious one. Both can apply at once (a wedged
@@ -234,7 +252,7 @@ export function TerminalConnectionIndicator({
 								)}
 							</Button>
 						)}
-						{daemonUnreachable && (
+						{(daemonUnreachable || daemonDegraded) && (
 							<Button
 								variant="outline"
 								className="flex-1 hover:border-destructive/50 hover:bg-destructive/10 hover:text-destructive"

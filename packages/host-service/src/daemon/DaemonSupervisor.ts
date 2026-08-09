@@ -14,6 +14,7 @@ import * as fs from "node:fs";
 import * as net from "node:net";
 import * as os from "node:os";
 import * as path from "node:path";
+import { probeBootstrapHealthy } from "@superset/pty-daemon/bootstrap-probe";
 import {
 	isPositiveInteger,
 	signalProcessTreeAndGroups,
@@ -51,6 +52,13 @@ interface DaemonInstance {
 	/** Last failed background update attempt for this still-running daemon. */
 	autoUpdateFailure?: DaemonAutoUpdateFailure;
 	/**
+	 * macOS bootstrap-namespace health the daemon self-reported in its
+	 * hello-ack. `false` = degraded: its terminals hit `gh -26276` and
+	 * `id -un` → bare uid (GH #6127). undefined = pre-probe daemon version
+	 * or not yet probed.
+	 */
+	bootstrapHealthy?: boolean;
+	/**
 	 * When the daemon first stopped answering probes; null while reachable.
 	 * Drives the UI's "terminals aren't responding" state, which waits for a
 	 * sustained silence so a transient stall doesn't prompt a destructive
@@ -63,11 +71,18 @@ export interface DaemonHealth {
 	reachable: boolean;
 	/** 0 while reachable. */
 	unreachableForMs: number;
+	/**
+	 * True when the daemon reported a broken macOS bootstrap namespace —
+	 * its shells can't reach trustd/opendirectoryd (`gh -26276`, `id -un`
+	 * → bare uid). Only a daemon restart fixes it; the UI offers that.
+	 */
+	bootstrapDegraded: boolean;
 }
 
 interface DaemonProbeResult {
 	daemonVersion: string;
 	daemonPid?: number;
+	bootstrapHealthy?: boolean;
 }
 
 export interface DaemonAutoUpdateFailure {
@@ -177,6 +192,12 @@ export interface DaemonSupervisorOptions {
 	 * real handoff.
 	 */
 	autoUpdate?: boolean;
+	/**
+	 * Override for the host-side bootstrap probe (macOS Mach-namespace
+	 * health). Production leaves this unset; tests inject a stub so heal
+	 * decisions are deterministic off darwin.
+	 */
+	probeHostBootstrap?: () => boolean | Promise<boolean>;
 }
 
 export class DaemonSupervisor {
@@ -215,9 +236,30 @@ export class DaemonSupervisor {
 		string,
 		Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }>
 	>();
+	/**
+	 * Orgs whose degraded daemon we already auto-respawned once. A respawn
+	 * that lands degraded again (host context beyond repair) must not loop —
+	 * after one attempt, recovery is the explicit user restart only.
+	 */
+	private readonly bootstrapHealAttempted = new Set<string>();
+	/** Whether host-service itself has an intact bootstrap; probed once, cached. */
+	private hostBootstrapHealthyPromise: Promise<boolean> | null = null;
 
 	constructor(opts: DaemonSupervisorOptions) {
 		this.opts = opts;
+	}
+
+	/**
+	 * Whether host-service's own Mach bootstrap namespace is intact. Decides
+	 * whether a fresh daemon can simply inherit our context or must be
+	 * re-rooted into the user's bootstrap via `launchctl asuser`. Cached —
+	 * a process's bootstrap doesn't change under it.
+	 */
+	private hostBootstrapHealthy(): Promise<boolean> {
+		this.hostBootstrapHealthyPromise ??= Promise.resolve(
+			(this.opts.probeHostBootstrap ?? probeBootstrapHealthy)(),
+		);
+		return this.hostBootstrapHealthyPromise;
 	}
 
 	/**
@@ -603,6 +645,28 @@ export class DaemonSupervisor {
 			return;
 		}
 		current.unreachableSince = null;
+		if (probe.bootstrapHealthy !== undefined) {
+			const wasDegraded = current.bootstrapHealthy === false;
+			current.bootstrapHealthy = probe.bootstrapHealthy;
+			// A daemon can first reveal degradation here rather than at adopt
+			// time: an auto-update handoff replaces a pre-probe binary with a
+			// probe-capable one that inherited the same broken context.
+			if (probe.bootstrapHealthy === false && !wasDegraded) {
+				logEvent("pty_daemon_bootstrap_degraded_detected", {
+					organizationId,
+					pid: current.pid,
+					runningVersion: current.runningVersion,
+				});
+				void this.maybeHealDegradedFromPoll(organizationId, current).catch(
+					(err) => {
+						console.error(
+							`[pty-daemon:${organizationId}] bootstrap heal failed:`,
+							err,
+						);
+					},
+				);
+			}
+		}
 		if (current.runningVersion === "unknown") {
 			current.runningVersion = probe.daemonVersion;
 			current.updatePending = isVersionUpdatePending(probe.daemonVersion);
@@ -626,6 +690,7 @@ export class DaemonSupervisor {
 			reachable: unreachableSince === null,
 			unreachableForMs:
 				unreachableSince === null ? 0 : Date.now() - unreachableSince,
+			bootstrapDegraded: instance.bootstrapHealthy === false,
 		};
 	}
 
@@ -789,8 +854,34 @@ export class DaemonSupervisor {
 			await this.killStaleDaemonForDev(organizationId);
 		}
 
-		const adopted = await this.tryAdopt(organizationId);
+		let adopted = await this.tryAdopt(organizationId);
+		// Heal a bootstrap-degraded daemon: it inherited a Mach namespace that
+		// can't reach trustd/opendirectoryd, so its terminals hit `gh -26276`
+		// and `id -un` → bare uid (GH #6127). Adopting it keeps the breakage —
+		// but only replace it when that destroys nothing: with live sessions we
+		// adopt anyway (their shells are already spawned broken; killing them
+		// gains nothing) and surface the state so the user can restart.
+		if (
+			adopted &&
+			(await this.shouldAutoRespawnDegraded(organizationId, adopted))
+		) {
+			this.bootstrapHealAttempted.add(organizationId);
+			logEvent("pty_daemon_bootstrap_degraded_respawn", {
+				organizationId,
+				pid: adopted.pid,
+				runningVersion: adopted.runningVersion,
+			});
+			await this.killAdoptedDaemon(organizationId, adopted);
+			adopted = null;
+		}
 		if (adopted) {
+			if (adopted.bootstrapHealthy === false) {
+				logEvent("pty_daemon_bootstrap_degraded_adopted", {
+					organizationId,
+					pid: adopted.pid,
+					runningVersion: adopted.runningVersion,
+				});
+			}
 			this.instances.set(organizationId, adopted);
 			console.log(
 				`[pty-daemon:${organizationId}] adopted existing daemon pid=${adopted.pid} runningVersion=${adopted.runningVersion} updatePending=${adopted.updatePending}`,
@@ -815,7 +906,7 @@ export class DaemonSupervisor {
 			return adopted;
 		}
 
-		const instance = await this.spawn(organizationId);
+		const instance = await this.spawnWithBootstrapFallback(organizationId);
 		logEvent("pty_daemon_spawn", {
 			organizationId,
 			pid: instance.pid,
@@ -824,6 +915,91 @@ export class DaemonSupervisor {
 		});
 		this.lastUpdatePendingPair.delete(organizationId);
 		return instance;
+	}
+
+	/**
+	 * Whether a degraded daemon can be replaced automatically. Only when the
+	 * daemon self-reported a broken bootstrap AND it holds zero sessions —
+	 * a session list we can't read (null) counts as "may hold shells", so we
+	 * never kill blind. One attempt per org: if the replacement comes up
+	 * degraded too, looping respawns would just churn.
+	 */
+	private async shouldAutoRespawnDegraded(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<boolean> {
+		if (instance.bootstrapHealthy !== false) return false;
+		if (this.bootstrapHealAttempted.has(organizationId)) return false;
+		const sessions = await listDaemonSessions(instance.socketPath, 1_500);
+		return sessions !== null && sessions.length === 0;
+	}
+
+	/**
+	 * Terminate an adopted daemon so start() can fall through to a fresh
+	 * spawn. An adopted daemon has no child handle or crash-respawn hook
+	 * attached yet, so this just kills its process tree and clears its
+	 * manifest + socket. Callers must have verified it holds no sessions.
+	 */
+	private async killAdoptedDaemon(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<void> {
+		await terminateProcessTreeAndGroups(instance.pid, "SIGTERM");
+		removePtyDaemonManifest(organizationId);
+		try {
+			if (fs.existsSync(instance.socketPath)) {
+				fs.unlinkSync(instance.socketPath);
+			}
+		} catch {
+			// best-effort; the fresh daemon unlinks a stale socket on bind anyway
+		}
+	}
+
+	/**
+	 * Poll-path heal: a running daemon just revealed a degraded bootstrap
+	 * (e.g. an auto-update handoff carried the old context into a
+	 * probe-capable binary). Same safety rules as the adopt-path heal; the
+	 * restart flow (stop → ensure) handles the spawned-vs-adopted plumbing.
+	 */
+	private async maybeHealDegradedFromPoll(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<void> {
+		if (!(await this.shouldAutoRespawnDegraded(organizationId, instance))) {
+			return;
+		}
+		// Re-check identity: the instance can be replaced while we listed sessions.
+		if (this.instances.get(organizationId) !== instance) return;
+		this.bootstrapHealAttempted.add(organizationId);
+		await this.forceRestart(organizationId, {
+			event: "pty_daemon_bootstrap_degraded_respawn",
+			props: { pid: instance.pid, runningVersion: instance.runningVersion },
+		});
+	}
+
+	/**
+	 * Spawn, re-rooting into the user's bootstrap when our own is degraded.
+	 * `launchctl asuser` can fail in exotic contexts (no per-user launchd),
+	 * so fall back to a plain spawn — a daemon with our degraded context
+	 * still serves terminals; it's the pre-heal status quo, not a regression.
+	 */
+	private async spawnWithBootstrapFallback(
+		organizationId: string,
+	): Promise<DaemonInstance> {
+		const viaUserBootstrap =
+			process.platform === "darwin" &&
+			typeof process.getuid === "function" &&
+			!(await this.hostBootstrapHealthy());
+		try {
+			return await this.spawn(organizationId, { viaUserBootstrap });
+		} catch (err) {
+			if (!viaUserBootstrap) throw err;
+			logEvent("pty_daemon_asuser_spawn_failed", {
+				organizationId,
+				reason: (err as Error).message.slice(0, 500),
+			});
+			return await this.spawn(organizationId, { viaUserBootstrap: false });
+		}
 	}
 
 	/**
@@ -898,6 +1074,7 @@ export class DaemonSupervisor {
 			runningVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: isVersionUpdatePending(probe?.daemonVersion ?? null),
+			bootstrapHealthy: probe?.bootstrapHealthy,
 			// Start the clock here when it didn't answer: the liveness poll
 			// clears it the moment it does.
 			unreachableSince: probe ? null : Date.now(),
@@ -962,11 +1139,15 @@ export class DaemonSupervisor {
 			runningVersion: probe.daemonVersion,
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: isVersionUpdatePending(probe.daemonVersion),
+			bootstrapHealthy: probe.bootstrapHealthy,
 			unreachableSince: null,
 		};
 	}
 
-	private async spawn(organizationId: string): Promise<DaemonInstance> {
+	private async spawn(
+		organizationId: string,
+		opts: { viaUserBootstrap: boolean } = { viaUserBootstrap: false },
+	): Promise<DaemonInstance> {
 		const dir = ptyDaemonManifestDir(organizationId);
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -1015,17 +1196,34 @@ export class DaemonSupervisor {
 			// "posix_spawnp failed" (EMFILE). The raised limit is inherited by
 			// handoff successors the daemon spawns from itself.
 			const isWindows = process.platform === "win32";
-			const command = isWindows ? process.execPath : "/bin/sh";
+			const shArgs = [
+				"-c",
+				'ulimit -n 1048576 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true; exec "$@"',
+				"sh",
+				process.execPath,
+				this.opts.scriptPath,
+				`--socket=${socketPath}`,
+			];
+			// When host-service's own Mach bootstrap is degraded, a plain child
+			// would inherit the breakage (gh -26276 / `id -un` → uid in every
+			// shell — GH #6127). `launchctl asuser <uid>` re-roots the daemon
+			// into the user's per-user launchd namespace, then execs in place,
+			// so the child pid is still the daemon's pid.
+			const asuser =
+				opts.viaUserBootstrap && typeof process.getuid === "function";
+			if (asuser) {
+				logEvent("pty_daemon_spawn_via_asuser", { organizationId });
+			}
+			const command = isWindows
+				? process.execPath
+				: asuser
+					? "/bin/launchctl"
+					: "/bin/sh";
 			const commandArgs = isWindows
 				? [this.opts.scriptPath, `--socket=${socketPath}`]
-				: [
-						"-c",
-						'ulimit -n 1048576 2>/dev/null || ulimit -n "$(ulimit -Hn)" 2>/dev/null || true; exec "$@"',
-						"sh",
-						process.execPath,
-						this.opts.scriptPath,
-						`--socket=${socketPath}`,
-					];
+				: asuser
+					? ["asuser", String(process.getuid?.()), "/bin/sh", ...shArgs]
+					: shArgs;
 			child = childProcess.spawn(command, commandArgs, {
 				detached: !isDev,
 				stdio,
@@ -1456,6 +1654,7 @@ function probeDaemonHello(
 						cleanup({
 							daemonVersion,
 							daemonPid: msg.daemonPid,
+							bootstrapHealthy: msg.bootstrapHealthy,
 						});
 						return;
 					}

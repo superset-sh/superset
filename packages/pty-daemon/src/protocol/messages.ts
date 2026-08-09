@@ -41,6 +41,14 @@ export interface HelloAckMessage {
 	 * missing or stale.
 	 */
 	daemonPid?: number;
+	/**
+	 * macOS only: whether the daemon's Mach bootstrap namespace is intact —
+	 * trustd reachable (Security-framework TLS) AND getpwuid resolves our uid.
+	 * False means terminals it spawns hit `gh: x509: OSStatus -26276` and
+	 * `id -un` → bare uid; the supervisor heals such a daemon. Absent from
+	 * pre-probe daemon versions and until the post-bind probe completes.
+	 */
+	bootstrapHealthy?: boolean;
 }
 
 // ---------- Client -> Daemon ----------

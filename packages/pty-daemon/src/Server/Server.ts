@@ -33,6 +33,8 @@ import {
 export interface ServerOptions {
 	socketPath: string;
 	daemonVersion: string;
+	/** macOS bootstrap-namespace health, probed once at daemon startup; see main.ts. */
+	bootstrapHealthy?: boolean;
 	bufferCap?: number;
 	outboundBufferCap?: number;
 	/** Pause producing PTYs when a subscriber buffers past this (flow control). */
@@ -68,11 +70,24 @@ export class Server {
 	private readonly store: SessionStore;
 	private readonly conns = new Set<ConnState>();
 	private readonly opts: ServerOptions;
+	/**
+	 * macOS bootstrap-namespace health, surfaced in the hello-ack. Mutable so
+	 * the (blocking) probe can run AFTER the socket binds / handoff-ack is sent
+	 * rather than delaying either — see main.ts. Until set, hello-ack omits it
+	 * and the supervisor treats that as "unknown" (no healing).
+	 */
+	private bootstrapHealthy: boolean | undefined;
 
 	constructor(opts: ServerOptions) {
 		this.opts = opts;
+		this.bootstrapHealthy = opts.bootstrapHealthy;
 		this.store = new SessionStore({ bufferCap: opts.bufferCap });
 		this.server = net.createServer((socket) => this.onConnection(socket));
+	}
+
+	/** Update the bootstrap-health value reported in subsequent hello-acks. */
+	setBootstrapHealthy(healthy: boolean): void {
+		this.bootstrapHealthy = healthy;
 	}
 
 	async listen(): Promise<void> {
@@ -424,6 +439,7 @@ export class Server {
 				protocol: negotiated,
 				daemonVersion: this.opts.daemonVersion,
 				daemonPid: process.pid,
+				bootstrapHealthy: this.bootstrapHealthy,
 			});
 			return;
 		}

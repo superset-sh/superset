@@ -17,6 +17,7 @@
 
 import * as os from "node:os";
 import packageJson from "../package.json" with { type: "json" };
+import { probeBootstrapHealthy } from "./bootstrap-probe.ts";
 import { drainPendingKills } from "./Pty/index.ts";
 import type { HandoffMessage } from "./protocol/index.ts";
 import { Server } from "./Server/index.ts";
@@ -79,6 +80,13 @@ async function runFresh(): Promise<void> {
 		bufferCap: args.bufferBytes,
 	});
 	await server.listen();
+	// Probe AFTER binding so a slow `security` can't delay the socket coming up
+	// (the supervisor has a socket-ready timeout). Fire-and-forget: hello-acks
+	// omit the field until the async probe lands, which the supervisor treats
+	// as "unknown"; its periodic reachability probe picks the value up.
+	void probeBootstrapHealthy().then((healthy) =>
+		server.setBootstrapHealthy(healthy),
+	);
 	process.stderr.write(
 		`[pty-daemon] listening on ${args.socket} (v${daemonVersion}, host=${os.hostname()})\n`,
 	);
@@ -182,6 +190,11 @@ async function runHandoffReceiver(): Promise<void> {
 	log(`predecessor disconnected, binding socket`);
 
 	await server.listenWithRetry();
+	// Probe only after binding so it can't delay the upgrade-ack the
+	// predecessor is waiting on. Fire-and-forget, same as the fresh path.
+	void probeBootstrapHealthy().then((healthy) =>
+		server.setBootstrapHealthy(healthy),
+	);
 	log(`bound and listening`);
 	process.stderr.write(
 		`[pty-daemon] (handoff successor) listening on ${socketPath} (v${daemonVersion}, host=${os.hostname()}, sessions=${snapshot.sessions.length})\n`,
