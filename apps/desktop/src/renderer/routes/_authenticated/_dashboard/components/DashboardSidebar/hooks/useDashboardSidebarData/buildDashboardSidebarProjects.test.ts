@@ -2,7 +2,8 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
-	buildDashboardSidebarSessionWorkspaces,
+	buildDashboardSidebarSessionsScope,
+	buildSectionTree,
 	partitionSidebarWorkspacesByPinned,
 	type SidebarProjectInput,
 	type SidebarSectionInput,
@@ -35,6 +36,7 @@ function makeSection(
 	return {
 		id: "section-1",
 		projectId: "project-1",
+		parentSectionId: null,
 		name: "Section",
 		createdAt: DATE,
 		isCollapsed: false,
@@ -233,7 +235,7 @@ describe("sessions (null projectId)", () => {
 	});
 
 	it("orders the Sessions section by tabOrder with no repo affordances", () => {
-		const rows = buildDashboardSidebarSessionWorkspaces({
+		const scope = buildDashboardSidebarSessionsScope({
 			sessionSidebarWorkspaces: [
 				makeWorkspace({
 					id: "session-b",
@@ -248,14 +250,96 @@ describe("sessions (null projectId)", () => {
 					tabOrder: 1,
 				}),
 			],
+			sessionSections: [],
 			machineId: MACHINE_ID,
 			pullRequestsByWorkspaceId: new Map(),
 		});
 
+		const rows = scope.looseWorkspaces;
 		expect(rows.map((row) => row.id)).toEqual(["session-a", "session-b"]);
 		expect(rows[0].projectId).toBeNull();
 		expect(rows[0].repoUrl).toBeNull();
 		expect(rows[0].branchExistsOnRemote).toBe(false);
+	});
+
+	it("nests session groups and splices dangling group refs to the loose lane", () => {
+		const scope = buildDashboardSidebarSessionsScope({
+			sessionSidebarWorkspaces: [
+				makeWorkspace({
+					id: "grouped",
+					projectId: null,
+					type: "session",
+					sectionId: "group-child",
+				}),
+				makeWorkspace({
+					id: "dangling",
+					projectId: null,
+					type: "session",
+					sectionId: "group-deleted",
+				}),
+			],
+			sessionSections: [
+				makeSection({ id: "group-root", projectId: null, tabOrder: 1 }),
+				makeSection({
+					id: "group-child",
+					projectId: null,
+					parentSectionId: "group-root",
+					tabOrder: 1,
+				}),
+			],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(scope.looseWorkspaces.map((row) => row.id)).toEqual(["dangling"]);
+		expect(scope.rootSections.map((section) => section.id)).toEqual([
+			"group-root",
+		]);
+		const child = scope.rootSections[0].childSections[0];
+		expect(child.id).toBe("group-child");
+		expect(child.workspaces.map((row) => row.id)).toEqual(["grouped"]);
+	});
+});
+
+describe("buildSectionTree", () => {
+	it("splices cyclic and dangling parents to the root", () => {
+		const { rootSections, nodesById } = buildSectionTree([
+			makeSection({ id: "a", parentSectionId: "b", tabOrder: 1 }),
+			makeSection({ id: "b", parentSectionId: "a", tabOrder: 2 }),
+			makeSection({ id: "c", parentSectionId: "missing", tabOrder: 3 }),
+			makeSection({ id: "d", parentSectionId: "c", tabOrder: 4 }),
+		]);
+
+		// The a↔b cycle and c's dangling parent all splice to root; d keeps
+		// its valid parent c.
+		expect(rootSections.map((section) => section.id).sort()).toEqual([
+			"a",
+			"b",
+			"c",
+		]);
+		expect(nodesById.get("c")?.childSections.map((s) => s.id)).toEqual(["d"]);
+	});
+
+	it("splices nesting beyond the depth cap to the root", () => {
+		const chain = ["g1", "g2", "g3", "g4", "g5", "g6"].map((id, index, ids) =>
+			makeSection({
+				id,
+				parentSectionId: index === 0 ? null : ids[index - 1],
+				tabOrder: index,
+			}),
+		);
+		const { rootSections } = buildSectionTree(chain);
+		// Levels past MAX_GROUP_DEPTH re-root instead of disappearing.
+		expect(rootSections.length).toBeGreaterThan(1);
+		const ids = new Set<string>();
+		const walk = (sections: typeof rootSections) => {
+			for (const section of sections) {
+				ids.add(section.id);
+				walk(section.childSections);
+			}
+		};
+		walk(rootSections);
+		expect(ids.size).toBe(6);
 	});
 
 	it("keeps a pinned session in the Pinned section with null project identity", () => {

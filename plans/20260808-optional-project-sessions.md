@@ -77,8 +77,24 @@ Precedent: the unmerged `origin/sidebar-freeform-sessions` branch proved chat/te
 
 ### Phase C — universal grouping tree
 
-Ships in a separate stacked PR (branch `nested-workspace-groups`). This PR keeps
-sections flat and project-scoped; sessions render as a flat list.
+**Implementation notes (as built — diverges from the original sketch in two ways):**
+
+1. **No new collection, no migration.** Instead of a `v2SidebarGroups` collection with an
+   id-preserving copy, the existing `dashboardSidebarSectionSchema` was extended in place:
+   `parentSectionId: uuid | null (default null)` and `projectId` widened to `uuid | null`
+   (null = Sessions scope). Both are widening-with-default, so every persisted row parses
+   untouched — zero migration risk, `sidebarState.sectionId` references keep resolving.
+2. **DnD granularity unchanged; nesting is explicit-structure + context menus.** The flat
+   DnD lane's group membership is positional and can't express depth, so root-level drag
+   behaviors are untouched. Nested groups render as an indented folders-first block under
+   their parent header (`DashboardSidebarNestedSection`, recursive) and move via context
+   menus: workspace "Move to group" (all same-scope groups), group "Move to group" /
+   "Move to top level" (`moveSectionToParent`, refuses self/descendant/cross-scope).
+   Drag-into-nested-group is a follow-up.
+
+Tree safety: `buildSectionTree` splices self-cycles, missing direct parents, and
+depth > 4 to the scope root (never drops nodes); `getFlattenedV2WorkspaceIds` and the
+Sessions scope walk recursively with visited sets.
 
 ### Phase D — CLI / MCP / SDK (any time after A)
 

@@ -23,7 +23,8 @@ import type {
 import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
-	buildDashboardSidebarSessionWorkspaces,
+	buildDashboardSidebarSessionsScope,
+	type DashboardSidebarSessionsScope,
 	partitionSidebarWorkspacesByPinned,
 } from "./buildDashboardSidebarProjects";
 import {
@@ -237,6 +238,7 @@ export function useDashboardSidebarData() {
 				.select(({ sidebarSections }) => ({
 					id: sidebarSections.sectionId,
 					projectId: sidebarSections.projectId,
+					parentSectionId: sidebarSections.parentSectionId,
 					name: sidebarSections.name,
 					createdAt: sidebarSections.createdAt,
 					isCollapsed: sidebarSections.isCollapsed,
@@ -245,6 +247,16 @@ export function useDashboardSidebarData() {
 				})),
 		[collections],
 	);
+	// TanStack DB's eq(col, null) never matches, so scope-splitting the
+	// sections happens in JS rather than in the query.
+	const { projectSections, sessionSections } = useMemo(() => {
+		const project: typeof sidebarSections = [];
+		const sessions: typeof sidebarSections = [];
+		for (const section of sidebarSections) {
+			(section.projectId === null ? sessions : project).push(section);
+		}
+		return { projectSections: project, sessionSections: sessions };
+	}, [sidebarSections]);
 
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
 	const hostWorkspacesById = useMemo(
@@ -482,7 +494,7 @@ export function useDashboardSidebarData() {
 		() =>
 			buildDashboardSidebarProjects({
 				sidebarProjects,
-				sidebarSections,
+				sidebarSections: projectSections,
 				visibleSidebarWorkspaces: projectRows,
 				machineId,
 				pullRequestsByWorkspaceId,
@@ -491,22 +503,23 @@ export function useDashboardSidebarData() {
 			machineId,
 			pullRequestsByWorkspaceId,
 			sidebarProjects,
-			sidebarSections,
+			projectSections,
 			projectRows,
 		],
 	);
 	const groups = useStableDashboardSidebarProjects(computedGroups);
 
-	const computedSessionWorkspaces = useMemo<DashboardSidebarWorkspace[]>(
+	const computedSessionsScope = useMemo<DashboardSidebarSessionsScope>(
 		() =>
-			buildDashboardSidebarSessionWorkspaces({
+			buildDashboardSidebarSessionsScope({
 				sessionSidebarWorkspaces: sessionRows,
+				sessionSections,
 				machineId,
 				pullRequestsByWorkspaceId,
 			}),
-		[machineId, pullRequestsByWorkspaceId, sessionRows],
+		[machineId, pullRequestsByWorkspaceId, sessionRows, sessionSections],
 	);
-	const sessionWorkspaces = useJsonStable(computedSessionWorkspaces);
+	const sessionsScope = useJsonStable(computedSessionsScope);
 
 	const computedPinnedWorkspaces = useMemo<DashboardSidebarPinnedWorkspace[]>(
 		() =>
@@ -523,7 +536,7 @@ export function useDashboardSidebarData() {
 	return {
 		groups,
 		pinnedWorkspaces,
-		sessionWorkspaces,
+		sessionsScope,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	};

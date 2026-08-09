@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/context-menu";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
+import { useMemo } from "react";
 import {
 	LuArrowRightLeft,
 	LuArrowUp,
@@ -96,24 +97,36 @@ export function DashboardSidebarWorkspaceContextMenu({
 	const deleteHotkeyText = useHotkeyDisplay("CLOSE_WORKSPACE").text;
 	const showDeleteShortcut =
 		showDeleteHotkey && deleteHotkeyText !== "Unassigned";
-	const { data: sections = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ sidebarSections: collections.v2SidebarSections })
-				// `?? ""` and not null: TanStack DB's eq(col, null) never
-				// matches, and no section can have an empty-string projectId,
-				// so sessions resolve to an empty list without relying on the
-				// eq(null) quirk.
-				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId ?? ""),
-				)
+	// Project rows keep the index-backed eq() scope. The sessions scope
+	// (projectId null) must scan + filter in JS: TanStack DB's eq(col, null)
+	// never matches. This menu mounts per workspace row, so the common
+	// project case shouldn't pay for the full-collection scan.
+	const { data: scopedSections = [] } = useLiveQuery(
+		(q) => {
+			const base = q.from({ sidebarSections: collections.v2SidebarSections });
+			return (
+				projectId === null
+					? base
+					: base.where(({ sidebarSections }) =>
+							eq(sidebarSections.projectId, projectId),
+						)
+			)
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
 				.select(({ sidebarSections }) => ({
 					id: sidebarSections.sectionId,
+					projectId: sidebarSections.projectId,
 					name: sidebarSections.name,
 					color: sidebarSections.color,
-				})),
+				}));
+		},
 		[collections, projectId],
+	);
+	const sections = useMemo(
+		() =>
+			projectId === null
+				? scopedSections.filter((section) => section.projectId === null)
+				: scopedSections,
+		[scopedSections, projectId],
 	);
 	const handleCloseAllPorts = () => {
 		if (isKillingPorts) return;
@@ -190,7 +203,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 				)}
 				{/* Group actions mutate placement (sectionId/tabOrder), which a pinned
 				    row doesn't display — the change would only surface on unpin. */}
-				{!isPinned && !isLocalMainWorkspace && projectId !== null && (
+				{!isPinned && !isLocalMainWorkspace && (
 					<>
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={onCreateSection}>

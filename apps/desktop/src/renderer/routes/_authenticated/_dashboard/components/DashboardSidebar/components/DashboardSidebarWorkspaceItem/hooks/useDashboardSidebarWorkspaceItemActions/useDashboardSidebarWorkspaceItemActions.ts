@@ -113,8 +113,6 @@ export function useDashboardSidebarWorkspaceItemActions({
 	};
 
 	const handleCreateSection = () => {
-		// Sessions get groups in the stacked nesting PR.
-		if (projectId === null) return;
 		const sectionId = createSection(projectId);
 		moveWorkspaceToSection(workspaceId, projectId, sectionId);
 		requestSectionRename(sectionId);

@@ -18,6 +18,18 @@ export function getProjectChildrenWorkspaces(
 	children: DashboardSidebarProjectChild[],
 ): DashboardSidebarWorkspace[] {
 	return children.flatMap((child) =>
-		child.type === "workspace" ? [child.workspace] : child.section.workspaces,
+		child.type === "workspace"
+			? [child.workspace]
+			: getSectionWorkspaces(child.section),
 	);
+}
+
+/** Folders-first, matching the rendered order of a group's contents. */
+function getSectionWorkspaces(
+	section: DashboardSidebarSection,
+): DashboardSidebarWorkspace[] {
+	return [
+		...section.childSections.flatMap(getSectionWorkspaces),
+		...section.workspaces,
+	];
 }

@@ -169,13 +169,19 @@ export function useSidebarDnd({
 
 	const workspacesById = useMemo(() => {
 		const map = new Map<string, DashboardSidebarWorkspace>();
+		const visitSection = (section: DashboardSidebarSection) => {
+			for (const ws of section.workspaces) {
+				map.set(ws.id, ws);
+			}
+			for (const nested of section.childSections) {
+				visitSection(nested);
+			}
+		};
 		for (const child of projectChildren) {
 			if (child.type === "workspace") {
 				map.set(child.workspace.id, child.workspace);
 			} else {
-				for (const ws of child.section.workspaces) {
-					map.set(ws.id, ws);
-				}
+				visitSection(child.section);
 			}
 		}
 		return map;

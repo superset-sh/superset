@@ -202,12 +202,15 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 
 /**
  * A sidebar group ("section" historically — the persisted key and field names
- * keep that spelling so existing rows parse untouched). Sections are flat and
- * project-scoped: one level of grouping inside a project.
+ * keep that spelling so existing rows parse untouched). Groups form a tree:
+ * `parentSectionId` nests a group inside another, `projectId: null` scopes a
+ * group to the top-level Sessions area instead of a project. Both additions
+ * are widening-with-default, so pre-tree rows heal to flat project groups.
  */
 export const dashboardSidebarSectionSchema = z.object({
 	sectionId: z.string().uuid(),
-	projectId: z.string().uuid(),
+	projectId: z.string().uuid().nullable(),
+	parentSectionId: z.string().uuid().nullable().default(null),
 	name: z.string().trim().min(1),
 	createdAt: persistedDateSchema,
 	tabOrder: z.number().int().default(0),

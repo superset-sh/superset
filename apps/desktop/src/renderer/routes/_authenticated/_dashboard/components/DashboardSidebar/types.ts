@@ -61,13 +61,19 @@ export type DashboardSidebarPinnedWorkspace = DashboardSidebarWorkspace & {
 
 export interface DashboardSidebarSection {
 	id: string;
-	projectId: string;
+	/** Null scopes the group to the top-level Sessions area. */
+	projectId: string | null;
+	/** Non-null when this group nests inside another group. */
+	parentSectionId: string | null;
 	name: string;
 	createdAt: Date;
 	isCollapsed: boolean;
 	tabOrder: number;
 	color: string | null;
+	/** Direct workspaces (not those of nested groups). */
 	workspaces: DashboardSidebarWorkspace[];
+	/** Nested groups, rendered folders-first above `workspaces`. */
+	childSections: DashboardSidebarSection[];
 }
 
 export type DashboardSidebarProjectChild =

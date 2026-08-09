@@ -12,6 +12,7 @@ interface DashboardSidebarSectionContextMenuProps
 }
 
 export function DashboardSidebarSectionContextMenu({
+	sectionId,
 	color,
 	onRename,
 	onSetColor,
@@ -27,6 +28,7 @@ export function DashboardSidebarSectionContextMenu({
 				onPointerDown={(event) => event.stopPropagation()}
 			>
 				<SectionActionsMenuItems
+					sectionId={sectionId}
 					color={color}
 					kind="context"
 					onRename={onRename}

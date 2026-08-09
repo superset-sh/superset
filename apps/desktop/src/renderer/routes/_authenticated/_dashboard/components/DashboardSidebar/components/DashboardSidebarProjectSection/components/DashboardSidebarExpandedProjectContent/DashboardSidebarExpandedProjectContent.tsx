@@ -9,7 +9,11 @@ import { createPortal } from "react-dom";
 import { useSidebarDnd } from "../../../../hooks/useSidebarDnd";
 import { parseId } from "../../../../hooks/useSidebarDnd/useSidebarDnd";
 import { useDashboardSidebarSelection } from "../../../../providers/DashboardSidebarSelectionProvider";
-import type { DashboardSidebarProjectChild } from "../../../../types";
+import type {
+	DashboardSidebarProjectChild,
+	DashboardSidebarSection,
+} from "../../../../types";
+import { DashboardSidebarNestedSection } from "../../../DashboardSidebarNestedSection";
 import { WorkspaceBulkMenuScope } from "../../../DashboardSidebarWorkspaceItem/components/WorkspaceBulkMenuScope";
 import { SidebarDragOverlay } from "../../../SidebarDragOverlay";
 import { SortableSectionHeader } from "../../../SortableSectionHeader";
@@ -55,25 +59,48 @@ export function DashboardSidebarExpandedProjectContent({
 	const { isWorkspaceSelected, selectWorkspaceFromEvent } =
 		useDashboardSidebarSelection();
 
-	const selectableWorkspaceIds = useMemo(
-		() =>
-			flatItems.flatMap((id) => {
-				const parsed = parseId(id);
-				if (!parsed || parsed.type !== "workspace") return [];
-				const workspace = workspacesById.get(parsed.realId);
-				if (
-					!workspace ||
-					workspace.type !== "worktree" ||
-					workspace.pendingTransaction?.type === "insert"
-				) {
-					return [];
-				}
-				const group = groupInfo.get(parsed.realId);
-				if (group && collapsedSectionIds.has(group.sectionId)) return [];
-				return [parsed.realId];
-			}),
-		[flatItems, workspacesById, groupInfo, collapsedSectionIds],
-	);
+	// Range-select order matches the visual order: a section's nested
+	// subtree renders directly below its header (folders-first), before the
+	// section's direct workspaces from the flat lane.
+	const selectableWorkspaceIds = useMemo(() => {
+		const isSelectable = (workspaceId: string) => {
+			const workspace = workspacesById.get(workspaceId);
+			return (
+				!!workspace &&
+				workspace.type === "worktree" &&
+				workspace.pendingTransaction?.type !== "insert"
+			);
+		};
+		const collectVisibleSubtree = (
+			section: DashboardSidebarSection,
+			out: string[],
+		) => {
+			for (const child of section.childSections) {
+				if (child.isCollapsed) continue;
+				collectVisibleSubtree(child, out);
+				out.push(
+					...child.workspaces
+						.map((workspace) => workspace.id)
+						.filter(isSelectable),
+				);
+			}
+		};
+		return flatItems.flatMap((id) => {
+			const parsed = parseId(id);
+			if (!parsed) return [];
+			if (parsed.type === "section") {
+				const section = sectionsById.get(parsed.realId);
+				if (!section || collapsedSectionIds.has(section.id)) return [];
+				const nested: string[] = [];
+				collectVisibleSubtree(section, nested);
+				return nested;
+			}
+			if (!isSelectable(parsed.realId)) return [];
+			const group = groupInfo.get(parsed.realId);
+			if (group && collapsedSectionIds.has(group.sectionId)) return [];
+			return [parsed.realId];
+		});
+	}, [flatItems, workspacesById, sectionsById, groupInfo, collapsedSectionIds]);
 
 	return (
 		<AnimatePresence initial={false}>
@@ -108,15 +135,48 @@ export function DashboardSidebarExpandedProjectContent({
 										if (parsed.type === "section") {
 											const section = sectionsById.get(parsed.realId);
 											if (!section) return null;
+											// Nested groups render as a folders-first block
+											// under the header; the flat DnD lane manages only
+											// the header and the group's direct workspaces.
+											const showNested =
+												!section.isCollapsed &&
+												section.childSections.length > 0 &&
+												activeType !== "section";
 											return (
-												<SortableSectionHeader
-													key={String(id)}
-													sortableId={String(id)}
-													section={section}
-													onDelete={onDeleteSection}
-													onRename={onRenameSection}
-													onToggleCollapse={onToggleSectionCollapse}
-												/>
+												<div key={String(id)}>
+													<SortableSectionHeader
+														sortableId={String(id)}
+														section={section}
+														onDelete={onDeleteSection}
+														onRename={onRenameSection}
+														onToggleCollapse={onToggleSectionCollapse}
+													/>
+													{showNested &&
+														section.childSections.map((child) => (
+															<DashboardSidebarNestedSection
+																key={child.id}
+																section={child}
+																depth={1}
+																workspaceShortcutLabels={
+																	workspaceShortcutLabels
+																}
+																selection={{
+																	isWorkspaceSelected,
+																	onWorkspaceSelectionClick: (
+																		event,
+																		workspaceId,
+																	) =>
+																		selectWorkspaceFromEvent(event, {
+																			workspaceId,
+																			projectId,
+																			orderedWorkspaceIds:
+																				selectableWorkspaceIds,
+																		}),
+																}}
+																onWorkspaceHover={onWorkspaceHover}
+															/>
+														))}
+												</div>
 											);
 										}
 

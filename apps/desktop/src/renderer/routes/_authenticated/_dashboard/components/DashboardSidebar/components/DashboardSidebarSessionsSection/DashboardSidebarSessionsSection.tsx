@@ -1,11 +1,12 @@
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { LuPlus } from "react-icons/lu";
 import { useOpenNewSessionModal } from "renderer/stores/new-workspace-modal";
-import type { DashboardSidebarWorkspace } from "../../types";
+import type { DashboardSidebarSessionsScope } from "../../hooks/useDashboardSidebarData/buildDashboardSidebarProjects";
+import { DashboardSidebarNestedSection } from "../DashboardSidebarNestedSection";
 import { DashboardSidebarWorkspaceItem } from "../DashboardSidebarWorkspaceItem";
 
 interface DashboardSidebarSessionsSectionProps {
-	sessionWorkspaces: DashboardSidebarWorkspace[];
+	sessionsScope: DashboardSidebarSessionsScope;
 	isCollapsed?: boolean;
 	/** The workspaces-list collapse toggle hides rows; the header stays. */
 	rowsHidden?: boolean;
@@ -13,32 +14,58 @@ interface DashboardSidebarSessionsSectionProps {
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 }
 
+function collectScopeWorkspaces(scope: DashboardSidebarSessionsScope): Array<{
+	workspace: DashboardSidebarSessionsScope["looseWorkspaces"][number];
+	isInSection: boolean;
+}> {
+	const rows = scope.looseWorkspaces.map((workspace) => ({
+		workspace,
+		isInSection: false,
+	}));
+	const walk = (sections: DashboardSidebarSessionsScope["rootSections"]) => {
+		for (const section of sections) {
+			rows.push(
+				...section.workspaces.map((workspace) => ({
+					workspace,
+					isInSection: true,
+				})),
+			);
+			walk(section.childSections);
+		}
+	};
+	walk(scope.rootSections);
+	return rows;
+}
+
 /**
- * Top-level "Sessions" section, rendered above the Projects header. The
- * header (and its "+", which opens the create surface with "No project"
- * preselected) always renders in expanded mode — like the Projects header —
- * so sessions stay discoverable at zero. Collapsed rail renders a plain icon
- * stack with a trailing divider, matching the Pinned section.
+ * Top-level "Sessions" section, rendered above the Projects header: loose
+ * sessions first, then the null-scope group tree. The header (and its "+",
+ * which opens the create surface with "No project" preselected) always
+ * renders in expanded mode — like the Projects header — so sessions stay
+ * discoverable at zero. Collapsed rail renders a plain icon stack with a
+ * trailing divider, matching the Pinned section.
  */
 export function DashboardSidebarSessionsSection({
-	sessionWorkspaces,
+	sessionsScope,
 	isCollapsed = false,
 	rowsHidden = false,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 }: DashboardSidebarSessionsSectionProps) {
 	const openNewSessionModal = useOpenNewSessionModal();
+	const { looseWorkspaces, rootSections } = sessionsScope;
 
 	if (isCollapsed) {
-		if (sessionWorkspaces.length === 0) return null;
+		const rows = collectScopeWorkspaces(sessionsScope);
+		if (rows.length === 0) return null;
 		return (
 			<div className="flex flex-col gap-0.5 py-1">
-				{sessionWorkspaces.map((workspace) => (
+				{rows.map(({ workspace, isInSection }) => (
 					<DashboardSidebarWorkspaceItem
 						key={workspace.id}
 						workspace={workspace}
 						isCollapsed
-						isInSection={false}
+						isInSection={isInSection}
 						onHoverCardOpen={() => onWorkspaceHover(workspace.id)}
 					/>
 				))}
@@ -68,12 +95,21 @@ export function DashboardSidebarSessionsSection({
 				</Tooltip>
 			</div>
 			{!rowsHidden &&
-				sessionWorkspaces.map((workspace) => (
+				looseWorkspaces.map((workspace) => (
 					<DashboardSidebarWorkspaceItem
 						key={workspace.id}
 						workspace={workspace}
 						shortcutLabel={workspaceShortcutLabels?.get(workspace.id)}
 						onHoverCardOpen={() => onWorkspaceHover(workspace.id)}
+					/>
+				))}
+			{!rowsHidden &&
+				rootSections.map((section) => (
+					<DashboardSidebarNestedSection
+						key={section.id}
+						section={section}
+						depth={0}
+						onWorkspaceHover={onWorkspaceHover}
 					/>
 				))}
 		</div>
