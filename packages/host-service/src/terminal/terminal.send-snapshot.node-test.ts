@@ -346,9 +346,11 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 			[`\x1b[200~delayed-${id}\x1b[201~`, "\r"],
 			"send must be exactly two writes: framed text, then a bare Enter",
 		);
+		const [textWrite, enterWrite] = writes;
+		assert.ok(textWrite && enterWrite);
 		assert.ok(
-			writes[1].at - writes[0].at >= 400,
-			`Enter must trail the text write, gap was ${writes[1].at - writes[0].at}ms`,
+			enterWrite.at - textWrite.at >= 400,
+			`Enter must trail the text write, gap was ${enterWrite.at - textWrite.at}ms`,
 		);
 		await waitFor(
 			() =>
