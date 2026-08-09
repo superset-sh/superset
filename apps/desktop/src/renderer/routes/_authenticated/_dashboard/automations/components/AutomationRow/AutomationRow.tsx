@@ -46,6 +46,7 @@ interface AutomationRowProps {
 	/** True while a run/retry dispatch for this automation is in flight. */
 	isRetrying: boolean;
 	onRunNow: (automation: SelectAutomation) => void;
+	onSaveAsTemplate: (automation: SelectAutomation) => void;
 	onDelete: (automation: SelectAutomation) => void;
 }
 
@@ -70,6 +71,7 @@ export function AutomationRow({
 	isOwner,
 	isRetrying,
 	onRunNow,
+	onSaveAsTemplate,
 	onDelete,
 }: AutomationRowProps) {
 	const navigate = useNavigate();
@@ -94,6 +96,7 @@ export function AutomationRow({
 			onEdit={openDetail}
 			onRunNow={() => onRunNow(automation)}
 			onHistory={openHistory}
+			onSaveAsTemplate={() => onSaveAsTemplate(automation)}
 			onDelete={() => onDelete(automation)}
 		/>
 	);

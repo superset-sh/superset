@@ -1,7 +1,12 @@
+import { COMPANY } from "@superset/shared/constants";
+
 /**
  * A template is a partial automation + presentation metadata. Applying a
  * template pre-fills the create-automation form with name/prompt/agent/rrule;
  * device, project, and timezone still come from the user's current selection.
+ *
+ * Contributions welcome: add a template to a category below (or a new
+ * category) and open a PR, or file an issue via CONTRIBUTE_TEMPLATE_URL.
  */
 export interface AutomationTemplate {
 	id: string;
@@ -162,3 +167,7 @@ export const AUTOMATION_TEMPLATE_CATEGORIES: AutomationTemplateCategory[] = [
 
 export const AUTOMATION_TEMPLATES_FLAT: AutomationTemplate[] =
 	AUTOMATION_TEMPLATE_CATEGORIES.flatMap((category) => category.templates);
+
+export const CONTRIBUTE_TEMPLATE_URL = `${COMPANY.REPORT_ISSUE_URL}?title=${encodeURIComponent(
+	"[Automations] Template submission",
+)}`;
