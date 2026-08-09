@@ -332,6 +332,13 @@ interface TerminalSession {
 	 * paste, focus, mouse, etc. that the FIFO can't restore on its own.
 	 */
 	modeTracker: ModeTracker;
+
+	/**
+	 * Tail of the in-flight follow-up send (writeFramedInputToSession).
+	 * Serializes text + delayed-Enter sequences so concurrent sends can't
+	 * interleave inside another send's Enter window.
+	 */
+	followUpWriteChain?: Promise<void>;
 }
 
 /** PTY lifetime is independent of socket lifetime — sockets detach/reattach freely. */
@@ -696,22 +703,38 @@ export async function writeFramedInputToSession({
 		return { error: "Terminal session has exited" };
 	}
 
-	const framed = session.modeTracker.isBracketedPasteActive()
-		? `\x1b[200~${text}\x1b[201~`
-		: text;
-	if (!submit) {
-		session.pty.write(framed);
-		return { success: true };
-	}
-	if (text.length > 0) {
-		session.pty.write(framed);
-		await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
-		if (session.exited) {
-			return { error: "Terminal session has exited" };
-		}
-	}
-	session.pty.write("\r");
-	return { success: true };
+	// Serialize sends per session: the delayed Enter opens a window where a
+	// concurrent send's text (even a submit: false draft) would land between
+	// this text and its Enter and get submitted by it.
+	const previous = session.followUpWriteChain ?? Promise.resolve();
+	const task = previous.then(
+		async (): Promise<{ success: true } | { error: string }> => {
+			if (session.exited) {
+				return { error: "Terminal session has exited" };
+			}
+			const framed = session.modeTracker.isBracketedPasteActive()
+				? `\x1b[200~${text}\x1b[201~`
+				: text;
+			if (!submit) {
+				session.pty.write(framed);
+				return { success: true };
+			}
+			if (text.length > 0) {
+				session.pty.write(framed);
+				await new Promise((r) => setTimeout(r, FOLLOW_UP_ENTER_DELAY_MS));
+				if (session.exited) {
+					return { error: "Terminal session has exited" };
+				}
+			}
+			session.pty.write("\r");
+			return { success: true };
+		},
+	);
+	session.followUpWriteChain = task.then(
+		() => undefined,
+		() => undefined,
+	);
+	return task;
 }
 
 /**

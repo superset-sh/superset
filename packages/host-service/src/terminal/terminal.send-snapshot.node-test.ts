@@ -309,6 +309,17 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 
 		await waitFor(() => session.modeTracker.isBracketedPasteActive(), 5000);
 
+		// Record pty writes so the assertion is on the write layer itself: a
+		// delayed-but-bundled `text\r` write would still pass a file-content
+		// check, but not a two-writes-with-a-gap check.
+		const writes: Array<{ data: string; at: number }> = [];
+		const pty = session.pty as unknown as { write(data: string): void };
+		const originalWrite = pty.write.bind(session.pty);
+		pty.write = (data: string) => {
+			writes.push({ data, at: Date.now() });
+			originalWrite(data);
+		};
+
 		const pending = writeFramedInputToSession({
 			terminalId,
 			workspaceId,
@@ -328,7 +339,17 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 		);
 
 		const sent = await pending;
+		pty.write = originalWrite;
 		assert.ok(!("error" in sent));
+		assert.deepEqual(
+			writes.map((w) => w.data),
+			[`\x1b[200~delayed-${id}\x1b[201~`, "\r"],
+			"send must be exactly two writes: framed text, then a bare Enter",
+		);
+		assert.ok(
+			writes[1].at - writes[0].at >= 400,
+			`Enter must trail the text write, gap was ${writes[1].at - writes[0].at}ms`,
+		);
 		await waitFor(
 			() =>
 				fs.existsSync(captureFile) &&
@@ -341,6 +362,58 @@ describe("writeFramedInputToSession / snapshotSession", () => {
 		const eof = writeInputToSession({ terminalId, workspaceId, data: "\x04" });
 		assert.ok(!("error" in eof));
 		await waitFor(() => fs.existsSync(doneFile), 5000);
+
+		await disposeSessionAndWait(terminalId, db);
+	});
+
+	test("concurrent sends serialize: a staged draft cannot ride another send's Enter", async () => {
+		const terminalId = `e2e-serialize-${randomUUID().slice(0, 8)}`;
+		const id = randomUUID().slice(0, 6);
+
+		const session = await createTerminalSessionInternal({
+			terminalId,
+			workspaceId,
+			db,
+			listed: true,
+		});
+		assert.ok(!("error" in session));
+		if ("error" in session) return;
+
+		const writes: string[] = [];
+		const pty = session.pty as unknown as { write(data: string): void };
+		const originalWrite = pty.write.bind(session.pty);
+		pty.write = (data: string) => {
+			writes.push(data);
+			originalWrite(data);
+		};
+
+		// Fire a submitting send and a submit: false draft concurrently. The
+		// draft must not land inside the first send's text→Enter window, or
+		// the Enter would submit it too.
+		const [first, second] = await Promise.all([
+			writeFramedInputToSession({
+				terminalId,
+				workspaceId,
+				text: `: submit-${id}`,
+				submit: true,
+				db,
+			}),
+			writeFramedInputToSession({
+				terminalId,
+				workspaceId,
+				text: `: draft-${id}`,
+				submit: false,
+				db,
+			}),
+		]);
+		pty.write = originalWrite;
+		assert.ok(!("error" in first));
+		assert.ok(!("error" in second));
+		assert.deepEqual(
+			writes,
+			[`: submit-${id}`, "\r", `: draft-${id}`],
+			"draft text must come after the first send's Enter",
+		);
 
 		await disposeSessionAndWait(terminalId, db);
 	});
