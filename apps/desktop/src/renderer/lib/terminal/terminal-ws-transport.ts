@@ -640,13 +640,6 @@ function attachSocketListeners(
 			transport._bytesSinceAttach = false;
 			setConnectionState(transport, "open");
 			sendResize(transport, terminal.cols, terminal.rows);
-			// Re-assert current keyboard focus so the running program's focus
-			// state can't stay stale across the reattach. In-band xterm focus
-			// reports can't cover this: a rebuilt xterm learns focus-reporting
-			// mode from the preamble only after its focus has already settled,
-			// and a focus-out sent while disconnected never arrived. The host
-			// forwards it only when the program enabled mode 1004.
-			sendFocusState(transport);
 			return;
 		}
 
@@ -654,6 +647,18 @@ function attachSocketListeners(
 			transport.seqAnchor = { epoch: message.epoch, seq: message.seq };
 			transport._seqCounting = true;
 			transport._seqEverSynced = true;
+			// Re-assert current keyboard focus so the running program's focus
+			// state can't stay stale across the reattach (tmux does the same on
+			// client attach). xterm's own DECSET-1004 self-report fires while
+			// the preamble parses, but on a rebuilt pane it can read the focus
+			// class before pane focus settles and report the wrong state — so
+			// this must land at the PTY *after* that report. `synced` arrives
+			// behind the preamble frame: flush it into xterm, then queue an
+			// empty write whose callback runs once the preamble (and any
+			// self-report it triggered) has parsed. The host forwards the state
+			// only when the program enabled mode 1004.
+			transport._writeCoalescer?.flushSync();
+			terminal.write("", () => sendFocusState(transport));
 			return;
 		}
 
