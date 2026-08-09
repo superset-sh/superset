@@ -22,9 +22,9 @@
 // records the authoritative byte stream so catch-up payloads can be compared
 // byte-for-byte, not just by final grid state.
 //
-// Run:
-//   cd packages/host-service && node --experimental-strip-types --test \
-//     src/terminal/terminal.seq-catchup.node-test.ts
+// Run: `bun run test:e2e` from packages/host-service (Electron-as-Node with
+// the tsx loader — see scripts/test-e2e.ts for why neither plain node nor
+// strip-types works here).
 
 import { strict as assert } from "node:assert";
 import { randomUUID } from "node:crypto";
