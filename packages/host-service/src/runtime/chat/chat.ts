@@ -202,6 +202,15 @@ export interface ChatRuntimeManagerOptions {
 	runtimeResolver: ModelProviderRuntimeResolver;
 }
 
+// Expected user state (no provider signed in), not a server fault — the chat
+// router maps this by name to a non-500 TRPCError.
+export class NoModelProviderCredentialsError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "NoModelProviderCredentialsError";
+	}
+}
+
 function isObjectRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }
@@ -447,7 +456,9 @@ When you need to ask the user ANY question — including simple yes/no, confirma
 		workspaceId: string,
 	): Promise<RuntimeSession> {
 		if (!(await this.runtimeResolver.hasUsableRuntimeEnv())) {
-			throw new Error("No model provider credentials available");
+			throw new NoModelProviderCredentialsError(
+				"No model provider credentials available",
+			);
 		}
 
 		const workspace = this.db.query.workspaces

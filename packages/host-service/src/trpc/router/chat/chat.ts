@@ -1,5 +1,30 @@
+import { TRPCError } from "@trpc/server";
 import { z } from "zod";
 import { protectedProcedure, router } from "../../index";
+
+/**
+ * Missing model provider credentials is an expected user state (nothing signed
+ * in yet), not a server fault — map it to a typed non-500 at the boundary so
+ * it isn't reported to Sentry. Name-checked, not instanceof, per the error
+ * classification contract. Anything else rethrows and stays a reported 500.
+ */
+async function withRuntimeErrorMapping<T>(fn: () => Promise<T>): Promise<T> {
+	try {
+		return await fn();
+	} catch (error) {
+		if (
+			error instanceof Error &&
+			error.name === "NoModelProviderCredentialsError"
+		) {
+			throw new TRPCError({
+				code: "PRECONDITION_FAILED",
+				message: error.message,
+				cause: { kind: "NO_MODEL_PROVIDER_CREDENTIALS" },
+			});
+		}
+		throw error;
+	}
+}
 
 const thinkingLevelSchema = z.enum(["off", "low", "medium", "high", "xhigh"]);
 
@@ -39,19 +64,23 @@ export const chatRouter = router({
 	getDisplayState: protectedProcedure
 		.input(sessionInput)
 		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.getDisplayState(input);
+			return withRuntimeErrorMapping(() =>
+				ctx.runtime.chat.getDisplayState(input),
+			);
 		}),
 
 	listMessages: protectedProcedure
 		.input(sessionInput)
 		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.listMessages(input);
+			return withRuntimeErrorMapping(() =>
+				ctx.runtime.chat.listMessages(input),
+			);
 		}),
 
 	getSnapshot: protectedProcedure
 		.input(sessionInput)
 		.query(({ ctx, input }) => {
-			return ctx.runtime.chat.getSnapshot(input);
+			return withRuntimeErrorMapping(() => ctx.runtime.chat.getSnapshot(input));
 		}),
 
 	sendMessage: protectedProcedure
@@ -62,7 +91,9 @@ export const chatRouter = router({
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const result = await ctx.runtime.chat.sendMessage(input);
+			const result = await withRuntimeErrorMapping(() =>
+				ctx.runtime.chat.sendMessage(input),
+			);
 			// Fire-and-forget cloud lastActiveAt update so the session selector
 			// keeps reordering after activity. Failures here must not block the
 			// turn — the user already sees their message land via the snapshot.
@@ -88,11 +119,13 @@ export const chatRouter = router({
 			}),
 		)
 		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.restartFromMessage(input);
+			return withRuntimeErrorMapping(() =>
+				ctx.runtime.chat.restartFromMessage(input),
+			);
 		}),
 
 	stop: protectedProcedure.input(sessionInput).mutation(({ ctx, input }) => {
-		return ctx.runtime.chat.stop(input);
+		return withRuntimeErrorMapping(() => ctx.runtime.chat.stop(input));
 	}),
 
 	respondToApproval: protectedProcedure
@@ -104,7 +137,9 @@ export const chatRouter = router({
 			}),
 		)
 		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.respondToApproval(input);
+			return withRuntimeErrorMapping(() =>
+				ctx.runtime.chat.respondToApproval(input),
+			);
 		}),
 
 	respondToQuestion: protectedProcedure
@@ -117,7 +152,9 @@ export const chatRouter = router({
 			}),
 		)
 		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.respondToQuestion(input);
+			return withRuntimeErrorMapping(() =>
+				ctx.runtime.chat.respondToQuestion(input),
+			);
 		}),
 
 	respondToPlan: protectedProcedure
@@ -133,7 +170,9 @@ export const chatRouter = router({
 			}),
 		)
 		.mutation(({ ctx, input }) => {
-			return ctx.runtime.chat.respondToPlan(input);
+			return withRuntimeErrorMapping(() =>
+				ctx.runtime.chat.respondToPlan(input),
+			);
 		}),
 
 	getSlashCommands: protectedProcedure
