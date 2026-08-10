@@ -139,12 +139,30 @@ export function ImportProjectsPage({
 				}
 				setImportAllProgress({ current: i, total: queue.length });
 				updateImportStatus(project.id, { kind: "running" });
+				let findByPathResult: ProjectFindByPathResult;
 				try {
-					const findByPathResult = await fetchProjectFindByPath(
+					findByPathResult = await fetchProjectFindByPath(
 						queryClient,
 						project,
 						activeHostUrl,
 					);
+				} catch (err) {
+					// Lookup failed (host/cloud outage) — that is a discovery
+					// failure, not an import failure. Back to idle so the row's
+					// own query-error affordance (Retry = refetch) surfaces;
+					// recording an import error here would let Retry start an
+					// import with no discovery data and re-create the exact
+					// duplicate this fix exists to prevent.
+					updateImportStatus(project.id, IDLE);
+					console.error("[v1-import] project lookup failed during import all", {
+						v1ProjectId: project.id,
+						mainRepoPath: project.mainRepoPath,
+						organizationId,
+						err,
+					});
+					continue;
+				}
+				try {
 					const decision = decideProjectImport(findByPathResult);
 					if (decision.kind === "already-imported") {
 						updateImportStatus(project.id, {
@@ -367,11 +385,18 @@ function ProjectRow({
 	) => {
 		onStatusChange({ kind: "running" });
 		try {
+			// Never import blind: a retry after a failed lookup would otherwise
+			// skip candidate discovery entirely (undefined data → zero
+			// candidates → fresh create instead of linking). fetchQuery dedupes
+			// against the row's own query, so this is a no-op when data exists.
+			const findByPathResult =
+				findByPathQuery.data ??
+				(await fetchProjectFindByPath(queryClient, project, activeHostUrl));
 			const result = await importProject({
 				project,
 				organizationId,
 				activeHostUrl,
-				findByPathResult: findByPathQuery.data,
+				findByPathResult,
 				finalizeSetup,
 				linkToProjectId,
 				allowRelocate: options.allowRelocate ?? false,
