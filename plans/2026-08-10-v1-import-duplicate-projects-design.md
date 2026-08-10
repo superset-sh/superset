@@ -102,20 +102,25 @@ Known limitation (accepted): two *concurrent* creates for the same path can
 still race past the check; sequential UI flows cannot. The wizard serializes
 its imports, so this closes the reported bug.
 
-### 3. Wizard — Import All completion feedback
+### 3. Wizard — mirror the workspaces page's Import All UX
 
-In `apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/ImportProjectsPage/ImportProjectsPage.tsx`:
+`ImportWorkspacesPage` ("Bring over your workspaces") already has the desired
+behavior, verified end-to-end in local dev: ticks persist across reopen, the
+header button carries a pending count, and it disappears when nothing is left.
+It works because its imported-detection is purely host-local (`workspace.list`
+match — no cloud probe). Bring `ImportProjectsPage` in line with that proven
+pattern:
 
-- `importAll` tallies outcomes per project: `imported`, `alreadyImported`
-  (decision ≠ "import"), `failed` (caught error).
-- On completion, the header button shows a transient summary state (e.g.
-  "✓ Imported 4" — count of newly imported; if everything was already imported,
-  "All imported") for 4 seconds before reverting to "Import all". While in
-  the summary state the button stays disabled.
-- No other wizard changes: per-row "Linked" ticks now appear naturally because
-  the post-import invalidation refetches `findByPath`, which (after fix 1)
-  returns the truth. Reopening the importer likewise shows imported rows as
-  Linked/Imported.
+- Header button reads `Import all · N` where N = rows still pending (not
+  already imported, not errored-out mid-run), shows `Importing i/n` with a
+  spinner while running, and is hidden entirely once no rows are pending —
+  the same completion semantics as the workspaces page's `Adopt all · N`.
+- The import-all queue skips rows whose current state is already
+  imported/running, so re-pressing mid-run or after completion is a no-op.
+- Per-row "Linked"/imported ticks appear and persist across close/reopen
+  naturally, because the post-import invalidation refetches `findByPath`,
+  which (after fix 1) returns the truth — same server-truth mechanism the
+  workspaces page relies on.
 
 ### 4. Existing duplicates — manual cleanup, out of scope for the PR
 
@@ -142,11 +147,18 @@ logic is covered by a small unit test if extracted as a pure helper.
 
 End-to-end verification in the local dev app (evidence gate per repo CDP rules):
 
-- Before the fix: reproduce — import a project, reopen the importer, observe
-  "Import" still offered; press Import all twice, observe duplicate sidebar rows.
-- After the fix: same journey — rows flip to Linked/imported, Import all a
-  second time is a no-op ("All imported"), reopening the importer shows imported
-  state, sidebar gains exactly one row per project.
+- Before the fix (**done, 2026-08-10, local dev stack**): reproduced by driving
+  the real wizard. Four "Import all" passes produced exactly 4 duplicate host-DB
+  rows per project (0→1→2→3→4, watched live); every pass logged a cloud
+  `NOT_FOUND` from the staleness probe; a live `findByPath
+  {walkAllRemotes:true}` call returned `{candidates: [], cloudErrors: []}`
+  while 4 local rows existed for that repo path. The workspaces page
+  ("Bring over your workspaces") was verified working in the same session —
+  ticks persist across reopen — confirming the host-local detection pattern.
+- After the fix: same journey — rows flip to Linked/imported, the Import all
+  button empties out and disappears, re-pressing is a no-op, reopening the
+  importer shows imported state, and the host DB gains exactly one row per
+  project.
 
 ## Out of scope
 
