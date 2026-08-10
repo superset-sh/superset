@@ -59,6 +59,10 @@ const PROJECT_REFRESH_INTERVAL_MS = 5 * 60_000;
 // PROJECT_REFRESH). Otherwise the cache is always stale at poll time and
 // each tick fires fresh GitHub calls for the same upstream branch.
 const REPO_PULL_REQUEST_CACHE_TTL_MS = 60_000;
+// A fetch that keeps failing (payload over maxBuffer, revoked auth, …) must
+// not respawn `gh` at full cadence forever: each consecutive failure doubles
+// the effective TTL of the cached rejection, capped here.
+const REPO_PULL_REQUEST_CACHE_MAX_TTL_MS = 30 * 60_000;
 // Re-probe cadence for worktrees observed missing on disk. existsSync-only —
 // cheap enough to run every tick; spawning git against a missing dir is not.
 const MISSING_WORKTREE_PROBE_INTERVAL_MS = 30_000;
@@ -176,11 +180,19 @@ export class PullRequestRuntimeManager {
 	>();
 	private readonly pullRequestHeadCache = new Map<
 		string,
-		{ promise: Promise<GitHubPullRequestNode | null>; fetchedAt: number }
+		{
+			promise: Promise<GitHubPullRequestNode | null>;
+			fetchedAt: number;
+			consecutiveFailures: number;
+		}
 	>();
 	private readonly openPullRequestsCache = new Map<
 		string,
-		{ promise: Promise<GitHubPullRequestNode[]>; fetchedAt: number }
+		{
+			promise: Promise<GitHubPullRequestNode[]>;
+			fetchedAt: number;
+			consecutiveFailures: number;
+		}
 	>();
 	private readonly readWorkspaceRefs: (
 		worktreePath: string,
@@ -979,28 +991,44 @@ export class PullRequestRuntimeManager {
 	// retried, hit the same 403, and re-evicted. Network blips heal at the
 	// next TTL boundary instead.
 	private cachedGitHubFetch<T>(
-		cache: Map<string, { promise: Promise<T>; fetchedAt: number }>,
+		cache: Map<
+			string,
+			{ promise: Promise<T>; fetchedAt: number; consecutiveFailures: number }
+		>,
 		cacheKey: string,
 		options: { bypassCache?: boolean },
 		fetcher: () => Promise<T>,
 	): Promise<T> {
-		if (!options.bypassCache) {
-			const cached = cache.get(cacheKey);
-			if (
-				cached &&
-				Date.now() - cached.fetchedAt < REPO_PULL_REQUEST_CACHE_TTL_MS
-			) {
+		const cached = cache.get(cacheKey);
+		if (!options.bypassCache && cached) {
+			const ttl = Math.min(
+				REPO_PULL_REQUEST_CACHE_TTL_MS * 2 ** cached.consecutiveFailures,
+				REPO_PULL_REQUEST_CACHE_MAX_TTL_MS,
+			);
+			if (Date.now() - cached.fetchedAt < ttl) {
 				return cached.promise;
 			}
 		}
 
-		const fetchedAt = Date.now();
-		const promise = fetcher();
-		// Observer to silence unhandledRejection warnings; real consumers
-		// observe the rejection via their own await on the cached promise.
-		promise.catch(() => {});
-		cache.set(cacheKey, { promise, fetchedAt });
-		return promise;
+		// Carry the failure streak forward so an in-flight retry keeps the
+		// backed-off TTL until it actually resolves.
+		const entry = {
+			promise: fetcher(),
+			fetchedAt: Date.now(),
+			consecutiveFailures: cached?.consecutiveFailures ?? 0,
+		};
+		// The rejection observer also silences unhandledRejection warnings;
+		// real consumers observe it via their own await on the cached promise.
+		entry.promise.then(
+			() => {
+				entry.consecutiveFailures = 0;
+			},
+			() => {
+				entry.consecutiveFailures += 1;
+			},
+		);
+		cache.set(cacheKey, entry);
+		return entry.promise;
 	}
 
 	private async getCachedPullRequestByHead(

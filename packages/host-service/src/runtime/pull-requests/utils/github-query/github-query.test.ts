@@ -245,6 +245,8 @@ describe("GitHub pull request REST queries", () => {
 					"direction=desc",
 					"-f",
 					"per_page=100",
+					"--jq",
+					expect.stringContaining("html_url"),
 				],
 			},
 		]);

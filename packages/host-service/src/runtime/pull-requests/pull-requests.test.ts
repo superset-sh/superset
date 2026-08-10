@@ -1,5 +1,5 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, test } from "bun:test";
+import { describe, expect, setSystemTime, test } from "bun:test";
 import { resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
@@ -615,6 +615,63 @@ describe("PullRequestRuntimeManager refresh", () => {
 		);
 
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBe("pr-existing");
+	});
+
+	// A permanently failing fetch (payload over maxBuffer, revoked auth) must
+	// not respawn gh at full 60s-TTL cadence forever: consecutive failures
+	// double the cached rejection's TTL, and a success resets the streak.
+	test("backs off repeated open-PR sweep failures and resets on success", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let attempts = 0;
+			let failing = true;
+			const manager = createManager(db, {
+				execGh: async () => {
+					attempts += 1;
+					if (failing) throw new Error("sweep unavailable");
+					return [];
+				},
+				github: (async () => {
+					throw new Error("octokit unavailable");
+				}) as never,
+			});
+			const repo = {
+				provider: "github" as const,
+				owner: REPO.owner,
+				name: REPO.name,
+				url: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			};
+			const sweep = () =>
+				withSilencedWarnings(() =>
+					manager.getCachedOpenPullRequests(repo).catch(() => {}),
+				);
+
+			// Trigger every 20s for 10 minutes. Without backoff the 60s TTL
+			// admits 11 fetches; doubling admits only t=0, 2min, 6min.
+			for (let t = 0; t <= 10 * 60_000; t += 20_000) {
+				setSystemTime(new Date(t0 + t));
+				await sweep();
+			}
+			expect(attempts).toBe(3);
+
+			// The t=6min failure backed off to 8min: retry fires at 14min.
+			failing = false;
+			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000));
+			await sweep();
+			expect(attempts).toBe(4);
+
+			// Success resets the streak: the base 60s TTL applies again.
+			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000 + 61_000));
+			await sweep();
+			expect(attempts).toBe(5);
+		} finally {
+			setSystemTime();
+		}
 	});
 });
 
