@@ -28,12 +28,14 @@ import {
 	usePierreRowClickPolicy,
 	useSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useFallthroughIcons } from "renderer/lib/fileIcons";
 import {
 	createPierreTreeStyle,
 	PIERRE_TREE_UNSAFE_CSS,
 } from "renderer/lib/pierreTree";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
+import { DEFAULT_FILE_TREE_HIDDEN_PATTERNS } from "shared/file-tree-patterns";
 import { PierreRowContextMenu } from "../PierreRowContextMenu";
 import { FileMenuItems } from "./components/FileMenuItems";
 import { FilesTabDropOverlay } from "./components/FilesTabDropOverlay";
@@ -146,7 +148,17 @@ export function FilesTab({
 		renderRowDecoration: (ctx) => handlersRef.current.renderRowDecoration(ctx),
 	});
 
-	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
+	const hiddenPatternsQuery =
+		electronTrpc.settings.getFileTreeHiddenPatterns.useQuery();
+	const hiddenPatterns =
+		hiddenPatternsQuery.data ?? DEFAULT_FILE_TREE_HIDDEN_PATTERNS;
+
+	const bridge = useFilesTabBridge({
+		model,
+		workspaceId,
+		rootPath,
+		hiddenPatterns,
+	});
 	const { reveal, startCreating, handleRename, handleDelete, collapseAll } =
 		useFilesTabActions({
 			model,

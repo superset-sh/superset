@@ -4,6 +4,7 @@ import {
 	SETTING_ITEM_ID,
 	type SettingItemId,
 } from "../../../utils/settings-search";
+import { FileTreeHiddenSection } from "./components/FileTreeHiddenSection";
 import { FontSettingSection } from "./components/FontSettingSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
@@ -49,6 +50,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showFileTreeHidden = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_FILE_TREE_HIDDEN,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -63,6 +68,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			<SectionList>
 				{showThemeSection && <ThemeSection key="theme" />}
 				{showMarkdown && <MarkdownStyleSection key="markdown" />}
+				{showFileTreeHidden && <FileTreeHiddenSection key="file-tree-hidden" />}
 				{(showEditorFont || showTerminalFont) && (
 					<FontSettingSection
 						key="typography"

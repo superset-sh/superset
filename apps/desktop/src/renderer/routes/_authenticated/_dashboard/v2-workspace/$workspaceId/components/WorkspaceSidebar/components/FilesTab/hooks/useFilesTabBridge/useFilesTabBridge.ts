@@ -1,8 +1,9 @@
 import type { FileTree } from "@pierre/trees";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import { createFileTreeHiddenMatcher } from "shared/file-tree-patterns";
 import {
 	asDirectoryHandle,
 	stripTrailingSlash,
@@ -14,6 +15,7 @@ interface UseFilesTabBridgeOptions {
 	model: FileTree;
 	workspaceId: string;
 	rootPath: string;
+	hiddenPatterns: string[];
 }
 
 export interface FilesTabBridge {
@@ -71,9 +73,26 @@ export function useFilesTabBridge({
 	model,
 	workspaceId,
 	rootPath,
+	hiddenPatterns,
 }: UseFilesTabBridgeOptions): FilesTabBridge {
 	const utils = workspaceTrpc.useUtils();
 	const [isRefreshing, setIsRefreshing] = useState(false);
+
+	// Editing the pattern list changes `fetchDir`'s identity, which re-runs the
+	// reset effect below and reloads the tree through the new filter.
+	const matcher = useMemo(
+		() => createFileTreeHiddenMatcher(hiddenPatterns),
+		[hiddenPatterns],
+	);
+	const isHidden = useCallback(
+		(rel: string, isDirectory: boolean) =>
+			matcher({
+				name: rel.split("/").pop() ?? "",
+				relativePath: rel,
+				isDirectory,
+			}),
+		[matcher],
+	);
 
 	// Sets/Maps are mutated in place (clear() on reset, never reassigned) so
 	// consumers can read `bridge.knownPaths` once and trust the reference
@@ -115,6 +134,7 @@ export function useFilesTabBridge({
 					const ops: { type: "add"; path: string }[] = [];
 					for (const entry of result.entries) {
 						const rel = toRel(rootPath, entry.absolutePath);
+						if (isHidden(rel, entry.kind === "directory")) continue;
 						const treePath = entry.kind === "directory" ? `${rel}/` : rel;
 						if (knownPathsRef.current.has(treePath)) continue;
 						knownPathsRef.current.add(treePath);
@@ -150,7 +170,7 @@ export function useFilesTabBridge({
 			});
 			return promise;
 		},
-		[model, rootPath, workspaceId, utils.filesystem.listDirectory],
+		[isHidden, model, rootPath, workspaceId, utils.filesystem.listDirectory],
 	);
 
 	const doRefresh = useCallback(async (): Promise<void> => {
@@ -175,6 +195,7 @@ export function useFilesTabBridge({
 					if (versionRef.current !== startVersion) return;
 					for (const entry of result.entries) {
 						const rel = toRel(rootPath, entry.absolutePath);
+						if (isHidden(rel, entry.kind === "directory")) continue;
 						freshPaths.add(entry.kind === "directory" ? `${rel}/` : rel);
 					}
 					loadedDirsRef.current.add(dir);
@@ -201,7 +222,7 @@ export function useFilesTabBridge({
 		} finally {
 			setIsRefreshing(false);
 		}
-	}, [model, rootPath, workspaceId, utils.filesystem.listDirectory]);
+	}, [isHidden, model, rootPath, workspaceId, utils.filesystem.listDirectory]);
 
 	// Reset + initial load on workspace switch. Bumping versionRef invalidates
 	// any in-flight fetches from the previous workspace.
@@ -292,6 +313,21 @@ export function useFilesTabBridge({
 				const oldKey = matchKnown(knownPathsRef.current, oldRel);
 				const isFolder = event.isDirectory ?? oldKey?.endsWith("/") ?? false;
 				const newKey = isFolder ? `${rel}/` : rel;
+
+				// Renamed into a hidden pattern: drop it rather than move it.
+				if (isHidden(rel, isFolder)) {
+					if (oldKey) {
+						removeKnownPath(model, knownPathsRef.current, oldKey);
+						if (isFolder) {
+							purgeDescendants(
+								knownPathsRef.current,
+								loadedDirsRef.current,
+								stripTrailingSlash(oldKey),
+							);
+						}
+					}
+					return;
+				}
 				if (oldKey && knownPathsRef.current.has(oldKey)) {
 					try {
 						model.move(oldKey, newKey);
@@ -351,6 +387,7 @@ export function useFilesTabBridge({
 
 			if (event.kind === "create") {
 				const isFolder = event.isDirectory ?? false;
+				if (isHidden(rel, isFolder)) return;
 				const key = isFolder ? `${rel}/` : rel;
 				addKnownPath(model, knownPathsRef.current, key);
 				if (isFolder && !loadedDirsRef.current.has(rel)) {

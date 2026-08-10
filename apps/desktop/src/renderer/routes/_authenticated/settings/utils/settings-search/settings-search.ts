@@ -20,6 +20,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_FILE_TREE_HIDDEN: "appearance-file-tree-hidden",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -135,6 +136,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_FILE_TREE_HIDDEN]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -433,6 +435,28 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"upload",
 			"personalize",
 			"customize",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_FILE_TREE_HIDDEN,
+		section: "appearance",
+		title: "Hidden Files",
+		description: "Glob patterns hidden from the workspace file tree",
+		keywords: [
+			"appearance",
+			"hidden",
+			"hide",
+			"files",
+			"file tree",
+			"sidebar",
+			"explorer",
+			"ignore",
+			"exclude",
+			"glob",
+			"pattern",
+			"dotfiles",
+			"node_modules",
+			"gitignore",
 		],
 	},
 	{
