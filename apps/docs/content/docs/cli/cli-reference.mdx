@@ -394,7 +394,7 @@ superset org members list -s satya
 
 ### projects
 
-A project is a repository checked out on a host. Projects are host-owned —
+A project is a repository checked out on a host. Projects are host-owned:
 each host serves the projects set up on that machine; there is no org-wide
 listing. Workspaces branch off a host's checkout.
 
@@ -591,7 +591,7 @@ than silently falling through to the cloud.
 	quiet="workspace IDs"
 >
 List workspaces on a host. Defaults to this machine; pass `--host <id>` for
-another host. Workspaces are host-owned — there is no org-wide listing (the
+another host. Workspaces are host-owned; there is no org-wide listing (the
 desktop app is the cross-host view). `projectName` falls back to the raw
 project id when the host doesn't know the project's name.
 </Command>
@@ -608,6 +608,7 @@ project id when the host doesn't know the project's name.
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
 		{ flag: "--agent <preset|uuid|superset>", description: "Agent to spawn after creation." },
 		{ flag: "--prompt <text>", description: "Initial prompt. Required when `--agent` is set." },
+		{ flag: "--effort <level>", description: "Reasoning effort for the spawned agent. Omit to use the agent default." },
 		{ flag: "--command <cmd>", description: "Shell command to run in the new workspace after creation." },
 		{ flag: "--attachment <path>", description: "Local file to upload for the spawned agent. Repeatable." },
 	]}
@@ -616,7 +617,8 @@ project id when the host doesn't know the project's name.
 Create a workspace on the target host. Specify exactly one of `--branch`
 or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
-`--agent`/`--prompt`. Pass either or both.
+`--agent`/`--prompt`. Pass either or both. `--effort` requires `--agent`; see
+the [agent effort levels](#agent-effort-levels) below.
 
 ```bash
 superset workspaces create \
@@ -731,12 +733,14 @@ superset workspaces open ws_… --print
 
 #### Opening a specific session
 
-`workspaces open` targets a workspace, not a session. A session started with
-[`agents create`](#superset-agents-create) syncs to the desktop app but has no pane in
-the workspace view until you navigate to it, and there is no session list, so a
-freshly created session is effectively invisible until opened. `workspaces open`
-can't focus a session, so build the deep link yourself and append a query param
-chosen by the session `kind` returned by `agents create`:
+`workspaces open` targets a workspace, not a session. Terminal sessions started
+with [`agents create`](#superset-agents-create) are automatically adopted into
+panes while their workspace is open. Opening the workspace later also creates
+panes for running terminal sessions that aren't already attached, without
+stealing focus from the active tab. `workspaces open` can't focus a specific
+session, so use a session deep link when focus matters. The same deep link
+creates or focuses the pane for a Superset chat session. Choose the query param
+from the session `kind` returned by `agents create`:
 
 | `kind` | Example agents | Query param |
 | --- | --- | --- |
@@ -806,7 +810,9 @@ superset agents list --host host_…
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the agent session in." },
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
-		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
+		{ flag: "--prompt <text>", description: "Prompt sent to the agent. Required unless `--resume-session` is set." },
+		{ flag: "--resume-session <id>", description: "Agent session id of a previous run to restore instead of starting fresh (e.g. `claude --resume <id>`). Fails for agents without an id-based resume." },
+		{ flag: "--effort <level>", description: "Reasoning effort for this launch. Omit to use the agent default." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
 		{ flag: "--attachment <path>", description: "Local file path to upload as an attachment. Repeatable." },
 	]}
@@ -821,9 +827,29 @@ machine): starts the named preset (or HostAgentConfig instance) in a fresh
 terminal session there.
 
 ```bash
-superset agents create --workspace ws_… --agent claude --prompt "Audit the login flow"
+superset agents create --workspace ws_… --agent claude --effort high --prompt "Audit the login flow"
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
+# Restore a killed agent session by the agent's own session id
+superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
 ```
+
+#### Agent effort levels
+
+Effort is an explicit override for one launch. If you omit `--effort`,
+Superset passes no effort flag and the agent uses its own configured default.
+The host rejects unsupported values before launching the agent.
+
+| Agent | Supported levels |
+| --- | --- |
+| Claude | `low`, `medium`, `high`, `xhigh`, `max` |
+| Amp | `none`, `minimal`, `low`, `medium`, `high`, `xhigh`, `max` |
+| Codex | `low`, `medium`, `high`, `xhigh` |
+| Mastracode | `off`, `low`, `medium`, `high`, `xhigh` |
+| Pi | `off`, `minimal`, `low`, `medium`, `high`, `xhigh` |
+| Copilot | `low`, `medium`, `high`, `xhigh` |
+
+Other agents, including Superset chat, currently use their own default and
+reject an explicit effort override.
 </Command>
 
 ---
@@ -853,6 +879,67 @@ machine): opens a fresh PTY in the worktree, optionally running a command.
 superset terminals create --workspace ws_… --command "bun install && bun test"
 superset terminals create --workspace ws_…
 ```
+</Command>
+
+<Command
+	name="superset terminals list"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{
+  sessions: Array<TerminalSession>;
+}`}
+>
+List the live terminal sessions in a workspace. Presence in the list means the
+PTY exists, not that an agent inside it is working or idle.
+</Command>
+
+<Command
+	name="superset terminals read"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+		{ flag: "--max-lines <n>", description: "Limit how many trailing lines to return." },
+	]}
+	output={`{
+  terminalId: string;
+  cols: number;
+  rows: number;
+  text: string;
+}`}
+>
+Read a terminal's current screen back as text without mutating the session.
+
+```bash
+superset terminals read --workspace ws_… --terminal term_… --max-lines 240
+```
+</Command>
+
+<Command
+	name="superset terminals send"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
+		{ flag: "--text <string>", required: true, description: "Text to deliver to the terminal." },
+		{ flag: "--no-submit", description: "Stage the text without pressing Enter." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+>
+Send a follow-up message to a terminal already running in a workspace, e.g. to
+give an agent new instructions mid-session.
+</Command>
+
+<Command
+	name="superset terminals close"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--terminal <id>", required: true, description: "Terminal session ID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+>
+Close (dispose) a terminal running in a workspace. This ends the session.
 </Command>
 
 ---
@@ -1036,7 +1123,7 @@ Use [`automations logs`](#superset-automations-logs-id) for run history.
 >
 Create an automation. Provide `--prompt` or `--prompt-file`; if both are
 present, the inline `--prompt` value is used. At least one of `--project`
-or `--workspace` must be provided, and it must exist on the target host —
+or `--workspace` must be provided, and it must exist on the target host;
 the CLI verifies this before creating the automation.
 
 ```bash

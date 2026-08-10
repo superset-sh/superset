@@ -25,6 +25,7 @@ import {
 	type ServerMessage,
 	type SessionInfo,
 } from "@superset/pty-daemon/protocol";
+import { probeTrustdHealthy } from "@superset/pty-daemon/trustd-probe";
 import semver from "semver";
 import { DaemonClient } from "../terminal/DaemonClient/index.ts";
 import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
@@ -57,6 +58,11 @@ interface DaemonInstance {
 	 * restart of shells that were about to come back.
 	 */
 	unreachableSince: number | null;
+	/**
+	 * macOS trustd reachability the daemon self-reported. `false` = degraded
+	 * (its terminals hit `gh -26276`); undefined = pre-probe daemon version.
+	 */
+	trustdHealthy?: boolean;
 }
 
 export interface DaemonHealth {
@@ -68,6 +74,7 @@ export interface DaemonHealth {
 interface DaemonProbeResult {
 	daemonVersion: string;
 	daemonPid?: number;
+	trustdHealthy?: boolean;
 }
 
 export interface DaemonAutoUpdateFailure {
@@ -177,6 +184,12 @@ export interface DaemonSupervisorOptions {
 	 * real handoff.
 	 */
 	autoUpdate?: boolean;
+	/**
+	 * Override for host-service's own trustd probe. Tests inject this to
+	 * exercise the degraded-host branch (heal suppressed), which can't be
+	 * staged for real without breaking the test process's own bootstrap.
+	 */
+	hostTrustdProbe?: () => Promise<boolean>;
 }
 
 export class DaemonSupervisor {
@@ -215,9 +228,45 @@ export class DaemonSupervisor {
 		string,
 		Promise<{ ok: true; successorPid: number } | { ok: false; reason: string }>
 	>();
+	/** Whether host-service itself can reach trustd; probed once, cached. */
+	private hostTrustdHealthyCache: Promise<boolean> | null = null;
 
 	constructor(opts: DaemonSupervisorOptions) {
 		this.opts = opts;
+	}
+
+	/**
+	 * Whether host-service's own Mach bootstrap can reach com.apple.trustd. Used
+	 * to gate healing a trustd-degraded daemon: only worth respawning from here
+	 * if we're healthy. Cached — a process's bootstrap doesn't change under it.
+	 */
+	private hostTrustdHealthy(): Promise<boolean> {
+		this.hostTrustdHealthyCache ??= (
+			this.opts.hostTrustdProbe ?? probeTrustdHealthy
+		)();
+		return this.hostTrustdHealthyCache;
+	}
+
+	/**
+	 * Terminate an adopted daemon so ensure() can respawn a fresh one. An
+	 * adopted daemon has no child handle or crash-respawn hook attached yet, so
+	 * this just kills its process tree and clears its manifest + socket. Its PTY
+	 * sessions are lost — acceptable, since a trustd-degraded daemon's shells are
+	 * already broken for `gh`/TLS.
+	 */
+	private async killAdoptedDaemon(
+		organizationId: string,
+		instance: DaemonInstance,
+	): Promise<void> {
+		await terminateProcessTreeAndGroups(instance.pid, "SIGTERM");
+		removePtyDaemonManifest(organizationId);
+		try {
+			if (fs.existsSync(instance.socketPath)) {
+				fs.unlinkSync(instance.socketPath);
+			}
+		} catch {
+			// best-effort; the fresh daemon unlinks a stale socket on bind anyway
+		}
 	}
 
 	/**
@@ -613,6 +662,40 @@ export class DaemonSupervisor {
 				this.kickoffAutoUpdate(organizationId, current);
 			}
 		}
+		// The daemon probes trustd AFTER binding, so a daemon adopted right
+		// after it started may not have self-reported yet. Fill in the value
+		// only while unknown — the reported value never changes after startup,
+		// so this can complete adoption-time triage late but can never turn
+		// into a mid-life kill of a long-adopted daemon.
+		if (
+			current.trustdHealthy === undefined &&
+			probe.trustdHealthy !== undefined
+		) {
+			current.trustdHealthy = probe.trustdHealthy;
+			if (probe.trustdHealthy === false && (await this.hostTrustdHealthy())) {
+				// Re-check after the await: a concurrent restart can have
+				// replaced the instance, and killing `current` then would
+				// unlink the successor's socket and manifest under it.
+				if (this.instances.get(organizationId) !== current) return;
+				logEvent("pty_daemon_trustd_degraded_respawn", {
+					organizationId,
+					pid: current.pid,
+					runningVersion: current.runningVersion,
+					lateReport: true,
+				});
+				this.stopHealthPoll(organizationId);
+				await this.killAdoptedDaemon(organizationId, current);
+				if (this.instances.get(organizationId)?.pid === pid) {
+					this.instances.delete(organizationId);
+				}
+				void this.ensure(organizationId).catch((err) => {
+					console.error(
+						`[pty-daemon:${organizationId}] respawn after late degraded report failed:`,
+						err,
+					);
+				});
+			}
+		}
 	}
 
 	/**
@@ -789,7 +872,26 @@ export class DaemonSupervisor {
 			await this.killStaleDaemonForDev(organizationId);
 		}
 
-		const adopted = await this.tryAdopt(organizationId);
+		let adopted = await this.tryAdopt(organizationId);
+		// Heal a trustd-degraded daemon: it inherited a Mach bootstrap that can't
+		// reach com.apple.trustd, so its terminals hit `gh: x509: OSStatus -26276`.
+		// Adopting it keeps the breakage — if WE (host-service) can reach trustd,
+		// kill it and respawn fresh from our healthy context below. If we're also
+		// degraded, a respawn wouldn't help; adopt and let the next healthy launch
+		// heal it.
+		if (
+			adopted &&
+			adopted.trustdHealthy === false &&
+			(await this.hostTrustdHealthy())
+		) {
+			logEvent("pty_daemon_trustd_degraded_respawn", {
+				organizationId,
+				pid: adopted.pid,
+				runningVersion: adopted.runningVersion,
+			});
+			await this.killAdoptedDaemon(organizationId, adopted);
+			adopted = null;
+		}
 		if (adopted) {
 			this.instances.set(organizationId, adopted);
 			console.log(
@@ -890,6 +992,37 @@ export class DaemonSupervisor {
 				reason: "manifest_socket_unreachable",
 			});
 		}
+		if (
+			probe &&
+			isPositiveInteger(probe.daemonPid) &&
+			probe.daemonPid !== manifest.pid
+		) {
+			// The socket answers, but a DIFFERENT daemon serves it — the
+			// manifest pid is stale (recycled, or lost a bind race). Adopting
+			// manifest.pid would aim any later destructive action (trustd heal,
+			// user restart) at an unrelated process tree. Trust the socket.
+			logEvent("pty_daemon_manifest_pid_mismatch", {
+				organizationId,
+				manifestPid: manifest.pid,
+				probedPid: probe.daemonPid,
+				socketPath: manifest.socketPath,
+			});
+			removePtyDaemonManifest(organizationId);
+			// Reuse the probe we already have — re-probing would let a
+			// transient failure demote this confirmed-live daemon to a fresh
+			// spawn. Fall back to a socket adopt only if the probed pid died.
+			return (
+				this.adoptFromProbe(
+					organizationId,
+					manifest.socketPath,
+					probe,
+					"manifest_pid_mismatch",
+				) ??
+				this.tryAdoptFromSocket(organizationId, expectedSocketPath, {
+					reason: "manifest_pid_mismatch",
+				})
+			);
+		}
 		const runningVersion = probe?.daemonVersion ?? "unknown";
 		return {
 			pid: manifest.pid,
@@ -901,6 +1034,7 @@ export class DaemonSupervisor {
 			// Start the clock here when it didn't answer: the liveness poll
 			// clears it the moment it does.
 			unreachableSince: probe ? null : Date.now(),
+			trustdHealthy: probe?.trustdHealthy,
 		};
 	}
 
@@ -926,13 +1060,34 @@ export class DaemonSupervisor {
 			return null;
 		}
 
+		return this.adoptFromProbe(
+			organizationId,
+			socketPath,
+			probe,
+			context.reason,
+		);
+	}
+
+	/**
+	 * Build an adoption from an already-successful hello probe: validate the
+	 * probed pid, recover the manifest, and return the instance. Split out so
+	 * callers that HAVE a good probe (e.g. the manifest-pid-mismatch path)
+	 * don't re-probe — a transient failure of a second probe would turn a
+	 * confirmed live daemon into a fresh spawn that unlinks its socket.
+	 */
+	private adoptFromProbe(
+		organizationId: string,
+		socketPath: string,
+		probe: DaemonProbeResult,
+		sourceReason: string,
+	): DaemonInstance | null {
 		const resolvedPid = probe.daemonPid;
 		if (!isPositiveInteger(resolvedPid) || !isProcessAlive(resolvedPid)) {
 			logEvent("pty_daemon_socket_adopt_rejected", {
 				organizationId,
 				socketPath,
 				reason: "pid_unavailable",
-				sourceReason: context.reason,
+				sourceReason,
 				probedPid: resolvedPid,
 			});
 			return null;
@@ -951,7 +1106,7 @@ export class DaemonSupervisor {
 			organizationId,
 			pid: resolvedPid,
 			socketPath,
-			sourceReason: context.reason,
+			sourceReason,
 			runningVersion: probe.daemonVersion,
 		});
 
@@ -963,10 +1118,15 @@ export class DaemonSupervisor {
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: isVersionUpdatePending(probe.daemonVersion),
 			unreachableSince: null,
+			trustdHealthy: probe.trustdHealthy,
 		};
 	}
 
 	private async spawn(organizationId: string): Promise<DaemonInstance> {
+		// Resolve before spawning the child: an await between the spawn and
+		// instances.set would let a crashing child's exit handler run against
+		// a not-yet-registered instance.
+		const hostTrustdHealthy = await this.hostTrustdHealthy();
 		const dir = ptyDaemonManifestDir(organizationId);
 		if (!fs.existsSync(dir)) {
 			fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
@@ -1154,6 +1314,9 @@ export class DaemonSupervisor {
 			expectedVersion: EXPECTED_DAEMON_VERSION,
 			updatePending: false,
 			unreachableSince: null,
+			// A freshly spawned daemon inherits host-service's bootstrap, so its
+			// trustd reachability matches ours.
+			trustdHealthy: hostTrustdHealthy,
 		};
 		this.instances.set(organizationId, instance);
 		// Reachability only — `child.on("exit")` above owns death + respawn.
@@ -1456,6 +1619,7 @@ function probeDaemonHello(
 						cleanup({
 							daemonVersion,
 							daemonPid: msg.daemonPid,
+							trustdHealthy: msg.trustdHealthy,
 						});
 						return;
 					}

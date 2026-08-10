@@ -8,7 +8,7 @@ import {
 } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
-import { clipboard, shell } from "electron";
+import { app, clipboard, shell } from "electron";
 import { localDb } from "main/lib/local-db";
 import { externalUrlLogLabel, isSafeExternalUrl } from "main/lib/safe-url";
 import { z } from "zod";
@@ -144,6 +144,29 @@ export const createExternalRouter = () => {
 			.input(z.string())
 			.mutation(async ({ input }) => {
 				shell.showItemInFolder(input);
+			}),
+
+		saveToDownloads: publicProcedure
+			.input(
+				z.object({
+					filename: z.string().min(1),
+					// ~10MB attachment cap → ~14M base64 chars; reject anything wilder.
+					dataBase64: z.string().max(20_000_000),
+				}),
+			)
+			.mutation(async ({ input }) => {
+				const safeName = nodePath.basename(input.filename) || "download";
+				const downloadsDir = app.getPath("downloads");
+				const { name, ext } = nodePath.parse(safeName);
+				let target = nodePath.join(downloadsDir, safeName);
+				for (let i = 1; fs.existsSync(target); i++) {
+					target = nodePath.join(downloadsDir, `${name} (${i})${ext}`);
+				}
+				await fs.promises.writeFile(
+					target,
+					Buffer.from(input.dataBase64, "base64"),
+				);
+				return { path: target };
 			}),
 
 		openInApp: publicProcedure

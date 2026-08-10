@@ -24,6 +24,7 @@ export interface V2UserPreferencesApi {
 	setDeleteLocalBranch: (next: boolean) => void;
 	setShowPresetsBar: (next: boolean | ((prev: boolean) => boolean)) => void;
 	toggleShowPresetsBar: () => void;
+	setBuiltinPresetHidden: (presetId: string, hidden: boolean) => void;
 }
 
 export function useV2UserPreferences(): V2UserPreferencesApi {
@@ -200,6 +201,36 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setShowPresetsBar((prev) => !prev);
 	}, [setShowPresetsBar]);
 
+	const setBuiltinPresetHidden = useCallback(
+		(presetId: string, hidden: boolean) => {
+			const existing = collections.v2UserPreferences.get(
+				V2_USER_PREFERENCES_ID,
+			);
+			const prev =
+				existing?.hiddenBuiltinPresetIds ??
+				DEFAULT_V2_USER_PREFERENCES.hiddenBuiltinPresetIds;
+			const next = hidden
+				? prev.includes(presetId)
+					? prev
+					: [...prev, presetId]
+				: prev.includes(presetId)
+					? prev.filter((id) => id !== presetId)
+					: prev;
+			if (next === prev) return;
+			if (!existing) {
+				collections.v2UserPreferences.insert({
+					...DEFAULT_V2_USER_PREFERENCES,
+					hiddenBuiltinPresetIds: next,
+				});
+				return;
+			}
+			collections.v2UserPreferences.update(V2_USER_PREFERENCES_ID, (draft) => {
+				draft.hiddenBuiltinPresetIds = next;
+			});
+		},
+		[collections],
+	);
+
 	return {
 		preferences,
 		setFileLinks,
@@ -212,5 +243,6 @@ export function useV2UserPreferences(): V2UserPreferencesApi {
 		setDeleteLocalBranch,
 		setShowPresetsBar,
 		toggleShowPresetsBar,
+		setBuiltinPresetHidden,
 	};
 }

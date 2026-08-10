@@ -1,0 +1,108 @@
+---
+title: "Superset vs Mux (2026): Agent-Agnostic Workspace vs Coder's Agent Multiplexer"
+description: "Compare Superset and Mux by Coder for parallel agentic development — running any CLI agent in worktrees vs Mux's built-in agent loop with container and Coder runtimes."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - mux
+keywords:
+  - superset vs mux
+  - mux alternative
+  - coder mux
+  - coding agent multiplexer
+  - parallel agentic development
+  - ai agent workspace
+---
+
+Superset and Mux (by Coder, the company behind the self-hosted dev-environment platform) both run parallel agent sessions in isolated workspaces from a desktop app. The structural difference decides everything downstream: Superset orchestrates the agents you already use -- Claude Code, Codex, OpenCode, any CLI -- while Mux ships its own agent loop that talks to model APIs directly. That makes Mux a coding agent with a multiplexer around it, and Superset a multiplexer for every agent, including the ones your team already pays for.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Mux** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Plans and executes tasks with parallel sessions of its own agent loop |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Open-source "coding agent multiplexer" (desktop + self-hosted server) |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Its own agent loop only (BYO API keys: Anthropic, OpenAI, xAI, Ollama, OpenRouter) |
+| **Subscriptions** | Reuses your Claude Max / ChatGPT plans via vendor CLIs | API-key billing (plus subsidized Mux Gateway credits) |
+| **Isolation** | Automatic Git worktree per task | Six runtimes: local, worktree, SSH, Docker, devcontainer, Coder |
+| **Remote / cloud** | Remote and cloud workspaces across your network devices | Self-hosted `mux server` (browser/mobile web), SSH, Coder workspaces |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Headless `mux run` with goals/budgets, JS workflow files, GitHub Actions |
+| **Editor reach** | Open in VS Code, Cursor, Windsurf, JetBrains, Zed | ACP bridge into Zed, Neovim, JetBrains; VS Code extension |
+| **License** | Source-available (ELv2) | Open source (AGPL-3.0) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Mux?
+
+Mux is Coder's open-source (AGPL-3.0) desktop and browser app for parallel agentic development -- "coding agent multiplexer." Each workspace is an isolated session of Mux's own agent loop (UX inspired by Claude Code: plan/exec modes, compaction, vim inputs), talking directly to Anthropic, OpenAI, xAI, Ollama, or OpenRouter models with your API keys. Isolation is pluggable across six runtimes -- shared local directory, git worktree, SSH host, Docker container, devcontainer, or a Coder workspace -- with a dashboard showing git divergence across sessions, best-of-N parallel attempts, workspace forking, and an integrated code-review pane. It runs headlessly too: `mux run` with goal auto-continuation and dollar budgets, durable JavaScript workflows, and a GitHub Actions guide, plus an ACP bridge that exposes the agent inside Zed, Neovim, and JetBrains. It is free, pre-1.0, with a self-hosted server mode for browser and mobile-web access, and an optional Mux Gateway offering subsidized evaluation credits.
+
+## Key Differences
+
+### Whose Agent Runs
+
+This is the fork in the road. Mux does not run Claude Code, Codex, or any external CLI agent -- you use Mux's loop with API-key billing. That buys deep integration (budgets, compaction, tool policies, best-of-N) but means giving up the agents your team knows and, importantly, the Claude Max or ChatGPT subscriptions you already pay for -- API tokens bill separately. Superset orchestrates vendor CLIs directly, so agents keep their own configs, skills, and subscription pricing, and you can mix brands per task.
+
+### Isolation Options
+
+Mux's runtime matrix is broader: beyond worktrees it offers Docker containers, devcontainers, and Coder-managed workspaces -- attractive for platform teams that want containment or already run Coder. Superset standardizes on worktrees across local, remote, and cloud workspaces, keeping agents in your real environment with your services and dependencies. Containment versus fidelity, again -- but if containers are a requirement, Mux has them today.
+
+### Governance and Enterprise Posture
+
+Mux comes from Coder and inherits its self-hosted, regulated-industry framing -- pair it with Coder's platform and you get governed infrastructure for agent fleets, all AGPL open source. Superset's enterprise story is product-led: team plans, SSO and audit logs, remote hosts shared across teammates, and a Slack bot in the flow of work. Platform teams may prefer Mux's posture; engineering teams adopting a tool usually prefer a product.
+
+### Budgets and Headless Runs
+
+Credit where due: Mux's cost controls are first-class -- per-session and per-goal dollar budgets on `mux run`, token tracking, and subsidized gateway credits. Superset's automations cover scheduled unattended sessions with an SDK and Slack triggers, but does not enforce dollar caps per run; costs live with your providers. If hard spend limits on autonomous runs matter, Mux thought about it first.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month, with agents running on your existing subscriptions or keys. Mux is free and AGPL-3.0; you pay model APIs directly (or draw on Mux Gateway's evaluation credits). Note the billing-model difference: Superset can reuse Claude Max / ChatGPT plans through vendor CLIs, while Mux's own loop requires API-key usage.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want to run the agents you already use -- Claude Code, Codex, Cursor, OpenCode -- on their existing subscriptions
+- Want a full workspace: diff editor, browser, port management, persistent terminals
+- Need scheduled automations, MCP/SDK surfaces, and team features
+- Prefer worktrees in your real environment over containers
+
+**Choose Mux if you:**
+
+- Are happy with one built-in agent loop and API-key billing
+- Want container/devcontainer isolation or run Coder already
+- Need dollar-budgeted headless runs and durable JS workflows
+- Want AGPL open source with a self-hosted browser/mobile-web server
+
+**Verdict:** Mux is a thoughtful, well-engineered take -- but it is structurally an agent with a multiplexer, and adopting it means adopting its loop and its billing. Superset is the multiplexer for the agents you already trust, with the workspace, automations, and team surfaces to make a fleet of them a daily workflow. If Coder-style self-hosted governance or container isolation is the requirement, evaluate Mux; otherwise Superset preserves your agent choices and your subscriptions.
+
+---
+
+## Frequently Asked Questions
+
+### Can Mux run Claude Code or Codex?
+
+No. Mux uses its own agent loop against model APIs (Anthropic, OpenAI, xAI, Ollama, OpenRouter) with your keys. Superset runs the vendor CLIs themselves -- Claude Code, Codex, Cursor, OpenCode, and any terminal agent -- on their own subscriptions.
+
+### Do both use Git worktrees?
+
+Both offer them. Worktree is one of Mux's six runtimes alongside local, SSH, Docker, devcontainer, and Coder workspaces. Superset makes a worktree per task the default across local, remote, and cloud workspaces.
+
+### Is Mux open source?
+
+Yes, AGPL-3.0, free, from Coder Technologies (~2,000 GitHub stars). Superset is source-available under ELv2 with a free tier and paid plans.
+
+### Which is better for teams?
+
+Different angles: Mux plus the Coder platform suits platform teams wanting self-hosted governed infrastructure; Superset ships team plans, SSO/audit logs, shared remote hosts, and a Slack bot as product features. For most engineering teams adopting a tool directly, Superset is the shorter path.

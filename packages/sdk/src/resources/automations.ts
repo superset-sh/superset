@@ -184,7 +184,8 @@ export interface AutomationSummary {
 	/** Host agent instance id (UUID) or presetId. 'superset' = built-in chat. */
 	agent: string;
 	targetHostId: string | null;
-	v2ProjectId: string;
+	/** Null = session automation: runs use project-less session workspaces. */
+	v2ProjectId: string | null;
 	v2WorkspaceId: string | null;
 	rrule: string;
 	dtstart: string;
@@ -221,12 +222,14 @@ export interface AutomationCreateParams {
 	rrule: string;
 	timezone: string;
 	/**
-	 * One of `v2ProjectId` or `v2WorkspaceId` is required. When passing
-	 * `v2WorkspaceId`, also set this to the workspace's `projectId` — workspace
+	 * Project for new-workspace-per-run mode. Omit both this and
+	 * `v2WorkspaceId` for session mode: each run creates a project-less
+	 * session workspace. When passing `v2WorkspaceId`, also set this to the
+	 * workspace's `projectId` (null for a session workspace) — workspace
 	 * records are host-owned, so supplying the full pin lets the API skip its
 	 * workspace-registry lookup (which is being retired).
 	 */
-	v2ProjectId?: string;
+	v2ProjectId?: string | null;
 	/**
 	 * Reuse an existing workspace every run. Pair it with `targetHostId` and
 	 * `v2ProjectId` from the same workspace row.
@@ -254,8 +257,14 @@ export interface AutomationUpdateParams {
 	 * workspace-registry lookup (which is being retired).
 	 */
 	targetHostId?: string | null;
-	/** When passing `v2WorkspaceId`, set this to the workspace's `projectId`. */
-	v2ProjectId?: string;
+	/**
+	 * When passing `v2WorkspaceId`, set this to the workspace's `projectId`
+	 * (null for a session workspace). Explicit null switches the automation
+	 * to session mode; if a session workspace is currently pinned, also send
+	 * `v2WorkspaceId: null` to reach unpinned new-session-per-run mode (a
+	 * project *change* clears the pin automatically, null-to-null does not).
+	 */
+	v2ProjectId?: string | null;
 	/**
 	 * Reuse an existing workspace every run. Pair it with `targetHostId` and
 	 * `v2ProjectId` from the same workspace row.

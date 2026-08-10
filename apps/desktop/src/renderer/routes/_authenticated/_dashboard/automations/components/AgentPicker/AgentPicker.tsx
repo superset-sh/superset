@@ -14,12 +14,22 @@ import { useIsDarkTheme } from "renderer/assets/app-icons/preset-icons";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import {
+	matchAgentChoice,
+	portableAgentValue,
+} from "../../utils/agentIdentity";
 
 interface AgentPickerProps {
 	hostId: string | null | undefined;
 	value: string;
 	onChange: (next: string) => void;
 	className?: string;
+	/**
+	 * Disables opening via the Radix trigger itself. A button disabled only
+	 * through an enclosing <fieldset> still receives pointerdown in Chrome —
+	 * the event that opens a DropdownMenu.
+	 */
+	disabled?: boolean;
 }
 
 export function AgentPicker({
@@ -27,12 +37,13 @@ export function AgentPicker({
 	value,
 	onChange,
 	className,
+	disabled,
 }: AgentPickerProps) {
 	const navigate = useNavigate();
 	const hostUrl = useHostUrl(hostId);
 	const { agents } = useV2AgentChoices(hostUrl);
 	const isDark = useIsDarkTheme();
-	const hostMatch = agents.find((agent) => agent.id === value);
+	const hostMatch = matchAgentChoice(agents, value);
 	const presetMatch = hostMatch ? null : getPresetById(value);
 	const selectedLabel =
 		hostMatch?.label ?? presetMatch?.label ?? (value ? value : null);
@@ -43,7 +54,7 @@ export function AgentPicker({
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
+			<DropdownMenuTrigger asChild disabled={disabled}>
 				<PickerTrigger
 					className={className}
 					icon={
@@ -66,7 +77,7 @@ export function AgentPicker({
 					return (
 						<DropdownMenuItem
 							key={agent.id}
-							onSelect={() => onChange(agent.id)}
+							onSelect={() => onChange(portableAgentValue(agents, agent))}
 						>
 							{icon ? (
 								<img
@@ -78,7 +89,7 @@ export function AgentPicker({
 								<LuCpu className="size-4 shrink-0" />
 							)}
 							<span className="flex-1 truncate">{agent.label}</span>
-							{value === agent.id && <HiCheck className="size-4" />}
+							{hostMatch?.id === agent.id && <HiCheck className="size-4" />}
 						</DropdownMenuItem>
 					);
 				})}

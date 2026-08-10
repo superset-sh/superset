@@ -440,6 +440,137 @@ describe("createWorktree hook tolerance", () => {
 		expect(currentBranch).toBe("feature/hook-failure");
 	}, 10_000);
 
+	test("continues when hook fails without any post-checkout marker in its output", async () => {
+		const repoPath = createTestRepo("worktree-hook-no-marker");
+		seedCommit(repoPath);
+
+		// Real-world shape (brief-1 repo): the hook streams install output and
+		// fails without ever printing "post-checkout" or "husky".
+		const hookPath = join(repoPath, ".git", "hooks", "post-checkout");
+		writeFileSync(
+			hookPath,
+			"#!/bin/sh\necho 'Fresh worktree detected - installing dependencies...'\nexit 1\n",
+		);
+		execSync(`chmod +x "${hookPath}"`);
+
+		const worktreePath = join(TEST_DIR, "worktree-hook-no-marker-wt");
+		await createWorktree(repoPath, "feature/no-marker", worktreePath, "HEAD");
+
+		expect(existsSync(worktreePath)).toBe(true);
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/no-marker");
+	}, 10_000);
+
+	test("continues when git is killed mid-hook (timeout shape) but worktree is created", async () => {
+		const repoPath = createTestRepo("worktree-hook-killed");
+		seedCommit(repoPath);
+
+		// Simulates the exec timeout: SIGTERM lands on git while the
+		// post-checkout hook is still running, after the checkout completed.
+		const hookPath = join(repoPath, ".git", "hooks", "post-checkout");
+		writeFileSync(
+			hookPath,
+			"#!/bin/sh\necho 'Building packages (api-types, chat-ui, etc.)...'\nkill -TERM $PPID\nsleep 2\n",
+		);
+		execSync(`chmod +x "${hookPath}"`);
+
+		const warnSpy = spyOn(console, "warn");
+		try {
+			const worktreePath = join(TEST_DIR, "worktree-hook-killed-wt");
+			await createWorktree(
+				repoPath,
+				"feature/killed-hook",
+				worktreePath,
+				"HEAD",
+			);
+
+			expect(existsSync(worktreePath)).toBe(true);
+			const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+				cwd: worktreePath,
+			})
+				.toString()
+				.trim();
+			expect(currentBranch).toBe("feature/killed-hook");
+			// The kill must actually land: a trivially clean add would skip
+			// the tolerance path entirely and prove nothing.
+			expect(
+				warnSpy.mock.calls.some((call) =>
+					String(call[0]).includes("non-fatal"),
+				),
+			).toBe(true);
+		} finally {
+			warnSpy.mockRestore();
+		}
+	}, 15_000);
+
+	test("throws on an invalid start point even when a hook exists", async () => {
+		const repoPath = createTestRepo("worktree-bad-start");
+		seedCommit(repoPath);
+
+		const hookPath = join(repoPath, ".git", "hooks", "post-checkout");
+		writeFileSync(hookPath, "#!/bin/sh\nexit 0\n");
+		execSync(`chmod +x "${hookPath}"`);
+
+		const worktreePath = join(TEST_DIR, "worktree-bad-start-wt");
+		await expect(
+			createWorktree(
+				repoPath,
+				"feature/bad-start",
+				worktreePath,
+				"origin/does-not-exist",
+			),
+		).rejects.toThrow("Failed to create worktree");
+		expect(existsSync(worktreePath)).toBe(false);
+	}, 10_000);
+
+	test("throws when destination is a pre-existing worktree on a different branch", async () => {
+		const repoPath = createTestRepo("worktree-foreign-branch");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "worktree-foreign-branch-wt");
+		execSync(`git worktree add -b other/branch "${worktreePath}" HEAD`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		// The registered worktree holds other/branch — tolerating this would
+		// hand the workspace a worktree on the wrong branch.
+		await expect(
+			createWorktree(repoPath, "feature/wanted", worktreePath, "HEAD"),
+		).rejects.toThrow("Failed to create worktree");
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("other/branch");
+	}, 10_000);
+
+	test("tolerates a pre-existing worktree already on the requested branch (retry recovery)", async () => {
+		const repoPath = createTestRepo("worktree-retry-recovery");
+		seedCommit(repoPath);
+
+		const worktreePath = join(TEST_DIR, "worktree-retry-recovery-wt");
+		execSync(`git worktree add -b feature/stranded "${worktreePath}" HEAD`, {
+			cwd: repoPath,
+			stdio: "ignore",
+		});
+
+		// Retry after a stranded attempt: the add fails on "already exists"
+		// but the desired state is already in place.
+		await createWorktree(repoPath, "feature/stranded", worktreePath, "HEAD");
+		const currentBranch = execSync("git rev-parse --abbrev-ref HEAD", {
+			cwd: worktreePath,
+		})
+			.toString()
+			.trim();
+		expect(currentBranch).toBe("feature/stranded");
+	}, 10_000);
+
 	test("throws when destination path exists but worktree is not created", async () => {
 		const repoPath = createTestRepo("worktree-existing-path");
 		seedCommit(repoPath);

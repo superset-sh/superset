@@ -44,6 +44,12 @@ interface DevicePickerProps {
 	 * (automations) goes through the relay, so "local" is not inherently online.
 	 */
 	showLocalOnlineState?: boolean;
+	/**
+	 * Disables opening via the Radix trigger itself. A button disabled only
+	 * through an enclosing <fieldset> still receives pointerdown in Chrome —
+	 * the event that opens a DropdownMenu.
+	 */
+	disabled?: boolean;
 }
 
 function getSelectedLabel(
@@ -70,6 +76,7 @@ export function DevicePicker({
 	onSelectHostId,
 	className,
 	showLocalOnlineState = false,
+	disabled,
 }: DevicePickerProps) {
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostIsOnline, otherHosts } =
@@ -91,7 +98,7 @@ export function DevicePicker({
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
+			<DropdownMenuTrigger asChild disabled={disabled}>
 				<FormPickerTrigger
 					className={cn("max-w-[140px]", className)}
 					aria-label={`Device: ${selectedLabel}`}

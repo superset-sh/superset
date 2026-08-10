@@ -143,7 +143,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 
 	const projectGroups = useMemo(() => {
 		const grouped = new Map<
-			string,
+			string | null,
 			{ projectName: string; workspaces: typeof workspaces }
 		>();
 
@@ -153,7 +153,7 @@ function V2WorkspaceList({ query }: { query: string }) {
 				group.workspaces.push(workspace);
 			} else {
 				grouped.set(workspace.projectId, {
-					projectName: workspace.projectName,
+					projectName: workspace.projectName ?? "Sessions",
 					workspaces: [workspace],
 				});
 			}

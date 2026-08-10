@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef } from "react";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
@@ -8,6 +9,8 @@ import { useSelectedHostProjectIds } from "./hooks/useSelectedHostProjectIds";
 interface DashboardNewWorkspaceModalContentProps {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	/** Open with "No project" (session) preselected. */
+	preSelectedSession?: boolean;
 }
 
 /**
@@ -20,8 +23,10 @@ interface DashboardNewWorkspaceModalContentProps {
 export function DashboardNewWorkspaceModalContent({
 	isOpen,
 	preSelectedProjectId,
+	preSelectedSession = false,
 }: DashboardNewWorkspaceModalContentProps) {
-	const { draft, updateDraft } = useDashboardNewWorkspaceDraft();
+	const { draft, updateDraft, selectProject, selectSession } =
+		useDashboardNewWorkspaceDraft();
 	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastProjectId,
 	);
@@ -37,9 +42,7 @@ export function DashboardNewWorkspaceModalContent({
 				name: project.name,
 				githubOwner: project.repoOwner,
 				githubRepoName: project.repoName,
-				iconUrl: project.repoOwner
-					? `https://github.com/${project.repoOwner}.png?size=64`
-					: null,
+				iconUrl: resolveProjectIconUrl(project),
 				needsSetup:
 					setUpProjectIds === null
 						? null
@@ -70,6 +73,14 @@ export function DashboardNewWorkspaceModalContent({
 	useEffect(() => {
 		if (!isOpen) return;
 
+		if (preSelectedSession && !hasInitializedSelectionRef.current) {
+			hasInitializedSelectionRef.current = true;
+			selectSession();
+			return;
+		}
+
+		// An explicit project preselection (e.g. a project's "+" button)
+		// overrides a session mode left behind by an earlier dismissal.
 		if (
 			preSelectedProjectId &&
 			preSelectedProjectId !== appliedPreSelectionRef.current
@@ -81,12 +92,13 @@ export function DashboardNewWorkspaceModalContent({
 			if (hasPreSelectedProject) {
 				appliedPreSelectionRef.current = preSelectedProjectId;
 				hasInitializedSelectionRef.current = true;
-				if (preSelectedProjectId !== draft.selectedProjectId) {
-					updateDraft({ selectedProjectId: preSelectedProjectId });
-				}
+				selectProject(preSelectedProjectId);
 				return;
 			}
 		}
+
+		// An explicit "No project" choice must survive project-list updates.
+		if (draft.isSession) return;
 
 		if (!areProjectsReady) return;
 
@@ -112,10 +124,14 @@ export function DashboardNewWorkspaceModalContent({
 		hasInitializedSelectionRef.current = true;
 	}, [
 		draft.selectedProjectId,
+		draft.isSession,
 		areProjectsReady,
 		isOpen,
 		preSelectedProjectId,
+		preSelectedSession,
 		recentProjects,
+		selectProject,
+		selectSession,
 		updateDraft,
 	]);
 
@@ -129,9 +145,14 @@ export function DashboardNewWorkspaceModalContent({
 				projectId={draft.selectedProjectId}
 				selectedProject={selectedProject}
 				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
+				isSessionSelected={draft.isSession}
 				onSelectProject={(selectedProjectId) => {
+					if (selectedProjectId === null) {
+						selectSession();
+						return;
+					}
 					setLastProjectId(selectedProjectId);
-					updateDraft({ selectedProjectId });
+					selectProject(selectedProjectId);
 				}}
 			/>
 		</div>

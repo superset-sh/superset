@@ -37,12 +37,7 @@ export function PaneToolbarActions({
 						{splitIcon}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent
-					side="bottom"
-					sideOffset={4}
-					showArrow={false}
-					className="rounded-sm border border-border bg-background px-1.5 py-0.5 font-medium text-muted-foreground shadow-sm"
-				>
+				<TooltipContent side="bottom">
 					<HotkeyLabel label="Split pane" id="SPLIT_AUTO" />
 				</TooltipContent>
 			</Tooltip>

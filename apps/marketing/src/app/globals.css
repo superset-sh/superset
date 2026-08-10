@@ -24,6 +24,11 @@
 	[role="button"]:not([aria-disabled="true"]) {
 		cursor: pointer;
 	}
+
+	::selection {
+		background-color: var(--brand);
+		color: #000;
+	}
 }
 
 @utility scrollbar-hide {

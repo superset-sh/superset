@@ -1,5 +1,6 @@
 import type { SelectWorktree } from "@superset/local-db";
 import { projects, workspaces, worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { and, eq, isNull } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -106,7 +107,10 @@ export async function createWorkspaceFromExternalWorktree({
 		.get();
 
 	if (!project) {
-		throw new Error(`Project ${projectId} not found`);
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Project ${projectId} not found`,
+		});
 	}
 
 	// Check for external worktree (exists on disk but not tracked in DB)
@@ -326,7 +330,10 @@ export async function openExternalWorktree({
 		.get();
 
 	if (!project) {
-		throw new Error(`Project ${projectId} not found`);
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: `Project ${projectId} not found`,
+		});
 	}
 
 	const liveWorktrees = await listExternalWorktrees(project.mainRepoPath);
@@ -334,7 +341,11 @@ export async function openExternalWorktree({
 		(worktree) => worktree.path === worktreePath,
 	);
 	if (!liveWorktree) {
-		throw new Error("Worktree no longer exists on disk");
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Worktree no longer exists on disk",
+			cause: { kind: "WORKTREE_MISSING", worktreePath },
+		});
 	}
 	if (liveWorktree.isBare || liveWorktree.isDetached || !liveWorktree.branch) {
 		throw new Error("Worktree is not importable");

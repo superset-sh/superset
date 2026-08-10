@@ -9,6 +9,7 @@ import { differenceInDays, format } from "date-fns";
 import { Fragment, useState } from "react";
 import { HiArrowLeft, HiArrowUpRight, HiCheck } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { track } from "renderer/lib/analytics";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -218,8 +219,7 @@ function PlansPage() {
 
 	const activeOrgId = session?.session?.activeOrganizationId;
 
-	// Get subscription from Electric (preloaded, instant)
-	const { data: subscriptionsData } = useLiveQuery(
+	const { data: subscriptionsData, isReady: subscriptionsReady } = useLiveQuery(
 		(q) => q.from({ subscriptions: collections.subscriptions }),
 		[collections],
 	);
@@ -227,7 +227,15 @@ function PlansPage() {
 		(s) => s.status === "active",
 	);
 
-	const currentPlan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
+	// A cold collection must not read as "free": that renders a live Upgrade
+	// action for an org that may already be paying. Session plan fills in
+	// until rows or readiness arrive.
+	const currentPlan: PlanTier = resolveCurrentPlan({
+		subscriptionPlan: subscriptionData?.plan,
+		sessionPlan: session?.session?.plan,
+		subscriptionsLoaded:
+			subscriptionsReady || (subscriptionsData?.length ?? 0) > 0,
+	});
 	const cancelAt = subscriptionData?.cancelAt;
 
 	const isCurrentlyYearly =
@@ -238,14 +246,18 @@ function PlansPage() {
 			new Date(subscriptionData.periodStart),
 		) > 60;
 
-	const { data: membersData } = useLiveQuery(
+	const { data: membersData, isReady: membersReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ members: collections.members })
 				.select(({ members }) => ({ id: members.id })),
 		[collections],
 	);
-	const memberCount = membersData?.length ?? 1;
+	// Seats are billed from this — never derive it from a cold collection.
+	const memberCount =
+		membersReady && membersData && membersData.length > 0
+			? membersData.length
+			: undefined;
 
 	const currentPlanLabelByTier: Record<PlanTier, string> = {
 		free: "Free",
@@ -308,6 +320,8 @@ function PlansPage() {
 			}
 			return;
 		}
+
+		if (memberCount === undefined) return;
 
 		setIsUpgrading(true);
 		try {

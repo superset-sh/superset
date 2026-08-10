@@ -8,7 +8,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
+import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	tasksSearchFromFilters,
@@ -20,18 +21,22 @@ import {
 	type SelectedIssue,
 } from "./components/GitHubIssuesContent";
 import { LinearCTA } from "./components/LinearCTA";
-import { PullRequestsContent } from "./components/PullRequestsContent";
 import { TableContent } from "./components/TableContent";
-import { type TabValue, TasksTopBar } from "./components/TasksTopBar";
+import {
+	type TabValue,
+	type TaskSource,
+	TasksTopBar,
+} from "./components/TasksTopBar";
 import type { TaskWithStatus } from "./hooks/useTasksData";
 
 interface TasksViewProps {
-	initialTab?: "all" | "active" | "backlog";
+	initialTab?: TabValue;
 	initialAssignee?: string;
 	initialSearch?: string;
-	initialType?: "tasks" | "prs" | "issues";
-	initialProject?: string;
+	initialType?: "tasks" | "issues";
+	initialProjects?: string[];
 	initialLinearProject?: string;
+	initialState?: "open" | "all";
 }
 
 export function TasksView({
@@ -39,40 +44,58 @@ export function TasksView({
 	initialAssignee,
 	initialSearch,
 	initialType,
-	initialProject,
+	initialProjects,
 	initialLinearProject,
+	initialState,
 }: TasksViewProps) {
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const currentTab: TabValue = initialTab ?? "all";
-	const [searchQuery, setSearchQuery] = useState(initialSearch ?? "");
-	const deferredSearchQuery = useDeferredValue(searchQuery);
-	const assigneeFilter = initialAssignee ?? null;
-	const typeTab = initialType ?? "tasks";
-	const projectFilter = initialProject ?? null;
-	const linearProjectFilter = initialLinearProject ?? null;
-
 	const {
+		tab: storedTab,
+		assignee: storedAssignee,
+		search: storedSearch,
+		typeTab: storedTypeTab,
+		projectFilters: storedProjectFilters,
+		linearProjectFilter: storedLinearProjectFilter,
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
 		setSearch: storeSetSearch,
 		setTypeTab: storeSetTypeTab,
-		setProjectFilter: storeSetProjectFilter,
+		setProjectFilters: storeSetProjectFilters,
 		setLinearProjectFilter: storeSetLinearProjectFilter,
+		includeClosedIssues: storedIncludeClosedIssues,
+		setIncludeClosedIssues: storeSetIncludeClosedIssues,
 		viewMode,
 		setViewMode,
 	} = useTasksFilterStore();
+	const currentTab: TabValue = initialTab ?? storedTab;
+	const [searchQuery, setSearchQuery] = useState(initialSearch ?? storedSearch);
+	const deferredSearchQuery = useDeferredValue(searchQuery);
+	const assigneeFilter = initialAssignee ?? storedAssignee;
+	const typeTab = initialType ?? storedTypeTab;
+	const projectFilters = initialProjects ?? storedProjectFilters;
+	const linearProjectFilter = initialLinearProject ?? storedLinearProjectFilter;
+	const includeClosedIssues =
+		initialState === undefined
+			? storedIncludeClosedIssues
+			: initialState === "all";
 
-	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
+	// Sync only from the URL: depending on storedSearch would snap the input
+	// back to the stale URL value on every keystroke until the debounced
+	// navigation lands.
+	useEffect(() => {
+		if (initialSearch !== undefined) setSearchQuery(initialSearch);
+	}, [initialSearch]);
 
 	const buildSearch = useCallback(
 		(overrides: {
 			tab?: TabValue;
 			assignee?: string | null;
 			search?: string;
-			type?: "tasks" | "prs" | "issues";
-			project?: string | null;
+			type?: "tasks" | "issues";
+			projects?: string[];
 			linearProject?: string | null;
+			includeClosedIssues?: boolean;
 		}) =>
 			tasksSearchFromFilters({
 				tab: overrides.tab ?? currentTab,
@@ -82,42 +105,41 @@ export function TasksView({
 						: assigneeFilter,
 				search: overrides.search !== undefined ? overrides.search : searchQuery,
 				typeTab: overrides.type ?? typeTab,
-				projectFilter:
-					overrides.project !== undefined ? overrides.project : projectFilter,
+				projectFilters:
+					overrides.projects !== undefined
+						? overrides.projects
+						: projectFilters,
 				linearProjectFilter:
 					overrides.linearProject !== undefined
 						? overrides.linearProject
 						: linearProjectFilter,
+				includeClosedIssues:
+					overrides.includeClosedIssues ?? includeClosedIssues,
 			}),
 		[
 			currentTab,
 			assigneeFilter,
 			searchQuery,
 			typeTab,
-			projectFilter,
+			projectFilters,
 			linearProjectFilter,
+			includeClosedIssues,
 		],
 	);
-
-	const syncSearchToUrl = useCallback(
+	const navigateSearch = useCallback(
 		(query: string) => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-			debounceRef.current = setTimeout(() => {
-				navigate({
-					to: "/tasks",
-					search: buildSearch({ search: query }),
-					replace: true,
-				});
-			}, 300);
+			navigate({
+				to: "/tasks",
+				search: buildSearch({ search: query }),
+				replace: true,
+			});
 		},
 		[navigate, buildSearch],
 	);
-
-	useEffect(() => {
-		return () => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-		};
-	}, []);
+	const {
+		cancelPendingSearchNavigation,
+		scheduleSearchNavigation: syncSearchToUrl,
+	} = useDebouncedSearchNavigation(navigateSearch);
 
 	const handleSearchChange = useCallback(
 		(query: string) => {
@@ -145,12 +167,16 @@ export function TasksView({
 	}, [typeTab, storeSetTypeTab]);
 
 	useEffect(() => {
-		storeSetProjectFilter(projectFilter);
-	}, [projectFilter, storeSetProjectFilter]);
+		storeSetProjectFilters(projectFilters);
+	}, [projectFilters, storeSetProjectFilters]);
 
 	useEffect(() => {
 		storeSetLinearProjectFilter(linearProjectFilter);
 	}, [linearProjectFilter, storeSetLinearProjectFilter]);
+
+	useEffect(() => {
+		storeSetIncludeClosedIssues(includeClosedIssues);
+	}, [includeClosedIssues, storeSetIncludeClosedIssues]);
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -163,7 +189,11 @@ export function TasksView({
 	);
 
 	// Projects are fully local — identity comes from the host fan-out.
-	const { projects: hostProjects } = useHostProjects();
+	const {
+		isReady: areProjectsReady,
+		projects: hostProjects,
+		targets: projectTargets,
+	} = useProjectQueryTargets(projectFilters);
 	const v2Projects = useMemo(
 		() =>
 			hostProjects.map((project) => ({
@@ -174,25 +204,37 @@ export function TasksView({
 	);
 
 	useEffect(() => {
-		if (!v2Projects) return;
-		if (projectFilter && v2Projects.some((p) => p.id === projectFilter)) return;
-		const firstProject = v2Projects[0];
-		if (!firstProject) return;
+		if (!areProjectsReady) return;
+		const availableIds = new Set(v2Projects.map((project) => project.id));
+		const availableFilters = projectFilters.filter((projectId) =>
+			availableIds.has(projectId),
+		);
+		if (availableFilters.length === projectFilters.length) return;
+		cancelPendingSearchNavigation();
 		navigate({
 			to: "/tasks",
-			search: buildSearch({ project: firstProject.id }),
+			search: buildSearch({ projects: availableFilters }),
 			replace: true,
 		});
-	}, [projectFilter, v2Projects, navigate, buildSearch]);
+	}, [
+		areProjectsReady,
+		projectFilters,
+		v2Projects,
+		cancelPendingSearchNavigation,
+		navigate,
+		buildSearch,
+	]);
 
 	const isLinearConnected =
 		integrations?.some((i) => i.provider === "linear") ?? false;
 
 	const handleTabChange = (tab: TabValue) => {
+		cancelPendingSearchNavigation();
 		navigate({ to: "/tasks", search: buildSearch({ tab }), replace: true });
 	};
 
 	const handleAssigneeFilterChange = (assignee: string | null) => {
+		cancelPendingSearchNavigation();
 		navigate({
 			to: "/tasks",
 			search: buildSearch({ assignee }),
@@ -200,18 +242,50 @@ export function TasksView({
 		});
 	};
 
-	const handleTypeTabChange = (type: "tasks" | "prs" | "issues") => {
-		navigate({ to: "/tasks", search: buildSearch({ type }), replace: true });
+	const navigateToType = (type: TaskSource, resetSearch: boolean) => {
+		const nextSearch = resetSearch ? "" : searchQuery;
+		storeSetTypeTab(type);
+		cancelPendingSearchNavigation();
+		if (resetSearch) {
+			setSearchQuery("");
+			storeSetSearch("");
+		}
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ type, search: nextSearch }),
+			replace: true,
+		});
 	};
 
-	const handleProjectFilterChange = (project: string) => {
-		navigate({ to: "/tasks", search: buildSearch({ project }), replace: true });
+	const handleTaskSourceChange = (source: TaskSource) => {
+		navigateToType(source, true);
+	};
+
+	const handleProjectFiltersChange = (projects: string[]) => {
+		cancelPendingSearchNavigation();
+		storeSetProjectFilters(projects);
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ projects }),
+			replace: true,
+		});
 	};
 
 	const handleLinearProjectFilterChange = (linearProject: string | null) => {
+		cancelPendingSearchNavigation();
 		navigate({
 			to: "/tasks",
 			search: buildSearch({ linearProject }),
+			replace: true,
+		});
+	};
+
+	const handleIncludeClosedIssuesChange = (nextIncludeClosed: boolean) => {
+		cancelPendingSearchNavigation();
+		storeSetIncludeClosedIssues(nextIncludeClosed);
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ includeClosedIssues: nextIncludeClosed }),
 			replace: true,
 		});
 	};
@@ -258,33 +332,33 @@ export function TasksView({
 		integrations !== undefined && !isLinearConnected && typeTab === "tasks";
 
 	const showTasks = typeTab === "tasks";
-	const showPRs = typeTab === "prs";
 	const showIssues = typeTab === "issues";
+	const taskSource: TaskSource = showIssues ? "issues" : "tasks";
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-			{!showLinearCTA && (
-				<TasksTopBar
-					currentTab={currentTab}
-					onTabChange={handleTabChange}
-					searchQuery={searchQuery}
-					onSearchChange={handleSearchChange}
-					assigneeFilter={assigneeFilter}
-					onAssigneeFilterChange={handleAssigneeFilterChange}
-					selectedTasks={selectedTasks}
-					onClearSelection={handleClearSelection}
-					selectedIssues={selectedIssues}
-					onClearIssueSelection={handleClearIssueSelection}
-					viewMode={viewMode}
-					onViewModeChange={setViewMode}
-					typeTab={typeTab}
-					onTypeTabChange={handleTypeTabChange}
-					projectFilter={projectFilter}
-					onProjectFilterChange={handleProjectFilterChange}
-					linearProjectFilter={linearProjectFilter}
-					onLinearProjectFilterChange={handleLinearProjectFilterChange}
-				/>
-			)}
+			<TasksTopBar
+				currentTab={currentTab}
+				onTabChange={handleTabChange}
+				searchQuery={searchQuery}
+				onSearchChange={handleSearchChange}
+				assigneeFilter={assigneeFilter}
+				onAssigneeFilterChange={handleAssigneeFilterChange}
+				selectedTasks={selectedTasks}
+				onClearSelection={handleClearSelection}
+				selectedIssues={selectedIssues}
+				onClearIssueSelection={handleClearIssueSelection}
+				viewMode={viewMode}
+				onViewModeChange={setViewMode}
+				taskSource={taskSource}
+				onTaskSourceChange={handleTaskSourceChange}
+				projectFilters={projectFilters}
+				onProjectFiltersChange={handleProjectFiltersChange}
+				linearProjectFilter={linearProjectFilter}
+				onLinearProjectFilterChange={handleLinearProjectFilterChange}
+				includeClosedIssues={includeClosedIssues}
+				onIncludeClosedIssuesChange={handleIncludeClosedIssuesChange}
+			/>
 
 			{showLinearCTA ? (
 				<LinearCTA />
@@ -309,16 +383,14 @@ export function TasksView({
 								onSelectionChange={handleSelectionChange}
 							/>
 						))}
-					{showPRs && (
-						<PullRequestsContent
-							projectFilter={projectFilter}
-							searchQuery={deferredSearchQuery}
-						/>
-					)}
 					{showIssues && (
 						<GitHubIssuesContent
-							projectFilter={projectFilter}
-							searchQuery={deferredSearchQuery}
+							projectFilters={projectFilters}
+							projectTargets={projectTargets}
+							areProjectsReady={areProjectsReady}
+							hasProjects={v2Projects.length > 0}
+							searchQuery={searchQuery}
+							includeClosed={includeClosedIssues}
 							onSelectionChange={handleIssueSelectionChange}
 						/>
 					)}

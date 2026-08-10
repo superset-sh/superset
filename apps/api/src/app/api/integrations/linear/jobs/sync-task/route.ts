@@ -164,6 +164,9 @@ async function syncTaskToLinear(
 			await db
 				.update(tasks)
 				.set({
+					// Linear derives branchName from identifier + title, so a
+					// title update can change it.
+					branch: issue.branchName || null,
 					lastSyncedAt: new Date(),
 					syncError: null,
 				})
@@ -219,6 +222,7 @@ async function syncTaskToLinear(
 				externalId: issue.id,
 				externalKey: issue.identifier,
 				externalUrl: issue.url,
+				branch: issue.branchName || null,
 				lastSyncedAt: new Date(),
 				syncError: null,
 			})

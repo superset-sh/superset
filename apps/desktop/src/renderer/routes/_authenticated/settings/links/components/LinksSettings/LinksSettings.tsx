@@ -14,6 +14,8 @@ import {
 	type LinkAction,
 	type LinkTierMap,
 } from "renderer/lib/clickPolicy";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -28,6 +30,7 @@ interface LinksSettingsProps {
 }
 
 export function LinksSettings({ visibleItems }: LinksSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const {
 		preferences,
 		setFileLinks,
@@ -100,7 +103,9 @@ export function LinksSettings({ visibleItems }: LinksSettingsProps) {
 
 				{showPort && (
 					<div>
-						<h3 className="text-sm font-medium mb-1">Ports</h3>
+						<h3 className="text-sm font-medium mb-1">
+							<HighlightText text="Ports" query={searchQuery} />
+						</h3>
 						<p className="text-xs text-muted-foreground mb-3">
 							Where detected-port badges in the sidebar open when clicked.
 						</p>

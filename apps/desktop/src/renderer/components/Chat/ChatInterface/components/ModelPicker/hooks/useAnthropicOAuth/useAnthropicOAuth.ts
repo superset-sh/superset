@@ -1,4 +1,4 @@
-import { chatServiceTrpc } from "@superset/chat/client";
+import { chatServiceTrpc } from "@superset/chat-legacy/client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { electronTrpcClient } from "renderer/lib/trpc-client";

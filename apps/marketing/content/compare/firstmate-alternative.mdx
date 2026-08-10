@@ -1,0 +1,99 @@
+---
+title: "Best Firstmate Alternatives in 2026"
+description: "The best alternatives to Firstmate for orchestrating a crew of parallel coding agents, including Superset, Claude Squad, Herdr, Orca, and Gas Town."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "roundup"
+competitors:
+  - firstmate
+  - claude-squad
+  - herdr
+  - orca
+  - gastown
+keywords:
+  - firstmate alternative
+  - firstmate alternatives
+  - agent distro alternative
+  - multi agent workflow
+  - parallel coding agents tmux
+---
+
+Firstmate is the MIT-licensed "agent distro": a cloned repo of instructions, skills, and scripts that turns a terminal agent into an orchestrator, spawning crewmates in tmux windows and disposable Git worktrees. It is free, transparent, and clever -- and everything visual is bring-your-own: no review UI, no dashboard, no scheduling, and the reliability surface of prompts plus shell scripts. Here are the best Firstmate alternatives in 2026.
+
+---
+
+## The Short Version
+
+| Alternative | Best for | Platform | License |
+|---|---|---|---|
+| **Superset** | The same delegation pattern with a real workspace around it | macOS now; Windows and Linux coming | Source-available (ELv2) |
+| **Claude Squad** | Simple terminal-native parallel agents | macOS, Linux | Open source (AGPL) |
+| **Herdr** | Persistent runtime under your agents | macOS, Linux, Windows (beta) | Open source (Apache-2.0) |
+| **Orca** | Free desktop ADE with fan-out workflows | macOS, Windows, Linux + iOS/Android | Open source (MIT) |
+| **Gas Town** | Autonomous 20-30 agent fleets with a merge queue | CLI/tmux (macOS, Linux) | Open source (MIT) |
+
+## Why Look for a Firstmate Alternative?
+
+Firstmate assumes you bring the environment: tmux (or Herdr/cmux/Orca as backends), your own review habits, and your own triggers for recurring work. Instruction drift across agent versions and tmux quirks are your problem to debug. If you want the crew pattern with visibility, review, and scheduling built in -- or autonomous supervision beyond one conversation -- these are the alternatives.
+
+## The Best Alternatives
+
+### Superset
+
+Superset delivers Firstmate's core promise -- one instruction fans out to a crew of isolated agents -- as a product. Agents launch into automatic Git worktrees with persistent terminals; an orchestrating agent can spawn and steer workers through the CLI and MCP server; and you watch everything in one workspace with diff review, a browser, and port management. Scheduled automations with a TypeScript SDK and Slack bot handle the recurring work Firstmate leaves to your own wiring.
+
+For the direct comparison, see [Superset vs Firstmate](/compare/superset-vs-firstmate).
+
+### Claude Squad
+
+Claude Squad is the simplest neighboring tool: an open-source terminal app managing multiple agents in separate worktrees over tmux. Less ambitious than Firstmate's supervisor model -- there is no orchestrating first mate -- but fewer moving parts to trust.
+
+See [Superset vs Claude Squad](/compare/superset-vs-claude-squad).
+
+### Herdr
+
+Herdr is one of Firstmate's own optional backends, and for some users the runtime alone is enough: an always-on server that keeps agent terminals alive with worktree management in the CLI and a JSON socket API agents can drive. Persistence and scriptability without the distro layer.
+
+See [Superset vs Herdr](/compare/superset-vs-herdr).
+
+### Orca
+
+Orca (another supported Firstmate backend) is the free, MIT-licensed desktop ADE with ~39,000 stars: fan a prompt across agents in parallel worktrees, compare results, and merge the winner -- the fan-out workflow with a full visual environment attached.
+
+See [Superset vs Orca](/compare/superset-vs-orca).
+
+### Gas Town
+
+Gas Town is Steve Yegge's MIT-licensed orchestrator for running fleets of 20-30 agents: an AI "Mayor" dispatches work from a git-backed ledger, watchdogs recover stuck agents, and a bisecting merge queue lands the results. Much heavier machinery than Firstmate, for much bigger fleets.
+
+See [Superset vs Gas Town](/compare/superset-vs-gastown).
+
+## How To Choose
+
+- For the crew pattern with a workspace, review, and automations built in, choose **Superset**.
+- For minimal terminal-native parallelism, choose **Claude Squad**.
+- For a persistent runtime you script yourself, choose **Herdr**.
+- For a free visual fan-out environment, choose **Orca**.
+- For autonomous fleets at 20-30 agents, choose **Gas Town**.
+
+## Verdict
+
+Firstmate is the best pure expression of the DIY delegation idea, and tinkerers should read its source regardless of what they run. For daily shipping, the pattern works better with infrastructure under it: Superset is the strongest alternative, with Herdr and Orca as open-source picks that Firstmate itself can even sit on top of. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best Firstmate alternative?
+
+For most developers, Superset: the same one-conversation-to-many-agents delegation via its CLI and MCP server, plus worktrees, review, a browser, and scheduled automations as a supported product.
+
+### Is there an open-source Firstmate alternative?
+
+Firstmate is MIT and free. Claude Squad (AGPL), Herdr (Apache-2.0), Orca (MIT), and Gas Town (MIT) are open-source alternatives; Superset is source-available under ELv2.
+
+### Can these alternatives spawn agents from one conversation like Firstmate?
+
+Yes, in different ways. Superset agents orchestrate workers through its CLI/MCP surfaces. Gas Town's Mayor dispatches autonomously. Herdr's socket API lets an agent drive it from inside a pane. Orca has experimental agent-to-agent orchestration.
+
+### Do these alternatives use Git worktrees like Firstmate?
+
+Superset and Orca create a worktree per task automatically; Claude Squad and Herdr manage worktrees for their sessions; Gas Town's "hooks" are git worktree-backed persistent work state.

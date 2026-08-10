@@ -31,6 +31,7 @@ await run({
 	version: config.version,
 	tree: { commands, groups, middleware },
 	globals: config.globals,
+	help: config.help,
 });
 `,
 	);

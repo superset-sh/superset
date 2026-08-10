@@ -28,13 +28,8 @@ const config = {
 	async redirects() {
 		return [
 			{
-				source: "/",
-				destination: "/overview",
-				permanent: false,
-			},
-			{
 				source: "/docs",
-				destination: "/overview",
+				destination: "/",
 				permanent: false,
 			},
 			// Legacy /docs-prefixed URLs (e.g. /docs/automations) now live at root.
@@ -102,6 +97,7 @@ const config = {
 export default withSentryConfig(withMDX(config), {
 	org: "superset-sh",
 	project: "docs",
+	applicationKey: "superset-docs",
 	silent: !process.env.CI,
 	widenClientFileUpload: true,
 	tunnelRoute: "/monitoring",

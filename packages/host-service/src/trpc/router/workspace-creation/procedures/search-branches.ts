@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import { resolveDefaultBranchName } from "../../../../runtime/git/refs";
 import { protectedProcedure } from "../../../index";
@@ -60,7 +60,12 @@ export const searchBranches = protectedProcedure
 			ctx.db
 				.select()
 				.from(workspaces)
-				.where(eq(workspaces.projectId, input.projectId))
+				.where(
+					and(
+						eq(workspaces.projectId, input.projectId),
+						isNull(workspaces.archivedAt),
+					),
+				)
 				.all()
 				.map((workspace) => workspace.branch)
 				.filter((branch): branch is string => Boolean(branch)),

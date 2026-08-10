@@ -1,7 +1,8 @@
 import { EventEmitter } from "node:events";
+import * as Sentry from "@sentry/electron/main";
 import { app, dialog } from "electron";
 import log from "electron-log/main";
-import { autoUpdater } from "electron-updater";
+import { autoUpdater, type UpdateCheckResult } from "electron-updater";
 import { env } from "main/env.main";
 import { setSkipQuitConfirmation } from "main/index";
 import { appState } from "main/lib/app-state";
@@ -80,6 +81,40 @@ const SILENT_ERROR_PATTERNS = [
 function isNetworkError(error: Error | string): boolean {
 	const message = typeof error === "string" ? error : error.message;
 	return SILENT_ERROR_PATTERNS.some((pattern) => message.includes(pattern));
+}
+
+const ENVIRONMENT_ERRNO_CODES = [
+	"ENOENT",
+	"EACCES",
+	"EPERM",
+	"EBUSY",
+	"ENOSPC",
+];
+const UPDATER_PATH_MARKERS = ["-updater", "shipit"];
+
+// Update failures owned by the user's machine, not by us: a corrupt or
+// half-removed updater cache, an app bundle that can't be written, and stalled
+// requests. Squirrel and electron-updater surface these as plain messages
+// without errno properties, so match on the text.
+function isEnvironmentUpdateError(message: string): boolean {
+	const lowerMessage = message.toLowerCase();
+	if (
+		lowerMessage.includes("read-only volume") ||
+		lowerMessage.includes("the request timed out")
+	) {
+		return true;
+	}
+	return (
+		ENVIRONMENT_ERRNO_CODES.some((code) => message.includes(`${code}:`)) &&
+		UPDATER_PATH_MARKERS.some((marker) => lowerMessage.includes(marker))
+	);
+}
+
+// electron-updater starts the auto-download inside checkForUpdates and hands
+// back its promise unattached; every rejection has already gone through the
+// `error` event, so the copy only needs to stop being unhandled.
+function releaseDownloadPromise(result: UpdateCheckResult | null): void {
+	result?.downloadPromise?.catch(() => {});
 }
 
 let currentStatus: AutoUpdateStatus = AUTO_UPDATE_STATUS.IDLE;
@@ -170,15 +205,18 @@ export function checkForUpdates(): void {
 	}
 	isDismissed = false;
 	emitStatus(AUTO_UPDATE_STATUS.CHECKING);
-	autoUpdater.checkForUpdates().catch((error) => {
-		if (isNetworkError(error)) {
-			log.info("[auto-updater] Network unavailable, will retry later");
-			emitStatus(AUTO_UPDATE_STATUS.IDLE);
-			return;
-		}
-		log.error("[auto-updater] Failed to check for updates:", error);
-		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
-	});
+	autoUpdater
+		.checkForUpdates()
+		.then(releaseDownloadPromise)
+		.catch((error) => {
+			if (isNetworkError(error)) {
+				log.info("[auto-updater] Network unavailable, will retry later");
+				emitStatus(AUTO_UPDATE_STATUS.IDLE);
+				return;
+			}
+			log.error("[auto-updater] Failed to check for updates:", error);
+			emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		});
 }
 
 export function checkForUpdatesInteractive(): void {
@@ -205,6 +243,7 @@ export function checkForUpdatesInteractive(): void {
 	autoUpdater
 		.checkForUpdates()
 		.then((result) => {
+			releaseDownloadPromise(result);
 			if (
 				!result?.updateInfo ||
 				gte(app.getVersion(), result.updateInfo.version)
@@ -337,6 +376,9 @@ export function setupAutoUpdater(): void {
 		);
 		void clearCachedUpdate(`error: ${error?.message ?? "unknown"}`);
 		emitStatus(AUTO_UPDATE_STATUS.ERROR, undefined, error.message);
+		if (!isEnvironmentUpdateError(error?.message ?? String(error))) {
+			Sentry.captureException(error);
+		}
 	});
 
 	autoUpdater.on("checking-for-update", () => {

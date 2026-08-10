@@ -6,7 +6,7 @@ This guide is for contributors building Superset from source. If you just want t
 
 | Tool | Install |
 |:-----|:--------|
-| [Bun](https://bun.sh/) (v1.0+) | `curl -fsSL https://bun.sh/install \| bash` |
+| [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`) | `curl -fsSL https://bun.sh/install \| bash` |
 | [Docker](https://docs.docker.com/get-docker/) | Docker Desktop or OrbStack |
 | `jq` | `brew install jq` |
 | [Caddy](https://caddyserver.com/docs/install) | `brew install caddy && caddy trust` |
@@ -83,11 +83,12 @@ open apps/desktop/release
 ## Common commands
 
 ```bash
-bun dev                # Start all dev servers
+bun dev                # Start the api, web, desktop, and electric-proxy dev servers
+bun run dev:all        # Start every dev server in the monorepo
 bun test               # Run tests
 bun run lint:fix       # Fix lint + format
 bun run typecheck      # Type-check all packages
-bun run build          # Build all packages
+bun run build          # Build the desktop app
 ```
 
 See [`AGENTS.md`](./AGENTS.md) for repo structure, monorepo conventions, and database/migration workflow.

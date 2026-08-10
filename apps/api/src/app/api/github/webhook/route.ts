@@ -2,6 +2,7 @@ import { db } from "@superset/db/client";
 import { webhookEvents } from "@superset/db/schema";
 import { eq, sql } from "drizzle-orm";
 
+import { stripNullChars } from "@/lib/strip-null-chars";
 import { webhooks } from "./webhooks";
 
 export async function POST(request: Request) {
@@ -35,7 +36,7 @@ export async function POST(request: Request) {
 			provider: "github",
 			eventId,
 			eventType: eventType ?? "unknown",
-			payload,
+			payload: stripNullChars(payload),
 			status: "pending",
 		})
 		.onConflictDoUpdate({

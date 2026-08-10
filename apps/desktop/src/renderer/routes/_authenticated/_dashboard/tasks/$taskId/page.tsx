@@ -12,6 +12,7 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { Route as TasksLayoutRoute } from "../layout";
@@ -42,7 +43,9 @@ function TaskDetailPage() {
 		search: searchQuery,
 		type,
 		project,
+		projects,
 		linearProject,
+		state,
 	} = TasksLayoutRoute.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
@@ -57,11 +60,21 @@ function TaskDetailPage() {
 			tab: tab ?? "all",
 			assignee: assignee ?? null,
 			search: searchQuery ?? "",
-			typeTab: type ?? "tasks",
-			projectFilter: project ?? null,
+			typeTab: type === "issues" ? "issues" : "tasks",
+			projectFilters: resolveProjectFilterParams(projects, project, []),
 			linearProjectFilter: linearProject ?? null,
+			includeClosedIssues: state === "all",
 		});
-	}, [tab, assignee, searchQuery, type, project, linearProject]);
+	}, [
+		tab,
+		assignee,
+		searchQuery,
+		type,
+		project,
+		projects,
+		linearProject,
+		state,
+	]);
 	useEscapeToNavigate("/tasks", { search: backSearch });
 
 	// Support both UUID and slug lookups

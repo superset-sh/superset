@@ -48,6 +48,7 @@ const config: NextConfig = {
 export default withSentryConfig(config, {
 	org: "superset-sh",
 	project: "admin",
+	applicationKey: "superset-admin",
 	silent: !process.env.CI,
 	authToken: process.env.SENTRY_AUTH_TOKEN,
 	widenClientFileUpload: true,

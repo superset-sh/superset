@@ -26,11 +26,6 @@ export interface FileChange {
 	type: FileChangeType;
 }
 
-export interface PortGroup {
-	workspace: string;
-	ports: string[];
-}
-
 export interface AgentTab {
 	src: string;
 	alt: string;

@@ -36,15 +36,20 @@ import {
 	getHostServiceWsToken,
 } from "renderer/lib/host-service-auth";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 const REFETCH_WHILE_OPEN_MS = 5_000;
 
 export function V2SessionsSection() {
+	const searchQuery = useSettingsSearchQuery();
 	const { activeHostUrl } = useLocalHostService();
 	if (!activeHostUrl) {
 		return (
 			<div className="space-y-1">
-				<h3 className="text-sm font-medium">Terminal daemon</h3>
+				<h3 className="text-sm font-medium">
+					<HighlightText text="Terminal daemon" query={searchQuery} />
+				</h3>
 				<p className="text-sm text-muted-foreground">
 					Host service is starting…
 				</p>
@@ -65,6 +70,7 @@ export function V2SessionsSection() {
 }
 
 function V2SessionsSectionInner() {
+	const searchQuery = useSettingsSearchQuery();
 	const [confirmRestartOpen, setConfirmRestartOpen] = useState(false);
 	const [showSessionList, setShowSessionList] = useState(false);
 	// Phase 2: when handoff fails, the failure dialog asks whether to
@@ -176,7 +182,7 @@ function V2SessionsSectionInner() {
 				<div className="flex items-start justify-between gap-4">
 					<div>
 						<h3 className="text-sm font-medium flex items-baseline gap-2">
-							Terminal daemon
+							<HighlightText text="Terminal daemon" query={searchQuery} />
 							{versionLabel ? (
 								<span className="text-xs font-mono font-normal text-muted-foreground/80">
 									{versionLabel}
@@ -184,7 +190,10 @@ function V2SessionsSectionInner() {
 							) : null}
 						</h3>
 						<p className="text-sm text-muted-foreground mt-0.5">
-							Owns every PTY session and survives app restarts.
+							<HighlightText
+								text="Owns every PTY session and survives app restarts."
+								query={searchQuery}
+							/>
 						</p>
 					</div>
 					<div className="flex flex-wrap gap-2 shrink-0">

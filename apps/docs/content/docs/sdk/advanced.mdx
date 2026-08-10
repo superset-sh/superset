@@ -39,7 +39,7 @@ app.post('/webhooks/sentry', async (c) => {
 
   // 2. Spin up a worktree on a developer's machine and dispatch an agent
   //    inside it. The SDK creates the worktree, then runs the agent with
-  //    your prompt — you don't manage the dispatch loop.
+  //    your prompt; you don't manage the dispatch loop.
   const result = await client.workspaces.create({
     hostId: TARGET_HOST_ID,
     projectId: PROJECT_ID,
@@ -113,7 +113,7 @@ const dispatched = await Promise.all(
           prompt: [
             `Pick up task ${task.slug}: "${task.title}".`,
             ``,
-            task.description ?? '(no description — read recent changes for context)',
+            task.description ?? '(no description; read recent changes for context)',
             ``,
             `Investigate, make the fix, run the relevant tests, push the branch, and`,
             `update task ${task.id} with a one-paragraph summary of what changed and why.`,

@@ -1,10 +1,10 @@
-import type { SelectV2Workspace } from "@superset/db/schema";
 import type { WorkspaceState } from "@superset/panes";
+import type { HostShapedWorkspace } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import type { PaneLifecycleRow } from "renderer/routes/_authenticated/components/utils/paneLifecycleRows";
 import type { AppCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider/collections";
 
 export type SidebarWorkspaceRow = Pick<
-	SelectV2Workspace,
+	HostShapedWorkspace,
 	"id" | "projectId" | "type" | "hostId"
 >;
 
@@ -34,7 +34,7 @@ type CleanupPaneRuntimes = (rows: PaneLifecycleRow[]) => void;
 export function tombstoneSidebarWorkspaceRecord(
 	collections: Pick<AppCollections, "v2WorkspaceLocalState">,
 	workspaceId: string,
-	projectId: string,
+	projectId: string | null,
 	cleanupPaneRuntimes: CleanupPaneRuntimes,
 ): void {
 	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
@@ -58,6 +58,9 @@ export function tombstoneSidebarWorkspaceRecord(
 		draft.sidebarState.projectId = projectId;
 		draft.sidebarState.sectionId = null;
 		draft.sidebarState.isHidden = true;
+		// A row must never be hidden and pinned at once — a resurrected
+		// workspace would otherwise reappear pre-pinned.
+		draft.sidebarState.pinnedAt = null;
 		draft.paneLayout = createEmptyPaneLayout();
 	});
 }
@@ -123,6 +126,21 @@ export function removeProjectFromSidebarState(
 			projectId,
 			cleanupPaneRuntimes,
 		);
+	}
+
+	// Main workspaces keep their rows (see the doc comment above), but any pin
+	// must be cleared: a pinned row is excluded from the project tree, and with
+	// the project row gone the pinned section drops it too — leaving it fully
+	// invisible with no context menu to unpin it from.
+	for (const row of collections.v2WorkspaceLocalState.state.values()) {
+		if (
+			row.sidebarState.projectId === projectId &&
+			row.sidebarState.pinnedAt != null
+		) {
+			collections.v2WorkspaceLocalState.update(row.workspaceId, (draft) => {
+				draft.sidebarState.pinnedAt = null;
+			});
+		}
 	}
 
 	const sectionIds = Array.from(collections.v2SidebarSections.state.values())

@@ -10,7 +10,10 @@ export interface PendingTerminalSetup {
 	initialCommands: string[] | null;
 	/** When undefined, signals that presets haven't been fetched yet and should be loaded from the backend */
 	defaultPresets?: TerminalPreset[];
-	/** Agent command to run in a separate pane from the setup script */
+	/**
+	 * Agent command to run in a separate pane from the setup script, or chained
+	 * after it in the setup pane when the wait-for-setup setting is enabled
+	 */
 	agentCommand?: string;
 	/** Canonical launch request used by the orchestrator */
 	agentLaunchRequest?: AgentLaunchRequest;

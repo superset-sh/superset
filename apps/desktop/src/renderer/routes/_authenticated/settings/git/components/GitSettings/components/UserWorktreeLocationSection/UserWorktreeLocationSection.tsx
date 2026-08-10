@@ -5,6 +5,7 @@ import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import {
 	HostSelect,
 	type HostSelectOption,
@@ -18,6 +19,7 @@ import {
 	useDefaultWorktreePath,
 	WorktreeLocationPicker,
 } from "renderer/routes/_authenticated/settings/components/WorktreeLocationPicker";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function UserWorktreeLocationSection() {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
@@ -25,6 +27,7 @@ export function UserWorktreeLocationSection() {
 }
 
 function V1Body() {
+	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 	const defaultWorktreePath = useDefaultWorktreePath();
 
@@ -53,9 +56,14 @@ function V1Body() {
 
 	return (
 		<div className="space-y-0.5">
-			<Label className="text-sm font-medium">Worktree location</Label>
+			<Label className="text-sm font-medium">
+				<HighlightText text="Worktree location" query={searchQuery} />
+			</Label>
 			<p className="text-xs text-muted-foreground">
-				Base directory for new worktrees
+				<HighlightText
+					text="Base directory for new worktrees"
+					query={searchQuery}
+				/>
 			</p>
 			<WorktreeLocationPicker
 				currentPath={worktreeBaseDir}
@@ -70,6 +78,7 @@ function V1Body() {
 }
 
 function V2Body() {
+	const searchQuery = useSettingsSearchQuery();
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
 		useWorkspaceHostOptions();
@@ -126,15 +135,22 @@ function V2Body() {
 		<div className="space-y-2">
 			<div className="flex items-start justify-between gap-3">
 				<div className="space-y-0.5">
-					<Label className="text-sm font-medium">Worktree location</Label>
+					<Label className="text-sm font-medium">
+						<HighlightText text="Worktree location" query={searchQuery} />
+					</Label>
 					<p className="text-xs text-muted-foreground">
-						{hasMultipleHosts
-							? `Base directory for new worktrees on ${
-									selectedHost?.isLocal
-										? "this device"
-										: (selectedHost?.name ?? "this device")
-								}`
-							: "Base directory for new worktrees"}
+						{hasMultipleHosts ? (
+							`Base directory for new worktrees on ${
+								selectedHost?.isLocal
+									? "this device"
+									: (selectedHost?.name ?? "this device")
+							}`
+						) : (
+							<HighlightText
+								text="Base directory for new worktrees"
+								query={searchQuery}
+							/>
+						)}
 					</p>
 				</div>
 				{hasMultipleHosts && effectiveHostId ? (

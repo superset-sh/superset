@@ -16,6 +16,8 @@ import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
 import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 interface DeleteHostSectionProps {
 	hostId: string;
@@ -29,6 +31,7 @@ export function DeleteHostSection({
 	isLocalHost,
 }: DeleteHostSectionProps) {
 	const navigate = useNavigate();
+	const searchQuery = useSettingsSearchQuery();
 	const actions = useOptimisticCollectionActions();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
@@ -74,7 +77,9 @@ export function DeleteHostSection({
 	return (
 		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="min-w-0 flex-1">
-				<p className="text-sm font-medium">Delete host</p>
+				<p className="text-sm font-medium">
+					<HighlightText text="Delete host" query={searchQuery} />
+				</p>
 				<p
 					id={deleteHostDescriptionId}
 					className="mt-0.5 text-xs text-muted-foreground"

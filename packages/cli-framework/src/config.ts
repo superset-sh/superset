@@ -1,4 +1,5 @@
 import { dirname, resolve } from "node:path";
+import type { HelpBranding } from "./help";
 import type { GenericBuilderInternals } from "./option";
 
 export interface CliConfig {
@@ -12,6 +13,8 @@ export interface CliConfig {
 	define?: Record<string, string>;
 	/** Global option builders (shown on every command). */
 	globals?: Record<string, GenericBuilderInternals>;
+	/** Branding/curation for the root help screen and interactive browser. */
+	help?: HelpBranding;
 }
 
 export function defineConfig(config: CliConfig): CliConfig {

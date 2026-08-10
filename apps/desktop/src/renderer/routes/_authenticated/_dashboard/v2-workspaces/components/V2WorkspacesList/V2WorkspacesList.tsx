@@ -27,8 +27,7 @@ import type {
 	V2WorkspaceHostType,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
-	DEVICE_FILTER_ALL,
-	PROJECT_FILTER_ALL,
+	DEVICE_FILTER_THIS_DEVICE,
 	useV2WorkspacesFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
@@ -39,12 +38,14 @@ import type { SortDirection, SortField } from "./types";
 
 interface V2WorkspacesListProps {
 	workspaces: AccessibleV2Workspace[];
+	isReady: boolean;
 }
 
 interface ProjectGroup {
-	projectId: string;
+	/** Null groups the project-less "session" workspaces. */
+	projectId: string | null;
 	projectName: string;
-	githubOwner: string | null;
+	iconUrl: string | null;
 	workspaces: AccessibleV2Workspace[];
 	latestCreatedAt: number;
 }
@@ -88,15 +89,15 @@ function groupByProject(
 	sortField: SortField,
 	sortDirection: SortDirection,
 ): ProjectGroup[] {
-	const projectsById = new Map<string, ProjectGroup>();
+	const projectsById = new Map<string | null, ProjectGroup>();
 
 	for (const workspace of workspaces) {
 		let project = projectsById.get(workspace.projectId);
 		if (!project) {
 			project = {
 				projectId: workspace.projectId,
-				projectName: workspace.projectName,
-				githubOwner: workspace.projectGithubOwner,
+				projectName: workspace.projectName ?? "Sessions",
+				iconUrl: workspace.projectIconUrl,
 				workspaces: [],
 				latestCreatedAt: 0,
 			};
@@ -128,7 +129,10 @@ const DEFAULT_DIRECTION_BY_FIELD: Record<SortField, SortDirection> = {
 	created: "desc",
 };
 
-export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
+export function V2WorkspacesList({
+	workspaces,
+	isReady,
+}: V2WorkspacesListProps) {
 	const matchRoute = useMatchRoute();
 	const currentWorkspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -140,8 +144,14 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	const deviceFilter = useV2WorkspacesFilterStore(
 		(state) => state.deviceFilter,
 	);
-	const projectFilter = useV2WorkspacesFilterStore(
-		(state) => state.projectFilter,
+	const projectFilters = useV2WorkspacesFilterStore(
+		(state) => state.projectFilters,
+	);
+	const prStateFilters = useV2WorkspacesFilterStore(
+		(state) => state.prStateFilters,
+	);
+	const agentStatusFilters = useV2WorkspacesFilterStore(
+		(state) => state.agentStatusFilters,
 	);
 	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 
@@ -168,8 +178,10 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	);
 	const hasActiveFilters =
 		searchQuery.trim() !== "" ||
-		deviceFilter !== DEVICE_FILTER_ALL ||
-		projectFilter !== PROJECT_FILTER_ALL;
+		deviceFilter !== DEVICE_FILTER_THIS_DEVICE ||
+		projectFilters.length > 0 ||
+		prStateFilters.length > 0 ||
+		agentStatusFilters.length > 0;
 
 	const columnHeader = (
 		<DataTableHeader>
@@ -233,40 +245,43 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 	);
 
 	if (totalCount === 0) {
+		// A host that hasn't answered yet must not read as empty (cache-first rule).
 		return (
 			<div className="flex min-h-0 flex-1 flex-col">
 				<Table className="table-fixed">{columnHeader}</Table>
-				<Empty className="flex-1 border-0">
-					<EmptyHeader>
-						<EmptyMedia
-							variant="icon"
-							className="size-14 [&_svg:not([class*='size-'])]:size-7"
-						>
-							{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
-						</EmptyMedia>
-						<EmptyTitle>
-							{hasActiveFilters
-								? "No workspaces match your filters"
-								: "No workspaces yet"}
-						</EmptyTitle>
-						<EmptyDescription>
-							{hasActiveFilters
-								? "Try a different search term or clear the device filter."
-								: "Workspaces you have access to across all your devices will show up here."}
-						</EmptyDescription>
-					</EmptyHeader>
-					{hasActiveFilters ? (
-						<EmptyContent>
-							<Button
-								variant="outline"
-								size="sm"
-								onClick={() => resetFilters()}
+				{isReady ? (
+					<Empty className="flex-1 border-0">
+						<EmptyHeader>
+							<EmptyMedia
+								variant="icon"
+								className="size-14 [&_svg:not([class*='size-'])]:size-7"
 							>
-								Clear filters
-							</Button>
-						</EmptyContent>
-					) : null}
-				</Empty>
+								{hasActiveFilters ? <LuSearchX /> : <LuLayers />}
+							</EmptyMedia>
+							<EmptyTitle>
+								{hasActiveFilters
+									? "No workspaces match your filters"
+									: "No workspaces yet"}
+							</EmptyTitle>
+							<EmptyDescription>
+								{hasActiveFilters
+									? "Try a different search term or another device."
+									: "Workspaces on this device will show up here."}
+							</EmptyDescription>
+						</EmptyHeader>
+						{hasActiveFilters ? (
+							<EmptyContent>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => resetFilters()}
+								>
+									Clear filters
+								</Button>
+							</EmptyContent>
+						) : null}
+					</Empty>
+				) : null}
 			</div>
 		);
 	}
@@ -280,7 +295,7 @@ export function V2WorkspacesList({ workspaces }: V2WorkspacesListProps) {
 				{columnHeader}
 				{projectGroups.map((project) => (
 					<ProjectSection
-						key={project.projectId}
+						key={project.projectId ?? "__sessions__"}
 						project={project}
 						currentWorkspaceId={currentWorkspaceId}
 					/>
@@ -296,8 +311,10 @@ interface ProjectSectionProps {
 }
 
 function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
+	// Sessions group under a stable pseudo-key for collapse state.
+	const collapseKey = project.projectId ?? "__sessions__";
 	const persistedCollapsed = useV2ProjectLocalMetaStore(
-		(state) => state.projects[project.projectId]?.isCollapsed ?? false,
+		(state) => state.projects[collapseKey]?.isCollapsed ?? false,
 	);
 	const toggleCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.toggleProjectCollapsed,
@@ -314,7 +331,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 				<td colSpan={V2_WORKSPACES_COLUMN_COUNT} className="p-0">
 					<button
 						type="button"
-						onClick={() => toggleCollapsed(project.projectId)}
+						onClick={() => toggleCollapsed(collapseKey)}
 						aria-expanded={!isCollapsed}
 						aria-controls={`v2-workspaces-project-${project.projectId}`}
 						className="flex w-full items-center gap-2 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"
@@ -322,7 +339,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 						<Chevron className="size-3 shrink-0 text-muted-foreground" />
 						<V2WorkspaceProjectIcon
 							projectName={project.projectName}
-							githubOwner={project.githubOwner}
+							iconUrl={project.iconUrl}
 							size="sm"
 						/>
 						<h3

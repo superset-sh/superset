@@ -19,15 +19,16 @@ interface DashboardSidebarPortsChipProps {
 }
 
 /**
- * Port-count chip on the workspace row. Hovering the row swaps the count for
- * an × — clicking then kills every port at once; hovering the chip opens a
- * card listing each port with its own open/close actions.
+ * Port-count chip on the workspace row. Hovering or clicking the chip opens a
+ * card listing each port with its own open/close actions; clicking the chip
+ * again closes the card.
  */
 export function DashboardSidebarPortsChip({
 	ports,
 }: DashboardSidebarPortsChipProps) {
 	const { isPending, killPorts } = useDashboardSidebarPortKill();
-	const { hold, release } = useDashboardSidebarChipHoverSuppression();
+	const { isOpen, onOpenChange, onPointerEnter, onPointerLeave, toggleOpen } =
+		useDashboardSidebarChipHoverSuppression();
 
 	const handleCloseAll = async () => {
 		if (isPending) return;
@@ -42,19 +43,23 @@ export function DashboardSidebarPortsChip({
 
 	return (
 		<HoverCard
+			open={isOpen}
 			openDelay={150}
 			closeDelay={120}
-			onOpenChange={(open) => (open ? hold() : release())}
+			onOpenChange={onOpenChange}
 		>
 			<HoverCardTrigger asChild>
 				<Badge asChild variant="secondary">
 					<button
 						type="button"
-						onPointerEnter={hold}
-						onPointerLeave={release}
+						onPointerEnter={onPointerEnter}
+						onPointerLeave={onPointerLeave}
+						onPointerDown={(event) => {
+							event.stopPropagation();
+						}}
 						onClick={(event) => {
 							event.stopPropagation();
-							void handleCloseAll();
+							toggleOpen();
 						}}
 						onKeyDown={(event) => {
 							if (event.key === "Enter" || event.key === " ") {
@@ -63,7 +68,8 @@ export function DashboardSidebarPortsChip({
 						}}
 						disabled={isPending}
 						aria-busy={isPending}
-						aria-label={`${ports.length} active ${ports.length === 1 ? "port" : "ports"} — close all`}
+						aria-expanded={isOpen}
+						aria-label={`${ports.length} active ${ports.length === 1 ? "port" : "ports"} — ${isOpen ? "hide" : "show"} details`}
 						className={cn(
 							"group/chip h-[18px] bg-muted/60 px-1.5 py-0 text-[9px] font-medium tabular-nums text-muted-foreground",
 							"[&>svg]:size-2.5 hover:bg-muted hover:text-foreground disabled:opacity-70",
@@ -79,17 +85,7 @@ export function DashboardSidebarPortsChip({
 								strokeWidth={STROKE_WIDTH}
 							/>
 						) : (
-							// The count and the × share one grid cell and cross-fade while
-							// the chip itself is hovered, so it never changes width.
-							<span className="grid shrink-0 items-center justify-items-center [&>*]:col-start-1 [&>*]:row-start-1">
-								<span className="transition-opacity group-focus-within/chip:opacity-0 group-hover/chip:opacity-0 motion-reduce:transition-none">
-									{ports.length}
-								</span>
-								<LuX
-									className="size-2.5 opacity-0 transition-opacity group-focus-within/chip:opacity-100 group-hover/chip:opacity-100 motion-reduce:transition-none"
-									strokeWidth={STROKE_WIDTH}
-								/>
-							</span>
+							<span className="shrink-0">{ports.length}</span>
 						)}
 					</button>
 				</Badge>

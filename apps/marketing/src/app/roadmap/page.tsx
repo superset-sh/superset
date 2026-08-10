@@ -53,7 +53,20 @@ export default function RoadmapPage() {
 					</h1>
 					<p className="text-muted-foreground mt-3 max-w-lg">
 						A look at what's in progress, what's coming next, and where{" "}
-						{COMPANY.NAME} is headed. Priorities may shift as we learn more.
+						{COMPANY.NAME} is headed. Plans further out stay intentionally
+						flexible so we can respond to what you tell us.
+					</p>
+					<p className="text-sm text-muted-foreground mt-3">
+						Want something sooner?{" "}
+						<a
+							href={COMPANY.DISCORD_URL}
+							target="_blank"
+							rel="noopener noreferrer"
+							className="text-foreground underline underline-offset-4 hover:no-underline"
+						>
+							Tell us in Discord
+						</a>{" "}
+						— much of what's here started as a user request.
 					</p>
 
 					<GridCross className="bottom-0 left-0" />

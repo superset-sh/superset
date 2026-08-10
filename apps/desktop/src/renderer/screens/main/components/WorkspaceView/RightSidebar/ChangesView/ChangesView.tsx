@@ -14,7 +14,10 @@ import {
 	countOpenPullRequestComments,
 } from "renderer/screens/main/components/WorkspaceView/RightSidebar/ChangesView/components/ReviewPanel/utils";
 import { useBranchSyncInvalidation } from "renderer/screens/main/hooks/useBranchSyncInvalidation";
-import { useGitChangesStatus } from "renderer/screens/main/hooks/useGitChangesStatus";
+import {
+	gitChangesUnavailableCopy,
+	useGitChangesStatus,
+} from "renderer/screens/main/hooks/useGitChangesStatus";
 import { useChangesStore } from "renderer/stores/changes";
 import {
 	pathsMatch,
@@ -99,16 +102,22 @@ export function ChangesView({
 		},
 	);
 
-	const { status, isLoading, effectiveBaseBranch, branchData, refetch } =
-		useGitChangesStatus({
-			worktreePath,
-			refetchInterval: isActive ? 2500 : undefined,
-			refetchOnWindowFocus: isActive,
-			branchRefetchInterval: isActive
-				? undefined
-				: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
-			branchRefetchOnWindowFocus: true,
-		});
+	const {
+		status,
+		isLoading,
+		errorCause,
+		effectiveBaseBranch,
+		branchData,
+		refetch,
+	} = useGitChangesStatus({
+		worktreePath,
+		refetchInterval: isActive ? 2500 : undefined,
+		refetchOnWindowFocus: isActive,
+		branchRefetchInterval: isActive
+			? undefined
+			: INACTIVE_BRANCH_REFETCH_INTERVAL_MS,
+		branchRefetchOnWindowFocus: true,
+	});
 
 	const {
 		data: githubStatus,
@@ -659,6 +668,14 @@ export function ChangesView({
 		return (
 			<div className="flex-1 flex items-center justify-center text-muted-foreground text-sm p-4">
 				No workspace selected
+			</div>
+		);
+	}
+
+	if (errorCause) {
+		return (
+			<div className="flex-1 flex select-text cursor-text items-center justify-center text-muted-foreground text-sm p-4">
+				{gitChangesUnavailableCopy(errorCause)}
 			</div>
 		);
 	}

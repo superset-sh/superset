@@ -13,6 +13,15 @@ type TerminalAgentBindings = Awaited<
 export type TerminalAgentBinding = TerminalAgentBindings[number];
 
 /**
+ * Keyed by workspaceId alone (globally unique): hostUrl in the key meant a
+ * host-service port change cold-started every agent chip. The queryFn
+ * resolves the current host URL at fetch time.
+ */
+export function getTerminalAgentBindingsQueryKey(workspaceId: string) {
+	return ["terminal-agent-bindings", workspaceId] as const;
+}
+
+/**
  * Map of `terminalId → agent binding` for a workspace, read from the host
  * store and invalidated on `agent:lifecycle` / `terminal:lifecycle` events.
  */
@@ -23,8 +32,8 @@ export function useTerminalAgentBindings(
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 	const queryKey = useMemo(
-		() => ["terminal-agent-bindings", hostUrl, workspaceId] as const,
-		[hostUrl, workspaceId],
+		() => getTerminalAgentBindingsQueryKey(workspaceId),
+		[workspaceId],
 	);
 
 	const enabled =

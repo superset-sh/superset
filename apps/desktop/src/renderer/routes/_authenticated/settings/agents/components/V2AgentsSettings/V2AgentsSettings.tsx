@@ -34,6 +34,7 @@ const KNOWN_PRESETS: HostAgentPreset[] = HOST_AGENT_PRESETS.map((preset) => ({
 	...preset,
 	args: [...preset.args],
 	promptArgs: [...preset.promptArgs],
+	resumeArgs: [...preset.resumeArgs],
 	env: { ...preset.env },
 }));
 
@@ -96,6 +97,28 @@ export function V2AgentsSettings({
 				config.id === updated.id ? { ...config, ...updated } : config,
 			),
 		);
+	};
+
+	// Linked terminal presets keep a `commands` snapshot as the launch fallback
+	// for when the agent config isn't loaded; refresh it so an edited agent
+	// command can't resurface stale via that fallback.
+	const syncLinkedPresetSnapshots = (updated: HostAgentConfig) => {
+		const commandText = getAgentCommandText(updated);
+		if (commandText.trim().length === 0) return;
+		for (const preset of collections.v2TerminalPresets.values()) {
+			if (
+				preset.agentId !== updated.id &&
+				preset.agentId !== updated.presetId
+			) {
+				continue;
+			}
+			if (preset.commands.length === 1 && preset.commands[0] === commandText) {
+				continue;
+			}
+			collections.v2TerminalPresets.update(preset.id, (draft) => {
+				draft.commands = [commandText];
+			});
+		}
 	};
 
 	const setupAgentMutation = electronTrpc.settings.setupAgent.useMutation();
@@ -323,6 +346,7 @@ export function V2AgentsSettings({
 						}
 						onChanged={(updated) => {
 							updateCachedConfig(updated);
+							syncLinkedPresetSnapshots(updated);
 							invalidate();
 						}}
 						onDeleted={() => {

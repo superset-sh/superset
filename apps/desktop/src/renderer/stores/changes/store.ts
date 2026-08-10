@@ -25,13 +25,12 @@ interface SelectedFileState {
 }
 
 interface ChangesState {
-	selectedFiles: Record<string, SelectedFileState | null>;
+	selectedFiles: Record<string, SelectedFileState>;
 	activeTab: ChangesSidebarTab;
 	viewMode: DiffViewMode;
 	fileListViewMode: FileListViewMode;
 	expandedSections: Record<ChangeCategory, boolean>;
 	sectionOrder: ChangeCategory[];
-	showRenderedMarkdown: Record<string, boolean>;
 	hideUnchangedRegions: boolean;
 	focusMode: boolean;
 
@@ -56,15 +55,13 @@ interface ChangesState {
 	toggleSection: (section: ChangeCategory) => void;
 	setSectionExpanded: (section: ChangeCategory, expanded: boolean) => void;
 	moveSection: (fromSection: ChangeCategory, toSection: ChangeCategory) => void;
-	toggleRenderedMarkdown: (worktreePath: string) => void;
-	getShowRenderedMarkdown: (worktreePath: string) => boolean;
 	toggleHideUnchangedRegions: () => void;
 	toggleFocusMode: () => void;
 	reset: (workspaceId: string) => void;
 }
 
 const initialState = {
-	selectedFiles: {} as Record<string, SelectedFileState | null>,
+	selectedFiles: {} as Record<string, SelectedFileState>,
 	activeTab: "diffs" as ChangesSidebarTab,
 	viewMode: "side-by-side" as DiffViewMode,
 	fileListViewMode: "grouped" as FileListViewMode,
@@ -75,7 +72,6 @@ const initialState = {
 		unstaged: true,
 	},
 	sectionOrder: [...DEFAULT_CHANGE_SECTION_ORDER],
-	showRenderedMarkdown: {} as Record<string, boolean>,
 	hideUnchangedRegions: false,
 	focusMode: false,
 };
@@ -88,18 +84,23 @@ export const useChangesStore = create<ChangesState>()(
 
 				selectFile: (workspaceId, absolutePath, file, category, commitHash) => {
 					const { selectedFiles } = get();
+					// Deselect deletes the key — a persisted null entry per workspace
+					// ever touched is how this map grew unbounded.
+					if (!file || !absolutePath) {
+						if (!(workspaceId in selectedFiles)) return;
+						const { [workspaceId]: _removed, ...rest } = selectedFiles;
+						set({ selectedFiles: rest });
+						return;
+					}
 					set({
 						selectedFiles: {
 							...selectedFiles,
-							[workspaceId]:
-								file && absolutePath
-									? {
-											absolutePath,
-											file,
-											category: category ?? "against-base",
-											commitHash: commitHash ?? null,
-										}
-									: null,
+							[workspaceId]: {
+								absolutePath,
+								file,
+								category: category ?? "against-base",
+								commitHash: commitHash ?? null,
+							},
 						},
 					});
 				},
@@ -197,20 +198,6 @@ export const useChangesStore = create<ChangesState>()(
 					set({ sectionOrder: reordered });
 				},
 
-				toggleRenderedMarkdown: (worktreePath) => {
-					const { showRenderedMarkdown } = get();
-					set({
-						showRenderedMarkdown: {
-							...showRenderedMarkdown,
-							[worktreePath]: !showRenderedMarkdown[worktreePath],
-						},
-					});
-				},
-
-				getShowRenderedMarkdown: (worktreePath) => {
-					return get().showRenderedMarkdown[worktreePath] ?? false;
-				},
-
 				toggleHideUnchangedRegions: () => {
 					set({ hideUnchangedRegions: !get().hideUnchangedRegions });
 				},
@@ -221,17 +208,14 @@ export const useChangesStore = create<ChangesState>()(
 
 				reset: (workspaceId) => {
 					const { selectedFiles } = get();
-					set({
-						selectedFiles: {
-							...selectedFiles,
-							[workspaceId]: null,
-						},
-					});
+					if (!(workspaceId in selectedFiles)) return;
+					const { [workspaceId]: _removed, ...rest } = selectedFiles;
+					set({ selectedFiles: rest });
 				},
 			}),
 			{
 				name: "changes-store",
-				version: 5,
+				version: 6,
 				migrate: (persisted, version) => {
 					const state = persisted as Record<string, unknown>;
 					if (version < 2) {
@@ -246,6 +230,16 @@ export const useChangesStore = create<ChangesState>()(
 					if (version < 5) {
 						state.activeTab = "diffs";
 					}
+					if (version < 6) {
+						// Deselect used to persist null entries; drop the accumulated
+						// tombstones and the unread showRenderedMarkdown map.
+						delete state.showRenderedMarkdown;
+						state.selectedFiles = Object.fromEntries(
+							Object.entries(
+								(state.selectedFiles ?? {}) as Record<string, unknown>,
+							).filter(([, value]) => value !== null),
+						);
+					}
 					state.sectionOrder = normalizeChangeSectionOrder(
 						state.sectionOrder as ChangeCategory[] | undefined,
 					);
@@ -258,7 +252,6 @@ export const useChangesStore = create<ChangesState>()(
 					fileListViewMode: state.fileListViewMode,
 					expandedSections: state.expandedSections,
 					sectionOrder: state.sectionOrder,
-					showRenderedMarkdown: state.showRenderedMarkdown,
 					hideUnchangedRegions: state.hideUnchangedRegions,
 					focusMode: state.focusMode,
 				}),

@@ -1,8 +1,13 @@
 import { auth } from "@superset/auth/server";
+import { COMPANY } from "@superset/shared/constants";
 import { headers } from "next/headers";
 import { type NextRequest, NextResponse } from "next/server";
 
-import { isAuthPageRoute, isPublicRoute } from "./proxy-routes";
+import {
+	isAuthPageRoute,
+	isInternalRoute,
+	isPublicRoute,
+} from "./proxy-routes";
 
 export default async function proxy(req: NextRequest) {
 	const session = await auth.api.getSession({
@@ -19,6 +24,14 @@ export default async function proxy(req: NextRequest) {
 		const signInUrl = new URL("/sign-in", req.url);
 		signInUrl.searchParams.set("redirect", pathname + req.nextUrl.search);
 		return NextResponse.redirect(signInUrl);
+	}
+
+	if (
+		session &&
+		isInternalRoute(pathname) &&
+		!session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)
+	) {
+		return NextResponse.redirect(new URL("/", req.url));
 	}
 
 	return NextResponse.next();

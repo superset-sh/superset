@@ -70,6 +70,11 @@ const config: Configuration = {
 			filter: ["**/*"],
 		},
 		{
+			from: "dist/resources/chat-migrations",
+			to: "resources/chat-migrations",
+			filter: ["**/*"],
+		},
+		{
 			from: "dist/resources/bin",
 			to: "resources/bin",
 			filter: ["**/*"],

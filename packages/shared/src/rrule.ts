@@ -391,6 +391,27 @@ export function parseRrule(args: {
 	};
 }
 
+/**
+ * True when the string is a parseable RRULE body with at least one future
+ * occurrence — mirrors the check `automation.update` runs server-side, so
+ * editors can gate saves instead of persisting rules the server will reject.
+ */
+export function isValidRrule(rrule: string): boolean {
+	if (!parseRruleParts(rrule)) return false;
+	try {
+		return (
+			nextOccurrenceAfter({
+				rrule,
+				dtstart: new Date(),
+				timezone: "UTC",
+				after: new Date(),
+			}) !== null
+		);
+	} catch {
+		return false;
+	}
+}
+
 /** Next N upcoming occurrences, for the create-modal preview. */
 export function nextOccurrences(args: {
 	rrule: string;

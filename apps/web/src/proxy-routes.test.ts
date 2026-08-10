@@ -1,6 +1,10 @@
 import { describe, expect, test } from "bun:test";
 
-import { isAuthPageRoute, isPublicRoute } from "./proxy-routes";
+import {
+	isAuthPageRoute,
+	isInternalRoute,
+	isPublicRoute,
+} from "./proxy-routes";
 
 describe("isPublicRoute", () => {
 	test.each([
@@ -52,5 +56,22 @@ describe("isAuthPageRoute", () => {
 		"/sign-upgrade",
 	])("does not match sibling routes for authenticated redirects: %s", (pathname: string) => {
 		expect(isAuthPageRoute(pathname)).toBe(false);
+	});
+});
+
+describe("isInternalRoute", () => {
+	test.each([
+		"/design",
+		"/design/tokens",
+	])("matches internal routes exactly or by child path: %s", (pathname: string) => {
+		expect(isInternalRoute(pathname)).toBe(true);
+	});
+
+	test.each([
+		"/",
+		"/designer",
+		"/dashboard",
+	])("keeps sibling routes out of the internal gate: %s", (pathname: string) => {
+		expect(isInternalRoute(pathname)).toBe(false);
 	});
 });

@@ -12,6 +12,20 @@ export interface WorkspaceFilesystemManagerOptions {
 	db: HostDb;
 }
 
+export class WorkspaceNotFoundError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "WorkspaceNotFoundError";
+	}
+}
+
+export class ProjectNotFoundError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "ProjectNotFoundError";
+	}
+}
+
 export class WorkspaceFilesystemManager {
 	private readonly db: HostDb;
 	private readonly watcherManager = new FsWatcherManager();
@@ -27,7 +41,7 @@ export class WorkspaceFilesystemManager {
 			.sync();
 
 		if (!workspace) {
-			throw new Error(`Workspace not found: ${workspaceId}`);
+			throw new WorkspaceNotFoundError(`Workspace not found: ${workspaceId}`);
 		}
 
 		return workspace.worktreePath;
@@ -39,7 +53,7 @@ export class WorkspaceFilesystemManager {
 			.sync();
 
 		if (!project) {
-			throw new Error(`Project not found: ${projectId}`);
+			throw new ProjectNotFoundError(`Project not found: ${projectId}`);
 		}
 
 		return project.repoPath;

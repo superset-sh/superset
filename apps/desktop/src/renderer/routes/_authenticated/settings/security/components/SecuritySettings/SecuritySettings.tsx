@@ -5,6 +5,8 @@ import { useState } from "react";
 import { GATED_FEATURES, usePaywall } from "renderer/components/Paywall";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ExposeViaRelayConfirmDialog } from "renderer/routes/_authenticated/components/ExposeViaRelayConfirmDialog";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -16,6 +18,7 @@ interface SecuritySettingsProps {
 }
 
 export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const showRelayToggle = isItemVisible(
 		SETTING_ITEM_ID.SECURITY_EXPOSE_HOST_SERVICE_VIA_RELAY,
 		visibleItems,
@@ -90,7 +93,10 @@ export function SecuritySettings({ visibleItems }: SecuritySettingsProps) {
 							htmlFor="expose-host-service-via-relay"
 							className="text-sm font-medium"
 						>
-							Allow remote workspaces to access this device via relay
+							<HighlightText
+								text="Allow remote workspaces to access this device via relay"
+								query={searchQuery}
+							/>
 						</Label>
 						<p className="text-xs text-muted-foreground">
 							When off, your local tools and files cannot be reached from any

@@ -12,6 +12,7 @@ import { ArrowUpIcon } from "lucide-react";
 import { useCallback, useEffect, useRef } from "react";
 import { TiptapPromptEditor } from "renderer/components/Chat/ChatInterface/components/TiptapPromptEditor/TiptapPromptEditor";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { track } from "renderer/lib/analytics";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
 import { TerminalPaneIcon } from "../TerminalPaneIcon";
 import { prepareTerminalSubmission } from "./prepareTerminalSubmission";
@@ -106,8 +107,13 @@ function TerminalRichInputInner({
 			terminalRuntimeRegistry.writeInput(terminalId, "\r", terminalInstanceId);
 			terminalRuntimeRegistry.scrollToBottom(terminalId, terminalInstanceId);
 			controller.textInput.clear();
+			track("terminal_rich_input_submitted", {
+				workspace_id: workspaceId,
+				message_length: text.length,
+				line_count: text.split("\n").length,
+			});
 		},
-		[terminalId, terminalInstanceId, controller],
+		[terminalId, terminalInstanceId, controller, workspaceId],
 	);
 
 	// Persist the draft as it changes. terminalId is stable for this provider

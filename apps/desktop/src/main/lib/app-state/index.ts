@@ -13,11 +13,21 @@ let _appState: AppStateDB | null = null;
  * (e.g., from old electron-store format with keys like "tabs-storage").
  */
 function ensureValidShape(data: Partial<AppState>): AppState {
+	const tabsState = {
+		...defaultAppState.tabsState,
+		...(data.tabsState ?? {}),
+	};
+	// Agent-session captures are keyed by pane id; drop entries whose pane is
+	// gone so the record can't grow past the pane set. Optional-chain: legacy
+	// app-state.json variants can carry a null panes map.
+	const v1AgentSessions = Object.fromEntries(
+		Object.entries(data.v1AgentSessions ?? {}).filter(
+			([paneId]) => tabsState.panes?.[paneId] !== undefined,
+		),
+	);
 	return {
-		tabsState: {
-			...defaultAppState.tabsState,
-			...(data.tabsState ?? {}),
-		},
+		tabsState,
+		v1AgentSessions,
 		themeState: {
 			...defaultAppState.themeState,
 			...(data.themeState ?? {}),

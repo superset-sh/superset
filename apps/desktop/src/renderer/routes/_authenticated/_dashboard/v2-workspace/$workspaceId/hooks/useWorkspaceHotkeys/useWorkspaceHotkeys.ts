@@ -218,7 +218,7 @@ export function useWorkspaceHotkeys({
 	useHotkey("FOCUS_PANE_UP", () => moveFocusDirectional("up"));
 	useHotkey("FOCUS_PANE_DOWN", () => moveFocusDirectional("down"));
 
-	useHotkey("SPLIT_AUTO", async () => {
+	useHotkey("SPLIT_AUTO", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
@@ -227,46 +227,52 @@ export function useWorkspaceHotkeys({
 			? getPaneParentDirection(tab.layout, active.pane.id)
 			: null;
 		const position = parentDirection === "horizontal" ? "bottom" : "right";
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position,
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_RIGHT", async () => {
+	useHotkey("SPLIT_RIGHT", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "right",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});
 
-	useHotkey("SPLIT_DOWN", async () => {
+	useHotkey("SPLIT_DOWN", () => {
 		const state = store.getState();
 		const active = state.getActivePane();
 		if (!active) return;
-		const terminalId = await launcher.create();
 		state.splitPane({
 			tabId: active.tabId,
 			paneId: active.pane.id,
 			position: "bottom",
 			newPane: {
 				kind: "terminal",
-				data: { terminalId } as TerminalPaneData,
+				data: {
+					terminalId: launcher.mint(),
+					createOnAttach: true,
+				} as TerminalPaneData,
 			},
 		});
 	});

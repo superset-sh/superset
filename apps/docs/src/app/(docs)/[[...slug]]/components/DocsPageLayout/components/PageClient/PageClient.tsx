@@ -3,16 +3,21 @@
 import { cva } from "class-variance-authority";
 import type { BreadcrumbOptions } from "fumadocs-core/breadcrumb";
 import { getBreadcrumbItemsFromPath } from "fumadocs-core/breadcrumb";
-import type { Item, Node, Root } from "fumadocs-core/page-tree";
-import { useEffectEvent } from "fumadocs-core/utils/use-effect-event";
+import type { Item, Node } from "fumadocs-core/page-tree";
 import { useSidebar } from "fumadocs-ui/components/sidebar/base";
-import { useI18n } from "fumadocs-ui/contexts/i18n";
 import { useTreeContext, useTreePath } from "fumadocs-ui/contexts/tree";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { HTMLAttributes } from "react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import {
+	Fragment,
+	useEffect,
+	useEffectEvent,
+	useMemo,
+	useRef,
+	useState,
+} from "react";
 import { useNav } from "@/app/(docs)/components/Navigation";
 import { cn } from "@/lib/cn";
 import { TocPopover } from "./components/TableOfContents/TableOfContents";
@@ -37,7 +42,7 @@ export function TocPopoverHeader(props: HTMLAttributes<HTMLDivElement>) {
 		return () => {
 			window.removeEventListener("click", onClick);
 		};
-	}, [onClick]);
+	}, []);
 
 	return (
 		<div
@@ -92,7 +97,6 @@ export function PageArticle(props: HTMLAttributes<HTMLElement>) {
 }
 
 export function LastUpdate(props: { date: Date }) {
-	const { text } = useI18n();
 	const [date, setDate] = useState("");
 
 	useEffect(() => {
@@ -101,9 +105,7 @@ export function LastUpdate(props: { date: Date }) {
 	}, [props.date]);
 
 	return (
-		<p className="text-sm text-fd-muted-foreground">
-			{text.lastUpdate} {date}
-		</p>
+		<p className="text-sm text-fd-muted-foreground">Last updated on {date}</p>
 	);
 }
 
@@ -146,11 +148,10 @@ function scanNavigationList(tree: Node[]) {
 	return list;
 }
 
-const listCache = new WeakMap<Root, Item[]>();
+const listCache = new WeakMap<object, Item[]>();
 
 export function Footer({ items }: FooterProps) {
 	const { root } = useTreeContext();
-	const { text } = useI18n();
 	const pathname = usePathname();
 
 	const { previous, next } = useMemo(() => {
@@ -175,7 +176,7 @@ export function Footer({ items }: FooterProps) {
 				<Link href={previous.url} className={cn(itemVariants())}>
 					<div className={cn(itemLabel())}>
 						<ChevronLeft className="-ms-1 size-4 shrink-0 rtl:rotate-180" />
-						<p>{text.previousPage}</p>
+						<p>Previous</p>
 					</div>
 					<p className="font-medium md:text-[15px]">{previous.name}</p>
 				</Link>
@@ -187,7 +188,7 @@ export function Footer({ items }: FooterProps) {
 				>
 					<div className={cn(itemLabel({ className: "flex-row-reverse" }))}>
 						<ChevronRight className="-me-1 size-4 shrink-0 rtl:rotate-180" />
-						<p>{text.nextPage}</p>
+						<p>Next</p>
 					</div>
 					<p className="font-medium md:text-[15px]">{next.name}</p>
 				</Link>

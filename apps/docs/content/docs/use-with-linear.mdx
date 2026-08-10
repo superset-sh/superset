@@ -59,6 +59,7 @@ result="$(
     --project "$PROJECT" \
     --name "$NAME" \
     --branch "$BRANCH" \
+    --skip-branch-prefix \
     --agent claude \
     --prompt "$PROMPT" \
     --json
@@ -82,8 +83,17 @@ a shim at `~/.superset/bin/superset`).
 </Callout>
 
 The branch named by the issue won't exist yet. `workspaces create` forks it
-from the project's default branch automatically. Re-running on the same issue
-reuses the existing workspace instead of creating a duplicate.
+from the project's default branch automatically. `--skip-branch-prefix` keeps
+Linear's exact branch format (so Linear autolinks the branch back to the
+issue) even when the project has a branch prefix configured. Re-running on
+the same issue reuses the existing workspace instead of creating a duplicate.
+
+<Callout type="info">
+With the Linear integration connected, Superset does this natively: linking
+an issue in the New Workspace flow (or opening a task in a workspace) uses
+Linear's branch name automatically and moves the issue to In Progress. The
+script above is for driving it from Linear's side.
+</Callout>
 
 ## 2. Point Linear at the script
 

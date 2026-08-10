@@ -4,22 +4,42 @@ import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
 import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
 
 /**
+ * The frozen cloud row shape, widened for host-only capabilities the cloud
+ * schema never learned: project-less "session" workspaces (null projectId,
+ * type "session").
+ */
+export type HostShapedWorkspace = Omit<
+	SelectV2Workspace,
+	"projectId" | "type"
+> & {
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
+	type: "main" | "worktree" | "session";
+};
+
+/**
  * A workspace row as served by a host (`workspace.list`) — the cloud row
  * shape plus the host-only extras.
  */
-export interface HostWorkspaceRow extends SelectV2Workspace {
+export interface HostWorkspaceRow extends HostShapedWorkspace {
 	worktreePath: string;
 	worktreeExists: boolean;
+	/** Non-null = archived tombstone (only served on `includeArchived`). */
+	archivedAt?: number | null;
+	archiveReason?: "merged" | "deleted" | null;
 }
 
 /** Merged item returned by useHostWorkspaces. */
-export interface HostWorkspaceItem extends SelectV2Workspace {
+export interface HostWorkspaceItem extends HostShapedWorkspace {
 	worktreePath?: string;
 	worktreeExists?: boolean;
 	/** False when the row came from a snapshot/cloud and the host didn't answer. */
 	hostReachable: boolean;
 	/** "host" = served by a host (live or last-seen); "cloud" = Electric fallback. */
 	source: "host" | "cloud";
+	/** Non-null = archived tombstone (only present on `includeArchived`). */
+	archivedAt?: number | null;
+	archiveReason?: "merged" | "deleted" | null;
 }
 
 export interface HostWorkspacesQueryTarget {
@@ -37,14 +57,17 @@ export interface HostRowForTargets {
 }
 
 export function getHostWorkspacesQueryKey(
-	target: Pick<HostWorkspacesQueryTarget, "machineId" | "hostUrl">,
+	target: Pick<HostWorkspacesQueryTarget, "machineId" | "organizationId">,
 ) {
+	// Host identity (org + machine), never hostUrl: the local port moves on
+	// restarts and a URL-keyed cache goes cold bar-wide every time. The
+	// queryFn resolves the current URL from the target at fetch time.
 	return [
 		"host-service",
 		"workspaces",
 		"list",
+		target.organizationId,
 		target.machineId,
-		target.hostUrl,
 	] as const;
 }
 
@@ -58,11 +81,14 @@ export function deriveHostWorkspacesQueryTargets({
 	hosts,
 	machineId,
 	relayUrl,
+	fallbackOrganizationId,
 }: {
 	activeHostUrl: string | null;
 	hosts: HostRowForTargets[];
 	machineId: string | null;
 	relayUrl: string;
+	/** Org for the synthesized local target — see derivePullRequestQueryTargets. */
+	fallbackOrganizationId?: string | null;
 }): HostWorkspacesQueryTarget[] {
 	const targets: HostWorkspacesQueryTarget[] = hosts.map((host) => {
 		const isLocal = host.machineId === machineId;
@@ -88,7 +114,7 @@ export function deriveHostWorkspacesQueryTargets({
 	) {
 		targets.push({
 			machineId,
-			organizationId: hosts[0]?.organizationId ?? "",
+			organizationId: hosts[0]?.organizationId ?? fallbackOrganizationId ?? "",
 			hostUrl: activeHostUrl,
 			isLocal: true,
 		});

@@ -8,8 +8,11 @@ import {
 	SelectValue,
 } from "@superset/ui/select";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function LinkBehaviorSetting() {
+	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 
 	const { data: terminalLinkBehavior, isLoading } =
@@ -40,7 +43,7 @@ export function LinkBehaviorSetting() {
 		<div className="flex items-center justify-between">
 			<div className="space-y-0.5">
 				<Label htmlFor="terminal-link-behavior" className="text-sm font-medium">
-					Terminal file links
+					<HighlightText text="Terminal file links" query={searchQuery} />
 				</Label>
 				<p className="text-xs text-muted-foreground">
 					Choose how to open file paths when Cmd+clicking in the terminal

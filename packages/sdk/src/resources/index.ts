@@ -30,9 +30,18 @@ export {
 } from "./organization";
 export { type Project, type ProjectListResponse, Projects } from "./projects";
 export {
+	type TerminalCloseParams,
+	type TerminalCloseResult,
 	type TerminalCreateParams,
 	type TerminalCreateResult,
+	type TerminalListParams,
+	type TerminalListResult,
+	type TerminalReadParams,
+	type TerminalReadResult,
+	type TerminalSendParams,
+	type TerminalSendResult,
 	Terminals,
+	type TerminalSummary,
 } from "./terminals";
 export {
 	type Task,
@@ -53,6 +62,8 @@ export {
 	type WorkspaceCreateAgentResult,
 	type WorkspaceCreateParams,
 	type WorkspaceCreateResult,
+	type WorkspaceCreateSessionParams,
+	type WorkspaceCreateSessionResult,
 	type WorkspaceDeleteResult,
 	type WorkspaceListParams,
 	type WorkspaceListResponse,

@@ -18,6 +18,7 @@ import {
 	HiOutlineArrowUpTray,
 } from "react-icons/hi2";
 import { ThemeSwatch } from "renderer/components/ThemeSwatch";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import {
 	SYSTEM_THEME_ID,
 	useSetSystemThemePreference,
@@ -27,6 +28,7 @@ import {
 	useThemeId,
 	useThemeStore,
 } from "renderer/stores";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	builtInThemes,
 	darkTheme as defaultDarkTheme,
@@ -70,11 +72,20 @@ function ThemeRow({
 	includeSystem,
 }: ThemeRowProps) {
 	const isSystem = includeSystem !== undefined && value === SYSTEM_THEME_ID;
+	const searchQuery = useSettingsSearchQuery();
 	return (
 		<div className="flex items-center justify-between gap-6 p-4">
 			<div className="min-w-0 flex-1">
-				<div className="text-sm font-medium">{label}</div>
-				<div className="text-xs text-muted-foreground">{hint}</div>
+				<div className="text-sm font-medium">
+					<HighlightText text={label} query={searchQuery} />
+				</div>
+				<div className="text-xs text-muted-foreground">
+					{typeof hint === "string" ? (
+						<HighlightText text={hint} query={searchQuery} />
+					) : (
+						hint
+					)}
+				</div>
 			</div>
 			<Select value={value} onValueChange={onValueChange}>
 				<SelectTrigger size="sm" className="w-auto min-w-44 px-2">
@@ -130,6 +141,7 @@ function ThemeRow({
 }
 
 export function ThemeSection() {
+	const searchQuery = useSettingsSearchQuery();
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const [isImporting, setIsImporting] = useState(false);
 	const activeThemeId = useThemeId();
@@ -337,9 +349,14 @@ export function ThemeSection() {
 			)}
 			<div className="flex items-center justify-between gap-6 p-4">
 				<div className="min-w-0 flex-1">
-					<div className="text-sm font-medium">Custom themes</div>
+					<div className="text-sm font-medium">
+						<HighlightText text="Custom themes" query={searchQuery} />
+					</div>
 					<div className="text-xs text-muted-foreground">
-						Import a theme file or grab a starter to edit.
+						<HighlightText
+							text="Import a theme file or grab a starter to edit."
+							query={searchQuery}
+						/>
 					</div>
 				</div>
 				<div className="flex items-center gap-2 shrink-0">

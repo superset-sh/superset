@@ -1,0 +1,127 @@
+@property --rail-top-fade {
+	syntax: "<length>";
+	inherits: false;
+	initial-value: 0px;
+}
+
+@property --rail-bottom-fade {
+	syntax: "<length>";
+	inherits: false;
+	initial-value: 0px;
+}
+
+@keyframes chat-history-rail-edge-fade {
+	0%,
+	1% {
+		--rail-top-fade: 0px;
+		--rail-bottom-fade: 2.5rem;
+	}
+	99%,
+	100% {
+		--rail-top-fade: 2.5rem;
+		--rail-bottom-fade: 0px;
+	}
+}
+
+.chat-history-rail-list {
+	mask: linear-gradient(
+		to bottom in oklch,
+		oklch(60% 0 0 / 0),
+		oklch(85% 0 0) var(--rail-top-fade) calc(100% - var(--rail-bottom-fade)),
+		oklch(60% 0 0 / 0)
+	);
+	animation-name: chat-history-rail-edge-fade;
+	animation-timing-function: linear;
+	animation-fill-mode: both;
+	animation-timeline: scroll(self y);
+}
+
+.chat-history-rail-marker {
+	--marker-progress: 0;
+	width: 26px;
+	height: 2px;
+	background-color: var(--muted-foreground);
+	opacity: 0.4;
+	transform: scaleX(calc(0.2308 + 0.7692 * var(--marker-progress)));
+	transform-origin: 0;
+	transition: transform 0.16s
+		linear(
+			0,
+			0.398 10%,
+			0.682 20%,
+			0.843 30%,
+			0.925 40%,
+			0.972 50%,
+			1.004 60%,
+			1.008 70%,
+			1.003 80%,
+			1
+		);
+}
+
+.chat-history-rail-row:focus-visible .chat-history-rail-marker {
+	--marker-progress: 1;
+	background-color: var(--foreground);
+	opacity: 1;
+}
+
+.chat-history-rail-row[aria-current="true"] .chat-history-rail-marker {
+	background-color: var(--foreground);
+	opacity: 0.6;
+}
+
+@media (hover: hover) and (pointer: fine) {
+	.chat-history-rail:hover
+		.chat-history-rail-row[aria-current="true"]:not(:hover):not(:focus-visible)
+		.chat-history-rail-marker {
+		background-color: var(--muted-foreground);
+		opacity: 0.4;
+	}
+
+	:is(
+			.chat-history-rail-row:has(+ .chat-history-rail-row:hover),
+			.chat-history-rail-row:hover + .chat-history-rail-row
+		)
+		.chat-history-rail-marker {
+		--marker-progress: 0.7;
+	}
+
+	:is(
+			.chat-history-rail-row:has(
+					+ .chat-history-rail-row + .chat-history-rail-row:hover
+				),
+			.chat-history-rail-row:hover
+				+ .chat-history-rail-row
+				+ .chat-history-rail-row
+		)
+		.chat-history-rail-marker {
+		--marker-progress: 0.4;
+	}
+
+	:is(
+			.chat-history-rail-row:has(
+					+ .chat-history-rail-row
+						+ .chat-history-rail-row
+						+ .chat-history-rail-row:hover
+				),
+			.chat-history-rail-row:hover
+				+ .chat-history-rail-row
+				+ .chat-history-rail-row
+				+ .chat-history-rail-row
+		)
+		.chat-history-rail-marker {
+		--marker-progress: 0.2;
+	}
+
+	.chat-history-rail-row:hover .chat-history-rail-marker {
+		--marker-progress: 1;
+		background-color: var(--foreground);
+		opacity: 1;
+	}
+}
+
+@media (prefers-reduced-motion: reduce) {
+	.chat-history-rail-marker {
+		transition-duration: 0s;
+	}
+}

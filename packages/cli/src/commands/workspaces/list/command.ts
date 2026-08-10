@@ -41,7 +41,7 @@ export default command({
 			.filter(
 				(workspace) =>
 					!projectInput ||
-					workspace.projectId.toLowerCase() === projectInput ||
+					workspace.projectId?.toLowerCase() === projectInput ||
 					workspace.projectName?.toLowerCase() === projectInput,
 			)
 			.filter(
@@ -52,7 +52,9 @@ export default command({
 			)
 			.map((workspace) => ({
 				...workspace,
-				projectName: workspace.projectName ?? workspace.projectId,
+				// Orphaned projectIds fall back to the raw id; project-less
+				// session workspaces render as "session".
+				projectName: workspace.projectName ?? workspace.projectId ?? "session",
 			}));
 	},
 });

@@ -12,6 +12,7 @@ import {
 	useCallback,
 	useContext,
 	useEffect,
+	useRef,
 	useState,
 } from "react";
 import { useCommandContext } from "../../core/ContextProvider";
@@ -36,6 +37,7 @@ export function CommandPalette() {
 
 	const context = useCommandContext();
 	const [query, setQuery] = useState("");
+	const inputRef = useRef<HTMLInputElement>(null);
 	const depth = frames.length;
 	const currentFrame = frames[depth - 1] ?? null;
 
@@ -66,6 +68,10 @@ export function CommandPalette() {
 	const handleBack = useCallback(() => {
 		popFrame();
 		setQuery("");
+		// Going back can unmount the focused element (the back button leaves
+		// with the last frame); return focus to the search input so keyboard
+		// navigation keeps working.
+		inputRef.current?.focus();
 	}, [popFrame]);
 
 	const handleKeyDown = useCallback(
@@ -77,6 +83,20 @@ export function CommandPalette() {
 		},
 		[query, depth, handleBack],
 	);
+
+	// cmdk's root Enter handler executes the highlighted list row no matter
+	// which element is focused, swallowing Enter aimed at buttons inside the
+	// palette (back arrow, expand chevrons). Activate the focused button
+	// ourselves; cmdk skips its own handling once the event is
+	// defaultPrevented.
+	const handleRootKeyDown = useCallback((event: React.KeyboardEvent) => {
+		if (event.key !== "Enter") return;
+		if (!(event.target instanceof HTMLElement)) return;
+		const button = event.target.closest("button");
+		if (!button) return;
+		event.preventDefault();
+		button.click();
+	}, []);
 
 	useEffect(() => {
 		if (!open) setQuery("");
@@ -111,10 +131,12 @@ export function CommandPalette() {
 					</DialogDescription>
 				</DialogHeader>
 				<Command
+					onKeyDown={handleRootKeyDown}
 					shouldFilter={!currentFrame || !currentFrame.command.renderFrame}
 					className="[&_[cmdk-group-heading]]:text-muted-foreground **:data-[slot=command-input-wrapper]:h-12 [&_[cmdk-group-heading]]:px-2 [&_[cmdk-group-heading]]:font-medium [&_[cmdk-group]]:px-2 [&_[cmdk-group]:not([hidden])_~[cmdk-group]]:pt-0 [&_[cmdk-input-wrapper]_svg]:h-5 [&_[cmdk-input-wrapper]_svg]:w-5 [&_[cmdk-input]]:h-12 [&_[cmdk-item]]:px-2 [&_[cmdk-item]]:py-3 [&_[cmdk-item]_svg]:h-5 [&_[cmdk-item]_svg]:w-5 [&_[cmdk-list]]:max-h-[min(500px,calc(80vh-3rem))]"
 				>
 					<CommandInput
+						ref={inputRef}
 						value={query}
 						onValueChange={setQuery}
 						placeholder={placeholder}

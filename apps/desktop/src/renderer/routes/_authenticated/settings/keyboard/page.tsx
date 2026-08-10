@@ -27,6 +27,8 @@ import {
 	useKeyboardPreferencesStore,
 	useRecordHotkeys,
 } from "renderer/hotkeys";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 const CATEGORY_ORDER: HotkeyCategory[] = [
 	"Navigation",
@@ -128,6 +130,7 @@ function getHotkeysByCategory(): Record<
 const hotkeysByCategory = getHotkeysByCategory();
 
 function KeyboardShortcutsPage() {
+	const settingsSearchQuery = useSettingsSearchQuery();
 	const [searchQuery, setSearchQuery] = useState("");
 	const [recordingId, setRecordingId] = useState<HotkeyId | null>(null);
 	const [pendingConflict, setPendingConflict] = useState<{
@@ -202,7 +205,12 @@ function KeyboardShortcutsPage() {
 			{/* Header */}
 			<div className="mb-6 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">Keyboard shortcuts</h2>
+					<h2 className="text-xl font-semibold">
+						<HighlightText
+							text="Keyboard shortcuts"
+							query={settingsSearchQuery}
+						/>
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Customize keyboard shortcuts for your workflow. Press{" "}
 						<KbdGroup>

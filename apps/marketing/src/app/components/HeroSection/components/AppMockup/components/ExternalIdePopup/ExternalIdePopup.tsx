@@ -13,7 +13,7 @@ export function ExternalIdePopup({ activeDemo }: ExternalIdePopupProps) {
 
 	return (
 		<motion.div
-			className="absolute bottom-6 right-6 w-[55%] overflow-hidden rounded-lg border border-border bg-background shadow-[0_30px_80px_-20px_rgba(0,0,0,0.7)]"
+			className="absolute bottom-6 right-6 w-[55%] overflow-hidden rounded-lg border border-border bg-background shadow-[0_1px_1px_rgba(0,0,0,0.4),0_24px_70px_-16px_rgba(0,0,0,0.75)]"
 			style={{
 				aspectRatio: "16/10",
 				pointerEvents: activeDemo === "Open in Any IDE" ? "auto" : "none",
@@ -26,9 +26,9 @@ export function ExternalIdePopup({ activeDemo }: ExternalIdePopupProps) {
 			}}
 			transition={{ duration: 0.3, ease: "easeOut" }}
 		>
-			<div className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-1 ring-inset ring-white/[0.04]" />
+			<div className="pointer-events-none absolute inset-0 z-10 rounded-lg ring-1 ring-inset ring-white/[0.06]" />
 
-			<div className="relative flex h-8 items-center border-b border-border bg-card px-3">
+			<div className="relative flex h-8 items-center border-b border-border/60 bg-card px-3">
 				<div className="flex items-center gap-1.5">
 					<div className="size-2 rounded-full bg-[#ff5f57]/85" />
 					<div className="size-2 rounded-full bg-[#febc2e]/85" />
@@ -40,7 +40,7 @@ export function ExternalIdePopup({ activeDemo }: ExternalIdePopupProps) {
 			</div>
 
 			<div className="flex h-[calc(100%-32px)]">
-				<div className="w-[120px] border-r border-border bg-card p-3 text-[11px]">
+				<div className="w-[120px] border-r border-border/60 bg-card p-3 text-[11px]">
 					<div className="mb-2 flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/55">
 						<LuFolder className={treeIconClassName} />
 						<span>src</span>

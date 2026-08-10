@@ -1,7 +1,8 @@
 export type LocalWorkspaceForPlacement = {
 	id: string;
-	projectId: string;
-	type: "main" | "worktree";
+	/** Null for project-less "session" workspaces (never auto-placed here). */
+	projectId: string | null;
+	type: "main" | "worktree" | "session";
 };
 
 /**
@@ -19,10 +20,14 @@ export function selectWorktreesToPlace(
 	localWorkspaces: readonly LocalWorkspaceForPlacement[],
 	placedWorkspaceIds: ReadonlySet<string>,
 ): Array<{ id: string; projectId: string }> {
-	return localWorkspaces
-		.filter(
-			(workspace) =>
-				workspace.type === "worktree" && !placedWorkspaceIds.has(workspace.id),
-		)
-		.map((workspace) => ({ id: workspace.id, projectId: workspace.projectId }));
+	return localWorkspaces.flatMap((workspace) => {
+		if (
+			workspace.type !== "worktree" ||
+			workspace.projectId === null ||
+			placedWorkspaceIds.has(workspace.id)
+		) {
+			return [];
+		}
+		return [{ id: workspace.id, projectId: workspace.projectId }];
+	});
 }

@@ -1,21 +1,16 @@
 import { Button } from "@superset/ui/button";
 import { Checkbox } from "@superset/ui/checkbox";
-import { keepPreviousData, useInfiniteQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import {
-	useCallback,
-	useEffect,
-	useId,
-	useMemo,
-	useRef,
-	useState,
-} from "react";
+import { useCallback, useEffect, useState } from "react";
 import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
 import { LuMinus, LuPlus, LuRefreshCw } from "react-icons/lu";
-import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useDebouncedValue } from "renderer/hooks/useDebouncedValue";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { LoadMoreSentinel } from "renderer/routes/_authenticated/_dashboard/components/LoadMoreSentinel";
+import { serializeProjectFilters } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
+import type { ProjectQueryTarget } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
+import { useWorkItemsList } from "renderer/routes/_authenticated/_dashboard/hooks/useWorkItemsList";
 import {
 	type LinkedIssue,
 	useNewWorkspaceDraftStore,
@@ -27,11 +22,16 @@ export interface SelectedIssue {
 	title: string;
 	url: string;
 	state: string;
+	projectId: string;
 }
 
 interface GitHubIssuesContentProps {
-	projectFilter: string | null;
+	projectFilters: string[];
+	projectTargets: ProjectQueryTarget[];
+	areProjectsReady: boolean;
+	hasProjects: boolean;
 	searchQuery: string;
+	includeClosed: boolean;
 	onCollapse?: () => void;
 	onSelectionChange?: (
 		issues: SelectedIssue[],
@@ -42,102 +42,82 @@ interface GitHubIssuesContentProps {
 const PAGE_SIZE = 30;
 
 export function GitHubIssuesContent({
-	projectFilter,
+	projectFilters,
+	projectTargets,
+	areProjectsReady,
+	hasProjects,
 	searchQuery,
+	includeClosed,
 	onCollapse,
 	onSelectionChange,
 }: GitHubIssuesContentProps) {
-	const [showClosed, setShowClosed] = useState(false);
-	const showClosedId = useId();
 	const [selectedIssues, setSelectedIssues] = useState<
-		Map<number, SelectedIssue>
+		Map<string, SelectedIssue>
 	>(new Map());
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
-	const hostUrl = useHostUrl(null);
 	const navigate = useNavigate();
 	const updateDraft = useNewWorkspaceDraftStore((s) => s.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore((s) => s.selectProject);
 	const resetDraft = useNewWorkspaceDraftStore((s) => s.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
 	const {
-		data,
+		rows: issues,
+		totalCount,
+		repoMismatch,
 		isFetching,
 		isFetchingNextPage,
-		fetchNextPage,
 		hasNextPage,
 		error,
 		refetch,
-	} = useInfiniteQuery({
-		queryKey: [
-			"tasks",
-			"searchGitHubIssues",
-			projectFilter,
-			hostUrl,
-			debouncedQuery.trim(),
-			showClosed,
-		],
-		queryFn: async ({ pageParam }) => {
-			if (!hostUrl || !projectFilter) {
-				return {
-					issues: [],
-					totalCount: 0,
-					hasNextPage: false,
-					page: pageParam,
-				};
-			}
-			const client = getHostServiceClientByUrl(hostUrl);
-			return client.workspaceCreation.searchGitHubIssues.query({
-				projectId: projectFilter,
-				query: debouncedQuery.trim() || undefined,
-				limit: PAGE_SIZE,
-				includeClosed: showClosed,
-				page: pageParam,
-			});
-		},
-		initialPageParam: 1,
-		getNextPageParam: (lastPage) =>
-			lastPage.hasNextPage ? lastPage.page + 1 : undefined,
-		staleTime: 30_000,
-		gcTime: 10 * 60_000,
-		placeholderData: keepPreviousData,
-		enabled: !!projectFilter && !!hostUrl,
-		retry: false,
-	});
-
-	const issues = useMemo(
-		() => data?.pages.flatMap((p) => p.issues) ?? [],
-		[data],
-	);
-	const totalCount = data?.pages[0]?.totalCount ?? 0;
-	const repoMismatch = useMemo(() => {
-		const first = data?.pages[0];
-		return first && "repoMismatch" in first ? first.repoMismatch : null;
-	}, [data]);
-
-	const scrollRef = useRef<HTMLDivElement>(null);
-	const sentinelRef = useRef<HTMLDivElement>(null);
-	useEffect(() => {
-		const el = sentinelRef.current;
-		const root = scrollRef.current;
-		if (!el || !root || !hasNextPage || isFetchingNextPage) return;
-		const observer = new IntersectionObserver(
-			(entries) => {
-				if (entries[0]?.isIntersecting) fetchNextPage();
+		scrollRef,
+		sentinelRef,
+	} = useWorkItemsList({
+		projectTargets,
+		resetKey: `${debouncedQuery.trim()}\0${includeClosed}`,
+		getQueryOptions: ({ target, page }) => ({
+			queryKey: [
+				"tasks",
+				"searchGitHubIssues",
+				target.key,
+				target.hostUrl,
+				debouncedQuery.trim(),
+				includeClosed,
+				page,
+			],
+			queryFn: async () => {
+				const firstProject = target.projects[0];
+				if (!target.hostUrl || !firstProject) return null;
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.workspaceCreation.searchGitHubIssues.query({
+					projectId: firstProject.projectId,
+					projectIds: target.projects.map((project) => project.projectId),
+					query: debouncedQuery.trim() || undefined,
+					limit: PAGE_SIZE,
+					includeClosed,
+					page,
+				});
 			},
-			{ root, rootMargin: "200px" },
-		);
-		observer.observe(el);
-		return () => observer.disconnect();
-	}, [hasNextPage, isFetchingNextPage, fetchNextPage]);
+			enabled: !!target.hostUrl,
+			staleTime: 30_000,
+			gcTime: 10 * 60_000,
+			retry: false,
+		}),
+		getRows: (data) => data.issues,
+		getRowKey: (issue) => `${issue.projectId}:${issue.issueNumber}`,
+	});
 
 	const clearSelection = useCallback(() => {
 		setSelectedIssues(new Map());
 	}, []);
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: clear selection only when project changes
+	// Key off content, not array identity: URL re-renders rebuild the array
+	// and would wipe the selection on unrelated navigations.
+	const projectFiltersKey = projectFilters.join("\0");
+	// biome-ignore lint/correctness/useExhaustiveDependencies: clear selection only when the selected repositories change
 	useEffect(() => {
 		setSelectedIssues(new Map());
-	}, [projectFilter]);
+	}, [projectFiltersKey]);
 
 	useEffect(() => {
 		if (!onSelectionChange) return;
@@ -148,10 +128,11 @@ export function GitHubIssuesContent({
 		(issue: SelectedIssue, checked: boolean) => {
 			setSelectedIssues((prev) => {
 				const next = new Map(prev);
+				const key = `${issue.projectId}:${issue.issueNumber}`;
 				if (checked) {
-					next.set(issue.issueNumber, issue);
+					next.set(key, issue);
 				} else {
-					next.delete(issue.issueNumber);
+					next.delete(key);
 				}
 				return next;
 			});
@@ -160,7 +141,6 @@ export function GitHubIssuesContent({
 	);
 
 	const handleAddToWorkspace = (issue: (typeof issues)[number]) => {
-		if (!projectFilter) return;
 		const linkedIssue: LinkedIssue = {
 			slug: `gh-${issue.issueNumber}`,
 			title: issue.title,
@@ -170,32 +150,54 @@ export function GitHubIssuesContent({
 			state: issue.state.toLowerCase() === "closed" ? "closed" : "open",
 		};
 		resetDraft();
-		updateDraft({
-			selectedProjectId: projectFilter,
-			linkedIssues: [linkedIssue],
-		});
-		openModal(projectFilter);
+		selectProject(issue.projectId);
+		updateDraft({ hostId: issue.hostId, linkedIssues: [linkedIssue] });
+		openModal(issue.projectId);
 	};
 
 	const handleOpenUrl = (url: string) => {
 		window.open(url, "_blank", "noopener,noreferrer");
 	};
 
-	const handleOpenPreview = (issueNumber: number) => {
-		if (!projectFilter) return;
+	const handleOpenPreview = (issue: (typeof issues)[number]) => {
 		navigate({
 			to: "/tasks/issue/$issueNumber",
-			params: { issueNumber: String(issueNumber) },
-			search: { project: projectFilter },
+			params: { issueNumber: String(issue.issueNumber) },
+			search: {
+				search: searchQuery || undefined,
+				type: "issues",
+				project: issue.projectId,
+				projects: serializeProjectFilters(projectFilters),
+				state: includeClosed ? "all" : undefined,
+			},
 		});
 	};
 
-	if (!projectFilter) {
+	if (projectTargets.length === 0) {
 		return (
 			<div className="flex h-full items-center justify-center p-8">
 				<div className="flex flex-col items-center gap-2 text-muted-foreground text-center">
 					<GoIssueOpened className="h-8 w-8" />
-					<span className="text-sm">Select a project to see issues.</span>
+					<span className="max-w-prose text-sm text-wrap-pretty">
+						{areProjectsReady
+							? hasProjects
+								? "Select a project to see GitHub issues."
+								: "Add a project to see GitHub issues."
+							: "Loading projects…"}
+					</span>
+				</div>
+			</div>
+		);
+	}
+
+	if (projectTargets.every((target) => !target.hostUrl)) {
+		return (
+			<div className="flex h-full items-center justify-center p-8">
+				<div className="flex max-w-prose flex-col items-center gap-2 text-center text-muted-foreground">
+					<GoIssueOpened className="size-8" />
+					<span className="text-sm text-wrap-pretty">
+						The device that hosts this project is unavailable.
+					</span>
 				</div>
 			</div>
 		);
@@ -209,24 +211,31 @@ export function GitHubIssuesContent({
 			: `${issues.length} of ${totalCount}`;
 
 	return (
-		<div className="@container flex flex-col h-full overflow-hidden">
+		<div
+			className="@container flex h-full flex-col overflow-hidden"
+			aria-busy={isFetching}
+		>
 			<div className="flex items-center gap-2 px-4 py-2 border-b bg-muted/30 shrink-0">
 				<GoIssueOpened className="size-3.5 text-muted-foreground" />
-				<span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-					GitHub issues
-				</span>
-				<span className="ml-auto text-xs text-muted-foreground tabular-nums">
-					{countLabel}
+				<span className="text-xs text-muted-foreground" aria-live="polite">
+					<span className="tabular-nums">{countLabel}</span>{" "}
+					{totalCount === 1 ? "GitHub issue" : "GitHub issues"}
 				</span>
 				<Button
 					variant="ghost"
 					size="icon-xs"
+					className="ml-auto"
 					title="Refresh"
+					aria-label="Refresh GitHub issues"
 					disabled={isFetching}
 					onClick={() => refetch()}
 				>
 					<LuRefreshCw
-						className={isFetching ? "size-3.5 animate-spin" : "size-3.5"}
+						className={
+							isFetching
+								? "size-3.5 animate-spin motion-reduce:animate-none"
+								: "size-3.5"
+						}
 					/>
 				</Button>
 				{onCollapse && (
@@ -234,6 +243,7 @@ export function GitHubIssuesContent({
 						variant="ghost"
 						size="icon-xs"
 						title="Minimize"
+						aria-label="Minimize GitHub issues"
 						onClick={onCollapse}
 					>
 						<LuMinus className="size-3.5" />
@@ -241,64 +251,57 @@ export function GitHubIssuesContent({
 				)}
 			</div>
 
-			<div className="flex items-center gap-2 px-4 py-1.5 border-b text-xs shrink-0">
-				<Checkbox
-					id={showClosedId}
-					checked={showClosed}
-					onCheckedChange={(checked) => setShowClosed(checked === true)}
-				/>
-				<label
-					htmlFor={showClosedId}
-					className="cursor-pointer select-none text-muted-foreground"
-				>
-					Show closed
-				</label>
-				{isFetching && !isInitialLoad && (
-					<span className="ml-auto text-muted-foreground">Loading…</span>
-				)}
-			</div>
-
 			<div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto">
-				{error instanceof Error && (
-					<div className="px-4 py-3 text-sm text-destructive select-text cursor-text">
-						{error.message}
+				{error instanceof Error && issues.length === 0 ? (
+					<div className="flex flex-col items-start gap-3 px-4 py-4 text-sm text-destructive select-text cursor-text">
+						<span>{error.message}</span>
+						<Button variant="outline" size="sm" onClick={() => refetch()}>
+							Try again
+						</Button>
 					</div>
-				)}
-
-				{repoMismatch && (
+				) : repoMismatch ? (
 					<div className="px-4 py-3 text-sm text-muted-foreground select-text cursor-text">
 						Issue URL must match {repoMismatch}.
 					</div>
-				)}
-
-				{isInitialLoad ? (
+				) : isInitialLoad ? (
 					<div className="flex h-full items-center justify-center gap-2 p-8 text-muted-foreground">
-						<LuRefreshCw className="size-4 animate-spin" />
+						<LuRefreshCw className="size-4 animate-spin motion-reduce:animate-none" />
 						<span className="text-sm">Loading issues…</span>
 					</div>
-				) : totalCount === 0 && !isFetching && !error ? (
+				) : totalCount === 0 && !isFetching ? (
 					<div className="flex h-full items-center justify-center p-8">
 						<span className="text-sm text-muted-foreground">
-							{showClosed ? "No issues found." : "No open issues."}
+							{includeClosed ? "No issues found." : "No open issues."}
 						</span>
 					</div>
 				) : (
 					<div className="flex flex-col">
+						{error instanceof Error && (
+							<div className="flex items-center gap-2 border-b border-border/50 bg-destructive/5 px-4 py-2 text-xs text-destructive">
+								<span className="min-w-0 flex-1 truncate select-text cursor-text">
+									Some repositories could not be loaded: {error.message}
+								</span>
+								<Button variant="outline" size="xs" onClick={() => refetch()}>
+									Retry
+								</Button>
+							</div>
+						)}
 						{issues.map((issue) => {
 							const isClosed = issue.state.toLowerCase() === "closed";
 							const StateIcon = isClosed ? GoIssueClosed : GoIssueOpened;
-							const isSelected = selectedIssues.has(issue.issueNumber);
+							const selectionKey = `${issue.projectId}:${issue.issueNumber}`;
+							const isSelected = selectedIssues.has(selectionKey);
 							return (
 								// biome-ignore lint/a11y/useSemanticElements: row contains nested action buttons, so the outer element is a div with role/tabIndex
 								<div
-									key={issue.issueNumber}
-									className="group flex items-center gap-3 px-4 h-9 cursor-pointer border-b border-border/50 hover:bg-accent/50"
-									onClick={() => handleOpenPreview(issue.issueNumber)}
+									key={selectionKey}
+									className="group flex h-9 cursor-pointer items-center gap-3 border-b border-border/50 px-4 hover:bg-accent/50 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-inset focus-visible:ring-ring"
+									onClick={() => handleOpenPreview(issue)}
 									onKeyDown={(e) => {
 										if (e.target !== e.currentTarget) return;
 										if (e.key === "Enter" || e.key === " ") {
 											e.preventDefault();
-											handleOpenPreview(issue.issueNumber);
+											handleOpenPreview(issue);
 										}
 									}}
 									role="button"
@@ -313,6 +316,7 @@ export function GitHubIssuesContent({
 													title: issue.title,
 													url: issue.url,
 													state: issue.state,
+													projectId: issue.projectId,
 												},
 												checked === true,
 											)
@@ -328,6 +332,11 @@ export function GitHubIssuesContent({
 												: "size-4 shrink-0 text-emerald-500"
 										}
 									/>
+									{projectTargets.length > 1 && (
+										<span className="hidden max-w-28 shrink-0 truncate text-xs text-muted-foreground @lg:inline">
+											{issue.projectName}
+										</span>
+									)}
 									<span className="shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
 										#{issue.issueNumber}
 									</span>
@@ -344,6 +353,7 @@ export function GitHubIssuesContent({
 											variant="ghost"
 											size="icon-xs"
 											title="Open in browser"
+											aria-label={`Open issue #${issue.issueNumber} in browser`}
 											onClick={(e) => {
 												e.stopPropagation();
 												handleOpenUrl(issue.url);
@@ -355,6 +365,7 @@ export function GitHubIssuesContent({
 											variant="outline"
 											size="sm"
 											title="Add to workspace"
+											aria-label={`Add issue #${issue.issueNumber} to workspace`}
 											className="h-7 gap-1.5 px-2 text-xs"
 											onClick={(e) => {
 												e.stopPropagation();
@@ -370,14 +381,11 @@ export function GitHubIssuesContent({
 								</div>
 							);
 						})}
-						{hasNextPage && (
-							<div
-								ref={sentinelRef}
-								className="flex items-center justify-center py-3 text-xs text-muted-foreground"
-							>
-								{isFetchingNextPage ? "Loading more…" : ""}
-							</div>
-						)}
+						<LoadMoreSentinel
+							sentinelRef={sentinelRef}
+							hasNextPage={hasNextPage}
+							isFetchingNextPage={isFetchingNextPage}
+						/>
 					</div>
 				)}
 			</div>

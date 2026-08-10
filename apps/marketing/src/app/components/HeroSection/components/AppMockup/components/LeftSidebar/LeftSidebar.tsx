@@ -8,7 +8,7 @@ import {
 	LuPlus,
 	LuZap,
 } from "react-icons/lu";
-import { PORTS, WORKSPACES } from "../../constants";
+import { WORKSPACES } from "../../constants";
 import type { ActiveDemo } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
 import { WorkspaceItem } from "../WorkspaceItem";
@@ -19,7 +19,7 @@ interface LeftSidebarProps {
 
 export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 	return (
-		<div className="flex w-[208px] shrink-0 flex-col border-r border-border bg-card text-[11px]">
+		<div className="flex w-[208px] shrink-0 flex-col border-r border-border/60 bg-card text-[11px]">
 			<div className="flex h-9 items-center gap-1.5 px-3">
 				<div className="size-2.5 rounded-full bg-[#ff5f57]" />
 				<div className="size-2.5 rounded-full bg-[#febc2e]" />
@@ -27,12 +27,12 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 			</div>
 
 			<div className="space-y-px px-1.5 pt-1">
-				<NavRow icon={LuLayers} label="Workspaces" active />
+				<NavRow icon={LuLayers} label="Workspaces" />
 				<NavRow icon={LuZap} label="Automations" />
-				<NavRow icon={LuPlus} label="New Workspace" muted />
+				<NavRow icon={LuPlus} label="New Workspace" />
 			</div>
 
-			<div className="mt-3 flex-1 overflow-hidden">
+			<div className="mt-6 flex-1 overflow-hidden">
 				<GroupHeader label="desktop" count={5} expanded />
 
 				<motion.div
@@ -88,35 +88,6 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 					<GroupHeader label="cli" count={2} />
 				</div>
 			</div>
-
-			<div className="border-t border-border pb-1.5">
-				<div className="flex h-7 items-center gap-1.5 px-3 text-[10px] font-medium uppercase tracking-[0.08em] text-muted-foreground/65">
-					<span className="font-mono normal-case text-muted-foreground/55">
-						⌥
-					</span>
-					<span>Ports</span>
-					<span className="ml-auto font-mono tabular-nums text-muted-foreground/40">
-						4
-					</span>
-				</div>
-				{PORTS.map((port) => (
-					<div key={port.workspace} className="px-3 py-1">
-						<div className="truncate text-[10px] text-muted-foreground/65">
-							{port.workspace}
-						</div>
-						<div className="mt-1 flex flex-wrap gap-1">
-							{port.ports.map((value) => (
-								<span
-									key={value}
-									className="border border-border bg-background px-1.5 py-px font-mono text-[10px] tabular-nums text-muted-foreground/70"
-								>
-									{value}
-								</span>
-							))}
-						</div>
-					</div>
-				))}
-			</div>
 		</div>
 	);
 }
@@ -124,27 +95,13 @@ export function LeftSidebar({ activeDemo }: LeftSidebarProps) {
 function NavRow({
 	icon: Icon,
 	label,
-	active,
-	muted,
 }: {
 	icon: typeof LuLayers;
 	label: string;
-	active?: boolean;
-	muted?: boolean;
 }) {
 	return (
-		<div
-			className={`flex h-6 cursor-pointer items-center gap-2 px-2 ${
-				active
-					? "bg-foreground/[0.06] text-foreground"
-					: muted
-						? "text-muted-foreground/55 hover:text-foreground/80"
-						: "text-foreground/85 hover:bg-foreground/[0.025]"
-			}`}
-		>
-			<Icon
-				className={`size-3.5 ${active ? "text-foreground/85" : "text-muted-foreground/55"}`}
-			/>
+		<div className="flex h-6 cursor-pointer items-center gap-2 px-2 text-muted-foreground/55 hover:text-foreground/80">
+			<Icon className="size-3.5 text-muted-foreground/55" />
 			<span>{label}</span>
 		</div>
 	);

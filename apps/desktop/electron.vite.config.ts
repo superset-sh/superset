@@ -43,6 +43,22 @@ const sentryPlugin = process.env.SENTRY_AUTH_TOKEN
 		})
 	: null;
 
+// host-service runs as a child process reporting to its own Sentry project,
+// and sourcemap lookup is per-project — its bundles must also be uploaded
+// there or host-service stacks stay unsymbolicated. Debug IDs are derived
+// from file content, so the double injection with sentryPlugin is identical.
+const hostServiceSentryPlugin = process.env.SENTRY_AUTH_TOKEN
+	? sentryVitePlugin({
+			org: "superset-sh",
+			project: "host-service",
+			authToken: process.env.SENTRY_AUTH_TOKEN,
+			release: { name: version },
+			sourcemaps: {
+				assets: ["**/host-service.js*", "**/host-worker.js*"],
+			},
+		})
+	: null;
+
 export default defineConfig({
 	main: {
 		plugins: [tsconfigPaths, copyResourcesPlugin()],
@@ -73,8 +89,15 @@ export default defineConfig({
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
 			),
+			"process.env.NEXT_PUBLIC_ROOT_DOMAIN": defineEnv(
+				process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+				"superset.sh",
+			),
 			"process.env.SENTRY_DSN_DESKTOP": defineEnv(
 				process.env.SENTRY_DSN_DESKTOP,
+			),
+			"process.env.SENTRY_DSN_HOST_SERVICE": defineEnv(
+				process.env.SENTRY_DSN_HOST_SERVICE,
 			),
 			"process.env.RELAY_URL": defineEnv(process.env.RELAY_URL),
 			// Must match renderer for analytics in main process
@@ -122,7 +145,7 @@ export default defineConfig({
 					dir: resolve(devPath, "main"),
 				},
 				external: ["electron", ...mainExternalizedDependencies],
-				plugins: [sentryPlugin].filter(Boolean),
+				plugins: [sentryPlugin, hostServiceSentryPlugin].filter(Boolean),
 			},
 		},
 		resolve: {
@@ -192,6 +215,10 @@ export default defineConfig({
 			"process.env.NEXT_PUBLIC_DOCS_URL": defineEnv(
 				process.env.NEXT_PUBLIC_DOCS_URL,
 				"https://docs.superset.sh",
+			),
+			"process.env.NEXT_PUBLIC_ROOT_DOMAIN": defineEnv(
+				process.env.NEXT_PUBLIC_ROOT_DOMAIN,
+				"superset.sh",
 			),
 			"import.meta.env.DEV_SERVER_PORT": defineEnv(String(DEV_SERVER_PORT)),
 			"import.meta.env.NEXT_PUBLIC_POSTHOG_KEY": defineEnv(

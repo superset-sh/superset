@@ -56,6 +56,11 @@ export const terminalAgentBindings = sqliteTable(
 		startedAt: integer("started_at").notNull(),
 		lastEventAt: integer("last_event_at").notNull(),
 		lastEventType: text("last_event_type").notNull(),
+		// Set when the agent session ended. "detached" = the agent reported its
+		// own end (SessionEnd hook) — not resumable; "terminal-exited" = the
+		// terminal died under it (kill, crash, reboot) — resume candidate.
+		endedAt: integer("ended_at"),
+		endReason: text("end_reason"),
 	},
 	(table) => [
 		index("terminal_agent_bindings_workspace_id_idx").on(table.workspaceId),
@@ -77,6 +82,19 @@ export const projects = sqliteTable(
 		// "fall back to the host-wide default" in `host_settings`.
 		branchPrefixMode: text("branch_prefix_mode").$type<BranchPrefixMode>(),
 		branchPrefixCustom: text("branch_prefix_custom"),
+		// Custom project icon as a small downscaled data-URI. Null falls back to
+		// the GitHub owner avatar (when a repo is linked) or a placeholder.
+		icon: text("icon"),
+		// Accent color as a `#rrggbb` hex. Null means the default (no accent).
+		color: text("color"),
+		// JSON array of repo-relative folders to cone-mode sparse-checkout into
+		// new worktrees. Null (the default) means a full checkout. Read through
+		// `parseSparseCheckoutPaths` — the encoding is not part of the API.
+		sparseCheckoutPaths: text("sparse_checkout_paths"),
+		// Free-text instructions injected into AI workspace/branch naming for
+		// this project (e.g. "include the Linear ticket id in the branch name").
+		// Null means the default naming behavior.
+		namingInstructions: text("naming_instructions"),
 		// Empty string means "not yet backfilled" — the startup sweep targets
 		// these rows (name from cloud legacy row if reachable, else basename).
 		name: text().notNull().default(""),
@@ -122,6 +140,9 @@ export const pullRequests = sqliteTable(
 		reviewDecision: text("review_decision"),
 		checksStatus: text("checks_status").notNull().default("none"),
 		checksJson: text("checks_json").notNull().default("[]"),
+		// Set when the PR is first observed merged; never cleared. Anchors
+		// "merged in the last N days" windows on the workspaces board.
+		mergedAt: integer("merged_at"),
 		lastFetchedAt: integer("last_fetched_at"),
 		error: text(),
 		createdAt: integer("created_at")
@@ -162,6 +183,9 @@ export const hostAgentConfigs = sqliteTable(
 		argsJson: text("args_json").notNull().default("[]"),
 		promptTransport: text("prompt_transport").notNull(),
 		promptArgsJson: text("prompt_args_json").notNull().default("[]"),
+		// Args that resume a previous session; the session id is appended after
+		// them. Empty means the agent has no id-based resume.
+		resumeArgsJson: text("resume_args_json").notNull().default("[]"),
 		envJson: text("env_json").notNull().default("{}"),
 		displayOrder: integer("display_order").notNull(),
 		createdAt: integer("created_at")
@@ -180,9 +204,11 @@ export const workspaces = sqliteTable(
 	"workspaces",
 	{
 		id: text().primaryKey(),
-		projectId: text("project_id")
-			.notNull()
-			.references(() => projects.id, { onDelete: "cascade" }),
+		// Null = a project-less "session" workspace (managed folder under
+		// ~/.superset/sessions, its own standalone git repo).
+		projectId: text("project_id").references(() => projects.id, {
+			onDelete: "cascade",
+		}),
 		worktreePath: text("worktree_path").notNull(),
 		branch: text().notNull(),
 		headSha: text("head_sha"),
@@ -192,10 +218,19 @@ export const workspaces = sqliteTable(
 		pullRequestId: text("pull_request_id").references(() => pullRequests.id, {
 			onDelete: "set null",
 		}),
+		// Set when the user removes the PR link; the refresh sweep must not
+		// re-link this specific PR. A different PR on the branch still links.
+		suppressedPullRequestId: text("suppressed_pull_request_id").references(
+			() => pullRequests.id,
+			{ onDelete: "set null" },
+		),
 		// Empty string means "not yet backfilled from cloud" — the startup
 		// backfill sweep targets these rows.
 		name: text().notNull().default(""),
-		type: text().$type<"main" | "worktree">().notNull().default("worktree"),
+		type: text()
+			.$type<"main" | "worktree" | "session">()
+			.notNull()
+			.default("worktree"),
 		taskId: text("task_id"),
 		createdByUserId: text("created_by_user_id"),
 		createdAt: integer("created_at")
@@ -206,9 +241,15 @@ export const workspaces = sqliteTable(
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
 		cloudSyncedAt: integer("cloud_synced_at"),
+		// Tombstone: null = live. Set at the destroy commit point; rows are
+		// kept forever and surface on the board's Merged/Deleted columns.
+		archivedAt: integer("archived_at"),
+		// "merged" when the linked PR was merged at destroy time.
+		archiveReason: text("archive_reason").$type<"merged" | "deleted">(),
 	},
 	(table) => [
 		index("workspaces_project_id_idx").on(table.projectId),
+		index("workspaces_archived_at_idx").on(table.archivedAt),
 		index("workspaces_upstream_ref_idx").on(
 			table.upstreamOwner,
 			table.upstreamRepo,

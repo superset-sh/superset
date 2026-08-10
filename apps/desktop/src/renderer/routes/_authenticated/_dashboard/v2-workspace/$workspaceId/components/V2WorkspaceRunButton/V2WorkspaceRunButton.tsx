@@ -14,7 +14,8 @@ import { useSetSettingsSearchQuery } from "renderer/stores/settings-state";
 import type { WorkspaceRunDefinition } from "shared/workspace-run-definition";
 
 interface V2WorkspaceRunButtonProps {
-	projectId: string;
+	/** Null for project-less "session" workspaces (no project scripts page). */
+	projectId: string | null;
 	definition: WorkspaceRunDefinition | null;
 	isRunning: boolean;
 	isPending: boolean;
@@ -46,6 +47,12 @@ export function V2WorkspaceRunButton({
 			return;
 		}
 
+		// Sessions have no project settings page; global presets are the only
+		// configurable run source, handled by the terminal-preset branch above.
+		if (projectId === null) {
+			void navigate({ to: "/settings/terminal" });
+			return;
+		}
 		setSettingsSearchQuery("scripts");
 		void navigate({
 			to: "/settings/projects/$projectId",

@@ -61,6 +61,8 @@ export async function submitContactInquiry(data: unknown) {
 		const { error } = await resend.emails.send({
 			from: "Superset <noreply@superset.sh>",
 			to: "support@superset.sh",
+			// CC the submitter so they keep a copy and stay on the reply thread.
+			cc: sanitizedEmail,
 			replyTo: sanitizedEmail,
 			subject: `Contact message from ${sanitizedName}: ${sanitizedTopic}`,
 			react: ContactInquiryEmail({

@@ -9,7 +9,7 @@ import { AUTO_UPDATE_STATUS, type AutoUpdateStatus } from "shared/auto-update";
 
 interface UpdateRequiredPageProps {
 	currentVersion: string;
-	minimumVersion: string;
+	minimumVersion?: string;
 	message?: string;
 }
 
@@ -72,7 +72,7 @@ export function UpdateRequiredPage({
 
 					<div className="flex flex-col items-center gap-1 text-sm text-muted-foreground">
 						<span>Your version: {currentVersion}</span>
-						<span>Required version: {minimumVersion}+</span>
+						{minimumVersion && <span>Required version: {minimumVersion}+</span>}
 					</div>
 
 					<p className="text-xs text-muted-foreground/70">

@@ -117,7 +117,7 @@ Returns `Array<TaskStatus>`. Each entry is `{ id, name, color, type, position }`
 
 ### `workspaces.list({ hostId, projectId?, search? })`
 
-List workspaces on a host. Workspaces are host-owned — there is no org-wide
+List workspaces on a host. Workspaces are host-owned. There is no org-wide
 listing; enumerate hosts with [`hosts.list()`](#hostslist) and query each one
 you care about.
 
@@ -126,14 +126,14 @@ const workspaces = await client.workspaces.list({ hostId: '<machineId>' });
 ```
 
 Returns `Array<Workspace>`. Rows include the host-served `projectName`
-(`string | null` — null when the workspace's project row is missing on that
+(`string | null`; null when the workspace's project row is missing on that
 host, so don't assume it's always present).
 
 ### `workspaces.create({ hostId, projectId, name, branch?, pr?, baseBranch?, taskId?, agents?, command? })`
 
-Create a worktree on a specific host. Provide exactly one of `branch` or `pr` (a pull request number — the host checks out the verified PR head and derives the branch). `baseBranch` picks the fork point when `branch` doesn't exist yet, and `taskId` links the new workspace to a task. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
+Create a worktree on a specific host. Provide exactly one of `branch` or `pr` (a pull request number; the host checks out the verified PR head and derives the branch). `baseBranch` picks the fork point when `branch` doesn't exist yet, and `taskId` links the new workspace to a task. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
 
-Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
+Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Set `effort` to override the agent's reasoning effort for that launch, or omit it to use the agent's own default. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
 
 ```ts
 const result = await client.workspaces.create({
@@ -141,8 +141,8 @@ const result = await client.workspaces.create({
   projectId: '<uuid>',       // see projects.list()
   name: 'wire-up-auth',
   branch: 'feat/auth',
-  agents: [                  // optional — spawn agents on creation
-    { agent: 'claude', prompt: 'Implement the auth flow described in SUPER-100.' },
+  agents: [                  // optional: spawn agents on creation
+    { agent: 'claude', effort: 'high', prompt: 'Implement the auth flow described in SUPER-100.' },
     { agent: 'claude', prompt: 'Write integration tests for the new auth flow.' },
   ],
 });
@@ -185,7 +185,7 @@ await client.workspaces.delete('<workspaceId>', { hostId: '<machineId>' });
 
 ### `projects.list({ hostId })`
 
-List projects set up on a host. Projects are host-owned — there is no
+List projects set up on a host. Projects are host-owned; there is no
 org-wide project registry.
 
 ```ts
@@ -226,18 +226,21 @@ prompt-transport fields used to launch the agent.
 const agents = await client.agents.list({ hostId: '<machineId>' });
 ```
 
-### `agents.create({ hostId, workspaceId, agent, prompt, attachmentIds? })`
+### `agents.create({ hostId, workspaceId, agent, prompt, effort?, attachmentIds? })`
 
 Create (launch) an agent session in an existing workspace on its host.
 
 `agent` accepts either a preset id (e.g. `"claude"`) or a `HostAgentConfig`
-instance UUID. Returns `{ kind, sessionId, label }`.
+instance UUID. `effort` is an agent-specific reasoning override; omit it to
+use the agent's own configured default. Unsupported values fail before launch.
+Returns `{ kind, sessionId, label }`.
 
 ```ts
 const { sessionId } = await client.agents.create({
   hostId: '<machineId>',
   workspaceId: '<uuid>',
   agent: 'claude',
+  effort: 'high',
   prompt: 'Audit the login flow for race conditions.',
 });
 ```
@@ -319,7 +322,7 @@ await client.automations.update({ id, rrule: 'FREQ=WEEKLY;BYDAY=MO' });
 ### `automations.run(id)`
 
 Dispatch immediately, off-schedule. Goes through the relay to the automation's
-target host. Returns identifiers for the dispatched run, not the full run row —
+target host. Returns identifiers for the dispatched run, not the full run row;
 use [`automations.logs(id)`](#automationslogsid-params) for status.
 
 ```ts

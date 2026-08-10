@@ -8,6 +8,14 @@
 			"types": "./src/constants.ts",
 			"default": "./src/constants.ts"
 		},
+		"./git-hook-tolerance": {
+			"types": "./src/git-hook-tolerance.ts",
+			"default": "./src/git-hook-tolerance.ts"
+		},
+		"./sentry": {
+			"types": "./src/sentry.ts",
+			"default": "./src/sentry.ts"
+		},
 		"./terminal-wheel-handler": {
 			"types": "./src/terminal-wheel-handler/index.ts",
 			"default": "./src/terminal-wheel-handler/index.ts"
@@ -15,6 +23,10 @@
 		"./dev-credentials": {
 			"types": "./src/dev-credentials.ts",
 			"default": "./src/dev-credentials.ts"
+		},
+		"./desktop-notices": {
+			"types": "./src/desktop-notices.ts",
+			"default": "./src/desktop-notices.ts"
 		},
 		"./media-files": {
 			"types": "./src/media-files.ts",
@@ -112,6 +124,10 @@
 			"types": "./src/tunnel-protocol.ts",
 			"default": "./src/tunnel-protocol.ts"
 		},
+		"./tunnel-v2-protocol": {
+			"types": "./src/tunnel-v2-protocol.ts",
+			"default": "./src/tunnel-v2-protocol.ts"
+		},
 		"./host-info": {
 			"types": "./src/host-info.ts",
 			"default": "./src/host-info.ts"
@@ -154,11 +170,13 @@
 		"@date-fns/tz": "1.4.1",
 		"friendly-words": "1.3.1",
 		"rrule": "2.8.1",
-		"zod": "4.3.6"
+		"semver": "7.7.4",
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",
 		"@types/friendly-words": "1.2.2",
+		"@types/semver": "7.7.1",
 		"@xterm/xterm": "6.1.0-beta.289",
 		"bun-types": "1.3.14",
 		"typescript": "6.0.3"

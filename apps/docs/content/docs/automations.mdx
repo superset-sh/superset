@@ -60,6 +60,10 @@ From the automation's detail page:
 - **Run now**: dispatches immediately. The run appears in **Previous runs** within seconds.
 - **Delete**: removes the automation and its run history.
 
+## Retry Failed Runs
+
+In the Automations list, hover an automation you own whose last run failed (`skipped (offline)` or `dispatch failed`) to reveal an inline **Retry** button that re-dispatches it. On the **Mine** tab, a **Retry all** button appears in the header when any of your automations have a failed last run, re-dispatching all of them at once. Both disappear when no automation has a failed latest run.
+
 ## Limits
 
 - **At-least-once delivery**: Automations may dispatch more than once in rare cases (e.g. dispatcher retries). Design prompts that are safe to re-run.

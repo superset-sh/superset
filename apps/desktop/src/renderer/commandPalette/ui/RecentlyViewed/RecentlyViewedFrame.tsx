@@ -58,8 +58,10 @@ export function RecentlyViewedFrame() {
 		const projectNamesById = new Map(
 			(v2ProjectData ?? []).map((p) => [p.id, p.name]),
 		);
-		// Inner join: drop workspaces whose project isn't synced yet.
+		// Inner join: drop workspaces whose project isn't synced yet (and
+		// project-less session workspaces).
 		return hostWorkspaces.flatMap((workspace) => {
+			if (workspace.projectId === null) return [];
 			const projectName = projectNamesById.get(workspace.projectId);
 			if (projectName === undefined) return [];
 			return [{ id: workspace.id, projectName, branch: workspace.branch }];

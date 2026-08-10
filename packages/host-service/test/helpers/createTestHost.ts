@@ -48,6 +48,7 @@ export interface TestHostOptions {
 export interface TestHost {
 	app: CreateAppResult["app"];
 	api: CreateAppResult["api"];
+	eventBus: CreateAppResult["eventBus"];
 	db: HostDb;
 	dispose: () => Promise<void>;
 	psk: string;
@@ -178,6 +179,7 @@ export async function createTestHost(
 	return {
 		app: result.app,
 		api: fakeApi.client,
+		eventBus: result.eventBus,
 		db: db as unknown as HostDb,
 		dispose,
 		psk,

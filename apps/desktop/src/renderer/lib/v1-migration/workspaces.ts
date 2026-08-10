@@ -16,7 +16,8 @@ export interface V1WorktreeLike {
 
 export interface HostWorkspaceLike {
 	id: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces (never adoption targets). */
+	projectId: string | null;
 	branch: string;
 }
 
@@ -75,6 +76,8 @@ export function planWorkspaceAdoptions({
 }): WorkspacePlan {
 	const hostByKey = new Map<string, string>();
 	for (const w of hostWorkspaces) {
+		// Session workspaces have no project and are never adoption targets.
+		if (w.projectId === null) continue;
 		hostByKey.set(hostWorkspaceKey(w.projectId, w.branch), w.id);
 	}
 

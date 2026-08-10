@@ -47,14 +47,17 @@ interface AgentLaunchFieldsProps {
 	promptArgsText: string;
 	onPromptArgsTextChange: (value: string) => void;
 	onPromptArgsBlur?: () => void;
+	resumeArgsText: string;
+	onResumeArgsTextChange: (value: string) => void;
+	onResumeArgsBlur?: () => void;
 	promptTransport: PromptTransport;
 	onPromptTransportChange: (next: PromptTransport) => void;
 }
 
 /**
- * The "Launch" section (command, prompt-only args, transport). The edit pane
- * wires the blur callbacks to autosave; the create pane omits them and reads
- * the controlled values on submit.
+ * The "Launch" section (command, prompt-only args, resume args, transport).
+ * The edit pane wires the blur callbacks to autosave; the create pane omits
+ * them and reads the controlled values on submit.
  */
 export function AgentLaunchFields({
 	idPrefix,
@@ -64,6 +67,9 @@ export function AgentLaunchFields({
 	promptArgsText,
 	onPromptArgsTextChange,
 	onPromptArgsBlur,
+	resumeArgsText,
+	onResumeArgsTextChange,
+	onResumeArgsBlur,
 	promptTransport,
 	onPromptTransportChange,
 }: AgentLaunchFieldsProps) {
@@ -105,14 +111,38 @@ export function AgentLaunchFields({
 			</StackedField>
 
 			<StackedField
-				label="Prompt transport"
-				hint="How the prompt is delivered to the process."
+				label="Resume args"
+				hint={
+					<>
+						Used to restore a previous session — the session id is appended
+						after these, e.g. <code>--resume</code>. Leave empty if the agent
+						can't resume by id.
+					</>
+				}
+				htmlFor={`${idPrefix}-resume-args`}
 			>
+				<Input
+					id={`${idPrefix}-resume-args`}
+					className="font-mono text-xs"
+					value={resumeArgsText}
+					onChange={(e) => onResumeArgsTextChange(e.target.value)}
+					onBlur={onResumeArgsBlur}
+					placeholder="--resume"
+				/>
+			</StackedField>
+
+			<div className="flex items-center justify-between gap-8">
+				<div className="min-w-0 flex-1">
+					<Label className="text-sm font-medium">Prompt transport</Label>
+					<p className="text-xs text-muted-foreground mt-0.5">
+						How the prompt is delivered to the process.
+					</p>
+				</div>
 				<PromptTransportToggle
 					value={promptTransport}
 					onChange={onPromptTransportChange}
 				/>
-			</StackedField>
+			</div>
 		</Section>
 	);
 }
@@ -168,7 +198,7 @@ export function PromptTransportToggle({
 	onChange,
 }: PromptTransportToggleProps) {
 	return (
-		<div className="inline-flex rounded-md border border-border overflow-hidden">
+		<div className="inline-flex shrink-0 rounded-md border border-border overflow-hidden">
 			{TRANSPORT_OPTIONS.map((option, index) => {
 				const isSelected = value === option;
 				return (

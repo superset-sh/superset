@@ -76,12 +76,15 @@ Open **Settings → Hosts** in the desktop app, pick the host, and use **Add mem
 On any other device signed into the same organization, open the desktop app's **Workspaces** list. Use the **Device** filter in the top right to pick a remote host:
 
 - **This device**: workspaces on the machine you're using now
-- **All devices**: everything you can reach
-- **Other devices**: each remote host that has opted in, with an online indicator
+- **Other devices**: each remote host that has opted in, listed by name with an online indicator
 
 ![Device filter in the workspaces list](/images/remote-workspaces-device-filter.png)
 
-Pick a remote host to see the workspaces hosted there. Open one and you get the full Superset experience (terminals, ports, agent runs, the diff viewer) proxied through the relay to the host machine.
+Pick a remote host to see the workspaces hosted there. Open one and you get the full Superset experience (terminals, agent runs, the diff viewer) proxied through the relay to the host machine.
+
+### Ports on a remote host
+
+The ports sidebar shows ports listening **on the remote host**. They aren't forwarded to your machine yet, so `localhost:PORT` only works on the host itself. Forwarding is on the roadmap; until then, [forward a port yourself](/ports#forward-a-port-yourself) with SSH or Tailscale.
 
 ## Turning access off
 

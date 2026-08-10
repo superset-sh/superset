@@ -1,4 +1,4 @@
-import { ChatServiceProvider } from "@superset/chat/client";
+import { ChatServiceProvider } from "@superset/chat-legacy/client";
 import {
 	createFileRoute,
 	Navigate,
@@ -30,8 +30,8 @@ const STEPS = [
 	{
 		path: "/onboarding/project",
 		match: (p: string) => p === "/onboarding/project",
-		title: "Point Superset at some code",
-		subtitle: "Open a folder or clone a repo to finish setup.",
+		title: "Create or add a project",
+		subtitle: "Start from scratch, open a folder, or clone a repo.",
 	},
 ] as const;
 

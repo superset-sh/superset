@@ -5,6 +5,7 @@ import {
 	TbLoader2,
 	TbRefresh,
 } from "react-icons/tb";
+import { suspendAncestorDragForTextSelection } from "renderer/lib/dnd";
 import { UrlSuggestions } from "./components/UrlSuggestions";
 import { useUrlAutocomplete } from "./hooks/useUrlAutocomplete";
 
@@ -159,6 +160,7 @@ export function BrowserToolbar({
 							className="h-[22px] w-full rounded-sm border border-ring bg-transparent px-2 text-xs text-foreground outline-none placeholder:text-muted-foreground/40"
 							spellCheck={false}
 							autoComplete="off"
+							onMouseDown={suspendAncestorDragForTextSelection}
 						/>
 					</form>
 				) : (

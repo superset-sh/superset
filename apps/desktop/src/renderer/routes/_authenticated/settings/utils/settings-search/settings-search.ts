@@ -55,6 +55,8 @@ export const SETTING_ITEM_ID = {
 	EXPERIMENTAL_V1_MIGRATION: "experimental-v1-migration",
 	EXPERIMENTAL_INLINE_WORKSPACE_PORTS: "experimental-inline-workspace-ports",
 	EXPERIMENTAL_WORKSPACE_AGENTS: "experimental-workspace-agents",
+	EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT:
+		"experimental-wait-for-setup-before-agent",
 
 	INTEGRATIONS_LINEAR: "integrations-linear",
 	INTEGRATIONS_GITHUB: "integrations-github",
@@ -69,6 +71,7 @@ export const SETTING_ITEM_ID = {
 	PROJECT_SCRIPTS: "project-scripts",
 	PROJECT_BRANCH_PREFIX: "project-branch-prefix",
 	PROJECT_WORKTREE_LOCATION: "project-worktree-location",
+	PROJECT_SPARSE_CHECKOUT: "project-sparse-checkout",
 	PROJECT_IMPORT_WORKTREES: "project-import-worktrees",
 	PROJECT_ENV_VARS: "project-env-vars",
 
@@ -130,8 +133,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_THEME]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_MARKDOWN]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "shared",
-	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "shared",
+	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -169,6 +172,8 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.EXPERIMENTAL_V1_MIGRATION]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_INLINE_WORKSPACE_PORTS]: "v2",
 	[SETTING_ITEM_ID.EXPERIMENTAL_WORKSPACE_AGENTS]: "v2",
+	// Gates both the v1 renderer launch and the v2 host-side launch.
+	[SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT]: "shared",
 
 	[SETTING_ITEM_ID.INTEGRATIONS_LINEAR]: "shared",
 	[SETTING_ITEM_ID.INTEGRATIONS_GITHUB]: "shared",
@@ -183,6 +188,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.PROJECT_SCRIPTS]: "shared",
 	[SETTING_ITEM_ID.PROJECT_BRANCH_PREFIX]: "v1",
 	[SETTING_ITEM_ID.PROJECT_WORKTREE_LOCATION]: "shared",
+	[SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT]: "v2",
 	[SETTING_ITEM_ID.PROJECT_IMPORT_WORKTREES]: "v1",
 	[SETTING_ITEM_ID.PROJECT_ENV_VARS]: "v2",
 
@@ -432,8 +438,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT,
 		section: "appearance",
-		title: "Editor Font",
-		description: "Font used in diff views and file editors",
+		title: "Editor Typography",
+		description: "Typography used in V2 diff views and file editors",
 		keywords: [
 			"appearance",
 			"font",
@@ -444,14 +450,19 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
 			"custom",
 		],
 	},
 	{
 		id: SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT,
 		section: "appearance",
-		title: "Terminal Font",
-		description: "Font used in terminal panels",
+		title: "Terminal Typography",
+		description: "Typography and cursor behavior used in V2 terminal panels",
 		keywords: [
 			"appearance",
 			"font",
@@ -461,6 +472,15 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mono",
 			"monospace",
 			"typography",
+			"line height",
+			"spacing",
+			"letter spacing",
+			"weight",
+			"ligatures",
+			"contrast",
+			"minimum contrast",
+			"cursor",
+			"blink",
 			"custom",
 			"nerd",
 		],
@@ -671,6 +691,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mistral",
 			"kimi",
 			"moonshot",
+			"grok",
+			"xai",
 		],
 	},
 	{
@@ -730,6 +752,8 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"mistral",
 			"kimi",
 			"moonshot",
+			"grok",
+			"xai",
 		],
 	},
 	{
@@ -910,13 +934,16 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"auth",
 			"workspace naming",
 			"auto name",
+			"ai",
+			"autocomplete",
+			"auto complete",
 		],
 	},
 	{
 		id: SETTING_ITEM_ID.MODELS_OPENAI,
 		section: "models",
 		title: "OpenAI Model Auth",
-		description: "Connect OpenAI for supported model tasks",
+		description: "Connect OpenAI for workspace naming and other model tasks",
 		keywords: [
 			"models",
 			"openai",
@@ -926,6 +953,9 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"auth",
 			"workspace naming",
 			"auto name",
+			"ai",
+			"autocomplete",
+			"auto complete",
 		],
 	},
 	{
@@ -1003,6 +1033,28 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"status",
 			"toggle",
 			"switch",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.EXPERIMENTAL_WAIT_FOR_SETUP_BEFORE_AGENT,
+		section: "experimental",
+		title: "Wait for workspace setup before starting agents",
+		description:
+			"Run the agent in the Workspace Setup terminal once setup finishes instead of starting a second terminal alongside it",
+		keywords: [
+			"experimental",
+			"workspace",
+			"setup",
+			"script",
+			"agent",
+			"terminal",
+			"wait",
+			"gate",
+			"complete",
+			"finish",
+			"reuse",
+			"sequential",
+			"install",
 		],
 	},
 	{
@@ -1185,6 +1237,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"folder",
 			"storage",
 			"override",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.PROJECT_SPARSE_CHECKOUT,
+		section: "project",
+		title: "Sparse Checkout",
+		description: "Limit new worktrees to specific folders of the repository",
+		keywords: [
+			"project",
+			"sparse",
+			"checkout",
+			"cone",
+			"worktree",
+			"folders",
+			"directories",
+			"subset",
+			"partial",
+			"monorepo",
+			"size",
 		],
 	},
 	{
@@ -1447,16 +1518,21 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 	},
 ];
 
-export function searchSettings(query: string): SettingsItem[] {
-	if (!query.trim()) return SETTINGS_ITEMS;
+export function splitSearchTerms(query: string): string[] {
+	return query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+}
 
-	const q = query.toLowerCase();
-	return SETTINGS_ITEMS.filter(
-		(item) =>
-			item.title.toLowerCase().includes(q) ||
-			item.description.toLowerCase().includes(q) ||
-			item.keywords.some((kw) => kw.toLowerCase().includes(q)),
-	);
+export function searchSettings(query: string): SettingsItem[] {
+	const terms = splitSearchTerms(query);
+	if (terms.length === 0) return SETTINGS_ITEMS;
+
+	return SETTINGS_ITEMS.filter((item) => {
+		const searchableText = [item.title, item.description, ...item.keywords]
+			.join(" ")
+			.toLowerCase();
+
+		return terms.every((term) => searchableText.includes(term));
+	});
 }
 
 export function getMatchCountBySection(

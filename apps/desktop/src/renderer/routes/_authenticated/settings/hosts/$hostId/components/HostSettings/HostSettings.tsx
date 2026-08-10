@@ -10,6 +10,8 @@ import {
 } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import type { CandidateRow } from "./components/AddMemberDropdown";
 import { AddMemberDropdown } from "./components/AddMemberDropdown";
 import { DeleteHostSection } from "./components/DeleteHostSection";
@@ -34,6 +36,7 @@ interface HostSettingsProps {
 
 export function HostSettings({ hostId }: HostSettingsProps) {
 	const collections = useCollections();
+	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id ?? null;
 	const actions = useOptimisticCollectionActions();
@@ -181,7 +184,9 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 				<section className="space-y-3">
 					<div className="flex items-end justify-between gap-4">
 						<div>
-							<h3 className="text-sm font-medium">Members</h3>
+							<h3 className="text-sm font-medium">
+								<HighlightText text="Members" query={searchQuery} />
+							</h3>
 							{!isOwner && (
 								<p className="text-sm text-muted-foreground mt-0.5">
 									Only owners can change membership.

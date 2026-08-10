@@ -17,9 +17,7 @@ export function ClickHint({ hint, side = "bottom", children }: ClickHintProps) {
 	return (
 		<Tooltip>
 			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent side={side} showArrow={false}>
-				{hint}
-			</TooltipContent>
+			<TooltipContent side={side}>{hint}</TooltipContent>
 		</Tooltip>
 	);
 }

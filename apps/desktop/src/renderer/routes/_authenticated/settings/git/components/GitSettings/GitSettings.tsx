@@ -15,6 +15,8 @@ import {
 import { Switch } from "@superset/ui/switch";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { BRANCH_PREFIX_MODE_LABELS } from "../../../utils/branch-prefix";
 import {
 	isItemVisible,
@@ -28,6 +30,7 @@ interface GitSettingsProps {
 }
 
 export function GitSettings({ visibleItems }: GitSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const showDeleteLocalBranch = isItemVisible(
 		SETTING_ITEM_ID.GIT_DELETE_LOCAL_BRANCH,
 		visibleItems,
@@ -137,11 +140,16 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 								htmlFor="delete-local-branch"
 								className="text-sm font-medium"
 							>
-								Delete local branch on workspace removal
+								<HighlightText
+									text="Delete local branch on workspace removal"
+									query={searchQuery}
+								/>
 							</Label>
 							<p className="text-xs text-muted-foreground">
-								Also delete the local git branch when deleting a worktree
-								workspace
+								<HighlightText
+									text="Also delete the local git branch when deleting a worktree workspace"
+									query={searchQuery}
+								/>
 							</p>
 						</div>
 						<Switch
@@ -156,7 +164,9 @@ export function GitSettings({ visibleItems }: GitSettingsProps) {
 				{showBranchPrefix && (
 					<div className="flex items-center justify-between">
 						<div className="space-y-0.5">
-							<Label className="text-sm font-medium">Branch prefix</Label>
+							<Label className="text-sm font-medium">
+								<HighlightText text="Branch prefix" query={searchQuery} />
+							</Label>
 							<p className="text-xs text-muted-foreground">
 								Group new branches under a folder.{" "}
 								<code className="bg-muted px-1.5 py-0.5 rounded text-foreground">

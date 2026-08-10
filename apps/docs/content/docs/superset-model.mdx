@@ -1,0 +1,34 @@
+---
+title: The Superset Model
+description: Five concepts everything else builds on
+---
+
+Superset has one mental model: **delegate in workspaces, integrate through branches and PRs**. Five concepts make it work.
+
+## Projects
+
+A project is a repo you've registered with Superset, from a local folder or a Git URL. Everything else happens inside a project. A project can define [setup, teardown, and run scripts](/setup-teardown-scripts) in `.superset/config.json` so every new workspace comes up ready to work.
+
+## Workspaces
+
+A workspace is an isolated [git worktree](/workspaces) on its own branch: its own directory, its own terminal sessions, its own ports. Only git-tracked files are copied in; setup scripts handle the rest (dependencies, env files).
+
+Workspaces are cheap and disposable by design. Create one per task with **⌘N**, delete it when the branch merges. The workspace is where you delegate; the branch and PR are how the work comes back.
+
+![Workspaces in the sidebar, each with its own branch and diff stats](/images/workspaces-branches.png)
+
+## Terminals
+
+Every workspace gets [persistent terminals](/terminal-integration). Sessions survive app restarts: running processes continue, output history and scrollback are preserved. This is what makes it safe to have five agents running: closing the app doesn't kill their work.
+
+## Agents
+
+Any CLI agent runs in any workspace: Claude Code, Codex, Amp, Gemini, and [the rest](/agent-integration), plus a built-in chat. To power [status and notifications](/agent-status), Superset wraps agent launch commands and installs lifecycle hooks into their configs. It never touches model traffic: prompts and tokens go directly from the agent CLI to your provider, on your own accounts.
+
+## Devices
+
+A workspace lives on the machine that hosts its files, terminals, and ports; that doesn't have to be the machine you're looking at. [Remote workspaces](/remote-workspaces) reach workspaces hosted on another device (a Mac mini under the desk, a shared sandbox), and [Automations](/automations) dispatch scheduled agent runs to whichever device you pick.
+
+## How They Compose
+
+Every workflow in the [recipes](/recipes/race-agents) is these five pieces arranged differently: racing is N workspaces with the same prompt; the nightly audit is an automation dispatching to a device that creates a workspace; a fanned-out refactor is one workspace per slice, integrated as PRs.

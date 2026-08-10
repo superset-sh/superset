@@ -86,9 +86,9 @@ const urgent = await client.tasks.list({
   creatorMe: true,
 });
 
-// Inspect what else you have — projects and workspaces are host-owned
+// Inspect what else you have: projects and workspaces are host-owned
 const [host] = await client.hosts.list();
-if (!host) throw new Error('No hosts registered — run `superset start` on a machine');
+if (!host) throw new Error('No hosts registered; run `superset start` on a machine');
 const projects = await client.projects.list({ hostId: host.id });
 const automations = await client.automations.list();
 
@@ -135,11 +135,11 @@ try {
   await client.tasks.create({ title: '' });
 } catch (err) {
   if (err instanceof RateLimitError) {
-    // 429 — already retried up to maxRetries; back off further if you keep hitting it
+    // 429: already retried up to maxRetries; back off further if you keep hitting it
   } else if (err instanceof NotFoundError) {
     // 404
   } else if (err instanceof APIError) {
-    // anything else — err.status, err.headers, err.error (the parsed body)
+    // anything else: err.status, err.headers, err.error (the parsed body)
     console.error(`Superset returned ${err.status}:`, err.error);
   }
 }

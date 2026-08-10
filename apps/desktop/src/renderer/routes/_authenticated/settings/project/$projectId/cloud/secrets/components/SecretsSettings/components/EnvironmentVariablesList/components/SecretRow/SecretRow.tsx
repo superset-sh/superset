@@ -6,6 +6,7 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
+import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { format } from "date-fns";
@@ -57,6 +58,9 @@ export function SecretRow({
 			onDeleted();
 		} catch (err) {
 			console.error("[secrets/delete] Failed to delete:", err);
+			toast.error(
+				err instanceof Error ? err.message : "Failed to delete secret",
+			);
 		} finally {
 			setIsDeleting(false);
 		}

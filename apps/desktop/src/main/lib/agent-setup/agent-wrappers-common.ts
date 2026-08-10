@@ -11,6 +11,14 @@ export { SUPERSET_MANAGED_BINARIES };
 export const MANAGED_NOTIFY_RELATIVE_PATH = `hooks/${NOTIFY_SCRIPT_NAME}`;
 
 /**
+ * Literal substring every guarded managed command contains. Managed-command
+ * predicates must match it: the guarded form carries neither an absolute
+ * notify path nor a `/.superset/` segment, so without this check a re-merge
+ * would fail to recognize its own entries and append duplicates.
+ */
+export const DYNAMIC_NOTIFY_PATH_MARKER = `$SUPERSET_HOME_DIR/${MANAGED_NOTIFY_RELATIVE_PATH}`;
+
+/**
  * Shell command written into an agent's global hook config. The notify path is
  * resolved at runtime from SUPERSET_HOME_DIR so one shared config works for both
  * dev and prod installs, and `SUPERSET_AGENT_ID` is inlined so the v2 hook
@@ -48,6 +56,26 @@ export function writeFileIfChanged(
 	return true;
 }
 
+/**
+ * Deletes a wholly Superset-owned file, gated on its content signature so a
+ * user file at the same path is never removed.
+ */
+export function removeOwnedFileIfMarked(
+	filePath: string,
+	signature: string,
+	label: string,
+): void {
+	try {
+		if (!fs.existsSync(filePath)) return;
+		const content = fs.readFileSync(filePath, "utf-8");
+		if (!content.includes(signature)) return;
+		fs.unlinkSync(filePath);
+		console.log(`[agent-setup] Removed ${label}`);
+	} catch (error) {
+		console.warn(`[agent-setup] Failed to remove ${label}:`, error);
+	}
+}
+
 export function isSupersetManagedHookCommand(
 	command: string | undefined,
 	scriptName: string,
@@ -58,42 +86,20 @@ export function isSupersetManagedHookCommand(
 	return SUPERSET_MANAGED_HOOK_PATH_PATTERN.test(normalized);
 }
 
-interface ReconcileManagedEntriesOptions<T> {
-	current: T[] | undefined;
-	desired: T[];
-	isManaged: (entry: T) => boolean;
-	isEquivalent: (entry: T, desiredEntry: T) => boolean;
-}
-
-interface ReconcileManagedEntriesResult<T> {
-	entries: T[];
-	replacedManagedEntries: T[];
-}
-
-export function reconcileManagedEntries<T>({
-	current,
-	desired,
-	isManaged,
-	isEquivalent,
-}: ReconcileManagedEntriesOptions<T>): ReconcileManagedEntriesResult<T> {
-	const existing = Array.isArray(current) ? current : [];
-	const entries: T[] = [];
-	const replacedManagedEntries: T[] = [];
-
-	for (const entry of existing) {
-		if (!isManaged(entry)) {
-			entries.push(entry);
-			continue;
-		}
-
-		if (!desired.some((desiredEntry) => isEquivalent(entry, desiredEntry))) {
-			replacedManagedEntries.push(entry);
-		}
-	}
-
-	entries.push(...desired);
-
-	return { entries, replacedManagedEntries };
+/**
+ * Recognizes every form of Superset's notify hook command: the current
+ * guarded form (dynamic marker), a current absolute notify path, and stale
+ * absolute paths from other installs/worktrees.
+ */
+export function isManagedNotifyCommand(
+	command: string | undefined,
+	notifyScriptPath: string,
+): boolean {
+	return Boolean(
+		command?.includes(notifyScriptPath) ||
+			command?.includes(DYNAMIC_NOTIFY_PATH_MARKER) ||
+			isSupersetManagedHookCommand(command, NOTIFY_SCRIPT_NAME),
+	);
 }
 
 function buildRealBinaryResolver(): string {

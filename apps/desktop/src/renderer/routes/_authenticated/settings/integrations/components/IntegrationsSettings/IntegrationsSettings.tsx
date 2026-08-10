@@ -9,6 +9,8 @@ import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -34,6 +36,7 @@ export function IntegrationsSettings({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
+	const searchQuery = useSettingsSearchQuery();
 
 	const { data: integrations } = useLiveQuery(
 		(q) =>
@@ -124,7 +127,7 @@ export function IntegrationsSettings({
 			<div className="space-y-1">
 				{showLinear && (
 					<IntegrationRow
-						name="Linear"
+						name={<HighlightText text="Linear" query={searchQuery} />}
 						description="Sync issues bidirectionally with Linear."
 						icon={<SiLinear className="size-5" />}
 						isConnected={isLinearConnected}
@@ -135,7 +138,7 @@ export function IntegrationsSettings({
 
 				{showGithub && (
 					<IntegrationRow
-						name="GitHub"
+						name={<HighlightText text="GitHub" query={searchQuery} />}
 						description="Connect repos and sync pull requests."
 						icon={<FaGithub className="size-5" />}
 						isConnected={isGithubConnected}
@@ -147,7 +150,7 @@ export function IntegrationsSettings({
 
 				{showSlack && (
 					<IntegrationRow
-						name="Slack"
+						name={<HighlightText text="Slack" query={searchQuery} />}
 						description="Manage tasks from Slack conversations."
 						icon={<FaSlack className="size-5" />}
 						isConnected={isSlackConnected}
@@ -165,7 +168,7 @@ export function IntegrationsSettings({
 }
 
 interface IntegrationRowProps {
-	name: string;
+	name: React.ReactNode;
 	description: string;
 	icon: React.ReactNode;
 	isConnected: boolean;

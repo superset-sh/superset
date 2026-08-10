@@ -19,17 +19,13 @@ export function HotkeyTooltip({
 }) {
 	const { text } = useHotkeyDisplay(id ?? ("" as HotkeyId));
 	if (!id || text === "Unassigned") return <>{children}</>;
+	// The chip is never interactive, and the hoverable-content grace period
+	// leaves the tooltip stuck open when the pointer crosses onto a native
+	// webview (the host document stops receiving pointer events).
 	return (
-		<Tooltip delayDuration={1000}>
+		<Tooltip delayDuration={1000} disableHoverableContent>
 			<TooltipTrigger asChild>{children}</TooltipTrigger>
-			<TooltipContent
-				side={side}
-				sideOffset={4}
-				showArrow={false}
-				className="rounded-sm border border-border bg-background px-1.5 py-0.5 font-medium text-muted-foreground shadow-sm"
-			>
-				{text}
-			</TooltipContent>
+			<TooltipContent side={side}>{text}</TooltipContent>
 		</Tooltip>
 	);
 }

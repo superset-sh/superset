@@ -61,3 +61,51 @@ describe("Run in Workspace selection wiring (#2641)", () => {
 		expect(source).toContain("RunInWorkspacePopover");
 	});
 });
+
+describe("Tasks and pull requests navigation", () => {
+	test("keeps GitHub issues as a contextual Tasks source", () => {
+		const source = readComponent("components/TasksTopBar/TasksTopBar.tsx");
+
+		expect(source).toContain('label: "Linear"');
+		expect(source).toContain('label: "GitHub issues"');
+		expect(source).not.toContain('label: "PRs"');
+	});
+
+	test("keeps pull request UI out of TasksView", () => {
+		const source = readComponent("TasksView.tsx");
+
+		expect(source).not.toContain("WorkItemsTabs");
+		expect(source).not.toContain("PullRequestsTopBar");
+		expect(source).not.toContain("PullRequestsContent");
+	});
+
+	test("gives pull requests an independent route and view", () => {
+		const pageSource = readComponent("../../../pull-requests/page.tsx");
+		const viewSource = readComponent(
+			"../../../pull-requests/components/PullRequestsView/PullRequestsView.tsx",
+		);
+
+		expect(pageSource).toContain("<PullRequestsView");
+		expect(viewSource).toContain("<PullRequestsTopBar");
+		expect(viewSource).toContain("<PullRequestsContent");
+	});
+
+	test("renders Tasks and Pull requests as separate left-rail destinations", () => {
+		const sidebarSources = [
+			readComponent(
+				"../../../components/DashboardSidebar/components/DashboardSidebarHeader/DashboardSidebarHeader.tsx",
+			),
+			readComponent(
+				"../../../../../../screens/main/components/WorkspaceSidebar/WorkspaceSidebarHeader/WorkspaceSidebarHeader.tsx",
+			),
+		];
+
+		for (const source of sidebarSources) {
+			expect(source).toContain('to: "/tasks"');
+			expect(source).toContain('to: "/pull-requests"');
+			expect(source).toContain('aria-label="Tasks"');
+			expect(source).toContain('aria-label="Pull requests"');
+			expect(source).not.toContain("Tasks & PRs");
+		}
+	});
+});

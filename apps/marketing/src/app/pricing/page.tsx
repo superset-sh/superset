@@ -7,7 +7,7 @@ import { PricingTiers } from "./components/PricingTiers";
 
 export const metadata: Metadata = {
 	title: "Pricing",
-	description: `Simple pricing for every team. Free for individuals, $15/user/month for teams, custom for enterprise. Run 10+ parallel coding agents with ${COMPANY.NAME}.`,
+	description: `Simple pricing for every team. Free for individuals, $15/user/month for teams, custom for enterprise. Run 100+ parallel coding agents with ${COMPANY.NAME}.`,
 	alternates: {
 		canonical: `${COMPANY.MARKETING_URL}/pricing`,
 	},

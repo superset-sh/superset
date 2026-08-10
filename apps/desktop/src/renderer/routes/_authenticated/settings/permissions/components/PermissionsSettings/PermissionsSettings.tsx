@@ -4,6 +4,8 @@ import { Label } from "@superset/ui/label";
 import { Skeleton } from "@superset/ui/skeleton";
 import { LuExternalLink } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -35,11 +37,17 @@ function PermissionRow({
 	granted: boolean | undefined;
 	onRequest: () => void;
 }) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className="flex items-center justify-between gap-6">
 			<div className="min-w-0 flex-1 space-y-0.5">
-				<Label className="text-sm font-medium">{label}</Label>
-				<p className="text-xs text-muted-foreground">{description}</p>
+				<Label className="text-sm font-medium">
+					<HighlightText text={label} query={searchQuery} />
+				</Label>
+				<p className="text-xs text-muted-foreground">
+					<HighlightText text={description} query={searchQuery} />
+				</p>
 			</div>
 			<div className="flex items-center gap-3 shrink-0">
 				<StatusBadge granted={granted} />
