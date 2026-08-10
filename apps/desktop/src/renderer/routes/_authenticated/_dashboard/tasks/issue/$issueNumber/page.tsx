@@ -38,6 +38,9 @@ function IssueDetailPage() {
 	} = useProjectHost(projectId);
 	const hostUrl = useHostUrl(hostId ?? undefined);
 	const updateDraft = useNewWorkspaceDraftStore((state) => state.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore(
+		(state) => state.selectProject,
+	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
@@ -95,11 +98,8 @@ function IssueDetailPage() {
 			state: data.state.toLowerCase() === "closed" ? "closed" : "open",
 		};
 		resetDraft();
-		updateDraft({
-			selectedProjectId: projectId,
-			hostId,
-			linkedIssues: [linkedIssue],
-		});
+		selectProject(projectId);
+		updateDraft({ hostId, linkedIssues: [linkedIssue] });
 		openModal(projectId);
 	};
 

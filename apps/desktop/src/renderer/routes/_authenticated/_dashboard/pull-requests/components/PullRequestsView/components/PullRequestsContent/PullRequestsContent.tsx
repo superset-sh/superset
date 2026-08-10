@@ -49,6 +49,7 @@ export function PullRequestsContent({
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const navigate = useNavigate();
 	const updateDraft = useNewWorkspaceDraftStore((s) => s.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore((s) => s.selectProject);
 	const resetDraft = useNewWorkspaceDraftStore((s) => s.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
@@ -111,11 +112,8 @@ export function PullRequestsContent({
 			state: normalizePRState(pr.state, pr.isDraft),
 		};
 		resetDraft();
-		updateDraft({
-			selectedProjectId: pr.projectId,
-			hostId: pr.hostId,
-			linkedPR,
-		});
+		selectProject(pr.projectId);
+		updateDraft({ hostId: pr.hostId, linkedPR });
 		openModal(pr.projectId);
 	};
 

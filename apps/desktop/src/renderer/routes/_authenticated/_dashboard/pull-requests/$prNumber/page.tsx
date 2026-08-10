@@ -44,6 +44,9 @@ function PullRequestDetailPage() {
 	} = useProjectHost(projectId);
 	const hostUrl = useHostUrl(hostId ?? undefined);
 	const updateDraft = useNewWorkspaceDraftStore((state) => state.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore(
+		(state) => state.selectProject,
+	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
@@ -96,11 +99,8 @@ function PullRequestDetailPage() {
 			state: normalizePRState(data.state, data.isDraft),
 		};
 		resetDraft();
-		updateDraft({
-			selectedProjectId: projectId,
-			hostId,
-			linkedPR,
-		});
+		selectProject(projectId);
+		updateDraft({ hostId, linkedPR });
 		openModal(projectId);
 	};
 

@@ -96,8 +96,14 @@ export function NewWorkspaceScreen({
 	const navigate = useNavigate();
 	const [promptSeed, setPromptSeed] = useState(0);
 	const openInFinderMutation = electronTrpc.external.openInFinder.useMutation();
-	const { closeModal, draft, updateDraft, resetKey } =
-		useDashboardNewWorkspaceDraft();
+	const {
+		closeModal,
+		draft,
+		updateDraft,
+		selectProject,
+		selectSession,
+		resetKey,
+	} = useDashboardNewWorkspaceDraft();
 	const attachments = useProviderAttachments();
 	const hostService = useLocalHostService();
 	const { activeHostUrl, machineId } = hostService;
@@ -207,18 +213,13 @@ export function NewWorkspaceScreen({
 		if (!preSelectedSession) appliedSessionPreselectionRef.current = false;
 	}, [preSelectedSession]);
 	useEffect(() => {
+		if (!preSelectedProjectId) appliedPreSelectionRef.current = null;
+	}, [preSelectedProjectId]);
+	useEffect(() => {
 		if (!isOpen || !areProjectsReady) return;
 		if (preSelectedSession && !appliedSessionPreselectionRef.current) {
 			appliedSessionPreselectionRef.current = true;
-			// Same clears as the manual "No project" path — a leftover
-			// project draft's PR/base-branch would fail at submit.
-			updateDraft({
-				selectedProjectId: null,
-				isSession: true,
-				linkedPR: null,
-				baseBranch: null,
-				baseBranchSource: null,
-			});
+			selectSession();
 			return;
 		}
 		const isValid = (id: string | null | undefined) =>
@@ -229,9 +230,7 @@ export function NewWorkspaceScreen({
 			isValid(preSelectedProjectId)
 		) {
 			appliedPreSelectionRef.current = preSelectedProjectId;
-			if (draft.selectedProjectId !== preSelectedProjectId) {
-				updateDraft({ selectedProjectId: preSelectedProjectId });
-			}
+			selectProject(preSelectedProjectId);
 			return;
 		}
 		// An explicit "No project" (session) choice must survive project-list
@@ -252,6 +251,8 @@ export function NewWorkspaceScreen({
 		draft.selectedProjectId,
 		draft.isSession,
 		projects,
+		selectProject,
+		selectSession,
 		updateDraft,
 	]);
 
@@ -784,19 +785,11 @@ export function NewWorkspaceScreen({
 							isSessionSelected={draft.isSession}
 							onSelectProject={(selectedProjectId) => {
 								if (selectedProjectId === null) {
-									// Sessions can't check out a PR or fork a branch —
-									// clear repo-scoped inputs instead of failing at submit.
-									updateDraft({
-										selectedProjectId: null,
-										isSession: true,
-										linkedPR: null,
-										baseBranch: null,
-										baseBranchSource: null,
-									});
+									selectSession();
 									return;
 								}
 								setLastProjectId(selectedProjectId);
-								updateDraft({ selectedProjectId, isSession: false });
+								selectProject(selectedProjectId);
 							}}
 						/>
 						{draft.linkedPR ? (

@@ -72,12 +72,20 @@ export function useDashboardNewWorkspaceDraft() {
 		})),
 	);
 	const updateDraft = useNewWorkspaceDraftStore((store) => store.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore(
+		(store) => store.selectProject,
+	);
+	const selectSession = useNewWorkspaceDraftStore(
+		(store) => store.selectSession,
+	);
 	const resetDraft = useNewWorkspaceDraftStore((store) => store.resetDraft);
 	const resetKey = useNewWorkspaceDraftStore((store) => store.resetKey);
 
 	return {
 		draft,
 		updateDraft,
+		selectProject,
+		selectSession,
 		resetDraft,
 		resetKey,
 		closeModal: ctx.closeModal,

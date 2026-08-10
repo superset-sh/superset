@@ -56,6 +56,8 @@ export interface NewWorkspaceDraft {
 interface NewWorkspaceDraftState extends NewWorkspaceDraft {
 	resetKey: number;
 	updateDraft: (patch: Partial<NewWorkspaceDraft>) => void;
+	selectProject: (projectId: string) => void;
+	selectSession: () => void;
 	addAttachment: (attachment: DraftAttachment) => void;
 	updateAttachment: (localId: string, patch: Partial<DraftAttachment>) => void;
 	removeAttachment: (localId: string) => void;
@@ -87,6 +89,21 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 		...buildInitialDraft(),
 		resetKey: 0,
 		updateDraft: (patch) => set((state) => ({ ...state, ...patch })),
+		// The only writers of the selectedProjectId/isSession pair — a project
+		// selection that leaves isSession behind makes submit reject PR
+		// checkouts while the picker shows the project as selected.
+		selectProject: (projectId) =>
+			set({ selectedProjectId: projectId, isSession: false }),
+		// Sessions can't check out a PR or fork a branch — clear the
+		// repo-scoped inputs instead of failing at submit.
+		selectSession: () =>
+			set({
+				selectedProjectId: null,
+				isSession: true,
+				linkedPR: null,
+				baseBranch: null,
+				baseBranchSource: null,
+			}),
 		addAttachment: (attachment) =>
 			set((state) => ({
 				...state,
@@ -106,15 +123,11 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 					(entry) => entry.localId !== localId,
 				),
 			})),
+		// set() merges, so the store's actions survive the reset.
 		resetDraft: () =>
 			set((state) => ({
 				...buildInitialDraft(),
 				resetKey: state.resetKey + 1,
-				updateDraft: state.updateDraft,
-				addAttachment: state.addAttachment,
-				updateAttachment: state.updateAttachment,
-				removeAttachment: state.removeAttachment,
-				resetDraft: state.resetDraft,
 			})),
 	}),
 );

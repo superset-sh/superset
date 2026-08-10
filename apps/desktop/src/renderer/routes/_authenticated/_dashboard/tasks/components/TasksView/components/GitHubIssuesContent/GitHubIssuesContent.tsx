@@ -57,6 +57,7 @@ export function GitHubIssuesContent({
 	const debouncedQuery = useDebouncedValue(searchQuery, 300);
 	const navigate = useNavigate();
 	const updateDraft = useNewWorkspaceDraftStore((s) => s.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore((s) => s.selectProject);
 	const resetDraft = useNewWorkspaceDraftStore((s) => s.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
@@ -149,11 +150,8 @@ export function GitHubIssuesContent({
 			state: issue.state.toLowerCase() === "closed" ? "closed" : "open",
 		};
 		resetDraft();
-		updateDraft({
-			selectedProjectId: issue.projectId,
-			hostId: issue.hostId,
-			linkedIssues: [linkedIssue],
-		});
+		selectProject(issue.projectId);
+		updateDraft({ hostId: issue.hostId, linkedIssues: [linkedIssue] });
 		openModal(issue.projectId);
 	};
 

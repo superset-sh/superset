@@ -25,7 +25,8 @@ export function DashboardNewWorkspaceModalContent({
 	preSelectedProjectId,
 	preSelectedSession = false,
 }: DashboardNewWorkspaceModalContentProps) {
-	const { draft, updateDraft } = useDashboardNewWorkspaceDraft();
+	const { draft, updateDraft, selectProject, selectSession } =
+		useDashboardNewWorkspaceDraft();
 	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastProjectId,
 	);
@@ -74,15 +75,7 @@ export function DashboardNewWorkspaceModalContent({
 
 		if (preSelectedSession && !hasInitializedSelectionRef.current) {
 			hasInitializedSelectionRef.current = true;
-			// Same clears as the manual "No project" path — a leftover
-			// project draft's PR/base-branch would fail at submit.
-			updateDraft({
-				selectedProjectId: null,
-				isSession: true,
-				linkedPR: null,
-				baseBranch: null,
-				baseBranchSource: null,
-			});
+			selectSession();
 			return;
 		}
 
@@ -99,15 +92,7 @@ export function DashboardNewWorkspaceModalContent({
 			if (hasPreSelectedProject) {
 				appliedPreSelectionRef.current = preSelectedProjectId;
 				hasInitializedSelectionRef.current = true;
-				if (
-					preSelectedProjectId !== draft.selectedProjectId ||
-					draft.isSession
-				) {
-					updateDraft({
-						selectedProjectId: preSelectedProjectId,
-						isSession: false,
-					});
-				}
+				selectProject(preSelectedProjectId);
 				return;
 			}
 		}
@@ -145,6 +130,8 @@ export function DashboardNewWorkspaceModalContent({
 		preSelectedProjectId,
 		preSelectedSession,
 		recentProjects,
+		selectProject,
+		selectSession,
 		updateDraft,
 	]);
 
@@ -161,19 +148,11 @@ export function DashboardNewWorkspaceModalContent({
 				isSessionSelected={draft.isSession}
 				onSelectProject={(selectedProjectId) => {
 					if (selectedProjectId === null) {
-						// Sessions can't check out a PR or fork a branch — clear
-						// the repo-scoped inputs instead of failing at submit.
-						updateDraft({
-							selectedProjectId: null,
-							isSession: true,
-							linkedPR: null,
-							baseBranch: null,
-							baseBranchSource: null,
-						});
+						selectSession();
 						return;
 					}
 					setLastProjectId(selectedProjectId);
-					updateDraft({ selectedProjectId, isSession: false });
+					selectProject(selectedProjectId);
 				}}
 			/>
 		</div>
