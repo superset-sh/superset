@@ -142,6 +142,15 @@ function asInitialCommitTrpcError(err: unknown): TRPCError {
 	});
 }
 
+/**
+ * Scaffolding commits are authored by us in repos we just created — the
+ * user's global git hooks (e.g. a `core.hooksPath` commit-msg policy) must
+ * not be able to reject them. `--no-verify` skips pre-commit/commit-msg;
+ * the empty `core.hooksPath` override covers the rest (a failing
+ * prepare-commit-msg still aborts a `--no-verify` commit).
+ */
+const scaffoldCommitArgs = ["-c", "core.hooksPath=", "commit", "--no-verify"];
+
 /** `git init --initial-branch=main` with a fallback for older git versions. */
 async function gitInitMainBranch(targetPath: string): Promise<void> {
 	const git = createUserSimpleGit(targetPath);
@@ -225,7 +234,7 @@ export async function initLocalRepoInPlace(
 	await gitInitMainBranch(repoPath);
 	try {
 		await createUserSimpleGit(repoPath).raw([
-			"commit",
+			...scaffoldCommitArgs,
 			"--allow-empty",
 			"-m",
 			"Initial commit",
@@ -301,7 +310,7 @@ export async function initEmptyRepo(
 		await gitInitMainBranch(targetPath);
 		try {
 			await createUserSimpleGit(targetPath).raw([
-				"commit",
+				...scaffoldCommitArgs,
 				"--allow-empty",
 				"-m",
 				"Initial commit",
@@ -353,7 +362,7 @@ export async function cloneTemplateInto(
 		const git = createUserSimpleGit(targetPath);
 		await git.add(".");
 		try {
-			await git.raw(["commit", "-m", "Initial commit"]);
+			await git.raw([...scaffoldCommitArgs, "-m", "Initial commit"]);
 		} catch (err) {
 			throw asInitialCommitTrpcError(err);
 		}
