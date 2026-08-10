@@ -67,14 +67,20 @@ Supporting facts verified in code:
 In the `walkAllRemotes` branch of `findByPath`
 (`packages/host-service/src/trpc/router/project/project.ts`):
 
+- Short-circuit on a local-DB hit: when a row keyed by the repo's resolved git
+  root exists, return it as the sole `local-path` candidate immediately —
+  before any cloud lookups — exactly like the default (non-`walkAllRemotes`)
+  branch already does. Both `walkAllRemotes` callers (the wizard and the
+  headless migrator) treat a `local-path` candidate as terminal
+  ("already imported") without consulting cloud candidates, so skipping the
+  cloud entirely is behavior-preserving where it matters and removes wasted
+  network work plus spurious `cloudErrors`.
 - Remove the post-loop staleness probe (the `v2Project.get` round-trip and
-  `staleLocalLink` assignment).
-- Remove the `staleLocalLink` filter and the field itself from the candidate
-  shape (it is dead weight on the wire; nothing reads it).
-- A local-DB row keyed by the repo's resolved git root is authoritative: the
-  repo is already a v2 project on this device. This matches the default
-  (non-`walkAllRemotes`) branch, which already short-circuits on a local hit
-  without consulting the cloud.
+  `staleLocalLink` assignment) and the `staleLocalLink` field from the
+  candidate shape (dead weight on the wire; nothing reads it).
+- A local-DB row is authoritative: the repo is already a v2 project on this
+  device ("local is reality"). The cloud remote-URL walk still runs when no
+  local row exists — that path (candidate discovery for linking) is unchanged.
 
 Behavior change accepted: a project whose cloud row was deleted from another
 device now reports "already imported" instead of offering a re-import. Under
@@ -87,11 +93,17 @@ In `packages/host-service/src/trpc/router/project/handlers.ts`:
 
 - After resolving the git root (`resolveOrInitLocalRepo`), query the local
   `projects` table for an existing row with `repoPath === resolved.repoPath`.
-- If found: do **not** insert. Ensure the main workspace exists
-  (`ensureMainWorkspaceStrict`) and return the existing project's
-  `{projectId, repoPath, mainWorkspaceId}`. Do not overwrite the existing
-  project's name/appearance — the user may have customized it in v2.
+- If found: do **not** insert and do **not** touch the row (no rename, no
+  appearance changes — the user may have customized the project in v2).
+  Ensure the main workspace exists (`ensureMainWorkspaceStrict`) and return
+  the existing project's `{projectId, repoPath, mainWorkspaceId}`.
 - If not found: current behavior (insert + main workspace).
+- `CreateResult` gains an additive `created: boolean` marker (true = new row,
+  false = reused). The renderer's `importV1Project` gates
+  `carryV1ProjectAppearance` on it so a reused project's v1 color/hide-image
+  is NOT re-stamped over v2 customizations. Version-skew default: only skip
+  when `created` is explicitly `false`, so older hosts (field absent) keep
+  today's behavior.
 
 This makes repeated imports a no-op at the source, protecting against any
 caller with stale query data — not just this wizard. A DB unique index on
@@ -111,12 +123,19 @@ It works because its imported-detection is purely host-local (`workspace.list`
 match — no cloud probe). Bring `ImportProjectsPage` in line with that proven
 pattern:
 
-- Header button reads `Import all · N` where N = rows still pending (not
-  already imported, not errored-out mid-run), shows `Importing i/n` with a
-  spinner while running, and is hidden entirely once no rows are pending —
-  the same completion semantics as the workspaces page's `Adopt all · N`.
-- The import-all queue skips rows whose current state is already
-  imported/running, so re-pressing mid-run or after completion is a no-op.
+- Lift per-project import status (`idle | running | imported | error`) out of
+  the row components into a page-level map, exactly like the workspaces page's
+  `adoptStates`. Rows render from that shared map, so Import All and
+  single-row imports drive the same visible state (today the Import All loop
+  is invisible to the rows and its errors are console-only).
+- Header button reads `Import all · N` where N = rows still pending, shows
+  `Importing i/n` with a spinner while running, and is hidden entirely once
+  no rows are pending — the same completion semantics as `Adopt all · N`.
+- Error semantics (mirrors workspaces page): a failed row shows its inline
+  error with a Retry action, still counts as pending for N, and is
+  re-included in the next Import All run. Already-imported and running rows
+  are skipped by the queue, so re-pressing mid-run or after completion is a
+  no-op.
 - Per-row "Linked"/imported ticks appear and persist across close/reopen
   naturally, because the post-import invalidation refetches `findByPath`,
   which (after fix 1) returns the truth — same server-truth mechanism the
@@ -137,8 +156,9 @@ package's existing test setup):
    local-DB row returns that row as a `local-path` candidate even when the
    cloud does not know the project id (previously dropped as stale).
 2. `createFromImportLocal` called twice for the same folder returns the same
-   `projectId` and leaves exactly one `projects` row; the second call still
-   returns a valid `mainWorkspaceId`.
+   `projectId` (second call with `created: false`) and leaves exactly one
+   `projects` row; the second call still returns a valid `mainWorkspaceId`,
+   and the existing row's name/color/icon are unchanged by the reuse.
 
 Renderer: existing `v1-migration` tests (`decideProjectImport`,
 `isProjectAlreadyImported`) remain valid — no contract change on the renderer
