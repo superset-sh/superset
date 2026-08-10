@@ -16,6 +16,8 @@ const ERRNO_TO_TRPC: Record<FsErrnoCode, TRPCError["code"]> = {
 	EACCES: "FORBIDDEN",
 	EPERM: "FORBIDDEN",
 	ENOSPC: "PRECONDITION_FAILED",
+	// Network-backed/virtual filesystem mounts can time out syscalls
+	ETIMEDOUT: "TIMEOUT",
 };
 
 const PATH_ERROR_TO_TRPC: Record<
