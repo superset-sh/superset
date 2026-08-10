@@ -5,6 +5,7 @@ import { LuExternalLink, LuLoaderCircle, LuX } from "react-icons/lu";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { navigateToWorkspace } from "renderer/routes/_authenticated/_dashboard/utils/workspace-navigation";
 import { useTabsStore } from "renderer/stores/tabs/store";
+import { buildPortUrl } from "shared/port-url";
 import type { EnrichedPort } from "shared/types";
 import { STROKE_WIDTH } from "../../../constants";
 import { useKillPort } from "../../hooks/useKillPort";
@@ -27,7 +28,7 @@ export function MergedPortBadge({ port }: MergedPortBadgeProps) {
 
 	const handleOpenInBrowser = () => {
 		if (openUrl.isPending) return;
-		const url = `http://localhost:${port.port}`;
+		const url = buildPortUrl(port);
 
 		if (openLinksInApp) {
 			navigateToWorkspace(port.workspaceId, navigate);

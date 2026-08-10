@@ -35,7 +35,7 @@ describe("loadStaticPorts", () => {
 		const result = loadStaticPorts(WORKTREE_PATH);
 		expect(result).toEqual({
 			exists: true,
-			ports: [{ port: 3000, label: "Frontend" }],
+			ports: [{ port: 3000, label: "Frontend", scheme: "http" }],
 			error: null,
 		});
 	});
@@ -54,9 +54,9 @@ describe("loadStaticPorts", () => {
 		expect(result).toEqual({
 			exists: true,
 			ports: [
-				{ port: 3000, label: "Frontend" },
-				{ port: 8080, label: "API Server" },
-				{ port: 5432, label: "PostgreSQL" },
+				{ port: 3000, label: "Frontend", scheme: "http" },
+				{ port: 8080, label: "API Server", scheme: "http" },
+				{ port: 5432, label: "PostgreSQL", scheme: "http" },
 			],
 			error: null,
 		});
@@ -70,6 +70,34 @@ describe("loadStaticPorts", () => {
 
 		const result = loadStaticPorts(WORKTREE_PATH);
 		expect(result.ports?.[0].label).toBe("Frontend");
+	});
+
+	test("keeps a declared https scheme", () => {
+		const config = {
+			ports: [
+				{ port: 3000, label: "Frontend", scheme: "https" },
+				{ port: 8080, label: "API Server", scheme: "http" },
+			],
+		};
+		writeFileSync(PORTS_FILE, JSON.stringify(config));
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.ports).toEqual([
+			{ port: 3000, label: "Frontend", scheme: "https" },
+			{ port: 8080, label: "API Server", scheme: "http" },
+		]);
+	});
+
+	test("returns error for an unsupported scheme", () => {
+		writeFileSync(
+			PORTS_FILE,
+			JSON.stringify({ ports: [{ port: 3000, label: "Test", scheme: "ws" }] }),
+		);
+
+		const result = loadStaticPorts(WORKTREE_PATH);
+		expect(result.exists).toBe(true);
+		expect(result.ports).toBeNull();
+		expect(result.error).toBe('ports[0].scheme must be "http" or "https"');
 	});
 
 	test("returns error for invalid JSON syntax", () => {

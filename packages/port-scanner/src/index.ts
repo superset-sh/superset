@@ -9,6 +9,7 @@ export {
 	type PortInfo,
 } from "./scanner.ts";
 export {
+	type PortScheme,
 	parseStaticPortsConfig,
 	type StaticPortLabel,
 	type StaticPortsParseResult,

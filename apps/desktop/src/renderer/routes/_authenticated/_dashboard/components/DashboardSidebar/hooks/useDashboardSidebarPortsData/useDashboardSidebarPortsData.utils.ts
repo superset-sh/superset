@@ -1,6 +1,6 @@
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { PortChangedPayload } from "@superset/workspace-client";
-import type { DetectedPort } from "shared/types";
+import type { DetectedPort, PortScheme } from "shared/types";
 import type { DashboardSidebarWorkspaceHostType } from "../../types";
 
 export interface DashboardSidebarPort extends RemotePort {
@@ -11,6 +11,12 @@ export interface DashboardSidebarPort extends RemotePort {
 
 interface RemotePort extends DetectedPort {
 	label: string | null;
+	/**
+	 * Scheme declared in the workspace's `.superset/ports.json`. Optional because a
+	 * host-service older than the field sends no `scheme` at all; absent and null both
+	 * mean plain http.
+	 */
+	scheme?: PortScheme | null;
 }
 
 export interface DashboardSidebarPortGroup {
@@ -111,7 +117,10 @@ export function applyPortEventsToHostPortsResult(
 		}
 
 		if (event.eventType === "add") {
-			ports = [...portsWithoutEventPort, { ...event.port, label: event.label }];
+			ports = [
+				...portsWithoutEventPort,
+				{ ...event.port, label: event.label, scheme: event.scheme ?? null },
+			];
 			changed = true;
 		} else {
 			ports = portsWithoutEventPort;

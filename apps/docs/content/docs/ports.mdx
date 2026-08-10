@@ -24,6 +24,7 @@ configuration file. Useful for:
 
 - Providing meaningful labels for your team
 - Making common dev-server ports easier to scan in the UI
+- Telling Superset which ports are served over HTTPS
 
 Create `.superset/ports.json` in your repository:
 
@@ -31,6 +32,7 @@ Create `.superset/ports.json` in your repository:
 {
   "ports": [
     { "port": 3000, "label": "Frontend Dev Server" },
+    { "port": 8443, "label": "Frontend (HTTPS)", "scheme": "https" },
     { "port": 8080, "label": "API Server" },
     { "port": 5432, "label": "PostgreSQL" }
   ]
@@ -40,6 +42,8 @@ Create `.superset/ports.json` in your repository:
 **Fields:**
 - `port` - Port number (1-65535)
 - `label` - Display text shown in tooltip
+- `scheme` - Optional, `"http"` (default) or `"https"`. The scheme the browser
+  actions open this port with
 
 **Behavior:**
 - Dynamic port discovery is still authoritative
@@ -49,6 +53,15 @@ Create `.superset/ports.json` in your repository:
 - Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
 - Ports can be opened at `localhost:PORT` from the browser action ([local workspaces only](#remote-workspaces))
+- Ports declared with `"scheme": "https"` open at `https://localhost:PORT` instead
+
+**HTTPS dev servers:**
+
+A dev server that only speaks TLS — Next's `--experimental-https`, Vite's
+`server.https`, anything behind a local certificate — cannot answer a plain
+`http://` request at all: the connection fails inside the TLS handshake, so the
+browser shows a connection error rather than your app. Declare those ports with
+`"scheme": "https"` so the browser action opens the right URL.
 
 **Error Handling:**
 
