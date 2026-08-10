@@ -459,6 +459,22 @@ async function registerLocalWorkspace(args: {
 		});
 	}
 
+	void ctx.api.v2Workspace.reportCreated
+		.mutate({
+			workspaceId: localRow.id,
+			organizationId: ctx.organizationId,
+			projectId: args.projectId,
+			branch: args.branch,
+			type: "worktree",
+			hostId: ctx.clientMachineId,
+		})
+		.catch((err) => {
+			console.warn(
+				`[workspaces.create] failed to report workspace creation for ${localRow.id}:`,
+				err,
+			);
+		});
+
 	return toCloudShape(localRow, ctx.organizationId);
 }
 
