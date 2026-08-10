@@ -3,10 +3,12 @@ import { nextOccurrenceAfter } from "@superset/shared/rrule";
 
 const terminalOccurrence = new Date("2026-08-06T18:46:30.000Z");
 const nonTerminalOccurrence = new Date("2026-08-05T18:46:30.000Z");
-const terminalUpdatedAt = new Date("2026-08-01T00:00:00.000Z");
+const terminalUpdatedAt = new Date("2026-08-01T00:00:00.123Z");
+const terminalUpdatedAtToken = "2026-08-01T00:00:00.123456Z";
 const nonTerminalUpdatedAt = new Date("2026-08-01T00:00:00.000Z");
+const nonTerminalUpdatedAtToken = "2026-08-01T00:00:00.000000Z";
 const automationId = "75c82d06-77af-454c-9f0c-e6c617ea702b";
-const terminalDispatchToken = new Date(terminalUpdatedAt.getTime() + 1);
+const terminalDispatchToken = new Date(terminalOccurrence.getTime() + 1);
 
 let dueAutomations: Array<{
 	id: string;
@@ -15,6 +17,7 @@ let dueAutomations: Array<{
 	dtstart: Date;
 	timezone: string;
 	updatedAt: Date;
+	updatedAtToken: string;
 }> = [];
 const updateValues: unknown[] = [];
 const updateWhereValues: unknown[] = [];
@@ -81,7 +84,13 @@ mock.module("@superset/db/client", () => ({
 mock.module("drizzle-orm", () => ({
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
 	eq: (field: unknown, value: unknown) => ({ type: "eq", field, value }),
+	getTableColumns: () => ({}),
 	lte: (field: unknown, value: unknown) => ({ type: "lte", field, value }),
+	sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+		type: "sql",
+		strings: [...strings],
+		values,
+	}),
 }));
 
 const { POST } = await import("./route");
@@ -112,6 +121,7 @@ describe("automations evaluate route", () => {
 				dtstart: terminalOccurrence,
 				timezone: "UTC",
 				updatedAt: terminalUpdatedAt,
+				updatedAtToken: terminalUpdatedAtToken,
 			},
 		];
 		updateValues.length = 0;
@@ -130,7 +140,7 @@ describe("automations evaluate route", () => {
 			).toISOString(),
 			terminal: true,
 			terminalDispatchToken: terminalDispatchToken.toISOString(),
-			terminalPreviousUpdatedAt: terminalUpdatedAt.toISOString(),
+			terminalPreviousUpdatedAt: terminalUpdatedAtToken,
 		});
 		expect(updateValues).toEqual([
 			{
@@ -144,7 +154,11 @@ describe("automations evaluate route", () => {
 				{ type: "eq", field: "id", value: automationId },
 				{ type: "eq", field: "enabled", value: true },
 				{ type: "eq", field: "nextRunAt", value: terminalOccurrence },
-				{ type: "eq", field: "updatedAt", value: terminalUpdatedAt },
+				{
+					type: "sql",
+					strings: ["", " = ", "::timestamptz"],
+					values: ["updatedAt", terminalUpdatedAtToken],
+				},
 			],
 		});
 	});
@@ -158,6 +172,7 @@ describe("automations evaluate route", () => {
 				dtstart: nonTerminalOccurrence,
 				timezone: "UTC",
 				updatedAt: nonTerminalUpdatedAt,
+				updatedAtToken: nonTerminalUpdatedAtToken,
 			},
 		];
 		updateValues.length = 0;

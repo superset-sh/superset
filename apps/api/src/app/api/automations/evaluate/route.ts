@@ -1,11 +1,10 @@
 import { dbWs } from "@superset/db/client";
 import { automations } from "@superset/db/schema";
-import { nextOccurrenceAfter } from "@superset/shared/rrule";
+import { bucketToMinute, nextOccurrenceAfter } from "@superset/shared/rrule";
 import { Client, Receiver } from "@upstash/qstash";
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, getTableColumns, lte, sql } from "drizzle-orm";
 
 import { env } from "@/env";
-import { bucketToMinute } from "../terminal-occurrence";
 
 export const dynamic = "force-dynamic";
 
@@ -38,7 +37,11 @@ export async function POST(request: Request): Promise<Response> {
 
 	const now = new Date();
 	const due = await dbWs
-		.select()
+		.select({
+			...getTableColumns(automations),
+			// Keep the database's full timestamp precision in a signed ISO token.
+			updatedAtToken: sql<string>`to_char(${automations.updatedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+		})
 		.from(automations)
 		.where(and(eq(automations.enabled, true), lte(automations.nextRunAt, now)))
 		.orderBy(automations.nextRunAt)
@@ -55,8 +58,10 @@ export async function POST(request: Request): Promise<Response> {
 			timezone: automation.timezone,
 			after: automation.nextRunAt,
 		});
+		// Derive the token from the occurrence so concurrent evaluators produce
+		// the same signed payload and idempotent reservation value.
 		const terminalDispatchToken =
-			next === null ? new Date(automation.updatedAt.getTime() + 1) : undefined;
+			next === null ? new Date(automation.nextRunAt.getTime() + 1) : undefined;
 		return {
 			automation,
 			next,
@@ -75,7 +80,7 @@ export async function POST(request: Request): Promise<Response> {
 					terminal: next === null,
 					terminalDispatchToken: terminalDispatchToken?.toISOString(),
 					terminalPreviousUpdatedAt:
-						next === null ? automation.updatedAt.toISOString() : undefined,
+						next === null ? automation.updatedAtToken : undefined,
 				},
 				deduplicationId: `${automation.id}_${scheduledFor.getTime()}`,
 				retries: 2,
@@ -102,7 +107,7 @@ export async function POST(request: Request): Promise<Response> {
 							eq(automations.id, automation.id),
 							eq(automations.enabled, true),
 							eq(automations.nextRunAt, automation.nextRunAt),
-							eq(automations.updatedAt, automation.updatedAt),
+							sql`${automations.updatedAt} = ${automation.updatedAtToken}::timestamptz`,
 						),
 					);
 			}

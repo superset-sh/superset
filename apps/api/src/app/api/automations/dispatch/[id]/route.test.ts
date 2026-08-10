@@ -1,8 +1,9 @@
 import { beforeEach, describe, expect, mock, test } from "bun:test";
 
 const scheduledFor = new Date("2026-08-06T18:46:00.000Z");
-const previousUpdatedAt = new Date("2026-08-01T00:00:00.000Z");
-const terminalDispatchToken = new Date(previousUpdatedAt.getTime() + 1);
+const previousUpdatedAt = new Date("2026-08-01T00:00:00.123Z");
+const previousUpdatedAtToken = "2026-08-01T00:00:00.123456Z";
+const terminalDispatchToken = new Date(scheduledFor.getTime() + 1);
 const userPausedUpdatedAt = new Date("2026-08-02T00:00:00.000Z");
 const automationId = "75c82d06-77af-454c-9f0c-e6c617ea702b";
 
@@ -18,6 +19,7 @@ const dispatchAutomation = mock(async () => dispatchOutcome);
 const updateValues: unknown[] = [];
 const updateWhereValues: unknown[] = [];
 let claimSucceeds = true;
+let claimResults: boolean[] | undefined;
 
 let automation = {
 	id: automationId,
@@ -67,7 +69,9 @@ mock.module("@superset/db/client", () => ({
 						updateWhereValues.push(condition);
 						return {
 							returning: async () =>
-								claimSucceeds ? [{ id: automationId }] : [],
+								(claimResults?.shift() ?? claimSucceeds)
+									? [{ id: automationId }]
+									: [],
 						};
 					},
 				};
@@ -83,6 +87,11 @@ mock.module("@superset/trpc/automation-dispatch", () => ({
 mock.module("drizzle-orm", () => ({
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
 	eq: (field: unknown, value: unknown) => ({ type: "eq", field, value }),
+	sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+		type: "sql",
+		strings: [...strings],
+		values,
+	}),
 }));
 
 const { POST } = await import("./route");
@@ -116,6 +125,7 @@ describe("automations dispatch route", () => {
 		updateValues.length = 0;
 		updateWhereValues.length = 0;
 		claimSucceeds = true;
+		claimResults = undefined;
 	});
 
 	test("claims an enabled terminal occurrence before dispatching it", async () => {
@@ -125,7 +135,7 @@ describe("automations dispatch route", () => {
 				scheduledFor: scheduledFor.toISOString(),
 				terminal: true,
 				terminalDispatchToken: terminalDispatchToken.toISOString(),
-				terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
 			}),
 			{ params },
 		);
@@ -148,7 +158,11 @@ describe("automations dispatch route", () => {
 				{ type: "eq", field: "id", value: automationId },
 				{ type: "eq", field: "enabled", value: true },
 				{ type: "eq", field: "nextRunAt", value: scheduledFor },
-				{ type: "eq", field: "updatedAt", value: previousUpdatedAt },
+				{
+					type: "sql",
+					strings: ["", " = ", "::timestamptz"],
+					values: ["updatedAt", previousUpdatedAtToken],
+				},
 			],
 		});
 	});
@@ -164,7 +178,7 @@ describe("automations dispatch route", () => {
 				scheduledFor: scheduledFor.toISOString(),
 				terminal: true,
 				terminalDispatchToken: terminalDispatchToken.toISOString(),
-				terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
 			}),
 			{ params },
 		);
@@ -208,7 +222,7 @@ describe("automations dispatch route", () => {
 				scheduledFor: scheduledFor.toISOString(),
 				terminal: true,
 				terminalDispatchToken: terminalDispatchToken.toISOString(),
-				terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
 			}),
 			{ params },
 		);
@@ -235,7 +249,7 @@ describe("automations dispatch route", () => {
 				scheduledFor: scheduledFor.toISOString(),
 				terminal: true,
 				terminalDispatchToken: terminalDispatchToken.toISOString(),
-				terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
 			}),
 			{ params },
 		);
@@ -255,7 +269,7 @@ describe("automations dispatch route", () => {
 				scheduledFor: new Date(scheduledFor.getTime() - 60_000).toISOString(),
 				terminal: true,
 				terminalDispatchToken: terminalDispatchToken.toISOString(),
-				terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
 			}),
 			{ params },
 		);
@@ -278,7 +292,7 @@ describe("automations dispatch route", () => {
 				scheduledFor: scheduledFor.toISOString(),
 				terminal: true,
 				terminalDispatchToken: terminalDispatchToken.toISOString(),
-				terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
 			}),
 			{ params },
 		);
@@ -288,6 +302,41 @@ describe("automations dispatch route", () => {
 			skipped: "stale",
 		});
 		expect(dispatchAutomation).not.toHaveBeenCalled();
+	});
+
+	test("claims the evaluator reservation if it wins after the initial select", async () => {
+		claimResults = [false, true];
+
+		const response = await POST(
+			request({
+				automationId,
+				scheduledFor: scheduledFor.toISOString(),
+				terminal: true,
+				terminalDispatchToken: terminalDispatchToken.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
+			}),
+			{ params },
+		);
+
+		expect(response.status).toBe(200);
+		expect(dispatchAutomation).toHaveBeenCalledTimes(1);
+		expect(updateValues).toEqual([
+			{ enabled: false, updatedAt: terminalDispatchToken },
+			{ updatedAt: terminalDispatchToken },
+		]);
+		expect(updateWhereValues[1]).toEqual({
+			type: "and",
+			conditions: [
+				{ type: "eq", field: "id", value: automationId },
+				{ type: "eq", field: "enabled", value: false },
+				{ type: "eq", field: "nextRunAt", value: scheduledFor },
+				{
+					type: "sql",
+					strings: ["", " = ", "::timestamptz"],
+					values: ["updatedAt", terminalDispatchToken.toISOString()],
+				},
+			],
+		});
 	});
 
 	test("skips a terminal message for a different reservation", async () => {
@@ -300,7 +349,7 @@ describe("automations dispatch route", () => {
 				scheduledFor: scheduledFor.toISOString(),
 				terminal: true,
 				terminalDispatchToken: terminalDispatchToken.toISOString(),
-				terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
 			}),
 			{ params },
 		);
@@ -310,6 +359,30 @@ describe("automations dispatch route", () => {
 			skipped: "disabled",
 		});
 		expect(dispatchAutomation).not.toHaveBeenCalled();
+	});
+
+	test("skips a reserved terminal message after its occurrence changes", async () => {
+		automation.enabled = false;
+		automation.updatedAt = terminalDispatchToken;
+		automation.nextRunAt = new Date(scheduledFor.getTime() + 60_000);
+
+		const response = await POST(
+			request({
+				automationId,
+				scheduledFor: scheduledFor.toISOString(),
+				terminal: true,
+				terminalDispatchToken: terminalDispatchToken.toISOString(),
+				terminalPreviousUpdatedAt: previousUpdatedAtToken,
+			}),
+			{ params },
+		);
+
+		expect(await response.json()).toEqual({
+			ok: true,
+			skipped: "stale",
+		});
+		expect(dispatchAutomation).not.toHaveBeenCalled();
+		expect(updateValues).toEqual([]);
 	});
 
 	test("keeps dispatching enabled non-terminal occurrences", async () => {

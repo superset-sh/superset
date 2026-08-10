@@ -2,7 +2,7 @@ import * as Sentry from "@sentry/nextjs";
 import { dbWs } from "@superset/db/client";
 import { automationRuns, automations } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
@@ -86,7 +86,6 @@ export async function POST(request: Request): Promise<Response> {
 			name: automations.name,
 			enabled: automations.enabled,
 			nextRunAt: automations.nextRunAt,
-			updatedAt: automations.updatedAt,
 		})
 		.from(automations)
 		.where(eq(automations.id, automationId))
@@ -128,9 +127,7 @@ export async function POST(request: Request): Promise<Response> {
 		automation.enabled &&
 		(source.data.terminalDispatchToken === undefined
 			? true
-			: source.data.terminalPreviousUpdatedAt !== undefined &&
-				automation.updatedAt.getTime() ===
-					new Date(source.data.terminalPreviousUpdatedAt).getTime());
+			: source.data.terminalPreviousUpdatedAt !== undefined);
 
 	if (canClaimUnreservedTerminal) {
 		const terminalDispatchToken = source.data.terminalDispatchToken;
@@ -152,10 +149,7 @@ export async function POST(request: Request): Promise<Response> {
 					...(source.data.terminalPreviousUpdatedAt === undefined
 						? []
 						: [
-								eq(
-									automations.updatedAt,
-									new Date(source.data.terminalPreviousUpdatedAt),
-								),
+								sql`${automations.updatedAt} = ${source.data.terminalPreviousUpdatedAt}::timestamptz`,
 							]),
 				),
 			);

@@ -8,6 +8,7 @@ import {
 	v2Workspaces,
 } from "@superset/db/schema";
 import {
+	bucketToMinute,
 	describeSchedule,
 	nextOccurrences,
 	parseRrule,
@@ -629,16 +630,6 @@ export const automationRouter = {
 			};
 		}),
 } satisfies TRPCRouterRecord;
-
-/**
- * Floors a Date down to the minute so two dispatches in the same minute bucket
- * collide on the unique index.
- */
-function bucketToMinute(date: Date): Date {
-	const copy = new Date(date.getTime());
-	copy.setUTCSeconds(0, 0);
-	return copy;
-}
 
 function safeDescribeRrule(row: { rrule: string } | null | undefined): string {
 	if (!row) return "";

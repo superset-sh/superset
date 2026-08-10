@@ -2,7 +2,7 @@ import { dbWs } from "@superset/db/client";
 import { automations, type SelectAutomation } from "@superset/db/schema";
 import { dispatchAutomation } from "@superset/trpc/automation-dispatch";
 import { Receiver } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
@@ -142,34 +142,42 @@ async function claimTerminalOccurrence({
 		}
 
 		const token = new Date(terminalDispatchToken);
-		const previousUpdatedAt = new Date(terminalPreviousUpdatedAt);
-		const [claimed] = automation.enabled
-			? await dbWs
-					.update(automations)
-					.set({ enabled: false, updatedAt: token })
-					.where(
-						and(
-							eq(automations.id, automationId),
-							eq(automations.enabled, true),
-							eq(automations.nextRunAt, automation.nextRunAt),
-							eq(automations.updatedAt, previousUpdatedAt),
-						),
-					)
-					.returning({ id: automations.id })
-			: await dbWs
-					.update(automations)
-					.set({ updatedAt: token })
-					.where(
-						and(
-							eq(automations.id, automationId),
-							eq(automations.enabled, false),
-							eq(automations.nextRunAt, automation.nextRunAt),
-							eq(automations.updatedAt, token),
-						),
-					)
-					.returning({ id: automations.id });
+		if (automation.enabled) {
+			const [claimed] = await dbWs
+				.update(automations)
+				.set({ enabled: false, updatedAt: token })
+				.where(
+					and(
+						eq(automations.id, automationId),
+						eq(automations.enabled, true),
+						eq(automations.nextRunAt, automation.nextRunAt),
+						// Compare the original database value without converting it to a
+						// millisecond-only JavaScript Date.
+						sql`${automations.updatedAt} = ${terminalPreviousUpdatedAt}::timestamptz`,
+					),
+				)
+				.returning({ id: automations.id });
 
-		return claimed !== undefined;
+			if (claimed !== undefined) return true;
+		}
+
+		// Evaluation may have completed the reservation after the SELECT above
+		// but before this claim. Claim that exact reservation instead of
+		// acknowledging the queued occurrence without a run.
+		const [reserved] = await dbWs
+			.update(automations)
+			.set({ updatedAt: token })
+			.where(
+				and(
+					eq(automations.id, automationId),
+					eq(automations.enabled, false),
+					eq(automations.nextRunAt, automation.nextRunAt),
+					sql`${automations.updatedAt} = ${terminalDispatchToken}::timestamptz`,
+				),
+			)
+			.returning({ id: automations.id });
+
+		return reserved !== undefined;
 	}
 
 	// Rolling-deployment compatibility for messages that carry only the old

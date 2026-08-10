@@ -4,9 +4,9 @@ const automationId = "75c82d06-77af-454c-9f0c-e6c617ea702b";
 const organizationId = "3ee200f3-c54c-46b1-b8b8-24a7f27348f3";
 const terminalOccurrence = new Date("2026-08-06T18:46:30.000Z");
 const scheduledFor = new Date("2026-08-06T18:46:00.000Z");
-const previousUpdatedAt = new Date("2026-08-01T00:00:00.000Z");
-const terminalDispatchToken = new Date(previousUpdatedAt.getTime() + 1);
-const userPausedUpdatedAt = new Date("2026-08-02T00:00:00.000Z");
+const previousUpdatedAt = new Date("2026-08-01T00:00:00.123Z");
+const previousUpdatedAtToken = "2026-08-01T00:00:00.123456Z";
+const terminalDispatchToken = new Date(terminalOccurrence.getTime() + 1);
 const insertValues: unknown[] = [];
 const updateValues: unknown[] = [];
 const updateWhereValues: unknown[] = [];
@@ -101,6 +101,11 @@ mock.module("@superset/db/client", () => ({
 mock.module("drizzle-orm", () => ({
 	and: (...conditions: unknown[]) => ({ type: "and", conditions }),
 	eq: (field: unknown, value: unknown) => ({ type: "eq", field, value }),
+	sql: (strings: TemplateStringsArray, ...values: unknown[]) => ({
+		type: "sql",
+		strings: [...strings],
+		values,
+	}),
 }));
 
 const { POST } = await import("./route");
@@ -118,7 +123,7 @@ function requestFor({
 			scheduledFor: sourceScheduledFor.toISOString(),
 			terminal,
 			terminalDispatchToken: terminalDispatchToken.toISOString(),
-			terminalPreviousUpdatedAt: previousUpdatedAt.toISOString(),
+			terminalPreviousUpdatedAt: previousUpdatedAtToken,
 		}),
 	).toString("base64");
 
@@ -154,7 +159,11 @@ test("records a terminal delivery failure and closes the recurrence", async () =
 			{ type: "eq", field: "id", value: automationId },
 			{ type: "eq", field: "enabled", value: true },
 			{ type: "eq", field: "nextRunAt", value: terminalOccurrence },
-			{ type: "eq", field: "updatedAt", value: previousUpdatedAt },
+			{
+				type: "sql",
+				strings: ["", " = ", "::timestamptz"],
+				values: ["updatedAt", previousUpdatedAtToken],
+			},
 		],
 	});
 });
@@ -174,7 +183,8 @@ test("does not close a changed terminal occurrence", async () => {
 
 test("does not close a user-paused automation", async () => {
 	automation.enabled = false;
-	automation.updatedAt = userPausedUpdatedAt;
+	// Keep the original version so this assertion isolates the enabled guard.
+	automation.updatedAt = previousUpdatedAt;
 
 	const response = await POST(requestFor());
 

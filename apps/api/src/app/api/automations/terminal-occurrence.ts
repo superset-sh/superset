@@ -1,8 +1,4 @@
-export function bucketToMinute(date: Date): Date {
-	const copy = new Date(date.getTime());
-	copy.setUTCSeconds(0, 0);
-	return copy;
-}
+import { bucketToMinute } from "@superset/shared/rrule";
 
 /**
  * Checks that a terminal message still refers to the occurrence stored on the
