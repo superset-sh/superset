@@ -175,10 +175,15 @@ End-to-end verification in the local dev app (evidence gate per repo CDP rules):
   while 4 local rows existed for that repo path. The workspaces page
   ("Bring over your workspaces") was verified working in the same session —
   ticks persist across reopen — confirming the host-local detection pattern.
-- After the fix: same journey — rows flip to Linked/imported, the Import all
-  button empties out and disappears, re-pressing is a no-op, reopening the
-  importer shows imported state, and the host DB gains exactly one row per
-  project.
+- After the fix (**done, 2026-08-10, same local dev stack, user-driven**):
+  - Detection: with existing imported rows, every project rendered green
+    "Linked" and the Import all button was absent; close/reopen and refresh
+    preserved the state; the DB row monitor recorded zero new rows.
+  - Fresh-user path (dev host DB wiped to empty, stronger variant of the
+    planned single-project delete): all 5 projects showed "Import" with
+    `Import all · 5`; one press ran `Importing i/5`, flipped each row to
+    Linked, then hid the button; the sidebar showed exactly one copy per
+    project; final DB state was exactly 1 row per repo path.
 
 ## Out of scope
 

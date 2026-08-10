@@ -32,7 +32,7 @@ Remove the cloud staleness probe that drops local-first projects. A local-DB row
 - Consumes: existing `projectRouter`, `createCallerFactory` (from `../../index`), `createUserSimpleGit`, drizzle schema.
 - Produces: `findByPath` response candidates no longer carry `staleLocalLink` (field deleted from the wire; verified unused repo-wide). Task 2 reuses this test file's harness helpers: `createTestDb(): HostDb`, `createTempGitRepo(): Promise<string>`, `createTestContext(db, api): HostServiceContext`, `createRecordingApiStub()`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `packages/host-service/src/trpc/router/project/project-import.test.ts`:
 
@@ -178,12 +178,12 @@ describe("findByPath walkAllRemotes (v1 importer)", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `bun test packages/host-service/src/trpc/router/project/project-import.test.ts`
 Expected: first test FAILS — `result.candidates` is `[]` (the staleness probe marked the row stale and filtered it) and/or `calls` contains `"v2Project.get"`. Second test should already pass.
 
-- [ ] **Step 3: Implement the short-circuit**
+- [x] **Step 3: Implement the short-circuit**
 
 In `packages/host-service/src/trpc/router/project/project.ts`, inside the `findByPath` `.query`:
 
@@ -243,12 +243,12 @@ if (!input.walkAllRemotes) {
 
 Also update the `walkAllRemotes` input doc comment: remove the "and surface stale local-DB rows" claim, and state that a local-DB hit short-circuits in both modes.
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `bun test packages/host-service/src/trpc/router/project/project-import.test.ts`
 Expected: both PASS.
 
-- [ ] **Step 5: Lint + commit**
+- [x] **Step 5: Lint + commit**
 
 ```bash
 bun run lint:fix
@@ -268,7 +268,7 @@ git commit -m "fix(host-service): treat local project rows as authoritative in f
 - Consumes: Task 1's test harness helpers (`createTestDb`, `createTempGitRepo`, `createTestContext`, `createRecordingApiStub`); existing `ensureMainWorkspaceStrict(ctx, projectId, repoPath): Promise<{ id: string }>` (idempotent — returns the existing `type='main'` workspace row when present).
 - Produces: `CreateResult` gains `created: boolean` (`true` = new row, `false` = reused). All create modes return it (`empty`/`template`/`clone` always `true`). Task 3 depends on this field reaching the renderer through `AppRouter` dist-types.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `project-import.test.ts`:
 
@@ -316,12 +316,12 @@ describe("createFromImportLocal idempotency", () => {
 
 (Add `eq` and `createFromImportLocal` to the existing import lists rather than duplicating import statements if the file already imports from those modules.)
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `bun test packages/host-service/src/trpc/router/project/project-import.test.ts`
 Expected: FAIL — today the second call inserts a second row (`rows` has length 2, differing `projectId`s), and `created` does not exist on `CreateResult` (type error is also acceptable as the failure mode).
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `packages/host-service/src/trpc/router/project/handlers.ts`:
 
@@ -385,12 +385,12 @@ export async function createFromImportLocal(
 
 (`eq`, `projects`, and `ensureMainWorkspaceStrict` are already imported in this file.)
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `bun test packages/host-service/src/trpc/router/project/project-import.test.ts`
 Expected: all PASS.
 
-- [ ] **Step 5: Regenerate dist-types, lint, commit**
+- [x] **Step 5: Regenerate dist-types, lint, commit**
 
 ```bash
 bun run --cwd packages/host-service build:types
@@ -413,7 +413,7 @@ git commit -m "fix(host-service): make importLocal project create idempotent on 
 - Consumes: `CreateResult.created: boolean` from Task 2 (via `HostServiceClient` / `AppRouter` dist-types); existing `importV1Project` and `carryV1ProjectAppearance` (private helper — asserted indirectly via `setColor` calls).
 - Produces: no signature changes; behavior only.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `v1-migration.test.ts` (follow the file's existing import style; `HostServiceClient` type comes from `renderer/lib/host-service-client`):
 
@@ -494,12 +494,12 @@ describe("importV1Project appearance carry", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `bun test apps/desktop/src/renderer/lib/v1-migration/v1-migration.test.ts`
 Expected: "skips appearance carry" FAILS (`setColorCalls` has length 1 — carry is unconditional today). The other two pass.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `apps/desktop/src/renderer/lib/v1-migration/projects.ts`, replace the create-path tail:
 
@@ -523,12 +523,12 @@ In `apps/desktop/src/renderer/lib/v1-migration/projects.ts`, replace the create-
 	};
 ```
 
-- [ ] **Step 4: Run the tests to verify they pass**
+- [x] **Step 4: Run the tests to verify they pass**
 
 Run: `bun test apps/desktop/src/renderer/lib/v1-migration/v1-migration.test.ts`
 Expected: all PASS.
 
-- [ ] **Step 5: Lint + commit**
+- [x] **Step 5: Lint + commit**
 
 ```bash
 bun run lint:fix
@@ -554,7 +554,7 @@ Mirror `ImportWorkspacesPage`: one page-level status map drives both single-row 
 
 Testing note: this repo has no component-interaction test infra (no testing-library/jsdom; component tests are static `renderToStaticMarkup`). The interaction matrix is therefore covered by the pure `planProjectRowAction`/`selectPendingProjects` units here, and the real click-through is covered by Task 5's E2E gate. Do not introduce new test frameworks.
 
-- [ ] **Step 1: Write the failing test for the pending-selection helper**
+- [x] **Step 1: Write the failing test for the pending-selection helper**
 
 Create `ImportProjectsPage.test.ts`:
 
@@ -743,12 +743,12 @@ describe("planProjectRowAction", () => {
 });
 ```
 
-- [ ] **Step 2: Run the test to verify it fails**
+- [x] **Step 2: Run the test to verify it fails**
 
 Run: `bun test apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/ImportProjectsPage/ImportProjectsPage.test.ts`
 Expected: FAIL — `selectPendingProjects` is not exported.
 
-- [ ] **Step 3: Implement the page changes**
+- [x] **Step 3: Implement the page changes**
 
 In `ImportProjectsPage.tsx`:
 
@@ -1199,14 +1199,14 @@ and pass `disabled={action.disabled}` to the pick variant's
 cancel `Button`s in the component body (find the `action.kind === "pick"`
 and `action.kind === "confirm"` render branches).
 
-- [ ] **Step 4: Run the tests + typecheck**
+- [x] **Step 4: Run the tests + typecheck**
 
 Run: `bun test apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/ImportProjectsPage/ImportProjectsPage.test.ts`
 Expected: PASS.
 Run: `bun run typecheck`
 Expected: exit 0 (requires Task 2's `build:types` to have run).
 
-- [ ] **Step 5: Lint + commit**
+- [x] **Step 5: Lint + commit**
 
 ```bash
 bun run lint:fix
@@ -1224,7 +1224,7 @@ git commit -m "feat(desktop): workspaces-style Import All state and pending coun
 
 **Interfaces:** consumes the running local dev stack from the debugging session (workspace host DB at `superset-dev-data/host/7c6e9b3b*/host.db`, currently 4 duplicate rows per repo path — the preserved "before" state).
 
-- [ ] **Step 1: Run the full local gate**
+- [x] **Step 1: Run the full local gate**
 
 ```bash
 bun run lint
@@ -1233,14 +1233,14 @@ bun test packages/host-service/src/trpc/router/project/ apps/desktop/src/rendere
 ```
 Expected: all exit 0. Fix anything that fails before proceeding.
 
-- [ ] **Step 2: Restart the dev stack** so the desktop + host-service pick up the changes (kill the running `bun dev`, relaunch with `RENDERER_REMOTE_DEBUG_PORT=9223 bun dev`).
+- [x] **Step 2: Restart the dev stack** so the desktop + host-service pick up the changes (kill the running `bun dev`, relaunch with `RENDERER_REMOTE_DEBUG_PORT=9223 bun dev`).
 
-- [ ] **Step 3: E2E — already-imported detection (the reported bug)**
+- [x] **Step 3: E2E — already-imported detection (the reported bug)**
 
 In the dev app (Local Admin, backdated account): Settings → Experimental → Open importer → "Bring over your projects".
 Expected after fix: every row shows the green **Linked** state (server-side truth — the host DB has rows for all 5 repos); the **Import all** button is **hidden** (nothing pending). Close and reopen the importer — same state. Watch the host-DB row monitor: **no new rows**.
 
-- [ ] **Step 4: E2E — fresh import path**
+- [x] **Step 4: E2E — fresh import path**
 
 Simulate a not-yet-imported project by removing one repo's rows from the
 **workspace-local dev** host DB. Do it safely: stop the dev stack first
@@ -1264,7 +1264,7 @@ delete hits the wrong rows.)
 
 Open the importer. Expected: `recut` shows **Import**, button reads **Import all · 1**. Press it. Expected: `Importing 1/1` → row flips to **Linked**, button disappears, exactly **one** new row appears in the DB monitor, and re-opening the importer still shows Linked. Press nothing else — re-verify the button stays hidden. Delete the `.bak` once verified.
 
-- [ ] **Step 5: Capture evidence + wrap up**
+- [x] **Step 5: Capture evidence + wrap up**
 
 Screenshot the importer (all Linked, no button) and the fresh-import before/after; save to scratchpad for the PR description. Query final row counts:
 
