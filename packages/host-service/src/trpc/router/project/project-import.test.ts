@@ -4,6 +4,7 @@ import { randomUUID } from "node:crypto";
 import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../../db";
@@ -12,6 +13,7 @@ import { projects } from "../../../db/schema";
 import { createUserSimpleGit } from "../../../runtime/git/simple-git";
 import type { HostServiceContext } from "../../../types";
 import { createCallerFactory } from "../../index";
+import { createFromImportLocal } from "./handlers";
 import { projectRouter } from "./project";
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
@@ -135,5 +137,42 @@ describe("findByPath walkAllRemotes (v1 importer)", () => {
 
 		expect(result.candidates).toHaveLength(0);
 		expect(calls).toContain("v2Project.findByGitHubRemote");
+	});
+});
+
+describe("createFromImportLocal idempotency", () => {
+	it("reuses the existing project for the same repo path and preserves identity", async () => {
+		const db = createTestDb();
+		const { api } = createRecordingApiStub();
+		const ctx = createTestContext(db, api);
+		const root = await createTempGitRepo();
+
+		const first = await createFromImportLocal(ctx, {
+			name: "Imported",
+			repoPath: root,
+		});
+		expect(first.created).toBe(true);
+		expect(first.mainWorkspaceId).toBeTruthy();
+
+		// User customizes the project in v2 — a re-import must not undo this.
+		db.update(projects)
+			.set({ name: "Custom Name", color: "#112233", icon: "none" })
+			.where(eq(projects.id, first.projectId))
+			.run();
+
+		const second = await createFromImportLocal(ctx, {
+			name: "Imported (again)",
+			repoPath: root,
+		});
+
+		expect(second.projectId).toBe(first.projectId);
+		expect(second.created).toBe(false);
+		expect(second.mainWorkspaceId).toBe(first.mainWorkspaceId);
+
+		const rows = db.select().from(projects).all();
+		expect(rows).toHaveLength(1);
+		expect(rows[0]?.name).toBe("Custom Name");
+		expect(rows[0]?.color).toBe("#112233");
+		expect(rows[0]?.icon).toBe("none");
 	});
 });

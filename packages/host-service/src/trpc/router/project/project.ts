@@ -49,6 +49,18 @@ const MAX_PROJECT_ICON_LENGTH = 256 * 1024;
 // of sentences is the intended size, so cap well below prompt-bloat territory.
 const MAX_NAMING_INSTRUCTIONS_LENGTH = 2000;
 
+/** One findByPath match: an existing v2 project this repo path could link
+ * to — either the authoritative local-DB row (`local-path`) or a cloud
+ * project found via a GitHub remote URL (`remote`). Module-scoped so the
+ * exported router's declaration emit can name it. */
+export interface FindByPathCandidate {
+	id: string;
+	name: string;
+	repoCloneUrl: string | null;
+	source: "local-path" | "remote";
+	matchesExpected: boolean;
+}
+
 export const projectRouter = router({
 	list: protectedProcedure.query(({ ctx }) => {
 		return ctx.db
@@ -382,14 +394,6 @@ export const projectRouter = router({
 				!!cloneUrl &&
 				cloneUrl.toLowerCase() === expectedUrlLower;
 
-			interface Candidate {
-				id: string;
-				name: string;
-				repoCloneUrl: string | null;
-				source: "local-path" | "remote";
-				matchesExpected: boolean;
-			}
-
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.repoPath, gitRoot) })
 				.sync();
@@ -437,7 +441,7 @@ export const projectRouter = router({
 				urlsToQuery.set(expectedParsed.url.toLowerCase(), expectedParsed);
 			}
 
-			const byId = new Map<string, Candidate>();
+			const byId = new Map<string, FindByPathCandidate>();
 
 			// Cloud lookup for every URL we know about.
 			const cloudErrors: { url: string; message: string }[] = [];
