@@ -26,6 +26,15 @@ interface GradientInstance {
 	};
 }
 
+function supportsWebgl(): boolean {
+	try {
+		const probe = document.createElement("canvas");
+		return Boolean(probe.getContext("webgl2") || probe.getContext("webgl"));
+	} catch {
+		return false;
+	}
+}
+
 export function MeshGradient({
 	colors,
 	className = "",
@@ -37,18 +46,11 @@ export function MeshGradient({
 
 	useEffect(() => {
 		const canvas = canvasRef.current;
-		if (!canvas) return;
+		if (!canvas || !supportsWebgl()) return;
 
 		const gradient = new Gradient() as GradientInstance;
-		gradient.initGradient(`#${canvasId}`);
 
-		setTimeout(() => {
-			if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
-				gradient.uniforms.u_global.value.noiseSpeed.value = speed;
-			}
-		}, 100);
-
-		return () => {
+		const teardown = () => {
 			if (gradient.pause) {
 				gradient.pause();
 			}
@@ -65,6 +67,23 @@ export function MeshGradient({
 				gradient.disconnect();
 			}
 		};
+
+		// Guard scoped to init only: the library dereferences a null WebGL
+		// context when creation fails despite the probe above.
+		try {
+			gradient.initGradient(`#${canvasId}`);
+		} catch {
+			teardown();
+			return;
+		}
+
+		setTimeout(() => {
+			if (gradient?.uniforms?.u_global?.value?.noiseSpeed) {
+				gradient.uniforms.u_global.value.noiseSpeed.value = speed;
+			}
+		}, 100);
+
+		return teardown;
 	}, [canvasId, speed]);
 
 	return (
