@@ -106,4 +106,26 @@ describe("changes.mergePR repository settings guard", () => {
 			strategy: "rebase",
 		});
 	});
+
+	test("keeps merge behavior when a capability is unknown", async () => {
+		getRepoMergeSettingsMock.mockResolvedValue({
+			allowRebaseMerge: null,
+			viewerDefaultMergeMethod: "MERGE",
+		});
+
+		await expect(
+			caller.mergePR({
+				worktreePath: "/tmp/merge-settings-test",
+				strategy: "rebase",
+			}),
+		).resolves.toEqual({
+			success: true,
+			mergedAt: "2026-08-07T00:00:00.000Z",
+		});
+
+		expect(mergePullRequestMock).toHaveBeenCalledWith({
+			worktreePath: "/tmp/merge-settings-test",
+			strategy: "rebase",
+		});
+	});
 });
