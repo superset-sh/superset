@@ -5,6 +5,23 @@ import {
 } from "./font-settings.utils";
 
 describe("font settings validation", () => {
+	it("trims the interface font family", () => {
+		const result = transformFontSettings({ uiFontFamily: "  Inter  " });
+		expect(result.uiFontFamily).toBe("Inter");
+	});
+
+	it("resets a blank interface font family to the default", () => {
+		const result = transformFontSettings({ uiFontFamily: "   " });
+		expect(result.uiFontFamily).toBeNull();
+	});
+
+	it("rejects an oversized interface font family", () => {
+		const result = setFontSettingsSchema.safeParse({
+			uiFontFamily: "x".repeat(501),
+		});
+		expect(result.success).toBe(false);
+	});
+
 	describe("font size validation (range 10-24)", () => {
 		it("accepts font size at minimum (10)", () => {
 			const result = setFontSettingsSchema.safeParse({

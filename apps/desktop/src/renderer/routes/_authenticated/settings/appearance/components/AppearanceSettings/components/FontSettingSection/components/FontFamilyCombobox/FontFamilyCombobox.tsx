@@ -18,7 +18,7 @@ interface FontFamilyComboboxProps {
 	defaultValue: string;
 	onValueChange: (v: string | null) => void;
 	disabled?: boolean;
-	variant: "editor" | "terminal";
+	variant: "editor" | "terminal" | "ui";
 	fonts: FontInfo[];
 	fontsLoading: boolean;
 }

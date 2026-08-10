@@ -20,6 +20,7 @@ export const SETTING_ITEM_ID = {
 	APPEARANCE_CUSTOM_THEMES: "appearance-custom-themes",
 	APPEARANCE_EDITOR_FONT: "appearance-editor-font",
 	APPEARANCE_TERMINAL_FONT: "appearance-terminal-font",
+	APPEARANCE_INTERFACE_FONT: "appearance-interface-font",
 
 	RINGTONES_NOTIFICATION: "ringtones-notification",
 
@@ -135,6 +136,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES]: "shared",
 	[SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT]: "v2",
 	[SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT]: "v2",
+	[SETTING_ITEM_ID.APPEARANCE_INTERFACE_FONT]: "shared",
 
 	[SETTING_ITEM_ID.RINGTONES_NOTIFICATION]: "shared",
 
@@ -433,6 +435,25 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"upload",
 			"personalize",
 			"customize",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.APPEARANCE_INTERFACE_FONT,
+		section: "appearance",
+		title: "Interface Font",
+		description: "Typeface used for the app interface",
+		keywords: [
+			"appearance",
+			"font",
+			"family",
+			"interface",
+			"ui",
+			"app",
+			"sidebar",
+			"typeface",
+			"sans",
+			"typography",
+			"chrome",
 		],
 	},
 	{

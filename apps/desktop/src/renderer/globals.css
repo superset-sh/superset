@@ -162,6 +162,8 @@
 
 	body {
 		@apply bg-background text-foreground;
+		/* Overridden by the Interface font setting; falls back to the theme stack. */
+		font-family: var(--superset-ui-font-family, var(--font-sans));
 	}
 
 	html,

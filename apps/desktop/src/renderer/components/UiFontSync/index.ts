@@ -1,0 +1,1 @@
+export { UiFontSync } from "./UiFontSync";

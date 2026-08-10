@@ -71,6 +71,7 @@ const EMPTY_FONT_SETTINGS: FontSettings = {
 	terminalMinimumContrast: null,
 	terminalCursorStyle: null,
 	terminalCursorBlink: null,
+	uiFontFamily: null,
 	editorFontFamily: null,
 	editorFontSize: null,
 	editorLineHeight: null,
