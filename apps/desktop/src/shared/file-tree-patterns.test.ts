@@ -2,12 +2,7 @@ import { describe, expect, it } from "bun:test";
 import { createFileTreeHiddenMatcher } from "./file-tree-patterns";
 
 function entry(relativePath: string, isDirectory = false) {
-	const segments = relativePath.split("/");
-	return {
-		name: segments[segments.length - 1] ?? "",
-		relativePath,
-		isDirectory,
-	};
+	return { relativePath, isDirectory };
 }
 
 describe("createFileTreeHiddenMatcher", () => {

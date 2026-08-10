@@ -88,7 +88,6 @@ function compilePattern(rawPattern: string): CompiledPattern | null {
 }
 
 export interface FileTreeEntryForMatch {
-	name: string;
 	relativePath: string;
 	isDirectory: boolean;
 }

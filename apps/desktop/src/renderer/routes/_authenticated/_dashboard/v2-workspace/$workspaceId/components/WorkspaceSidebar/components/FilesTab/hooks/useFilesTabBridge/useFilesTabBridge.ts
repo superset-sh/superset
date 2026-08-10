@@ -86,11 +86,7 @@ export function useFilesTabBridge({
 	);
 	const isHidden = useCallback(
 		(rel: string, isDirectory: boolean) =>
-			matcher({
-				name: rel.split("/").pop() ?? "",
-				relativePath: rel,
-				isDirectory,
-			}),
+			matcher({ relativePath: rel, isDirectory }),
 		[matcher],
 	);
 
