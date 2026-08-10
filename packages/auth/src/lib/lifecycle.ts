@@ -4,18 +4,15 @@ import { env } from "../env";
 
 export const ACTIVATION_CAMPAIGN_FLAG = "activation-email-campaign";
 
-const posthog = env.NEXT_PUBLIC_POSTHOG_KEY
-	? new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
-			host: env.NEXT_PUBLIC_POSTHOG_HOST,
-			flushAt: 1,
-			flushInterval: 0,
-		})
-	: null;
+const posthog = new PostHog(env.NEXT_PUBLIC_POSTHOG_KEY, {
+	host: env.NEXT_PUBLIC_POSTHOG_HOST,
+	flushAt: 1,
+	flushInterval: 0,
+});
 
 export async function getActivationVariant(
 	userId: string,
 ): Promise<"control" | "test"> {
-	if (!posthog) return "test";
 	try {
 		const variant = await posthog.getFeatureFlag(
 			ACTIVATION_CAMPAIGN_FLAG,

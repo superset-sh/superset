@@ -25,7 +25,7 @@ export const env = createEnv({
 	},
 	clientPrefix: "NEXT_PUBLIC_",
 	client: {
-		NEXT_PUBLIC_POSTHOG_KEY: z.string().optional(),
+		NEXT_PUBLIC_POSTHOG_KEY: z.string().min(1),
 		NEXT_PUBLIC_POSTHOG_HOST: z
 			.string()
 			.url()
