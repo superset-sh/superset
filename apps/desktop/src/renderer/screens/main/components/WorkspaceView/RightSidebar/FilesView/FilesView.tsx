@@ -21,6 +21,10 @@ import {
 	retargetAbsolutePath,
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
+import {
+	createFileTreeHiddenMatcher,
+	DEFAULT_FILE_TREE_HIDDEN_PATTERNS,
+} from "shared/file-tree-patterns";
 import type {
 	DirectoryEntry,
 	FileSystemChangeEvent,
@@ -150,6 +154,17 @@ export function FilesView() {
 
 	const [searchTerm, setSearchTerm] = useState("");
 	const projectId = workspace?.project?.id;
+	const hiddenPatternsQuery =
+		electronTrpc.settings.getFileTreeHiddenPatterns.useQuery();
+	const hiddenMatcher = useMemo(
+		() =>
+			createFileTreeHiddenMatcher(
+				hiddenPatternsQuery.data ?? DEFAULT_FILE_TREE_HIDDEN_PATTERNS,
+			),
+		[hiddenPatternsQuery.data],
+	);
+	const hiddenMatcherRef = useRef(hiddenMatcher);
+	hiddenMatcherRef.current = hiddenMatcher;
 
 	// Refs avoid stale closure in dataLoader callbacks
 	const worktreePathRef = useRef(worktreePath);
@@ -215,13 +230,18 @@ export function FilesView() {
 						workspaceId: workspaceId ?? "",
 						absolutePath: dirPath,
 					});
-					const nextEntries = entries.map((entry) => ({
-						id: entry.absolutePath,
-						name: entry.name,
-						path: entry.absolutePath,
-						relativePath: getEntryRelativePath(currentPath, entry.absolutePath),
-						isDirectory: entry.kind === "directory",
-					}));
+					const nextEntries = entries
+						.map((entry) => ({
+							id: entry.absolutePath,
+							name: entry.name,
+							path: entry.absolutePath,
+							relativePath: getEntryRelativePath(
+								currentPath,
+								entry.absolutePath,
+							),
+							isDirectory: entry.kind === "directory",
+						}))
+						.filter((entry) => !hiddenMatcherRef.current(entry));
 					for (const entry of nextEntries) {
 						entryCacheRef.current.set(entry.path, entry);
 					}
@@ -234,6 +254,13 @@ export function FilesView() {
 		},
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reload cached tree entries when the matcher changes
+	useEffect(() => {
+		entryCacheRef.current.clear();
+		tree.getItemInstance("root")?.invalidateChildrenIds();
+		void trpcUtils.filesystem.searchFiles.invalidate();
+	}, [hiddenMatcher, tree, trpcUtils.filesystem.searchFiles]);
 
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
@@ -534,14 +561,16 @@ export function FilesView() {
 	}, [refreshVisibleDirectories]);
 
 	const searchResultEntries = useMemo(() => {
-		return searchResults.map((result) => ({
-			id: result.id,
-			name: result.name,
-			path: result.path,
-			relativePath: result.relativePath,
-			isDirectory: result.isDirectory,
-		}));
-	}, [searchResults]);
+		return searchResults
+			.map((result) => ({
+				id: result.id,
+				name: result.name,
+				path: result.path,
+				relativePath: result.relativePath,
+				isDirectory: result.isDirectory,
+			}))
+			.filter((entry) => !hiddenMatcher(entry));
+	}, [hiddenMatcher, searchResults]);
 
 	if (!worktreePath) {
 		return (
