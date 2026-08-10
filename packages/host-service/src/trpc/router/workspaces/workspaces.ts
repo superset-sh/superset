@@ -486,7 +486,7 @@ async function registerLocalWorkspace(args: {
 		});
 	}
 
-	void ctx.api.v2Workspace.reportCreated
+	void ctx.api.v2Workspace.trackCreated
 		.mutate({
 			workspaceId: localRow.id,
 			organizationId: ctx.organizationId,

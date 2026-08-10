@@ -29,6 +29,29 @@ const MAIN_WORKSPACE_DELETE_MESSAGE =
 const resend = new Resend(env.RESEND_API_KEY);
 const ACTIVATION_EVENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
 
+// Emits `user.activated`, the exit condition of the Resend activation email
+// automation — a user who created a real workspace stops receiving nudges.
+async function exitActivationEmailCampaign(userId: string, email: string) {
+	const user = await db.query.users.findFirst({
+		columns: { createdAt: true },
+		where: eq(users.id, userId),
+	});
+	const isRecentSignup =
+		user && Date.now() - user.createdAt.getTime() < ACTIVATION_EVENT_WINDOW_MS;
+	if (!isRecentSignup) return;
+
+	const { error } = await resend.events.send({
+		event: "user.activated",
+		email,
+		payload: { userId },
+	});
+	if (error) {
+		console.error(
+			`[v2Workspace.trackCreated] Failed to emit activation event for ${userId}: ${error.message}`,
+		);
+	}
+}
+
 async function getScopedProject(organizationId: string, projectId: string) {
 	return requireOrgScopedResource(
 		() =>
@@ -398,7 +421,7 @@ export const v2WorkspaceRouter = {
 			return { success: true as const, txid };
 		}),
 
-	reportCreated: jwtProcedure
+	trackCreated: jwtProcedure
 		.input(
 			z.object({
 				workspaceId: z.string(),
@@ -432,25 +455,7 @@ export const v2WorkspaceRouter = {
 			});
 
 			if (input.type !== "main" && ctx.email) {
-				const user = await db.query.users.findFirst({
-					columns: { createdAt: true },
-					where: eq(users.id, ctx.userId),
-				});
-				const isRecentSignup =
-					user &&
-					Date.now() - user.createdAt.getTime() < ACTIVATION_EVENT_WINDOW_MS;
-				if (isRecentSignup) {
-					const { error } = await resend.events.send({
-						event: "user.activated",
-						email: ctx.email,
-						payload: { userId: ctx.userId },
-					});
-					if (error) {
-						console.error(
-							`[v2Workspace.reportCreated] Failed to emit activation event for ${ctx.userId}: ${error.message}`,
-						);
-					}
-				}
+				await exitActivationEmailCampaign(ctx.userId, ctx.email);
 			}
 
 			return { ok: true };
