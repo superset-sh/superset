@@ -21,18 +21,23 @@ describe("createFileTreeHiddenMatcher", () => {
 		const isHidden = createFileTreeHiddenMatcher(["node_modules"]);
 		expect(isHidden(entry("node_modules", true))).toBe(true);
 		expect(isHidden(entry("packages/ui/node_modules", true))).toBe(true);
+		expect(isHidden(entry("node_modules/pkg/index.js"))).toBe(true);
+		expect(isHidden(entry("packages/ui/node_modules/pkg/index.js"))).toBe(true);
 		expect(isHidden(entry("src/node_modules_helper.ts"))).toBe(false);
 	});
 
 	it("anchors patterns that start with a slash to the workspace root", () => {
 		const isHidden = createFileTreeHiddenMatcher(["/output"]);
 		expect(isHidden(entry("output", true))).toBe(true);
+		expect(isHidden(entry("output/result.json"))).toBe(true);
 		expect(isHidden(entry("src/output", true))).toBe(false);
+		expect(isHidden(entry("src/output/result.json"))).toBe(false);
 	});
 
 	it("restricts trailing-slash patterns to directories", () => {
 		const isHidden = createFileTreeHiddenMatcher(["build/"]);
 		expect(isHidden(entry("build", true))).toBe(true);
+		expect(isHidden(entry("build/output.js"))).toBe(true);
 		expect(isHidden(entry("build"))).toBe(false);
 	});
 

@@ -156,7 +156,7 @@ export function FilesTab({
 	const bridge = useFilesTabBridge({
 		model,
 		workspaceId,
-		rootPath,
+		rootPath: hiddenPatternsQuery.isLoading ? "" : rootPath,
 		hiddenPatterns,
 	});
 	const { reveal, startCreating, handleRename, handleDelete, collapseAll } =

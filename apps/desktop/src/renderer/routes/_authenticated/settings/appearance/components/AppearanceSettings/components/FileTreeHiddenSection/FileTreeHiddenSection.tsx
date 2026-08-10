@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
 import { Textarea } from "@superset/ui/textarea";
 import { RotateCcw } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -32,6 +33,7 @@ export function FileTreeHiddenSection() {
 			onSuccess: () => {
 				void utils.settings.getFileTreeHiddenPatterns.invalidate();
 			},
+			onError: (error) => toast.error(error.message),
 		});
 
 	const [draft, setDraft] = useState<string | null>(null);
