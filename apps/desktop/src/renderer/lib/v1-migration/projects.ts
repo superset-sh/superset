@@ -153,7 +153,13 @@ export async function importV1Project({
 		name: project.name,
 		mode: { kind: "importLocal", repoPath: project.mainRepoPath },
 	});
-	await carryV1ProjectAppearance(hostClient, result.projectId, project);
+	// Only stamp v1 appearance onto projects this call actually created.
+	// A reused project (created === false) may carry v2 customizations the
+	// user chose after their first import — never overwrite those. Older
+	// hosts omit the field; keep their long-standing carry behavior.
+	if (result.created !== false) {
+		await carryV1ProjectAppearance(hostClient, result.projectId, project);
+	}
 	return {
 		kind: "imported",
 		v2ProjectId: result.projectId,

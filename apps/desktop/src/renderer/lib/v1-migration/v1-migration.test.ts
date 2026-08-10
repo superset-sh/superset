@@ -1,6 +1,11 @@
 import { describe, expect, test } from "bun:test";
+import type { HostServiceClient } from "renderer/lib/host-service-client";
 import { resolvePresetImport } from "./presets";
-import { decideProjectImport } from "./projects";
+import {
+	decideProjectImport,
+	importV1Project,
+	type ProjectFindByPathResult,
+} from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
 import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
 import { planWorkspaceAdoptions } from "./workspaces";
@@ -45,6 +50,81 @@ describe("decideProjectImport", () => {
 			decideProjectImport(findByPath([{ id: "a", source: "github-remote" }])),
 		).toEqual({ kind: "import" });
 		expect(decideProjectImport(findByPath([]))).toEqual({ kind: "import" });
+	});
+});
+
+describe("importV1Project appearance carry", () => {
+	const v1Project = {
+		id: "v1-1",
+		name: "proj",
+		mainRepoPath: "/tmp/proj",
+		githubOwner: null,
+		color: "#112233",
+		hideImage: false,
+	};
+
+	function fakeHostClient(created: boolean | undefined) {
+		const setColorCalls: unknown[] = [];
+		const client = {
+			project: {
+				create: {
+					mutate: async () => ({
+						projectId: "p-new",
+						mainWorkspaceId: "w-1",
+						repoPath: "/tmp/proj",
+						created,
+					}),
+				},
+				setColor: {
+					mutate: async (input: unknown) => {
+						setColorCalls.push(input);
+					},
+				},
+				setIcon: { mutate: async () => {} },
+				setup: {
+					mutate: async () => {
+						throw new Error("setup should not be called");
+					},
+				},
+			},
+		} as unknown as HostServiceClient;
+		return { client, setColorCalls };
+	}
+
+	const emptyFindByPath = {
+		candidates: [],
+		cloudErrors: [],
+	} as unknown as ProjectFindByPathResult;
+
+	test("skips appearance carry when the host reused an existing project", async () => {
+		const { client, setColorCalls } = fakeHostClient(false);
+		const result = await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(result.kind).toBe("imported");
+		expect(setColorCalls).toHaveLength(0);
+	});
+
+	test("carries appearance for newly created projects", async () => {
+		const { client, setColorCalls } = fakeHostClient(true);
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(setColorCalls).toHaveLength(1);
+	});
+
+	test("carries appearance when an older host omits the created field", async () => {
+		const { client, setColorCalls } = fakeHostClient(undefined);
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(setColorCalls).toHaveLength(1);
 	});
 });
 
