@@ -27,8 +27,11 @@ function toPatterns(text: string): string[] {
 export function FileTreeHiddenSection() {
 	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
-	const { data, isLoading } =
+	const { data, isError, refetch } =
 		electronTrpc.settings.getFileTreeHiddenPatterns.useQuery();
+	// Never edit against an unknown list: saving an empty fallback would wipe
+	// the stored patterns.
+	const isUnavailable = isError || data === undefined;
 	const setPatterns =
 		electronTrpc.settings.setFileTreeHiddenPatterns.useMutation({
 			onSuccess: () => {
@@ -49,7 +52,7 @@ export function FileTreeHiddenSection() {
 	const isDirty = draft !== null && draft !== persisted;
 
 	const commit = () => {
-		if (draft === null) return;
+		if (draft === null || isUnavailable) return;
 		const patterns = toPatterns(draft);
 		if (
 			patterns.some(
@@ -81,16 +84,30 @@ export function FileTreeHiddenSection() {
 				aria-label="Hidden file patterns"
 				className="font-mono text-xs min-h-32"
 				spellCheck={false}
-				disabled={isLoading || setPatterns.isPending}
+				disabled={isUnavailable || setPatterns.isPending}
 				value={value}
 				onChange={(event) => setDraft(event.target.value)}
 			/>
+
+			{isError && (
+				<div className="mt-2 flex items-center gap-2 text-xs text-destructive">
+					<span>Could not load hidden file patterns.</span>
+					<Button
+						variant="outline"
+						size="sm"
+						className="h-7 text-xs"
+						onClick={() => void refetch()}
+					>
+						Retry
+					</Button>
+				</div>
+			)}
 
 			<div className="mt-2 flex items-center gap-2">
 				<Button
 					size="sm"
 					onClick={commit}
-					disabled={!isDirty || isLoading || setPatterns.isPending}
+					disabled={!isDirty || isUnavailable || setPatterns.isPending}
 				>
 					Save patterns
 				</Button>
@@ -98,7 +115,7 @@ export function FileTreeHiddenSection() {
 					variant="ghost"
 					size="sm"
 					className="gap-1.5 text-xs text-muted-foreground"
-					disabled={isLoading || setPatterns.isPending}
+					disabled={isUnavailable || setPatterns.isPending}
 					onClick={() => {
 						setDraft(null);
 						setPatterns.mutate({
