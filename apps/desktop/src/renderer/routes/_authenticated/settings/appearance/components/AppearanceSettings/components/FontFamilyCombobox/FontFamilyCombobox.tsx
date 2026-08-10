@@ -10,8 +10,8 @@ import {
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { CheckIcon, ChevronsUpDownIcon } from "lucide-react";
 import { useMemo, useState } from "react";
-import { parsePrimaryFamily } from "../../font-utils";
-import type { FontInfo } from "../../hooks/useSystemFonts";
+import { parsePrimaryFamily } from "../FontSettingSection/font-utils";
+import type { FontInfo } from "../useSystemFonts";
 
 interface FontFamilyComboboxProps {
 	value: string | null;

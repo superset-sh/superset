@@ -1,12 +1,13 @@
 import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
+import { toast } from "@superset/ui/sonner";
 import { RotateCcw } from "lucide-react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DEFAULT_UI_FONT_FAMILY } from "renderer/lib/ui-font";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
-import { FontFamilyCombobox } from "../FontSettingSection/components/FontFamilyCombobox";
-import { useSystemFonts } from "../FontSettingSection/hooks/useSystemFonts";
+import { FontFamilyCombobox } from "../FontFamilyCombobox";
+import { useSystemFonts } from "../useSystemFonts";
 
 export function InterfaceFontSection() {
 	const searchQuery = useSettingsSearchQuery();
@@ -15,7 +16,26 @@ export function InterfaceFontSection() {
 	const { fonts, isLoading: fontsLoading } = useSystemFonts();
 
 	const setFontSettings = electronTrpc.settings.setFontSettings.useMutation({
-		onSuccess: () => {
+		// Apply the new family before the write lands so the whole app restyles
+		// on selection; roll back and report if persisting fails.
+		onMutate: async (input) => {
+			await utils.settings.getFontSettings.cancel();
+			const previous = utils.settings.getFontSettings.getData();
+			if (previous) {
+				utils.settings.getFontSettings.setData(undefined, {
+					...previous,
+					...input,
+				});
+			}
+			return { previous };
+		},
+		onError: (error, _input, context) => {
+			if (context?.previous !== undefined) {
+				utils.settings.getFontSettings.setData(undefined, context.previous);
+			}
+			toast.error(error.message);
+		},
+		onSettled: () => {
 			void utils.settings.getFontSettings.invalidate();
 		},
 	});
