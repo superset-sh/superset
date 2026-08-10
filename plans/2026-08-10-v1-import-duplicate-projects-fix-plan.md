@@ -38,9 +38,9 @@ Create `packages/host-service/src/trpc/router/project/project-import.test.ts`:
 
 ```ts
 import { Database } from "bun:sqlite";
-import { describe, expect, it } from "bun:test";
+import { afterAll, describe, expect, it } from "bun:test";
 import { randomUUID } from "node:crypto";
-import { mkdtempSync } from "node:fs";
+import { mkdtempSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { drizzle } from "drizzle-orm/bun-sqlite";
@@ -64,11 +64,19 @@ export function createTestDb(): HostDb {
 	return db as unknown as HostDb;
 }
 
+const tempRepoDirs: string[] = [];
+afterAll(() => {
+	for (const dir of tempRepoDirs) {
+		rmSync(dir, { recursive: true, force: true });
+	}
+});
+
 /** Real git repo in a temp dir; returns the canonical git root (macOS
  * /var → /private/var symlinks resolved by rev-parse, which is exactly
- * what findByPath compares against). */
+ * what findByPath compares against). Dirs are removed in afterAll. */
 export async function createTempGitRepo(): Promise<string> {
 	const dir = mkdtempSync(join(tmpdir(), "v1-import-test-"));
+	tempRepoDirs.push(dir);
 	const git = createUserSimpleGit(dir);
 	try {
 		await git.init(["--initial-branch=main"]);
@@ -536,11 +544,15 @@ Mirror `ImportWorkspacesPage`: one page-level status map drives both single-row 
 
 **Files:**
 - Modify: `apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/ImportProjectsPage/ImportProjectsPage.tsx`
+- Modify: `apps/desktop/src/renderer/lib/v1-migration/index.ts` (add `type ProjectImportDecision` to the `./projects` export block — it is not currently re-exported, and Task 4's page imports it from the barrel)
+- Modify: `apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/components/ImportRow/ImportRow.tsx` (add optional `disabled` to the `pick` and `confirm` `RowAction` variants and wire it to their trigger/confirm/cancel buttons' `disabled` prop — `ready` already supports it)
 - Test (create): `apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/ImportProjectsPage/ImportProjectsPage.test.ts`
 
 **Interfaces:**
 - Consumes: `decideProjectImport(result): ProjectImportDecision` (`{kind:"already-imported"|...}` / `{kind:"import"}` / `{kind:"skip"; reason}`), `RowAction` from `../components/ImportRow`, Task 3's `importV1Project` behavior.
-- Produces: exported pure helper `selectPendingProjects` (tested), exported type `ProjectImportStatus`. No external component API changes — `V1ImportModal` renders the page identically.
+- Produces: exported pure helpers `selectPendingProjects` and `planProjectRowAction` (both tested), exported types `ProjectImportStatus` and `ProjectRowActionPlan`. No external component API changes — `V1ImportModal` renders the page identically.
+
+Testing note: this repo has no component-interaction test infra (no testing-library/jsdom; component tests are static `renderToStaticMarkup`). The interaction matrix is therefore covered by the pure `planProjectRowAction`/`selectPendingProjects` units here, and the real click-through is covered by Task 5's E2E gate. Do not introduce new test frameworks.
 
 - [ ] **Step 1: Write the failing test for the pending-selection helper**
 
@@ -548,8 +560,15 @@ Create `ImportProjectsPage.test.ts`:
 
 ```ts
 import { describe, expect, it } from "bun:test";
-import type { ProjectImportDecision } from "renderer/lib/v1-migration";
-import { selectPendingProjects } from "./ImportProjectsPage";
+import type {
+	ProjectFindByPathResult,
+	ProjectImportDecision,
+} from "renderer/lib/v1-migration";
+import {
+	type ProjectImportStatus,
+	planProjectRowAction,
+	selectPendingProjects,
+} from "./ImportProjectsPage";
 
 const p = (id: string) => ({ id });
 
@@ -594,6 +613,133 @@ describe("selectPendingProjects", () => {
 			selectPendingProjects(projects, decisions, states),
 		).toHaveLength(1);
 	});
+
+	it("excludes needs-relocate projects — they require the row's confirm flow", () => {
+		const projects = [p("a")];
+		const decisions = new Map([["a", importDecision]]);
+		const states = new Map([
+			[
+				"a",
+				{
+					kind: "needs-relocate" as const,
+					v2ProjectId: "v2-1",
+					message: "already set up elsewhere",
+				},
+			],
+		]);
+		expect(
+			selectPendingProjects(projects, decisions, states),
+		).toHaveLength(0);
+	});
+});
+
+describe("planProjectRowAction", () => {
+	const base = {
+		status: { kind: "idle" } as ProjectImportStatus,
+		isImportingAll: false,
+		findByPathPending: false,
+		findByPathErrorMessage: null as string | null,
+		findByPathData: { candidates: [], cloudErrors: [] } as Pick<
+			ProjectFindByPathResult,
+			"candidates" | "cloudErrors"
+		>,
+		serverImported: false,
+	};
+
+	it("running status wins over everything", () => {
+		expect(
+			planProjectRowAction({
+				...base,
+				status: { kind: "running" },
+				serverImported: true,
+			}),
+		).toEqual({ kind: "running" });
+	});
+
+	it("imported (server or session) renders the Linked state", () => {
+		expect(planProjectRowAction({ ...base, serverImported: true })).toEqual({
+			kind: "imported",
+			label: "Linked",
+		});
+		expect(
+			planProjectRowAction({
+				...base,
+				status: { kind: "imported", v2ProjectId: "v2-1" },
+			}),
+		).toEqual({ kind: "imported", label: "Linked" });
+	});
+
+	it("needs-relocate renders the confirm flow, disabled during Import All", () => {
+		const status: ProjectImportStatus = {
+			kind: "needs-relocate",
+			v2ProjectId: "v2-1",
+			message: "already set up on this device at /old/path.  Remove",
+		};
+		expect(planProjectRowAction({ ...base, status })).toMatchObject({
+			kind: "confirm-relocate",
+			disabled: false,
+		});
+		expect(
+			planProjectRowAction({ ...base, status, isImportingAll: true }),
+		).toMatchObject({ kind: "confirm-relocate", disabled: true });
+	});
+
+	it("import errors show Queued during a batch, retryable error otherwise", () => {
+		const status: ProjectImportStatus = { kind: "error", message: "boom" };
+		expect(planProjectRowAction({ ...base, status })).toEqual({
+			kind: "error",
+			message: "boom",
+			retry: "import",
+		});
+		expect(
+			planProjectRowAction({ ...base, status, isImportingAll: true }),
+		).toEqual({ kind: "running", label: "Queued" });
+	});
+
+	it("query errors are retryable via refetch", () => {
+		expect(
+			planProjectRowAction({
+				...base,
+				findByPathErrorMessage: "host unreachable",
+			}),
+		).toEqual({ kind: "error", message: "host unreachable", retry: "query" });
+	});
+
+	it("ready and pick rows are disabled while Import All runs", () => {
+		expect(
+			planProjectRowAction({ ...base, isImportingAll: true }),
+		).toEqual({ kind: "ready", label: "Import", disabled: true });
+		const twoCandidates = {
+			candidates: [
+				{ id: "c1", name: "one" },
+				{ id: "c2", name: "two" },
+			],
+			cloudErrors: [],
+		} as unknown as Pick<
+			ProjectFindByPathResult,
+			"candidates" | "cloudErrors"
+		>;
+		expect(
+			planProjectRowAction({
+				...base,
+				findByPathData: twoCandidates,
+				isImportingAll: true,
+			}),
+		).toMatchObject({ kind: "pick", disabled: true });
+	});
+
+	it("single candidate labels the ready action Link", () => {
+		const oneCandidate = {
+			candidates: [{ id: "c1", name: "one" }],
+			cloudErrors: [],
+		} as unknown as Pick<
+			ProjectFindByPathResult,
+			"candidates" | "cloudErrors"
+		>;
+		expect(
+			planProjectRowAction({ ...base, findByPathData: oneCandidate }),
+		).toEqual({ kind: "ready", label: "Link", disabled: false });
+	});
 });
 ```
 
@@ -613,7 +759,8 @@ export type ProjectImportStatus =
 	| { kind: "idle" }
 	| { kind: "running" }
 	| { kind: "imported"; v2ProjectId: string }
-	| { kind: "error"; message: string };
+	| { kind: "error"; message: string }
+	| { kind: "needs-relocate"; v2ProjectId: string; message: string };
 
 const IDLE: ProjectImportStatus = { kind: "idle" };
 
@@ -622,7 +769,7 @@ const IDLE: ProjectImportStatus = { kind: "idle" };
  * counts. Pending = importable now (or still loading its findByPath
  * probe) and not already imported/running. Errors stay pending so a
  * re-press retries them; skip decisions (multiple candidates, cloud
- * unreachable) need a human and are excluded.
+ * unreachable) and needs-relocate rows require a human and are excluded.
  */
 export function selectPendingProjects<T extends { id: string }>(
 	projects: readonly T[],
@@ -632,14 +779,92 @@ export function selectPendingProjects<T extends { id: string }>(
 	return projects.filter((project) => {
 		const state = states.get(project.id)?.kind ?? "idle";
 		if (state === "running" || state === "imported") return false;
+		if (state === "needs-relocate") return false;
 		const decision = decisions.get(project.id);
 		if (decision && decision.kind !== "import") return false;
 		return true;
 	});
 }
+
+export type ProjectRowActionPlan =
+	| { kind: "running"; label?: string }
+	| { kind: "imported"; label: string }
+	| { kind: "confirm-relocate"; message: string; disabled: boolean }
+	| { kind: "error"; message: string; retry: "import" | "query" }
+	| { kind: "pick"; disabled: boolean }
+	| { kind: "ready"; label: "Link" | "Import"; disabled: boolean };
+
+/**
+ * Pure row-action derivation so batch-interaction rules are unit-testable
+ * (this repo has no component-interaction test infra). Mirrors the
+ * workspaces page: rows are disabled while Import All runs, and errored
+ * rows read "Queued" during a batch instead of offering a concurrent
+ * retry.
+ */
+export function planProjectRowAction(args: {
+	status: ProjectImportStatus;
+	isImportingAll: boolean;
+	findByPathPending: boolean;
+	findByPathErrorMessage: string | null;
+	findByPathData:
+		| Pick<ProjectFindByPathResult, "candidates" | "cloudErrors">
+		| undefined;
+	serverImported: boolean;
+}): ProjectRowActionPlan {
+	const {
+		status,
+		isImportingAll,
+		findByPathPending,
+		findByPathErrorMessage,
+		findByPathData,
+		serverImported,
+	} = args;
+	if (status.kind === "running") return { kind: "running" };
+	if (status.kind === "needs-relocate") {
+		return {
+			kind: "confirm-relocate",
+			message: status.message,
+			disabled: isImportingAll,
+		};
+	}
+	if (serverImported || status.kind === "imported") {
+		return { kind: "imported", label: "Linked" };
+	}
+	if (status.kind === "error") {
+		return isImportingAll
+			? { kind: "running", label: "Queued" }
+			: { kind: "error", message: status.message, retry: "import" };
+	}
+	if (findByPathPending) return { kind: "running" };
+	if (findByPathErrorMessage !== null) {
+		return { kind: "error", message: findByPathErrorMessage, retry: "query" };
+	}
+	const candidates = findByPathData?.candidates ?? [];
+	const cloudErrors = findByPathData?.cloudErrors ?? [];
+	if (candidates.length === 0 && cloudErrors.length > 0) {
+		const first = cloudErrors[0];
+		return {
+			kind: "error",
+			message: first
+				? `Couldn't reach cloud for ${first.url}: ${first.message}`
+				: "Couldn't reach cloud",
+			retry: "query",
+		};
+	}
+	if (candidates.length > 1) return { kind: "pick", disabled: isImportingAll };
+	return {
+		kind: "ready",
+		label: candidates.length === 1 ? "Link" : "Import",
+		disabled: isImportingAll,
+	};
+}
 ```
 
-Add `ProjectImportDecision` to the existing `renderer/lib/v1-migration` import.
+Add `ProjectImportDecision` to the existing `renderer/lib/v1-migration` import, and add this line to the `./projects` export block in `apps/desktop/src/renderer/lib/v1-migration/index.ts`:
+
+```ts
+	type ProjectImportDecision,
+```
 
 3b. In `ImportProjectsPage`, add page-level state + page-level findByPath queries (the same query keys the rows use, so the cache is shared):
 
@@ -744,8 +969,14 @@ const importAll = async () => {
 					});
 					await invalidateProjectImportQueries(queryClient, project);
 				} else {
-					// needs-relocate requires the row's confirm flow.
-					updateImportStatus(project.id, IDLE);
+					// needs-relocate requires the row's confirm flow; recording
+					// it here surfaces the confirm UI and keeps the project out
+					// of the pending count until the user decides.
+					updateImportStatus(project.id, {
+						kind: "needs-relocate",
+						v2ProjectId: result.v2ProjectId,
+						message: result.message,
+					});
 				}
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
@@ -788,7 +1019,7 @@ const headerAction = showImportAll ? (
 ) : null;
 ```
 
-3e. Wire rows to the shared map. Pass status + updater:
+3e. Wire rows to the shared map, including batch disabling:
 
 ```tsx
 {projects.map((project) => (
@@ -799,6 +1030,7 @@ const headerAction = showImportAll ? (
 		activeHostUrl={activeHostUrl}
 		status={importStates.get(project.id) ?? IDLE}
 		onStatusChange={(status) => updateImportStatus(project.id, status)}
+		disabled={isImportingAll}
 	/>
 ))}
 ```
@@ -812,10 +1044,13 @@ interface ProjectRowProps {
 	activeHostUrl: string;
 	status: ProjectImportStatus;
 	onStatusChange: (status: ProjectImportStatus) => void;
+	/** True while Import All runs — row actions must not start
+	 * concurrent imports. */
+	disabled: boolean;
 }
 ```
 
-Delete the row-local `running`, `errorMessage`, and `linkedV2Id` states (keep `pendingRelocate` — it is an interactive per-row confirm). Rewrite `runImport` to report through `onStatusChange`:
+Delete ALL row-local import state (`running`, `errorMessage`, `linkedV2Id`, AND `pendingRelocate` — relocate now lives in the shared map so Import All and reopen see it). Rewrite `runImport` to report through `onStatusChange`:
 
 ```ts
 const runImport = async (
@@ -823,7 +1058,6 @@ const runImport = async (
 	options: { allowRelocate?: boolean } = {},
 ) => {
 	onStatusChange({ kind: "running" });
-	setPendingRelocate(null);
 	try {
 		const result = await importProject({
 			project,
@@ -836,11 +1070,11 @@ const runImport = async (
 		});
 
 		if (result.kind === "needs-relocate") {
-			setPendingRelocate({
+			onStatusChange({
+				kind: "needs-relocate",
 				v2ProjectId: result.v2ProjectId,
 				message: result.message,
 			});
-			onStatusChange({ kind: "idle" });
 			return;
 		}
 
@@ -859,32 +1093,111 @@ const runImport = async (
 };
 ```
 
-And in the row's `action` derivation, replace the old state reads:
+Replace the row's inline `action` IIFE with a mapping from the pure plan
+(`extractExistingPath` import stays; `isProjectAlreadyImported` stays):
 
 ```ts
-const isImported =
-	isProjectAlreadyImported(findByPathQuery.data) ||
-	status.kind === "imported";
+const plan = planProjectRowAction({
+	status,
+	isImportingAll: disabled,
+	findByPathPending: findByPathQuery.isPending,
+	findByPathErrorMessage: findByPathQuery.isError
+		? findByPathQuery.error instanceof Error
+			? findByPathQuery.error.message
+			: String(findByPathQuery.error)
+		: null,
+	findByPathData: findByPathQuery.data,
+	serverImported: isProjectAlreadyImported(findByPathQuery.data),
+});
 
 const action: RowAction = (() => {
-	if (status.kind === "running") return { kind: "running" };
-	if (pendingRelocate) {
-		/* ...unchanged confirm block... */
+	switch (plan.kind) {
+		case "running":
+			return { kind: "running", label: plan.label };
+		case "imported":
+			return { kind: "imported", label: plan.label };
+		case "confirm-relocate": {
+			const existingPath = extractExistingPath(plan.message);
+			const relocateTo =
+				status.kind === "needs-relocate" ? status.v2ProjectId : null;
+			return {
+				kind: "confirm",
+				message: existingPath
+					? `Already set up at ${existingPath}. Link to ${project.mainRepoPath} instead?`
+					: `Link to ${project.mainRepoPath}?`,
+				confirmLabel: "Use this folder",
+				cancelLabel: "Cancel",
+				disabled: plan.disabled,
+				onConfirm: () => {
+					if (relocateTo) {
+						void runImport(relocateTo, { allowRelocate: true });
+					}
+				},
+				onCancel: () => onStatusChange({ kind: "idle" }),
+			};
+		}
+		case "error":
+			return {
+				kind: "error",
+				message: plan.message,
+				onRetry:
+					plan.retry === "import"
+						? () => {
+								void runImport();
+							}
+						: () => {
+								void findByPathQuery.refetch();
+							},
+			};
+		case "pick":
+			return {
+				kind: "pick",
+				label: "Link to…",
+				candidates: findByPathQuery.data?.candidates ?? [],
+				disabled: plan.disabled,
+				onPick: (id) => {
+					void runImport(id);
+				},
+			};
+		case "ready":
+			return {
+				kind: "ready",
+				label: plan.label,
+				disabled: plan.disabled,
+				onClick: () => {
+					void runImport();
+				},
+			};
 	}
-	if (isImported) {
-		return { kind: "imported", label: "Linked" };
-	}
-	if (status.kind === "error") {
-		return {
-			kind: "error",
-			message: status.message,
-			onRetry: () => runImport(),
-		};
-	}
-	/* ...rest unchanged: findByPathQuery pending/error, cloudErrors,
-	   pick, ready... */
 })();
 ```
+
+3g. In `ImportRow.tsx`, add `disabled?: boolean` to the `pick` and
+`confirm` variants of `RowAction`:
+
+```ts
+	| {
+			kind: "pick";
+			label: string;
+			candidates: ReadonlyArray<PickCandidate>;
+			onPick: (id: string) => void;
+			disabled?: boolean;
+	  }
+	| {
+			kind: "confirm";
+			message: string;
+			confirmLabel: string;
+			cancelLabel?: string;
+			onConfirm: () => void;
+			onCancel: () => void;
+			disabled?: boolean;
+	  };
+```
+
+and pass `disabled={action.disabled}` to the pick variant's
+`DropdownMenuTrigger` `Button` and to the confirm variant's confirm and
+cancel `Button`s in the component body (find the `action.kind === "pick"`
+and `action.kind === "confirm"` render branches).
 
 - [ ] **Step 4: Run the tests + typecheck**
 
@@ -897,7 +1210,9 @@ Expected: exit 0 (requires Task 2's `build:types` to have run).
 
 ```bash
 bun run lint:fix
-git add apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/ImportProjectsPage/
+git add apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/ImportProjectsPage/ \
+  apps/desktop/src/renderer/routes/_authenticated/components/V1ImportModal/components/ImportRow/ \
+  apps/desktop/src/renderer/lib/v1-migration/index.ts
 git commit -m "feat(desktop): workspaces-style Import All state and pending count in v1 project importer"
 ```
 
@@ -927,14 +1242,27 @@ Expected after fix: every row shows the green **Linked** state (server-side trut
 
 - [ ] **Step 4: E2E — fresh import path**
 
-Delete one project's rows from the dev host DB to simulate a not-yet-imported project (dev data only):
+Simulate a not-yet-imported project by removing one repo's rows from the
+**workspace-local dev** host DB. Do it safely: stop the dev stack first
+(no live writers, no bypassed event listeners), back up, use one exact
+resolved path (no globs), then restart:
 
 ```bash
-sqlite3 superset-dev-data/host/7c6e9b3b*/host.db \
+# 1. Stop the running `bun dev` (Ctrl-C / kill the background task).
+# 2. Resolve the exact DB path — must print exactly one line:
+DB=$(ls -d superset-dev-data/host/*/host.db | grep 7c6e9b3b); echo "$DB"
+# 3. Back up, then delete the one repo's rows:
+cp "$DB" "$DB.bak"
+sqlite3 "$DB" \
   "delete from projects where repo_path='/Users/manu/.superset/projects/recut';"
+# 4. Relaunch: RENDERER_REMOTE_DEBUG_PORT=9223 bun dev
 ```
 
-Refresh the importer (circular-arrows button). Expected: `recut` shows **Import**, button reads **Import all · 1**. Press it. Expected: `Importing 1/1` → row flips to **Linked**, button disappears, exactly **one** new row appears in the DB monitor, and re-opening the importer still shows Linked. Press nothing else — re-verify the button stays hidden.
+(This is throwaway per-workspace dev data — the user's real
+`~/.superset/host` is never touched. The `.bak` allows rollback if the
+delete hits the wrong rows.)
+
+Open the importer. Expected: `recut` shows **Import**, button reads **Import all · 1**. Press it. Expected: `Importing 1/1` → row flips to **Linked**, button disappears, exactly **one** new row appears in the DB monitor, and re-opening the importer still shows Linked. Press nothing else — re-verify the button stays hidden. Delete the `.bak` once verified.
 
 - [ ] **Step 5: Capture evidence + wrap up**
 
@@ -944,16 +1272,19 @@ Screenshot the importer (all Linked, no button) and the fresh-import before/afte
 for db in superset-dev-data/host/*/host.db; do sqlite3 "file:$db?mode=ro" \
   "select repo_path, count(*) from projects group by repo_path;"; done
 ```
-Expected: exactly one more `recut` row than before Step 4's delete+import (i.e. back to its pre-delete count minus the deleted duplicates plus one) and unchanged counts everywhere else. Mark the spec's "After the fix" checklist satisfied, then commit any final tweaks:
+Expected: exactly one more `recut` row than before Step 4's delete+import (i.e. back to its pre-delete count minus the deleted duplicates plus one) and unchanged counts everywhere else. Mark the spec's "After the fix" checklist satisfied, then commit the doc updates only (never `git add -A`):
 
 ```bash
-git add -A && git commit -m "docs(plans): record after-fix verification for v1 import duplicate fix"
+git add plans/2026-08-10-v1-import-duplicate-projects-design.md plans/2026-08-10-v1-import-duplicate-projects-fix-plan.md
+git commit -m "docs(plans): record after-fix verification for v1 import duplicate fix"
 ```
 
 ---
 
 ## Self-Review Notes
 
-- Spec coverage: Part 1 → Task 1; Part 2 (+created marker/appearance) → Tasks 2–3; Part 3 (state lift, `Import all · N`, error semantics) → Task 4; Testing/evidence gate → Tasks 1–5. Out-of-scope items (dedupe sweep, unique index, workspaces/presets pages) untouched.
+- Spec coverage: Part 1 → Task 1; Part 2 (+created marker/appearance) → Tasks 2–3; Part 3 (state lift, `Import all · N`, error semantics, batch row disabling) → Task 4; Testing/evidence gate → Tasks 1–5. Out-of-scope items (dedupe sweep, unique index, workspaces/presets pages) untouched.
 - `matchesExpected` on the unified local-hit return preserves the walkAllRemotes sort contract without cloud calls; it is `false` for the default branch exactly as today.
-- Type consistency: `created: boolean` (Task 2) is read as `result.created !== false` (Task 3) to tolerate older hosts; `ProjectImportStatus`/`selectPendingProjects` names match between Task 4's test and implementation.
+- Type consistency: `created: boolean` (Task 2) is read as `result.created !== false` (Task 3) to tolerate older hosts; `ProjectImportStatus`/`selectPendingProjects`/`planProjectRowAction`/`ProjectRowActionPlan` names match between Task 4's test and implementation; `ProjectImportDecision` is re-exported from the v1-migration barrel (compile-blocker fix from plan review).
+- Review-driven hardening: rows are disabled during Import All (`disabled` threaded to `ready`/`pick`/`confirm` actions); `needs-relocate` lives in the shared status map so it is excluded from the pending count and never silently re-queued; E2E row deletion uses a stopped stack, an exact resolved path, and a `.bak`; no `git add -A` anywhere; temp git repos are cleaned in `afterAll`.
+- Deliberate deviation from plan review: no component-interaction test is added because the repo has no such infra (all component tests are static `renderToStaticMarkup`); the interaction matrix is covered by the pure `planProjectRowAction` unit tests plus the Task 5 E2E gate.
