@@ -336,13 +336,13 @@ export const projectRouter = router({
 			z.object({
 				repoPath: z.string().min(1),
 				/**
-				 * Opt-in to the v1→v2 importer's discovery semantics: walk
-				 * every GitHub remote on the repo (not just origin/first),
-				 * try `expectedRemoteUrl` against cloud, and surface stale
-				 * local-DB rows. Default `false` preserves the long-standing
-				 * folder-first import behavior — local-DB hit short-circuits
-				 * before any cloud call, and only the primary remote is
-				 * cloud-queried.
+				 * Opt-in to the v1→v2 importer's discovery semantics: when no
+				 * local-DB row exists, walk every GitHub remote on the repo
+				 * (not just origin/first) and try `expectedRemoteUrl` against
+				 * cloud. In BOTH modes a local-DB hit short-circuits before
+				 * any cloud call — a local row means the repo is already a v2
+				 * project on this device ("local is reality"), regardless of
+				 * what the cloud knows.
 				 */
 				walkAllRemotes: z.boolean().optional(),
 				/**
@@ -388,46 +388,45 @@ export const projectRouter = router({
 				repoCloneUrl: string | null;
 				source: "local-path" | "remote";
 				matchesExpected: boolean;
-				/** True when the cloud-URL loop returned this id, which means
-				 *  it's reachable in cloud — lets us skip the per-id v2Project.get
-				 *  staleness check. Internal; not part of the wire response. */
-				cloudConfirmed: boolean;
-				/** True when this v2 project is no longer reachable in cloud
-				 *  (e.g. deleted) but a stale row still lives in this device's
-				 *  local DB. Caller-side filter drops these. */
-				staleLocalLink: boolean;
 			}
 
 			const localProject = ctx.db.query.projects
 				.findFirst({ where: eq(projects.repoPath, gitRoot) })
 				.sync();
 
-			// Default behavior (folder-first import): purely local. A local-DB
-			// hit is the only candidate source — no hit means the caller
-			// creates a fresh local project; the cloud is never consulted.
+			// A local-DB row keyed by this repo's git root is authoritative:
+			// the repo is already a v2 project on this device ("local is
+			// reality" — see the delete saga below). Return it without
+			// consulting the cloud. This covers both modes: the folder-first
+			// default has always worked this way, and the v1 importer must
+			// too — local-first projects have no cloud row, so any cloud
+			// probe here misreads them as stale and makes the importer
+			// create duplicates.
+			if (localProject) {
+				return {
+					candidates: [
+						{
+							id: localProject.id,
+							name:
+								localProject.name || localProject.repoName || basename(gitRoot),
+							repoCloneUrl: localProject.repoUrl ?? null,
+							source: "local-path" as const,
+							matchesExpected: matches(localProject.repoUrl ?? null),
+						},
+					],
+					cloudErrors: [] as { url: string; message: string }[],
+				};
+			}
+
+			// Default behavior (folder-first import): purely local. No local
+			// hit means the caller creates a fresh local project; the cloud
+			// is never consulted.
 			if (!input.walkAllRemotes) {
-				if (localProject) {
-					return {
-						candidates: [
-							{
-								id: localProject.id,
-								name:
-									localProject.name ||
-									localProject.repoName ||
-									basename(gitRoot),
-								repoCloneUrl: localProject.repoUrl ?? null,
-								source: "local-path" as const,
-								matchesExpected: false,
-								staleLocalLink: false,
-							},
-						],
-						cloudErrors: [] as { url: string; message: string }[],
-					};
-				}
 				return { candidates: [], cloudErrors: [] };
 			}
 
-			// walkAllRemotes branch — v1→v2 importer.
+			// walkAllRemotes branch — v1→v2 importer, no local row: discover
+			// linkable cloud candidates across every GitHub remote.
 			const allRemotes = await getGitHubRemotes(createUserSimpleGit(gitRoot));
 
 			const urlsToQuery = new Map<string, ParsedGitHubRemote>();
@@ -439,18 +438,6 @@ export const projectRouter = router({
 			}
 
 			const byId = new Map<string, Candidate>();
-
-			if (localProject) {
-				byId.set(localProject.id, {
-					id: localProject.id,
-					name: localProject.repoName ?? basename(gitRoot),
-					repoCloneUrl: localProject.repoUrl ?? null,
-					source: "local-path",
-					matchesExpected: matches(localProject.repoUrl ?? null),
-					cloudConfirmed: false,
-					staleLocalLink: false,
-				});
-			}
 
 			// Cloud lookup for every URL we know about.
 			const cloudErrors: { url: string; message: string }[] = [];
@@ -464,15 +451,11 @@ export const projectRouter = router({
 					for (const c of candidates) {
 						const existing = byId.get(c.id);
 						if (existing) {
-							// Already have it from local-DB lookup; the cloud
-							// confirms it's reachable, so keep `local-path`
-							// source but populate matchesExpected if needed
-							// and flip `cloudConfirmed` so we skip the post-
-							// loop staleness round-trip.
+							// Same project reachable via two remote URLs; keep one
+							// candidate and merge the match flag.
 							existing.matchesExpected =
 								existing.matchesExpected || matches(parsed.url);
 							existing.repoCloneUrl = existing.repoCloneUrl ?? parsed.url;
-							existing.cloudConfirmed = true;
 						} else {
 							byId.set(c.id, {
 								id: c.id,
@@ -480,8 +463,6 @@ export const projectRouter = router({
 								repoCloneUrl: parsed.url,
 								source: "remote",
 								matchesExpected: matches(parsed.url),
-								cloudConfirmed: true,
-								staleLocalLink: false,
 							});
 						}
 					}
@@ -496,57 +477,13 @@ export const projectRouter = router({
 				}
 			}
 
-			// Detect stale local-DB row: returned by the path lookup but
-			// cloud never confirmed it via any remote URL. Most likely the
-			// cloud project was deleted by another device or user. Skip
-			// when the cloud loop already saw this id (cloudConfirmed) —
-			// no need for a second round-trip.
-			if (localProject) {
-				const candidate = byId.get(localProject.id);
-				if (
-					candidate &&
-					candidate.source === "local-path" &&
-					!candidate.cloudConfirmed
-				) {
-					try {
-						await ctx.api.v2Project.get.query({
-							organizationId: ctx.organizationId,
-							id: localProject.id,
-						});
-					} catch (err) {
-						// Only treat a confirmed not-found as stale. Transient
-						// network/auth/5xx errors should leave the local link
-						// intact and surface via cloudErrors instead, so we
-						// don't drop a probably-still-valid candidate on a
-						// blip.
-						const code =
-							typeof err === "object" && err !== null
-								? ((err as { data?: { code?: string } }).data?.code ?? null)
-								: null;
-						if (code === "NOT_FOUND") {
-							candidate.staleLocalLink = true;
-						} else {
-							cloudErrors.push({
-								url: `v2Project.get(${localProject.id})`,
-								message: err instanceof Error ? err.message : String(err),
-							});
-						}
-					}
+			// Sort: matchesExpected first, then alphabetic.
+			const candidates = Array.from(byId.values()).sort((a, b) => {
+				if (a.matchesExpected !== b.matchesExpected) {
+					return a.matchesExpected ? -1 : 1;
 				}
-			}
-
-			// Sort: matchesExpected first, then alphabetic. Strip the
-			// internal `cloudConfirmed` flag — it's a server-side
-			// optimization, not part of the wire contract.
-			const candidates = Array.from(byId.values())
-				.filter((c) => !c.staleLocalLink)
-				.sort((a, b) => {
-					if (a.matchesExpected !== b.matchesExpected) {
-						return a.matchesExpected ? -1 : 1;
-					}
-					return a.name.localeCompare(b.name);
-				})
-				.map(({ cloudConfirmed: _omit, ...rest }) => rest);
+				return a.name.localeCompare(b.name);
+			});
 
 			// Caller surfaces this when there are no candidates and at least
 			// one cloud query failed — so users see a clear "couldn't reach
