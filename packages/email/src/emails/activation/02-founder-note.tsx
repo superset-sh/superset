@@ -22,7 +22,7 @@ export function ActivationNudge2({
 			<Body style={{ margin: 0, backgroundColor: "#FFFFFF" }}>
 				<Text style={paragraph}>Hi {userName},</Text>
 				<Text style={paragraph}>
-					I&apos;m Avi, one of the founders of Superset. I saw you signed up
+					I&apos;m Kiet, one of the founders of Superset. I saw you signed up
 					last week but it doesn&apos;t look like you&apos;ve gotten a workspace
 					running yet.
 				</Text>
@@ -35,7 +35,7 @@ export function ActivationNudge2({
 					Even a one-line reply helps us a lot. And if you hit something broken,
 					tell me and I&apos;ll get it fixed this week.
 				</Text>
-				<Text style={{ ...paragraph, margin: 0 }}>Avi</Text>
+				<Text style={{ ...paragraph, margin: 0 }}>Kiet</Text>
 			</Body>
 		</Html>
 	);
