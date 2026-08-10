@@ -148,6 +148,7 @@ function createManager(
 		readWorkspaceRefs?: (
 			worktreePath: string,
 		) => Promise<WorkspaceRefsSnapshot>;
+		worktreeExists?: (worktreePath: string) => boolean;
 	} = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -169,6 +170,9 @@ function createManager(
 			}) as never),
 		gitWatcher: { onChanged: () => () => {} } as never,
 		readWorkspaceRefs: overrides.readWorkspaceRefs,
+		// Seeded worktree paths are fabricated; default the disk gate open so
+		// sync-path tests exercise the git read, not the missing-dir skip.
+		worktreeExists: overrides.worktreeExists ?? (() => true),
 	});
 }
 
@@ -953,5 +957,107 @@ describe("workspace-created event trigger", () => {
 
 		expect(refsReads()).toBe(0);
 		expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeNull();
+	});
+});
+
+describe("missing-worktree degraded state", () => {
+	const createdEvent: WorkspaceChangedEvent = {
+		workspaceId: "ws-dead",
+		eventType: "created",
+		workspace: null,
+		occurredAt: 1,
+	};
+
+	function createGatedManager(db: HostDb, disk: { exists: boolean }) {
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({
+				"feat/dead": makePrNode({
+					number: 7001,
+					headRef: "feat/dead",
+					headSha: "sha-dead",
+				}),
+			}),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/dead",
+					headSha: "sha-dead",
+					upstream: { owner: REPO.owner, name: REPO.name, branch: "feat/dead" },
+				};
+			},
+			worktreeExists: () => disk.exists,
+		});
+		return { manager, refsReads: () => refsReads };
+	}
+
+	async function withCapturedWarnings<T>(
+		fn: () => Promise<T>,
+	): Promise<{ result: T; warnings: string[] }> {
+		const original = console.warn;
+		const warnings: string[] = [];
+		console.warn = (...args: unknown[]) => {
+			warnings.push(String(args[0]));
+		};
+		try {
+			return { result: await fn(), warnings };
+		} finally {
+			console.warn = original;
+		}
+	}
+
+	test("skips git reads and logs one line while the worktree is missing", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-dead", branch: "feat/dead" });
+		const disk = { exists: false };
+		const { manager, refsReads } = createGatedManager(db, disk);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		const { warnings } = await withCapturedWarnings(async () => {
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+		});
+
+		expect(refsReads()).toBe(0);
+		expect(getWorkspace(db, "ws-dead")?.pullRequestId).toBeNull();
+		expect(
+			warnings.filter((w) => w.includes("Worktree missing on disk")),
+		).toHaveLength(1);
+
+		manager.stop();
+	});
+
+	test("resumes sync and logs degraded-exit when the worktree reappears", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-dead", branch: "feat/dead" });
+		const disk = { exists: false };
+		const { manager, refsReads } = createGatedManager(db, disk);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		const { warnings } = await withCapturedWarnings(async () => {
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+			expect(refsReads()).toBe(0);
+
+			disk.exists = true;
+			bus.emit(createdEvent);
+			await waitFor(() => Boolean(getWorkspace(db, "ws-dead")?.pullRequestId));
+		});
+
+		expect(refsReads()).toBeGreaterThan(0);
+		const ws = getWorkspace(db, "ws-dead");
+		expect(ws?.headSha).toBe("sha-dead");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 7001)?.id);
+		expect(
+			warnings.filter((w) => w.includes("Worktree reappeared")),
+		).toHaveLength(1);
+
+		manager.stop();
 	});
 });
