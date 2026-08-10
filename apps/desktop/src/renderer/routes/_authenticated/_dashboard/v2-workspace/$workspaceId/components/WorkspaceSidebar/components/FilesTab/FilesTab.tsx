@@ -282,17 +282,19 @@ export function FilesTab({
 		Boolean(rootPath),
 	);
 
-	if (!rootPath) {
+	if (workspaceQuery.isLoading || hiddenPatternsQuery.isLoading) {
 		return (
 			<div className="flex h-full items-center justify-center gap-2 text-sm text-muted-foreground">
-				{workspaceQuery.isLoading ? (
-					<>
-						<Loader2 className="size-3.5 animate-spin" />
-						<span>Loading files...</span>
-					</>
-				) : (
-					"Workspace worktree not available"
-				)}
+				<Loader2 className="size-3.5 animate-spin" />
+				<span>Loading files...</span>
+			</div>
+		);
+	}
+
+	if (!rootPath) {
+		return (
+			<div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+				Workspace worktree not available
 			</div>
 		);
 	}

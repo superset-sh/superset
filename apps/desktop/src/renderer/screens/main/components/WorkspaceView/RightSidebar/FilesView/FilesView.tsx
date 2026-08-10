@@ -255,13 +255,6 @@ export function FilesView() {
 		features: [asyncDataLoaderFeature, selectionFeature, expandAllFeature],
 	});
 
-	// biome-ignore lint/correctness/useExhaustiveDependencies: reload cached tree entries when the matcher changes
-	useEffect(() => {
-		entryCacheRef.current.clear();
-		tree.getItemInstance("root")?.invalidateChildrenIds();
-		void trpcUtils.filesystem.searchFiles.invalidate();
-	}, [hiddenMatcher, tree, trpcUtils.filesystem.searchFiles]);
-
 	const prevWorktreePathRef = useRef(worktreePath);
 	useEffect(() => {
 		if (
@@ -285,6 +278,11 @@ export function FilesView() {
 		}
 		void trpcUtils.filesystem.searchFiles.invalidate();
 	}, [tree, trpcUtils]);
+
+	// biome-ignore lint/correctness/useExhaustiveDependencies: reload every visible directory when the matcher changes
+	useEffect(() => {
+		refreshVisibleDirectories();
+	}, [hiddenMatcher]);
 
 	const invalidateDirectoryByPath = useCallback(
 		(directoryPath: string) => {

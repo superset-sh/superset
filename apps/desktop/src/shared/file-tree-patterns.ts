@@ -111,19 +111,25 @@ export function createFileTreeHiddenMatcher(
 	return ({ relativePath, isDirectory }) => {
 		const normalizedPath = relativePath.replace(/\\/g, "/");
 		const segments = normalizedPath.split("/").filter(Boolean);
+		let candidatePath = "";
+		const candidates = segments.map((segment, index) => {
+			candidatePath = candidatePath ? `${candidatePath}/${segment}` : segment;
+			return {
+				name: segment,
+				path: candidatePath,
+				isDirectory: index < segments.length - 1 || isDirectory,
+			};
+		});
 
-		return compiled.some((pattern) => {
-			return segments.some((segment, index) => {
-				const candidateIsDirectory = index < segments.length - 1 || isDirectory;
-				if (pattern.directoriesOnly && !candidateIsDirectory) {
+		return compiled.some((pattern) =>
+			candidates.some((candidate) => {
+				if (pattern.directoriesOnly && !candidate.isDirectory) {
 					return false;
 				}
-
-				const candidatePath = segments.slice(0, index + 1).join("/");
 				return pattern.matchesBasename
-					? pattern.regex.test(segment)
-					: pattern.regex.test(candidatePath);
-			});
-		});
+					? pattern.regex.test(candidate.name)
+					: pattern.regex.test(candidate.path);
+			}),
+		);
 	};
 }

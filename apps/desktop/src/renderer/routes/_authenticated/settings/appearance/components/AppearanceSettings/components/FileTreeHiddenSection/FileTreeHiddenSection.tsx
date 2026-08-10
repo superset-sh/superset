@@ -8,6 +8,7 @@ import { HighlightText } from "renderer/routes/_authenticated/settings/component
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	DEFAULT_FILE_TREE_HIDDEN_PATTERNS,
+	MAX_FILE_TREE_HIDDEN_PATTERN_LENGTH,
 	MAX_FILE_TREE_HIDDEN_PATTERNS,
 } from "shared/file-tree-patterns";
 
@@ -49,7 +50,18 @@ export function FileTreeHiddenSection() {
 
 	const commit = () => {
 		if (draft === null) return;
-		setPatterns.mutate({ patterns: toPatterns(draft) });
+		const patterns = toPatterns(draft);
+		if (
+			patterns.some(
+				(pattern) => pattern.length > MAX_FILE_TREE_HIDDEN_PATTERN_LENGTH,
+			)
+		) {
+			toast.error(
+				`Patterns must be ${MAX_FILE_TREE_HIDDEN_PATTERN_LENGTH} characters or fewer`,
+			);
+			return;
+		}
+		setPatterns.mutate({ patterns });
 	};
 
 	return (
@@ -69,21 +81,24 @@ export function FileTreeHiddenSection() {
 				aria-label="Hidden file patterns"
 				className="font-mono text-xs min-h-32"
 				spellCheck={false}
-				disabled={isLoading}
+				disabled={isLoading || setPatterns.isPending}
 				value={value}
 				onChange={(event) => setDraft(event.target.value)}
-				onBlur={commit}
 			/>
 
 			<div className="mt-2 flex items-center gap-2">
-				<Button size="sm" onClick={commit} disabled={!isDirty || isLoading}>
+				<Button
+					size="sm"
+					onClick={commit}
+					disabled={!isDirty || isLoading || setPatterns.isPending}
+				>
 					Save patterns
 				</Button>
 				<Button
 					variant="ghost"
 					size="sm"
 					className="gap-1.5 text-xs text-muted-foreground"
-					disabled={isLoading}
+					disabled={isLoading || setPatterns.isPending}
 					onClick={() => {
 						setDraft(null);
 						setPatterns.mutate({
