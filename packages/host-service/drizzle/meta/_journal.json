@@ -148,6 +148,13 @@
       "when": 1786297592534,
       "tag": "0020_overrated_dreaming_celestial",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1786380983362,
+      "tag": "0021_heal_orphaned_terminal_session_workspace_refs",
+      "breakpoints": true
     }
   ]
 }
