@@ -53,30 +53,42 @@ export async function POST(request: Request): Promise<Response> {
 		return Response.json({ enqueued: 0 });
 	}
 
-	await qstash.batchJSON(
-		due.map((automation) => {
-			const scheduledFor = bucketToMinute(automation.nextRunAt);
-			return {
-				url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${automation.id}`,
-				body: {
-					automationId: automation.id,
-					scheduledFor: scheduledFor.toISOString(),
-				},
-				deduplicationId: `${automation.id}_${scheduledFor.getTime()}`,
-				retries: 2,
-				failureCallback: `${env.NEXT_PUBLIC_API_URL}/api/automations/run-failed`,
-			};
-		}),
-	);
-
-	const advanceResults = await Promise.allSettled(
-		due.map((automation) => {
+	const plans = due.map((automation) => {
+		const scheduledFor = bucketToMinute(automation.nextRunAt);
+		try {
 			const next = nextOccurrenceAfter({
 				rrule: automation.rrule,
 				dtstart: automation.dtstart,
 				timezone: automation.timezone,
 				after: automation.nextRunAt,
 			});
+			return { automation, scheduledFor, next, computeError: null };
+		} catch (err) {
+			return { automation, scheduledFor, next: null, computeError: err };
+		}
+	});
+
+	await qstash.batchJSON(
+		plans.map(({ automation, scheduledFor, next, computeError }) => ({
+			url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${automation.id}`,
+			body: {
+				automationId: automation.id,
+				scheduledFor: scheduledFor.toISOString(),
+				// Terminal occurrence of a bounded rule: this tick also flips
+				// enabled=false, and that UPDATE can land before QStash delivers.
+				// The flag tells the dispatch handler the disable is exhaustion,
+				// not a user pause, so the final slot still runs (#6128).
+				terminal: computeError === null && next === null,
+			},
+			deduplicationId: `${automation.id}_${scheduledFor.getTime()}`,
+			retries: 2,
+			failureCallback: `${env.NEXT_PUBLIC_API_URL}/api/automations/run-failed`,
+		})),
+	);
+
+	const advanceResults = await Promise.allSettled(
+		plans.map(({ automation, next, computeError }) => {
+			if (computeError) return Promise.reject(computeError);
 			return dbWs
 				.update(automations)
 				.set(next ? { nextRunAt: next } : { enabled: false })
@@ -89,7 +101,7 @@ export async function POST(request: Request): Promise<Response> {
 	// hide itself without this log.
 	const advanceFailures = advanceResults.flatMap((result, index) => {
 		if (result.status !== "rejected") return [];
-		const automation = due[index];
+		const automation = plans[index]?.automation;
 		return [{ automationId: automation?.id, reason: result.reason }];
 	});
 	if (advanceFailures.length > 0) {

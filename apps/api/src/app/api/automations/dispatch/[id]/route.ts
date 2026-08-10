@@ -1,5 +1,9 @@
 import { dbWs } from "@superset/db/client";
-import { automations } from "@superset/db/schema";
+import {
+	automationRuns,
+	automations,
+	type SelectAutomation,
+} from "@superset/db/schema";
 import { dispatchAutomation } from "@superset/trpc/automation-dispatch";
 import { Receiver } from "@upstash/qstash";
 import { eq } from "drizzle-orm";
@@ -18,7 +22,17 @@ const receiver = new Receiver({
 const payloadSchema = z.object({
 	automationId: z.string().uuid(),
 	scheduledFor: z.string().datetime(),
+	// Marks the terminal occurrence of a bounded (COUNT/UNTIL) rule, whose
+	// evaluate tick disables the automation in the same request that enqueues
+	// this message.
+	terminal: z.boolean().default(false),
 });
+
+function bucketToMinute(d: Date): Date {
+	const copy = new Date(d.getTime());
+	copy.setUTCSeconds(0, 0);
+	return copy;
+}
 
 export async function POST(
 	request: Request,
@@ -55,15 +69,54 @@ export async function POST(
 	if (!automation) {
 		return Response.json({ ok: true, skipped: "deleted" });
 	}
+
+	const scheduledFor = new Date(parsed.data.scheduledFor);
 	if (!automation.enabled) {
-		return Response.json({ ok: true, skipped: "disabled" });
+		// evaluate disables an exhausted bounded rule in the same tick that
+		// enqueues its final occurrence, and that UPDATE can beat QStash
+		// delivery. A terminal payload whose slot still matches next_run_at is
+		// that final occurrence, not a user pause — dispatch it (#6128).
+		// next_run_at moves on any other transition (advance, pause/resume
+		// recompute), so a stale terminal replay can't match.
+		const isTerminalSlot =
+			parsed.data.terminal &&
+			bucketToMinute(automation.nextRunAt).getTime() === scheduledFor.getTime();
+		if (!isTerminalSlot) {
+			await recordDisabledSkip(automation, scheduledFor);
+			return Response.json({ ok: true, skipped: "disabled" });
+		}
 	}
 
 	const outcome = await dispatchAutomation({
 		automation,
-		scheduledFor: new Date(parsed.data.scheduledFor),
+		scheduledFor,
 		relayUrl: env.RELAY_URL,
 	});
 
 	return Response.json({ ok: true, outcome });
+}
+
+/**
+ * A slot that reaches this handler already consumed its occurrence
+ * (evaluate advanced next_run_at when it enqueued), so dropping it on the
+ * disabled guard must leave a row — otherwise the loss is indistinguishable
+ * from a healthy finished series.
+ */
+async function recordDisabledSkip(
+	automation: SelectAutomation,
+	scheduledFor: Date,
+): Promise<void> {
+	await dbWs
+		.insert(automationRuns)
+		.values({
+			automationId: automation.id,
+			organizationId: automation.organizationId,
+			title: automation.name,
+			scheduledFor,
+			status: "dispatch_failed",
+			error: "automation disabled before dispatch delivery",
+		})
+		.onConflictDoNothing({
+			target: [automationRuns.automationId, automationRuns.scheduledFor],
+		});
 }
