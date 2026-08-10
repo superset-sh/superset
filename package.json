@@ -75,5 +75,8 @@
 		"sharp",
 		"utf-8-validate",
 		"workerd"
-	]
+	],
+	"patchedDependencies": {
+		"@xterm/addon-webgl@0.20.0-beta.297": "patches/@xterm%2Faddon-webgl@0.20.0-beta.297.patch"
+	}
 }
