@@ -90,6 +90,8 @@ export function createPierreTreeStyle({
 		"--trees-status-renamed-override": "oklch(0.6 0.118 244.557)",
 		"--trees-status-ignored-override": "var(--muted-foreground)",
 
+		"--trees-font-family-override":
+			"var(--superset-ui-font-family, var(--font-sans))",
 		"--trees-font-size-override": "var(--text-xs)",
 
 		// Search-bar chrome (Files tab only) — matches our text-input tokens.

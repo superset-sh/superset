@@ -14,8 +14,10 @@ export function UiFontSync() {
 		const root = document.documentElement;
 		if (uiFontFamily) {
 			root.style.setProperty(UI_FONT_FAMILY_CSS_VAR, uiFontFamily);
+			root.style.setProperty("--font-sans", uiFontFamily);
 		} else {
 			root.style.removeProperty(UI_FONT_FAMILY_CSS_VAR);
+			root.style.removeProperty("--font-sans");
 		}
 	}, [uiFontFamily]);
 
