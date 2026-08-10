@@ -1043,27 +1043,6 @@ export const auth = betterAuth({
 						})),
 					);
 
-					for (const owner of owners) {
-						try {
-							const { error } = await resend.events.send({
-								event: "subscription.canceled",
-								email: owner.email,
-								payload: {
-									organizationId: subscription.referenceId,
-									organizationName: org.name,
-									plan: subscription.plan,
-									ownerName: owner.name,
-								},
-							});
-							if (error) throw new Error(error.message);
-						} catch (error) {
-							console.error(
-								`[lifecycle] Failed to emit cancel event for ${owner.email}:`,
-								error,
-							);
-						}
-					}
-
 					try {
 						await qstash.publishJSON({
 							url: NOTIFY_SLACK_URL,
