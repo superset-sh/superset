@@ -1,6 +1,20 @@
+/** URL scheme a port is served over. */
+export type PortScheme = "http" | "https";
+
+const PORT_SCHEMES: PortScheme[] = ["http", "https"];
+
+function isPortScheme(value: unknown): value is PortScheme {
+	return PORT_SCHEMES.some((scheme) => scheme === value);
+}
+
 export interface StaticPortLabel {
 	port: number;
 	label: string;
+	/**
+	 * Scheme the browser actions open this port with. Always set once parsed —
+	 * an entry that omits it means `http`.
+	 */
+	scheme: PortScheme;
 }
 
 export type StaticPortsParseResult =
@@ -11,7 +25,7 @@ function validatePortEntry(
 	entry: unknown,
 	index: number,
 ):
-	| { valid: true; port: number; label: string }
+	| { valid: true; port: number; label: string; scheme: PortScheme }
 	| { valid: false; error: string } {
 	if (typeof entry !== "object" || entry === null) {
 		return { valid: false, error: `ports[${index}] must be an object` };
@@ -31,7 +45,11 @@ function validatePortEntry(
 		};
 	}
 
-	const { port, label } = entry as { port: unknown; label: unknown };
+	const { port, label, scheme } = entry as {
+		port: unknown;
+		label: unknown;
+		scheme: unknown;
+	};
 
 	if (typeof port !== "number" || !Number.isInteger(port)) {
 		return { valid: false, error: `ports[${index}].port must be an integer` };
@@ -52,7 +70,21 @@ function validatePortEntry(
 		return { valid: false, error: `ports[${index}].label cannot be empty` };
 	}
 
-	return { valid: true, port, label: label.trim() };
+	// Optional: a dev server that only speaks TLS is declared `"scheme": "https"`, so the
+	// browser actions open it over https instead of failing in the TLS handshake.
+	if (scheme !== undefined && !isPortScheme(scheme)) {
+		return {
+			valid: false,
+			error: `ports[${index}].scheme must be "http" or "https"`,
+		};
+	}
+
+	return {
+		valid: true,
+		port,
+		label: label.trim(),
+		scheme: scheme === undefined ? "http" : scheme,
+	};
 }
 
 export function parseStaticPortsConfig(
@@ -96,7 +128,11 @@ export function parseStaticPortsConfig(
 			};
 		}
 		seenPorts.add(result.port);
-		ports.push({ port: result.port, label: result.label });
+		ports.push({
+			port: result.port,
+			label: result.label,
+			scheme: result.scheme,
+		});
 	}
 
 	return { ports, error: null };

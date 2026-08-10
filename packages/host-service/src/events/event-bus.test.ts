@@ -52,6 +52,7 @@ describe("EventBus port events", () => {
 			eventType: "add",
 			port,
 			label: null,
+			scheme: null,
 		});
 		expect(typeof message.occurredAt).toBe("number");
 
@@ -63,6 +64,7 @@ describe("EventBus port events", () => {
 			eventType: "remove",
 			port,
 			label: null,
+			scheme: null,
 		});
 
 		eventBus.close();
