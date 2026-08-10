@@ -1,6 +1,6 @@
 import { Heading, Img, Section, Text } from "@react-email/components";
-import { Button, EmailLayout } from "../components";
-import { env } from "../lib/env";
+import { Button, EmailLayout } from "../../components";
+import { env } from "../../lib/env";
 
 const utm = (content: string) =>
 	`?utm_source=email&utm_medium=lifecycle&utm_campaign=welcome&utm_content=${content}`;

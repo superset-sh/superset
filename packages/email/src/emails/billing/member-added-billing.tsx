@@ -1,5 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
-import { EmailLayout } from "../components";
+import { EmailLayout } from "../../components";
 
 interface MemberAddedBillingEmailProps {
 	ownerName?: string | null;

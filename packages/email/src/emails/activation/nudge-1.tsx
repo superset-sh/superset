@@ -1,5 +1,5 @@
 import { Heading, Section, Text } from "@react-email/components";
-import { Button, EmailLayout } from "../components";
+import { Button, EmailLayout } from "../../components";
 
 const utm =
 	"?utm_source=email&utm_medium=lifecycle&utm_campaign=activation&utm_content=d1-first-workspace";

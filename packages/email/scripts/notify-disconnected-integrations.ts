@@ -28,7 +28,7 @@ import {
 import {
 	type DisconnectedConnection,
 	IntegrationDisconnectedEmail,
-} from "@superset/email/emails/integration-disconnected";
+} from "@superset/email/emails/internal/integration-disconnected";
 import { aliasedTable, and, eq, isNull } from "drizzle-orm";
 import { Resend } from "resend";
 

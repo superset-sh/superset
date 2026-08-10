@@ -1,5 +1,5 @@
 import { Heading, Text } from "@react-email/components";
-import { EmailLayout } from "../components";
+import { EmailLayout } from "../../components";
 
 interface MemberRemovedEmailProps {
 	memberName?: string | null;

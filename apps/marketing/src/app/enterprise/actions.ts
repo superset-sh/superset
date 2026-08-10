@@ -1,6 +1,6 @@
 "use server";
 
-import { EnterpriseInquiryEmail } from "@superset/email/emails/enterprise-inquiry";
+import { EnterpriseInquiryEmail } from "@superset/email/emails/internal/enterprise-inquiry";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";

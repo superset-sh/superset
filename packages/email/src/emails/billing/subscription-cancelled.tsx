@@ -1,6 +1,6 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
 import { format } from "date-fns";
-import { Button, EmailLayout } from "../components";
+import { Button, EmailLayout } from "../../components";
 
 interface SubscriptionCancelledEmailProps {
 	ownerName?: string | null;

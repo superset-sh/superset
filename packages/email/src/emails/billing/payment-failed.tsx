@@ -1,5 +1,5 @@
 import { Heading, Link, Section, Text } from "@react-email/components";
-import { Button, EmailLayout } from "../components";
+import { Button, EmailLayout } from "../../components";
 
 interface PaymentFailedEmailProps {
 	ownerName?: string | null;
