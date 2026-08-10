@@ -4,7 +4,7 @@
 
 **Goal:** Make the v1→v2 project importer detect already-imported projects (no more duplicates), make `importLocal` create idempotent, and give Import All the proven workspaces-page UX.
 
-**Architecture:** Three layers per the spec (`plans/2026-08-10-v1-import-duplicate-projects-design.md`): (1) host-service `project.findByPath` short-circuits on a local-DB hit and drops the cloud staleness probe; (2) host-service `createFromImportLocal` reuses an existing row for the same resolved repo path and reports `created: false`; (3) the wizard lifts per-row import state to page level (mirroring `ImportWorkspacesPage`) and gates v1-appearance carry on `created`.
+**Architecture:** Three layers per the spec (`plans/done/2026-08-10-v1-import-duplicate-projects-design.md`): (1) host-service `project.findByPath` short-circuits on a local-DB hit and drops the cloud staleness probe; (2) host-service `createFromImportLocal` reuses an existing row for the same resolved repo path and reports `created: false`; (3) the wizard lifts per-row import state to page level (mirroring `ImportWorkspacesPage`) and gates v1-appearance carry on `created`.
 
 **Tech Stack:** Bun + bun:test, drizzle (better-sqlite3 in prod / bun:sqlite in tests), tRPC v11, React 19, Biome.
 
@@ -1275,7 +1275,7 @@ for db in superset-dev-data/host/*/host.db; do sqlite3 "file:$db?mode=ro" \
 Expected: exactly one more `recut` row than before Step 4's delete+import (i.e. back to its pre-delete count minus the deleted duplicates plus one) and unchanged counts everywhere else. Mark the spec's "After the fix" checklist satisfied, then commit the doc updates only (never `git add -A`):
 
 ```bash
-git add plans/2026-08-10-v1-import-duplicate-projects-design.md plans/2026-08-10-v1-import-duplicate-projects-fix-plan.md
+git add plans/done/2026-08-10-v1-import-duplicate-projects-design.md plans/done/2026-08-10-v1-import-duplicate-projects-fix-plan.md
 git commit -m "docs(plans): record after-fix verification for v1 import duplicate fix"
 ```
 

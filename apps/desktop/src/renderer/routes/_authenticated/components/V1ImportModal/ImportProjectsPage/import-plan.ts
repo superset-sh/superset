@@ -25,7 +25,7 @@ export const IDLE_IMPORT_STATUS: ProjectImportStatus = { kind: "idle" };
 export function selectPendingProjects<T extends { id: string }>(
 	projects: readonly T[],
 	decisions: ReadonlyMap<string, ProjectImportDecision | undefined>,
-	states: ReadonlyMap<string, { kind: string }>,
+	states: ReadonlyMap<string, ProjectImportStatus>,
 ): T[] {
 	return projects.filter((project) => {
 		const state = states.get(project.id)?.kind ?? "idle";

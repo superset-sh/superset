@@ -2,7 +2,7 @@
 
 **Date:** 2026-08-10
 **Scope:** `packages/host-service` (project router), `apps/desktop` (V1ImportModal wizard)
-**Status:** Draft — pending review
+**Status:** Shipped — implemented, verified end-to-end (2026-08-10)
 
 ## Problem
 

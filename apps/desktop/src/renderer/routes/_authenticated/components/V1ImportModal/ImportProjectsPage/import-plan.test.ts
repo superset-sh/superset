@@ -32,9 +32,9 @@ describe("selectPendingProjects", () => {
 			["e", importDecision], // dropped: imported this session
 			// "f" has no decision yet (query loading) — stays pending
 		]);
-		const states = new Map([
-			["d", { kind: "running" as const }],
-			["e", { kind: "imported" as const }],
+		const states = new Map<string, ProjectImportStatus>([
+			["d", { kind: "running" }],
+			["e", { kind: "imported", v2ProjectId: "v2-e" }],
 		]);
 
 		expect(
@@ -138,6 +138,26 @@ describe("planProjectRowAction", () => {
 				findByPathErrorMessage: "host unreachable",
 			}),
 		).toEqual({ kind: "error", message: "host unreachable", retry: "query" });
+	});
+
+	it("pending discovery renders the running state", () => {
+		expect(planProjectRowAction({ ...base, findByPathPending: true })).toEqual({
+			kind: "running",
+		});
+	});
+
+	it("cloud unreachable with no candidates surfaces a query-retryable error", () => {
+		const cloudDown = {
+			candidates: [],
+			cloudErrors: [{ url: "https://github.com/acme/demo", message: "503" }],
+		} as unknown as Pick<ProjectFindByPathResult, "candidates" | "cloudErrors">;
+		expect(
+			planProjectRowAction({ ...base, findByPathData: cloudDown }),
+		).toEqual({
+			kind: "error",
+			message: "Couldn't reach cloud for https://github.com/acme/demo: 503",
+			retry: "query",
+		});
 	});
 
 	it("ready and pick rows are disabled while Import All runs", () => {
