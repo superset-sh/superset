@@ -51,9 +51,10 @@ export function createProviderUsageCollector(
 ): (options?: CollectProviderUsageOptions) => Promise<ProviderUsageSnapshot> {
 	let cachedSnapshot: ProviderUsageSnapshot | null = null;
 	let inFlight: Promise<ProviderUsageSnapshot> | null = null;
+	let forcedFollowUp: Promise<ProviderUsageSnapshot> | null = null;
 
 	const collectFresh = (): Promise<ProviderUsageSnapshot> => {
-		inFlight = Promise.all([
+		const poll = Promise.all([
 			collectSafely("claude", dependencies.collectClaude),
 			collectSafely("codex", dependencies.collectCodex),
 		]).then(([claude, codex]) => {
@@ -63,9 +64,10 @@ export function createProviderUsageCollector(
 			};
 			return cachedSnapshot;
 		});
+		inFlight = poll;
 
-		return inFlight.finally(() => {
-			inFlight = null;
+		return poll.finally(() => {
+			if (inFlight === poll) inFlight = null;
 		});
 	};
 
@@ -80,7 +82,15 @@ export function createProviderUsageCollector(
 		}
 		if (inFlight) {
 			if (!options.force) return inFlight;
-			await inFlight.catch(() => undefined);
+			if (forcedFollowUp) return forcedFollowUp;
+			const currentPoll = inFlight;
+			forcedFollowUp = currentPoll
+				.catch(() => undefined)
+				.then(() => collectFresh())
+				.finally(() => {
+					forcedFollowUp = null;
+				});
+			return forcedFollowUp;
 		}
 		return collectFresh();
 	};

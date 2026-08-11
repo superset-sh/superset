@@ -24,6 +24,10 @@ export function AccountUsageBlock({
 	const accessibleAccountLabel = blurEmails
 		? "account"
 		: (account.accountLabel ?? account.profileName);
+	const now = Date.now();
+	const visibleWindows = account.windows.filter(
+		(window) => window.resetAt === null || window.resetAt > now,
+	);
 	return (
 		<div className="space-y-2">
 			<div className="flex items-center justify-between gap-2">
@@ -43,19 +47,21 @@ export function AccountUsageBlock({
 						</span>
 					)}
 				</div>
-				{provider.providerId === "codex" && !account.isActive && (
-					<button
-						type="button"
-						disabled={actionsDisabled}
-						onClick={() => onSwitchProfile?.(account.profileName)}
-						className="shrink-0 rounded border border-border/60 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-50"
-					>
-						Switch
-					</button>
-				)}
+				{provider.providerId === "codex" &&
+					!account.isActive &&
+					onSwitchProfile && (
+						<button
+							type="button"
+							disabled={actionsDisabled}
+							onClick={() => onSwitchProfile?.(account.profileName)}
+							className="shrink-0 rounded border border-border/60 px-1.5 py-0.5 text-[9px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-50"
+						>
+							Switch
+						</button>
+					)}
 			</div>
-			{account.windows.length > 0 ? (
-				account.windows.map((window) => (
+			{visibleWindows.length > 0 ? (
+				visibleWindows.map((window) => (
 					<div key={`${account.id}:${window.id}`}>
 						<div className="grid grid-cols-[3.25rem_1fr_2.5rem] items-center gap-2">
 							<span className="text-[10px] text-muted-foreground">
@@ -93,7 +99,7 @@ export function AccountUsageBlock({
 					</div>
 				))
 			) : (
-				<p className="text-[10px] text-muted-foreground">
+				<p className="text-[10px] text-muted-foreground select-text cursor-text">
 					{account.statusMessage ?? "No usage reading yet"}
 				</p>
 			)}

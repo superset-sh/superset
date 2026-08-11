@@ -115,10 +115,45 @@ describe("createProviderUsageCollector", () => {
 
 		const first = collect();
 		const forced = collect({ force: true });
+
+		expect(claudeCalls).toBe(1);
 		resolveClaude?.(claudeUsage);
 
 		expect((await first).providers[0]?.accountLabel).toBe("Max");
 		expect((await forced).providers[0]?.accountLabel).toBe("Fresh");
+		expect(claudeCalls).toBe(2);
+	});
+
+	test("deduplicates simultaneous forced follow-up collection", async () => {
+		let resolveClaude: ((usage: ProviderUsage) => void) | undefined;
+		let claudeCalls = 0;
+		const collect = createProviderUsageCollector({
+			now: () => 1_000 + claudeCalls,
+			collectClaude: () => {
+				claudeCalls += 1;
+				if (claudeCalls === 1) {
+					return new Promise((resolve) => {
+						resolveClaude = resolve;
+					});
+				}
+				return Promise.resolve({
+					...claudeUsage,
+					accountLabel: `Fresh ${claudeCalls}`,
+				});
+			},
+			collectCodex: async () => codexUsage,
+		});
+
+		const first = collect();
+		const forcedA = collect({ force: true });
+		const forcedB = collect({ force: true });
+
+		expect(claudeCalls).toBe(1);
+		resolveClaude?.(claudeUsage);
+
+		expect((await first).providers[0]?.accountLabel).toBe("Max");
+		expect(await forcedB).toBe(await forcedA);
+		expect((await forcedA).providers[0]?.accountLabel).toBe("Fresh 2");
 		expect(claudeCalls).toBe(2);
 	});
 });

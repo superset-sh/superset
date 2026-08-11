@@ -239,6 +239,28 @@ function findCodexExecutable(env = process.env): string | null {
 	);
 }
 
+export function createCodexLoginCommand(
+	executable: string,
+	env: Record<string, string | undefined> = process.env,
+	platform = process.platform,
+): { command: string; args: string[] } {
+	const executableLower = executable.toLowerCase();
+	if (
+		platform === "win32" &&
+		(executableLower.endsWith(".cmd") || executableLower.endsWith(".bat"))
+	) {
+		return {
+			command: env.ComSpec ?? env.COMSPEC ?? "cmd.exe",
+			args: ["/d", "/s", "/c", `"${executable}" login`],
+		};
+	}
+
+	return {
+		command: executable,
+		args: ["login"],
+	};
+}
+
 export function createCodexProfileStore(
 	options: CodexProfileStoreOptions = {},
 ) {
@@ -446,7 +468,8 @@ export function createCodexProfileStore(
 
 		try {
 			await new Promise<void>((resolve, reject) => {
-				const child = spawn(executable, ["login"], {
+				const { command, args } = createCodexLoginCommand(executable, shellEnv);
+				const child = spawn(command, args, {
 					cwd: sessionHome,
 					env: {
 						...shellEnv,

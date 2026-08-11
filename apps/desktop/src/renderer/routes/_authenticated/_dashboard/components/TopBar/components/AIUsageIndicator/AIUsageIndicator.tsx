@@ -281,7 +281,7 @@ export function AIUsageIndicator() {
 					</button>
 				</div>
 				{accountActionError && (
-					<p className="border-t border-border/60 px-3.5 py-2 text-[10px] leading-relaxed text-amber-600">
+					<p className="border-t border-border/60 px-3.5 py-2 text-[10px] leading-relaxed text-amber-600 select-text cursor-text">
 						{accountActionError}
 					</p>
 				)}

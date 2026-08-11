@@ -246,6 +246,7 @@ describe("ProviderUsageRow", () => {
 					],
 				}}
 				accountActionsDisabled
+				onSwitchProfile={() => {}}
 			/>,
 		);
 
@@ -254,5 +255,78 @@ describe("ProviderUsageRow", () => {
 		expect(markup).toContain("disabled");
 		expect(markup).toContain("Codex usage is temporarily unavailable.");
 		expect(markup).toContain("Temporarily unavailable");
+	});
+
+	test("does not render Codex account switching without a switch handler", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow
+				provider={{
+					providerId: "codex",
+					providerName: "Codex",
+					status: "ok",
+					accountLabel: "second@example.com",
+					activeAccountId: "codex:acct-b",
+					windows: [],
+					errorMessage: null,
+					accounts: [
+						{
+							id: "codex:acct-a",
+							providerId: "codex",
+							profileName: "first-example-com",
+							accountLabel: "first@example.com",
+							planLabel: "pro",
+							isActive: false,
+							status: "cached",
+							statusMessage: "cached",
+							windows: [],
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(markup).not.toContain("Switch");
+	});
+
+	test("filters expired cached account windows at render time", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow
+				provider={{
+					providerId: "codex",
+					providerName: "Codex",
+					status: "ok",
+					accountLabel: "person@example.com",
+					activeAccountId: "codex:acct-a",
+					windows: [],
+					errorMessage: null,
+					accounts: [
+						{
+							id: "codex:acct-a",
+							providerId: "codex",
+							profileName: "person-example-com",
+							accountLabel: "person@example.com",
+							planLabel: "pro",
+							isActive: true,
+							status: "cached",
+							statusMessage: "cached",
+							windows: [
+								{
+									id: "expired",
+									label: "Expired",
+									usedPercent: 20,
+									remainingPercent: 80,
+									resetAt: Date.now() - 1_000,
+									windowSeconds: 18_000,
+								},
+							],
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(markup).toContain("cached");
+		expect(markup).not.toContain("80%");
+		expect(markup).not.toContain('role="progressbar"');
 	});
 });

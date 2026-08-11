@@ -11,6 +11,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
 	type CodexUsageSnapshot,
+	createCodexLoginCommand,
 	createCodexProfileStore,
 	parseCodexIdentity,
 	projectCachedWindows,
@@ -225,5 +226,34 @@ describe("codex profile store", () => {
 				windowSeconds: 604_800,
 			},
 		]);
+	});
+
+	test("runs Windows command shims through cmd.exe for Codex login", () => {
+		expect(
+			createCodexLoginCommand(
+				"C:\\Users\\person\\AppData\\Roaming\\npm\\codex.cmd",
+				{ ComSpec: "C:\\Windows\\System32\\cmd.exe" },
+				"win32",
+			),
+		).toEqual({
+			command: "C:\\Windows\\System32\\cmd.exe",
+			args: [
+				"/d",
+				"/s",
+				"/c",
+				'"C:\\Users\\person\\AppData\\Roaming\\npm\\codex.cmd" login',
+			],
+		});
+
+		expect(
+			createCodexLoginCommand(
+				"C:\\Program Files\\Codex\\codex.exe",
+				{},
+				"win32",
+			),
+		).toEqual({
+			command: "C:\\Program Files\\Codex\\codex.exe",
+			args: ["login"],
+		});
 	});
 });
