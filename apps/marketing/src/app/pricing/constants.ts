@@ -86,7 +86,7 @@ export const PRICING_TIERS: PricingTier[] = [
 		price: {
 			kind: "custom",
 			display: "Custom pricing",
-			note: "Billed yearly",
+			note: "Annual billing only",
 		},
 		features: [
 			"Everything in Pro",
