@@ -6,6 +6,7 @@ import { initTRPC, TRPCError } from "@trpc/server";
 import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
 import { ZodError } from "zod";
+import { enforceRateLimit } from "./lib/rate-limit";
 
 export type TRPCContext = {
 	session: Session | null;
@@ -68,6 +69,20 @@ export const protectedProcedure = t.procedure
 		}
 
 		return next({ ctx: { ...ctx, activeOrganizationId } });
+	})
+	// Runs after auth so the budget is keyed to a real identity. Unauthenticated
+	// floods are the auth layer's problem, not this one's.
+	.use(async ({ ctx, type, path, next }) => {
+		await enforceRateLimit({
+			type,
+			path,
+			subject: {
+				userId: ctx.session.user.id,
+				organizationId: ctx.activeOrganizationId,
+			},
+		});
+
+		return next();
 	});
 
 function resolveActiveOrganizationId(
@@ -88,69 +103,85 @@ function resolveActiveOrganizationId(
 	return requestedOrganizationId;
 }
 
-export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
-	const authHeader = ctx.headers.get("authorization");
-	const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
-	const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
+export const jwtProcedure = t.procedure
+	.use(async ({ ctx, next }) => {
+		const authHeader = ctx.headers.get("authorization");
+		const bearer = authHeader?.startsWith("Bearer ")
+			? authHeader.slice(7)
+			: null;
+		const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
 
-	if (bearer) {
-		try {
-			const { payload } = await ctx.auth.api.verifyJWT({
-				body: { token: bearer },
-			});
-			if (payload?.sub) {
-				const organizationIds = Array.isArray(payload.organizationIds)
-					? payload.organizationIds.filter(
-							(id): id is string => typeof id === "string",
-						)
-					: [];
-				return next({
-					ctx: {
-						userId: payload.sub,
-						email: (payload.email as string) ?? "",
-						organizationIds,
-						activeOrganizationId: resolveActiveOrganizationId(
-							organizationIds,
-							headerOrgId,
-						),
-					},
+		if (bearer) {
+			try {
+				const { payload } = await ctx.auth.api.verifyJWT({
+					body: { token: bearer },
 				});
+				if (payload?.sub) {
+					const organizationIds = Array.isArray(payload.organizationIds)
+						? payload.organizationIds.filter(
+								(id): id is string => typeof id === "string",
+							)
+						: [];
+					return next({
+						ctx: {
+							userId: payload.sub,
+							email: (payload.email as string) ?? "",
+							organizationIds,
+							activeOrganizationId: resolveActiveOrganizationId(
+								organizationIds,
+								headerOrgId,
+							),
+						},
+					});
+				}
+			} catch (error) {
+				// A live session is the legit fallback for an unverifiable token
+				// (expired/missing). A TRPCError from verifyJWT is an explicit
+				// rejection (revoked/forged) — surface it instead of laundering
+				// it into session auth.
+				if (error instanceof TRPCError) throw error;
 			}
-		} catch (error) {
-			// A live session is the legit fallback for an unverifiable token
-			// (expired/missing). A TRPCError from verifyJWT is an explicit
-			// rejection (revoked/forged) — surface it instead of laundering
-			// it into session auth.
-			if (error instanceof TRPCError) throw error;
 		}
-	}
 
-	if (ctx.session) {
-		const userId = ctx.session.user.id;
-		const memberRows = await db.query.members.findMany({
-			where: eq(members.userId, userId),
-			columns: { organizationId: true },
+		if (ctx.session) {
+			const userId = ctx.session.user.id;
+			const memberRows = await db.query.members.findMany({
+				where: eq(members.userId, userId),
+				columns: { organizationId: true },
+			});
+			const organizationIds = memberRows.map((row) => row.organizationId);
+			return next({
+				ctx: {
+					userId,
+					email: ctx.session.user.email ?? "",
+					organizationIds,
+					activeOrganizationId: headerOrgId
+						? resolveActiveOrganizationId(organizationIds, headerOrgId)
+						: (ctx.session.session.activeOrganizationId ??
+							organizationIds[0] ??
+							null),
+				},
+			});
+		}
+
+		throw new TRPCError({
+			code: "UNAUTHORIZED",
+			message:
+				"Not authenticated. Provide a bearer JWT, x-api-key, or session.",
 		});
-		const organizationIds = memberRows.map((row) => row.organizationId);
-		return next({
-			ctx: {
-				userId,
-				email: ctx.session.user.email ?? "",
-				organizationIds,
-				activeOrganizationId: headerOrgId
-					? resolveActiveOrganizationId(organizationIds, headerOrgId)
-					: (ctx.session.session.activeOrganizationId ??
-						organizationIds[0] ??
-						null),
+	})
+	.use(async ({ ctx, type, path, next }) => {
+		await enforceRateLimit({
+			type,
+			path,
+			subject: {
+				userId: ctx.userId,
+				organizationId: ctx.activeOrganizationId,
 			},
 		});
-	}
 
-	throw new TRPCError({
-		code: "UNAUTHORIZED",
-		message: "Not authenticated. Provide a bearer JWT, x-api-key, or session.",
+		return next();
 	});
-});
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {
 	if (!ctx.session.user.email.endsWith(COMPANY.EMAIL_DOMAIN)) {
