@@ -83,7 +83,7 @@ export function loadAddons(
 				suggestedRendererType = "dom";
 				terminal.refresh(0, terminal.rows - 1);
 			});
-			terminal.loadAddon(webglAddon);
+			// Subscribe before loadAddon: the first page-add fires during activation.
 			let atlasPageAdds = 0;
 			webglAddon.onAddTextureAtlasCanvas(() => {
 				if (++atlasPageAdds >= ATLAS_PAGE_ADDS_BEFORE_RESET) {
@@ -93,6 +93,7 @@ export function loadAddons(
 					queueMicrotask(() => webglAddon?.clearTextureAtlas());
 				}
 			});
+			terminal.loadAddon(webglAddon);
 		} catch {
 			suggestedRendererType = "dom";
 			webglAddon = null;
