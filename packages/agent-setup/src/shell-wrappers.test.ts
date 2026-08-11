@@ -937,11 +937,12 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			expect(output).not.toContain("38;2;52;211;153");
 		});
 
-		it("does not export PS1 to child processes even if user config did", () => {
+		it("applies the emerald prompt in the shell even when user config exported PS1", () => {
 			const homeDir = path.join(TEST_ROOT, "ps1-noexport", "home");
 			mkdirSync(homeDir, { recursive: true });
 			// User config exports PS1 before Superset's wrapper sets its own.
-			// The wrapper's `export -n PS1` must keep it unexported to children.
+			// The wrapper's `export -n PS1` must keep it unexported to children
+			// (the grandchild-env case is covered by the next test).
 			writeFileSync(path.join(homeDir, ".bashrc"), `export PS1='user'\n`);
 
 			const output = runBash({
