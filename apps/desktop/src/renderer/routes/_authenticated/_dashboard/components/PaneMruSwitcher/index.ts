@@ -1,0 +1,1 @@
+export { PaneMruSwitcher } from "./PaneMruSwitcher";

@@ -1,4 +1,5 @@
 import type { WorkspaceTransactionSnapshot } from "renderer/stores/workspace-creates";
+import type { PullRequestState } from "shared/pull-request-types";
 
 export type DashboardSidebarWorkspaceHostType =
 	| "local-device"
@@ -17,7 +18,7 @@ export interface DashboardSidebarWorkspacePullRequest {
 	url: string;
 	number: number;
 	title: string;
-	state: "open" | "merged" | "closed" | "draft" | "queued";
+	state: PullRequestState;
 	reviewDecision: "approved" | "changes_requested" | "pending" | null;
 	requestedReviewers?: string[];
 	checksStatus: "success" | "failure" | "pending" | "none";

@@ -1,0 +1,1 @@
+export { usePrunePaneMru } from "./usePrunePaneMru";
