@@ -1,4 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
+import type { ExternalApp } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
@@ -10,6 +11,12 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 export interface OpenInExternalEditorOptions {
 	line?: number;
 	column?: number;
+	/**
+	 * Explicit app override (e.g. the per-file "Open file in" submenu). Falls
+	 * back to the v2 project default when omitted. Routing through this hook
+	 * keeps the remote-host guard below in one place.
+	 */
+	app?: ExternalApp;
 }
 
 export function useOpenInExternalEditor(workspaceId: string) {
@@ -45,7 +52,7 @@ export function useOpenInExternalEditor(workspaceId: string) {
 					column: opts?.column,
 					worktreePath,
 					projectId,
-					app: v2PreferredApp,
+					app: opts?.app ?? v2PreferredApp,
 				})
 				.catch((error) => {
 					console.error("Failed to open in external editor:", error);

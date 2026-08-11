@@ -354,6 +354,7 @@ export const ChangesTreeView = memo(function ChangesTreeView({
 	const fileMenuItems = (file: ChangesetFile) => (
 		<FileRowContextMenuItems
 			file={file}
+			workspaceId={workspaceId}
 			worktreePath={worktreePath}
 			sectionKind={sectionKind}
 			onSelectFile={onSelectFile}

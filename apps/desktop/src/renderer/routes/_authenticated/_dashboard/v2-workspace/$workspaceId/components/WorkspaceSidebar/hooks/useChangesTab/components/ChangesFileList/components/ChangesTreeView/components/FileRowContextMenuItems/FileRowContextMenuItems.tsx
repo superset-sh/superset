@@ -16,6 +16,7 @@ import {
 	modifierLabel,
 	useChangesSidebarFilePolicy,
 } from "renderer/lib/clickPolicy";
+import { OpenFileInMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/OpenFileInMenuItems";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -25,6 +26,7 @@ import { PathActionsMenuItems } from "../../../PathActionsMenuItems";
 
 interface FileRowContextMenuItemsProps {
 	file: ChangesetFile;
+	workspaceId: string;
 	worktreePath?: string;
 	sectionKind: "unstaged" | "staged" | "against-base" | "commit";
 	onSelectFile?: (
@@ -50,6 +52,7 @@ interface FileRowContextMenuItemsProps {
  */
 export function FileRowContextMenuItems({
 	file,
+	workspaceId,
 	worktreePath,
 	sectionKind,
 	onSelectFile,
@@ -118,6 +121,11 @@ export function FileRowContextMenuItems({
 					</DropdownMenuShortcut>
 				)}
 			</DropdownMenuItem>
+			<OpenFileInMenuItems
+				path={file.path}
+				workspaceId={workspaceId}
+				menuType="dropdown"
+			/>
 			{absolutePath && (
 				<>
 					<DropdownMenuSeparator />

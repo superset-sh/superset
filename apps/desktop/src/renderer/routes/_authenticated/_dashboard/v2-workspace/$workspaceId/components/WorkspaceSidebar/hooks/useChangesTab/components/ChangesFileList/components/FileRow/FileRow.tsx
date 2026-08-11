@@ -36,6 +36,7 @@ import {
 import { FileIcon } from "renderer/lib/fileIcons";
 import { DiscardConfirmDialog } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/DiscardConfirmDialog";
 import { StatusIndicator } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/StatusIndicator";
+import { OpenFileInMenuItems } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/components/WorkspaceSidebar/components/OpenFileInMenuItems";
 import {
 	type ChangesetFile,
 	getChangesetFileKey,
@@ -309,6 +310,11 @@ export const FileRow = memo(function FileRow({
 						</ContextMenuShortcut>
 					)}
 				</ContextMenuItem>
+				<OpenFileInMenuItems
+					path={file.path}
+					workspaceId={workspaceId}
+					menuType="context"
+				/>
 				{absolutePath && (
 					<>
 						<ContextMenuSeparator />
