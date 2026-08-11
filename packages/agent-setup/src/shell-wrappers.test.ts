@@ -874,4 +874,75 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			}
 		});
 	});
+
+	describe("bash PS1 handling (#6311)", () => {
+		function runBash({
+			homeDir,
+			rcArgs = ["-ic"],
+			extraEnv = {},
+		}: {
+			homeDir: string;
+			rcArgs?: string[];
+			extraEnv?: Record<string, string>;
+		}): string {
+			createBashWrapper(TEST_PATHS);
+			return execFileSync(
+				"bash",
+				[
+					"--rcfile",
+					path.join(TEST_BASH_DIR, "rcfile"),
+					...rcArgs,
+					'printf "%s" "$PS1"',
+				],
+				{
+					encoding: "utf-8",
+					env: { HOME: homeDir, PATH: "/usr/bin:/bin", ...extraEnv },
+				},
+			);
+		}
+
+		it("applies the emerald prompt by default in an interactive shell", () => {
+			const homeDir = path.join(TEST_ROOT, "ps1-default", "home");
+			mkdirSync(homeDir, { recursive: true });
+			writeFileSync(path.join(homeDir, ".bashrc"), `PS1='MINE> '\n`);
+
+			const output = runBash({ homeDir });
+			// Escape sequence preserved via $'...': the 38;2;52;211;153 color code.
+			expect(output).toContain("38;2;52;211;153");
+		});
+
+		it("keeps the user's PS1 when SUPERSET_KEEP_PS1 is exported", () => {
+			const homeDir = path.join(TEST_ROOT, "ps1-keep", "home");
+			mkdirSync(homeDir, { recursive: true });
+			writeFileSync(
+				path.join(homeDir, ".bashrc"),
+				`export SUPERSET_KEEP_PS1=1\nPS1='MINE> '\n`,
+			);
+
+			const output = runBash({ homeDir });
+			expect(output).toContain("MINE> ");
+			expect(output).not.toContain("38;2;52;211;153");
+		});
+
+		it("does not set PS1 for non-interactive execution", () => {
+			const homeDir = path.join(TEST_ROOT, "ps1-noninteractive", "home");
+			mkdirSync(homeDir, { recursive: true });
+
+			const output = runBash({ homeDir, rcArgs: ["-c"] });
+			// No prompt in a non-interactive shell (the rcfile is sourced via
+			// getCommandShellArgs for `bash -c` command execution).
+			expect(output).not.toContain("38;2;52;211;153");
+		});
+
+		it("does not leak PS1 into child processes (plain assignment, no export)", () => {
+			const homeDir = path.join(TEST_ROOT, "ps1-noexport", "home");
+			mkdirSync(homeDir, { recursive: true });
+
+			createBashWrapper(TEST_PATHS);
+			const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
+			// The prompt assignment must be a plain `PS1=`, not `export PS1=`.
+			expect(rcfile).toMatch(/\n {2}PS1=\$'/);
+			expect(rcfile).not.toMatch(/export PS1=/);
+		});
+	});
 });
