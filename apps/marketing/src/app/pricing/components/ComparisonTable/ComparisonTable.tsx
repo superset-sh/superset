@@ -68,7 +68,7 @@ function tierPriceLabel(tier: (typeof PRICING_TIERS)[number]): string {
 		return tier.price.display;
 	}
 	if (tier.price.kind === "variable") {
-		return `${tier.price.yearly.display}/user/mo`;
+		return `from ${tier.price.yearly.display}/user/mo`;
 	}
 	return "Custom";
 }
