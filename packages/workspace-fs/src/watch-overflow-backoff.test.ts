@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import fs from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { getSearchIndex } from "./search";
 import type { FsWatchEvent } from "./types";
 import { FsWatcherManager, type FsWatcherManagerOptions } from "./watch";
 
@@ -131,21 +132,22 @@ describe("FSEvents overflow rescan backoff", () => {
 		const { events, state } = await subscribeWithEvents(manager, rootPath);
 
 		injectOverflow(manager, state);
-		expect(state.overflowRescanDelayMs).toBe(100); // 50 armed, next doubled
+		expect(state.overflowRescanDelayMs).toBe(50); // window stable while armed
 		await waitUntil(() => overflowEvents(events).length === 1, "rescan 1");
+		expect(state.overflowRescanDelayMs).toBe(100); // doubled at fire
 
 		injectOverflow(manager, state);
-		expect(state.overflowRescanDelayMs).toBe(200); // 100 armed, next doubled
 		await waitUntil(() => overflowEvents(events).length === 2, "rescan 2");
+		expect(state.overflowRescanDelayMs).toBe(200); // doubled again
 
 		injectOverflow(manager, state);
-		expect(state.overflowRescanDelayMs).toBe(200); // capped
 		await waitUntil(() => overflowEvents(events).length === 3, "rescan 3");
+		expect(state.overflowRescanDelayMs).toBe(200); // capped
 
 		// Quiet longer than the reset window → next overflow starts over.
 		await new Promise((resolve) => setTimeout(resolve, 350));
 		injectOverflow(manager, state);
-		expect(state.overflowRescanDelayMs).toBe(100); // 50 re-armed, doubled
+		expect(state.overflowRescanDelayMs).toBe(50); // reset to initial
 		await waitUntil(() => overflowEvents(events).length === 4, "rescan 4");
 	});
 
@@ -169,6 +171,83 @@ describe("FSEvents overflow rescan backoff", () => {
 		await waitUntil(
 			() => overflowEvents(events).length === 1,
 			"trailing rescan after settle",
+		);
+	});
+
+	it("rearms the trailing window when a second overflow lands near expiry", async () => {
+		const rootPath = await createTempRoot();
+		tempRoots.push(rootPath);
+		const manager = createManager({
+			debounceMs: 25,
+			overflowRescanInitialMs: 300,
+			overflowRescanMaxMs: 2_000,
+			overflowBackoffResetMs: 10_000,
+		});
+		const rescanTimes: number[] = [];
+		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+			for (const event of batch.events) {
+				if (event.kind === "overflow") rescanTimes.push(Date.now());
+			}
+		});
+		const internal = manager as unknown as FsWatcherManagerInternal;
+		const state = internal.watchers.get(rootPath);
+		if (!state) throw new Error("watcher state missing");
+
+		injectOverflow(manager, state);
+		await new Promise((resolve) => setTimeout(resolve, 200));
+		// A change landing between the two overflows must survive the burst.
+		await fs.writeFile(path.join(rootPath, "between-overflows.ts"), "x");
+		injectOverflow(manager, state);
+		const secondOverflowAt = Date.now();
+
+		await waitUntil(() => rescanTimes.length > 0, "trailing rescan");
+		// Must trail the SECOND overflow by a full window, not fire on the
+		// first overflow's timer (~100ms after the second).
+		const firstRescanAt = rescanTimes[0] ?? 0;
+		expect(firstRescanAt - secondOverflowAt).toBeGreaterThanOrEqual(290);
+
+		const index = await getSearchIndex({ rootPath, includeHidden: false });
+		expect(
+			index.some((entry) =>
+				entry.absolutePath.endsWith("between-overflows.ts"),
+			),
+		).toBe(true);
+	});
+
+	it("sustained overflow cannot postpone rescans past the cap", async () => {
+		const rootPath = await createTempRoot();
+		tempRoots.push(rootPath);
+		const manager = createManager({
+			overflowRescanInitialMs: 100,
+			overflowRescanMaxMs: 300,
+			overflowBackoffResetMs: 10_000,
+		});
+		const rescanTimes: number[] = [];
+		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
+			for (const event of batch.events) {
+				if (event.kind === "overflow") rescanTimes.push(Date.now());
+			}
+		});
+		const internal = manager as unknown as FsWatcherManagerInternal;
+		const state = internal.watchers.get(rootPath);
+		if (!state) throw new Error("watcher state missing");
+
+		// Overflows every 50ms for ~1s: each rearm (window >= 100ms) would push
+		// the rescan out forever without the batch deadline clamp.
+		let lastInjectAt = 0;
+		for (let i = 0; i < 20; i++) {
+			injectOverflow(manager, state);
+			lastInjectAt = Date.now();
+			await new Promise((resolve) => setTimeout(resolve, 50));
+		}
+		const stormEndAt = Date.now();
+		const duringStorm = rescanTimes.filter((t) => t <= stormEndAt);
+		expect(duringStorm.length).toBeGreaterThanOrEqual(2);
+
+		// And the storm still ends with a trailing rescan after the last overflow.
+		await waitUntil(
+			() => rescanTimes.some((t) => t > lastInjectAt),
+			"trailing rescan after sustained storm",
 		);
 	});
 
