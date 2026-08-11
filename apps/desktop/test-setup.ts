@@ -171,6 +171,18 @@ mock.module("electron", () => ({
 		handle: mock(),
 		on: mock(),
 	},
+	// Present so main-process modules can `import { session } from "electron"`.
+	// Tests that exercise session APIs should inject their own fake instead of
+	// asserting against these shared spies.
+	session: {
+		fromPartition: mock(() => ({
+			netLog: {
+				startLogging: mock(() => Promise.resolve()),
+				stopLogging: mock(() => Promise.resolve()),
+			},
+			protocol: { handle: mock(), unhandle: mock() },
+		})),
+	},
 	shell: {
 		openExternal: mock(() => Promise.resolve()),
 		openPath: mock(() => Promise.resolve("")),
