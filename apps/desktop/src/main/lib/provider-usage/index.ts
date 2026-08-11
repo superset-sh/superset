@@ -37,7 +37,11 @@ async function collectSafely(
 ): Promise<ProviderUsage> {
 	try {
 		return await collector();
-	} catch {
+	} catch (error) {
+		console.warn(
+			`[provider-usage] Failed to collect ${providerId} usage:`,
+			error,
+		);
 		return unavailableProvider(providerId);
 	}
 }
@@ -48,17 +52,7 @@ export function createProviderUsageCollector(
 	let cachedSnapshot: ProviderUsageSnapshot | null = null;
 	let inFlight: Promise<ProviderUsageSnapshot> | null = null;
 
-	return async (options = {}) => {
-		const now = dependencies.now();
-		if (
-			!options.force &&
-			cachedSnapshot &&
-			now - cachedSnapshot.collectedAt < CACHE_DURATION_MS
-		) {
-			return cachedSnapshot;
-		}
-		if (inFlight) return inFlight;
-
+	const collectFresh = (): Promise<ProviderUsageSnapshot> => {
 		inFlight = Promise.all([
 			collectSafely("claude", dependencies.collectClaude),
 			collectSafely("codex", dependencies.collectCodex),
@@ -70,11 +64,25 @@ export function createProviderUsageCollector(
 			return cachedSnapshot;
 		});
 
-		try {
-			return await inFlight;
-		} finally {
+		return inFlight.finally(() => {
 			inFlight = null;
+		});
+	};
+
+	return async (options = {}) => {
+		const now = dependencies.now();
+		if (
+			!options.force &&
+			cachedSnapshot &&
+			now - cachedSnapshot.collectedAt < CACHE_DURATION_MS
+		) {
+			return cachedSnapshot;
 		}
+		if (inFlight) {
+			if (!options.force) return inFlight;
+			await inFlight.catch(() => undefined);
+		}
+		return collectFresh();
 	};
 }
 

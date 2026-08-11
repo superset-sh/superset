@@ -102,4 +102,39 @@ describe("createCodexAppServerReader", () => {
 		});
 		await expect(broken()).resolves.toEqual({ status: "unavailable" });
 	});
+
+	test("treats missing executable as unavailable when shell env loading failed", async () => {
+		const readRateLimits = createCodexAppServerReader({
+			getEnv: async () => {
+				throw new Error("shell env failed");
+			},
+			startServer: () => {
+				throw Object.assign(new Error("missing"), { code: "ENOENT" });
+			},
+		});
+
+		await expect(readRateLimits()).resolves.toEqual({ status: "unavailable" });
+	});
+
+	test("returns unavailable when JSON-RPC writes fail", async () => {
+		const stdin = new PassThrough();
+		stdin.write = (() => {
+			throw new Error("closed");
+		}) as typeof stdin.write;
+		const stdout = new PassThrough();
+		const readRateLimits = createCodexAppServerReader({
+			startServer: () => ({
+				stdin,
+				stdout,
+				onError: () => {},
+				onExit: () => {},
+				close: () => {
+					stdout.end();
+				},
+			}),
+			getEnv: async () => ({ PATH: "/shell/bin" }),
+		});
+
+		await expect(readRateLimits()).resolves.toEqual({ status: "unavailable" });
+	});
 });

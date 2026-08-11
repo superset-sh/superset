@@ -18,7 +18,7 @@ import {
 	writeFile,
 } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import type {
 	ProviderUsageAccount,
 	UsageWindow,
@@ -31,6 +31,7 @@ import {
 } from "main/lib/app-environment";
 
 const CODEX_LOGIN_TIMEOUT_MS = 10 * 60_000;
+const CODEX_BACKUP_RETENTION = 5;
 
 export interface CodexIdentity {
 	accountId: string;
@@ -76,9 +77,14 @@ async function copySensitiveFileAtomically(
 	destination: string,
 	tempPath: string,
 ): Promise<void> {
-	await copyFile(source, tempPath);
-	chmodSensitive(tempPath);
-	renameSync(tempPath, destination);
+	try {
+		await copyFile(source, tempPath);
+		chmodSensitive(tempPath);
+		renameSync(tempPath, destination);
+	} catch (error) {
+		rmSync(tempPath, { force: true });
+		throw error;
+	}
 	chmodSensitive(destination);
 }
 
@@ -87,11 +93,16 @@ async function writeSensitiveFileAtomically(
 	contents: string,
 	tempPath: string,
 ): Promise<void> {
-	await writeFile(tempPath, contents, {
-		mode: SUPERSET_SENSITIVE_FILE_MODE,
-	});
-	chmodSensitive(tempPath);
-	renameSync(tempPath, destination);
+	try {
+		await writeFile(tempPath, contents, {
+			mode: SUPERSET_SENSITIVE_FILE_MODE,
+		});
+		chmodSensitive(tempPath);
+		renameSync(tempPath, destination);
+	} catch (error) {
+		rmSync(tempPath, { force: true });
+		throw error;
+	}
 	chmodSensitive(destination);
 }
 
@@ -203,12 +214,18 @@ export function projectCachedWindows(
 }
 
 function findCodexExecutable(env = process.env): string | null {
+	const executableNames =
+		process.platform === "win32"
+			? ["codex.cmd", "codex.exe", "codex"]
+			: ["codex"];
 	const candidates = [
 		env.CCM_CODEX_EXECUTABLE,
 		join(homedir(), ".local", "bin", "codex"),
 		"/opt/homebrew/bin/codex",
 		"/usr/local/bin/codex",
-		...(env.PATH?.split(":").map((entry) => join(entry, "codex")) ?? []),
+		...(env.PATH?.split(delimiter).flatMap((entry) =>
+			executableNames.map((name) => join(entry, name)),
+		) ?? []),
 	].filter((value): value is string => Boolean(value));
 	return (
 		candidates.find((path) => {
@@ -344,11 +361,21 @@ export function createCodexProfileStore(
 				backupPath,
 				join(backupsDir, `.auth-backup-${randomId()}.json`),
 			);
+			await pruneBackups();
 		}
 
 		const tempPath = join(homeDir, ".codex", `.auth-swap-${randomId()}.json`);
 		await copySensitiveFileAtomically(source, activeAuthPath, tempPath);
 		return { profileName, identity, isActive: true };
+	}
+
+	async function pruneBackups(): Promise<void> {
+		const names = (await readdir(backupsDir).catch(() => []))
+			.filter((name) => name.startsWith("auth-"))
+			.sort();
+		for (const name of names.slice(0, -CODEX_BACKUP_RETENTION)) {
+			rmSync(join(backupsDir, name), { force: true });
+		}
 	}
 
 	function readSnapshots(): Record<string, CodexUsageSnapshot> {
@@ -392,15 +419,9 @@ export function createCodexProfileStore(
 					accountLabel: profile.identity.email,
 					planLabel: snapshot?.planLabel ?? profile.identity.plan,
 					isActive: profile.isActive,
-					status: hasCachedWindows
-						? profile.isActive
-							? "ok"
-							: "cached"
-						: "no-data",
+					status: hasCachedWindows ? "cached" : "no-data",
 					statusMessage: hasCachedWindows
-						? profile.isActive
-							? "live"
-							: "cached"
+						? "cached"
 						: "Use Codex once to record limits",
 					windows,
 				};

@@ -50,6 +50,10 @@ describe("providerUsage router", () => {
 				providers: snapshot.providers.map((provider) => ({
 					...provider,
 					accessToken: "must-never-reach-renderer",
+					accounts: provider.accounts.map((account) => ({
+						...account,
+						accessToken: "must-never-reach-renderer",
+					})),
 				})),
 			} as unknown as ProviderUsageSnapshot;
 		});
@@ -161,6 +165,22 @@ describe("providerUsage router", () => {
 			"switch:team",
 			"collect:force",
 		]);
+	});
+
+	test("does not fail a successful Codex mutation when forced refresh fails", async () => {
+		const usageRouter = createProviderUsageRouter({
+			collect: async () => {
+				throw new Error("refresh failed");
+			},
+			importCurrentCodex: async () => ({
+				profileName: "person-example-com",
+			}),
+		});
+		const caller = usageRouter.createCaller({});
+
+		await expect(caller.importCurrentCodex()).resolves.toEqual({
+			profileName: "person-example-com",
+		});
 	});
 
 	test("rejects unsafe Codex profile names before switching accounts", async () => {

@@ -266,7 +266,12 @@ export async function collectClaudeUsage(
 				errorMessage: null,
 			};
 		}
-	} catch {
+		console.warn("[provider-usage] Claude usage response was unavailable:", {
+			status: response.status,
+			hasWindows: windows.length > 0,
+		});
+	} catch (error) {
+		console.warn("[provider-usage] Failed to collect Claude usage:", error);
 		// The compact meter reports a safe provider state without leaking details.
 	}
 

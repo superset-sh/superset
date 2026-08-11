@@ -73,7 +73,7 @@ function providerById(
 	);
 }
 
-function findWindowByMinutes(
+function findWindowBySeconds(
 	provider: ProviderUsage,
 	windowSeconds: number,
 ): UsageWindow | null {
@@ -97,11 +97,16 @@ function roundedRemaining(window: UsageWindow | null): number | null {
 	return window ? Math.round(window.remainingPercent) : null;
 }
 
-export function getMenuBarSummaryParts(
+interface SummaryMetric {
+	label: string;
+	value: number | null;
+}
+
+function getSelectedSummaryMetrics(
 	providers: ProviderUsage[],
 	selection: UsageMetricSelection = defaultUsageMetricSelection,
-): string[] {
-	const parts: string[] = [];
+): SummaryMetric[] {
+	const metrics: SummaryMetric[] = [];
 	const claude = providerById(providers, "claude");
 	if (claude?.status === "ok") {
 		let hasClaudeMetric = false;
@@ -111,41 +116,54 @@ export function getMenuBarSummaryParts(
 			selection.showsClaudeFable,
 		].filter(Boolean).length;
 		if (selection.showsClaudeFiveHour) {
-			const value =
-				roundedRemaining(findWindowByMinutes(claude, 5 * 60 * 60)) ?? "—";
-			parts.push(
-				selectedClaudeMetricCount > 1 ? `A 5h ${value}` : `A ${value}`,
-			);
+			const value = roundedRemaining(findWindowBySeconds(claude, 5 * 60 * 60));
+			metrics.push({
+				label: selectedClaudeMetricCount > 1 ? "A 5h" : "A",
+				value,
+			});
 			hasClaudeMetric = true;
 		}
 		if (selection.showsClaudeWeekly) {
-			const value =
-				roundedRemaining(findWindowByMinutes(claude, 7 * 24 * 60 * 60)) ?? "—";
-			parts.push(hasClaudeMetric ? `W ${value}` : `A W ${value}`);
+			const value = roundedRemaining(
+				findWindowBySeconds(claude, 7 * 24 * 60 * 60),
+			);
+			metrics.push({ label: hasClaudeMetric ? "W" : "A W", value });
 			hasClaudeMetric = true;
 		}
 		if (selection.showsClaudeFable) {
-			const value = roundedRemaining(findFableWindow(claude)) ?? "—";
-			parts.push(hasClaudeMetric ? `F ${value}` : `A F ${value}`);
+			metrics.push({
+				label: hasClaudeMetric ? "F" : "A F",
+				value: roundedRemaining(findFableWindow(claude)),
+			});
 		}
 	}
 
 	const codex = providerById(providers, "codex");
 	if (selection.showsCodexWeekly && codex?.status === "ok") {
-		const value =
-			roundedRemaining(findWindowByMinutes(codex, 7 * 24 * 60 * 60)) ?? "—";
-		parts.push(`C ${value}`);
+		metrics.push({
+			label: "C",
+			value: roundedRemaining(findWindowBySeconds(codex, 7 * 24 * 60 * 60)),
+		});
 	}
-	return parts;
+	return metrics;
+}
+
+export function getMenuBarSummaryParts(
+	providers: ProviderUsage[],
+	selection: UsageMetricSelection = defaultUsageMetricSelection,
+): string[] {
+	return getSelectedSummaryMetrics(providers, selection).map(
+		(metric) => `${metric.label} ${metric.value ?? "—"}`,
+	);
 }
 
 export function getLowestSelectedRemainingPercent(
 	providers: ProviderUsage[],
 	selection: UsageMetricSelection = defaultUsageMetricSelection,
 ): number | null {
-	const values = getMenuBarSummaryParts(providers, selection)
-		.map((part) => Number(part.split(" ").at(-1)))
-		.filter((value) => Number.isFinite(value));
+	const values = getSelectedSummaryMetrics(providers, selection)
+		.map((metric) => metric.value)
+		.filter((value): value is number => value !== null);
 	if (values.length === 0) return getLowestRemainingPercent(providers);
 	return Math.min(...values);
 }

@@ -61,11 +61,17 @@ export function createCodexAppServerReader(
 ): () => Promise<CodexRateLimitsReadResult> {
 	return async () => {
 		let env: Record<string, string>;
+		let environmentLoadFailed = false;
 		try {
 			env = dependencies.getEnv
 				? await dependencies.getEnv()
 				: await getProcessEnvWithShellPath();
-		} catch {
+		} catch (error) {
+			environmentLoadFailed = true;
+			console.warn(
+				"[provider-usage] Failed to resolve shell environment for Codex:",
+				error,
+			);
 			env = process.env as Record<string, string>;
 		}
 		env = defaultCodexHomeEnv(env);
@@ -76,7 +82,8 @@ export function createCodexAppServerReader(
 				server = dependencies.startServer(env);
 			} catch (error) {
 				resolve(
-					isMissingExecutable(error as NodeJS.ErrnoException)
+					isMissingExecutable(error as NodeJS.ErrnoException) &&
+						!environmentLoadFailed
 						? { status: "not-configured" }
 						: { status: "unavailable" },
 				);
@@ -94,7 +101,15 @@ export function createCodexAppServerReader(
 				resolve(result);
 			};
 			const send = (message: Record<string, unknown>) => {
-				server.stdin.write(`${JSON.stringify(message)}\n`);
+				try {
+					server.stdin.write(`${JSON.stringify(message)}\n`, (error) => {
+						if (error) finish({ status: "unavailable" });
+					});
+					return true;
+				} catch {
+					finish({ status: "unavailable" });
+					return false;
+				}
 			};
 			const timeout = setTimeout(
 				() => finish({ status: "unavailable" }),
@@ -103,7 +118,7 @@ export function createCodexAppServerReader(
 
 			server.onError((error) => {
 				finish(
-					isMissingExecutable(error)
+					isMissingExecutable(error) && !environmentLoadFailed
 						? { status: "not-configured" }
 						: { status: "unavailable" },
 				);
@@ -128,7 +143,7 @@ export function createCodexAppServerReader(
 						finish({ status: "unavailable" });
 						return;
 					}
-					send({ jsonrpc: "2.0", method: "initialized" });
+					if (!send({ jsonrpc: "2.0", method: "initialized" })) return;
 					send({
 						jsonrpc: "2.0",
 						id: 2,

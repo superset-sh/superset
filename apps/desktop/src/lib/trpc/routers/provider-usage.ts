@@ -73,7 +73,12 @@ export const createProviderUsageRouter = (
 		mutation: () => Promise<T>,
 	): Promise<T> {
 		const result = await mutation();
-		await resolved.collect({ force: true });
+		await resolved.collect({ force: true }).catch((error) => {
+			console.warn(
+				"[provider-usage] Failed to refresh after account update:",
+				error,
+			);
+		});
 		return result;
 	}
 

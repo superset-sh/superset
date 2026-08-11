@@ -177,6 +177,37 @@ describe("usageIndicatorPolicy", () => {
 		).toEqual(["A 5h 72", "W 45", "F 36"]);
 	});
 
+	test("uses active account windows before provider-level windows", () => {
+		const providerWithDifferentActiveWindow: ProviderUsage = {
+			...provider,
+			windows: provider.windows.map((window) =>
+				window.id === "five-hour"
+					? { ...window, remainingPercent: 12 }
+					: window,
+			),
+			accounts: [
+				{
+					...provider.accounts[0],
+					windows: provider.windows.map((window) =>
+						window.id === "five-hour"
+							? { ...window, remainingPercent: 88 }
+							: window,
+					),
+				},
+			],
+		};
+
+		expect(getMenuBarSummaryParts([providerWithDifferentActiveWindow])).toEqual(
+			["A 88"],
+		);
+		expect(
+			getLowestSelectedRemainingPercent(
+				[providerWithDifferentActiveWindow],
+				defaultUsageMetricSelection,
+			),
+		).toBe(88);
+	});
+
 	test("formats relative and exact reset time together", () => {
 		const now = Date.parse("2026-07-21T14:48:00.000Z");
 		const resetAt = Date.parse("2026-07-21T18:30:00.000Z");

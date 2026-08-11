@@ -1,5 +1,11 @@
 import { afterEach, beforeEach, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import {
+	mkdtempSync,
+	readdirSync,
+	readFileSync,
+	rmSync,
+	writeFileSync,
+} from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -131,6 +137,37 @@ describe("codex profile store", () => {
 				),
 			)?.accountId,
 		).toBe("acct_b");
+	});
+
+	test("prunes old credential backups after switching profiles", async () => {
+		writeFileSync(
+			join(homeDir, ".codex", "auth.json"),
+			authJson("acct_a", "first@example.com"),
+		);
+		let id = 0;
+		const store = createCodexProfileStore({
+			rootDir,
+			homeDir,
+			now: () => new Date("2026-08-11T10:15:00.000Z"),
+			randomId: () => `id-${id++}`,
+		});
+		await store.importActive();
+		writeFileSync(
+			join(homeDir, ".codex", "auth.json"),
+			authJson("acct_b", "second@example.com"),
+		);
+		await store.importActive();
+
+		for (let index = 0; index < 7; index += 1) {
+			await store.activate(
+				index % 2 === 0 ? "first-example-com" : "second-example-com",
+			);
+		}
+
+		const backups = readdirSync(
+			join(rootDir, "provider-usage", "codex", "backups"),
+		).filter((name) => name.startsWith("auth-"));
+		expect(backups).toHaveLength(5);
 	});
 
 	test("rejects path-like profile names before reading or writing auth files", async () => {

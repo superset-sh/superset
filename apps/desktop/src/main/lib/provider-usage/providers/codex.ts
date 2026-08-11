@@ -98,7 +98,7 @@ const defaultDependencies = {
 function statusFromAccounts(
 	accounts: ProviderUsageAccount[],
 ): ProviderUsage["status"] {
-	if (accounts.some((account) => account.windows.length > 0)) return "ok";
+	if (accounts.some((account) => account.status === "ok")) return "ok";
 	if (accounts.length > 0) return "unavailable";
 	return "not-configured";
 }
@@ -193,9 +193,7 @@ export async function collectCodexUsage(
 				activeAccountId: active?.id ?? null,
 				accounts,
 				windows: active?.windows ?? [],
-				errorMessage: accounts.some((account) => account.windows.length > 0)
-					? null
-					: "Codex CLI is not installed.",
+				errorMessage: "Codex CLI is not installed.",
 			};
 		}
 		return {
@@ -220,12 +218,19 @@ export async function collectCodexUsage(
 			if (canAttributeLiveSnapshot && confirmedActiveIdentity) {
 				liveWindows = parsed.windows;
 				livePlanLabel = parsed.planLabel;
-				await resolved.profileStore.putSnapshot({
-					accountId: confirmedActiveIdentity.accountId,
-					capturedAt: resolved.now(),
-					planLabel: parsed.planLabel,
-					windows: parsed.windows,
-				});
+				await resolved.profileStore
+					.putSnapshot({
+						accountId: confirmedActiveIdentity.accountId,
+						capturedAt: resolved.now(),
+						planLabel: parsed.planLabel,
+						windows: parsed.windows,
+					})
+					.catch((error) => {
+						console.warn(
+							"[provider-usage] Failed to persist Codex usage snapshot:",
+							error,
+						);
+					});
 			}
 			const accounts = await rowsWithCurrentActive(
 				resolved,
@@ -270,12 +275,12 @@ export async function collectCodexUsage(
 		return {
 			providerId: "codex",
 			providerName: "Codex",
-			status: "ok",
+			status: statusFromAccounts(accounts),
 			accountLabel: active?.accountLabel ?? active?.planLabel ?? null,
 			activeAccountId: active?.id ?? null,
 			accounts,
 			windows: active?.windows ?? [],
-			errorMessage: null,
+			errorMessage: "Codex usage is temporarily unavailable.",
 		};
 	}
 

@@ -92,4 +92,33 @@ describe("createProviderUsageCollector", () => {
 		expect(await second).toBe(await first);
 		expect(claudeCalls).toBe(1);
 	});
+
+	test("forced collection waits for an in-flight poll and then collects fresh data", async () => {
+		let resolveClaude: ((usage: ProviderUsage) => void) | undefined;
+		let claudeCalls = 0;
+		const collect = createProviderUsageCollector({
+			now: () => 1_000 + claudeCalls,
+			collectClaude: () => {
+				claudeCalls += 1;
+				if (claudeCalls === 1) {
+					return new Promise((resolve) => {
+						resolveClaude = resolve;
+					});
+				}
+				return Promise.resolve({
+					...claudeUsage,
+					accountLabel: "Fresh",
+				});
+			},
+			collectCodex: async () => codexUsage,
+		});
+
+		const first = collect();
+		const forced = collect({ force: true });
+		resolveClaude?.(claudeUsage);
+
+		expect((await first).providers[0]?.accountLabel).toBe("Max");
+		expect((await forced).providers[0]?.accountLabel).toBe("Fresh");
+		expect(claudeCalls).toBe(2);
+	});
 });

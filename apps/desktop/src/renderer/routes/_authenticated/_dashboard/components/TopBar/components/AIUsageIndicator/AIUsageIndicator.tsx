@@ -10,10 +10,10 @@ import {
 	HiOutlineEyeSlash,
 } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { MetricToggle } from "./components/MetricToggle";
 import { ProviderUsageRow } from "./components/ProviderUsageRow";
 import {
 	defaultUsageMetricSelection,
-	getLowestRemainingPercent,
 	getLowestSelectedRemainingPercent,
 	getMenuBarSummaryParts,
 	getProviderUsageRefetchInterval,
@@ -57,10 +57,19 @@ function accessibleSummaryLabel(parts: string[], fallback: string): string {
 		.join(", ");
 }
 
+function mutationErrorMessage(error: unknown): string {
+	return error instanceof Error && error.message
+		? error.message
+		: "Codex account action failed.";
+}
+
 export function AIUsageIndicator() {
 	const [open, setOpen] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [blurEmails, setBlurEmails] = useState(false);
+	const [accountActionError, setAccountActionError] = useState<string | null>(
+		null,
+	);
 	const [selection, setSelection] = useState<UsageMetricSelection>(
 		readStoredMetricSelection,
 	);
@@ -75,9 +84,7 @@ export function AIUsageIndicator() {
 		},
 	);
 	const providers = data?.providers ?? [];
-	const remaining =
-		getLowestSelectedRemainingPercent(providers, selection) ??
-		getLowestRemainingPercent(providers);
+	const remaining = getLowestSelectedRemainingPercent(providers, selection);
 	const summaryParts = getMenuBarSummaryParts(providers, selection);
 	const compactLabel =
 		summaryParts.length > 0
@@ -99,17 +106,34 @@ export function AIUsageIndicator() {
 
 	const importCodex = electronTrpc.providerUsage.importCurrentCodex.useMutation(
 		{
-			onSuccess: () => void utils.providerUsage.getSnapshot.invalidate(),
+			onMutate: () => setAccountActionError(null),
+			onSuccess: () => {
+				setAccountActionError(null);
+				void utils.providerUsage.getSnapshot.invalidate();
+			},
+			onError: (error) => setAccountActionError(mutationErrorMessage(error)),
 		},
 	);
 	const addCodex = electronTrpc.providerUsage.addCodexAccount.useMutation({
-		onSuccess: () => void utils.providerUsage.getSnapshot.invalidate(),
+		onMutate: () => setAccountActionError(null),
+		onSuccess: () => {
+			setAccountActionError(null);
+			void utils.providerUsage.getSnapshot.invalidate();
+		},
+		onError: (error) => setAccountActionError(mutationErrorMessage(error)),
 	});
 	const switchCodex = electronTrpc.providerUsage.switchCodexProfile.useMutation(
 		{
-			onSuccess: () => void utils.providerUsage.getSnapshot.invalidate(),
+			onMutate: () => setAccountActionError(null),
+			onSuccess: () => {
+				setAccountActionError(null);
+				void utils.providerUsage.getSnapshot.invalidate();
+			},
+			onError: (error) => setAccountActionError(mutationErrorMessage(error)),
 		},
 	);
+	const accountActionPending =
+		importCodex.isPending || addCodex.isPending || switchCodex.isPending;
 
 	async function refreshNow() {
 		setIsRefreshing(true);
@@ -226,21 +250,23 @@ export function AIUsageIndicator() {
 						/>
 					</div>
 				</div>
-				{data?.providers.map((provider) => (
+				{providers.map((provider) => (
 					<ProviderUsageRow
 						key={provider.providerId}
 						provider={provider}
 						blurEmails={blurEmails}
-						onSwitchProfile={(profileName) =>
-							switchCodex.mutate({ profileName })
-						}
+						accountActionsDisabled={accountActionPending}
+						onSwitchProfile={(profileName) => {
+							if (accountActionPending) return;
+							switchCodex.mutate({ profileName });
+						}}
 					/>
 				))}
 				<div className="flex gap-1 border-t border-border/60 px-3.5 py-2.5">
 					<button
 						type="button"
 						onClick={() => importCodex.mutate()}
-						disabled={importCodex.isPending || addCodex.isPending}
+						disabled={accountActionPending}
 						className="inline-flex h-6 items-center rounded border border-border/60 px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-50"
 					>
 						Import Codex
@@ -248,12 +274,17 @@ export function AIUsageIndicator() {
 					<button
 						type="button"
 						onClick={() => addCodex.mutate()}
-						disabled={importCodex.isPending || addCodex.isPending}
+						disabled={accountActionPending}
 						className="inline-flex h-6 items-center rounded border border-border/60 px-2 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground disabled:opacity-50"
 					>
 						Add Codex
 					</button>
 				</div>
+				{accountActionError && (
+					<p className="border-t border-border/60 px-3.5 py-2 text-[10px] leading-relaxed text-amber-600">
+						{accountActionError}
+					</p>
+				)}
 				{!data && (
 					<p className="border-t border-border/60 px-3.5 py-3 text-[10px] text-muted-foreground">
 						Reading provider usage…
@@ -261,30 +292,5 @@ export function AIUsageIndicator() {
 				)}
 			</PopoverContent>
 		</Popover>
-	);
-}
-
-function MetricToggle({
-	label,
-	description,
-	active,
-	onClick,
-}: {
-	label: string;
-	description: string;
-	active: boolean;
-	onClick: () => void;
-}) {
-	return (
-		<button
-			type="button"
-			aria-pressed={active}
-			aria-label={description}
-			title={description}
-			onClick={onClick}
-			className="rounded border border-border/60 px-2 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:bg-foreground/[0.06] hover:text-foreground aria-pressed:bg-foreground/[0.08] aria-pressed:text-foreground"
-		>
-			{label}
-		</button>
 	);
 }

@@ -155,6 +155,58 @@ describe("ProviderUsageRow", () => {
 		expect(markup).toContain("cached 4m ago");
 		expect(markup).toContain("75%");
 		expect(markup).toContain("Inactive");
+		expect(markup).not.toContain("Switch");
+	});
+
+	test("uses generic progress labels when email privacy is enabled", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow
+				provider={{
+					providerId: "codex",
+					providerName: "Codex",
+					status: "ok",
+					accountLabel: "person@example.com",
+					activeAccountId: "codex:acct-a",
+					windows: [],
+					errorMessage: null,
+					accounts: [
+						{
+							id: "codex:acct-a",
+							providerId: "codex",
+							profileName: "person-example-com",
+							accountLabel: "person@example.com",
+							planLabel: "pro",
+							isActive: true,
+							status: "ok",
+							statusMessage: "live",
+							windows: [
+								{
+									id: "weekly",
+									label: "Weekly",
+									usedPercent: 20,
+									remainingPercent: 80,
+									resetAt: null,
+									windowSeconds: 604_800,
+								},
+							],
+						},
+					],
+				}}
+				blurEmails
+			/>,
+		);
+
+		expect(markup).toContain("person@example.com");
+		expect(markup).toContain("Email hidden");
+		expect(markup).toContain(
+			'aria-label="Codex account Weekly capacity remaining"',
+		);
+		expect(markup).not.toContain(
+			'aria-label="Codex person@example.com Weekly capacity remaining"',
+		);
+		expect(markup).not.toContain(
+			'aria-label="Codex person-example-com Weekly capacity remaining"',
+		);
 	});
 
 	test("keeps Codex account switching visible when usage is unavailable", () => {
@@ -193,11 +245,13 @@ describe("ProviderUsageRow", () => {
 						},
 					],
 				}}
+				accountActionsDisabled
 			/>,
 		);
 
 		expect(markup).toContain("first@example.com");
 		expect(markup).toContain("Switch");
+		expect(markup).toContain("disabled");
 		expect(markup).toContain("Codex usage is temporarily unavailable.");
 		expect(markup).toContain("Temporarily unavailable");
 	});

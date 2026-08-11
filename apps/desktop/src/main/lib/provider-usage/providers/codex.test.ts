@@ -147,6 +147,90 @@ describe("collectCodexUsage", () => {
 		});
 	});
 
+	test("keeps cached account windows marked unavailable when live refresh fails", async () => {
+		const result = await collectCodexUsage({
+			profileStore: {
+				...emptyProfileStore(),
+				activeIdentity: () => ({
+					accountId: "acct_a",
+					email: "person@example.com",
+					plan: "pro",
+				}),
+				accountRows: async () => [
+					{
+						id: "codex:acct_a",
+						providerId: "codex",
+						profileName: "person-example-com",
+						accountLabel: "person@example.com",
+						planLabel: "pro",
+						isActive: true,
+						status: "cached",
+						statusMessage: "cached",
+						windows: [
+							{
+								id: "secondary",
+								label: "Weekly",
+								usedPercent: 50,
+								remainingPercent: 50,
+								resetAt: null,
+								windowSeconds: 604_800,
+							},
+						],
+					},
+				],
+			},
+			readRateLimits: async () => ({ status: "unavailable" }),
+		});
+
+		expect(result.status).toBe("unavailable");
+		expect(result.accounts[0]?.status).toBe("cached");
+		expect(result.windows[0]?.remainingPercent).toBe(50);
+		expect(result.errorMessage).toBe("Codex usage is temporarily unavailable.");
+	});
+
+	test("returns live Codex usage even when snapshot persistence fails", async () => {
+		const identity: CodexIdentity = {
+			accountId: "acct_a",
+			email: "person@example.com",
+			plan: "pro",
+		};
+		const result = await collectCodexUsage({
+			profileStore: {
+				...emptyProfileStore(),
+				activeIdentity: () => identity,
+				putSnapshot: async () => {
+					throw new Error("disk full");
+				},
+				accountRows: async () => [
+					{
+						id: "codex:acct_a",
+						providerId: "codex",
+						profileName: "person-example-com",
+						accountLabel: "person@example.com",
+						planLabel: "pro",
+						isActive: true,
+						status: "cached",
+						statusMessage: "cached",
+						windows: [],
+					},
+				],
+			},
+			readRateLimits: async () => ({
+				status: "ok",
+				value: {
+					rateLimits: {
+						planType: "pro",
+						primary: { usedPercent: 30 },
+					},
+				},
+			}),
+		});
+
+		expect(result.status).toBe("ok");
+		expect(result.accounts[0]?.status).toBe("ok");
+		expect(result.windows[0]?.remainingPercent).toBe(70);
+	});
+
 	test("does not cache a live reading when the active account changes mid-poll", async () => {
 		const firstIdentity: CodexIdentity = {
 			accountId: "acct_a",
