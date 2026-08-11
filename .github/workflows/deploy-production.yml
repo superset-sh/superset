@@ -476,6 +476,9 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: bunx wrangler deploy
 
+  # Every relay2 deploy restarts its Durable Objects, severing every live host
+  # tunnel — so unlike the stateless workers above, only deploy when something
+  # relay2 actually ships has changed. workflow_dispatch always deploys.
   deploy-relay2:
     name: Deploy Relay2 to Cloudflare
     runs-on: ubuntu-latest
@@ -485,22 +488,39 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
 
+      - name: Detect relay2-relevant changes
+        if: github.event_name == 'push'
+        id: changes
+        uses: dorny/paths-filter@de90cc6fb38fc0963ad72b210f1f284cd68cea36 # v3.0.2
+        with:
+          filters: |
+            relay2:
+              - "apps/relay2/**"
+              - "packages/shared/**"
+              - "packages/trpc/**"
+              - "bun.lock"
+              - ".github/workflows/deploy-production.yml"
+
       - name: Setup Bun
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.relay2 == 'true'
         id: setup-bun
         uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
 
       - name: Cache dependencies
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.relay2 == 'true'
         uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ steps.setup-bun.outputs.bun-revision }}-${{ hashFiles('bun.lock') }}
 
       - name: Install dependencies
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.relay2 == 'true'
         run: bun install --frozen --ignore-scripts
 
       - name: Deploy Worker
+        if: github.event_name == 'workflow_dispatch' || steps.changes.outputs.relay2 == 'true'
         working-directory: apps/relay2
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
