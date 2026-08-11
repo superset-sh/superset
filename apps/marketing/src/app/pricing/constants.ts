@@ -34,6 +34,7 @@ export const PRICING_TIERS: PricingTier[] = [
 		features: [
 			"1 user",
 			"Local workspaces",
+			"Remote workspaces",
 			"Desktop app",
 			"GitHub integration",
 			"CLI",
@@ -64,8 +65,8 @@ export const PRICING_TIERS: PricingTier[] = [
 		features: [
 			"Everything in Free",
 			"Unlimited users",
-			"Remote workspaces",
 			"Linear integration",
+			"Slack integration",
 			"Mobile (coming soon)",
 		],
 		cta: {
@@ -133,7 +134,7 @@ export const COMPARISON_SECTIONS: ComparisonSection[] = [
 			{ label: "Local workspaces", values: [true, true, true] },
 			{
 				label: "Remote workspaces",
-				values: [null, true, true],
+				values: [true, true, true],
 				badge: { label: "Beta", variant: "default" },
 			},
 			{ label: "Automations", values: [true, true, true] },
@@ -171,7 +172,7 @@ export const PRICING_FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "Is there a free plan?",
 		answer:
-			"Yes. Free covers individuals with 1 user, local workspaces, the desktop app, and GitHub integration. No credit card required.",
+			"Yes. Free covers individuals with 1 user, local and remote workspaces, the desktop app, the CLI, and GitHub integration. No credit card required.",
 	},
 	{
 		question: "How does Pro pricing work?",
