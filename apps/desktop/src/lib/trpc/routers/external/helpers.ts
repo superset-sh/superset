@@ -11,7 +11,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	antigravity: "Antigravity",
 	devin: "Devin",
 	zed: null, // Multi-channel, uses bundle IDs (stable/preview/nightly/dev)
-	xcode: "Xcode",
+	xcode: null, // Uses bundle ID — Many developers use Xcodes to install and switch between multiple versions of Xcode - this uses a different app name structure (e.g. "Xcode-16.2.app")
 	iterm: "iTerm",
 	warp: "Warp",
 	terminal: "Terminal",
@@ -44,6 +44,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["com.jetbrains.intellij", "com.jetbrains.intellij.ce"],
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
+	xcode: ["com.apple.dt.Xcode"],
 	// Zed release channels, most-common first. A user typically installs one
 	// channel; trying stable → preview → nightly → dev launches whichever exists.
 	zed: [

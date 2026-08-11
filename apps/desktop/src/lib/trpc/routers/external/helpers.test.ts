@@ -47,10 +47,10 @@ describe("getAppCommand", () => {
 		]);
 	});
 
-	test("returns single-element array for xcode", () => {
+	test("returns bundle-id command for xcode (name may be version-suffixed)", () => {
 		const result = getAppCommand("xcode", "/path/to/file");
 		expect(result).toEqual([
-			{ command: "open", args: ["-a", "Xcode", "/path/to/file"] },
+			{ command: "open", args: ["-b", "com.apple.dt.Xcode", "/path/to/file"] },
 		]);
 	});
 
