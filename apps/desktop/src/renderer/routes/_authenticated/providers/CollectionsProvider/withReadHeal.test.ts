@@ -288,3 +288,21 @@ describe("withReadHeal end-to-end via real localStorageCollectionOptions", () =>
 		expect(row?.sidebarState.isHidden).toBe(false);
 	});
 });
+
+describe("healV2UserPreferences hiddenBuiltinPresetIds pruning", () => {
+	it("drops ids that are not known built-in presets", () => {
+		const healed = healV2UserPreferences({
+			id: "preferences",
+			hiddenBuiltinPresetIds: ["superset-cli", "retired-preset"],
+		});
+		expect(healed.hiddenBuiltinPresetIds).toEqual(["superset-cli"]);
+	});
+
+	it("defaults a malformed value to an empty array", () => {
+		const healed = healV2UserPreferences({
+			id: "preferences",
+			hiddenBuiltinPresetIds: "superset-cli",
+		});
+		expect(healed.hiddenBuiltinPresetIds).toEqual([]);
+	});
+});

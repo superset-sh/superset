@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import {
 	chmodSync,
 	existsSync,
@@ -32,7 +32,7 @@ mock.module("shared/env.shared", () => ({
 
 mock.module("./notify-hook", () => ({
 	NOTIFY_SCRIPT_NAME: "notify.sh",
-	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v5",
+	NOTIFY_SCRIPT_MARKER: "# Superset agent notification hook v7",
 	getNotifyScriptPath: () => path.join(TEST_HOOKS_DIR, "notify.sh"),
 	getNotifyScriptContent: () => "#!/bin/bash\nexit 0\n",
 	createNotifyScript: () => {},
@@ -87,47 +87,17 @@ const {
 	getPiExtensionPath,
 	PI_EXTENSION_MARKER,
 } = await import("./agent-wrappers");
-const { reconcileManagedEntries } = await import("./agent-wrappers-common");
+const { getManagedNotifyHookCommand } = await import("./agent-wrappers-common");
+
+function requireContent(content: string | null): string {
+	if (content === null) throw new Error("Expected merged hook content");
+	return content;
+}
 
 const managedClaudeHookCommand = getClaudeManagedHookCommand();
-
-describe("reconcileManagedEntries", () => {
-	it("preserves user-managed entries while replacing stale managed entries", () => {
-		const result = reconcileManagedEntries({
-			current: [
-				"/usr/local/bin/custom-hook Start",
-				"/tmp/.superset-old/hooks/notify.sh Start",
-			],
-			desired: ["/tmp/.superset-new/hooks/notify.sh Start"],
-			isManaged: (entry: string) => entry.includes("/.superset-"),
-			isEquivalent: (entry: string, desired: string) => entry === desired,
-		});
-
-		expect(result.entries).toEqual([
-			"/usr/local/bin/custom-hook Start",
-			"/tmp/.superset-new/hooks/notify.sh Start",
-		]);
-		expect(result.replacedManagedEntries).toEqual([
-			"/tmp/.superset-old/hooks/notify.sh Start",
-		]);
-	});
-
-	it("reconciles edited managed entries even when a managed hook already exists", () => {
-		const result = reconcileManagedEntries({
-			current: ["/tmp/.superset-current/hooks/notify.sh Start --debug"],
-			desired: ["/tmp/.superset-current/hooks/notify.sh Start"],
-			isManaged: (entry: string) => entry.includes("/.superset-"),
-			isEquivalent: (entry: string, desired: string) => entry === desired,
-		});
-
-		expect(result.entries).toEqual([
-			"/tmp/.superset-current/hooks/notify.sh Start",
-		]);
-		expect(result.replacedManagedEntries).toEqual([
-			"/tmp/.superset-current/hooks/notify.sh Start --debug",
-		]);
-	});
-});
+const managedDroidHookCommand = getManagedNotifyHookCommand("droid");
+const managedCodexHookCommand = getManagedNotifyHookCommand("codex");
+const managedMastraHookCommand = getManagedNotifyHookCommand("mastracode");
 
 describe("agent-wrappers copilot", () => {
 	beforeEach(() => {
@@ -491,8 +461,64 @@ exit 0
 			encoding: "utf-8",
 		});
 
-		expect(existsSync(notifyCapturePath)).toBe(false);
+		// Only the clean-exit SessionEnd report — nothing from the unrelated
+		// rollout file.
+		const notifications = readFileSync(notifyCapturePath, "utf-8");
+		expect(notifications.trim()).toBe('{"hook_event_name":"SessionEnd"}');
 		expect(readFileSync(debugLogPath, "utf-8")).toContain("watching session=");
+	});
+
+	it("reports SessionEnd on clean codex exit but not on signal death", () => {
+		const realBinDir = path.join(TEST_ROOT, "real-bin");
+		const realCodex = path.join(realBinDir, "codex");
+		const wrapperPath = path.join(TEST_BIN_DIR, "codex");
+		const notifyPath = path.join(TEST_HOOKS_DIR, "notify.sh");
+		const notifyCapturePath = path.join(
+			TEST_ROOT,
+			"codex-session-end-events.txt",
+		);
+
+		mkdirSync(realBinDir, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+		writeFileSync(
+			notifyPath,
+			`#!/bin/bash
+printf '%s\n' "$1" >> "$NOTIFY_CAPTURE_PATH"
+exit 0
+`,
+			{ mode: 0o755 },
+		);
+		chmodSync(notifyPath, 0o755);
+		createCodexWrapper();
+
+		const runWrapper = () =>
+			spawnSync(wrapperPath, [], {
+				env: {
+					...process.env,
+					NOTIFY_CAPTURE_PATH: notifyCapturePath,
+					PATH: `${TEST_BIN_DIR}:${realBinDir}:${process.env.PATH || ""}`,
+					SUPERSET_TERMINAL_ID: "terminal-1",
+				},
+				encoding: "utf-8",
+			});
+
+		writeFileSync(realCodex, "#!/bin/bash\nexit 0\n", { mode: 0o755 });
+		chmodSync(realCodex, 0o755);
+		runWrapper();
+		expect(readFileSync(notifyCapturePath, "utf-8").trim()).toBe(
+			'{"hook_event_name":"SessionEnd"}',
+		);
+
+		// A signal death (pty/daemon kill) must stay unreported so the session
+		// remains a resume candidate.
+		rmSync(notifyCapturePath);
+		writeFileSync(realCodex, '#!/bin/bash\nkill -HUP "$$"\nsleep 1\n', {
+			mode: 0o755,
+		});
+		chmodSync(realCodex, 0o755);
+		const signalRun = runWrapper();
+		expect(signalRun.status).toBe(129);
+		expect(existsSync(notifyCapturePath)).toBe(false);
 	});
 
 	it("creates mastracode wrapper passthrough", () => {
@@ -586,9 +612,9 @@ exit 0
 			),
 		);
 
-		const content = getCursorHooksJsonContent(currentHookPath);
+		const content = requireContent(getCursorHooksJsonContent(currentHookPath));
 		writeFileSync(cursorHooksPath, content);
-		const content2 = getCursorHooksJsonContent(currentHookPath);
+		const content2 = requireContent(getCursorHooksJsonContent(currentHookPath));
 
 		const parsed = JSON.parse(content) as {
 			hooks: Record<string, Array<{ command: string }>>;
@@ -668,9 +694,13 @@ exit 0
 			),
 		);
 
-		const content = getGeminiSettingsJsonContent(currentHookPath);
+		const content = requireContent(
+			getGeminiSettingsJsonContent(currentHookPath),
+		);
 		writeFileSync(geminiSettingsPath, content);
-		const content2 = getGeminiSettingsJsonContent(currentHookPath);
+		const content2 = requireContent(
+			getGeminiSettingsJsonContent(currentHookPath),
+		);
 
 		const parsed = JSON.parse(content) as {
 			hooks: Record<
@@ -746,9 +776,9 @@ exit 0
 	});
 
 	it("bumps hook script markers when hook semantics change", () => {
-		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v2");
-		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v4");
-		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v3");
+		expect(COPILOT_HOOK_MARKER).toBe("# Superset copilot hook v4");
+		expect(CURSOR_HOOK_MARKER).toBe("# Superset cursor hook v6");
+		expect(GEMINI_HOOK_MARKER).toBe("# Superset gemini hook v5");
 	});
 
 	it("replaces stale Mastra hook commands from old superset paths", () => {
@@ -779,9 +809,9 @@ exit 0
 			),
 		);
 
-		const content = getMastraHooksJsonContent(currentHookPath);
+		const content = requireContent(getMastraHooksJsonContent(currentHookPath));
 		writeFileSync(mastraHooksPath, content);
-		const content2 = getMastraHooksJsonContent(currentHookPath);
+		const content2 = requireContent(getMastraHooksJsonContent(currentHookPath));
 
 		const parsed = JSON.parse(content) as Record<
 			string,
@@ -802,8 +832,7 @@ exit 0
 				hooks.some(
 					(entry) =>
 						entry.type === "command" &&
-						entry.command ===
-							`SUPERSET_AGENT_ID=mastracode bash '${currentHookPath}'`,
+						entry.command === managedMastraHookCommand,
 				),
 			).toBe(true);
 			expect(hooks.some((entry) => entry.command.includes(staleHookPath))).toBe(
@@ -900,10 +929,7 @@ exit 0
 			expect(Array.isArray(hooks)).toBe(true);
 			expect(
 				hooks.some((def) =>
-					def.hooks.some(
-						(hook) =>
-							hook.command === `SUPERSET_AGENT_ID=droid '${currentHookPath}'`,
-					),
+					def.hooks.some((hook) => hook.command === managedDroidHookCommand),
 				),
 			).toBe(true);
 			expect(
@@ -1224,7 +1250,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedCommand = `SUPERSET_AGENT_ID=codex "${notifyPath}"`;
+		const expectedCommand = managedCodexHookCommand;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1339,7 +1365,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			),
 		).toBe(true);
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${notifyPath}"`;
+		const expectedManagedCommand = managedCodexHookCommand;
 		// Adds managed hooks for SessionStart, UserPromptSubmit, Stop
 		for (const eventName of ["SessionStart", "UserPromptSubmit", "Stop"]) {
 			expect(
@@ -1423,7 +1449,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
+		const expectedManagedCommand = managedCodexHookCommand;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1499,7 +1525,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
+		const expectedManagedCommand = managedCodexHookCommand;
 		expect(parsed.hooks.UserPromptSubmit).toBeDefined();
 		expect(
 			parsed.hooks.UserPromptSubmit?.some((def) =>
@@ -1563,7 +1589,7 @@ describe("agent-wrappers codex hooks.json", () => {
 			>;
 		};
 
-		const expectedManagedCommand = `SUPERSET_AGENT_ID=codex "${currentHookPath}"`;
+		const expectedManagedCommand = managedCodexHookCommand;
 		for (const eventName of [
 			"SessionStart",
 			"UserPromptSubmit",
@@ -1920,5 +1946,244 @@ describe("agent-wrappers pi", () => {
 		const installed = readFileSync(extensionPath, "utf-8");
 		expect(installed).toContain(PI_EXTENSION_MARKER);
 		expect(installed).toContain("export default function");
+	});
+});
+
+const {
+	getKimiConfigTomlPath,
+	removeCursorManagedHooks,
+	removeDroidManagedHooks,
+	removeKimiManagedHooks,
+	removeMastraManagedHooks,
+} = await import("./agent-wrappers");
+
+describe("managed hooks teardown", () => {
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("removes managed droid hooks, preserving user hooks and settings", () => {
+		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+		mkdirSync(path.dirname(settingsPath), { recursive: true });
+		writeFileSync(
+			settingsPath,
+			JSON.stringify(
+				{
+					model: "custom",
+					hooks: {
+						Stop: [
+							{ hooks: [{ type: "command", command: "/opt/user-hook.sh" }] },
+							{
+								hooks: [{ type: "command", command: managedDroidHookCommand }],
+							},
+							{
+								hooks: [
+									{
+										type: "command",
+										command:
+											"SUPERSET_AGENT_ID=droid '/tmp/.superset/hooks/notify.sh'",
+									},
+								],
+							},
+						],
+						SessionStart: [
+							{
+								hooks: [{ type: "command", command: managedDroidHookCommand }],
+							},
+						],
+					},
+				},
+				null,
+				2,
+			),
+		);
+
+		removeDroidManagedHooks();
+
+		const parsed = JSON.parse(readFileSync(settingsPath, "utf-8"));
+		expect(parsed.model).toBe("custom");
+		expect(parsed.hooks.Stop).toEqual([
+			{ hooks: [{ type: "command", command: "/opt/user-hook.sh" }] },
+		]);
+		// Managed-only events are dropped entirely.
+		expect(parsed.hooks.SessionStart).toBeUndefined();
+
+		// Second run is a no-op on already-clean config.
+		const cleaned = readFileSync(settingsPath, "utf-8");
+		removeDroidManagedHooks();
+		expect(readFileSync(settingsPath, "utf-8")).toBe(cleaned);
+	});
+
+	it("drops the droid hooks key when every event was managed and never creates a missing file", () => {
+		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+
+		removeDroidManagedHooks();
+		expect(existsSync(settingsPath)).toBe(false);
+
+		mkdirSync(path.dirname(settingsPath), { recursive: true });
+		writeFileSync(
+			settingsPath,
+			JSON.stringify({
+				hooks: {
+					Stop: [
+						{ hooks: [{ type: "command", command: managedDroidHookCommand }] },
+					],
+				},
+			}),
+		);
+
+		removeDroidManagedHooks();
+
+		expect(JSON.parse(readFileSync(settingsPath, "utf-8"))).toEqual({});
+	});
+
+	it("leaves a droid settings file untouched when its JSON is invalid", () => {
+		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+		mkdirSync(path.dirname(settingsPath), { recursive: true });
+		writeFileSync(settingsPath, "{not-json");
+
+		removeDroidManagedHooks();
+
+		expect(readFileSync(settingsPath, "utf-8")).toBe("{not-json");
+	});
+
+	it("removes managed cursor hooks but keeps the hooks container and version", () => {
+		const hooksPath = path.join(mockedHomeDir, ".cursor", "hooks.json");
+		mkdirSync(path.dirname(hooksPath), { recursive: true });
+		const scriptPath = path.join(TEST_HOOKS_DIR, "cursor-hook.sh");
+		writeFileSync(
+			hooksPath,
+			JSON.stringify({
+				version: 1,
+				hooks: {
+					stop: [
+						{ command: "/opt/user-cursor-hook.sh" },
+						{ command: `${scriptPath} Stop` },
+					],
+					sessionStart: [{ command: `${scriptPath} SessionStart` }],
+				},
+			}),
+		);
+
+		removeCursorManagedHooks();
+
+		const parsed = JSON.parse(readFileSync(hooksPath, "utf-8"));
+		expect(parsed.version).toBe(1);
+		expect(parsed.hooks.stop).toEqual([
+			{ command: "/opt/user-cursor-hook.sh" },
+		]);
+		expect(parsed.hooks.sessionStart).toBeUndefined();
+		expect(parsed.hooks).toBeDefined();
+	});
+
+	it("removes managed mastra hooks from the root-level event map", () => {
+		const hooksPath = path.join(mockedHomeDir, ".mastracode", "hooks.json");
+		mkdirSync(path.dirname(hooksPath), { recursive: true });
+		writeFileSync(
+			hooksPath,
+			JSON.stringify({
+				Stop: [
+					{ type: "command", command: "/opt/user-mastra-hook.sh" },
+					{ type: "command", command: managedMastraHookCommand },
+				],
+				SessionStart: [{ type: "command", command: managedMastraHookCommand }],
+			}),
+		);
+
+		removeMastraManagedHooks();
+
+		const parsed = JSON.parse(readFileSync(hooksPath, "utf-8"));
+		expect(parsed.Stop).toEqual([
+			{ type: "command", command: "/opt/user-mastra-hook.sh" },
+		]);
+		expect(parsed.SessionStart).toBeUndefined();
+	});
+
+	it("skips mastra merge instead of clobbering an unparseable file", () => {
+		const hooksPath = path.join(mockedHomeDir, ".mastracode", "hooks.json");
+		mkdirSync(path.dirname(hooksPath), { recursive: true });
+		writeFileSync(hooksPath, "{not-json");
+
+		expect(getMastraHooksJsonContent("/tmp/.superset/hooks/notify.sh")).toBe(
+			null,
+		);
+	});
+
+	it("removes the kimi managed block, deleting the file only when nothing else remains", () => {
+		const configPath = getKimiConfigTomlPath();
+		mkdirSync(path.dirname(configPath), { recursive: true });
+
+		const userConfig = '[user]\nkey = "value"';
+		writeFileSync(
+			configPath,
+			`${userConfig}\n\n${KIMI_HOOKS_MARKER_START}\n[[hooks]]\nevent = "Stop"\ncommand = 'SUPERSET_AGENT_ID=kimi x'\n${KIMI_HOOKS_MARKER_END}\n`,
+		);
+		removeKimiManagedHooks();
+		expect(readFileSync(configPath, "utf-8")).toBe(`${userConfig}\n`);
+
+		writeFileSync(
+			configPath,
+			`${KIMI_HOOKS_MARKER_START}\n[[hooks]]\nevent = "Stop"\ncommand = 'SUPERSET_AGENT_ID=kimi x'\n${KIMI_HOOKS_MARKER_END}\n`,
+		);
+		removeKimiManagedHooks();
+		expect(existsSync(configPath)).toBe(false);
+	});
+});
+
+describe("managed hooks junk tolerance", () => {
+	beforeEach(() => {
+		mockedHomeDir = path.join(TEST_ROOT, "home");
+		mkdirSync(TEST_BIN_DIR, { recursive: true });
+		mkdirSync(TEST_HOOKS_DIR, { recursive: true });
+	});
+
+	afterEach(() => {
+		rmSync(TEST_ROOT, { recursive: true, force: true });
+	});
+
+	it("preserves null and primitive entries instead of aborting the merge", () => {
+		const settingsPath = path.join(mockedHomeDir, ".factory", "settings.json");
+		mkdirSync(path.dirname(settingsPath), { recursive: true });
+		writeFileSync(
+			settingsPath,
+			JSON.stringify({
+				hooks: {
+					Stop: [
+						null,
+						"junk-string",
+						{ hooks: [{ type: "command", command: "/opt/user-hook.sh" }] },
+					],
+				},
+			}),
+		);
+
+		const content = getDroidSettingsJsonContent(
+			"/tmp/.superset/hooks/notify.sh",
+		);
+		expect(content).not.toBeNull();
+		const parsed = JSON.parse(content as string);
+		expect(parsed.hooks.Stop[0]).toBe(null);
+		expect(parsed.hooks.Stop[1]).toBe("junk-string");
+		expect(
+			parsed.hooks.Stop.some(
+				(d: { hooks?: Array<{ command: string }> }) =>
+					Array.isArray(d?.hooks) &&
+					d.hooks.some((h) => h.command === managedDroidHookCommand),
+			),
+		).toBe(true);
+
+		removeDroidManagedHooks();
+		const afterRemove = JSON.parse(readFileSync(settingsPath, "utf-8"));
+		expect(afterRemove.hooks.Stop).toEqual([
+			null,
+			"junk-string",
+			{ hooks: [{ type: "command", command: "/opt/user-hook.sh" }] },
+		]);
 	});
 });

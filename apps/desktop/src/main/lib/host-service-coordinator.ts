@@ -785,6 +785,21 @@ export class HostServiceCoordinator extends EventEmitter {
 			HOST_MIGRATIONS_FOLDER: app.isPackaged
 				? path.join(process.resourcesPath, "resources/host-migrations")
 				: path.join(app.getAppPath(), "../../packages/host-service/drizzle"),
+			// chat.db's migrations ship the same way host.db's do: the bundled
+			// host-service can't resolve them from its own module path, so the
+			// folder travels as a resource and the path comes in as env.
+			SUPERSET_CHAT_V3_MIGRATIONS: app.isPackaged
+				? path.join(process.resourcesPath, "resources/chat-migrations")
+				: path.join(
+						app.getAppPath(),
+						"../../packages/chat-runtime/src/db/drizzle",
+					),
+			// The Claude Agent SDK's bundled CLI binary is unresolvable from the
+			// bundled host-service (isolated linker + bundling), so its path comes
+			// in as env too. Packaged builds are an open IOU (231MB binary).
+			...(chatV3ClaudeBin()
+				? { SUPERSET_CHAT_V3_CLAUDE_BIN: chatV3ClaudeBin() as string }
+				: {}),
 			DESKTOP_VITE_PORT: String(sharedEnv.DESKTOP_VITE_PORT),
 			SUPERSET_HOME_DIR: SUPERSET_HOME_DIR,
 			SUPERSET_LEGACY_WORKTREE_BASE_DIR: row?.worktreeBaseDir ?? "",
@@ -818,7 +833,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		// effective URL comes from the PostHog `relay-url-override` flag with
 		// `env.RELAY_URL` as fallback (see main/lib/relay-url) so we can A/B-test
 		// alternate relay deployments per-user.
-		const effectiveRelayUrl = await getRelayUrl();
+		const effectiveRelayUrl = getRelayUrl();
 		if (exposeViaRelay && effectiveRelayUrl) {
 			childEnv.RELAY_URL = effectiveRelayUrl;
 		} else {
@@ -1106,4 +1121,24 @@ export function getHostServiceCoordinator(): HostServiceCoordinator {
 		coordinator = new HostServiceCoordinator();
 	}
 	return coordinator;
+}
+
+function chatV3ClaudeBin(): string | undefined {
+	if (app.isPackaged) return undefined;
+	const arch = process.arch;
+	const platform = process.platform;
+	const store = path.join(app.getAppPath(), "../../node_modules/.bun");
+	const prefix = `@anthropic-ai+claude-agent-sdk-${platform}-${arch}@`;
+	try {
+		const entry = fs.readdirSync(store).find((d) => d.startsWith(prefix));
+		if (!entry) return undefined;
+		const bin = path.join(
+			store,
+			entry,
+			`node_modules/@anthropic-ai/claude-agent-sdk-${platform}-${arch}/claude`,
+		);
+		return fs.existsSync(bin) ? bin : undefined;
+	} catch {
+		return undefined;
+	}
 }

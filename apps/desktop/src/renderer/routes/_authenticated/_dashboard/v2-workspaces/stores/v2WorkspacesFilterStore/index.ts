@@ -1,7 +1,14 @@
 export {
 	DEVICE_FILTER_THIS_DEVICE,
-	PROJECT_FILTER_ALL,
+	PROJECT_FILTER_SESSIONS,
 	useV2WorkspacesFilterStore,
+	V2_WORKSPACES_AGENT_STATUS_FILTERS,
+	V2_WORKSPACES_ARCHIVED_WINDOWS,
+	V2_WORKSPACES_PR_STATE_FILTERS,
+	type V2WorkspacesAgentStatusFilter,
+	type V2WorkspacesArchivedWindow,
 	type V2WorkspacesDeviceFilter,
 	type V2WorkspacesProjectFilter,
+	type V2WorkspacesPrStateFilter,
+	type V2WorkspacesViewMode,
 } from "./v2WorkspacesFilterStore";

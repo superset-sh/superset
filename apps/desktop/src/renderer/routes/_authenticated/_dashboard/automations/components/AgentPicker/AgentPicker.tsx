@@ -24,6 +24,12 @@ interface AgentPickerProps {
 	value: string;
 	onChange: (next: string) => void;
 	className?: string;
+	/**
+	 * Disables opening via the Radix trigger itself. A button disabled only
+	 * through an enclosing <fieldset> still receives pointerdown in Chrome —
+	 * the event that opens a DropdownMenu.
+	 */
+	disabled?: boolean;
 }
 
 export function AgentPicker({
@@ -31,6 +37,7 @@ export function AgentPicker({
 	value,
 	onChange,
 	className,
+	disabled,
 }: AgentPickerProps) {
 	const navigate = useNavigate();
 	const hostUrl = useHostUrl(hostId);
@@ -47,7 +54,7 @@ export function AgentPicker({
 
 	return (
 		<DropdownMenu>
-			<DropdownMenuTrigger asChild>
+			<DropdownMenuTrigger asChild disabled={disabled}>
 				<PickerTrigger
 					className={className}
 					icon={

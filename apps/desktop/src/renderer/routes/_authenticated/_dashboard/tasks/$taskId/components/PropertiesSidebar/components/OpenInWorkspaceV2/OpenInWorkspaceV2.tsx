@@ -19,10 +19,10 @@ import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/componen
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
-import { deriveBranchName } from "../../../../utils/deriveBranchName";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2TaskAgent";
 const NONE = "none" as const;
@@ -190,7 +190,12 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 		if (!selectedProjectId || !hostId) return;
 
 		const snapshotId = crypto.randomUUID();
-		const branch = deriveBranchName({ slug: task.slug, title: task.title });
+		const providerBranch = !!task.branch?.trim();
+		const branch = deriveBranchName({
+			slug: task.slug,
+			title: task.title,
+			branch: task.branch,
+		});
 		const agents =
 			selectedAgent === NONE
 				? undefined
@@ -217,6 +222,7 @@ export function OpenInWorkspaceV2({ task }: OpenInWorkspaceV2Props) {
 				projectId: selectedProjectId,
 				name: task.title,
 				branch,
+				skipBranchPrefix: providerBranch || undefined,
 				taskId: task.id,
 				agents,
 			},

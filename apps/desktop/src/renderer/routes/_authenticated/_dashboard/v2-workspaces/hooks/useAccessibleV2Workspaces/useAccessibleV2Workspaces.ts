@@ -6,6 +6,7 @@ import { useMemo } from "react";
 import { env } from "renderer/env.renderer";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
+import { deriveTerminalAgentStatus } from "renderer/hooks/host-service/useTerminalAgentStatuses";
 import { useHostWorkspacesSource } from "renderer/hooks/host-workspaces/useHostWorkspaces";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
@@ -13,19 +14,28 @@ import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { derivePullRequestQueryTargets } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import {
 	DEVICE_FILTER_THIS_DEVICE,
-	PROJECT_FILTER_ALL,
+	PROJECT_FILTER_SESSIONS,
+	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesDeviceFilter,
-	type V2WorkspacesProjectFilter,
+	type V2WorkspacesPrStateFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { isSidebarWorkspaceVisible } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useV2NotificationStore } from "renderer/stores/v2-notifications";
 import { MOCK_ORG_ID } from "shared/constants";
+import { type PaneStatus, pickHigherStatus } from "shared/tabs-types";
 
 export type V2WorkspaceHostType = "local-device" | "remote-device";
 
-export type V2WorkspacePrState = "open" | "merged" | "closed" | "draft";
+/** Host vocabulary — includes merge-queue, unlike the old cloud join. */
+export type V2WorkspacePrState =
+	| "open"
+	| "merged"
+	| "closed"
+	| "draft"
+	| "queued";
 
 export type V2WorkspacePrReviewDecision =
 	| "approved"
@@ -46,23 +56,24 @@ export interface V2WorkspacePrSummary {
 	checksStatus: V2WorkspacePrChecksStatus;
 	reviewDecision: V2WorkspacePrReviewDecision;
 	checks: CheckItem[];
-	additions: number;
-	deletions: number;
-	updatedAt: Date;
+	/** First observed merged (epoch ms); null unless merged. */
+	mergedAt: number | null;
 }
 
 export interface AccessibleV2Workspace {
 	id: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "session";
 	createdAt: Date;
 	createdByUserId: string | null;
 	createdByName: string | null;
 	createdByImage: string | null;
 	isCreatedByCurrentUser: boolean;
-	projectId: string;
-	projectName: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
+	/** Null for project-less "session" workspaces. */
+	projectName: string | null;
 	projectRepoId: string | null;
 	projectIconUrl: string | null;
 	hostId: string;
@@ -71,6 +82,11 @@ export interface AccessibleV2Workspace {
 	hostType: V2WorkspaceHostType;
 	isInSidebar: boolean;
 	pr: V2WorkspacePrSummary | null;
+	/** Highest-priority live agent status across the workspace's terminals. */
+	agentStatus: PaneStatus;
+	/** Non-null = archived tombstone (soft-deleted workspace). */
+	archivedAt: number | null;
+	archiveReason: "merged" | "deleted" | null;
 }
 
 export interface V2WorkspaceHostOption {
@@ -104,7 +120,17 @@ interface UseAccessibleV2WorkspacesOptions {
 	searchQuery?: string;
 	/** Omitted = no device scoping (programmatic callers like the palette). */
 	deviceFilter?: V2WorkspacesDeviceFilter;
-	projectFilter?: V2WorkspacesProjectFilter;
+	/** Empty/omitted = all projects. May contain PROJECT_FILTER_SESSIONS. */
+	projectFilters?: string[];
+	/** Empty/omitted = any PR state (including no PR). */
+	prStateFilters?: V2WorkspacesPrStateFilter[];
+	/** Empty/omitted = any agent status. */
+	agentStatusFilters?: V2WorkspacesAgentStatusFilter[];
+	/**
+	 * Also surface archived tombstones (with `archivedAt` set). Requires a
+	 * device filter — the archived fetch rides the scoped host source.
+	 */
+	includeArchived?: boolean;
 }
 
 function workspaceMatchesSearch(
@@ -115,7 +141,7 @@ function workspaceMatchesSearch(
 	const query = searchQuery.trim().toLowerCase();
 	return (
 		workspace.name.toLowerCase().includes(query) ||
-		workspace.projectName.toLowerCase().includes(query) ||
+		(workspace.projectName ?? "Sessions").toLowerCase().includes(query) ||
 		workspace.branch.toLowerCase().includes(query) ||
 		workspace.hostName.toLowerCase().includes(query) ||
 		(workspace.createdByName ?? "").toLowerCase().includes(query) ||
@@ -124,84 +150,42 @@ function workspaceMatchesSearch(
 	);
 }
 
-function matchesProjectFilter(
+function matchesProjectFilters(
 	workspace: AccessibleV2Workspace,
-	projectFilter: V2WorkspacesProjectFilter,
+	projectFilters: string[],
 ): boolean {
-	if (projectFilter === PROJECT_FILTER_ALL) return true;
-	return workspace.projectId === projectFilter;
-}
-
-function prStateFor(
-	state: string,
-	isDraft: boolean,
-	mergedAt: Date | string | null,
-): V2WorkspacePrState {
-	if (mergedAt != null) return "merged";
-	if (isDraft) return "draft";
-	if (state === "closed") return "closed";
-	return "open";
-}
-
-function reviewDecisionFor(
-	raw: string | null | undefined,
-): V2WorkspacePrReviewDecision {
-	if (raw === "APPROVED") return "approved";
-	if (raw === "CHANGES_REQUESTED") return "changes_requested";
-	return "pending";
-}
-
-type RawCheckEntry = {
-	name: string;
-	status: string;
-	conclusion: string | null;
-	detailsUrl?: string;
-};
-
-function checkItemStatusFor(
-	rawStatus: string,
-	rawConclusion: string | null,
-): CheckItem["status"] {
-	if (rawStatus !== "completed") return "pending";
-	switch (rawConclusion) {
-		case "success":
-		case "neutral":
-			return "success";
-		case "skipped":
-			return "skipped";
-		case "cancelled":
-			return "cancelled";
-		case "failure":
-		case "timed_out":
-		case "action_required":
-		case "stale":
-		case "startup_failure":
-			return "failure";
-		default:
-			return "pending";
+	if (projectFilters.length === 0) return true;
+	if (workspace.projectId === null) {
+		return projectFilters.includes(PROJECT_FILTER_SESSIONS);
 	}
+	return projectFilters.includes(workspace.projectId);
 }
 
-function mapChecks(rawChecks: RawCheckEntry[] | null | undefined): CheckItem[] {
-	if (!rawChecks) return [];
-	return rawChecks.map((entry) => ({
-		name: entry.name,
-		status: checkItemStatusFor(entry.status, entry.conclusion),
-		url: entry.detailsUrl,
-	}));
+function matchesPrStateFilters(
+	workspace: AccessibleV2Workspace,
+	prStateFilters: V2WorkspacesPrStateFilter[],
+): boolean {
+	if (prStateFilters.length === 0) return true;
+	return workspace.pr != null && prStateFilters.includes(workspace.pr.state);
+}
+
+function matchesAgentStatusFilters(
+	workspace: AccessibleV2Workspace,
+	agentStatusFilters: V2WorkspacesAgentStatusFilter[],
+): boolean {
+	if (agentStatusFilters.length === 0) return true;
+	return agentStatusFilters.includes(workspace.agentStatus);
 }
 
 // useQueries returns a fresh array each render; key the map on a content
 // fingerprint so its identity only changes when the entries do.
-function useStableWorkspacePrNumbers(
-	entries: [string, number][],
-): Map<string, number> {
+function useStableByWorkspaceId<T>(entries: [string, T][]): Map<string, T> {
 	const fingerprint = useMemo(
 		() => JSON.stringify([...entries].sort(([a], [b]) => a.localeCompare(b))),
 		[entries],
 	);
-	return useMemo<Map<string, number>>(
-		() => new Map(JSON.parse(fingerprint) as [string, number][]),
+	return useMemo<Map<string, T>>(
+		() => new Map(JSON.parse(fingerprint) as [string, T][]),
 		[fingerprint],
 	);
 }
@@ -211,7 +195,9 @@ export function useAccessibleV2Workspaces(
 ): UseAccessibleV2WorkspacesResult {
 	const searchQuery = options.searchQuery ?? "";
 	const deviceFilter = options.deviceFilter;
-	const projectFilter = options.projectFilter ?? PROJECT_FILTER_ALL;
+	const projectFilters = options.projectFilters ?? [];
+	const prStateFilters = options.prStateFilters ?? [];
+	const agentStatusFilters = options.agentStatusFilters ?? [];
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
@@ -234,7 +220,9 @@ export function useAccessibleV2Workspaces(
 			: deviceFilter === DEVICE_FILTER_THIS_DEVICE
 				? machineId
 				: deviceFilter;
-	const scopedSource = useHostWorkspacesSource(selectedHostId);
+	const scopedSource = useHostWorkspacesSource(selectedHostId, {
+		includeArchived: options.includeArchived ?? false,
+	});
 	const fanoutSource = useHostWorkspaces();
 	const { workspaces: hostWorkspaces, isReady } =
 		deviceFilter === undefined ? fanoutSource : scopedSource;
@@ -331,7 +319,29 @@ export function useAccessibleV2Workspaces(
 			creatorRows.map((creator) => [creator.id, creator]),
 		);
 
-		return hostWorkspaces.flatMap((workspace) => {
+		type AccessibleRowDraft = {
+			id: string;
+			name: string;
+			branch: string;
+			type: "main" | "worktree" | "session";
+			createdAt: Date;
+			createdByUserId: string | null;
+			createdByName: string | null;
+			createdByImage: string | null;
+			projectId: string | null;
+			projectName: string | null;
+			projectRepoId: string | null;
+			projectIconUrl: string | null;
+			hostId: string;
+			hostName: string;
+			hostIsOnline: boolean;
+			sidebarProjectId: string | null;
+			sidebarWorkspaceId: string | null;
+			sidebarIsHidden: boolean;
+			archivedAt: number | null;
+			archiveReason: "merged" | "deleted" | null;
+		};
+		return hostWorkspaces.flatMap((workspace): AccessibleRowDraft[] => {
 			if (workspace.organizationId !== activeOrganizationId) return [];
 			const host = hostsById.get(workspace.hostId);
 			// A host-served row is its own proof of existence and access — the
@@ -343,6 +353,42 @@ export function useAccessibleV2Workspaces(
 				(!host || !accessibleHostIds.has(workspace.hostId))
 			)
 				return [];
+			// Session workspaces (null projectId) skip the project join and
+			// group under the "Sessions" pseudo-project.
+			if (workspace.projectId === null) {
+				const sessionSidebarState = sidebarStateByWorkspaceId.get(workspace.id);
+				const sessionCreator = workspace.createdByUserId
+					? creatorsById.get(workspace.createdByUserId)
+					: undefined;
+				return [
+					{
+						id: workspace.id,
+						name: workspace.name,
+						branch: workspace.branch,
+						type: workspace.type,
+						createdAt: workspace.createdAt,
+						createdByUserId: workspace.createdByUserId,
+						createdByName: sessionCreator?.name ?? null,
+						createdByImage: sessionCreator?.image ?? null,
+						projectId: null,
+						projectName: null,
+						projectRepoId: null,
+						projectIconUrl: null,
+						hostId: workspace.hostId,
+						hostName:
+							host?.name ??
+							(workspace.hostId === machineId
+								? "This device"
+								: "Unknown device"),
+						hostIsOnline: host?.isOnline ?? workspace.hostReachable,
+						sidebarProjectId: null,
+						sidebarWorkspaceId: sessionSidebarState?.workspaceId ?? null,
+						sidebarIsHidden: sessionSidebarState?.isHidden ?? false,
+						archivedAt: workspace.archivedAt ?? null,
+						archiveReason: workspace.archiveReason ?? null,
+					},
+				];
+			}
 			const project = projectsById.get(workspace.projectId);
 			if (!project) return [];
 			const sidebarState = sidebarStateByWorkspaceId.get(workspace.id);
@@ -382,6 +428,8 @@ export function useAccessibleV2Workspaces(
 						: null,
 					sidebarWorkspaceId: sidebarState?.workspaceId ?? null,
 					sidebarIsHidden: sidebarState?.isHidden ?? false,
+					archivedAt: workspace.archivedAt ?? null,
+					archiveReason: workspace.archiveReason ?? null,
 				},
 			];
 		});
@@ -441,63 +489,81 @@ export function useAccessibleV2Workspaces(
 		})),
 	});
 
-	const prNumberEntries = useMemo<[string, number][]>(() => {
-		const entries: [string, number][] = [];
+	// The host is the sole PR source: its snapshot already carries the full
+	// 5-valued state (incl. merge queue), review decision, and checks — the
+	// old cloud Electric join re-derived a worse 4-valued state and could
+	// never match sessions or repo-unmatched projects.
+	const prSummaryEntries = useMemo<[string, V2WorkspacePrSummary][]>(() => {
+		const entries: [string, V2WorkspacePrSummary][] = [];
 		for (const query of pullRequestQueries) {
 			const data = query.data;
 			if (!data) continue;
 			for (const row of data.workspaces) {
-				if (row.pullRequest)
-					entries.push([row.workspaceId, row.pullRequest.number]);
+				const pr = row.pullRequest;
+				if (!pr) continue;
+				entries.push([
+					row.workspaceId,
+					{
+						prNumber: pr.number,
+						title: pr.title,
+						url: pr.url,
+						state: pr.state,
+						checksStatus: pr.checksStatus,
+						reviewDecision: pr.reviewDecision ?? "pending",
+						checks: pr.checks.map((check) => ({
+							name: check.name,
+							status: check.status,
+							url: check.url ?? undefined,
+						})),
+						mergedAt: pr.mergedAt,
+					},
+				]);
 			}
 		}
 		return entries;
 	}, [pullRequestQueries]);
-	const prNumberByWorkspaceId = useStableWorkspacePrNumbers(prNumberEntries);
+	const prByWorkspaceId = useStableByWorkspaceId(prSummaryEntries);
 
-	const { data: prRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ prs: collections.githubPullRequests })
-				.where(({ prs }) => eq(prs.organizationId, activeOrganizationId ?? ""))
-				.select(({ prs }) => ({
-					id: prs.id,
-					repositoryId: prs.repositoryId,
-					prNumber: prs.prNumber,
-					title: prs.title,
-					url: prs.url,
-					state: prs.state,
-					isDraft: prs.isDraft,
-					checksStatus: prs.checksStatus,
-					checks: prs.checks,
-					reviewDecision: prs.reviewDecision,
-					additions: prs.additions,
-					deletions: prs.deletions,
-					updatedAt: prs.updatedAt,
-					mergedAt: prs.mergedAt,
-				})),
-		[collections, activeOrganizationId],
+	// Live agent status, one host-wide query per host — never per workspace
+	// (a 100-row board must not fan out 100 binding queries).
+	const terminalAgentQueries = useQueries({
+		queries: pullRequestQueryTargets.map((target) => ({
+			queryKey: [
+				"v2-workspaces",
+				"terminal-agents",
+				target.organizationId,
+				target.machineId,
+			] as const,
+			refetchInterval: 10_000,
+			enabled: target.hostUrl !== null,
+			queryFn: async () => {
+				if (!target.hostUrl) return [];
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.terminalAgents.list.query();
+			},
+		})),
+	});
+	const terminalSeenAt = useV2NotificationStore(
+		(state) => state.terminalSeenAt,
 	);
-
-	// Unique (repositoryId, prNumber) key — no branch collisions, no first-match-wins.
-	const prByRepoNumber = useMemo(() => {
-		const map = new Map<string, V2WorkspacePrSummary>();
-		for (const row of prRows) {
-			map.set(`${row.repositoryId}::${row.prNumber}`, {
-				prNumber: row.prNumber,
-				title: row.title,
-				url: row.url,
-				state: prStateFor(row.state, row.isDraft, row.mergedAt),
-				checksStatus: (row.checksStatus as V2WorkspacePrChecksStatus) ?? "none",
-				reviewDecision: reviewDecisionFor(row.reviewDecision),
-				checks: mapChecks(row.checks as RawCheckEntry[] | null | undefined),
-				additions: row.additions,
-				deletions: row.deletions,
-				updatedAt: new Date(row.updatedAt),
-			});
+	const agentStatusEntries = useMemo<[string, PaneStatus][]>(() => {
+		const byWorkspace = new Map<string, PaneStatus>();
+		for (const query of terminalAgentQueries) {
+			for (const binding of query.data ?? []) {
+				const status = deriveTerminalAgentStatus({
+					lastEventType: binding.lastEventType,
+					lastEventAt: binding.lastEventAt,
+					lastSeenAt: terminalSeenAt[binding.terminalId],
+				});
+				byWorkspace.set(
+					binding.workspaceId,
+					pickHigherStatus(byWorkspace.get(binding.workspaceId), status),
+				);
+			}
 		}
-		return map;
-	}, [prRows]);
+		return [...byWorkspace.entries()];
+	}, [terminalAgentQueries, terminalSeenAt]);
+	const agentStatusByWorkspaceId = useStableByWorkspaceId(agentStatusEntries);
 
 	const enriched = useMemo<AccessibleV2Workspace[]>(() => {
 		const deduped = new Map<string, AccessibleV2Workspace>();
@@ -512,11 +578,7 @@ export function useAccessibleV2Workspaces(
 			const isInSidebar =
 				isSidebarWorkspaceVisible({ isHidden: row.sidebarIsHidden }) &&
 				(row.sidebarWorkspaceId != null || isAutoVisibleMain);
-			const prNumber = prNumberByWorkspaceId.get(row.id);
-			const pr =
-				row.projectRepoId != null && prNumber != null
-					? (prByRepoNumber.get(`${row.projectRepoId}::${prNumber}`) ?? null)
-					: null;
+			const pr = prByWorkspaceId.get(row.id) ?? null;
 
 			deduped.set(row.id, {
 				id: row.id,
@@ -539,12 +601,21 @@ export function useAccessibleV2Workspaces(
 				hostType,
 				isInSidebar,
 				pr,
+				agentStatus: agentStatusByWorkspaceId.get(row.id) ?? "idle",
+				archivedAt: row.archivedAt,
+				archiveReason: row.archiveReason,
 			});
 		}
 		return Array.from(deduped.values()).sort(
 			(a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
 		);
-	}, [rows, machineId, currentUserId, prByRepoNumber, prNumberByWorkspaceId]);
+	}, [
+		rows,
+		machineId,
+		currentUserId,
+		prByWorkspaceId,
+		agentStatusByWorkspaceId,
+	]);
 
 	const searchFiltered = useMemo(
 		() =>
@@ -556,10 +627,13 @@ export function useAccessibleV2Workspaces(
 
 	const fullyFiltered = useMemo(
 		() =>
-			searchFiltered.filter((workspace) =>
-				matchesProjectFilter(workspace, projectFilter),
+			searchFiltered.filter(
+				(workspace) =>
+					matchesProjectFilters(workspace, projectFilters) &&
+					matchesPrStateFilters(workspace, prStateFilters) &&
+					matchesAgentStatusFilters(workspace, agentStatusFilters),
 			),
-		[searchFiltered, projectFilter],
+		[searchFiltered, projectFilters, prStateFilters, agentStatusFilters],
 	);
 
 	// Hosts come straight from the (locally cached) hosts collections so the
@@ -590,6 +664,8 @@ export function useAccessibleV2Workspaces(
 	const projectOptions = useMemo<V2WorkspaceProjectOption[]>(() => {
 		const byProject = new Map<string, V2WorkspaceProjectOption>();
 		for (const workspace of searchFiltered) {
+			// Sessions aren't a project; the filter dropdown stays project-only.
+			if (workspace.projectId === null) continue;
 			const existing = byProject.get(workspace.projectId);
 			if (existing) {
 				existing.count += 1;
@@ -597,7 +673,7 @@ export function useAccessibleV2Workspaces(
 			}
 			byProject.set(workspace.projectId, {
 				projectId: workspace.projectId,
-				projectName: workspace.projectName,
+				projectName: workspace.projectName ?? "",
 				iconUrl: workspace.projectIconUrl,
 				count: 1,
 			});
@@ -633,9 +709,10 @@ export function useAccessibleV2Workspaces(
 			{ projectName: string; iconUrl: string | null }
 		>();
 		for (const workspace of enriched) {
+			if (workspace.projectId === null) continue;
 			if (map.has(workspace.projectId)) continue;
 			map.set(workspace.projectId, {
-				projectName: workspace.projectName,
+				projectName: workspace.projectName ?? "",
 				iconUrl: workspace.projectIconUrl,
 			});
 		}

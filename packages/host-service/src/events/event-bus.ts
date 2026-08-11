@@ -225,6 +225,20 @@ export class EventBus {
 	}
 
 	/**
+	 * Terminal event for an enqueued workspaces.createEnqueued call — carries
+	 * what the synchronous create response used to (canonical id + launched
+	 * terminals/agents), keyed by the client-minted enqueue id.
+	 */
+	broadcastWorkspaceCreateSettled(
+		message: Omit<
+			Extract<ServerMessage, { type: "workspace:create-settled" }>,
+			"type"
+		>,
+	): void {
+		this.broadcast({ type: "workspace:create-settled", ...message });
+	}
+
+	/**
 	 * Fan out project lifecycle changes (create/rename/delete) from the
 	 * host-owned projects table. Broadcast to all clients — list consumers
 	 * subscribe host-wide rather than per-workspace.

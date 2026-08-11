@@ -12,7 +12,7 @@ export async function GET() {
 	const docsUrl = COMPANY.DOCS_URL;
 
 	const lines: string[] = [
-		`# ${COMPANY.NAME} — Run 10+ parallel coding agents on your machine`,
+		`# ${COMPANY.NAME} — Run 100+ parallel coding agents on your machine`,
 		"",
 		PRODUCT_SUMMARY,
 		"",

@@ -12,6 +12,10 @@ export interface V1ProjectRow {
 	name: string;
 	mainRepoPath: string;
 	githubOwner: string | null;
+	/** v1 accent color: a `#rrggbb` hex or the "default" sentinel. */
+	color: string;
+	/** v1 "hide the GitHub avatar" flag — carries as the "none" icon. */
+	hideImage: boolean | null;
 	worktreeBaseDir: string | null;
 	branchPrefixMode: BranchPrefixMode | null;
 	branchPrefixCustom: string | null;

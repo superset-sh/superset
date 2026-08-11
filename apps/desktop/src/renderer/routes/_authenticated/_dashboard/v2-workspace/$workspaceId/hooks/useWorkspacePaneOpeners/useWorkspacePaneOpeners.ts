@@ -111,13 +111,15 @@ export function useWorkspacePaneOpeners({
 		[store],
 	);
 
-	const addBlankTerminalTab = useCallback(async () => {
-		const terminalId = await launcher.create();
+	const addBlankTerminalTab = useCallback(() => {
 		store.getState().addTab({
 			panes: [
 				{
 					kind: "terminal",
-					data: { terminalId } as TerminalPaneData,
+					data: {
+						terminalId: launcher.mint(),
+						createOnAttach: true,
+					} as TerminalPaneData,
 				},
 			],
 		});
@@ -125,7 +127,7 @@ export function useWorkspacePaneOpeners({
 
 	const addTerminalTab = useCallback(async () => {
 		if (newTabPresets.length === 0) {
-			await addBlankTerminalTab();
+			addBlankTerminalTab();
 			return;
 		}
 

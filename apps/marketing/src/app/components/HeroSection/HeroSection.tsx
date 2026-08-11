@@ -1,6 +1,7 @@
 "use client";
 
 import { COMPANY } from "@superset/shared/constants";
+import Link from "next/link";
 import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
@@ -31,6 +32,19 @@ export function HeroSection() {
 				<BoidsBackground />
 				<div className="relative w-full max-w-7xl mx-auto px-6 sm:px-8">
 					<div className="flex flex-col items-center text-center">
+						<Link
+							href="/join-us"
+							className="group mb-6 inline-flex items-center gap-2 rounded-[2px] border border-border bg-background/80 px-3 py-1.5 text-xs font-mono text-muted-foreground transition-colors hover:text-foreground hover:border-foreground/[0.2]"
+						>
+							<span className="text-brand shrink-0">●</span>
+							<span>
+								We&apos;re hiring engineers
+								<span className="hidden sm:inline"> in San Francisco</span>
+							</span>
+							<span className="shrink-0 transition-transform group-hover:translate-x-0.5">
+								→
+							</span>
+						</Link>
 						<div className="space-y-4 sm:space-y-6">
 							<h1
 								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-medium tracking-tight leading-[1.1] text-foreground relative max-w-6xl mx-auto"

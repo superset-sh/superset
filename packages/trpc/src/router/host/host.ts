@@ -11,13 +11,42 @@ import {
 	isActiveSubscriptionStatus,
 	isPaidPlan,
 } from "@superset/shared/billing";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { parseHostRoutingKey } from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { env } from "../../env";
+import { posthog } from "../../lib/analytics";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 
+interface RelayUrlPayload {
+	url?: string;
+}
+
 export const hostRouter = {
+	/**
+	 * The relay every client and host of this user must use. Resolved here so
+	 * one authenticated answer serves the desktop, its host-service, the CLI
+	 * and the web app — client-side flag evaluation raced identification and
+	 * silently fell back, which split hosts and clients across two relays.
+	 */
+	relayEndpoint: jwtProcedure.query(async ({ ctx }) => {
+		try {
+			const payload = (await posthog.getFeatureFlagPayload(
+				FEATURE_FLAGS.RELAY_URL_OVERRIDE,
+				ctx.userId,
+			)) as RelayUrlPayload | null | undefined;
+			const override = payload?.url;
+			if (typeof override === "string" && override.length > 0) {
+				return { url: override };
+			}
+		} catch {
+			// Fall through to the default relay.
+		}
+		return { url: env.RELAY_URL };
+	}),
+
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {

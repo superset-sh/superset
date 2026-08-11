@@ -23,30 +23,30 @@ const rruleBody = z
 	.max(500)
 	.describe("RFC 5545 RRULE body, no DTSTART prefix");
 
-export const createAutomationSchema = z
-	.object({
-		name: z.string().min(1).max(200),
-		prompt: z.string().min(1).max(100_000),
-		agent: agentSchema,
-		targetHostId: z.string().min(1).nullish(),
-		v2ProjectId: z.string().uuid().optional(),
-		v2WorkspaceId: z.string().uuid().nullish(),
-		rrule: rruleBody,
-		dtstart: z.coerce.date().optional(),
-		timezone: iana,
-		mcpScope: z.array(z.string()).default([]),
-	})
-	.refine((input) => input.v2ProjectId || input.v2WorkspaceId, {
-		message: "Provide v2ProjectId or v2WorkspaceId",
-		path: ["v2ProjectId"],
-	});
+export const createAutomationSchema = z.object({
+	name: z.string().min(1).max(200),
+	prompt: z.string().min(1).max(100_000),
+	agent: agentSchema,
+	targetHostId: z.string().min(1).nullish(),
+	// Null/omitted with no workspace pin = session automation: each run
+	// creates a project-less session workspace (same convention as
+	// workspaces.create — no project means session).
+	v2ProjectId: z.string().uuid().nullish(),
+	v2WorkspaceId: z.string().uuid().nullish(),
+	rrule: rruleBody,
+	dtstart: z.coerce.date().optional(),
+	timezone: iana,
+	mcpScope: z.array(z.string()).default([]),
+});
 
 export const updateAutomationSchema = z.object({
 	id: z.string().uuid(),
 	name: z.string().min(1).max(200).optional(),
 	agent: agentSchema.optional(),
 	targetHostId: z.string().min(1).nullish(),
-	v2ProjectId: z.string().uuid().optional(),
+	// Explicit null switches the automation to session mode; undefined keeps
+	// the existing project.
+	v2ProjectId: z.string().uuid().nullish(),
 	v2WorkspaceId: z.string().uuid().nullish(),
 	rrule: rruleBody.optional(),
 	dtstart: z.coerce.date().optional(),

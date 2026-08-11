@@ -89,7 +89,6 @@ export function TerminalSessionDropdown({
 	workspaceId,
 }: TerminalSessionDropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
-	const [isCreatingTerminal, setIsCreatingTerminal] = useState(false);
 	const collections = useCollections();
 	const { terminalId } = context.pane.data as TerminalPaneData;
 	const terminalInstanceId = context.pane.id;
@@ -243,36 +242,26 @@ export function TerminalSessionDropdown({
 		});
 	};
 
-	const handleNewTerminal = async () => {
-		if (isCreatingTerminal) return;
-		setIsCreatingTerminal(true);
-		try {
-			const nextTerminalId = await launcher.create();
-			const state = context.store.getState();
-			const terminalPaneLocations = getTerminalPaneLocations(context);
-			if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
-				markTerminalForBackground(terminalId, workspaceId);
-			}
-			state.setPaneData({
-				paneId: context.pane.id,
-				data: {
-					terminalId: nextTerminalId,
-				} as PaneViewerData,
-			});
-			state.setPaneTitleOverride({
-				tabId: context.tab.id,
-				paneId: context.pane.id,
-				titleOverride: undefined,
-			});
-			void utils.terminal.listSessions.invalidate({ workspaceId });
-			setIsOpen(false);
-		} catch (error) {
-			toast.error("Failed to create terminal", {
-				description: error instanceof Error ? error.message : "Unknown error",
-			});
-		} finally {
-			setIsCreatingTerminal(false);
+	const handleNewTerminal = () => {
+		const state = context.store.getState();
+		const terminalPaneLocations = getTerminalPaneLocations(context);
+		if ((terminalPaneLocations.get(terminalId)?.length ?? 0) === 0) {
+			markTerminalForBackground(terminalId, workspaceId);
 		}
+		state.setPaneData({
+			paneId: context.pane.id,
+			data: {
+				terminalId: launcher.mint(),
+				createOnAttach: true,
+			} as PaneViewerData,
+		});
+		state.setPaneTitleOverride({
+			tabId: context.tab.id,
+			paneId: context.pane.id,
+			titleOverride: undefined,
+		});
+		void utils.terminal.listSessions.invalidate({ workspaceId });
+		setIsOpen(false);
 	};
 
 	const hostTitle =
@@ -322,19 +311,14 @@ export function TerminalSessionDropdown({
 						type="button"
 						aria-label="New terminal"
 						title="New terminal"
-						disabled={isCreatingTerminal}
 						className="flex size-5 shrink-0 items-center justify-center rounded text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
 						onClick={(event) => {
 							event.preventDefault();
 							event.stopPropagation();
-							void handleNewTerminal();
+							handleNewTerminal();
 						}}
 					>
-						{isCreatingTerminal ? (
-							<LoaderCircle className="size-3.5 animate-spin" />
-						) : (
-							<Plus className="size-3.5" />
-						)}
+						<Plus className="size-3.5" />
 					</button>
 				</DropdownMenuLabel>
 				<DropdownMenuSeparator />

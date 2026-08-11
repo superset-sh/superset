@@ -19,6 +19,7 @@ import {
 	registerAcpSessionStreamRoute,
 	SqliteAcpSessionPersistence,
 } from "./runtime/acp-sessions";
+import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
 import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
@@ -77,6 +78,7 @@ export interface CreateAppResult {
 	injectWebSocket: ReturnType<typeof createNodeWebSocket>["injectWebSocket"];
 	api: ApiClient;
 	db: HostDb;
+	eventBus: EventBus;
 	dispose: () => Promise<void>;
 }
 
@@ -213,10 +215,10 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// Hygiene only — reads hide defunct bindings via the session-liveness
 	// join regardless, so a failure here must not block startup.
 	try {
-		terminalAgentPersistence.deleteDefunct();
+		terminalAgentPersistence.sweepDefunct();
 	} catch (error) {
 		console.warn(
-			"[terminal-agents] failed to prune defunct binding rows",
+			"[terminal-agents] failed to sweep defunct binding rows",
 			error,
 		);
 	}
@@ -251,6 +253,23 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			eventBus,
 		}).catch((err) => {
 			console.warn("[host-service] main-workspace sweep failed:", err);
+		});
+		// Finish any delete the previous process crashed out of (archived row
+		// whose worktree still exists).
+		await runArchivedWorkspaceReconcile({
+			git,
+			credentials: providers.credentials,
+			github,
+			execGh,
+			api,
+			db,
+			runtime,
+			eventBus,
+			terminalAgentStore,
+			organizationId: config.organizationId,
+			isAuthenticated: true,
+		}).catch((err) => {
+			console.warn("[host-service] archived-workspace reconcile failed:", err);
 		});
 	})();
 
@@ -347,5 +366,5 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		}
 	};
 
-	return { app, injectWebSocket, api, db, dispose };
+	return { app, injectWebSocket, api, db, eventBus, dispose };
 }

@@ -20,4 +20,10 @@ describe("resolveProjectIconUrl", () => {
 	test("returns null when there is neither a custom icon nor a repo owner", () => {
 		expect(resolveProjectIconUrl({ icon: null, repoOwner: null })).toBeNull();
 	});
+
+	test("the 'none' sentinel suppresses the GitHub avatar fallback", () => {
+		expect(
+			resolveProjectIconUrl({ icon: "none", repoOwner: "acme" }),
+		).toBeNull();
+	});
 });

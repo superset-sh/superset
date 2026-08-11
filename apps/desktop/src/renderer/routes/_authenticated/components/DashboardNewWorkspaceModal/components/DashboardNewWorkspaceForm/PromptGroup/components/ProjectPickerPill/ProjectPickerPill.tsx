@@ -13,7 +13,12 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiCheck, HiChevronUpDown, HiMiniPlus } from "react-icons/hi2";
-import { LuFolderInput, LuFolderPlus, LuTriangleAlert } from "react-icons/lu";
+import {
+	LuBox,
+	LuFolderInput,
+	LuFolderPlus,
+	LuTriangleAlert,
+} from "react-icons/lu";
 import { useFolderFirstImport } from "renderer/routes/_authenticated/_dashboard/components/AddRepositoryModals/hooks/useFolderFirstImport";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import {
@@ -26,12 +31,16 @@ import { FormPickerTrigger } from "../FormPickerTrigger";
 interface ProjectPickerPillProps {
 	selectedProject: ProjectOption | undefined;
 	projects: ProjectOption[];
-	onSelectProject: (projectId: string) => void;
+	/** True when "No project" (session) is the explicit selection. */
+	isSessionSelected?: boolean;
+	/** Null selects "No project" (session). */
+	onSelectProject: (projectId: string | null) => void;
 }
 
 export function ProjectPickerPill({
 	selectedProject,
 	projects,
+	isSessionSelected = false,
 	onSelectProject,
 }: ProjectPickerPillProps) {
 	const [open, setOpen] = useState(false);
@@ -85,8 +94,12 @@ export function ProjectPickerPill({
 							className="size-4"
 						/>
 					)}
+					{isSessionSelected && !selectedProject && (
+						<LuBox className="size-4 shrink-0 text-muted-foreground" />
+					)}
 					<span className="truncate">
-						{selectedProject?.name ?? "Select project"}
+						{selectedProject?.name ??
+							(isSessionSelected ? "No project" : "Select project")}
 					</span>
 					<HiChevronUpDown className="size-3 shrink-0" />
 				</FormPickerTrigger>
@@ -101,6 +114,20 @@ export function ProjectPickerPill({
 					<CommandList className="max-h-[min(280px,var(--radix-popover-content-available-height))]">
 						<CommandEmpty>No projects found.</CommandEmpty>
 						<CommandGroup>
+							<CommandItem
+								value="no-project-session"
+								onSelect={() => {
+									onSelectProject(null);
+									setOpen(false);
+								}}
+							>
+								<LuBox className="size-4 text-muted-foreground" />
+								<span className="flex-1 truncate">No project</span>
+								<span className="text-[10px] text-muted-foreground">
+									Session
+								</span>
+								{isSessionSelected && <HiCheck className="size-4 shrink-0" />}
+							</CommandItem>
 							{projects.map((project) => (
 								<CommandItem
 									key={project.id}

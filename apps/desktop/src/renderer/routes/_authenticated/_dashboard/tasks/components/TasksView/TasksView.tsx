@@ -8,7 +8,8 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
+import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
+import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	tasksSearchFromFilters,
@@ -29,11 +30,11 @@ import {
 import type { TaskWithStatus } from "./hooks/useTasksData";
 
 interface TasksViewProps {
-	initialTab?: "all" | "active" | "backlog";
+	initialTab?: TabValue;
 	initialAssignee?: string;
 	initialSearch?: string;
 	initialType?: "tasks" | "issues";
-	initialProject?: string;
+	initialProjects?: string[];
 	initialLinearProject?: string;
 	initialState?: "open" | "all";
 }
@@ -43,41 +44,47 @@ export function TasksView({
 	initialAssignee,
 	initialSearch,
 	initialType,
-	initialProject,
+	initialProjects,
 	initialLinearProject,
 	initialState,
 }: TasksViewProps) {
 	const navigate = useNavigate();
 	const collections = useCollections();
-	const currentTab: TabValue = initialTab ?? "all";
-	const [searchQuery, setSearchQuery] = useState(initialSearch ?? "");
-	const deferredSearchQuery = useDeferredValue(searchQuery);
-	const assigneeFilter = initialAssignee ?? null;
-	const typeTab = initialType ?? "tasks";
-	const projectFilter = initialProject ?? null;
-	const linearProjectFilter = initialLinearProject ?? null;
-
 	const {
+		tab: storedTab,
+		assignee: storedAssignee,
+		search: storedSearch,
+		typeTab: storedTypeTab,
+		projectFilters: storedProjectFilters,
+		linearProjectFilter: storedLinearProjectFilter,
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
 		setSearch: storeSetSearch,
 		setTypeTab: storeSetTypeTab,
-		setProjectFilter: storeSetProjectFilter,
+		setProjectFilters: storeSetProjectFilters,
 		setLinearProjectFilter: storeSetLinearProjectFilter,
 		includeClosedIssues: storedIncludeClosedIssues,
 		setIncludeClosedIssues: storeSetIncludeClosedIssues,
 		viewMode,
 		setViewMode,
 	} = useTasksFilterStore();
+	const currentTab: TabValue = initialTab ?? storedTab;
+	const [searchQuery, setSearchQuery] = useState(initialSearch ?? storedSearch);
+	const deferredSearchQuery = useDeferredValue(searchQuery);
+	const assigneeFilter = initialAssignee ?? storedAssignee;
+	const typeTab = initialType ?? storedTypeTab;
+	const projectFilters = initialProjects ?? storedProjectFilters;
+	const linearProjectFilter = initialLinearProject ?? storedLinearProjectFilter;
 	const includeClosedIssues =
 		initialState === undefined
 			? storedIncludeClosedIssues
 			: initialState === "all";
 
-	const debounceRef = useRef<ReturnType<typeof setTimeout>>(null);
-
+	// Sync only from the URL: depending on storedSearch would snap the input
+	// back to the stale URL value on every keystroke until the debounced
+	// navigation lands.
 	useEffect(() => {
-		setSearchQuery(initialSearch ?? "");
+		if (initialSearch !== undefined) setSearchQuery(initialSearch);
 	}, [initialSearch]);
 
 	const buildSearch = useCallback(
@@ -86,7 +93,7 @@ export function TasksView({
 			assignee?: string | null;
 			search?: string;
 			type?: "tasks" | "issues";
-			project?: string | null;
+			projects?: string[];
 			linearProject?: string | null;
 			includeClosedIssues?: boolean;
 		}) =>
@@ -98,8 +105,10 @@ export function TasksView({
 						: assigneeFilter,
 				search: overrides.search !== undefined ? overrides.search : searchQuery,
 				typeTab: overrides.type ?? typeTab,
-				projectFilter:
-					overrides.project !== undefined ? overrides.project : projectFilter,
+				projectFilters:
+					overrides.projects !== undefined
+						? overrides.projects
+						: projectFilters,
 				linearProjectFilter:
 					overrides.linearProject !== undefined
 						? overrides.linearProject
@@ -112,31 +121,25 @@ export function TasksView({
 			assigneeFilter,
 			searchQuery,
 			typeTab,
-			projectFilter,
+			projectFilters,
 			linearProjectFilter,
 			includeClosedIssues,
 		],
 	);
-
-	const syncSearchToUrl = useCallback(
+	const navigateSearch = useCallback(
 		(query: string) => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-			debounceRef.current = setTimeout(() => {
-				navigate({
-					to: "/tasks",
-					search: buildSearch({ search: query }),
-					replace: true,
-				});
-			}, 300);
+			navigate({
+				to: "/tasks",
+				search: buildSearch({ search: query }),
+				replace: true,
+			});
 		},
 		[navigate, buildSearch],
 	);
-
-	useEffect(() => {
-		return () => {
-			if (debounceRef.current) clearTimeout(debounceRef.current);
-		};
-	}, []);
+	const {
+		cancelPendingSearchNavigation,
+		scheduleSearchNavigation: syncSearchToUrl,
+	} = useDebouncedSearchNavigation(navigateSearch);
 
 	const handleSearchChange = useCallback(
 		(query: string) => {
@@ -164,8 +167,8 @@ export function TasksView({
 	}, [typeTab, storeSetTypeTab]);
 
 	useEffect(() => {
-		storeSetProjectFilter(projectFilter);
-	}, [projectFilter, storeSetProjectFilter]);
+		storeSetProjectFilters(projectFilters);
+	}, [projectFilters, storeSetProjectFilters]);
 
 	useEffect(() => {
 		storeSetLinearProjectFilter(linearProjectFilter);
@@ -187,11 +190,10 @@ export function TasksView({
 
 	// Projects are fully local — identity comes from the host fan-out.
 	const {
-		hostId: projectHostId,
 		isReady: areProjectsReady,
-		project: selectedProject,
 		projects: hostProjects,
-	} = useProjectHost(projectFilter);
+		targets: projectTargets,
+	} = useProjectQueryTargets(projectFilters);
 	const v2Projects = useMemo(
 		() =>
 			hostProjects.map((project) => ({
@@ -202,27 +204,37 @@ export function TasksView({
 	);
 
 	useEffect(() => {
-		if (projectFilter && v2Projects.some((p) => p.id === projectFilter)) return;
-		// A partial fan-out must not rewrite the user's filter: the selected
-		// project may live on a host that hasn't answered yet.
 		if (!areProjectsReady) return;
-		const firstProject = v2Projects[0];
-		if (!firstProject) return;
+		const availableIds = new Set(v2Projects.map((project) => project.id));
+		const availableFilters = projectFilters.filter((projectId) =>
+			availableIds.has(projectId),
+		);
+		if (availableFilters.length === projectFilters.length) return;
+		cancelPendingSearchNavigation();
 		navigate({
 			to: "/tasks",
-			search: buildSearch({ project: firstProject.id }),
+			search: buildSearch({ projects: availableFilters }),
 			replace: true,
 		});
-	}, [areProjectsReady, projectFilter, v2Projects, navigate, buildSearch]);
+	}, [
+		areProjectsReady,
+		projectFilters,
+		v2Projects,
+		cancelPendingSearchNavigation,
+		navigate,
+		buildSearch,
+	]);
 
 	const isLinearConnected =
 		integrations?.some((i) => i.provider === "linear") ?? false;
 
 	const handleTabChange = (tab: TabValue) => {
+		cancelPendingSearchNavigation();
 		navigate({ to: "/tasks", search: buildSearch({ tab }), replace: true });
 	};
 
 	const handleAssigneeFilterChange = (assignee: string | null) => {
+		cancelPendingSearchNavigation();
 		navigate({
 			to: "/tasks",
 			search: buildSearch({ assignee }),
@@ -232,11 +244,9 @@ export function TasksView({
 
 	const navigateToType = (type: TaskSource, resetSearch: boolean) => {
 		const nextSearch = resetSearch ? "" : searchQuery;
+		storeSetTypeTab(type);
+		cancelPendingSearchNavigation();
 		if (resetSearch) {
-			if (debounceRef.current) {
-				clearTimeout(debounceRef.current);
-				debounceRef.current = null;
-			}
 			setSearchQuery("");
 			storeSetSearch("");
 		}
@@ -251,11 +261,18 @@ export function TasksView({
 		navigateToType(source, true);
 	};
 
-	const handleProjectFilterChange = (project: string) => {
-		navigate({ to: "/tasks", search: buildSearch({ project }), replace: true });
+	const handleProjectFiltersChange = (projects: string[]) => {
+		cancelPendingSearchNavigation();
+		storeSetProjectFilters(projects);
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ projects }),
+			replace: true,
+		});
 	};
 
 	const handleLinearProjectFilterChange = (linearProject: string | null) => {
+		cancelPendingSearchNavigation();
 		navigate({
 			to: "/tasks",
 			search: buildSearch({ linearProject }),
@@ -264,6 +281,7 @@ export function TasksView({
 	};
 
 	const handleIncludeClosedIssuesChange = (nextIncludeClosed: boolean) => {
+		cancelPendingSearchNavigation();
 		storeSetIncludeClosedIssues(nextIncludeClosed);
 		navigate({
 			to: "/tasks",
@@ -334,8 +352,8 @@ export function TasksView({
 				onViewModeChange={setViewMode}
 				taskSource={taskSource}
 				onTaskSourceChange={handleTaskSourceChange}
-				projectFilter={projectFilter}
-				onProjectFilterChange={handleProjectFilterChange}
+				projectFilters={projectFilters}
+				onProjectFiltersChange={handleProjectFiltersChange}
 				linearProjectFilter={linearProjectFilter}
 				onLinearProjectFilterChange={handleLinearProjectFilterChange}
 				includeClosedIssues={includeClosedIssues}
@@ -367,8 +385,8 @@ export function TasksView({
 						))}
 					{showIssues && (
 						<GitHubIssuesContent
-							projectFilter={selectedProject?.projectKey ?? null}
-							hostId={projectHostId}
+							projectFilters={projectFilters}
+							projectTargets={projectTargets}
 							areProjectsReady={areProjectsReady}
 							hasProjects={v2Projects.length > 0}
 							searchQuery={searchQuery}

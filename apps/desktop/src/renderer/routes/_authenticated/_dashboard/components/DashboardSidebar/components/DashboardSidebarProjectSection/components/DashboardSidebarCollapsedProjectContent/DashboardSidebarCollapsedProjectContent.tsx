@@ -18,6 +18,7 @@ interface DashboardSidebarCollapsedProjectContentProps
 	projectId: string;
 	projectName: string;
 	iconUrl: string | null;
+	projectColor: string | null;
 	isCollapsed: boolean;
 	totalWorkspaceCount: number;
 	projectChildren: DashboardSidebarProjectChild[];
@@ -35,6 +36,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 			projectId,
 			projectName,
 			iconUrl,
+			projectColor,
 			isCollapsed,
 			totalWorkspaceCount,
 			projectChildren,
@@ -81,6 +83,7 @@ export const DashboardSidebarCollapsedProjectContent = forwardRef<
 							<ProjectThumbnail
 								projectName={projectName}
 								iconUrl={iconUrl}
+								color={projectColor}
 								className="size-4 text-[10px]"
 							/>
 						</button>

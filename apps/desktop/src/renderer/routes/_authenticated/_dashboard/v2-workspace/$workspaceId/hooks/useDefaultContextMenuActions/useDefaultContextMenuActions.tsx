@@ -48,11 +48,13 @@ export function useDefaultContextMenuActions({
 				icon: <LuRows2 />,
 				shortcut:
 					splitDownShortcut !== "Unassigned" ? splitDownShortcut : undefined,
-				onSelect: async (ctx) => {
-					const terminalId = await launcher.create();
+				onSelect: (ctx) => {
 					ctx.actions.split("down", {
 						kind: "terminal",
-						data: { terminalId } as TerminalPaneData,
+						data: {
+							terminalId: launcher.mint(),
+							createOnAttach: true,
+						} as TerminalPaneData,
 					});
 				},
 			},
@@ -62,11 +64,13 @@ export function useDefaultContextMenuActions({
 				icon: <LuColumns2 />,
 				shortcut:
 					splitRightShortcut !== "Unassigned" ? splitRightShortcut : undefined,
-				onSelect: async (ctx) => {
-					const terminalId = await launcher.create();
+				onSelect: (ctx) => {
 					ctx.actions.split("right", {
 						kind: "terminal",
-						data: { terminalId } as TerminalPaneData,
+						data: {
+							terminalId: launcher.mint(),
+							createOnAttach: true,
+						} as TerminalPaneData,
 					});
 				},
 			},

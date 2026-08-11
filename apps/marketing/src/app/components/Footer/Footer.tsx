@@ -32,6 +32,15 @@ interface FooterLink {
 	external?: boolean;
 }
 
+const PRODUCT_LINKS: FooterLink[] = [
+	{ href: "/download", label: "Download" },
+	{ href: "/#how-it-works", label: "How it works" },
+	{ href: "/#features", label: "Features" },
+	{ href: "/#security", label: "Security" },
+	{ href: "/marketplace", label: "Marketplace" },
+	{ href: "/compare", label: "Compare" },
+];
+
 const COMPANY_LINKS: FooterLink[] = [
 	{ href: "/team", label: "About" },
 	{ href: "/contact", label: "Contact" },
@@ -68,7 +77,7 @@ export function Footer() {
 				transition={{ duration: 0.5 }}
 				className="max-w-7xl mx-auto px-6 sm:px-8 py-14 sm:py-20"
 			>
-				<div className="grid grid-cols-2 gap-10 md:grid-cols-[minmax(0,1fr)_auto_auto_auto] md:gap-x-20">
+				<div className="grid grid-cols-2 gap-10 md:grid-cols-[minmax(0,1fr)_auto_auto_auto_auto] md:gap-x-16">
 					<div className="col-span-2 flex flex-col gap-6 md:col-span-1">
 						<Link
 							href="/"
@@ -82,6 +91,7 @@ export function Footer() {
 						</p>
 					</div>
 
+					<FooterColumn title="Product" links={PRODUCT_LINKS} />
 					<FooterColumn title="Company" links={COMPANY_LINKS} />
 					<FooterColumn title="Resources" links={RESOURCE_LINKS} />
 					<FooterColumn title="Legal" links={LEGAL_LINKS} />

@@ -27,7 +27,8 @@ export const updateTaskSchema = z.object({
 	estimate: z.number().int().positive().nullish(),
 	dueDate: z.coerce.date().nullish(),
 	labels: z.array(z.string()).nullish(),
-	// Deprecated: accepted-but-ignored. Drop in CLI-vNext cleanup PR.
+	// Deprecated input: drop in CLI-vNext cleanup PR. The column stays —
+	// Linear sync stores the issue's branchName in it.
 	branch: z.string().nullish(),
 });
 

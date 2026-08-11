@@ -1,5 +1,7 @@
 export const TERMINAL_BUFFER_KEY_PREFIX = "terminal-buffer:";
 export const TERMINAL_DIMS_KEY_PREFIX = "terminal-dims:";
+/** Stream position paired with the buffer snapshot — see terminal-seq-anchor.ts. */
+export const TERMINAL_SEQ_KEY_PREFIX = "terminal-seq:";
 /** Single JSON map of terminalId -> epoch ms of the last persist/restore. */
 export const TERMINAL_PERSISTED_AT_KEY = "terminal-buffer-persisted-at";
 
@@ -60,13 +62,14 @@ export function removeTerminalStatePersistedAt(
 	writeIndex(storage, index);
 }
 
-/** Removes a terminal's buffer + dims keys, reporting how many existed. */
+/** Removes a terminal's buffer + dims + seq keys, reporting how many existed. */
 function removeTerminalState(storage: Storage, terminalId: string): number {
 	let removed = 0;
 	try {
 		for (const key of [
 			`${TERMINAL_BUFFER_KEY_PREFIX}${terminalId}`,
 			`${TERMINAL_DIMS_KEY_PREFIX}${terminalId}`,
+			`${TERMINAL_SEQ_KEY_PREFIX}${terminalId}`,
 		]) {
 			if (storage.getItem(key) !== null) {
 				storage.removeItem(key);
@@ -86,6 +89,8 @@ function collectTerminalIds(storage: Storage): Set<string> {
 			ids.add(key.slice(TERMINAL_BUFFER_KEY_PREFIX.length));
 		} else if (key.startsWith(TERMINAL_DIMS_KEY_PREFIX)) {
 			ids.add(key.slice(TERMINAL_DIMS_KEY_PREFIX.length));
+		} else if (key.startsWith(TERMINAL_SEQ_KEY_PREFIX)) {
+			ids.add(key.slice(TERMINAL_SEQ_KEY_PREFIX.length));
 		}
 	}
 	return ids;

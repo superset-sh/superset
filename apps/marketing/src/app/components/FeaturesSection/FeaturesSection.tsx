@@ -16,7 +16,7 @@ const DEMO_COMPONENTS = [
 
 export function FeaturesSection() {
 	return (
-		<section className="relative py-24 sm:py-32">
+		<section id="features" className="relative py-24 sm:py-32">
 			<div className="max-w-7xl mx-auto px-6 sm:px-8">
 				{/* Feature Rows */}
 				<div className="space-y-24 sm:space-y-32">

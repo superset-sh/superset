@@ -5,8 +5,15 @@ import {
 	buildWrapperScript,
 	createWrapper,
 	getManagedNotifyHookCommand,
+	removeOwnedFileIfMarked,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
+import {
+	ensureManagedTomlBlock,
+	getManagedTomlContent,
+	type ManagedTomlBlockSpec,
+	removeManagedTomlBlock,
+} from "./managed-toml-block";
 
 export const GROK_COMPAT_MARKER_START =
 	"# >>> superset-managed-grok-compat v1 (do not edit) >>>";
@@ -95,10 +102,6 @@ export function createGrokHooksJson(): void {
 	);
 }
 
-function isTomlTableHeader(line: string): boolean {
-	return /^\s*\[/.test(line);
-}
-
 function isManagedCompatTable(lines: string[]): boolean {
 	const header = lines[0]?.match(/^\s*\[compat\.([a-z-]+)\]\s*$/);
 	return (
@@ -108,63 +111,17 @@ function isManagedCompatTable(lines: string[]): boolean {
 }
 
 /**
- * Recover from an interrupted write whose end marker is missing. Managed
- * compat tables are removed, while a later user-owned table and its leading
- * comments are retained.
- */
-function stripOrphanedManagedBlock(base: string, start: number): string {
-	const before = base.slice(0, start);
-	const lines = base.slice(start).split("\n");
-	let cut = lines.length;
-
-	for (let index = 1; index < lines.length; index++) {
-		if (!isTomlTableHeader(lines[index])) continue;
-		let end = index + 1;
-		while (end < lines.length && !isTomlTableHeader(lines[end])) end++;
-		if (isManagedCompatTable(lines.slice(index, end))) {
-			index = end - 1;
-			continue;
-		}
-
-		cut = index;
-		break;
-	}
-
-	while (
-		cut > 1 &&
-		(lines[cut - 1].trim() === "" || lines[cut - 1].trimStart().startsWith("#"))
-	) {
-		cut--;
-	}
-
-	return before + lines.slice(cut).join("\n");
-}
-
-/**
- * Preserve user config while replacing Superset's marker-owned compat block.
  * A vendor table the user already defines outside the block is skipped — TOML
  * rejects duplicate table headers, and the user's setting should win anyway.
+ * When every vendor is user-defined the block is omitted entirely.
  */
-export function getGrokConfigTomlContent(existing: string): string {
-	let base = existing;
-	const start = base.indexOf(GROK_COMPAT_MARKER_START);
-	if (start !== -1) {
-		const end = base.indexOf(GROK_COMPAT_MARKER_END, start);
-		base =
-			end !== -1
-				? base.slice(0, start) + base.slice(end + GROK_COMPAT_MARKER_END.length)
-				: stripOrphanedManagedBlock(base, start);
-	}
-
-	base = base.replace(/\s+$/, "");
+function buildGrokCompatBlock(base: string): string {
 	const vendors = GROK_COMPAT_HOOK_VENDORS.filter(
 		(vendor) => !new RegExp(`^\\s*\\[compat\\.${vendor}\\]`, "m").test(base),
 	);
-	if (vendors.length === 0) {
-		return base.length > 0 ? `${base}\n` : "";
-	}
+	if (vendors.length === 0) return "";
 
-	const block = [
+	const body = [
 		GROK_COMPAT_MARKER_START,
 		"# Superset registers its own Grok hooks; replaying Superset-managed",
 		"# Claude/Cursor hook configs here would mislabel grok sessions.",
@@ -173,23 +130,42 @@ export function getGrokConfigTomlContent(existing: string): string {
 		.join("\n")
 		.trimEnd();
 
-	return base.length > 0
-		? `${base}\n\n${block}\n${GROK_COMPAT_MARKER_END}\n`
-		: `${block}\n${GROK_COMPAT_MARKER_END}\n`;
+	return `${body}\n${GROK_COMPAT_MARKER_END}`;
+}
+
+const GROK_TOML_SPEC: ManagedTomlBlockSpec = {
+	markerStart: GROK_COMPAT_MARKER_START,
+	markerEnd: GROK_COMPAT_MARKER_END,
+	getFilePath: getGrokConfigTomlPath,
+	fileLabel: "Grok config.toml",
+	removeLabel: "Grok compat block",
+	fileMode: 0o600,
+	isManagedTable: isManagedCompatTable,
+	buildBlock: buildGrokCompatBlock,
+};
+
+/**
+ * Preserve user config while replacing Superset's marker-owned compat block.
+ */
+export function getGrokConfigTomlContent(existing: string): string {
+	return getManagedTomlContent(GROK_TOML_SPEC, existing);
+}
+
+/**
+ * Removes Superset's Grok footprint: the wholly-owned hooks file and the
+ * marker-owned compat block in config.toml. No-op when neither exists.
+ */
+export function removeGrokManagedHooks(): void {
+	removeOwnedFileIfMarked(
+		getGrokHooksJsonPath(),
+		"SUPERSET_AGENT_ID=grok",
+		"Grok hooks json",
+	);
+	removeManagedTomlBlock(GROK_TOML_SPEC);
 }
 
 export function createGrokConfigToml(): void {
-	const configPath = getGrokConfigTomlPath();
-	const existing = fs.existsSync(configPath)
-		? fs.readFileSync(configPath, "utf-8")
-		: "";
-	const content = getGrokConfigTomlContent(existing);
-	if (content === "") return;
-	fs.mkdirSync(path.dirname(configPath), { recursive: true });
-	const changed = writeFileIfChanged(configPath, content, 0o600);
-	console.log(
-		`[agent-setup] ${changed ? "Updated" : "Verified"} Grok config.toml`,
-	);
+	ensureManagedTomlBlock(GROK_TOML_SPEC);
 }
 
 export function getGrokWrapperScript(): string {

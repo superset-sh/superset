@@ -1,0 +1,1 @@
+export { BrowserTabFavicon } from "./BrowserTabFavicon";

@@ -5,7 +5,9 @@
 import { parentPort } from "node:worker_threads";
 import type { WorkerTaskDefinition } from "./define-worker-task.ts";
 import { gitTasks } from "./tasks/git.ts";
+import { killAndReapTrackedChildren } from "./worker-child-tracker.ts";
 import {
+	isWorkerShutdownRequestMessage,
 	serializeWorkerError,
 	type WorkerTaskRequestMessage,
 } from "./worker-task-protocol.ts";
@@ -38,6 +40,13 @@ function isWorkerTaskRequestMessage(
 }
 
 parentPort.on("message", async (message: unknown) => {
+	if (isWorkerShutdownRequestMessage(message)) {
+		// Cooperative retirement (WorkerTaskRunner.shutdownSlot): reap in-flight
+		// children first — a plain terminate() would strand them as zombies —
+		// then end this thread (process.exit in a worker stops only the thread).
+		await killAndReapTrackedChildren();
+		process.exit(0);
+	}
 	if (!isWorkerTaskRequestMessage(message)) return;
 	const task = message;
 

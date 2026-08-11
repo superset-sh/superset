@@ -263,10 +263,29 @@ async function createWorkspaceOnHost(args: {
 	relayUrl: string;
 	hostId: string;
 	jwt: string;
-	projectId: string;
+	projectId: string | null;
 	automation: SelectAutomation;
 	runId: string;
-}): Promise<{ workspaceId: string; branchName: string }> {
+}): Promise<{ workspaceId: string }> {
+	// Session automation: no project, no branch. The host allocates a managed
+	// folder under ~/.superset/sessions and dedupes the name per run.
+	if (args.projectId === null) {
+		const result = await relayMutation<
+			{ name: string },
+			{ workspace: { id: string } }
+		>(
+			{
+				relayUrl: args.relayUrl,
+				hostId: args.hostId,
+				jwt: args.jwt,
+				timeoutMs: 90_000,
+			},
+			"workspaces.createSession",
+			{ name: args.automation.name.slice(0, 100) },
+		);
+		return { workspaceId: result.workspace.id };
+	}
+
 	// Full-precision timestamp keeps branch names readable AND collision-free
 	// for anything coarser than 1 second.
 	// e.g. "2026-04-19-17-30-00"
@@ -313,7 +332,7 @@ async function createWorkspaceOnHost(args: {
 		},
 	);
 
-	return { workspaceId: result.workspace.id, branchName };
+	return { workspaceId: result.workspace.id };
 }
 
 async function runAgentOnHost(args: {

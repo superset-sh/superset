@@ -252,6 +252,9 @@ export const settings = sqliteTable("settings", {
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),
+	disabledAgentHooks: text("disabled_agent_hooks", { mode: "json" }).$type<
+		string[]
+	>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

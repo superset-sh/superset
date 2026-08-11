@@ -23,7 +23,8 @@ import { useThemeStore } from "renderer/stores";
 interface V2OpenInMenuButtonProps {
 	worktreePath: string;
 	branch: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces (no per-project default app). */
+	projectId: string | null;
 }
 
 export function V2OpenInMenuButton({
@@ -34,7 +35,7 @@ export function V2OpenInMenuButton({
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 
 	const { app: persistedApp, setApp: persistDefaultApp } =
-		useV2ProjectDefaultApp(projectId);
+		useV2ProjectDefaultApp(projectId ?? undefined);
 	const resolvedApp: ExternalApp = persistedApp ?? "finder";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({

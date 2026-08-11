@@ -27,6 +27,7 @@ export interface HostAgentConfig {
 	args: string[];
 	promptTransport: "argv" | "stdin";
 	promptArgs: string[];
+	resumeArgs: string[];
 	env: Record<string, string>;
 	order: number;
 }

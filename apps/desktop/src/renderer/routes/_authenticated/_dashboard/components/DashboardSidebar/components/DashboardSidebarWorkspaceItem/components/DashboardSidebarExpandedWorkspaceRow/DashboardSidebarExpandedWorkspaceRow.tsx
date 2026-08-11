@@ -47,7 +47,8 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	isBulkSelectable?: boolean;
 	isSelected?: boolean;
 	/** Present when rendered in the Pinned section: shows the project avatar. */
-	pinnedContext?: { projectName: string; projectIconUrl: string | null };
+	/** projectName is null for pinned project-less "session" workspaces. */
+	pinnedContext?: { projectName: string | null; projectIconUrl: string | null };
 	onClick?: MouseEventHandler<HTMLDivElement>;
 	onKeyboardActivate?: KeyboardEventHandler<HTMLDivElement>;
 	onWorkspaceChipsClick?: MouseEventHandler<HTMLDivElement>;
@@ -261,14 +262,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							<TooltipTrigger asChild>
 								<div className="mr-1.5 flex shrink-0 items-center">
 									<ProjectThumbnail
-										projectName={pinnedContext.projectName}
+										projectName={pinnedContext.projectName ?? "Session"}
 										iconUrl={pinnedContext.projectIconUrl}
 										className="size-3.5 text-[8px]"
 									/>
 								</div>
 							</TooltipTrigger>
 							<TooltipContent side="right" sideOffset={8}>
-								{pinnedContext.projectName}
+								{pinnedContext.projectName ?? "Session"}
 							</TooltipContent>
 						</Tooltip>
 					)}

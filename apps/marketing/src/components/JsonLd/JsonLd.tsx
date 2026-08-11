@@ -37,7 +37,7 @@ export function OrganizationJsonLd() {
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
 		logo: `${COMPANY.MARKETING_URL}/logo.png`,
-		description: "Run 10+ parallel coding agents on your machine",
+		description: "Run 100+ parallel coding agents on your machine",
 		email: supportEmail,
 		contactPoint: {
 			"@type": "ContactPoint",
@@ -77,7 +77,7 @@ export function SoftwareApplicationJsonLd() {
 			price: "0",
 			priceCurrency: "USD",
 		},
-		description: "Run 10+ parallel coding agents on your machine",
+		description: "Run 100+ parallel coding agents on your machine",
 		url: COMPANY.MARKETING_URL,
 	};
 
@@ -214,7 +214,7 @@ export function HomeWebPageJsonLd() {
 		"@type": "WebPage",
 		"@id": COMPANY.MARKETING_URL,
 		url: COMPANY.MARKETING_URL,
-		name: `${COMPANY.NAME} — Run 10+ parallel coding agents on your machine`,
+		name: `${COMPANY.NAME} — Run 100+ parallel coding agents on your machine`,
 		isPartOf: {
 			"@type": "WebSite",
 			name: COMPANY.NAME,

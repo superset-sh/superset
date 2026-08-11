@@ -29,6 +29,7 @@ interface ResolvedHostAgentConfig {
 	args: string[];
 	promptTransport: "argv" | "stdin";
 	promptArgs: string[];
+	resumeArgs: string[];
 	env: Record<string, string>;
 }
 
@@ -75,6 +76,7 @@ function rowToConfig(
 		args: parseArgv(row.argsJson),
 		promptTransport: row.promptTransport as "argv" | "stdin",
 		promptArgs: parseArgv(row.promptArgsJson),
+		resumeArgs: parseArgv(row.resumeArgsJson),
 		env: parseEnv(row.envJson),
 	};
 }
@@ -116,15 +118,28 @@ export function resolveHostAgentConfig(
  * codex/opencode/copilot don't get stray prompt-mode flags during promptless
  * launches — emptiness is only knowable after sanitization, so the check
  * lives here rather than in the router's zod schema.
+ *
+ * `resumeSessionId` splices the config's `resumeArgs` plus the session id
+ * after the base args (e.g. "claude … --resume <id>"), restoring a previous
+ * session instead of starting a fresh one. A prompt may still follow it.
  */
 export function buildAgentCommandString(
 	config: ResolvedHostAgentConfig,
 	rawPrompt: string,
 	modelArgs: string[] = [],
-	randomId: string = crypto.randomUUID(),
+	options: { resumeSessionId?: string; randomId?: string } = {},
 ): string {
+	const randomId = options.randomId ?? crypto.randomUUID();
 	const prompt = sanitizePromptForPty(rawPrompt);
-	const baseArgv = [config.command, ...config.args, ...modelArgs];
+	const resumeArgv = options.resumeSessionId
+		? [...config.resumeArgs, sanitizePromptForPty(options.resumeSessionId)]
+		: [];
+	const baseArgv = [
+		config.command,
+		...config.args,
+		...modelArgs,
+		...resumeArgv,
+	];
 
 	if (prompt === "") {
 		return buildArgvCommand(baseArgv);
@@ -161,6 +176,9 @@ export interface AgentRunInput {
 	attachmentIds?: string[];
 	model?: string;
 	effort?: string;
+	/** Session id of a previous run of this agent to restore (e.g. a killed
+	 * session's `agentSessionId`). The prompt may be empty when resuming. */
+	resumeSessionId?: string;
 }
 
 export type AgentRunResult =
@@ -193,6 +211,32 @@ export function validateAgentEffortSelection(
 		throw new TRPCError({
 			code: "BAD_REQUEST",
 			message: `Unsupported reasoning effort "${effort}" for ${label}. Choose one of: ${support.efforts.map((option) => option.id).join(", ")}.`,
+		});
+	}
+}
+
+/**
+ * Validate an explicit resume request before launch. Resumability is a
+ * per-config capability: configs without `resumeArgs` have no id-based
+ * resume form to splice the session id into.
+ */
+export function validateAgentResumeSelection(
+	config: Pick<ResolvedHostAgentConfig, "label" | "resumeArgs">,
+	resumeSessionId: string | undefined,
+): void {
+	if (resumeSessionId === undefined) return;
+
+	if (config.resumeArgs.length === 0) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `${config.label} does not support resuming a session by id. Omit resumeSessionId to start a new session.`,
+		});
+	}
+
+	if (sanitizePromptForPty(resumeSessionId).trim() === "") {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Invalid resume session id for ${config.label}.`,
 		});
 	}
 }
@@ -304,6 +348,7 @@ export function buildTerminalAgentLaunch(
 		});
 	}
 	validateAgentEffortSelection(config.presetId, config.label, input.effort);
+	validateAgentResumeSelection(config, input.resumeSessionId);
 
 	const resolvedAttachments: Array<{ attachmentId: string; path: string }> = [];
 	for (const attachmentId of input.attachmentIds ?? []) {
@@ -320,10 +365,12 @@ export function buildTerminalAgentLaunch(
 	const prompt = buildAttachmentBlock(input.prompt, resolvedAttachments);
 	const modelArgs = buildAgentModelArgs(config.presetId, input.model);
 	const effortArgs = buildAgentEffortArgs(config.presetId, input.effort);
-	const command = buildAgentCommandString(config, prompt, [
-		...modelArgs,
-		...effortArgs,
-	]);
+	const command = buildAgentCommandString(
+		config,
+		prompt,
+		[...modelArgs, ...effortArgs],
+		{ resumeSessionId: input.resumeSessionId },
+	);
 	const modelEnv = buildAgentModelEnv(config.presetId, input.model);
 	return {
 		fullCommand: `${envOverlayPrefix({ ...config.env, ...modelEnv })}${command}`,
@@ -386,6 +433,13 @@ export async function runAgentInWorkspace(
 			SUPERSET_AGENT_LABEL,
 			input.effort,
 		);
+		if (input.resumeSessionId !== undefined) {
+			// Chat sessions restore through the chat runtime, not a relaunch.
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `${SUPERSET_AGENT_LABEL} does not support resuming a session by id. Omit resumeSessionId to start a new session.`,
+			});
+		}
 		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
 	}
 	return runTerminalAgent(ctx, input);
@@ -394,14 +448,26 @@ export async function runAgentInWorkspace(
 export const agentsRouter = router({
 	run: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string().uuid(),
-				agent: z.string().min(1),
-				prompt: z.string().min(1),
-				attachmentIds: z.array(z.string().uuid()).optional(),
-				model: z.string().min(1).optional(),
-				effort: z.string().min(1).optional(),
-			}),
+			z
+				.object({
+					workspaceId: z.string().uuid(),
+					agent: z.string().min(1),
+					// A resume-only launch has no prompt; the refine below still
+					// rejects promptless launches that aren't resuming.
+					prompt: z.string().default(""),
+					attachmentIds: z.array(z.string().uuid()).optional(),
+					model: z.string().min(1).optional(),
+					effort: z.string().min(1).optional(),
+					resumeSessionId: z.string().min(1).optional(),
+				})
+				.refine(
+					(input) =>
+						input.prompt.length > 0 || input.resumeSessionId !== undefined,
+					{
+						message: "prompt is required unless resumeSessionId is provided",
+						path: ["prompt"],
+					},
+				),
 		)
 		.mutation(async ({ ctx, input }) => runAgentInWorkspace(ctx, input)),
 });

@@ -28,7 +28,6 @@ import type {
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
 	DEVICE_FILTER_THIS_DEVICE,
-	PROJECT_FILTER_ALL,
 	useV2WorkspacesFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useV2ProjectLocalMetaStore } from "renderer/stores/v2-project-local-meta";
@@ -43,7 +42,8 @@ interface V2WorkspacesListProps {
 }
 
 interface ProjectGroup {
-	projectId: string;
+	/** Null groups the project-less "session" workspaces. */
+	projectId: string | null;
 	projectName: string;
 	iconUrl: string | null;
 	workspaces: AccessibleV2Workspace[];
@@ -89,14 +89,14 @@ function groupByProject(
 	sortField: SortField,
 	sortDirection: SortDirection,
 ): ProjectGroup[] {
-	const projectsById = new Map<string, ProjectGroup>();
+	const projectsById = new Map<string | null, ProjectGroup>();
 
 	for (const workspace of workspaces) {
 		let project = projectsById.get(workspace.projectId);
 		if (!project) {
 			project = {
 				projectId: workspace.projectId,
-				projectName: workspace.projectName,
+				projectName: workspace.projectName ?? "Sessions",
 				iconUrl: workspace.projectIconUrl,
 				workspaces: [],
 				latestCreatedAt: 0,
@@ -144,8 +144,14 @@ export function V2WorkspacesList({
 	const deviceFilter = useV2WorkspacesFilterStore(
 		(state) => state.deviceFilter,
 	);
-	const projectFilter = useV2WorkspacesFilterStore(
-		(state) => state.projectFilter,
+	const projectFilters = useV2WorkspacesFilterStore(
+		(state) => state.projectFilters,
+	);
+	const prStateFilters = useV2WorkspacesFilterStore(
+		(state) => state.prStateFilters,
+	);
+	const agentStatusFilters = useV2WorkspacesFilterStore(
+		(state) => state.agentStatusFilters,
 	);
 	const resetFilters = useV2WorkspacesFilterStore((state) => state.reset);
 
@@ -173,7 +179,9 @@ export function V2WorkspacesList({
 	const hasActiveFilters =
 		searchQuery.trim() !== "" ||
 		deviceFilter !== DEVICE_FILTER_THIS_DEVICE ||
-		projectFilter !== PROJECT_FILTER_ALL;
+		projectFilters.length > 0 ||
+		prStateFilters.length > 0 ||
+		agentStatusFilters.length > 0;
 
 	const columnHeader = (
 		<DataTableHeader>
@@ -287,7 +295,7 @@ export function V2WorkspacesList({
 				{columnHeader}
 				{projectGroups.map((project) => (
 					<ProjectSection
-						key={project.projectId}
+						key={project.projectId ?? "__sessions__"}
 						project={project}
 						currentWorkspaceId={currentWorkspaceId}
 					/>
@@ -303,8 +311,10 @@ interface ProjectSectionProps {
 }
 
 function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
+	// Sessions group under a stable pseudo-key for collapse state.
+	const collapseKey = project.projectId ?? "__sessions__";
 	const persistedCollapsed = useV2ProjectLocalMetaStore(
-		(state) => state.projects[project.projectId]?.isCollapsed ?? false,
+		(state) => state.projects[collapseKey]?.isCollapsed ?? false,
 	);
 	const toggleCollapsed = useV2ProjectLocalMetaStore(
 		(state) => state.toggleProjectCollapsed,
@@ -321,7 +331,7 @@ function ProjectSection({ project, currentWorkspaceId }: ProjectSectionProps) {
 				<td colSpan={V2_WORKSPACES_COLUMN_COUNT} className="p-0">
 					<button
 						type="button"
-						onClick={() => toggleCollapsed(project.projectId)}
+						onClick={() => toggleCollapsed(collapseKey)}
 						aria-expanded={!isCollapsed}
 						aria-controls={`v2-workspaces-project-${project.projectId}`}
 						className="flex w-full items-center gap-2 bg-muted px-6 py-1.5 text-left transition-colors hover:bg-muted/80"

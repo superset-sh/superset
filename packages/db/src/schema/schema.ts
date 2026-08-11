@@ -776,7 +776,9 @@ export const automations = pgTable(
 
 		targetHostId: text("target_host_id"),
 
-		v2ProjectId: uuid("v2_project_id").notNull(),
+		// Null = session automation: each run creates a project-less session
+		// workspace (or the pinned v2WorkspaceId is itself a session).
+		v2ProjectId: uuid("v2_project_id"),
 		v2WorkspaceId: uuid("v2_workspace_id"),
 
 		rrule: text().notNull(),

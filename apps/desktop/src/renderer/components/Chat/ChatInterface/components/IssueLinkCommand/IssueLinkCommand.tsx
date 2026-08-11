@@ -33,6 +33,7 @@ interface IssueLinkCommandProps {
 		title: string,
 		taskId: string | undefined,
 		url?: string,
+		branch?: string,
 	) => void;
 }
 
@@ -57,6 +58,7 @@ export function IssueLinkCommand({
 				priority: t.priority,
 				updatedAt: t.updatedAt,
 				externalUrl: t.externalUrl,
+				branch: t.branch,
 			})),
 		[collections.tasks],
 	);
@@ -134,8 +136,9 @@ export function IssueLinkCommand({
 		title: string,
 		taskId: string | undefined,
 		url?: string,
+		branch?: string,
 	) => {
-		onSelect(slug, title, taskId, url);
+		onSelect(slug, title, taskId, url, branch);
 		setSearchQuery("");
 		setOpen(false);
 	};
@@ -209,6 +212,7 @@ export function IssueLinkCommand({
 													task.title,
 													task.id,
 													task.externalUrl ?? undefined,
+													task.branch ?? undefined,
 												)
 											}
 											className="group items-start gap-3 rounded-md px-2.5 py-2"

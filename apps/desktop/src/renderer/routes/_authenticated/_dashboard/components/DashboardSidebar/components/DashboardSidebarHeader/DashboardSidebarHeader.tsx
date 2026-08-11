@@ -37,6 +37,7 @@ import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
 } from "renderer/routes/_authenticated/_dashboard/tasks/stores/tasks-filter-state";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { STROKE_WIDTH_THICK } from "renderer/screens/main/components/WorkspaceSidebar/constants";
 import {
 	useOpenEmptyProjectModal,
@@ -100,10 +101,19 @@ export function DashboardSidebarHeader({
 	const matchRoute = useMatchRoute();
 	const { gateFeature } = usePaywall();
 	const isWorkspacesListOpen = !!matchRoute({ to: "/v2-workspaces" });
-	const onV2WorkspaceRoute = !!matchRoute({
+	const v2WorkspaceMatch = matchRoute({
 		to: "/v2-workspace/$workspaceId",
 		fuzzy: true,
 	});
+	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
+	// Pre-select the viewed workspace's project in the new-workspace modal.
+	const { workspaces: hostWorkspaces } = useHostWorkspaces();
+	const activeProjectId =
+		v2WorkspaceMatch !== false
+			? (hostWorkspaces.find(
+					(workspace) => workspace.id === v2WorkspaceMatch.workspaceId,
+				)?.projectId ?? undefined)
+			: undefined;
 	const isTasksOpen = !!matchRoute({ to: "/tasks", fuzzy: true });
 	const isPullRequestsOpen = !!matchRoute({
 		to: "/pull-requests",
@@ -117,13 +127,15 @@ export function DashboardSidebarHeader({
 		assignee: lastAssignee,
 		search: lastSearch,
 		typeTab: lastTypeTab,
-		projectFilter: lastProjectFilter,
+		projectFilters: lastProjectFilters,
 		linearProjectFilter: lastLinearProjectFilter,
 		includeClosedIssues: lastIncludeClosedIssues,
 	} = useTasksFilterStore();
 	const {
 		search: lastPullRequestsSearch,
-		projectFilter: lastPullRequestsProjectFilter,
+		projectFilters: lastPullRequestsProjectFilters,
+		authorFilter: lastPullRequestsAuthorFilter,
+		reviewFilter: lastPullRequestsReviewFilter,
 		includeClosed: lastPullRequestsIncludeClosed,
 	} = usePullRequestsFilterStore();
 
@@ -144,7 +156,7 @@ export function DashboardSidebarHeader({
 					assignee: lastAssignee,
 					search: lastSearch,
 					typeTab: lastTypeTab,
-					projectFilter: lastProjectFilter,
+					projectFilters: lastProjectFilters,
 					linearProjectFilter: lastLinearProjectFilter,
 					includeClosedIssues: lastIncludeClosedIssues,
 				}),
@@ -158,7 +170,9 @@ export function DashboardSidebarHeader({
 				to: "/pull-requests",
 				search: pullRequestsSearchFromFilters({
 					search: lastPullRequestsSearch,
-					projectFilter: lastPullRequestsProjectFilter,
+					projectFilters: lastPullRequestsProjectFilters,
+					authorFilter: lastPullRequestsAuthorFilter,
+					reviewFilter: lastPullRequestsReviewFilter,
 					includeClosed: lastPullRequestsIncludeClosed,
 				}),
 			});
@@ -188,7 +202,7 @@ export function DashboardSidebarHeader({
 						<TooltipTrigger asChild>
 							<button
 								type="button"
-								onClick={() => openModal()}
+								onClick={() => openModal(activeProjectId)}
 								className="flex size-7 items-center justify-center rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected"
 							>
 								<div className="flex size-5 items-center justify-center rounded bg-fill-selected">
@@ -388,7 +402,7 @@ export function DashboardSidebarHeader({
 
 			<button
 				type="button"
-				onClick={() => openModal()}
+				onClick={() => openModal(activeProjectId)}
 				className="group flex w-full items-center gap-2 rounded-md bg-fill-hover/60 [.light_&]:bg-fill-hover px-1 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-selected [.light_&]:hover:bg-fill-selected hover:text-foreground"
 			>
 				<div className="flex size-5 shrink-0 items-center justify-center rounded bg-fill-selected">

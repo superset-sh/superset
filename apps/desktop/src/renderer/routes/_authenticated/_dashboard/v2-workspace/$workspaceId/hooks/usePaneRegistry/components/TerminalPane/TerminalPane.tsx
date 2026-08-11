@@ -35,6 +35,7 @@ import { ScrollToBottomButton } from "renderer/screens/main/components/Workspace
 import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/TerminalSearch";
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
+import { TerminalAgentResumeBanner } from "./components/TerminalAgentResumeBanner";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
@@ -93,6 +94,9 @@ export function TerminalPane({
 	const themedUrl = new URL(baseWebsocketUrl);
 	themedUrl.searchParams.set("workspaceId", workspaceId);
 	themedUrl.searchParams.set("themeType", themeType);
+	if (paneData.createOnAttach) {
+		themedUrl.searchParams.set("create", "1");
+	}
 	const websocketUrl = themedUrl.toString();
 	const websocketUrlRef = useRef(websocketUrl);
 	websocketUrlRef.current = websocketUrl;
@@ -136,9 +140,10 @@ export function TerminalPane({
 	//      container back into the live tree, preserving the buffer.
 	//   2. connect() attaches the WebSocket to that terminalId. The socket is
 	//      transport only; it does not carry creation-time intent.
-	// The pane never calls createSession — that's useV2TerminalLauncher's job,
-	// awaited at the call site before the pane is added to the store. By the
-	// time this effect runs, the host-service session already exists.
+	// The pane never calls createSession over HTTP. Optimistically-inserted
+	// panes (`createOnAttach`) let the WS attach create the session; other
+	// panes' sessions were created by useV2TerminalLauncher before the pane
+	// landed in the store.
 	// Deps narrowed to the terminal identity so provider key remount churn
 	// (workspaceId/client briefly flipping while pane data catches up) doesn't
 	// re-run this effect. Mutable inputs are read through refs.
@@ -451,6 +456,13 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
+				<TerminalAgentResumeBanner
+					key={terminalId}
+					workspaceId={workspaceId}
+					terminalId={terminalId}
+					connectionState={connectionState}
+					ctx={ctx}
+				/>
 			</div>
 			<TerminalRichInput
 				workspaceId={workspaceId}

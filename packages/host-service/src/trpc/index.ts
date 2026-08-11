@@ -98,6 +98,7 @@ const sentryMiddleware = t.middleware(async ({ next, path, type }) => {
 const baseProcedure = t.procedure.use(sentryMiddleware);
 
 export const router = t.router;
+export const createCallerFactory = t.createCallerFactory;
 export const publicProcedure = baseProcedure;
 
 export const protectedProcedure = baseProcedure.use(async ({ ctx, next }) => {

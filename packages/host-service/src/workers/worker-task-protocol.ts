@@ -16,6 +16,23 @@ export interface WorkerTaskRequestMessage {
 	payload: unknown;
 }
 
+/** Main-thread → worker: SIGKILL + reap any in-flight child processes, then
+ * exit the thread voluntarily. Sent before a hard terminate() so children
+ * don't leak as zombies — see WorkerTaskRunner.shutdownSlot (#6152). */
+export interface WorkerShutdownRequestMessage {
+	kind: "shutdown";
+}
+
+export function isWorkerShutdownRequestMessage(
+	message: unknown,
+): message is WorkerShutdownRequestMessage {
+	return (
+		typeof message === "object" &&
+		message !== null &&
+		(message as { kind?: unknown }).kind === "shutdown"
+	);
+}
+
 export type WorkerTaskResponseMessage =
 	| {
 			kind: "result";

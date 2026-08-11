@@ -13,7 +13,12 @@ import {
 
 export interface DestroyWorkspaceInput {
 	deleteBranch?: boolean;
+	/** Git-destructive consent only (skips the dirty-worktree preflight).
+	 * Does NOT skip the teardown script. */
 	force?: boolean;
+	/** Consent to abandon the teardown script — only the teardown-failed
+	 * retry sets this. */
+	skipTeardown?: boolean;
 }
 
 export interface DestroyWorkspaceSuccess {
@@ -72,6 +77,7 @@ export async function destroyWorkspaceAtHost(
 			workspaceId,
 			deleteBranch: input.deleteBranch ?? false,
 			force: input.force ?? false,
+			skipTeardown: input.skipTeardown ?? false,
 		});
 	} catch (error) {
 		throw normalizeDestroyWorkspaceError(error);

@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { writeFileIfChanged } from "./agent-wrappers-common";
+import {
+	removeOwnedFileIfMarked,
+	writeFileIfChanged,
+} from "./agent-wrappers-common";
 
 export const PI_EXTENSION_FILE = "superset-hooks.ts";
 
@@ -61,4 +64,13 @@ export function createPiExtension(): void {
 	fs.mkdirSync(path.dirname(extensionPath), { recursive: true });
 	const changed = writeFileIfChanged(extensionPath, content, 0o644);
 	console.log(`[agent-setup] ${changed ? "Updated" : "Verified"} pi extension`);
+}
+
+/** Removes the wholly Superset-owned pi extension file (signature-gated). */
+export function removePiExtension(): void {
+	removeOwnedFileIfMarked(
+		getPiExtensionPath(),
+		PI_EXTENSION_SIGNATURE,
+		"pi extension",
+	);
 }

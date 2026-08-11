@@ -65,10 +65,17 @@ export interface UseHostWorkspacesResult {
  * stale cloud rows. Query keys are shared with the provider, so a scoped
  * call where the provider is mounted fetches the host once, not twice.
  * Passing null resolves no target and runs nothing (stays !isReady).
+ *
+ * `includeArchived` additionally fetches archived tombstones (soft-deleted
+ * workspaces) under a separate query key — the shared live cache and its
+ * snapshots never see archived rows. Tombstones append after live rows with
+ * `archivedAt`/`archiveReason` set.
  */
 export function useHostWorkspacesSource(
 	scopedHostId?: string | null,
+	options?: { includeArchived?: boolean },
 ): UseHostWorkspacesResult {
+	const includeArchived = options?.includeArchived ?? false;
 	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const { activeHostUrl, machineId } = useLocalHostService();
@@ -163,6 +170,31 @@ export function useHostWorkspacesSource(
 		})),
 	});
 
+	// Archived tombstones, opt-in, own query key: the shared live list (and
+	// its persisted snapshots) must never contain archived rows.
+	const archivedQueries = useQueries({
+		queries: targets.map((target) => ({
+			queryKey: [
+				"host-service",
+				"workspaces",
+				"archived",
+				target.organizationId,
+				target.machineId,
+			] as const,
+			enabled: includeArchived && target.hostUrl !== null,
+			refetchInterval: WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS,
+			networkMode: "always" as const,
+			queryFn: async (): Promise<HostWorkspaceRow[]> => {
+				if (!target.hostUrl) return [];
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				const rows = (await client.workspace.list.query({
+					includeArchived: true,
+				})) as HostWorkspaceRow[];
+				return rows.filter((row) => row.archivedAt != null);
+			},
+		})),
+	});
+
 	// Live updates: each reachable host's workspace:changed patches its own
 	// cached list (and the snapshot) without a refetch.
 	useEffect(() => {
@@ -197,6 +229,19 @@ export function useHostWorkspacesSource(
 							return next;
 						},
 					);
+					// Archive state flips arrive as deleted/created events; the
+					// tombstone list has no patch payload, so refetch it.
+					if (includeArchived) {
+						void queryClient.invalidateQueries({
+							queryKey: [
+								"host-service",
+								"workspaces",
+								"archived",
+								target.organizationId,
+								target.machineId,
+							],
+						});
+					}
 				},
 			);
 			const releaseBus = bus.retain();
@@ -208,24 +253,48 @@ export function useHostWorkspacesSource(
 		return () => {
 			for (const cleanup of cleanups) cleanup();
 		};
-	}, [targets, queryClient]);
+	}, [targets, queryClient, includeArchived]);
 
-	const workspaces = useMemo(
-		() =>
-			mergeHostWorkspaces({
-				hostResults: targets.map((target, index) => {
-					const query = queries[index];
-					const live = query?.data;
-					return {
-						target,
-						rows: live ?? snapshots.get(target.machineId),
-						reachable: live !== undefined && !query?.isError,
-					};
-				}),
-				cloudRows: scopedHostId === undefined ? cloudRows : [],
+	const workspaces = useMemo(() => {
+		const merged = mergeHostWorkspaces({
+			hostResults: targets.map((target, index) => {
+				const query = queries[index];
+				const live = query?.data;
+				return {
+					target,
+					rows: live ?? snapshots.get(target.machineId),
+					reachable: live !== undefined && !query?.isError,
+				};
 			}),
-		[targets, queries, snapshots, cloudRows, scopedHostId],
-	);
+			cloudRows: scopedHostId === undefined ? cloudRows : [],
+		});
+		if (!includeArchived) return merged;
+		// Tombstones append after live rows; consumers dedupe by id, so a row
+		// mid-unarchive can't render twice.
+		const liveIds = new Set(merged.map((row) => row.id));
+		const archived: HostWorkspaceItem[] = targets.flatMap((_target, index) => {
+			const query = archivedQueries[index];
+			const rows = query?.data ?? [];
+			return rows
+				.filter((row) => !liveIds.has(row.id))
+				.map((row) => ({
+					...row,
+					// react-query retains prior data across a failed refetch —
+					// don't report a host as answering when it did not.
+					hostReachable: !query?.isError,
+					source: "host" as const,
+				}));
+		});
+		return [...merged, ...archived];
+	}, [
+		targets,
+		queries,
+		snapshots,
+		cloudRows,
+		scopedHostId,
+		includeArchived,
+		archivedQueries,
+	]);
 
 	// Readiness reflects host-query settlement only. The Electric collection
 	// is a fallback merge, NOT a gate: an Electric collection can stay
@@ -248,7 +317,14 @@ export function useHostWorkspacesSource(
 				query.isError ||
 				targets[index]?.hostUrl === null ||
 				snapshots.has(targets[index]?.machineId ?? ""),
-		);
+		) &&
+		// Tombstones count toward settlement too: an archived-only host must
+		// not read as a settled empty view while its archived query loads.
+		(!includeArchived ||
+			archivedQueries.every(
+				(query, index) =>
+					query.isSuccess || query.isError || targets[index]?.hostUrl === null,
+			));
 
 	const cache = useMemo<HostWorkspacesCacheOps>(() => {
 		const targetFor = (hostId: string) =>

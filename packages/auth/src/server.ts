@@ -7,14 +7,15 @@ import { members, subscriptions } from "@superset/db/schema";
 import type { sessions } from "@superset/db/schema/auth";
 import * as authSchema from "@superset/db/schema/auth";
 import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
-import { MemberAddedEmail } from "@superset/email/emails/member-added";
-import { MemberAddedBillingEmail } from "@superset/email/emails/member-added-billing";
-import { MemberRemovedEmail } from "@superset/email/emails/member-removed";
-import { MemberRemovedBillingEmail } from "@superset/email/emails/member-removed-billing";
-import { OrganizationInvitationEmail } from "@superset/email/emails/organization-invitation";
-import { PaymentFailedEmail } from "@superset/email/emails/payment-failed";
-import { SubscriptionCancelledEmail } from "@superset/email/emails/subscription-cancelled";
-import { SubscriptionStartedEmail } from "@superset/email/emails/subscription-started";
+import { WelcomeEmail } from "@superset/email/emails/activation/00-welcome";
+import { MemberAddedBillingEmail } from "@superset/email/emails/billing/member-added";
+import { MemberRemovedBillingEmail } from "@superset/email/emails/billing/member-removed";
+import { PaymentFailedEmail } from "@superset/email/emails/billing/payment-failed";
+import { SubscriptionCancelledEmail } from "@superset/email/emails/billing/subscription-cancelled";
+import { SubscriptionStartedEmail } from "@superset/email/emails/billing/subscription-started";
+import { OrganizationInvitationEmail } from "@superset/email/emails/team/invitation";
+import { MemberAddedEmail } from "@superset/email/emails/team/member-added";
+import { MemberRemovedEmail } from "@superset/email/emails/team/member-removed";
 import { canInvite, type OrganizationRole } from "@superset/shared/auth";
 import { getTrustedVercelPreviewOrigins } from "@superset/shared/vercel-preview-origins";
 import { Client } from "@upstash/qstash";
@@ -27,6 +28,7 @@ import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
+import { getActivationVariant } from "./lib/lifecycle";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import {
@@ -196,6 +198,41 @@ export const auth = betterAuth({
 							.update(authSchema.sessions)
 							.set({ activeOrganizationId: enrolledOrgId })
 							.where(eq(authSchema.sessions.userId, user.id));
+					}
+
+					try {
+						await resend.emails.send({
+							from: "Superset <noreply@superset.sh>",
+							replyTo: "founders@superset.sh",
+							to: user.email,
+							subject: "Welcome to Superset",
+							react: WelcomeEmail({
+								userName: user.name,
+								userEmail: user.email,
+							}),
+						});
+					} catch (error) {
+						console.error(
+							`[lifecycle] Failed to send welcome email to ${user.id}:`,
+							error,
+						);
+					}
+
+					try {
+						const variant = await getActivationVariant(user.id);
+						if (variant === "test") {
+							const { error } = await resend.events.send({
+								event: "user.signed_up",
+								email: user.email,
+								payload: { userId: user.id, name: user.name },
+							});
+							if (error) throw new Error(error.message);
+						}
+					} catch (error) {
+						console.error(
+							`[lifecycle] Failed to emit signup event for ${user.id}:`,
+							error,
+						);
 					}
 				},
 			},

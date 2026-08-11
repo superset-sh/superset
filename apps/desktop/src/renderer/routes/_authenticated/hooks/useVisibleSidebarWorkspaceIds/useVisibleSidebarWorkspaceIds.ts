@@ -72,7 +72,13 @@ export function useVisibleSidebarWorkspaceIds(): Set<string> {
 
 		for (const workspace of localStateWorkspaces) {
 			if (getSidebarWorkspaceIsHidden(workspace)) continue;
-			if (!sidebarProjectIds.has(workspace.projectId)) continue;
+			// Sessions (null projectId) have no project placement row — the
+			// Sessions section renders them unconditionally.
+			if (
+				workspace.projectId !== null &&
+				!sidebarProjectIds.has(workspace.projectId)
+			)
+				continue;
 			visibleIds.add(workspace.id);
 		}
 

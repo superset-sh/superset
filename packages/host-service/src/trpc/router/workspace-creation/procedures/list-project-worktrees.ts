@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { workspaces } from "../../../../db/schema";
 import { protectedProcedure } from "../../../index";
@@ -29,7 +29,12 @@ export const listProjectWorktrees = protectedProcedure
 		const workspaceRows = ctx.db
 			.select()
 			.from(workspaces)
-			.where(eq(workspaces.projectId, input.projectId))
+			.where(
+				and(
+					eq(workspaces.projectId, input.projectId),
+					isNull(workspaces.archivedAt),
+				),
+			)
 			.all();
 		const workspaceBranches = new Set(
 			workspaceRows.map((row) => row.branch).filter(Boolean),

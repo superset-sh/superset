@@ -810,7 +810,8 @@ superset agents list --host host_…
 		{ flag: "--workspace <id>", required: true, description: "Workspace UUID to create the agent session in." },
 		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
 		{ flag: "--agent <preset|uuid|superset>", required: true, description: "Agent preset id (e.g. `claude`, `codex`), HostAgentConfig instance UUID, or `superset`." },
-		{ flag: "--prompt <text>", required: true, description: "Prompt sent to the agent." },
+		{ flag: "--prompt <text>", description: "Prompt sent to the agent. Required unless `--resume-session` is set." },
+		{ flag: "--resume-session <id>", description: "Agent session id of a previous run to restore instead of starting fresh (e.g. `claude --resume <id>`). Fails for agents without an id-based resume." },
 		{ flag: "--effort <level>", description: "Reasoning effort for this launch. Omit to use the agent default." },
 		{ flag: "--attachment-id <uuid>", description: "Pre-uploaded attachment UUID; pass repeatedly for multiple attachments." },
 		{ flag: "--attachment <path>", description: "Local file path to upload as an attachment. Repeatable." },
@@ -828,6 +829,8 @@ terminal session there.
 ```bash
 superset agents create --workspace ws_… --agent claude --effort high --prompt "Audit the login flow"
 superset agents create --workspace ws_… --agent codex --prompt "Review this diff" --attachment ./trace.log
+# Restore a killed agent session by the agent's own session id
+superset agents create --workspace ws_… --agent claude --resume-session 0b7c…
 ```
 
 #### Agent effort levels

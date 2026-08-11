@@ -165,7 +165,7 @@
 		@apply border-border outline-ring/50;
 	}
 	body {
-		@apply overscroll-none bg-background text-foreground selection:bg-foreground selection:text-background;
+		@apply overscroll-none bg-background text-foreground selection:bg-brand selection:text-black;
 	}
 }
 
@@ -246,6 +246,49 @@ html:not([data-anchor-scrolling]) {
 		0 0 2px var(--background),
 		0 0 2px var(--background),
 		0 1px 4px var(--background);
+}
+
+/* Dense halo in the page background color: knocks the dither back around text.
+   Tight radii are stacked many times — each repeat multiplies opacity.
+   Repeat count steps down and outer layers mix toward transparent as the
+   radius grows, so the halo decays smoothly instead of plateauing and
+   cutting off. */
+@utility text-halo {
+	text-shadow:
+		0 0 3px var(--background),
+		0 0 3px var(--background),
+		0 0 3px var(--background),
+		0 0 3px var(--background),
+		0 0 3px var(--background),
+		0 0 6px var(--background),
+		0 0 6px var(--background),
+		0 0 6px var(--background),
+		0 0 6px var(--background),
+		0 0 6px var(--background),
+		0 0 9px var(--background),
+		0 0 9px var(--background),
+		0 0 9px var(--background),
+		0 0 9px var(--background),
+		0 0 12px var(--background),
+		0 0 12px var(--background),
+		0 0 12px var(--background),
+		0 0 12px var(--background),
+		0 0 16px var(--background),
+		0 0 16px var(--background),
+		0 0 16px var(--background),
+		0 0 22px var(--background),
+		0 0 22px var(--background),
+		0 0 22px var(--background),
+		0 0 30px color-mix(in srgb, var(--background) 85%, transparent),
+		0 0 30px color-mix(in srgb, var(--background) 85%, transparent),
+		0 0 40px color-mix(in srgb, var(--background) 65%, transparent),
+		0 0 40px color-mix(in srgb, var(--background) 65%, transparent),
+		0 0 52px color-mix(in srgb, var(--background) 50%, transparent),
+		0 0 52px color-mix(in srgb, var(--background) 50%, transparent),
+		0 0 68px color-mix(in srgb, var(--background) 40%, transparent),
+		0 0 88px color-mix(in srgb, var(--background) 28%, transparent),
+		0 0 112px color-mix(in srgb, var(--background) 18%, transparent),
+		0 0 140px color-mix(in srgb, var(--background) 10%, transparent);
 }
 
 @utility no-scrollbar {

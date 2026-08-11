@@ -8,7 +8,7 @@ export function register(server: McpServer): void {
 		name: "automations_create",
 		annotations: { destructiveHint: false },
 		description:
-			"Schedule a recurring agent run. Provide an RFC 5545 RRULE body for the schedule. Either v2ProjectId (run in a fresh workspace) or v2WorkspaceId (reuse an existing workspace) is required — call projects_list or workspaces_list first to get IDs. `agent` is the host-agent instance id (or presetId fallback) that runs the prompt; pass 'superset' for the built-in chat agent.",
+			"Schedule a recurring agent run. Provide an RFC 5545 RRULE body for the schedule. Pass v2ProjectId (run in a fresh workspace), v2WorkspaceId (reuse an existing workspace), or neither to run each time in a fresh project-less session workspace — call projects_list or workspaces_list first to get IDs. `agent` is the host-agent instance id (or presetId fallback) that runs the prompt; pass 'superset' for the built-in chat agent.",
 		inputSchema: {
 			name: z
 				.string()
@@ -37,13 +37,17 @@ export function register(server: McpServer): void {
 			v2ProjectId: z
 				.string()
 				.uuid()
-				.optional()
-				.describe("Project UUID. Provide this OR v2WorkspaceId."),
+				.nullish()
+				.describe(
+					"Project UUID. Omit both this and v2WorkspaceId for session mode (fresh project-less session workspace per run).",
+				),
 			v2WorkspaceId: z
 				.string()
 				.uuid()
 				.nullish()
-				.describe("Workspace UUID to reuse. Provide this OR v2ProjectId."),
+				.describe(
+					"Workspace UUID to reuse. Pass targetHostId with it — required for session workspaces (no cloud record to resolve the host from).",
+				),
 			rrule: z
 				.string()
 				.min(1)

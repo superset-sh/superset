@@ -1,5 +1,6 @@
 import { type ReactNode, useEffect } from "react";
 import { useHotkey } from "renderer/hotkeys";
+import { electronTrpc } from "renderer/lib/electron-trpc";
 import { CommandContextProvider } from "./core/ContextProvider";
 import { useFrameStackStore } from "./core/frames";
 import { registerAllModules } from "./modules";
@@ -34,10 +35,26 @@ function CommandPaletteTrigger() {
 	const reset = useFrameStackStore((s) => s.reset);
 	const pushFrame = useFrameStackStore((s) => s.pushFrame);
 	useHotkey("OPEN_COMMAND_PALETTE", () => setOpen(true));
-	useHotkey("CHECK_RESOURCES", () => {
+
+	const openResources = () => {
 		setOpen(true);
 		reset();
 		pushFrame(checkResourcesCommand);
+	};
+
+	// Keeps CHECK_RESOURCES on the renderer's own hotkey binding (rather than a
+	// native menu accelerator) so it stays user-customizable/disable-able via
+	// Settings > Keyboard — see main/lib/menu.ts for why the "Resources" menu
+	// item has no accelerator.
+	useHotkey("CHECK_RESOURCES", openResources);
+
+	// The native "Resources" menu item's click still opens the same view.
+	electronTrpc.menu.subscribe.useSubscription(undefined, {
+		onData: (event) => {
+			if (event.type !== "check-resources") return;
+			openResources();
+		},
 	});
+
 	return null;
 }

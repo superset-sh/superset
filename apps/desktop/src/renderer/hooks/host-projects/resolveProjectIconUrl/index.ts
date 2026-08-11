@@ -1,1 +1,4 @@
-export { resolveProjectIconUrl } from "./resolveProjectIconUrl";
+export {
+	PROJECT_ICON_NONE,
+	resolveProjectIconUrl,
+} from "./resolveProjectIconUrl";

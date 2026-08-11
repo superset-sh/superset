@@ -1,8 +1,13 @@
 import { describe, expect, test } from "bun:test";
+import type { HostServiceClient } from "renderer/lib/host-service-client";
 import { resolvePresetImport } from "./presets";
-import { decideProjectImport } from "./projects";
+import {
+	decideProjectImport,
+	importV1Project,
+	type ProjectFindByPathResult,
+} from "./projects";
 import { planHostBranchPrefix, planProjectPrefs } from "./settings";
-import { planTerminalMigration } from "./terminals";
+import { planTerminalMigration, resolveMigratedPaneResume } from "./terminals";
 import { planWorkspaceAdoptions } from "./workspaces";
 
 type Candidate = { id: string; source: string };
@@ -45,6 +50,81 @@ describe("decideProjectImport", () => {
 			decideProjectImport(findByPath([{ id: "a", source: "github-remote" }])),
 		).toEqual({ kind: "import" });
 		expect(decideProjectImport(findByPath([]))).toEqual({ kind: "import" });
+	});
+});
+
+describe("importV1Project appearance carry", () => {
+	const v1Project = {
+		id: "v1-1",
+		name: "proj",
+		mainRepoPath: "/tmp/proj",
+		githubOwner: null,
+		color: "#112233",
+		hideImage: false,
+	};
+
+	function fakeHostClient(created: boolean | undefined) {
+		const setColorCalls: unknown[] = [];
+		const client = {
+			project: {
+				create: {
+					mutate: async () => ({
+						projectId: "p-new",
+						mainWorkspaceId: "w-1",
+						repoPath: "/tmp/proj",
+						created,
+					}),
+				},
+				setColor: {
+					mutate: async (input: unknown) => {
+						setColorCalls.push(input);
+					},
+				},
+				setIcon: { mutate: async () => {} },
+				setup: {
+					mutate: async () => {
+						throw new Error("setup should not be called");
+					},
+				},
+			},
+		} as unknown as HostServiceClient;
+		return { client, setColorCalls };
+	}
+
+	const emptyFindByPath = {
+		candidates: [],
+		cloudErrors: [],
+	} as unknown as ProjectFindByPathResult;
+
+	test("skips appearance carry when the host reused an existing project", async () => {
+		const { client, setColorCalls } = fakeHostClient(false);
+		const result = await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(result.kind).toBe("imported");
+		expect(setColorCalls).toHaveLength(0);
+	});
+
+	test("carries appearance for newly created projects", async () => {
+		const { client, setColorCalls } = fakeHostClient(true);
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(setColorCalls).toHaveLength(1);
+	});
+
+	test("carries appearance when an older host omits the created field", async () => {
+		const { client, setColorCalls } = fakeHostClient(undefined);
+		await importV1Project({
+			hostClient: client,
+			project: v1Project,
+			findByPathResult: emptyFindByPath,
+		});
+		expect(setColorCalls).toHaveLength(1);
 	});
 });
 
@@ -262,8 +342,8 @@ describe("planTerminalMigration", () => {
 
 	test("mapped panes queue under their v2 workspace with fresh ids", () => {
 		expect(plan.pendingByV2WorkspaceId.get("v2-ws")).toEqual([
-			{ terminalId: "term-1", cwd: "/repo/feat" },
-			{ terminalId: "term-2", cwd: null },
+			{ terminalId: "term-1", cwd: "/repo/feat", v1PaneId: "pane-1" },
+			{ terminalId: "term-2", cwd: null, v1PaneId: "pane-2" },
 		]);
 		expect(plan.terminalIdByPaneId.get("pane-1")).toBe("term-1");
 	});
@@ -271,6 +351,35 @@ describe("planTerminalMigration", () => {
 	test("panes on unmigrated workspaces defer", () => {
 		expect(plan.deferredPaneIds).toEqual(["pane-3"]);
 		expect(plan.terminalIdByPaneId.has("pane-3")).toBe(false);
+	});
+});
+
+describe("resolveMigratedPaneResume", () => {
+	const session = {
+		agentId: "claude",
+		agentSessionId: "sess-1",
+		prompted: true,
+	};
+
+	test("offers a prompted, un-ended session for resume", () => {
+		expect(resolveMigratedPaneResume(session)).toEqual({
+			agentId: "claude",
+			agentSessionId: "sess-1",
+		});
+	});
+
+	test("never offers a never-prompted session (no persisted conversation)", () => {
+		expect(
+			resolveMigratedPaneResume({ ...session, prompted: false }),
+		).toBeNull();
+	});
+
+	test("never offers a session the agent quit cleanly", () => {
+		expect(resolveMigratedPaneResume({ ...session, endedAt: 123 })).toBeNull();
+	});
+
+	test("handles absent captures", () => {
+		expect(resolveMigratedPaneResume(undefined)).toBeNull();
 	});
 });
 

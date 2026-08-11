@@ -24,6 +24,7 @@ export interface ModeTracker {
 	resize(cols: number, rows: number): void;
 	buildPreamble(): Uint8Array | null;
 	isBracketedPasteActive(): boolean;
+	isFocusReportingActive(): boolean;
 	snapshot(maxLines?: number): TerminalSnapshot;
 	dispose(): void;
 }
@@ -153,6 +154,9 @@ export function createModeTracker(cols: number, rows: number): ModeTracker {
 		buildPreamble,
 		isBracketedPasteActive() {
 			return term.modes.bracketedPasteMode;
+		},
+		isFocusReportingActive() {
+			return term.modes.sendFocusMode;
 		},
 		snapshot,
 		dispose() {

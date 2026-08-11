@@ -37,6 +37,10 @@ mock.module("@/env", () => ({
 	},
 }));
 
+mock.module("@/lib/relay-url", () => ({
+	getRelayUrl: mock(async () => "https://relay.example.com"),
+}));
+
 mock.module("@upstash/qstash", () => ({
 	Receiver: class {
 		verify = mock(async () => true);

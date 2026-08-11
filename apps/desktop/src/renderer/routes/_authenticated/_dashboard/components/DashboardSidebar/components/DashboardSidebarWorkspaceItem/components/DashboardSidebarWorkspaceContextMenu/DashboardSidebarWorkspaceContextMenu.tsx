@@ -37,7 +37,8 @@ import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	workspaceId: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces (no group actions yet). */
+	projectId: string | null;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
 	isLocalMainWorkspace?: boolean;
@@ -99,8 +100,12 @@ export function DashboardSidebarWorkspaceContextMenu({
 		(q) =>
 			q
 				.from({ sidebarSections: collections.v2SidebarSections })
+				// `?? ""` and not null: TanStack DB's eq(col, null) never
+				// matches, and no section can have an empty-string projectId,
+				// so sessions resolve to an empty list without relying on the
+				// eq(null) quirk.
 				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId),
+					eq(sidebarSections.projectId, projectId ?? ""),
 				)
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
 				.select(({ sidebarSections }) => ({
@@ -185,7 +190,7 @@ export function DashboardSidebarWorkspaceContextMenu({
 				)}
 				{/* Group actions mutate placement (sectionId/tabOrder), which a pinned
 				    row doesn't display — the change would only surface on unpin. */}
-				{!isPinned && !isLocalMainWorkspace && (
+				{!isPinned && !isLocalMainWorkspace && projectId !== null && (
 					<>
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={onCreateSection}>

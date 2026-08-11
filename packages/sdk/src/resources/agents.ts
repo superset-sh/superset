@@ -45,6 +45,7 @@ export class Agents extends APIResource {
 				workspaceId: params.workspaceId,
 				agent: params.agent,
 				prompt: params.prompt,
+				resumeSessionId: params.resumeSessionId,
 				effort: params.effort,
 				attachmentIds: params.attachmentIds,
 			},
@@ -72,6 +73,8 @@ export interface HostAgentConfig {
 	args: string[];
 	promptTransport: PromptTransport;
 	promptArgs: string[];
+	/** Args that resume a previous session by id; empty when the agent has no id-based resume. */
+	resumeArgs: string[];
 	env: Record<string, string>;
 	order: number;
 }
@@ -90,8 +93,10 @@ export interface AgentCreateParams {
 	workspaceId: string;
 	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */
 	agent: string;
-	/** Prompt sent to the agent. */
-	prompt: string;
+	/** Prompt sent to the agent. Optional when `resumeSessionId` is provided. */
+	prompt?: string;
+	/** Session id of a previous run of this agent to restore instead of starting fresh (e.g. `claude --resume <id>`). */
+	resumeSessionId?: string;
 	/** Reasoning effort for this launch. Supported values depend on the agent; omit to use its default. */
 	effort?: string;
 	/** Host-scoped attachment ids; host resolves to absolute paths in the prompt. */

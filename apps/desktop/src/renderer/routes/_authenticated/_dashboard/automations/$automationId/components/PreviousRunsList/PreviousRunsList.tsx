@@ -1,5 +1,4 @@
 import type { SelectAutomationRun } from "@superset/db/schema";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { formatDistanceStrict } from "date-fns";
@@ -92,23 +91,11 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 				);
 				return (
 					<li key={run.id}>
-						{run.error ? (
-							<Tooltip>
-								{/* Wrap in a span: runs with no workspace render `row` as a
-								    disabled button, which emits no pointer events and would
-								    otherwise hide the error tooltip on hover. */}
-								<TooltipTrigger asChild>
-									<span className="block">{row}</span>
-								</TooltipTrigger>
-								<TooltipContent
-									side="left"
-									className="max-w-xs whitespace-pre-wrap"
-								>
-									{describeRunError(run.error)}
-								</TooltipContent>
-							</Tooltip>
-						) : (
-							row
+						{row}
+						{run.error && (
+							<p className="select-text cursor-text mx-2 mb-1 whitespace-pre-wrap rounded-md bg-destructive/10 px-2 py-1.5 text-xs text-destructive">
+								{describeRunError(run.error)}
+							</p>
 						)}
 					</li>
 				);

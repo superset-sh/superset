@@ -178,7 +178,7 @@ export function TabBar<TData>({
 			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-muted/45 dark:bg-muted/35"
 		>
 			{renderTabBarLeading && (
-				<div className="flex h-full shrink-0 items-stretch">
+				<div className="flex h-full shrink-0 items-stretch border-b border-border">
 					{renderTabBarLeading()}
 				</div>
 			)}
@@ -219,23 +219,23 @@ export function TabBar<TData>({
 							style={{ left: insertLineLeft }}
 						/>
 					)}
-					<div className="flex h-full w-10 shrink-0 items-center justify-center">
+					<div className="flex h-full w-10 shrink-0 items-center justify-center border-b border-border">
 						{!hasHorizontalOverflow && (
 							<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 						)}
 					</div>
 					{/* Empty space to the right of the tabs (collapses to 0 when the
 					    tabs overflow); the bar's only window-drag region. */}
-					<div className="drag h-full flex-1" />
+					<div className="drag h-full flex-1 border-b border-border" />
 				</div>
 			</OverflowFadeContainer>
 			{hasHorizontalOverflow && (
-				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center">
+				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center border-b border-border">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 			)}
 			{renderTabBarTrailing && (
-				<div className="no-drag flex h-full shrink-0 items-center px-1">
+				<div className="no-drag flex h-full shrink-0 items-center px-1 border-b border-border">
 					{renderTabBarTrailing()}
 				</div>
 			)}

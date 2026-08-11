@@ -123,7 +123,12 @@ export const workspaceLocalStateSchema = z.object({
 	workspaceId: z.string().uuid(),
 	createdAt: persistedDateSchema,
 	sidebarState: z.object({
-		projectId: z.string().uuid(),
+		// Null = project-less "session" workspace (renders in the Sessions
+		// section). Identity field: no default — widening string → string|null
+		// keeps every pre-existing persisted row parsing unchanged, and heal
+		// must never synthesize null (that would silently reparent a corrupt
+		// project workspace into Sessions).
+		projectId: z.string().uuid().nullable(),
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
@@ -156,6 +161,9 @@ export const workspaceLocalStateSchema = z.object({
 			z.object({
 				terminalId: z.string(),
 				cwd: z.string().nullable().default(null),
+				// Source v1 pane — lets creation seed the pane's captured agent
+				// session as a resume candidate. Null on pre-existing entries.
+				v1PaneId: z.string().nullable().default(null),
 			}),
 		)
 		.default([]),
@@ -188,9 +196,15 @@ const WORKSPACE_LOCAL_STATE_OPTIONAL_DEFAULTS = {
 	pendingMigratedTerminals: [] as Array<{
 		terminalId: string;
 		cwd: string | null;
+		v1PaneId: string | null;
 	}>,
 };
 
+/**
+ * A sidebar group ("section" historically — the persisted key and field names
+ * keep that spelling so existing rows parse untouched). Sections are flat and
+ * project-scoped: one level of grouping inside a project.
+ */
 export const dashboardSidebarSectionSchema = z.object({
 	sectionId: z.string().uuid(),
 	projectId: z.string().uuid(),
@@ -287,6 +301,13 @@ const DEFAULT_LINK_TIER_MAP: LinkTierMap = {
 	metaShift: "external",
 };
 
+const DEFAULT_URL_LINKS: LinkTierMap = {
+	plain: null,
+	shift: "newTab",
+	meta: "pane",
+	metaShift: "external",
+};
+
 const LEGACY_SIDEBAR_FILE_LINKS: LinkTierMap = {
 	plain: "pane",
 	shift: "newTab",
@@ -329,7 +350,7 @@ function isCompleteLinkTierMap(
 export const v2UserPreferencesSchema = z.object({
 	id: z.literal("preferences"),
 	fileLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
-	urlLinks: linkTierMapSchema.default(DEFAULT_LINK_TIER_MAP),
+	urlLinks: linkTierMapSchema.default(DEFAULT_URL_LINKS),
 	sidebarFileLinks: linkTierMapSchema.default(DEFAULT_SIDEBAR_FILE_LINKS),
 	portOpenAction: linkActionSchema.default(DEFAULT_PORT_OPEN_ACTION),
 	terminalPresetsInitialized: z.boolean().default(false),
@@ -338,7 +359,17 @@ export const v2UserPreferencesSchema = z.object({
 	rightSidebarWidth: z.number().default(340),
 	deleteLocalBranch: z.boolean().default(false),
 	showPresetsBar: z.boolean().default(true),
+	// Built-in (synthetic, app-shipped) presets the user hid from the preset
+	// bar. Synthetic presets have no v2TerminalPresets row, so visibility can't
+	// live on the row's pinnedToBar like user presets. Pruned against
+	// KNOWN_BUILTIN_PRESET_IDS at heal time so retired ids can't persist.
+	hiddenBuiltinPresetIds: z.array(z.string()).default([]),
 });
+
+// The fixed set of built-in preset ids. Consumers derive their id constants
+// from this list (compile-checked via `satisfies`) so the heal-time pruning
+// below can never drop an id that is still in use.
+export const KNOWN_BUILTIN_PRESET_IDS = ["superset-cli"] as const;
 
 export type V2UserPreferencesRow = z.infer<typeof v2UserPreferencesSchema>;
 
@@ -347,7 +378,7 @@ export const V2_USER_PREFERENCES_ID = "preferences" as const;
 export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	id: V2_USER_PREFERENCES_ID,
 	fileLinks: DEFAULT_LINK_TIER_MAP,
-	urlLinks: DEFAULT_LINK_TIER_MAP,
+	urlLinks: DEFAULT_URL_LINKS,
 	sidebarFileLinks: DEFAULT_SIDEBAR_FILE_LINKS,
 	portOpenAction: DEFAULT_PORT_OPEN_ACTION,
 	terminalPresetsInitialized: false,
@@ -356,6 +387,7 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
 	rightSidebarWidth: 340,
 	deleteLocalBranch: false,
 	showPresetsBar: true,
+	hiddenBuiltinPresetIds: [],
 };
 
 /**
@@ -416,24 +448,49 @@ export function healV2UserPreferences(raw: unknown): V2UserPreferencesRow {
 		r.sidebarFileLinks &&
 		isCompleteLinkTierMap(r.sidebarFileLinks) &&
 		isSameLinkTierMap(r.sidebarFileLinks, LEGACY_SIDEBAR_FILE_LINKS);
+	// A stored map identical to the retired default was never customized —
+	// swap it for the current default (shift gained "newTab").
+	const shouldMigrateLegacyUrlLinks =
+		r.urlLinks &&
+		isCompleteLinkTierMap(r.urlLinks) &&
+		isSameLinkTierMap(r.urlLinks, DEFAULT_LINK_TIER_MAP);
 	return {
 		...DEFAULT_V2_USER_PREFERENCES,
 		...r,
 		fileLinks: { ...DEFAULT_V2_USER_PREFERENCES.fileLinks, ...r.fileLinks },
-		urlLinks: { ...DEFAULT_V2_USER_PREFERENCES.urlLinks, ...r.urlLinks },
+		urlLinks: shouldMigrateLegacyUrlLinks
+			? DEFAULT_V2_USER_PREFERENCES.urlLinks
+			: { ...DEFAULT_V2_USER_PREFERENCES.urlLinks, ...r.urlLinks },
 		sidebarFileLinks: shouldMigrateLegacySidebarFileLinks
 			? DEFAULT_V2_USER_PREFERENCES.sidebarFileLinks
 			: sidebarFileLinks,
+		// Prune retired/stray built-in ids so the array stays bounded.
+		hiddenBuiltinPresetIds: (Array.isArray(r.hiddenBuiltinPresetIds)
+			? r.hiddenBuiltinPresetIds
+			: []
+		).filter((id) =>
+			(KNOWN_BUILTIN_PRESET_IDS as readonly string[]).includes(id),
+		),
 	};
 }
 
 export type WorkspacesCreateInput =
 	inferRouterInputs<AppRouter>["workspaces"]["create"];
 
+/** Session create — projectId pinned to null so submit can discriminate. */
+export type WorkspacesCreateSessionInput =
+	inferRouterInputs<AppRouter>["workspaces"]["createSession"] & {
+		projectId: null;
+	};
+
+export type WorkspacesCreateAnyInput =
+	| WorkspacesCreateInput
+	| WorkspacesCreateSessionInput;
+
 export const failedWorkspaceCreateSchema = z.object({
 	id: z.string().uuid(),
 	hostId: z.string(),
-	input: z.custom<WorkspacesCreateInput>(),
+	input: z.custom<WorkspacesCreateAnyInput>(),
 	error: z.string(),
 	failedAt: persistedDateSchema,
 });

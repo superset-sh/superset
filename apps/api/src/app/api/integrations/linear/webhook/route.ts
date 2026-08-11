@@ -13,7 +13,11 @@ import {
 	users,
 	webhookEvents,
 } from "@superset/db/schema";
-import { mapPriorityFromLinear } from "@superset/trpc/integrations/linear";
+import {
+	getLinearClient,
+	isLinearAuthError,
+	mapPriorityFromLinear,
+} from "@superset/trpc/integrations/linear";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { env } from "@/env";
 import { stripNullChars } from "@/lib/strip-null-chars";
@@ -152,6 +156,39 @@ async function processForConnection(
 	}
 }
 
+// `branchName` is derived by Linear from the identifier + title and is not
+// part of the webhook payload, so it needs its own fetch. Returns null when
+// there is no usable connection or value; transient request failures are
+// rethrown so the webhook-event retry path re-runs the sync instead of
+// recording a processed event with a stale branch.
+async function fetchIssueBranchName(
+	organizationId: string,
+	issueId: string,
+): Promise<string | null> {
+	const client = await getLinearClient(organizationId);
+	if (!client) return null;
+	try {
+		const response = await client.client.request<
+			{ issue: { branchName: string } | null },
+			{ id: string }
+		>(`query IssueBranchName($id: String!) { issue(id: $id) { branchName } }`, {
+			id: issueId,
+		});
+		return response.issue?.branchName || null;
+	} catch (error) {
+		// A broken connection won't heal on retry — sync the rest of the
+		// event without the branch rather than failing it forever.
+		if (isLinearAuthError(error)) {
+			console.warn(
+				`[linear/webhook] auth error fetching branchName for issue ${issueId}, skipping branch:`,
+				error,
+			);
+			return null;
+		}
+		throw error;
+	}
+}
+
 async function processIssueEvent(
 	payload: EntityWebhookPayloadWithIssueData,
 	connection: SelectIntegrationConnection,
@@ -204,6 +241,11 @@ async function processIssueEvent(
 			assigneeAvatarUrl = issue.assignee.avatarUrl ?? null;
 		}
 
+		const branchName = await fetchIssueBranchName(
+			connection.organizationId,
+			issue.id,
+		);
+
 		const taskData = {
 			slug: issue.identifier,
 			title: issue.title,
@@ -217,6 +259,7 @@ async function processIssueEvent(
 			estimate: issue.estimate ?? null,
 			dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 			labels: issue.labels.map((l) => l.name),
+			...(branchName ? { branch: branchName } : {}),
 			startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
 			completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
 			externalProvider: "linear" as const,

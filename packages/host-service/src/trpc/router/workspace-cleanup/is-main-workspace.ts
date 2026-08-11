@@ -38,7 +38,8 @@ export async function isMainWorkspace(
 	const local = ctx.db.query.workspaces
 		.findFirst({ where: eq(workspaces.id, workspaceId) })
 		.sync();
-	const project = local
+	// Session workspaces (null projectId) have no project and are never main.
+	const project = local?.projectId
 		? ctx.db.query.projects
 				.findFirst({ where: eq(projects.id, local.projectId) })
 				.sync()

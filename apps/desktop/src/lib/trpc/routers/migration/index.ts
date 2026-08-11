@@ -77,6 +77,24 @@ export const createMigrationRouter = () => {
 		}),
 
 		/**
+		 * Latest captured agent session per v1 pane (see V1PaneAgentSession).
+		 * Read at v2 pane-creation time — not frozen into the migration plan —
+		 * because the pane keeps living in v1 (and its agent keeps reporting)
+		 * long after the every-boot migration pass ledgers it.
+		 */
+		readV1PaneAgentSessions: publicProcedure
+			.input(z.object({ paneIds: z.array(z.string().min(1)) }))
+			.query(({ input }) => {
+				const sessions = appState.data.v1AgentSessions ?? {};
+				return Object.fromEntries(
+					input.paneIds.flatMap((paneId) => {
+						const session = sessions[paneId];
+						return session ? [[paneId, session] as const] : [];
+					}),
+				);
+			}),
+
+		/**
 		 * Cross-instance single-flight for the auto-migrator (cf. #5791 for
 		 * host services): one lock file per home dir — instances sharing it
 		 * share local.db, so one runner suffices. Acquisition is atomic (`wx`

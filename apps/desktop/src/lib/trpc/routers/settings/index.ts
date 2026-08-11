@@ -36,7 +36,7 @@ import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
-import { setupSingleAgent } from "main/lib/agent-setup";
+import { setupSingleAgent, teardownSingleAgent } from "main/lib/agent-setup";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
@@ -1077,11 +1077,60 @@ export const createSettingsRouter = () => {
 		/**
 		 * Re-runs wrapper/settings/hook setup for one agent. Safety net for
 		 * the settings-UI Add flow; returns `{ ran: false }` for unknown ids.
+		 * Adding an agent expresses intent to integrate it, so a previously
+		 * disabled hooks toggle is cleared first.
 		 */
 		setupAgent: publicProcedure
 			.input(z.object({ agentId: z.string().min(1) }))
 			.mutation(({ input }) => {
+				const disabled = getSettings().disabledAgentHooks ?? [];
+				if (disabled.includes(input.agentId)) {
+					const next = disabled.filter((id) => id !== input.agentId);
+					localDb
+						.insert(settings)
+						.values({ id: 1, disabledAgentHooks: next })
+						.onConflictDoUpdate({
+							target: settings.id,
+							set: { disabledAgentHooks: next },
+						})
+						.run();
+				}
 				const ran = setupSingleAgent(input.agentId);
+				return { ran };
+			}),
+
+		getAgentHooksDisabled: publicProcedure.query(() => {
+			return getSettings().disabledAgentHooks ?? [];
+		}),
+
+		/**
+		 * Toggles Superset's hook integration for one agent. Disabling removes
+		 * the managed entries from the agent's global config immediately;
+		 * startup re-applies the choice so it survives older app versions
+		 * re-adding them.
+		 */
+		setAgentHooksEnabled: publicProcedure
+			.input(z.object({ agentId: z.string().min(1), enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				const current = new Set(getSettings().disabledAgentHooks ?? []);
+				if (input.enabled) {
+					current.delete(input.agentId);
+				} else {
+					current.add(input.agentId);
+				}
+				const next = [...current];
+				localDb
+					.insert(settings)
+					.values({ id: 1, disabledAgentHooks: next })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { disabledAgentHooks: next },
+					})
+					.run();
+
+				const ran = input.enabled
+					? setupSingleAgent(input.agentId)
+					: teardownSingleAgent(input.agentId);
 				return { ran };
 			}),
 

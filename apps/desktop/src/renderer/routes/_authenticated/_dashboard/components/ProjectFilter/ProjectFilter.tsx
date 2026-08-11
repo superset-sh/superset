@@ -9,14 +9,19 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useMemo, useState } from "react";
-import { HiCheck, HiChevronDown, HiOutlineFolder } from "react-icons/hi2";
+import {
+	HiCheck,
+	HiChevronDown,
+	HiOutlineFolder,
+	HiOutlineSquares2X2,
+} from "react-icons/hi2";
 import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 
 interface ProjectFilterProps {
-	value: string | null;
-	onChange: (value: string) => void;
+	value: string[];
+	onChange: (value: string[]) => void;
 }
 
 export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
@@ -35,8 +40,8 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 		[hostProjects],
 	);
 
-	const selected = useMemo(
-		() => (value ? (projects.find((p) => p.id === value) ?? null) : null),
+	const selectedProjects = useMemo(
+		() => projects.filter((project) => value.includes(project.id)),
 		[value, projects],
 	);
 
@@ -47,11 +52,23 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 	}, [projects, search]);
 
 	const handleSelect = (id: string) => {
-		onChange(id);
-		setOpen(false);
-		setSearch("");
+		onChange(
+			value.includes(id)
+				? value.filter((projectId) => projectId !== id)
+				: [...value, id],
+		);
 	};
-	const fallbackLabel = isReady ? "Select project" : "Loading projects";
+	const isAllSelected = value.length === 0;
+	const isLoadingWithoutProjects = !isReady && projects.length === 0;
+	const label = isLoadingWithoutProjects
+		? "Loading repositories"
+		: isAllSelected
+			? "All repositories"
+			: selectedProjects.length === 1
+				? selectedProjects[0]?.name
+				: `${selectedProjects.length} repositories`;
+	const selectedProject =
+		selectedProjects.length === 1 ? selectedProjects[0] : null;
 
 	return (
 		<Popover
@@ -65,21 +82,23 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 				<Button
 					variant="ghost"
 					size="sm"
-					title={selected ? selected.name : fallbackLabel}
-					aria-label={selected ? `Project: ${selected.name}` : fallbackLabel}
+					title={label}
+					aria-label={`Repositories: ${label}`}
 					className="h-8 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
 				>
-					{selected ? (
+					{selectedProject ? (
 						<ProjectThumbnail
-							projectName={selected.name}
-							iconUrl={selected.iconUrl}
+							projectName={selectedProject.name}
+							iconUrl={selectedProject.iconUrl}
 							className="size-4 rounded-[3px]"
 						/>
+					) : isAllSelected ? (
+						<HiOutlineSquares2X2 className="size-4" />
 					) : (
 						<HiOutlineFolder className="size-4" />
 					)}
 					<span className="hidden max-w-32 truncate text-sm @4xl:inline @6xl:max-w-48">
-						{selected ? selected.name : fallbackLabel}
+						{label}
 					</span>
 					<HiChevronDown className="size-3" />
 				</Button>
@@ -94,7 +113,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 					<CommandList className="max-h-80">
 						{filtered.length === 0 && (
 							<CommandEmpty>
-								{isReady
+								{isReady || projects.length > 0
 									? search
 										? "No projects found."
 										: "No projects available."
@@ -103,6 +122,15 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 						)}
 						{filtered.length > 0 && (
 							<CommandGroup>
+								{!search && (
+									<CommandItem onSelect={() => onChange([])}>
+										<HiOutlineSquares2X2 className="size-4 shrink-0" />
+										<span className="text-sm">All repositories</span>
+										{isAllSelected && (
+											<HiCheck className="ml-auto size-3.5 shrink-0" />
+										)}
+									</CommandItem>
+								)}
 								{filtered.map((project) => (
 									<CommandItem
 										key={project.id}
@@ -114,7 +142,7 @@ export function ProjectFilter({ value, onChange }: ProjectFilterProps) {
 											className="size-4 shrink-0 rounded-[3px]"
 										/>
 										<span className="text-sm truncate">{project.name}</span>
-										{project.id === value && (
+										{value.includes(project.id) && (
 											<HiCheck className="ml-auto size-3.5 shrink-0" />
 										)}
 									</CommandItem>

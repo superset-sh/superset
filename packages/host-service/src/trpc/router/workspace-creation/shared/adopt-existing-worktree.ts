@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { TRPCError } from "@trpc/server";
-import { and, eq, ne, or } from "drizzle-orm";
+import { and, eq, isNull, ne, or } from "drizzle-orm";
 import { workspaces } from "../../../../db/schema";
 import type { HostServiceContext } from "../../../../types";
 import {
+	type CloudShapedWorkspace,
 	deleteLocalWorkspace,
 	getLocalWorkspace,
 	insertLocalWorkspace,
@@ -14,11 +15,9 @@ import {
 import { gitConfigWrite } from "../../git/utils/config-write";
 import type { GitClient } from "./types";
 
-export type AdoptedWorkspace = NonNullable<
-	Awaited<
-		ReturnType<HostServiceContext["api"]["v2Workspace"]["getFromHost"]["query"]>
-	>
->;
+// Workspaces have no cloud mirror since local-first (#5731); the host's own
+// cloud-compatible row shape is the response type.
+export type AdoptedWorkspace = CloudShapedWorkspace;
 
 export interface AdoptExistingWorktreeArgs {
 	ctx: HostServiceContext;
@@ -121,6 +120,7 @@ export async function adoptExistingWorktree(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.branch, branch),
+				isNull(workspaces.archivedAt),
 			),
 		})
 		.sync();
@@ -139,6 +139,7 @@ export async function adoptExistingWorktree(
 			where: and(
 				eq(workspaces.projectId, projectId),
 				eq(workspaces.worktreePath, worktreePath),
+				isNull(workspaces.archivedAt),
 			),
 		})
 		.sync();
@@ -217,6 +218,9 @@ function deleteLocalWorkspaceConflicts(
 					eq(workspaces.worktreePath, args.worktreePath),
 				),
 				ne(workspaces.id, args.keepWorkspaceId),
+				// Tombstones aren't phantoms — same-branch history must survive
+				// re-creating a workspace on that branch.
+				isNull(workspaces.archivedAt),
 			),
 		)
 		.all();

@@ -81,6 +81,66 @@ describe("generateWorkspaceNamesFromPrompt", () => {
 			},
 		});
 	});
+
+	test("omits the naming-instructions block by default", async () => {
+		await generateWorkspaceNamesFromPrompt("fix the login redirect");
+
+		const agentCall = agentConstructorMock.mock.calls[0];
+		if (!agentCall) throw new Error("Agent constructor was not called");
+		expect(agentCall[0].instructions).not.toContain("<naming-instructions>");
+	});
+
+	test("injects per-project naming instructions into the system prompt", async () => {
+		await generateWorkspaceNamesFromPrompt(
+			"fix the login redirect",
+			undefined,
+			"Always include the Linear ticket id (e.g. bin-344) in the branch name.",
+		);
+
+		const agentCall = agentConstructorMock.mock.calls[0];
+		if (!agentCall) throw new Error("Agent constructor was not called");
+		const { instructions } = agentCall[0];
+		expect(instructions).toContain("<naming-instructions>");
+		expect(instructions).toContain(
+			"Always include the Linear ticket id (e.g. bin-344) in the branch name.",
+		);
+	});
+
+	test("allows slash prefixes and longer branches under custom instructions", async () => {
+		generateMock.mockImplementationOnce(async () => ({
+			object: {
+				title: "Fix login redirect",
+				branchName: "Fix/BIN-344 login redirect loop",
+			},
+		}));
+
+		await expect(
+			generateWorkspaceNamesFromPrompt(
+				"fix the login redirect",
+				undefined,
+				"Prefix branches with fix/ or feat/ and include the ticket id.",
+			),
+		).resolves.toEqual({
+			title: "Fix login redirect",
+			branchName: "fix/bin-344-login-redirect-loop",
+		});
+	});
+
+	test("still strips slashes when no instructions are set", async () => {
+		generateMock.mockImplementationOnce(async () => ({
+			object: {
+				title: "Fix login redirect",
+				branchName: "fix/login redirect",
+			},
+		}));
+
+		await expect(
+			generateWorkspaceNamesFromPrompt("fix the login redirect"),
+		).resolves.toEqual({
+			title: "Fix login redirect",
+			branchName: "fixlogin-redirect",
+		});
+	});
 });
 
 afterAll(() => {

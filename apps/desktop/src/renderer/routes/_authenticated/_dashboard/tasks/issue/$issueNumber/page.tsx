@@ -6,6 +6,7 @@ import { GoIssueClosed, GoIssueOpened } from "react-icons/go";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { WorkItemDetailHeader } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailHeader";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
@@ -37,9 +38,14 @@ function IssueDetailPage() {
 	} = useProjectHost(projectId);
 	const hostUrl = useHostUrl(hostId ?? undefined);
 	const updateDraft = useNewWorkspaceDraftStore((state) => state.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore(
+		(state) => state.selectProject,
+	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
+	// `project` identifies this issue's repo, not the list filter: falling back
+	// to it would rewrite an "all repositories" view to a single repo on back.
 	const backSearch = useMemo(
 		() =>
 			tasksSearchFromFilters({
@@ -47,15 +53,15 @@ function IssueDetailPage() {
 				assignee: search.assignee ?? null,
 				search: search.search ?? "",
 				typeTab: "issues",
-				projectFilter: projectId,
+				projectFilters: resolveProjectFilterParams(search.projects, null, []),
 				linearProjectFilter: search.linearProject ?? null,
 				includeClosedIssues: search.state === "all",
 			}),
 		[
-			projectId,
 			search.assignee,
 			search.linearProject,
 			search.search,
+			search.projects,
 			search.state,
 			search.tab,
 		],
@@ -92,11 +98,8 @@ function IssueDetailPage() {
 			state: data.state.toLowerCase() === "closed" ? "closed" : "open",
 		};
 		resetDraft();
-		updateDraft({
-			selectedProjectId: projectId,
-			hostId,
-			linkedIssues: [linkedIssue],
-		});
+		selectProject(projectId);
+		updateDraft({ hostId, linkedIssues: [linkedIssue] });
 		openModal(projectId);
 	};
 

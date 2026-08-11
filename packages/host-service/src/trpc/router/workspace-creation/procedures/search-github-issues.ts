@@ -1,19 +1,31 @@
+import type { Octokit } from "@octokit/rest";
 import { z } from "zod";
 import { protectedProcedure } from "../../../index";
 import { normalizeGitHubQuery } from "../normalize-github-query";
 import { githubSearchInputSchema } from "../schemas";
 import {
-	type ResolvedGithubRepo,
-	resolveGithubRepo,
-} from "../shared/project-helpers";
+	buildSearchQuery,
+	chunkProjectRepos,
+	formatRepoList,
+	githubRateLimitError,
+	isGithubNotFoundError,
+	isGithubRateLimitError,
+	mergeByUpdatedAtDesc,
+	type ProjectRepo,
+	projectIdForSearchItem,
+	resolveProjectRepos,
+} from "../shared/github-search";
+import { resolveGithubRepo } from "../shared/project-helpers";
 import type { ExecGh } from "../utils/exec-gh";
 
 interface IssueResult {
+	projectId: string;
 	issueNumber: number;
 	title: string;
 	url: string;
 	state: string;
 	authorLogin: string | null;
+	updatedAt: string | null;
 }
 
 export interface IssuesPage {
@@ -30,15 +42,23 @@ const ghIssueViewSchema = z.object({
 	url: z.string(),
 	state: z.string(),
 	author: z.object({ login: z.string() }).nullable().optional(),
+	updatedAt: z.string().nullable().optional(),
 });
 
-const ISSUE_VIEW_FIELDS = "number,title,url,state,author";
+const ISSUE_VIEW_FIELDS = "number,title,url,state,author,updatedAt";
 
+/**
+ * Direct-lookup an issue in one repo. Returns null when the number is a
+ * PR: `gh issue view <n>` happily returns a PR since GitHub's API surface
+ * treats PRs as a kind of issue, and the canonical URL is the only signal
+ * we have over `gh` (Octokit's path filters via `issue.pull_request`).
+ */
 async function ghDirectLookup(
 	execGh: ExecGh,
-	repo: ResolvedGithubRepo,
+	target: ProjectRepo,
 	issueNumber: number,
-): Promise<IssueResult> {
+): Promise<IssueResult | null> {
+	const { repo } = target;
 	const raw = await execGh(
 		[
 			"issue",
@@ -52,12 +72,39 @@ async function ghDirectLookup(
 		{ cwd: repo.repoPath ?? undefined },
 	);
 	const issue = ghIssueViewSchema.parse(raw);
+	if (issue.url.includes("/pull/")) return null;
 	return {
+		projectId: target.projectId,
 		issueNumber: issue.number,
 		title: issue.title,
 		url: issue.url,
 		state: issue.state.toLowerCase(),
 		authorLogin: issue.author?.login ?? null,
+		updatedAt: issue.updatedAt ?? null,
+	};
+}
+
+/** Octokit twin of {@link ghDirectLookup}; null = the number is a PR. */
+async function octokitDirectLookup(
+	octokit: Octokit,
+	target: ProjectRepo,
+	issueNumber: number,
+): Promise<IssueResult | null> {
+	const { repo } = target;
+	const { data: issue } = await octokit.issues.get({
+		owner: repo.owner,
+		repo: repo.name,
+		issue_number: issueNumber,
+	});
+	if (issue.pull_request) return null;
+	return {
+		projectId: target.projectId,
+		issueNumber: issue.number,
+		title: issue.title,
+		url: issue.html_url,
+		state: issue.state,
+		authorLogin: issue.user?.login ?? null,
+		updatedAt: issue.updated_at ?? null,
 	};
 }
 
@@ -68,6 +115,8 @@ const searchIssuesItemSchema = z.object({
 	state: z.string(),
 	user: z.object({ login: z.string() }).nullable().optional(),
 	pull_request: z.unknown().optional(),
+	updated_at: z.string().optional(),
+	repository_url: z.string().optional(),
 });
 
 const searchIssuesResponseSchema = z.object({
@@ -77,9 +126,8 @@ const searchIssuesResponseSchema = z.object({
 
 async function ghApiSearchIssues(
 	execGh: ExecGh,
-	repo: ResolvedGithubRepo,
-	query: string,
-	includeClosed: boolean,
+	chunk: ProjectRepo[],
+	qualifiers: string,
 	page: number,
 	perPage: number,
 ): Promise<{
@@ -87,9 +135,7 @@ async function ghApiSearchIssues(
 	totalCount: number;
 	hasNextPage: boolean;
 }> {
-	const stateFilter = includeClosed ? "" : " is:open";
-	const q =
-		`repo:${repo.owner}/${repo.name} is:issue${stateFilter}${query ? ` ${query}` : ""}`.trim();
+	const q = buildSearchQuery(chunk, qualifiers);
 	const args = [
 		"api",
 		"-X",
@@ -106,81 +152,177 @@ async function ghApiSearchIssues(
 		"-f",
 		"order=desc",
 	];
-	const raw = await execGh(args, { cwd: repo.repoPath ?? undefined });
+	const raw = await execGh(args, { cwd: chunk[0]?.repo.repoPath });
 	const parsed = searchIssuesResponseSchema.parse(raw);
 	const items: IssueResult[] = parsed.items
 		.filter((item) => !item.pull_request)
-		.map((item) => ({
-			issueNumber: item.number,
-			title: item.title,
-			url: item.html_url,
-			state: item.state.toLowerCase(),
-			authorLogin: item.user?.login ?? null,
-		}));
+		.flatMap((item): IssueResult[] => {
+			const projectId = projectIdForSearchItem(chunk, item.repository_url);
+			if (!projectId) return [];
+			return [
+				{
+					projectId,
+					issueNumber: item.number,
+					title: item.title,
+					url: item.html_url,
+					state: item.state.toLowerCase(),
+					authorLogin: item.user?.login ?? null,
+					updatedAt: item.updated_at ?? null,
+				},
+			];
+		});
 	const hasNextPage = page * perPage < parsed.total_count;
 	return { items, totalCount: parsed.total_count, hasNextPage };
+}
+
+async function octokitSearchIssues(
+	octokit: Octokit,
+	chunk: ProjectRepo[],
+	qualifiers: string,
+	page: number,
+	perPage: number,
+): Promise<{
+	items: IssueResult[];
+	totalCount: number;
+	hasNextPage: boolean;
+}> {
+	const { data } = await octokit.search.issuesAndPullRequests({
+		q: buildSearchQuery(chunk, qualifiers),
+		per_page: perPage,
+		page,
+		sort: "updated",
+		order: "desc",
+	});
+	const items: IssueResult[] = data.items
+		.filter((item) => !item.pull_request)
+		.flatMap((item): IssueResult[] => {
+			const projectId = projectIdForSearchItem(chunk, item.repository_url);
+			if (!projectId) return [];
+			return [
+				{
+					projectId,
+					issueNumber: item.number,
+					title: item.title,
+					url: item.html_url,
+					state: item.state,
+					authorLogin: item.user?.login ?? null,
+					updatedAt: item.updated_at ?? null,
+				},
+			];
+		});
+	const hasNextPage = page * perPage < data.total_count;
+	return { items, totalCount: data.total_count, hasNextPage };
 }
 
 export const searchGitHubIssues = protectedProcedure
 	.input(githubSearchInputSchema)
 	.query(async ({ ctx, input }): Promise<IssuesPage> => {
-		const repo = await resolveGithubRepo(ctx, input.projectId);
+		const projectIds = input.projectIds ?? [input.projectId];
+		const projectRepos: ProjectRepo[] = await resolveProjectRepos(
+			projectIds,
+			input.projectIds !== undefined,
+			(projectId) => resolveGithubRepo(ctx, projectId),
+		);
 		const limit = input.limit ?? 30;
 		const page = input.page ?? 1;
+		if (projectRepos.length === 0) {
+			return { issues: [], totalCount: 0, hasNextPage: false, page };
+		}
 
 		const raw = input.query?.trim() ?? "";
-		const normalized = normalizeGitHubQuery(raw, repo, "issue");
+		const normalizedTargets = projectRepos.map((projectRepo) => ({
+			projectRepo,
+			normalized: normalizeGitHubQuery(raw, projectRepo.repo, "issue"),
+		}));
+		const directEntries = normalizedTargets.filter(
+			({ normalized }) => normalized.isDirectLookup,
+		);
+		const directTargets = directEntries.map(({ projectRepo }) => projectRepo);
 
-		if (normalized.repoMismatch) {
+		// A same-kind GitHub URL either direct-matches a repo or mismatches
+		// it, so no direct target + any mismatch ⇒ every repo mismatched.
+		if (
+			directTargets.length === 0 &&
+			normalizedTargets.some(({ normalized }) => normalized.repoMismatch)
+		) {
 			return {
 				issues: [],
 				totalCount: 0,
 				hasNextPage: false,
 				page,
-				repoMismatch: `${repo.owner}/${repo.name}`,
+				repoMismatch: formatRepoList(projectRepos),
 			};
 		}
 
-		const effectiveQuery = normalized.query;
+		const lookupNumber = directEntries[0]
+			? Number.parseInt(directEntries[0].normalized.query, 10)
+			: null;
+
+		const effectiveQuery = normalizedTargets[0]?.normalized.query ?? "";
+		const qualifiers = [
+			"is:issue",
+			input.includeClosed ? "" : "is:open",
+			effectiveQuery,
+		]
+			.filter(Boolean)
+			.join(" ");
 
 		try {
-			if (normalized.isDirectLookup) {
-				const issueNumber = Number.parseInt(effectiveQuery, 10);
-				const issue = await ghDirectLookup(ctx.execGh, repo, issueNumber);
-				// `gh issue view <n>` happily returns a PR when N is a PR
-				// number — GitHub's API surface treats PRs as a kind of issue.
-				// Octokit's path filters via `issue.pull_request`; we don't
-				// have that field over `gh`, so detect via the canonical URL.
-				if (issue.url.includes("/pull/")) {
+			if (lookupNumber !== null) {
+				const single = directTargets.length === 1 ? directTargets[0] : null;
+				if (single) {
+					const issue = await ghDirectLookup(ctx.execGh, single, lookupNumber);
 					return {
-						issues: [],
-						totalCount: 0,
+						issues: issue ? [issue] : [],
+						totalCount: issue ? 1 : 0,
 						hasNextPage: false,
 						page,
 					};
 				}
+				// Bare `#N` fans out one `gh issue view` per repo — core quota,
+				// not search quota. Repos without that number just miss.
+				const settled = await Promise.allSettled(
+					directTargets.map((target) =>
+						ghDirectLookup(ctx.execGh, target, lookupNumber),
+					),
+				);
+				const found: IssueResult[] = [];
+				for (const result of settled) {
+					if (result.status === "fulfilled") {
+						if (result.value) found.push(result.value);
+					} else if (!isGithubNotFoundError(result.reason)) {
+						throw result.reason;
+					}
+				}
 				return {
-					issues: [issue],
-					totalCount: 1,
+					issues: mergeByUpdatedAtDesc([found]),
+					totalCount: found.length,
 					hasNextPage: false,
 					page,
 				};
 			}
-			const result = await ghApiSearchIssues(
-				ctx.execGh,
-				repo,
-				effectiveQuery,
-				input.includeClosed ?? false,
-				page,
-				limit,
+
+			const chunks = chunkProjectRepos(projectRepos, qualifiers);
+			const chunkResults = await Promise.all(
+				chunks.map((chunk) =>
+					ghApiSearchIssues(ctx.execGh, chunk, qualifiers, page, limit),
+				),
 			);
 			return {
-				issues: result.items,
-				totalCount: result.totalCount,
-				hasNextPage: result.hasNextPage,
+				issues: mergeByUpdatedAtDesc(
+					chunkResults.map((result) => result.items),
+				),
+				totalCount: chunkResults.reduce(
+					(sum, result) => sum + result.totalCount,
+					0,
+				),
+				hasNextPage: chunkResults.some((result) => result.hasNextPage),
 				page,
 			};
 		} catch (ghErr) {
+			// A rate-limited gh call surfaces as-is — falling back to Octokit
+			// would retry against the same user's quota.
+			if (isGithubRateLimitError(ghErr)) throw githubRateLimitError(ghErr);
 			console.warn(
 				"[workspaceCreation.searchGitHubIssues] gh path failed; falling back to Octokit",
 				ghErr,
@@ -190,64 +332,61 @@ export const searchGitHubIssues = protectedProcedure
 		const octokit = await ctx.github();
 
 		try {
-			if (normalized.isDirectLookup) {
-				const issueNumber = Number.parseInt(effectiveQuery, 10);
-				const { data: issue } = await octokit.issues.get({
-					owner: repo.owner,
-					repo: repo.name,
-					issue_number: issueNumber,
-				});
-				if (issue.pull_request) {
+			if (lookupNumber !== null) {
+				const single = directTargets.length === 1 ? directTargets[0] : null;
+				if (single) {
+					const issue = await octokitDirectLookup(
+						octokit,
+						single,
+						lookupNumber,
+					);
 					return {
-						issues: [],
-						totalCount: 0,
+						issues: issue ? [issue] : [],
+						totalCount: issue ? 1 : 0,
 						hasNextPage: false,
 						page,
 					};
 				}
+				const settled = await Promise.allSettled(
+					directTargets.map((target) =>
+						octokitDirectLookup(octokit, target, lookupNumber),
+					),
+				);
+				const found: IssueResult[] = [];
+				for (const result of settled) {
+					if (result.status === "fulfilled") {
+						if (result.value) found.push(result.value);
+					} else if (!isGithubNotFoundError(result.reason)) {
+						throw result.reason;
+					}
+				}
 				return {
-					issues: [
-						{
-							issueNumber: issue.number,
-							title: issue.title,
-							url: issue.html_url,
-							state: issue.state,
-							authorLogin: issue.user?.login ?? null,
-						},
-					],
-					totalCount: 1,
+					issues: mergeByUpdatedAtDesc([found]),
+					totalCount: found.length,
 					hasNextPage: false,
 					page,
 				};
 			}
 
-			const stateFilter = input.includeClosed ? "" : " is:open";
-			const query =
-				`repo:${repo.owner}/${repo.name} is:issue${stateFilter} ${effectiveQuery}`.trim();
-			const { data } = await octokit.search.issuesAndPullRequests({
-				q: query,
-				per_page: limit,
-				page,
-				sort: "updated",
-				order: "desc",
-			});
-			const issues = data.items
-				.filter((item) => !item.pull_request)
-				.map((item) => ({
-					issueNumber: item.number,
-					title: item.title,
-					url: item.html_url,
-					state: item.state,
-					authorLogin: item.user?.login ?? null,
-				}));
-			const hasNextPage = page * limit < data.total_count;
+			const chunks = chunkProjectRepos(projectRepos, qualifiers);
+			const chunkResults = await Promise.all(
+				chunks.map((chunk) =>
+					octokitSearchIssues(octokit, chunk, qualifiers, page, limit),
+				),
+			);
 			return {
-				issues,
-				totalCount: data.total_count,
-				hasNextPage,
+				issues: mergeByUpdatedAtDesc(
+					chunkResults.map((result) => result.items),
+				),
+				totalCount: chunkResults.reduce(
+					(sum, result) => sum + result.totalCount,
+					0,
+				),
+				hasNextPage: chunkResults.some((result) => result.hasNextPage),
 				page,
 			};
 		} catch (err) {
+			if (isGithubRateLimitError(err)) throw githubRateLimitError(err);
 			console.warn(
 				"[workspaceCreation.searchGitHubIssues] octokit fallback failed",
 				err,

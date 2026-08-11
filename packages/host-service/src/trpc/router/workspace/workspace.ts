@@ -1,7 +1,7 @@
 import { existsSync } from "node:fs";
 import { basename } from "node:path";
 import { TRPCError } from "@trpc/server";
-import { eq } from "drizzle-orm";
+import { eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { projects, workspaces } from "../../../db/schema";
 import {
@@ -37,30 +37,47 @@ export const workspaceRouter = router({
 	 * Authoritative list of this host's workspaces, served entirely from
 	 * host.db — works with zero cloud availability. Rows are shaped like
 	 * cloud rows (plus local extras) so consumers of either read path agree.
+	 * Archived (tombstoned) rows are excluded unless the caller opts in —
+	 * only the workspaces board does, for its Merged/Deleted columns.
 	 */
-	list: protectedProcedure.query(({ ctx }) => {
-		const rows = ctx.db.select().from(workspaces).all();
-		const projectNameById = new Map(
-			ctx.db
-				.select({
-					id: projects.id,
-					name: projects.name,
-					repoPath: projects.repoPath,
-				})
-				.from(projects)
-				.all()
-				.map((project) => [
-					project.id,
-					project.name || basename(project.repoPath),
-				]),
-		);
-		return rows.map((row) => ({
-			...toCloudShape(row, ctx.organizationId),
-			worktreePath: row.worktreePath,
-			worktreeExists: existsSync(row.worktreePath),
-			projectName: projectNameById.get(row.projectId) ?? null,
-		}));
-	}),
+	list: protectedProcedure
+		.input(z.object({ includeArchived: z.boolean().default(false) }).optional())
+		.query(({ ctx, input }) => {
+			const rows = input?.includeArchived
+				? ctx.db.select().from(workspaces).all()
+				: ctx.db
+						.select()
+						.from(workspaces)
+						.where(isNull(workspaces.archivedAt))
+						.all();
+			const projectNameById = new Map(
+				ctx.db
+					.select({
+						id: projects.id,
+						name: projects.name,
+						repoPath: projects.repoPath,
+					})
+					.from(projects)
+					.all()
+					.map((project) => [
+						project.id,
+						project.name || basename(project.repoPath),
+					]),
+			);
+			return rows.map((row) => ({
+				...toCloudShape(row, ctx.organizationId),
+				worktreePath: row.worktreePath,
+				// Tombstones' worktrees are gone by definition; stat-checking an
+				// unbounded, forever-growing archive on every poll adds up.
+				worktreeExists:
+					row.archivedAt == null ? existsSync(row.worktreePath) : false,
+				projectName: row.projectId
+					? (projectNameById.get(row.projectId) ?? null)
+					: null,
+				archivedAt: row.archivedAt,
+				archiveReason: row.archiveReason,
+			}));
+		}),
 
 	/**
 	 * Rename / branch-repoint / task-link update, local-first: the host.db
@@ -111,6 +128,17 @@ export const workspaceRouter = router({
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "Workspace not found",
+				});
+			}
+			// Linking a task to a workspace starts work on it — move it to
+			// In Progress. Best-effort cloud call; the update never blocks.
+			if (typeof input.taskId === "string") {
+				const taskId = input.taskId;
+				void ctx.api.task.start.mutate({ id: taskId }).catch((err) => {
+					console.warn(
+						`[workspace.update] failed to mark task ${taskId} as started:`,
+						err,
+					);
 				});
 			}
 			return toCloudShape(updated, ctx.organizationId);

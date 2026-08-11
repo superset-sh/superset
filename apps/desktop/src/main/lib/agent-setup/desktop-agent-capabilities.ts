@@ -2,128 +2,35 @@ import type { AgentType } from "@superset/shared/agent-command";
 
 export type SupersetManagedBinary = AgentType;
 
-export const DESKTOP_AGENT_SETUP_ACTIONS = [
-	"notify-script",
-	"managed-skills",
-	"cleanup-global-opencode-plugin",
-	"amp-plugin",
-	"amp-wrapper",
-	"claude-settings-json",
-	"claude-wrapper",
-	"codex-hooks-json",
-	"codex-wrapper",
-	"droid-wrapper",
-	"droid-settings-json",
-	"opencode-plugin",
-	"opencode-wrapper",
-	"pi-extension",
-	"cursor-hook-script",
-	"cursor-agent-wrapper",
-	"cursor-hooks-json",
-	"gemini-hook-script",
-	"gemini-wrapper",
-	"gemini-settings-json",
-	"kimi-config-toml",
-	"kimi-wrapper",
-	"grok-hooks-json",
-	"grok-config-toml",
-	"grok-wrapper",
-	"mastra-wrapper",
-	"mastra-hooks-json",
-	"copilot-hook-script",
-	"copilot-wrapper",
-	"vibe-hooks-toml",
-	"vibe-wrapper",
-] as const;
-
-export type DesktopAgentSetupAction =
-	(typeof DESKTOP_AGENT_SETUP_ACTIONS)[number];
-
 interface DesktopAgentSetupTarget {
 	id: AgentType;
-	setupActions: readonly DesktopAgentSetupAction[];
 	managedBinary?: boolean;
 }
 
-export const DESKTOP_AGENT_SETUP_BOOTSTRAP_ACTIONS = [
-	"cleanup-global-opencode-plugin",
-	"notify-script",
-	"managed-skills",
-] as const satisfies readonly DesktopAgentSetupAction[];
-
+/**
+ * Agents Superset integrates with, in setup order. The setup/teardown writers
+ * for each id live in desktop-agent-setup.ts (AGENT_SETUP_DEFINITIONS) —
+ * this file stays free of fs-touching imports so shared consumers (e.g.
+ * shell-wrappers) can read the target list without pulling in the writers.
+ */
 export const DESKTOP_AGENT_SETUP_TARGETS = [
-	{
-		id: "amp",
-		setupActions: ["amp-plugin", "amp-wrapper"],
-		managedBinary: true,
-	},
-	{
-		id: "claude",
-		setupActions: ["claude-settings-json", "claude-wrapper"],
-		managedBinary: true,
-	},
-	{
-		id: "codex",
-		setupActions: ["codex-hooks-json", "codex-wrapper"],
-		managedBinary: true,
-	},
-	{
-		id: "droid",
-		setupActions: ["droid-wrapper", "droid-settings-json"],
-		managedBinary: true,
-	},
-	{
-		id: "opencode",
-		setupActions: ["opencode-plugin", "opencode-wrapper"],
-		managedBinary: true,
-	},
-	{
-		id: "pi",
-		setupActions: ["pi-extension"],
-	},
-	{
-		id: "cursor-agent",
-		setupActions: [
-			"cursor-hook-script",
-			"cursor-agent-wrapper",
-			"cursor-hooks-json",
-		],
-	},
-	{
-		id: "gemini",
-		setupActions: [
-			"gemini-hook-script",
-			"gemini-wrapper",
-			"gemini-settings-json",
-		],
-		managedBinary: true,
-	},
-	{
-		id: "mastracode",
-		setupActions: ["mastra-wrapper", "mastra-hooks-json"],
-		managedBinary: true,
-	},
-	{
-		id: "kimi",
-		setupActions: ["kimi-config-toml", "kimi-wrapper"],
-		managedBinary: true,
-	},
-	{
-		id: "grok",
-		setupActions: ["grok-hooks-json", "grok-config-toml", "grok-wrapper"],
-		managedBinary: true,
-	},
-	{
-		id: "copilot",
-		setupActions: ["copilot-hook-script", "copilot-wrapper"],
-		managedBinary: true,
-	},
-	{
-		id: "vibe",
-		setupActions: ["vibe-hooks-toml", "vibe-wrapper"],
-		managedBinary: true,
-	},
+	{ id: "amp", managedBinary: true },
+	{ id: "claude", managedBinary: true },
+	{ id: "codex", managedBinary: true },
+	{ id: "droid", managedBinary: true },
+	{ id: "opencode", managedBinary: true },
+	{ id: "pi" },
+	{ id: "cursor-agent" },
+	{ id: "gemini", managedBinary: true },
+	{ id: "mastracode", managedBinary: true },
+	{ id: "kimi", managedBinary: true },
+	{ id: "grok", managedBinary: true },
+	{ id: "copilot", managedBinary: true },
+	{ id: "vibe", managedBinary: true },
 ] as const satisfies readonly DesktopAgentSetupTarget[];
+
+export type DesktopAgentSetupTargetId =
+	(typeof DESKTOP_AGENT_SETUP_TARGETS)[number]["id"];
 
 export const SUPERSET_MANAGED_BINARIES = DESKTOP_AGENT_SETUP_TARGETS.filter(
 	(target) => "managedBinary" in target && target.managedBinary,

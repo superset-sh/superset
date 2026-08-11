@@ -1,0 +1,100 @@
+---
+title: "Best Solo Alternatives in 2026"
+description: "The best alternatives to Solo (soloterm.com) for managing AI coding agents and dev processes, including Superset, Herdr, cmux, Warp, and Orca."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "roundup"
+competitors:
+  - solo
+  - herdr
+  - cmux
+  - warp
+  - orca
+keywords:
+  - solo alternative
+  - solo alternatives
+  - soloterm alternative
+  - dev process dashboard
+  - ai agent workspace
+---
+
+Solo is Aaron Francis's native desktop workspace for agents and your dev stack: processes grouped by project with one-click startup, auto-restart, crash alerts, and a 40-tool MCP surface agents use to coordinate. It is deliberately not an orchestrator -- one shared checkout, no worktrees, no diff review, no branch management, by its own description. If you need agents isolated, reviewed, and orchestrated -- or just different trade-offs around the terminal -- here are the best Solo alternatives in 2026.
+
+---
+
+## The Short Version
+
+| Alternative | Best for | Platform | License |
+|---|---|---|---|
+| **Superset** | Parallel agents in worktrees with review and automations | macOS now; Windows and Linux coming | Source-available (ELv2) |
+| **Herdr** | Persistent terminal runtime for agents | macOS, Linux, Windows (beta) | Open source (Apache-2.0) |
+| **cmux** | Native macOS terminal organized around agents | macOS | Open source (GPL) |
+| **Warp** | AI-native terminal with built-in agents | macOS, Windows, Linux | Proprietary |
+| **Orca** | Free desktop ADE with worktree fan-out | macOS, Windows, Linux + iOS/Android | Open source (MIT) |
+
+## Why Look for a Solo Alternative?
+
+Solo keeps your environment healthy; it does not manage the work. Parallel agents share one checkout and can collide, finished work has no diff review or PR flow, agent interaction is monitoring-level (running, crashed, idle), and everything is strictly local -- no remote hosts or multi-device story. If any of those are your actual problem, you want a different category of tool.
+
+## The Best Alternatives
+
+### Superset
+
+Superset manages what Solo deliberately does not: each task gets its own Git worktree and branch with persistent terminals, a diff/file editor, an in-app browser, and port management, so parallel agents never collide and every change is reviewable. Dev-stack needs are covered by run scripts with a restartable dev-server pane, setup/teardown scripts, and port detection -- and the whole thing is programmable through a CLI, MCP server, and TypeScript SDK, with scheduled automations and remote/cloud workspaces beyond the desktop.
+
+For the direct comparison, see [Superset vs Solo](/compare/superset-vs-solo).
+
+### Herdr
+
+Herdr covers Solo's keep-things-running instinct for the agent side specifically: an always-on server that holds agent terminals open through disconnects and restarts, with status visualization, worktree management in the CLI, and a JSON socket API. No process supervision for your dev stack, but stronger persistence for agents.
+
+See [Superset vs Herdr](/compare/superset-vs-herdr).
+
+### cmux
+
+cmux is a native macOS terminal built around agent sessions -- panes and tabs organized by agent, GPU-fast, open source. Closest to Solo's "native terminal workspace" feel, without the process-supervision layer.
+
+See [Superset vs cmux](/compare/superset-vs-cmux).
+
+### Warp
+
+Warp is the AI-native terminal: built-in agents, blocks, and workflows in a polished cross-platform app. If Solo appealed as a better terminal with AI in it, Warp is the mainstream version of that bet.
+
+See [Superset vs Warp](/compare/superset-vs-warp).
+
+### Orca
+
+Orca (~39,000 stars, MIT) is the free desktop ADE: fan prompts across agents in parallel worktrees, compare results, review diffs, and merge -- with per-task browser tabs and mobile companions. The full orchestration counterpoint to Solo's environment focus.
+
+See [Superset vs Orca](/compare/superset-vs-orca).
+
+## How To Choose
+
+- For isolated, reviewable parallel agent work, choose **Superset**.
+- For agent-terminal persistence you script yourself, choose **Herdr**.
+- For a native Mac agent terminal, choose **cmux**.
+- For an AI-native terminal with agents built in, choose **Warp**.
+- For a free worktree ADE, choose **Orca**.
+- If supervised dev processes are genuinely your problem, Solo remains the best at exactly that -- and pairs fine with the tools above.
+
+## Verdict
+
+Solo is excellent at its chosen job, and its own comparison pages are honest that the job is not orchestration. Most developers hit the wall at parallel work: shared checkouts collide and unreviewed changes pile up. That is where Superset is the strongest alternative -- isolation, review, and automations around the same agents -- with Herdr and Orca as open-source picks depending on whether you want a runtime or a full ADE. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best Solo alternative?
+
+Depends on the job. For parallel agent work with isolation and review, Superset. For agent-session persistence, Herdr. For a native agent terminal, cmux. Solo itself stays best-in-class for supervised dev processes.
+
+### Does Solo manage Git worktrees?
+
+No -- it says so itself. If you create worktrees by hand, Solo's linked checkouts share todos and scratchpads across them, but it will not create, isolate, or review them. Superset and Orca manage worktrees automatically.
+
+### Is Solo open source?
+
+The desktop app is proprietary (free tier, Pro $99/year). Herdr, cmux, and Orca are open source; Superset is source-available under ELv2.
+
+### Can Solo and Superset be used together?
+
+Practically, yes -- they manage different layers. Solo supervises your dev stack; Superset isolates and reviews agent work. There is no built-in integration, but nothing conflicts.

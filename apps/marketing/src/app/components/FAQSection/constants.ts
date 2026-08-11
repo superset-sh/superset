@@ -1,9 +1,23 @@
 export interface FAQItem {
 	question: string;
 	answer: string;
+	link?: {
+		href: string;
+		label: string;
+	};
 }
 
 export const FAQ_ITEMS: FAQItem[] = [
+	{
+		question:
+			"How is Superset different from just running Claude Code in a terminal?",
+		answer:
+			"Claude Code, Codex, and OpenCode are the agents — Superset is where you run many of them at once. Each task gets its own isolated Git worktree, so ten agents can work on ten branches simultaneously while you monitor, review, and merge from one place.",
+		link: {
+			href: "/compare",
+			label: "See how Superset compares to other tools",
+		},
+	},
 	{
 		question: "I already use an IDE like Cursor, is this for me?",
 		answer:

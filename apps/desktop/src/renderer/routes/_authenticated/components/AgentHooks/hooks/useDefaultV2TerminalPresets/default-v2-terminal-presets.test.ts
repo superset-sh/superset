@@ -18,6 +18,7 @@ function createAgent(
 		args: [],
 		promptTransport: "argv",
 		promptArgs: [],
+		resumeArgs: [],
 		env: {},
 		order: 0,
 		...rest,

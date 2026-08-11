@@ -17,6 +17,8 @@ export interface SidebarProjectInput {
 	githubOwner: string | null;
 	githubRepoName: string | null;
 	iconUrl: string | null;
+	/** Accent color as a `#rrggbb` hex, or null for the default. */
+	color: string | null;
 	createdAt: Date;
 	updatedAt: Date;
 	isCollapsed: boolean;
@@ -34,7 +36,8 @@ export interface SidebarSectionInput {
 
 export interface SidebarWorkspaceInput {
 	id: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
 	hostId: string;
 	type: DashboardSidebarWorkspaceType;
 	hostIsOnline: boolean;
@@ -125,22 +128,66 @@ export function buildDashboardSidebarPinnedWorkspaces({
 	const projectsById = new Map(
 		sidebarProjects.map((project) => [project.id, project]),
 	);
-	return pinnedSidebarWorkspaces.flatMap((workspace) => {
-		const project = projectsById.get(workspace.projectId);
-		if (!project) return [];
-		return [
-			{
-				...decorateSidebarWorkspace(
-					workspace,
-					project,
-					machineId,
-					pullRequestsByWorkspaceId,
-				),
-				projectName: project.name,
-				projectIconUrl: project.iconUrl,
-			},
-		];
-	});
+	return pinnedSidebarWorkspaces.flatMap(
+		(workspace): DashboardSidebarPinnedWorkspace[] => {
+			// Pinned sessions render with no project identity.
+			if (workspace.projectId === null) {
+				return [
+					{
+						...decorateSidebarWorkspace(
+							workspace,
+							{ githubOwner: null, githubRepoName: null },
+							machineId,
+							pullRequestsByWorkspaceId,
+						),
+						projectName: null,
+						projectIconUrl: null,
+					},
+				];
+			}
+			const project = projectsById.get(workspace.projectId);
+			if (!project) return [];
+			return [
+				{
+					...decorateSidebarWorkspace(
+						workspace,
+						project,
+						machineId,
+						pullRequestsByWorkspaceId,
+					),
+					projectName: project.name,
+					projectIconUrl: project.iconUrl,
+				},
+			];
+		},
+	);
+}
+
+/**
+ * Decorates the Sessions section rows (project-less workspaces), ordered by
+ * tabOrder ascending. Sessions have no repo identity, so every project-derived
+ * affordance (repoUrl, remote-branch, PRs) is null/off.
+ */
+export function buildDashboardSidebarSessionWorkspaces({
+	sessionSidebarWorkspaces,
+	machineId,
+	pullRequestsByWorkspaceId,
+}: {
+	sessionSidebarWorkspaces: SidebarWorkspaceInput[];
+	machineId: string;
+	pullRequestsByWorkspaceId: Map<string, SidebarPullRequest>;
+}): DashboardSidebarWorkspace[] {
+	return sessionSidebarWorkspaces
+		.slice()
+		.sort((left, right) => left.tabOrder - right.tabOrder)
+		.map((workspace) =>
+			decorateSidebarWorkspace(
+				workspace,
+				{ githubOwner: null, githubRepoName: null },
+				machineId,
+				pullRequestsByWorkspaceId,
+			),
+		);
 }
 
 export interface BuildDashboardSidebarProjectsParams {
@@ -203,6 +250,9 @@ export function buildDashboardSidebarProjects({
 	}
 
 	for (const workspace of visibleSidebarWorkspaces) {
+		// Sessions render in the top-level Sessions section, never in a
+		// project group (see buildDashboardSidebarSessionWorkspaces).
+		if (workspace.projectId === null) continue;
 		const project = projectsById.get(workspace.projectId);
 		if (!project) continue;
 

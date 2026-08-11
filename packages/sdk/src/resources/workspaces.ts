@@ -7,13 +7,14 @@ import type { RequestOptions } from "../internal/request-options";
 export interface HostWorkspaceRow {
 	id: string;
 	organizationId: string;
-	projectId: string;
-	/** Host-served project name; null for an orphaned projectId. */
+	/** Null for project-less "session" workspaces. */
+	projectId: string | null;
+	/** Host-served project name; null for an orphaned projectId or a session. */
 	projectName: string | null;
 	hostId: string;
 	name: string;
 	branch: string;
-	type: "main" | "worktree";
+	type: "main" | "worktree" | "session";
 	createdByUserId: string | null;
 	taskId: string | null;
 	createdAt: Date;
@@ -79,6 +80,28 @@ export class Workspaces extends APIResource {
 				pr: params.pr,
 				baseBranch: params.baseBranch,
 				taskId: params.taskId,
+				agents: params.agents,
+				command: params.command,
+			},
+			options,
+		);
+	}
+
+	/**
+	 * Create a project-less "session" workspace on a host — a managed scratch
+	 * folder (its own git repo) with no project, branch, or PR semantics.
+	 *
+	 * Mirrors `superset workspaces create` without `--project`.
+	 */
+	createSession(
+		params: WorkspaceCreateSessionParams,
+		options?: RequestOptions,
+	): APIPromise<WorkspaceCreateSessionResult> {
+		return this._client.hostMutation<WorkspaceCreateSessionResult>(
+			params.hostId,
+			"workspaces.createSession",
+			{
+				name: params.name,
 				agents: params.agents,
 				command: params.command,
 			},
@@ -200,11 +223,12 @@ export interface WorkspaceCreateResult {
 	workspace: {
 		id: string;
 		organizationId: string;
-		projectId: string;
+		/** Null for project-less "session" workspaces. */
+		projectId: string | null;
 		hostId: string;
 		name: string;
 		branch: string;
-		type: "main" | "worktree";
+		type: "main" | "worktree" | "session";
 		createdByUserId: string | null;
 		taskId: string | null;
 		createdAt: Date;
@@ -214,6 +238,22 @@ export interface WorkspaceCreateResult {
 	agents: WorkspaceCreateAgentResult[];
 	alreadyExists: boolean;
 }
+
+export interface WorkspaceCreateSessionParams {
+	/** The host machineId to create the session on (see `hosts.list()`). */
+	hostId: string;
+	/** Display name; omit to get a friendly generated one. */
+	name?: string;
+	/** Agents to spawn in the session immediately after creation. */
+	agents?: WorkspaceAgentLaunch[];
+	/** Shell command to run in the session folder after creation. */
+	command?: string;
+}
+
+export type WorkspaceCreateSessionResult = Omit<
+	WorkspaceCreateResult,
+	"alreadyExists"
+>;
 
 export interface WorkspaceUpdateParams {
 	/** New workspace name. */
@@ -254,6 +294,8 @@ export declare namespace Workspaces {
 		WorkspaceAgentLaunch,
 		WorkspaceCreateAgentResult,
 		WorkspaceCreateResult,
+		WorkspaceCreateSessionParams,
+		WorkspaceCreateSessionResult,
 		WorkspaceUpdateParams,
 		WorkspaceUpdateResult,
 		WorkspaceDeleteResult,

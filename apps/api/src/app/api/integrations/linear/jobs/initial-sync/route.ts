@@ -198,6 +198,7 @@ async function performInitialSync(
 						"estimate",
 						"dueDate",
 						"labels",
+						"branch",
 						"startedAt",
 						"completedAt",
 						"externalKey",

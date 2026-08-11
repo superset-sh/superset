@@ -48,12 +48,12 @@ const pixelifySans = Pixelify_Sans({
 });
 
 const siteDescription =
-	"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
+	"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish. Quickly switch between tasks as they need your attention.";
 
 export const metadata: Metadata = {
 	metadataBase: new URL(COMPANY.MARKETING_URL),
 	title: {
-		default: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
+		default: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
 		template: `%s | ${COMPANY.NAME}`,
 	},
 	description: siteDescription,
@@ -75,9 +75,9 @@ export const metadata: Metadata = {
 		locale: "en_US",
 		url: COMPANY.MARKETING_URL,
 		siteName: COMPANY.NAME,
-		title: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
+		title: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
 		description:
-			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+			"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
 		images: [
 			{
 				url: "/og-image.png",
@@ -89,9 +89,9 @@ export const metadata: Metadata = {
 	},
 	twitter: {
 		card: "summary_large_image",
-		title: `${COMPANY.NAME} - Run 10+ parallel coding agents on your machine`,
+		title: `${COMPANY.NAME} - Run 100+ parallel coding agents on your machine`,
 		description:
-			"Run 10+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
+			"Run 100+ parallel coding agents on your machine. Spin up new coding tasks while waiting for your current agent to finish.",
 		images: ["/og-image.png"],
 		creator: "@superset_sh",
 	},

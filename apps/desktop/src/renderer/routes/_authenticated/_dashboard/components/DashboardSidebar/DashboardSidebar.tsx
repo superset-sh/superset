@@ -40,6 +40,7 @@ import { DashboardSidebarPinnedSection } from "./components/DashboardSidebarPinn
 import { DashboardSidebarPortsList } from "./components/DashboardSidebarPortsList";
 import { DashboardSidebarProjectSection } from "./components/DashboardSidebarProjectSection";
 import { DashboardSidebarSectionRenameProvider } from "./components/DashboardSidebarSectionRenameContext";
+import { DashboardSidebarSessionsSection } from "./components/DashboardSidebarSessionsSection";
 import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarWorkspacesHeader";
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
@@ -109,6 +110,7 @@ export function DashboardSidebar({
 	const {
 		groups,
 		pinnedWorkspaces,
+		sessionWorkspaces,
 		refreshWorkspacePullRequest,
 		toggleProjectCollapsed,
 	} = useDashboardSidebarData();
@@ -153,7 +155,10 @@ export function DashboardSidebar({
 			.filter((g): g is DashboardSidebarProject => g != null);
 	}, [groups, projectOrder]);
 
-	const workspaceShortcutLabels = useDashboardSidebarShortcuts(orderedGroups);
+	const workspaceShortcutLabels = useDashboardSidebarShortcuts(
+		orderedGroups,
+		sessionWorkspaces,
+	);
 	const selectableWorkspaceIds = useMemo(
 		() =>
 			new Set(
@@ -225,12 +230,6 @@ export function DashboardSidebar({
 							<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
 								<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
-								{!isCollapsed && (
-									<DashboardSidebarBulkActions projects={orderedGroups}>
-										<DashboardSidebarWorkspacesHeader />
-									</DashboardSidebarBulkActions>
-								)}
-
 								<OverflowFadeContainer
 									fadeEdges={["top", "bottom"]}
 									className="flex-1 overflow-y-auto hide-scrollbar"
@@ -241,6 +240,18 @@ export function DashboardSidebar({
 											isCollapsed={isCollapsed}
 											onWorkspaceHover={refreshWorkspacePullRequest}
 										/>
+									)}
+									<DashboardSidebarSessionsSection
+										sessionWorkspaces={sessionWorkspaces}
+										isCollapsed={isCollapsed}
+										rowsHidden={!isCollapsed && workspacesListCollapsed}
+										workspaceShortcutLabels={workspaceShortcutLabels}
+										onWorkspaceHover={refreshWorkspacePullRequest}
+									/>
+									{!isCollapsed && (
+										<DashboardSidebarBulkActions projects={orderedGroups}>
+											<DashboardSidebarWorkspacesHeader />
+										</DashboardSidebarBulkActions>
 									)}
 									{(isCollapsed || !workspacesListCollapsed) && (
 										<DndContext

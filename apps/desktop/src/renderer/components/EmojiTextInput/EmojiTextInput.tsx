@@ -45,6 +45,8 @@ interface EmojiTextInputProps {
 	className?: string;
 	onEnter?: () => void;
 	onBlur?: (value: string) => void;
+	/** false renders the value read-only. */
+	editable?: boolean;
 }
 
 function getPlainText(
@@ -62,8 +64,10 @@ export function EmojiTextInput({
 	className,
 	onEnter,
 	onBlur,
+	editable = true,
 }: EmojiTextInputProps) {
 	const editor = useEditor({
+		editable,
 		immediatelyRender: false,
 		extensions: [
 			SingleLineDocument,
@@ -94,6 +98,10 @@ export function EmojiTextInput({
 			onBlur?.(getPlainText(e));
 		},
 	});
+
+	useEffect(() => {
+		if (editor && editor.isEditable !== editable) editor.setEditable(editable);
+	}, [editable, editor]);
 
 	useEffect(() => {
 		if (!editor) return;

@@ -21,7 +21,11 @@ export function register(server: McpServer): void {
 					"Host agent instance id (UUID from /settings/agents) or presetId. Use 'superset' for the built-in chat agent.",
 				),
 			targetHostId: z.string().min(1).nullish(),
-			v2ProjectId: z.string().uuid().optional(),
+			v2ProjectId: z
+				.string()
+				.uuid()
+				.nullish()
+				.describe("Pass null to switch to session mode (no project)."),
 			v2WorkspaceId: z.string().uuid().nullish(),
 			rrule: z.string().min(1).max(500).optional(),
 			dtstart: z

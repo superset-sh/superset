@@ -15,10 +15,11 @@ import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowUpIcon, HistoryIcon } from "lucide-react";
+import { ArrowUpIcon, HistoryIcon, Settings2Icon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import { LuGitPullRequest } from "react-icons/lu";
@@ -73,13 +74,17 @@ interface PromptGroupProps {
 	projectId: string | null;
 	selectedProject: ProjectOption | undefined;
 	recentProjects: ProjectOption[];
-	onSelectProject: (projectId: string) => void;
+	/** True when "No project" (session) is the explicit selection. */
+	isSessionSelected?: boolean;
+	/** Null selects "No project" (session). */
+	onSelectProject: (projectId: string | null) => void;
 }
 
 export function PromptGroup({
 	projectId,
 	selectedProject,
 	recentProjects,
+	isSessionSelected = false,
 	onSelectProject,
 }: PromptGroupProps) {
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
@@ -120,6 +125,21 @@ export function PromptGroup({
 			params: { projectId: targetProjectId },
 			search: {
 				hostId: draft.hostId ?? machineId ?? undefined,
+			},
+		});
+	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
+	// AI naming (title + branch) follows the project's naming instructions;
+	// this is the jump from "where do these names come from?" to the setting.
+	const handleGoToNamingInstructions = useCallback(() => {
+		if (!selectedProject?.id) return;
+		const targetProjectId = selectedProject.id;
+		closeModal();
+		void navigate({
+			to: "/settings/projects/$projectId",
+			params: { projectId: targetProjectId },
+			search: {
+				hostId: draft.hostId ?? machineId ?? undefined,
+				focus: "naming-instructions",
 			},
 		});
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
@@ -289,7 +309,7 @@ export function PromptGroup({
 	// fall into a toast.
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
-		if (!projectId) return "Select a project";
+		if (!projectId && !draft.isSession) return "Select a project";
 		const selectedHostId = draft.hostId ?? machineId;
 		if (!selectedHostId) return "No active host";
 		if (selectedHostId !== machineId) {
@@ -299,7 +319,14 @@ export function PromptGroup({
 			return "Host service is not running";
 		}
 		return null;
-	}, [projectId, draft.hostId, machineId, activeHostUrl, otherHosts]);
+	}, [
+		projectId,
+		draft.isSession,
+		draft.hostId,
+		machineId,
+		activeHostUrl,
+		otherHosts,
+	]);
 
 	// ── Linked-context prefetch ──────────────────────────────────────
 	const promptContext = useNewWorkspacePromptContext({
@@ -397,16 +424,40 @@ export function PromptGroup({
 							updateDraft({
 								branchName: e.target.value.replace(/\s+/g, "-"),
 								branchNameEdited: true,
+								branchNameFromProvider: false,
 							})
 						}
 						onBlur={() => {
 							const sanitized = sanitizeUserBranchName(branchName.trim());
 							if (!sanitized)
-								updateDraft({ branchName: "", branchNameEdited: false });
+								updateDraft({
+									branchName: "",
+									branchNameEdited: false,
+									branchNameFromProvider: false,
+								});
 							else updateDraft({ branchName: sanitized });
 						}}
 					/>
 				</div>
+				{selectedProject && !needsSetup && (
+					<Tooltip>
+						<TooltipTrigger asChild>
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon"
+								aria-label="Update naming instructions"
+								className="ml-2 size-6 shrink-0 text-muted-foreground"
+								onClick={handleGoToNamingInstructions}
+							>
+								<Settings2Icon className="size-3.5" />
+							</Button>
+						</TooltipTrigger>
+						<TooltipContent>
+							Update naming instructions for {selectedProject.name}
+						</TooltipContent>
+					</Tooltip>
+				)}
 				<PromptHistoryCommand
 					onSelect={applyPrompt}
 					tooltipLabel="Previous prompts"
@@ -617,6 +668,7 @@ export function PromptGroup({
 					<ProjectPickerPill
 						selectedProject={selectedProject}
 						projects={recentProjects}
+						isSessionSelected={isSessionSelected}
 						onSelectProject={onSelectProject}
 					/>
 					<AnimatePresence mode="wait" initial={false}>
@@ -641,7 +693,9 @@ export function PromptGroup({
 								exit={{ opacity: 0, x: 8, filter: "blur(4px)" }}
 								transition={{ duration: 0.2, ease: "easeOut" }}
 							>
-								<CompareBaseBranchPicker {...pickerProps} />
+								{!draft.isSession && (
+									<CompareBaseBranchPicker {...pickerProps} />
+								)}
 							</motion.div>
 						)}
 					</AnimatePresence>

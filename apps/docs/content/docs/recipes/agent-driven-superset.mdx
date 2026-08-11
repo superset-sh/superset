@@ -1,20 +1,20 @@
 ---
 title: Drive Superset from Your Agent
-description: Delegate work in parallel, then make it recurring with the automate skill — without leaving the conversation
+description: Delegate work in parallel, then make it recurring with the automate skill, without leaving the conversation
 ---
 
 <Callout type="info" title="Use when">
-	you're mid-conversation with an agent and the next step is a Superset action — fan this work out in parallel, or make it recur on a schedule — and you'd rather say so than click through the app.
+	you're mid-conversation with an agent and the next step is a Superset action (fan this work out in parallel, or make it recur on a schedule) and you'd rather say so than click through the app.
 </Callout>
 
 ## The Idea
 
-Superset ships [skills](/skills) to your coding agents automatically, so the agent in front of you already knows how to run Superset itself. `superset:orchestrate` makes it a coordinator of parallel workers — that has [its own page](/orchestration). This recipe is about the move that follows: `superset:automate` turns anything you've asked for twice into a scheduled [automation](/automations), in the same conversation.
+Superset ships [skills](/skills) to your coding agents automatically, so the agent in front of you already knows how to run Superset itself. `superset:orchestrate` makes it a coordinator of parallel workers; that has [its own page](/orchestration). This recipe is about the move that follows: `superset:automate` turns anything you've asked for twice into a scheduled [automation](/automations), in the same conversation.
 
 ## Steps
 
-1. Delegate something splittable to the agent you're talking to — "split this migration into independent slices and run a worker on each" ([Agent Orchestration](/orchestration) covers what to ask for and how the coordination works). Review each workspace's diff as it lands.
-2. When the job turns out to be recurring — a dependency sweep, a triage pass, a weekly cleanup — promote it without switching surfaces:
+1. Delegate something splittable to the agent you're talking to: "split this migration into independent slices and run a worker on each" ([Agent Orchestration](/orchestration) covers what to ask for and how the coordination works). Review each workspace's diff as it lands.
+2. When the job turns out to be recurring (a dependency sweep, a triage pass, a weekly cleanup), promote it without switching surfaces:
 
 ```text
 That worked. Make it a Superset automation that runs every Monday at 7am
@@ -27,4 +27,4 @@ on this project, and walk me through the first run.
 
 - **Catch up instead of fan out**: "what did my agents do overnight?" gets you a standup digest of finished, blocked, and needs-review work
 - **When Superset itself misbehaves**: "diagnose why this host shows offline" has the agent fix it instead of you reading logs
-- The full list of shipped skills — and how they're delivered and updated — is on the [Skills](/skills) page
+- The full list of shipped skills, and how they're delivered and updated, is on the [Skills](/skills) page

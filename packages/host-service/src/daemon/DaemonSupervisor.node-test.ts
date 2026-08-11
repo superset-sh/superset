@@ -17,7 +17,13 @@ import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, test } from "node:test";
 import { fileURLToPath } from "node:url";
+import {
+	CURRENT_PROTOCOL_VERSION,
+	encodeFrame,
+	FrameDecoder,
+} from "@superset/pty-daemon/protocol";
 import { DaemonSupervisor } from "./DaemonSupervisor.ts";
+import { EXPECTED_DAEMON_VERSION } from "./expected-version.ts";
 import {
 	type PtyDaemonManifest,
 	ptyDaemonManifestDir,
@@ -770,6 +776,409 @@ describe("DaemonSupervisor.update (Phase 2 fd-handoff)", () => {
 		assert.equal(result.ok, false);
 		if (!result.ok) {
 			assert.match(result.reason, /no daemon running/);
+		}
+	});
+});
+
+describe("trustd-degraded daemon heal", () => {
+	// The daemon's startup probe runs `security verify-cert` via PATH, so a
+	// PATH-shimmed `security` that exits 1 (exactly what the real binary does
+	// when trustd is unreachable) makes a real daemon self-report degraded.
+	// The probe is darwin-only; on other platforms it always reports healthy.
+	const darwinOnly = { skip: process.platform !== "darwin" };
+
+	// Detached daemons spawned by a test that fails before registering its
+	// supervisor would outlive the run — reap them unconditionally.
+	const strayPids: number[] = [];
+	afterEach(() => {
+		for (const pid of strayPids.splice(0)) {
+			try {
+				process.kill(pid, "SIGKILL");
+			} catch {
+				// already dead
+			}
+		}
+	});
+
+	function socketPathFor(orgId: string): string {
+		const socketPath = path.join(
+			os.tmpdir(),
+			`superset-ptyd-${crypto
+				.createHash("sha256")
+				.update(orgId)
+				.digest("hex")
+				.slice(0, 12)}.sock`,
+		);
+		try {
+			fs.unlinkSync(socketPath);
+		} catch {}
+		return socketPath;
+	}
+
+	function seedManifest(orgId: string, pid: number, socketPath: string): void {
+		fs.mkdirSync(ptyDaemonManifestDir(orgId), { recursive: true, mode: 0o700 });
+		const manifest: PtyDaemonManifest = {
+			pid,
+			socketPath,
+			protocolVersions: [CURRENT_PROTOCOL_VERSION],
+			startedAt: Date.now(),
+			organizationId: orgId,
+		};
+		writePtyDaemonManifest(manifest);
+	}
+
+	function spawnDegradedDaemon(socketPath: string): number {
+		const shimDir = fs.mkdtempSync(path.join(os.tmpdir(), "trustd-shim-"));
+		fs.writeFileSync(path.join(shimDir, "security"), "#!/bin/sh\nexit 1\n", {
+			mode: 0o755,
+		});
+		const child = childProcess.spawn(
+			process.execPath,
+			[DAEMON_BUNDLE, `--socket=${socketPath}`],
+			{
+				detached: true,
+				stdio: "ignore",
+				env: { ...process.env, PATH: `${shimDir}:${process.env.PATH}` },
+			},
+		);
+		child.unref();
+		strayPids.push(child.pid as number);
+		return child.pid as number;
+	}
+
+	/**
+	 * The daemon probes AFTER binding (so a slow `security` can't delay the
+	 * socket), so right after bind its hello-ack briefly omits trustdHealthy.
+	 * Real adoptions happen long after daemon start; tests must wait for the
+	 * self-report or they race it.
+	 */
+	async function waitForTrustdReport(socketPath: string): Promise<void> {
+		const deadline = Date.now() + 5000;
+		while (Date.now() < deadline) {
+			const reported = await new Promise<boolean>((resolve) => {
+				const sock = net.createConnection({ path: socketPath });
+				const decoder = new FrameDecoder();
+				const timer = setTimeout(() => {
+					sock.destroy();
+					resolve(false);
+				}, 500);
+				sock.once("connect", () =>
+					sock.write(
+						encodeFrame({
+							type: "hello",
+							protocols: [CURRENT_PROTOCOL_VERSION],
+							clientVersion: "test-trustd-wait",
+						}),
+					),
+				);
+				sock.on("data", (chunk: Buffer) => {
+					decoder.push(chunk);
+					for (const { message } of decoder.drain()) {
+						const m = message as { type?: string; trustdHealthy?: boolean };
+						if (m.type === "hello-ack") {
+							clearTimeout(timer);
+							sock.end();
+							resolve(m.trustdHealthy !== undefined);
+							return;
+						}
+					}
+				});
+				sock.once("error", () => {
+					clearTimeout(timer);
+					resolve(false);
+				});
+			});
+			if (reported) return;
+			await new Promise((r) => setTimeout(r, 50));
+		}
+		throw new Error("daemon never reported trustdHealthy in its hello-ack");
+	}
+
+	test(
+		"kills a self-reported degraded daemon and respawns fresh",
+		darwinOnly,
+		async () => {
+			const orgId = "org-trustd-heal";
+			const socketPath = socketPathFor(orgId);
+			const degradedPid = spawnDegradedDaemon(socketPath);
+			assert.equal(await waitForSocket(socketPath, 5000), true);
+			await waitForTrustdReport(socketPath);
+			seedManifest(orgId, degradedPid, socketPath);
+
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
+			supervisorsToCleanup.push({ sup, orgId });
+			const instance = await sup.ensure(orgId);
+
+			assert.notEqual(
+				instance.pid,
+				degradedPid,
+				"degraded daemon must be replaced, not adopted",
+			);
+			const deadline = Date.now() + 3000;
+			while (isAlive(degradedPid) && Date.now() < deadline) {
+				await new Promise((r) => setTimeout(r, 50));
+			}
+			assert.equal(isAlive(degradedPid), false, "degraded daemon still alive");
+			assert.equal(isAlive(instance.pid), true, "fresh daemon not running");
+		},
+	);
+
+	test(
+		"adopts (never kills) a degraded daemon when host-service is degraded too",
+		darwinOnly,
+		async () => {
+			const orgId = "org-trustd-suppress";
+			const socketPath = socketPathFor(orgId);
+			const degradedPid = spawnDegradedDaemon(socketPath);
+			assert.equal(await waitForSocket(socketPath, 5000), true);
+			await waitForTrustdReport(socketPath);
+			seedManifest(orgId, degradedPid, socketPath);
+
+			// A degraded host can't spawn a healthier daemon than the one it
+			// has — killing sessions would be pure loss. Inject the host probe:
+			// the real one can't be staged without breaking this process.
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+				hostTrustdProbe: async () => false,
+			});
+			supervisorsToCleanup.push({ sup, orgId });
+			const instance = await sup.ensure(orgId);
+
+			assert.equal(instance.pid, degradedPid, "should adopt, not respawn");
+			assert.equal(isAlive(degradedPid), true, "daemon must be left alive");
+		},
+	);
+
+	test(
+		"crash-relaunch chain: degraded boot adopts untouched, next healthy launch heals",
+		darwinOnly,
+		async () => {
+			// The confirmed field vector (#6127): a machine crash relaunches the
+			// app in a degraded login context, so host-service AND the daemon it
+			// spawns are both trustd-broken. That generation must not thrash
+			// (heal suppressed). The daemon then outlives the app quit, and the
+			// NEXT launch — a fresh, healthy host-service — must adopt the
+			// surviving self-reported-degraded daemon and replace it.
+			const orgId = "org-trustd-crash-relaunch";
+			const socketPath = socketPathFor(orgId);
+			const degradedPid = spawnDegradedDaemon(socketPath);
+			assert.equal(await waitForSocket(socketPath, 5000), true);
+			await waitForTrustdReport(socketPath);
+			seedManifest(orgId, degradedPid, socketPath);
+
+			// Generation 1: the crash-relaunched, degraded host-service.
+			const degradedBoot = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+				hostTrustdProbe: async () => false,
+			});
+			const adopted = await degradedBoot.ensure(orgId);
+			assert.equal(adopted.pid, degradedPid, "degraded boot must adopt");
+			assert.equal(isAlive(degradedPid), true, "no heal from a degraded host");
+
+			// App quit: supervisor state dies with the process, daemon survives.
+			dropSupervisorInstance(degradedBoot, orgId);
+
+			// Generation 2: the next normal launch, healthy context (real probe).
+			const healthyLaunch = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
+			supervisorsToCleanup.push({ sup: healthyLaunch, orgId });
+			const healed = await healthyLaunch.ensure(orgId);
+
+			assert.notEqual(
+				healed.pid,
+				degradedPid,
+				"healthy launch must replace the surviving degraded daemon",
+			);
+			const deadline = Date.now() + 3000;
+			while (isAlive(degradedPid) && Date.now() < deadline) {
+				await new Promise((r) => setTimeout(r, 50));
+			}
+			assert.equal(isAlive(degradedPid), false, "degraded daemon still alive");
+			assert.equal(isAlive(healed.pid), true, "fresh daemon not running");
+		},
+	);
+
+	test("adopts (never kills) a pre-probe daemon whose hello-ack lacks trustdHealthy", async () => {
+		// Pre-0.3.0 daemons don't probe — their hello-ack has no trustdHealthy.
+		// Unknown must not be treated as degraded: those daemons hold real
+		// sessions, and the version-bump auto-update is their migration path.
+		// Fake the daemon with a live placeholder pid + a socket that speaks
+		// just enough protocol to answer the supervisor's version probe.
+		const orgId = "org-trustd-unknown";
+		const socketPath = socketPathFor(orgId);
+		const placeholder = childProcess.spawn("sleep", ["60"], {
+			stdio: "ignore",
+		});
+		const server = net.createServer((sock) => {
+			const decoder = new FrameDecoder();
+			sock.on("data", (chunk: Buffer) => {
+				decoder.push(chunk);
+				for (const { message } of decoder.drain()) {
+					if ((message as { type?: string }).type === "hello") {
+						sock.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: CURRENT_PROTOCOL_VERSION,
+								daemonVersion: "0.2.7",
+								daemonPid: placeholder.pid,
+							}),
+						);
+					}
+				}
+			});
+		});
+		await new Promise<void>((resolve) => server.listen(socketPath, resolve));
+
+		try {
+			seedManifest(orgId, placeholder.pid as number, socketPath);
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
+			supervisorsToCleanup.push({ sup, orgId });
+			const instance = await sup.ensure(orgId);
+
+			assert.equal(instance.pid, placeholder.pid, "should adopt by pid");
+			assert.equal(instance.updatePending, true, "0.2.7 < expected");
+			assert.equal(
+				isAlive(placeholder.pid as number),
+				true,
+				"must be left alive",
+			);
+			// A permanently absent field must stay non-destructive across the
+			// liveness poll's later hello probes too, not just at adoption.
+			await new Promise((r) => setTimeout(r, 2_600));
+			assert.equal(
+				isAlive(placeholder.pid as number),
+				true,
+				"must survive poll re-probes",
+			);
+		} finally {
+			server.close();
+			placeholder.kill("SIGKILL");
+		}
+	});
+
+	test("adopts the probed daemon when the manifest pid is stale (recycled)", async () => {
+		// The socket answers with a daemonPid that differs from manifest.pid —
+		// the manifest pid may be recycled onto an unrelated process. Adoption
+		// must land on the probed pid (reusing the SAME probe — a transient
+		// re-probe failure must not demote a confirmed-live daemon to a fresh
+		// spawn), and nothing may be killed.
+		const orgId = "org-trustd-pid-mismatch";
+		const socketPath = socketPathFor(orgId);
+		const realDaemon = childProcess.spawn("sleep", ["60"], {
+			stdio: "ignore",
+		});
+		const recycled = childProcess.spawn("sleep", ["60"], { stdio: "ignore" });
+		const server = net.createServer((sock) => {
+			const decoder = new FrameDecoder();
+			sock.on("data", (chunk: Buffer) => {
+				decoder.push(chunk);
+				for (const { message } of decoder.drain()) {
+					if ((message as { type?: string }).type === "hello") {
+						sock.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: CURRENT_PROTOCOL_VERSION,
+								daemonVersion: EXPECTED_DAEMON_VERSION,
+								daemonPid: realDaemon.pid,
+							}),
+						);
+					}
+				}
+			});
+		});
+		await new Promise<void>((resolve) => server.listen(socketPath, resolve));
+
+		try {
+			// Manifest points at the recycled (unrelated, live) pid.
+			seedManifest(orgId, recycled.pid as number, socketPath);
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
+			supervisorsToCleanup.push({ sup, orgId });
+			const adopted = await sup.ensure(orgId);
+
+			assert.equal(adopted.pid, realDaemon.pid, "must adopt the probed pid");
+			assert.equal(
+				isAlive(recycled.pid as number),
+				true,
+				"recycled pid untouched",
+			);
+			assert.equal(isAlive(realDaemon.pid as number), true, "daemon untouched");
+		} finally {
+			server.close();
+			realDaemon.kill("SIGKILL");
+			recycled.kill("SIGKILL");
+		}
+	});
+
+	test("heals when a daemon adopted before its probe landed later reports degraded", async () => {
+		// The daemon binds before probeTrustdHealthy() completes, so an
+		// adoption in that window sees no trustdHealthy. The liveness poll's
+		// hello probe must pick up the late self-report and apply the same
+		// guarded heal the adopt path would have.
+		const orgId = "org-trustd-late-report";
+		const socketPath = socketPathFor(orgId);
+		const placeholder = childProcess.spawn("sleep", ["60"], {
+			stdio: "ignore",
+		});
+		let reportDegraded = false;
+		const server = net.createServer((sock) => {
+			const decoder = new FrameDecoder();
+			sock.on("data", (chunk: Buffer) => {
+				decoder.push(chunk);
+				for (const { message } of decoder.drain()) {
+					if ((message as { type?: string }).type === "hello") {
+						sock.write(
+							encodeFrame({
+								type: "hello-ack",
+								protocol: CURRENT_PROTOCOL_VERSION,
+								daemonVersion: EXPECTED_DAEMON_VERSION,
+								daemonPid: placeholder.pid,
+								...(reportDegraded ? { trustdHealthy: false } : {}),
+							}),
+						);
+					}
+				}
+			});
+		});
+		await new Promise<void>((resolve) => server.listen(socketPath, resolve));
+
+		try {
+			seedManifest(orgId, placeholder.pid as number, socketPath);
+			const sup = new DaemonSupervisor({
+				scriptPath: DAEMON_BUNDLE,
+				autoUpdate: false,
+			});
+			supervisorsToCleanup.push({ sup, orgId });
+			const adopted = await sup.ensure(orgId);
+			assert.equal(adopted.pid, placeholder.pid, "adopted while unknown");
+
+			// Startup probe "lands": subsequent hello-acks self-report degraded.
+			reportDegraded = true;
+
+			const deadline = Date.now() + 10_000;
+			while (isAlive(placeholder.pid as number) && Date.now() < deadline) {
+				await new Promise((r) => setTimeout(r, 100));
+			}
+			assert.equal(
+				isAlive(placeholder.pid as number),
+				false,
+				"late degraded report must trigger the heal",
+			);
+		} finally {
+			server.close();
+			placeholder.kill("SIGKILL");
 		}
 	});
 });

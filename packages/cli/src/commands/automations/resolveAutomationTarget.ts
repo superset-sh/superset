@@ -7,7 +7,8 @@ import { findWorkspaceOnHost } from "../../lib/host-workspaces";
  * The cloud scheduler routes a run by the `targetHostId` + `v2ProjectId`
  * stored on the automation row — it cannot see host-owned data. The
  * workspace or project must exist on the target host (`--host`, else this
- * machine).
+ * machine). No workspace and no project = session mode: each run creates a
+ * project-less session workspace.
  */
 export async function resolveAutomationTarget(args: {
 	organizationId: string;
@@ -15,7 +16,7 @@ export async function resolveAutomationTarget(args: {
 	hostId?: string;
 	workspaceId?: string;
 	projectId?: string;
-}): Promise<{ targetHostId: string; v2ProjectId: string }> {
+}): Promise<{ targetHostId: string; v2ProjectId: string | null }> {
 	const targetHostId = args.hostId ?? getHostId();
 
 	if (args.workspaceId) {
@@ -36,14 +37,18 @@ export async function resolveAutomationTarget(args: {
 		if (args.projectId && args.projectId !== workspace.projectId) {
 			throw new CLIError(
 				"--project does not match the workspace's project",
-				`Workspace ${args.workspaceId} belongs to project ${workspace.projectId}`,
+				workspace.projectId === null
+					? `Workspace ${args.workspaceId} is a session (no project)`
+					: `Workspace ${args.workspaceId} belongs to project ${workspace.projectId}`,
 			);
 		}
 		return { targetHostId, v2ProjectId: workspace.projectId };
 	}
 
 	if (!args.projectId) {
-		throw new CLIError("Provide --project or --workspace");
+		// Session mode: the host verifies nothing project-side; runs call
+		// workspaces.createSession.
+		return { targetHostId, v2ProjectId: null };
 	}
 	const target = resolveHostTarget({
 		requestedHostId: targetHostId,

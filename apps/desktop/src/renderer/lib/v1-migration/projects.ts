@@ -6,6 +6,10 @@ export interface V1ProjectLike {
 	name: string;
 	mainRepoPath: string;
 	githubOwner: string | null;
+	/** v1 accent color: a `#rrggbb` hex or the "default" sentinel. */
+	color?: string | null;
+	/** v1 "hide the GitHub avatar" flag — carries as the "none" icon. */
+	hideImage?: boolean | null;
 }
 
 export type ProjectFindByPathResult = Awaited<
@@ -126,6 +130,7 @@ export async function importV1Project({
 					allowRelocate,
 				},
 			});
+			await carryV1ProjectAppearance(hostClient, targetCandidate.id, project);
 			return {
 				kind: "imported",
 				v2ProjectId: targetCandidate.id,
@@ -148,10 +153,57 @@ export async function importV1Project({
 		name: project.name,
 		mode: { kind: "importLocal", repoPath: project.mainRepoPath },
 	});
+	// Only stamp v1 appearance onto projects this call actually created.
+	// A reused project (created === false) may carry v2 customizations the
+	// user chose after their first import — never overwrite those. Older
+	// hosts omit the field; keep their long-standing carry behavior.
+	if (result.created !== false) {
+		await carryV1ProjectAppearance(hostClient, result.projectId, project);
+	}
 	return {
 		kind: "imported",
 		v2ProjectId: result.projectId,
 		mainWorkspaceId: result.mainWorkspaceId,
 		repoPath: result.repoPath,
 	};
+}
+
+/**
+ * Best-effort: copy v1 appearance onto the imported v2 project — the accent
+ * color (v1 stores either a hex or the "default" sentinel; only real hexes
+ * carry over) and the hide-avatar flag (v2's "none" icon sentinel). Never
+ * fails the import (appearance is cosmetic, and older hosts lack setColor).
+ */
+async function carryV1ProjectAppearance(
+	hostClient: HostServiceClient,
+	v2ProjectId: string,
+	project: Pick<V1ProjectLike, "color" | "hideImage">,
+): Promise<void> {
+	const { color } = project;
+	if (color && /^#[0-9a-fA-F]{6}$/.test(color)) {
+		try {
+			await hostClient.project.setColor.mutate({
+				projectId: v2ProjectId,
+				color,
+			});
+		} catch (err) {
+			console.error("[v1-migration] carrying project color failed", {
+				v2ProjectId,
+				err,
+			});
+		}
+	}
+	if (project.hideImage) {
+		try {
+			await hostClient.project.setIcon.mutate({
+				projectId: v2ProjectId,
+				icon: "none",
+			});
+		} catch (err) {
+			console.error("[v1-migration] carrying hide-image flag failed", {
+				v2ProjectId,
+				err,
+			});
+		}
+	}
 }

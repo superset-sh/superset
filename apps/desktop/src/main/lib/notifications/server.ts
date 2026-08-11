@@ -8,6 +8,7 @@ import type { AgentLifecycleEvent } from "shared/notification-types";
 import { HOOK_PROTOCOL_VERSION } from "../terminal/env";
 import { mapEventType } from "./map-event-type";
 import { resolvePaneId } from "./resolve-pane-id";
+import { recordV1AgentHookEvent } from "./v1-agent-sessions";
 
 // Re-export types for backwards compatibility
 export type {
@@ -59,6 +60,8 @@ app.get("/hook/complete", (req, res) => {
 		hookSessionId,
 		resourceId,
 		eventType,
+		rawEventType,
+		agentId,
 		env: clientEnv,
 		version,
 	} = req.query;
@@ -97,6 +100,26 @@ app.get("/hook/complete", (req, res) => {
 		workspaceId as string | undefined,
 		sessionId as string | undefined,
 	);
+
+	// v1 pane agent-session capture for the v1→v2 migration's resume seeding.
+	// Needs the un-collapsed event (SessionEnd vs Stop) — only v7+ hook
+	// scripts send it, so absence just means no capture.
+	if (
+		resolvedPaneId &&
+		typeof rawEventType === "string" &&
+		rawEventType.length > 0 &&
+		typeof agentId === "string" &&
+		agentId.length > 0
+	) {
+		recordV1AgentHookEvent(resolvedPaneId, {
+			rawEventType,
+			agentId,
+			...(typeof sessionId === "string" && sessionId.length > 0
+				? { agentSessionId: sessionId }
+				: {}),
+			at: Date.now(),
+		});
+	}
 
 	const event: AgentLifecycleEvent = {
 		paneId: resolvedPaneId,

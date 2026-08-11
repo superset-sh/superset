@@ -110,6 +110,16 @@ class FakeHost {
 								}
 							: null,
 				},
+				setColor: {
+					mutate: async (args: unknown) => {
+						this.mutations.push({ kind: "project.setColor", args });
+					},
+				},
+				setIcon: {
+					mutate: async (args: unknown) => {
+						this.mutations.push({ kind: "project.setIcon", args });
+					},
+				},
 				setWorktreeBaseDir: {
 					mutate: async (args: unknown) => {
 						this.mutations.push({ kind: "project.setWorktreeBaseDir", args });
@@ -225,11 +235,18 @@ class FakeIpc implements V1MigrationIpc {
 	}
 }
 
-const project = (id: string, repoPath: string): V1ProjectRow => ({
+const project = (
+	id: string,
+	repoPath: string,
+	color = "default",
+	hideImage: boolean | null = null,
+): V1ProjectRow => ({
 	id,
 	name: id,
 	mainRepoPath: repoPath,
 	githubOwner: null,
+	color,
+	hideImage,
 	worktreeBaseDir: null,
 	branchPrefixMode: null,
 	branchPrefixCustom: null,
@@ -272,6 +289,33 @@ describe("runV1Migration scenarios", () => {
 		expect(host.mutations.length).toBe(mutationsAfterFirst); // zero new mutations
 		expect(second.workspaces.skipped).toBe(1); // stale re-skips, still non-blocking
 		expect(second.gateComplete).toBe(true);
+	});
+
+	test("custom v1 color and hide-image carry over; defaults do not", async () => {
+		const ipc = new FakeIpc();
+		const host = new FakeHost();
+		ipc.projects = [
+			project("colored", "/repo/a", "#ef4444"),
+			project("plain", "/repo/b"), // "default" sentinel, no hideImage
+			project("hidden", "/repo/c", "default", true),
+		];
+
+		const summary = await run(ipc, host);
+		expect(summary.projects.migrated).toBe(3);
+		expect(host.mutations.filter((m) => m.kind === "project.setColor")).toEqual(
+			[
+				{
+					kind: "project.setColor",
+					args: { projectId: "v2p-1", color: "#ef4444" },
+				},
+			],
+		);
+		expect(host.mutations.filter((m) => m.kind === "project.setIcon")).toEqual([
+			{
+				kind: "project.setIcon",
+				args: { projectId: "v2p-5", icon: "none" },
+			},
+		]);
 	});
 
 	test("broken repo blocks the gate but not other entities; recovery unblocks", async () => {

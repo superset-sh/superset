@@ -5,6 +5,7 @@ import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
+import { PROJECT_COLOR_DEFAULT } from "shared/constants/project-colors";
 import {
 	type SettingsListGroup,
 	SettingsListSidebar,
@@ -16,6 +17,7 @@ interface ProjectRow {
 	id: string;
 	name: string;
 	iconUrl: string | null;
+	color: string | null;
 }
 
 interface ProjectsSettingsSidebarProps {
@@ -37,6 +39,7 @@ export function ProjectsSettingsSidebar({
 				id: project.projectKey,
 				name: project.name,
 				iconUrl: resolveProjectIconUrl(project),
+				color: project.color,
 			})),
 		[hostProjects],
 	);
@@ -48,6 +51,7 @@ export function ProjectsSettingsSidebar({
 				id: p.id,
 				name: p.name,
 				iconUrl: p.iconUrl ?? null,
+				color: p.color,
 			}));
 			return [{ id: "v2", title: "v2", rows: v2Rows }];
 		}
@@ -57,6 +61,7 @@ export function ProjectsSettingsSidebar({
 			id: g.project.id,
 			name: g.project.name,
 			iconUrl: g.project.iconUrl,
+			color: g.project.color === PROJECT_COLOR_DEFAULT ? null : g.project.color,
 		}));
 		return [{ id: "v1", title: "v1", rows: v1Rows }];
 	}, [groups, v2Projects, isV2CloudEnabled]);
@@ -83,6 +88,7 @@ export function ProjectsSettingsSidebar({
 					<ProjectThumbnail
 						projectName={row.name}
 						iconUrl={row.iconUrl}
+						color={row.color}
 						className="size-5"
 					/>
 					<span className="truncate">{row.name}</span>

@@ -1,25 +1,28 @@
 import { Label } from "@superset/ui/label";
 import { useQuery } from "@tanstack/react-query";
 import { useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo } from "react";
-import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
+import { useEffect, useMemo, useRef } from "react";
+import {
+	PROJECT_ICON_NONE,
+	resolveProjectIconUrl,
+} from "renderer/hooks/host-projects/resolveProjectIconUrl";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
-import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
-import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	HostSelect,
 	type HostSelectOption,
 } from "../../../../components/HostSelect";
 import { SettingsRow } from "../../../../components/SettingsRow";
+import { SettingsSection } from "../../../../components/SettingsSection";
 import { BranchPrefixSection } from "./components/BranchPrefixSection";
 import { DeleteProjectSection } from "./components/DeleteProjectSection";
 import { IconUploadField } from "./components/IconUploadField";
 import { NameSection } from "./components/NameSection";
+import { NamingInstructionsSection } from "./components/NamingInstructionsSection";
 import { ProjectLocationSection } from "./components/ProjectLocationSection";
 import { RepositorySection } from "./components/RepositorySection";
 import { SparseCheckoutSection } from "./components/SparseCheckoutSection";
@@ -29,14 +32,16 @@ import { WorktreeLocationSection } from "./components/WorktreeLocationSection";
 interface V2ProjectSettingsProps {
 	projectId: string;
 	hostId: string | null;
+	/** One-shot deep-link: scroll to and focus this field after load. */
+	focusField?: string | null;
 }
 
 export function V2ProjectSettings({
 	projectId,
 	hostId,
+	focusField,
 }: V2ProjectSettingsProps) {
 	const navigate = useNavigate();
-	const searchQuery = useSettingsSearchQuery();
 	const { machineId } = useLocalHostService();
 	const { currentDeviceName, localHostId, otherHosts } =
 		useWorkspaceHostOptions();
@@ -110,6 +115,21 @@ export function V2ProjectSettings({
 		void refetchHostProject();
 	}, [mergedUpdatedAt, refetchHostProject]);
 
+	// Deep-link focus (e.g. "Update naming instructions" from the create-
+	// workspace flow). Wait for the host row: the target fields only render
+	// once it has loaded. One-shot per project, not per mount — the route
+	// component instance is reused across projectId changes.
+	const focusAppliedForRef = useRef<string | null>(null);
+	useEffect(() => {
+		if (!focusField || !hostProject || focusAppliedForRef.current === projectId)
+			return;
+		const el = document.getElementById(`project-${focusField}`);
+		if (!el) return;
+		focusAppliedForRef.current = projectId;
+		el.scrollIntoView({ block: "center" });
+		el.focus({ preventScroll: true });
+	}, [focusField, hostProject, projectId]);
+
 	if (!project) {
 		if (!isReady) return null;
 		return (
@@ -127,6 +147,8 @@ export function V2ProjectSettings({
 		icon: projectIcon,
 		repoOwner: project.repoOwner,
 	});
+	// Accent color follows the same per-host precedence as the icon.
+	const projectColor = hostProject ? hostProject.color : project.color;
 	const canRename = Boolean(
 		targetHostUrl && targetHostId && project.hostIds.includes(targetHostId),
 	);
@@ -135,7 +157,11 @@ export function V2ProjectSettings({
 		<div className="p-6 max-w-4xl w-full mx-auto select-text">
 			<header className="mb-8 flex items-center justify-between gap-4">
 				<div className="flex min-w-0 items-center gap-3">
-					<ProjectThumbnail projectName={project.name} iconUrl={iconUrl} />
+					<ProjectThumbnail
+						projectName={project.name}
+						iconUrl={iconUrl}
+						color={projectColor}
+					/>
 					<h2 className="truncate text-xl font-semibold">{project.name}</h2>
 				</div>
 				{hasMultipleHosts && targetHostId ? (
@@ -155,7 +181,7 @@ export function V2ProjectSettings({
 			</header>
 
 			<div className="space-y-10">
-				<section>
+				<SettingsSection title="General">
 					<SettingsRow label="Name" htmlFor="project-name">
 						<NameSection
 							projectId={projectId}
@@ -173,15 +199,26 @@ export function V2ProjectSettings({
 					</SettingsRow>
 					<SettingsRow
 						label="Icon"
-						hint="Upload a custom image. Defaults to the linked GitHub owner's avatar."
+						hint="Pick an icon and a color, or upload a custom image. Defaults to the linked GitHub owner's avatar."
 					>
 						<IconUploadField
 							projectId={projectId}
+							projectName={project.name}
 							hostUrl={targetHostUrl}
 							iconUrl={iconUrl}
-							hasCustomIcon={Boolean(projectIcon)}
+							hasCustomIcon={Boolean(
+								projectIcon && projectIcon !== PROJECT_ICON_NONE,
+							)}
+							isIconRemoved={projectIcon === PROJECT_ICON_NONE}
+							color={projectColor}
 						/>
 					</SettingsRow>
+				</SettingsSection>
+
+				<SettingsSection
+					title="Branches & naming"
+					description="How branches and workspace names are created for this project."
+				>
 					{targetHostUrl && hostProject && (
 						<SettingsRow
 							label="Branch prefix"
@@ -196,9 +233,25 @@ export function V2ProjectSettings({
 							/>
 						</SettingsRow>
 					)}
-				</section>
+					{targetHostUrl && hostProject && (
+						<NamingInstructionsSection
+							// Remount per project AND per target host: the editor holds
+							// draft text and pending-save state that must not carry
+							// across either boundary (same rule as SparseCheckoutSection).
+							key={`${projectId}:${targetHostId}`}
+							projectId={projectId}
+							hostUrl={targetHostUrl}
+							// Hosts older than this setting omit the field entirely.
+							instructions={hostProject.namingInstructions ?? null}
+							onChanged={() => refetchHostProject()}
+						/>
+					)}
+				</SettingsSection>
 
-				<section>
+				<SettingsSection
+					title="Location & checkout"
+					description="Where the repository and new worktrees live on this host."
+				>
 					<SettingsRow label="Location">
 						<ProjectLocationSection
 							projectId={projectId}
@@ -257,29 +310,24 @@ export function V2ProjectSettings({
 							/>
 						</div>
 					)}
-					{targetHostUrl && (
-						<div className="pt-4">
-							<div className="mb-3">
-								<h3 className="text-sm font-medium">
-									<HighlightText text="Scripts" query={searchQuery} />
-								</h3>
-								<p className="mt-0.5 text-xs text-muted-foreground">
-									Runs in a terminal for setup, teardown, and the workspace Run
-									button.
-								</p>
-							</div>
-							<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
-						</div>
-					)}
-				</section>
+				</SettingsSection>
 
-				<section>
+				{targetHostUrl && (
+					<SettingsSection
+						title="Scripts"
+						description="Runs in a terminal for setup, teardown, and the workspace Run button."
+					>
+						<V2ScriptsEditor hostUrl={targetHostUrl} projectId={projectId} />
+					</SettingsSection>
+				)}
+
+				<SettingsSection title="Danger zone">
 					<DeleteProjectSection
 						projectId={projectId}
 						projectName={project.name}
 						hostIds={project.hostIds}
 					/>
-				</section>
+				</SettingsSection>
 			</div>
 		</div>
 	);

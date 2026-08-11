@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import {
 	buildDashboardSidebarPinnedWorkspaces,
 	buildDashboardSidebarProjects,
+	buildDashboardSidebarSessionWorkspaces,
 	partitionSidebarWorkspacesByPinned,
 	type SidebarProjectInput,
 	type SidebarSectionInput,
@@ -20,6 +21,7 @@ function makeProject(
 		githubOwner: null,
 		githubRepoName: null,
 		iconUrl: null,
+		color: null,
 		createdAt: DATE,
 		updatedAt: DATE,
 		isCollapsed: false,
@@ -212,5 +214,67 @@ describe("buildDashboardSidebarPinnedWorkspaces", () => {
 		expect(rows[0].projectName).toBe("Superset");
 		expect(rows[0].projectIconUrl).toBe("icon.png");
 		expect(rows[0].isPinned).toBe(true);
+	});
+});
+
+describe("sessions (null projectId)", () => {
+	it("never places a session row inside a project group", () => {
+		const [project] = build({
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "session-1", projectId: null, type: "session" }),
+				makeWorkspace({ id: "workspace-1" }),
+			],
+		});
+
+		const childIds = project.children.flatMap((child) =>
+			child.type === "workspace" ? [child.workspace.id] : [],
+		);
+		expect(childIds).toEqual(["workspace-1"]);
+	});
+
+	it("orders the Sessions section by tabOrder with no repo affordances", () => {
+		const rows = buildDashboardSidebarSessionWorkspaces({
+			sessionSidebarWorkspaces: [
+				makeWorkspace({
+					id: "session-b",
+					projectId: null,
+					type: "session",
+					tabOrder: 2,
+				}),
+				makeWorkspace({
+					id: "session-a",
+					projectId: null,
+					type: "session",
+					tabOrder: 1,
+				}),
+			],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(rows.map((row) => row.id)).toEqual(["session-a", "session-b"]);
+		expect(rows[0].projectId).toBeNull();
+		expect(rows[0].repoUrl).toBeNull();
+		expect(rows[0].branchExistsOnRemote).toBe(false);
+	});
+
+	it("keeps a pinned session in the Pinned section with null project identity", () => {
+		const rows = buildDashboardSidebarPinnedWorkspaces({
+			pinnedSidebarWorkspaces: [
+				makeWorkspace({
+					id: "pinned-session",
+					projectId: null,
+					type: "session",
+					pinnedAt: 1000,
+				}),
+			],
+			sidebarProjects: [makeProject()],
+			machineId: MACHINE_ID,
+			pullRequestsByWorkspaceId: new Map(),
+		});
+
+		expect(rows.map((row) => row.id)).toEqual(["pinned-session"]);
+		expect(rows[0].projectName).toBeNull();
+		expect(rows[0].projectIconUrl).toBeNull();
 	});
 });

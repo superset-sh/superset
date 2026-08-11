@@ -93,11 +93,18 @@ export const gitIdentityTask = defineWorkerTask<
 // Unpushed-commit detection uses `rev-list --not --remotes` so brand-new
 // branches with no upstream still report unpushed commits correctly.
 export const gitWorktreeStateTask = defineWorkerTask<
-	{ worktreePath: string; gitEnv: GitTaskEnv },
+	{
+		worktreePath: string;
+		gitEnv: GitTaskEnv;
+		// Session repos have no remote, so `--not --remotes` counts every
+		// commit and the initial scaffold commit would read as "unpushed"
+		// forever. This treats exactly one commit as the empty baseline.
+		ignoreInitialCommit?: boolean;
+	},
 	{ hasChanges: boolean; hasUnpushedCommits: boolean }
 >({
 	type: "git/worktreeState",
-	handler: async ({ worktreePath, gitEnv }) => {
+	handler: async ({ worktreePath, gitEnv, ignoreInitialCommit }) => {
 		const git = createUserSimpleGit(worktreePath).env(gitEnv);
 		const status = await git.status();
 		let hasUnpushedCommits = false;
@@ -110,7 +117,8 @@ export const gitWorktreeStateTask = defineWorkerTask<
 				"--remotes",
 			]);
 			const count = Number.parseInt(result.trim(), 10);
-			hasUnpushedCommits = Number.isFinite(count) && count > 0;
+			hasUnpushedCommits =
+				Number.isFinite(count) && count > (ignoreInitialCommit ? 1 : 0);
 		} catch {
 			// Leave false — `rev-list` failure isn't a signal we can act on.
 		}

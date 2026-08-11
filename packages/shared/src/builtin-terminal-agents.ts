@@ -63,6 +63,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Anthropic's coding agent for reading code, editing files, and running terminal workflows.",
 		command: "claude --dangerously-skip-permissions",
+		resumeCommand: "claude --dangerously-skip-permissions --resume",
 		nonInteractiveCommand: "claude -p",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -72,6 +73,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Amp's coding agent for terminal-first coding, subagents, and task work.",
 		command: "amp",
+		resumeCommand: "amp threads continue",
 		nonInteractiveCommand: "amp -x",
 		promptTransport: "stdin",
 		includeInDefaultTerminalPresets: true,
@@ -85,6 +87,8 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust",
 		promptCommand:
 			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust --",
+		resumeCommand:
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust resume",
 		nonInteractiveCommand: "codex exec --skip-git-repo-check",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -95,6 +99,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"Google's open-source terminal agent for coding, problem-solving, and task work.",
 		command: "gemini --approval-mode=auto_edit",
 		promptCommand: "gemini --approval-mode=auto_edit",
+		resumeCommand: "gemini --approval-mode=auto_edit --resume",
 		nonInteractiveCommand: "gemini --skip-trust -p",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -106,6 +111,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "mastracode",
 		promptCommand: "mastracode --prompt",
 		promptCommandSuffix: "; mastracode",
+		resumeCommand: "mastracode --thread",
 		nonInteractiveCommand: "mastracode --mode plan --prompt",
 	}),
 	createBuiltinTerminalAgent({
@@ -114,6 +120,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description: "Open-source coding agent for the terminal, IDE, and desktop.",
 		command: "opencode",
 		promptCommand: "opencode --prompt",
+		resumeCommand: "opencode --session",
 		nonInteractiveCommand: "opencode run --agent plan",
 	}),
 	createBuiltinTerminalAgent({
@@ -122,6 +129,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Minimal terminal coding harness for flexible coding workflows.",
 		command: "pi",
+		resumeCommand: "pi --session",
 		nonInteractiveCommand: "pi --no-tools -p",
 	}),
 	createBuiltinTerminalAgent({
@@ -131,6 +139,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 			"GitHub's coding agent for planning, editing, and building in your repo.",
 		command: "copilot --allow-tool=write",
 		promptCommand: "copilot --allow-tool=write -i",
+		resumeCommand: "copilot --allow-tool=write --resume",
 		nonInteractiveCommand: "copilot -p",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -140,6 +149,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Mistral's coding agent for reading, editing, and running code from the terminal.",
 		command: "vibe --trust --auto-approve",
+		resumeCommand: "vibe --trust --auto-approve --resume",
 		nonInteractiveCommand: "vibe --trust --agent plan -p",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -151,6 +161,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		command: "kimi",
 		promptCommand: "kimi -p",
 		promptCommandSuffix: "; kimi --auto --continue",
+		resumeCommand: "kimi --session",
 		includeInDefaultTerminalPresets: true,
 	}),
 	createBuiltinTerminalAgent({
@@ -159,6 +170,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"xAI's coding agent for reading, editing, and running code from the terminal.",
 		command: "grok --always-approve",
+		resumeCommand: "grok --always-approve --resume",
 		nonInteractiveCommand: "grok --permission-mode plan -p",
 		includeInDefaultTerminalPresets: true,
 	}),
@@ -168,6 +180,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		description:
 			"Cursor's coding agent for editing, running, and debugging code in parallel.",
 		command: "cursor-agent",
+		resumeCommand: "cursor-agent --resume",
 		nonInteractiveCommand: "cursor-agent --trust --mode ask -p",
 	}),
 	createBuiltinTerminalAgent({
@@ -175,6 +188,7 @@ export const BUILTIN_TERMINAL_AGENTS = [
 		label: "Droid",
 		description: "Factory's autonomous coding agent for terminal workflows.",
 		command: "droid",
+		resumeCommand: "droid --resume",
 		nonInteractiveCommand: "droid exec",
 	}),
 	createBuiltinTerminalAgent({

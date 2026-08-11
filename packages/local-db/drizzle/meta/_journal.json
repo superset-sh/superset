@@ -316,6 +316,13 @@
       "when": 1784905852439,
       "tag": "0044_add_wait_for_setup_before_agent_setting",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "6",
+      "when": 1785347262454,
+      "tag": "0045_add_disabled_agent_hooks_setting",
+      "breakpoints": true
     }
   ]
 }

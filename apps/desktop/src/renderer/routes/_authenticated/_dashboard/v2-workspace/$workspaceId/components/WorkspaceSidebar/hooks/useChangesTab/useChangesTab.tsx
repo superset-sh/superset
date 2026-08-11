@@ -97,6 +97,10 @@ export function useChangesTab({
 			void utils.git.listCommits.invalidate({ workspaceId });
 			void utils.git.getDiff.invalidate({ workspaceId });
 		},
+		// The picker re-renders from getBaseBranch, so a rejected change
+		// silently snaps back without this.
+		onError: (error) =>
+			toast.error(error.message || "Failed to change base branch"),
 	});
 
 	const setBaseBranch = useCallback(

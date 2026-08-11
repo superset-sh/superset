@@ -45,7 +45,9 @@ export async function startSetupTerminalIfPresent(
 		.select({
 			worktreePath: workspaces.worktreePath,
 			repoPath: projects.repoPath,
-			projectId: workspaces.projectId,
+			// The inner join guarantees a project row; select its id rather
+			// than the (nullable) workspace column.
+			projectId: projects.id,
 		})
 		.from(workspaces)
 		.innerJoin(projects, eq(projects.id, workspaces.projectId))

@@ -33,6 +33,7 @@ export {
 	isAlreadySetUpElsewhereError,
 	isProjectAlreadyImported,
 	type ProjectFindByPathResult,
+	type ProjectImportDecision,
 	type ProjectImportOutcome,
 	type V1ProjectLike,
 } from "./projects";

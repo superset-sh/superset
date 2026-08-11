@@ -27,6 +27,7 @@ import {
 import { installImagePasteFallback } from "./terminal-image-paste-fallback";
 import { installTerminalKeyEventHandler } from "./terminal-key-event-handler";
 import { getTerminalParkingContainer } from "./terminal-parking";
+import { persistSeqAnchor } from "./terminal-seq-anchor";
 import { installInputModeReclaimer } from "./terminalInputModeReclaimer";
 
 const SERIALIZE_SCROLLBACK = 1000;
@@ -54,6 +55,13 @@ export interface TerminalRuntime {
 	_setLigaturesEnabled: ((enabled: boolean) => void) | null;
 	ligaturesEnabled: boolean;
 	_disposeImagePasteFallback: (() => void) | null;
+	/**
+	 * How this runtime's xterm was seeded: from the persisted localStorage
+	 * snapshot (its seq anchor pairs with it), from a sibling instance's
+	 * serialize (content of unknown stream position), or empty. Drives the
+	 * transport's `?seq=` attach mode.
+	 */
+	initialContent: "restored" | "seeded" | "none";
 }
 
 function createTerminal(
@@ -109,15 +117,17 @@ function persistBuffer(
 	}
 }
 
-function restoreBuffer(terminalId: string, terminal: XTerm) {
+function restoreBuffer(terminalId: string, terminal: XTerm): boolean {
 	try {
 		const data = localStorage.getItem(`${STORAGE_KEY_PREFIX}${terminalId}`);
 		if (data) {
 			terminal.write(data);
 			// Restored-but-never-detached terminals must stay fresh for boot GC.
 			touchTerminalStatePersistedAt(terminalId);
+			return true;
 		}
 	} catch {}
+	return false;
 }
 
 /**
@@ -183,6 +193,7 @@ function clearPersistedDimensions(terminalId: string) {
 export function clearPersistedRuntimeState(terminalId: string): void {
 	clearPersistedBuffer(terminalId);
 	clearPersistedDimensions(terminalId);
+	persistSeqAnchor(terminalId, null);
 	removeTerminalStatePersistedAt(terminalId);
 }
 
@@ -306,10 +317,12 @@ export function createRuntime(
 	const addonsResult = loadAddons(terminal, {
 		ligatures: appearance.ligatures,
 	});
+	let initialContent: TerminalRuntime["initialContent"] = "none";
 	if (options.initialBuffer !== undefined) {
 		terminal.write(options.initialBuffer);
-	} else {
-		restoreBuffer(terminalId, terminal);
+		if (options.initialBuffer.length > 0) initialContent = "seeded";
+	} else if (restoreBuffer(terminalId, terminal)) {
+		initialContent = "restored";
 	}
 
 	const disposeImagePasteFallback = installImagePasteFallback(
@@ -335,6 +348,7 @@ export function createRuntime(
 		_setLigaturesEnabled: addonsResult.setLigaturesEnabled,
 		ligaturesEnabled: appearance.ligatures,
 		_disposeImagePasteFallback: disposeImagePasteFallback,
+		initialContent,
 	};
 }
 
@@ -377,8 +391,10 @@ export function attachToContainer(
 	}
 }
 
-export function detachFromContainer(runtime: TerminalRuntime) {
-	persistBuffer(runtime.terminalId, runtime.serializeAddon);
+/** Returns whether the buffer snapshot was persisted, so callers can keep
+ * paired state (the seq anchor) coherent with it. */
+export function detachFromContainer(runtime: TerminalRuntime): boolean {
+	const persisted = persistBuffer(runtime.terminalId, runtime.serializeAddon);
 	persistDimensions(runtime.terminalId, runtime.lastCols, runtime.lastRows);
 	runtime._disposeResizeObserver?.();
 	runtime._disposeResizeObserver = null;
@@ -389,6 +405,7 @@ export function detachFromContainer(runtime: TerminalRuntime) {
 	// see getTerminalParkingContainer.
 	getTerminalParkingContainer().appendChild(runtime.wrapper);
 	runtime.container = null;
+	return persisted;
 }
 
 export function updateRuntimeAppearance(

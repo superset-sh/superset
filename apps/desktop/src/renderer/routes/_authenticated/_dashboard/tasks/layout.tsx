@@ -1,11 +1,19 @@
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export type TasksSearch = {
-	tab?: "all" | "active" | "backlog";
+	tab?:
+		| "all"
+		| "active"
+		| "backlog"
+		| "unstarted"
+		| "started"
+		| "completed"
+		| "canceled";
 	assignee?: string;
 	search?: string;
 	type?: "tasks" | "prs" | "issues";
 	project?: string;
+	projects?: string;
 	linearProject?: string;
 	state?: "open" | "all";
 };
@@ -13,7 +21,15 @@ export type TasksSearch = {
 export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 	component: TasksLayout,
 	validateSearch: (search: Record<string, unknown>): TasksSearch => ({
-		tab: ["all", "active", "backlog"].includes(search.tab as string)
+		tab: [
+			"all",
+			"active",
+			"backlog",
+			"unstarted",
+			"started",
+			"completed",
+			"canceled",
+		].includes(search.tab as string)
 			? (search.tab as TasksSearch["tab"])
 			: undefined,
 		assignee: typeof search.assignee === "string" ? search.assignee : undefined,
@@ -22,6 +38,7 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 			? (search.type as TasksSearch["type"])
 			: undefined,
 		project: typeof search.project === "string" ? search.project : undefined,
+		projects: typeof search.projects === "string" ? search.projects : undefined,
 		linearProject:
 			typeof search.linearProject === "string"
 				? search.linearProject

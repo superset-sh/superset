@@ -5,9 +5,11 @@ import { useMemo } from "react";
 import { MarkdownRenderer } from "renderer/components/MarkdownRenderer";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { resolveProjectFilterParams } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter/project-filter-utils";
 import { WorkItemDetailHeader } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailHeader";
 import { WorkItemDetailState } from "renderer/routes/_authenticated/_dashboard/components/WorkItemDetailState";
 import { useProjectHost } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectHost";
+import { PullRequestChecksSection } from "renderer/routes/_authenticated/_dashboard/pull-requests/components/PullRequestChecksSection";
 import { parsePositiveIntegerParam } from "renderer/routes/_authenticated/_dashboard/utils/parsePositiveIntegerParam";
 import {
 	normalizePRState,
@@ -20,6 +22,8 @@ import {
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import { Route as PullRequestsLayoutRoute } from "../layout";
 import { pullRequestsSearchFromFilters } from "../stores/pullRequestsFilterStore";
+import { normalizeAuthorFilter } from "../utils/normalizeAuthorFilter";
+import { normalizePullRequestReviewFilter } from "../utils/pullRequestReviewFilter";
 
 export const Route = createFileRoute(
 	"/_authenticated/_dashboard/pull-requests/$prNumber/",
@@ -40,17 +44,30 @@ function PullRequestDetailPage() {
 	} = useProjectHost(projectId);
 	const hostUrl = useHostUrl(hostId ?? undefined);
 	const updateDraft = useNewWorkspaceDraftStore((state) => state.updateDraft);
+	const selectProject = useNewWorkspaceDraftStore(
+		(state) => state.selectProject,
+	);
 	const resetDraft = useNewWorkspaceDraftStore((state) => state.resetDraft);
 	const openModal = useOpenNewWorkspaceModal();
 
+	// `project` identifies this PR's repo, not the list filter: falling back
+	// to it would rewrite an "all repositories" view to a single repo on back.
 	const backSearch = useMemo(
 		() =>
 			pullRequestsSearchFromFilters({
 				search: search.search ?? "",
-				projectFilter: projectId,
+				projectFilters: resolveProjectFilterParams(search.projects, null, []),
+				authorFilter: normalizeAuthorFilter(search.author),
+				reviewFilter: normalizePullRequestReviewFilter(search.review),
 				includeClosed: search.state === "all",
 			}),
-		[projectId, search.search, search.state],
+		[
+			search.author,
+			search.projects,
+			search.review,
+			search.search,
+			search.state,
+		],
 	);
 
 	const { data, isLoading, error, refetch } = useQuery({
@@ -82,11 +99,8 @@ function PullRequestDetailPage() {
 			state: normalizePRState(data.state, data.isDraft),
 		};
 		resetDraft();
-		updateDraft({
-			selectedProjectId: projectId,
-			hostId,
-			linkedPR,
-		});
+		selectProject(projectId);
+		updateDraft({ hostId, linkedPR });
 		openModal(projectId);
 	};
 
@@ -189,39 +203,47 @@ function PullRequestDetailPage() {
 		<div className="@container flex min-h-0 flex-1 flex-col">
 			{header}
 			<ScrollArea className="min-h-0 flex-1">
-				<div className="max-w-4xl px-4 py-5 @md:px-6 @md:py-6">
-					<div className="mb-4 flex min-w-0 items-start gap-3">
-						<PRIcon state={state} className="mt-1 size-5 shrink-0" />
-						<h1 className="min-w-0 break-words text-2xl font-semibold leading-tight text-wrap-pretty">
-							{data.title}
-						</h1>
-					</div>
+				<div className="mx-auto grid w-full max-w-6xl gap-8 px-4 py-6 @md:px-6 @4xl:grid-cols-[minmax(0,1fr)_20rem] @4xl:py-8">
+					<article className="min-w-0">
+						<div className="mb-4 flex min-w-0 items-start gap-3">
+							<PRIcon state={state} className="mt-1 size-5 shrink-0" />
+							<h1 className="min-w-0 break-words text-2xl font-semibold leading-tight text-wrap-pretty">
+								{data.title}
+							</h1>
+						</div>
 
-					<div className="mb-6 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-						<span className="capitalize">{stateLabel}</span>
-						{data.author && (
-							<>
-								<span aria-hidden>·</span>
-								<span className="min-w-0 break-words">by {data.author}</span>
-							</>
-						)}
-						{branchSummary && (
-							<>
-								<span aria-hidden>·</span>
-								<span className="min-w-0 break-all font-mono">
-									{branchSummary}
-								</span>
-							</>
-						)}
-					</div>
+						<div className="mb-7 flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+							<span>{project.name}</span>
+							<span aria-hidden>·</span>
+							<span className="capitalize">{stateLabel}</span>
+							{data.author && (
+								<>
+									<span aria-hidden>·</span>
+									<span className="min-w-0 break-words">by {data.author}</span>
+								</>
+							)}
+							{branchSummary && (
+								<>
+									<span aria-hidden>·</span>
+									<span className="min-w-0 break-all font-mono">
+										{branchSummary}
+									</span>
+								</>
+							)}
+						</div>
 
-					{data.body.trim() ? (
-						<MarkdownRenderer content={data.body} />
-					) : (
-						<p className="text-sm italic text-muted-foreground">
-							No description provided.
-						</p>
-					)}
+						{data.body.trim() ? (
+							<MarkdownRenderer content={data.body} />
+						) : (
+							<p className="text-sm italic text-muted-foreground">
+								No description provided.
+							</p>
+						)}
+					</article>
+
+					<aside className="min-w-0 @4xl:sticky @4xl:top-6 @4xl:self-start">
+						<PullRequestChecksSection checks={data.checks} />
+					</aside>
 				</div>
 			</ScrollArea>
 		</div>

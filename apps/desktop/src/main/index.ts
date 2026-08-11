@@ -467,7 +467,9 @@ if (!gotTheLock) {
 		);
 
 		try {
-			setupAgentIntegrations();
+			const disabledAgentHooks =
+				localDb.select().from(settings).get()?.disabledAgentHooks ?? [];
+			setupAgentIntegrations({ disabledAgentIds: disabledAgentHooks });
 		} catch (error) {
 			console.error("[main] Failed to set up agent integrations:", error);
 		}

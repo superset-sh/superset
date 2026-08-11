@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import type { HostDb } from "../db";
 import { workspaces } from "../db/schema";
 import type { EventBus } from "../events";
@@ -37,7 +37,7 @@ export async function runWorkspaceBackfill(
 	const pending = ctx.db
 		.select()
 		.from(workspaces)
-		.where(eq(workspaces.name, ""))
+		.where(and(eq(workspaces.name, ""), isNull(workspaces.archivedAt)))
 		.all();
 	if (pending.length === 0) return;
 

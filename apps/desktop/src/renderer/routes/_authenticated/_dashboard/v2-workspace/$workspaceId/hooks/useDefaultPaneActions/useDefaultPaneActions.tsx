@@ -22,13 +22,15 @@ export function useDefaultPaneActions({
 						<TbLayoutColumns className="size-3.5" />
 					),
 				tooltip: <HotkeyLabel label="Split pane" id="SPLIT_AUTO" />,
-				onClick: async (ctx) => {
+				onClick: (ctx) => {
 					const position =
 						ctx.pane.parentDirection === "horizontal" ? "down" : "right";
-					const terminalId = await launcher.create();
 					ctx.actions.split(position, {
 						kind: "terminal",
-						data: { terminalId } as TerminalPaneData,
+						data: {
+							terminalId: launcher.mint(),
+							createOnAttach: true,
+						} as TerminalPaneData,
 					});
 				},
 			},

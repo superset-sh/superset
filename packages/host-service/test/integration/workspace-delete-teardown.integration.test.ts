@@ -136,12 +136,27 @@ describe("workspace delete teardown integration", () => {
 		expect(teardownWarning).toContain("external resources not cleaned");
 	});
 
-	test("workspaceCleanup.destroy with force still skips teardown (interactive force-retry contract)", async () => {
+	test("workspaceCleanup.destroy with force still runs teardown (git consent only)", async () => {
 		const { scenario, markerPath } = await setup("printf ran > {{MARKER}}");
 
 		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId: scenario.featureWorkspaceId,
 			force: true,
+		});
+
+		expect(result.success).toBe(true);
+		expect(result.worktreeRemoved).toBe(true);
+		expect(existsSync(markerPath)).toBe(true);
+		expect(existsSync(scenario.worktreePath)).toBe(false);
+	});
+
+	test("workspaceCleanup.destroy with skipTeardown skips the script (teardown-failed retry contract)", async () => {
+		const { scenario, markerPath } = await setup("printf ran > {{MARKER}}");
+
+		const result = await scenario.host.trpc.workspaceCleanup.destroy.mutate({
+			workspaceId: scenario.featureWorkspaceId,
+			force: true,
+			skipTeardown: true,
 		});
 
 		expect(result.success).toBe(true);

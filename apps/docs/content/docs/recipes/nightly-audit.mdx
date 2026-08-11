@@ -48,3 +48,12 @@ superset automations create --name "Nightly audit" \
   --project <projectId> --prompt-file prompt.md --agent claude
 superset automations run <id>
 ```
+
+Or create it and fire the first run in one pipe:
+
+```bash
+superset automations create --name "Nightly audit" \
+  --rrule "FREQ=DAILY;BYHOUR=3;BYMINUTE=0" \
+  --project <projectId> --prompt-file prompt.md --agent claude \
+  --json | jq -r '.id' | xargs -I{} superset automations run {}
+```

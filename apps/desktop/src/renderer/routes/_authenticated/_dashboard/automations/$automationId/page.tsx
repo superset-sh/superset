@@ -10,13 +10,13 @@ import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { isHostOfflineError } from "../utils/hostOfflineError";
 import { isStaleAgentError, STALE_AGENT_HELP } from "../utils/staleAgentError";
 import { AutomationBody } from "./components/AutomationBody";
 import { AutomationDetailHeader } from "./components/AutomationDetailHeader";
-import { AutomationDetailSidebar } from "./components/AutomationDetailSidebar";
 import { VersionHistorySheet } from "./components/VersionHistorySheet";
 
 type AutomationDetailSearch = {
@@ -41,6 +41,8 @@ function AutomationDetailPage() {
 	const { history } = Route.useSearch();
 	const navigate = useNavigate();
 	const collections = useCollections();
+	const { data: session } = authClient.useSession();
+	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
 
@@ -66,9 +68,24 @@ function AutomationDetailPage() {
 	);
 	const recentRuns = runRows as SelectAutomationRun[];
 
+	const ownerUserId = automation?.ownerUserId;
+	const { data: ownerRows = [] } = useLiveQuery(
+		(q) =>
+			q
+				.from({ u: collections.users })
+				.where(({ u }) => eq(u.id, ownerUserId ?? ""))
+				.select(({ u }) => ({ name: u.name, email: u.email })),
+		[collections.users, ownerUserId],
+	);
+	const ownerName = ownerRows[0]?.name ?? ownerRows[0]?.email ?? null;
+
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
 			apiTrpcClient.automation.setEnabled.mutate({ id: automationId, enabled }),
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update automation",
+			),
 	});
 
 	const runNowMutation = useMutation({
@@ -104,14 +121,17 @@ function AutomationDetailPage() {
 		);
 	}
 
+	// Every automation mutation is owner-gated server-side; render teammates'
+	// automations read-only instead of letting edits silently bounce. Unknown
+	// session (still loading) stays editable — the server is the enforcement.
+	const readOnly =
+		currentUserId !== undefined && automation.ownerUserId !== currentUserId;
+
 	return (
 		<div className="flex h-full w-full flex-1 overflow-hidden">
 			<div className="flex flex-1 flex-col overflow-hidden">
 				<AutomationDetailHeader
 					name={automation.name}
-					enabled={automation.enabled}
-					onBack={() => navigate({ to: "/automations" })}
-					onToggleEnabled={() => setEnabledMutation.mutate(!automation.enabled)}
 					onDelete={() => {
 						alert({
 							title: "Delete automation?",
@@ -137,18 +157,21 @@ function AutomationDetailPage() {
 					}}
 					onRunNow={() => runNowMutation.mutate()}
 					onOpenHistory={() => setHistoryOpen(true)}
-					toggleDisabled={setEnabledMutation.isPending}
 					deleteDisabled={deleteMutation.isPending}
 					runNowDisabled={runNowMutation.isPending}
+					readOnly={readOnly}
 				/>
 
-				<AutomationBody key={automation.id} automation={automation} />
+				<AutomationBody
+					key={automation.id}
+					automation={automation}
+					recentRuns={recentRuns}
+					ownerName={ownerName}
+					onToggleEnabled={(enabled) => setEnabledMutation.mutate(enabled)}
+					toggleDisabled={setEnabledMutation.isPending}
+					readOnly={readOnly}
+				/>
 			</div>
-
-			<AutomationDetailSidebar
-				automation={automation}
-				recentRuns={recentRuns}
-			/>
 
 			<HostOfflineRunDialog
 				hostId={automation.targetHostId}
@@ -161,7 +184,9 @@ function AutomationDetailPage() {
 				automationId={automation.id}
 				automationName={automation.name}
 				currentPrompt={automation.prompt}
-				open={historyOpen}
+				// Versions are owner-gated server-side too; the header action is
+				// hidden, but the ?history=true search param could still open it.
+				open={!readOnly && historyOpen}
 				onOpenChange={setHistoryOpen}
 			/>
 		</div>

@@ -6,6 +6,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { getRelayUrl } from "@/lib/relay-url";
 import {
 	matchesTerminalOccurrence,
 	matchesTerminalReservation,
@@ -105,7 +106,9 @@ export async function POST(
 	const outcome = await dispatchAutomation({
 		automation,
 		scheduledFor,
-		relayUrl: env.RELAY_URL,
+		// The owner's host may be on an overridden relay (relay-url-override);
+		// env.RELAY_URL alone reaches only hosts still on the default relay.
+		relayUrl: await getRelayUrl(automation.ownerUserId),
 	});
 
 	if (parsed.data.terminal && outcome.status === "conflict") {

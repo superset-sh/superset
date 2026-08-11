@@ -77,6 +77,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			}
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to generate API key",
+			);
 		} finally {
 			setIsGenerating(false);
 		}

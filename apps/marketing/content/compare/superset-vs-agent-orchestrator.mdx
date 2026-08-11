@@ -1,0 +1,108 @@
+---
+title: "Superset vs Agent Orchestrator (2026): Two Agent IDEs for Parallel Fleets"
+description: "Compare Superset and Agent Orchestrator (AO) for running fleets of AI coding agents — worktree workspaces, CI-failure loops, review routing, and automation surfaces."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - agent-orchestrator
+keywords:
+  - superset vs agent orchestrator
+  - agent orchestrator alternative
+  - ao agents
+  - aoagents.dev
+  - ai coding agent fleet
+  - ci fix automation
+---
+
+Superset and Agent Orchestrator (AO, from Untrivial AI) are two of the closest head-to-heads in this space: both are desktop apps that run fleets of CLI coding agents in isolated Git worktrees. The centers of gravity differ. AO's signature is the autonomous PR feedback loop -- CI failures, review comments, and merge conflicts are routed back to the responsible agent as configurable "reactions." Superset's is the workspace and its surfaces -- diff review, browser, persistent terminals, plus a CLI, MCP server, SDK, Slack bot, and scheduled automations around the same core.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Agent Orchestrator (AO)** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Supervises parallel agents in worktrees with automatic CI/review/conflict feedback loops |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Open-source agent IDE with an orchestrator agent |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | 23 harnesses (Claude Code, Codex, aider, OpenCode, Cursor, Copilot, Goose, and more) |
+| **Isolation** | Automatic Git worktree per task | Worktree per session (or full clone); tmux/process runtimes |
+| **Signature feature** | Full workspace + automations/SDK/MCP surfaces | Reactions: CI-failed, changes-requested, agent-stuck, approved-and-green |
+| **Forges** | GitHub, plus Linear integration | GitHub and GitLab (polling via gh/glab); Linear tracker plugin |
+| **Remote / cloud** | Remote and cloud workspaces across your network devices | Local-only; DIY reverse proxy, dashboard has no built-in auth |
+| **Scheduling** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Event-driven reactions only; no cron or API |
+| **License** | Source-available (ELv2) | Open source (Apache-2.0) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Agent Orchestrator?
+
+Agent Orchestrator is an Apache-2.0 "agentic IDE" from Untrivial AI (~8,900 GitHub stars) whose pitch is "stop babysitting agents, start merging real work." Each task becomes a session in its own worktree (or full clone) running any of 23 agent harnesses; a local daemon then watches PRs and session state and reacts: CI failures send the agent structured fix prompts with retries, cooldowns, and escalation; requested changes replay review comments as `path:line` prompts; stuck agents are detected; and "approved and green" signals ready-to-merge -- AO never auto-merges. An orchestrator session can plan and spawn workers, a separate reviewer-agent role runs review passes into a Reviews tab, and an in-app browser previews the session's app. It ships as a desktop app for macOS, Windows, and Linux (the npm CLI is legacy/frozen), integrates GitHub and GitLab by polling through your authenticated `gh`/`glab`, tracks per-session agent cost, and is entirely free.
+
+## Key Differences
+
+### The Feedback Loop vs the Workspace
+
+AO's reactions system is the best-engineered PR feedback loop in the category: config-driven CI-failure routing with `maxRetries` and cooldowns, review-comment replay, bot-comment handling, and stuck-agent detection -- no prompting required. Superset covers the same ground differently: PR status, review threads, and CI checks surface in the workspace and diff viewer, and agents can be steered or re-dispatched from there, but the automatic retry loop is not a packaged primitive. In exchange, Superset's workspace is deeper: a real diff/file editor (AO defers diff inspection to the PR on GitHub), persistent daemon-backed terminals, port management, and cross-workspace search.
+
+### Surfaces and Scheduling
+
+AO is desktop-only by design: its CLI is deprecated, there is no public API or MCP surface, and automation means PR-event reactions -- no cron, no scheduled runs. Superset ships a maintained CLI, an MCP server other agents can drive, a TypeScript SDK, a Slack bot, and scheduled automations. If your parallel-agent workflow needs to be scripted, embedded, or run unattended on a schedule, that whole layer exists only on one side.
+
+### Remote and Team
+
+AO is local-first with no multi-device story: remote access means reverse-proxying a dashboard that has no built-in authentication, and there are no team plans. Superset has remote and cloud workspaces across your own devices, host sharing with teammates, and paid tiers with enterprise controls (SSO, audit logs). AO counters with GitLab support (Superset is GitHub-centric today) and per-session cost tracking in the dashboard.
+
+### Openness
+
+AO is fully open source under Apache-2.0. Superset is source-available under ELv2 with free and paid tiers. Both run agents on your own subscriptions; neither proxies your model traffic.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Agent Orchestrator is free and open source with no paid tier as of August 2026. Both are bring-your-own-agent for model costs.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want the full workspace: diff editor, browser, persistent terminals, port management
+- Need scheduled automations and scriptable surfaces (CLI, MCP, SDK, Slack)
+- Want remote/cloud workspaces and team or enterprise features
+- Review inside the tool rather than on the GitHub PR page
+
+**Choose Agent Orchestrator if you:**
+
+- Want automatic CI-failure and review-comment loops as packaged, config-driven behavior
+- Use GitLab, or want a dedicated reviewer-agent role with a Reviews tab
+- Prefer a fully open-source (Apache-2.0) tool
+- Work single-player on one machine and merge on the Git host
+
+**Verdict:** AO is a serious, well-designed competitor, and its reactions system points where the whole category is heading -- agents that fix their own CI failures without a human relaying logs. Superset is the more complete environment around the same worktree core: deeper review, more surfaces, scheduling, remote reach, and a team story. If the feedback loop is your whole problem, try AO; if parallel agents are becoming how your team ships, Superset covers more of the job.
+
+---
+
+## Frequently Asked Questions
+
+### Do Superset and Agent Orchestrator both use Git worktrees?
+
+Yes. Superset creates a worktree per task automatically; AO creates one per session, with a full-clone option for tooling that dislikes shared `.git` directories.
+
+### What are AO's "reactions"?
+
+Config-driven responses to PR and session events: CI failures route structured fix prompts to the agent with retries and cooldowns, requested changes replay as `path:line` prompts, stuck agents get flagged, and approved-and-green marks sessions ready to merge. AO never auto-merges.
+
+### Is Agent Orchestrator open source?
+
+Yes, Apache-2.0, free, with roughly 8,900 GitHub stars. Superset is source-available under ELv2 with a free tier and paid plans.
+
+### Which supports more agents?
+
+AO lists 23 worker harnesses; Superset runs any CLI agent, with first-class integrations for the mainstream ones. In practice both cover Claude Code, Codex, Cursor, OpenCode, Copilot, and the rest of the common set.

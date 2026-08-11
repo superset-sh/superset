@@ -86,6 +86,20 @@ describe("agentConfigsRouter", () => {
 			expect(codex?.args).not.toContain("--ask-for-approval");
 		});
 
+		it("seeds resume args for agents with an id-based resume", async () => {
+			const caller = createCaller();
+			const result = await caller.list();
+
+			const claude = result.find((row) => row.presetId === "claude");
+			expect(claude?.resumeArgs).toEqual(["--resume"]);
+
+			const amp = result.find((row) => row.presetId === "amp");
+			expect(amp?.resumeArgs).toEqual(["threads", "continue"]);
+
+			const codex = result.find((row) => row.presetId === "codex");
+			expect(codex?.resumeArgs).toEqual(["resume"]);
+		});
+
 		it("returns existing rows on subsequent calls without re-seeding", async () => {
 			const caller = createCaller();
 			const first = await caller.list();
@@ -158,6 +172,25 @@ describe("agentConfigsRouter", () => {
 			expect(created.command).toBe("my-agent");
 			expect(created.args).toEqual(["--flag"]);
 			expect(created.env).toEqual({ FOO: "bar" });
+			// Omitted resumeArgs default to "no id-based resume".
+			expect(created.resumeArgs).toEqual([]);
+		});
+
+		it("stores supplied resumeArgs", async () => {
+			const caller = createCaller();
+			await caller.list();
+
+			const created = await caller.add({
+				label: "Resumable",
+				command: "resumable",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				resumeArgs: ["--resume"],
+				env: {},
+			});
+
+			expect(created.resumeArgs).toEqual(["--resume"]);
 		});
 
 		it("preserves an arbitrary presetId tag verbatim", async () => {
@@ -271,7 +304,7 @@ describe("agentConfigsRouter", () => {
 	});
 
 	describe("update()", () => {
-		it("persists label, command, args, promptTransport, promptArgs, env", async () => {
+		it("persists label, command, args, promptTransport, promptArgs, resumeArgs, env", async () => {
 			const caller = createCaller();
 			const first = await listFirst(caller);
 
@@ -283,6 +316,7 @@ describe("agentConfigsRouter", () => {
 					args: ["--mode", "fast"],
 					promptTransport: "stdin",
 					promptArgs: ["-X"],
+					resumeArgs: ["--continue-session"],
 					env: { ANTHROPIC_API_KEY: "test" },
 				},
 			});
@@ -292,6 +326,7 @@ describe("agentConfigsRouter", () => {
 			expect(updated.args).toEqual(["--mode", "fast"]);
 			expect(updated.promptTransport).toBe("stdin");
 			expect(updated.promptArgs).toEqual(["-X"]);
+			expect(updated.resumeArgs).toEqual(["--continue-session"]);
 			expect(updated.env).toEqual({ ANTHROPIC_API_KEY: "test" });
 		});
 
@@ -412,6 +447,7 @@ describe("agentConfigsRouter", () => {
 					],
 					promptTransport: "stdin",
 					promptArgs: ["--prompt"],
+					resumeArgs: ["--wrong-resume"],
 					env: { CODEX_HOME: "/tmp/old-codex" },
 					iconId: "claude",
 				},
@@ -431,6 +467,7 @@ describe("agentConfigsRouter", () => {
 				args: preset.args,
 				promptTransport: preset.promptTransport,
 				promptArgs: preset.promptArgs,
+				resumeArgs: preset.resumeArgs,
 				env: preset.env,
 				order: codex.order,
 			});

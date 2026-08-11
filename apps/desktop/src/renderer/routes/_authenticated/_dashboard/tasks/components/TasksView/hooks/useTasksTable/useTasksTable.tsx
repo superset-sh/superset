@@ -30,6 +30,7 @@ import {
 	type StatusType,
 } from "../../components/shared/StatusIcon";
 import type { TabValue } from "../../components/TasksTopBar";
+import { matchesTaskStatusFilter } from "../../utils/matchesTaskStatusFilter";
 import { compareTasks } from "../../utils/sorting";
 import { useHybridSearch } from "../useHybridSearch";
 import { AssigneeCell } from "./components/AssigneeCell";
@@ -172,13 +173,7 @@ export function useTasksTable({
 				header: "Status",
 				filterFn: (row, _columnId, filterValue: TabValue) => {
 					const statusType = row.original.status.type;
-					if (filterValue === "active") {
-						return statusType === "started" || statusType === "unstarted";
-					}
-					if (filterValue === "backlog") {
-						return statusType === "backlog";
-					}
-					return true;
+					return matchesTaskStatusFilter(statusType, filterValue);
 				},
 				cell: (info) => {
 					const { row, cell } = info;

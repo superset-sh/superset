@@ -1,8 +1,4 @@
-import type {
-	SelectAutomation,
-	SelectUser,
-	SelectV2Host,
-} from "@superset/db/schema";
+import type { SelectAutomation, SelectUser } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import { describeSchedule } from "@superset/shared/rrule";
 import {
@@ -23,31 +19,51 @@ import {
 	EmptyMedia,
 	EmptyTitle,
 } from "@superset/ui/empty";
+import { Input } from "@superset/ui/input";
+import { Skeleton } from "@superset/ui/skeleton";
 import { toast } from "@superset/ui/sonner";
-import { Table, TableBody, TableHead, TableRow } from "@superset/ui/table";
+import {
+	Table,
+	TableBody,
+	TableCell,
+	TableHead,
+	TableHeader,
+	TableRow,
+} from "@superset/ui/table";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { LuPlus, LuRotateCw, LuSearchX, LuTerminal, LuX } from "react-icons/lu";
+import {
+	LuCircleHelp,
+	LuPlus,
+	LuRotateCw,
+	LuSearch,
+	LuSearchX,
+	LuSparkles,
+	LuTerminal,
+	LuX,
+} from "react-icons/lu";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
+import { useNow } from "renderer/hooks/useNow";
+import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import {
-	DATA_TABLE_HEAD_CELL,
-	DataTableHeader,
-} from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
+import { DATA_TABLE_HEAD_CELL } from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
 import {
 	SortableHeader,
 	type SortDirection,
 } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
+import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { AutomationRow } from "./components/AutomationRow";
+import { AutomationStatCards } from "./components/AutomationStatCards";
 import { AutomationsEmptyState } from "./components/AutomationsEmptyState";
 import { CreateAutomationDialog } from "./components/CreateAutomationDialog";
 import { HostOfflineRunDialog } from "./components/HostOfflineRunDialog";
@@ -63,7 +79,13 @@ export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 
 type Scope = "mine" | "team";
 
-type AutomationSortField = "name" | "owner" | "project" | "schedule";
+type AutomationSortField = "name" | "owner" | "schedule" | "status";
+
+// Seeds the "Create with AI" agent session. The skill is provisioned as
+// superset:automate; mentioning it by name loads it (it isn't in the chat
+// slash-command allowlist).
+const AUTOMATION_AGENT_PROMPT =
+	"Help me create a Superset automation. Use the superset:automate skill if it's available, otherwise the `superset` CLI (start with `superset automations --help`). Ask me what should run on a schedule, confirm the cadence, target project, and agent, then create the automation and trigger a first run so we can review the result together.";
 
 function settledErrorMessage(result: PromiseSettledResult<unknown>) {
 	return result.status === "rejected" && result.reason instanceof Error
@@ -80,6 +102,7 @@ function AutomationsPage() {
 	const [initialTemplate, setInitialTemplate] =
 		useState<AutomationTemplate | null>(null);
 	const [scope, setScope] = useState<Scope>("mine");
+	const [search, setSearch] = useState("");
 	const [cliHintDismissed, setCliHintDismissed] = useState(false);
 	const [pendingDelete, setPendingDelete] = useState<SelectAutomation | null>(
 		null,
@@ -177,6 +200,23 @@ function AutomationsPage() {
 		},
 	});
 
+	const setEnabledMutation = useMutation({
+		mutationFn: ({
+			id,
+			enabled,
+		}: {
+			id: string;
+			enabled: boolean;
+			name: string;
+		}) => apiTrpcClient.automation.setEnabled.mutate({ id, enabled }),
+		onSuccess: (_, { enabled, name }) =>
+			toast.success(enabled ? `"${name}" resumed` : `"${name}" paused`),
+		onError: (error) =>
+			toast.error(
+				error instanceof Error ? error.message : "Failed to update automation",
+			),
+	});
+
 	const deleteMutation = useMutation({
 		mutationFn: ({ id }: { id: string; name: string }) =>
 			apiTrpcClient.automation.delete.mutate({ id }),
@@ -213,8 +253,8 @@ function AutomationsPage() {
 			})),
 		[collections.users],
 	);
-	const { lastRunStatusById, failedIds, markMyFailuresSeen } =
-		useFailedAutomations();
+	const { lastRunById, failedIds, markMyFailuresSeen } = useFailedAutomations();
+	const now = useNow(30_000);
 
 	// Opening the page clears the sidebar failure badge; failures that sync in
 	// while it stays open are marked seen too, until a newer run fails.
@@ -223,14 +263,6 @@ function AutomationsPage() {
 	}, [markMyFailuresSeen]);
 
 	const recentProjects = useRecentProjects();
-	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const { data: hostRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ h: collections.v2Hosts })
-				.select(({ h }) => ({ machineId: h.machineId, name: h.name })),
-		[collections.v2Hosts],
-	);
 
 	// Live queries can briefly surface nullish rows while syncing (see #4519).
 	const usersById = useMemo(
@@ -246,19 +278,6 @@ function AutomationsPage() {
 		() =>
 			new Map(recentProjects.filter((p) => p != null).map((p) => [p.id, p])),
 		[recentProjects],
-	);
-	const workspacesById = useMemo(
-		() => new Map(hostWorkspaces.map((w) => [w.id, w])),
-		[hostWorkspaces],
-	);
-	const hostsById = useMemo(
-		() =>
-			new Map(
-				(hostRows as Pick<SelectV2Host, "machineId" | "name">[])
-					.filter((h) => h != null)
-					.map((h) => [h.machineId, h]),
-			),
-		[hostRows],
 	);
 
 	const mineCount = useMemo(
@@ -281,12 +300,61 @@ function AutomationsPage() {
 		[automations, currentUserId, failedIds],
 	);
 
-	const visible = useMemo(() => {
+	const tabVisible = useMemo(() => {
 		if (!currentUserId) return automations;
 		return scope === "mine"
 			? automations.filter((a) => a.ownerUserId === currentUserId)
 			: automations.filter((a) => a.ownerUserId !== currentUserId);
 	}, [automations, scope, currentUserId]);
+
+	// Clicking the "Failed" stat card narrows the table to failing automations.
+	const [failedOnly, setFailedOnly] = useState(false);
+	const failedInTab = useMemo(
+		() => tabVisible.filter((a) => failedIds.has(a.id)),
+		[tabVisible, failedIds],
+	);
+	// The filter clears itself once nothing is failing anymore.
+	useEffect(() => {
+		if (failedOnly && failedInTab.length === 0) setFailedOnly(false);
+	}, [failedOnly, failedInTab.length]);
+	const visible = useMemo(() => {
+		const base = failedOnly ? failedInTab : tabVisible;
+		const query = search.trim().toLowerCase();
+		if (!query) return base;
+		return base.filter((a) => a.name.toLowerCase().includes(query));
+	}, [failedOnly, failedInTab, tabVisible, search]);
+
+	const { data: runStatRows = [] } = useLiveQuery(
+		(q) =>
+			q.from({ r: collections.automationRuns }).select(({ r }) => ({
+				automationId: r.automationId,
+				status: r.status,
+				createdAt: r.createdAt,
+			})),
+		[collections.automationRuns],
+	);
+	const runStats = useMemo(() => {
+		const tabIds = new Set(tabVisible.map((a) => a.id));
+		const cutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
+		let created7d = 0;
+		let failed7d = 0;
+		for (const run of runStatRows) {
+			if (run == null || !tabIds.has(run.automationId)) continue;
+			const at = new Date(run.createdAt as unknown as string).getTime();
+			if (!Number.isFinite(at) || at < cutoff) continue;
+			if (run.status === "dispatched") created7d++;
+			else if (
+				run.status === "dispatch_failed" ||
+				run.status === "skipped_offline"
+			)
+				failed7d++;
+		}
+		return {
+			created7d,
+			failed7d,
+			active: tabVisible.filter((a) => a.enabled).length,
+		};
+	}, [runStatRows, tabVisible, now]);
 
 	const [sortField, setSortField] = useState<AutomationSortField | null>(null);
 	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -308,7 +376,6 @@ function AutomationsPage() {
 		if (next !== "team" && sortField === "owner") setSortField(null);
 	};
 
-	// Default order (no active sort) is createdAt desc from the live query.
 	const sortedVisible = useMemo(() => {
 		if (!sortField) return visible;
 		const sortValue = (automation: SelectAutomation): string => {
@@ -319,21 +386,85 @@ function AutomationsPage() {
 					const owner = usersById.get(automation.ownerUserId);
 					return owner?.name ?? owner?.email ?? "";
 				}
-				case "project":
-					return projectsById.get(automation.v2ProjectId)?.name ?? "";
 				case "schedule":
 					return describeSchedule(automation.rrule);
+				case "status":
+					return automation.enabled ? "active" : "paused";
 			}
 		};
 		return [...visible].sort((a, b) => {
 			const cmp = sortValue(a).localeCompare(sortValue(b));
 			return sortDirection === "asc" ? cmp : -cmp;
 		});
-	}, [visible, sortField, sortDirection, usersById, projectsById]);
+	}, [visible, sortField, sortDirection, usersById]);
+
+	// Default (unsorted) view groups rows Codex-style: failing automations
+	// pinned on top, then soonest run first, paused in their own section.
+	const needsAttention = useMemo(
+		() => visible.filter((a) => failedIds.has(a.id)),
+		[visible, failedIds],
+	);
+	const upNext = useMemo(
+		() =>
+			visible
+				.filter((a) => a.enabled && !failedIds.has(a.id))
+				.slice()
+				.sort((a, b) => {
+					const at = a.nextRunAt ? new Date(a.nextRunAt).getTime() : Infinity;
+					const bt = b.nextRunAt ? new Date(b.nextRunAt).getTime() : Infinity;
+					return at - bt;
+				}),
+		[visible, failedIds],
+	);
+	const pausedVisible = useMemo(
+		() => visible.filter((a) => !a.enabled && !failedIds.has(a.id)),
+		[visible, failedIds],
+	);
 
 	const handleSelectTemplate = (template: AutomationTemplate) => {
 		setInitialTemplate(template);
 		setCreateOpen(true);
+	};
+
+	const navigate = useNavigate();
+	const { machineId, activeHostUrl } = useLocalHostService();
+	const { agents: agentChoices } = useV2AgentChoices(activeHostUrl);
+	const { submit: submitWorkspaceCreate } = useWorkspaceCreates();
+
+	// Opens a project-less agent session seeded with automation-creation
+	// instructions. The in-app "superset" chat agent can't run the CLI, so
+	// pick the user's last terminal agent (composer behavior).
+	const [creatingWithAgent, setCreatingWithAgent] = useState(false);
+	const handleCreateWithAgent = () => {
+		if (creatingWithAgent) return;
+		if (!machineId) {
+			toast.error("Host service is not running");
+			return;
+		}
+		const terminalAgents = agentChoices.filter((a) => a.id !== "superset");
+		const stored = window.localStorage.getItem(AGENT_STORAGE_KEY);
+		const agent =
+			terminalAgents.find((a) => a.id === stored)?.id ?? terminalAgents[0]?.id;
+		if (!agent) {
+			toast.error("No terminal agent is configured on this device");
+			return;
+		}
+		setCreatingWithAgent(true);
+		const { workspaceId, completed } = submitWorkspaceCreate({
+			hostId: machineId,
+			snapshot: {
+				id: crypto.randomUUID(),
+				projectId: null,
+				agents: [{ agent, prompt: AUTOMATION_AGENT_PROMPT }],
+			},
+		});
+		// The store shows creation failures on the optimistic sidebar row; this
+		// just re-arms the button if the user navigates back.
+		void completed.finally(() => setCreatingWithAgent(false));
+		navigate({
+			to: "/v2-workspace/$workspaceId",
+			params: { workspaceId },
+		}).catch(() => {});
 	};
 
 	const handleDialogOpenChange = (next: boolean) => {
@@ -341,281 +472,367 @@ function AutomationsPage() {
 		if (!next) setInitialTemplate(null);
 	};
 
-	const colWidth = scope === "team" ? "w-[11%]" : "w-[13%]";
-	const scheduleWidth = scope === "team" ? "w-[14%]" : "w-[16%]";
-	const lastRunWidth = "w-[9%]";
-	const showAutomationLoading = !automationsReady && visible.length === 0;
-	const showMineEmptyState =
-		automationsReady && visible.length === 0 && scope === "mine";
-	const showTeamEmptyState =
-		automationsReady && visible.length === 0 && scope === "team";
+	const scheduleWidth = scope === "team" ? "w-[16%]" : "w-[18%]";
+	const lastRunWidth = "w-[14%]";
+	const statusWidth = scope === "team" ? "w-[12%]" : "w-[13%]";
+	const columnCount = scope === "team" ? 6 : 5;
+	const showAutomationLoading = !automationsReady && tabVisible.length === 0;
+	// True first run: nothing in the org — stats/tabs/search are noise.
+	const orgEmpty = automationsReady && automations.length === 0;
+	const tabEmpty = automationsReady && tabVisible.length === 0;
+	const showMineEmptyState = tabEmpty && scope === "mine";
+	const showTeamEmptyState = tabEmpty && scope === "team";
+
+	const renderAutomationRow = (automation: SelectAutomation) => (
+		<AutomationRow
+			key={automation.id}
+			automation={automation}
+			owner={usersById.get(automation.ownerUserId)}
+			showOwner={scope === "team"}
+			project={
+				automation.v2ProjectId === null
+					? undefined
+					: projectsById.get(automation.v2ProjectId)
+			}
+			isSession={automation.v2ProjectId === null}
+			lastRun={lastRunById.get(automation.id) ?? null}
+			now={now}
+			isOwner={automation.ownerUserId === currentUserId}
+			isRetrying={retryingIds.has(automation.id)}
+			onRunNow={(a) =>
+				runNowMutation.mutate({
+					id: a.id,
+					name: a.name,
+					targetHostId: a.targetHostId,
+				})
+			}
+			onToggleEnabled={(a) =>
+				setEnabledMutation.mutate({
+					id: a.id,
+					enabled: !a.enabled,
+					name: a.name,
+				})
+			}
+			onDelete={setPendingDelete}
+		/>
+	);
+
+	const sectionRow = (label: string, alert = false) => (
+		<TableRow className="border-border/50 hover:bg-transparent">
+			<TableCell
+				colSpan={columnCount}
+				className={cn(
+					"h-8 bg-accent/20 pl-4 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70",
+					alert && "text-red-600/80 dark:text-red-400/80",
+				)}
+			>
+				{label}
+			</TableCell>
+		</TableRow>
+	);
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
-			<header className="flex h-11 shrink-0 items-center justify-between border-b border-border px-4">
-				<div className="flex items-center gap-3">
-					<h1 className="text-sm font-semibold tracking-tight">Automations</h1>
-					<div className="h-4 w-px bg-border" />
-					<Tabs value={scope} onValueChange={handleScopeChange}>
-						<TabsList className="h-8 bg-transparent p-0 gap-1">
-							<TabsTrigger
-								value="mine"
-								className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+			{/* Window-drag leaf standing in for the hidden TopBar. */}
+			<div className="drag h-10 shrink-0" />
+
+			<div className="min-h-0 flex-1 overflow-y-auto">
+				<div className="mx-auto flex min-h-full w-full max-w-5xl flex-col px-8 pb-12">
+					<div className="flex items-center justify-between">
+						<h1 className="text-xl font-semibold tracking-tight">
+							Automations
+						</h1>
+						<div className="flex items-center gap-2">
+							<Tooltip>
+								<TooltipTrigger asChild>
+									<Button
+										asChild
+										variant="ghost"
+										size="icon-sm"
+										className="size-8 text-muted-foreground"
+									>
+										<a
+											href={`${COMPANY.DOCS_URL}/automations`}
+											target="_blank"
+											rel="noreferrer"
+											aria-label="Automations docs"
+										>
+											<LuCircleHelp className="size-4" />
+										</a>
+									</Button>
+								</TooltipTrigger>
+								<TooltipContent>Automations docs</TooltipContent>
+							</Tooltip>
+							<Button
+								type="button"
+								variant="outline"
+								size="sm"
+								className="h-8 gap-1.5 px-3"
+								disabled={creatingWithAgent}
+								onClick={handleCreateWithAgent}
 							>
-								<span className="text-sm">Mine</span>
-								<span className="ml-1 tabular-nums text-xs text-muted-foreground">
-									{mineCount}
-								</span>
-							</TabsTrigger>
-							<TabsTrigger
-								value="team"
-								className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+								<LuSparkles className="size-4" />
+								<span>Create with AI</span>
+							</Button>
+							<Button
+								type="button"
+								size="sm"
+								className="h-8 gap-1.5 px-3"
+								onClick={() => setCreateOpen(true)}
 							>
-								<span className="text-sm">Team</span>
-								<span className="ml-1 tabular-nums text-xs text-muted-foreground">
-									{teamCount}
-								</span>
-							</TabsTrigger>
-						</TabsList>
-					</Tabs>
-				</div>
-
-				{/* Window-drag leaf standing in for the hidden TopBar. */}
-				<div className="drag h-full min-w-0 flex-1" />
-
-				<div className="flex items-center gap-2">
-					{scope === "mine" && failedMine.length > 0 && (
-						<Tooltip>
-							<TooltipTrigger asChild>
-								<Button
-									type="button"
-									variant="outline"
-									size="sm"
-									className="h-8 gap-1.5 px-3"
-									disabled={retryAllMutation.isPending}
-									onClick={() => retryAllMutation.mutate(failedMine)}
-								>
-									<LuRotateCw
-										className={cn(
-											"size-4",
-											retryAllMutation.isPending && "animate-spin",
-										)}
-									/>
-									<span>Retry all</span>
-									<span className="tabular-nums text-xs text-muted-foreground">
-										{failedMine.length}
-									</span>
-								</Button>
-							</TooltipTrigger>
-							<TooltipContent>
-								Retry every automation whose last run failed
-							</TooltipContent>
-						</Tooltip>
-					)}
-					<Button
-						asChild
-						variant="ghost"
-						size="sm"
-						className="h-8 text-muted-foreground"
-					>
-						<a
-							href={`${COMPANY.DOCS_URL}/automations`}
-							target="_blank"
-							rel="noreferrer"
-						>
-							Learn more
-						</a>
-					</Button>
-					<Button
-						type="button"
-						variant="outline"
-						size="sm"
-						className="h-8 gap-1.5 px-3"
-						onClick={() => setCreateOpen(true)}
-					>
-						<LuPlus className="size-4" />
-						<span>New automation</span>
-					</Button>
-				</div>
-			</header>
-
-			{!cliHintDismissed && (
-				<div className="shrink-0 px-4 pt-3">
-					<div className="relative flex items-start gap-3 rounded-lg border border-border bg-gradient-to-b from-accent/40 to-accent/10 py-3 pl-3.5 pr-10">
-						<div className="flex size-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-foreground shadow-sm">
-							<LuTerminal className="size-4" />
+								<LuPlus className="size-4" />
+								<span>New automation</span>
+							</Button>
 						</div>
-						<div className="min-w-0 space-y-1">
-							<p className="text-sm font-medium text-foreground">
-								Supercharge automations with the{" "}
-								<code className="select-text cursor-text rounded bg-background/80 px-1 py-0.5 font-mono text-[13px]">
+					</div>
+
+					{/* Zero-count stats and search are noise while a tab is empty;
+					    with nothing in the org at all the tabs go too. */}
+					{!tabEmpty && (
+						<div className="mt-5">
+							{showAutomationLoading ? (
+								<div className="grid grid-cols-3 gap-2">
+									{["a", "b", "c"].map((key) => (
+										<Skeleton key={key} className="h-[70px] w-full" />
+									))}
+								</div>
+							) : (
+								<AutomationStatCards
+									active={runStats.active}
+									created7d={runStats.created7d}
+									failed7d={runStats.failed7d}
+									failedFilter={failedOnly}
+									canFilterFailed={failedInTab.length > 0}
+									onToggleFailedFilter={() => setFailedOnly((v) => !v)}
+								/>
+							)}
+						</div>
+					)}
+
+					{!orgEmpty && (
+						<div className="mt-6 flex items-center justify-between gap-2">
+							<Tabs value={scope} onValueChange={handleScopeChange}>
+								<TabsList className="h-8 bg-transparent p-0 gap-1">
+									<TabsTrigger
+										value="mine"
+										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+									>
+										<span className="text-sm">Mine</span>
+										<span className="ml-1 tabular-nums text-xs text-muted-foreground">
+											{mineCount}
+										</span>
+									</TabsTrigger>
+									<TabsTrigger
+										value="team"
+										className="h-8 rounded-md px-3 data-[state=active]:bg-accent data-[state=active]:text-foreground data-[state=inactive]:text-muted-foreground"
+									>
+										<span className="text-sm">Team</span>
+										<span className="ml-1 tabular-nums text-xs text-muted-foreground">
+											{teamCount}
+										</span>
+									</TabsTrigger>
+								</TabsList>
+							</Tabs>
+							{!tabEmpty && (
+								<div className="flex items-center gap-2">
+									{scope === "mine" && failedMine.length > 0 && (
+										<Tooltip>
+											<TooltipTrigger asChild>
+												<Button
+													type="button"
+													variant="outline"
+													size="sm"
+													className="h-8 gap-1.5 px-3"
+													disabled={retryAllMutation.isPending}
+													onClick={() => retryAllMutation.mutate(failedMine)}
+												>
+													<LuRotateCw
+														className={cn(
+															"size-4",
+															retryAllMutation.isPending && "animate-spin",
+														)}
+													/>
+													<span>Retry all</span>
+													<span className="tabular-nums text-xs text-muted-foreground">
+														{failedMine.length}
+													</span>
+												</Button>
+											</TooltipTrigger>
+											<TooltipContent>
+												Retry every automation whose last run failed
+											</TooltipContent>
+										</Tooltip>
+									)}
+									<div className="relative">
+										<LuSearch className="pointer-events-none absolute left-2.5 top-1/2 size-3.5 -translate-y-1/2 text-muted-foreground" />
+										<Input
+											value={search}
+											onChange={(e) => setSearch(e.target.value)}
+											placeholder="Search"
+											aria-label="Search automations"
+											className="h-8 w-44 pl-8"
+										/>
+									</div>
+								</div>
+							)}
+						</div>
+					)}
+
+					<div className={cn("mt-3", tabEmpty && "flex flex-1 flex-col")}>
+						{showAutomationLoading ? (
+							<div className="space-y-2">
+								{["a", "b", "c", "d", "e", "f"].map((key) => (
+									<Skeleton key={key} className="h-10 w-full" />
+								))}
+							</div>
+						) : showMineEmptyState ? (
+							<div className="flex flex-1 flex-col py-6">
+								<AutomationsEmptyState
+									onSelectTemplate={handleSelectTemplate}
+									onCreateWithAgent={handleCreateWithAgent}
+								/>
+							</div>
+						) : showTeamEmptyState ? (
+							<Empty className="rounded-xl border border-border py-16">
+								<EmptyHeader>
+									<EmptyMedia
+										variant="icon"
+										className="size-14 [&_svg:not([class*='size-'])]:size-7"
+									>
+										<LuSearchX />
+									</EmptyMedia>
+									<EmptyTitle>No team automations</EmptyTitle>
+									<EmptyDescription>
+										Nobody on your team has shared automations yet.
+									</EmptyDescription>
+								</EmptyHeader>
+							</Empty>
+						) : (
+							// No overflow-hidden: it would break the sticky header, which
+							// sticks relative to the page scroll container.
+							<div className="rounded-xl border border-border">
+								<Table className="table-fixed">
+									{/* Radius + bg live on the corner cells: Chromium ignores
+									    border-radius on table-header-groups, so a thead bg pokes
+									    square past the container's rounded corners. */}
+									<TableHeader className="sticky top-0 z-10 shadow-[inset_0_-1px_0_0_var(--color-border)] [&_th]:bg-background [&_tr>th:first-child]:rounded-tl-xl [&_tr>th:last-child]:rounded-tr-xl [&_tr]:border-b-0">
+										<TableRow className="hover:bg-transparent">
+											<TableHead className={cn(DATA_TABLE_HEAD_CELL, "pl-4")}>
+												<SortableHeader
+													field="name"
+													label="Name"
+													sortField={sortField}
+													sortDirection={sortDirection}
+													onSort={handleSort}
+												/>
+											</TableHead>
+											{scope === "team" && (
+												<TableHead
+													className={cn(DATA_TABLE_HEAD_CELL, "w-[14%]")}
+												>
+													<SortableHeader
+														field="owner"
+														label="Owner"
+														sortField={sortField}
+														sortDirection={sortDirection}
+														onSort={handleSort}
+													/>
+												</TableHead>
+											)}
+											<TableHead
+												className={cn(DATA_TABLE_HEAD_CELL, scheduleWidth)}
+											>
+												<SortableHeader
+													field="schedule"
+													label="Schedule"
+													sortField={sortField}
+													sortDirection={sortDirection}
+													onSort={handleSort}
+												/>
+											</TableHead>
+											<TableHead
+												className={cn(DATA_TABLE_HEAD_CELL, statusWidth)}
+											>
+												<SortableHeader
+													field="status"
+													label="Status"
+													sortField={sortField}
+													sortDirection={sortDirection}
+													onSort={handleSort}
+												/>
+											</TableHead>
+											<TableHead
+												className={cn(DATA_TABLE_HEAD_CELL, lastRunWidth)}
+											>
+												{/* Sortable heads are buttons, which Chrome's UA sheet
+												    exempts from the header's `uppercase` — match them. */}
+												<span className="normal-case">Last run</span>
+											</TableHead>
+											<TableHead
+												className={cn(DATA_TABLE_HEAD_CELL, "w-20 pr-4")}
+											/>
+										</TableRow>
+									</TableHeader>
+									<TableBody>
+										{visible.length === 0 ? (
+											<TableRow className="hover:bg-transparent">
+												<TableCell
+													colSpan={columnCount}
+													className="h-24 text-center text-sm text-muted-foreground"
+												>
+													No automations match
+												</TableCell>
+											</TableRow>
+										) : sortField ? (
+											sortedVisible.map(renderAutomationRow)
+										) : (
+											<>
+												{needsAttention.length > 0 &&
+													sectionRow("Needs attention", true)}
+												{needsAttention.map(renderAutomationRow)}
+												{upNext.length > 0 && sectionRow("Up next")}
+												{upNext.map(renderAutomationRow)}
+												{pausedVisible.length > 0 && sectionRow("Paused")}
+												{pausedVisible.map(renderAutomationRow)}
+											</>
+										)}
+									</TableBody>
+								</Table>
+							</div>
+						)}
+					</div>
+
+					{!cliHintDismissed && !showAutomationLoading && !tabEmpty && (
+						<div className="relative mt-4 flex items-center gap-2.5 rounded-lg border border-border/60 px-3 py-2 pr-9">
+							<LuTerminal className="size-3.5 shrink-0 text-muted-foreground" />
+							<p className="min-w-0 truncate text-xs text-muted-foreground">
+								Tell any agent to use the{" "}
+								<code className="select-text cursor-text rounded bg-accent/60 px-1 py-0.5 font-mono text-[11px] text-foreground">
 									superset
 								</code>{" "}
-								CLI
-							</p>
-							<p className="text-sm leading-relaxed text-muted-foreground">
-								It&apos;s available in every Superset terminal. Tell the agent
-								to use it to spin up workspaces, run tasks, or manage other
-								automations.{" "}
+								CLI to spin up workspaces, run tasks, or manage automations.{" "}
 								<a
 									href={`${COMPANY.DOCS_URL}/cli/getting-started`}
 									target="_blank"
 									rel="noreferrer"
 									className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80"
 								>
-									Getting started
-								</a>{" "}
-								·{" "}
-								<a
-									href={`${COMPANY.DOCS_URL}/cli/cli-reference`}
-									target="_blank"
-									rel="noreferrer"
-									className="font-medium text-foreground underline underline-offset-2 hover:text-foreground/80"
-								>
-									CLI reference
+									CLI docs
 								</a>
 							</p>
-						</div>
-						<Button
-							type="button"
-							variant="ghost"
-							size="icon-sm"
-							onClick={() => setCliHintDismissed(true)}
-							aria-label="Dismiss"
-							className="absolute right-2 top-2 size-6 text-muted-foreground hover:text-foreground"
-						>
-							<LuX className="size-3.5" />
-						</Button>
-					</div>
-				</div>
-			)}
-
-			<div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-				{showAutomationLoading ? null : showMineEmptyState ? (
-					<div className="flex-1 overflow-y-auto px-8 py-8">
-						<AutomationsEmptyState onSelectTemplate={handleSelectTemplate} />
-					</div>
-				) : showTeamEmptyState ? (
-					<Empty className="flex-1">
-						<EmptyHeader>
-							<EmptyMedia
-								variant="icon"
-								className="size-14 [&_svg:not([class*='size-'])]:size-7"
+							<Button
+								type="button"
+								variant="ghost"
+								size="icon-sm"
+								onClick={() => setCliHintDismissed(true)}
+								aria-label="Dismiss"
+								className="absolute right-1.5 top-1/2 size-6 -translate-y-1/2 text-muted-foreground hover:text-foreground"
 							>
-								<LuSearchX />
-							</EmptyMedia>
-							<EmptyTitle>No team automations</EmptyTitle>
-							<EmptyDescription>
-								Nobody on your team has shared automations yet.
-							</EmptyDescription>
-						</EmptyHeader>
-					</Empty>
-				) : (
-					<div className="min-h-0 flex-1">
-						<Table
-							containerClassName="h-full overflow-y-auto"
-							className="table-fixed"
-						>
-							<DataTableHeader>
-								<TableRow className="hover:bg-transparent">
-									<TableHead className={cn(DATA_TABLE_HEAD_CELL, "pl-4")}>
-										<SortableHeader
-											field="name"
-											label="Name"
-											sortField={sortField}
-											sortDirection={sortDirection}
-											onSort={handleSort}
-										/>
-									</TableHead>
-									{scope === "team" && (
-										<TableHead className={cn(DATA_TABLE_HEAD_CELL, "w-[12%]")}>
-											<SortableHeader
-												field="owner"
-												label="Owner"
-												sortField={sortField}
-												sortDirection={sortDirection}
-												onSort={handleSort}
-											/>
-										</TableHead>
-									)}
-									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
-										<SortableHeader
-											field="project"
-											label="Project"
-											sortField={sortField}
-											sortDirection={sortDirection}
-											onSort={handleSort}
-										/>
-									</TableHead>
-									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
-										Workspace
-									</TableHead>
-									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
-										Device
-									</TableHead>
-									<TableHead className={cn(DATA_TABLE_HEAD_CELL, colWidth)}>
-										Agent
-									</TableHead>
-									<TableHead
-										className={cn(DATA_TABLE_HEAD_CELL, scheduleWidth)}
-									>
-										<SortableHeader
-											field="schedule"
-											label="Schedule"
-											sortField={sortField}
-											sortDirection={sortDirection}
-											onSort={handleSort}
-										/>
-									</TableHead>
-									<TableHead className={cn(DATA_TABLE_HEAD_CELL, lastRunWidth)}>
-										Last run
-									</TableHead>
-									<TableHead
-										className={cn(DATA_TABLE_HEAD_CELL, "w-12 pr-4")}
-									/>
-								</TableRow>
-							</DataTableHeader>
-							<TableBody>
-								{sortedVisible.map((automation) => {
-									const workspace = automation.v2WorkspaceId
-										? workspacesById.get(automation.v2WorkspaceId)
-										: null;
-									const workspaceLabel = !automation.v2WorkspaceId
-										? "New workspace"
-										: (workspace?.name ?? "Deleted");
-									const host = automation.targetHostId
-										? hostsById.get(automation.targetHostId)
-										: null;
-
-									return (
-										<AutomationRow
-											key={automation.id}
-											automation={automation}
-											owner={usersById.get(automation.ownerUserId)}
-											showOwner={scope === "team"}
-											project={projectsById.get(automation.v2ProjectId)}
-											workspaceLabel={workspaceLabel}
-											hostLabel={host?.name ?? "Auto"}
-											lastRunStatus={
-												lastRunStatusById.get(automation.id) ?? null
-											}
-											isOwner={automation.ownerUserId === currentUserId}
-											isRetrying={retryingIds.has(automation.id)}
-											onRunNow={(a) =>
-												runNowMutation.mutate({
-													id: a.id,
-													name: a.name,
-													targetHostId: a.targetHostId,
-												})
-											}
-											onDelete={setPendingDelete}
-										/>
-									);
-								})}
-							</TableBody>
-						</Table>
-					</div>
-				)}
+								<LuX className="size-3.5" />
+							</Button>
+						</div>
+					)}
+				</div>
 			</div>
 
 			<CreateAutomationDialog

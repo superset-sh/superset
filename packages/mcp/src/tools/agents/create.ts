@@ -24,7 +24,19 @@ export function register(server: McpServer): void {
 				.describe(
 					"Agent preset id (e.g. `claude`, `codex`, `superset`) or HostAgentConfig instance UUID.",
 				),
-			prompt: z.string().min(1).describe("Prompt sent to the agent."),
+			prompt: z
+				.string()
+				.optional()
+				.describe(
+					"Prompt sent to the agent. Required unless resumeSessionId is provided.",
+				),
+			resumeSessionId: z
+				.string()
+				.min(1)
+				.optional()
+				.describe(
+					"The agent CLI's own session id to restore instead of starting fresh (e.g. `claude --resume <id>`). NOT the `sessionId` this tool returns — that is a Superset terminal id. Use the id the agent reported (e.g. from the agent's own session list). Fails for agents without an id-based resume.",
+				),
 			attachmentIds: z
 				.array(z.string().uuid())
 				.optional()
@@ -49,6 +61,7 @@ export function register(server: McpServer): void {
 					workspaceId: input.workspaceId,
 					agent: input.agent,
 					prompt: input.prompt,
+					resumeSessionId: input.resumeSessionId,
 					attachmentIds: input.attachmentIds,
 				},
 			);

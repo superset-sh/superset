@@ -16,11 +16,22 @@ export default command({
 		host: string().desc("New target host id"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc("New v2 workspace id"),
+		session: boolean().desc(
+			"Switch to session mode: no project, each run creates a project-less session workspace",
+		),
 		mcpScope: string().desc("Comma-separated MCP scope strings"),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
+
+		// Validate before any mutation — setEnabled below must not run for a
+		// rejected invocation.
+		if (options.session && (options.workspace || options.project)) {
+			throw new CLIError(
+				"--session cannot be combined with --project or --workspace",
+			);
+		}
 
 		if (options.enabled !== undefined) {
 			await ctx.api.automation.setEnabled.mutate({
@@ -39,7 +50,9 @@ export default command({
 
 		// Retargeting (--workspace or --project) re-derives targetHostId +
 		// v2ProjectId; the resource must exist on the target host.
-		let target: { targetHostId: string; v2ProjectId: string } | undefined;
+		let target:
+			| { targetHostId: string; v2ProjectId: string | null }
+			| undefined;
 		if (options.workspace || options.project) {
 			const organizationId = ctx.config.organizationId;
 			if (!organizationId) {
@@ -71,6 +84,8 @@ export default command({
 			...(options.workspace !== undefined
 				? { v2WorkspaceId: options.workspace }
 				: {}),
+			// Session mode clears both the project and any workspace pin.
+			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
 			...target,
 			...(mcpScope !== undefined ? { mcpScope } : {}),
 		});

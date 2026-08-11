@@ -9,8 +9,8 @@ import {
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences/useV2UserPreferences";
 import { useNavigateAwayFromWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useNavigateAwayFromWorkspace";
 import type { DashboardSidebarWorkspace } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/types";
+import { useDeletingWorkspacesStore } from "renderer/routes/_authenticated/_dashboard/stores/deletingWorkspacesStore";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useDeletingWorkspaces } from "renderer/routes/_authenticated/providers/DeletingWorkspacesProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
 	type BulkWorkspaceInspectionState,
@@ -51,7 +51,6 @@ export function useBulkWorkspaceDelete({
 	onDeleted,
 }: UseBulkWorkspaceDeleteOptions) {
 	const { cache: hostWorkspacesCache } = useHostWorkspaces();
-	const { markDeleting, clearDeleting } = useDeletingWorkspaces();
 	const { navigateAwayFromWorkspace } = useNavigateAwayFromWorkspace();
 	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	const { preferences, setDeleteLocalBranch } = useV2UserPreferences();
@@ -123,10 +122,14 @@ export function useBulkWorkspaceDelete({
 		async ({
 			targets,
 			forceAll,
+			skipTeardown,
 			retainedFailures,
 		}: {
 			targets: DashboardSidebarWorkspace[];
 			forceAll: boolean;
+			/** Only the teardown-failure retry pass abandons teardown; warned
+			 * (forced) deletes still run it. */
+			skipTeardown: boolean;
 			retainedFailures: BulkWorkspaceDeleteFailure[];
 		}) => {
 			if (inFlight.current || targets.length === 0) return;
@@ -138,7 +141,9 @@ export function useBulkWorkspaceDelete({
 			let deletedIds: string[] = [];
 			let selectionReconciled = false;
 			try {
-				for (const workspace of targets) markDeleting(workspace.id);
+				for (const workspace of targets) {
+					useDeletingWorkspacesStore.getState().markDeleting(workspace.id);
+				}
 				for (const workspace of targets) {
 					navigateAwayFromWorkspace(workspace.id, targetIds);
 				}
@@ -173,6 +178,7 @@ export function useBulkWorkspaceDelete({
 						destroyWorkspaceAtHost(targetFor(workspace), {
 							deleteBranch: preferences.deleteLocalBranch,
 							force,
+							skipTeardown,
 						}),
 					onSettled: () => setCompletedCount((count) => count + 1),
 				});
@@ -235,16 +241,16 @@ export function useBulkWorkspaceDelete({
 					},
 				);
 			} finally {
-				for (const workspace of targets) clearDeleting(workspace.id);
+				for (const workspace of targets) {
+					useDeletingWorkspacesStore.getState().clearDeleting(workspace.id);
+				}
 				setIsDeleting(false);
 				inFlight.current = false;
 			}
 		},
 		[
-			clearDeleting,
 			hostWorkspacesCache,
 			inspections,
-			markDeleting,
 			navigateAwayFromWorkspace,
 			onDeleted,
 			onOpenChange,
@@ -260,6 +266,7 @@ export function useBulkWorkspaceDelete({
 		await execute({
 			targets: workspaces,
 			forceAll: false,
+			skipTeardown: false,
 			retainedFailures: [],
 		});
 	}, [execute, inspectionSummary.canConfirm, workspaces]);
@@ -275,6 +282,7 @@ export function useBulkWorkspaceDelete({
 		await execute({
 			targets: teardownFailures.map((failure) => failure.workspace),
 			forceAll: true,
+			skipTeardown: true,
 			retainedFailures: failures.filter(
 				(failure) => !teardownWorkspaceIds.has(failure.workspace.id),
 			),

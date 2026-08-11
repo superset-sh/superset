@@ -9,6 +9,7 @@ import type { BrowserPaneData, PaneViewerData } from "../../../../types";
 import { browserRuntimeRegistry } from "./browserRuntimeRegistry";
 import { BrowserErrorOverlay } from "./components/BrowserErrorOverlay";
 import { BrowserOverflowMenu } from "./components/BrowserOverflowMenu";
+import { BrowserTabFavicon } from "./components/BrowserTabFavicon";
 import { BrowserToolbar } from "./components/BrowserToolbar";
 import { usePersistentWebview } from "./hooks/usePersistentWebview";
 
@@ -24,9 +25,15 @@ function getSingleBrowserPane(
 
 export function renderBrowserTabIcon(tab: Tab<PaneViewerData>) {
 	const browser = getSingleBrowserPane(tab);
-	if (!browser?.data.faviconUrl) return null;
+	if (!browser) return null;
+	const faviconUrl = browser.data.faviconUrl ?? null;
+	// Keyed by page + favicon URL so a failed favicon retries on navigation
+	// even when the favicon URL itself is unchanged.
 	return (
-		<img src={browser.data.faviconUrl} alt="" className="size-3.5 shrink-0" />
+		<BrowserTabFavicon
+			key={`${browser.data.url}|${faviconUrl ?? "none"}`}
+			src={faviconUrl}
+		/>
 	);
 }
 
@@ -125,7 +132,7 @@ export function BrowserPaneToolbar({ ctx }: BrowserPaneToolbarProps) {
 			/>
 			<div className="flex shrink-0 items-center pr-1">
 				<div className="mx-1.5 h-3.5 w-px bg-muted-foreground/60" />
-				<Tooltip>
+				<Tooltip disableHoverableContent>
 					<TooltipTrigger asChild>
 						<button
 							type="button"

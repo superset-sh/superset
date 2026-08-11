@@ -157,6 +157,8 @@ interface MarkdownEditorProps {
 		fileMention?: boolean;
 		bubbleMenu?: boolean;
 	};
+	/** false renders the content read-only. */
+	editable?: boolean;
 }
 
 function getMarkdown(editor: Editor | null): string {
@@ -212,6 +214,7 @@ export function MarkdownEditor({
 	searchFiles,
 	onPasteFiles,
 	features,
+	editable = true,
 }: MarkdownEditorProps) {
 	const showSlashCommand = features?.slashCommand ?? true;
 	const showEmoji = features?.emoji ?? true;
@@ -231,6 +234,7 @@ export function MarkdownEditor({
 	const urlPolicy = useInlineUrlPolicy();
 
 	const editor = useEditor({
+		editable,
 		autofocus: autoFocus === true ? "end" : autoFocus || false,
 		extensions: [
 			Document,
@@ -424,6 +428,10 @@ export function MarkdownEditor({
 	editorRef.current = editor;
 
 	useEffect(() => {
+		if (editor && editor.isEditable !== editable) editor.setEditable(editable);
+	}, [editable, editor]);
+
+	useEffect(() => {
 		if (!editor || editor.isFocused) return;
 
 		const currentMarkdown = getMarkdown(editor);
@@ -434,7 +442,7 @@ export function MarkdownEditor({
 
 	return (
 		<div className={cn("w-full", className)}>
-			{showBubbleMenu && editor && (
+			{showBubbleMenu && editable && editor && (
 				<BubbleMenu
 					editor={editor}
 					options={{
