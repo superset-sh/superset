@@ -7,6 +7,10 @@ import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
 import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
 import {
+	buildFishPromptCommandString,
+	parsePromptHeredocCommand,
+} from "@superset/shared/agent-prompt-launch";
+import {
 	createScanState,
 	type ShellReadyScanState,
 	scanForShellReady,
@@ -341,6 +345,32 @@ const GRACE_ECHO_QUIET_MS = 250;
 const GRACE_ECHO_MAX_RETYPES = 2;
 
 /**
+ * Output silence required before an ungated launch (no marker expected at
+ * all: unwrapped bash, sh/ksh, nushell) types its initialCommand. Typing
+ * while startup output is still streaming is how reedline-class editors
+ * (nushell) lose the command outright: they enable raw mode after init and
+ * flush pending typeahead — the kernel-echoed command looks delivered but the
+ * editor never held it (#6024). Quiescence alone is not enough (a silent
+ * startup `read -t` window looks quiescent, #3941/#5712) — that's what the
+ * echo verification below catches.
+ */
+const UNGATED_QUIESCENT_MS = 500;
+
+/**
+ * Cap on each quiescence wait so a busy startup (spinners, streaming MOTD)
+ * can only delay an ungated launch, never park it. After the cap the launch
+ * proceeds to the echo-verified type, whose retype loop is the real guard.
+ */
+const UNGATED_QUIESCENCE_CAP_MS = 8_000;
+
+/**
+ * Echo window for ungated launches. Must cover the post-echo quiet
+ * requirement (INITIAL_COMMAND_ENTER_DELAY_MS, doing double duty as the
+ * text→Enter separation) plus echo latency.
+ */
+const UNGATED_ECHO_WINDOW_MS = 1_800;
+
+/**
  * Gap between writing the initialCommand text and the Enter (`\r`) that runs
  * it. The shell-ready marker fires from precmd, before the line editor reads
  * input — plugin init in that window can flush the PTY input queue, eating a
@@ -444,6 +474,11 @@ interface TerminalSession {
 	 * chunk so typeInitialCommandVerifyingEcho can see its text echo back.
 	 */
 	echoProbe: ((bytes: Uint8Array) => void) | null;
+	/**
+	 * Trailing bytes of the previous output chunk (up to 3), so a DSR cursor
+	 * query (`ESC[6n`) straddling a chunk boundary is still recognized.
+	 */
+	dsrCarry: Uint8Array;
 	initialCommandQueued: boolean;
 	/**
 	 * Basename of the launch shell. Picks the source keyword when a long
@@ -1060,6 +1095,64 @@ function readRetainedFrom(session: TerminalSession, from: number): Uint8Array {
  * counts toward `outputSeq` MUST flow through here and nowhere else, or
  * seq-aware clients drift out of sync.
  */
+/** ESC [ 6 n — DSR cursor position report request. */
+const DSR_CURSOR_QUERY = new Uint8Array([0x1b, 0x5b, 0x36, 0x6e]);
+
+/**
+ * Count DSR cursor queries in this chunk (joined with the previous chunk's
+ * tail so boundary-straddling sequences still match) and update the carry.
+ */
+function scanForDsrCursorQueries(
+	session: TerminalSession,
+	chunk: Uint8Array,
+): number {
+	const joined = new Uint8Array(session.dsrCarry.length + chunk.length);
+	joined.set(session.dsrCarry, 0);
+	joined.set(chunk, session.dsrCarry.length);
+	let count = 0;
+	// Start where a match could involve carried bytes; matches wholly inside
+	// the carry were already counted last chunk.
+	for (
+		let i = Math.max(
+			0,
+			session.dsrCarry.length - (DSR_CURSOR_QUERY.length - 1),
+		);
+		i + DSR_CURSOR_QUERY.length <= joined.length;
+		i++
+	) {
+		let matched = true;
+		for (let j = 0; j < DSR_CURSOR_QUERY.length; j++) {
+			if (joined[i + j] !== DSR_CURSOR_QUERY[j]) {
+				matched = false;
+				break;
+			}
+		}
+		if (matched) count++;
+	}
+	session.dsrCarry = joined.slice(
+		Math.max(0, joined.length - (DSR_CURSOR_QUERY.length - 1)),
+	);
+	return count;
+}
+
+/**
+ * Answer a program's DSR cursor query when no renderer is attached to do it.
+ * reedline (nushell) asks `ESC[6n` after init and will not paint its prompt —
+ * or accept input — until the terminal answers; a preset launch into an
+ * unattached session therefore wedged forever (#6024). An attached renderer's
+ * xterm answers by itself (so we stay silent then, like tmux does for
+ * attached clients); for unattached sessions the mirrored headless screen is
+ * the truth and answers with the real cursor position.
+ */
+function answerDsrCursorQueries(session: TerminalSession, count: number) {
+	if (count === 0 || session.exited) return;
+	if (pruneAndCountOpenSockets(session) > 0) return;
+	const { x, y } = session.modeTracker.cursorPosition();
+	for (let i = 0; i < count; i++) {
+		session.pty.write(`\x1b[${y + 1};${x + 1}R`);
+	}
+}
+
 function deliverOutput(session: TerminalSession, bytes: Uint8Array) {
 	session.modeTracker.feed(bytes);
 	retainOutput(session, bytes);
@@ -1477,15 +1570,39 @@ function judgeCommandEcho(
 }
 
 /**
+ * The part of the echoed stream after the last full probe occurrence that the
+ * typed command itself cannot explain. The echo of a command longer than its
+ * probe legitimately continues past it, so the tail is only unexpected once
+ * it diverges from (or extends beyond) that remainder. Whitespace is ignored
+ * on both sides — editor repaints and line wraps shuffle it freely. A
+ * non-empty result after an intact echo is the reedline-flush signature: the
+ * kernel echoed the bytes at input time, the editor then finished starting
+ * up (painting a banner or prompt AFTER the echo) and flushed the typeahead,
+ * so the intact-looking command was never held by the line editor.
+ */
+function unexpectedEchoTail(tail: string, expectedRemainder: string): string {
+	const seen = tail.replace(/\s+/g, "");
+	const expected = expectedRemainder.replace(/\s+/g, "");
+	if (expected.startsWith(seen)) return "";
+	if (seen.startsWith(expected)) return seen.slice(expected.length);
+	return seen;
+}
+
+/**
  * Resolve true once `probe` echoes back intact and the stream then stays
  * quiet long enough for a mangle signature to have shown up; false on a
  * detected mangle or when the window closes without an intact echo.
+ * `expectedRemainder` (ungated launches) additionally fails the wait when
+ * output after an intact echo isn't the typed command's own continuation —
+ * the flush signature described at unexpectedEchoTail.
  */
 function waitForCommandEcho(
 	session: TerminalSession,
 	probe: string,
 	windowMs: number,
+	opts?: { quietMs?: number; expectedRemainder?: string },
 ): Promise<boolean> {
+	const quietMs = opts?.quietMs ?? GRACE_ECHO_QUIET_MS;
 	return new Promise((resolve) => {
 		let raw = "";
 		let quietTimer: ReturnType<typeof setTimeout> | null = null;
@@ -1510,12 +1627,47 @@ function waitForCommandEcho(
 				clearTimeout(quietTimer);
 				quietTimer = null;
 			}
-			const verdict = judgeCommandEcho(stripEchoDecorations(raw), probe);
+			const cleaned = stripEchoDecorations(raw);
+			const verdict = judgeCommandEcho(cleaned, probe);
 			if (verdict === "mangled") {
 				finish(false);
 			} else if (verdict === "intact") {
-				quietTimer = setTimeout(() => finish(true), GRACE_ECHO_QUIET_MS);
+				if (opts?.expectedRemainder !== undefined) {
+					const tail = cleaned.slice(cleaned.lastIndexOf(probe) + probe.length);
+					if (unexpectedEchoTail(tail, opts.expectedRemainder) !== "") {
+						finish(false);
+						return;
+					}
+				}
+				quietTimer = setTimeout(() => finish(true), quietMs);
 			}
+		};
+	});
+}
+
+/**
+ * Resolve once the PTY stream has been silent for `quietMs` (capped at
+ * `capMs` so streaming startups can't park the launch). Uses the same
+ * single-slot echoProbe channel as waitForCommandEcho — the two never run
+ * concurrently for a session.
+ */
+function waitForOutputQuiescence(
+	session: TerminalSession,
+	quietMs: number,
+	capMs: number,
+): Promise<void> {
+	return new Promise((resolve) => {
+		const finish = () => {
+			session.echoProbe = null;
+			clearTimeout(quietTimer);
+			clearTimeout(capTimer);
+			resolve();
+		};
+		let quietTimer = setTimeout(finish, quietMs);
+		const capTimer = setTimeout(finish, capMs);
+		session.echoProbe = () => {
+			clearTimeout(quietTimer);
+			quietTimer = setTimeout(finish, quietMs);
 		};
 	});
 }
@@ -1538,22 +1690,124 @@ async function typeInitialCommandVerifyingEcho(
 	session: TerminalSession,
 	typedText: string,
 	probe: string,
-	scriptPath: string | null,
+	dropStagedFiles: () => void,
 	isDefunct: () => boolean,
 ): Promise<void> {
-	const dropStagedScript = () => {
-		// Enter never sent — the staged script won't run, so it can't self-delete.
-		if (scriptPath) void rm(scriptPath, { force: true }).catch(() => {});
-	};
 	for (let attempt = 0; attempt <= GRACE_ECHO_MAX_RETYPES; attempt++) {
-		if (isDefunct()) return dropStagedScript();
+		if (isDefunct()) return dropStagedFiles();
 		if (attempt > 0) session.pty.write("\x15");
 		session.pty.write(typedText);
 		if (await waitForCommandEcho(session, probe, GRACE_ECHO_WINDOW_MS)) break;
 	}
 	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
-	if (isDefunct()) return dropStagedScript();
+	if (isDefunct()) return dropStagedFiles();
 	session.pty.write("\r");
+}
+
+/**
+ * Ungated typing (shellLaunchExpectsReadyMarker() false — unwrapped bash,
+ * sh/ksh, nushell): there is no marker and never will be, so before this the
+ * command was typed the instant the PTY opened. Two startup classes ate it:
+ * a profile `read` steals the leading byte(s) (#3941/#5712), and reedline
+ * (nushell) flushes ALL pending typeahead when it enables raw mode after
+ * init — the command vanishes with an intact-looking kernel echo (#6024).
+ *
+ * So: wait for the startup output to go quiet (a shell at prompt is quiet; a
+ * banner-printing one isn't), type, then verify the echo. Quiescence can't
+ * see a silent `read -t` window — the echo mangle signature catches that —
+ * and the echo can't distinguish kernel echo from editor echo — the
+ * unexpected-tail rule (output after the echo that isn't the command's own
+ * continuation) catches the flush class. Failures re-quiesce before the
+ * Ctrl-U retype so the retry lands on the now-live editor instead of inside
+ * the same init storm. The accept path requires a full Enter-delay of
+ * post-echo quiet, which already provides the text→Enter separation, so
+ * Enter goes out immediately on acceptance. After the retry budget the
+ * command falls back to a blind Enter, exactly like the gated paths.
+ */
+async function typeInitialCommandUngated(
+	session: TerminalSession,
+	typedText: string,
+	probe: string,
+	dropStagedFiles: () => void,
+	isDefunct: () => boolean,
+): Promise<void> {
+	const expectedRemainder = Buffer.from(typedText, "utf8")
+		.toString("latin1")
+		.slice(probe.length);
+	for (let attempt = 0; attempt <= GRACE_ECHO_MAX_RETYPES; attempt++) {
+		if (attempt > 0) session.pty.write("\x15");
+		await waitForOutputQuiescence(
+			session,
+			UNGATED_QUIESCENT_MS,
+			UNGATED_QUIESCENCE_CAP_MS,
+		);
+		if (isDefunct()) return dropStagedFiles();
+		session.pty.write(typedText);
+		const verified = await waitForCommandEcho(
+			session,
+			probe,
+			UNGATED_ECHO_WINDOW_MS,
+			{
+				quietMs: INITIAL_COMMAND_ENTER_DELAY_MS,
+				expectedRemainder,
+			},
+		);
+		if (verified) {
+			if (isDefunct()) return dropStagedFiles();
+			session.pty.write("\r");
+			return;
+		}
+	}
+	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
+	if (isDefunct()) return dropStagedFiles();
+	session.pty.write("\r");
+}
+
+/**
+ * Rewrite a bash-only heredoc prompt transport for a fish launch shell. fish
+ * has no heredocs, so the shared "$(cat <<'SUPERSET_PROMPT_…')" transport
+ * dies at parse and the agent never starts (#4705). The prompt bytes go to a
+ * staged temp file (the `superset-launch-` prefix keeps it under the boot
+ * sweep's crash cleanup) and the typed command becomes the fish equivalent,
+ * which deletes the file as soon as it's consumed. POSIX shells keep today's
+ * heredoc byte-for-byte — this runs only when the launch shell is fish.
+ * Returns null (type the original text) for non-transport commands or when
+ * staging fails.
+ */
+function stageFishPromptTransport(
+	session: TerminalSession,
+	commandText: string,
+): { commandText: string; promptPath: string } | null {
+	const parsed = parsePromptHeredocCommand(commandText);
+	if (!parsed) return null;
+	const safeId = session.terminalId.replace(/[^\w-]/g, "_").slice(0, 60);
+	const promptPath = join(
+		tmpdir(),
+		`superset-launch-prompt-${safeId}-${randomBytes(4).toString("hex")}.txt`,
+	);
+	try {
+		// Trailing newline matches the heredoc body (`…\n` before the tag);
+		// both bash "$()" and fish `string collect` trim it back off.
+		writeFileSync(promptPath, `${parsed.prompt}\n`, {
+			mode: 0o600,
+			flag: "wx",
+		});
+	} catch (error) {
+		console.warn(
+			"[terminal] failed to stage fish prompt file; typing heredoc as-is",
+			{ terminalId: session.terminalId, error },
+		);
+		return null;
+	}
+	return {
+		commandText: buildFishPromptCommandString({
+			command: parsed.command,
+			suffix: parsed.suffix,
+			transport: parsed.transport,
+			promptFilePath: promptPath,
+		}),
+		promptPath,
+	};
 }
 
 function queueInitialCommand(
@@ -1578,19 +1832,37 @@ function queueInitialCommand(
 		sessions.get(session.terminalId) !== session;
 	void session.shellReadyPromise.then(() => {
 		if (isDefunct()) return;
+		const stagedPaths: string[] = [];
+		// Enter never sent — a staged script/prompt file won't run or be
+		// consumed, so it can't self-delete.
+		const dropStagedFiles = () => {
+			for (const staged of stagedPaths) {
+				void rm(staged, { force: true }).catch(() => {});
+			}
+		};
+		// fish can't parse the heredoc prompt transport — swap it for the
+		// staged-file equivalent before any typing decisions are made.
+		let effectiveCommand = commandText;
+		if (session.launchShellName === "fish") {
+			const fishStaged = stageFishPromptTransport(session, commandText);
+			if (fishStaged) {
+				effectiveCommand = fishStaged.commandText;
+				stagedPaths.push(fishStaged.promptPath);
+			}
+		}
 		// Even after the marker, the TTY is still in canonical mode (the marker
 		// fires from precmd, before the line editor takes over), so whatever we
 		// type here rides the kernel's MAX_CANON line limit. Long commands go
 		// to disk; only a short source line is typed.
-		let typedText = commandText;
-		let scriptPath: string | null = null;
+		let typedText = effectiveCommand;
 		if (
-			Buffer.byteLength(commandText, "utf8") > MAX_TYPED_INITIAL_COMMAND_BYTES
+			Buffer.byteLength(effectiveCommand, "utf8") >
+			MAX_TYPED_INITIAL_COMMAND_BYTES
 		) {
-			const staged = stageInitialCommandScript(session, commandText);
+			const staged = stageInitialCommandScript(session, effectiveCommand);
 			if (staged) {
 				typedText = staged.typedLine;
-				scriptPath = staged.scriptPath;
+				stagedPaths.push(staged.scriptPath);
 			}
 		}
 		// A grace-window timeout typed on learned evidence alone — no marker, no
@@ -1606,7 +1878,23 @@ function queueInitialCommand(
 					session,
 					typedText,
 					probe,
-					scriptPath,
+					dropStagedFiles,
+					isDefunct,
+				);
+				return;
+			}
+		}
+		// No marker was ever expected for this launch (unwrapped bash, sh/ksh,
+		// nushell): quiesce, type, and echo-verify instead of typing blind into
+		// whatever the startup is doing to stdin.
+		if (session.shellReadyState === "unsupported") {
+			const probe = commandEchoProbe(typedText);
+			if (probe) {
+				void typeInitialCommandUngated(
+					session,
+					typedText,
+					probe,
+					dropStagedFiles,
 					isDefunct,
 				);
 				return;
@@ -1623,9 +1911,7 @@ function queueInitialCommand(
 		session.pty.write(typedText);
 		setTimeout(() => {
 			if (isDefunct()) {
-				// Enter never sent — the staged script won't run, so it can't
-				// self-delete.
-				if (scriptPath) void rm(scriptPath, { force: true }).catch(() => {});
+				dropStagedFiles();
 				return;
 			}
 			session.pty.write("\r");
@@ -2190,6 +2476,7 @@ export async function createTerminalSessionInternal({
 		scanState: createScanState(),
 		usedMissingMarkerGrace: false,
 		echoProbe: null,
+		dsrCarry: new Uint8Array(0),
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
@@ -2265,7 +2552,11 @@ export async function createTerminalSessionInternal({
 				// — the chunk is still output and must refresh the idle clock.
 				portManager.checkOutputForHint(terminalId, hintText);
 
+				const dsrQueries = scanForDsrCursorQueries(session, bytes);
 				deliverOutput(session, bytes);
+				// After deliverOutput so the mirror has consumed this chunk and
+				// the reported cursor position is current.
+				answerDsrCursorQueries(session, dsrQueries);
 			},
 			onExit({ code, signal }) {
 				session.exited = true;
