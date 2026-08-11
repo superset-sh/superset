@@ -11,7 +11,7 @@ import {
 import { and, desc, eq, isNotNull, isNull } from "drizzle-orm";
 
 import { localDb } from "main/lib/local-db";
-import { invalidatePortLabelCache } from "../../ports/label-cache";
+import { invalidateStaticPortCache } from "../../ports/static-port-cache";
 import { computeNextProjectChildTabOrder } from "./project-children-order";
 
 /**
@@ -243,7 +243,7 @@ export function clearWorkspaceDeletingStatus(workspaceId: string): void {
  */
 export function deleteWorkspace(workspaceId: string): void {
 	localDb.delete(workspaces).where(eq(workspaces.id, workspaceId)).run();
-	invalidatePortLabelCache(workspaceId);
+	invalidateStaticPortCache(workspaceId);
 }
 
 /**

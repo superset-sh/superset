@@ -9,9 +9,10 @@ export {
 	type PortInfo,
 } from "./scanner.ts";
 export {
+	buildPortEnrichment,
 	type PortScheme,
 	parseStaticPortsConfig,
-	type StaticPortLabel,
+	type StaticPortEntry,
 	type StaticPortsParseResult,
 } from "./static-ports.ts";
 export type { DetectedPort } from "./types.ts";

@@ -5,7 +5,7 @@ import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { pullRequests } from "../../../db/schema";
-import { invalidateLabelCache } from "../../../ports/static-ports";
+import { invalidateStaticPortCache } from "../../../ports/static-ports";
 import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
@@ -563,10 +563,10 @@ async function runDestroyPhases(
 	// ─── Step 5: Caches ────────────────────────────────────────────
 	if (local) {
 		try {
-			invalidateLabelCache(input.workspaceId);
+			invalidateStaticPortCache(input.workspaceId);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
-			warnings.push(`Failed to invalidate label cache: ${message}`);
+			warnings.push(`Failed to invalidate static-port cache: ${message}`);
 		}
 	}
 

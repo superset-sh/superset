@@ -1,23 +1,21 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { buildPortUrl } from "./port-url";
 
 describe("buildPortUrl", () => {
-	test("defaults to http", () => {
+	it("defaults to http when no scheme is declared", () => {
 		expect(buildPortUrl({ port: 3000, scheme: null })).toBe(
 			"http://localhost:3000",
 		);
 		expect(buildPortUrl({ port: 3000, scheme: "http" })).toBe(
 			"http://localhost:3000",
 		);
+		// Absent entirely — a row from a host-service older than the field.
+		expect(buildPortUrl({ port: 8080 })).toBe("http://localhost:8080");
 	});
 
-	test("uses https when the port declares it", () => {
+	it("uses https when the port declares it", () => {
 		expect(buildPortUrl({ port: 3030, scheme: "https" })).toBe(
 			"https://localhost:3030",
 		);
-	});
-
-	test("treats a missing scheme like http, for rows from an older host-service", () => {
-		expect(buildPortUrl({ port: 8080 })).toBe("http://localhost:8080");
 	});
 });

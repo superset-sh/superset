@@ -11,11 +11,7 @@ export interface DashboardSidebarPort extends RemotePort {
 
 interface RemotePort extends DetectedPort {
 	label: string | null;
-	/**
-	 * Scheme declared in the workspace's `.superset/ports.json`. Optional because a
-	 * host-service older than the field sends no `scheme` at all; absent and null both
-	 * mean plain http.
-	 */
+	/** Optional: a host-service older than the field sends no `scheme` at all. */
 	scheme?: PortScheme | null;
 }
 
@@ -119,7 +115,7 @@ export function applyPortEventsToHostPortsResult(
 		if (event.eventType === "add") {
 			ports = [
 				...portsWithoutEventPort,
-				{ ...event.port, label: event.label, scheme: event.scheme ?? null },
+				{ ...event.port, label: event.label, scheme: event.scheme },
 			];
 			changed = true;
 		} else {
