@@ -312,6 +312,35 @@ const SHELL_READY_TIMEOUT_MS = 15_000;
 const SHELL_READY_MISSING_MARKER_GRACE_MS = 2_000;
 
 /**
+ * How long a grace-window launch watches the PTY stream for its own command
+ * echoing back before concluding a startup stdin reader ate it. The grace
+ * fires on learned evidence, not an observed prompt, so an oh-my-zsh-style
+ * `read` can still be consuming the TTY when we type (the #3941 eater class
+ * combined with a marker-less profile). Echo is the same kind of evidence the
+ * marker was: proof of what the shell actually received.
+ */
+const GRACE_ECHO_WINDOW_MS = 1_200;
+
+/**
+ * Output silence required after an intact-looking echo before trusting it.
+ * The kernel echoes typed bytes at input time, before any reader consumes
+ * them, so an intact echo alone can't prove the line editor holds the text —
+ * a raw-mode `read -k` steals the first byte(s) anyway and the surviving
+ * suffix re-echoes moments later when the editor drains the queue. The quiet
+ * window gives that mangle signature time to arrive.
+ */
+const GRACE_ECHO_QUIET_MS = 250;
+
+/**
+ * Retype attempts (Ctrl-U + text) after a missed or mangled echo before
+ * falling back to typing blind, exactly like the marker-timeout path always
+ * has. Each cycle costs at most one echo window, so this also bounds added
+ * latency when echo detection false-negatives (a TUI repainting instead of
+ * echoing).
+ */
+const GRACE_ECHO_MAX_RETYPES = 2;
+
+/**
  * Gap between writing the initialCommand text and the Enter (`\r`) that runs
  * it. The shell-ready marker fires from precmd, before the line editor reads
  * input — plugin init in that window can flush the PTY input queue, eating a
@@ -404,6 +433,17 @@ interface TerminalSession {
 	shellReadyPromise: Promise<void>;
 	shellReadyTimeoutId: ReturnType<typeof setTimeout> | null;
 	scanState: ShellReadyScanState;
+	/**
+	 * True when this launch's readiness timeout was the short learned grace
+	 * rather than the full fallback. A grace timeout types while startup may
+	 * still be consuming stdin, so that path must echo-verify what it typed.
+	 */
+	usedMissingMarkerGrace: boolean;
+	/**
+	 * Active echo watcher for a grace-window initialCommand: fed every output
+	 * chunk so typeInitialCommandVerifyingEcho can see its text echo back.
+	 */
+	echoProbe: ((bytes: Uint8Array) => void) | null;
 	initialCommandQueued: boolean;
 	/**
 	 * Basename of the launch shell. Picks the source keyword when a long
@@ -1373,6 +1413,149 @@ function stageInitialCommandScript(
 	return { typedLine: `${sourceKeyword} ${quotedPath}`, scriptPath };
 }
 
+/**
+ * Longest leading run of printable ASCII from the typed line, capped so the
+ * probe fits on one terminal row even after a prompt. The prefix is what a
+ * stdin eater mangles (it consumes from the front), so it's both the match
+ * target and the mangle detector (see judgeCommandEcho). Returns null when
+ * the command starts with bytes a terminal won't echo verbatim — those
+ * launches type blind, exactly as before.
+ */
+function commandEchoProbe(typedText: string): string | null {
+	let end = 0;
+	while (end < typedText.length && end < 32) {
+		const code = typedText.charCodeAt(end);
+		if (code < 0x20 || code > 0x7e) break;
+		end++;
+	}
+	const probe = typedText.slice(0, end);
+	return probe.length >= 6 ? probe : null;
+}
+
+/**
+ * Strip escape sequences and control bytes so echoed text can be matched
+ * regardless of prompt colors, syntax-highlight repaints, or line wraps
+ * (which only insert controls/CSI between the printable characters).
+ */
+function stripEchoDecorations(raw: string): string {
+	return (
+		raw
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping OSC sequences intentionally
+			.replace(/\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)?/g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping DCS/SOS/PM/APC sequences intentionally
+			.replace(/\x1b[PX^_][\s\S]*?(?:\x1b\\|\x07|$)/g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping CSI sequences intentionally
+			.replace(/\x1b\[[0-9;:?<=>]*[ -/]*[@-~]/g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping two-byte escapes intentionally
+			.replace(/\x1b./g, "")
+			// biome-ignore lint/suspicious/noControlCharactersInRegex: stripping control chars intentionally
+			.replace(/[\x00-\x1f\x7f]/g, "")
+	);
+}
+
+/**
+ * Judge the echoed stream against the typed probe. `intact` needs the full
+ * probe present with no orphan suffix after its last occurrence: a startup
+ * reader that stole leading byte(s) leaves the intact kernel echo in place
+ * and then re-echoes the surviving tail when the line editor drains the
+ * queue (`date +%s …` followed by `ate +%s …`), so a reappearing proper
+ * suffix means the editor holds a mangled copy. `mangled` is definitive —
+ * the caller retypes immediately instead of waiting out the window.
+ */
+function judgeCommandEcho(
+	cleaned: string,
+	probe: string,
+): "absent" | "intact" | "mangled" {
+	const lastFull = cleaned.lastIndexOf(probe);
+	if (lastFull === -1) return "absent";
+	const tail = cleaned.slice(lastFull + probe.length);
+	// Suffixes shorter than 3 chars collide with prompts/status text too easily.
+	for (let cut = 1; cut <= probe.length - 3; cut++) {
+		if (tail.includes(probe.slice(cut))) return "mangled";
+	}
+	return "intact";
+}
+
+/**
+ * Resolve true once `probe` echoes back intact and the stream then stays
+ * quiet long enough for a mangle signature to have shown up; false on a
+ * detected mangle or when the window closes without an intact echo.
+ */
+function waitForCommandEcho(
+	session: TerminalSession,
+	probe: string,
+	windowMs: number,
+): Promise<boolean> {
+	return new Promise((resolve) => {
+		let raw = "";
+		let quietTimer: ReturnType<typeof setTimeout> | null = null;
+		const finish = (ok: boolean) => {
+			session.echoProbe = null;
+			clearTimeout(windowTimer);
+			if (quietTimer) clearTimeout(quietTimer);
+			resolve(ok);
+		};
+		const windowTimer = setTimeout(() => finish(false), windowMs);
+		session.echoProbe = (bytes) => {
+			raw += Buffer.from(
+				bytes.buffer,
+				bytes.byteOffset,
+				bytes.byteLength,
+			).toString("latin1");
+			// Keep the tail bounded; far more than enough overlap for the probe.
+			if (raw.length > 65_536) raw = raw.slice(-32_768);
+			// Every chunk re-opens the quiet window — whatever painted may have
+			// been the start of a mangle signature.
+			if (quietTimer) {
+				clearTimeout(quietTimer);
+				quietTimer = null;
+			}
+			const verdict = judgeCommandEcho(stripEchoDecorations(raw), probe);
+			if (verdict === "mangled") {
+				finish(false);
+			} else if (verdict === "intact") {
+				quietTimer = setTimeout(() => finish(true), GRACE_ECHO_QUIET_MS);
+			}
+		};
+	});
+}
+
+/**
+ * Grace-window typing (learned `missing` evidence, no observed prompt): a
+ * startup stdin reader can still be consuming the TTY when the grace fires —
+ * the oh-my-zsh-updater `read` of #3941 on a profile that also never delivers
+ * the marker — and a blindly typed command loses its leading byte(s) to it
+ * (`claude` runs as `laude`). So watch the stream for the command echoing
+ * back intact; when the echo doesn't appear, clear the line and retype.
+ * Ctrl-U is safe in every mode the TTY can be in here — kill-line for a live
+ * line editor, the canonical kill character for kernel-queued input, and a
+ * literal 0x15 the editor will treat as kill when it drains a raw queue — so
+ * a false-negative echo costs a retype, never a corrupted command. After the
+ * retry budget the command is typed blind, matching the old fallback path:
+ * it must eventually run.
+ */
+async function typeInitialCommandVerifyingEcho(
+	session: TerminalSession,
+	typedText: string,
+	probe: string,
+	scriptPath: string | null,
+	isDefunct: () => boolean,
+): Promise<void> {
+	const dropStagedScript = () => {
+		// Enter never sent — the staged script won't run, so it can't self-delete.
+		if (scriptPath) void rm(scriptPath, { force: true }).catch(() => {});
+	};
+	for (let attempt = 0; attempt <= GRACE_ECHO_MAX_RETYPES; attempt++) {
+		if (isDefunct()) return dropStagedScript();
+		if (attempt > 0) session.pty.write("\x15");
+		session.pty.write(typedText);
+		if (await waitForCommandEcho(session, probe, GRACE_ECHO_WINDOW_MS)) break;
+	}
+	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
+	if (isDefunct()) return dropStagedScript();
+	session.pty.write("\r");
+}
+
 function queueInitialCommand(
 	session: TerminalSession,
 	initialCommand: string,
@@ -1408,6 +1591,25 @@ function queueInitialCommand(
 			if (staged) {
 				typedText = staged.typedLine;
 				scriptPath = staged.scriptPath;
+			}
+		}
+		// A grace-window timeout typed on learned evidence alone — no marker, no
+		// observed prompt — so startup may still be reading stdin. That path
+		// must verify its own echo instead of trusting the write.
+		if (
+			session.shellReadyState === "timed_out" &&
+			session.usedMissingMarkerGrace
+		) {
+			const probe = commandEchoProbe(typedText);
+			if (probe) {
+				void typeInitialCommandVerifyingEcho(
+					session,
+					typedText,
+					probe,
+					scriptPath,
+					isDefunct,
+				);
+				return;
 			}
 		}
 		// The OSC 133;A marker fires from precmd, which runs BEFORE the line
@@ -1986,6 +2188,8 @@ export async function createTerminalSessionInternal({
 		shellReadyPromise,
 		shellReadyTimeoutId: null,
 		scanState: createScanState(),
+		usedMissingMarkerGrace: false,
+		echoProbe: null,
 		// Adopted sessions have already run their initialCommand in the prior
 		// host-service lifetime — flag it as queued so we don't double-fire it.
 		initialCommandQueued: isAdopted,
@@ -2007,13 +2211,17 @@ export async function createTerminalSessionInternal({
 	if (session.shellReadyState === "pending") {
 		// Size the wait to observed reality: on machines whose profile never
 		// delivers the marker, the full wait *is* the launch latency.
-		const readyWaitMs =
-			getShellReadyMarkerEvidence(session.launchShellName) === "missing"
+		const missingEvidence =
+			getShellReadyMarkerEvidence(session.launchShellName) === "missing";
+		session.usedMissingMarkerGrace = missingEvidence;
+		session.shellReadyTimeoutId = setTimeout(
+			() => {
+				resolveShellReady(session, "timed_out");
+			},
+			missingEvidence
 				? SHELL_READY_MISSING_MARKER_GRACE_MS
-				: SHELL_READY_TIMEOUT_MS;
-		session.shellReadyTimeoutId = setTimeout(() => {
-			resolveShellReady(session, "timed_out");
-		}, readyWaitMs);
+				: SHELL_READY_TIMEOUT_MS,
+		);
 	}
 
 	session.unsubscribeDaemon = daemon.subscribe(
@@ -2041,6 +2249,8 @@ export async function createTerminalSessionInternal({
 					}
 				}
 				if (bytes.byteLength === 0) return;
+
+				session.echoProbe?.(bytes);
 
 				// portManager.checkOutputForHint runs URL/port regexes on
 				// strings; the per-session StringDecoder buffers partial

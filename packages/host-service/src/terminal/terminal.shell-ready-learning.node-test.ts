@@ -91,7 +91,9 @@ export ZDOTDIR="$_superset_home"
 	);
 }
 
-async function launchAndMeasure(command: string): Promise<number> {
+async function launchAndMeasure(
+	command: string,
+): Promise<{ elapsed: number; body: string }> {
 	const terminalId = `e2e-ready-${randomUUID().slice(0, 8)}`;
 	const outFile = path.join(TEST_HOME, `out-${terminalId}`);
 	const start = Date.now();
@@ -105,8 +107,11 @@ async function launchAndMeasure(command: string): Promise<number> {
 	assert.ok(!("error" in session), "error" in session ? session.error : "");
 	await waitFor(() => fs.existsSync(outFile), 25_000);
 	const elapsed = Date.now() - start;
+	// Small settle so the redirect finishes writing before we read it back.
+	await new Promise((r) => setTimeout(r, 150));
+	const body = fs.readFileSync(outFile, "utf8").trim();
 	await disposeSessionAndWait(terminalId, db);
-	return elapsed;
+	return { elapsed, body };
 }
 
 function readEvidenceFile(): Record<string, string> {
@@ -187,7 +192,7 @@ describe("shell-ready evidence learning", () => {
 			"wrapper files should make the launch marker-backed",
 		);
 
-		const elapsed = await launchAndMeasure("date +%s");
+		const { elapsed } = await launchAndMeasure("date +%s");
 		assert.ok(
 			elapsed < 10_000,
 			`healthy profile took ${elapsed}ms — gate fell back to the timeout`,
@@ -208,19 +213,19 @@ describe("shell-ready evidence learning", () => {
 
 			const first = await launchAndMeasure("date +%s");
 			assert.ok(
-				first >= 15_000,
-				`first marker-less launch took ${first}ms — expected the full 15s fallback`,
+				first.elapsed >= 15_000,
+				`first marker-less launch took ${first.elapsed}ms — expected the full 15s fallback`,
 			);
 			await waitFor(() => readEvidenceFile().zsh === "missing", 5_000);
 
 			const second = await launchAndMeasure("date +%s");
 			assert.ok(
-				second < 10_000,
-				`branded-missing launch took ${second}ms — evidence should shrink the wait`,
+				second.elapsed < 10_000,
+				`branded-missing launch took ${second.elapsed}ms — evidence should shrink the wait`,
 			);
 			assert.ok(
-				second >= 2_000,
-				`branded-missing launch took ${second}ms — grace period should still apply`,
+				second.elapsed >= 2_000,
+				`branded-missing launch took ${second.elapsed}ms — grace period should still apply`,
 			);
 		},
 	);
@@ -230,13 +235,59 @@ describe("shell-ready evidence learning", () => {
 		// so the very next launch re-learns `delivered`.
 		fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
 
-		const elapsed = await launchAndMeasure("date +%s");
+		const { elapsed } = await launchAndMeasure("date +%s");
 		assert.ok(
 			elapsed < 10_000,
 			`recovered profile took ${elapsed}ms — expected a prompt launch`,
 		);
 		await waitFor(() => readEvidenceFile().zsh === "delivered", 5_000);
 	});
+
+	test(
+		"stdin-eating marker-less profile: grace launch survives a startup `read`",
+		{ timeout: 60_000 },
+		async () => {
+			// Adversarial combo (the omz-updater class of #3941, on a machine
+			// whose marker also never arrives): a startup `read` is consuming the
+			// TTY when the learned grace window fires, so a blindly typed command
+			// loses its first byte(s) — `date …` runs as `ate …`, performing the
+			// redirect (empty out file) and then failing. The grace path must
+			// verify the command echoed back intact and retype it if not.
+			fs.writeFileSync(
+				path.join(FAKE_USER_HOME, ".zshrc"),
+				"read -t 3 -k 1 _j || true\nexec /bin/zsh -f\n",
+			);
+
+			// Previous test re-learned `delivered`, so this first launch rides
+			// the full fallback (typing at 15s, long after the eater is gone)
+			// and re-brands the shell `missing`.
+			const first = await launchAndMeasure("date +%s");
+			assert.ok(
+				first.elapsed >= 15_000,
+				`first eater launch took ${first.elapsed}ms — expected the full 15s fallback`,
+			);
+			assert.match(
+				first.body,
+				/^\d{10}$/,
+				`first eater launch produced ${JSON.stringify(first.body)} — command mangled`,
+			);
+			await waitFor(() => readEvidenceFile().zsh === "missing", 5_000);
+
+			// Grace-window launch fires while `read -t 3` is still eating stdin.
+			const second = await launchAndMeasure("date +%s");
+			assert.match(
+				second.body,
+				/^\d{10}$/,
+				`grace launch produced ${JSON.stringify(second.body)} — the startup read ate the command`,
+			);
+			assert.ok(
+				second.elapsed < 10_000,
+				`grace launch took ${second.elapsed}ms — echo verification gave back the latency win`,
+			);
+
+			fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
+		},
+	);
 });
 
 async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
