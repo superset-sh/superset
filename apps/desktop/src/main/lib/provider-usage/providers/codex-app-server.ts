@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import { createInterface } from "node:readline";
 import type { Readable, Writable } from "node:stream";
+import { getProcessEnvWithShellPath } from "lib/trpc/routers/workspaces/utils/shell-env";
 
 export type CodexRateLimitsReadResult =
 	| { status: "ok"; value: unknown }
@@ -16,13 +17,16 @@ export interface CodexAppServerProcess {
 }
 
 interface CodexAppServerReaderDependencies {
-	startServer: () => CodexAppServerProcess;
+	startServer: (env: Record<string, string>) => CodexAppServerProcess;
+	getEnv?: () => Promise<Record<string, string>>;
 	timeoutMs?: number;
 }
 
-function startCodexAppServer(): CodexAppServerProcess {
+function startCodexAppServer(
+	env: Record<string, string>,
+): CodexAppServerProcess {
 	const child = spawn("codex", ["app-server", "--stdio"], {
-		env: process.env,
+		env,
 		stdio: ["pipe", "pipe", "ignore"],
 	});
 	return {
@@ -41,14 +45,35 @@ function isMissingExecutable(error: NodeJS.ErrnoException): boolean {
 	return error.code === "ENOENT";
 }
 
+function defaultCodexHomeEnv(
+	env: Record<string, string>,
+): Record<string, string> {
+	const {
+		CODEX_HOME: _codexHome,
+		CODEX_SQLITE_HOME: _sqliteHome,
+		...rest
+	} = env;
+	return rest;
+}
+
 export function createCodexAppServerReader(
 	dependencies: CodexAppServerReaderDependencies,
 ): () => Promise<CodexRateLimitsReadResult> {
-	return async () =>
-		new Promise((resolve) => {
+	return async () => {
+		let env: Record<string, string>;
+		try {
+			env = dependencies.getEnv
+				? await dependencies.getEnv()
+				: await getProcessEnvWithShellPath();
+		} catch {
+			env = process.env as Record<string, string>;
+		}
+		env = defaultCodexHomeEnv(env);
+
+		return new Promise((resolve) => {
 			let server: CodexAppServerProcess;
 			try {
-				server = dependencies.startServer();
+				server = dependencies.startServer(env);
 			} catch (error) {
 				resolve(
 					isMissingExecutable(error as NodeJS.ErrnoException)
@@ -128,8 +153,10 @@ export function createCodexAppServerReader(
 				},
 			});
 		});
+	};
 }
 
 export const readCodexRateLimits = createCodexAppServerReader({
 	startServer: startCodexAppServer,
+	getEnv: getProcessEnvWithShellPath,
 });

@@ -65,6 +65,47 @@ describe("parseClaudeUsageResponse", () => {
 		]);
 		expect(parseClaudeUsageResponse(null)).toEqual([]);
 	});
+
+	test("surfaces model-scoped weekly limits such as Fable", () => {
+		expect(
+			parseClaudeUsageResponse({
+				five_hour: { utilization: 20, resets_at: 1_774_119_600 },
+				seven_day: { utilization: 30, resets_at: null },
+				limits: [
+					{
+						kind: "weekly_model",
+						group: "weekly",
+						percent: 64,
+						resets_at: "2026-07-25T09:02:00.000Z",
+						scope: { model: { display_name: "Fable" } },
+					},
+					{
+						kind: "session",
+						group: "session",
+						percent: 12,
+						scope: { model: { display_name: "Ignored" } },
+					},
+				],
+			}).map(({ id, label, usedPercent, remainingPercent, resetAt }) => ({
+				id,
+				label,
+				usedPercent,
+				remainingPercent,
+				resetAt,
+			})),
+		).toContainEqual({
+			id: "limit:weekly_model:fable",
+			label: "Fable wk",
+			usedPercent: 64,
+			remainingPercent: 36,
+			resetAt: Date.parse("2026-07-25T09:02:00.000Z"),
+		});
+		expect(
+			parseClaudeUsageResponse({
+				five_hour: { utilization: 20, resets_at: 1_774_119_600 },
+			})[0]?.resetAt,
+		).toBe(1_774_119_600_000);
+	});
 });
 
 describe("collectClaudeUsage", () => {

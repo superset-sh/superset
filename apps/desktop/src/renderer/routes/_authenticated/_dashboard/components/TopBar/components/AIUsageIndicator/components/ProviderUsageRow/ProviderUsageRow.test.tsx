@@ -8,6 +8,7 @@ const claudeProvider: ProviderUsage = {
 	providerName: "Claude",
 	status: "ok",
 	accountLabel: "Max",
+	activeAccountId: "claude:max",
 	windows: [
 		{
 			id: "five_hour",
@@ -16,6 +17,28 @@ const claudeProvider: ProviderUsage = {
 			remainingPercent: 48,
 			resetAt: Date.now() + 60 * 60_000,
 			windowSeconds: 18_000,
+		},
+	],
+	accounts: [
+		{
+			id: "claude:max",
+			providerId: "claude",
+			profileName: "max",
+			accountLabel: "Max",
+			planLabel: "Max",
+			isActive: true,
+			status: "ok",
+			statusMessage: null,
+			windows: [
+				{
+					id: "five_hour",
+					label: "5 hour",
+					usedPercent: 52,
+					remainingPercent: 48,
+					resetAt: Date.now() + 60 * 60_000,
+					windowSeconds: 18_000,
+				},
+			],
 		},
 	],
 	errorMessage: null,
@@ -43,11 +66,30 @@ describe("ProviderUsageRow", () => {
 					...claudeProvider,
 					status: "not-configured",
 					windows: [],
+					accounts: [],
 				}}
 			/>,
 		);
 
 		expect(markup).toContain("Sign in with Claude CLI to see limits.");
+		expect(markup).not.toContain('role="progressbar"');
+	});
+
+	test("renders the provider error message when usage is unavailable", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow
+				provider={{
+					...claudeProvider,
+					status: "unavailable",
+					windows: [],
+					accounts: [],
+					errorMessage: "Claude usage is temporarily unavailable.",
+				}}
+			/>,
+		);
+
+		expect(markup).toContain("Claude usage is temporarily unavailable.");
+		expect(markup).toContain("Temporarily unavailable");
 		expect(markup).not.toContain('role="progressbar"');
 	});
 
@@ -74,5 +116,89 @@ describe("ProviderUsageRow", () => {
 
 		expect(markup).toContain("Max");
 		expect(markup).not.toContain("Email hidden");
+	});
+
+	test("renders inactive cached accounts separately from the active account", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow
+				provider={{
+					...claudeProvider,
+					accounts: [
+						...claudeProvider.accounts,
+						{
+							id: "claude:team",
+							providerId: "claude",
+							profileName: "team",
+							accountLabel: "team@example.com",
+							planLabel: "Team",
+							isActive: false,
+							status: "cached",
+							statusMessage: "cached 4m ago",
+							windows: [
+								{
+									id: "weekly",
+									label: "Weekly",
+									usedPercent: 25,
+									remainingPercent: 75,
+									resetAt: null,
+									windowSeconds: 604_800,
+								},
+							],
+						},
+					],
+				}}
+				blurEmails
+			/>,
+		);
+
+		expect(markup).toContain("team@example.com");
+		expect(markup).toContain("cached 4m ago");
+		expect(markup).toContain("75%");
+		expect(markup).toContain("Inactive");
+	});
+
+	test("keeps Codex account switching visible when usage is unavailable", () => {
+		const markup = renderToStaticMarkup(
+			<ProviderUsageRow
+				provider={{
+					providerId: "codex",
+					providerName: "Codex",
+					status: "unavailable",
+					accountLabel: "second@example.com",
+					activeAccountId: "codex:acct-b",
+					windows: [],
+					errorMessage: "Codex usage is temporarily unavailable.",
+					accounts: [
+						{
+							id: "codex:acct-b",
+							providerId: "codex",
+							profileName: "second-example-com",
+							accountLabel: "second@example.com",
+							planLabel: "pro",
+							isActive: true,
+							status: "no-data",
+							statusMessage: "Use Codex once to record limits",
+							windows: [],
+						},
+						{
+							id: "codex:acct-a",
+							providerId: "codex",
+							profileName: "first-example-com",
+							accountLabel: "first@example.com",
+							planLabel: "pro",
+							isActive: false,
+							status: "cached",
+							statusMessage: "cached",
+							windows: [],
+						},
+					],
+				}}
+			/>,
+		);
+
+		expect(markup).toContain("first@example.com");
+		expect(markup).toContain("Switch");
+		expect(markup).toContain("Codex usage is temporarily unavailable.");
+		expect(markup).toContain("Temporarily unavailable");
 	});
 });

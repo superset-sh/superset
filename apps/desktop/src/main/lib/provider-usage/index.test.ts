@@ -7,6 +7,8 @@ const claudeUsage: ProviderUsage = {
 	providerName: "Claude",
 	status: "ok",
 	accountLabel: "Max",
+	activeAccountId: "claude:active",
+	accounts: [],
 	windows: [],
 	errorMessage: null,
 };
@@ -16,6 +18,8 @@ const codexUsage: ProviderUsage = {
 	providerName: "Codex",
 	status: "ok",
 	accountLabel: "Pro",
+	activeAccountId: "codex:active",
+	accounts: [],
 	windows: [],
 	errorMessage: null,
 };

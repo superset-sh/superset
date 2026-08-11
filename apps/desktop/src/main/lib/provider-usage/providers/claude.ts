@@ -17,7 +17,23 @@ const CLAUDE_KEYCHAIN_SERVICE = "Claude Code-credentials";
 
 const usageBucketSchema = z.object({
 	utilization: z.number().finite(),
-	resets_at: z.string().nullish(),
+	resets_at: z.union([z.string(), z.number()]).nullish(),
+});
+
+const limitBucketSchema = z.object({
+	kind: z.string().min(1),
+	group: z.string().nullish(),
+	percent: z.number().finite(),
+	resets_at: z.union([z.string(), z.number()]).nullish(),
+	scope: z
+		.object({
+			model: z
+				.object({
+					display_name: z.string().nullish(),
+				})
+				.nullish(),
+		})
+		.nullish(),
 });
 
 const credentialsSchema = z.object({
@@ -65,10 +81,23 @@ function clampPercent(value: number): number {
 	return Math.min(100, Math.max(0, value));
 }
 
-function parseResetAt(value: string | null | undefined): number | null {
+function parseResetAt(
+	value: string | number | null | undefined,
+): number | null {
 	if (!value) return null;
+	if (typeof value === "number") {
+		const timestamp = value < 1_000_000_000_000 ? value * 1_000 : value;
+		return Number.isFinite(timestamp) && timestamp > 0 ? timestamp : null;
+	}
 	const timestamp = Date.parse(value);
 	return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+function normalizeLimitId(value: string): string {
+	return value
+		.toLowerCase()
+		.replaceAll(/[^a-z0-9]+/g, "-")
+		.replaceAll(/^-+|-+$/g, "");
 }
 
 export function parseClaudeUsageResponse(value: unknown): UsageWindow[] {
@@ -85,6 +114,26 @@ export function parseClaudeUsageResponse(value: unknown): UsageWindow[] {
 			usedPercent,
 			remainingPercent: 100 - usedPercent,
 			resetAt: parseResetAt(bucket.data.resets_at),
+		});
+	}
+
+	const limits = Array.isArray(record.limits) ? record.limits : [];
+	for (const value of limits) {
+		const limit = limitBucketSchema.safeParse(value);
+		if (!limit.success) continue;
+		if (limit.data.kind === "session" || limit.data.kind === "weekly_all") {
+			continue;
+		}
+		const modelName = limit.data.scope?.model?.display_name ?? limit.data.kind;
+		const isWeekly = limit.data.group === "weekly";
+		const usedPercent = clampPercent(limit.data.percent);
+		windows.push({
+			id: `limit:${limit.data.kind}:${normalizeLimitId(modelName)}`,
+			label: `${modelName}${isWeekly ? " wk" : ""}`.trim(),
+			usedPercent,
+			remainingPercent: 100 - usedPercent,
+			resetAt: parseResetAt(limit.data.resets_at),
+			windowSeconds: isWeekly ? 7 * 24 * 60 * 60 : 5 * 60 * 60,
 		});
 	}
 	return windows;
@@ -172,6 +221,8 @@ export async function collectClaudeUsage(
 			providerName: "Claude",
 			status: "not-configured",
 			accountLabel: null,
+			activeAccountId: null,
+			accounts: [],
 			windows: [],
 			errorMessage: null,
 		};
@@ -197,6 +248,20 @@ export async function collectClaudeUsage(
 				providerName: "Claude",
 				status: "ok",
 				accountLabel: credentials.accountLabel,
+				activeAccountId: "claude:active",
+				accounts: [
+					{
+						id: "claude:active",
+						providerId: "claude",
+						profileName: "active",
+						accountLabel: credentials.accountLabel,
+						planLabel: credentials.accountLabel,
+						isActive: true,
+						status: "ok",
+						statusMessage: "live",
+						windows,
+					},
+				],
 				windows,
 				errorMessage: null,
 			};
@@ -210,6 +275,20 @@ export async function collectClaudeUsage(
 		providerName: "Claude",
 		status: "unavailable",
 		accountLabel: credentials.accountLabel,
+		activeAccountId: "claude:active",
+		accounts: [
+			{
+				id: "claude:active",
+				providerId: "claude",
+				profileName: "active",
+				accountLabel: credentials.accountLabel,
+				planLabel: credentials.accountLabel,
+				isActive: true,
+				status: "error",
+				statusMessage: "Claude usage is temporarily unavailable.",
+				windows: [],
+			},
+		],
 		windows: [],
 		errorMessage: "Claude usage is temporarily unavailable.",
 	};

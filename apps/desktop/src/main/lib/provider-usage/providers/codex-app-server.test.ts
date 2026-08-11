@@ -56,8 +56,18 @@ describe("createCodexAppServerReader", () => {
 			}
 			return null;
 		});
+		let receivedEnv: Record<string, string> | undefined;
 		const readRateLimits = createCodexAppServerReader({
-			startServer: () => server.process,
+			startServer: (env) => {
+				receivedEnv = env;
+				return server.process;
+			},
+			getEnv: async () => ({
+				PATH: "/shell/bin",
+				HOME: "/Users/test",
+				CODEX_HOME: "/custom/codex",
+				CODEX_SQLITE_HOME: "/custom/sqlite",
+			}),
 			timeoutMs: 1_000,
 		});
 
@@ -70,6 +80,9 @@ describe("createCodexAppServerReader", () => {
 			"initialized",
 			"account/rateLimits/read",
 		]);
+		expect(receivedEnv?.PATH).toBe("/shell/bin");
+		expect(receivedEnv).not.toHaveProperty("CODEX_HOME");
+		expect(receivedEnv).not.toHaveProperty("CODEX_SQLITE_HOME");
 	});
 
 	test("distinguishes a missing Codex executable from protocol failure", async () => {
@@ -77,6 +90,7 @@ describe("createCodexAppServerReader", () => {
 			startServer: () => {
 				throw Object.assign(new Error("missing"), { code: "ENOENT" });
 			},
+			getEnv: async () => ({ PATH: "/shell/bin" }),
 		});
 		await expect(missing()).resolves.toEqual({ status: "not-configured" });
 
@@ -84,6 +98,7 @@ describe("createCodexAppServerReader", () => {
 			startServer: () => {
 				throw new Error("broken");
 			},
+			getEnv: async () => ({ PATH: "/shell/bin" }),
 		});
 		await expect(broken()).resolves.toEqual({ status: "unavailable" });
 	});

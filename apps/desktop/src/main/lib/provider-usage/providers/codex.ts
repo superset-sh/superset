@@ -1,5 +1,6 @@
 import type {
 	ProviderUsage,
+	ProviderUsageAccount,
 	UsageWindow,
 } from "lib/trpc/routers/provider-usage.schema";
 import { z } from "zod";
@@ -7,6 +8,7 @@ import {
 	type CodexRateLimitsReadResult,
 	readCodexRateLimits,
 } from "./codex-app-server";
+import { type CodexIdentity, codexProfileStore } from "./codex-profiles";
 
 const rateLimitWindowSchema = z
 	.object({
@@ -29,11 +31,14 @@ const rateLimitsResponseSchema = z.object({
 
 interface ParsedCodexUsage {
 	accountLabel: string | null;
+	planLabel: string | null;
 	windows: UsageWindow[];
 }
 
 interface CodexUsageDependencies {
-	readRateLimits: () => Promise<CodexRateLimitsReadResult>;
+	readRateLimits?: () => Promise<CodexRateLimitsReadResult>;
+	profileStore?: typeof codexProfileStore;
+	now?: () => number;
 }
 
 function clampPercent(value: number): number {
@@ -69,11 +74,14 @@ function mapWindow(
 
 export function parseCodexUsageResponse(value: unknown): ParsedCodexUsage {
 	const parsed = rateLimitsResponseSchema.safeParse(value);
-	if (!parsed.success) return { accountLabel: null, windows: [] };
+	if (!parsed.success)
+		return { accountLabel: null, planLabel: null, windows: [] };
 	const snapshot =
 		parsed.data.rateLimitsByLimitId?.codex ?? parsed.data.rateLimits;
+	const planLabel = snapshot.planType?.toUpperCase() ?? null;
 	return {
-		accountLabel: snapshot.planType?.toUpperCase() ?? null,
+		accountLabel: planLabel,
+		planLabel,
 		windows: [
 			mapWindow("primary", snapshot.primary),
 			mapWindow("secondary", snapshot.secondary),
@@ -81,20 +89,122 @@ export function parseCodexUsageResponse(value: unknown): ParsedCodexUsage {
 	};
 }
 
-const defaultDependencies: CodexUsageDependencies = {
+const defaultDependencies = {
 	readRateLimits: readCodexRateLimits,
-};
+	profileStore: codexProfileStore,
+	now: Date.now,
+} satisfies Required<CodexUsageDependencies>;
+
+function statusFromAccounts(
+	accounts: ProviderUsageAccount[],
+): ProviderUsage["status"] {
+	if (accounts.some((account) => account.windows.length > 0)) return "ok";
+	if (accounts.length > 0) return "unavailable";
+	return "not-configured";
+}
+
+function currentAccountRow(
+	identity: CodexIdentity,
+	windows: UsageWindow[],
+	planLabel: string | null,
+): ProviderUsageAccount {
+	return {
+		id: `codex:${identity.accountId}`,
+		providerId: "codex",
+		profileName: identity.email ?? "current",
+		accountLabel: identity.email,
+		planLabel: planLabel ?? identity.plan,
+		isActive: true,
+		status: windows.length > 0 ? "ok" : "no-data",
+		statusMessage: windows.length > 0 ? "live" : "No reading yet",
+		windows,
+	};
+}
+
+function activeAccountFrom(
+	accounts: ProviderUsageAccount[],
+): ProviderUsageAccount | null {
+	return accounts.find((account) => account.isActive) ?? null;
+}
+
+function sameCodexIdentity(
+	first: CodexIdentity | null,
+	second: CodexIdentity | null,
+): boolean {
+	return Boolean(first && second && first.accountId === second.accountId);
+}
+
+async function rowsWithCurrentActive(
+	dependencies: Required<CodexUsageDependencies>,
+	activeIdentity: CodexIdentity | null,
+	activeWindows: UsageWindow[],
+	activePlanLabel: string | null,
+): Promise<ProviderUsageAccount[]> {
+	const accounts = await dependencies.profileStore.accountRows();
+	if (!activeIdentity) return accounts;
+	const activeId = `codex:${activeIdentity.accountId}`;
+	if (accounts.some((account) => account.id === activeId)) {
+		return accounts.map((account) =>
+			account.id === activeId
+				? {
+						...account,
+						isActive: true,
+						status: activeWindows.length > 0 ? "ok" : account.status,
+						statusMessage:
+							activeWindows.length > 0 ? "live" : account.statusMessage,
+						planLabel: activePlanLabel ?? account.planLabel,
+						windows: activeWindows.length > 0 ? activeWindows : account.windows,
+					}
+				: { ...account, isActive: false },
+		);
+	}
+	return [
+		currentAccountRow(activeIdentity, activeWindows, activePlanLabel),
+		...accounts.map((account) => ({ ...account, isActive: false })),
+	];
+}
 
 export async function collectCodexUsage(
 	dependencies: CodexUsageDependencies = defaultDependencies,
 ): Promise<ProviderUsage> {
-	const result = await dependencies.readRateLimits();
+	const resolved: Required<CodexUsageDependencies> = {
+		...defaultDependencies,
+		...dependencies,
+	};
+	const activeIdentity = resolved.profileStore.activeIdentity();
+	let liveWindows: UsageWindow[] = [];
+	let livePlanLabel: string | null = null;
+	const result = await resolved.readRateLimits();
+	const confirmedActiveIdentity = resolved.profileStore.activeIdentity();
 	if (result.status === "not-configured") {
+		const accounts = await rowsWithCurrentActive(
+			resolved,
+			confirmedActiveIdentity,
+			liveWindows,
+			livePlanLabel,
+		);
+		if (accounts.length > 0) {
+			const active = activeAccountFrom(accounts);
+			return {
+				providerId: "codex",
+				providerName: "Codex",
+				status: statusFromAccounts(accounts),
+				accountLabel: active?.accountLabel ?? active?.planLabel ?? null,
+				activeAccountId: active?.id ?? null,
+				accounts,
+				windows: active?.windows ?? [],
+				errorMessage: accounts.some((account) => account.windows.length > 0)
+					? null
+					: "Codex CLI is not installed.",
+			};
+		}
 		return {
 			providerId: "codex",
 			providerName: "Codex",
 			status: "not-configured",
 			accountLabel: null,
+			activeAccountId: null,
+			accounts: [],
 			windows: [],
 			errorMessage: null,
 		};
@@ -103,22 +213,79 @@ export async function collectCodexUsage(
 	if (result.status === "ok") {
 		const parsed = parseCodexUsageResponse(result.value);
 		if (parsed.windows.length > 0) {
+			const canAttributeLiveSnapshot = sameCodexIdentity(
+				activeIdentity,
+				confirmedActiveIdentity,
+			);
+			if (canAttributeLiveSnapshot && confirmedActiveIdentity) {
+				liveWindows = parsed.windows;
+				livePlanLabel = parsed.planLabel;
+				await resolved.profileStore.putSnapshot({
+					accountId: confirmedActiveIdentity.accountId,
+					capturedAt: resolved.now(),
+					planLabel: parsed.planLabel,
+					windows: parsed.windows,
+				});
+			}
+			const accounts = await rowsWithCurrentActive(
+				resolved,
+				confirmedActiveIdentity,
+				liveWindows,
+				livePlanLabel,
+			);
+			const active = activeAccountFrom(accounts);
+			if (!canAttributeLiveSnapshot && accounts.length > 0) {
+				return {
+					providerId: "codex",
+					providerName: "Codex",
+					status: statusFromAccounts(accounts),
+					accountLabel: active?.accountLabel ?? active?.planLabel ?? null,
+					activeAccountId: active?.id ?? null,
+					accounts,
+					windows: active?.windows ?? [],
+					errorMessage: null,
+				};
+			}
 			return {
 				providerId: "codex",
 				providerName: "Codex",
 				status: "ok",
-				accountLabel: parsed.accountLabel,
-				windows: parsed.windows,
+				accountLabel: active?.accountLabel ?? parsed.accountLabel,
+				activeAccountId: active?.id ?? null,
+				accounts,
+				windows: active?.windows ?? parsed.windows,
 				errorMessage: null,
 			};
 		}
+	}
+
+	const accounts = await rowsWithCurrentActive(
+		resolved,
+		confirmedActiveIdentity,
+		liveWindows,
+		livePlanLabel,
+	);
+	const active = activeAccountFrom(accounts);
+	if (accounts.some((account) => account.windows.length > 0)) {
+		return {
+			providerId: "codex",
+			providerName: "Codex",
+			status: "ok",
+			accountLabel: active?.accountLabel ?? active?.planLabel ?? null,
+			activeAccountId: active?.id ?? null,
+			accounts,
+			windows: active?.windows ?? [],
+			errorMessage: null,
+		};
 	}
 
 	return {
 		providerId: "codex",
 		providerName: "Codex",
 		status: "unavailable",
-		accountLabel: null,
+		accountLabel: active?.accountLabel ?? null,
+		activeAccountId: active?.id ?? null,
+		accounts,
 		windows: [],
 		errorMessage: "Codex usage is temporarily unavailable.",
 	};

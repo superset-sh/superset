@@ -1,5 +1,26 @@
 import { describe, expect, test } from "bun:test";
 import { collectCodexUsage, parseCodexUsageResponse } from "./codex";
+import type { CodexIdentity, codexProfileStore } from "./codex-profiles";
+
+function emptyProfileStore(): typeof codexProfileStore {
+	return {
+		activeAuthPath: "/tmp/auth.json",
+		activeIdentity: () => null,
+		listProfiles: async () => [],
+		importActive: async () => {
+			throw new Error("not used");
+		},
+		activate: async () => {
+			throw new Error("not used");
+		},
+		getSnapshot: () => null,
+		putSnapshot: async () => {},
+		accountRows: async () => [],
+		addViaIsolatedLogin: async () => {
+			throw new Error("not used");
+		},
+	};
+}
 
 describe("parseCodexUsageResponse", () => {
 	test("maps the official app-server rate-limit response", () => {
@@ -21,6 +42,7 @@ describe("parseCodexUsageResponse", () => {
 			}),
 		).toEqual({
 			accountLabel: "PRO",
+			planLabel: "PRO",
 			windows: [
 				{
 					id: "primary",
@@ -58,6 +80,7 @@ describe("parseCodexUsageResponse", () => {
 			}),
 		).toEqual({
 			accountLabel: null,
+			planLabel: null,
 			windows: [
 				{
 					id: "primary",
@@ -71,6 +94,7 @@ describe("parseCodexUsageResponse", () => {
 		});
 		expect(parseCodexUsageResponse({})).toEqual({
 			accountLabel: null,
+			planLabel: null,
 			windows: [],
 		});
 	});
@@ -80,6 +104,7 @@ describe("collectCodexUsage", () => {
 	test("uses only the local Codex app-server result", async () => {
 		let readCount = 0;
 		const result = await collectCodexUsage({
+			profileStore: emptyProfileStore(),
 			readRateLimits: async () => {
 				readCount += 1;
 				return {
@@ -102,6 +127,7 @@ describe("collectCodexUsage", () => {
 
 	test("reports Codex as not configured when the executable is absent", async () => {
 		const result = await collectCodexUsage({
+			profileStore: emptyProfileStore(),
 			readRateLimits: async () => ({ status: "not-configured" }),
 		});
 
@@ -110,6 +136,7 @@ describe("collectCodexUsage", () => {
 
 	test("turns app-server failures into a safe unavailable state", async () => {
 		const result = await collectCodexUsage({
+			profileStore: emptyProfileStore(),
 			readRateLimits: async () => ({ status: "unavailable" }),
 		});
 
@@ -118,5 +145,61 @@ describe("collectCodexUsage", () => {
 			windows: [],
 			errorMessage: "Codex usage is temporarily unavailable.",
 		});
+	});
+
+	test("does not cache a live reading when the active account changes mid-poll", async () => {
+		const firstIdentity: CodexIdentity = {
+			accountId: "acct_a",
+			email: "first@example.com",
+			plan: "pro",
+		};
+		const secondIdentity: CodexIdentity = {
+			accountId: "acct_b",
+			email: "second@example.com",
+			plan: "pro",
+		};
+		const snapshots: string[] = [];
+		let identityReads = 0;
+		const store: typeof codexProfileStore = {
+			...emptyProfileStore(),
+			activeIdentity: () => {
+				identityReads += 1;
+				return identityReads === 1 ? firstIdentity : secondIdentity;
+			},
+			putSnapshot: async (snapshot) => {
+				snapshots.push(snapshot.accountId);
+			},
+			accountRows: async () => [
+				{
+					id: "codex:acct_b",
+					providerId: "codex",
+					profileName: "second-example-com",
+					accountLabel: "second@example.com",
+					planLabel: "pro",
+					isActive: true,
+					status: "no-data",
+					statusMessage: "Use Codex once to record limits",
+					windows: [],
+				},
+			],
+		};
+
+		const result = await collectCodexUsage({
+			profileStore: store,
+			readRateLimits: async () => ({
+				status: "ok",
+				value: {
+					rateLimits: {
+						planType: "pro",
+						primary: { usedPercent: 20 },
+					},
+				},
+			}),
+		});
+
+		expect(snapshots).toEqual([]);
+		expect(result.activeAccountId).toBe("codex:acct_b");
+		expect(result.windows).toEqual([]);
+		expect(result.accounts[0]?.accountLabel).toBe("second@example.com");
 	});
 });

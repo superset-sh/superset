@@ -24,6 +24,8 @@ function unavailableProvider(providerId: "claude" | "codex"): ProviderUsage {
 		providerName,
 		status: "unavailable",
 		accountLabel: null,
+		activeAccountId: null,
+		accounts: [],
 		windows: [],
 		errorMessage: `${providerName} usage is temporarily unavailable.`,
 	};
