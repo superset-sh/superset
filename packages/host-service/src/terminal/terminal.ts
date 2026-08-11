@@ -44,6 +44,10 @@ import {
 } from "./env.ts";
 import { listTerminalResourceSessions } from "./resource-sessions.ts";
 import {
+	getShellReadyMarkerEvidence,
+	recordShellReadyMarkerEvidence,
+} from "./shell-ready-evidence.ts";
+import {
 	createModeTracker,
 	type ModeTracker,
 	type TerminalSnapshot,
@@ -295,6 +299,17 @@ type TerminalSocket = {
  * via direnv; same budget as the v1 stack.
  */
 const SHELL_READY_TIMEOUT_MS = 15_000;
+
+/**
+ * Wait budget when learned evidence says this machine's profile never
+ * delivers the marker (see shell-ready-evidence.ts): the full 15s wait would
+ * be the *normal* path there — every preset launch stalled exactly 15s
+ * (SUPER-1103). A short grace still covers the init window where startup
+ * hooks can read or flush PTY input, without pretending a marker is coming.
+ * A marker observed within this grace flips the evidence back to
+ * `delivered`, restoring the full wait for later launches.
+ */
+const SHELL_READY_MISSING_MARKER_GRACE_MS = 2_000;
 
 /**
  * Gap between writing the initialCommand text and the Enter (`\r`) that runs
@@ -1264,6 +1279,15 @@ function resolveShellReady(
 		session.scanState.matchPos = 0;
 		deliverOutput(session, heldBytes);
 	}
+	if (state === "ready") {
+		recordShellReadyMarkerEvidence(session.launchShellName, "delivered");
+	} else if (session.outputSeq > 0) {
+		// The shell painted output but the marker never came — this machine's
+		// profile diverts it (exec tmux/another shell, cleared precmd hooks).
+		// Zero output means the shell may not have started at all (wedged
+		// daemon); that says nothing about the profile, so record nothing.
+		recordShellReadyMarkerEvidence(session.launchShellName, "missing");
+	}
 	if (session.shellReadyResolve) {
 		session.shellReadyResolve();
 		session.shellReadyResolve = null;
@@ -1981,9 +2005,15 @@ export async function createTerminalSessionInternal({
 	portManager.upsertSession(terminalId, workspaceId, pty.pid);
 
 	if (session.shellReadyState === "pending") {
+		// Size the wait to observed reality: on machines whose profile never
+		// delivers the marker, the full wait *is* the launch latency.
+		const readyWaitMs =
+			getShellReadyMarkerEvidence(session.launchShellName) === "missing"
+				? SHELL_READY_MISSING_MARKER_GRACE_MS
+				: SHELL_READY_TIMEOUT_MS;
 		session.shellReadyTimeoutId = setTimeout(() => {
 			resolveShellReady(session, "timed_out");
-		}, SHELL_READY_TIMEOUT_MS);
+		}, readyWaitMs);
 	}
 
 	session.unsubscribeDaemon = daemon.subscribe(

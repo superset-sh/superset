@@ -1,0 +1,248 @@
+// End-to-end tests for shell-ready evidence learning (SUPER-1103): a user
+// profile can keep the OSC 133;A marker from ever reaching the PTY stream
+// (exec-ing another shell or tmux from .zshrc, cleared precmd hooks). Before
+// learning, every marker-gated launch on such a machine rode the full 15s
+// fallback — clicking an agent preset stalled exactly 15s, every time. The
+// host now records what the scanner actually observed: the first timed-out
+// launch brands the shell `missing`, later launches use a short grace, and an
+// observed marker flips the brand back to `delivered`.
+//
+// Same harness as terminal.initial-command.node-test.ts (real pty-daemon
+// Server, real SQLite host DB) but with real /bin/zsh plus the desktop's zsh
+// wrapper files, so shellLaunchExpectsReadyMarker() returns true and the
+// shell-ready gate is exercised for real.
+//
+//   node --experimental-strip-types --test <file>
+import { strict as assert } from "node:assert";
+import { randomUUID } from "node:crypto";
+import * as fs from "node:fs";
+import * as os from "node:os";
+import * as path from "node:path";
+import { after, before, describe, test } from "node:test";
+import { fileURLToPath } from "node:url";
+import { Server } from "@superset/pty-daemon";
+import { createDb, type HostDb } from "../db/index.ts";
+import { projects, workspaces } from "../db/schema.ts";
+import { disposeDaemonClient } from "./daemon-client-singleton.ts";
+import { initTerminalBaseEnv } from "./env.ts";
+import { shellLaunchExpectsReadyMarker } from "./shell-launch.ts";
+import { __resetShellReadyEvidenceForTesting } from "./shell-ready-evidence.ts";
+import {
+	__resetSessionsForTesting,
+	createTerminalSessionInternal,
+	disposeSessionAndWait,
+} from "./terminal.ts";
+import { __setAccountShellForTesting } from "./user-shell.ts";
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const TEST_HOME = path.join(os.tmpdir(), `host-svc-shellready-${process.pid}`);
+const SOCK = path.join(os.tmpdir(), `host-svc-shellready-${process.pid}.sock`);
+const MIGRATIONS = path.resolve(__dirname, "../../drizzle");
+
+// Isolated fake user home so the test never sources the real user's rc files.
+const FAKE_USER_HOME = path.join(TEST_HOME, "user-home");
+
+let server: Server;
+let db: HostDb;
+let workspaceId: string;
+
+/**
+ * Faithful copy of the zsh wrapper chain that
+ * apps/desktop/src/main/lib/agent-setup/shell-wrappers.ts writes (minus the
+ * PATH-prepend helpers, which don't affect readiness): ZDOTDIR redirection
+ * through .zshenv/.zprofile/.zshrc, marker hook registered last in .zlogin.
+ */
+function writeZshWrappers(zshDir: string): void {
+	const SAVE = `_superset_saved_env="$(export -p 2>/dev/null | grep ' SUPERSET_')"`;
+	const RESTORE = `eval "$_superset_saved_env" 2>/dev/null || true`;
+	const quoted = `'${zshDir}'`;
+	fs.mkdirSync(zshDir, { recursive: true });
+	const sourceUser = (file: string, guard?: string) =>
+		[
+			SAVE,
+			`_superset_home="\${SUPERSET_ORIG_ZDOTDIR:-$HOME}"`,
+			`export ZDOTDIR="$_superset_home"`,
+			guard
+				? `if [[ -o interactive ]]; then\n  [[ -f "$_superset_home/${file}" ]] && source "$_superset_home/${file}"\nfi`
+				: `[[ -f "$_superset_home/${file}" ]] && source "$_superset_home/${file}"`,
+			RESTORE,
+		].join("\n");
+	fs.writeFileSync(
+		path.join(zshDir, ".zshenv"),
+		`${sourceUser(".zshenv")}\nexport ZDOTDIR=${quoted}\n`,
+	);
+	fs.writeFileSync(
+		path.join(zshDir, ".zprofile"),
+		`${sourceUser(".zprofile")}\nexport ZDOTDIR=${quoted}\n`,
+	);
+	fs.writeFileSync(
+		path.join(zshDir, ".zshrc"),
+		`${sourceUser(".zshrc")}\nexport ZDOTDIR=${quoted}\n`,
+	);
+	fs.writeFileSync(
+		path.join(zshDir, ".zlogin"),
+		`${sourceUser(".zlogin", "interactive")}
+__superset_prompt_mark() {
+  printf "\\033]777;superset-shell-ready\\007\\033]133;A\\007"
+}
+precmd_functions=(\${precmd_functions[@]} __superset_prompt_mark)
+export ZDOTDIR="$_superset_home"
+`,
+	);
+}
+
+async function launchAndMeasure(command: string): Promise<number> {
+	const terminalId = `e2e-ready-${randomUUID().slice(0, 8)}`;
+	const outFile = path.join(TEST_HOME, `out-${terminalId}`);
+	const start = Date.now();
+	const session = await createTerminalSessionInternal({
+		terminalId,
+		workspaceId,
+		db,
+		listed: true,
+		initialCommand: `${command} > "${outFile}"`,
+	});
+	assert.ok(!("error" in session), "error" in session ? session.error : "");
+	await waitFor(() => fs.existsSync(outFile), 25_000);
+	const elapsed = Date.now() - start;
+	await disposeSessionAndWait(terminalId, db);
+	return elapsed;
+}
+
+function readEvidenceFile(): Record<string, string> {
+	try {
+		return JSON.parse(
+			fs.readFileSync(
+				path.join(TEST_HOME, "shell-ready-evidence.json"),
+				"utf8",
+			),
+		);
+	} catch {
+		return {};
+	}
+}
+
+before(async () => {
+	fs.mkdirSync(TEST_HOME, { recursive: true });
+	fs.mkdirSync(FAKE_USER_HOME, { recursive: true });
+	const worktreePath = path.join(TEST_HOME, "worktree");
+	fs.mkdirSync(worktreePath, { recursive: true });
+	writeZshWrappers(path.join(TEST_HOME, "zsh"));
+
+	server = new Server({
+		socketPath: SOCK,
+		daemonVersion: "0.0.0-shellready-e2e",
+	});
+	await server.listen();
+
+	process.env.SUPERSET_PTY_DAEMON_SOCKET = SOCK;
+	process.env.SUPERSET_HOME_DIR = TEST_HOME;
+	process.env.HOST_SERVICE_VERSION = "0.0.0-shellready-e2e";
+	process.env.NODE_ENV = "development";
+
+	__resetShellReadyEvidenceForTesting();
+	__setAccountShellForTesting("/bin/zsh");
+	initTerminalBaseEnv({
+		PATH: process.env.PATH ?? "/usr/bin:/bin",
+		HOME: FAKE_USER_HOME,
+		SHELL: "/bin/zsh",
+	});
+
+	db = createDb(path.join(TEST_HOME, "host.db"), MIGRATIONS);
+
+	const projectId = randomUUID();
+	workspaceId = randomUUID();
+	db.insert(projects).values({ id: projectId, repoPath: worktreePath }).run();
+	db.insert(workspaces)
+		.values({
+			id: workspaceId,
+			projectId,
+			worktreePath,
+			branch: "main",
+		})
+		.run();
+});
+
+after(async () => {
+	__resetSessionsForTesting();
+	__setAccountShellForTesting(undefined);
+	__resetShellReadyEvidenceForTesting();
+	await disposeDaemonClient();
+	await server.close();
+	try {
+		fs.rmSync(TEST_HOME, { recursive: true, force: true });
+	} catch {
+		// best-effort
+	}
+});
+
+describe("shell-ready evidence learning", () => {
+	test("marker-delivering profile: prompt launch, evidence records delivered", async () => {
+		assert.equal(
+			shellLaunchExpectsReadyMarker({
+				shell: "/bin/zsh",
+				supersetHomeDir: TEST_HOME,
+			}),
+			true,
+			"wrapper files should make the launch marker-backed",
+		);
+
+		const elapsed = await launchAndMeasure("date +%s");
+		assert.ok(
+			elapsed < 10_000,
+			`healthy profile took ${elapsed}ms — gate fell back to the timeout`,
+		);
+		await waitFor(() => readEvidenceFile().zsh === "delivered", 5_000);
+	});
+
+	test(
+		"marker-diverting profile: one full timeout, then launches use the short grace",
+		{ timeout: 60_000 },
+		async () => {
+			// A .zshrc that execs another shell keeps the wrapper .zlogin (and
+			// so the marker) from ever running — the class behind SUPER-1103.
+			fs.writeFileSync(
+				path.join(FAKE_USER_HOME, ".zshrc"),
+				"exec /bin/zsh -f\n",
+			);
+
+			const first = await launchAndMeasure("date +%s");
+			assert.ok(
+				first >= 15_000,
+				`first marker-less launch took ${first}ms — expected the full 15s fallback`,
+			);
+			await waitFor(() => readEvidenceFile().zsh === "missing", 5_000);
+
+			const second = await launchAndMeasure("date +%s");
+			assert.ok(
+				second < 10_000,
+				`branded-missing launch took ${second}ms — evidence should shrink the wait`,
+			);
+			assert.ok(
+				second >= 2_000,
+				`branded-missing launch took ${second}ms — grace period should still apply`,
+			);
+		},
+	);
+
+	test("recovered profile: an observed marker flips evidence back to delivered", async () => {
+		// Profile fixed: markers flow again and arrive within the grace window,
+		// so the very next launch re-learns `delivered`.
+		fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
+
+		const elapsed = await launchAndMeasure("date +%s");
+		assert.ok(
+			elapsed < 10_000,
+			`recovered profile took ${elapsed}ms — expected a prompt launch`,
+		);
+		await waitFor(() => readEvidenceFile().zsh === "delivered", 5_000);
+	});
+});
+
+async function waitFor(predicate: () => boolean, ms: number): Promise<void> {
+	const start = Date.now();
+	while (!predicate()) {
+		if (Date.now() - start > ms) throw new Error("waitFor timed out");
+		await new Promise((r) => setTimeout(r, 25));
+	}
+}
