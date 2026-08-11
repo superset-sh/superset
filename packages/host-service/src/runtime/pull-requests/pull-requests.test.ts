@@ -7,7 +7,9 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../db";
 import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
+import type { WorkspaceChangedMessage } from "../../events/types";
 import { PullRequestRuntimeManager } from "./pull-requests";
+import type { WorkspaceRefsSnapshot } from "./utils/workspace-refs";
 
 // All tests run the real manager against a real, migrated, in-memory SQLite
 // DB. An earlier hand-faked DB ignored query predicates and could only hold a
@@ -121,11 +123,31 @@ function getPrByNumber(db: HostDb, prNumber: number) {
 		.get();
 }
 
+// Answers only the origin/HEAD symref (default branch); every other git call
+// throws, asserting the refresh path never depends on live git.
+function defaultBranchGit(defaultBranch: string) {
+	return (async () => ({
+		raw: async (args: string[]) => {
+			if (
+				args[0] === "symbolic-ref" &&
+				args.includes("refs/remotes/origin/HEAD")
+			) {
+				return `origin/${defaultBranch}\n`;
+			}
+			throw new Error(`unexpected git raw: ${args.join(" ")}`);
+		},
+	})) as never;
+}
+
 function createManager(
 	db: HostDb,
 	overrides: {
 		execGh?: (args: string[]) => Promise<unknown>;
 		github?: () => Promise<never>;
+		git?: unknown;
+		readWorkspaceRefs?: (
+			worktreePath: string,
+		) => Promise<WorkspaceRefsSnapshot>;
 	} = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -135,15 +157,18 @@ function createManager(
 			((async () => {
 				throw new Error("gh should not be used for direct PR linking");
 			}) as never),
-		git: (async () => {
-			throw new Error("git should not be used when project metadata is set");
-		}) as never,
+		git:
+			(overrides.git as never) ??
+			((async () => {
+				throw new Error("git should not be used when project metadata is set");
+			}) as never),
 		github:
 			(overrides.github as never) ??
 			((async () => {
 				throw new Error("octokit should not be used");
 			}) as never),
 		gitWatcher: { onChanged: () => () => {} } as never,
+		readWorkspaceRefs: overrides.readWorkspaceRefs,
 	});
 }
 
@@ -286,6 +311,112 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		await manager.refreshPullRequestsByWorkspaces(["ws"]);
 
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+});
+
+describe("PullRequestRuntimeManager unlink", () => {
+	function seedLinkedWorkspace(db: HostDb) {
+		seedPullRequest(db, {
+			id: "pr-1",
+			prNumber: 101,
+			headBranch: "feature",
+			headSha: "sha-feature",
+		});
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "sha-feature",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+			pullRequestId: "pr-1",
+		});
+	}
+
+	test("unlink clears the link and the refresh sweep does not re-link the same PR", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db, {
+			execGh: routeGh({
+				feature: makePrNode({
+					number: 101,
+					headRef: "feature",
+					headSha: "sha-feature",
+				}),
+			}),
+		});
+
+		manager.unlinkWorkspacePullRequest("ws");
+
+		const unlinked = getWorkspace(db, "ws");
+		expect(unlinked?.pullRequestId).toBeNull();
+		expect(unlinked?.suppressedPullRequestId).toBe("pr-1");
+
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+
+	test("a different PR on the same branch still links after unlink", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db, {
+			execGh: routeGh({
+				feature: makePrNode({
+					number: 202,
+					headRef: "feature",
+					headSha: "sha-feature-2",
+				}),
+			}),
+		});
+
+		manager.unlinkWorkspacePullRequest("ws");
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		const ws = getWorkspace(db, "ws");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 202)?.id ?? "");
+		expect(ws?.suppressedPullRequestId).toBe("pr-1");
+	});
+
+	test("deleting the suppressed PR row clears the suppression", () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db);
+
+		manager.unlinkWorkspacePullRequest("ws");
+		db.delete(pullRequests).where(eq(pullRequests.id, "pr-1")).run();
+
+		expect(getWorkspace(db, "ws")?.suppressedPullRequestId).toBeNull();
+	});
+
+	test("an explicit checkout link clears the suppression", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db);
+
+		manager.unlinkWorkspacePullRequest("ws");
+		await manager.linkWorkspaceToCheckoutPullRequest({
+			workspaceId: "ws",
+			projectId: PROJECT_ID,
+			pullRequest: {
+				number: 101,
+				url: "https://github.com/base-owner/base-repo/pull/101",
+				title: "PR 101",
+				state: "open",
+				isDraft: false,
+				headRefName: "feature",
+				headRefOid: "sha-feature",
+				isCrossRepository: false,
+			},
+		});
+
+		const ws = getWorkspace(db, "ws");
+		expect(ws?.pullRequestId).toBe("pr-1");
+		expect(ws?.suppressedPullRequestId).toBeNull();
 	});
 });
 
@@ -502,7 +633,7 @@ function routeGh(prsByHeadRef: Record<string, ReturnType<typeof makePrNode>>) {
 		if (path === `repos/${REPO.owner}/${REPO.name}/pulls`) {
 			const headArg = args.find((a) => a.startsWith("head="));
 			if (headArg) {
-				const ref = headArg.slice(`head=${REPO.owner}:`.length);
+				const ref = headArg.slice(headArg.indexOf(":") + 1);
 				const pr = prsByHeadRef[ref];
 				return pr ? [pr] : [];
 			}
@@ -610,5 +741,217 @@ describe("case-variant branch isolation", () => {
 		expect(getWorkspace(db, "ws-upper")?.pullRequestId).toBe(
 			getPrByNumber(db, 102)?.id,
 		);
+	});
+});
+
+// A workspace branched off `main` still tracks `origin/main`, so its upstream
+// branch is `main`; without the guard it links to any head=main PR.
+describe("default-branch guard", () => {
+	test("does not link a workspace tracking origin/main to a head=main PR", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		// Pre-linked like the real bug: the refresh must clear it, not re-affirm it.
+		seedPullRequest(db, {
+			id: "pr-sync-main",
+			prNumber: 1522,
+			headBranch: "main",
+			headSha: "main-sha",
+			title: "chore: sync main into feat/signal-pages",
+		});
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "roshvan/mcp-1703-mcp-surface-area",
+			headSha: "workspace-sha",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "main",
+			pullRequestId: "pr-sync-main",
+		});
+		const manager = createManager(db, {
+			git: defaultBranchGit("main"),
+			execGh: routeGh({
+				main: makePrNode({
+					number: 1522,
+					headRef: "main",
+					headSha: "main-sha",
+					title: "chore: sync main into feat/signal-pages",
+				}),
+			}),
+		});
+
+		await withSilencedWarnings(() =>
+			manager.refreshPullRequestsByWorkspaces(["ws"]),
+		);
+
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+
+	test("still links the workspace whose local branch is the default branch", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws-main",
+			branch: "main",
+			headSha: "main-sha",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "main",
+		});
+		const manager = createManager(db, {
+			git: defaultBranchGit("main"),
+			execGh: routeGh({
+				main: makePrNode({
+					number: 1522,
+					headRef: "main",
+					headSha: "main-sha",
+					title: "chore: sync main into feat/signal-pages",
+				}),
+			}),
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-main"]);
+
+		expect(getWorkspace(db, "ws-main")?.pullRequestId).toBe(
+			getPrByNumber(db, 1522)?.id,
+		);
+	});
+
+	test("still links a fork PR whose head branch is named main", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, {
+			id: "ws-fork",
+			branch: "quueli-main",
+			headSha: "fork-sha",
+			upstreamOwner: "fork-owner",
+			upstreamRepo: "fork-repo",
+			upstreamBranch: "main",
+		});
+		const manager = createManager(db, {
+			git: defaultBranchGit("main"),
+			execGh: routeGh({
+				main: makePrNode({
+					number: 88,
+					headRef: "main",
+					headSha: "fork-sha",
+					headOwner: "fork-owner",
+					headRepo: "fork-repo",
+					title: "Fork feature",
+				}),
+			}),
+		});
+
+		await manager.refreshPullRequestsByWorkspaces(["ws-fork"]);
+
+		expect(getWorkspace(db, "ws-fork")?.pullRequestId).toBe(
+			getPrByNumber(db, 88)?.id,
+		);
+	});
+});
+
+type WorkspaceChangedEvent = Omit<WorkspaceChangedMessage, "type">;
+
+// Minimal in-process stand-in for EventBus.onWorkspaceChanged.
+function createFakeWorkspaceEventBus() {
+	const listeners = new Set<(event: WorkspaceChangedEvent) => void>();
+	return {
+		listeners,
+		onWorkspaceChanged(listener: (event: WorkspaceChangedEvent) => void) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
+		emit(event: WorkspaceChangedEvent) {
+			for (const listener of listeners) listener(event);
+		},
+	};
+}
+
+// The subscription handler fires enqueueWorkspaceSync without exposing its
+// promise, so tests observe completion through the DB row.
+async function waitFor(
+	condition: () => boolean,
+	timeoutMs = 2000,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!condition() && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, 10));
+	}
+}
+
+describe("workspace-created event trigger", () => {
+	// The manager only consumes workspaceId (it re-reads the row from the DB),
+	// so the snapshot payload can stay null.
+	const createdEvent: WorkspaceChangedEvent = {
+		workspaceId: "ws-new",
+		eventType: "created",
+		workspace: null,
+		occurredAt: 1,
+	};
+
+	function createEventDrivenManager(db: HostDb) {
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({
+				"feat/new-thing": makePrNode({
+					number: 6123,
+					headRef: "feat/new-thing",
+					headSha: "sha-new",
+				}),
+			}),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/new-thing",
+					headSha: "sha-new",
+					upstream: {
+						owner: REPO.owner,
+						name: REPO.name,
+						branch: "feat/new-thing",
+					},
+				};
+			},
+		});
+		return { manager, refsReads: () => refsReads };
+	}
+
+	test("links the PR on a created event without timers or gitWatcher activity", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		// Fresh-insert shape: branch set, headSha/upstream all NULL.
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const { manager } = createEventDrivenManager(db);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		// start() is deliberately never called: no safety-net/refresh timers,
+		// and the fake gitWatcher never emits. The event alone must do it.
+		bus.emit(createdEvent);
+		await waitFor(() => Boolean(getWorkspace(db, "ws-new")?.pullRequestId));
+
+		const ws = getWorkspace(db, "ws-new");
+		expect(ws?.headSha).toBe("sha-new");
+		expect(ws?.upstreamOwner).toBe(REPO.owner);
+		expect(ws?.upstreamRepo).toBe(REPO.name);
+		expect(ws?.upstreamBranch).toBe("feat/new-thing");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 6123)?.id);
+
+		manager.stop();
+		expect(bus.listeners.size).toBe(0);
+	});
+
+	test("ignores updated and deleted events", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const { manager, refsReads } = createEventDrivenManager(db);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emit({ ...createdEvent, eventType: "updated" });
+		bus.emit({ ...createdEvent, eventType: "deleted" });
+		await waitFor(() => refsReads() > 0, 100);
+
+		expect(refsReads()).toBe(0);
+		expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeNull();
 	});
 });

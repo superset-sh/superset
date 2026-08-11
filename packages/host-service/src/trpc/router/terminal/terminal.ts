@@ -4,15 +4,33 @@ import { z } from "zod";
 import { getSupervisor, waitForDaemonReady } from "../../../daemon";
 import { terminalSessions, workspaces } from "../../../db/schema";
 import {
-	countTerminalSessions,
 	createTerminalSessionInternal,
 	disposeSessionAndWait,
-	listTerminalSessions,
+	disposeSessionsByWorkspaceId,
+	disposeSessionsByWorktreePath,
+	listLiveTerminalSessions,
 	parseThemeType,
+	sessionHasRunningProcess,
+	snapshotSession,
+	writeFramedInputToSession,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+
+function toTerminalIoError(message: string): TRPCError {
+	if (message.includes("belong")) {
+		return new TRPCError({ code: "FORBIDDEN", message });
+	}
+	if (
+		message.includes("not found") ||
+		message.includes("not active") ||
+		message.includes("exited")
+	) {
+		return new TRPCError({ code: "NOT_FOUND", message });
+	}
+	return new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+}
 
 const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
@@ -68,6 +86,16 @@ const daemonRouter = router({
 		getSupervisor().getUpdateStatus(ctx.organizationId),
 	),
 
+	/**
+	 * Whether the daemon is still answering, and for how long it hasn't.
+	 * Deliberately does not `waitForDaemonReady` — this is polled by the
+	 * terminal UI to decide whether a stall is worth surfacing, so it has to
+	 * answer immediately rather than block on the thing that may be wedged.
+	 */
+	getHealth: protectedProcedure.query(({ ctx }) =>
+		getSupervisor().getHealth(ctx.organizationId),
+	),
+
 	listSessions: protectedProcedure.query(async ({ ctx }) => {
 		// Wait for the bootstrap so the supervisor has a socket path.
 		await waitForDaemonReady(ctx.organizationId);
@@ -106,32 +134,29 @@ export const terminalRouter = router({
 		)
 		.mutation(createTerminalSessionFromInput),
 
-	listSessions: protectedProcedure
+	list: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
-			}),
+			z
+				.object({
+					workspaceId: z.string().optional(),
+				})
+				.optional(),
 		)
-		.query(({ input }) => ({
-			sessions: listTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
+		.query(async ({ ctx, input }) => ({
+			sessions: await listLiveTerminalSessions(ctx.db, {
+				workspaceId: input?.workspaceId,
 			}),
 		})),
 
-	countBackgroundSessions: protectedProcedure
+	hasRunningProcess: protectedProcedure
 		.input(
 			z.object({
+				terminalId: z.string(),
 				workspaceId: z.string(),
-				attachedTerminalIds: z.array(z.string()).default([]),
 			}),
 		)
 		.query(({ input }) => ({
-			count: countTerminalSessions({
-				workspaceId: input.workspaceId,
-				includeExited: false,
-				excludeTerminalIds: input.attachedTerminalIds,
-			}),
+			running: sessionHasRunningProcess(input.terminalId, input.workspaceId),
 		})),
 
 	writeInput: protectedProcedure
@@ -151,6 +176,53 @@ export const terminalRouter = router({
 				});
 			}
 			return { success: true as const };
+		}),
+
+	// Send a follow-up message into an already-running terminal (e.g. a
+	// claude/codex agent) instead of spawning a new session. Multi-line text
+	// is framed as a bracketed paste server-side.
+	send: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				text: z.string().min(1),
+				submit: z.boolean().default(true),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const result = await writeFramedInputToSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalIoError(result.error);
+			}
+			return { terminalId: input.terminalId, submitted: input.submit };
+		}),
+
+	// Non-destructive snapshot of the terminal's current screen + recent
+	// scrollback, read off the per-session headless emulator.
+	snapshot: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				maxLines: z.number().int().positive().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const result = await snapshotSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalIoError(result.error);
+			}
+			const { success: _success, ...snapshot } = result;
+			return { terminalId: input.terminalId, ...snapshot };
 		}),
 
 	killSession: protectedProcedure
@@ -194,6 +266,23 @@ export const terminalRouter = router({
 			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
+
+	// Kill every session (including backgrounded, renderer-detached ones) for a
+	// workspace. Called by delete paths that don't run the full
+	// workspaceCleanup.destroy, so their terminals don't leak in the daemon.
+	disposeWorkspaceSessions: protectedProcedure
+		.input(z.object({ workspaceId: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorkspaceId(input.workspaceId, ctx.db),
+		),
+
+	// Like disposeWorkspaceSessions but for a closed worktree, which no longer
+	// has a workspace id — resolve sessions through the shared worktree path.
+	disposeWorktreeSessions: protectedProcedure
+		.input(z.object({ worktreePath: z.string() }))
+		.mutation(({ ctx, input }) =>
+			disposeSessionsByWorktreePath(input.worktreePath, ctx.db),
+		),
 
 	daemon: daemonRouter,
 });

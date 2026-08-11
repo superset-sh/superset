@@ -52,9 +52,7 @@ function TabButton({
 						{icon}
 					</button>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" showArrow={false}>
-					{label}
-				</TooltipContent>
+				<TooltipContent side="bottom">{label}</TooltipContent>
 			</Tooltip>
 		);
 	}
@@ -195,7 +193,7 @@ export function RightSidebar() {
 								)}
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
+						<TooltipContent side="bottom">
 							<HotkeyLabel
 								label={isExpanded ? "Collapse sidebar" : "Expand sidebar"}
 								id="OPEN_DIFF_VIEWER"
@@ -213,8 +211,8 @@ export function RightSidebar() {
 								<LuX className="size-3.5" />
 							</Button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							<HotkeyLabel label="Close sidebar" id="TOGGLE_SIDEBAR" />
+						<TooltipContent side="bottom">
+							<HotkeyLabel fallbackLabel="Close sidebar" id="TOGGLE_SIDEBAR" />
 						</TooltipContent>
 					</Tooltip>
 				</div>

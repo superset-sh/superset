@@ -48,7 +48,7 @@ Create `.superset/ports.json` in your repository:
 - Label entries for ports that are not currently listening are ignored
 - Each workspace reads labels from its own worktree's file
 - Changes are detected automatically
-- Ports can be opened at `localhost:PORT` from the browser action
+- Ports can be opened at `localhost:PORT` from the browser action ([local workspaces only](#remote-workspaces))
 
 **Error Handling:**
 
@@ -59,6 +59,26 @@ If `ports.json` is malformed:
 **Tips:**
 - Commit `.superset/ports.json` to share port labels with your team
 - **Pro tip:** If you want deterministic per-workspace port ranges, implement it in setup/teardown scripts by reserving a range in a shared file (for example `~/.superset/port-allocations.json`) during setup and releasing it during teardown. See this repo's examples: [`.superset/setup.sh`](https://github.com/superset-sh/superset/blob/main/.superset/setup.sh) and [`.superset/teardown.sh`](https://github.com/superset-sh/superset/blob/main/.superset/teardown.sh).
+
+## Remote Workspaces
+
+For [remote workspaces](/remote-workspaces), the sidebar lists ports listening **on the remote host**. Superset doesn't forward them to your machine yet (it's on the roadmap), so `localhost:PORT` only works on the host itself.
+
+### Forward a port yourself
+
+**SSH**: forward the port, then open `http://localhost:3000` locally:
+
+```bash
+ssh -N -L 3000:localhost:3000 user@remote-host
+```
+
+**[Tailscale](https://tailscale.com)**: on the host, expose the port to your tailnet and open the URL it prints:
+
+```bash
+tailscale serve 3000
+```
+
+Both work for servers that only listen on loopback. If the server binds `0.0.0.0`, you can skip the tunnel and hit the host's Tailscale name directly (`http://remote-host:3000`).
 
 ## Discovery and Updates
 

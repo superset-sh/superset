@@ -26,7 +26,7 @@ export function SettingsSidebar() {
 		: null;
 
 	return (
-		<div className="w-56 flex flex-col p-3 overflow-hidden">
+		<div className="w-56 flex flex-col py-3 overflow-hidden bg-sidebar">
 			{/* Back button */}
 			<Link
 				to={originRoute}
@@ -40,8 +40,8 @@ export function SettingsSidebar() {
 			<h1 className="text-lg font-semibold px-3 mb-4">Settings</h1>
 
 			{/* Search input */}
-			<div className="relative px-1 mb-4">
-				<HiMagnifyingGlass className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+			<div className="relative px-3 mb-4">
+				<HiMagnifyingGlass className="absolute left-6 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
 				<input
 					type="text"
 					placeholder="Search settings..."
@@ -53,23 +53,23 @@ export function SettingsSidebar() {
 					<button
 						type="button"
 						onClick={() => setSearchQuery("")}
-						className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+						className="absolute right-6 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
 					>
 						<HiXMark className="h-4 w-4" />
 					</button>
 				)}
 			</div>
 
-			<div className="flex-1 overflow-y-auto min-h-0">
+			<div className="flex-1 overflow-y-auto min-h-0 border-t border-border pt-4 pb-4 px-3">
 				<GeneralSettings matchCounts={matchCounts} />
 			</div>
 
-			<div className="pt-3 mt-3 border-t border-border">
+			<div className="pt-3 border-t border-border px-3">
 				<a
 					href={COMPANY.DOCS_URL}
 					target="_blank"
 					rel="noopener noreferrer"
-					className="flex items-center gap-2 px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+					className="flex items-center gap-2 px-3 py-1.5 text-sm rounded-md text-muted-foreground hover:bg-accent/50 hover:text-accent-foreground transition-colors"
 				>
 					<HiArrowTopRightOnSquare className="h-4 w-4" />
 					<span>Documentation</span>

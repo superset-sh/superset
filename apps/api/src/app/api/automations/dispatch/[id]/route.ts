@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { getRelayUrl } from "@/lib/relay-url";
 
 export const maxDuration = 60;
 export const dynamic = "force-dynamic";
@@ -62,7 +63,9 @@ export async function POST(
 	const outcome = await dispatchAutomation({
 		automation,
 		scheduledFor: new Date(parsed.data.scheduledFor),
-		relayUrl: env.RELAY_URL,
+		// The owner's host may be on an overridden relay (relay-url-override);
+		// env.RELAY_URL alone reaches only hosts still on the default relay.
+		relayUrl: await getRelayUrl(automation.ownerUserId),
 	});
 
 	return Response.json({ ok: true, outcome });

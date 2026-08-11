@@ -1,14 +1,14 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
-// Control what `findHostWorkspace` resolves per test. The command imports it
-// from the lib barrel, so mock that module before importing the SUT.
+// Control what `findWorkspaceOnHost` resolves per test. The command imports
+// it from the lib barrel, so mock that module before importing the SUT.
 type FindResult = {
+	hostId: string;
 	workspace: Record<string, unknown> | undefined;
-	warnings: string[];
 };
-let findResult: FindResult = { workspace: undefined, warnings: [] };
+let findResult: FindResult = { hostId: "host-1", workspace: undefined };
 mock.module("../../../lib/host-workspaces", () => ({
-	findHostWorkspace: async () => findResult,
+	findWorkspaceOnHost: async () => findResult,
 }));
 
 const { default: getCommand } = await import("./command");
@@ -17,6 +17,7 @@ const WORKSPACE = {
 	id: "b502bf30-8693-4815-be65-795035e0ce5f",
 	organizationId: "org-1",
 	projectId: "proj-1",
+	projectName: "Superset",
 	hostId: "host-1",
 	name: "ludicrous-candytuft",
 	branch: "setup",
@@ -32,18 +33,15 @@ const WORKSPACE = {
 function makeCtx(
 	overrides: {
 		organizationId?: string | undefined;
-		projects?: Array<{ id: string; name: string }>;
 		hosts?: Array<{ id: string; name: string }>;
 	} = {},
 ) {
 	const {
 		organizationId = "org-1",
-		projects = [{ id: "proj-1", name: "Superset" }],
 		hosts = [{ id: "host-1", name: "Town-Hall" }],
 	} = overrides;
 	return {
 		api: {
-			v2Project: { list: { query: async () => projects } },
 			host: { list: { query: async () => hosts } },
 		},
 		config: { organizationId },
@@ -62,13 +60,13 @@ function invoke(args: { id?: string }, options: { field?: string } = {}) {
 }
 
 afterEach(() => {
-	findResult = { workspace: undefined, warnings: [] };
+	findResult = { hostId: "host-1", workspace: undefined };
 	delete process.env.SUPERSET_WORKSPACE_ID;
 });
 
 describe("workspaces get", () => {
 	test("resolves by explicit id and enriches project/host names", async () => {
-		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+		findResult = { hostId: "host-1", workspace: { ...WORKSPACE } };
 		const result = (await invoke({ id: WORKSPACE.id })) as {
 			data: Record<string, unknown>;
 			message: string;
@@ -83,7 +81,7 @@ describe("workspaces get", () => {
 
 	test("defaults the id to $SUPERSET_WORKSPACE_ID when no arg is given", async () => {
 		process.env.SUPERSET_WORKSPACE_ID = WORKSPACE.id;
-		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+		findResult = { hostId: "host-1", workspace: { ...WORKSPACE } };
 		const result = (await invoke({})) as { data: Record<string, unknown> };
 		expect(result.data.id).toBe(WORKSPACE.id);
 	});
@@ -93,7 +91,7 @@ describe("workspaces get", () => {
 	});
 
 	test("--field prints the raw value as the message, data stays full", async () => {
-		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+		findResult = { hostId: "host-1", workspace: { ...WORKSPACE } };
 		const result = (await invoke({ id: WORKSPACE.id }, { field: "name" })) as {
 			data: Record<string, unknown>;
 			message: string;
@@ -103,7 +101,7 @@ describe("workspaces get", () => {
 	});
 
 	test("--field with a null value yields an empty message", async () => {
-		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+		findResult = { hostId: "host-1", workspace: { ...WORKSPACE } };
 		const result = (await invoke(
 			{ id: WORKSPACE.id },
 			{ field: "taskId" },
@@ -114,36 +112,32 @@ describe("workspaces get", () => {
 	});
 
 	test("--field rejects an unknown field name", async () => {
-		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+		findResult = { hostId: "host-1", workspace: { ...WORKSPACE } };
 		await expect(
 			invoke({ id: WORKSPACE.id }, { field: "bogus" }),
 		).rejects.toThrow(/Unknown field: bogus/);
 	});
 
 	test("--field rejects inherited Object.prototype keys", async () => {
-		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+		findResult = { hostId: "host-1", workspace: { ...WORKSPACE } };
 		await expect(
 			invoke({ id: WORKSPACE.id }, { field: "toString" }),
 		).rejects.toThrow(/Unknown field: toString/);
 	});
 
-	test("errors when no reachable host knows the id", async () => {
-		findResult = { workspace: undefined, warnings: [] };
+	test("errors when the workspace is not on the target host", async () => {
+		findResult = { hostId: "host-1", workspace: undefined };
 		await expect(invoke({ id: WORKSPACE.id })).rejects.toThrow(/not found/);
 	});
 
-	test("falls back to ids when cloud project/host lookups fail", async () => {
-		findResult = { workspace: { ...WORKSPACE }, warnings: [] };
+	test("falls back to ids when the row has no project name and host lookup fails", async () => {
+		findResult = {
+			hostId: "host-1",
+			workspace: { ...WORKSPACE, projectName: null },
+		};
 		const result = (await getCommand.run({
 			ctx: {
 				api: {
-					v2Project: {
-						list: {
-							query: async () => {
-								throw new Error("cloud down");
-							},
-						},
-					},
 					host: {
 						list: {
 							query: async () => {

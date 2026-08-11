@@ -101,16 +101,17 @@ export function TypewriterText({
 			{renderText()}
 			{showCursor && (
 				<motion.span
-					className="inline-block ml-0.5 w-3 h-[1em] bg-current translate-y-0.5"
+					className="inline-block ml-0.5 w-3 -mr-3.5 h-[1em] bg-brand translate-y-0.5"
 					animate={
-						isTypingComplete ? { opacity: [1, 1, 0, 0] } : { opacity: 1 }
+						isTypingComplete
+							? { opacity: [1, 1, 0, 0, 1, 1, 0, 0] }
+							: { opacity: 1 }
 					}
 					transition={
 						isTypingComplete
 							? {
-									duration: 1.5,
-									times: [0, 0.5, 0.5, 1],
-									repeat: Number.POSITIVE_INFINITY,
+									duration: 1.6,
+									times: [0, 0.25, 0.25, 0.5, 0.5, 0.75, 0.75, 1],
 									ease: "linear",
 								}
 							: {}

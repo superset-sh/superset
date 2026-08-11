@@ -1,11 +1,16 @@
 import { cn } from "@superset/ui/utils";
-import { useContext, useRef } from "react";
+import { useContext, useMemo, useRef } from "react";
 import type { MosaicBranch } from "react-mosaic-component";
-import { MosaicWindow, MosaicWindowContext } from "react-mosaic-component";
+import {
+	MosaicContext,
+	MosaicWindow,
+	MosaicWindowContext,
+} from "react-mosaic-component";
 import { useDragPaneStore } from "renderer/stores/drag-pane-store";
 import { useTabsStore } from "renderer/stores/tabs/store";
 import type { SplitOrientation } from "../../hooks";
 import { useSplitOrientation } from "../../hooks";
+import { guardMosaicActions } from "./mosaic-update-guards";
 
 export interface PaneHandlers {
 	onFocus: () => void;
@@ -64,6 +69,14 @@ export function BasePaneWindow({
 	const isResizing = useDragPaneStore((s) => s.isResizing);
 	const setDragging = useDragPaneStore((s) => s.setDragging);
 	const clearDragging = useDragPaneStore((s) => s.clearDragging);
+	const mosaicContext = useContext(MosaicContext);
+	const guardedMosaicContext = useMemo(
+		() => ({
+			...mosaicContext,
+			mosaicActions: guardMosaicActions(mosaicContext.mosaicActions),
+		}),
+		[mosaicContext],
+	);
 
 	const handleFocus = () => {
 		setFocusedPane(tabId, paneId);
@@ -93,32 +106,36 @@ export function BasePaneWindow({
 	const isRoot = path.length === 0;
 
 	return (
-		<MosaicWindow<string>
-			path={path}
-			title=""
-			renderToolbar={() =>
-				isRoot ? (
-					<RootDraggable>{renderToolbar(handlers)}</RootDraggable>
-				) : (
-					renderToolbar(handlers)
-				)
-			}
-			className={cn(
-				isActive && "mosaic-window-focused",
-				workspaceRunState && `workspace-run-pane-${workspaceRunState}`,
-			)}
-			onDragStart={() => setDragging(paneId, tabId)}
-			onDragEnd={() => clearDragging()}
-		>
-			{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Focus handler for pane */}
-			<div
-				ref={containerRef}
-				className={contentClassName}
-				style={isDragging || isResizing ? { pointerEvents: "none" } : undefined}
-				onClick={handleFocus}
+		<MosaicContext.Provider value={guardedMosaicContext}>
+			<MosaicWindow<string>
+				path={path}
+				title=""
+				renderToolbar={() =>
+					isRoot ? (
+						<RootDraggable>{renderToolbar(handlers)}</RootDraggable>
+					) : (
+						renderToolbar(handlers)
+					)
+				}
+				className={cn(
+					isActive && "mosaic-window-focused",
+					workspaceRunState && `workspace-run-pane-${workspaceRunState}`,
+				)}
+				onDragStart={() => setDragging(paneId, tabId)}
+				onDragEnd={() => clearDragging()}
 			>
-				{children}
-			</div>
-		</MosaicWindow>
+				{/* biome-ignore lint/a11y/useKeyWithClickEvents lint/a11y/noStaticElementInteractions: Focus handler for pane */}
+				<div
+					ref={containerRef}
+					className={contentClassName}
+					style={
+						isDragging || isResizing ? { pointerEvents: "none" } : undefined
+					}
+					onClick={handleFocus}
+				>
+					{children}
+				</div>
+			</MosaicWindow>
+		</MosaicContext.Provider>
 	);
 }

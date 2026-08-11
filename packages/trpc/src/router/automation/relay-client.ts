@@ -27,6 +27,22 @@ export class RelayDispatchError extends Error {
 }
 
 /**
+ * Extract the host-side message from a tRPC error envelope so callers store
+ * "agents.run: Workspace … not found" instead of the raw JSON blob.
+ */
+function parseTrpcErrorMessage(rawBody: string): string | null {
+	try {
+		const parsed = JSON.parse(rawBody) as {
+			error?: { json?: { message?: unknown } };
+		};
+		const message = parsed.error?.json?.message;
+		return typeof message === "string" ? message : null;
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Invoke a single host-service tRPC mutation through the relay proxy.
  *
  * tRPC HTTP protocol (non-batched): POST body is `{ json: <input> }` when
@@ -64,8 +80,11 @@ export async function relayMutation<TInput, TOutput>(
 
 	const rawBody = await response.text();
 	if (!response.ok) {
+		const trpcMessage = parseTrpcErrorMessage(rawBody);
 		throw new RelayDispatchError(
-			`relay ${response.status}: ${rawBody.slice(0, 500)}`,
+			trpcMessage
+				? `${procedure}: ${trpcMessage}`
+				: `relay ${response.status}: ${rawBody.slice(0, 500)}`,
 			response.status,
 			rawBody,
 		);

@@ -9,27 +9,22 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { ChevronDownIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { HiCheck, HiMiniPlay } from "react-icons/hi2";
 import { AgentSelect } from "renderer/components/AgentSelect";
-import { env } from "renderer/env.renderer";
+import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
-import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
 import { DevicePicker } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { useSelectedHostProjectIds } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { deriveBranchName } from "renderer/routes/_authenticated/utils/deriveBranchName";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
-import { MOCK_ORG_ID } from "shared/constants";
-import { deriveBranchName } from "../../../../../../$taskId/utils/deriveBranchName";
 import type { SelectedIssue } from "../../../GitHubIssuesContent";
 
 const AGENT_STORAGE_KEY = "lastSelectedV2IssueBatchAgent";
@@ -61,13 +56,8 @@ export function RunIssuesInWorkspacePopover({
 	projectFilter,
 	onComplete,
 }: RunIssuesInWorkspacePopoverProps) {
-	const collections = useCollections();
 	const hostService = useLocalHostService();
 	const { machineId, activeHostUrl } = hostService;
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
 	const { otherHosts } = useWorkspaceHostOptions();
 	const { submit } = useWorkspaceCreates();
 
@@ -88,45 +78,18 @@ export function RunIssuesInWorkspacePopover({
 	const launchHostUrl = useHostUrl(hostId);
 	const setUpProjectIds = useSelectedHostProjectIds(hostId);
 
-	const { data: v2Projects } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) =>
-					eq(projects.organizationId, activeOrganizationId),
-				)
-				.select(({ projects }) => ({ ...projects })),
-		[collections, activeOrganizationId],
-	);
-
-	const { data: githubRepositories } = useLiveQuery(
-		(q) =>
-			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
-				id: repos.id,
-				owner: repos.owner,
-				name: repos.name,
-			})),
-		[collections],
-	);
-
-	const recentProjects = useMemo(() => {
-		const repoById = new Map(
-			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
-		);
-		return (v2Projects ?? []).map((project) => {
-			const repo = project.githubRepositoryId
-				? (repoById.get(project.githubRepositoryId) ?? null)
-				: null;
-			return {
-				id: project.id,
-				name: project.name,
-				githubOwner: repo?.owner ?? null,
-				iconUrl: project.iconUrl ?? null,
+	// Projects are fully local — shared host-fan-out list, with this
+	// surface's per-host needsSetup overlay.
+	const hostRecentProjects = useRecentProjects();
+	const recentProjects = useMemo(
+		() =>
+			hostRecentProjects.map((project) => ({
+				...project,
 				needsSetup:
 					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
-			};
-		});
-	}, [v2Projects, githubRepositories, setUpProjectIds]);
+			})),
+		[hostRecentProjects, setUpProjectIds],
+	);
 
 	const seededProjectId =
 		projectFilter &&
@@ -178,7 +141,19 @@ export function RunIssuesInWorkspacePopover({
 	const [open, setOpen] = useState(false);
 	const [projectPickerOpen, setProjectPickerOpen] = useState(false);
 
+	// Workspaces launch against one project; a mixed-repo selection would
+	// silently run every issue against a single repository.
+	const issueProjectIds = useMemo(
+		() => new Set(issues.map((issue) => issue.projectId)),
+		[issues],
+	);
+
+	const hasMixedRepos = issueProjectIds.size > 1;
+
 	const submitBlocker = useMemo<string | null>(() => {
+		if (hasMixedRepos) {
+			return "Selected issues span multiple repositories. Select issues from a single repository to run them.";
+		}
 		if (!selectedProjectId) return "Select a project";
 		if (!hostId) return "No active host";
 		if (hostId !== machineId) {
@@ -199,6 +174,7 @@ export function RunIssuesInWorkspacePopover({
 		}
 		return null;
 	}, [
+		hasMixedRepos,
 		selectedProjectId,
 		selectedProject?.needsSetup,
 		setUpProjectIds,
@@ -376,10 +352,16 @@ export function RunIssuesInWorkspacePopover({
 				</div>
 
 				<div className="border-t border-border p-2">
+					{hasMixedRepos && (
+						<p className="mb-2 text-xs text-muted-foreground text-wrap-pretty">
+							{submitBlocker}
+						</p>
+					)}
 					<Button
 						size="sm"
 						className="w-full h-8"
 						disabled={!!submitBlocker}
+						title={submitBlocker ?? undefined}
 						onClick={handleRun}
 					>
 						Run {issues.length} Workspace{issues.length === 1 ? "" : "s"}

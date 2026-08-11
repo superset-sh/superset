@@ -81,7 +81,7 @@ export function useV2WorkspaceIsUnread(workspaceId: string): boolean {
 	);
 	if (manualUnread) return true;
 	for (const status of statuses.values()) {
-		if (status === "review") return true;
+		if (status === "review" || status === "failed") return true;
 	}
 	return false;
 }
@@ -140,7 +140,11 @@ export function useV2AttentionWorkspaceCount(): number {
 					lastEventAt: binding.lastEventAt,
 					lastSeenAt: terminalSeenAt[binding.terminalId],
 				});
-				if (status === "permission" || status === "review") {
+				if (
+					status === "permission" ||
+					status === "review" ||
+					status === "failed"
+				) {
 					workspaceIds.add(binding.workspaceId);
 				}
 			}

@@ -6,7 +6,12 @@ import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../db";
 import * as schema from "../db/schema";
 import { terminalAgentBindings, terminalSessions } from "../db/schema";
-import { SqliteTerminalAgentBindingPersistence } from "./persistence";
+import {
+	findResumeCandidateBinding,
+	markTerminalAgentBindingEnded,
+	SqliteTerminalAgentBindingPersistence,
+	seedEndedTerminalAgentBinding,
+} from "./persistence";
 import { TerminalAgentStore } from "./store";
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../drizzle");
@@ -122,7 +127,7 @@ describe("SqliteTerminalAgentBindingPersistence live reads", () => {
 		);
 	});
 
-	it("deleteDefunct drops rows for missing/exited/disposed/workspace-less sessions", () => {
+	it("sweepDefunct drops rowless/workspace-less bindings and marks dead-terminal ones ended", () => {
 		const db = createTestDb();
 		seedSession(db, { id: "t-live", status: "active", workspaceId: "ws-1" });
 		seedSession(db, { id: "t-exited", status: "exited", workspaceId: "ws-1" });
@@ -144,12 +149,270 @@ describe("SqliteTerminalAgentBindingPersistence live reads", () => {
 			})
 			.run();
 
-		new SqliteTerminalAgentBindingPersistence(db).deleteDefunct();
+		new SqliteTerminalAgentBindingPersistence(db).sweepDefunct();
 
 		const remaining = db
-			.select({ terminalId: terminalAgentBindings.terminalId })
+			.select({
+				terminalId: terminalAgentBindings.terminalId,
+				endedAt: terminalAgentBindings.endedAt,
+				endReason: terminalAgentBindings.endReason,
+			})
 			.from(terminalAgentBindings)
 			.all();
-		expect(remaining.map((row) => row.terminalId)).toEqual(["t-live"]);
+		expect(remaining.map((row) => row.terminalId).sort()).toEqual([
+			"t-disposed",
+			"t-exited",
+			"t-live",
+		]);
+		const byId = new Map(remaining.map((row) => [row.terminalId, row]));
+		expect(byId.get("t-live")?.endedAt).toBeNull();
+		expect(byId.get("t-exited")?.endReason).toBe("terminal-exited");
+		expect(byId.get("t-disposed")?.endReason).toBe("terminal-exited");
+
+		// A "detached" mark set before the host went down must survive the sweep.
+		const db2 = createTestDb();
+		seedSession(db2, { id: "t-quit", status: "exited", workspaceId: "ws-1" });
+		markTerminalAgentBindingEnded(db2, "t-quit", "detached", 5);
+		new SqliteTerminalAgentBindingPersistence(db2).sweepDefunct();
+		const quit = db2
+			.select({ endReason: terminalAgentBindings.endReason })
+			.from(terminalAgentBindings)
+			.all();
+		expect(quit).toEqual([{ endReason: "detached" }]);
+	});
+});
+
+describe("binding end marking and resume candidates", () => {
+	function seedWithSessionId(db: HostDb, id: string, status = "active") {
+		db.insert(terminalSessions)
+			.values({ id, status, originWorkspaceId: "ws-1", createdAt: 1 })
+			.run();
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: id,
+				workspaceId: "ws-1",
+				agentId: "claude",
+				agentSessionId: `sess-${id}`,
+				startedAt: 1,
+				lastEventAt: 2,
+				lastEventType: "Start",
+			})
+			.run();
+	}
+
+	it("marks ended and hides the binding from live reads while keeping the row", () => {
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		const persistence = new SqliteTerminalAgentBindingPersistence(db);
+
+		const marked = markTerminalAgentBindingEnded(
+			db,
+			"t1",
+			"terminal-exited",
+			42,
+		);
+		expect(marked).toEqual({ workspaceId: "ws-1" });
+		expect(persistence.listLiveByWorkspace("ws-1")).toEqual([]);
+		expect(persistence.load()).toEqual([]);
+
+		const candidate = findResumeCandidateBinding(db, "ws-1", "t1");
+		expect(candidate?.agentSessionId).toBe("sess-t1");
+		expect(candidate?.endedAt).toBe(42);
+		expect(candidate?.endReason).toBe("terminal-exited");
+	});
+
+	it("upgrades a death-gasp detach when the terminal dies moments later", () => {
+		// claude runs SessionEnd hooks on SIGHUP, so a daemon kill records a
+		// detach ~1s before the terminal death is noticed. That goodbye must
+		// not block resume.
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		markTerminalAgentBindingEnded(db, "t1", "detached", 10_000);
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited", 12_000);
+		const candidate = findResumeCandidateBinding(db, "ws-1", "t1");
+		expect(candidate?.endReason).toBe("terminal-exited");
+		expect(candidate?.endedAt).toBe(10_000);
+	});
+
+	it("keeps an old detach final when the terminal dies much later", () => {
+		// A real user quit: the shell outlived the agent, the terminal died
+		// long after. No resume offer.
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		markTerminalAgentBindingEnded(db, "t1", "detached", 10_000);
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited", 50_000);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+	});
+
+	it("never downgrades terminal-exited when a late goodbye trickles in", () => {
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited", 10_000);
+		markTerminalAgentBindingEnded(db, "t1", "detached", 11_000);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")?.endReason).toBe(
+			"terminal-exited",
+		);
+	});
+
+	it("does not offer bindings without an agent session id", () => {
+		const db = createTestDb();
+		seedSession(db, { id: "t1", status: "active", workspaceId: "ws-1" });
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited");
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+	});
+
+	it("does not offer never-prompted sessions (nothing persisted to resume)", () => {
+		const db = createTestDb();
+		db.insert(terminalSessions)
+			.values({
+				id: "t1",
+				status: "active",
+				originWorkspaceId: "ws-1",
+				createdAt: 1,
+			})
+			.run();
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: "t1",
+				workspaceId: "ws-1",
+				agentId: "claude",
+				agentSessionId: "sess-empty",
+				startedAt: 1,
+				lastEventAt: 2,
+				// SessionStart only — the agent never received a prompt, so the
+				// CLI has no conversation on disk to restore.
+				lastEventType: "Attached",
+			})
+			.run();
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited");
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+	});
+
+	it("getEnded reports end state only for ended rows", () => {
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		const persistence = new SqliteTerminalAgentBindingPersistence(db);
+
+		expect(persistence.getEnded("t1")).toBeUndefined();
+		expect(persistence.getEnded("nope")).toBeUndefined();
+
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited", 42);
+		expect(persistence.getEnded("t1")).toEqual({
+			endedAt: 42,
+			agentSessionId: "sess-t1",
+		});
+	});
+
+	it("upsert revives an ended row for a fresh agent session", () => {
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		const persistence = new SqliteTerminalAgentBindingPersistence(db);
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited");
+
+		persistence.upsert({
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			agentId: "claude" as never,
+			agentSessionId: "sess-new",
+			startedAt: 50,
+			lastEventAt: 50,
+			lastEventType: "Attached",
+		});
+
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+		expect(
+			persistence.listLiveByWorkspace("ws-1").map((b) => b.agentSessionId),
+		).toEqual(["sess-new"]);
+	});
+});
+
+describe("seedEndedTerminalAgentBinding (v1 pane migration)", () => {
+	function seedBareSession(
+		db: HostDb,
+		id: string,
+		workspaceId: string | null = "ws-1",
+	) {
+		db.insert(terminalSessions)
+			.values({
+				id,
+				status: "active",
+				originWorkspaceId: workspaceId,
+				createdAt: 1,
+			})
+			.run();
+	}
+
+	it("seeds a resume candidate for a bindingless terminal", () => {
+		const db = createTestDb();
+		seedBareSession(db, "t-migrated");
+
+		const result = seedEndedTerminalAgentBinding(db, {
+			terminalId: "t-migrated",
+			workspaceId: "ws-1",
+			agentId: "claude" as never,
+			agentSessionId: "sess-v1",
+			seededAt: 1_000,
+		});
+
+		expect(result).toBe("seeded");
+		const candidate = findResumeCandidateBinding(db, "ws-1", "t-migrated");
+		expect(candidate?.agentSessionId).toBe("sess-v1");
+		expect(candidate?.endReason).toBe("terminal-exited");
+		expect(candidate?.lastEventType).toBe("Stop");
+		// The seeded row is ended — it must never surface as a live agent.
+		const persistence = new SqliteTerminalAgentBindingPersistence(db);
+		expect(persistence.listLiveByWorkspace("ws-1")).toEqual([]);
+	});
+
+	it("never overwrites a terminal that already earned a binding", () => {
+		const db = createTestDb();
+		seedBareSession(db, "t1");
+		db.insert(terminalAgentBindings)
+			.values({
+				terminalId: "t1",
+				workspaceId: "ws-1",
+				agentId: "claude",
+				agentSessionId: "sess-real",
+				startedAt: 1,
+				lastEventAt: 2,
+				lastEventType: "Start",
+			})
+			.run();
+
+		const result = seedEndedTerminalAgentBinding(db, {
+			terminalId: "t1",
+			workspaceId: "ws-1",
+			agentId: "claude" as never,
+			agentSessionId: "sess-v1",
+		});
+
+		expect(result).toBe("already-bound");
+		expect(
+			new SqliteTerminalAgentBindingPersistence(db)
+				.listLiveByWorkspace("ws-1")
+				.map((b) => b.agentSessionId),
+		).toEqual(["sess-real"]);
+	});
+
+	it("rejects unknown terminals and workspace mismatches", () => {
+		const db = createTestDb();
+		seedBareSession(db, "t-other-ws", "ws-2");
+
+		expect(
+			seedEndedTerminalAgentBinding(db, {
+				terminalId: "t-missing",
+				workspaceId: "ws-1",
+				agentId: "claude" as never,
+				agentSessionId: "sess-v1",
+			}),
+		).toBe("terminal-not-found");
+		expect(
+			seedEndedTerminalAgentBinding(db, {
+				terminalId: "t-other-ws",
+				workspaceId: "ws-1",
+				agentId: "claude" as never,
+				agentSessionId: "sess-v1",
+			}),
+		).toBe("terminal-not-found");
 	});
 });

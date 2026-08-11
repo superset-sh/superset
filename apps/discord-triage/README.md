@@ -2,10 +2,13 @@
 
 Gateway bot that auto-ingests Discord support messages into Linear Triage. Every new top-level message in a watched text channel (and every new post in a watched forum channel) becomes a Linear issue labeled `Source: Discord`; the bot opens a thread on the message with a link to the issue. Thread replies are not synced (future work).
 
+After filing, an async enhancement pass mirrors message attachments to Linear uploads (Discord CDN URLs expire) and — when `ANTHROPIC_API_KEY` is set — has Claude Sonnet rewrite the ticket into the standard format (improved title, Context, Artifacts, References, original report preserved as a quote). Screenshots are passed to the model as vision input. Enhancement failures leave the raw issue untouched.
+
 ## Env
 
 | Var | Value |
 |---|---|
+| `ANTHROPIC_API_KEY` | Enables Claude Sonnet ticket summarization/enhancement; skipped when unset |
 | `DISCORD_BOT_TOKEN` | Bot token from the Discord developer portal |
 | `DISCORD_CHANNEL_IDS` | Comma-separated channel IDs to watch |
 | `LINEAR_API_KEY` | Linear personal API key |

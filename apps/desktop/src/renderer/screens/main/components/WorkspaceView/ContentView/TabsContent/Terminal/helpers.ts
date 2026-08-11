@@ -1,3 +1,7 @@
+import {
+	getCellDimensions,
+	installTerminalWheelEventHandler,
+} from "@superset/shared/terminal-wheel-handler";
 import { toast } from "@superset/ui/sonner";
 import { ClipboardAddon } from "@xterm/addon-clipboard";
 import { FitAddon } from "@xterm/addon-fit";
@@ -10,6 +14,7 @@ import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
+import { FocusAwareClipboardProvider } from "renderer/lib/terminal/clipboard-provider";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import {
 	createParserIdleGate,
@@ -110,7 +115,10 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const searchAddon = new SearchAddon();
 
 	// Utf8Base64 replaces the addon's UTF-8-unsafe default codec (#4839).
-	const clipboardAddon = new ClipboardAddon(new Utf8Base64());
+	const clipboardAddon = new ClipboardAddon(
+		new Utf8Base64(),
+		new FocusAwareClipboardProvider(),
+	);
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 
@@ -159,6 +167,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	});
 
 	const cleanupQuerySuppression = suppressQueryResponses(xterm);
+	const uninstallWheelHandler = installTerminalWheelEventHandler(xterm);
 
 	const linkManager = new TerminalLinkManager(xterm);
 	linkManager.setHandlers({
@@ -224,6 +233,7 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 			disposed = true;
 			cancelAnimationFrame(rafId);
 			cleanupQuerySuppression();
+			uninstallWheelHandler();
 			linkManager.dispose();
 			try {
 				webglAddon?.dispose();
@@ -311,28 +321,15 @@ function getTerminalCoordsFromEvent(
 	const x = event.clientX - rect.left;
 	const y = event.clientY - rect.top;
 
-	// Note: xterm.js does not expose a public API for mouse-to-coords conversion,
-	// so we must access internal _core._renderService.dimensions. This is fragile
-	// and may break in future xterm.js versions.
-	const dimensions = (
-		xterm as unknown as {
-			_core?: {
-				_renderService?: {
-					dimensions?: { css: { cell: { width: number; height: number } } };
-				};
-			};
-		}
-	)._core?._renderService?.dimensions;
-	if (!dimensions?.css?.cell) return null;
-
-	const cellWidth = dimensions.css.cell.width;
-	const cellHeight = dimensions.css.cell.height;
-
-	if (cellWidth <= 0 || cellHeight <= 0) return null;
+	const cell = getCellDimensions(xterm);
+	if (!cell) return null;
 
 	// Clamp to valid terminal grid range to prevent excessive delta calculations
-	const col = Math.max(0, Math.min(xterm.cols - 1, Math.floor(x / cellWidth)));
-	const row = Math.max(0, Math.min(xterm.rows - 1, Math.floor(y / cellHeight)));
+	const col = Math.max(0, Math.min(xterm.cols - 1, Math.floor(x / cell.width)));
+	const row = Math.max(
+		0,
+		Math.min(xterm.rows - 1, Math.floor(y / cell.height)),
+	);
 
 	return { col, row };
 }

@@ -1,3 +1,5 @@
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	useSetV2WorktreeBaseDir,
 	useV2WorktreeLocationSettings,
@@ -19,6 +21,7 @@ export function WorktreeLocationSection({
 	isOnline,
 	canEdit,
 }: WorktreeLocationSectionProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const settingsQuery = useV2WorktreeLocationSettings(hostUrl, {
 		enabled: isOnline,
 	});
@@ -34,7 +37,9 @@ export function WorktreeLocationSection({
 	return (
 		<section className="space-y-3">
 			<div>
-				<h3 className="text-sm font-medium">Worktrees</h3>
+				<h3 className="text-sm font-medium">
+					<HighlightText text="Worktrees" query={searchQuery} />
+				</h3>
 				<p className="mt-0.5 text-sm text-muted-foreground">
 					Default location for new worktree workspaces on this host.
 				</p>

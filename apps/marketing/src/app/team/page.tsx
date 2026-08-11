@@ -13,14 +13,14 @@ import { TeamBio } from "./components/TeamBio";
 export const metadata: Metadata = {
 	title: "About",
 	description:
-		"Meet the team behind Superset — building parallel coding agents for developers.",
+		"Meet the team behind Superset, building parallel coding agents for developers.",
 	alternates: {
 		canonical: "/team",
 	},
 	openGraph: {
 		title: "About | Superset",
 		description:
-			"Meet the team behind Superset — building parallel coding agents for developers.",
+			"Meet the team behind Superset, building parallel coding agents for developers.",
 		url: "/team",
 		images: ["/opengraph-image"],
 	},
@@ -28,7 +28,7 @@ export const metadata: Metadata = {
 		card: "summary_large_image",
 		title: "About | Superset",
 		description:
-			"Meet the team behind Superset — building parallel coding agents for developers.",
+			"Meet the team behind Superset, building parallel coding agents for developers.",
 		images: ["/opengraph-image"],
 	},
 };

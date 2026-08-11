@@ -23,13 +23,13 @@ import type {
 	SelectUser,
 	SelectV2Client,
 	SelectV2Host,
-	SelectV2Project,
 	SelectV2UsersHosts,
 	SelectV2Workspace,
 	SelectWorkspace,
 } from "@superset/db/schema";
 import type { AppRouter as HostServiceAppRouter } from "@superset/host-service";
 import type { AppRouter } from "@superset/trpc";
+import { toast } from "@superset/ui/sonner";
 import { BasicIndex } from "@tanstack/db";
 import { electricCollectionOptions } from "@tanstack/electric-db-collection";
 import {
@@ -47,8 +47,10 @@ import {
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import { env } from "renderer/env.renderer";
+import { track } from "renderer/lib/analytics";
 import { getAuthToken, getJwt } from "renderer/lib/auth-client";
 import { refreshJwtAfterUnauthorized } from "renderer/lib/jwt-refresh";
+import { reclaimTerminalStateForQuota } from "renderer/lib/terminal/terminal-buffer-gc";
 import superjson from "superjson";
 import { z } from "zod";
 import {
@@ -68,6 +70,9 @@ import {
 	type WorkspacesCreateInput,
 	workspaceLocalStateSchema,
 } from "./dashboardSidebarLocal";
+import { evictInactiveOrgs } from "./evictInactiveOrgs";
+import { notifyQuotaExhausted } from "./notifyQuotaExhausted";
+import { withQuotaGuard } from "./withQuotaGuard";
 import { withReadHeal } from "./withReadHeal";
 
 const columnMapper = snakeCamelMapper();
@@ -106,6 +111,33 @@ const createIndexedCollection = ((
 ) =>
 	createCollection({ ...config, ...indexDefaults })) as typeof createCollection;
 
+/**
+ * Applied to every localStorage-backed collection:
+ * - `startSync: true` + `gcTime: 0`: hydrate at construction, never GC. The
+ *   sidebar mutation helpers read `.state` non-reactively, and a write into a
+ *   not-yet-hydrated (or GC'd) collection rewrites the whole storage key from
+ *   empty memory — erasing every persisted row for the org.
+ * - `withReadHeal`: per-row tolerant reads — one malformed entry escaping to
+ *   the library's hydration catch-all would blank the entire store.
+ * - `withQuotaGuard`: an exhausted store drops the write instead of throwing,
+ *   which is what stops the rollback/retry loop that freezes the renderer.
+ */
+const hardenLocalCollection = <T>(
+	options: T,
+	heal?: (raw: unknown) => unknown,
+): T =>
+	withQuotaGuard(
+		withReadHeal({ ...options, startSync: true, gcTime: 0 } as T, heal),
+		{
+			// Oldest-first by the terminal GC's persisted-at index (24h pressure TTL)
+			// — survives relaunches, unlike registry membership.
+			reclaim: () => reclaimTerminalStateForQuota(),
+			// Not passed by reference: the guard's second argument is the error, which
+			// would land in the notice's optional `mode` slot.
+			onPersistFailed: (storageKey) => notifyQuotaExhausted(storageKey),
+		},
+	);
+
 type ElectricSyncConfig = ReturnType<typeof electricCollectionOptions>;
 const createPersistedElectricCollection = ((config: ElectricSyncConfig) => {
 	const persisted = persistedCollectionOptions({
@@ -143,7 +175,6 @@ export interface OrgCollections {
 	v2Hosts: Collection<SelectV2Host>;
 	v2Clients: Collection<SelectV2Client>;
 	v2UsersHosts: Collection<SelectV2UsersHosts>;
-	v2Projects: Collection<SelectV2Project>;
 	v2Workspaces: Collection<SelectV2Workspace>;
 	workspaces: Collection<SelectWorkspace>;
 	members: Collection<SelectMember>;
@@ -246,6 +277,16 @@ const handleElectricSyncError: ElectricSyncErrorHandler = async (error) => {
 	// a 4xx that does is terminal — return void to stop the stream instead of
 	// looping the same doomed request until Electric's 50-retry guard trips.
 	console.error("[collections] Electric sync stopped", error);
+	const status = error instanceof FetchError ? error.status : undefined;
+	track("electric_sync_stopped", {
+		status,
+		message: error instanceof Error ? error.message.slice(0, 200) : undefined,
+	});
+	toast.error("Cloud sync stopped", {
+		id: "electric-sync-stopped",
+		description: "Synced data may be stale until Superset reconnects.",
+		action: { label: "Reload", onClick: () => window.location.reload() },
+	});
 	return;
 };
 
@@ -326,43 +367,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 			},
 			getKey: (item) => item.id,
 		}),
-	);
-
-	const v2Projects = createPersistedElectricCollection(
-		electricCollectionOptions<SelectV2Project>({
-			id: `v2_projects-${organizationId}`,
-			shapeOptions: {
-				url: electricUrl,
-				params: {
-					table: "v2_projects",
-					organizationId,
-				},
-				headers: electricHeaders,
-				columnMapper,
-				onError: handleElectricSyncError,
-			},
-			getKey: (item) => item.id,
-			onUpdate: async ({ transaction }) => {
-				const { original, changes } = transaction.mutations[0];
-				const githubRepositoryId =
-					changes.githubRepositoryId === null &&
-					changes.repoCloneUrl !== undefined
-						? undefined
-						: changes.githubRepositoryId;
-				const result = await apiClient.v2Project.update.mutate({
-					id: original.id,
-					name: changes.name,
-					slug: changes.slug,
-					repoCloneUrl: changes.repoCloneUrl,
-					githubRepositoryId,
-				});
-				return electricTxidMatch(result.txid);
-			},
-		}),
-	);
-	v2Projects.createIndex(
-		(project) => project.githubRepositoryId,
-		basicIndexConfig,
 	);
 
 	const v2Hosts = createPersistedElectricCollection(
@@ -771,12 +775,17 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2SidebarProjects = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_sidebar_projects-${organizationId}`,
-			storageKey: `v2-sidebar-projects-${organizationId}`,
-			schema: dashboardSidebarProjectSchema,
-			getKey: (item) => item.projectId,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_sidebar_projects-${organizationId}`,
+				storageKey: `v2-sidebar-projects-${organizationId}`,
+				schema: dashboardSidebarProjectSchema,
+				// Explicit type for the same reason `withReadHeal` needs one: a
+				// passthrough generic drops the contextual typing that would
+				// otherwise narrow the key to string.
+				getKey: (item: DashboardSidebarProjectRow) => item.projectId,
+			}),
+		),
 	);
 	v2SidebarProjects.createIndex(
 		(sidebarProject) => sidebarProject.tabOrder,
@@ -785,7 +794,7 @@ function createOrgCollections(organizationId: string): OrgCollections {
 
 	const v2WorkspaceLocalState = createIndexedCollection(
 		localStorageCollectionOptions(
-			withReadHeal(
+			hardenLocalCollection(
 				{
 					id: `v2_workspace_local_state-${organizationId}`,
 					storageKey: `v2-workspace-local-state-${organizationId}`,
@@ -812,12 +821,14 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2SidebarSections = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_sidebar_sections-${organizationId}`,
-			storageKey: `v2-sidebar-sections-${organizationId}`,
-			schema: dashboardSidebarSectionSchema,
-			getKey: (item) => item.sectionId,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_sidebar_sections-${organizationId}`,
+				storageKey: `v2-sidebar-sections-${organizationId}`,
+				schema: dashboardSidebarSectionSchema,
+				getKey: (item: DashboardSidebarSectionRow) => item.sectionId,
+			}),
+		),
 	);
 	v2SidebarSections.createIndex(
 		(section) => section.projectId,
@@ -829,17 +840,19 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const v2TerminalPresets = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `v2_terminal_presets-${organizationId}`,
-			storageKey: `v2-terminal-presets-${organizationId}`,
-			schema: v2TerminalPresetSchema,
-			getKey: (item) => item.id,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `v2_terminal_presets-${organizationId}`,
+				storageKey: `v2-terminal-presets-${organizationId}`,
+				schema: v2TerminalPresetSchema,
+				getKey: (item: V2TerminalPresetRow) => item.id,
+			}),
+		),
 	);
 
 	const v2UserPreferences = createCollection(
 		localStorageCollectionOptions(
-			withReadHeal(
+			hardenLocalCollection(
 				{
 					id: `v2_user_preferences-${organizationId}`,
 					storageKey: `v2-user-preferences-${organizationId}`,
@@ -856,12 +869,14 @@ function createOrgCollections(organizationId: string): OrgCollections {
 	);
 
 	const failedWorkspaceCreates = createIndexedCollection(
-		localStorageCollectionOptions({
-			id: `failed_workspace_creates-${organizationId}`,
-			storageKey: `failed-workspace-creates-${organizationId}`,
-			schema: failedWorkspaceCreateSchema,
-			getKey: (item) => item.id,
-		}),
+		localStorageCollectionOptions(
+			hardenLocalCollection({
+				id: `failed_workspace_creates-${organizationId}`,
+				storageKey: `failed-workspace-creates-${organizationId}`,
+				schema: failedWorkspaceCreateSchema,
+				getKey: (item: FailedWorkspaceCreateRow) => item.id,
+			}),
+		),
 	);
 
 	return {
@@ -871,7 +886,6 @@ function createOrgCollections(organizationId: string): OrgCollections {
 		v2Hosts,
 		v2Clients,
 		v2UsersHosts,
-		v2Projects,
 		v2Workspaces,
 		workspaces,
 		members,
@@ -898,21 +912,26 @@ function createOrgCollections(organizationId: string): OrgCollections {
 }
 
 /**
- * Preload collections for an organization by starting Electric sync.
- * Collections are lazy — they don't fetch data until subscribed or preloaded.
- * Call this eagerly so data is ready when the user switches orgs.
+ * Start Electric sync for every collection of an organization. Collections
+ * are lazy — they don't fetch until subscribed or preloaded.
+ *
+ * Resolves once sync is STARTED, not once it completes. `preload()` on a
+ * persisted collection only settles after Electric's initial network sync,
+ * but SQLite-persisted rows hydrate into the collection immediately — the UI
+ * renders cache-first either way, and a never-synced org streams in exactly
+ * like first boot does. Waiting here only delays the switch and lets any
+ * single wedged shape hang it indefinitely.
  */
 export async function preloadCollections(
 	organizationId: string,
 ): Promise<void> {
 	const collections = getCollections(organizationId);
-	const collectionsToPreload = Object.entries(collections)
-		.filter(([name]) => name !== "organizations")
-		.map(([, collection]) => collection as Collection<object>);
-
-	await Promise.allSettled(
-		collectionsToPreload.map((c) => (c as Collection<object>).preload()),
-	);
+	for (const [name, collection] of Object.entries(collections)) {
+		if (name === "organizations") continue;
+		(collection as Collection<object>).preload().catch((error) => {
+			console.error(`[collections] Preload failed: ${name}`, error);
+		});
+	}
 }
 
 /**
@@ -937,6 +956,32 @@ export function getCollections(organizationId: string) {
 		...orgCollections,
 		organizations: organizationsCollection,
 	};
+}
+
+/**
+ * Evict the collection sets of every cached org except `activeOrganizationId`,
+ * stopping their Electric/localStorage sync, clearing their in-memory rows, and
+ * dropping them from the cache. Call this when the active org changes so prior
+ * orgs stop holding entire synced tables in the heap.
+ *
+ * The shared `organizationsCollection` singleton lives outside `collectionsCache`
+ * and is never touched. Recovery is handled by `getCollections`, which rebuilds
+ * fresh instances (rehydrating cache-first from the untouched on-disk rows) when
+ * an evicted org is re-entered.
+ */
+export function evictInactiveOrgCollections(
+	activeOrganizationId: string,
+): void {
+	evictInactiveOrgs(
+		collectionsCache as unknown as Map<string, Record<string, unknown>>,
+		getCollectionsCacheKey(activeOrganizationId),
+		(orgKey, collectionName, error) => {
+			console.error(
+				`[collections] Failed to clean up evicted collection ${collectionName} for org ${orgKey}`,
+				error,
+			);
+		},
+	);
 }
 
 export type AppCollections = ReturnType<typeof getCollections>;

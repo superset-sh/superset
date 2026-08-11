@@ -391,6 +391,16 @@ export const HOTKEYS_REGISTRY = {
 		category: "Terminal",
 		description: "Search text in the active chat",
 	},
+	FIND_IN_CHANGES: {
+		key: {
+			mac: L("meta+f"),
+			windows: L("ctrl+shift+f"),
+			linux: L("ctrl+shift+f"),
+		},
+		label: "Find in Changes",
+		category: "Terminal",
+		description: "Search text in the changes diff",
+	},
 	NEW_GROUP: {
 		key: {
 			mac: L("meta+t"),
@@ -720,6 +730,16 @@ export const HOTKEYS_REGISTRY = {
 		label: "Open Command Palette",
 		category: "Help",
 		description: "Open the global command palette",
+	},
+	CHECK_RESOURCES: {
+		key: {
+			mac: L("meta+shift+u"),
+			windows: L("ctrl+shift+alt+u"),
+			linux: L("ctrl+shift+alt+u"),
+		},
+		label: "Check Resources",
+		category: "Help",
+		description: "Open the resource usage view in the command palette",
 	},
 } as const satisfies Record<string, HotkeyRegistryDefinition>;
 

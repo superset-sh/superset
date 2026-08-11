@@ -77,8 +77,9 @@ function ensureWithinRoot({
 	const normalizedAbsolutePath = normalizeAbsolutePath(absolutePath);
 
 	if (!isPathWithinRoot(normalizedRootPath, normalizedAbsolutePath)) {
-		throw new Error(
+		throw new WorkspaceFsPathError(
 			`Path is outside workspace root: ${normalizedAbsolutePath}`,
+			"INVALID_TARGET",
 		);
 	}
 

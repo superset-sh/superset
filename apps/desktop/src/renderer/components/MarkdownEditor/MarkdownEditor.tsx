@@ -141,6 +141,11 @@ interface MarkdownEditorProps {
 	className?: string;
 	editorClassName?: string;
 	onModEnter?: () => void;
+	/**
+	 * If provided, plain Enter fires this instead of inserting a newline
+	 * (Shift+Enter still breaks the line). Composer-style editors only.
+	 */
+	onEnterSubmit?: () => void;
 	/** If provided, enables @-mention file search for the editor. */
 	searchFiles?: FileMentionSearchFn;
 	/** If provided, pasted file items (e.g. clipboard images) are forwarded here. */
@@ -152,6 +157,8 @@ interface MarkdownEditorProps {
 		fileMention?: boolean;
 		bubbleMenu?: boolean;
 	};
+	/** false renders the content read-only. */
+	editable?: boolean;
 }
 
 function getMarkdown(editor: Editor | null): string {
@@ -203,9 +210,11 @@ export function MarkdownEditor({
 	className,
 	editorClassName,
 	onModEnter,
+	onEnterSubmit,
 	searchFiles,
 	onPasteFiles,
 	features,
+	editable = true,
 }: MarkdownEditorProps) {
 	const showSlashCommand = features?.slashCommand ?? true;
 	const showEmoji = features?.emoji ?? true;
@@ -218,11 +227,14 @@ export function MarkdownEditor({
 	searchFilesRef.current = searchFiles;
 	const onPasteFilesRef = useRef(onPasteFiles);
 	onPasteFilesRef.current = onPasteFiles;
+	const onEnterSubmitRef = useRef(onEnterSubmit);
+	onEnterSubmitRef.current = onEnterSubmit;
 	const editorRef = useRef<Editor | null>(null);
 
 	const urlPolicy = useInlineUrlPolicy();
 
 	const editor = useEditor({
+		editable,
 		autofocus: autoFocus === true ? "end" : autoFocus || false,
 		extensions: [
 			Document,
@@ -353,6 +365,15 @@ export function MarkdownEditor({
 					onModEnter?.();
 					return true;
 				}
+				if (
+					onEnterSubmitRef.current &&
+					event.key === "Enter" &&
+					!event.shiftKey &&
+					!event.altKey
+				) {
+					onEnterSubmitRef.current();
+					return true;
+				}
 				return false;
 			},
 			handlePaste: (_, event) => {
@@ -407,6 +428,10 @@ export function MarkdownEditor({
 	editorRef.current = editor;
 
 	useEffect(() => {
+		if (editor && editor.isEditable !== editable) editor.setEditable(editable);
+	}, [editable, editor]);
+
+	useEffect(() => {
 		if (!editor || editor.isFocused) return;
 
 		const currentMarkdown = getMarkdown(editor);
@@ -417,7 +442,7 @@ export function MarkdownEditor({
 
 	return (
 		<div className={cn("w-full", className)}>
-			{showBubbleMenu && editor && (
+			{showBubbleMenu && editable && editor && (
 				<BubbleMenu
 					editor={editor}
 					options={{

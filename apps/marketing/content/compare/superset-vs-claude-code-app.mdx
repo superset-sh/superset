@@ -1,0 +1,109 @@
+---
+title: "Superset vs Claude Code App (2026): Orchestrator vs Multi-Surface Agent"
+description: "Compare Superset and the Claude Code app across desktop, web, and mobile. See how worktree-based agent orchestration differs from a single multi-surface coding agent."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "1v1"
+competitors:
+  - claude-code-app
+keywords:
+  - superset vs claude code app
+  - claude code app alternative
+  - claude code app
+  - claude code desktop
+  - claude code web
+  - run claude code in parallel
+---
+
+Claude Code is Anthropic's coding agent, and the same engine now runs across six surfaces: a terminal CLI, a desktop app, VS Code, JetBrains, the web, and mobile. When people say "the Claude Code app," they usually mean the desktop app (a graphical interface over the local engine) or Claude Code on the web. Superset is not another Claude Code surface -- it is an orchestration workspace that runs Claude Code, and other agents, in parallel with Git worktree isolation. This page compares the two.
+
+For the general agent comparison, see [Superset vs Claude Code](/compare/superset-vs-claude-code).
+
+---
+
+## At a Glance
+
+| | **Superset** | **Claude Code App** |
+|---|---|---|
+| **Category** | Agent orchestration workspace | Anthropic's coding agent, multiple surfaces |
+| **Surfaces** | Desktop app, CLI, MCP server | CLI, desktop app, VS Code, JetBrains, web, mobile |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) | Claude Code (Anthropic models) |
+| **Parallelism** | Many agents on separate branches, one worktree each | Parallel sessions (desktop); cloud sessions (web) |
+| **Isolation** | Automatic Git worktree per task | No native per-task worktree isolation |
+| **Review tooling** | Built-in diff/file editor, staging, commit | Desktop diff viewer and app preview |
+| **Pricing** | Free tier + Pro $20/seat/mo | Claude Pro / Max plans; API pricing |
+| **License** | Source-available (ELv2) | Proprietary |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is the Claude Code App?
+
+Claude Code is Anthropic's AI coding agent, running the same underlying engine across six surfaces, each tuned for a different workflow. The CLI is the most complete surface. The desktop app wraps the local engine in a graphical interface with a diff viewer, app preview, and parallel sessions. VS Code and JetBrains extensions bring it into those editors. Claude Code on the web runs in Anthropic's cloud and keeps working after you disconnect. The mobile apps act as a thin client to start and monitor sessions. Configuration, project memory, and MCP servers are shared across the local surfaces. Claude Code is available on Claude Pro and Max plans and via the API.
+
+## Key Differences
+
+### One Agent, Many Surfaces vs Many Agents, One Workspace
+
+The Claude Code app is about running one excellent agent wherever you work -- terminal, editor, desktop, web, or phone. Superset is about running many agents in one place. It can run Claude Code as one of several agents, each in its own worktree, alongside Codex, OpenCode, Cursor, Gemini, and custom terminal agents. If Claude Code is your only agent, its app coverage is broad; if you run several agents or want to compare them on the same task, Superset is built for that.
+
+### Isolation Model
+
+The Claude Code desktop app supports parallel sessions, and the web surface runs in the cloud, but Claude Code does not natively give each parallel task its own Git worktree. Superset makes a worktree per task the default, so multiple agents can work on the same repository at once without sharing a working directory or stepping on each other's branch. If your reason for wanting parallelism is running several tasks on one repo safely, that isolation is the key difference.
+
+### Review and Orchestration in One Place
+
+Superset centralizes launching, isolating, reviewing, and merging across all your agents in a single workspace, with an in-app browser and one-click handoff to your editor. The Claude Code app gives you Claude's own desktop diff viewer and app preview per session. If you want a single orchestration and review layer that spans more than one agent, that is Superset's role.
+
+### They Work Together
+
+This is not strictly either/or. Many developers run Claude Code as their primary agent inside Superset, using the Claude Code app on its own for quick single-task work and Superset when several agents need isolated worktrees on the same repo. Superset wraps Claude Code rather than replacing it.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month, and you bring your own agent providers. Claude Code is available through Claude Pro and Max plans and via Anthropic's API. You pay Anthropic for Claude Code usage whether you run it directly or inside Superset.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want to run multiple agents, or Claude Code alongside others, in one workspace
+- Need automatic Git worktree isolation for parallel work on one repo
+- Want unified review and orchestration across agents
+- Prefer local-first work with your own remote/cloud hosts
+
+**Choose the Claude Code App if you:**
+
+- Use Claude Code as your single agent and want it on every surface
+- Want Anthropic's own desktop, web, and mobile experiences
+- Like starting a task on the web and monitoring it from your phone
+- Do not need multi-agent orchestration or per-task worktrees
+
+**Verdict:** The Claude Code app is excellent if Claude Code is your one agent and you want it everywhere. Superset is the better fit if you run several agents, want automatic worktree isolation for parallel work on the same repository, and want one workspace to orchestrate and review them all -- with Claude Code as a first-class agent inside it.
+
+---
+
+## Frequently Asked Questions
+
+### What does "Claude Code app" mean?
+
+It is ambiguous. It usually refers to the Claude Code desktop app (a GUI over the local engine), but can also mean Claude Code on the web or the mobile apps. Superset is a separate workspace that can run Claude Code as one of many agents.
+
+### Does the Claude Code app use Git worktrees?
+
+Not natively. The desktop app supports parallel sessions and the web runs in the cloud, but Claude Code does not automatically give each task its own worktree. Superset does.
+
+### Can I use Claude Code inside Superset?
+
+Yes. Superset runs Claude Code as a first-class agent, each session in its own worktree, alongside other agents. You still pay Anthropic for Claude Code usage.
+
+### Which should I use for running several tasks on one repo?
+
+If you want several agents working the same repository at once without collisions, Superset's worktree-per-task model is the safer answer. The Claude Code app is better for single-agent work across many surfaces.

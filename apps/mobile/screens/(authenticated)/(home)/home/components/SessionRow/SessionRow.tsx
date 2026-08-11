@@ -28,7 +28,7 @@ export function SessionRow({
 					<ClaudeLogo size={16} />
 				</View>
 				<Text
-					className="text-foreground/90 flex-1 text-[15px]"
+					className="text-foreground/80 flex-1 text-[15px]"
 					numberOfLines={1}
 				>
 					{row.title}

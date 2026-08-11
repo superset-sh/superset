@@ -1,4 +1,4 @@
-import { chatServiceTrpc } from "@superset/chat/client";
+import { chatServiceTrpc } from "@superset/chat-legacy/client";
 import {
 	ModelSelector,
 	ModelSelectorContent,

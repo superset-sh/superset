@@ -3,6 +3,7 @@ import {
 	buildRrule,
 	describeSchedule,
 	formatDateTimeInTimezone,
+	isValidRrule,
 	matchPreset,
 	nextOccurrences,
 	type PresetMatch,
@@ -392,5 +393,33 @@ describe("recurrence timezone math", () => {
 			dayPeriod: "PM",
 			timeZoneName: "UTC",
 		});
+	});
+});
+
+describe("isValidRrule", () => {
+	it("accepts the picker presets", () => {
+		expect(isValidRrule("FREQ=HOURLY")).toBe(true);
+		expect(isValidRrule("FREQ=DAILY;BYHOUR=9;BYMINUTE=0")).toBe(true);
+		expect(
+			isValidRrule("FREQ=WEEKLY;BYDAY=MO,TU,WE,TH,FR;BYHOUR=9;BYMINUTE=0"),
+		).toBe(true);
+	});
+
+	it("accepts hand-written custom rules", () => {
+		expect(isValidRrule("FREQ=MONTHLY;BYMONTHDAY=-1;BYHOUR=17")).toBe(true);
+		expect(isValidRrule("FREQ=WEEKLY;INTERVAL=2;BYDAY=FR")).toBe(true);
+	});
+
+	it("rejects partially typed and malformed rules", () => {
+		expect(isValidRrule("")).toBe(false);
+		expect(isValidRrule("FREQ=")).toBe(false);
+		expect(isValidRrule("FREQ")).toBe(false);
+		expect(isValidRrule("FREQ=DAILY;BYHOUR=")).toBe(false);
+		expect(isValidRrule("every monday at 9")).toBe(false);
+		expect(isValidRrule("FREQ=BOGUS")).toBe(false);
+	});
+
+	it("rejects rules with no future occurrences", () => {
+		expect(isValidRrule("FREQ=DAILY;UNTIL=20200101T000000Z")).toBe(false);
 	});
 });

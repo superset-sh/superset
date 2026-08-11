@@ -33,10 +33,12 @@
 import {
 	clearSnapshot,
 	DAEMON_PACKAGE_VERSION,
+	drainPendingKills,
 	readSnapshot,
 	Server,
 } from "@superset/pty-daemon";
 import type { HandoffMessage } from "@superset/pty-daemon/protocol";
+import { probeTrustdHealthy } from "@superset/pty-daemon/trustd-probe";
 
 interface CliArgs {
 	socket: string;
@@ -84,10 +86,16 @@ async function runFresh(): Promise<void> {
 		bufferCap: args.bufferBytes,
 	});
 	await server.listen();
+	// Signal handlers first: a SIGTERM landing during the (bounded) probe
+	// must still run the PTY teardown drain.
+	wireShutdown(server);
+	// Probe AFTER binding so a slow `security` can't delay the socket coming up
+	// (the supervisor has a socket-ready timeout). The value lands before the
+	// supervisor's adoption hello, which happens well after bind.
+	server.setTrustdHealthy(await probeTrustdHealthy());
 	process.stderr.write(
 		`[pty-daemon] listening on ${args.socket} (v${daemonVersion})\n`,
 	);
-	wireShutdown(server);
 }
 
 async function runHandoffReceiver(): Promise<void> {
@@ -168,10 +176,15 @@ async function runHandoffReceiver(): Promise<void> {
 	log(`predecessor disconnected, binding socket`);
 
 	await server.listenWithRetry();
+	// Signal handlers first: a SIGTERM landing during the (bounded) probe
+	// must still run the PTY teardown drain for the adopted sessions.
+	wireShutdown(server);
+	// Probe only now: running it earlier would delay the upgrade-ack the
+	// predecessor is waiting on (and the socket bind).
+	server.setTrustdHealthy(await probeTrustdHealthy());
 	log(`bound and listening`);
 
 	clearSnapshot(snapshotPath);
-	wireShutdown(server);
 }
 
 function wireShutdown(server: Server): void {
@@ -182,6 +195,9 @@ function wireShutdown(server: Server): void {
 		process.stderr.write(`[pty-daemon] received ${signal}, shutting down\n`);
 		try {
 			await server.close();
+			// A requested close may still be mid-escalation; process.exit()
+			// would drop it and leak the SIGHUP-trapping survivors.
+			await drainPendingKills(2000);
 		} catch (err) {
 			process.stderr.write(
 				`[pty-daemon] shutdown error: ${(err as Error).stack ?? err}\n`,

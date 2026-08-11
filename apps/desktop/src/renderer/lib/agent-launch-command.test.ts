@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import {
+	findLinkedAgent,
 	getAgentCommandText,
 	parseAgentCommandText,
 	resolvePresetLaunchCommands,
@@ -60,6 +61,20 @@ describe("agent launch command helpers", () => {
 		).toEqual([
 			"ANTHROPIC_BASE_URL=https://example.test ANTHROPIC_AUTH_TOKEN=abc claude --dangerously-skip-permissions",
 		]);
+	});
+
+	it("resolves agent settings targets by UUID or built-in preset id", () => {
+		const secondAgent = {
+			...agent,
+			id: "codex-config-uuid",
+			presetId: "codex",
+			command: "codex",
+		};
+		const agents = [agent, secondAgent];
+
+		expect(findLinkedAgent(agents, "codex-config-uuid")).toBe(secondAgent);
+		expect(findLinkedAgent(agents, "codex")).toBe(secondAgent);
+		expect(findLinkedAgent(agents, "missing")).toBeNull();
 	});
 
 	it("falls back to snapshot commands when the linked agent is unavailable", () => {

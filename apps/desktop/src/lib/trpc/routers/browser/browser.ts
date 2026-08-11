@@ -1,6 +1,9 @@
 import { observable } from "@trpc/server/observable";
 import { session } from "electron";
-import { browserManager } from "main/lib/browser/browser-manager";
+import {
+	browserManager,
+	type ForwardedKey,
+} from "main/lib/browser/browser-manager";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 
@@ -153,6 +156,31 @@ export const createBrowserRouter = () => {
 					browserManager.on(`reload-pane:${input.paneId}`, handler);
 					return () => {
 						browserManager.off(`reload-pane:${input.paneId}`, handler);
+					};
+				});
+			}),
+
+		// Renderer-registered canonical chords the main process should suppress in
+		// the focused guest and forward for replay (override/layout-aware).
+		setForwardableChords: publicProcedure
+			.input(z.object({ chords: z.array(z.string()) }))
+			.mutation(({ input }) => {
+				browserManager.setForwardableChords(input.chords);
+				return { success: true };
+			}),
+
+		// Keystrokes intercepted from the focused guest webview, replayed by the
+		// renderer into its hotkey system (guest focus hides them from the host).
+		onKeyForward: publicProcedure
+			.input(z.object({ paneId: z.string() }))
+			.subscription(({ input }) => {
+				return observable<ForwardedKey>((emit) => {
+					const handler = (key: ForwardedKey) => {
+						emit.next(key);
+					};
+					browserManager.on(`key-forward:${input.paneId}`, handler);
+					return () => {
+						browserManager.off(`key-forward:${input.paneId}`, handler);
 					};
 				});
 			}),

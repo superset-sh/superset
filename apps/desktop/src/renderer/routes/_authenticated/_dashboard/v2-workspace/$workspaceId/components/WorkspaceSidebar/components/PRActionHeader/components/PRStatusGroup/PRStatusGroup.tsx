@@ -131,10 +131,16 @@ export function PRStatusGroup({
 						)}
 					>
 						<PRIcon state={linkState} className="size-4" />
-						<span className="font-mono text-xs text-muted-foreground">
+						{/* Icon-only when the nearest @container is narrow (resizable
+						    sidebar); the number and indicators come back with room. */}
+						<span className="hidden font-mono text-xs text-muted-foreground @[240px]:inline">
 							#{pr.number}
 						</span>
-						{showIndicators && <PRStatusIndicators checks={checks} />}
+						{showIndicators && (
+							<span className="hidden @[240px]:contents">
+								<PRStatusIndicators checks={checks} />
+							</span>
+						)}
 					</a>
 				</HoverCardTrigger>
 				<HoverCardContent

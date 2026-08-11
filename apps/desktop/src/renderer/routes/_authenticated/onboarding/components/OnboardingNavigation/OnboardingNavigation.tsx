@@ -1,7 +1,8 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
-import { HiArrowLeft } from "react-icons/hi2";
+import { HiArrowLeft, HiOutlineArrowRightOnRectangle } from "react-icons/hi2";
 import { LuCircleHelp } from "react-icons/lu";
+import { useSignOut } from "renderer/hooks/useSignOut";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { PaginationDots } from "../PaginationDots";
 
@@ -23,6 +24,7 @@ export function OnboardingNavigation({
 	continueLabel,
 }: OnboardingNavigationProps) {
 	const openUrl = electronTrpc.external.openUrl.useMutation();
+	const signOut = useSignOut();
 
 	return (
 		<div className="mx-auto flex w-full max-w-[1200px] items-center px-12 pt-4 pb-8">
@@ -45,6 +47,16 @@ export function OnboardingNavigation({
 				<PaginationDots current={currentStep} total={totalSteps} />
 			</div>
 			<div className="flex flex-1 items-center justify-end gap-2">
+				<Button
+					size="sm"
+					variant="ghost"
+					onClick={async () => {
+						await signOut();
+					}}
+				>
+					<HiOutlineArrowRightOnRectangle />
+					Sign out
+				</Button>
 				<Button
 					size="sm"
 					variant="ghost"

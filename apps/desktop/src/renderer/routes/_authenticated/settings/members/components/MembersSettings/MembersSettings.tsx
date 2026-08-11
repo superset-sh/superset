@@ -18,6 +18,8 @@ import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -32,6 +34,7 @@ interface MembersSettingsProps {
 }
 
 export function MembersSettings({ visibleItems }: MembersSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
@@ -118,7 +121,9 @@ export function MembersSettings({ visibleItems }: MembersSettingsProps) {
 					)}
 
 					<div className="max-w-5xl space-y-4">
-						<h3 className="text-lg font-semibold">Team Members</h3>
+						<h3 className="text-lg font-semibold">
+							<HighlightText text="Team Members" query={searchQuery} />
+						</h3>
 
 						{showMembersList &&
 							(!isReady && members.length === 0 ? (

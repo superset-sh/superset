@@ -12,6 +12,7 @@ import { useState } from "react";
 import { FaGithub } from "react-icons/fa";
 import { FcGoogle } from "react-icons/fc";
 import { env } from "renderer/env.renderer";
+import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { track } from "renderer/lib/analytics";
 import { setAuthToken } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
@@ -23,6 +24,11 @@ export const Route = createFileRoute("/sign-in/")({
 });
 
 const LAST_USED_METHOD_KEY = "superset-last-auth-method";
+
+// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
+const workspaceRedirect = <Navigate to="/workspace" replace />;
+
+const SESSION_PENDING_TIMEOUT_MS = 15_000;
 
 type AuthMethod = AuthProvider | "dev";
 
@@ -41,14 +47,20 @@ function SignInPage() {
 	const [devError, setDevError] = useState<string | null>(null);
 	const [lastUsedMethod, setLastUsedMethod] = useState(readLastUsedMethod);
 	const { hasLocalToken, isPending, session } = useSessionRecovery();
+	// A session fetch that never settles must not trap the user on a spinner —
+	// fall through to the sign-in buttons after a while (#5729).
+	const pendingTimedOut = useDelayElapsed(
+		isPending,
+		SESSION_PENDING_TIMEOUT_MS,
+	);
 
 	// Dev bypass: skip sign-in entirely
 	if (env.SKIP_ENV_VALIDATION) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
 
 	// Show loading while session is being fetched
-	if (isPending) {
+	if (isPending && !pendingTimedOut) {
 		return (
 			<div className="flex h-screen w-screen items-center justify-center bg-background">
 				<Spinner className="size-8" />
@@ -58,7 +70,7 @@ function SignInPage() {
 
 	// If already signed in, redirect to workspace
 	if (session?.user) {
-		return <Navigate to="/workspace" replace />;
+		return workspaceRedirect;
 	}
 
 	const rememberLastUsedMethod = (method: AuthMethod) => {

@@ -12,9 +12,9 @@ const inFlightStatus = new Map<string, Promise<GitChangesStatus>>();
 
 export function makeStatusCacheKey(
 	worktreePath: string,
-	defaultBranch: string,
+	defaultBranch?: string,
 ): string {
-	return `${worktreePath}:${defaultBranch}`;
+	return `${worktreePath}:${defaultBranch ?? ""}`;
 }
 
 export function getCachedStatus(cacheKey: string): GitChangesStatus | null {

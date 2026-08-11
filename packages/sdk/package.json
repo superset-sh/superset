@@ -2,6 +2,23 @@
 	"name": "@superset/sdk",
 	"version": "0.0.1-alpha.12",
 	"description": "TypeScript SDK for the Superset API",
+	"homepage": "https://superset.sh",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/superset-sh/superset.git",
+		"directory": "packages/sdk"
+	},
+	"bugs": {
+		"url": "https://github.com/superset-sh/superset/issues"
+	},
+	"keywords": [
+		"superset",
+		"coding-agents",
+		"agent-orchestration",
+		"git-worktree",
+		"mcp",
+		"sdk"
+	],
 	"private": true,
 	"type": "module",
 	"license": "Apache-2.0",

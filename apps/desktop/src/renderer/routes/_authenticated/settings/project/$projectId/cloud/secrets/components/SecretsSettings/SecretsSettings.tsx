@@ -1,4 +1,5 @@
 import { Button } from "@superset/ui/button";
+import { toast } from "@superset/ui/sonner";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiOutlineCloud } from "react-icons/hi2";
@@ -101,6 +102,9 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 			});
 		} catch (err) {
 			console.error("[project-settings] Failed to create cloud project:", err);
+			toast.error(
+				err instanceof Error ? err.message : "Failed to create cloud project",
+			);
 		} finally {
 			setIsCreatingCloud(false);
 		}

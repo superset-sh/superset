@@ -10,17 +10,17 @@ import { AgentCard } from "./components/AgentCard";
 
 interface AgentsSettingsProps {
 	visibleItems?: SettingItemId[] | null;
-	/** Builtin preset id to pre-select in v2 (`?agent=claude`). Ignored in v1. */
-	initialAgentPresetId?: string | null;
+	/** Config UUID or built-in preset id to select in v2. Ignored in v1. */
+	initialAgentId?: string | null;
 }
 
 export function AgentsSettings({
 	visibleItems,
-	initialAgentPresetId,
+	initialAgentId,
 }: AgentsSettingsProps) {
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	if (isV2CloudEnabled) {
-		return <V2AgentsSettings initialAgentPresetId={initialAgentPresetId} />;
+		return <V2AgentsSettings initialAgentId={initialAgentId} />;
 	}
 	return <V1AgentsSettings visibleItems={visibleItems} />;
 }

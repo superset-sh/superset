@@ -1,0 +1,108 @@
+---
+title: "Superset vs super.engineering (2026): Agent Workspace vs Native Rust Orchestrator"
+description: "Compare Superset and super.engineering (formerly Superconductor) for running parallel AI coding agents in Git worktrees. Native Rust performance vs a full agent workspace."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - super-engineering
+keywords:
+  - superset vs super.engineering
+  - super.engineering alternative
+  - superconductor alternative
+  - native ai agent orchestrator
+  - agentic ide
+  - parallel coding agents mac
+---
+
+Superset and super.engineering (formerly Superconductor) are direct competitors: both are desktop apps that orchestrate Claude Code, Codex, and other CLI agents in isolated Git worktrees with diff review built in. The split is architectural and philosophical. super.engineering is a closed-source, keyboard-driven native macOS app written entirely in Rust with a GPU-rendered terminal, currently in alpha with nightly-only releases. Superset is a shipping product with automations, an SDK, an MCP server, cloud workspaces, and a team and enterprise track.
+
+---
+
+## At a Glance
+
+| | **Superset** | **super.engineering** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Runs unlimited parallel CLI agents in worktrees from one keyboard-driven native interface |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Native macOS agent orchestrator (alpha) |
+| **Architecture** | Desktop app | 100% Rust, Metal GPU-rendered terminal, no Electron |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | 15 listed providers (7 stable, incl. Claude Code, Codex, Cursor, OpenCode, Pi, Grok), plus any CLI agent |
+| **Isolation** | Automatic Git worktree per task | Worktree per task (workspace → project → worktree → tab) |
+| **Forges** | GitHub, plus Linear integration | GitHub, GitHub Enterprise, GitLab, self-managed GitLab |
+| **Remote / cloud** | Remote and cloud workspaces across your network devices | Experimental SSH remote workspaces (Ubuntu hosts) |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | `sc` CLI + experimental 1-8 agent teams; no scheduling |
+| **License / status** | Source-available (ELv2), shipping product | Closed source, alpha, nightly releases only |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is super.engineering?
+
+super.engineering, formerly Superconductor, is a native macOS app for running parallel AI coding agents, built entirely in Rust with a Metal GPU-rendered terminal and a sub-50ms startup claim. Its pitch: web-technology tools cap you at a handful of parallel agents, while a native app runs unlimited agents, scaling with your hardware. Each task gets its own worktree with tabs for chat, terminal, files, diffs, and browser; a review panel supports line-anchored comment threads that can be dispatched back to an agent; and an adaptive Git button walks each branch through commit, PR, CI fixes, and merge on both GitHub and GitLab. A bundled `sc` CLI exposes the app to scripts and agents, including experimental cross-provider agent teams of up to eight roles. It is keyboard-driven and deeply customizable (layouts, themes, picture-in-picture tabs), runs agents as local subprocesses on your own subscriptions with no accounts and no proxying, and is currently a closed-source alpha distributed as a free nightly download for Apple Silicon Macs.
+
+## Key Differences
+
+### Native Performance vs Product Surface
+
+super.engineering's identity is the native build: 100% Rust, GPU terminal, no Electron, unlimited parallel agents. If raw UI speed and terminal fidelity are your top criteria, it is the most aggressive engineering effort in this category. Superset spends its effort on surface area instead: an in-app browser, port management, chat, MCP tooling, automations, and remote/cloud workspaces are all part of the product today. Fast chrome versus more product -- that is the core trade.
+
+### Automation and Scheduling
+
+super.engineering has a genuinely good local CLI (`sc`) with JSON output, and experimental orchestrated agent teams. But it has no scheduling, no webhooks, no HTTP API, no SDK, and no MCP support -- recurring work means scripting `sc` yourself. Superset ships automations that run agent sessions on a schedule, a TypeScript SDK to compose them, an MCP server so agents and tools can drive Superset, and a Slack bot for triggering and receiving runs. For unattended or recurring agent work, Superset has the built-in story.
+
+### Maturity, License, and Team
+
+super.engineering is in alpha: nightly is the only release channel, the product is closed source with no public repo or changelog page, there is no pricing yet, and Enterprise is "email us." Superset is source-available under ELv2, has published free and Pro pricing, and carries team features (unlimited users on Pro, Slack workflows) and an enterprise tier with SSO and audit logs. Individual early adopters may not care; teams standardizing a workflow will.
+
+### Forges and Review
+
+Credit where due: super.engineering supports GitLab (including self-managed) alongside GitHub, and its review panel -- line-anchored comment threads that dispatch to agents, plus the adaptive Git action button -- is a thoughtful flow. Superset's review is its built-in diff/file editor plus one-click handoff to VS Code, Cursor, Windsurf, JetBrains, or Zed, with GitHub and Linear integration. If GitLab is your forge, super.engineering covers it natively today.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. super.engineering has no pricing page as of August 2026: the alpha is a free download with no account required, and its terms anticipate paid licensing that has not been announced. Both are bring-your-own-agent -- you pay Anthropic, OpenAI, and other providers directly.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want scheduled automations, a TypeScript SDK, an MCP server, and a Slack bot around your agents
+- Need remote and cloud workspaces, team plans, or enterprise features
+- Prefer a shipping product with published pricing over an alpha
+- Want an in-app browser and port management in the loop
+
+**Choose super.engineering if you:**
+
+- Prioritize native performance: Rust, GPU-rendered terminal, no Electron
+- Are keyboard-driven and want deep layout, theme, and keybinding customization
+- Use GitLab (including self-managed) as your forge
+- Are happy riding an alpha on nightly builds
+
+**Verdict:** super.engineering is the performance purist's take on this category, and the native engineering is real. But it is an alpha: closed source, nightly-only, no pricing, no scheduling or API surfaces, and macOS-only. Superset delivers the same worktree-orchestration core as a complete product -- automations, SDK, MCP, browser, remote and cloud workspaces, and team features included. Try super.engineering if the native feel excites you; standardize on Superset if you need the workflow to be dependable today.
+
+---
+
+## Frequently Asked Questions
+
+### Is super.engineering the same as Superconductor?
+
+Yes. Superconductor rebranded to super.engineering; developer-facing names like the `sc` command and `.superconductor/config.json` remain during the transition.
+
+### Do both use Git worktrees?
+
+Yes. Both create an isolated worktree per task. super.engineering organizes them as workspace → project → worktree → tab; Superset attaches persistent terminals, diffs, and review to each worktree-backed workspace.
+
+### Is super.engineering open source?
+
+No. It is closed-source proprietary software, currently free during its alpha, with no published pricing. Superset is source-available under the Elastic License 2.0 with free and paid tiers.
+
+### Which platforms do they run on?
+
+Both are macOS-first today. super.engineering requires macOS 14+ on Apple Silicon, with Windows and Linux planned. Superset ships on macOS with Windows and Linux coming, and additionally offers a CLI, an MCP server, and remote/cloud workspaces.

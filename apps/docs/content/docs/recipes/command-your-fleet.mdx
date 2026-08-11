@@ -1,0 +1,62 @@
+---
+title: Command Your Fleet from the CLI
+description: Read every agent's screen and broadcast follow-ups across workspaces with two shell loops
+---
+
+<Callout type="info" title="Use when">
+	several agents are running across workspaces — from a fan-out, a race, or a busy day — and you want status or course-corrections without clicking through panes.
+</Callout>
+
+## The Idea
+
+Every terminal Superset runs is addressable from the [CLI](/cli/getting-started): `terminals list`, `read`, and `send`. Compose them with `workspaces list` and one shell loop sweeps a whole project — every agent's screen in one scroll, or one instruction delivered to all of them.
+
+Workspaces are host-owned, and these loops target the machine you run them on. If your fleet spans hosts, add `--host <id>` to each command to sweep a remote host's share of it.
+
+## Read the Whole Fleet
+
+Print the last few lines of every terminal in every workspace of a project:
+
+```bash
+superset workspaces list --project my-app --quiet | while read ws; do
+  superset terminals list --workspace "$ws" --json 2>/dev/null \
+    | jq -r '.sessions[].terminalId' | while read t; do
+      echo "=== $ws / $t ==="
+      superset terminals read --workspace "$ws" --terminal "$t" --max-lines 5 --json | jq -r '.text'
+  done
+done
+```
+
+`--quiet` prints one workspace ID per line; the inner loop asks each workspace for its live sessions. Raise `--max-lines` when you want more than a glance.
+
+## Broadcast a Follow-Up
+
+Send the same instruction to every running agent in the project:
+
+```bash
+superset workspaces list --project my-app --quiet | while read ws; do
+  superset terminals list --workspace "$ws" --json 2>/dev/null \
+    | jq -r '.sessions[].terminalId' | while read t; do
+      superset terminals send --workspace "$ws" --terminal "$t" \
+        --text "Status check: summarize what you have done and what remains in 2 sentences."
+  done
+done
+```
+
+Follow with the read loop a minute later to collect the answers.
+
+One caveat: `send` delivers to *every* terminal, including plain shells, where the text just lands at the prompt. Broadcast when the fleet is all agents, or filter by workspace name first (`workspaces list --search worker- --quiet`).
+
+## Clean Up When You're Done
+
+```bash
+superset workspaces list --project my-app --quiet | xargs -L1 superset workspaces delete
+```
+
+Deletes every listed workspace (the project's `main` workspace is not deletable). Filter with `--search` to target only the fleet you launched.
+
+## Variations
+
+- **Scope by name**: prefix fleet workspaces (`worker-1`, `race-claude`) at creation, then drive only them with `workspaces list --search worker- --quiet`
+- **Let an agent do this**: the [`superset:orchestrate` skill](/orchestration) runs these same loops for you — monitoring workers and delivering follow-ups is exactly how it coordinates
+- **Watch continuously**: wrap the read loop in `watch -n 30` for a poor-man's fleet dashboard

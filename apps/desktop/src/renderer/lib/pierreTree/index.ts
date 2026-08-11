@@ -1,4 +1,7 @@
-export { createPierreTreeStyle } from "./createPierreTreeStyle";
+export {
+	createPierreTreeStyle,
+	PIERRE_TREE_UNSAFE_CSS,
+} from "./createPierreTreeStyle";
 export {
 	FILE_STATUS_TO_PIERRE,
 	type FileStatus,

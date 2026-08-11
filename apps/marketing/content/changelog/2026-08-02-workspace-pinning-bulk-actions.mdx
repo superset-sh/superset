@@ -1,0 +1,110 @@
+---
+title: Workspace pinning and bulk actions, an agent orchestration skill, and Grok and Kimi Code agents
+date: 2026-08-02
+---
+
+## Pin and Bulk-Manage Workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/5963" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6021" />
+
+The sidebar now works like a file manager. Right-click any workspace and choose **Pin** to keep it above your projects. ⌘-click or ⇧-click to select a batch, then move, group, or delete them all at once from the header toolbar or the right-click menu.
+
+- Bulk delete previews every workspace first and flags dirty or unpushed work
+- Deleting many workspaces no longer stalls the app <PRBadge url="https://github.com/superset-sh/superset/pull/6121" />
+
+![Three selected workspaces in the sidebar with the Pinned section above and the right-click menu offering Move 3 to Group and Delete 3 Workspaces](/changelog/2026-08-02-workspace-bulk-select.png)
+
+## Turn Your Agent into an Orchestrator <PRBadge url="https://github.com/superset-sh/superset/pull/6088" />
+
+The new `superset-orchestration` skill turns the agent you're already talking to into a coordinator. Ask it to parallelize work and it runs the whole job through the Superset CLI: an isolated workspace per worker, an agent launched in each, follow-ups over their terminals, results collected at the end. The coordinator can be Claude Code or Codex; the workers can be any mix of agents Superset runs.
+
+Typical uses:
+
+- Fan a big refactor or migration out across several worktrees at once
+- Hand a branch from one agent to another with its full terminal context
+- Dispatch work to agents on a remote host and monitor until every worker reports done or blocked
+
+```bash
+npx skills add superset-sh/skills
+```
+
+Claude Code users can also get it from the Superset plugin: `/plugin marketplace add superset-sh/superset`.
+
+## A Cleaner, Denser Sidebar <PRBadge url="https://github.com/superset-sh/superset/pull/5944" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5824" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5887" />
+
+The sidebar got a full restyle: denser rows, muted icons, keycap-style shortcut hints, and a single continuous top bar on workspace views. Ports and running agents now show as compact chips under each workspace row.
+
+- Hover a chip for the full list of ports or agents, each with its own close or stop button
+- One click closes all ports or stops all agents for a workspace
+- Right-click an agent chip for quick actions <PRBadge url="https://github.com/superset-sh/superset/pull/5805" />
+
+![The restyled sidebar with denser rows, a Pinned section, and project groups next to the new-workspace view](/changelog/2026-08-02-sidebar-redesign.png)
+
+## Grok and Kimi Code Join the Agent Lineup <PRBadge url="https://github.com/superset-sh/superset/pull/5859" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5780" />
+
+xAI's Grok Build and Moonshot's Kimi Code are now first-class Superset agents, with their own icons, launch presets, and live working/idle status in the sidebar.
+
+- Grok permission prompts surface as desktop notifications, contributed by [@psinha40898](https://github.com/psinha40898) <PRBadge url="https://github.com/superset-sh/superset/pull/6025" />
+- Panes waiting on your input now show a yellow indicator instead of red <PRBadge url="https://github.com/superset-sh/superset/pull/6017" />
+
+Add either one in **Settings → Agents → Add agent** and it appears in the new-workspace picker, automations, and the terminal preset bar.
+
+![Grok's agent settings page next to the Add agent picker, with Kimi Code highlighted among Amp, Gemini, Copilot, Mistral Vibe, and Cursor Agent](/changelog/2026-08-02-add-agent-picker.png)
+
+## Superset 2.0 Starts Rolling Out <PRBadge url="https://github.com/superset-sh/superset/pull/5821" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6118" />
+
+For months Superset has shipped as two apps in one: the original interface and the new 2.0 experience behind an opt-in. We're consolidating on 2.0 so every fix and feature lands in one place, and the upgrade is rolling out gradually over the coming weeks. If you're still on the original interface, nothing to do: when it's your turn the upgrade happens automatically, and your next launch lands in 2.0, in your last active workspace.
+
+- Projects, workspaces, settings, and presets all come along
+- A heads-up card appears before the switch and a welcome card after
+- Running terminal sessions don't carry over; workspaces reopen with fresh terminals in their old folders
+
+![The welcome card shown on the first launch after migrating to the new Superset](/changelog/2026-08-02-v2-welcome.png)
+
+## Improvements
+
+- **Running terminals come back on open** - opening a workspace recreates panes for sessions started by automations or a previous run, and background agents survive host restarts <PRBadge url="https://github.com/superset-sh/superset/pull/5740" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5823" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5808" />
+- **Terminal connection status** - a dead terminal shows a reconnecting or disconnected dot in the pane header; click it for a diagnosis and a Reconnect button <PRBadge url="https://github.com/superset-sh/superset/pull/5652" />
+- **Editor and terminal typography controls** - line height, letter spacing, weight, ligatures, and cursor style, with live previews, in **Settings → Appearance** <PRBadge url="https://github.com/superset-sh/superset/pull/5775" />
+- **Find in the Changes pane** - press ⌘F to search the whole diff; next/previous expands collapsed files for you <PRBadge url="https://github.com/superset-sh/superset/pull/5648" />
+- **Failed agents say so** - Claude Code API errors show a red "failed" status on the pane, and **Clear Status** unsticks an agent stuck on "working" <PRBadge url="https://github.com/superset-sh/superset/pull/5697" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5744" />
+- **Close confirmations** - closing a terminal with a running command or active ports asks first, and a workspace action closes all ports at once <PRBadge url="https://github.com/superset-sh/superset/pull/5517" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6007" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5779" />
+- **Prompt history** - the new-workspace screen keeps your last 50 prompts; click the history icon to search and reuse one <PRBadge url="https://github.com/superset-sh/superset/pull/6083" />
+- **Diff review on iOS** - long-press a line in the mobile app to draft comments, then send the whole review to your agent <PRBadge url="https://github.com/superset-sh/superset/pull/5838" />
+- **Blank projects** - create a fresh git repo without leaving Superset, from the new-workspace picker or onboarding <PRBadge url="https://github.com/superset-sh/superset/pull/5906" />
+- **Import existing worktrees** - right-click a project to adopt worktrees created outside Superset as workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/6097" />
+- **Resource monitor in the command palette** - press ⌘⇧U for per-workspace CPU and memory <PRBadge url="https://github.com/superset-sh/superset/pull/6037" />
+- **Reveal in Finder** - from the file pane header and the project right-click menu <PRBadge url="https://github.com/superset-sh/superset/pull/6071" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6073" />
+- **CLI on Intel Macs** - the install script and Homebrew formula now ship Intel builds <PRBadge url="https://github.com/superset-sh/superset/pull/6059" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6057" />
+- **Per-launch reasoning effort** - `superset workspaces create --effort high` overrides the agent's default for one launch <PRBadge url="https://github.com/superset-sh/superset/pull/5994" />
+- **Better workspace names** - titles match your prompt's language, contributed by [@kba977](https://github.com/kba977), and fall back to your agent's own CLI without Anthropic or OpenAI keys <PRBadge url="https://github.com/superset-sh/superset/pull/6039" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5742" />
+- **Adding an agent creates its launcher** - add one in **Settings → Agents** and it appears everywhere: new-workspace picker, automations, preset bar <PRBadge url="https://github.com/superset-sh/superset/pull/5745" />
+- **Teardown commands run on delete** - deleting a workspace runs the `teardown` commands from `.superset/config.json`, not just `teardown.sh`, contributed by [@abhay-codes07](https://github.com/abhay-codes07) <PRBadge url="https://github.com/superset-sh/superset/pull/5661" />
+- **Tab-drag merge preview and settings polish** - a drag affordance for merging tabs plus a cleaner Settings screen, contributed by [@mikemilla](https://github.com/mikemilla) <PRBadge url="https://github.com/superset-sh/superset/pull/5647" />
+- **Smoother onboarding** - live prerequisite checks, a one-click GitHub CLI install, and clone errors you can act on <PRBadge url="https://github.com/superset-sh/superset/pull/6115" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6117" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6116" />
+- **Agent-ready docs** - every docs page has a plain-markdown twin and the docs are searchable over MCP <PRBadge url="https://github.com/superset-sh/superset/pull/5910" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5912" />
+- **Experimental: wait for setup before starting agents** - the agent chains after your setup script in one terminal, contributed by [@MikeMcQuaid](https://github.com/MikeMcQuaid); enable it in **Settings → Experimental** <PRBadge url="https://github.com/superset-sh/superset/pull/5925" />
+
+---
+
+**Bug fixes**
+
+- **Stability** - Fixed white screens from a sign-in redirect loop and from terminal scrollback piling up in local storage <PRBadge url="https://github.com/superset-sh/superset/pull/5734" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5743" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6036" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6038" />
+- **Stability** - Sidebar layout no longer resets, and corrupted local state no longer signs you out <PRBadge url="https://github.com/superset-sh/superset/pull/6089" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6050" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6094" />
+- **Stability** - Updating the app no longer kills running terminals, and the update button installs the update instead of just closing the app <PRBadge url="https://github.com/superset-sh/superset/pull/5721" /> <PRBadge url="https://github.com/superset-sh/superset/pull/6049" />
+- **Terminal** - Fixed garbled text from a shared-atlas rendering bug <PRBadge url="https://github.com/superset-sh/superset/pull/5701" />
+- **Terminal** - A single flooding terminal no longer drops every terminal in the workspace <PRBadge url="https://github.com/superset-sh/superset/pull/5747" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5748" />
+- **Terminal** - Terminals reconnect reliably after sleep/wake, network drops, and a recovered daemon <PRBadge url="https://github.com/superset-sh/superset/pull/5702" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5759" />
+- **Terminal** - Hidden panes repaint correctly when revealed, and closing a workspace disposes its terminals <PRBadge url="https://github.com/superset-sh/superset/pull/5725" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5752" />
+- **Terminal** - Killing an agent mid-session no longer leaves the terminal ignoring input <PRBadge url="https://github.com/superset-sh/superset/pull/5790" />
+- **Terminal** - Agent and preset commands no longer get dropped when the shell starts slowly <PRBadge url="https://github.com/superset-sh/superset/pull/5774" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5927" />
+- **Agents** - Refreshed the Cursor model list, and Cursor sessions show Cursor Composer instead of a stale Claude label <PRBadge url="https://github.com/superset-sh/superset/pull/5753" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5882" />
+- **Workspaces** - Open in IDE works again in v2 workspaces <PRBadge url="https://github.com/superset-sh/superset/pull/5877" />
+- **Workspaces** - New workspaces fork from a fresh copy of non-default base branches <PRBadge url="https://github.com/superset-sh/superset/pull/5913" />
+- **Workspaces** - Branches past 500 commits show their true commit count, and long base-branch names truncate in the "from" label, contributed by [@ethan0905](https://github.com/ethan0905) <PRBadge url="https://github.com/superset-sh/superset/pull/5890" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5985" />
+- **Workspaces** - PR links attach at creation, and no longer attach to unrelated PRs that just target the default branch <PRBadge url="https://github.com/superset-sh/superset/pull/6125" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5692" />
+- **Workspaces** - Deleting a host removes its workspaces too <PRBadge url="https://github.com/superset-sh/superset/pull/5727" />
+- **Automations** - Creation works reliably, the agent survives internal config reseeds, and runs survive a deleted pinned workspace <PRBadge url="https://github.com/superset-sh/superset/pull/5878" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5943" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5741" />
+- **Automations** - The failure badge clears when you open the page, and offline-host runs point you at the relay settings that fix them <PRBadge url="https://github.com/superset-sh/superset/pull/5689" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5675" />
+- **Files & Markdown** - Rendered code blocks keep their whitespace, contributed by [@navidRashik](https://github.com/navidRashik) <PRBadge url="https://github.com/superset-sh/superset/pull/5659" />
+- **Files & Markdown** - Copying a Markdown preview table keeps the table, contributed by [@lizard-kim](https://github.com/lizard-kim), and video previews play again in the file viewer <PRBadge url="https://github.com/superset-sh/superset/pull/5688" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5691" />
+- **Files & Markdown** - Long commit messages wrap in the commit range modal, contributed by [@hackice20](https://github.com/hackice20) <PRBadge url="https://github.com/superset-sh/superset/pull/5794" />
+- **UI** - The template gallery no longer vanishes on outside clicks, project settings render correctly, and preset-bar tooltips show just the hotkey <PRBadge url="https://github.com/superset-sh/superset/pull/5720" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5749" /> <PRBadge url="https://github.com/superset-sh/superset/pull/5730" />

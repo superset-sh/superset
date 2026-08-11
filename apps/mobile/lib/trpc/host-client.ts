@@ -1,7 +1,7 @@
 import { createTRPCProxyClient, httpBatchLink } from "@trpc/client";
 import superjson from "superjson";
 import { authClient, getJwt, setJwt } from "../auth/client";
-import { env } from "../env";
+import { getRelayUrl } from "../host/client";
 import type { HostChatClient } from "./host-chat-types";
 
 export type HostClient = HostChatClient;
@@ -25,7 +25,7 @@ export function getHostRelayTrpcUrl(
 	hostId: string,
 ): string {
 	const key = buildHostRoutingKey(organizationId, hostId);
-	return `${env.EXPO_PUBLIC_RELAY_URL}/hosts/${key}/trpc`;
+	return `${getRelayUrl()}/hosts/${key}/trpc`;
 }
 
 /**

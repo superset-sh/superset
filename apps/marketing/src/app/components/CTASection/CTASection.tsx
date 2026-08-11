@@ -1,22 +1,39 @@
 "use client";
 
+import { COMPANY } from "@superset/shared/constants";
 import { useState } from "react";
+import { FaGithub } from "react-icons/fa";
 import { DownloadButton } from "../DownloadButton";
 import { WaitlistModal } from "../WaitlistModal";
+import { InstallCommand } from "./components/InstallCommand";
 
 export function CTASection() {
 	const [isWaitlistOpen, setIsWaitlistOpen] = useState(false);
 
 	return (
 		<>
-			<section className="relative py-32 px-8 lg:px-[30px]">
-				<div className="max-w-7xl mx-auto flex flex-col items-center text-center">
-					<h2 className="text-3xl sm:text-4xl xl:text-5xl font-medium tracking-tight leading-[1.1] text-foreground mb-8">
+			<section className="relative py-24 sm:py-32">
+				<div className="max-w-7xl mx-auto px-6 sm:px-8 flex flex-col items-center text-center">
+					<h2 className="text-3xl sm:text-4xl lg:text-5xl font-medium tracking-tight leading-[1.1] text-foreground mb-8">
 						Try Superset now.
 					</h2>
-					<div>
+					<div className="flex flex-wrap items-center justify-center gap-2 sm:gap-4">
 						<DownloadButton onJoinWaitlist={() => setIsWaitlistOpen(true)} />
+						<button
+							type="button"
+							className="px-4 py-2.5 sm:px-6 sm:py-3 text-sm sm:text-base font-normal bg-background border border-border text-foreground hover:bg-muted transition-colors flex items-center gap-2"
+							onClick={() => window.open(COMPANY.GITHUB_URL, "_blank")}
+							aria-label="Star on GitHub"
+						>
+							Star on GitHub
+							<FaGithub className="size-4" />
+						</button>
 					</div>
+					<p className="mt-10 mb-4 text-sm text-muted-foreground">
+						Or install the CLI — paste the agent tab into Claude Code and it
+						installs itself.
+					</p>
+					<InstallCommand />
 				</div>
 			</section>
 			<WaitlistModal

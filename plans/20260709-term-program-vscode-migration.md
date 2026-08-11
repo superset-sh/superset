@@ -2,6 +2,19 @@
 
 Branch: `debug-terminal-scrollback` (PR #5563). Status: implemented and verified — manual pass and CDP pass both complete.
 
+> **SUPERSEDED (2026-07-11).** The vscode identity fixed scroll *distance* but
+> not *cadence*: xterm.js still emitted ~one damped report per third wheel
+> event, and Claude compensated with multi-line jumps per report (chunky
+> "every third tick" feel). The deeper fix ships a custom wheel handler
+> (`@superset/shared/terminal-wheel-handler`, installed in the desktop
+> renderer's v1/v2 terminals and the web `WebTerminal`) that produces a
+> native-fidelity report stream (no 0.3x trackpad damping, one SGR
+> report/arrow per line), and reverts `TERMINAL_TERM_PROGRAM` to `kitty` so
+> Claude trusts that stream without amplification — the iTerm/Ghostty
+> combination. The identity and the handler are coupled: reverting one
+> without the other reintroduces slow (kitty + damped stream) or runaway
+> (vscode + full stream) scrolling.
+
 ## Why
 
 Superset terminals previously claimed `TERM_PROGRAM=kitty` (host-service `env.ts`) so agent

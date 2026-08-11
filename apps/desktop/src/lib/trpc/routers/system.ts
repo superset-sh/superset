@@ -37,15 +37,42 @@ async function detectGhCli(): Promise<GhDetectResult> {
 		);
 		authenticated = true;
 	} catch {
-		// `gh auth status` exits non-zero when not logged in.
+		// `--active` requires gh >= 2.40; retry without it for older installs.
+		// Both variants exit non-zero when not logged in.
+		try {
+			await execWithShellEnv(
+				"gh",
+				["auth", "status", "--hostname", "github.com"],
+				{ timeout: 5000 },
+			);
+			authenticated = true;
+		} catch {}
 	}
 
 	return { installed: true, authenticated, version, path: "gh" };
 }
 
+interface BrewDetectResult {
+	installed: boolean;
+	version: string | null;
+}
+
+async function detectBrew(): Promise<BrewDetectResult> {
+	try {
+		const { stdout } = await execWithShellEnv("brew", ["--version"], {
+			timeout: 5000,
+		});
+		const version = stdout.match(/Homebrew (\S+)/)?.[1] ?? null;
+		return { installed: true, version };
+	} catch {
+		return { installed: false, version: null };
+	}
+}
+
 export const createSystemRouter = () => {
 	return router({
 		detectGhCli: publicProcedure.query(detectGhCli),
+		detectBrew: publicProcedure.query(detectBrew),
 	});
 };
 

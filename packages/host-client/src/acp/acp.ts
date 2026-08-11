@@ -11,7 +11,10 @@ import type { HostTransport } from "../transport";
  * implements — so clients never import the host's own modules.
  */
 export interface AcpHostClient {
-	listSessions(routingKey: string, workspaceId: string): Promise<SessionsPage>;
+	listSessions(
+		routingKey: string,
+		input?: { workspaceId?: string; cursor?: string; limit?: number },
+	): Promise<SessionsPage>;
 	createSession(
 		routingKey: string,
 		input: { sessionId: string; workspaceId: string },
@@ -34,8 +37,8 @@ export function createAcpHostClient(transport: HostTransport): AcpHostClient {
 	) => transport.call<TOutput>({ routingKey, procedure, input, method });
 
 	return {
-		listSessions: (routingKey, workspaceId) =>
-			call(routingKey, "acpSessions.list", { workspaceId }, "GET"),
+		listSessions: (routingKey, input) =>
+			call(routingKey, "acpSessions.list", input ?? {}, "GET"),
 		createSession: (routingKey, input) =>
 			call(routingKey, "acpSessions.create", input, "POST"),
 		sessionsApi: (routingKey) => ({

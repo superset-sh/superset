@@ -1,0 +1,108 @@
+---
+title: "Superset vs Gas Town (2026): Agent Workspace vs Autonomous Agent Fleet"
+description: "Compare Superset and Gas Town (Steve Yegge's multi-agent orchestrator) for running AI coding agents — a desktop workspace vs an autonomous 20-30 agent fleet."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - gastown
+keywords:
+  - superset vs gas town
+  - gastown alternative
+  - gas town orchestrator
+  - steve yegge gas town
+  - multi agent orchestration
+  - ai agent fleet
+---
+
+Superset and Gas Town both orchestrate many coding agents, but they sit at different points on the autonomy curve. Superset is a desktop workspace: you (or your automations) launch agents into isolated worktrees, watch them, review diffs, and merge. Gas Town -- Steve Yegge's MIT-licensed orchestrator -- is an autonomous fleet: an AI "Mayor" dispatches work from a git-backed ledger to 20-30 worker agents, watchdogs recover the stuck ones, and a bisecting merge queue lands the results. One is a workspace you drive; the other is a factory you supervise.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Gas Town** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Coordinates fleets of 20-30 agents with an AI coordinator, work ledger, and merge queue |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Autonomous multi-agent orchestration system |
+| **Interface** | Desktop GUI, CLI, MCP server | CLI (`gt`) + tmux + TUI feed + local web dashboard |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Claude Code (deepest), plus Codex, Gemini, Copilot, Cursor, Amp, OpenCode, Pi, and more |
+| **Work model** | Task → worktree workspace → agent → review | Beads (git-backed work ledger) → Mayor dispatches → polecats execute → Refinery merges |
+| **Isolation** | Automatic Git worktree per task | Git worktree-backed "hooks" persisting agent work |
+| **Merging** | You review and merge (diff editor, PR flow) | Bors-style bisecting merge queue; workers never push to main |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Autonomous dispatch loop + watchdog recovery; no time-based scheduler |
+| **License** | Source-available (ELv2) | Open source (MIT) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Gas Town?
+
+Gas Town is Steve Yegge's MIT-licensed multi-agent orchestration system, built to run 20-30 coding agents "productively, on a sustained basis." You talk to the Mayor, an AI coordinator with full context; it creates work in Beads, a git-backed ledger (Dolt-based since v1.0), and dispatches it to "polecats" -- worker agents with persistent identity whose work survives crashes in worktree-backed "hooks." A watchdog chain (Witness, Deacon, Dogs) detects and recovers stuck agents, and each project's Refinery runs a Bors-style bisecting merge queue so workers never push directly to main. It is CLI- and tmux-centric with a TUI activity feed and a local web dashboard, supports Claude Code most deeply plus Codex, Gemini, Copilot, Cursor, and others, and is free and open source. Yegge's own framing sets expectations: it is powerful, experimental in spirit, expensive to run at full tilt, and aimed at operators comfortable deep in the terminal.
+
+## Key Differences
+
+### Supervised Workspace vs Autonomous Factory
+
+Superset keeps a human in the loop by design: agents work in parallel, but you see every terminal, review every diff, and merge deliberately -- with automations covering the scheduled, unattended slice. Gas Town inverts that: the Mayor plans and dispatches, GUPP (its propulsion rule: if work is on your hook, you must run it) keeps agents moving, and the Refinery merges green batches autonomously. Gas Town is the more radical bet on autonomy; Superset is the more practical bet that engineers still want to see and steer the work.
+
+### The Merge Queue
+
+Gas Town's Refinery is its most distinctive engineering: a bisecting merge queue that batches worker output, verifies it, and isolates failures automatically. Superset has no merge queue -- diffs land as PRs that humans review, with the diff editor and GitHub integration smoothing the loop. If you dream of dozens of agents landing code with minimal human gating, the Refinery is genuinely novel; if your team requires human review anyway, the machinery matters less.
+
+### Operator Bar and Machinery
+
+Gas Town requires Go, Dolt, tmux, and Beads, runs a daemon plus per-project watchdogs, and its author describes the operator bar bluntly -- it is for people already running many agents who can handle industrial machinery. It is also single-operator: one human Overseer per town, no teams, auth, or multi-host story. Superset is an installable desktop app with onboarding, team plans, and enterprise controls. The honest comparison: Gas Town scales autonomy per operator; Superset scales adoption across a team.
+
+### Cost and Model
+
+Gas Town's sustained 20-30 agent loops consume tokens aggressively -- Yegge warns about the spend outright, and rate limits push toward multiple provider accounts. Superset's interactive-plus-scheduled model tends to track what you actually review. Both are bring-your-own-subscription; the difference is how hard the architecture pushes the meter.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Gas Town is free and MIT-licensed with no pricing at all -- but its always-running fleet model makes provider token costs the real line item. Both use your own agent subscriptions and API keys.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want to see and review what agents do in one workspace with diffs, terminals, and a browser
+- Need scheduled automations, an SDK/MCP surface, and Slack workflows
+- Want team plans, enterprise controls, and remote/cloud workspaces
+- Prefer an installable product over operating a daemon-and-tmux stack
+
+**Choose Gas Town if you:**
+
+- Want to run 20-30 agents on a sustained, autonomous basis
+- Like the Mayor/ledger/merge-queue model and are comfortable operating it
+- Live in the terminal and want MIT-licensed machinery you can inspect
+- Accept the token spend that full-throttle autonomy implies
+
+**Verdict:** Gas Town is the most ambitious autonomy experiment in the space, and its ledger and merge-queue ideas will influence everything that comes after it. Most engineers and teams, though, want parallel agents with visibility, review, and predictable operations -- and that is Superset's territory: the same fleet-scale parallelism with a workspace, automations, and a team story around it. Run Gas Town if you are the kind of operator it was built for; run Superset if you want the fleet without the factory floor.
+
+---
+
+## Frequently Asked Questions
+
+### Is Gas Town only for Claude Code?
+
+No. Claude Code is the default and deepest integration, but Gas Town ships presets for Codex, Gemini, Copilot, Cursor, Amp, OpenCode, Pi, and others. Superset is similarly agent-agnostic across CLI agents.
+
+### Do Superset and Gas Town both use Git worktrees?
+
+Yes. Superset creates an isolated worktree per task. Gas Town's "hooks" persist each agent's work in git worktree-backed storage so it survives crashes and restarts.
+
+### Does Gas Town have a GUI?
+
+Not a desktop app. It is CLI- and tmux-first, with a TUI activity feed (`gt feed`) and a local web dashboard. Superset is a desktop workspace with a CLI and MCP server alongside.
+
+### Can Superset run an autonomous fleet like Gas Town?
+
+Superset supports orchestration -- an agent can spawn and coordinate workers through the CLI and MCP server, and automations run scheduled unattended sessions -- but it does not ship an autonomous coordinator or merge queue. That trade (human-visible review vs autonomous landing) is the core difference.

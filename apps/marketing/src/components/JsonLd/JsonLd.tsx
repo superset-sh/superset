@@ -30,14 +30,35 @@ export function JsonLdScript({ schema }: { schema: unknown }) {
 }
 
 export function OrganizationJsonLd() {
+	const supportEmail = COMPANY.MAIL_TO.replace("mailto:", "");
 	const schema = {
 		"@context": "https://schema.org",
 		"@type": "Organization",
 		name: COMPANY.NAME,
 		url: COMPANY.MARKETING_URL,
 		logo: `${COMPANY.MARKETING_URL}/logo.png`,
-		description: "Run 10+ parallel coding agents on your machine",
-		sameAs: [COMPANY.GITHUB_URL, COMPANY.X_URL],
+		description: "Run 100+ parallel coding agents on your machine",
+		email: supportEmail,
+		contactPoint: {
+			"@type": "ContactPoint",
+			contactType: "customer support",
+			email: supportEmail,
+			url: `${COMPANY.MARKETING_URL}/contact`,
+			availableLanguage: "English",
+		},
+		address: {
+			"@type": "PostalAddress",
+			addressLocality: "San Francisco",
+			addressRegion: "CA",
+			addressCountry: "US",
+		},
+		sameAs: [
+			COMPANY.GITHUB_URL,
+			"https://github.com/superset-sh",
+			COMPANY.X_URL,
+			COMPANY.LINKEDIN_URL,
+			COMPANY.YOUTUBE_URL,
+		],
 	};
 
 	return <JsonLdScript schema={schema} />;
@@ -50,12 +71,13 @@ export function SoftwareApplicationJsonLd() {
 		name: COMPANY.NAME,
 		operatingSystem: "macOS, Windows, Linux",
 		applicationCategory: "DeveloperApplication",
+		applicationSubCategory: "Developer Tools",
 		offers: {
 			"@type": "Offer",
 			price: "0",
 			priceCurrency: "USD",
 		},
-		description: "Run 10+ parallel coding agents on your machine",
+		description: "Run 100+ parallel coding agents on your machine",
 		url: COMPANY.MARKETING_URL,
 	};
 
@@ -186,6 +208,51 @@ export function WebsiteJsonLd() {
 	return <JsonLdScript schema={schema} />;
 }
 
+export function HomeWebPageJsonLd() {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "WebPage",
+		"@id": COMPANY.MARKETING_URL,
+		url: COMPANY.MARKETING_URL,
+		name: `${COMPANY.NAME} — Run 100+ parallel coding agents on your machine`,
+		isPartOf: {
+			"@type": "WebSite",
+			name: COMPANY.NAME,
+			url: COMPANY.MARKETING_URL,
+		},
+		speakable: {
+			"@type": "SpeakableSpecification",
+			cssSelector: ["h1", "#hero-subheadline"],
+		},
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
+export function ServiceJsonLd() {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "Service",
+		name: `${COMPANY.NAME} agent orchestration`,
+		serviceType: "AI coding agent orchestration platform",
+		description:
+			"Run and orchestrate parallel AI coding agents (Claude Code, Codex, OpenCode, and any CLI agent) in isolated Git worktrees, with diff review, persistent terminals, scheduled automations, and an MCP server for programmatic control.",
+		provider: {
+			"@type": "Organization",
+			name: COMPANY.NAME,
+			url: COMPANY.MARKETING_URL,
+		},
+		url: COMPANY.MARKETING_URL,
+		offers: {
+			"@type": "Offer",
+			price: "0",
+			priceCurrency: "USD",
+		},
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
 interface FAQPageJsonLdProps {
 	items: Array<{ question: string; answer: string }>;
 }
@@ -201,6 +268,27 @@ export function FAQPageJsonLd({ items }: FAQPageJsonLdProps) {
 				"@type": "Answer",
 				text: item.answer,
 			},
+		})),
+	};
+
+	return <JsonLdScript schema={schema} />;
+}
+
+interface ItemListJsonLdProps {
+	name: string;
+	items: Array<{ name: string; url?: string }>;
+}
+
+export function ItemListJsonLd({ name, items }: ItemListJsonLdProps) {
+	const schema = {
+		"@context": "https://schema.org",
+		"@type": "ItemList",
+		name,
+		itemListElement: items.map((item, index) => ({
+			"@type": "ListItem",
+			position: index + 1,
+			name: item.name,
+			...(item.url && { url: item.url }),
 		})),
 	};
 

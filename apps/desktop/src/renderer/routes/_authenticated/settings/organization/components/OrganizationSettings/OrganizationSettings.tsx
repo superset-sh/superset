@@ -30,6 +30,8 @@ import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	getImageExtensionFromMimeType,
 	parseBase64DataUrl,
@@ -57,13 +59,19 @@ interface SettingsRowProps {
 }
 
 function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="flex-1 min-w-0">
 				<Label htmlFor={htmlFor} className="text-sm font-medium">
-					{label}
+					<HighlightText text={label} query={searchQuery} />
 				</Label>
-				{hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+				{hint && (
+					<p className="text-xs text-muted-foreground mt-0.5">
+						<HighlightText text={hint} query={searchQuery} />
+					</p>
+				)}
 			</div>
 			<div className="shrink-0">{children}</div>
 		</div>
@@ -76,6 +84,7 @@ export function OrganizationSettings({
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const collections = useCollections();
+	const searchQuery = useSettingsSearchQuery();
 
 	const [isSlugDialogOpen, setIsSlugDialogOpen] = useState(false);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
@@ -396,7 +405,9 @@ export function OrganizationSettings({
 							{showMembersList && (
 								<div>
 									<div className="mb-3">
-										<h3 className="text-sm font-medium">Members</h3>
+										<h3 className="text-sm font-medium">
+											<HighlightText text="Members" query={searchQuery} />
+										</h3>
 										<p className="text-xs text-muted-foreground mt-0.5">
 											Everyone with access to this organization.
 										</p>

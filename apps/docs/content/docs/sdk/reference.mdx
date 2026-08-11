@@ -4,7 +4,7 @@ description: Method-by-method reference for the Superset TypeScript SDK.
 ---
 
 <Callout type="warn">
-The SDK is in early alpha — it is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
+The SDK is in early alpha. It is not meant for production use and may be removed in the future. Stay on the latest version (`@superset_sh/sdk@latest`) while we iterate.
 </Callout>
 
 ## Client
@@ -64,7 +64,7 @@ const tasks = await client.tasks.list({
 });
 ```
 
-Returns `Array<TaskListItem>` — each row is a `Task` denormalized with `assigneeName`, `assigneeImage`, `creatorName`, `creatorImage`, and `statusName` so you don't need follow-up calls for display.
+Returns `Array<TaskListItem>`. Each row is a `Task` denormalized with `assigneeName`, `assigneeImage`, `creatorName`, `creatorImage`, and `statusName` so you don't need follow-up calls for display.
 
 ### `tasks.retrieve(idOrSlug)`
 
@@ -109,28 +109,31 @@ const statuses = await client.tasks.statuses.list();
 const todo = statuses.find((s) => s.type === 'unstarted');
 ```
 
-Returns `Array<TaskStatus>` — each entry is `{ id, name, color, type, position }`.
+Returns `Array<TaskStatus>`. Each entry is `{ id, name, color, type, position }`.
 
 ---
 
 ## workspaces
 
-### `workspaces.list(params?)`
+### `workspaces.list({ hostId, projectId?, search? })`
 
-List workspaces in the organization.
+List workspaces on a host. Workspaces are host-owned. There is no org-wide
+listing; enumerate hosts with [`hosts.list()`](#hostslist) and query each one
+you care about.
 
 ```ts
-const all = await client.workspaces.list();
-const onOneHost = await client.workspaces.list({ hostId: '<machineId>' });
+const workspaces = await client.workspaces.list({ hostId: '<machineId>' });
 ```
 
-Returns `Array<Workspace>`.
+Returns `Array<Workspace>`. Rows include the host-served `projectName`
+(`string | null`; null when the workspace's project row is missing on that
+host, so don't assume it's always present).
 
-### `workspaces.create({ hostId, projectId, name, branch, agents?, command? })`
+### `workspaces.create({ hostId, projectId, name, branch?, pr?, baseBranch?, taskId?, agents?, command? })`
 
-Create a worktree on a specific host. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel — the host must be online.
+Create a worktree on a specific host. Provide exactly one of `branch` or `pr` (a pull request number; the host checks out the verified PR head and derives the branch). `baseBranch` picks the fork point when `branch` doesn't exist yet, and `taskId` links the new workspace to a task. Optionally spawn one or more agents inside it as soon as the worktree is ready, and/or run a one-off shell `command` in the worktree. Goes through the relay tunnel: the host must be online.
 
-Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID — the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents` — pass either or both.
+Each entry in `agents` takes a preset id (e.g. `"claude"`) or a `HostAgentConfig` instance UUID: the host service resolves it against its configured rows and copies their stored `command`, `args`, and `env`. Set `effort` to override the agent's reasoning effort for that launch, or omit it to use the agent's own default. Use [`agents.list({ hostId })`](#agentslist-hostid-) to enumerate what's installed. `command` is independent of `agents`. Pass either or both.
 
 ```ts
 const result = await client.workspaces.create({
@@ -138,8 +141,8 @@ const result = await client.workspaces.create({
   projectId: '<uuid>',       // see projects.list()
   name: 'wire-up-auth',
   branch: 'feat/auth',
-  agents: [                  // optional — spawn agents on creation
-    { agent: 'claude', prompt: 'Implement the auth flow described in SUPER-100.' },
+  agents: [                  // optional: spawn agents on creation
+    { agent: 'claude', effort: 'high', prompt: 'Implement the auth flow described in SUPER-100.' },
     { agent: 'claude', prompt: 'Write integration tests for the new auth flow.' },
   ],
 });
@@ -153,41 +156,43 @@ for (const agent of result.agents) {
 
 Returns a `WorkspaceCreateResult`:
 
-- `workspace` — the created workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
-- `terminals` — terminals opened on the host (`{ terminalId, label? }`).
-- `agents` — one entry per agent in the request (empty if `agents` was omitted). Each entry is either `{ ok: true, kind: 'terminal' | 'chat', sessionId, label }` or `{ ok: false, error }`.
+- `workspace`: the created workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
+- `terminals`: terminals opened on the host (`{ terminalId, label? }`).
+- `agents`: one entry per agent in the request (empty if `agents` was omitted). Each entry is either `{ ok: true, kind: 'terminal' | 'chat', sessionId, label }` or `{ ok: false, error }`.
+- `alreadyExists`: true when a workspace for that branch already existed and was reused instead of created.
 
-### `workspaces.update(id, params)`
+### `workspaces.update(id, params, { hostId })`
 
-Update fields on an existing workspace. Moving a workspace to a different branch or host requires host-side orchestration and is not safe to drive from the cloud API directly.
+Update fields on an existing workspace on its host. Moving a workspace to a different branch or host requires host-side orchestration and is not safe to drive directly.
 
 ```ts
-await client.workspaces.update('<workspaceId>', { name: 'wire-up-auth-v2' });
+await client.workspaces.update('<workspaceId>', { name: 'wire-up-auth-v2' }, { hostId: '<machineId>' });
 ```
 
 Returns the updated workspace row (`id`, `name`, `branch`, `hostId`, `projectId`, `type`, `taskId`, …).
 
-### `workspaces.delete(id, opts?)`
+### `workspaces.delete(id, { hostId })`
 
-Delete a workspace. Looks up its host automatically and routes through the relay.
+Delete a workspace on its host.
 
 ```ts
-await client.workspaces.delete(id);
-// or skip the lookup:
-await client.workspaces.delete(id, { hostId: '<machineId>' });
+await client.workspaces.delete('<workspaceId>', { hostId: '<machineId>' });
 ```
 
 ---
 
 ## projects
 
-### `projects.list()`
+### `projects.list({ hostId })`
 
-Returns `Array<Project>`.
+List projects set up on a host. Projects are host-owned; there is no
+org-wide project registry.
 
 ```ts
-const projects = await client.projects.list();
+const projects = await client.projects.list({ hostId: '<machineId>' });
 ```
+
+Returns `Array<Project>` (`id`, `name`, `repoPath`, `repoUrl`, …).
 
 ---
 
@@ -207,33 +212,35 @@ const online = hosts.filter((h) => h.online);
 ## agents
 
 Terminal-agent rows configured on a specific host (the same rows shown in
-Settings → Agents on that machine). Reads route through the relay tunnel —
+Settings → Agents on that machine). Reads route through the relay tunnel:
 the target host must be online.
 
 ### `agents.list({ hostId })`
 
 List configured agents on a host in persisted display order. First call on a
-fresh host seeds the bundled defaults. Returns `Array<HostAgentConfig>` —
-each row carries `id`, `presetId`, `label`, `command`, `args`, `env`, and
+fresh host seeds the bundled defaults. Returns `Array<HostAgentConfig>`.
+Each row carries `id`, `presetId`, `label`, `command`, `args`, `env`, and
 prompt-transport fields used to launch the agent.
 
 ```ts
 const agents = await client.agents.list({ hostId: '<machineId>' });
 ```
 
-### `agents.create({ workspaceId, agent, prompt, attachmentIds? }, { hostId? })`
+### `agents.create({ hostId, workspaceId, agent, prompt, effort?, attachmentIds? })`
 
-Create (launch) an agent session in an existing workspace. By default looks up
-the host that owns the workspace via the cloud index; pass an explicit `hostId`
-to skip the lookup.
+Create (launch) an agent session in an existing workspace on its host.
 
 `agent` accepts either a preset id (e.g. `"claude"`) or a `HostAgentConfig`
-instance UUID. Returns `{ kind, sessionId, label }`.
+instance UUID. `effort` is an agent-specific reasoning override; omit it to
+use the agent's own configured default. Unsupported values fail before launch.
+Returns `{ kind, sessionId, label }`.
 
 ```ts
 const { sessionId } = await client.agents.create({
+  hostId: '<machineId>',
   workspaceId: '<uuid>',
   agent: 'claude',
+  effort: 'high',
   prompt: 'Audit the login flow for race conditions.',
 });
 ```
@@ -244,15 +251,15 @@ const { sessionId } = await client.agents.create({
 
 Terminal (PTY) sessions on a host, scoped to a workspace.
 
-### `terminals.create({ workspaceId, command?, cwd? }, { hostId? })`
+### `terminals.create({ hostId, workspaceId, command?, cwd? })`
 
-Create a terminal session in an existing workspace. By default looks up the
-host that owns the workspace via the cloud index; pass an explicit `hostId` to
-skip the lookup. Pass `command` to run a one-off shell command, or omit it to
-open an interactive shell. Returns `{ terminalId, status }`.
+Create a terminal session in an existing workspace on its host. Pass
+`command` to run a one-off shell command, or omit it to open an interactive
+shell. Returns `{ terminalId, status }`.
 
 ```ts
 const { terminalId } = await client.terminals.create({
+  hostId: '<machineId>',
   workspaceId: '<uuid>',
   command: 'bun install && bun test',
 });
@@ -272,7 +279,7 @@ const automations = await client.automations.list();
 const triage = await client.automations.list({ name: 'triage' });
 ```
 
-Each row is an `AutomationSummary` — the `prompt` body is omitted (it can be
+Each row is an `AutomationSummary`: the `prompt` body is omitted (it can be
 large markdown). Fetch one with `automations.getPrompt(id)`. Each row includes
 `scheduleText`, a human-readable rendering of the rrule.
 
@@ -282,7 +289,7 @@ large markdown). Fetch one with `automations.getPrompt(id)`. Each row includes
 const a = await client.automations.retrieve(id);
 ```
 
-Returns an `AutomationSummary` (no `prompt` body — call `getPrompt(id)`).
+Returns an `AutomationSummary` (no `prompt` body: call `getPrompt(id)`).
 
 ### `automations.create(body)`
 
@@ -314,11 +321,13 @@ await client.automations.update({ id, rrule: 'FREQ=WEEKLY;BYDAY=MO' });
 
 ### `automations.run(id)`
 
-Dispatch immediately, off-schedule. Goes through the relay to the pinned host.
+Dispatch immediately, off-schedule. Goes through the relay to the automation's
+target host. Returns identifiers for the dispatched run, not the full run row;
+use [`automations.logs(id)`](#automationslogsid-params) for status.
 
 ```ts
 const run = await client.automations.run(id);
-console.log(run.status, run.hostId);
+console.log(run.automationId, run.runId);
 ```
 
 ### `automations.pause(id)` / `automations.resume(id)`
@@ -327,7 +336,7 @@ Toggle the `enabled` flag. A paused automation stops running on its schedule unt
 
 ### `automations.logs(id, params?)`
 
-Run history. Owner-only — returns 404 if the automation isn't owned by the calling user.
+Run history. Owner-only: returns 404 if the automation isn't owned by the calling user.
 
 ```ts
 const runs = await client.automations.logs(id, { limit: 20 });
@@ -336,3 +345,15 @@ const runs = await client.automations.logs(id, { limit: 20 });
 ### `automations.getPrompt(id)` / `automations.setPrompt(id, prompt)`
 
 Read or replace the automation's prompt without going through the full update.
+
+---
+
+## organization
+
+### `organization.members.list()`
+
+List members of the active organization.
+
+```ts
+const members = await client.organization.members.list();
+```

@@ -73,7 +73,7 @@ interface SessionInput {
  * `TerminalAgentBinding` (packages/host-service/src/terminal-agents/types.ts).
  * Only live agent-bound sessions are returned (dead ones filtered server-side).
  * Requires the agent lifecycle hooks to reach this host, so it can be empty
- * even when PTY terminals exist — we merge it with `terminal.listSessions`. */
+ * even when PTY terminals exist — we merge it with `terminal.list`. */
 export interface TerminalAgentBinding {
 	terminalId: string;
 	workspaceId: string;

@@ -1,6 +1,6 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { resolveWorkspacePin } from "../../../lib/host-workspaces";
+import { resolveAutomationTarget } from "../resolveAutomationTarget";
 
 export default command({
 	description: "Update an automation's metadata (name, schedule, agent, host)",
@@ -16,11 +16,22 @@ export default command({
 		host: string().desc("New target host id"),
 		project: string().desc("New v2 project id"),
 		workspace: string().desc("New v2 workspace id"),
+		session: boolean().desc(
+			"Switch to session mode: no project, each run creates a project-less session workspace",
+		),
 		mcpScope: string().desc("Comma-separated MCP scope strings"),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
 		const id = args.id as string;
+
+		// Validate before any mutation — setEnabled below must not run for a
+		// rejected invocation.
+		if (options.session && (options.workspace || options.project)) {
+			throw new CLIError(
+				"--session cannot be combined with --project or --workspace",
+			);
+		}
 
 		if (options.enabled !== undefined) {
 			await ctx.api.automation.setEnabled.mutate({
@@ -37,11 +48,12 @@ export default command({
 						.filter(Boolean)
 				: undefined;
 
-		// Workspace records are host-owned: resolve --workspace across the
-		// org's hosts so the mutation carries the denormalized pin
-		// (targetHostId + v2ProjectId) alongside the workspace id.
-		let pin: { targetHostId?: string; v2ProjectId?: string } = {};
-		if (options.workspace) {
+		// Retargeting (--workspace or --project) re-derives targetHostId +
+		// v2ProjectId; the resource must exist on the target host.
+		let target:
+			| { targetHostId: string; v2ProjectId: string | null }
+			| undefined;
+		if (options.workspace || options.project) {
 			const organizationId = ctx.config.organizationId;
 			if (!organizationId) {
 				throw new CLIError(
@@ -49,14 +61,14 @@ export default command({
 					"Run: superset auth login",
 				);
 			}
-			pin = await resolveWorkspacePin(
-				{ api: ctx.api, organizationId, userJwt: ctx.bearer },
-				{
-					workspaceId: options.workspace,
-					hostId: options.host ?? undefined,
-					projectId: options.project ?? undefined,
-				},
-			);
+			target = await resolveAutomationTarget({
+				organizationId,
+				userJwt: ctx.bearer,
+				api: ctx.api,
+				hostId: options.host ?? undefined,
+				workspaceId: options.workspace ?? undefined,
+				projectId: options.project ?? undefined,
+			});
 		}
 
 		const result = await ctx.api.automation.update.mutate({
@@ -73,7 +85,9 @@ export default command({
 			...(options.workspace !== undefined
 				? { v2WorkspaceId: options.workspace }
 				: {}),
-			...pin,
+			// Session mode clears both the project and any workspace pin.
+			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
+			...target,
 			...(mcpScope !== undefined ? { mcpScope } : {}),
 		});
 

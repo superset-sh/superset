@@ -7,8 +7,11 @@ export {
 	type GitChangedPayload,
 	getEventBus,
 	type PortChangedPayload,
+	type ProjectChangedPayload,
+	type ProjectSnapshotPayload,
 	type TerminalLifecyclePayload,
 	type WorkspaceChangedPayload,
+	type WorkspaceCreateSettledPayload,
 	type WorkspaceSnapshotPayload,
 } from "./lib/eventBus";
 export {
@@ -16,6 +19,12 @@ export {
 	type RelayAffinityProbe,
 } from "./lib/primeRelayAffinity";
 export {
+	createRelaySocket,
+	type RelaySocket,
+	type RelaySocketOptions,
+} from "./lib/relaySocket";
+export {
+	useMaybeWorkspaceClient,
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
 	useWorkspaceWsUrl,

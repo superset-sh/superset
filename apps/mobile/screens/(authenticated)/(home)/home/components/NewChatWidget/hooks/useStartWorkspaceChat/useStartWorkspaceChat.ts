@@ -1,19 +1,16 @@
-import { useMutation } from "@tanstack/react-query";
-import { File } from "expo-file-system";
+import { buildHostRoutingKey } from "@superset/shared/host-routing";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import * as Crypto from "expo-crypto";
 import { useRouter } from "expo-router";
 import { Alert } from "react-native";
 import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
-import { getHostServiceClientByUrl } from "@/lib/host-service/client";
+import type { HostWorkspaceItem } from "@/hooks/useHostWorkspaces";
+import { createAcpSession, createAcpSessionsApi } from "@/lib/host/client";
 import type { ChatTarget } from "../../../../stores/chatTargetStore";
-import { useNewChatPreferencesStore } from "../../stores/newChatPreferencesStore";
 
-const FALLBACK_MEDIA_TYPE = "application/octet-stream";
-
-export function useStartWorkspaceChat(
-	resolveHostUrl: (hostId: string) => string | null,
-) {
+export function useStartWorkspaceChat(workspaces: HostWorkspaceItem[]) {
 	const router = useRouter();
-	const modelId = useNewChatPreferencesStore((state) => state.modelId);
+	const queryClient = useQueryClient();
 
 	return useMutation({
 		mutationFn: async ({
@@ -23,32 +20,34 @@ export function useStartWorkspaceChat(
 			target: ChatTarget;
 			message: PromptInputMessage;
 		}) => {
-			const hostUrl = resolveHostUrl(target.hostId);
-			if (!hostUrl) throw new Error("Host is not online");
-			const client = getHostServiceClientByUrl(hostUrl);
-			const attachmentIds = await Promise.all(
-				message.attachments.map(async (attachment) => {
-					const base64 = await new File(attachment.uri).base64();
-					const uploaded = await client.attachments.upload.mutate({
-						data: { kind: "base64", data: base64 },
-						mediaType: attachment.mediaType ?? FALLBACK_MEDIA_TYPE,
-						originalFilename: attachment.name,
-					});
-					return uploaded.attachmentId;
-				}),
+			const workspace = workspaces.find(
+				(item) => item.id === target.workspaceId,
 			);
-			const result = await client.agents.run.mutate({
+			if (!workspace) throw new Error("Workspace is not available");
+			if (message.attachments.length > 0) {
+				throw new Error("Attachments are not supported in live sessions yet");
+			}
+			const routingKey = buildHostRoutingKey(
+				workspace.organizationId,
+				target.hostId,
+			);
+			const sessionId = Crypto.randomUUID();
+			await createAcpSession(routingKey, {
+				sessionId,
 				workspaceId: target.workspaceId,
-				agent: "superset",
-				prompt: message.text.trim(),
-				model: modelId,
-				attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 			});
-			return { workspaceId: target.workspaceId, sessionId: result.sessionId };
+			await createAcpSessionsApi(routingKey).prompt({
+				sessionId,
+				prompt: [{ type: "text", text: message.text.trim() }],
+			});
+			return { workspaceId: target.workspaceId, sessionId };
 		},
 		onSuccess: ({ workspaceId, sessionId }) => {
+			void queryClient.invalidateQueries({
+				queryKey: ["acp-sessions", "list"],
+			});
 			router.push(
-				`/(authenticated)/workspace/${workspaceId}/chat/${sessionId}`,
+				`/(authenticated)/workspace/${workspaceId}/chat/acp/${sessionId}`,
 			);
 		},
 		onError: (error) => {

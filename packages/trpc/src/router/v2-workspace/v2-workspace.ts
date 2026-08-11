@@ -2,6 +2,7 @@ import { db, dbWs } from "@superset/db/client";
 import { v2WorkspaceTypeValues } from "@superset/db/enums";
 import {
 	tasks,
+	users,
 	v2Hosts,
 	v2Projects,
 	v2UsersHosts,
@@ -11,7 +12,9 @@ import { getCurrentTxid } from "@superset/db/utils";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { Resend } from "resend";
 import { z } from "zod";
+import { env } from "../../env";
 import { posthog } from "../../lib/analytics";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 import { requireActiveOrgId } from "../utils/active-org";
@@ -22,6 +25,32 @@ import {
 
 const MAIN_WORKSPACE_DELETE_MESSAGE =
 	"Main workspaces cannot be deleted through workspace delete. Remove them from the sidebar or remove the project from this host instead.";
+
+const resend = new Resend(env.RESEND_API_KEY);
+const ACTIVATION_EVENT_WINDOW_MS = 30 * 24 * 60 * 60 * 1000;
+
+// Emits `user.activated`, the exit condition of the Resend activation email
+// automation — a user who created a real workspace stops receiving nudges.
+async function exitActivationEmailCampaign(userId: string, email: string) {
+	const user = await db.query.users.findFirst({
+		columns: { createdAt: true },
+		where: eq(users.id, userId),
+	});
+	const isRecentSignup =
+		user && Date.now() - user.createdAt.getTime() < ACTIVATION_EVENT_WINDOW_MS;
+	if (!isRecentSignup) return;
+
+	const { error } = await resend.events.send({
+		event: "user.activated",
+		email,
+		payload: { userId },
+	});
+	if (error) {
+		console.error(
+			`[v2Workspace.trackCreated] Failed to emit activation event for ${userId}: ${error.message}`,
+		);
+	}
+}
 
 async function getScopedProject(organizationId: string, projectId: string) {
 	return requireOrgScopedResource(
@@ -390,6 +419,46 @@ export const v2WorkspaceRouter = {
 				return getCurrentTxid(tx);
 			});
 			return { success: true as const, txid };
+		}),
+
+	trackCreated: jwtProcedure
+		.input(
+			z.object({
+				workspaceId: z.string(),
+				organizationId: z.string().uuid(),
+				projectId: z.string(),
+				branch: z.string(),
+				type: z.enum(v2WorkspaceTypeValues),
+				hostId: z.string().optional(),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			if (!ctx.organizationIds.includes(input.organizationId)) {
+				throw new TRPCError({
+					code: "FORBIDDEN",
+					message: "Not a member of this organization",
+				});
+			}
+
+			posthog.capture({
+				distinctId: ctx.userId,
+				event: "workspace_created",
+				properties: {
+					workspace_id: input.workspaceId,
+					project_id: input.projectId,
+					organization_id: input.organizationId,
+					host_id: input.hostId ?? null,
+					branch: input.branch,
+					type: input.type,
+					source: "host-report",
+				},
+			});
+
+			if (input.type !== "main" && ctx.email) {
+				await exitActivationEmailCampaign(ctx.userId, ctx.email);
+			}
+
+			return { ok: true };
 		}),
 
 	getFromHost: jwtProcedure

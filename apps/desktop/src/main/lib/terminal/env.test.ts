@@ -658,9 +658,9 @@ describe("env", () => {
 		});
 
 		describe("terminal metadata", () => {
-			it("should set TERM_PROGRAM to vscode", () => {
+			it("should set TERM_PROGRAM to kitty", () => {
 				const result = buildTerminalEnv(baseParams);
-				expect(result.TERM_PROGRAM).toBe("vscode");
+				expect(result.TERM_PROGRAM).toBe("kitty");
 			});
 
 			it("should set COLORTERM to truecolor", () => {

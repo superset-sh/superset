@@ -1,3 +1,5 @@
+import type { IncomingMessage } from "node:http";
+import type { Duplex } from "node:stream";
 import { serve } from "@hono/node-server";
 import { createApp } from "./app";
 import { getSupervisor, startDaemonBootstrap } from "./daemon";
@@ -10,17 +12,22 @@ import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
 import { LocalModelProvider } from "./providers/model-providers";
 import { installProcessSafetyNet } from "./safety";
-import { initTerminalBaseEnv, resolveTerminalBaseEnv } from "./terminal/env";
+import { captureFatalStartupError, initSentry } from "./sentry";
+import { startTerminalBaseEnvResolution } from "./terminal/env";
 import { startTerminalReaper } from "./terminal/reaper";
 import { connectRelay } from "./tunnel";
 
 async function main(): Promise<void> {
+	initSentry({ organizationId: env.ORGANIZATION_ID });
 	console.log(
 		`[host-service] starting (org=${env.ORGANIZATION_ID}, port=${env.PORT}, NODE_ENV=${process.env.NODE_ENV ?? "unset"})`,
 	);
 
-	const terminalBaseEnv = await resolveTerminalBaseEnv();
-	initTerminalBaseEnv(terminalBaseEnv);
+	// Resolve the shell-env snapshot in the background — it must not block the
+	// server from listening (the login-shell probe can burn the full 8s
+	// budget). PTY creation awaits waitForTerminalBaseEnv() before it reads the
+	// snapshot; every other request path is unaffected.
+	startTerminalBaseEnvResolution();
 
 	// Fire-and-track: kick off pty-daemon spawn-or-adopt without blocking
 	// host-service startup. Terminal request handlers `await
@@ -109,10 +116,26 @@ async function main(): Promise<void> {
 			});
 		}
 	});
+	// Node detaches its own socket error handling before emitting 'upgrade',
+	// and @hono/node-ws awaits app.request() before ws adopts the socket — a
+	// peer reset in that window is an uncaught ECONNRESET at TCP.onStreamRead
+	// that takes down the whole process. Keep a listener attached for the
+	// socket's lifetime so resets are logged instead.
+	server.on("upgrade", (request: IncomingMessage, socket: Duplex) => {
+		// Path only: the upgrade URL's query string carries HOST_SERVICE_SECRET
+		// as `token` for relayed connections.
+		const requestPath = request.url?.split("?")[0] ?? "<unknown>";
+		socket.on("error", (error: NodeJS.ErrnoException) => {
+			console.warn(
+				`[host-service] upgrade socket error (${error.code ?? error.message}) on ${requestPath} from ${request.socket.remoteAddress ?? "<unknown>"}`,
+			);
+		});
+	});
 	injectWebSocket(server);
 }
 
-void main().catch((error) => {
+void main().catch(async (error) => {
 	console.error("[host-service] Failed to start:", error);
+	await captureFatalStartupError(error);
 	process.exit(1);
 });

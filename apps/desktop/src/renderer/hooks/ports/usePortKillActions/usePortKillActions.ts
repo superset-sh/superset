@@ -1,6 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { type QueryKey, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
+import { confirmClosePorts } from "./confirmClosePorts";
 import {
 	killPortTarget,
 	type LocalPortKill,
@@ -36,7 +37,9 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 	}, [queryClient, refreshQueryKey]);
 
 	const killPort = useCallback(
-		async (port: TPort): Promise<PortKillResult> => {
+		async (port: TPort): Promise<PortKillResult | undefined> => {
+			if (!(await confirmClosePorts(1))) return;
+
 			setPendingCount((count) => count + 1);
 			try {
 				const result = await killPortTarget(port, localKill);
@@ -57,6 +60,7 @@ export function usePortKillActions<TPort extends PortKillTarget>({
 	const killPorts = useCallback(
 		async (ports: TPort[]): Promise<PortKillResult[]> => {
 			if (ports.length === 0) return [];
+			if (!(await confirmClosePorts(ports.length))) return [];
 
 			setPendingCount((count) => count + 1);
 			try {

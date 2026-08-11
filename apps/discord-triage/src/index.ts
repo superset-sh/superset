@@ -1,6 +1,7 @@
 import { timingSafeEqual } from "node:crypto";
 import { LinearClient } from "@linear/sdk";
 import {
+	type Attachment,
 	ChannelType,
 	Client,
 	Events,
@@ -8,6 +9,7 @@ import {
 	type Message,
 	type ThreadChannel,
 } from "discord.js";
+import { enhanceIssue, mdEscape } from "./enhance";
 import { env } from "./env";
 
 const linear = new LinearClient({ apiKey: env.LINEAR_API_KEY });
@@ -49,17 +51,34 @@ async function fileIssue(opts: {
 	content: string;
 	authorTag: string;
 	messageUrl: string;
-}): Promise<{ identifier: string; url: string } | undefined> {
+	attachments: Attachment[];
+}): Promise<
+	| { id: string; identifier: string; url: string; description: string }
+	| undefined
+> {
+	// Discord URLs expire; the enhancement pass re-hosts these on Linear.
+	const attachmentList =
+		opts.attachments.length > 0
+			? `\n\nAttachments:\n${opts.attachments.map((a) => `- [${mdEscape(a.name)}](${a.url})`).join("\n")}`
+			: "";
+	const description = `${opts.content}${attachmentList}\n\n---\nReported by **${opts.authorTag}** in Discord: ${opts.messageUrl}`;
 	// No stateId: API-created issues default into Triage.
 	const payload = await linear.createIssue({
 		teamId,
 		title: opts.title,
-		description: `${opts.content}\n\n---\nReported by **${opts.authorTag}** in Discord: ${opts.messageUrl}`,
+		description,
 		labelIds: sourceLabelId ? [sourceLabelId] : undefined,
 	});
 	const issue = await payload.issue;
 	if (!issue) return undefined;
-	return { identifier: issue.identifier, url: issue.url };
+	return {
+		id: issue.id,
+		identifier: issue.identifier,
+		url: issue.url,
+		// Linear normalizes markdown on write; the edited-since-filing check must
+		// compare against the stored form, not the submitted string.
+		description: issue.description ?? description,
+	};
 }
 
 const discord = new Client({
@@ -71,35 +90,74 @@ const discord = new Client({
 });
 
 async function handleChannelMessage(message: Message) {
+	const attachments = [...message.attachments.values()];
+	const title = issueTitle(
+		message.content,
+		`Discord report from ${message.author.tag}`,
+	);
 	const issue = await fileIssue({
-		title: issueTitle(
-			message.content,
-			`Discord report from ${message.author.tag}`,
-		),
+		title,
 		content: message.content,
 		authorTag: message.author.tag,
 		messageUrl: message.url,
+		attachments,
 	});
 	if (!issue) return;
 	const thread = await message.startThread({ name: issue.identifier });
 	await thread.send(
 		`Filed to Linear Triage as [${issue.identifier}](${issue.url})`,
 	);
+	enhanceIssue(linear, {
+		issueId: issue.id,
+		channelName:
+			"name" in message.channel && message.channel.name
+				? message.channel.name
+				: "support",
+		title,
+		content: message.content,
+		authorTag: message.author.tag,
+		messageUrl: message.url,
+		attachments,
+		initialDescription: issue.description,
+	}).catch((err) =>
+		console.error(`enhance failed for ${issue.identifier}`, err),
+	);
 }
 
 // Forum posts arrive as new threads; the starter message may lag thread creation.
 async function handleForumPost(thread: ThreadChannel) {
-	const starter = await thread.fetchStarterMessage().catch(() => null);
+	let starter = await thread.fetchStarterMessage().catch(() => null);
+	for (let i = 0; !starter && i < 3; i++) {
+		await new Promise((r) => setTimeout(r, 2000));
+		starter = await thread.fetchStarterMessage().catch(() => null);
+	}
 	const content = starter?.content ?? "";
+	const attachments = starter ? [...starter.attachments.values()] : [];
+	const title = thread.name || issueTitle(content, "Discord forum post");
+	const authorTag = starter?.author.tag ?? "unknown";
+	const messageUrl = starter?.url ?? thread.url;
 	const issue = await fileIssue({
-		title: thread.name || issueTitle(content, "Discord forum post"),
+		title,
 		content,
-		authorTag: starter?.author.tag ?? "unknown",
-		messageUrl: starter?.url ?? thread.url,
+		authorTag,
+		messageUrl,
+		attachments,
 	});
 	if (!issue) return;
 	await thread.send(
 		`Filed to Linear Triage as [${issue.identifier}](${issue.url})`,
+	);
+	enhanceIssue(linear, {
+		issueId: issue.id,
+		channelName: thread.parent?.name ?? "forum",
+		title,
+		content,
+		authorTag,
+		messageUrl,
+		attachments,
+		initialDescription: issue.description,
+	}).catch((err) =>
+		console.error(`enhance failed for ${issue.identifier}`, err),
 	);
 }
 

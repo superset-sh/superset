@@ -1,0 +1,16 @@
+{
+	"$schema": "node_modules/wrangler/config-schema.json",
+	"name": "superset-relay2",
+	"main": "src/index.ts",
+	"compatibility_date": "2026-07-01",
+	"vars": {
+		// Must match the API's JWT issuer/audience exactly — a mismatch 401s
+		// every connection. Same value as the Fly relay's NEXT_PUBLIC_API_URL.
+		"NEXT_PUBLIC_API_URL": "https://api.superset.sh"
+	},
+	"durable_objects": {
+		"bindings": [{ "name": "HostTunnel", "class_name": "HostTunnel" }]
+	},
+	"migrations": [{ "tag": "v1", "new_sqlite_classes": ["HostTunnel"] }],
+	"observability": { "enabled": true }
+}

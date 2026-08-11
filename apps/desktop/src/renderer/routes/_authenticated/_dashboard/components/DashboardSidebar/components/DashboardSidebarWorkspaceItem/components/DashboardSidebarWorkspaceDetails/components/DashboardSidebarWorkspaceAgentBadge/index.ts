@@ -1,1 +1,0 @@
-export { DashboardSidebarWorkspaceAgentBadge } from "./DashboardSidebarWorkspaceAgentBadge";

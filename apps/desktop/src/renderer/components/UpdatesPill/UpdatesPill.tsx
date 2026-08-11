@@ -2,8 +2,11 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useEffect, useState } from "react";
 import { LuCircleArrowUp, LuCircleCheck } from "react-icons/lu";
+import { useDesktopNotices } from "renderer/hooks/useDesktopNotices";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { AUTO_UPDATE_STATUS } from "shared/auto-update";
+import { CountdownBorder } from "./CountdownBorder";
+import { PreUpdateConfirmPopover } from "./components/PreUpdateConfirmPopover";
 import { DownloadRing } from "./DownloadRing";
 import { useAutoUpdateStatus } from "./useAutoUpdateStatus";
 
@@ -14,6 +17,8 @@ const BAR_WINDOW = 2;
 const FRAME_INTERVAL_MS = 80;
 /** How long the post-update "✓ vX.Y.Z" confirmation shows before hiding */
 const CONFIRM_MS = 5000;
+/** Duration of the pixel-dissolve exit once the confirmation expires */
+const EXIT_MS = 450;
 
 function useAsciiFrame(active: boolean): number {
 	const [frame, setFrame] = useState(0);
@@ -33,11 +38,17 @@ function useAsciiFrame(active: boolean): number {
 /**
  * Compact version for the inline pill — canary builds carry a timestamp
  * suffix ("1.14.1-canary.20260711221936") that would overflow the sidebar
- * footer, so shorten to "1.14.1-ca". The tooltip keeps the full version.
+ * footer, so shorten to "1.14.1-ca".
  */
 function displayVersion(version: string): string {
 	const [base, prereleaseTag] = version.split("-", 2);
 	return prereleaseTag ? `${base}-${prereleaseTag.slice(0, 2)}` : base;
+}
+
+/** Tooltip version — drops the canary timestamp ("1.14.1-canary.20260711221936" → "1.14.1-canary") */
+function tooltipVersion(version: string): string {
+	const [base, prereleaseTag] = version.split("-", 2);
+	return prereleaseTag ? `${base}-${prereleaseTag.split(".")[0]}` : base;
 }
 
 /** Marquee-style terminal progress bar, e.g. `[·##···]` */
@@ -61,8 +72,11 @@ interface UpdatesPillProps {
  */
 export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const event = useAutoUpdateStatus();
+	const { preUpdateNotice } = useDesktopNotices();
 	const [isInstalling, setIsInstalling] = useState(false);
+	const [isConfirming, setIsConfirming] = useState(false);
 	const [confirmationDone, setConfirmationDone] = useState(false);
+	const [isLeaving, setIsLeaving] = useState(false);
 	const installMutation = electronTrpc.autoUpdate.install.useMutation();
 	const checkMutation = electronTrpc.autoUpdate.check.useMutation();
 	const frame = useAsciiFrame(isInstalling);
@@ -80,16 +94,27 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	}, [status, installMutation.isError]);
 
 	// The post-update confirmation ("✓ vX.Y.Z" after relaunching on a new
-	// version) hides itself after a beat, even if the status lingers.
+	// version) hides itself after a beat, even if the status lingers: a line
+	// traces the border while the clock runs, then the pill pixel-dissolves.
 	useEffect(() => {
 		if (status === AUTO_UPDATE_STATUS.UPDATED) {
+			setIsLeaving(false);
 			setConfirmationDone(false);
-			const timeout = setTimeout(() => setConfirmationDone(true), CONFIRM_MS);
-			return () => clearTimeout(timeout);
+			const leaveTimeout = setTimeout(() => setIsLeaving(true), CONFIRM_MS);
+			const doneTimeout = setTimeout(
+				() => setConfirmationDone(true),
+				CONFIRM_MS + EXIT_MS,
+			);
+			return () => {
+				clearTimeout(leaveTimeout);
+				clearTimeout(doneTimeout);
+			};
 		}
+		setIsLeaving(false);
 	}, [status]);
 
 	const isUpdated = status === AUTO_UPDATE_STATUS.UPDATED && !confirmationDone;
+	const isDissolving = isUpdated && isLeaving;
 
 	if (
 		status !== AUTO_UPDATE_STATUS.DOWNLOADING &&
@@ -108,80 +133,93 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 	const percent = event?.progress?.percent ?? null;
 	const spinnerGlyph = SPINNER_FRAMES[frame % SPINNER_FRAMES.length];
 
+	const startInstall = () => {
+		setIsConfirming(false);
+		setIsInstalling(true);
+		installMutation.mutate();
+	};
+
 	const handleClick = () => {
 		if (isReady && !isInstalling) {
-			setIsInstalling(true);
-			installMutation.mutate();
+			// a server-driven pre-update notice intercepts the install click
+			if (preUpdateNotice) {
+				setIsConfirming(true);
+				return;
+			}
+			startInstall();
 		} else if (isError) {
 			checkMutation.mutate();
 		}
 	};
 
+	const shortVersion = version ? ` v${tooltipVersion(version)}` : "";
 	const tooltip = isInstalling
 		? "Installing update…"
 		: isDownloading
-			? `Downloading update${version ? ` v${version}` : ""}`
+			? `Downloading${shortVersion || " update"}`
 			: isError
 				? `${event?.error ?? "Update failed"} — click to retry`
 				: isUpdated
-					? `Updated${version ? ` to v${version}` : ""}`
-					: `Install update${version ? ` v${version}` : ""} — sessions keep running`;
+					? `Updated${shortVersion ? ` to${shortVersion}` : ""}`
+					: `Install${shortVersion || " update"} — sessions keep running`;
 
-	if (isCollapsed) {
-		return (
-			<Tooltip delayDuration={300}>
-				<TooltipTrigger asChild>
-					<button
-						type="button"
-						onClick={handleClick}
-						aria-disabled={isBusy}
-						aria-label={tooltip}
-						className={cn(
-							"flex size-8 items-center justify-center rounded-md",
-							"animate-in fade-in duration-300",
-							isBusy
-								? "cursor-default text-muted-foreground"
-								: "hover:bg-accent/50",
-						)}
-					>
-						{isDownloading ? (
-							<DownloadRing percent={percent} className="size-3.5" />
-						) : isInstalling ? (
-							<span className="font-mono text-xs leading-none text-orange-600 dark:text-orange-300">
-								{spinnerGlyph}
-							</span>
-						) : isUpdated ? (
-							<LuCircleCheck
-								strokeWidth={STROKE_WIDTH}
-								className="size-4 text-emerald-600 dark:text-emerald-400"
-							/>
-						) : (
-							<LuCircleArrowUp
-								strokeWidth={STROKE_WIDTH}
-								className={cn(
-									"size-4",
-									isError
-										? "text-destructive"
-										: "text-emerald-600 dark:text-emerald-400",
-								)}
-							/>
-						)}
-					</button>
-				</TooltipTrigger>
-				<TooltipContent side="right">{tooltip}</TooltipContent>
-			</Tooltip>
-		);
-	}
-
-	return (
-		<Tooltip delayDuration={300}>
+	const pill = isCollapsed ? (
+		<Tooltip delayDuration={1000}>
+			<TooltipTrigger asChild>
+				<button
+					type="button"
+					onClick={handleClick}
+					aria-disabled={isBusy}
+					aria-label={tooltip}
+					className={cn(
+						"relative flex size-8 items-center justify-center rounded-md",
+						"animate-in fade-in duration-300",
+						isBusy
+							? "cursor-default text-muted-foreground"
+							: "hover:bg-accent/50",
+					)}
+					style={
+						isDissolving
+							? { animation: `pill-pixel-out ${EXIT_MS}ms steps(3) both` }
+							: undefined
+					}
+				>
+					{isUpdated && <CountdownBorder durationMs={CONFIRM_MS} radius={5} />}
+					{isDownloading ? (
+						<DownloadRing percent={percent} className="size-3.5" />
+					) : isInstalling ? (
+						<span className="font-mono text-xs leading-none text-orange-600 dark:text-orange-300">
+							{spinnerGlyph}
+						</span>
+					) : isUpdated ? (
+						<LuCircleCheck
+							strokeWidth={STROKE_WIDTH}
+							className="size-4 text-emerald-600 dark:text-emerald-400"
+						/>
+					) : (
+						<LuCircleArrowUp
+							strokeWidth={STROKE_WIDTH}
+							className={cn(
+								"size-4",
+								isError
+									? "text-destructive"
+									: "text-emerald-600 dark:text-emerald-400",
+							)}
+						/>
+					)}
+				</button>
+			</TooltipTrigger>
+			<TooltipContent side="right">{tooltip}</TooltipContent>
+		</Tooltip>
+	) : (
+		<Tooltip delayDuration={1000}>
 			<TooltipTrigger asChild>
 				<button
 					type="button"
 					onClick={handleClick}
 					aria-disabled={isBusy}
 					className={cn(
-						"inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1",
+						"relative inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-1",
 						"font-mono text-[10px] tabular-nums leading-none",
 						"ring-1 ring-inset animate-in fade-in slide-in-from-bottom-1 duration-300",
 						isBusy && "cursor-default",
@@ -195,7 +233,15 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 						isError &&
 							"bg-destructive/10 ring-destructive/25 text-destructive hover:bg-destructive/20",
 					)}
+					style={
+						isDissolving
+							? { animation: `pill-pixel-out ${EXIT_MS}ms steps(3) both` }
+							: undefined
+					}
 				>
+					{isUpdated && (
+						<CountdownBorder durationMs={CONFIRM_MS} radius="pill" />
+					)}
 					{isInstalling ? (
 						<>
 							<span className="w-3 text-center text-xs leading-none">
@@ -248,5 +294,16 @@ export function UpdatesPill({ isCollapsed = false }: UpdatesPillProps) {
 			</TooltipTrigger>
 			<TooltipContent side="top">{tooltip}</TooltipContent>
 		</Tooltip>
+	);
+
+	return (
+		<PreUpdateConfirmPopover
+			open={isConfirming}
+			notice={preUpdateNotice}
+			onConfirm={startInstall}
+			onCancel={() => setIsConfirming(false)}
+		>
+			{pill}
+		</PreUpdateConfirmPopover>
 	);
 }

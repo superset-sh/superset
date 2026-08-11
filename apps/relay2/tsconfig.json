@@ -1,0 +1,8 @@
+{
+	"extends": "@superset/typescript/base.json",
+	"compilerOptions": {
+		"jsx": "react-jsx",
+		"types": ["@cloudflare/workers-types"]
+	},
+	"include": ["src"]
+}

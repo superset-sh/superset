@@ -3,14 +3,16 @@ import { scheduleBaseRefFetch } from "./base-ref-freshness";
 
 // Distinct remote/branch per test so the module-level TTL/in-flight maps
 // (keyed by commonDir#remote/branch) don't leak state across tests.
-function createGit(options: { fetch?: () => Promise<unknown> } = {}) {
+function createGit(
+	options: { fetch?: () => Promise<unknown>; commonDir?: string } = {},
+) {
 	const fetchCalls: string[][] = [];
 	const revParseCalls: string[][] = [];
 	const git = {
 		raw: mock(async (args: string[]) => {
 			revParseCalls.push(args);
 			if (args[0] === "rev-parse" && args[1] === "--git-common-dir") {
-				return ".git\n";
+				return `${options.commonDir ?? ".git"}\n`;
 			}
 			throw new Error(`Unexpected raw args: ${args.join(" ")}`);
 		}),
@@ -41,17 +43,19 @@ describe("scheduleBaseRefFetch", () => {
 		expect(fetchCalls).toHaveLength(1);
 	});
 
-	test("resolves the common dir fresh each call (no path cache)", async () => {
+	test("resolves the common dir once within the TTL (path cache)", async () => {
 		const { git, revParseCalls } = createGit();
 		const target = { remote: "origin", branch: "fresh-branch" };
 		await scheduleBaseRefFetch(git, "/repo/wt-fresh", target);
 		await scheduleBaseRefFetch(git, "/repo/wt-fresh", target);
-		// One rev-parse per call — a cached path→dir mapping would skip the
-		// second and risk keying a reused path off a stale repo's common dir.
+		// One rev-parse across both calls — resolving per call spawns git on
+		// the event loop before the fetch-TTL check, on every status poll. A
+		// stale mapping only mis-keys the dedupe (extra/suppressed fetch,
+		// TTL-bounded); the fetch itself always runs in worktreePath.
 		const commonDirCalls = revParseCalls.filter(
 			(args) => args[1] === "--git-common-dir",
 		);
-		expect(commonDirCalls).toHaveLength(2);
+		expect(commonDirCalls).toHaveLength(1);
 	});
 
 	test("coalesces concurrent calls into a single in-flight fetch", async () => {
@@ -66,6 +70,25 @@ describe("scheduleBaseRefFetch", () => {
 		release();
 		await Promise.all([a, b]);
 		expect(fetchCalls).toHaveLength(1);
+	});
+
+	test("dedupes worktrees that resolve to the same common Git directory", async () => {
+		const target = { remote: "origin", branch: "shared-worktrees-branch" };
+		const a = createGit({ commonDir: "/repo/.git" });
+		const b = createGit({ commonDir: "/repo/.git" });
+		let fetches = 0;
+		const fetchBaseRef = async () => {
+			fetches++;
+		};
+
+		// Paths must be unique to this test: the commonDir cache is keyed by
+		// worktree path, so reusing another test's path would resolve stale.
+		await Promise.all([
+			scheduleBaseRefFetch(a.git, "/repo/wt-shared-a", target, fetchBaseRef),
+			scheduleBaseRefFetch(b.git, "/repo/wt-shared-b", target, fetchBaseRef),
+		]);
+
+		expect(fetches).toBe(1);
 	});
 
 	test("never rejects when the fetch fails", async () => {

@@ -1,0 +1,102 @@
+---
+title: "Superset vs Sculptor (2026): Comparing Parallel Coding Agent Desktops"
+description: "Compare Superset and Imbue's Sculptor for running coding agents in parallel. See how agent-agnostic worktree orchestration differs from a container-and-pairing model."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "1v1"
+competitors:
+  - sculptor
+keywords:
+  - superset vs sculptor
+  - sculptor alternative
+  - sculptor imbue
+  - parallel coding agents
+  - agentic ide
+  - claude code parallel
+---
+
+Superset and Sculptor are both desktop apps for running coding agents in parallel with isolated workspaces and built-in review. Sculptor, from the AI lab Imbue, centers on Claude Code and Imbue's own Pi harness, with an isolated environment per agent and a "Pairing Mode" that syncs an agent's work back into your local repo. Superset is broader and agent-agnostic, making a Git worktree per task the default across many agents, with an in-app browser, MCP, and remote and cloud workspaces around it.
+
+---
+
+## At a Glance
+
+| | **Superset** | **Sculptor** |
+|---|---|---|
+| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, and browser | Runs coding agents in parallel isolated environments with pairing back to your repo |
+| **Isolation** | Automatic Git worktree per task | Isolated worktrees per workspace, plus optional containers |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) | Claude Code and Imbue's Pi; can manage other terminal agents |
+| **Signature feature** | Broad agent-agnostic orchestration + remote/cloud hosts | Pairing Mode syncs an agent's work into your local repo/IDE |
+| **Review tooling** | Built-in diff/file editor, staging, commit | In-app review with pairing to local checkout |
+| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | Desktop (macOS Apple Silicon, Linux; Intel Mac and Windows planned) |
+| **License** | Source-available (ELv2) | Open source (MIT) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Sculptor?
+
+Sculptor is a desktop app from Imbue for running coding agents in parallel. You connect a repository, create isolated workspaces, and prompt agents that each run in their own environment; a "Pairing Mode" syncs an agent's work back into your local repo and IDE. It isolates work with worktrees per workspace, plus an experimental container backend for remote or containerized execution. Sculptor ships with Claude Code and Imbue's Pi harness and can manage other terminal-based agents. It is MIT licensed, free in beta (bring your own Anthropic API key or Claude Pro/Max), and runs on Apple Silicon macOS and Linux, with Intel Mac and Windows planned.
+
+## Key Differences
+
+### Agent Breadth
+
+Sculptor centers on Claude Code and Imbue's Pi harness, though it can manage other terminal agents. Superset is agent-agnostic from the ground up, running Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and custom agents in the same workspace. If your work spans several agents or you want to swap them freely, Superset gives you more room; if you mainly use Claude Code and Pi, Sculptor is tailored to that.
+
+### Pairing vs Worktree-First Orchestration
+
+Sculptor's signature is Pairing Mode: an agent works in an isolated environment, and its changes sync back into your local checkout and IDE. Superset keeps the worktree itself as the unit you work in, with in-app review and one-click handoff to your editor. Both isolate agents; they differ in how the isolated work rejoins your main checkout.
+
+### Containers and Reach
+
+Sculptor offers an experimental container backend alongside worktrees. Superset's default is a local Git worktree per task, and it extends across your own network devices with remote and cloud workspaces, plus CLI and MCP surfaces. If you want containerized isolation specifically, Sculptor leans that way; if you want worktree-first orchestration that spans machines, Superset does.
+
+### Maturity and Platform
+
+Both are actively evolving. Superset ships on macOS today with Windows and Linux planned, plus CLI and MCP. Sculptor runs on Apple Silicon macOS and Linux, with Intel Mac and Windows on the way, and is in free beta. Match the platform support to your fleet.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Sculptor is open source and free in beta, using your own Anthropic API key or Claude plan. In both cases, you still pay the underlying providers for model usage.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Run several agents, or want to swap agents freely
+- Want worktree-first orchestration that spans local, remote, and cloud hosts
+- Want an in-app browser, MCP, and CLI surfaces built in
+- Need a workspace to rely on across a mixed platform fleet
+
+**Choose Sculptor if you:**
+
+- Mainly use Claude Code and Imbue's Pi harness
+- Like the Pairing Mode workflow that syncs agent work into your local IDE
+- Want an experimental container backend for isolation
+- Are comfortable with a free beta on macOS or Linux
+
+**Verdict:** Sculptor is a strong pick if Claude Code and Pi are your focus and you like its pairing and container model. Superset is the better fit if you want agent-agnostic, worktree-first orchestration across many agents, with review, browser, MCP, and remote and cloud workspaces in one place.
+
+---
+
+## Frequently Asked Questions
+
+### Does Sculptor use Git worktrees or containers?
+
+Both. Sculptor isolates workspaces with worktrees and also offers an experimental container backend. Superset's default is a local Git worktree per task, with remote and cloud hosts available when you want them.
+
+### Is Sculptor only for Claude Code?
+
+Sculptor ships with Claude Code and Imbue's Pi harness and can manage other terminal agents, but it is centered on that pair. Superset is agent-agnostic across many agents.
+
+### What is Pairing Mode?
+
+Pairing Mode is a Sculptor feature that syncs an agent's work from its isolated environment back into your local repository and IDE. Superset instead keeps the worktree as the place you review and hand off from.

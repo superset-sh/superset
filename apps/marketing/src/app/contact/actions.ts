@@ -1,6 +1,6 @@
 "use server";
 
-import { ContactInquiryEmail } from "@superset/email/emails/contact-inquiry";
+import { ContactInquiryEmail } from "@superset/email/emails/internal/contact-inquiry";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
@@ -61,6 +61,8 @@ export async function submitContactInquiry(data: unknown) {
 		const { error } = await resend.emails.send({
 			from: "Superset <noreply@superset.sh>",
 			to: "support@superset.sh",
+			// CC the submitter so they keep a copy and stay on the reply thread.
+			cc: sanitizedEmail,
 			replyTo: sanitizedEmail,
 			subject: `Contact message from ${sanitizedName}: ${sanitizedTopic}`,
 			react: ContactInquiryEmail({

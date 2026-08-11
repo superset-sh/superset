@@ -84,7 +84,7 @@ export const OpenInMenuButton = memo(function OpenInMenuButton({
 	return (
 		<div className="flex items-center no-drag">
 			{/* Main button - opens in last used app */}
-			<Tooltip>
+			<Tooltip delayDuration={1000}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"

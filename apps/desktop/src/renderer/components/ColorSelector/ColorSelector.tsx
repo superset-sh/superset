@@ -12,6 +12,10 @@ interface ColorSelectorProps {
 	selectedColor?: string | null;
 	onSelectColor: (color: string) => void;
 	variant?: ColorSelectorVariant;
+	/** Prepend a "Default" (no color) swatch; selects PROJECT_COLOR_DEFAULT. */
+	includeDefault?: boolean;
+	/** Disable all swatches (e.g. while a selection is persisting). */
+	disabled?: boolean;
 	className?: string;
 }
 
@@ -43,19 +47,25 @@ export function ColorSelector({
 	selectedColor,
 	onSelectColor,
 	variant = "inline",
+	includeDefault = false,
+	disabled = false,
 	className,
 }: ColorSelectorProps) {
 	const selectedValue = selectedColor ?? PROJECT_COLOR_DEFAULT;
+	const colors = includeDefault
+		? [{ name: "Default", value: PROJECT_COLOR_DEFAULT }, ...PROJECT_COLORS]
+		: [...PROJECT_COLORS];
 
 	if (variant === "menu") {
 		return (
 			<>
-				{PROJECT_COLORS.map((color) => {
+				{colors.map((color) => {
 					const isSelected = selectedValue === color.value;
 
 					return (
 						<ContextMenuItem
 							key={color.value}
+							disabled={disabled}
 							onSelect={() => onSelectColor(color.value)}
 							className="flex items-center gap-2"
 						>
@@ -73,7 +83,7 @@ export function ColorSelector({
 
 	return (
 		<div className={cn("flex flex-wrap items-center gap-2", className)}>
-			{PROJECT_COLORS.map((color) => {
+			{colors.map((color) => {
 				const isSelected = selectedValue === color.value;
 
 				return (
@@ -83,10 +93,12 @@ export function ColorSelector({
 						title={color.name}
 						aria-label={`Set color to ${color.name}`}
 						aria-pressed={isSelected}
+						disabled={disabled}
 						onClick={() => onSelectColor(color.value)}
 						className={cn(
 							"flex size-7 items-center justify-center rounded-full border-2 transition-transform hover:scale-110",
 							"focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+							"disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:scale-100",
 							isSelected ? "scale-110 border-foreground" : "border-transparent",
 						)}
 					>

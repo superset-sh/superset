@@ -1,9 +1,11 @@
 import type { SelectGithubPullRequest } from "@superset/db/schema";
+import { useRouter } from "expo-router";
 import {
 	GitMerge,
 	GitPullRequest,
 	GitPullRequestClosed,
 	GitPullRequestDraft,
+	Plus,
 } from "lucide-react-native";
 import { Linking, View } from "react-native";
 import { Button } from "@/components/ui/button";
@@ -45,6 +47,7 @@ export function WorkspaceRow({
 	cache: HostWorkspacesCacheOps;
 	attention?: "permission" | "working" | null;
 }) {
+	const router = useRouter();
 	const prIcon = pullRequest ? PR_ICON_CONFIG[prStateFor(pullRequest)] : null;
 	const setTarget = useChatTargetStore((state) => state.setTarget);
 	const targeted = useChatTargetStore(
@@ -56,17 +59,11 @@ export function WorkspaceRow({
 		<WorkspaceRowMenu workspace={workspace} cache={cache}>
 			<PressableScale
 				className={cn(
-					"flex-row items-center gap-3 rounded-xl px-4 py-3",
+					"flex-row items-center gap-3 rounded-xl px-4 py-2.5",
 					targeted ? "bg-foreground/5" : "bg-background",
 				)}
-				disabled={!canChat}
 				onPress={() =>
-					setTarget({
-						workspaceId: workspace.id,
-						workspaceName: workspace.name,
-						branch: workspace.branch,
-						hostId: workspace.hostId,
-					})
+					router.push(`/(authenticated)/workspace/${workspace.id}`)
 				}
 			>
 				{prIcon && pullRequest ? (
@@ -120,6 +117,22 @@ export function WorkspaceRow({
 						) : null}
 					</View>
 				</View>
+				<Button
+					accessibilityLabel={`New chat in ${workspace.name}`}
+					variant="ghost"
+					size="icon"
+					disabled={!canChat}
+					onPress={() =>
+						setTarget({
+							workspaceId: workspace.id,
+							workspaceName: workspace.name,
+							branch: workspace.branch,
+							hostId: workspace.hostId,
+						})
+					}
+				>
+					<Icon as={Plus} className="text-muted-foreground size-5" />
+				</Button>
 			</PressableScale>
 		</WorkspaceRowMenu>
 	);

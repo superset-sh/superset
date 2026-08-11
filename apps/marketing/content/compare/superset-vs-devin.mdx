@@ -2,7 +2,7 @@
 title: "Superset vs Devin (2026): Local Agent Orchestration vs Cloud AI Engineer"
 description: "Compare Superset and Devin for AI-powered development. See how local parallel agent orchestration differs from a fully remote AI software engineer."
 date: 2026-02-18
-lastUpdated: 2026-03-21
+lastUpdated: 2026-07-13
 type: "1v1"
 competitors:
   - devin
@@ -25,9 +25,9 @@ Devin is a cloud-based AI software engineer that works autonomously in a remote 
 | **Category** | Agent orchestration workspace | Autonomous AI software engineer |
 | **Architecture** | Local-first today — worktrees, review, browser, and chat run on your machine | Fully remote — runs in cloud VMs |
 | **AI approach** | Agent-agnostic — orchestrates external agents plus Superset Chat and MCP tools | Proprietary AI with browser, editor, and terminal in cloud |
-| **Parallelism** | 10+ agents across isolated local worktrees | Multiple Devin sessions run as separate cloud VMs |
+| **Parallelism** | 100+ agents across isolated local worktrees | Parallel cloud sessions (10 concurrent on Pro, unlimited on Max) |
 | **Code privacy** | Local-first; outbound model traffic depends on your chosen agents/providers | Code runs on Cognition's cloud infrastructure |
-| **Pricing** | Free tier + Pro $20/seat/mo | Teams $500/seat/mo |
+| **Pricing** | Free tier + Pro $20/seat/mo | Free; Pro $20/mo, Max $200/mo, Teams $80 + $40/seat |
 | **License** | Source-available (ELv2) | Closed source |
 
 ---
@@ -40,7 +40,7 @@ Superset is a local-first desktop workspace for AI coding agents. It launches Cl
 
 ## What Is Devin?
 
-Devin is Cognition's AI software engineer — a cloud-based autonomous agent that runs in its own virtual machine with a browser, code editor, terminal, and planner. You assign tasks via chat or Slack, and Devin works independently: reading docs, writing code, debugging, running tests, and creating pull requests. It has event-driven workflows (triggers from Linear, Slack, etc.) and a review system that annotates PRs before human review.
+Devin is Cognition's AI software engineer — a cloud-based autonomous agent that runs in its own virtual machine with a browser, code editor, terminal, and planner. You assign tasks via chat or Slack, and Devin works independently: reading docs, writing code, debugging, running tests, and creating pull requests. It has event-driven workflows (triggers from Linear, Slack, etc.) and a review system that annotates PRs before human review. Since Devin 2.0, Cognition retired the old $500/month usage model for flat tiers starting at $20/month, with parallel cloud sessions (up to 10 concurrent on Pro, unlimited on Max). Devin and the former Windsurf editor are now sold as one product family, so every paid tier also bundles Devin Desktop; see [Superset vs Windsurf](/compare/superset-vs-windsurf) for the editor comparison.
 
 ---
 
@@ -64,7 +64,7 @@ Superset isolates agents using Git worktrees — lightweight, fast, and built in
 
 ### Pricing
 
-Superset offers a free tier and Pro at $20/seat/month plus your agents' API costs. Devin costs $500/seat/month for the Teams plan. The price difference is significant — Superset plus API usage for heavy agent use typically costs a fraction of Devin's monthly fee.
+Superset offers a free tier and Pro at $20/seat/month plus your agents' API costs. Devin, since Devin 2.0, starts with a free tier and Pro at $20/month (up to 10 concurrent cloud sessions), with Max at $200/month (unlimited sessions) and Teams at $80/month plus $40/seat. Both entry tiers now sit at $20, so the decision is less about price and more about local control versus cloud autonomy, and about whether you want one proprietary agent or many.
 
 ---
 
@@ -74,7 +74,7 @@ Superset offers a free tier and Pro at $20/seat/month plus your agents' API cost
 - Want a fully autonomous AI that works in the background with minimal oversight
 - Need event-driven workflows (auto-respond to Linear tickets, Slack messages)
 - Prefer cloud-based execution where you don't manage local compute
-- Have budget for $500/seat/month and the ROI justifies it
+- Want autonomous parallel cloud sessions and the ROI justifies the cloud usage
 
 **Choose Superset if you:**
 - Want direct control over each agent — see what they're doing, redirect in real time
@@ -91,9 +91,9 @@ Superset offers a free tier and Pro at $20/seat/month plus your agents' API cost
 
 They serve different workflows. Devin is a cloud-based autonomous engineer. Superset is a local agent orchestrator. You might use Devin for fully autonomous background tasks and Superset for interactive parallel work where you want more control.
 
-### Is Devin worth the price premium?
+### How much does Devin cost now?
 
-Devin's $500/seat/month buys full autonomy: assign tasks via Slack, get PRs back. If your workflow benefits from hands-off delegation and you have the budget, it can be valuable. If you prefer direct control and cost efficiency, Superset at $20/seat/month plus API costs delivers more throughput per dollar.
+Since Devin 2.0, Cognition retired the old $500/month model. Devin now starts free, with Pro at $20/month (up to 10 concurrent cloud sessions), Max at $200/month (unlimited), and Teams at $80/month plus $40/seat. Superset is $20/seat/month plus your own agent API costs. Both entry tiers are $20, so choose on control and agent flexibility rather than price alone.
 
 ### Is Superset open source?
 

@@ -72,7 +72,7 @@ export function RangeModal({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange} modal>
-			<DialogContent className="sm:max-w-md">
+			<DialogContent className="overflow-hidden sm:max-w-md">
 				<DialogHeader>
 					<DialogTitle>Select commit range</DialogTitle>
 					<DialogDescription>
@@ -80,8 +80,8 @@ export function RangeModal({
 					</DialogDescription>
 				</DialogHeader>
 
-				<ScrollArea className="max-h-[300px]">
-					<div className="space-y-0.5">
+				<ScrollArea className="max-h-[300px] min-w-0">
+					<div className="min-w-0 space-y-0.5">
 						{commits.map((commit, idx) => {
 							const inRange = idx >= minIdx && idx <= maxIdx;
 							return (
@@ -89,13 +89,13 @@ export function RangeModal({
 									key={commit.hash}
 									type="button"
 									onClick={() => handleClick(idx)}
-									className={`flex w-full items-start gap-2 rounded-sm px-2 py-1.5 text-left text-sm ${
+									className={`flex w-full min-w-0 items-start gap-2 rounded-sm px-2 py-1.5 text-left text-sm ${
 										inRange
 											? "bg-accent text-accent-foreground"
 											: "hover:bg-accent/50"
 									}`}
 								>
-									<CommitRow commit={commit} />
+									<CommitRow commit={commit} wrap />
 								</button>
 							);
 						})}

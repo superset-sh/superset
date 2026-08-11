@@ -1,0 +1,108 @@
+---
+title: "Superset vs cmux (2026): Agent Terminal vs Agent Orchestrator"
+description: "Compare Superset and cmux for running AI coding agents. See how a native terminal for agents differs from a Git worktree orchestration workspace."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "1v1"
+competitors:
+  - cmux
+keywords:
+  - superset vs cmux
+  - cmux alternative
+  - cmux claude code
+  - terminal for ai agents
+  - agent terminal
+  - ai coding terminal
+---
+
+Superset and cmux both help you run many AI coding agents at once, but they sit in different categories. cmux is a native terminal built for agents: it makes concurrent sessions visible and controllable in one polished macOS app. Superset is an orchestration workspace: it gives every task its own Git worktree and layers review, browser, and automation around the agents. One organizes your agent sessions; the other isolates and manages the work each agent does.
+
+---
+
+## At a Glance
+
+| | **Superset** | **cmux** |
+|---|---|---|
+| **Category** | Agent orchestration workspace | Native terminal for AI agents |
+| **What it does** | Runs 100+ agents in parallel with Git worktree isolation, review, and browser | Runs agent sessions in vertical tabs and split panes with notifications and an embedded browser |
+| **Isolation** | Automatic Git worktree per task | None built in -- isolation is left to the agent or to you |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Gemini, and more) | Any terminal agent (Claude Code, Codex, OpenCode, Gemini, Aider, Goose, and more) |
+| **Review tooling** | Built-in diff/file editor, staging, and commit | Terminal-native; review happens in the agent or your editor |
+| **Platform** | Desktop (macOS now; Windows and Linux coming), CLI, MCP server | macOS only |
+| **License** | Source-available (ELv2) | Open source (GPL-3.0) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Xcode. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is cmux?
+
+cmux is a native macOS terminal built specifically for running AI coding agents. Built on a GPU-accelerated core, it adds vertical tabs, split panes, notification "rings" around a pane when a process needs attention, an embedded scriptable browser, and a programmable socket API. Its goal is to make many concurrent agent sessions visible and controllable in one native app, including surfacing an agent's subagents as their own panes. cmux runs any terminal-launchable agent and is free and open source under GPL-3.0, on macOS only.
+
+> Note: two actively maintained tools share the name "cmux." This page is about the native macOS agent terminal from manaflow. A separate, smaller project (craigsc/cmux) is a Claude-Code-only bash CLI that does use Git worktrees per agent; if that is the tool you mean, its model is closer to Superset's but far narrower in scope.
+
+## Key Differences
+
+### Organizing Sessions vs Isolating Work
+
+This is the core distinction. cmux is a terminal: it makes your agent sessions easy to see, split, and switch between, but it does not isolate what each agent changes. If two agents work on the same repository, they share one working directory unless you set up isolation yourself. Superset makes a Git worktree per task the default, so every agent gets its own branch and directory automatically. cmux answers "how do I see all my agents?"; Superset answers "how do I run agents on the same repo without collisions?"
+
+### Review and Merge Flow
+
+Because cmux is terminal-native, reviewing and merging happens in the agent itself or in whatever editor you open afterward. Superset includes a built-in diff and file editor where you can review, stage, and commit each task's changes, then jump into VS Code, Cursor, JetBrains, or Xcode if you prefer. If you want the review layer inside the same app that runs the agents, that is a Superset feature rather than a cmux one.
+
+### Beyond the Terminal
+
+Superset extends past a single machine with remote and cloud workspaces, scheduled automations with a TypeScript SDK, and CLI and MCP server surfaces. cmux is focused on being an excellent native terminal on macOS, with an embedded browser and scripting API for driving sessions. They can even be complementary: some developers will keep cmux as their daily agent terminal and reach for a worktree orchestrator when multiple agents need to touch the same repo.
+
+### Platform
+
+cmux is macOS only today. Superset ships on macOS now, with Windows and Linux planned, and also runs as a CLI and MCP server. If you need anything beyond macOS, that is a practical difference.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. cmux is free and open source, with an optional paid edition for early access to upcoming features. In both cases, you still pay the underlying providers for Claude Code, Codex, or any compatible API usage.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want automatic Git worktree isolation so agents can share one repo safely
+- Want built-in diff review and merge inside the same app
+- Need remote, cloud, CLI, or MCP surfaces
+- Work on more than just macOS, or plan to
+
+**Choose cmux if you:**
+
+- Want a fast, native macOS terminal purpose-built for agent sessions
+- Mostly run one agent (or manage isolation yourself) and value terminal polish
+- Like an embedded browser and a scriptable API in your terminal
+- Prefer a fully open-source GPL tool
+
+**Verdict:** These tools are not really substitutes. cmux is the best fit if your goal is a beautiful native terminal that keeps many agent sessions organized. Superset is the better fit if your goal is running multiple agents on the same repository without collisions, with review and orchestration built in. Many developers will end up using a terminal like cmux alongside an orchestrator like Superset.
+
+---
+
+## Frequently Asked Questions
+
+### Does cmux use Git worktrees?
+
+The native macOS cmux terminal does not isolate tasks in Git worktrees itself -- that is left to the agent or to you. (A separate, smaller project that shares the name, craigsc/cmux, does use worktrees but only for Claude Code.) Superset makes a worktree per task automatic.
+
+### Is cmux only for macOS?
+
+Yes. The cmux agent terminal is macOS only today. Superset ships on macOS now with Windows and Linux planned, plus CLI and MCP surfaces.
+
+### Can I use cmux and Superset together?
+
+Yes. They solve different problems. You can keep cmux as your native agent terminal and use Superset when multiple agents need isolated worktrees on the same repository, with review and orchestration in one place.
+
+### What is the best terminal for AI coding agents?
+
+If you want a polished native terminal for agent sessions on macOS, cmux is a strong choice. If your bottleneck is coordinating several agents on one repository, the deciding factor becomes worktree isolation and review, which is what Superset is built around. See our roundup of the [best terminal for AI coding agents](/compare/best-terminal-for-ai-coding).

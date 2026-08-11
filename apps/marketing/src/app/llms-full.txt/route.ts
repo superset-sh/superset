@@ -1,21 +1,8 @@
 import { COMPANY } from "@superset/shared/constants";
 import { getBlogPosts } from "@/lib/blog";
 import { getComparisonPages } from "@/lib/compare";
+import { PRODUCT_SUMMARY, stripMdxSyntax } from "@/lib/llms";
 import { FAQ_ITEMS } from "../components/FAQSection/constants";
-
-function stripMdxSyntax(content: string): string {
-	return (
-		content
-			// Remove import statements
-			.replace(/^import\s+.*$/gm, "")
-			// Remove JSX component tags (e.g. <Video ... />, <Component>...</Component>)
-			.replace(/<[A-Z]\w*\b[^>]*\/>/g, "")
-			.replace(/<[A-Z]\w*\b[^>]*>[\s\S]*?<\/[A-Z]\w*>/g, "")
-			// Clean up excessive blank lines
-			.replace(/\n{3,}/g, "\n\n")
-			.trim()
-	);
-}
 
 export async function GET() {
 	const posts = getBlogPosts();
@@ -30,9 +17,9 @@ export async function GET() {
 		[
 			`# ${COMPANY.NAME}`,
 			"",
-			"> Run 10+ parallel coding agents on your machine",
+			"> Run 100+ parallel coding agents on your machine",
 			"",
-			`${COMPANY.NAME} is an open-source desktop application that lets developers run multiple AI coding agents in parallel, each in its own isolated Git worktree. It works with any CLI-based agent including Claude Code, OpenCode, and OpenAI Codex. Agents can work on different branches or features simultaneously without conflicts. ${COMPANY.NAME} is free, does not proxy API calls, and supports macOS with Windows and Linux coming soon.`,
+			PRODUCT_SUMMARY,
 			"",
 			"## Docs",
 			"",

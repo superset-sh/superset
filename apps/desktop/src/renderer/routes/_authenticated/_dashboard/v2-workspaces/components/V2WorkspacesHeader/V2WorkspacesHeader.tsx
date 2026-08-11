@@ -1,3 +1,4 @@
+import { Button } from "@superset/ui/button";
 import {
 	InputGroup,
 	InputGroupAddon,
@@ -14,50 +15,76 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@superset/ui/select";
+import { cn } from "@superset/ui/utils";
 import {
-	LuFolders,
+	LuArchive,
+	LuBot,
+	LuGitPullRequest,
 	LuLaptop,
-	LuLayers,
+	LuList,
 	LuMonitor,
 	LuSearch,
+	LuSquareKanban,
+	LuTerminal,
 	LuX,
 } from "react-icons/lu";
 import type {
-	V2WorkspaceDeviceCounts,
 	V2WorkspaceHostOption,
 	V2WorkspaceProjectOption,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
-	DEVICE_FILTER_ALL,
 	DEVICE_FILTER_THIS_DEVICE,
-	PROJECT_FILTER_ALL,
+	PROJECT_FILTER_SESSIONS,
 	useV2WorkspacesFilterStore,
+	V2_WORKSPACES_AGENT_STATUS_FILTERS,
+	V2_WORKSPACES_PR_STATE_FILTERS,
+	type V2WorkspacesAgentStatusFilter,
+	type V2WorkspacesArchivedWindow,
+	type V2WorkspacesPrStateFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { DeviceFilterTriggerLabel } from "./components/DeviceFilterTriggerLabel";
 import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
-import { ProjectFilterTriggerLabel } from "./components/ProjectFilterTriggerLabel";
+import { MultiSelectFilter } from "./components/MultiSelectFilter";
+
+const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, string> = {
+	open: "Open",
+	draft: "Draft",
+	queued: "Queued",
+	merged: "Merged",
+	closed: "Closed",
+};
+
+const AGENT_STATUS_LABELS: Record<V2WorkspacesAgentStatusFilter, string> = {
+	idle: "Idle",
+	working: "Working",
+	permission: "Needs permission",
+	review: "Ready for review",
+	failed: "Failed",
+};
+
+const ARCHIVED_WINDOW_LABELS: Record<V2WorkspacesArchivedWindow, string> = {
+	none: "Hide archived",
+	week: "Archived: past week",
+	month: "Archived: past month",
+	all: "Archived: all",
+};
 
 interface V2WorkspacesHeaderProps {
-	counts: V2WorkspaceDeviceCounts;
 	hostOptions: V2WorkspaceHostOption[];
 	projectOptions: V2WorkspaceProjectOption[];
 	hostsById: Map<
 		string,
 		{ hostName: string; isOnline: boolean; isLocal: boolean }
 	>;
-	projectsById: Map<
-		string,
-		{ projectName: string; githubOwner: string | null }
-	>;
+	projectsById: Map<string, { projectName: string; iconUrl: string | null }>;
 }
 
 export function V2WorkspacesHeader({
-	counts,
 	hostOptions,
 	projectOptions,
 	hostsById,
-	projectsById,
 }: V2WorkspacesHeaderProps) {
 	const searchQuery = useV2WorkspacesFilterStore((state) => state.searchQuery);
 	const setSearchQuery = useV2WorkspacesFilterStore(
@@ -69,11 +96,31 @@ export function V2WorkspacesHeader({
 	const setDeviceFilter = useV2WorkspacesFilterStore(
 		(state) => state.setDeviceFilter,
 	);
-	const projectFilter = useV2WorkspacesFilterStore(
-		(state) => state.projectFilter,
+	const projectFilters = useV2WorkspacesFilterStore(
+		(state) => state.projectFilters,
 	);
-	const setProjectFilter = useV2WorkspacesFilterStore(
-		(state) => state.setProjectFilter,
+	const setProjectFilters = useV2WorkspacesFilterStore(
+		(state) => state.setProjectFilters,
+	);
+	const prStateFilters = useV2WorkspacesFilterStore(
+		(state) => state.prStateFilters,
+	);
+	const setPrStateFilters = useV2WorkspacesFilterStore(
+		(state) => state.setPrStateFilters,
+	);
+	const agentStatusFilters = useV2WorkspacesFilterStore(
+		(state) => state.agentStatusFilters,
+	);
+	const setAgentStatusFilters = useV2WorkspacesFilterStore(
+		(state) => state.setAgentStatusFilters,
+	);
+	const viewMode = useV2WorkspacesFilterStore((state) => state.viewMode);
+	const setViewMode = useV2WorkspacesFilterStore((state) => state.setViewMode);
+	const archivedWindow = useV2WorkspacesFilterStore(
+		(state) => state.archivedWindow,
+	);
+	const setArchivedWindow = useV2WorkspacesFilterStore(
+		(state) => state.setArchivedWindow,
 	);
 
 	const remoteHosts = hostOptions.filter((host) => !host.isLocal);
@@ -81,9 +128,7 @@ export function V2WorkspacesHeader({
 		(host) => host.hostId === deviceFilter,
 	);
 	const selectedHostFallback =
-		!selectedRemoteHostFromOptions &&
-		deviceFilter !== DEVICE_FILTER_ALL &&
-		deviceFilter !== DEVICE_FILTER_THIS_DEVICE
+		!selectedRemoteHostFromOptions && deviceFilter !== DEVICE_FILTER_THIS_DEVICE
 			? hostsById.get(deviceFilter)
 			: undefined;
 	const selectedHostLabel = selectedRemoteHostFromOptions
@@ -98,32 +143,35 @@ export function V2WorkspacesHeader({
 				}
 			: undefined;
 
-	const selectedProjectFromOptions = projectOptions.find(
-		(project) => project.projectId === projectFilter,
-	);
-	const selectedProjectFallback =
-		!selectedProjectFromOptions && projectFilter !== PROJECT_FILTER_ALL
-			? projectsById.get(projectFilter)
-			: undefined;
-	const selectedProjectLabel = selectedProjectFromOptions
-		? {
-				projectName: selectedProjectFromOptions.projectName,
-				githubOwner: selectedProjectFromOptions.githubOwner,
-			}
-		: selectedProjectFallback
-			? {
-					projectName: selectedProjectFallback.projectName,
-					githubOwner: selectedProjectFallback.githubOwner,
-				}
-			: undefined;
+	const projectFilterOptions = [
+		...projectOptions.map((project) => ({
+			value: project.projectId,
+			label: project.projectName,
+			icon: (
+				<V2WorkspaceProjectIcon
+					projectName={project.projectName}
+					iconUrl={project.iconUrl}
+					size="sm"
+				/>
+			),
+		})),
+		{
+			value: PROJECT_FILTER_SESSIONS,
+			label: "Sessions",
+			icon: <LuTerminal className="size-3.5" />,
+		},
+	];
 
 	return (
 		<div className="border-b border-border">
 			<div className="flex w-full flex-wrap items-center justify-between gap-3 px-6 py-4">
 				<h1 className="text-sm font-semibold tracking-tight">Workspaces</h1>
 
+				{/* Window-drag leaf standing in for the hidden TopBar. */}
+				<div className="drag -my-4 min-w-0 flex-1 self-stretch" />
+
 				<div className="flex flex-wrap items-center gap-2">
-					<InputGroup className="w-72">
+					<InputGroup className="w-64">
 						<InputGroupAddon align="inline-start">
 							<LuSearch className="size-4" />
 						</InputGroupAddon>
@@ -146,62 +194,43 @@ export function V2WorkspacesHeader({
 						) : null}
 					</InputGroup>
 
-					<Select value={projectFilter} onValueChange={setProjectFilter}>
-						<SelectTrigger size="sm" className="min-w-[12rem]">
-							<SelectValue placeholder="Filter projects">
-								<ProjectFilterTriggerLabel
-									projectFilter={projectFilter}
-									selectedProject={selectedProjectLabel}
-								/>
-							</SelectValue>
-						</SelectTrigger>
-						<SelectContent align="end" className="min-w-[16rem]">
-							<SelectGroup>
-								<SelectItem value={PROJECT_FILTER_ALL}>
-									<span className="flex w-full min-w-0 items-center gap-2">
-										<LuFolders className="size-3.5" />
-										<span className="min-w-0 flex-1 truncate">
-											All projects
-										</span>
-									</span>
-								</SelectItem>
-							</SelectGroup>
+					<MultiSelectFilter
+						placeholder="All projects"
+						options={projectFilterOptions}
+						value={projectFilters}
+						onChange={setProjectFilters}
+						searchable
+					/>
 
-							{projectOptions.length > 0 ? (
-								<>
-									<SelectSeparator />
-									<SelectGroup>
-										<SelectLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
-											Projects
-										</SelectLabel>
-										{projectOptions.map((project) => (
-											<SelectItem
-												key={project.projectId}
-												value={project.projectId}
-											>
-												<span className="flex w-full min-w-0 items-center gap-2">
-													<V2WorkspaceProjectIcon
-														projectName={project.projectName}
-														githubOwner={project.githubOwner}
-														size="sm"
-													/>
-													<span className="min-w-0 flex-1 truncate">
-														{project.projectName}
-													</span>
-													<span className="tabular-nums text-xs text-muted-foreground">
-														{project.count}
-													</span>
-												</span>
-											</SelectItem>
-										))}
-									</SelectGroup>
-								</>
-							) : null}
-						</SelectContent>
-					</Select>
+					<MultiSelectFilter
+						placeholder="PR state"
+						icon={<LuGitPullRequest className="size-3.5" />}
+						options={V2_WORKSPACES_PR_STATE_FILTERS.map((state) => ({
+							value: state,
+							label: PR_STATE_LABELS[state],
+							icon: <PRIcon state={state} className="size-3.5" />,
+						}))}
+						value={prStateFilters}
+						onChange={(next) =>
+							setPrStateFilters(next as V2WorkspacesPrStateFilter[])
+						}
+					/>
+
+					<MultiSelectFilter
+						placeholder="Agent"
+						icon={<LuBot className="size-3.5" />}
+						options={V2_WORKSPACES_AGENT_STATUS_FILTERS.map((status) => ({
+							value: status,
+							label: AGENT_STATUS_LABELS[status],
+						}))}
+						value={agentStatusFilters}
+						onChange={(next) =>
+							setAgentStatusFilters(next as V2WorkspacesAgentStatusFilter[])
+						}
+					/>
 
 					<Select value={deviceFilter} onValueChange={setDeviceFilter}>
-						<SelectTrigger size="sm" className="min-w-[12rem]">
+						<SelectTrigger size="sm" className="min-w-[10rem]">
 							<SelectValue placeholder="Filter devices">
 								<DeviceFilterTriggerLabel
 									deviceFilter={deviceFilter}
@@ -215,14 +244,6 @@ export function V2WorkspacesHeader({
 									<DeviceOptionLabel
 										icon={<LuLaptop className="size-3.5" />}
 										label="This device"
-										count={counts.thisDevice}
-									/>
-								</SelectItem>
-								<SelectItem value={DEVICE_FILTER_ALL}>
-									<DeviceOptionLabel
-										icon={<LuLayers className="size-3.5" />}
-										label="All devices"
-										count={counts.all}
 									/>
 								</SelectItem>
 							</SelectGroup>
@@ -239,7 +260,6 @@ export function V2WorkspacesHeader({
 												<DeviceOptionLabel
 													icon={<LuMonitor className="size-3.5" />}
 													label={host.hostName}
-													count={host.count}
 													isOnline={host.isOnline}
 												/>
 											</SelectItem>
@@ -249,6 +269,64 @@ export function V2WorkspacesHeader({
 							) : null}
 						</SelectContent>
 					</Select>
+
+					{viewMode === "board" ? (
+						<Select
+							value={archivedWindow}
+							onValueChange={(next) =>
+								setArchivedWindow(next as V2WorkspacesArchivedWindow)
+							}
+						>
+							<SelectTrigger size="sm" className="min-w-[10rem]">
+								<SelectValue>
+									<span className="flex items-center gap-1.5">
+										<LuArchive className="size-3.5" />
+										{ARCHIVED_WINDOW_LABELS[archivedWindow]}
+									</span>
+								</SelectValue>
+							</SelectTrigger>
+							<SelectContent align="end">
+								{(
+									Object.keys(
+										ARCHIVED_WINDOW_LABELS,
+									) as V2WorkspacesArchivedWindow[]
+								).map((window) => (
+									<SelectItem key={window} value={window}>
+										{ARCHIVED_WINDOW_LABELS[window]}
+									</SelectItem>
+								))}
+							</SelectContent>
+						</Select>
+					) : null}
+
+					<div className="flex items-center rounded-md border border-border p-0.5">
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							aria-label="List view"
+							aria-pressed={viewMode === "list"}
+							className={cn(
+								"size-7",
+								viewMode === "list" && "bg-accent text-accent-foreground",
+							)}
+							onClick={() => setViewMode("list")}
+						>
+							<LuList className="size-4" />
+						</Button>
+						<Button
+							variant="ghost"
+							size="icon-sm"
+							aria-label="Board view"
+							aria-pressed={viewMode === "board"}
+							className={cn(
+								"size-7",
+								viewMode === "board" && "bg-accent text-accent-foreground",
+							)}
+							onClick={() => setViewMode("board")}
+						>
+							<LuSquareKanban className="size-4" />
+						</Button>
+					</div>
 				</div>
 			</div>
 		</div>

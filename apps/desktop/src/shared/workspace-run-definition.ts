@@ -78,7 +78,8 @@ export function selectWorkspaceRunDefinition({
 }: {
 	presets: readonly WorkspaceRunPresetLike[];
 	configRunCommands?: readonly string[] | null;
-	projectId: string;
+	/** Null for project-less "session" workspaces — only global presets apply. */
+	projectId: string | null;
 	configCwd?: string;
 }): WorkspaceRunDefinition | null {
 	const matchingPresets = filterMatchingPresetsForProject(presets, projectId);
@@ -90,11 +91,14 @@ export function selectWorkspaceRunDefinition({
 		);
 	if (targetedPresetRun) return targetedPresetRun;
 
-	const configRun = configRunToWorkspaceRun({
-		projectId,
-		commands: configRunCommands,
-		cwd: configCwd,
-	});
+	const configRun =
+		projectId !== null
+			? configRunToWorkspaceRun({
+					projectId,
+					commands: configRunCommands,
+					cwd: configCwd,
+				})
+			: null;
 	if (configRun) return configRun;
 
 	return (

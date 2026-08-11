@@ -1,0 +1,1 @@
+export { useDiffPaneSearch } from "./useDiffPaneSearch";

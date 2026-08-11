@@ -1,11 +1,7 @@
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useMemo, useRef } from "react";
-import { env } from "renderer/env.renderer";
-import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { resolveProjectIconUrl } from "renderer/hooks/host-projects/resolveProjectIconUrl";
+import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
-import { MOCK_ORG_ID } from "shared/constants";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
 import { PromptGroup } from "../DashboardNewWorkspaceForm/PromptGroup";
 import { useSelectedHostProjectIds } from "./hooks/useSelectedHostProjectIds";
@@ -13,73 +9,47 @@ import { useSelectedHostProjectIds } from "./hooks/useSelectedHostProjectIds";
 interface DashboardNewWorkspaceModalContentProps {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	/** Open with "No project" (session) preselected. */
+	preSelectedSession?: boolean;
 }
 
 /**
  * Content pane for the Dashboard new-workspace modal.
  *
- * Resolves the project list from V2 collections (`v2Projects` +
- * `githubRepositories`) and handles the initial project selection when the
- * modal opens. Delegates the composer itself to PromptGroup.
+ * Resolves the project list from the host fan-out (projects are fully
+ * local) and handles the initial project selection when the modal opens.
+ * Delegates the composer itself to PromptGroup.
  */
 export function DashboardNewWorkspaceModalContent({
 	isOpen,
 	preSelectedProjectId,
+	preSelectedSession = false,
 }: DashboardNewWorkspaceModalContentProps) {
-	const { draft, updateDraft } = useDashboardNewWorkspaceDraft();
+	const { draft, updateDraft, selectProject, selectSession } =
+		useDashboardNewWorkspaceDraft();
 	const setLastProjectId = useV2WorkspaceCreateDefaultsStore(
 		(state) => state.setLastProjectId,
 	);
-	const collections = useCollections();
-	const { data: session } = authClient.useSession();
-	const activeOrganizationId = env.SKIP_ENV_VALIDATION
-		? MOCK_ORG_ID
-		: (session?.session?.activeOrganizationId ?? null);
-
-	const { data: v2Projects } = useLiveQuery(
-		(q) =>
-			q
-				.from({ projects: collections.v2Projects })
-				.where(({ projects }) =>
-					eq(projects.organizationId, activeOrganizationId ?? ""),
-				)
-				.select(({ projects }) => ({ ...projects })),
-		[collections, activeOrganizationId],
-	);
-
-	const { data: githubRepositories } = useLiveQuery(
-		(q) =>
-			q.from({ repos: collections.githubRepositories }).select(({ repos }) => ({
-				id: repos.id,
-				owner: repos.owner,
-				name: repos.name,
-			})),
-		[collections],
-	);
+	const { projects: hostProjects, isReady: areProjectsReady } =
+		useHostProjects();
 
 	const setUpProjectIds = useSelectedHostProjectIds(draft.hostId);
 
-	const recentProjects = useMemo(() => {
-		const repoById = new Map(
-			(githubRepositories ?? []).map((repo) => [repo.id, repo]),
-		);
-		return (v2Projects ?? []).map((project) => {
-			const repo = project.githubRepositoryId
-				? (repoById.get(project.githubRepositoryId) ?? null)
-				: null;
-			return {
-				id: project.id,
+	const recentProjects = useMemo(
+		() =>
+			hostProjects.map((project) => ({
+				id: project.projectKey,
 				name: project.name,
-				githubOwner: repo?.owner ?? null,
-				githubRepoName: repo?.name ?? null,
-				iconUrl: project.iconUrl,
+				githubOwner: project.repoOwner,
+				githubRepoName: project.repoName,
+				iconUrl: resolveProjectIconUrl(project),
 				needsSetup:
-					setUpProjectIds === null ? null : !setUpProjectIds.has(project.id),
-			};
-		});
-	}, [githubRepositories, setUpProjectIds, v2Projects]);
-
-	const areProjectsReady = v2Projects !== undefined;
+					setUpProjectIds === null
+						? null
+						: !setUpProjectIds.has(project.projectKey),
+			})),
+		[hostProjects, setUpProjectIds],
+	);
 	const appliedPreSelectionRef = useRef<string | null>(null);
 	const appliedHostIdRef = useRef(false);
 	const hasInitializedSelectionRef = useRef(false);
@@ -103,6 +73,14 @@ export function DashboardNewWorkspaceModalContent({
 	useEffect(() => {
 		if (!isOpen) return;
 
+		if (preSelectedSession && !hasInitializedSelectionRef.current) {
+			hasInitializedSelectionRef.current = true;
+			selectSession();
+			return;
+		}
+
+		// An explicit project preselection (e.g. a project's "+" button)
+		// overrides a session mode left behind by an earlier dismissal.
 		if (
 			preSelectedProjectId &&
 			preSelectedProjectId !== appliedPreSelectionRef.current
@@ -114,18 +92,15 @@ export function DashboardNewWorkspaceModalContent({
 			if (hasPreSelectedProject) {
 				appliedPreSelectionRef.current = preSelectedProjectId;
 				hasInitializedSelectionRef.current = true;
-				if (preSelectedProjectId !== draft.selectedProjectId) {
-					updateDraft({ selectedProjectId: preSelectedProjectId });
-				}
+				selectProject(preSelectedProjectId);
 				return;
 			}
 		}
 
+		// An explicit "No project" choice must survive project-list updates.
+		if (draft.isSession) return;
+
 		if (!areProjectsReady) return;
-		// Wait for org context. Without it, v2Projects is filtered by an empty
-		// org id and resolves to []; initializing here would lock in a null
-		// selection before the real project list arrives.
-		if (activeOrganizationId === null) return;
 
 		// Only auto-pick a default once. After init, leave the user's selection
 		// alone — including freshly created projects that may not be in the live
@@ -149,11 +124,14 @@ export function DashboardNewWorkspaceModalContent({
 		hasInitializedSelectionRef.current = true;
 	}, [
 		draft.selectedProjectId,
+		draft.isSession,
 		areProjectsReady,
-		activeOrganizationId,
 		isOpen,
 		preSelectedProjectId,
+		preSelectedSession,
 		recentProjects,
+		selectProject,
+		selectSession,
 		updateDraft,
 	]);
 
@@ -167,9 +145,14 @@ export function DashboardNewWorkspaceModalContent({
 				projectId={draft.selectedProjectId}
 				selectedProject={selectedProject}
 				recentProjects={recentProjects.filter((project) => Boolean(project.id))}
+				isSessionSelected={draft.isSession}
 				onSelectProject={(selectedProjectId) => {
+					if (selectedProjectId === null) {
+						selectSession();
+						return;
+					}
 					setLastProjectId(selectedProjectId);
-					updateDraft({ selectedProjectId });
+					selectProject(selectedProjectId);
 				}}
 			/>
 		</div>

@@ -40,12 +40,17 @@ export const MOCK_ORG_ID = "mock-org-id";
 
 // Terminal defaults
 export const DEFAULT_TERMINAL_SCROLLBACK = 5000;
+// Hidden (parked) xterm instances kept fully alive before LRU eviction. (SUPER-1545)
+export const DEFAULT_TERMINAL_PARKED_RUNTIME_CAP = 12;
+export const MIN_TERMINAL_PARKED_RUNTIME_CAP = 2;
+export const MAX_TERMINAL_PARKED_RUNTIME_CAP = 64;
 
 // Default user preference values
 export const DEFAULT_CONFIRM_ON_QUIT = true;
 export const DEFAULT_TERMINAL_LINK_BEHAVIOR = "file-viewer" as const;
 export const DEFAULT_FILE_OPEN_MODE = "split-pane" as const;
 export const DEFAULT_AUTO_APPLY_DEFAULT_PRESET = true;
+export const DEFAULT_WAIT_FOR_SETUP_BEFORE_AGENT = false;
 export const DEFAULT_SHOW_PRESETS_BAR = true;
 export const DEFAULT_USE_COMPACT_TERMINAL_ADD_BUTTON = true;
 export const DEFAULT_TELEMETRY_ENABLED = true;

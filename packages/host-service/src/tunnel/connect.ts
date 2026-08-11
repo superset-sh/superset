@@ -3,9 +3,11 @@ import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { JwtApiAuthProvider } from "../providers/auth/JwtAuthProvider/JwtAuthProvider";
 import type { ApiClient } from "../types";
 import { TunnelClient } from "./tunnel-client";
+import { TunnelClientV2 } from "./tunnel-client-v2";
 
 export interface ConnectRelayOptions {
 	api: ApiClient;
+	/** Fallback when the API can't be reached; the API's answer wins. */
 	relayUrl: string;
 	localPort: number;
 	organizationId: string;
@@ -13,9 +15,52 @@ export interface ConnectRelayOptions {
 	hostServiceSecret: string;
 }
 
+// The API decides which relay this host belongs on, and it is asked here —
+// with the host's own credentials, at connect time — rather than resolved by
+// whatever spawned us. A spawner that resolves it first has to win a race
+// against its own analytics identification, and when it loses it silently
+// picks the default, stranding the host on a different relay than its
+// clients with no way to tell from either side.
+async function resolveRelayUrl(
+	api: ApiClient,
+	fallback: string,
+): Promise<string> {
+	try {
+		const endpoint = await api.host.relayEndpoint.query();
+		if (endpoint?.url) return endpoint.url;
+	} catch (error) {
+		console.warn(
+			"[host-service] relay endpoint lookup failed, using fallback:",
+			error instanceof Error ? error.message : error,
+		);
+	}
+	return fallback;
+}
+
+// The relay advertises its protocol on /health ({proto: 2} for tunnel v2);
+// anything else — including the v1 relay's {ok, region} and any probe
+// failure — selects the v1 client. Negotiating here keeps protocol choice
+// between host and relay instead of adding config plumbing through every
+// spawner (desktop, CLI, env).
+async function detectRelayProto(relayUrl: string): Promise<1 | 2> {
+	for (let attempt = 0; attempt < 3; attempt++) {
+		try {
+			const res = await fetch(new URL("/health", relayUrl), {
+				signal: AbortSignal.timeout(5_000),
+			});
+			if (!res.ok) return 1;
+			const data = (await res.json()) as { proto?: number };
+			return data.proto === 2 ? 2 : 1;
+		} catch {
+			await new Promise((r) => setTimeout(r, 1_000 * (attempt + 1)));
+		}
+	}
+	return 1;
+}
+
 export async function connectRelay(
 	options: ConnectRelayOptions,
-): Promise<TunnelClient | null> {
+): Promise<TunnelClient | TunnelClientV2 | null> {
 	try {
 		const host = await options.api.host.ensure.mutate({
 			organizationId: options.organizationId,
@@ -24,13 +69,23 @@ export async function connectRelay(
 		});
 		console.log(`[host-service] registered as host ${host.machineId}`);
 
-		const tunnel = new TunnelClient({
-			relayUrl: options.relayUrl,
+		const relayUrl = await resolveRelayUrl(options.api, options.relayUrl);
+		console.log(`[host-service] relay: ${relayUrl}`);
+
+		const clientOptions = {
+			relayUrl,
 			hostId: buildHostRoutingKey(options.organizationId, host.machineId),
 			getAuthToken: () => options.authProvider.getJwt(),
 			localPort: options.localPort,
 			hostServiceSecret: options.hostServiceSecret,
-		});
+		};
+
+		const proto = await detectRelayProto(relayUrl);
+		console.log(`[host-service] relay protocol: v${proto}`);
+		const tunnel =
+			proto === 2
+				? new TunnelClientV2(clientOptions)
+				: new TunnelClient(clientOptions);
 		void tunnel.connect();
 		return tunnel;
 	} catch (error) {

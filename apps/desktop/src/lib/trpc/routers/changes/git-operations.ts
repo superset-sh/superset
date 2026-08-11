@@ -87,17 +87,31 @@ export const createGitOperationsRouter = () => {
 					action: "push",
 				});
 
-				if (input.setUpstream && !hasUpstream) {
-					await pushWithResolvedUpstream({
-						git,
-						worktreePath: input.worktreePath,
-						localBranch,
-					});
-				} else {
-					await pushCurrentBranch({
-						git,
-						worktreePath: input.worktreePath,
-						localBranch,
+				try {
+					if (input.setUpstream && !hasUpstream) {
+						await pushWithResolvedUpstream({
+							git,
+							worktreePath: input.worktreePath,
+							localBranch,
+						});
+					} else {
+						await pushCurrentBranch({
+							git,
+							worktreePath: input.worktreePath,
+							localBranch,
+						});
+					}
+				} catch (error) {
+					if (error instanceof TRPCError) {
+						throw error;
+					}
+					// git refuses a push for reasons that live in the user's repo,
+					// remote or hooks — a rejected ref, missing credentials, a
+					// pre-push hook exiting non-zero. Surface git's own text.
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: error instanceof Error ? error.message : String(error),
+						cause: error,
 					});
 				}
 

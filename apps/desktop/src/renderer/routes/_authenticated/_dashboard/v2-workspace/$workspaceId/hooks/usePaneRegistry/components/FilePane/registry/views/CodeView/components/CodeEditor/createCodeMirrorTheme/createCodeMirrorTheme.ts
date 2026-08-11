@@ -1,4 +1,8 @@
 import { EditorView } from "@codemirror/view";
+import {
+	resolveEditorLineHeight,
+	resolveFontVariantLigatures,
+} from "renderer/lib/editor-typography";
 import { getEditorTheme, type Theme, withAlpha } from "shared/themes";
 import {
 	DEFAULT_CODE_EDITOR_FONT_FAMILY,
@@ -8,6 +12,10 @@ import {
 interface CodeEditorFontSettings {
 	fontFamily?: string;
 	fontSize?: number;
+	lineHeight?: number;
+	letterSpacing?: number;
+	fontWeight?: number;
+	ligatures?: boolean;
 }
 
 export function createCodeMirrorTheme(
@@ -16,7 +24,7 @@ export function createCodeMirrorTheme(
 	fillHeight: boolean,
 ) {
 	const fontSize = fontSettings.fontSize ?? DEFAULT_CODE_EDITOR_FONT_SIZE;
-	const lineHeight = Math.round(fontSize * 1.5);
+	const lineHeight = resolveEditorLineHeight(fontSize, fontSettings.lineHeight);
 	const editorTheme = getEditorTheme(theme);
 	const accentOverlay = withAlpha(theme.ui.accent, 0.5);
 	const activeLineBackground = accentOverlay;
@@ -30,10 +38,17 @@ export function createCodeMirrorTheme(
 				color: editorTheme.colors.foreground,
 				fontFamily: fontSettings.fontFamily ?? DEFAULT_CODE_EDITOR_FONT_FAMILY,
 				fontSize: `${fontSize}px`,
+				fontWeight: fontSettings.fontWeight ?? null,
 			},
 			".cm-scroller": {
 				fontFamily: "inherit",
 				lineHeight: `${lineHeight}px`,
+				letterSpacing:
+					fontSettings.letterSpacing == null
+						? null
+						: `${fontSettings.letterSpacing}px`,
+				fontVariantLigatures:
+					resolveFontVariantLigatures(fontSettings.ligatures) ?? null,
 				overflow: fillHeight ? "auto" : "visible",
 			},
 			".cm-content": {

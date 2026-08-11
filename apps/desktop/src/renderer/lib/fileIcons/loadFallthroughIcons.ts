@@ -242,6 +242,14 @@ async function fetchSymbolBody(
 		const response = await fetch(resolveFileIconAssetUrl(iconName));
 		if (!response.ok) return null;
 		const svg = await response.text();
+		// A manifest icon whose asset isn't shipped resolves to the SPA/dev-server
+		// index.html fallback (HTTP 200 with HTML, not an SVG). Embedding that HTML
+		// (`<!DOCTYPE html>`, `<script>`, …) inside a `<symbol>` corrupts the sprite
+		// sheet: Pierre parses it via `div.innerHTML`, whose HTML foreign-content
+		// parser aborts at the stray markup and silently drops every symbol after
+		// it — blanking hundreds of icons. Require a real SVG document.
+		if (!/<svg[\s>]/i.test(svg) || /<!doctype html|<html[\s>]/i.test(svg))
+			return null;
 		const viewBox = svg.match(/viewBox\s*=\s*"([^"]+)"/)?.[1] ?? "0 0 24 24";
 		// Strip the outer <svg ...>...</svg> wrapper, keep the inner markup so
 		// we can wrap it in a single <symbol> for the sprite.

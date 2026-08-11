@@ -1,0 +1,108 @@
+---
+title: "Superset vs bb (2026): Agent Workspace vs the IDE That Builds Itself"
+description: "Compare Superset and bb for orchestrating AI coding agents. See how a full agent workspace differs from bb's self-extending, thread-based agentic IDE."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - bb
+keywords:
+  - superset vs bb
+  - bb alternative
+  - getbb alternative
+  - bb agentic ide
+  - agentic ide
+  - ai agent orchestration
+---
+
+Superset and bb both orchestrate multiple AI coding agents on your own machine, and both reach for Git worktrees as the isolation primitive. The philosophies differ. Superset is a product: a desktop workspace with orchestration, diff review, chat, a browser, automations, and remote workspaces built in. bb is a substrate: an open-source, MIT-licensed "IDE that builds itself," where threads are the core unit and most features -- crons, previews, side chat, even remote access -- are plugins that bb's own agents wrote.
+
+---
+
+## At a Glance
+
+| | **Superset** | **bb** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Orchestrates coding agents in live threads you can follow, steer, or hand off |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Self-extending agentic IDE ("the IDE that builds itself") |
+| **Core unit** | Workspace (worktree + terminals + review) | Thread (agent run in an environment, optionally a worktree) |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Claude Code, Codex, Cursor, Pi, OpenCode, Grok, omp, Hermes, plus any ACP agent |
+| **Isolation** | Automatic Git worktree per task | Optional Git worktree per environment |
+| **Surfaces** | Desktop app, CLI, MCP server | Desktop app, web app, CLI, HTTP API |
+| **Remote / cloud** | Remote and cloud workspaces across your network devices | bb Connect tunnel + multi-machine enrollment |
+| **Automation** | Automations: scheduled agent sessions, TypeScript SDK, Slack bot | Crons and external triggers, shipped as plugins |
+| **License** | Source-available (ELv2) | Open source (MIT) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is bb?
+
+bb is an open-source agentic IDE whose pitch is that it can control, customize, and automate itself. Work happens in threads: an agent runs in a thread, you follow it live, steer it mid-run, or hand it to another agent, and agents can spawn and babysit other agents' threads. Threads run in environments that can be backed by fresh Git worktrees. The distinctive part is the plugin system -- provider-agnostic workflows, crons, inline previews, side chat, and remote access were all built by bb's own agents as plugins, and a plugin store lets you install what other users' agents have built. bb ships as a macOS desktop app, a web app, a CLI, and an HTTP API, supports a wide harness matrix including any Agent Client Protocol (ACP) agent, and is MIT licensed and free.
+
+## Key Differences
+
+### Product vs Substrate
+
+Superset ships a finished workspace: worktree orchestration, diff review, chat, an in-app browser, port management, and automations are built in and maintained as a product, with a team and an enterprise track behind it. bb ships a core -- threads, environments, and a plugin system -- and expects you (or your agents) to extend it. That makes bb remarkably moldable: users have built task managers, tiling window management, and automated PR review inside it. It also means more assembly. If you want the workflow to exist on day one, Superset has more out of the box; if you want to grow your own tooling, bb is designed for exactly that.
+
+### Threads vs Workspaces
+
+bb's core unit is the thread: a live agent run you can watch, interrupt, or hand off, with worktree isolation as an option per environment. Superset's core unit is the workspace: a worktree with persistent terminals, diffs, and review attached, designed so every task is isolated by default. The models overlap heavily in practice; the difference shows up in defaults. Superset assumes every task deserves its own branch and worktree. bb leaves the isolation choice to the thread.
+
+### Agents as Operators
+
+bb treats agents as first-class operators of the IDE itself: the CLI and HTTP API have parity with the UI, so an agent can script bb, spawn threads, and even write new bb plugins mid-conversation. Superset exposes automation differently -- through scheduled automations, a TypeScript SDK, an MCP server, and a Slack bot -- aimed at recurring and unattended work rather than self-modification. Both are scriptable; bb optimizes for agents driving the tool, Superset for agents doing scheduled and orchestrated work inside it.
+
+### Maturity and Support
+
+Superset is a commercial product with a free tier, paid plans, and enterprise features like SSO and audit logs. bb is a young open-source project (the repo started in early 2026) that describes itself as in active development, with workflows and surfaces still evolving. For personal use that trade is often worth it; for a team standardizing its agent workflow, it matters.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. bb is free and MIT-licensed, with agents running on your own subscriptions and API keys. In both cases you still pay the underlying providers for Claude Code, Codex, or any compatible agent.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Want orchestration, review, browser, and automations working out of the box
+- Need remote and cloud workspaces with a supported product behind them
+- Run scheduled or unattended agent sessions through automations and an SDK
+- Care about team and enterprise features like SSO and audit logs
+
+**Choose bb if you:**
+
+- Want an MIT-licensed, free, self-extending IDE you can mold with plugins
+- Like the thread model where agents spawn, steer, and hand off other agents
+- Want a web app and HTTP API with full parity to the desktop UI
+- Enjoy building your own workflow tooling with the agent's help
+
+**Verdict:** bb is one of the most interesting projects in the agent-orchestration space -- a free, open-source IDE that extends itself through agent-written plugins. Superset is the better fit if you want a complete, supported workspace where parallel worktree agents, review, automations, and remote hosts already work together. If you want a substrate to build your own software factory on, bb is worth a serious look.
+
+---
+
+## Frequently Asked Questions
+
+### Do Superset and bb both use Git worktrees?
+
+Yes, with different defaults. Superset creates an isolated worktree for every task automatically. bb can back a thread's environment with a fresh worktree on its own branch, and cleans up the worktree when the threads using it are archived.
+
+### Is bb open source?
+
+Yes. bb is MIT licensed end to end and free to use. Superset is source-available under the Elastic License 2.0, with a free tier and paid Pro.
+
+### Which agents does each support?
+
+Both are agent-agnostic. Superset runs Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and custom terminal agents. bb supports Claude Code, Codex, Cursor, Pi, OpenCode, Grok, omp, and Hermes, plus any agent that speaks the Agent Client Protocol.
+
+### Can either run agents on another machine?
+
+Yes. Superset has remote and cloud workspaces that run across your own network devices. bb offers bb Connect, a managed tunnel to your own server, plus machine enrollment for dispatching threads across several machines. Execution stays on your hardware in both cases.

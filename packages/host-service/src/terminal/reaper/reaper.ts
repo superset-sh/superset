@@ -28,6 +28,22 @@ export const PORT_SCAN_WARMUP_DELAYS_MS = [
 interface TerminalRow {
 	status: string;
 	originWorkspaceId: string | null;
+	disposeRequestedAt?: number | null;
+}
+
+/**
+ * Rows the reaper must kill even though the daemon still lists them alive.
+ * `disposeRequestedAt` is the durable intent-to-kill stamp: a dispose was
+ * requested but never confirmed (success deletes the row or marks it
+ * disposed), so retry it regardless of workspace liveness.
+ */
+export function shouldReapRow(row: TerminalRow): boolean {
+	return (
+		row.status === "disposed" ||
+		row.status === "exited" ||
+		!row.originWorkspaceId ||
+		row.disposeRequestedAt != null
+	);
 }
 
 export interface PortScanSyncPlan {
@@ -97,6 +113,7 @@ function loadTerminalRowsById(db: HostDb): Map<string, TerminalRow> {
 			id: terminalSessions.id,
 			status: terminalSessions.status,
 			originWorkspaceId: terminalSessions.originWorkspaceId,
+			disposeRequestedAt: terminalSessions.disposeRequestedAt,
 		})
 		.from(terminalSessions)
 		.all();
@@ -190,11 +207,7 @@ async function reapOrphanedSessions(
 			}
 			continue;
 		}
-		if (
-			row.status === "disposed" ||
-			row.status === "exited" ||
-			!row.originWorkspaceId
-		) {
+		if (shouldReapRow(row)) {
 			orphans.push({ id: session.id, rowless: false });
 		}
 	}

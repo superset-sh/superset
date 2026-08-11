@@ -1,6 +1,7 @@
 {
 	"extends": "@superset/typescript/internal-package.json",
 	"compilerOptions": {
+		"rootDir": "./src",
 		"types": [],
 		"lib": ["ES2022", "DOM", "DOM.Iterable"]
 	},

@@ -26,6 +26,13 @@ describe("mapEventType", () => {
 		expect(mapEventType("agent-turn-complete")).toBe("Stop");
 	});
 
+	it("routes failure events to Failed, distinct from Stop", () => {
+		expect(mapEventType("StopFailure")).toBe("Failed");
+		expect(mapEventType("stop_failure")).toBe("Failed");
+		expect(mapEventType("Failed")).toBe("Failed");
+		expect(mapEventType("Stop")).toBe("Stop");
+	});
+
 	it("routes permission events", () => {
 		expect(mapEventType("PermissionRequest")).toBe("PermissionRequest");
 		expect(mapEventType("Notification")).toBe("PermissionRequest");
@@ -42,5 +49,20 @@ describe("mapEventType", () => {
 	it("maps Vibe hook events", () => {
 		expect(mapEventType("before_tool")).toBe("Start");
 		expect(mapEventType("post_agent_turn")).toBe("Stop");
+	});
+
+	it("maps Kimi hook events that extend the shared lifecycle set", () => {
+		expect(mapEventType("PermissionResult")).toBe("Start");
+		expect(mapEventType("Interrupt")).toBe("Stop");
+	});
+
+	it("maps Grok's snake_case wire values", () => {
+		expect(mapEventType("session_start")).toBe("Attached");
+		expect(mapEventType("user_prompt_submit")).toBe("Start");
+		expect(mapEventType("post_tool_use")).toBe("Start");
+		expect(mapEventType("post_tool_use_failure")).toBe("Start");
+		expect(mapEventType("stop")).toBe("Stop");
+		expect(mapEventType("stop_failure")).toBe("Failed");
+		expect(mapEventType("session_end")).toBe("Detached");
 	});
 });

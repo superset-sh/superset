@@ -4,7 +4,9 @@ import {
 	generateCommandHelp,
 	generateGroupHelp,
 	generateRootHelp,
+	type HelpBranding,
 } from "./help";
+import { runInteractiveHelp } from "./interactive-help";
 import type { MiddlewareFn } from "./middleware";
 import type { GenericBuilderInternals, ProcessedBuilderConfig } from "./option";
 import { formatOutput } from "./output";
@@ -27,6 +29,7 @@ export interface RunOptions {
 	version: string;
 	tree: CommandTree;
 	globals?: Record<string, GenericBuilderInternals>;
+	help?: HelpBranding;
 }
 
 export async function run(opts: RunOptions): Promise<void> {
@@ -201,12 +204,40 @@ async function execute(
 	opts: RunOptions,
 	loaded: CommandTree,
 	signal: AbortSignal,
+	argsOverride?: string[],
 ): Promise<void> {
-	const args = process.argv.slice(2);
+	const args = argsOverride ?? process.argv.slice(2);
 	const { name, version } = opts;
 	const { middleware } = loaded;
 	const globalConfigs = processGlobals(opts.globals);
 	const { root, commandMap } = buildTree(loaded.groups, loaded.commands);
+
+	// EXPERIMENT: bare invocation on a TTY opens the interactive help browser
+	// instead of dumping static help. Agents/CI keep the static output.
+	if (
+		args.length === 0 &&
+		process.stdin.isTTY === true &&
+		process.stdout.isTTY === true &&
+		!isAgentMode()
+	) {
+		const result = await runInteractiveHelp({
+			name,
+			version,
+			root,
+			globals: globalConfigs,
+			branding: opts.help,
+			signal,
+			populateLeaf: (path, node) => {
+				const cmd = commandMap.get(path.join("/"));
+				if (cmd) populateNodeForHelp(node, cmd);
+			},
+		});
+		if (result.runArgs) {
+			console.log("");
+			return execute(opts, loaded, signal, result.runArgs);
+		}
+		return;
+	}
 
 	// Help
 	if (args.length === 0 || args.includes("--help") || args.includes("-h")) {
@@ -214,7 +245,9 @@ async function execute(
 		const { segments } = splitArgsForRouting(cleanArgs, globalConfigs);
 		const routeResult = routeCommand(root, segments);
 		if (routeResult.commandPath.length === 0) {
-			console.log(generateRootHelp(name, version, root, globalConfigs));
+			console.log(
+				generateRootHelp(name, version, root, globalConfigs, opts.help),
+			);
 			return;
 		}
 		const cmd = commandMap.get(routeResult.commandPath.join("/"));
@@ -251,7 +284,9 @@ async function execute(
 	}
 
 	if (commandPath.length === 0) {
-		console.log(generateRootHelp(name, version, root, globalConfigs));
+		console.log(
+			generateRootHelp(name, version, root, globalConfigs, opts.help),
+		);
 		return;
 	}
 

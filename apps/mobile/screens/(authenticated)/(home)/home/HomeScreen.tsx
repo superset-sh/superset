@@ -9,6 +9,7 @@ import { useCallback, useMemo, useState } from "react";
 import { RefreshControl, useWindowDimensions, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Text } from "@/components/ui/text";
+import { useHostProjects } from "@/hooks/useHostProjects";
 import {
 	type HostWorkspaceItem,
 	useHostWorkspaces,
@@ -24,6 +25,7 @@ import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton"
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
 import { SessionRow } from "./components/SessionRow";
 import { WorkspaceRow } from "./components/WorkspaceRow";
+import { useHostAcpSessions } from "./hooks/useHostAcpSessions";
 import { useHostTerminalAgents } from "./hooks/useHostTerminalAgents";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
 import { useWorkspacesFilterStore } from "./stores/workspacesFilterStore";
@@ -87,49 +89,33 @@ export function HomeScreen() {
 	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
 	const attentionByWorkspace = useHostTerminalAgents(selectedHost);
 
-	const { data: projects } = useLiveQuery(
-		(q) => q.from({ v2Projects: collections.v2Projects }),
-		[collections],
-	);
+	// Projects are fully local — served by the selected host, not Electric.
+	const { projects } = useHostProjects(selectedHost);
 	const { data: pullRequests } = useLiveQuery(
 		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
 		[collections],
 	);
-	const { data: chatSessions } = useLiveQuery(
-		(q) => q.from({ chatSessions: collections.chatSessions }),
-		[collections],
-	);
+	const { sessionsByWorkspace } = useHostAcpSessions(selectedHost);
 
 	const sortedProjects = useMemo(
-		() => [...(projects ?? [])].sort((a, b) => a.name.localeCompare(b.name)),
+		() => [...projects].sort((a, b) => a.name.localeCompare(b.name)),
 		[projects],
 	);
 
 	const selectedProjectId = projectFilter ?? sortedProjects[0]?.id ?? null;
 
 	const projectNamesById = useMemo(
-		() =>
-			new Map((projects ?? []).map((project) => [project.id, project.name])),
+		() => new Map(projects.map((project) => [project.id, project.name])),
 		[projects],
 	);
 
 	const sessionRowsByWorkspace = useMemo(() => {
-		const chatSessionsByWorkspace = new Map<
-			string,
-			NonNullable<typeof chatSessions>
-		>();
-		for (const session of chatSessions ?? []) {
-			if (!session.v2WorkspaceId) continue;
-			const group = chatSessionsByWorkspace.get(session.v2WorkspaceId);
-			if (group) group.push(session);
-			else chatSessionsByWorkspace.set(session.v2WorkspaceId, [session]);
-		}
 		const rowsByWorkspace = new Map<string, SessionRowData[]>();
-		for (const [workspaceId, sessions] of chatSessionsByWorkspace) {
+		for (const [workspaceId, sessions] of sessionsByWorkspace) {
 			rowsByWorkspace.set(workspaceId, buildSessionRows(sessions));
 		}
 		return rowsByWorkspace;
-	}, [chatSessions]);
+	}, [sessionsByWorkspace]);
 
 	// Recency ranks a group by its latest activity — the newest of the
 	// workspace's own update and its sessions' updates.
@@ -162,7 +148,11 @@ export function HomeScreen() {
 					(workspace) =>
 						workspace.name.toLowerCase().includes(needle) ||
 						workspace.branch.toLowerCase().includes(needle) ||
-						(projectNamesById.get(workspace.projectId) ?? "")
+						(
+							(workspace.projectId
+								? projectNamesById.get(workspace.projectId)
+								: undefined) ?? ""
+						)
 							.toLowerCase()
 							.includes(needle) ||
 						sessionsMatch(workspace.id),
@@ -216,7 +206,12 @@ export function HomeScreen() {
 		const rank = { closed: 3, draft: 1, merged: 2, open: 0 } as const;
 		const byRepoBranch = new Map<string, SelectGithubPullRequest>();
 		for (const pullRequest of pullRequests ?? []) {
-			const key = `${pullRequest.repositoryId}::${pullRequest.headBranch}`;
+			// Key on repo coordinates from the PR URL — host projects don't
+			// know cloud repo UUIDs.
+			const repoPrefix = pullRequest.url
+				.toLowerCase()
+				.replace(/pull\/\d+.*$/, "");
+			const key = `${repoPrefix}::${pullRequest.headBranch}`;
 			const existing = byRepoBranch.get(key);
 			if (!existing) {
 				byRepoBranch.set(key, pullRequest);
@@ -261,6 +256,7 @@ export function HomeScreen() {
 		void queryClient.invalidateQueries({
 			queryKey: ["host-service", "workspaces", "list"],
 		});
+		void queryClient.invalidateQueries({ queryKey: ["acp-sessions", "list"] });
 		void queryClient.invalidateQueries({ queryKey: ["diff-stats"] });
 	}, [queryClient]);
 
@@ -275,12 +271,16 @@ export function HomeScreen() {
 		setRefreshing(false);
 	}, [queryClient]);
 
-	const repositoryIdsByProject = useMemo(
+	// Projects are fully local: PR rows are matched by repo coordinates
+	// parsed from the PR URL (cloud repo UUIDs aren't known host-side).
+	const repoPrefixesByProject = useMemo(
 		() =>
 			new Map(
-				(projects ?? []).map((project) => [
+				projects.map((project) => [
 					project.id,
-					project.githubRepositoryId,
+					project.repoOwner && project.repoName
+						? `https://github.com/${project.repoOwner}/${project.repoName}/`.toLowerCase()
+						: null,
 				]),
 			),
 		[projects],
@@ -294,7 +294,7 @@ export function HomeScreen() {
 						<Text
 							className={cn(
 								"text-muted-foreground px-4 pb-1 font-semibold text-xs",
-								index === 0 ? undefined : "border-border mt-1.5 border-t pt-3",
+								index === 0 ? undefined : "mt-6",
 							)}
 						>
 							{item.label}
@@ -302,48 +302,41 @@ export function HomeScreen() {
 					);
 				case "workspace": {
 					const { workspace } = item;
-					const repositoryId = repositoryIdsByProject.get(workspace.projectId);
+					const repoPrefix = workspace.projectId
+						? repoPrefixesByProject.get(workspace.projectId)
+						: undefined;
 					return (
-						<View
-							className={
-								index === 0 || listItems[index - 1]?.kind === "dateHeader"
-									? undefined
-									: "border-border mt-1.5 border-t pt-1.5"
+						<WorkspaceRow
+							workspace={workspace}
+							pullRequest={
+								repoPrefix
+									? pullRequestsByRepoBranch.get(
+											`${repoPrefix}::${workspace.branch}`,
+										)
+									: undefined
 							}
-						>
-							<WorkspaceRow
-								workspace={workspace}
-								pullRequest={
-									repositoryId
-										? pullRequestsByRepoBranch.get(
-												`${repositoryId}::${workspace.branch}`,
-											)
-										: undefined
-								}
-								diffStats={diffStats.get(workspace.id) ?? null}
-								cache={cache}
-								attention={attentionByWorkspace.get(workspace.id) ?? null}
-							/>
-						</View>
+							diffStats={diffStats.get(workspace.id) ?? null}
+							cache={cache}
+							attention={attentionByWorkspace.get(workspace.id) ?? null}
+						/>
 					);
 				}
 				case "session":
 					return (
-						<View
-							className={cn(
-								"bg-foreground/5 mx-3 overflow-hidden",
-								item.groupFirst && "rounded-t-2xl",
-								item.groupLast && "mb-3.5 rounded-b-2xl",
-							)}
-						>
-							{!item.groupFirst && (
-								<View className="border-border/40 ml-10 border-t" />
-							)}
+						<View className={cn("ml-7", item.groupLast && "mb-2")}>
+							<View
+								className={cn(
+									"bg-border absolute left-0 w-[1.5px] rounded-full",
+									item.groupFirst ? "top-1" : "top-0",
+									item.groupLast ? "bottom-3" : "bottom-0",
+								)}
+							/>
 							<SessionRow
 								row={item.row}
+								className="gap-2.5 py-2 pr-4 pl-4"
 								onPress={() =>
 									router.push(
-										`/(authenticated)/workspace/${item.workspaceId}/chat/${item.row.id}`,
+										`/(authenticated)/workspace/${item.workspaceId}/chat/acp/${item.row.id}`,
 									)
 								}
 							/>
@@ -353,12 +346,11 @@ export function HomeScreen() {
 		},
 		[
 			pullRequestsByRepoBranch,
-			repositoryIdsByProject,
+			repoPrefixesByProject,
 			diffStats,
 			cache,
 			router,
 			attentionByWorkspace,
-			listItems,
 		],
 	);
 
@@ -439,10 +431,7 @@ export function HomeScreen() {
 					}
 				/>
 			)}
-			<NewChatWidget
-				workspaces={workspaces}
-				resolveHostUrl={cache.resolveHostUrl}
-			/>
+			<NewChatWidget workspaces={workspaces} />
 			<OrganizationSwitcherSheet
 				isPresented={sheetOpen}
 				onIsPresentedChange={setSheetOpen}

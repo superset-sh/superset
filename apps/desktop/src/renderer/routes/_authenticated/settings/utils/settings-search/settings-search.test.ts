@@ -42,6 +42,12 @@ describe("settings search - font settings", () => {
 		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_EDITOR_FONT);
 	});
 
+	it("normalizes whitespace between search terms", () => {
+		const results = searchSettings("  terminal   font  ");
+		const ids = getIds(results);
+		expect(ids).toContain(SETTING_ITEM_ID.APPEARANCE_TERMINAL_FONT);
+	});
+
 	it("empty search returns all settings items", () => {
 		const results = searchSettings("");
 		expect(results.length).toBeGreaterThan(0);

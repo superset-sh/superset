@@ -7,10 +7,12 @@ import { Unicode11Addon } from "@xterm/addon-unicode11";
 import { WebglAddon } from "@xterm/addon-webgl";
 import type { Terminal as XTerm } from "@xterm/xterm";
 import { Utf8Base64 } from "./clipboard-base64";
+import { FocusAwareClipboardProvider } from "./clipboard-provider";
 
 export interface LoadAddonsResult {
 	searchAddon: SearchAddon;
 	progressAddon: ProgressAddon;
+	setLigaturesEnabled: (enabled: boolean) => void;
 	dispose: () => void;
 }
 
@@ -22,12 +24,18 @@ let suggestedRendererType: "webgl" | "dom" | undefined;
  * function and addon instances. WebGL is deferred to rAF to avoid
  * racing with xterm's post-open viewport sync.
  */
-export function loadAddons(terminal: XTerm): LoadAddonsResult {
+export function loadAddons(
+	terminal: XTerm,
+	options: { ligatures: boolean },
+): LoadAddonsResult {
 	let disposed = false;
 	let webglAddon: WebglAddon | null = null;
+	let ligaturesAddon: LigaturesAddon | null = null;
 
 	// Utf8Base64 replaces the addon's UTF-8-unsafe default codec (#4839).
-	terminal.loadAddon(new ClipboardAddon(new Utf8Base64()));
+	terminal.loadAddon(
+		new ClipboardAddon(new Utf8Base64(), new FocusAwareClipboardProvider()),
+	);
 
 	const unicode11 = new Unicode11Addon();
 	terminal.loadAddon(unicode11);
@@ -41,9 +49,24 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	const progressAddon = new ProgressAddon();
 	terminal.loadAddon(progressAddon);
 
-	try {
-		terminal.loadAddon(new LigaturesAddon());
-	} catch {}
+	const setLigaturesEnabled = (enabled: boolean) => {
+		if (disposed) return;
+		if (!enabled) {
+			try {
+				ligaturesAddon?.dispose();
+			} catch {}
+			ligaturesAddon = null;
+			return;
+		}
+		if (ligaturesAddon) return;
+		try {
+			ligaturesAddon = new LigaturesAddon();
+			terminal.loadAddon(ligaturesAddon);
+		} catch {
+			ligaturesAddon = null;
+		}
+	};
+	setLigaturesEnabled(options.ligatures);
 
 	const rafId = requestAnimationFrame(() => {
 		if (disposed || suggestedRendererType === "dom") return;
@@ -66,9 +89,14 @@ export function loadAddons(terminal: XTerm): LoadAddonsResult {
 	return {
 		searchAddon,
 		progressAddon,
+		setLigaturesEnabled,
 		dispose: () => {
 			disposed = true;
 			cancelAnimationFrame(rafId);
+			try {
+				ligaturesAddon?.dispose();
+			} catch {}
+			ligaturesAddon = null;
 			try {
 				webglAddon?.dispose();
 			} catch {}

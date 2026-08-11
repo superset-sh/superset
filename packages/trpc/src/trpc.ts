@@ -70,9 +70,28 @@ export const protectedProcedure = t.procedure
 		return next({ ctx: { ...ctx, activeOrganizationId } });
 	});
 
+function resolveActiveOrganizationId(
+	organizationIds: string[],
+	requestedOrganizationId: string | null,
+): string | null {
+	if (!requestedOrganizationId) {
+		return organizationIds[0] ?? null;
+	}
+
+	if (!organizationIds.includes(requestedOrganizationId)) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: `Not a member of organization ${requestedOrganizationId}`,
+		});
+	}
+
+	return requestedOrganizationId;
+}
+
 export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 	const authHeader = ctx.headers.get("authorization");
 	const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+	const headerOrgId = ctx.headers.get(ORGANIZATION_HEADER)?.trim() || null;
 
 	if (bearer) {
 		try {
@@ -80,13 +99,20 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 				body: { token: bearer },
 			});
 			if (payload?.sub) {
-				const organizationIds = (payload.organizationIds as string[]) ?? [];
+				const organizationIds = Array.isArray(payload.organizationIds)
+					? payload.organizationIds.filter(
+							(id): id is string => typeof id === "string",
+						)
+					: [];
 				return next({
 					ctx: {
 						userId: payload.sub,
 						email: (payload.email as string) ?? "",
 						organizationIds,
-						activeOrganizationId: organizationIds[0] ?? null,
+						activeOrganizationId: resolveActiveOrganizationId(
+							organizationIds,
+							headerOrgId,
+						),
 					},
 				});
 			}
@@ -111,10 +137,11 @@ export const jwtProcedure = t.procedure.use(async ({ ctx, next }) => {
 				userId,
 				email: ctx.session.user.email ?? "",
 				organizationIds,
-				activeOrganizationId:
-					ctx.session.session.activeOrganizationId ??
-					organizationIds[0] ??
-					null,
+				activeOrganizationId: headerOrgId
+					? resolveActiveOrganizationId(organizationIds, headerOrgId)
+					: (ctx.session.session.activeOrganizationId ??
+						organizationIds[0] ??
+						null),
 			},
 		});
 	}

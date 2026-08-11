@@ -13,12 +13,18 @@ interface BroadcastedAgentLifecycleEvent {
 	occurredAt: number;
 }
 
-function createContext(originWorkspaceId: string | null): {
+function createContext(
+	originWorkspaceId: string | null,
+	options?: { taskId?: string | null },
+): {
 	ctx: HostServiceContext;
 	broadcastAgentLifecycle: ReturnType<
 		typeof mock<(event: BroadcastedAgentLifecycleEvent) => void>
 	>;
 	findFirst: ReturnType<typeof mock>;
+	taskStart: ReturnType<
+		typeof mock<(input: { id: string }) => Promise<unknown>>
+	>;
 	terminalAgentStore: TerminalAgentStore;
 } {
 	const broadcastAgentLifecycle = mock(
@@ -32,6 +38,10 @@ function createContext(originWorkspaceId: string | null): {
 						originWorkspaceId,
 					},
 	}));
+	const workspaceFindFirst = mock(() => ({
+		sync: () => ({ taskId: options?.taskId ?? null }),
+	}));
+	const taskStart = mock((_input: { id: string }) => Promise.resolve({}));
 	const terminalAgentStore = new TerminalAgentStore();
 
 	const ctx = {
@@ -39,6 +49,16 @@ function createContext(originWorkspaceId: string | null): {
 			query: {
 				terminalSessions: {
 					findFirst,
+				},
+				workspaces: {
+					findFirst: workspaceFindFirst,
+				},
+			},
+		},
+		api: {
+			task: {
+				start: {
+					mutate: taskStart,
 				},
 			},
 		},
@@ -48,7 +68,13 @@ function createContext(originWorkspaceId: string | null): {
 		terminalAgentStore,
 	} as unknown as HostServiceContext;
 
-	return { ctx, broadcastAgentLifecycle, findFirst, terminalAgentStore };
+	return {
+		ctx,
+		broadcastAgentLifecycle,
+		findFirst,
+		taskStart,
+		terminalAgentStore,
+	};
 }
 
 describe("notificationsRouter.hook", () => {
@@ -155,6 +181,88 @@ describe("notificationsRouter.hook", () => {
 		expect(binding?.agentSessionId).toBe("session-abc");
 		expect(binding?.workspaceId).toBe("workspace-1");
 		expect(binding?.lastEventType).toBe("Attached");
+	});
+
+	it("maps Claude Code's StopFailure API-error hook to a Failed event and records it", async () => {
+		const { ctx, broadcastAgentLifecycle, terminalAgentStore } =
+			createContext("workspace-1");
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "SessionStart",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+		const result = await caller.hook({
+			terminalId: "terminal-1",
+			eventType: "StopFailure",
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+
+		expect(result).toEqual({ success: true, ignored: false });
+		const failedBroadcast = broadcastAgentLifecycle.mock.calls.at(-1)?.[0];
+		expect(failedBroadcast).toMatchObject({
+			workspaceId: "workspace-1",
+			eventType: "Failed",
+			terminalId: "terminal-1",
+			// Failed keeps the agent identifiable, unlike an exit that drops it.
+			agent: { agentId: "claude", sessionId: "session-abc" },
+		});
+		const binding = terminalAgentStore.get("terminal-1");
+		expect(binding?.lastEventType).toBe("Failed");
+		expect(binding?.agentId).toBe("claude");
+		expect(binding?.agentSessionId).toBe("session-abc");
+	});
+
+	it("nudges the linked task to In Progress once per task on Start events", async () => {
+		// Unique per test: the once-per-process dedup set is module-level.
+		const taskId = "task-nudge-once";
+		const { ctx, taskStart } = createContext("workspace-1", { taskId });
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+
+		expect(taskStart).toHaveBeenCalledTimes(1);
+		expect(taskStart.mock.calls[0]?.[0]).toEqual({ id: taskId });
+	});
+
+	it("retries the nudge on a later Start event after a failed call", async () => {
+		const taskId = "task-nudge-retry";
+		const { ctx, taskStart } = createContext("workspace-1", { taskId });
+		taskStart.mockImplementationOnce(() =>
+			Promise.reject(new Error("cloud unreachable")),
+		);
+		const caller = notificationsRouter.createCaller(ctx);
+
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+		// let the rejection handler clear the dedup entry
+		await new Promise((resolve) => setTimeout(resolve, 0));
+		await caller.hook({ terminalId: "terminal-1", eventType: "Start" });
+
+		expect(taskStart).toHaveBeenCalledTimes(2);
+	});
+
+	it("does not nudge the task when the workspace has no linked task", async () => {
+		const { ctx, taskStart } = createContext("workspace-1", { taskId: null });
+
+		await notificationsRouter
+			.createCaller(ctx)
+			.hook({ terminalId: "terminal-1", eventType: "Start" });
+
+		expect(taskStart).not.toHaveBeenCalled();
+	});
+
+	it("does not nudge the task on non-Start events", async () => {
+		const { ctx, taskStart } = createContext("workspace-1", {
+			taskId: "task-nudge-stop",
+		});
+
+		await notificationsRouter
+			.createCaller(ctx)
+			.hook({ terminalId: "terminal-1", eventType: "Stop" });
+
+		expect(taskStart).not.toHaveBeenCalled();
 	});
 
 	it("drops agent identity entirely when agentId is missing", async () => {

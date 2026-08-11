@@ -5,8 +5,11 @@ import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
+import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -25,6 +28,7 @@ interface BillingOverviewProps {
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
+	const searchQuery = useSettingsSearchQuery();
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
 	const [isRestoring, setIsRestoring] = useState(false);
@@ -38,8 +42,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	);
 	const isOwner = currentMember?.role === "owner";
 
-	// Get subscription from Electric (preloaded, instant)
-	const { data: subscriptionsData } = useLiveQuery(
+	const { data: subscriptionsData, isReady: subscriptionsReady } = useLiveQuery(
 		(q) => q.from({ subscriptions: collections.subscriptions }),
 		[collections],
 	);
@@ -47,18 +50,29 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 		(s) => s.status === "active",
 	);
 
-	// Derive plan from subscription data (not session, which can be stale)
-	const plan: PlanTier = (subscriptionData?.plan as PlanTier) ?? "free";
+	// Subscription rows win over the session (which can lag a checkout), but a
+	// cold collection must not read as "free" — fall back to the session plan
+	// until rows or readiness arrive.
+	const plan: PlanTier = resolveCurrentPlan({
+		subscriptionPlan: subscriptionData?.plan,
+		sessionPlan: session?.session?.plan,
+		subscriptionsLoaded:
+			subscriptionsReady || (subscriptionsData?.length ?? 0) > 0,
+	});
 
-	// Get member count from Electric
-	const { data: membersData } = useLiveQuery(
+	const { data: membersData, isReady: membersReady } = useLiveQuery(
 		(q) =>
 			q
 				.from({ members: collections.members })
 				.select(({ members }) => ({ id: members.id })),
 		[collections],
 	);
-	const memberCount = membersData ? membersData.length : undefined;
+	// Seats are billed from this — never derive it from a cold collection.
+	// undefined (not 0) keeps the upgrade action disabled until synced.
+	const memberCount =
+		membersReady && membersData && membersData.length > 0
+			? membersData.length
+			: undefined;
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
@@ -148,7 +162,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 				</div>
 				<Button variant="ghost" size="sm" asChild>
 					<Link to="/settings/billing/plans">
-						All plans
+						<HighlightText text="All plans" query={searchQuery} />
 						<HiArrowRight className="h-3 w-3" />
 					</Link>
 				</Button>

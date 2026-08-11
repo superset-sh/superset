@@ -1,4 +1,7 @@
 import { useSyncExternalStore } from "react";
+import { track } from "renderer/lib/analytics";
+
+export type RichInputToggleSource = "hotkey" | "header_button" | "escape";
 
 /**
  * Whether the rich-input overlay is open. Global (universal on/off for every
@@ -19,24 +22,25 @@ function readPersisted(): boolean {
 	}
 }
 
-function set(next: boolean) {
+function set(next: boolean, source: RichInputToggleSource) {
 	if (isOpen === next) return;
 	isOpen = next;
 	try {
 		localStorage.setItem(STORAGE_KEY, next ? "true" : "false");
 	} catch {}
+	track("terminal_rich_input_toggled", { open: next, source });
 	for (const listener of listeners) listener();
 }
 
 export const terminalRichInputOpenStore = {
-	open() {
-		set(true);
+	open(source: RichInputToggleSource) {
+		set(true, source);
 	},
-	close() {
-		set(false);
+	close(source: RichInputToggleSource) {
+		set(false, source);
 	},
-	toggle() {
-		set(!isOpen);
+	toggle(source: RichInputToggleSource) {
+		set(!isOpen, source);
 	},
 	subscribe(listener: () => void) {
 		listeners.add(listener);

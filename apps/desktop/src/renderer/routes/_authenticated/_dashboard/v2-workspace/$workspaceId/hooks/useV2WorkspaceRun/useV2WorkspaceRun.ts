@@ -104,8 +104,13 @@ export function useV2WorkspaceRun({
 		[localWorkspaceState?.workspaceRunTerminals],
 	);
 
+	// Session workspaces (null projectId) have no project config; only global
+	// terminal presets can define their run.
 	const { data: configRunDefinition } =
-		workspaceTrpc.config.getWorkspaceRunDefinition.useQuery({ projectId });
+		workspaceTrpc.config.getWorkspaceRunDefinition.useQuery(
+			{ projectId: projectId ?? "" },
+			{ enabled: projectId !== null },
+		);
 
 	const resolvedMatchedPresets = useMemo(
 		() =>
@@ -295,7 +300,7 @@ export function useV2WorkspaceRun({
 				state.stopRequestedAt ??= stoppedAt;
 				markStopped(state, stoppedAt, { state: "stopped-by-user" });
 			});
-			await utils.terminal.listSessions.invalidate({ workspaceId });
+			await utils.terminal.list.invalidate({ workspaceId });
 		} catch (error) {
 			if (isTerminalGoneError(error)) {
 				const stoppedAt = Date.now();
@@ -304,7 +309,7 @@ export function useV2WorkspaceRun({
 					if (!state || state.state !== "running") return;
 					markStopped(state, stoppedAt);
 				});
-				await utils.terminal.listSessions.invalidate({ workspaceId });
+				await utils.terminal.list.invalidate({ workspaceId });
 				return;
 			}
 

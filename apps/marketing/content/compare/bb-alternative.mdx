@@ -1,0 +1,100 @@
+---
+title: "Best bb Alternatives in 2026"
+description: "The best alternatives to bb (the agentic IDE that builds itself) for orchestrating AI coding agents, including Superset, Orca, Emdash, and Herdr."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "roundup"
+competitors:
+  - bb
+  - orca
+  - emdash
+  - herdr
+  - conductor
+keywords:
+  - bb alternative
+  - bb alternatives
+  - getbb alternative
+  - bb agentic ide
+  - agentic ide
+  - ai agent orchestration
+---
+
+bb is the open-source "IDE that builds itself": agents run in live threads you can steer or hand off, and most features -- crons, previews, even remote access -- are plugins that bb's own agents wrote. It is free, MIT-licensed, and genuinely novel. It is also young: a largely single-maintainer project, in active development by its own description, with worktree isolation optional rather than default and no team or support story. Here are the best bb alternatives in 2026.
+
+---
+
+## The Short Version
+
+| Alternative | Best for | Platform | License |
+|---|---|---|---|
+| **Superset** | A complete, supported workspace out of the box | macOS now; Windows and Linux coming | Source-available (ELv2) |
+| **Orca** | Free cross-platform desktop ADE, huge community | macOS, Windows, Linux + iOS/Android | Open source (MIT) |
+| **Emdash** | Open-source ADE with tracker intake and cron automations | macOS, Windows, Linux | Open source (Apache-2.0) |
+| **Herdr** | Terminal-native runtime, deeply scriptable | macOS, Linux, Windows (beta) | Open source (Apache-2.0) |
+| **Conductor** | Focused, polished Mac app | macOS | Proprietary |
+
+## Why Look for a bb Alternative?
+
+bb optimizes for moldability: agents as first-class operators, a plugin store, full CLI/HTTP-API parity with the UI. You might want an alternative if you want the workflow to exist on day one instead of assembling it, prefer worktree isolation as the default for every task, need a maintained product with a team behind it, or want built-in review, browser, and scheduling rather than plugin equivalents.
+
+## The Best Alternatives
+
+### Superset
+
+Superset ships what bb expects you to grow: automatic Git worktree isolation per task, persistent terminals, a diff/file editor, an in-app browser, port management, and scheduled automations with a TypeScript SDK and Slack bot -- plus remote and cloud workspaces across your own devices. It keeps the scriptability bb fans care about through its CLI and MCP server, but as a supported product rather than a substrate. If you liked bb's ambition but want fewer moving parts, this is the alternative.
+
+For the direct comparison, see [Superset vs bb](/compare/superset-vs-bb).
+
+### Orca
+
+Orca is the most popular open-source project in the category (~39,000 stars, MIT): fleets of agents in parallel worktrees, split terminals, per-task browser tabs, Design Mode, SSH/VPS worktrees, and mobile companions. Where bb is a substrate with a small community, Orca is a finished free app with a very large one.
+
+See [Superset vs Orca](/compare/superset-vs-orca).
+
+### Emdash
+
+Emdash (YC W26, Apache-2.0) gives every task its own branch and worktree by default, auto-detects 30+ agent CLIs, pulls work from a dozen issue trackers, and includes diff review, an in-app browser, and cron automations -- the built-in versions of several things bb does via plugins.
+
+See [Superset vs Emdash](/compare/superset-vs-emdash).
+
+### Herdr
+
+If what drew you to bb was agents driving the tool itself, Herdr scratches the same itch in the terminal: an open-source runtime with a JSON socket API that agents can drive from inside their own panes, plus a 500-plugin marketplace and worktree management in the CLI.
+
+See [Superset vs Herdr](/compare/superset-vs-herdr).
+
+### Conductor
+
+Conductor is the opposite trade from bb: a proprietary, focused macOS app for Claude Code, Codex, and Cursor agents in parallel worktrees. No self-extension, no API surface -- just a polished loop.
+
+See [Superset vs Conductor](/compare/superset-vs-conductor).
+
+## How To Choose
+
+- For a complete, supported workspace with automations and remote reach, choose **Superset**.
+- For a free, community-heavy desktop ADE, choose **Orca**.
+- For open-source with tracker intake and scheduling built in, choose **Emdash**.
+- For agent-scriptable terminal infrastructure, choose **Herdr**.
+- For a simple polished Mac app, choose **Conductor**.
+
+## Verdict
+
+bb is one of the most interesting experiments in this space, and tinkerers should absolutely try it. If you need the same thread-spawning, agent-orchestrating power with the workspace already built -- review, browser, automations, worktrees by default, and a team behind it -- Superset is the strongest alternative, with Orca and Emdash as the leading open-source picks. For the full landscape, see [Best Agentic IDE in 2026](/compare/best-agentic-ide).
+
+## Frequently Asked Questions
+
+### What is the best bb alternative?
+
+For most developers, Superset: the same parallel-agent orchestration with worktrees, review, browser, and automations built in and supported as a product. Orca and Emdash are the strongest open-source alternatives.
+
+### Is there an open-source bb alternative?
+
+Yes -- bb itself is MIT, and so are Orca and Crystal/Nimbalyst; Emdash and Herdr are Apache-2.0. Superset is source-available under ELv2 with a free tier.
+
+### Do these alternatives support agents driving the tool, like bb?
+
+Superset exposes a CLI, an MCP server, and a TypeScript SDK that agents can use to create workspaces and launch other agents. Herdr's socket API is designed for agents to drive it from inside panes. Orca has a CLI plus experimental agent-to-agent orchestration.
+
+### Does bb use Git worktrees?
+
+Yes, optionally -- a bb thread's environment can be backed by a fresh worktree. Superset, Orca, Emdash, and Conductor make a worktree per task the default.

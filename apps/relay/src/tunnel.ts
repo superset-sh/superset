@@ -3,6 +3,18 @@ import * as directory from "./directory";
 import { env } from "./env";
 import type { TunnelHttpResponse, TunnelRequest } from "./types";
 
+/**
+ * Expected tunnel churn (host reconnects, offline hosts, request timeouts) —
+ * routine at fleet scale. Sentry's beforeSend drops these by type so they
+ * don't bury real errors; callers still see them as failures.
+ */
+export class TunnelLifecycleError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "TunnelLifecycleError";
+	}
+}
+
 type WsSocket = {
 	send: (data: string | ArrayBuffer | Uint8Array<ArrayBuffer>) => void;
 	readyState: number;
@@ -248,7 +260,7 @@ export class TunnelManager {
 
 		for (const [, pending] of tunnel.pendingRequests) {
 			clearTimeout(pending.timer);
-			pending.reject(new Error(reason));
+			pending.reject(new TunnelLifecycleError(reason));
 		}
 
 		for (const [, clientWs] of tunnel.activeChannels) {
@@ -350,7 +362,7 @@ export class TunnelManager {
 		},
 	): Promise<TunnelHttpResponse> {
 		const tunnel = this.tunnels.get(hostId);
-		if (!tunnel) throw new Error("Host not connected");
+		if (!tunnel) throw new TunnelLifecycleError("Host not connected");
 
 		if (tunnel.pendingRequests.size >= MAX_PENDING_REQUESTS_PER_TUNNEL) {
 			throw new Error("Host overloaded (pending request queue full)");
@@ -361,7 +373,7 @@ export class TunnelManager {
 		return new Promise<TunnelHttpResponse>((resolve, reject) => {
 			const timer = setTimeout(() => {
 				tunnel.pendingRequests.delete(id);
-				reject(new Error("Request timed out"));
+				reject(new TunnelLifecycleError("Request timed out"));
 			}, this.requestTimeoutMs);
 
 			tunnel.pendingRequests.set(id, { resolve, reject, timer });
@@ -383,7 +395,7 @@ export class TunnelManager {
 		clientWs: WsSocket,
 	): string {
 		const tunnel = this.tunnels.get(hostId);
-		if (!tunnel) throw new Error("Host not connected");
+		if (!tunnel) throw new TunnelLifecycleError("Host not connected");
 
 		// The host control tunnel must be open. Otherwise `send()` below silently
 		// drops the `ws:open` (it no-ops when `readyState !== 1`) and the client is

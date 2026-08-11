@@ -10,7 +10,7 @@ import { toast } from "@superset/ui/sonner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
 import { useCallback, useMemo } from "react";
-import { HiChevronDown } from "react-icons/hi2";
+import { VscChevronDown } from "react-icons/vsc";
 import {
 	getAppOption,
 	OpenInExternalDropdownItems,
@@ -23,7 +23,8 @@ import { useThemeStore } from "renderer/stores";
 interface V2OpenInMenuButtonProps {
 	worktreePath: string;
 	branch: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces (no per-project default app). */
+	projectId: string | null;
 }
 
 export function V2OpenInMenuButton({
@@ -34,7 +35,7 @@ export function V2OpenInMenuButton({
 	const activeTheme = useThemeStore((state) => state.activeTheme);
 
 	const { app: persistedApp, setApp: persistDefaultApp } =
-		useV2ProjectDefaultApp(projectId);
+		useV2ProjectDefaultApp(projectId ?? undefined);
 	const resolvedApp: ExternalApp = persistedApp ?? "finder";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
@@ -81,7 +82,7 @@ export function V2OpenInMenuButton({
 
 	return (
 		<div className="flex items-center no-drag">
-			<Tooltip>
+			<Tooltip delayDuration={1000}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
@@ -93,7 +94,10 @@ export function V2OpenInMenuButton({
 								: "Open in editor"
 						}
 						className={cn(
-							"group flex items-center gap-1.5 h-6 px-1.5 sm:pl-1.5 sm:pr-2 rounded-l border border-r-0 border-border/60 bg-secondary/50 text-xs font-medium",
+							// Icon-only when the nearest @container is narrow; the branch
+							// label comes back once there's room (right sidebar is resizable,
+							// so viewport breakpoints don't apply here).
+							"group flex h-6 items-center justify-center gap-1.5 rounded-l border border-r-0 border-border/60 bg-secondary/50 px-1.5 text-xs font-medium @[240px]:pr-2",
 							"transition-all duration-150 ease-out",
 							"hover:bg-secondary hover:border-border",
 							"focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring",
@@ -110,7 +114,7 @@ export function V2OpenInMenuButton({
 						)}
 						{branch && (
 							<OverflowFadeText
-								className="hidden lg:inline-block max-w-[140px] text-muted-foreground tabular-nums"
+								className="hidden max-w-[140px] text-muted-foreground tabular-nums @[240px]:inline-block"
 								title={branch}
 							>
 								/{branch}
@@ -144,7 +148,7 @@ export function V2OpenInMenuButton({
 							isLoading && "opacity-50 pointer-events-none",
 						)}
 					>
-						<HiChevronDown className="size-3.5" />
+						<VscChevronDown className="size-3" />
 					</button>
 				</DropdownMenuTrigger>
 

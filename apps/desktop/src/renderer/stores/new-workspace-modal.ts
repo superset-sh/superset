@@ -11,6 +11,8 @@ interface PendingWorkspace {
 /** Snapshot of the draft stashed before modal close, restored on failure. */
 export interface StashedDraft {
 	selectedProjectId: string | null;
+	/** True when the stashed draft had "No project" (session) selected. */
+	isSession: boolean;
 	prompt: string;
 	workspaceName: string;
 	workspaceNameEdited: boolean;
@@ -25,9 +27,12 @@ export interface StashedDraft {
 interface NewWorkspaceModalState {
 	isOpen: boolean;
 	preSelectedProjectId: string | null;
+	/** Open with "No project" (session) preselected. */
+	preSelectedSession: boolean;
 	pendingWorkspace: PendingWorkspace | null;
 	stashedDraft: StashedDraft | null;
 	openModal: (projectId?: string) => void;
+	openSessionModal: () => void;
 	closeModal: () => void;
 	setPendingWorkspace: (workspace: PendingWorkspace | null) => void;
 	clearPendingWorkspace: (id: string) => void;
@@ -45,15 +50,32 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 		(set, get) => ({
 			isOpen: false,
 			preSelectedProjectId: null,
+			preSelectedSession: false,
 			pendingWorkspace: null,
 			stashedDraft: null,
 
 			openModal: (projectId?: string) => {
-				set({ isOpen: true, preSelectedProjectId: projectId ?? null });
+				set({
+					isOpen: true,
+					preSelectedProjectId: projectId ?? null,
+					preSelectedSession: false,
+				});
+			},
+
+			openSessionModal: () => {
+				set({
+					isOpen: true,
+					preSelectedProjectId: null,
+					preSelectedSession: true,
+				});
 			},
 
 			closeModal: () => {
-				set({ isOpen: false, preSelectedProjectId: null });
+				set({
+					isOpen: false,
+					preSelectedProjectId: null,
+					preSelectedSession: false,
+				});
 			},
 
 			setPendingWorkspace: (workspace: PendingWorkspace | null) => {
@@ -92,6 +114,7 @@ export const useNewWorkspaceModalStore = create<NewWorkspaceModalState>()(
 						stashedDraft: null,
 						isOpen: true,
 						preSelectedProjectId: stashed.selectedProjectId,
+						preSelectedSession: stashed.isSession,
 					});
 				}
 				return stashed;
@@ -105,6 +128,10 @@ export const useNewWorkspaceModalOpen = () =>
 	useNewWorkspaceModalStore((state) => state.isOpen);
 export const useOpenNewWorkspaceModal = () =>
 	useNewWorkspaceModalStore((state) => state.openModal);
+export const useOpenNewSessionModal = () =>
+	useNewWorkspaceModalStore((state) => state.openSessionModal);
+export const usePreSelectedSession = () =>
+	useNewWorkspaceModalStore((state) => state.preSelectedSession);
 export const useCloseNewWorkspaceModal = () =>
 	useNewWorkspaceModalStore((state) => state.closeModal);
 export const usePreSelectedProjectId = () =>

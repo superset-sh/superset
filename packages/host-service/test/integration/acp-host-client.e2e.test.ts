@@ -183,7 +183,9 @@ describe("ACP real host + host-client boundary e2e", () => {
 		try {
 			await restartHost();
 			const sessionId = "host-client-main";
-			const initialList = await client.listSessions(ROUTING_KEY, WORKSPACE_ID);
+			const initialList = await client.listSessions(ROUTING_KEY, {
+				workspaceId: WORKSPACE_ID,
+			});
 			expect(initialList).toEqual({
 				items: [],
 				nextCursor: null,
@@ -385,7 +387,9 @@ describe("ACP real host + host-client boundary e2e", () => {
 			// file. The host-client sees the persisted row passively as offline and a
 			// normal history read resurrects it through session/load.
 			await restartHost();
-			const afterRestart = await client.listSessions(ROUTING_KEY, WORKSPACE_ID);
+			const afterRestart = await client.listSessions(ROUTING_KEY, {
+				workspaceId: WORKSPACE_ID,
+			});
 			expect(
 				afterRestart.items.find((item) => item.sessionId === sessionId)?.status,
 			).toBe("offline");

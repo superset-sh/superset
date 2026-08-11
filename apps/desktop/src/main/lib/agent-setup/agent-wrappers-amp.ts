@@ -4,6 +4,7 @@ import path from "node:path";
 import {
 	buildWrapperScript,
 	createWrapper,
+	removeOwnedFileIfMarked,
 	writeFileIfChanged,
 } from "./agent-wrappers-common";
 
@@ -54,5 +55,14 @@ export function createAmpPlugin(): void {
 	const changed = writeFileIfChanged(pluginPath, getAmpPluginContent(), 0o644);
 	console.log(
 		`[agent-setup] ${changed ? "Updated" : "Verified"} Amp lifecycle plugin`,
+	);
+}
+
+/** Removes the wholly Superset-owned Amp plugin file (signature-gated). */
+export function removeAmpPlugin(): void {
+	removeOwnedFileIfMarked(
+		getAmpGlobalPluginPath(),
+		AMP_PLUGIN_SIGNATURE,
+		"Amp lifecycle plugin",
 	);
 }

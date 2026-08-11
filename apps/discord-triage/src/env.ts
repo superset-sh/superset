@@ -14,6 +14,8 @@ export const env = createEnv({
 					.map((s) => s.trim())
 					.filter(Boolean),
 			),
+		/** Enables Claude summarization/enhancement of tickets; skipped when unset. */
+		ANTHROPIC_API_KEY: z.string().min(1).optional(),
 		LINEAR_API_KEY: z.string().min(1),
 		LINEAR_TEAM_KEY: z.string().min(1).default("SUPER"),
 		/** Label applied to every ingested issue. Must exist on the team. */

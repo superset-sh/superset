@@ -12,6 +12,8 @@ import {
 import { and, eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -33,6 +35,7 @@ export function PendingInvitations({
 	organizationId,
 	organizationName,
 }: PendingInvitationsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const collections = useCollections();
 
 	const shouldShowSection = isItemVisible(
@@ -85,7 +88,9 @@ export function PendingInvitations({
 		return (
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
-					<h3 className="text-lg font-semibold">Pending Invitations</h3>
+					<h3 className="text-lg font-semibold">
+						<HighlightText text="Pending Invitations" query={searchQuery} />
+					</h3>
 					{showInvite && (
 						<InviteMemberButton
 							currentUserRole={currentUserRole}
@@ -113,7 +118,9 @@ export function PendingInvitations({
 	return (
 		<div className="space-y-4">
 			<div className="flex items-center justify-between">
-				<h3 className="text-lg font-semibold">Pending Invitations</h3>
+				<h3 className="text-lg font-semibold">
+					<HighlightText text="Pending Invitations" query={searchQuery} />
+				</h3>
 				{showInvite && (
 					<InviteMemberButton
 						currentUserRole={currentUserRole}

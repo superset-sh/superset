@@ -8,6 +8,7 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo } from "react";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { TabValue } from "../../components/TasksTopBar";
+import { matchesTaskStatusFilter } from "../../utils/matchesTaskStatusFilter";
 import { compareTasks } from "../../utils/sorting";
 import { useHybridSearch } from "../useHybridSearch";
 
@@ -96,16 +97,9 @@ export function useTasksData({
 		}
 
 		if (filterTab !== "all") {
-			result = result.filter((task) => {
-				const statusType = task.status.type;
-				if (filterTab === "active") {
-					return statusType === "started" || statusType === "unstarted";
-				}
-				if (filterTab === "backlog") {
-					return statusType === "backlog";
-				}
-				return true;
-			});
+			result = result.filter((task) =>
+				matchesTaskStatusFilter(task.status.type, filterTab),
+			);
 		}
 
 		if (assigneeFilter) {

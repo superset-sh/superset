@@ -1,0 +1,76 @@
+---
+title: Troubleshooting
+description: Symptoms, causes, and fixes for common issues
+---
+
+## All My Workspaces or Projects Disappeared
+
+Almost always a context mix-up, not data loss. Check, in order:
+
+1. **Organization**: updates can switch your active org. Check the org switcher.
+2. **Sign-in provider**: GitHub and Google logins are separate accounts even with the same email. Sign out and back in with your original provider.
+3. **v1 fallback**: if the app reverted to the legacy interface, re-enable v2 under **Settings → Experimental**.
+
+Your worktrees are still on disk at `~/.superset/worktrees/` either way; Superset only deletes them when you delete a workspace.
+
+## Update Button Does Nothing
+
+If the app quits and reopens on the same version, the updater hit a known race (fixed in recent releases). Download a fresh copy from [superset.sh/download](https://superset.sh/download) once; updates work normally after that.
+
+## gh, git, or an Agent Works in My Normal Terminal but Not in Superset
+
+Superset terminals differ from Terminal.app in a few specific ways:
+
+- **PATH shims**: Superset puts wrappers in `~/.superset/bin` (for status and notifications). If an agent misbehaves, run `which -a codex` (or `claude`) to spot duplicate installs on your PATH.
+- **Copied settings**: new worktrees copy files like `.claude/settings.local.json` from your root checkout. If you rotated an API key, old worktrees may still carry the stale one.
+- **Shell**: launch commands assume a POSIX shell. fish or nushell as your login shell breaks agent launches.
+- **After an update**: terminal sessions are held by a background daemon that outlives the app. If terminals stay broken after an update, quit Superset fully and relaunch; if that doesn't clear it, reboot.
+
+## New Workspace Is Missing Dependencies or .env
+
+Workspaces only copy git-tracked files, so `node_modules`, `.env`, and build artifacts don't come along.
+
+**Fix:** add [setup scripts](/setup-teardown-scripts) to `.superset/config.json`:
+
+```json
+{
+	"setup": ["bun install", "cp \"$SUPERSET_ROOT_PATH/.env\" .env"]
+}
+```
+
+Or ask an agent to do it: the "Set up this project for Superset" [sample prompt](/first-workspace#2-create-a-workspace-with-a-prompt) authors the config for you.
+
+## Can't Add a Private Repository
+
+Repo access goes through the GitHub CLI.
+
+**Fix:** run `gh auth status` in a terminal. If it fails, `gh auth login` (you can run it inside Superset), then retry.
+
+## Can't Create a Workspace on a Branch
+
+One branch = one workspace. If the branch is already checked out in another workspace (or your root checkout), git won't allow a second worktree on it.
+
+**Fix:** open the existing workspace, or create a new branch.
+
+## Agent Isn't Showing Up in the Launcher
+
+Superset detects installed agents automatically, but each agent can be enabled or disabled.
+
+**Fix:** check **Settings → Agents**: confirm the agent is **Enabled** and its command is correct. **Reset to Defaults** restores the shipped configuration.
+
+## Remote Workspace Won't Connect
+
+The host machine must be online and registered with the relay.
+
+**Fix:** on the host, confirm the toggle in **Settings → Security** is on (desktop) or that `superset start --daemon` is running (CLI). See [Remote Workspaces](/remote-workspaces).
+
+## Automation Run Was Skipped
+
+Runs marked `skipped (offline)` fired while the target device was offline; the schedule advances normally.
+
+**Fix:** none needed for one-off skips. If it keeps happening, retarget the automation to a device that stays online. See [Automations](/automations).
+
+## Still Stuck?
+
+- Check the [FAQ](/faq)
+- [Open an issue](https://github.com/superset-sh/superset/issues) with steps to reproduce

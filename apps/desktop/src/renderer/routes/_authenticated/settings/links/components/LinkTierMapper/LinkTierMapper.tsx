@@ -15,6 +15,8 @@ import {
 	modifierLabel,
 	type Surface,
 } from "renderer/lib/clickPolicy";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 type SlotValue = LinkAction | "none";
 
@@ -46,6 +48,7 @@ export function LinkTierMapper({
 	idPrefix,
 	surface,
 }: LinkTierMapperProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const pick = useCallback(
 		(tier: LinkTier, nextSlot: SlotValue) => {
 			const nextAction = fromSlot(nextSlot);
@@ -57,8 +60,12 @@ export function LinkTierMapper({
 
 	return (
 		<div>
-			<h3 className="text-sm font-medium mb-1">{title}</h3>
-			<p className="text-xs text-muted-foreground mb-3">{description}</p>
+			<h3 className="text-sm font-medium mb-1">
+				<HighlightText text={title} query={searchQuery} />
+			</h3>
+			<p className="text-xs text-muted-foreground mb-3">
+				<HighlightText text={description} query={searchQuery} />
+			</p>
 			<div className="space-y-2">
 				{TIERS.map((tier) => {
 					const id = `${idPrefix}-${tier}`;

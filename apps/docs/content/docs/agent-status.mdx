@@ -1,0 +1,37 @@
+---
+title: Agent Status & Notifications
+description: How Superset knows what your agents are doing, and how it tells you
+---
+
+Running many agents only works if you can tell who needs you.
+
+## The Activity Strip
+
+Each workspace in the sidebar shows a compact activity strip with what's actually happening:
+
+- **Running agents and open ports** appear inline on the workspace item
+- **Running and PR state persist across restarts**
+- Workspaces with live work are visually emphasized so in-progress items stand out
+- Agent chips stay hidden unless multiple agents are running in that workspace
+
+If a workspace shows as running after you've stopped its agent (for example after force-quitting the agent), use **Clear Status** on the workspace to reset the indicator.
+
+## How Status Is Detected
+
+Superset installs lifecycle hooks and command wrappers into each agent's config (the entries in `~/.superset/bin` and files like `superset-hooks`). Those hooks report when an agent starts, finishes, or is waiting for input. That's why status only works for agents launched through Superset, and why removing the hooks disables status and notifications.
+
+## Notifications
+
+- **Finished / waiting for input**: get notified when an agent finishes or pauses for your input. Configure sounds in Settings.
+- **Support varies by agent.** Claude Code reports both finished and waiting states. Some agents don't emit a waiting-for-input signal yet, so you'll only get completion notifications for them.
+- **Inline prompts**: agents can pause to ask questions, request tool approval, or ask for plan review directly in the chat pane, and the workspace is flagged as needing attention.
+
+## Dock Badge
+
+The macOS dock icon shows a badge for workspaces with unread activity or that need your attention, so you can step away and still know when an agent wants you.
+
+![Dock icon showing an attention badge](/images/dock-badge.png)
+
+macOS only shows dock badges when Superset has notification permission. If you don't see badges, check **System Settings → Notifications → Superset**.
+
+The intended rhythm: fan work out, leave the app in the background, and come back on notification or dock badge rather than watching terminals.

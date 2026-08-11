@@ -1,5 +1,1 @@
-export {
-	buildSessionRows,
-	type ChatSessionLike,
-	type SessionRowData,
-} from "./sessionRows";
+export { buildSessionRows, type SessionRowData } from "./sessionRows";

@@ -1,7 +1,7 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLiveQuery } from "@tanstack/react-db";
 import { Stack, useRouter } from "expo-router";
 import { View } from "react-native";
+import { useHostProjects } from "@/hooks/useHostProjects";
 import { useTheme } from "@/hooks/useTheme";
 import {
 	SORT_OPTIONS,
@@ -17,19 +17,17 @@ import { ProjectAvatar } from "./components/ProjectAvatar";
 export function FilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
-	const collections = useCollections();
+	const _collections = useCollections();
 	const projectFilter = useWorkspacesFilterStore(
 		(store) => store.projectFilter,
 	);
 	const selectedHost = useSelectedHost();
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
-	const { data: projects } = useLiveQuery(
-		(q) => q.from({ v2Projects: collections.v2Projects }),
-		[collections],
-	);
+	// Projects are fully local — served by the selected host, not Electric.
+	const { projects } = useHostProjects(selectedHost);
 
-	const sortedProjects = [...(projects ?? [])].sort((a, b) =>
+	const sortedProjects = [...projects].sort((a, b) =>
 		a.name.localeCompare(b.name),
 	);
 	const selectedProject =

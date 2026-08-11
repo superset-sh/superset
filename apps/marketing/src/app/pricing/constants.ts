@@ -186,6 +186,6 @@ export const PRICING_FAQ_ITEMS: FAQItem[] = [
 	{
 		question: "What's included in Enterprise?",
 		answer:
-			"Everything in Pro plus SSO & SAML, SCIM provisioning, IP restrictions, audit logs, a custom SLA, dedicated support, and custom contracts. Pricing is tailored to your organization — get in touch and we'll scope something that fits.",
+			"Everything in Pro plus SSO & SAML, SCIM provisioning, IP restrictions, audit logs, a custom SLA, dedicated support, and custom contracts. Pricing is tailored to your organization. Get in touch and we'll scope something that fits.",
 	},
 ];

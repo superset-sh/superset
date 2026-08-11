@@ -50,7 +50,7 @@ export function DashboardSidebarPortGroup({
 							aria-busy={isPending}
 							aria-label="Close all ports"
 							className={cn(
-								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-muted/50 hover:text-primary",
+								"ml-auto rounded p-0.5 text-muted-foreground hover:bg-fill-hover hover:text-primary",
 								"disabled:pointer-events-none disabled:opacity-60",
 							)}
 						>
@@ -64,7 +64,7 @@ export function DashboardSidebarPortGroup({
 							)}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="top" sideOffset={4}>
+					<TooltipContent side="top">
 						<p className="text-xs">Close all ports</p>
 					</TooltipContent>
 				</Tooltip>

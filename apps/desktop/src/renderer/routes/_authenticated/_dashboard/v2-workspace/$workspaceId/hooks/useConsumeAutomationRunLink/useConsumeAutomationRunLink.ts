@@ -31,7 +31,7 @@ export function useConsumeAutomationRunLink({
 }: UseConsumeAutomationRunLinkArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
 	const collections = useCollections();
-	const terminalSessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
+	const terminalSessionsQuery = workspaceTrpc.terminal.list.useQuery(
 		{ workspaceId },
 		{
 			enabled: terminalId != null,

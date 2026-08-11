@@ -24,6 +24,7 @@ interface SetupProjectModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	projectId: string;
+	projectName?: string;
 	hostUrl: string | null;
 	hostName: string;
 	repoCloneUrl: string | null;
@@ -36,6 +37,7 @@ export function SetupProjectModal({
 	open,
 	onOpenChange,
 	projectId,
+	projectName,
 	hostUrl,
 	hostName,
 	repoCloneUrl,
@@ -107,6 +109,9 @@ export function SetupProjectModal({
 			const client = getHostServiceClientByUrl(hostUrl);
 			const result = await client.project.setup.mutate({
 				projectId,
+				// Coordinates from the host fan-out: local-first projects created
+				// on another host have no cloud row for the target host to read.
+				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "clone", parentDir: trimmed },
 			});
 			toast.success(`Cloned to ${result.repoPath}`);
@@ -153,6 +158,7 @@ export function SetupProjectModal({
 			}
 			const result = await client.project.setup.mutate({
 				projectId,
+				origin: { repoCloneUrl, name: projectName },
 				mode: { kind: "import", repoPath: trimmed, allowRelocate: false },
 			});
 			toast.success(`Project set up at ${result.repoPath}`);

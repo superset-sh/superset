@@ -128,7 +128,6 @@ export function CommentPane({
 						splitOrientation={handlers.splitOrientation}
 						onSplitPane={handlers.onSplitPane}
 						onClosePane={handlers.onClosePane}
-						closeHotkeyId="CLOSE_TERMINAL"
 					/>
 				</div>
 			)}

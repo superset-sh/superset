@@ -7,7 +7,6 @@ import { cn } from "@/lib/cn";
 type Props = {
 	href: string;
 	children: React.ReactNode;
-	startWith: string;
 	title?: string | null;
 	className?: string;
 	activeClassName?: string;
@@ -16,7 +15,6 @@ type Props = {
 export const AsideLink = ({
 	href,
 	children,
-	startWith,
 	title,
 	className,
 	activeClassName,
@@ -30,14 +28,18 @@ export const AsideLink = ({
 			href={href}
 			title={title ?? undefined}
 			className={cn(
+				"relative flex w-full min-w-0 items-center gap-x-2.5 px-2 py-1.5 text-sm transition-colors",
 				isActive
-					? cn("text-foreground bg-primary/10", activeClassName)
-					: "text-muted-foreground hover:text-foreground hover:bg-primary/10",
-				"flex w-full min-w-0 items-center gap-x-2.5 px-5 py-1 transition-colors hover:bg-primary/10",
+					? cn("text-foreground", activeClassName)
+					: "text-muted-foreground hover:text-foreground",
 				className,
 			)}
 			{...props}
 		>
+			{/* Active marker: ember bar on the left edge, same as the app's sidebar */}
+			{isActive && (
+				<span className="absolute left-0 top-1/2 h-2/5 w-[2px] -translate-y-1/2 bg-brand/80" />
+			)}
 			{children}
 		</Link>
 	);

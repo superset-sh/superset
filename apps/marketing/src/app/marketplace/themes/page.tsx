@@ -1,8 +1,9 @@
 import { COMPANY } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import { ThemePreviewCard } from "@superset/ui/theme-preview-card";
-import { Download } from "lucide-react";
+import { ArrowUpRight, Download } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { themeListings } from "@/lib/marketplace";
 
 export const metadata: Metadata = {
@@ -43,21 +44,37 @@ export default function MarketplaceThemesPage() {
 							className="rounded-none border-border"
 							paletteItemClassName="rounded-none"
 							footerRight={
-								<Button
-									asChild
-									variant="outline"
-									size="icon-sm"
-									className="rounded-none"
-								>
-									<a
-										href={theme.source.href}
-										download
-										aria-label={`Download ${theme.name}`}
-										title={`Download ${theme.name}`}
+								<div className="flex items-center gap-1.5">
+									<Button
+										asChild
+										variant="outline"
+										size="icon-sm"
+										className="rounded-none"
 									>
-										<Download className="size-4" aria-hidden="true" />
-									</a>
-								</Button>
+										<Link
+											href={`/marketplace/themes/${theme.slug}`}
+											aria-label={`View ${theme.name}`}
+											title={`View ${theme.name}`}
+										>
+											<ArrowUpRight className="size-4" aria-hidden="true" />
+										</Link>
+									</Button>
+									<Button
+										asChild
+										variant="outline"
+										size="icon-sm"
+										className="rounded-none"
+									>
+										<a
+											href={theme.source.href}
+											download
+											aria-label={`Download ${theme.name}`}
+											title={`Download ${theme.name}`}
+										>
+											<Download className="size-4" aria-hidden="true" />
+										</a>
+									</Button>
+								</div>
 							}
 						/>
 					))}

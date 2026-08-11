@@ -11,9 +11,12 @@ import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { CreateTeamButton } from "./components/CreateTeamButton";
 
 export function TeamsSettings() {
+	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const navigate = useNavigate();
@@ -44,7 +47,9 @@ export function TeamsSettings() {
 			<div className="p-8">
 				<div className="max-w-5xl flex items-end justify-between gap-4">
 					<div>
-						<h2 className="text-2xl font-semibold">Teams</h2>
+						<h2 className="text-2xl font-semibold">
+							<HighlightText text="Teams" query={searchQuery} />
+						</h2>
 						<p className="text-sm text-muted-foreground mt-1">
 							Organize your work into teams. Tasks and integrations can sync
 							per-team.

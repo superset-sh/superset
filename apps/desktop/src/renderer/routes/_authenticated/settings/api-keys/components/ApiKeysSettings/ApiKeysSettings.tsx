@@ -26,6 +26,8 @@ import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	isItemVisible,
 	SETTING_ITEM_ID,
@@ -37,6 +39,7 @@ interface ApiKeysSettingsProps {
 }
 
 export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const collections = useCollections();
 	const [isGenerating, setIsGenerating] = useState(false);
 	const [showGenerateDialog, setShowGenerateDialog] = useState(false);
@@ -74,6 +77,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			}
 		} catch (error) {
 			console.error("[api-keys] Failed to generate API key:", error);
+			toast.error(
+				error instanceof Error ? error.message : "Failed to generate API key",
+			);
 		} finally {
 			setIsGenerating(false);
 		}
@@ -116,7 +122,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 		<div className="p-6 max-w-4xl w-full">
 			<div className="mb-8 flex items-start justify-between gap-4">
 				<div>
-					<h2 className="text-xl font-semibold">API keys</h2>
+					<h2 className="text-xl font-semibold">
+						<HighlightText text="API keys" query={searchQuery} />
+					</h2>
 					<p className="text-sm text-muted-foreground mt-1">
 						Manage keys for MCP server access and external integrations like
 						Claude Desktop or Claude Code.{" "}
@@ -205,7 +213,9 @@ export function ApiKeysSettings({ visibleItems }: ApiKeysSettingsProps) {
 			<Dialog open={showGenerateDialog} onOpenChange={setShowGenerateDialog}>
 				<DialogContent>
 					<DialogHeader>
-						<DialogTitle>Generate API key</DialogTitle>
+						<DialogTitle>
+							<HighlightText text="Generate API key" query={searchQuery} />
+						</DialogTitle>
 						<DialogDescription>
 							Create a new API key for external integrations like Claude Desktop
 							or Claude Code.

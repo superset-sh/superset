@@ -9,6 +9,7 @@ import {
 	readFile,
 	writeFile,
 } from "../fs";
+import { normalizeAbsolutePath } from "../paths";
 import type { SearchContentOptions } from "../search";
 import { searchContent, searchFiles } from "../search";
 import type { FsWatchEvent } from "../types";
@@ -237,11 +238,18 @@ export function createFsHostService(
 				throw new Error("watchPath requires a watcher manager");
 			}
 
-			return createAsyncQueue<{ events: FsWatchEvent[] }>(async (push) => {
-				return await watcherManager.subscribe(
-					{ absolutePath: input.absolutePath, recursive: input.recursive },
-					push,
+			// Only the workspace root may be watched. A watch root at/inside an
+			// ignored dir (node_modules) or behind a symlink defeats the ignore
+			// globs, which match relative to the watch root.
+			const absolutePath = normalizeAbsolutePath(input.absolutePath);
+			if (absolutePath !== normalizeAbsolutePath(rootPath)) {
+				throw new Error(
+					`watchPath only supports the workspace root: ${rootPath}`,
 				);
+			}
+
+			return createAsyncQueue<{ events: FsWatchEvent[] }>(async (push) => {
+				return await watcherManager.subscribe({ absolutePath }, push);
 			});
 		},
 

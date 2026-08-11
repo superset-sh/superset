@@ -18,6 +18,11 @@ export const PRODUCT_LINKS: NavLink[] = [
 		label: "Changelog",
 		description: "New releases and product updates.",
 	},
+	{
+		href: "/roadmap",
+		label: "Roadmap",
+		description: "What we're building now and next.",
+	},
 ];
 
 export const RESOURCE_LINKS: NavLink[] = [
@@ -47,4 +52,5 @@ export const RESOURCE_LINKS: NavLink[] = [
 export const TOP_LEVEL_LINKS: NavLink[] = [
 	{ href: "/pricing", label: "Pricing" },
 	{ href: "/enterprise", label: "Enterprise" },
+	{ href: "/join-us", label: "Join us" },
 ];

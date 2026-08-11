@@ -11,6 +11,7 @@ import { useTheme } from "renderer/stores/theme";
 interface WorkspaceEmptyStateProps {
 	onOpenBrowser: () => void;
 	onOpenChat: () => void;
+	onOpenChatV3?: (() => void) | undefined;
 	onOpenQuickOpen: () => void;
 	onOpenTerminal: () => void;
 }
@@ -26,6 +27,7 @@ interface WorkspaceEmptyStateAction {
 export function WorkspaceEmptyState({
 	onOpenBrowser,
 	onOpenChat,
+	onOpenChatV3,
 	onOpenQuickOpen,
 	onOpenTerminal,
 }: WorkspaceEmptyStateProps) {
@@ -51,6 +53,17 @@ export function WorkspaceEmptyState({
 				icon: TbMessageCirclePlus,
 				onClick: onOpenChat,
 			},
+			...(onOpenChatV3
+				? [
+						{
+							id: "chat-v3",
+							label: "Open Chat v3",
+							display: [],
+							icon: TbMessageCirclePlus,
+							onClick: onOpenChatV3,
+						},
+					]
+				: []),
 			{
 				id: "browser",
 				label: "Open Browser",
@@ -72,6 +85,7 @@ export function WorkspaceEmptyState({
 			newGroupDisplay,
 			onOpenBrowser,
 			onOpenChat,
+			onOpenChatV3,
 			onOpenQuickOpen,
 			onOpenTerminal,
 			quickOpenDisplay,

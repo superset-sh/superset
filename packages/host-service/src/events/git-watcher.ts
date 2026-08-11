@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { type FSWatcher, watch } from "node:fs";
 import { promisify } from "node:util";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import { isNull } from "drizzle-orm";
 import type { HostDb } from "../db/index.ts";
 import { workspaces } from "../db/schema.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
@@ -20,6 +21,11 @@ export const DEBOUNCE_MS = 300;
  * `scheduleFlush`) so a rapid sequence can't starve the flush past this bound.
  */
 export const GIT_DIR_DEBOUNCE_MS = 1_000;
+
+/** Above this, clients are better served by one broad diff-cache invalidation
+ * than hundreds of per-path invalidations. The null sentinel also lets the
+ * watcher skip path normalization for the rest of the debounce window. */
+export const MAX_WORKTREE_PATHS_PER_BATCH = 128;
 
 /**
  * `.git/` top-level dirs whose churn never changes `git status`: `objects/**`
@@ -51,12 +57,48 @@ export function isStatusRelevantGitDirEvent(
 	return !IGNORED_GIT_DIR_TOP_LEVELS.has(topLevel);
 }
 
+/**
+ * Normalize one native worktree event batch while bounding unique path growth.
+ * Duplicate notifications must not consume the cap: a later distinct path still
+ * needs to be emitted unless the batch crosses into broad invalidation.
+ */
+export function collectWorktreeBatchPaths(
+	events: readonly FsWatchEvent[],
+	worktreePath: string,
+): Set<string> {
+	const worktreePrefix = worktreePath.endsWith("/")
+		? worktreePath
+		: `${worktreePath}/`;
+	const toRelative = (absolutePath: string): string | null => {
+		if (absolutePath === worktreePath) return null;
+		if (!absolutePath.startsWith(worktreePrefix)) return null;
+		const relative = absolutePath.slice(worktreePrefix.length);
+		// Defensive: ignore anything inside .git/ — the dedicated .git watcher
+		// handles those and the worktree fs watcher's default ignore patterns
+		// already exclude it, but a rare leak shouldn't pollute the paths list.
+		if (relative === ".git" || relative.startsWith(".git/")) return null;
+		return relative;
+	};
+
+	const relativePaths = new Set<string>();
+	for (const event of events) {
+		const relativePath = toRelative(event.absolutePath);
+		if (relativePath) relativePaths.add(relativePath);
+		if (event.oldAbsolutePath) {
+			const oldRelativePath = toRelative(event.oldAbsolutePath);
+			if (oldRelativePath) relativePaths.add(oldRelativePath);
+		}
+		if (relativePaths.size > MAX_WORKTREE_PATHS_PER_BATCH) break;
+	}
+	return relativePaths;
+}
+
 export interface GitChangedEvent {
 	workspaceId: string;
 	/**
 	 * Worktree-relative paths that changed when the batch was worktree-only.
-	 * Absent when the batch included any `.git/*` activity, signaling a broad
-	 * state change (commit, staging, branch switch, fetch, etc.).
+	 * Absent when the batch included `.git/*` activity or exceeded the bounded
+	 * worktree path list, signaling a broad state change.
 	 */
 	paths?: string[];
 }
@@ -66,8 +108,8 @@ export type GitChangedListener = (event: GitChangedEvent) => void;
 interface PendingBatch {
 	/** Any `.git/*` event seen during this debounce window. */
 	hasGitDir: boolean;
-	/** Worktree-relative paths accumulated during this debounce window. */
-	paths: Set<string>;
+	/** Worktree-relative paths, or null once the batch requires broad refresh. */
+	paths: Set<string> | null;
 }
 
 interface WatchedWorkspace {
@@ -181,8 +223,15 @@ export class GitWatcher {
 
 	private addWorktreePaths(workspaceId: string, paths: Iterable<string>): void {
 		const batch = this.getOrCreateBatch(workspaceId);
-		for (const path of paths) {
-			if (path) batch.paths.add(path);
+		if (batch.paths) {
+			for (const path of paths) {
+				if (!path) continue;
+				batch.paths.add(path);
+				if (batch.paths.size > MAX_WORKTREE_PATHS_PER_BATCH) {
+					batch.paths = null;
+					break;
+				}
+			}
 		}
 		this.scheduleFlush(workspaceId);
 	}
@@ -194,7 +243,8 @@ export class GitWatcher {
 		// event arms it and later `.git/`-only events ride it rather than resetting,
 		// so a rapid metadata sequence (rebase, `git am`) can't push the flush past
 		// GIT_DIR_DEBOUNCE_MS. A worktree edit joining reverts to the short window.
-		const gitDirOnly = batch.hasGitDir && batch.paths.size === 0;
+		const gitDirOnly =
+			batch.hasGitDir && batch.paths !== null && batch.paths.size === 0;
 		if (gitDirOnly && existing) return;
 		if (existing) clearTimeout(existing);
 		const delay = gitDirOnly ? GIT_DIR_DEBOUNCE_MS : DEBOUNCE_MS;
@@ -206,7 +256,7 @@ export class GitWatcher {
 				this.pendingBatches.delete(workspaceId);
 				if (!batch) return;
 				const event: GitChangedEvent =
-					batch.hasGitDir || batch.paths.size === 0
+					batch.hasGitDir || batch.paths === null || batch.paths.size === 0
 						? { workspaceId }
 						: { workspaceId, paths: [...batch.paths] };
 				for (const listener of this.listeners) {
@@ -235,6 +285,7 @@ export class GitWatcher {
 					worktreePath: workspaces.worktreePath,
 				})
 				.from(workspaces)
+				.where(isNull(workspaces.archivedAt))
 				.all();
 		} catch {
 			return;
@@ -336,7 +387,6 @@ export class GitWatcher {
 			const service = this.filesystem.getServiceForWorkspace(workspaceId);
 			const stream = service.watchPath({
 				absolutePath: worktreePath,
-				recursive: true,
 			});
 			iterator = stream[Symbol.asyncIterator]();
 		} catch (error) {
@@ -347,38 +397,22 @@ export class GitWatcher {
 			return () => {};
 		}
 
-		const worktreePrefix = worktreePath.endsWith("/")
-			? worktreePath
-			: `${worktreePath}/`;
-
-		const toRelative = (absolutePath: string): string | null => {
-			if (absolutePath === worktreePath) return null;
-			if (!absolutePath.startsWith(worktreePrefix)) return null;
-			const relative = absolutePath.slice(worktreePrefix.length);
-			// Defensive: ignore anything inside .git/ — the dedicated .git watcher
-			// handles those and the worktree fs watcher's default ignore patterns
-			// already exclude it, but a rare leak shouldn't pollute the paths list.
-			if (relative === ".git" || relative.startsWith(".git/")) return null;
-			return relative;
-		};
-
 		void (async () => {
 			try {
 				while (!disposed && iterator) {
 					const next = await iterator.next();
 					if (disposed || next.done) return;
-
-					const relativePaths: string[] = [];
-					for (const event of next.value.events) {
-						const rel = toRelative(event.absolutePath);
-						if (rel) relativePaths.push(rel);
-						if (event.oldAbsolutePath) {
-							const oldRel = toRelative(event.oldAbsolutePath);
-							if (oldRel) relativePaths.push(oldRel);
-						}
+					if (this.pendingBatches.get(workspaceId)?.paths === null) {
+						this.scheduleFlush(workspaceId);
+						continue;
 					}
 
-					if (relativePaths.length > 0) {
+					const relativePaths = collectWorktreeBatchPaths(
+						next.value.events,
+						worktreePath,
+					);
+
+					if (relativePaths.size > 0) {
 						this.addWorktreePaths(workspaceId, relativePaths);
 					} else {
 						this.getOrCreateBatch(workspaceId);

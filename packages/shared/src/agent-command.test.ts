@@ -5,6 +5,7 @@ import {
 	buildAgentFileCommand,
 	buildAgentPromptCommand,
 } from "./agent-command";
+import { getPresetById } from "./host-agent-presets";
 
 describe("buildAgentPromptCommand", () => {
 	it("adds `--` before codex prompt payload", () => {
@@ -15,7 +16,7 @@ describe("buildAgentPromptCommand", () => {
 		});
 
 		expect(command).toContain(
-			"codex --dangerously-bypass-approvals-and-sandbox -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
+			"codex --dangerously-bypass-approvals-and-sandbox --dangerously-bypass-hook-trust -- \"$(cat <<'SUPERSET_PROMPT_12345678'",
 		);
 		expect(command).toContain("- Only modified file: runtime.ts");
 	});
@@ -68,5 +69,57 @@ describe("vibe agent registration", () => {
 	it("is a registered terminal agent with the right label", () => {
 		expect(AGENT_TYPES).toContain("vibe");
 		expect(AGENT_LABELS.vibe).toBe("Mistral Vibe");
+	});
+});
+
+describe("kimi agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("kimi");
+		expect(AGENT_LABELS.kimi).toBe("Kimi Code");
+	});
+
+	it("runs prompt launches headlessly and resumes them in the TUI", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "kimi-1234",
+			agent: "kimi",
+		});
+
+		expect(command).toStartWith("kimi -p \"$(cat <<'SUPERSET_PROMPT_kimi1234'");
+		expect(command).toEndWith('\n)" ; kimi --auto --continue');
+	});
+
+	it("derives the host prompt flag from the distinct prompt command", () => {
+		const preset = getPresetById("kimi");
+		expect(preset?.command).toBe("kimi");
+		expect(preset?.args).toEqual([]);
+		expect(preset?.promptArgs).toEqual(["-p"]);
+	});
+});
+
+describe("grok agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("grok");
+		expect(AGENT_LABELS.grok).toBe("Grok");
+	});
+
+	it("seeds prompt launches into the interactive TUI positionally", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "grok-1234",
+			agent: "grok",
+		});
+
+		expect(command).toStartWith(
+			"grok --always-approve \"$(cat <<'SUPERSET_PROMPT_grok1234'",
+		);
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset args from the base command with no prompt flag", () => {
+		const preset = getPresetById("grok");
+		expect(preset?.command).toBe("grok");
+		expect(preset?.args).toEqual(["--always-approve"]);
+		expect(preset?.promptArgs).toEqual([]);
 	});
 });

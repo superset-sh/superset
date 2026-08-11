@@ -39,15 +39,16 @@ export function useV2WorkspacePaneLayout() {
 		lastSyncedSnapshot: getSnapshot(EMPTY_STATE),
 	});
 
-	const { data: localWorkspaceRows = [] } = useLiveQuery(
-		(query) =>
-			query
-				.from({ v2WorkspaceLocalState: collections.v2WorkspaceLocalState })
-				.where(({ v2WorkspaceLocalState }) =>
-					eq(v2WorkspaceLocalState.workspaceId, workspaceId),
-				),
-		[collections, workspaceId],
-	);
+	const { data: localWorkspaceRows = [], isReady: isLayoutReady } =
+		useLiveQuery(
+			(query) =>
+				query
+					.from({ v2WorkspaceLocalState: collections.v2WorkspaceLocalState })
+					.where(({ v2WorkspaceLocalState }) =>
+						eq(v2WorkspaceLocalState.workspaceId, workspaceId),
+					),
+			[collections, workspaceId],
+		);
 	const localWorkspaceState =
 		localWorkspaceRows.find((row) => row.workspaceId === workspaceId) ?? null;
 	const persistedPaneLayout = useMemo(
@@ -104,5 +105,5 @@ export function useV2WorkspacePaneLayout() {
 		};
 	}, [collections, store, workspaceId]);
 
-	return { store };
+	return { store, isLayoutReady };
 }

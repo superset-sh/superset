@@ -10,10 +10,11 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@anthropic-ai/sdk": "0.78.0",
 		"@linear/sdk": "68.1.1",
 		"@t3-oss/env-core": "0.13.11",
 		"discord.js": "14.26.4",
-		"zod": "4.3.6"
+		"zod": "4.4.3"
 	},
 	"devDependencies": {
 		"@superset/typescript": "workspace:*",

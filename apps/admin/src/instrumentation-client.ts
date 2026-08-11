@@ -1,5 +1,9 @@
 import * as Sentry from "@sentry/nextjs";
 import { POSTHOG_COOKIE_NAME } from "@superset/shared/constants";
+import {
+	SENTRY_DENY_URLS,
+	SENTRY_IGNORE_ERRORS,
+} from "@superset/shared/sentry";
 import posthog from "posthog-js";
 
 import { env } from "@/env";
@@ -27,11 +31,18 @@ Sentry.init({
 	dsn: env.NEXT_PUBLIC_SENTRY_DSN_ADMIN,
 	environment: env.NEXT_PUBLIC_SENTRY_ENVIRONMENT,
 	enabled: !!env.NEXT_PUBLIC_SENTRY_DSN_ADMIN,
-	tracesSampleRate:
-		env.NEXT_PUBLIC_SENTRY_ENVIRONMENT === "production" ? 0.1 : 1.0,
+	tracesSampleRate: 0.05,
 	replaysSessionSampleRate: 0,
 	replaysOnErrorSampleRate: 0,
 	sendDefaultPii: true,
+	integrations: [
+		Sentry.thirdPartyErrorFilterIntegration({
+			filterKeys: ["superset-admin"],
+			behaviour: "drop-error-if-exclusively-contains-third-party-frames",
+		}),
+	],
+	ignoreErrors: SENTRY_IGNORE_ERRORS,
+	denyUrls: SENTRY_DENY_URLS,
 	debug: false,
 });
 

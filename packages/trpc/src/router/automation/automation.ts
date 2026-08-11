@@ -15,7 +15,7 @@ import {
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
 import { z } from "zod";
-import { env } from "../../env";
+import { resolveUserRelayUrl } from "../../lib/relay-url";
 import { protectedProcedure } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
@@ -115,7 +115,14 @@ async function verifyProjectInOrg(organizationId: string, projectId: string) {
 		.where(eq(v2Projects.id, projectId))
 		.limit(1);
 
-	if (!project || project.organizationId !== organizationId) {
+	// Local-first projects live only in host.db — no cloud row exists and
+	// none ever will, so absence is not an error. The pin is metadata: real
+	// authorization is the per-user host access check, and a dangling pin
+	// surfaces as a readable host-side error at dispatch (PR #5741 model).
+	// When a legacy cloud row DOES exist, still enforce the org match.
+	if (!project) return;
+
+	if (project.organizationId !== organizationId) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: "Project not found",
@@ -212,14 +219,18 @@ export const automationRouter = {
 			}
 
 			let targetHostId = input.targetHostId ?? null;
-			let v2ProjectId = input.v2ProjectId;
-			if (input.v2WorkspaceId && targetHostId && v2ProjectId) {
+			let v2ProjectId = input.v2ProjectId ?? null;
+			if (input.v2WorkspaceId && targetHostId) {
 				// Denormalized pin: the client resolved the workspace on its host
-				// and supplies hostId/projectId alongside the id — no workspace
-				// registry lookup (hosts own workspace records). Host access and
-				// project scoping are still verified below; a stale pin surfaces
-				// as a host-side error at run time, same as today.
-				await verifyProjectInOrg(organizationId, v2ProjectId);
+				// and supplies hostId (and projectId, when the workspace has one)
+				// alongside the id — no workspace registry lookup (hosts own
+				// workspace records). A null project means the pin is a session
+				// workspace. Host access and project scoping are still verified
+				// below; a stale pin surfaces as a host-side error at run time,
+				// same as today.
+				if (v2ProjectId) {
+					await verifyProjectInOrg(organizationId, v2ProjectId);
+				}
 			} else if (input.v2WorkspaceId) {
 				// Legacy clients (pre-denormalization) — resolve via the cloud
 				// table while it still exists; this branch is deleted in R3.
@@ -244,13 +255,9 @@ export const automationRouter = {
 			} else if (v2ProjectId) {
 				await verifyProjectInOrg(organizationId, v2ProjectId);
 			}
+			// No project and no pin = session automation: each run creates a
+			// project-less session workspace on the host.
 
-			if (!v2ProjectId) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "v2ProjectId required when v2WorkspaceId is not provided",
-				});
-			}
 			if (targetHostId && targetHostId !== input.targetHostId) {
 				await verifyHostAccess(
 					ctx.session.user.id,
@@ -329,7 +336,11 @@ export const automationRouter = {
 				input.targetHostId === undefined
 					? existing.targetHostId
 					: input.targetHostId;
-			let nextProjectId = input.v2ProjectId ?? existing.v2ProjectId;
+			// Explicit null switches to session mode; undefined keeps the project.
+			let nextProjectId =
+				input.v2ProjectId === undefined
+					? existing.v2ProjectId
+					: input.v2ProjectId;
 			let nextWorkspaceId =
 				input.v2WorkspaceId === undefined
 					? existing.v2WorkspaceId
@@ -347,23 +358,23 @@ export const automationRouter = {
 				}
 			}
 
-			if (
-				nextWorkspaceId &&
-				input.v2WorkspaceId &&
-				input.targetHostId &&
-				input.v2ProjectId
-			) {
-				// Denormalized pin (see create): the client supplies host and
-				// project with the workspace id; no workspace registry lookup.
-				await verifyProjectInOrg(organizationId, input.v2ProjectId);
-				nextProjectId = input.v2ProjectId;
+			if (input.v2WorkspaceId && input.targetHostId) {
+				// Denormalized pin (see create): the client supplies host (and
+				// project, when the workspace has one) with the workspace id; no
+				// workspace registry lookup. A null project = session pin.
+				if (input.v2ProjectId) {
+					await verifyProjectInOrg(organizationId, input.v2ProjectId);
+				}
+				nextProjectId = input.v2ProjectId ?? null;
 				nextTargetHostId = input.targetHostId;
-			} else if (nextWorkspaceId) {
-				// Legacy clients — resolve via the cloud table while it still
-				// exists; this branch is deleted in R3.
+			} else if (input.v2WorkspaceId) {
+				// Legacy clients changing the pin — resolve via the cloud table
+				// while it still exists; this branch is deleted in R3. A merely
+				// retained pin is never re-resolved here: hosts own workspace
+				// records, and session pins have no cloud row at all.
 				const workspace = await verifyWorkspaceInOrg(
 					organizationId,
-					nextWorkspaceId,
+					input.v2WorkspaceId,
 				);
 				// Mirror create: derive the project from the workspace and only
 				// reject when the caller *explicitly* passed a conflicting project.
@@ -391,7 +402,7 @@ export const automationRouter = {
 				}
 				nextTargetHostId = workspace.hostId;
 			} else if (
-				input.v2ProjectId !== undefined &&
+				input.v2ProjectId != null &&
 				input.v2ProjectId !== existing.v2ProjectId
 			) {
 				await verifyProjectInOrg(organizationId, input.v2ProjectId);
@@ -554,7 +565,7 @@ export const automationRouter = {
 			const outcome = await dispatchAutomation({
 				automation,
 				scheduledFor: new Date(),
-				relayUrl: env.RELAY_URL,
+				relayUrl: await resolveUserRelayUrl(automation.ownerUserId),
 			});
 
 			if (outcome.status === "conflict") {

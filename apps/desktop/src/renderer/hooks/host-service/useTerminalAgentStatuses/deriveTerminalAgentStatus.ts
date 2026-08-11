@@ -16,6 +16,7 @@ export function deriveTerminalAgentStatus({
 }): PaneStatus {
 	if (lastEventType === "Start") return "working";
 	if (lastEventType === "PermissionRequest") return "permission";
+	if (lastEventType === "Failed") return "failed";
 	if (lastEventType === "Stop") {
 		return lastEventAt > (lastSeenAt ?? 0) ? "review" : "idle";
 	}

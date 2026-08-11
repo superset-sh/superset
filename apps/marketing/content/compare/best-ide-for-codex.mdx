@@ -1,0 +1,123 @@
+---
+title: "Best IDE for OpenAI Codex in 2026: Where to Run It"
+description: "The best places to run OpenAI Codex in 2026, from the CLI and IDE extension to the Codex cloud app, Conductor, and Superset for parallel worktree sessions."
+date: 2026-07-13
+lastUpdated: 2026-07-13
+type: "roundup"
+competitors:
+  - vs-code
+  - cursor
+  - codex-app
+  - conductor
+keywords:
+  - best ide for codex
+  - where to run codex
+  - codex worktree
+  - codex ssh
+  - openai codex ide
+  - codex parallel agents
+---
+
+OpenAI's Codex is one product with many faces: a terminal CLI, an editor extension, a desktop app, a web experience, and a cloud service that runs tasks in parallel sandboxes. So the best "IDE for Codex" depends on where you want the work to happen. Do you want Codex on your machine, in your editor, or running in the cloud? And do you want to run several Codex tasks at once on the same repository?
+
+This guide covers each option, including how to get parallel Codex runs with Git worktrees.
+
+---
+
+## The Short Version
+
+| Where you run Codex | Best for | Parallel tasks on one repo? | Main tradeoff |
+|---|---|---|---|
+| **Superset** | Running many local Codex tasks at once | Yes -- one Git worktree per task | Not a single-file editor experience |
+| **Codex CLI** | The scriptable, local Codex | Manual (worktrees yourself) | You manage isolation and review |
+| **Codex IDE extension** | Editing alongside Codex | Limited | In-editor, single working copy |
+| **Codex cloud / app** | Fire-and-forget parallel tasks | Yes -- isolated cloud sandboxes | Runs in OpenAI's cloud, tied to a plan |
+| **Cursor** | AI editor that can run Codex-style agents | Local worktrees (its own agents) | Centered on Cursor's own models |
+| **Conductor** | A focused Mac app for a few agents | Yes -- worktrees | macOS only |
+
+## Where You Can Run Codex
+
+Codex shares one account, configuration, and usage limits across its surfaces. The CLI runs locally in your terminal. The IDE extension brings it into your editor. The desktop and web apps add a graphical experience, and the cloud service clones your repo into isolated environments and runs tasks in the background. The key decision is local versus cloud, and single versus parallel.
+
+## The Options
+
+### Codex CLI
+
+The CLI is the local, scriptable Codex: it reads your codebase, runs commands, and edits files on your machine. It is the best surface for a single task and for anyone who wants Codex in scripts or over SSH on a remote box. For parallel tasks on one repository, you manage Git worktrees and review yourself.
+
+For the direct comparison, see [Superset vs Codex CLI](/compare/superset-vs-codex).
+
+### Codex IDE extension
+
+The editor extension puts Codex beside your code so you can review and edit as it works. It is the natural choice if you want Codex inside your existing editor, with the usual single-working-copy limitation for parallel runs.
+
+### Codex cloud and desktop app
+
+The Codex cloud experience is the distinctive one: describe a task, and Codex clones your repo into an isolated cloud environment, works in the background without using your machine, and returns a diff and logs to review. You can start several tasks in parallel this way. It is convenient for fire-and-forget work, and it runs in OpenAI's cloud tied to your ChatGPT plan rather than on your local machine.
+
+For the direct comparison, see [Superset vs Codex App](/compare/superset-vs-codex-app).
+
+### Cursor
+
+Cursor is an AI editor that runs its own parallel agents in local Git worktrees. It is not a dedicated Codex host, but if you want an editor-centric experience with multi-agent runs, it is a strong option alongside running Codex directly.
+
+For the direct comparison, see [Superset vs Cursor](/compare/superset-vs-cursor).
+
+### Conductor
+
+Conductor is a macOS app that runs Codex (along with Claude Code and Cursor) in parallel, each in an isolated Git worktree, with a review-and-merge flow. It is a focused way to run a few agents in parallel on a Mac. It is macOS only.
+
+For the direct comparison, see [Superset vs Conductor](/compare/superset-vs-conductor).
+
+### Superset
+
+Superset runs the Codex CLI as a first-class agent, giving every task its own Git worktree, branch, and persistent terminal, so multiple Codex tasks can run on the same repository at once without collisions -- locally, or on your own remote hosts. Around that it adds a built-in diff and file editor, an in-app browser, port management, and MCP tooling. If your goal is parallel local Codex runs with real worktree isolation rather than cloud sandboxes, this is the fit.
+
+## How To Choose
+
+- For one task or a scriptable/SSH setup, use the Codex CLI.
+- To edit alongside Codex, use the IDE extension.
+- For fire-and-forget parallel tasks in the cloud, use Codex cloud.
+- For parallel local Codex runs with worktree isolation, use a workspace like Superset or Conductor.
+
+## Best Picks by Use Case
+
+### Best for a single or scripted task: Codex CLI
+
+The terminal is the most flexible, scriptable way to run Codex, including over SSH.
+
+### Best for cloud parallelism: Codex cloud
+
+OpenAI's cloud sandboxes run multiple tasks in parallel without using your machine.
+
+### Best for parallel local runs: Superset
+
+Superset gives every Codex task its own worktree on your own machine, with review and orchestration built in.
+
+### Best focused Mac app: Conductor
+
+Conductor is a polished choice if Codex, Claude Code, and Cursor are your agents and you are on macOS.
+
+## Verdict
+
+The best IDE for Codex depends on where you want work to run. Use the CLI for a single or scripted task, the IDE extension to edit alongside it, and Codex cloud for fire-and-forget parallel tasks in OpenAI's environments. If you want parallel Codex runs on your own machine, each isolated in a Git worktree, a workspace like Superset is the better answer.
+
+For the broader category, see [Best Agentic IDE in 2026](/compare/best-agentic-ide) and [Best AI Coding Tools and Agents (2026)](/compare/best-ai-coding-agents-2026).
+
+## Frequently Asked Questions
+
+### What is the best IDE for Codex?
+
+For a single or scripted task, the Codex CLI. For editing alongside it, the IDE extension. For parallel tasks, either Codex cloud (OpenAI's sandboxes) or a local worktree workspace like Superset.
+
+### How do I run Codex with Git worktrees?
+
+Give each Codex task its own worktree so tasks do not share a working directory. You can set this up manually, or use a workspace like Superset or Conductor that creates a worktree per task automatically.
+
+### Can I run Codex over SSH?
+
+Yes. The Codex CLI runs in any terminal, including a remote machine over SSH. Superset can also run agents on your own remote hosts through remote workspaces.
+
+### Does Codex run tasks in parallel?
+
+Codex cloud runs multiple tasks in parallel in isolated cloud environments. For parallel runs on your own machine with Git worktrees, use a local workspace like Superset.

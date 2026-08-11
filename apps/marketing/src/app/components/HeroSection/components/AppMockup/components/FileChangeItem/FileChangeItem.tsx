@@ -44,12 +44,7 @@ export function FileChangeItem({
 				? VscDiffRemoved
 				: VscDiffModified;
 
-	const iconColor =
-		type === "add"
-			? "text-emerald-400/85"
-			: type === "delete"
-				? "text-rose-400/85"
-				: "text-amber-300/85";
+	const iconColor = "text-muted-foreground/55";
 
 	return (
 		<div
@@ -63,9 +58,9 @@ export function FileChangeItem({
 				</span>
 			</div>
 			{(add > 0 || del > 0) && (
-				<span className="shrink-0 font-mono text-[10px] tabular-nums">
-					{add > 0 && <span className="text-emerald-400/85">+{add}</span>}
-					{del > 0 && <span className="ml-1 text-rose-400/75">−{del}</span>}
+				<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground/45">
+					{add > 0 && <span>+{add}</span>}
+					{del > 0 && <span className="ml-1">−{del}</span>}
 				</span>
 			)}
 		</div>

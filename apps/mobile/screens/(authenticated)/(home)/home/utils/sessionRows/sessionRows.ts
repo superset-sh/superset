@@ -1,32 +1,21 @@
-export interface ChatSessionLike {
-	id: string;
-	title: string | null;
-	createdAt: Date | null;
-	updatedAt: Date | null;
-}
+import type { SessionScopedState } from "@superset/session-protocol";
 
 export interface SessionRowData {
 	id: string;
 	title: string;
 	ts: number;
-}
-
-function toMs(
-	value: Date | null | undefined,
-	fallback: Date | null | undefined,
-): number {
-	const d = value ?? fallback;
-	return d ? d.getTime() : 0;
+	status: SessionScopedState["status"];
 }
 
 export function buildSessionRows(
-	chatSessions: ChatSessionLike[],
+	sessions: SessionScopedState[],
 ): SessionRowData[] {
-	return chatSessions
+	return sessions
 		.map<SessionRowData>((session) => ({
-			id: session.id,
-			title: session.title ?? "Untitled chat",
-			ts: toMs(session.updatedAt, session.createdAt),
+			id: session.sessionId,
+			title: session.title ?? "New session",
+			ts: session.updatedAt,
+			status: session.status,
 		}))
 		.sort((a, b) => b.ts - a.ts);
 }

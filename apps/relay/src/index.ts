@@ -293,9 +293,12 @@ app.get(
 
 // ── Pre-flight for WS replay (host hits this once before opening WS to a host) ─
 
-// Pre-flight for WS upgrade routing. Requires a valid JWT (no checkHostAccess —
-// the destination machine still authorizes) so we don't leak tunnel-presence
-// or fly topology to unauthenticated probers.
+// Pre-flight for WS upgrade routing. Requires a valid JWT so we don't leak
+// tunnel-presence or fly topology to unauthenticated probers. When this
+// machine owns the tunnel, it also runs the (cached) access check: the WS
+// upgrade's 403 is invisible to browser clients (they only see a 1006 close),
+// so this is the one place a definitive denial can surface — clients use it
+// to stop reconnect-looping against hosts they'll never be allowed to reach.
 app.get("/hosts/:hostId/_whoowns", async (c) => {
 	const token = extractToken(c);
 	if (!token) return c.json({ error: "Unauthorized" }, 401);
@@ -305,9 +308,19 @@ app.get("/hosts/:hostId/_whoowns", async (c) => {
 	const hostId = c.req.param("hostId");
 	const replay = await maybeReplay(hostId);
 	if (!replay) {
-		return tunnelManager.hasTunnel(hostId)
-			? c.json({ ok: true, region: env.FLY_REGION })
-			: c.json({ error: "Host not connected" }, 503);
+		if (!tunnelManager.hasTunnel(hostId)) {
+			return c.json({ error: "Host not connected" }, 503);
+		}
+		const access = await checkHostAccess(auth, token, hostId);
+		if (!access.ok) {
+			const detail = `Forbidden: ${accessDenialMessage(access.reason)}`;
+			// "error" means the access check itself failed (API unreachable), not
+			// a denial — don't 403, or clients would stop retrying permanently.
+			return access.reason === "error"
+				? c.json({ error: detail }, 500)
+				: c.json({ error: detail }, 403);
+		}
+		return c.json({ ok: true, region: env.FLY_REGION });
 	}
 	return c.body(null, 200, replay.header);
 });

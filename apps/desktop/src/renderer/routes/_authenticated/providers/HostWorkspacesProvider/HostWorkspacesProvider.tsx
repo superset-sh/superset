@@ -11,8 +11,8 @@ const HostWorkspacesContext = createContext<UseHostWorkspacesResult | null>(
 /**
  * Runs the per-host workspace fan-out once (queries, event subscriptions,
  * IndexedDB snapshots) and shares the merged result — consumers must not
- * call the source hook directly or every call site would duplicate the
- * subscriptions.
+ * call the source hook unscoped or every call site would duplicate the
+ * fan-out; single-host scoped calls are fine (they share query keys).
  */
 export function HostWorkspacesProvider({ children }: { children: ReactNode }) {
 	const value = useHostWorkspacesSource();

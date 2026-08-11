@@ -1,49 +1,23 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
-import type { McpContext } from "./auth";
-import { registerTools } from "./tools";
-import { getMcpContext } from "./tools/utils";
+import packageJson from "../package.json" with { type: "json" };
+import type { McpToolCallEmitter } from "./define-tool";
+import { registerTools } from "./tools/register";
+
+export const MCP_SERVER_VERSION = packageJson.version;
 
 export interface McpServerOptions {
-	onToolCall?: (toolName: string, ctx: McpContext) => void;
+	onToolCall?: McpToolCallEmitter;
 }
 
 export function createMcpServer(options?: McpServerOptions): McpServer {
 	const server = new McpServer(
-		{ name: "superset", version: "1.0.0" },
-		{ capabilities: { tools: {} } },
+		{ name: "superset", version: packageJson.version },
+		{
+			capabilities: { tools: {} },
+			instructions:
+				"Superset orchestrates parallel AI coding agents in isolated Git worktrees on a user's registered machines. Use these tools to manage tasks, create workspaces (branch- or PR-scoped worktrees), launch coding-agent sessions, open terminals, and schedule recurring automations on behalf of the authenticated user. IDs are host-scoped: call hosts_list first, then projects_list/workspaces_list on that host. Tools annotated destructive (deletes) remove real user data — confirm with the user before calling them.",
+		},
 	);
-
-	registerTools(server);
-
-	if (options?.onToolCall) {
-		// The MCP SDK has no middleware API, so we wrap registered tool handlers
-		// directly. _registeredTools is private but stable across SDK versions.
-		const tools = (
-			server as unknown as {
-				_registeredTools: Record<
-					string,
-					{ handler: { callback: (...args: unknown[]) => unknown } }
-				>;
-			}
-		)._registeredTools;
-
-		for (const [name, tool] of Object.entries(tools)) {
-			const original = tool.handler.callback;
-			const onToolCall = options.onToolCall;
-			tool.handler.callback = (...args: unknown[]) => {
-				try {
-					const extra = args[1];
-					const ctx = getMcpContext(
-						extra as Parameters<typeof getMcpContext>[0],
-					);
-					onToolCall(name, ctx);
-				} catch {
-					// Don't fail the tool call if tracking fails
-				}
-				return original(...args);
-			};
-		}
-	}
-
+	registerTools(server, { onToolCall: options?.onToolCall });
 	return server;
 }

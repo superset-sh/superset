@@ -428,6 +428,34 @@
       "when": 1783703195912,
       "tag": "0060_add_external_project_and_cycle_to_tasks",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1784252857124,
+      "tag": "0061_v2_workspaces_host_fk_cascade",
+      "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1784739436569,
+      "tag": "0062_drop_automations_v2_project_fk",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1785234213747,
+      "tag": "0063_add_desktop_notices",
+      "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1786239490751,
+      "tag": "0064_automations_v2_project_id_nullable",
+      "breakpoints": true
     }
   ]
 }
