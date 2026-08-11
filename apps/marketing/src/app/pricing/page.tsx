@@ -4,6 +4,7 @@ import { ComparisonTable } from "./components/ComparisonTable";
 import { PricingFAQ } from "./components/PricingFAQ";
 import { PricingHero } from "./components/PricingHero";
 import { PricingTiers } from "./components/PricingTiers";
+import { TrustStrip } from "./components/TrustStrip";
 
 export const metadata: Metadata = {
 	title: "Pricing",
@@ -21,6 +22,12 @@ export default function PricingPage() {
 			<section className="relative border-b border-border">
 				<div className="max-w-6xl mx-auto px-6 py-12 md:py-16">
 					<PricingTiers />
+				</div>
+			</section>
+
+			<section className="relative border-b border-border">
+				<div className="max-w-6xl mx-auto px-6 py-10 md:py-12">
+					<TrustStrip />
 				</div>
 			</section>
 

@@ -1,0 +1,1 @@
+export { TrustStrip } from "./TrustStrip";
