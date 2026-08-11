@@ -26,7 +26,7 @@ import { PROJECT_COLOR_VALUES } from "shared/constants/project-colors";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { resolveDefaultEditor } from "../external";
-import { invalidatePortLabelCache } from "../ports/label-cache";
+import { invalidateStaticPortCache } from "../ports/static-port-cache";
 import {
 	activateProject,
 	getBranchWorkspace,
@@ -1612,7 +1612,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.delete(workspaces)
 						.where(inArray(workspaces.id, closedWorkspaceIds))
 						.run();
-					for (const id of closedWorkspaceIds) invalidatePortLabelCache(id);
+					for (const id of closedWorkspaceIds) invalidateStaticPortCache(id);
 				}
 
 				localDb

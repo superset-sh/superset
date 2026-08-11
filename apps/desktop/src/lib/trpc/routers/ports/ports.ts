@@ -1,11 +1,12 @@
+import { buildPortEnrichment } from "@superset/port-scanner";
 import { observable } from "@trpc/server/observable";
 import { portManager } from "main/lib/terminal/port-manager";
 import type { DetectedPort, EnrichedPort } from "shared/types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
-import { getLabelsForWorkspace } from "./label-cache";
+import { getStaticPortsForWorkspace } from "./static-port-cache";
 
-export { invalidatePortLabelCache } from "./label-cache";
+export { invalidateStaticPortCache } from "./static-port-cache";
 
 type PortEvent =
 	| { type: "add"; port: DetectedPort }
@@ -16,15 +17,10 @@ export const createPortsRouter = () => {
 		getAll: publicProcedure.query((): EnrichedPort[] => {
 			const detectedPorts = portManager.getAllPorts();
 			return detectedPorts.map((port) => {
-				const staticPort = getLabelsForWorkspace(port.workspaceId)?.get(
+				const entry = getStaticPortsForWorkspace(port.workspaceId)?.get(
 					port.port,
 				);
-				return {
-					...port,
-					label: staticPort?.label ?? null,
-					scheme: staticPort?.scheme ?? null,
-					hostUrl: null,
-				};
+				return { ...port, ...buildPortEnrichment(entry), hostUrl: null };
 			});
 		}),
 

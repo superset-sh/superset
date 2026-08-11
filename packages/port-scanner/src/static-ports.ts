@@ -1,24 +1,36 @@
+export const PORT_SCHEMES = ["http", "https"] as const;
+
 /** URL scheme a port is served over. */
-export type PortScheme = "http" | "https";
+export type PortScheme = (typeof PORT_SCHEMES)[number];
 
-const PORT_SCHEMES: PortScheme[] = ["http", "https"];
-
+/** Whether a raw `ports.json` value is a scheme this config accepts. */
 function isPortScheme(value: unknown): value is PortScheme {
-	return PORT_SCHEMES.some((scheme) => scheme === value);
+	return (
+		typeof value === "string" &&
+		(PORT_SCHEMES as readonly string[]).includes(value)
+	);
 }
 
-export interface StaticPortLabel {
+export interface StaticPortEntry {
 	port: number;
 	label: string;
-	/**
-	 * Scheme the browser actions open this port with. Always set once parsed —
-	 * an entry that omits it means `http`.
-	 */
+	/** Always set once parsed; an entry that omits it means `http`. */
 	scheme: PortScheme;
 }
 
+/**
+ * The `ports.json`-derived fields of a detected port row. Null for a port the file
+ * doesn't declare — which every consumer reads as an unlabelled `http` port.
+ */
+export function buildPortEnrichment(entry: StaticPortEntry | undefined): {
+	label: string | null;
+	scheme: PortScheme | null;
+} {
+	return { label: entry?.label ?? null, scheme: entry?.scheme ?? null };
+}
+
 export type StaticPortsParseResult =
-	| { ports: StaticPortLabel[]; error: null }
+	| { ports: StaticPortEntry[]; error: null }
 	| { ports: null; error: string };
 
 function validatePortEntry(
@@ -70,8 +82,6 @@ function validatePortEntry(
 		return { valid: false, error: `ports[${index}].label cannot be empty` };
 	}
 
-	// Optional: a dev server that only speaks TLS is declared `"scheme": "https"`, so the
-	// browser actions open it over https instead of failing in the TLS handshake.
 	if (scheme !== undefined && !isPortScheme(scheme)) {
 		return {
 			valid: false,
@@ -83,7 +93,7 @@ function validatePortEntry(
 		valid: true,
 		port,
 		label: label.trim(),
-		scheme: scheme === undefined ? "http" : scheme,
+		scheme: scheme ?? "http",
 	};
 }
 
@@ -114,7 +124,7 @@ export function parseStaticPortsConfig(
 		return { ports: null, error: "'ports' field must be an array" };
 	}
 
-	const ports: StaticPortLabel[] = [];
+	const ports: StaticPortEntry[] = [];
 	const seenPorts = new Set<number>();
 	for (let index = 0; index < portsField.length; index++) {
 		const result = validatePortEntry(portsField[index], index);

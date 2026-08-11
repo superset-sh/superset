@@ -30,12 +30,11 @@ function createResult(): HostPortsResult {
 function createPortEvent(
 	eventType: PortChangedPayload["eventType"],
 	overrides: Partial<PortChangedPayload["port"]> = {},
-	scheme: PortChangedPayload["scheme"] = null,
 ): PortChangedPayload {
 	return {
 		eventType,
 		label: "Vite",
-		scheme,
+		scheme: null,
 		occurredAt: 2,
 		port: {
 			port: 5173,
@@ -69,7 +68,7 @@ describe("applyPortEventsToHostPortsResult", () => {
 
 	it("keeps the scheme an add event carries, so the row opens over https", () => {
 		const result = applyPortEventsToHostPortsResult(createResult(), [
-			createPortEvent("add", { port: 3030 }, "https"),
+			{ ...createPortEvent("add", { port: 3030 }), scheme: "https" },
 		]);
 
 		expect(result?.ports.at(-1)).toMatchObject({

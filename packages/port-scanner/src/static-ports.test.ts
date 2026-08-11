@@ -1,18 +1,18 @@
-import { describe, expect, test } from "bun:test";
+import { describe, expect, it } from "bun:test";
 import { parseStaticPortsConfig } from "./static-ports.ts";
 
-describe("parseStaticPortsConfig scheme", () => {
-	test("defaults to http when an entry omits it", () => {
-		const result = parseStaticPortsConfig(
-			JSON.stringify({ ports: [{ port: 3000, label: "Frontend" }] }),
-		);
+function parseEntry(entry: Record<string, unknown>) {
+	return parseStaticPortsConfig(JSON.stringify({ ports: [entry] }));
+}
 
-		expect(result.ports).toEqual([
+describe("parseStaticPortsConfig scheme", () => {
+	it("defaults to http when an entry omits it", () => {
+		expect(parseEntry({ port: 3000, label: "Frontend" }).ports).toEqual([
 			{ port: 3000, label: "Frontend", scheme: "http" },
 		]);
 	});
 
-	test("keeps http and https as declared", () => {
+	it("keeps http and https as declared", () => {
 		const result = parseStaticPortsConfig(
 			JSON.stringify({
 				ports: [
@@ -28,21 +28,11 @@ describe("parseStaticPortsConfig scheme", () => {
 		]);
 	});
 
-	test("rejects any other scheme", () => {
-		const result = parseStaticPortsConfig(
-			JSON.stringify({ ports: [{ port: 3000, label: "Web", scheme: "ws" }] }),
-		);
-
-		expect(result.ports).toBeNull();
-		expect(result.error).toBe('ports[0].scheme must be "http" or "https"');
-	});
-
-	test("rejects a non-string scheme", () => {
-		const result = parseStaticPortsConfig(
-			JSON.stringify({ ports: [{ port: 3000, label: "Web", scheme: true }] }),
-		);
-
-		expect(result.ports).toBeNull();
-		expect(result.error).toBe('ports[0].scheme must be "http" or "https"');
+	it("rejects any other scheme", () => {
+		for (const scheme of ["ws", "HTTPS", "", true]) {
+			const result = parseEntry({ port: 3000, label: "Web", scheme });
+			expect(result.ports).toBeNull();
+			expect(result.error).toBe('ports[0].scheme must be "http" or "https"');
+		}
 	});
 });
