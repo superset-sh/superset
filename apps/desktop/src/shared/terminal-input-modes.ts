@@ -14,7 +14,22 @@
  * This module is shared between the main process (which sanitizes replayed
  * scrollback before serving it for cold restore) and the renderer (which
  * disarms a reused xterm before attaching a fresh shell to it).
+ *
+ * Relationship to leaked-input-mode-reclaim (#4949, #5790): that module owns
+ * the *decision* logic for a live stream — when a mode armed since the last
+ * prompt counts as leaked — over three coarse groups (kitty/mouse/focus), and
+ * is consumed by the renderer reclaimer. This module is the *byte-level*
+ * half: a VT sanitizer for replayed scrollback, plus the mode tables the host
+ * emulator's shadow map needs. The host tracks a wider vocabulary than the
+ * three groups (bracketed paste, DECCKM, IRM, the alt-screen family, the
+ * mouse encodings) because it must also serve warm-reattach rehydration, and
+ * each of those carries its own exemption rule — see
+ * FOREGROUND_RECLAIM_RESET_PARAMS. Constants that both halves depend on (the
+ * prompt marker, the kitty disarm bytes) are imported from there, never
+ * restated here.
  */
+
+import { KITTY_KEYBOARD_DISARM_SEQUENCE } from "./leaked-input-mode-reclaim";
 
 const ESC = "\x1b";
 
@@ -516,9 +531,8 @@ export function sanitizeColdRestoreScrollback(raw: string): string {
 
 /**
  * Disarms every input-reporting mode a dead TUI can leave latched in an
- * xterm: DECRST for each tracked mode, numeric keypad, and a kitty keyboard
- * stack unwind (popping more entries than the stack holds empties it and
- * zeroes the flags; the explicit set-to-0 covers flags armed without a push).
+ * xterm: DECRST for each tracked mode, numeric keypad, and the shared kitty
+ * keyboard disarm.
  *
  * Written to a reused renderer xterm right before a fresh shell attaches, so
  * the new session starts from default input behavior. Never written on warm
@@ -541,6 +555,5 @@ export const INPUT_MODE_DISARM_SEQUENCE = [
 	// normal buffer — ?1049l would perform a cursor restore there.
 	`${ESC}[?47l`,
 	`${ESC}>`,
-	`${ESC}[<255u`,
-	`${ESC}[=0;1u`,
+	KITTY_KEYBOARD_DISARM_SEQUENCE,
 ].join("");

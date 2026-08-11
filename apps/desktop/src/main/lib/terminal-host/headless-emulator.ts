@@ -15,6 +15,10 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { Terminal } from "@xterm/headless";
 import { DEFAULT_TERMINAL_SCROLLBACK } from "shared/constants";
 import {
+	SHELL_READY_MARKER_PAYLOAD,
+	SHELL_READY_OSC_ID,
+} from "shared/leaked-input-mode-reclaim";
+import {
 	FOREGROUND_RECLAIM_RESET_ANSI_PARAMS,
 	FOREGROUND_RECLAIM_RESET_PARAMS,
 } from "shared/terminal-input-modes";
@@ -56,9 +60,11 @@ const ESC = "\x1b";
  * (e.g. `cat` over an agent session log) re-dispatches them and can reclaim a
  * concurrently armed TUI's modes. That is in-band indistinguishable from a
  * real prompt by construction and is accepted (#5519 B2c).
+ *
+ * The identifier and payload come from shared/leaked-input-mode-reclaim, so
+ * this scanner and the renderer reclaimer can never disagree about which
+ * marker means "the shell owns the foreground".
  */
-const RECLAIM_MARKER_OSC_IDENT = 777;
-const RECLAIM_MARKER_PAYLOAD = "superset-shell-ready";
 
 /**
  * DECSET/DECRST mode numbers we track
@@ -229,10 +235,10 @@ export class HeadlessEmulator {
 			this.applyTrackedModes(ANSI_MODE_MAP, params, false);
 			return false;
 		});
-		parser.registerOscHandler(RECLAIM_MARKER_OSC_IDENT, (data) => {
+		parser.registerOscHandler(SHELL_READY_OSC_ID, (data) => {
 			// Exact payload match: OSC 777 is also urxvt's notification channel
 			// (`777;notify;…`), which must not read as a prompt.
-			if (data === RECLAIM_MARKER_PAYLOAD) this.handlePromptMarker();
+			if (data === SHELL_READY_MARKER_PAYLOAD) this.handlePromptMarker();
 			return false;
 		});
 		parser.registerOscHandler(7, (data) => {
