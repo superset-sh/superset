@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Feedback"
+  short_description: "Draft and submit feedback about Superset"
+  default_prompt: "Use $superset-feedback to draft this Superset feedback and submit it through my chosen channel after confirmation."

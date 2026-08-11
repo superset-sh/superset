@@ -29,7 +29,13 @@ mock.module("../../../lib/upload-attachments", () => ({
 const { default: createWorkspaceCommand } = await import("./command");
 
 function invoke(
-	overrides: { agent?: string; prompt?: string; effort?: string } = {},
+	overrides: {
+		agent?: string;
+		branch?: string;
+		effort?: string;
+		pr?: number;
+		prompt?: string;
+	} = {},
 ) {
 	return createWorkspaceCommand.run({
 		ctx: {
@@ -74,6 +80,16 @@ describe("workspaces create", () => {
 	test("rejects effort when no agent is selected", async () => {
 		await expect(invoke({ effort: "high" })).rejects.toThrow(
 			/--effort requires --agent/,
+		);
+		expect(createInput).toBeUndefined();
+	});
+
+	test("requires exactly one branch source", async () => {
+		await expect(invoke({ branch: undefined })).rejects.toThrow(
+			/Specify exactly one of --branch or --pr/,
+		);
+		await expect(invoke({ pr: 123 })).rejects.toThrow(
+			/Specify exactly one of --branch or --pr/,
 		);
 		expect(createInput).toBeUndefined();
 	});

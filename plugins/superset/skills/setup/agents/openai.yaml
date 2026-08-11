@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Project Setup"
+  short_description: "Configure and verify Superset workspaces"
+  default_prompt: "Use $superset-setup to configure this repository for Superset workspaces and verify the setup with a real workspace."

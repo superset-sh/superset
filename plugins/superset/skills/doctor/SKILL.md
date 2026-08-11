@@ -1,7 +1,6 @@
 ---
 name: doctor
 description: Diagnose and fix Superset problems — connection failures, offline hosts, terminals not attaching, auth or update issues. Use when the user reports something broken or misbehaving in Superset itself, before filing feedback.
-argument-hint: describe the symptom
 ---
 
 # Superset Doctor

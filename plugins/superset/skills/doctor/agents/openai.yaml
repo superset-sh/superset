@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Doctor"
+  short_description: "Diagnose and fix Superset problems safely"
+  default_prompt: "Use $superset-doctor to diagnose this Superset problem, apply an approved fix, and verify the result."

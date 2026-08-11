@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Standup"
+  short_description: "Summarize agent work that needs attention"
+  default_prompt: "Use $superset-standup to summarize what my Superset agents did and what needs my attention."

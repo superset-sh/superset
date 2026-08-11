@@ -1,7 +1,6 @@
 ---
 name: setup
 description: Make a repository Superset-ready — author .superset/config.json with setup/teardown/run scripts so every new workspace boots configured, then verify with a real workspace. Use when the user wants to set up a project or repo for Superset, configure workspace setup scripts, or fix a failing workspace setup.
-argument-hint: optional notes about the project's setup needs
 ---
 
 # Superset Project Setup
@@ -36,8 +35,8 @@ Each key is an array of shell commands run inside the worktree on workspace crea
 - Copy secrets/env from the main checkout at setup time — never commit them
 - `.superset/config.local.json` (gitignored) lets an individual user extend scripts with `before`/`after` arrays without touching the shared config
 
-Show the user the proposed files and get explicit approval before writing.
+Show the user the proposed files and get explicit approval before writing. Include the exact project, host, workspace name, branch, and planned test-workspace deletion in the approval before verification.
 
 ## 3. Verify for real
 
-Create a throwaway workspace with `superset workspaces create --project <id> --name "setup-test"` and watch the "Workspace Setup" terminal output. Fix and repeat until it completes cleanly, then delete the test workspace. Setup is not done until a real workspace boots green.
+Create a throwaway workspace with `superset workspaces create --local --project <project-id> --name <unique-test-name> --branch <unique-test-branch> --json` and capture its returned workspace ID. Use `--host <host-id>` instead of `--local` for a remote project. Watch the "Workspace Setup" terminal output, fix failures, and repeat until it completes cleanly. Delete only the captured test workspace ID, using the same explicit `--local` or `--host` target, after the approved verification finishes. Setup is not done until a real workspace boots green.

@@ -12,6 +12,7 @@ import {
 	createManagedSkills,
 	MANAGED_SENTINEL_NAME,
 	MANAGED_SKILL_MARKER,
+	setCommandArgumentHint,
 	setFrontmatterName,
 	withManagedMarker,
 } from "./managed-skills";
@@ -92,6 +93,16 @@ describe("setFrontmatterName", () => {
 	});
 });
 
+describe("setCommandArgumentHint", () => {
+	it("keeps client-specific hints out of the source skill", () => {
+		const source = skillMd("feedback");
+		const command = setCommandArgumentHint(source, "describe the feedback");
+
+		expect(source).not.toContain("argument-hint:");
+		expect(command).toContain('argument-hint: "describe the feedback"');
+	});
+});
+
 describe("createManagedSkills", () => {
 	it("provisions the Claude skills-directory plugin verbatim with a sentinel", async () => {
 		await run();
@@ -155,14 +166,21 @@ describe("createManagedSkills", () => {
 		).toBe(true);
 	});
 
-	it("provisions in-app commands for feedback and 10x only", async () => {
+	it("provisions available in-app commands with command-only hints", async () => {
 		await run();
 
-		for (const file of ["feedback.md", "10x.md"]) {
-			expect(readFileSync(path.join(commandsDir, file), "utf-8")).toContain(
-				MANAGED_SKILL_MARKER,
-			);
-		}
+		const feedback = readFileSync(
+			path.join(commandsDir, "feedback.md"),
+			"utf-8",
+		);
+		expect(feedback).toContain(MANAGED_SKILL_MARKER);
+		expect(feedback).toContain(
+			'argument-hint: "describe the bug, request, or feedback"',
+		);
+
+		const tenX = readFileSync(path.join(commandsDir, "10x.md"), "utf-8");
+		expect(tenX).toContain(MANAGED_SKILL_MARKER);
+		expect(tenX).toContain('argument-hint: "optional topic, e.g. automations"');
 		expect(existsSync(path.join(commandsDir, "orchestrate.md"))).toBe(false);
 	});
 

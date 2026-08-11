@@ -18,5 +18,6 @@ fi
 ./scripts/check-git-ref-strings.sh || exit_code=1
 ./scripts/check-cloud-workspace-usage.sh || exit_code=1
 ./scripts/check-simple-git-usage.sh || exit_code=1
+bun scripts/check-agent-skills.ts || exit_code=1
 
 exit $exit_code

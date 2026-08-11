@@ -1,7 +1,6 @@
 ---
 name: contribute
 description: Set up a Superset open-source contribution — fork and clone superset-sh/superset, run local dev setup, and follow the repo's contribution rules through to a merge-ready PR. Use when the user wants to contribute to Superset, fix a Superset bug themselves, or prepare a PR against superset-sh/superset.
-argument-hint: what they want to contribute
 ---
 
 # Contribute to Superset

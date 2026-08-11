@@ -1,7 +1,6 @@
 ---
 name: 10x
 description: Personalized audit that teaches advanced Superset features the user isn't using yet — automations, parallel agents, tasks, multi-host, terminals, custom commands, MCP. Use when the user wants to get more out of Superset, learn advanced Superset features, or 10x their Superset workflow.
-argument-hint: optional topic, e.g. automations
 ---
 
 # Superset 10x
@@ -34,14 +33,16 @@ For each recommendation in order: a two-sentence pitch, then ask (use the ask_us
 | Feature | Why it 10x's you | Live setup |
 | --- | --- | --- |
 | Automations | Scheduled agents — triage, changelogs, standups run while you sleep | `superset automations create`, then `superset automations logs` to review runs |
-| Parallel workspaces | Every task gets an isolated worktree; run several agents at once instead of queueing | `superset workspaces create --project <id>` then `superset agents create --workspace <id> --agent claude --prompt "..."` |
-| PR review workspaces | Check out any PR into its own workspace in one command | `superset workspaces create --pr <number>` |
+| Parallel workspaces | Every task gets an isolated worktree; run several agents at once instead of queueing | `superset workspaces create --local --project <project-id> --name <workspace-name> --branch <branch-name>`, then `superset agents create --workspace <workspace-id> --agent claude --prompt "..."` |
+| PR review workspaces | Check out any PR into its own workspace in one command | `superset workspaces create --local --project <project-id> --name pr-<number> --pr <number>` |
 | Tasks | A shared queue agents can pick up; track work across sessions | `superset tasks create --title "..."`, `superset tasks update` |
 | Multi-host | Run agents on your desktop from your laptop; wake offline machines | `superset hosts list`, `superset hosts set-wake`, `superset hosts wake <id>` |
 | Terminal remote-control | Read and drive any agent's terminal from anywhere | `superset terminals list / read / send` |
 | Custom slash commands | Your repo's own workflows as commands every agent can run | create `.agents/commands/<name>.md` in their repo |
 | MCP servers | Give every workspace agent the same extra tools | add servers to `.mcp.json` at their repo root |
 | Feedback loop | Report bugs or ideas without leaving the agent | invoke the `feedback` skill from this plugin |
+
+Use `--host <host-id>` instead of `--local` when the target project is on another machine. Capture the workspace ID returned by `workspaces create`; do not guess it from the workspace name.
 
 ## Rules
 

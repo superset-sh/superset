@@ -1,7 +1,6 @@
 ---
 name: feedback
 description: Collect and submit feedback about Superset — bug reports, feature requests, or general feedback — privately to the Superset team or as a public GitHub issue. Use when the user wants to report a Superset bug, request a feature, or send feedback about Superset.
-argument-hint: describe the bug, request, or feedback
 ---
 
 # Superset Feedback

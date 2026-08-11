@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset Automate"
+  short_description: "Create and verify a scheduled Superset agent"
+  default_prompt: "Use $superset-automate to turn this recurring task into a verified Superset automation."

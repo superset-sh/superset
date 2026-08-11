@@ -1,0 +1,4 @@
+interface:
+  display_name: "Contribute to Superset"
+  short_description: "Prepare a merge-ready Superset contribution"
+  default_prompt: "Use $superset-contribute to prepare this Superset contribution and take it through a merge-ready pull request."

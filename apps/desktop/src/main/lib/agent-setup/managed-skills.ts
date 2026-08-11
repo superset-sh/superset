@@ -28,6 +28,13 @@ const CLAUDE_PLUGIN_DIR_NAME = "superset";
  * the bundled plugin is provisioned automatically.
  */
 const COMMAND_SKILLS = ["feedback", "10x", "setup", "doctor"] as const;
+const COMMAND_ARGUMENT_HINTS: Record<(typeof COMMAND_SKILLS)[number], string> =
+	{
+		feedback: "describe the bug, request, or feedback",
+		"10x": "optional topic, e.g. automations",
+		setup: "optional notes about the project's setup needs",
+		doctor: "describe the symptom",
+	};
 
 export interface ManagedSkillsOptions {
 	homeDir?: string;
@@ -55,6 +62,19 @@ export function setFrontmatterName(content: string, name: string): string {
 	if (frontmatterEnd === -1) return content;
 	const frontmatter = content.slice(0, frontmatterEnd);
 	const rewritten = frontmatter.replace(/^name:[^\n]*$/m, `name: ${name}`);
+	return rewritten + content.slice(frontmatterEnd);
+}
+
+/** Adds command-only UI metadata without putting it in portable Agent Skills. */
+export function setCommandArgumentHint(content: string, hint: string): string {
+	if (!content.startsWith("---\n")) return content;
+	const frontmatterEnd = content.indexOf("\n---\n", 4);
+	if (frontmatterEnd === -1) return content;
+	const frontmatter = content.slice(0, frontmatterEnd);
+	const field = `argument-hint: ${JSON.stringify(hint)}`;
+	const rewritten = /^argument-hint:[^\n]*$/m.test(frontmatter)
+		? frontmatter.replace(/^argument-hint:[^\n]*$/m, field)
+		: `${frontmatter}\n${field}`;
 	return rewritten + content.slice(frontmatterEnd);
 }
 
@@ -306,7 +326,13 @@ export async function createManagedSkills(
 				continue;
 			}
 			fs.mkdirSync(commandNamespaceDir, { recursive: true });
-			writeFileIfChanged(filePath, withManagedMarker(raw), 0o644);
+			writeFileIfChanged(
+				filePath,
+				withManagedMarker(
+					setCommandArgumentHint(raw, COMMAND_ARGUMENT_HINTS[pluginSkill]),
+				),
+				0o644,
+			);
 		} catch (error) {
 			console.warn(
 				`[agent-setup] Failed to provision command ${fileName}:`,

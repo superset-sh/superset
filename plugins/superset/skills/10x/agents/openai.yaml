@@ -1,0 +1,4 @@
+interface:
+  display_name: "Superset 10x"
+  short_description: "Audit and improve your Superset workflow"
+  default_prompt: "Use $superset-10x to audit how I use Superset and recommend the highest-impact feature to adopt next."
