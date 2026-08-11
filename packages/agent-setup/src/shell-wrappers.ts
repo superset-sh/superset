@@ -256,7 +256,10 @@ hash -r 2>/dev/null || true
 # when the user has not opted out with SUPERSET_KEEP_PS1=1. Plain assignment
 # (no export) so PS1 does not leak into child processes, where rc files and
 # scripts that test for a set PS1 to detect interactivity would be misled.
+# export -n clears the export attribute if the user's own config exported
+# PS1 before this point, so the "not exported" guarantee holds either way.
 if [[ -z "\${SUPERSET_KEEP_PS1:-}" && $- == *i* ]]; then
+  export -n PS1 2>/dev/null || true
   PS1=$'\\[\\e[1;38;2;52;211;153m\\]❯\\[\\e[0m\\] '
 fi
 # Shell readiness markers — see zsh wrapper for rationale on emitting both.

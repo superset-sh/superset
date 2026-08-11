@@ -878,27 +878,30 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 	describe("bash PS1 handling (#6311)", () => {
 		function runBash({
 			homeDir,
-			rcArgs = ["-ic"],
+			interactive = true,
+			command,
 			extraEnv = {},
 		}: {
 			homeDir: string;
-			rcArgs?: string[];
+			interactive?: boolean;
+			command?: string;
 			extraEnv?: Record<string, string>;
 		}): string {
 			createBashWrapper(TEST_PATHS);
-			return execFileSync(
-				"bash",
-				[
-					"--rcfile",
-					path.join(TEST_BASH_DIR, "rcfile"),
-					...rcArgs,
-					'printf "%s" "$PS1"',
-				],
-				{
-					encoding: "utf-8",
-					env: { HOME: homeDir, PATH: "/usr/bin:/bin", ...extraEnv },
-				},
-			);
+			const rcfile = path.join(TEST_BASH_DIR, "rcfile");
+			// bash only honours `--rcfile` for interactive shells, so for the
+			// non-interactive case we source the wrapper rcfile explicitly to
+			// actually exercise the `$- == *i*` guard.
+			const args = interactive
+				? ["--rcfile", rcfile, "-ic", command ?? 'printf "%s" "$PS1"']
+				: [
+						"-c",
+						`source ${quoteShellLiteral(rcfile)} && ${command ?? 'printf "%s" "$PS1"'}`,
+					];
+			return execFileSync("bash", args, {
+				encoding: "utf-8",
+				env: { HOME: homeDir, PATH: "/usr/bin:/bin", ...extraEnv },
+			});
 		}
 
 		it("applies the emerald prompt by default in an interactive shell", () => {
@@ -928,21 +931,38 @@ export SUPERSET_WORKSPACE_PATH="/wrong/path"
 			const homeDir = path.join(TEST_ROOT, "ps1-noninteractive", "home");
 			mkdirSync(homeDir, { recursive: true });
 
-			const output = runBash({ homeDir, rcArgs: ["-c"] });
-			// No prompt in a non-interactive shell (the rcfile is sourced via
-			// getCommandShellArgs for `bash -c` command execution).
+			// Source the rcfile in a non-interactive `-c` shell; the `$- == *i*`
+			// guard must skip the prompt assignment.
+			const output = runBash({ homeDir, interactive: false });
 			expect(output).not.toContain("38;2;52;211;153");
 		});
 
-		it("does not leak PS1 into child processes (plain assignment, no export)", () => {
+		it("does not export PS1 to child processes even if user config did", () => {
 			const homeDir = path.join(TEST_ROOT, "ps1-noexport", "home");
 			mkdirSync(homeDir, { recursive: true });
+			// User config exports PS1 before Superset's wrapper sets its own.
+			// The wrapper's `export -n PS1` must keep it unexported to children.
+			writeFileSync(path.join(homeDir, ".bashrc"), `export PS1='user'\n`);
 
-			createBashWrapper(TEST_PATHS);
-			const rcfile = readFileSync(path.join(TEST_BASH_DIR, "rcfile"), "utf-8");
-			// The prompt assignment must be a plain `PS1=`, not `export PS1=`.
-			expect(rcfile).toMatch(/\n {2}PS1=\$'/);
-			expect(rcfile).not.toMatch(/export PS1=/);
+			const output = runBash({
+				homeDir,
+				command: 'printf "%s" "${' + "PS1-}" + '"',
+			});
+			// Superset's emerald prompt wins in the shell...
+			expect(output).toContain("38;2;52;211;153");
+		});
+
+		it("does not leak PS1 into child processes (plain assignment, no export)", () => {
+			const homeDir = path.join(TEST_ROOT, "ps1-noexport-child", "home");
+			mkdirSync(homeDir, { recursive: true });
+			writeFileSync(path.join(homeDir, ".bashrc"), `export PS1='user'\n`);
+
+			// A grandchild shell must NOT inherit PS1 as an exported variable.
+			const output = runBash({
+				homeDir,
+				command: 'env | grep -c "^PS1=" || true',
+			});
+			expect(output.trim()).toBe("0");
 		});
 	});
 });
