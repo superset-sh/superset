@@ -45,7 +45,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			href: "/download",
 			variant: "outline",
 		},
-		ctaNote: { label: "No credit card required. Free forever." },
+		ctaNote: { label: "No credit card required." },
 	},
 	{
 		id: "pro",
