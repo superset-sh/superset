@@ -69,7 +69,7 @@ export function SoftwareApplicationJsonLd() {
 		"@context": "https://schema.org",
 		"@type": "SoftwareApplication",
 		name: COMPANY.NAME,
-		operatingSystem: "macOS, Windows, Linux",
+		operatingSystem: "macOS",
 		applicationCategory: "DeveloperApplication",
 		applicationSubCategory: "Developer Tools",
 		offers: {

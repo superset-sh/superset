@@ -36,7 +36,7 @@ export const PRICING_TIERS: PricingTier[] = [
 			"Local workspaces",
 			"Desktop app",
 			"GitHub integration",
-			"CLI (coming soon)",
+			"CLI",
 		],
 		cta: {
 			label: "Download app",

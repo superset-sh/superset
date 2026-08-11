@@ -39,7 +39,7 @@ export const FEATURES: Feature[] = [
 		tag: "Remote Workspaces",
 		title: "Run workspaces anywhere",
 		description:
-			"Add any machine as a host, on every plan. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are.",
+			"Add any machine as a host. Workspaces keep running when your laptop sleeps, and you can check in from wherever you are.",
 	},
 	{
 		tag: "CLI & SDK",
