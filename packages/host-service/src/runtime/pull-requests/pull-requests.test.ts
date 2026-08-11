@@ -205,6 +205,22 @@ function makePrNode(pr: {
 	};
 }
 
+// Typed handle on the private per-repo sweep entrypoint under test; keeps
+// tsc (no private dot-access) and biome (no bracket-access) both satisfied.
+function openPullRequestsSweeper(manager: PullRequestRuntimeManager) {
+	const accessible = manager as unknown as {
+		getCachedOpenPullRequests(repo: {
+			provider: "github";
+			owner: string;
+			name: string;
+			url: string;
+			remoteName: string;
+			defaultBranch: string | null;
+		}): Promise<unknown[]>;
+	};
+	return accessible.getCachedOpenPullRequests.bind(accessible);
+}
+
 // Silences the expected warnings the manager logs on handled failures.
 async function withSilencedWarnings<T>(fn: () => Promise<T>): Promise<T> {
 	const original = console.warn;
@@ -646,10 +662,9 @@ describe("PullRequestRuntimeManager refresh", () => {
 				remoteName: "origin",
 				defaultBranch: "main",
 			};
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
 			const sweep = () =>
-				withSilencedWarnings(() =>
-					manager.getCachedOpenPullRequests(repo).catch(() => {}),
-				);
+				withSilencedWarnings(() => fetchOpenPrs(repo).catch(() => {}));
 
 			// Trigger every 20s for 10 minutes. Without backoff the 60s TTL
 			// admits 11 fetches; doubling admits only t=0, 2min, 6min.
@@ -669,6 +684,67 @@ describe("PullRequestRuntimeManager refresh", () => {
 			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000 + 61_000));
 			await sweep();
 			expect(attempts).toBe(5);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	// A fetch that out-lives its own backoff window before rejecting must
+	// anchor the backoff at the rejection, not the fetch start — otherwise
+	// the cached rejection is born expired and the next trigger refetches
+	// immediately, so slow failures never back off.
+	test("anchors failure backoff at rejection time for slow failures", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let attempts = 0;
+			let rejectInFlight: ((error: Error) => void) | undefined;
+			const manager = createManager(db, {
+				execGh: () => {
+					attempts += 1;
+					if (attempts === 1) {
+						return new Promise((_, reject) => {
+							rejectInFlight = reject;
+						});
+					}
+					return Promise.reject(new Error("sweep unavailable"));
+				},
+				github: (async () => {
+					throw new Error("octokit unavailable");
+				}) as never,
+			});
+			const repo = {
+				provider: "github" as const,
+				owner: REPO.owner,
+				name: REPO.name,
+				url: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			};
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
+			const sweep = () =>
+				withSilencedWarnings(() => fetchOpenPrs(repo).catch(() => {}));
+
+			// The fetch hangs past its own post-failure window (120s after the
+			// first failure) and only then rejects.
+			const slow = sweep();
+			expect(attempts).toBe(1);
+			setSystemTime(new Date(t0 + 130_000));
+			rejectInFlight?.(new Error("slow failure"));
+			await slow;
+
+			// Anchored at fetch start the window would already be consumed and
+			// this trigger would refetch; anchored at the rejection it holds.
+			setSystemTime(new Date(t0 + 131_000));
+			await sweep();
+			expect(attempts).toBe(1);
+
+			// The full window measured from the failure elapses: retry admitted.
+			setSystemTime(new Date(t0 + 130_000 + 121_000));
+			await sweep();
+			expect(attempts).toBe(2);
 		} finally {
 			setSystemTime();
 		}

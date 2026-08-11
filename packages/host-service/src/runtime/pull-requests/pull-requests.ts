@@ -1024,6 +1024,9 @@ export class PullRequestRuntimeManager {
 				entry.consecutiveFailures = 0;
 			},
 			() => {
+				// Re-anchor at the failure: a fetch that out-lives its own backoff
+				// window before rejecting must not be retried immediately.
+				entry.fetchedAt = Date.now();
 				entry.consecutiveFailures += 1;
 			},
 		);
