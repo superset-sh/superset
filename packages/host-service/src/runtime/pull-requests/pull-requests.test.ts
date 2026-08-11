@@ -1,6 +1,8 @@
 import { Database } from "bun:sqlite";
 import { describe, expect, setSystemTime, test } from "bun:test";
-import { resolve } from "node:path";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
@@ -53,13 +55,14 @@ function seedWorkspace(
 		upstreamRepo?: string | null;
 		upstreamBranch?: string | null;
 		pullRequestId?: string | null;
+		worktreePath?: string;
 	},
 ) {
 	db.insert(schema.workspaces)
 		.values({
 			id: w.id,
 			projectId: PROJECT_ID,
-			worktreePath: `/repo/.worktrees/${w.id}`,
+			worktreePath: w.worktreePath ?? `/repo/.worktrees/${w.id}`,
 			branch: w.branch,
 			createdAt: Date.now(),
 			headSha: w.headSha ?? null,
@@ -1192,5 +1195,72 @@ describe("missing-worktree degraded state", () => {
 		).toHaveLength(1);
 
 		manager.stop();
+	});
+
+	// Constructed WITHOUT worktreeExists: pins the `?? existsSync` production
+	// default against a real directory, which every other test stubs out.
+	test("default disk gate uses the real filesystem when nothing is injected", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		const dir = mkdtempSync(join(tmpdir(), "prm-default-gate-"));
+		seedWorkspace(db, {
+			id: "ws-real",
+			branch: "feat/real",
+			worktreePath: dir,
+		});
+		let refsReads = 0;
+		const manager = new PullRequestRuntimeManager({
+			db,
+			execGh: routeGh({
+				"feat/real": makePrNode({
+					number: 7002,
+					headRef: "feat/real",
+					headSha: "sha-real",
+				}),
+			}) as never,
+			git: (async () => {
+				throw new Error("git should not be used");
+			}) as never,
+			github: (async () => {
+				throw new Error("octokit should not be used");
+			}) as never,
+			gitWatcher: { onChanged: () => () => {} } as never,
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/real",
+					headSha: "sha-real",
+					upstream: { owner: REPO.owner, name: REPO.name, branch: "feat/real" },
+				};
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+		const event: WorkspaceChangedEvent = {
+			workspaceId: "ws-real",
+			eventType: "created",
+			workspace: null,
+			occurredAt: 1,
+		};
+
+		try {
+			bus.emit(event);
+			await waitFor(() => refsReads > 0);
+			expect(refsReads).toBeGreaterThan(0);
+
+			const seen = refsReads;
+			rmSync(dir, { recursive: true, force: true });
+			const { warnings } = await withCapturedWarnings(async () => {
+				bus.emit(event);
+				await waitFor(() => refsReads > seen, 100);
+			});
+			expect(refsReads).toBe(seen);
+			expect(
+				warnings.filter((w) => w.includes("Worktree missing on disk")),
+			).toHaveLength(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+			manager.stop();
+		}
 	});
 });
