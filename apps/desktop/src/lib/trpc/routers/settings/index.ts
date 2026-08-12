@@ -55,6 +55,11 @@ import {
 	MAX_TERMINAL_PARKED_RUNTIME_CAP,
 	MIN_TERMINAL_PARKED_RUNTIME_CAP,
 } from "shared/constants";
+import {
+	DEFAULT_FILE_TREE_HIDDEN_PATTERNS,
+	MAX_FILE_TREE_HIDDEN_PATTERN_LENGTH,
+	MAX_FILE_TREE_HIDDEN_PATTERNS,
+} from "shared/file-tree-patterns";
 import { normalizePresetProjectIds } from "shared/preset-project-targeting";
 import {
 	CUSTOM_RINGTONE_ID,
@@ -949,6 +954,36 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set,
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getFileTreeHiddenPatterns: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.fileTreeHiddenPatterns ?? DEFAULT_FILE_TREE_HIDDEN_PATTERNS;
+		}),
+
+		setFileTreeHiddenPatterns: publicProcedure
+			.input(
+				z.object({
+					patterns: z
+						.array(z.string().max(MAX_FILE_TREE_HIDDEN_PATTERN_LENGTH))
+						.max(MAX_FILE_TREE_HIDDEN_PATTERNS),
+				}),
+			)
+			.mutation(({ input }) => {
+				const patterns = input.patterns
+					.map((pattern) => pattern.trim())
+					.filter((pattern) => pattern.length > 0);
+
+				localDb
+					.insert(settings)
+					.values({ id: 1, fileTreeHiddenPatterns: patterns })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { fileTreeHiddenPatterns: patterns },
 					})
 					.run();
 

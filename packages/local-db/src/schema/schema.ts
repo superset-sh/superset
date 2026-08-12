@@ -255,6 +255,9 @@ export const settings = sqliteTable("settings", {
 	disabledAgentHooks: text("disabled_agent_hooks", { mode: "json" }).$type<
 		string[]
 	>(),
+	fileTreeHiddenPatterns: text("file_tree_hidden_patterns", {
+		mode: "json",
+	}).$type<string[]>(),
 });
 
 export type InsertSettings = typeof settings.$inferInsert;

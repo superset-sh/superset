@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `file_tree_hidden_patterns` text;
