@@ -682,7 +682,16 @@ export class FsWatcherManager {
 			],
 		};
 		for (const listener of state.listeners) {
-			listener(batch);
+			// Contain per-listener throws: one bad subscriber must not skip
+			// siblings or the follow-up arm below.
+			try {
+				listener(batch);
+			} catch (error) {
+				console.error("[workspace-fs/watch] overflow rescan listener threw", {
+					absolutePath: state.absolutePath,
+					error: toErrorMessage(error),
+				});
+			}
 		}
 		// A deadline-forced fire mid-storm (an overflow landed inside the
 		// window just used) hasn't seen the fs settle — arm a follow-up batch
