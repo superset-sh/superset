@@ -23,7 +23,9 @@ describe("@xterm/addon-webgl GPU atlas patch", () => {
 		});
 
 		test(`${name} frees merged-away/evicted atlas canvases eagerly`, () => {
-			expect(src).toMatch(/canvas\.width\s*=\s*0/);
+			// Two release sites (page merge + evictAllPages), width and height each.
+			expect(src.match(/canvas\.width\s*=\s*0/g) ?? []).toHaveLength(2);
+			expect(src.match(/canvas\.height\s*=\s*0/g) ?? []).toHaveLength(2);
 		});
 	}
 });
