@@ -16,11 +16,11 @@ Typical uses:
 - **Audits**: scan for security issues or deprecated APIs each morning
 - **Dependency sweeps**: check for outdated packages weekly
 
-The Automations list shows health stats up top (Active, Created, and Failed over the last 7 days), groups enabled automations by soonest next run under **Up next** with paused ones below, and splits into **Mine** and **Team** tabs. Teammates' automations are read-only — only the owner can edit, pause, run, or delete one.
+The list shows 7-day health stats (Active, Created, Failed), groups enabled automations by soonest run under **Up next**, and splits into **Mine** and **Team** tabs. Team automations are read-only; only the owner can edit, pause, run, or delete one.
 
 ## Requirements
 
-- **A project — or session mode**: Automations usually run against a v2 project that's linked to a GitHub repo. Pick **No project** instead and each run creates a project-less [session workspace](/workspaces#sessions) on the target host.
+- **A project, or session mode**: automations usually run against a v2 project linked to a GitHub repo. Pick **No project** and each run creates a [session workspace](/workspaces#sessions) instead.
 - **A target device**: The run fires on the device you pick when creating the automation.
 
 ## Create an Automation
@@ -36,7 +36,7 @@ Click **Automations → New automation** and fill in:
 
 ## Schedules
 
-Schedules are stored as [RFC 5545 RRules](https://datatracker.ietf.org/doc/html/rfc5545#section-3.8.5). The schedule picker has presets for common cadences; use **Custom RRule…** for anything else. Custom rules are validated before saving — an invalid rule shows an inline error, a valid one echoes the human-readable schedule.
+Schedules are stored as [RFC 5545 RRules](https://datatracker.ietf.org/doc/html/rfc5545#section-3.8.5). The schedule picker has presets for common cadences; use **Custom RRule…** for anything else. Custom rules are validated before saving; invalid ones show an inline error.
 
 Examples:
 
@@ -48,9 +48,9 @@ Examples:
 
 Each time an automation fires, a **run** is recorded. Runs show up on the automation detail page's **Run History** tab with a status:
 
-- **created**: the run's workspace was created on the target device — a run's terminal success state
+- **created**: the workspace was created on the target device (a run's success state)
 - **creating**: the handoff is in flight
-- **failed**: the device was offline at fire time, or something broke during handoff; the full error renders inline under the run, selectable for copying
+- **failed**: the device was offline at fire time or the handoff broke. The error shows inline under the run, selectable for copying
 
 The schedule advances to the next occurrence either way.
 
@@ -60,13 +60,13 @@ When a run dispatches in "new workspace" mode, a fresh workspace is created from
 
 From the automation's detail page (**Settings** tab):
 
-- **Pause**: flip the Active switch to stop scheduling until you resume. Existing runs are kept, and a paused automation still shows when it *would* next run — so you can preview schedule edits before resuming.
+- **Pause**: flip the Active switch. Runs are kept, and a paused automation still shows when it *would* next run, so schedule edits are previewable.
 - **Run now**: dispatches immediately. The run appears under **Run History** within seconds.
 - **Delete**: in the ⋯ overflow menu; removes the automation and its run history.
 
 ## Retry Failed Runs
 
-On the **Mine** tab, a **Retry all** button appears in the header when any of your automations' latest run failed, re-dispatching all of them at once; it disappears when nothing is failing. The **Failed** stat card doubles as a filter for automations whose latest run failed, and hovering a row you own reveals a **Run now** button to re-dispatch just that one.
+On the **Mine** tab, **Retry all** appears in the header when any of your automations' latest run failed, and re-dispatches all of them. The **Failed** stat card filters to failing automations. Hover a row you own for **Run now** to re-dispatch one.
 
 ## Limits
 

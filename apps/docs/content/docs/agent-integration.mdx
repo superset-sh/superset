@@ -66,9 +66,9 @@ The setting is remembered between sessions.
 
 ## Resume Interrupted Sessions
 
-If an agent's terminal dies without the agent exiting cleanly — a crash, a reboot, a killed process — the pane shows an "*Agent* was interrupted" banner with a **Resume** button. Resuming relaunches the agent with its own resume command (e.g. `claude --resume <session-id>`) in the same pane, restoring the full conversation.
+If an agent's terminal dies under it (a crash, a reboot, a killed process), the pane shows an "*Agent* was interrupted" banner with a **Resume** button. Resume relaunches the agent with its resume command (e.g. `claude --resume <session-id>`) in the same pane, restoring the conversation.
 
-This works for agents with an id-based resume command (configurable via **Resume Args** under **Settings → Agents**), including agent sessions carried over from v1 pane migration. From the CLI:
+Works for agents with an id-based resume command (the **Resume Args** field under **Settings → Agents**). From the CLI:
 
 ```bash
 superset agents create --workspace ws_… --agent claude --resume-session <sessionId>

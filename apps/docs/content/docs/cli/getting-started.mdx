@@ -93,13 +93,12 @@ Auth: Session (expires in 32 min)
 
 ## Explore interactively
 
-Run `superset` with no arguments in a terminal to open an interactive
-command browser: arrow-key through the command tree, read each command's
-flags, and fill in required inputs with guided prompts. The confirmation
-screen shows the exact assembled command before running it, so the browser
-doubles as a way to learn the syntax. `superset --help` prints the same
-catalog as a static, grouped help screen. Agent and CI environments always
-get static help and JSON output — the browser never opens there.
+Bare `superset` in a terminal opens an interactive command browser:
+arrow-key through the commands, read their flags, and fill in required
+inputs with guided prompts. The confirmation screen shows the exact
+command before running it. `superset --help` prints the same catalog as
+static, grouped help. Agents and CI always get static help; the browser
+never opens there.
 
 ## Run your first commands
 
