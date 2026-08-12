@@ -46,6 +46,7 @@ import {
 	DEFAULT_EXPOSE_HOST_SERVICE_VIA_RELAY,
 	DEFAULT_FILE_OPEN_MODE,
 	DEFAULT_OPEN_LINKS_IN_APP,
+	DEFAULT_SHOW_AI_USAGE_INDICATOR,
 	DEFAULT_SHOW_PRESETS_BAR,
 	DEFAULT_SHOW_RESOURCE_MONITOR,
 	DEFAULT_TERMINAL_LINK_BEHAVIOR,
@@ -967,6 +968,26 @@ export const createSettingsRouter = () => {
 					.onConflictDoUpdate({
 						target: settings.id,
 						set: { showResourceMonitor: input.enabled },
+					})
+					.run();
+
+				return { success: true };
+			}),
+
+		getShowAiUsageIndicator: publicProcedure.query(() => {
+			const row = getSettings();
+			return row.showAiUsageIndicator ?? DEFAULT_SHOW_AI_USAGE_INDICATOR;
+		}),
+
+		setShowAiUsageIndicator: publicProcedure
+			.input(z.object({ enabled: z.boolean() }))
+			.mutation(({ input }) => {
+				localDb
+					.insert(settings)
+					.values({ id: 1, showAiUsageIndicator: input.enabled })
+					.onConflictDoUpdate({
+						target: settings.id,
+						set: { showAiUsageIndicator: input.enabled },
 					})
 					.run();
 

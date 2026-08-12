@@ -74,6 +74,8 @@ export function AIUsageIndicator() {
 		readStoredMetricSelection,
 	);
 	const utils = electronTrpc.useUtils();
+	const { data: indicatorEnabled } =
+		electronTrpc.settings.getShowAiUsageIndicator.useQuery();
 	const { data, isFetching } = electronTrpc.providerUsage.getSnapshot.useQuery(
 		undefined,
 		{
@@ -155,6 +157,8 @@ export function AIUsageIndicator() {
 			[key]: !value[key],
 		}));
 	}
+
+	if (!indicatorEnabled) return null;
 
 	return (
 		<Popover open={open} onOpenChange={setOpen}>

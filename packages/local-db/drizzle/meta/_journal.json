@@ -302,6 +302,13 @@
       "when": 1784326143765,
       "tag": "0042_overconfident_cloak",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "6",
+      "when": 1786557648471,
+      "tag": "0043_medical_secret_warriors",
+      "breakpoints": true
     }
   ]
 }

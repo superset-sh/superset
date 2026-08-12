@@ -32,6 +32,10 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 		SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR,
 		visibleItems,
 	);
+	const showAiUsageIndicator = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_AI_USAGE_INDICATOR,
+		visibleItems,
+	);
 	const showOpenLinksInApp = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP,
 		visibleItems,
@@ -101,6 +105,31 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 			},
 			onSettled: () => {
 				utils.settings.getShowResourceMonitor.invalidate();
+			},
+		});
+
+	const {
+		data: aiUsageIndicatorEnabled,
+		isLoading: isAiUsageIndicatorLoading,
+	} = electronTrpc.settings.getShowAiUsageIndicator.useQuery();
+	const setShowAiUsageIndicator =
+		electronTrpc.settings.setShowAiUsageIndicator.useMutation({
+			onMutate: async ({ enabled }) => {
+				await utils.settings.getShowAiUsageIndicator.cancel();
+				const previous = utils.settings.getShowAiUsageIndicator.getData();
+				utils.settings.getShowAiUsageIndicator.setData(undefined, enabled);
+				return { previous };
+			},
+			onError: (_err, _vars, context) => {
+				if (context?.previous !== undefined) {
+					utils.settings.getShowAiUsageIndicator.setData(
+						undefined,
+						context.previous,
+					);
+				}
+			},
+			onSettled: () => {
+				utils.settings.getShowAiUsageIndicator.invalidate();
 			},
 		});
 
@@ -198,6 +227,32 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 							}
 							disabled={
 								isResourceMonitorLoading || setShowResourceMonitor.isPending
+							}
+						/>
+					</div>
+				)}
+
+				{showAiUsageIndicator && (
+					<div className="flex items-center justify-between">
+						<div className="space-y-0.5">
+							<Label
+								htmlFor="ai-usage-indicator"
+								className="text-sm font-medium"
+							>
+								AI usage meter
+							</Label>
+							<p className="text-xs text-muted-foreground">
+								Show remaining Claude and Codex capacity in the top bar
+							</p>
+						</div>
+						<Switch
+							id="ai-usage-indicator"
+							checked={aiUsageIndicatorEnabled ?? false}
+							onCheckedChange={(enabled) =>
+								setShowAiUsageIndicator.mutate({ enabled })
+							}
+							disabled={
+								isAiUsageIndicatorLoading || setShowAiUsageIndicator.isPending
 							}
 						/>
 					</div>

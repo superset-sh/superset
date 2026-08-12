@@ -27,6 +27,7 @@ export const SETTING_ITEM_ID = {
 	BEHAVIOR_CONFIRM_QUIT: "behavior-confirm-quit",
 	BEHAVIOR_FILE_OPEN_MODE: "behavior-file-open-mode",
 	BEHAVIOR_RESOURCE_MONITOR: "behavior-resource-monitor",
+	BEHAVIOR_AI_USAGE_INDICATOR: "behavior-ai-usage-indicator",
 	BEHAVIOR_OPEN_LINKS_IN_APP: "behavior-open-links-in-app",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
@@ -140,6 +141,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	[SETTING_ITEM_ID.BEHAVIOR_CONFIRM_QUIT]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_FILE_OPEN_MODE]: "v1",
 	[SETTING_ITEM_ID.BEHAVIOR_RESOURCE_MONITOR]: "shared",
+	[SETTING_ITEM_ID.BEHAVIOR_AI_USAGE_INDICATOR]: "shared",
 	[SETTING_ITEM_ID.BEHAVIOR_OPEN_LINKS_IN_APP]: "v1",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
@@ -595,6 +597,24 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"performance",
 			"process",
 			"terminal",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_AI_USAGE_INDICATOR,
+		section: "behavior",
+		title: "AI usage meter",
+		description: "Show remaining Claude and Codex capacity in the top bar",
+		keywords: [
+			"ai",
+			"usage",
+			"meter",
+			"quota",
+			"limits",
+			"claude",
+			"codex",
+			"capacity",
+			"rate limit",
+			"top bar",
 		],
 	},
 	{
