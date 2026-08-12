@@ -1,9 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import {
-	foldSpaces,
-	matchByFoldedName,
-	splitPath,
-} from "./dropped-path-repair";
+import { foldSpaces, matchByFoldedName } from "./dropped-path-repair";
 
 describe("foldSpaces", () => {
 	it("folds the narrow no-break space macOS puts before am/pm", () => {
@@ -20,26 +16,6 @@ describe("foldSpaces", () => {
 
 	it("does not touch tabs or newlines, which are not space separators", () => {
 		expect(foldSpaces("a\tb\nc")).toBe("a\tb\nc");
-	});
-});
-
-describe("splitPath", () => {
-	it("splits a directory from a basename", () => {
-		expect(splitPath("/var/folders/x/Screenshot.png")).toEqual({
-			dir: "/var/folders/x",
-			base: "Screenshot.png",
-		});
-	});
-
-	it("treats a bare name as having no directory", () => {
-		expect(splitPath("Screenshot.png")).toEqual({
-			dir: "",
-			base: "Screenshot.png",
-		});
-	});
-
-	it("keeps the root slash", () => {
-		expect(splitPath("/tmp")).toEqual({ dir: "", base: "tmp" });
 	});
 });
 

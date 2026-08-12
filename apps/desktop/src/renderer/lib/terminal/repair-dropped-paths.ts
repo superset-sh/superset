@@ -15,7 +15,14 @@ export async function repairDroppedPaths(
 				return await electronTrpcClient.external.resolveDroppedPath.query({
 					path,
 				});
-			} catch {
+			} catch (error) {
+				// The drop still has to land, so fall back to the path we were
+				// given — but say that the check never ran, otherwise a dead
+				// main process looks exactly like a path that needed no repair.
+				console.warn(
+					"[terminal/drop] Could not resolve a dropped path against disk",
+					{ path, error },
+				);
 				return path;
 			}
 		}),

@@ -390,6 +390,9 @@ export function TerminalPane({
 
 	const [isDropActive, setIsDropActive] = useState(false);
 	const dragCounterRef = useRef(0);
+	/** Which terminal this pane currently shows, for re-checking after an await. */
+	const terminalIdRef = useRef(terminalId);
+	terminalIdRef.current = terminalId;
 
 	const resolveDroppedText = async (
 		dataTransfer: DataTransfer,
@@ -433,6 +436,18 @@ export function TerminalPane({
 		if (connectionState === "closed") return;
 		const text = await resolveDroppedText(event.dataTransfer);
 		if (!text) return;
+		// Resolving a dropped path is async, and the pane can be re-pointed at
+		// another terminal while it runs (session dropdown, tab switch). Drop
+		// the paste rather than send it to whichever terminal we captured.
+		if (terminalIdRef.current !== terminalId) return;
+		if (
+			terminalRuntimeRegistry.getConnectionState(
+				terminalId,
+				terminalInstanceId,
+			) === "closed"
+		) {
+			return;
+		}
 		terminalRuntimeRegistry
 			.getTerminal(terminalId, terminalInstanceId)
 			?.focus();

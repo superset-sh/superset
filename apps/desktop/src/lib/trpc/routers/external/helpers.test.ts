@@ -796,4 +796,16 @@ describe("resolveDroppedPath", () => {
 		const dropped = path.join(dir, "nope", "missing.png");
 		expect(await resolveDroppedPath(dropped)).toBe(dropped);
 	});
+
+	test("leaves a relative path alone rather than scanning the cwd", async () => {
+		expect(await resolveDroppedPath("relative/name.png")).toBe(
+			"relative/name.png",
+		);
+	});
+
+	test("handles a path directly under the root without bailing out", async () => {
+		// dirname("/x.png") is "/", which an empty-string check would reject.
+		const dropped = "/superset-dropped-path-probe.png";
+		expect(await resolveDroppedPath(dropped)).toBe(dropped);
+	});
 });

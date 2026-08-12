@@ -15,12 +15,6 @@ export function foldSpaces(value: string): string {
 	return value.replace(SPACE_SEPARATOR, " ");
 }
 
-export function splitPath(path: string): { dir: string; base: string } {
-	const cut = path.lastIndexOf("/");
-	if (cut < 0) return { dir: "", base: path };
-	return { dir: path.slice(0, cut), base: path.slice(cut + 1) };
-}
-
 /**
  * The on-disk name the dropped basename was meant to point at, or null when
  * the answer is not unique — two candidates mean we cannot tell which file the
