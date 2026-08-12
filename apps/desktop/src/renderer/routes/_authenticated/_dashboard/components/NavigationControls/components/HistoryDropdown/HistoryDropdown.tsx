@@ -8,25 +8,27 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useLocation, useNavigate } from "@tanstack/react-router";
 import { useMemo } from "react";
 import { LuCpu, LuGitBranch, LuHistory } from "react-icons/lu";
 import { usePresetIcon } from "renderer/assets/app-icons/preset-icons";
 import { useHostProjects } from "renderer/hooks/host-projects/useHostProjects";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
 	type RecentlyViewedEntry,
 	useRecentlyViewed,
 } from "./hooks/useRecentlyViewed";
+import {
+	joinTasksWithStatuses,
+	TASK_LOOKUP_LIMIT,
+} from "./utils/joinTasksWithStatuses";
 
 function WorkspaceRow({
 	entry,
@@ -230,7 +232,6 @@ export function HistoryDropdown() {
 	const navigate = useNavigate();
 	const recentEntries = useRecentlyViewed(20);
 	const currentPath = useLocation({ select: (loc) => loc.pathname });
-	const collections = useCollections();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 
 	const { data: groups } = electronTrpc.workspaces.getAllGrouped.useQuery();
@@ -268,34 +269,26 @@ export function HistoryDropdown() {
 		});
 	}, [hostWorkspaces, v2ProjectData]);
 
-	const { data: automationData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ automations: collections.automations })
-				.select(({ automations }) => ({
-					id: automations.id,
-					name: automations.name,
-					agentId: automations.agent,
-				})),
-		[collections],
+	const { data: automations = [] } =
+		cloudTrpc.automation.list.useQuery(undefined);
+	const automationData = useMemo(
+		() =>
+			automations.map((automation) => ({
+				id: automation.id,
+				name: automation.name,
+				agentId: automation.agent,
+			})),
+		[automations],
 	);
 
-	const { data: taskData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ tasks: collections.tasks })
-				.innerJoin({ status: collections.taskStatuses }, ({ tasks, status }) =>
-					eq(tasks.statusId, status.id),
-				)
-				.select(({ tasks, status }) => ({
-					id: tasks.id,
-					slug: tasks.slug,
-					title: tasks.title,
-					statusColor: status.color,
-					statusType: status.type,
-					statusProgress: status.progressPercent,
-				})),
-		[collections],
+	const { data: taskPage } = cloudTrpc.task.listPage.useQuery({
+		limit: TASK_LOOKUP_LIMIT,
+	});
+	const { data: taskStatuses = [] } =
+		cloudTrpc.task.statuses.list.useQuery(undefined);
+	const taskData = useMemo(
+		() => joinTasksWithStatuses(taskPage?.items ?? [], taskStatuses),
+		[taskPage, taskStatuses],
 	);
 
 	const filteredEntries = recentEntries.filter((entry) => {
@@ -309,9 +302,9 @@ export function HistoryDropdown() {
 		}
 		if (entry.type === "automation") {
 			if (!isV2CloudEnabled) return false;
-			return (automationData ?? []).some((a) => a.id === entry.entityId);
+			return automationData.some((a) => a.id === entry.entityId);
 		}
-		return (taskData ?? []).some(
+		return taskData.some(
 			(t) => t.id === entry.entityId || t.slug === entry.entityId,
 		);
 	});
@@ -358,7 +351,7 @@ export function HistoryDropdown() {
 								key={entry.path}
 								entry={entry}
 								isCurrent={entry.path === currentPath}
-								taskData={taskData ?? []}
+								taskData={taskData}
 								onSelect={() => navigate({ to: entry.path })}
 							/>
 						);
@@ -380,7 +373,7 @@ export function HistoryDropdown() {
 								key={entry.path}
 								entry={entry}
 								isCurrent={entry.path === currentPath}
-								automationData={automationData ?? []}
+								automationData={automationData}
 								onSelect={() => navigate({ to: entry.path })}
 							/>
 						);

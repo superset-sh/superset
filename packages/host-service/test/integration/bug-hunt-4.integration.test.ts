@@ -116,18 +116,8 @@ describe("bug-hunt-4: double-call cloud propagation", () => {
 		repo.dispose();
 	});
 
-	test("workspaceCleanup.destroy called twice: both succeed (cloud failure is a warning)", async () => {
-		// Mock cloud to return success the first time, then 404 on second call.
-		let callCount = 0;
-		host = await createTestHost({
-			apiOverrides: {
-				"v2Workspace.delete.mutate": () => {
-					callCount++;
-					if (callCount === 1) return { success: true };
-					throw new Error("Workspace not found in cloud (404)");
-				},
-			},
-		});
+	test("workspaceCleanup.destroy called twice: both succeed", async () => {
+		host = await createTestHost();
 		host.db
 			.insert(projects)
 			.values({ id: projectId, repoPath: repo.repoPath })
@@ -147,17 +137,12 @@ describe("bug-hunt-4: double-call cloud propagation", () => {
 		});
 		expect(first.success).toBe(true);
 
-		// Second call: local row is gone, the cloud delete is still attempted
-		// and its 404 degrades to a warning — local-first destroy is
-		// idempotent and never fails on cloud responses.
+		// Second call: the local row is already archived — the destroy is
+		// idempotent and still reports success.
 		const second = await host.trpc.workspaceCleanup.destroy.mutate({
 			workspaceId,
 		});
 		expect(second.success).toBe(true);
-		expect(second.cloudDeleted).toBe(false);
-		expect(
-			second.warnings.some((w) => w.includes("Legacy cloud cleanup failed")),
-		).toBe(true);
 	});
 
 	void worktreePath; // keep variable name for line-skew stability

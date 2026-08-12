@@ -58,6 +58,7 @@
 		"test": "bun test --pass-with-no-tests",
 		"test:integration": "bun test --pass-with-no-tests test/integration",
 		"test:integration:daemon": "node --experimental-strip-types --test src/terminal/DaemonClient/DaemonClient.node-test.ts src/daemon/DaemonSupervisor.node-test.ts",
+		"test:integration:terminal": "node --experimental-strip-types --test src/terminal/terminal.initial-command.node-test.ts src/terminal/terminal.ungated-launch.node-test.ts src/terminal/terminal.shell-ready-learning.node-test.ts src/terminal/terminal.fish-prompt-transport.node-test.ts",
 		"test:integration:workers": "node --experimental-strip-types --test src/workers/worker-termination.node-test.ts",
 		"test:e2e": "bun run scripts/test-e2e.ts",
 		"bench": "bun test test/integration/pull-requests-scaling.bench.ts",

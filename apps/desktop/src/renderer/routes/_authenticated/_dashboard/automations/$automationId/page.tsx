@@ -1,17 +1,12 @@
-import type {
-	SelectAutomation,
-	SelectAutomationRun,
-} from "@superset/db/schema";
 import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { TRPCClientError } from "@trpc/client";
+import { useMemo, useState } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HostOfflineRunDialog } from "../components/HostOfflineRunDialog";
 import { isHostOfflineError } from "../utils/hostOfflineError";
 import { isStaleAgentError, STALE_AGENT_HELP } from "../utils/staleAgentError";
@@ -40,48 +35,49 @@ function AutomationDetailPage() {
 	const { automationId } = Route.useParams();
 	const { history } = Route.useSearch();
 	const navigate = useNavigate();
-	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
 	const [historyOpen, setHistoryOpen] = useState(history ?? false);
 	const [hostOfflineOpen, setHostOfflineOpen] = useState(false);
 
-	const { data: automationRows, isReady: automationReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ a: collections.automations })
-				.where(({ a }) => eq(a.id, automationId))
-				.select(({ a }) => ({ ...a })),
-		[collections.automations, automationId],
+	// The prompt body rides its own procedure — `get` omits it.
+	const automationQuery = cloudTrpc.automation.get.useQuery(
+		{ id: automationId },
+		{ refetchInterval: 15_000, staleTime: 30_000 },
 	);
-	const automation = automationRows?.[0] as SelectAutomation | undefined;
+	const promptQuery = cloudTrpc.automation.getPrompt.useQuery(
+		{ id: automationId },
+		{ refetchInterval: 15_000, staleTime: 30_000 },
+	);
+	const automation = useMemo(() => {
+		if (!automationQuery.data || !promptQuery.data) return undefined;
+		return { ...automationQuery.data, prompt: promptQuery.data.prompt };
+	}, [automationQuery.data, promptQuery.data]);
 
-	const { data: runRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ r: collections.automationRuns })
-				.where(({ r }) => eq(r.automationId, automationId))
-				.orderBy(({ r }) => r.createdAt, "desc")
-				.limit(RECENT_RUNS_LIMIT)
-				.select(({ r }) => ({ ...r })),
-		[collections.automationRuns, automationId],
+	const { data: recentRuns = [] } = cloudTrpc.automation.listRuns.useQuery(
+		{ automationId, limit: RECENT_RUNS_LIMIT },
+		{ refetchInterval: 5_000, staleTime: 30_000 },
 	);
-	const recentRuns = runRows as SelectAutomationRun[];
 
-	const ownerUserId = automation?.ownerUserId;
-	const { data: ownerRows = [] } = useLiveQuery(
-		(q) =>
-			q
-				.from({ u: collections.users })
-				.where(({ u }) => eq(u.id, ownerUserId ?? ""))
-				.select(({ u }) => ({ name: u.name, email: u.email })),
-		[collections.users, ownerUserId],
+	const ownerUserId = automationQuery.data?.ownerUserId;
+	const { data: memberRows = [] } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{ staleTime: 30_000 },
 	);
-	const ownerName = ownerRows[0]?.name ?? ownerRows[0]?.email ?? null;
+	const owner = memberRows.find(
+		(member) => member.userId === ownerUserId,
+	)?.user;
+	const ownerName = owner?.name ?? owner?.email ?? null;
+
+	const utils = cloudTrpc.useUtils();
 
 	const setEnabledMutation = useMutation({
 		mutationFn: (enabled: boolean) =>
 			apiTrpcClient.automation.setEnabled.mutate({ id: automationId, enabled }),
+		onSuccess: () => {
+			void utils.automation.get.invalidate({ id: automationId });
+			void utils.automation.list.invalidate();
+		},
 		onError: (error) =>
 			toast.error(
 				error instanceof Error ? error.message : "Failed to update automation",
@@ -109,14 +105,25 @@ function AutomationDetailPage() {
 	const deleteMutation = useMutation({
 		mutationFn: () =>
 			apiTrpcClient.automation.delete.mutate({ id: automationId }),
-		onSuccess: () => navigate({ to: "/automations" }),
+		onSuccess: () => {
+			void utils.automation.list.invalidate();
+			navigate({ to: "/automations" });
+		},
 	});
 
 	if (!automation) {
-		if (!automationReady) return null;
+		if (automationQuery.isPending || promptQuery.isPending) return null;
+		// A deleted automation is a NOT_FOUND from the server; anything else is a
+		// failed read and must not be reported as a missing automation.
+		const loadError = automationQuery.error ?? promptQuery.error;
+		const isMissing =
+			loadError instanceof TRPCClientError &&
+			loadError.data?.code === "NOT_FOUND";
 		return (
 			<div className="flex h-full w-full items-center justify-center text-sm text-muted-foreground select-text cursor-text">
-				Automation not found.
+				{loadError && !isMissing
+					? `Couldn't load automation: ${loadError.message}`
+					: "Automation not found."}
 			</div>
 		);
 	}

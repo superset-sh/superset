@@ -7,10 +7,10 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
+import { useMemo } from "react";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { CreateTeamButton } from "./components/CreateTeamButton";
@@ -18,20 +18,20 @@ import { CreateTeamButton } from "./components/CreateTeamButton";
 export function TeamsSettings() {
 	const searchQuery = useSettingsSearchQuery();
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
 	const navigate = useNavigate();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
-	const { data: teamsData, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ teams: collections.teams })
-				.select(({ teams }) => ({ ...teams }))
-				.orderBy(({ teams }) => teams.createdAt, "asc"),
-		[collections],
-	);
+	const { data: teamsData, isPending } =
+		cloudTrpc.organization.listTeams.useQuery(undefined);
 
-	const teams = teamsData ?? [];
+	const teams = useMemo(
+		() =>
+			[...(teamsData ?? [])].sort(
+				(a, b) =>
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+			),
+		[teamsData],
+	);
 
 	const formatDate = (date: Date | string) => {
 		const d = date instanceof Date ? date : new Date(date);
@@ -62,7 +62,7 @@ export function TeamsSettings() {
 			<div className="flex-1 overflow-auto">
 				<div className="p-8">
 					<div className="max-w-5xl">
-						{!isReady && teams.length === 0 ? (
+						{isPending && teams.length === 0 ? (
 							<div className="space-y-2 border rounded-lg p-2">
 								{[1, 2, 3].map((i) => (
 									<div key={i} className="flex items-center gap-4 p-4">

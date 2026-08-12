@@ -1,4 +1,4 @@
-import { useLiveQuery } from "@tanstack/react-db";
+import { useQuery } from "@tanstack/react-query";
 import { Stack, useLocalSearchParams } from "expo-router";
 // Imported from expo-router's vendored copy on purpose: this reads the SAME
 // HeaderHeightContext that expo-router's Stack populates. Declaring
@@ -13,7 +13,7 @@ import {
 } from "react-native";
 import { ConversationEmptyState } from "@/components/ai-elements/conversation";
 import { Text } from "@/components/ui/text";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import { apiClient } from "@/lib/trpc/client";
 import { GlassHeaderTitle } from "../components/GlassHeaderTitle";
 import { ChatComposer } from "./components/ChatComposer";
 import { ChatMessageList } from "./components/ChatMessageList";
@@ -29,14 +29,13 @@ export function ChatThreadScreen() {
 
 	const chat = useChatThread({ sessionId, workspaceId: id });
 
-	// Resolve the session title for the nav header (cache-first: render whatever
-	// synced row we have; blank until it lands). Same full-scan-then-filter shape
-	// as ChatSessionsScreen — the collection is small.
-	const collections = useCollections();
-	const { data: sessionRows } = useLiveQuery(
-		(q) => q.from({ chatSessions: collections.chatSessions }),
-		[collections],
-	);
+	// Resolve the session title for the nav header: render whatever the last
+	// fetch returned, "Chat" until it lands. The org's session list is small.
+	const { data: sessionRows } = useQuery({
+		queryKey: ["cloud", "chat", "listSessions"],
+		queryFn: () => apiClient.chat.listSessions.query(),
+		staleTime: 30_000,
+	});
 	const sessionTitle =
 		sessionRows?.find((s) => s.id === sessionId)?.title ?? "Chat";
 

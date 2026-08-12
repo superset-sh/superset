@@ -1,5 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	getV2NotificationSourceKey,
 	getV2NotificationSourcesForPane,
@@ -11,10 +11,7 @@ import {
 	type ActivePaneStatus,
 	getHighestPriorityStatus,
 } from "shared/tabs-types";
-import {
-	type TerminalAgentBinding,
-	useTerminalAgentBindings,
-} from "../useTerminalAgentBindings";
+import type { TerminalAgentBinding } from "../useTerminalAgentBindings";
 import {
 	deriveTerminalAgentStatus,
 	useTerminalAgentStatuses,
@@ -61,55 +58,12 @@ export function useV2PaneNotificationStatus(
 	);
 }
 
-export function useV2WorkspaceNotificationStatus(
-	workspaceId: string,
-): ActivePaneStatus | null {
-	const statuses = useTerminalAgentStatuses(workspaceId);
-	const manualUnread = useV2NotificationStore((state) =>
-		Boolean(state.manualUnread[workspaceId]),
-	);
-	return getHighestPriorityStatus([
-		manualUnread ? "review" : undefined,
-		...statuses.values(),
-	]);
-}
-
-export function useV2WorkspaceIsUnread(workspaceId: string): boolean {
-	const statuses = useTerminalAgentStatuses(workspaceId);
-	const manualUnread = useV2NotificationStore((state) =>
-		Boolean(state.manualUnread[workspaceId]),
-	);
-	if (manualUnread) return true;
-	for (const status of statuses.values()) {
-		if (status === "review" || status === "failed") return true;
-	}
-	return false;
-}
-
-/**
- * Returns a callback that marks every terminal with a live agent binding in
- * the workspace as seen, clearing derived `review` statuses. Used by the
- * sidebar "mark read" / "clear status" actions.
- */
-export function useMarkWorkspaceTerminalsSeen(workspaceId: string): () => void {
-	const bindings = useTerminalAgentBindings(workspaceId);
-	const markTerminalSeen = useV2NotificationStore(
-		(state) => state.markTerminalSeen,
-	);
-	return useCallback(() => {
-		// Host-clock only: "seen through the binding's last event".
-		for (const binding of bindings.values()) {
-			markTerminalSeen(binding.terminalId, binding.lastEventAt);
-		}
-	}, [bindings, markTerminalSeen]);
-}
-
 /**
  * Number of distinct workspaces needing attention (any derived terminal
  * status other than `working`, or a manual unread mark). Drives the OS dock
- * badge. Aggregates over the bindings queries already mounted by sidebar
- * rows via the react-query cache; workspaces with no observed bindings
- * query contribute only their manual unread mark.
+ * badge. Aggregates over the bindings queries already mounted by the
+ * sidebar's workspace status provider via the react-query cache; workspaces
+ * with no observed bindings query contribute only their manual unread mark.
  */
 export function useV2AttentionWorkspaceCount(): number {
 	const queryClient = useQueryClient();

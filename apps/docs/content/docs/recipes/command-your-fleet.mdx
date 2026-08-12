@@ -4,12 +4,12 @@ description: Read every agent's screen and broadcast follow-ups across workspace
 ---
 
 <Callout type="info" title="Use when">
-	several agents are running across workspaces — from a fan-out, a race, or a busy day — and you want status or course-corrections without clicking through panes.
+	several agents are running across workspaces (from a fan-out, a race, or a busy day) and you want status or course-corrections without clicking through panes.
 </Callout>
 
 ## The Idea
 
-Every terminal Superset runs is addressable from the [CLI](/cli/getting-started): `terminals list`, `read`, and `send`. Compose them with `workspaces list` and one shell loop sweeps a whole project — every agent's screen in one scroll, or one instruction delivered to all of them.
+Every terminal Superset runs is addressable from the [CLI](/cli/getting-started): `terminals list`, `read`, and `send`. Compose them with `workspaces list` and one shell loop sweeps a whole project: every agent's screen in one scroll, or one instruction delivered to all of them.
 
 Workspaces are host-owned, and these loops target the machine you run them on. If your fleet spans hosts, add `--host <id>` to each command to sweep a remote host's share of it.
 
@@ -58,5 +58,5 @@ Deletes every listed workspace (the project's `main` workspace is not deletable)
 ## Variations
 
 - **Scope by name**: prefix fleet workspaces (`worker-1`, `race-claude`) at creation, then drive only them with `workspaces list --search worker- --quiet`
-- **Let an agent do this**: the [`superset:orchestrate` skill](/orchestration) runs these same loops for you — monitoring workers and delivering follow-ups is exactly how it coordinates
+- **Let an agent do this**: the [`superset:orchestrate` skill](/orchestration) runs these same loops for you; monitoring workers and delivering follow-ups is exactly how it coordinates
 - **Watch continuously**: wrap the read loop in `watch -n 30` for a poor-man's fleet dashboard

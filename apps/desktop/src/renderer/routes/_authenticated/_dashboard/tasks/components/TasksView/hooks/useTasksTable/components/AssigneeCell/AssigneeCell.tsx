@@ -5,12 +5,11 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
 import type { CellContext } from "@tanstack/react-table";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../useTasksTable";
 
 interface AssigneeCellProps {
@@ -18,19 +17,19 @@ interface AssigneeCellProps {
 }
 
 export function AssigneeCell({ info }: AssigneeCellProps) {
-	const collections = useCollections();
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
 	const task = info.row.original;
 	const assigneeId = info.getValue();
 
-	const { data: allUsers } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
-	);
+	const { data: members, isLoading: isLoadingMembers } =
+		cloudTrpc.organization.listMembers.useQuery(undefined, { enabled: open });
 
-	const users = useMemo(() => allUsers || [], [allUsers]);
+	const users = useMemo(
+		() => (members ?? []).map((member) => member.user),
+		[members],
+	);
 
 	const handleSelectUser = (userId: string | null) => {
 		if (userId === assigneeId && !task.assigneeExternalId) {
@@ -85,6 +84,11 @@ export function AssigneeCell({ info }: AssigneeCellProps) {
 							<span className="ml-auto text-xs text-muted-foreground">✓</span>
 						)}
 					</DropdownMenuItem>
+					{isLoadingMembers && (
+						<div className="px-2 py-1.5 text-sm text-muted-foreground">
+							Loading members...
+						</div>
+					)}
 					{users.map((user) => (
 						<DropdownMenuItem
 							key={user.id}

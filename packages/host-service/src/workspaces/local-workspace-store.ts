@@ -26,9 +26,8 @@ export interface WorkspaceStoreContext {
 }
 
 /**
- * Workspaces have no cloud mirror since local-first (#5731), so the cloud
- * capture in `v2Workspace.create`/`delete` never fires for local rows —
- * the host relays the event through `analytics.captureEvent` instead.
+ * Workspaces have no cloud mirror since local-first (#5731), so the host
+ * relays workspace lifecycle events through `analytics.captureEvent`.
  */
 function trackWorkspaceEvent(
 	ctx: WorkspaceStoreContext,
@@ -61,10 +60,9 @@ function trackWorkspaceEvent(
 }
 
 /**
- * Cloud-row-compatible view of a local workspace row. Matches the shape of
- * `v2Workspace.getFromHost` / `create` responses so existing consumers of
- * cloud rows keep working when the host answers from its own table
- * (dual-write era; the cloud shape becomes the only shape in R3).
+ * The workspace row shape the host serves: the frozen cloud column set,
+ * kept so consumers written against the old cloud rows keep working now
+ * that the host answers from its own table.
  */
 export interface CloudShapedWorkspace {
 	id: string;

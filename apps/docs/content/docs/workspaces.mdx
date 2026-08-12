@@ -5,7 +5,7 @@ description: Isolated environments for each git branch
 
 ## Core Concept
 
-Each workspace = one git branch. Workspaces are isolated git worktrees with their own directory, terminal, and ports.
+Each workspace = one git branch. Workspaces are isolated git worktrees with their own directory, terminal, and ports. The exception: [sessions](#sessions), which get a managed scratch folder instead of a branch.
 
 <YouTubeVideo id="8PuptrsyNvM" title="Superset Workspaces" thumbnail="/images/branches.png" />
 
@@ -19,7 +19,7 @@ Press **⌘N** or click "New Workspace". Create from:
 
 In the prompt-first workspace flow, **Link pull request** lets you search by title or PR number, or paste the full PR URL to match it directly. The prompt box also keeps a searchable history of your previous prompts; click the history icon to reuse one.
 
-If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset generates a name from your prompt.
+If you type a workspace name yourself, the branch name is derived from it (slugified to kebab-case). Otherwise Superset generates a name from your prompt. Per-project **Naming instructions** (in project settings) steer generated names, e.g. "prefix branches with fix/ or feat/".
 
 Each workspace gets:
 - Own git branch
@@ -33,6 +33,30 @@ If you have existing git worktrees on disk, use the **Import** tab in the New Wo
 
 You can also right-click a project in the sidebar and choose **Import untracked worktrees**. A confirmation dialog lists the branches and paths that will be imported; the **Run setup script** checkbox is off by default, since existing worktrees are usually already set up.
 
+## Sessions
+
+A **session** is a workspace without a project. Pick **No project** in the new-workspace picker, or click **+** on the sidebar's **Sessions** section. Each session gets its own git-initialized folder under `~/.superset/sessions`. Terminals, agents, chat, and the Changes panel work as usual; there's no branch or PR link.
+
+From the CLI, omit `--project`:
+
+```bash
+superset workspaces create --local --agent claude --prompt "…"
+```
+
+Automations can run in session mode too; see [Automations](/automations).
+
+## Pin Workspaces
+
+Keep active workspaces at the top of the sidebar:
+
+- Right-click a workspace and choose **Pin to Sidebar** (or **Unpin**)
+- Drag into the **Pinned** section to pin, drag within it to reorder, drag out to unpin
+- Sessions work the same way
+
+## List and Board Views
+
+The workspaces page toggles between a list and a kanban board. Board columns follow workspace state, derived from agent status and PR state: **Idle**, **Working**, **Needs attention**, **Needs review**, **Merged**, and **Deleted**. Merged and Deleted are history: deleted workspaces keep a card instead of vanishing. Filters are shared between both layouts and sync to the URL.
+
 ## Ahead/Behind Status
 
 For **local (branch-based) workspaces**, the sidebar shows how far the active branch is ahead or behind its remote branch:
@@ -45,6 +69,8 @@ For **local (branch-based) workspaces**, the sidebar shows how far the active br
 PR-based workspaces show pull request state in the sidebar.
 
 Hover a workspace to see review status, CI checks, and GitHub links. If the branch has a deployment preview, you'll also see an **Open Preview** button.
+
+A branch can have more than one PR. The badge shows a count; click it to list them, open one on GitHub, or remove a stale link. Right-click the workspace for **Remove PR Link** and **Restore PR Link**. Removals get an undo toast.
 
 ## Bulk Actions
 

@@ -15,7 +15,7 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef, useState } from "react";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
@@ -32,7 +32,7 @@ export function DeleteHostSection({
 }: DeleteHostSectionProps) {
 	const navigate = useNavigate();
 	const searchQuery = useSettingsSearchQuery();
-	const actions = useOptimisticCollectionActions();
+	const actions = useOptimisticActions();
 	const [isDeleting, setIsDeleting] = useState(false);
 	const [isOpen, setIsOpen] = useState(false);
 	const [confirmation, setConfirmation] = useState("");

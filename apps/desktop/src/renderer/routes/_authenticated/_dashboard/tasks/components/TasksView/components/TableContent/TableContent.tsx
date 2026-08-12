@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { HiCheckCircle } from "react-icons/hi2";
+import { useAutoLoadEmptyPages } from "../../hooks/useAutoLoadEmptyPages";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { useTasksTable } from "../../hooks/useTasksTable";
 import { TasksTableView } from "../TasksTableView";
@@ -26,13 +27,32 @@ export function TableContent({
 	onTaskClick,
 	onSelectionChange,
 }: TableContentProps) {
-	const { table, slugColumnWidth, rowSelection, setRowSelection } =
-		useTasksTable({
-			filterTab,
-			searchQuery,
-			assigneeFilter,
-			linearProjectFilter,
-		});
+	const {
+		table,
+		slugColumnWidth,
+		rowSelection,
+		setRowSelection,
+		fetchNextTasksPage,
+		hasNextTasksPage,
+		isFetchingNextTasksPage,
+		isLoadingTasks,
+	} = useTasksTable({
+		filterTab,
+		searchQuery,
+		assigneeFilter,
+		linearProjectFilter,
+	});
+
+	const rows = table.getRowModel().rows;
+
+	useAutoLoadEmptyPages({
+		isEmpty: rows.length === 0,
+		isLoading: isLoadingTasks,
+		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearProjectFilter ?? ""}`,
+		hasNextPage: hasNextTasksPage,
+		isFetchingNextPage: isFetchingNextTasksPage,
+		onLoadMore: fetchNextTasksPage,
+	});
 
 	const selectedTasks = useMemo(() => {
 		return getSelectedTasks(table.getRowModel().flatRows, rowSelection);
@@ -46,7 +66,7 @@ export function TableContent({
 		onSelectionChange?.(selectedTasks, clearSelection);
 	}, [selectedTasks, clearSelection, onSelectionChange]);
 
-	if (table.getRowModel().rows.length === 0) {
+	if (rows.length === 0) {
 		return (
 			<div className="flex-1 flex items-center justify-center">
 				<div className="flex flex-col items-center gap-2 text-muted-foreground">
@@ -62,6 +82,9 @@ export function TableContent({
 			table={table}
 			slugColumnWidth={slugColumnWidth}
 			onTaskClick={onTaskClick}
+			hasNextPage={hasNextTasksPage}
+			isFetchingNextPage={isFetchingNextTasksPage}
+			onLoadMore={fetchNextTasksPage}
 		/>
 	);
 }

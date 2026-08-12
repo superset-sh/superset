@@ -1,6 +1,7 @@
 import {
 	type ControlPing,
 	DIAL_TIMEOUT_MS,
+	RELAY_CLOSE,
 	type StreamDial,
 } from "@superset/shared/tunnel-v2-protocol";
 import { type Connection, type ConnectionContext, Server } from "partyserver";
@@ -9,7 +10,6 @@ import {
 	type HttpExchangeResult,
 	HttpExchanges,
 } from "./http-exchange";
-import { writePresence } from "./presence";
 import type { RelayEnv } from "./types";
 
 const HOST_TAG = "host";
@@ -18,6 +18,13 @@ const MAX_EARLY_FRAMES = 256;
 // A dial that never pairs with a client (aborted upgrade, late arrival) is
 // closed rather than left open.
 const UNPAIRED_DIAL_TIMEOUT_MS = 15_000;
+// Liveness sweep: deploys and abrupt terminations kill sockets without
+// delivering a close event, leaving zombie sockets registered. The socket
+// set is the presence authority, so the alarm is what keeps it truthful.
+const LIVENESS_SWEEP_MS = 45_000;
+// Three missed 30s host keepalives. A host that cannot ping for this long
+// cannot serve dials either, so closing it never severs a usable tunnel.
+const HOST_STALE_MS = 90_000;
 
 type ConnState =
 	| { kind: "host"; hostId: string }
@@ -44,14 +51,27 @@ export class HostTunnel extends Server<RelayEnv> {
 		ReturnType<typeof setTimeout>
 	>();
 	private readonly httpExchanges = new HttpExchanges();
-	// Single-threaded within the instance, so ++ is atomic; concurrent writes
-	// can't be in flight across a hibernation boundary.
-	private presenceSeq = 0;
 
 	// ── RPC (called by the Worker) ────────────────────────────────────
 
-	isConnected(): boolean {
+	async isConnected(): Promise<boolean> {
+		// Arms the sweep for objects whose host predates it (or whose alarm
+		// was lost), so a zombie session is cleaned up as soon as any client
+		// comes looking.
+		await this.ensureLivenessAlarm();
 		return this.hostConn() !== null;
+	}
+
+	async presenceInfo(): Promise<{
+		online: boolean;
+		lastSeenAt: number | null;
+	}> {
+		await this.ensureLivenessAlarm();
+		return {
+			online: this.hostConn() !== null,
+			lastSeenAt:
+				(await this.ctx.storage.get<number>("lastHostSeenAt")) ?? null,
+		};
 	}
 
 	async prepareStream(
@@ -108,7 +128,6 @@ export class HostTunnel extends Server<RelayEnv> {
 		const ticket = url.searchParams.get("ticket") ?? "";
 
 		if (conn.tags.includes(HOST_TAG)) {
-			const token = ctx.request.headers.get("x-relay-token") ?? "";
 			const hostId = url.searchParams.get("hostId") ?? this.name;
 			// State first: a replaced socket's close is delivered mid-await, and
 			// teardown must be able to tell this connection is the live host.
@@ -116,10 +135,10 @@ export class HostTunnel extends Server<RelayEnv> {
 			// Last-write-wins: the new socket evicts any old one.
 			for (const other of this.getConnections(HOST_TAG)) {
 				if (other.id !== conn.id)
-					closeQuietly(other, 1000, "Replaced by new tunnel");
+					closeQuietly(other, RELAY_CLOSE.replaced, "Replaced by new tunnel");
 			}
-			await this.ctx.storage.put("session", { hostId, token });
-			this.ctx.waitUntil(this.presence(hostId, token, true));
+			await this.ctx.storage.put("lastHostSeenAt", Date.now());
+			await this.ctx.storage.setAlarm(Date.now() + LIVENESS_SWEEP_MS);
 			console.log(`[relay2] host connected: ${hostId}`);
 			return;
 		}
@@ -135,7 +154,7 @@ export class HostTunnel extends Server<RelayEnv> {
 			// ticket is this route's only credential, so anything else is
 			// refused rather than left open.
 			if (!waiting) {
-				conn.close(1008, "Unknown or expired ticket");
+				conn.close(RELAY_CLOSE.unknownTicket, "Unknown or expired ticket");
 				return;
 			}
 			conn.setState({ kind: "dial", ticket } satisfies ConnState);
@@ -145,7 +164,11 @@ export class HostTunnel extends Server<RelayEnv> {
 				setTimeout(() => {
 					this.unpairedDialTimers.delete(ticket);
 					this.earlyFrames.delete(conn.id);
-					closeQuietly(conn, 1011, "Client never attached");
+					closeQuietly(
+						conn,
+						RELAY_CLOSE.unknownTicket,
+						"Client never attached",
+					);
 				}, UNPAIRED_DIAL_TIMEOUT_MS),
 			);
 			waiting(true);
@@ -155,7 +178,7 @@ export class HostTunnel extends Server<RelayEnv> {
 		if (conn.tags.includes("client")) {
 			const dial = this.findByTicket(ticket, "dial");
 			if (!dial) {
-				conn.close(1011, "Stream expired");
+				conn.close(RELAY_CLOSE.unknownTicket, "Stream expired");
 				return;
 			}
 			const dialTimer = this.unpairedDialTimers.get(ticket);
@@ -181,7 +204,7 @@ export class HostTunnel extends Server<RelayEnv> {
 			return;
 		}
 
-		conn.close(1008, "Unknown endpoint");
+		conn.close(RELAY_CLOSE.badRequest, "Unknown endpoint");
 	}
 
 	onMessage(
@@ -204,14 +227,10 @@ export class HostTunnel extends Server<RelayEnv> {
 				return;
 			}
 			if (ping.type !== "ping") return;
-			// Only the live host may rewrite the session: a ping in flight from
-			// a socket that has just been replaced would otherwise revert the
-			// replacement's token to its own stale one.
-			if (ping.token && this.hostConn()?.id === conn.id) {
-				void this.ctx.storage.put("session", {
-					hostId: state.hostId,
-					token: ping.token,
-				});
+			// Only the live host refreshes liveness: a ping in flight from a
+			// just-replaced socket must not extend the stale window.
+			if (this.hostConn()?.id === conn.id) {
+				void this.ctx.storage.put("lastHostSeenAt", Date.now());
 			}
 			conn.send('{"type":"pong"}');
 			return;
@@ -255,19 +274,14 @@ export class HostTunnel extends Server<RelayEnv> {
 			// replacement host socket still mid-onConnect is never torn down.
 			for (const other of this.getConnections()) {
 				if (other.id === conn.id || other.tags.includes(HOST_TAG)) continue;
-				closeQuietly(other, 1001, "Tunnel disconnected");
+				closeQuietly(other, RELAY_CLOSE.tunnelGone, "Tunnel disconnected");
 			}
 			for (const [, timer] of this.unpairedDialTimers) clearTimeout(timer);
 			this.unpairedDialTimers.clear();
 			this.httpExchanges.abortAll();
-			const session = await this.ctx.storage.get<{
-				hostId: string;
-				token: string;
-			}>("session");
 			// A replaced socket's close lands after the new one registered.
-			if (session && !this.hostConn()) {
-				console.log(`[relay2] host disconnected: ${session.hostId}`);
-				this.ctx.waitUntil(this.presence(session.hostId, session.token, false));
+			if (!this.hostConn()) {
+				console.log(`[relay2] host disconnected: ${state.hostId}`);
 			}
 			return;
 		}
@@ -281,6 +295,36 @@ export class HostTunnel extends Server<RelayEnv> {
 		if (state.peer) {
 			const peer = this.getConnection(state.peer);
 			if (peer) closeQuietly(peer, 1001, "Stream closed");
+		}
+	}
+
+	// ── Liveness sweep ────────────────────────────────────────────────
+
+	async onAlarm(): Promise<void> {
+		const host = this.hostConn();
+
+		// Not rescheduled without a host: a reconnecting host re-arms the sweep.
+		if (!host) return;
+
+		const lastSeen =
+			(await this.ctx.storage.get<number>("lastHostSeenAt")) ?? 0;
+		if (Date.now() - lastSeen > HOST_STALE_MS) {
+			// A dead peer never completes the close handshake, but closing here
+			// flips this object's socket state — and the socket *is* presence.
+			const state = host.state as ConnState | undefined;
+			console.log(
+				`[relay2] host stale, closing: ${state?.kind === "host" ? state.hostId : this.name}`,
+			);
+			closeQuietly(host, RELAY_CLOSE.staleHost, "No keepalive from host");
+			return;
+		}
+
+		await this.ctx.storage.setAlarm(Date.now() + LIVENESS_SWEEP_MS);
+	}
+
+	private async ensureLivenessAlarm(): Promise<void> {
+		if ((await this.ctx.storage.getAlarm()) === null) {
+			await this.ctx.storage.setAlarm(Date.now() + LIVENESS_SWEEP_MS);
 		}
 	}
 
@@ -303,21 +347,6 @@ export class HostTunnel extends Server<RelayEnv> {
 
 	private sendDial(host: Connection, dial: StreamDial): void {
 		host.send(JSON.stringify(dial));
-	}
-
-	private presence(
-		hostId: string,
-		token: string,
-		isOnline: boolean,
-	): Promise<void> {
-		return writePresence({
-			version: ++this.presenceSeq,
-			isSuperseded: (version) => version !== this.presenceSeq,
-			apiUrl: this.env.NEXT_PUBLIC_API_URL,
-			hostId,
-			token,
-			isOnline,
-		});
 	}
 }
 

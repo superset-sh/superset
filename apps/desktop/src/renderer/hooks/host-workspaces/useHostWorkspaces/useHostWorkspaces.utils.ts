@@ -1,7 +1,7 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
-import { del as idbDel, get as idbGet, set as idbSet } from "idb-keyval";
+import { get as idbGet, set as idbSet } from "idb-keyval";
 
 /**
  * The frozen cloud row shape, widened for host-only capabilities the cloud
@@ -33,10 +33,8 @@ export interface HostWorkspaceRow extends HostShapedWorkspace {
 export interface HostWorkspaceItem extends HostShapedWorkspace {
 	worktreePath?: string;
 	worktreeExists?: boolean;
-	/** False when the row came from a snapshot/cloud and the host didn't answer. */
+	/** False when the host didn't answer. */
 	hostReachable: boolean;
-	/** "host" = served by a host (live or last-seen); "cloud" = Electric fallback. */
-	source: "host" | "cloud";
 	/** Non-null = archived tombstone (only present on `includeArchived`). */
 	archivedAt?: number | null;
 	archiveReason?: "merged" | "deleted" | null;
@@ -73,8 +71,7 @@ export function getHostWorkspacesQueryKey(
 
 /**
  * One target per known host: the local host always (direct URL), remote
- * hosts via relay when online, and a null-URL placeholder when offline so
- * the last-seen snapshot still renders.
+ * hosts via relay when online, and a null-URL placeholder when offline.
  */
 export function deriveHostWorkspacesQueryTargets({
 	activeHostUrl,
@@ -159,14 +156,6 @@ export function saveHostWorkspacesSnapshot(
 	void idbSet(snapshotKey(organizationId, machineId), rows).catch(() => {});
 }
 
-export function clearHostWorkspacesSnapshot(
-	organizationId: string,
-	machineId: string,
-): void {
-	if (!organizationId) return;
-	void idbDel(snapshotKey(organizationId, machineId)).catch(() => {});
-}
-
 /**
  * Apply a workspace:changed event to a host's cached list. Created/updated
  * upsert from the event's snapshot payload; deleted removes the row.
@@ -212,49 +201,31 @@ export function applyWorkspaceChangedEvent(
 }
 
 /**
- * Merge per-host results (live or last-seen) with the Electric fallback.
- * A host that answered is authoritative for its rows — cloud rows for that
- * host are ignored (a deleted row must not resurrect). Cloud rows only fill
- * in for hosts with no host-served data (pre-R1 builds, no snapshot yet).
- * The fallback is deleted in R3 along with the cloud table.
+ * Merge per-host results. A host that answered is authoritative for its
+ * rows — a deleted row must not resurrect.
  */
 export function mergeHostWorkspaces({
 	hostResults,
-	cloudRows,
 }: {
 	hostResults: Array<{
 		target: HostWorkspacesQueryTarget;
 		rows: HostWorkspaceRow[] | undefined;
 		reachable: boolean;
 	}>;
-	cloudRows: SelectV2Workspace[];
 }): HostWorkspaceItem[] {
 	const items: HostWorkspaceItem[] = [];
-	const hostsWithData = new Set<string>();
 	const seenIds = new Set<string>();
 
 	for (const result of hostResults) {
 		if (!result.rows) continue;
-		hostsWithData.add(result.target.machineId);
 		for (const row of result.rows) {
 			if (seenIds.has(row.id)) continue;
 			seenIds.add(row.id);
 			items.push({
 				...row,
 				hostReachable: result.reachable,
-				source: "host",
 			});
 		}
-	}
-
-	for (const row of cloudRows) {
-		if (seenIds.has(row.id) || hostsWithData.has(row.hostId)) continue;
-		seenIds.add(row.id);
-		items.push({
-			...row,
-			hostReachable: false,
-			source: "cloud",
-		});
 	}
 
 	return items;

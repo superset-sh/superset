@@ -100,6 +100,7 @@ export const auth = betterAuth({
 		...desktopDevOrigins,
 		"superset://app",
 		"superset://",
+		"https://appleid.apple.com",
 		...(process.env.NODE_ENV === "development"
 			? ["exp://", "exp://**", "exp://192.168.*.*:*/**"]
 			: []),
@@ -137,6 +138,11 @@ export const auth = betterAuth({
 		google: {
 			clientId: env.GOOGLE_CLIENT_ID,
 			clientSecret: env.GOOGLE_CLIENT_SECRET,
+		},
+		apple: {
+			clientId: env.APPLE_CLIENT_ID,
+			clientSecret: env.APPLE_CLIENT_SECRET,
+			appBundleIdentifier: env.APPLE_APP_BUNDLE_IDENTIFIER,
 		},
 	},
 	databaseHooks: {

@@ -9,6 +9,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@sentry/cloudflare": "10.68.0",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "11.16.0",

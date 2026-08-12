@@ -16,7 +16,7 @@ export interface ApiClientInfo {
 export const CLIENT_VERSION_HEADER = "x-superset-client";
 
 const CLIENT_HEADER_PATTERN =
-	/^(desktop|mobile|cli)\/(\d+\.\d+\.\d+(?:[-+][\w.]+)?)$/;
+	/^(desktop|mobile|cli)\/(\d+\.\d+\.\d+(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?)$/;
 
 // Absent or unparseable header = web or a pre-header build, both treated as
 // always-current.
@@ -63,18 +63,29 @@ const API_CALL_SAMPLE_RATE = 0.01;
 
 // Per-procedure, per-client-version usage telemetry: the evidence source for
 // deprecating procedures once no in-window client version still calls them.
+function captureApiCall(
+	client: ApiClientInfo | null,
+	distinctId: string,
+	path: string,
+) {
+	if (!client || Math.random() >= API_CALL_SAMPLE_RATE) return;
+	posthog.capture({
+		distinctId,
+		event: "api_procedure_called",
+		properties: {
+			procedure: path,
+			client_product: client.product,
+			client_version: client.version,
+		},
+	});
+}
+
 const clientTelemetry = t.middleware(async ({ ctx, path, next }) => {
-	if (ctx.client && Math.random() < API_CALL_SAMPLE_RATE) {
-		posthog.capture({
-			distinctId: ctx.session?.user.id ?? "api-unauthenticated",
-			event: "api_procedure_called",
-			properties: {
-				procedure: path,
-				client_product: ctx.client.product,
-				client_version: ctx.client.version,
-			},
-		});
-	}
+	captureApiCall(
+		ctx.client,
+		ctx.session?.user.id ?? "api-unauthenticated",
+		path,
+	);
 	return next();
 });
 
@@ -135,7 +146,6 @@ function resolveActiveOrganizationId(
 }
 
 export const jwtProcedure = t.procedure
-	.use(clientTelemetry)
 	.use(async ({ ctx, next }) => {
 		const authHeader = ctx.headers.get("authorization");
 		const bearer = authHeader?.startsWith("Bearer ")
@@ -201,6 +211,10 @@ export const jwtProcedure = t.procedure
 			message:
 				"Not authenticated. Provide a bearer JWT, x-api-key, or session.",
 		});
+	})
+	.use(async ({ ctx, path, next }) => {
+		captureApiCall(ctx.client, ctx.userId, path);
+		return next();
 	});
 
 export const adminProcedure = protectedProcedure.use(async ({ ctx, next }) => {

@@ -4,9 +4,10 @@ import { getCurrentTxid } from "@superset/db/utils";
 import { SUPERSET_CHAT_MODELS } from "@superset/shared/agent-models";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
-import { and, eq } from "drizzle-orm";
+import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
+import { requireActiveOrgMembership } from "../utils/active-org";
 import { uploadChatAttachment } from "./utils/upload-chat-attachment";
 
 // Re-shaped from the canonical catalog in `@superset/shared/agent-models` so
@@ -21,6 +22,40 @@ export const chatRouter = {
 	getModels: protectedProcedure.query(() => {
 		return { models: AVAILABLE_MODELS };
 	}),
+
+	listSessions: protectedProcedure
+		.input(
+			z
+				.object({ sessionIds: z.array(z.uuid()).max(100).optional() })
+				.optional(),
+		)
+		.query(async ({ ctx, input }) => {
+			const organizationId = await requireActiveOrgMembership(ctx);
+			const sessionIds = input?.sessionIds;
+			// Unfiltered reads are capped: sessions grow without bound and the
+			// recent 200 covers every list surface; id-filtered reads (open
+			// panes, run links) fetch exactly what they name.
+			const query = db
+				.select({
+					id: chatSessions.id,
+					title: chatSessions.title,
+					workspaceId: chatSessions.workspaceId,
+					v2WorkspaceId: chatSessions.v2WorkspaceId,
+					organizationId: chatSessions.organizationId,
+					createdBy: chatSessions.createdBy,
+					createdAt: chatSessions.createdAt,
+					lastActiveAt: chatSessions.lastActiveAt,
+				})
+				.from(chatSessions)
+				.where(
+					and(
+						eq(chatSessions.organizationId, organizationId),
+						sessionIds ? inArray(chatSessions.id, sessionIds) : undefined,
+					),
+				)
+				.orderBy(desc(chatSessions.lastActiveAt));
+			return sessionIds ? query : query.limit(200);
+		}),
 
 	createSession: protectedProcedure
 		.input(

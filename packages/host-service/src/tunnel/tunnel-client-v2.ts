@@ -1,6 +1,7 @@
-import type {
-	HttpDialFrame,
-	StreamDial,
+import {
+	describeRelayClose,
+	type HttpDialFrame,
+	type StreamDial,
 } from "@superset/shared/tunnel-v2-protocol";
 import ReconnectingWebSocket from "partysocket/ws";
 
@@ -87,30 +88,17 @@ export class TunnelClientV2 {
 		});
 
 		control.addEventListener("close", (event) => {
-			if (event.code === 1008) {
+			const described = describeRelayClose(event.code) ?? "";
+			if (event.code === 1008 || described) {
 				console.warn(
-					`[host-service:tunnel-v2] relay rejected connection (${event.reason ?? ""}); partysocket will retry`,
+					`[host-service:tunnel-v2] relay closed control (${event.code} ${described}): ${event.reason ?? ""}; partysocket will retry`,
 				);
 			}
 		});
 
 		this.pingTimer = setInterval(() => {
 			if (control.readyState !== WebSocket.OPEN) return;
-			// The token rides the keepalive so the relay always holds a fresh
-			// one; its stored copy would otherwise expire on a long-lived
-			// channel and fail the presence write at disconnect.
-			void this.options
-				.getAuthToken()
-				.then((token) => {
-					if (control.readyState === WebSocket.OPEN) {
-						control.send(JSON.stringify({ type: "ping", token }));
-					}
-				})
-				.catch(() => {
-					if (control.readyState === WebSocket.OPEN) {
-						control.send('{"type":"ping"}');
-					}
-				});
+			control.send('{"type":"ping"}');
 		}, PING_INTERVAL_MS);
 
 		this.watchdogTimer = setInterval(() => {

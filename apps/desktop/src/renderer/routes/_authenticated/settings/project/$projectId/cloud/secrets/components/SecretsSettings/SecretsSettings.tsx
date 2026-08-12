@@ -1,12 +1,11 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { HiOutlineCloud } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { SettingsSection } from "../../../../components/ProjectSettings";
 import { ProjectSettingsHeader } from "../../../../components/ProjectSettingsHeader";
 import { AddSecretSheet } from "./components/AddSecretSheet";
@@ -26,7 +25,6 @@ interface EditingSecret {
 
 export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 	const utils = electronTrpc.useUtils();
-	const collections = useCollections();
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
 	});
@@ -38,15 +36,8 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 		},
 	});
 
-	const { data: cloudProjects } = useLiveQuery(
-		(q) =>
-			q.from({ projects: collections.projects }).select(({ projects }) => ({
-				id: projects.id,
-				repoOwner: projects.repoOwner,
-				repoName: projects.repoName,
-			})),
-		[collections.projects],
-	);
+	const cloudUtils = cloudTrpc.useUtils();
+	const { data: cloudProjects } = cloudTrpc.project.list.useQuery(undefined);
 
 	const suggestedMatch = useMemo(() => {
 		if (!project || project.neonProjectId || !cloudProjects) return null;
@@ -96,6 +87,7 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 				repoName,
 				repoUrl: `https://github.com/${project.githubOwner}/${repoName}`,
 			});
+			await cloudUtils.project.list.invalidate();
 			linkToNeon.mutate({
 				id: projectId,
 				neonProjectId: cloudProject.id,
@@ -108,7 +100,7 @@ export function SecretsSettings({ projectId }: SecretsSettingsProps) {
 		} finally {
 			setIsCreatingCloud(false);
 		}
-	}, [project, organizationId, linkToNeon, projectId]);
+	}, [project, organizationId, linkToNeon, projectId, cloudUtils]);
 
 	const handleSaved = () => {
 		setRefreshKey((k) => k + 1);

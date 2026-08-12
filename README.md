@@ -51,7 +51,7 @@ Run 10+ coding agents at once, each in its own git worktree with its own branch,
 
 </td>
 <td width="50%">
-  <a href="https://docs.superset.sh/workspaces"><img src="apps/marketing/public/images/readme/parallel-workspaces.png" alt="Superset sidebar with multiple workspaces running agents in parallel" width="100%" /></a>
+  <a href="https://docs.superset.sh/workspaces"><img src="apps/marketing/public/images/readme/agents-working.gif" alt="Claude streaming a billing migration while other agents run in parallel workspaces" width="100%" /></a>
 </td>
 </tr>
 <tr>
@@ -65,7 +65,7 @@ Track every agent from the sidebar, with working indicators, completion chimes, 
 
 </td>
 <td width="50%">
-  <a href="https://docs.superset.sh/agent-integration"><img src="apps/marketing/public/images/readme/agent-monitoring.png" alt="Agent status indicators in the workspace sidebar" width="100%" /></a>
+  <a href="https://docs.superset.sh/agent-integration"><img src="apps/marketing/public/images/readme/agent-monitoring.gif" alt="An agent finishing its task and the sidebar status flipping from working to done" width="100%" /></a>
 </td>
 </tr>
 <tr>
@@ -79,7 +79,7 @@ Tabs, infinite splits, presets, and persistent sessions that survive restarts. P
 
 </td>
 <td width="50%">
-  <a href="https://docs.superset.sh/terminal-integration"><img src="apps/marketing/public/images/readme/terminal.png" alt="Split terminals running agents side by side" width="100%" /></a>
+  <a href="https://docs.superset.sh/terminal-integration"><img src="apps/marketing/public/images/readme/terminal.gif" alt="Typing a follow-up with an @-file mention in the rich prompt editor next to a split terminal" width="100%" /></a>
 </td>
 </tr>
 <tr>
@@ -141,6 +141,20 @@ Connect another machine and reach its workspaces from anywhere: the desktop app,
 <tr>
 <td width="50%" valign="middle">
 
+### Superset CLI
+
+Script it from any shell: create workspaces, launch agents, read their terminals, and manage automations with a single binary. If an agent can run a command, it can drive Superset.
+
+[Docs →](https://docs.superset.sh/cli/getting-started)
+
+</td>
+<td width="50%">
+  <a href="https://docs.superset.sh/cli/getting-started"><img src="apps/marketing/public/images/readme/cli-demo.gif" alt="Creating a workspace and launching an agent from the Superset CLI" width="100%" /></a>
+</td>
+</tr>
+<tr>
+<td width="50%" valign="middle">
+
 ### Command Palette
 
 Jump to any workspace, action, or setting from one search box.
@@ -149,7 +163,7 @@ Jump to any workspace, action, or setting from one search box.
 
 </td>
 <td width="50%">
-  <a href="https://docs.superset.sh/keyboard-shortcuts"><img src="apps/marketing/public/images/readme/command-palette.png" alt="Command palette searching across workspaces and actions" width="100%" /></a>
+  <a href="https://docs.superset.sh/keyboard-shortcuts"><img src="apps/marketing/public/images/readme/command-palette.gif" alt="Typing in the command palette and filtering workspace actions live" width="100%" /></a>
 </td>
 </tr>
 </table>

@@ -1,6 +1,5 @@
 import { Button } from "@superset/ui/button";
 import { Skeleton } from "@superset/ui/skeleton";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useState } from "react";
 import { FaGithub, FaSlack } from "react-icons/fa";
 import { HiOutlineArrowTopRightOnSquare } from "react-icons/hi2";
@@ -8,7 +7,7 @@ import { SiLinear } from "react-icons/si";
 import { env } from "renderer/env.renderer";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -35,18 +34,13 @@ export function IntegrationsSettings({
 }: IntegrationsSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const collections = useCollections();
 	const searchQuery = useSettingsSearchQuery();
 
-	const { data: integrations } = useLiveQuery(
-		(q) =>
-			q
-				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({
-					...integrationConnections,
-				})),
-		[collections],
-	);
+	const { data: integrations, isPending: isIntegrationsPending } =
+		cloudTrpc.integration.list.useQuery(
+			{ organizationId: activeOrganizationId ?? "" },
+			{ enabled: !!activeOrganizationId },
+		);
 
 	const [githubInstallation, setGithubInstallation] =
 		useState<GithubInstallation | null>(null);
@@ -132,6 +126,7 @@ export function IntegrationsSettings({
 						icon={<SiLinear className="size-5" />}
 						isConnected={isLinearConnected}
 						connectedOrgName={linearConnection?.externalOrgName}
+						isLoading={isIntegrationsPending}
 						onManage={() => handleOpenWeb("/integrations/linear")}
 					/>
 				)}
@@ -155,6 +150,7 @@ export function IntegrationsSettings({
 						icon={<FaSlack className="size-5" />}
 						isConnected={isSlackConnected}
 						connectedOrgName={slackConnection?.externalOrgName}
+						isLoading={isIntegrationsPending}
 						onManage={() => handleOpenWeb("/integrations/slack")}
 					/>
 				)}

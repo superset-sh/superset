@@ -80,19 +80,6 @@ export function resolveDesktopChatOrganizationId(
 	return activeOrganizationId ?? null;
 }
 
-export function isDesktopChatSessionReady({
-	sessionId,
-	hasPersistedSession,
-	skipEnvValidation = env.SKIP_ENV_VALIDATION,
-}: {
-	sessionId: string | null;
-	hasPersistedSession: boolean;
-	skipEnvValidation?: boolean;
-}): boolean {
-	if (skipEnvValidation) return Boolean(sessionId);
-	return hasPersistedSession;
-}
-
 export function getDesktopChatModelOptions(
 	skipEnvValidation = env.SKIP_ENV_VALIDATION,
 ): ModelOption[] {

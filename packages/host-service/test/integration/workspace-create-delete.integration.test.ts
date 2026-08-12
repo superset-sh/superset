@@ -413,11 +413,6 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(rows).toHaveLength(1);
 		expect(rows[0]?.archivedAt).not.toBeNull();
 		expect(rows[0]?.archiveReason).toBe("deleted");
-		expect(
-			scenario.host.apiCalls.some(
-				(c) => c.path === "v2Workspace.delete.mutate",
-			),
-		).toBe(true);
 	});
 
 	test("delete() requires authentication", async () => {

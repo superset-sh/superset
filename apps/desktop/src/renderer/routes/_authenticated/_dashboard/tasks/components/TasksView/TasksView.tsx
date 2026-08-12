@@ -1,4 +1,3 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import {
 	useCallback,
@@ -8,9 +7,10 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useDebouncedSearchNavigation } from "renderer/routes/_authenticated/_dashboard/hooks/useDebouncedSearchNavigation";
 import { useProjectQueryTargets } from "renderer/routes/_authenticated/_dashboard/hooks/useProjectQueryTargets";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
 	tasksSearchFromFilters,
 	useTasksFilterStore,
@@ -49,7 +49,8 @@ export function TasksView({
 	initialState,
 }: TasksViewProps) {
 	const navigate = useNavigate();
-	const collections = useCollections();
+	const { data: session } = authClient.useSession();
+	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const {
 		tab: storedTab,
 		assignee: storedAssignee,
@@ -178,14 +179,9 @@ export function TasksView({
 		storeSetIncludeClosedIssues(includeClosedIssues);
 	}, [includeClosedIssues, storeSetIncludeClosedIssues]);
 
-	const { data: integrations } = useLiveQuery(
-		(q) =>
-			q
-				.from({ integrationConnections: collections.integrationConnections })
-				.select(({ integrationConnections }) => ({
-					...integrationConnections,
-				})),
-		[collections],
+	const { data: integrations } = cloudTrpc.integration.list.useQuery(
+		{ organizationId: activeOrganizationId ?? "" },
+		{ enabled: !!activeOrganizationId },
 	);
 
 	// Projects are fully local — identity comes from the host fan-out.

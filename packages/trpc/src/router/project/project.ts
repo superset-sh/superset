@@ -1,4 +1,4 @@
-import { dbWs } from "@superset/db/client";
+import { db, dbWs } from "@superset/db/client";
 import {
 	githubRepositories,
 	projects,
@@ -10,6 +10,7 @@ import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
 import { verifyOrgMembership, verifyOrgOwner } from "../integration/utils";
+import { requireActiveOrgMembership } from "../utils/active-org";
 import {
 	requireOrgResourceAccess,
 	requireOrgScopedResource,
@@ -84,6 +85,14 @@ async function getScopedProject(organizationId: string, projectId: string) {
 
 export const projectRouter = {
 	secrets: secretsRouter,
+
+	list: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		return db.query.projects.findMany({
+			where: eq(projects.organizationId, organizationId),
+			orderBy: projects.name,
+		});
+	}),
 
 	create: protectedProcedure
 		.input(

@@ -6,6 +6,11 @@ import {
 } from "@tanstack/react-query";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import { del, get, set } from "idb-keyval";
+import {
+	CLOUD_TRPC_ROUTER_ROOTS,
+	cloudTrpc,
+	cloudTrpcClient,
+} from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronReactClient } from "../../lib/trpc-client";
 
@@ -42,6 +47,12 @@ const queryClient = new QueryClient({
 	},
 });
 
+// Cloud reads default to 30s freshness; per-site options still override.
+// Scoped per router root so electron IPC queries keep staleTime 0.
+for (const root of CLOUD_TRPC_ROUTER_ROOTS) {
+	queryClient.setQueryDefaults([[root]], { staleTime: 30_000 });
+}
+
 // IndexedDB-backed persister. localStorage is too small (~5MB) for the
 // volume of PR/issue rows we cache. idb-keyval uses a single object store
 // keyed by the persister's `key` below.
@@ -77,23 +88,27 @@ export function ElectronTRPCProvider({
 			client={electronReactClient}
 			queryClient={queryClient}
 		>
-			<PersistQueryClientProvider
-				client={queryClient}
-				persistOptions={{
-					persister,
-					maxAge: 24 * 60 * 60 * 1000, // 24h
-					buster: PERSIST_BUSTER,
-					dehydrateOptions: {
-						shouldDehydrateQuery: (query) => {
-							if (!defaultShouldDehydrateQuery(query)) return false;
-							const head = query.queryKey[0];
-							return typeof head === "string" && PERSIST_KEY_PREFIXES.has(head);
+			<cloudTrpc.Provider client={cloudTrpcClient} queryClient={queryClient}>
+				<PersistQueryClientProvider
+					client={queryClient}
+					persistOptions={{
+						persister,
+						maxAge: 24 * 60 * 60 * 1000, // 24h
+						buster: PERSIST_BUSTER,
+						dehydrateOptions: {
+							shouldDehydrateQuery: (query) => {
+								if (!defaultShouldDehydrateQuery(query)) return false;
+								const head = query.queryKey[0];
+								return (
+									typeof head === "string" && PERSIST_KEY_PREFIXES.has(head)
+								);
+							},
 						},
-					},
-				}}
-			>
-				{children}
-			</PersistQueryClientProvider>
+					}}
+				>
+					{children}
+				</PersistQueryClientProvider>
+			</cloudTrpc.Provider>
 		</electronTrpc.Provider>
 	);
 }

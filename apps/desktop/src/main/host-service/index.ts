@@ -11,6 +11,7 @@ import {
 	createApp,
 	initSentry,
 	installProcessSafetyNet,
+	installUpgradeSocketGuard,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
 	LocalModelProvider,
@@ -149,6 +150,7 @@ async function main(): Promise<void> {
 		},
 	);
 	serverRef.current = server;
+	installUpgradeSocketGuard(server);
 	injectWebSocket(server);
 }
 

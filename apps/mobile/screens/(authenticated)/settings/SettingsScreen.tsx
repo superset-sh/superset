@@ -1,5 +1,4 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useRouter } from "expo-router";
 import { Alert, ScrollView, View } from "react-native";
 import { useSignOut } from "@/hooks/useSignOut";
@@ -9,24 +8,17 @@ import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
 import { OrganizationAvatar } from "@/screens/(authenticated)/components/OrganizationAvatar";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 import { UserAvatar } from "./components/UserAvatar";
-import { activeSubscription } from "./utils/activeSubscription";
+import { useActivePlan } from "./hooks/useActivePlan";
 
 export function SettingsScreen() {
 	const router = useRouter();
 	const theme = useTheme();
-	const collections = useCollections();
 	const { data: session } = useSession();
 	const { activeOrganization } = useOrganizations();
 	const { signOut, isSigningOut } = useSignOut();
 
-	const { data: subscriptions } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
-	);
-
-	const plan = activeSubscription(subscriptions ?? [])?.plan;
+	const plan = useActivePlan()?.plan;
 	const user = session?.user;
 
 	const handleSignOut = () => {

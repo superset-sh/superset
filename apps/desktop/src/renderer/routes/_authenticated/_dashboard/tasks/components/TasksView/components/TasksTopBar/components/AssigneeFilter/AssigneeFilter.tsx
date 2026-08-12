@@ -1,4 +1,3 @@
-import type { SelectUser } from "@superset/db/schema";
 import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import {
@@ -11,10 +10,10 @@ import {
 	CommandSeparator,
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HiCheck, HiChevronDown, HiOutlineUserCircle } from "react-icons/hi2";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { TASK_PICKER_INPUT } from "../../../../hooks/useTasksData";
 
 type Tab = "all" | "internal" | "external";
 
@@ -24,44 +23,44 @@ interface AssigneeFilterProps {
 }
 
 export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
-	const collections = useCollections();
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
 	const [tab, setTab] = useState<Tab>("all");
 
-	const { data: allUsers } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
+	const { data: members } =
+		cloudTrpc.organization.listMembers.useQuery(undefined);
+
+	const users = useMemo(
+		() => (members ?? []).map((member) => member.user),
+		[members],
 	);
 
-	const users = useMemo(() => allUsers || [], [allUsers]);
-
-	const { data: allTasks } = useLiveQuery(
-		(q) => q.from({ tasks: collections.tasks }),
-		[collections],
-	);
+	const { data: taskPage } =
+		cloudTrpc.task.listPage.useQuery(TASK_PICKER_INPUT);
 
 	const externalAssignees = useMemo(() => {
-		if (!allTasks) return [];
+		if (!taskPage) return [];
 		const seen = new Map<
 			string,
 			{ id: string; name: string | null; avatar: string | null }
 		>();
-		for (const t of allTasks) {
-			if (t.assigneeExternalId && !seen.has(t.assigneeExternalId)) {
-				seen.set(t.assigneeExternalId, {
-					id: t.assigneeExternalId,
-					name: t.assigneeDisplayName,
-					avatar: t.assigneeAvatarUrl,
+		for (const { task } of taskPage.items) {
+			if (task.assigneeExternalId && !seen.has(task.assigneeExternalId)) {
+				seen.set(task.assigneeExternalId, {
+					id: task.assigneeExternalId,
+					name: task.assigneeDisplayName,
+					avatar: task.assigneeAvatarUrl,
 				});
 			}
 		}
 		return [...seen.values()];
-	}, [allTasks]);
+	}, [taskPage]);
 
 	const selectedUser = useMemo(() => {
 		if (value === null) return null;
-		if (value === "unassigned") return { id: "unassigned", name: "Unassigned" };
+		if (value === "unassigned") {
+			return { id: "unassigned", name: "Unassigned", image: null };
+		}
 		if (value.startsWith("ext:")) {
 			const extId = value.slice(4);
 			const ext = externalAssignees.find((e) => e.id === extId);
@@ -69,7 +68,8 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 				? { id: value, name: ext.name || "External", image: ext.avatar }
 				: null;
 		}
-		return users.find((u) => u.id === value) || null;
+		const user = users.find((u) => u.id === value);
+		return user ? { id: user.id, name: user.name, image: user.image } : null;
 	}, [value, users, externalAssignees]);
 
 	const query = search.toLowerCase();
@@ -141,8 +141,8 @@ export function AssigneeFilter({ value, onChange }: AssigneeFilterProps) {
 							) : (
 								<Avatar
 									size="xs"
-									fullName={(selectedUser as SelectUser).name}
-									image={(selectedUser as SelectUser).image}
+									fullName={selectedUser.name}
+									image={selectedUser.image}
 								/>
 							)}
 							<span className="text-sm hidden @4xl:inline">

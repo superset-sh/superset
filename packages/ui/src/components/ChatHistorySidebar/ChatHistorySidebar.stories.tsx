@@ -1,5 +1,6 @@
 import { MessageScroller } from "@shadcn/react/message-scroller";
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { ArrowDownIcon } from "lucide-react";
 import {
 	ChatHistorySidebar,
 	type ChatHistorySidebarMessage,
@@ -90,7 +91,6 @@ const fewMessages = toMessages(EXCHANGES.slice(0, 5));
 const belowMinimum = toMessages(EXCHANGES.slice(0, 3));
 
 const meta = {
-	title: "Components/ChatHistorySidebar",
 	component: ChatHistorySidebar,
 	parameters: { layout: "fullscreen" },
 } satisfies Meta<typeof ChatHistorySidebar>;
@@ -130,9 +130,11 @@ function ChatDemo({
 					</MessageScroller.Viewport>
 					<MessageScroller.Button
 						direction="end"
-						className="absolute bottom-4 left-1/2 z-10 -translate-x-1/2 rounded-full border border-border bg-background px-3 py-1 text-xs text-foreground shadow-md transition-opacity data-[active=false]:pointer-events-none data-[active=false]:opacity-0"
+						behavior="smooth"
+						aria-label="Scroll to bottom"
+						className="absolute bottom-4 left-1/2 z-10 flex size-9 -translate-x-1/2 cursor-pointer items-center justify-center rounded-full bg-background/80 text-muted-foreground shadow-sm ring-1 ring-border backdrop-blur transition-[opacity,scale,color] duration-150 hover:text-foreground data-[active=false]:pointer-events-none data-[active=false]:scale-95 data-[active=false]:opacity-0"
 					>
-						Jump to latest
+						<ArrowDownIcon className="size-4.5" />
 					</MessageScroller.Button>
 				</MessageScroller.Root>
 			</MessageScroller.Provider>

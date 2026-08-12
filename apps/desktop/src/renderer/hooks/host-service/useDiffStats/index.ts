@@ -1,1 +1,5 @@
-export { type DiffStats, useDiffStats } from "./useDiffStats";
+export {
+	type DiffStats,
+	getDiffStatsQueryKey,
+	useDiffStats,
+} from "./useDiffStats";

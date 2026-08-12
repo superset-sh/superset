@@ -11,7 +11,6 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FiUsers } from "react-icons/fi";
@@ -25,6 +24,7 @@ import {
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HelpSubMenu } from "./components/HelpSubMenu";
 import { SubmitPromptDialog } from "./components/SubmitPromptDialog";
@@ -42,10 +42,8 @@ export function OrganizationDropdown({
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
-	const { data: organizations } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
+	const { data: organizations } =
+		cloudTrpc.organization.list.useQuery(undefined);
 
 	const activeOrganization = organizations?.find(
 		(o) => o.id === activeOrganizationId,

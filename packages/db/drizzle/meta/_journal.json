@@ -456,6 +456,13 @@
       "when": 1786239490751,
       "tag": "0064_automations_v2_project_id_nullable",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1786489809031,
+      "tag": "0065_drop_chat_sessions_v2_workspace_fk",
+      "breakpoints": true
     }
   ]
 }

@@ -9,9 +9,7 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { and, eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -36,33 +34,14 @@ export function PendingInvitations({
 	organizationName,
 }: PendingInvitationsProps) {
 	const searchQuery = useSettingsSearchQuery();
-	const collections = useCollections();
 
 	const shouldShowSection = isItemVisible(
 		SETTING_ITEM_ID.ORGANIZATION_MEMBERS_PENDING_INVITATIONS,
 		visibleItems,
 	);
 
-	const { data: invitationsData, isReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ invitations: collections.invitations })
-				.leftJoin({ users: collections.users }, ({ invitations, users }) =>
-					eq(invitations.inviterId, users.id),
-				)
-				.select(({ invitations, users }) => ({
-					invitation: invitations,
-					inviter: users,
-				}))
-				.where(({ invitations }) =>
-					and(
-						eq(invitations.organizationId, organizationId),
-						eq(invitations.status, "pending"),
-					),
-				)
-				.orderBy(({ invitations }) => invitations.createdAt, "desc"),
-		[collections, organizationId],
-	);
+	const { data: invitationsData, isPending } =
+		cloudTrpc.organization.listInvitations.useQuery(undefined);
 
 	const invitations = invitationsData ?? [];
 
@@ -84,7 +63,7 @@ export function PendingInvitations({
 		visibleItems,
 	);
 
-	if (!isReady && invitations.length === 0) {
+	if (isPending && invitations.length === 0) {
 		return (
 			<div className="space-y-4">
 				<div className="flex items-center justify-between">
@@ -146,13 +125,13 @@ export function PendingInvitations({
 							</TableRow>
 						</TableHeader>
 						<TableBody>
-							{invitations.map(({ invitation, inviter }) => (
+							{invitations.map((invitation) => (
 								<TableRow key={invitation.id}>
 									<TableCell className="font-medium">
 										{invitation.email}
 									</TableCell>
 									<TableCell className="text-muted-foreground">
-										{inviter?.name || "Unknown"}
+										{invitation.inviter?.name || "Unknown"}
 									</TableCell>
 									<TableCell>
 										<Badge variant="outline" className="text-xs capitalize">

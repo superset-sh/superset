@@ -99,6 +99,7 @@
 		"@types/react-dom": "19.2.3",
 		"react": "19.2.3",
 		"react-dom": "19.2.3",
+		"shadcn": "4.16.2",
 		"storybook": "10.4.2",
 		"tailwindcss": "4.2.2",
 		"typescript": "6.0.3",

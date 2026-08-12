@@ -11,10 +11,14 @@ import {
 	isActiveSubscriptionStatus,
 	isPaidPlan,
 } from "@superset/shared/billing";
-import { parseHostRoutingKey } from "@superset/shared/host-routing";
+import {
+	buildHostRoutingKey,
+	parseHostRoutingKey,
+} from "@superset/shared/host-routing";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { z } from "zod";
+import { fetchRelayPresence } from "../../lib/relay-presence";
 import { resolveUserRelayUrl } from "../../lib/relay-url";
 import { jwtProcedure, protectedProcedure } from "../../trpc";
 
@@ -62,10 +66,26 @@ export const hostRouter = {
 					),
 				);
 
+			// The relay's DOs are the presence authority; the DB flag is only
+			// the fallback for hosts still on the v1 relay, which keeps writing
+			// it. Callers' own bearer token is forwarded for the access checks.
+			const bearer = ctx.headers.get("authorization")?.slice("Bearer ".length);
+			const presence = bearer
+				? await fetchRelayPresence(
+						await resolveUserRelayUrl(ctx.userId),
+						bearer,
+						rows.map((row) =>
+							buildHostRoutingKey(row.organizationId, row.machineId),
+						),
+					)
+				: null;
+
 			return rows.map((row) => ({
 				id: row.machineId,
 				name: row.name,
-				online: row.isOnline,
+				online:
+					presence?.[buildHostRoutingKey(row.organizationId, row.machineId)]
+						?.online ?? row.isOnline,
 				wakeCommand: row.wakeCommand,
 				organizationId: row.organizationId,
 			}));
