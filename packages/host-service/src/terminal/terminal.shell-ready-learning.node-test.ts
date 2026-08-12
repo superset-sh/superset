@@ -42,6 +42,32 @@ const MIGRATIONS = path.resolve(__dirname, "../../drizzle");
 // Isolated fake user home so the test never sources the real user's rc files.
 const FAKE_USER_HOME = path.join(TEST_HOME, "user-home");
 
+function findOnPath(name: string): string | null {
+	for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+		if (!dir) continue;
+		const candidate = path.join(dir, name);
+		try {
+			fs.accessSync(candidate, fs.constants.X_OK);
+			return candidate;
+		} catch {
+			// keep looking
+		}
+	}
+	return null;
+}
+
+const ZSH = findOnPath("zsh");
+
+// The harness overwrites process-wide env; restore whatever was there so this
+// suite composes with others in the same node --test invocation.
+const OVERRIDDEN_ENV_KEYS = [
+	"SUPERSET_PTY_DAEMON_SOCKET",
+	"SUPERSET_HOME_DIR",
+	"HOST_SERVICE_VERSION",
+	"NODE_ENV",
+] as const;
+const savedEnv = new Map<string, string | undefined>();
+
 let server: Server;
 let db: HostDb;
 let workspaceId: string;
@@ -105,13 +131,15 @@ async function launchAndMeasure(
 		initialCommand: `${command} > "${outFile}"`,
 	});
 	assert.ok(!("error" in session), "error" in session ? session.error : "");
-	await waitFor(() => fs.existsSync(outFile), 25_000);
-	const elapsed = Date.now() - start;
-	// Small settle so the redirect finishes writing before we read it back.
-	await new Promise((r) => setTimeout(r, 150));
-	const body = fs.readFileSync(outFile, "utf8").trim();
-	await disposeSessionAndWait(terminalId, db);
-	return { elapsed, body };
+	try {
+		await waitFor(() => fs.existsSync(outFile), 25_000);
+		const elapsed = Date.now() - start;
+		// Small settle so the redirect finishes writing before we read it back.
+		await new Promise((r) => setTimeout(r, 150));
+		return { elapsed, body: fs.readFileSync(outFile, "utf8").trim() };
+	} finally {
+		await disposeSessionAndWait(terminalId, db);
+	}
 }
 
 function readEvidenceFile(): Record<string, string> {
@@ -128,6 +156,7 @@ function readEvidenceFile(): Record<string, string> {
 }
 
 before(async () => {
+	if (!ZSH) return;
 	fs.mkdirSync(TEST_HOME, { recursive: true });
 	fs.mkdirSync(FAKE_USER_HOME, { recursive: true });
 	const worktreePath = path.join(TEST_HOME, "worktree");
@@ -140,17 +169,18 @@ before(async () => {
 	});
 	await server.listen();
 
+	for (const key of OVERRIDDEN_ENV_KEYS) savedEnv.set(key, process.env[key]);
 	process.env.SUPERSET_PTY_DAEMON_SOCKET = SOCK;
 	process.env.SUPERSET_HOME_DIR = TEST_HOME;
 	process.env.HOST_SERVICE_VERSION = "0.0.0-shellready-e2e";
 	process.env.NODE_ENV = "development";
 
 	__resetShellReadyEvidenceForTesting();
-	__setAccountShellForTesting("/bin/zsh");
+	__setAccountShellForTesting(ZSH);
 	initTerminalBaseEnv({
 		PATH: process.env.PATH ?? "/usr/bin:/bin",
 		HOME: FAKE_USER_HOME,
-		SHELL: "/bin/zsh",
+		SHELL: ZSH,
 	});
 
 	db = createDb(path.join(TEST_HOME, "host.db"), MIGRATIONS);
@@ -169,11 +199,16 @@ before(async () => {
 });
 
 after(async () => {
+	if (!ZSH) return;
 	__resetSessionsForTesting();
 	__setAccountShellForTesting(undefined);
 	__resetShellReadyEvidenceForTesting();
 	await disposeDaemonClient();
 	await server.close();
+	for (const [key, value] of savedEnv) {
+		if (value === undefined) delete process.env[key];
+		else process.env[key] = value;
+	}
 	try {
 		fs.rmSync(TEST_HOME, { recursive: true, force: true });
 	} catch {
@@ -182,27 +217,32 @@ after(async () => {
 });
 
 describe("shell-ready evidence learning", () => {
-	test("marker-delivering profile: prompt launch, evidence records delivered", async () => {
-		assert.equal(
-			shellLaunchExpectsReadyMarker({
-				shell: "/bin/zsh",
-				supersetHomeDir: TEST_HOME,
-			}),
-			true,
-			"wrapper files should make the launch marker-backed",
-		);
+	test(
+		"marker-delivering profile: prompt launch, evidence records delivered",
+		{ skip: !ZSH },
+		async () => {
+			assert.ok(ZSH);
+			assert.equal(
+				shellLaunchExpectsReadyMarker({
+					shell: ZSH,
+					supersetHomeDir: TEST_HOME,
+				}),
+				true,
+				"wrapper files should make the launch marker-backed",
+			);
 
-		const { elapsed } = await launchAndMeasure("date +%s");
-		assert.ok(
-			elapsed < 10_000,
-			`healthy profile took ${elapsed}ms — gate fell back to the timeout`,
-		);
-		await waitFor(() => readEvidenceFile().zsh === "delivered", 5_000);
-	});
+			const { elapsed } = await launchAndMeasure("date +%s");
+			assert.ok(
+				elapsed < 10_000,
+				`healthy profile took ${elapsed}ms — gate fell back to the timeout`,
+			);
+			await waitFor(() => readEvidenceFile().zsh === "delivered", 5_000);
+		},
+	);
 
 	test(
 		"marker-diverting profile: one full timeout, then launches use the short grace",
-		{ timeout: 60_000 },
+		{ skip: !ZSH, timeout: 60_000 },
 		async () => {
 			// A .zshrc that execs another shell keeps the wrapper .zlogin (and
 			// so the marker) from ever running — the class behind SUPER-1103.
@@ -230,22 +270,26 @@ describe("shell-ready evidence learning", () => {
 		},
 	);
 
-	test("recovered profile: an observed marker flips evidence back to delivered", async () => {
-		// Profile fixed: markers flow again and arrive within the grace window,
-		// so the very next launch re-learns `delivered`.
-		fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
+	test(
+		"recovered profile: an observed marker flips evidence back to delivered",
+		{ skip: !ZSH },
+		async () => {
+			// Profile fixed: markers flow again and arrive within the grace window,
+			// so the very next launch re-learns `delivered`.
+			fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
 
-		const { elapsed } = await launchAndMeasure("date +%s");
-		assert.ok(
-			elapsed < 10_000,
-			`recovered profile took ${elapsed}ms — expected a prompt launch`,
-		);
-		await waitFor(() => readEvidenceFile().zsh === "delivered", 5_000);
-	});
+			const { elapsed } = await launchAndMeasure("date +%s");
+			assert.ok(
+				elapsed < 10_000,
+				`recovered profile took ${elapsed}ms — expected a prompt launch`,
+			);
+			await waitFor(() => readEvidenceFile().zsh === "delivered", 5_000);
+		},
+	);
 
 	test(
 		"stdin-eating marker-less profile: grace launch survives a startup `read`",
-		{ timeout: 60_000 },
+		{ skip: !ZSH, timeout: 60_000 },
 		async () => {
 			// Adversarial combo (the omz-updater class of #3941, on a machine
 			// whose marker also never arrives): a startup `read` is consuming the
@@ -286,6 +330,34 @@ describe("shell-ready evidence learning", () => {
 			);
 
 			fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
+		},
+	);
+
+	test(
+		"late marker after the grace window flips evidence back to delivered",
+		{ skip: !ZSH, timeout: 60_000 },
+		async () => {
+			// A slow-init profile delivers the marker AFTER the 2s grace fires
+			// (typed on learned `missing` evidence). The late marker is still
+			// proof this profile delivers — evidence must self-heal instead of
+			// `missing` being a one-way brand.
+			assert.equal(
+				readEvidenceFile().zsh,
+				"missing",
+				"precondition: previous test left zsh branded missing",
+			);
+			fs.writeFileSync(path.join(FAKE_USER_HOME, ".zshrc"), "sleep 4\n");
+			try {
+				const { body } = await launchAndMeasure("date +%s");
+				assert.match(
+					body,
+					/^\d{10}$/,
+					`late-marker launch produced ${JSON.stringify(body)}`,
+				);
+				await waitFor(() => readEvidenceFile().zsh === "delivered", 10_000);
+			} finally {
+				fs.rmSync(path.join(FAKE_USER_HOME, ".zshrc"), { force: true });
+			}
 		},
 	);
 });

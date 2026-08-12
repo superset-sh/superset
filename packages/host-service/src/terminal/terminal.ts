@@ -8,6 +8,7 @@ import type { NodeWebSocket } from "@hono/node-ws";
 import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
 import {
 	buildFishPromptCommandString,
+	type ParsedPromptHeredocCommand,
 	parsePromptHeredocCommand,
 } from "@superset/shared/agent-prompt-launch";
 import {
@@ -316,6 +317,17 @@ const SHELL_READY_TIMEOUT_MS = 15_000;
 const SHELL_READY_MISSING_MARKER_GRACE_MS = 2_000;
 
 /**
+ * How long after creation a session whose marker wait timed out keeps
+ * watching the stream for a late OSC 133;A. A marker that lands after the
+ * grace window (a slow-init profile branded `missing`) is still proof this
+ * profile delivers — record it so the evidence self-heals in both directions
+ * instead of `missing` being a one-way brand. Evidence-only: nothing is
+ * withheld from the output stream. Bounded to the full marker budget so the
+ * scan can't run for the session's whole life.
+ */
+const LATE_MARKER_OBSERVATION_MS = SHELL_READY_TIMEOUT_MS;
+
+/**
  * How long a grace-window launch watches the PTY stream for its own command
  * echoing back before concluding a startup stdin reader ate it. The grace
  * fires on learned evidence, not an observed prompt, so an oh-my-zsh-style
@@ -469,6 +481,11 @@ interface TerminalSession {
 	 * still be consuming stdin, so that path must echo-verify what it typed.
 	 */
 	usedMissingMarkerGrace: boolean;
+	/**
+	 * True once a post-timeout OSC 133;A was seen and recorded as `delivered`
+	 * evidence, ending the late-marker scan for this session.
+	 */
+	lateMarkerRecorded: boolean;
 	/**
 	 * Active echo watcher for a grace-window initialCommand: fed every output
 	 * chunk so typeInitialCommandVerifyingEcho can see its text echo back.
@@ -1673,6 +1690,22 @@ function waitForOutputQuiescence(
 }
 
 /**
+ * Deferred launch typing races session teardown: the daemon socket can drop
+ * before `isDefunct()` (registry/exited checks) observes the disposal, so a
+ * write can throw "socket not connected" from inside a floating promise or
+ * timer. A failed write means the session is gone — treat it as defunct and
+ * abort the launch quietly.
+ */
+function tryTypeToPty(session: TerminalSession, data: string): boolean {
+	try {
+		session.pty.write(data);
+		return true;
+	} catch {
+		return false;
+	}
+}
+
+/**
  * Grace-window typing (learned `missing` evidence, no observed prompt): a
  * startup stdin reader can still be consuming the TTY when the grace fires —
  * the oh-my-zsh-updater `read` of #3941 on a profile that also never delivers
@@ -1695,13 +1728,15 @@ async function typeInitialCommandVerifyingEcho(
 ): Promise<void> {
 	for (let attempt = 0; attempt <= GRACE_ECHO_MAX_RETYPES; attempt++) {
 		if (isDefunct()) return dropStagedFiles();
-		if (attempt > 0) session.pty.write("\x15");
-		session.pty.write(typedText);
+		if (attempt > 0 && !tryTypeToPty(session, "\x15")) {
+			return dropStagedFiles();
+		}
+		if (!tryTypeToPty(session, typedText)) return dropStagedFiles();
 		if (await waitForCommandEcho(session, probe, GRACE_ECHO_WINDOW_MS)) break;
 	}
 	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
 	if (isDefunct()) return dropStagedFiles();
-	session.pty.write("\r");
+	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
 }
 
 /**
@@ -1723,26 +1758,38 @@ async function typeInitialCommandVerifyingEcho(
  * post-echo quiet, which already provides the text→Enter separation, so
  * Enter goes out immediately on acceptance. After the retry budget the
  * command falls back to a blind Enter, exactly like the gated paths.
+ *
+ * A null `probe` (command too short or non-ASCII start — commandEchoProbe)
+ * only disables the echo verification: the quiescence wait still applies, so
+ * short commands like `ls` don't regress into the blind-write reedline-flush
+ * loss (#6024). Those launches type once and send the delayed Enter.
  */
 async function typeInitialCommandUngated(
 	session: TerminalSession,
 	typedText: string,
-	probe: string,
+	probe: string | null,
 	dropStagedFiles: () => void,
 	isDefunct: () => boolean,
 ): Promise<void> {
-	const expectedRemainder = Buffer.from(typedText, "utf8")
-		.toString("latin1")
-		.slice(probe.length);
-	for (let attempt = 0; attempt <= GRACE_ECHO_MAX_RETYPES; attempt++) {
-		if (attempt > 0) session.pty.write("\x15");
+	const expectedRemainder = probe
+		? Buffer.from(typedText, "utf8").toString("latin1").slice(probe.length)
+		: "";
+	const maxRetypes = probe ? GRACE_ECHO_MAX_RETYPES : 0;
+	for (let attempt = 0; attempt <= maxRetypes; attempt++) {
 		await waitForOutputQuiescence(
 			session,
 			UNGATED_QUIESCENT_MS,
 			UNGATED_QUIESCENCE_CAP_MS,
 		);
 		if (isDefunct()) return dropStagedFiles();
-		session.pty.write(typedText);
+		// Ctrl-U after the re-quiesce, not before it — sent earlier, the same
+		// startup reader that ate the command swallows the kill char too and
+		// the retype appends to the leftover line.
+		if (attempt > 0 && !tryTypeToPty(session, "\x15")) {
+			return dropStagedFiles();
+		}
+		if (!tryTypeToPty(session, typedText)) return dropStagedFiles();
+		if (!probe) break;
 		const verified = await waitForCommandEcho(
 			session,
 			probe,
@@ -1754,13 +1801,13 @@ async function typeInitialCommandUngated(
 		);
 		if (verified) {
 			if (isDefunct()) return dropStagedFiles();
-			session.pty.write("\r");
+			if (!tryTypeToPty(session, "\r")) dropStagedFiles();
 			return;
 		}
 	}
 	await new Promise((r) => setTimeout(r, INITIAL_COMMAND_ENTER_DELAY_MS));
 	if (isDefunct()) return dropStagedFiles();
-	session.pty.write("\r");
+	if (!tryTypeToPty(session, "\r")) dropStagedFiles();
 }
 
 /**
@@ -1771,15 +1818,14 @@ async function typeInitialCommandUngated(
  * sweep's crash cleanup) and the typed command becomes the fish equivalent,
  * which deletes the file as soon as it's consumed. POSIX shells keep today's
  * heredoc byte-for-byte — this runs only when the launch shell is fish.
- * Returns null (type the original text) for non-transport commands or when
- * staging fails.
+ * Returns null when staging fails; the caller must NOT fall back to typing
+ * the heredoc (fish dies parsing it — the very failure this rewrite exists
+ * to prevent) and surfaces a launch error instead.
  */
 function stageFishPromptTransport(
 	session: TerminalSession,
-	commandText: string,
+	parsed: ParsedPromptHeredocCommand,
 ): { commandText: string; promptPath: string } | null {
-	const parsed = parsePromptHeredocCommand(commandText);
-	if (!parsed) return null;
 	const safeId = session.terminalId.replace(/[^\w-]/g, "_").slice(0, 60);
 	const promptPath = join(
 		tmpdir(),
@@ -1793,8 +1839,8 @@ function stageFishPromptTransport(
 			flag: "wx",
 		});
 	} catch (error) {
-		console.warn(
-			"[terminal] failed to stage fish prompt file; typing heredoc as-is",
+		console.error(
+			"[terminal] failed to stage fish prompt file; aborting agent launch",
 			{ terminalId: session.terminalId, error },
 		);
 		return null;
@@ -1809,6 +1855,12 @@ function stageFishPromptTransport(
 		promptPath,
 	};
 }
+
+// Shown in the terminal when a fish prompt launch can't be staged — the
+// alternative (typing the bash heredoc into fish) is guaranteed garbage.
+const FISH_PROMPT_STAGE_FAILED_NOTICE = new TextEncoder().encode(
+	"\r\n\x1b[31m[superset] Failed to stage the agent prompt for fish — the agent was not started. Retry the launch; see host-service logs for the cause.\x1b[0m\r\n",
+);
 
 function queueInitialCommand(
 	session: TerminalSession,
@@ -1841,11 +1893,18 @@ function queueInitialCommand(
 			}
 		};
 		// fish can't parse the heredoc prompt transport — swap it for the
-		// staged-file equivalent before any typing decisions are made.
+		// staged-file equivalent before any typing decisions are made. When
+		// staging fails there is no fish-parseable fallback; typing the bash
+		// heredoc guarantees a parse error, so surface the failure and stop.
 		let effectiveCommand = commandText;
 		if (session.launchShellName === "fish") {
-			const fishStaged = stageFishPromptTransport(session, commandText);
-			if (fishStaged) {
+			const parsedTransport = parsePromptHeredocCommand(commandText);
+			if (parsedTransport) {
+				const fishStaged = stageFishPromptTransport(session, parsedTransport);
+				if (!fishStaged) {
+					deliverOutput(session, FISH_PROMPT_STAGE_FAILED_NOTICE);
+					return;
+				}
 				effectiveCommand = fishStaged.commandText;
 				stagedPaths.push(fishStaged.promptPath);
 			}
@@ -1886,19 +1945,17 @@ function queueInitialCommand(
 		}
 		// No marker was ever expected for this launch (unwrapped bash, sh/ksh,
 		// nushell): quiesce, type, and echo-verify instead of typing blind into
-		// whatever the startup is doing to stdin.
+		// whatever the startup is doing to stdin. A null probe only skips the
+		// echo verification — the quiescence wait still applies.
 		if (session.shellReadyState === "unsupported") {
-			const probe = commandEchoProbe(typedText);
-			if (probe) {
-				void typeInitialCommandUngated(
-					session,
-					typedText,
-					probe,
-					dropStagedFiles,
-					isDefunct,
-				);
-				return;
-			}
+			void typeInitialCommandUngated(
+				session,
+				typedText,
+				commandEchoProbe(typedText),
+				dropStagedFiles,
+				isDefunct,
+			);
+			return;
 		}
 		// The OSC 133;A marker fires from precmd, which runs BEFORE the line
 		// editor starts reading input. Plugin init in that gap (vi-mode,
@@ -1908,13 +1965,14 @@ function queueInitialCommand(
 		// write — and as `\r`, what a real Enter key sends, bound to accept-line
 		// in every keymap — so it lands after the init storm. One Enter total,
 		// so a double-run is impossible.
-		session.pty.write(typedText);
+		if (!tryTypeToPty(session, typedText)) {
+			dropStagedFiles();
+			return;
+		}
 		setTimeout(() => {
-			if (isDefunct()) {
+			if (isDefunct() || !tryTypeToPty(session, "\r")) {
 				dropStagedFiles();
-				return;
 			}
-			session.pty.write("\r");
 		}, INITIAL_COMMAND_ENTER_DELAY_MS);
 	});
 }
@@ -2475,6 +2533,7 @@ export async function createTerminalSessionInternal({
 		shellReadyTimeoutId: null,
 		scanState: createScanState(),
 		usedMissingMarkerGrace: false,
+		lateMarkerRecorded: false,
 		echoProbe: null,
 		dsrCarry: new Uint8Array(0),
 		// Adopted sessions have already run their initialCommand in the prior
@@ -2533,6 +2592,22 @@ export async function createTerminalSessionInternal({
 					bytes = result.output;
 					if (result.matched) {
 						resolveShellReady(session, "ready");
+					}
+				} else if (
+					session.shellReadyState === "timed_out" &&
+					!session.lateMarkerRecorded &&
+					Date.now() - session.createdAt < LATE_MARKER_OBSERVATION_MS
+				) {
+					// Evidence-only scan for a marker arriving after the (grace)
+					// timeout — output passes through untouched; a match flips a
+					// `missing` brand back to `delivered` (self-healing evidence).
+					const result = scanForShellReady(session.scanState, chunk);
+					if (result.matched) {
+						session.lateMarkerRecorded = true;
+						recordShellReadyMarkerEvidence(
+							session.launchShellName,
+							"delivered",
+						);
 					}
 				}
 				if (bytes.byteLength === 0) return;

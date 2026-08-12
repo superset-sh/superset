@@ -28,6 +28,7 @@ const EVIDENCE_FILENAME = "shell-ready-evidence.json";
 type EvidenceMap = Record<string, ShellReadyEvidence>;
 
 let cache: { dir: string; evidence: EvidenceMap } | null = null;
+let warnedReadError = false;
 
 function evidenceDir(): string {
 	return process.env.SUPERSET_HOME_DIR || "";
@@ -48,8 +49,20 @@ function loadEvidence(dir: string): EvidenceMap {
 					}
 				}
 			}
-		} catch {
+		} catch (error) {
 			evidence = {};
+			// No file yet and a corrupt file both legitimately mean "no
+			// evidence"; anything else (EACCES, EISDIR, …) is a real problem
+			// that silently costs a 15s wait per launch — say so once.
+			const code = (error as NodeJS.ErrnoException)?.code;
+			if (code !== "ENOENT" && !(error instanceof SyntaxError)) {
+				if (!warnedReadError) {
+					warnedReadError = true;
+					console.warn("[terminal] failed to read shell-ready evidence", {
+						error,
+					});
+				}
+			}
 		}
 	}
 	cache = { dir, evidence };
@@ -85,4 +98,5 @@ export function recordShellReadyMarkerEvidence(
 
 export function __resetShellReadyEvidenceForTesting(): void {
 	cache = null;
+	warnedReadError = false;
 }
