@@ -402,7 +402,8 @@ async function octokitDirectLookupMatchesReviewFilter(
 
 /**
  * Octokit twin of {@link ghDirectLookupRow}: direct-lookup one repo, apply
- * author/review filters, enrich checks best-effort. Null = filtered out.
+ * author/review filters, enrich checks best-effort. Null = filtered out or
+ * PR not found/inaccessible.
  */
 async function octokitDirectLookupRow(
 	octokit: Octokit,
@@ -412,11 +413,20 @@ async function octokitDirectLookupRow(
 	reviewFilter: PullRequestReviewFilter | undefined,
 ): Promise<PullRequestResult | null> {
 	const { repo } = target;
-	const { data: pr } = await octokit.pulls.get({
-		owner: repo.owner,
-		repo: repo.name,
-		pull_number: prNumber,
-	});
+	const response = await octokit.pulls
+		.get({
+			owner: repo.owner,
+			repo: repo.name,
+			pull_number: prNumber,
+		})
+		.catch((error: unknown) => {
+			// A 404 means the PR doesn't exist or isn't accessible to the user —
+			// an expected empty result, not an internal error.
+			if (isGithubNotFoundError(error)) return null;
+			throw error;
+		});
+	if (!response) return null;
+	const pr = response.data;
 	if (!matchesAuthor(pr.user?.login ?? null, author)) return null;
 	if (
 		reviewFilter &&

@@ -2,6 +2,7 @@ import { createNodeWebSocket } from "@hono/node-ws";
 import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/chat-legacy/server/desktop";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
@@ -94,9 +95,15 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		(async () => {
 			const token = await providers.credentials.getToken("github.com");
 			if (!token) {
-				throw new Error(
-					"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
-				);
+				// Expected precondition failure (user has no GitHub auth), not an
+				// internal error — every procedure calling ctx.github() inherits
+				// this classification.
+				throw new TRPCError({
+					code: "PRECONDITION_FAILED",
+					message:
+						"No GitHub token available. Set GITHUB_TOKEN/GH_TOKEN or authenticate via git credential manager.",
+					cause: { kind: "NO_GITHUB_TOKEN" },
+				});
 			}
 			return new Octokit({ auth: token });
 		});
