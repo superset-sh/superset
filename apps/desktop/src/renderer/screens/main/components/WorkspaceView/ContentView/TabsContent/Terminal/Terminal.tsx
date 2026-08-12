@@ -438,9 +438,13 @@ export const Terminal = memo(function Terminal({
 			if (!plainText) return;
 			text = shellEscapePaths([plainText]);
 		}
-		if (!isExitedRef.current) {
-			writeRef.current({ paneId, data: text });
-		}
+		if (isExitedRef.current) return;
+		// Paste instead of writing raw. xterm wraps the text in bracketed-paste
+		// markers when the foreground app has asked for them, and that envelope
+		// is how an agent TUI tells a dropped path apart from typing — Claude
+		// Code attaches a pasted image path and leaves a typed one as text.
+		// v2 terminal panes already go through paste(); so does Cmd+V here.
+		xtermRef.current?.paste(text);
 	};
 
 	return (
