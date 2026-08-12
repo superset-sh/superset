@@ -75,6 +75,12 @@ export function useV2AttentionWorkspaceCount(): number {
 
 	useEffect(() => {
 		return queryClient.getQueryCache().subscribe((event) => {
+			// `added` fires synchronously inside the render that first builds a
+			// query — setState there is a render-phase update. Data-bearing
+			// events (`updated`/`removed`) are the only ones that move the count.
+			if (event.type !== "updated" && event.type !== "removed") {
+				return;
+			}
 			if (event.query.queryKey[0] === "terminal-agent-bindings") {
 				setCacheVersion((version) => version + 1);
 			}
