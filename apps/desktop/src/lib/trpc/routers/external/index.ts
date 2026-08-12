@@ -19,6 +19,7 @@ import {
 	type ExternalApp,
 	getAppCommand,
 	RelativePathWithoutCwdError,
+	resolveDroppedPath,
 	resolvePath,
 	spawnAsync,
 } from "./helpers";
@@ -229,6 +230,13 @@ export const createExternalRouter = () => {
 			.query(({ input }) =>
 				withResolveGuard(() => resolvePath(input.path, input.worktreePath)),
 			),
+
+		// Repairs a dropped file path whose Unicode whitespace came back folded
+		// to ASCII. Only ever returns a path that exists; anything ambiguous or
+		// unreadable comes back unchanged, so the caller needs no branch.
+		resolveDroppedPath: publicProcedure
+			.input(z.object({ path: z.string() }))
+			.query(({ input }) => resolveDroppedPath(input.path)),
 
 		statPath: publicProcedure
 			.input(

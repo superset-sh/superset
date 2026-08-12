@@ -1,7 +1,9 @@
 import { spawn } from "node:child_process";
+import fs from "node:fs";
 import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
+import { matchByFoldedName, splitPath } from "shared/dropped-path-repair";
 
 /** Map of app IDs to their macOS application names */
 const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
@@ -413,6 +415,30 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 			}
 		});
 	});
+}
+
+/** A drop lands in one directory; a huge one is not a screenshot folder. */
+const MAX_REPAIR_DIRECTORY_ENTRIES = 5_000;
+
+/**
+ * The on-disk path behind a dropped one whose Unicode whitespace came back
+ * folded to ASCII (#6369). Returns the input unchanged whenever it already
+ * resolves, the directory cannot be read, or more than one sibling matches —
+ * so this only ever swaps a path that does not exist for one that does.
+ */
+export async function resolveDroppedPath(dropped: string): Promise<string> {
+	if (fs.existsSync(dropped)) return dropped;
+	const { dir, base } = splitPath(dropped);
+	if (!dir || !base) return dropped;
+	let entries: string[];
+	try {
+		entries = await fs.promises.readdir(dir);
+	} catch {
+		return dropped;
+	}
+	if (entries.length > MAX_REPAIR_DIRECTORY_ENTRIES) return dropped;
+	const match = matchByFoldedName(base, entries);
+	return match ? nodePath.join(dir, match) : dropped;
 }
 
 export type { ExternalApp };
