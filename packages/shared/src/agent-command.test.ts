@@ -96,3 +96,30 @@ describe("kimi agent registration", () => {
 		expect(preset?.promptArgs).toEqual(["-p"]);
 	});
 });
+
+describe("grok agent registration", () => {
+	it("is a registered terminal agent with the right label", () => {
+		expect(AGENT_TYPES).toContain("grok");
+		expect(AGENT_LABELS.grok).toBe("Grok");
+	});
+
+	it("seeds prompt launches into the interactive TUI positionally", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "grok-1234",
+			agent: "grok",
+		});
+
+		expect(command).toStartWith(
+			"grok --always-approve \"$(cat <<'SUPERSET_PROMPT_grok1234'",
+		);
+		expect(command).toEndWith('\n)"');
+	});
+
+	it("derives host preset args from the base command with no prompt flag", () => {
+		const preset = getPresetById("grok");
+		expect(preset?.command).toBe("grok");
+		expect(preset?.args).toEqual(["--always-approve"]);
+		expect(preset?.promptArgs).toEqual([]);
+	});
+});

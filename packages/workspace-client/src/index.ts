@@ -11,6 +11,7 @@ export {
 	type ProjectSnapshotPayload,
 	type TerminalLifecyclePayload,
 	type WorkspaceChangedPayload,
+	type WorkspaceCreateSettledPayload,
 	type WorkspaceSnapshotPayload,
 } from "./lib/eventBus";
 export {
@@ -21,10 +22,9 @@ export {
 	createRelaySocket,
 	type RelaySocket,
 	type RelaySocketOptions,
-	type RelaySocketTelemetryEvent,
-	setRelaySocketTelemetry,
 } from "./lib/relaySocket";
 export {
+	useMaybeWorkspaceClient,
 	useWorkspaceClient,
 	useWorkspaceHostUrl,
 	useWorkspaceWsUrl,

@@ -3,7 +3,6 @@ import { Button } from "@superset/ui/button";
 import { Spinner } from "@superset/ui/spinner";
 import {
 	createFileRoute,
-	Navigate,
 	Outlet,
 	useLocation,
 	useNavigate,
@@ -13,6 +12,7 @@ import { DndProvider } from "react-dnd";
 import { HiOutlineWifi } from "react-icons/hi2";
 import { NewWorkspaceModal } from "renderer/components/NewWorkspaceModal";
 import { Paywall } from "renderer/components/Paywall";
+import { Redirect } from "renderer/components/Redirect";
 import { env } from "renderer/env.renderer";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
@@ -27,6 +27,14 @@ import { InitGitDialog } from "renderer/react-query/projects/InitGitDialog";
 import { DaemonAutoUpdateFailureDialog } from "renderer/routes/_authenticated/components/DaemonAutoUpdateFailureDialog";
 import { DashboardNewWorkspaceModal } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal";
 import { DiffThemeSync } from "renderer/routes/_authenticated/components/DiffThemeSync";
+import {
+	V1AutoMigration,
+	V1MigrationContinuity,
+} from "renderer/routes/_authenticated/components/V1AutoMigration";
+import {
+	V1FlipNotice,
+	V2FlipWelcome,
+} from "renderer/routes/_authenticated/components/V1FlipNotice";
 import { V1ImportModal } from "renderer/routes/_authenticated/components/V1ImportModal";
 import { WorkspaceInitEffects } from "renderer/screens/main/components/WorkspaceInitEffects";
 import { useSettingsStore } from "renderer/stores/settings-state";
@@ -43,7 +51,6 @@ import { TeardownLogsDialog } from "./components/TeardownLogsDialog";
 import { V2NotificationController } from "./components/V2NotificationController";
 import { createPierreWorker } from "./lib/pierreWorker";
 import { CollectionsProvider } from "./providers/CollectionsProvider";
-import { DeletingWorkspacesProvider } from "./providers/DeletingWorkspacesProvider";
 import { HostWorkspacesProvider } from "./providers/HostWorkspacesProvider";
 import { LocalHostServiceProvider } from "./providers/LocalHostServiceProvider";
 
@@ -51,12 +58,11 @@ export const Route = createFileRoute("/_authenticated")({
 	component: AuthenticatedLayout,
 });
 
-// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
-const signInRedirect = <Navigate to="/sign-in" replace />;
+const signInRedirect = <Redirect to="/sign-in" replace />;
 const createOrganizationRedirect = (
-	<Navigate to="/create-organization" replace />
+	<Redirect to="/create-organization" replace />
 );
-const onboardingRedirect = <Navigate to="/onboarding" replace />;
+const onboardingRedirect = <Redirect to="/onboarding" replace />;
 
 const SESSION_PENDING_TIMEOUT_MS = 15_000;
 
@@ -195,7 +201,8 @@ function AuthenticatedLayout() {
 	// across re-renders loops the router until the renderer OOMs (#5729).
 	if (isAuthPending) {
 		return (
-			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+			<div className="relative flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+				<div className="drag absolute inset-x-0 top-0 h-12" />
 				<Spinner className="size-8" />
 				{authPendingTimedOut && (
 					<>
@@ -235,7 +242,8 @@ function AuthenticatedLayout() {
 
 	if (!isSignedIn && hasLocalToken && !isOnline) {
 		return (
-			<div className="flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+			<div className="relative flex h-screen w-screen flex-col items-center justify-center gap-4 bg-background">
+				<div className="drag absolute inset-x-0 top-0 h-12" />
 				<HiOutlineWifi className="size-12 text-muted-foreground" />
 				<div className="text-center">
 					<h2 className="text-lg font-medium">You're offline</h2>
@@ -272,30 +280,37 @@ function AuthenticatedLayout() {
 				<GlobalBrowserLifecycle />
 				<LocalHostServiceProvider>
 					<HostWorkspacesProvider>
-						<DeletingWorkspacesProvider>
-							<WorkerPoolContextProvider
-								poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
-								highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
-							>
-								<DiffThemeSync />
-								<AgentHooks />
-								<FileMenuListener />
-								<V2NotificationController />
-								<DockBadgeController />
-								<DaemonAutoUpdateFailureDialog />
-								<Outlet />
-								<V1ImportModal />
-								<WorkspaceInitEffects />
-								{isV2CloudEnabled ? (
-									<DashboardNewWorkspaceModal />
-								) : (
-									<NewWorkspaceModal />
-								)}
-								<InitGitDialog />
-								<TeardownLogsDialog />
-								<Paywall />
-							</WorkerPoolContextProvider>
-						</DeletingWorkspacesProvider>
+						<WorkerPoolContextProvider
+							poolOptions={{ workerFactory: createPierreWorker, poolSize: 8 }}
+							highlighterOptions={{ preferredHighlighter: "shiki-wasm" }}
+						>
+							<DiffThemeSync />
+							<AgentHooks />
+							<FileMenuListener />
+							<V2NotificationController />
+							<DockBadgeController />
+							<DaemonAutoUpdateFailureDialog />
+							<Outlet />
+							<V1ImportModal />
+							{isV2CloudEnabled ? (
+								<>
+									<V1MigrationContinuity />
+									<V2FlipWelcome />
+								</>
+							) : (
+								<V1FlipNotice />
+							)}
+							<V1AutoMigration />
+							<WorkspaceInitEffects />
+							{isV2CloudEnabled ? (
+								<DashboardNewWorkspaceModal />
+							) : (
+								<NewWorkspaceModal />
+							)}
+							<InitGitDialog />
+							<TeardownLogsDialog />
+							<Paywall />
+						</WorkerPoolContextProvider>
 					</HostWorkspacesProvider>
 				</LocalHostServiceProvider>
 			</CollectionsProvider>

@@ -18,9 +18,7 @@ import {
 	TableRow,
 } from "@superset/ui/table";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
 	HiOutlineClipboardDocument,
 	HiOutlineClipboardDocumentCheck,
@@ -28,8 +26,10 @@ import {
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	getImageExtensionFromMimeType,
 	parseBase64DataUrl,
@@ -57,13 +57,19 @@ interface SettingsRowProps {
 }
 
 function SettingsRow({ label, hint, htmlFor, children }: SettingsRowProps) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className="flex items-center justify-between gap-8 py-2.5">
 			<div className="flex-1 min-w-0">
 				<Label htmlFor={htmlFor} className="text-sm font-medium">
-					{label}
+					<HighlightText text={label} query={searchQuery} />
 				</Label>
-				{hint && <p className="text-xs text-muted-foreground mt-0.5">{hint}</p>}
+				{hint && (
+					<p className="text-xs text-muted-foreground mt-0.5">
+						<HighlightText text={hint} query={searchQuery} />
+					</p>
+				)}
 			</div>
 			<div className="shrink-0">{children}</div>
 		</div>
@@ -75,16 +81,15 @@ export function OrganizationSettings({
 }: OrganizationSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
-	const collections = useCollections();
+	const utils = cloudTrpc.useUtils();
+	const searchQuery = useSettingsSearchQuery();
 
 	const [isSlugDialogOpen, setIsSlugDialogOpen] = useState(false);
 	const [logoPreview, setLogoPreview] = useState<string | null>(null);
 	const [nameValue, setNameValue] = useState("");
 
-	const { data: organizations, isReady } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
+	const { data: organizations, isPending } =
+		cloudTrpc.organization.list.useQuery(undefined);
 
 	const organization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
@@ -118,34 +123,31 @@ export function OrganizationSettings({
 		visibleItems,
 	);
 
-	const { data: membersData, isReady: membersReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.innerJoin({ users: collections.users }, ({ members, users }) =>
-					eq(members.userId, users.id),
-				)
-				.select(({ members, users }) => ({
-					...users,
-					...members,
-					memberId: members.id,
-				}))
-				.orderBy(({ members }) => members.role, "asc")
-				.orderBy(({ members }) => members.createdAt, "asc"),
-		[collections, activeOrganizationId],
-	);
+	const { data: membersData, isPending: membersPending } =
+		cloudTrpc.organization.listMembers.useQuery(undefined);
 
-	const members: TeamMember[] = (membersData ?? [])
-		.map((m) => ({
-			...m,
-			role: m.role as OrganizationRole,
-		}))
-		.sort((a, b) => {
-			const priorityDiff =
-				getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
-			if (priorityDiff !== 0) return priorityDiff;
-			return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
-		});
+	const members: TeamMember[] = useMemo(() => {
+		if (!activeOrganizationId) return [];
+		return (membersData ?? [])
+			.map((m) => ({
+				memberId: m.id,
+				userId: m.userId,
+				organizationId: activeOrganizationId,
+				role: m.role as OrganizationRole,
+				createdAt: m.createdAt,
+				name: m.user.name,
+				email: m.user.email,
+				image: m.user.image,
+			}))
+			.sort((a, b) => {
+				const priorityDiff =
+					getRoleSortPriority(a.role) - getRoleSortPriority(b.role);
+				if (priorityDiff !== 0) return priorityDiff;
+				return (
+					new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+				);
+			});
+	}, [membersData, activeOrganizationId]);
 	const ownerCount = members.filter((m) => m.role === "owner").length;
 	const currentMemberFromData = members.find((m) => m.userId === currentUserId);
 	const currentUserRole = currentMemberFromData?.role;
@@ -182,6 +184,7 @@ export function OrganizationSettings({
 			});
 
 			setLogoPreview(uploadResult.url);
+			await utils.organization.list.invalidate();
 			toast.success("Logo updated");
 		} catch (error) {
 			console.error("[organization-settings] Logo upload failed:", error);
@@ -202,6 +205,7 @@ export function OrganizationSettings({
 				id: organization.id,
 				name: nameValue,
 			});
+			await utils.organization.list.invalidate();
 			toast.success("Organization name updated");
 		} catch (error) {
 			console.error("[organization-settings] Name update failed:", error);
@@ -220,7 +224,7 @@ export function OrganizationSettings({
 		);
 	}
 
-	if (!organization && !isReady) {
+	if (!organization && isPending) {
 		return (
 			<div className="p-6 max-w-4xl w-full">
 				<Skeleton className="h-7 w-40 mb-8" />
@@ -396,13 +400,15 @@ export function OrganizationSettings({
 							{showMembersList && (
 								<div>
 									<div className="mb-3">
-										<h3 className="text-sm font-medium">Members</h3>
+										<h3 className="text-sm font-medium">
+											<HighlightText text="Members" query={searchQuery} />
+										</h3>
 										<p className="text-xs text-muted-foreground mt-0.5">
 											Everyone with access to this organization.
 										</p>
 									</div>
 
-									{!membersReady && members.length === 0 ? (
+									{membersPending && members.length === 0 ? (
 										<div className="border rounded-lg divide-y divide-border">
 											{[0, 1, 2].map((i) => (
 												<div key={i} className="flex items-center gap-4 p-4">
@@ -515,6 +521,7 @@ export function OrganizationSettings({
 					onOpenChange={setIsSlugDialogOpen}
 					organizationId={organization.id}
 					currentSlug={organization.slug}
+					onSuccess={() => utils.organization.list.invalidate()}
 				/>
 			)}
 		</>

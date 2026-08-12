@@ -12,6 +12,7 @@ export interface LinearIssue {
 	dueDate: string | null;
 	createdAt: string;
 	url: string;
+	branchName: string;
 	startedAt: string | null;
 	completedAt: string | null;
 	assignee: {
@@ -101,6 +102,7 @@ const ISSUES_QUERY = `
         dueDate
         createdAt
         url
+        branchName
         startedAt
         completedAt
         assignee {
@@ -184,7 +186,14 @@ export function mapIssueToTask(
 
 	const statusId = statusByExternalId.get(issue.state.id);
 	if (!statusId) {
-		throw new Error(`Status not found for state ${issue.state.id}`);
+		// A state created after the status-sync step (or from an unsynced
+		// team) shouldn't abort the whole initial sync; the periodic sync
+		// picks the issue up once its status exists. Same policy as the
+		// webhook path (SUPER-237).
+		console.warn(
+			`[linear/initial-sync] Status not found for state ${issue.state.id}, skipping issue ${issue.identifier}`,
+		);
+		return null;
 	}
 
 	return {
@@ -202,6 +211,7 @@ export function mapIssueToTask(
 		estimate: issue.estimate,
 		dueDate: issue.dueDate ? new Date(issue.dueDate) : null,
 		labels: issue.labels.nodes.map((l) => l.name),
+		branch: issue.branchName || null,
 		startedAt: issue.startedAt ? new Date(issue.startedAt) : null,
 		completedAt: issue.completedAt ? new Date(issue.completedAt) : null,
 		createdAt: new Date(issue.createdAt),

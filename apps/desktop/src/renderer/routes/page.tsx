@@ -1,12 +1,10 @@
-import { createFileRoute, Navigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
+import { Redirect } from "renderer/components/Redirect";
 
 export const Route = createFileRoute("/")({
 	component: RootIndexPage,
 });
 
-// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
-const workspaceRedirect = <Navigate to="/workspace" replace />;
-
 function RootIndexPage() {
-	return workspaceRedirect;
+	return <Redirect to="/workspace" replace />;
 }

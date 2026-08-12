@@ -12,10 +12,11 @@ import {
 } from "@superset/ui/form";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { createFileRoute, Navigate, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { Redirect } from "renderer/components/Redirect";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
@@ -25,8 +26,7 @@ export const Route = createFileRoute("/create-organization/")({
 	component: CreateOrganization,
 });
 
-// Hoisted for stable props identity — <Navigate> re-navigates every re-render otherwise (react error #185 loop, #5729)
-const signInRedirect = <Navigate to="/sign-in" replace />;
+const signInRedirect = <Redirect to="/sign-in" replace />;
 
 const formSchema = z.object({
 	name: z.string().min(1, "Organization name is required").max(100),
@@ -163,6 +163,8 @@ export function CreateOrganization() {
 
 	return (
 		<div className="relative flex min-h-screen items-center justify-center bg-background p-4">
+			{/* Stops short of the top-right Cancel/Sign Out button. */}
+			<div className="drag absolute left-0 right-32 top-0 h-12" />
 			<div className="absolute top-4 right-4">
 				{hasActiveOrganization ? (
 					<Button

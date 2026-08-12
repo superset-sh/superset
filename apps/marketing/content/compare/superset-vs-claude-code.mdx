@@ -24,7 +24,7 @@ Claude Code is Anthropic's AI coding agent, with both terminal and desktop app s
 | | **Superset** | **Claude Code** |
 |---|---|---|
 | **Category** | Agent orchestration workspace | AI coding agent (CLI + desktop app) |
-| **What it does** | Runs 10+ coding agents in parallel with Git worktrees, chat, diff/file review, and browser tooling | AI assistant that reads, writes, and debugs code in your terminal or desktop app |
+| **What it does** | Runs 100+ coding agents in parallel with Git worktrees, chat, diff/file review, and browser tooling | AI assistant that reads, writes, and debugs code in your terminal or desktop app |
 | **AI approach** | Agent-agnostic — orchestrates Claude Code, Codex, Aider, OpenCode, Superset Chat, and more | Claude models only (Sonnet, Opus, Haiku) via Anthropic API |
 | **Parallelism** | Core feature — many agents on separate branches simultaneously | Single session; requires separate terminal tabs for parallelism |
 | **Isolation** | Automatic Git worktree per task — agents cannot conflict | Shares your working directory — manual worktree setup needed |
@@ -57,7 +57,7 @@ With Claude Code alone, whether from the CLI or the Desktop app, you are still m
 
 ### Automatic Isolation
 
-Running Claude Code directly, it modifies files in your current directory. If you start two Claude Code instances in the same directory, they'll overwrite each other's changes. Superset creates a separate Git worktree per task, giving each Claude Code instance an isolated copy of the repository. This is what makes running 10+ agents at once safe.
+Running Claude Code directly, it modifies files in your current directory. If you start two Claude Code instances in the same directory, they'll overwrite each other's changes. Superset creates a separate Git worktree per task, giving each Claude Code instance an isolated copy of the repository. This is what makes running 100+ agents at once safe.
 
 ### Agent Flexibility
 

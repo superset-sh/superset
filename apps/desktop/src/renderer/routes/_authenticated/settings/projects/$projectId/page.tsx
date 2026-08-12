@@ -12,14 +12,19 @@ export const Route = createFileRoute(
 )({
 	component: ProjectDetailPage,
 	notFoundComponent: NotFound,
-	validateSearch: (search: Record<string, unknown>): { hostId?: string } => ({
+	validateSearch: (
+		search: Record<string, unknown>,
+	): { hostId?: string; focus?: string } => ({
 		hostId: typeof search.hostId === "string" ? search.hostId : undefined,
+		// One-shot deep-link target: scroll to and focus a specific field
+		// (e.g. "naming-instructions" from the new-workspace project picker).
+		focus: typeof search.focus === "string" ? search.focus : undefined,
 	}),
 });
 
 function ProjectDetailPage() {
 	const { projectId } = Route.useParams();
-	const { hostId } = Route.useSearch();
+	const { hostId, focus } = Route.useSearch();
 	const searchQuery = useSettingsSearchQuery();
 
 	const { projects: hostProjects, isReady } = useHostProjects();
@@ -36,7 +41,13 @@ function ProjectDetailPage() {
 	}, [searchQuery]);
 
 	if (v2Match.length > 0) {
-		return <V2ProjectSettings projectId={projectId} hostId={hostId ?? null} />;
+		return (
+			<V2ProjectSettings
+				projectId={projectId}
+				hostId={hostId ?? null}
+				focusField={focus ?? null}
+			/>
+		);
 	}
 	// Cache-first rule: no match + hosts not settled = loading, not the v1
 	// fallback — otherwise every v2 project flashes the legacy settings page.

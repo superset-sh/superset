@@ -1,6 +1,16 @@
-import { OPEN_ROLES } from "@superset/shared/constants";
-import { ArrowDown, ArrowUpRight } from "lucide-react";
 import type { Metadata } from "next";
+import Script from "next/script";
+
+declare global {
+	namespace React.JSX {
+		interface IntrinsicElements {
+			"waas-job-board": React.DetailedHTMLProps<
+				React.HTMLAttributes<HTMLElement>,
+				HTMLElement
+			> & { company: string };
+		}
+	}
+}
 
 const DESCRIPTION =
 	"We're hiring engineers in San Francisco. Help us build the first software factory platform.";
@@ -27,179 +37,142 @@ export const metadata: Metadata = {
 export default function JoinUsPage() {
 	return (
 		<main className="relative min-h-screen bg-background">
-			<style>{"html { scroll-behavior: smooth; }"}</style>
-			<div className="max-w-3xl mx-auto px-6 py-24 md:py-32">
-				<section>
-					<h1 className="text-4xl sm:text-5xl md:text-6xl font-normal leading-none text-foreground -mb-[0.2em]">
-						Join us at{" "}
-						<span
-							className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl ml-2 font-light leading-none tracking-wide"
-							style={{ fontFamily: "var(--font-micro5)" }}
-						>
-							SUPERSET
-						</span>
+			<div className="max-w-[90rem] mx-auto px-6 pt-24 md:pt-32">
+				<section className="grid gap-10 md:grid-cols-[2fr_3fr] md:gap-24 lg:gap-32">
+					<h1 className="text-4xl md:text-5xl font-normal leading-tight text-foreground m-0">
+						Building the last piece of software
 					</h1>
 
-					<p className="text-base text-muted-foreground leading-relaxed mb-6">
-						{DESCRIPTION}
-					</p>
-
-					<a
-						href="#open-roles"
-						className="inline-flex items-center gap-2 border border-border bg-background px-4 py-2 text-sm text-foreground transition-colors hover:bg-muted group"
-					>
-						See open roles
-						<ArrowDown className="size-4 transition-transform group-hover:translate-y-0.5" />
-					</a>
-				</section>
-
-				<section className="mt-6">
-					<div className="space-y-5 text-lg text-muted-foreground leading-relaxed">
-						<p>
-							Superset started as a hackathon project in November 2025. It was a
-							simple desktop app for managing worktrees.
+					<div>
+						<p className="text-xl md:text-2xl text-foreground leading-snug m-0">
+							Superset is building self-improving software. It starts with
+							giving engineers the best tools that adapt to their needs over
+							time.
 						</p>
 
-						<p>
-							It wasn't much to start, but today,{" "}
-							<span className="text-foreground">
-								tens of thousands of engineers
-							</span>{" "}
-							run Superset as their primary IDE, at companies like Vercel, Exa,
-							and Ramp.
-						</p>
+						<div
+							className="mt-8 space-y-5 text-base text-muted-foreground leading-relaxed"
+							style={{ fontFamily: "var(--font-inter), sans-serif" }}
+						>
+							<p>
+								Today, tens of thousands of engineers run Superset as their
+								primary IDE, at companies like Vercel, Exa, and Ramp. Soon,
+								teams will run 100s of agents in parallel - software factories
+								that autonomously manufacture and ship code. We're making
+								Superset the place where teams run and manage those factories,
+								starting with our own.
+							</p>
 
-						<p>
-							Now, we&apos;ve raised{" "}
-							<span className="text-foreground">$11M</span> from the best
-							investors in Silicon Valley to build the platform for software
-							factories.
-						</p>
-					</div>
-
-					<figure className="m-0 mt-10 md:mt-12">
-						{/* biome-ignore lint/performance/noImgElement: static asset with known dimensions */}
-						<img
-							src="/join-us/founders.jpg"
-							alt="The Superset founders at a Hackathon, YC HQ San Francisco"
-							width={1536}
-							height={960}
-							className="w-full rounded-lg border border-border"
-						/>
-
-						<figcaption className="mt-3 text-xs text-muted-foreground">
-							The founders at a hackathon{" "}
-							<span className="text-muted-foreground/40">|</span> YC HQ,
-							November 2025
-						</figcaption>
-					</figure>
-				</section>
-
-				<section className="mt-12 md:mt-16">
-					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
-						What's a software factory?
-					</h2>
-
-					<div className="space-y-5 text-lg text-muted-foreground leading-relaxed">
-						<p>
-							Software engineering has changed dramatically since we started:
-						</p>
-
-						<ul className="list-disc space-y-2 pl-6">
-							<li>We barely open a full IDE anymore</li>
-							<li>
-								Agents write most of the code (humans still review most of it)
-							</li>
-							<li>People are parallelizing work for the first time</li>
-						</ul>
-
-						<p>
-							We saw this coming - coding was becoming increasingly agentic, and
-							the existing tooling wasn't catching up. That's why we built
-							Superset.
-						</p>
-
-						<p>
-							And this trend is{" "}
-							<em className="text-foreground">accelerating</em>. Today, folks
-							are running 3-5 agents in parallel, and soon it will be 100s.
-						</p>
-
-						<p>
-							Follow that trajectory and you get the first bona fide{" "}
-							<span className="text-foreground">software factories</span>:
-							engines that autonomously manufacture and ship code, powered by
-							hundreds of agents running at once.
-						</p>
-						<p>
-							Our current model of writing code just won't scale there. How will
-							a human understand what's going on? How will our infrastructure
-							handle that much code being generated?
-						</p>
-						<p>
-							So much of our software infrastructure needs to be thrown out and
-							rebuilt, which makes it an extremely exciting time. This is a land
-							grab - value is about to be created at a scale we've never seen.
-							We intend to claim it by making Superset the place where teams run
-							and manage their coding factories -{" "}
-							<span className="text-foreground">starting with our own.</span>
-						</p>
+							<p>
+								Superset is built in Superset, so we're our own #1 users - you
+								get paid to make your own life easier. We're building a flat and
+								talent-dense team, and we're looking for people who have crazy
+								ideas and are crazy enough to ship them. If you've ever wanted
+								to build a product you love to use, come build it with us.
+							</p>
+						</div>
 					</div>
 				</section>
+			</div>
 
-				<section className="mt-12 md:mt-16">
-					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
-						We build our own toys
-					</h2>
-
-					<div className="space-y-5 text-lg text-muted-foreground leading-relaxed">
-						<p>
-							Superset is built in Superset, so we're our own #1 users. When
-							something's annoying, we feel it first; when something's magical,
-							we can't wait to share it.
-						</p>
-
-						<p>
-							That's the hidden perk of working here: you get paid to make your
-							own life easier. If the platform we're building is fun and makes
-							us 10x more productive, chances are everyone else will love it
-							too.
-						</p>
-
-						<p className="text-foreground">
-							If you've ever wanted to build a product you love to use, come
-							build it with us.
-						</p>
-					</div>
-				</section>
-
-				<section id="open-roles" className="mt-12 md:mt-16 scroll-mt-24">
+			<div className="max-w-[90rem] mx-auto px-6 pb-24 md:pb-32">
+				<section id="open-roles" className="mt-24 md:mt-32 scroll-mt-24">
 					<h2 className="text-2xl md:text-3xl font-normal text-foreground mb-6">
 						Open roles
 					</h2>
 
-					<ul className="m-0 list-none p-0 border-t border-border">
-						{OPEN_ROLES.map((role) => (
-							<li key={role.title} className="border-b border-border">
-								<a
-									href={role.url}
-									target="_blank"
-									rel="noopener noreferrer"
-									className="group flex items-center justify-between gap-4 py-5 no-underline"
-								>
-									<span className="flex flex-col gap-1 sm:flex-row sm:items-baseline sm:gap-4">
-										<span className="text-lg text-foreground">
-											{role.title}
-										</span>
-										<span className="text-sm text-muted-foreground">
-											{role.location}
-										</span>
-									</span>
-									<ArrowUpRight className="size-5 shrink-0 text-muted-foreground transition-all group-hover:text-foreground group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-								</a>
-							</li>
-						))}
-					</ul>
+					{/* Managed via YC Work at a Startup — layout/colors configured at bookface.ycombinator.com/workatastartup/job_board_settings */}
+					<style>{`
+						waas-job-board {
+							--waas-primary: var(--brand);
+							--waas-radius: 0px;
+							--waas-border: var(--color-border);
+							--waas-border-focus: var(--brand);
+							--waas-bg: #101012;
+							--waas-bg-subtle: rgba(255, 255, 255, 0.06);
+							--waas-font: var(--font-inter), ui-sans-serif, sans-serif;
+							--waas-text: var(--foreground);
+							--waas-text-secondary: var(--muted-foreground);
+							--waas-font-size-base: 15px;
+							--waas-font-size-md: 18px;
+							--waas-font-size-xl: 22px;
+						}
+					`}</style>
+					<Script
+						src="https://www.workatastartup.com/embed/script.js"
+						strategy="afterInteractive"
+					/>
+					{/* show-filters="false" attribute is ignored (Lit boolean), so set the property; detail-view spacing has no CSS-var hooks, so patch its shadow root directly */}
+					<Script id="waas-board-config" strategy="afterInteractive">
+						{`// the embed renders hCaptcha without a theme option, so force dark by patching render() as the hcaptcha script assigns its global
+						{
+							const darken = (h) => {
+								if (!h?.render || h.__supersetDark) return h;
+								const orig = h.render.bind(h);
+								h.render = (el, cfg) => orig(el, { theme: "dark", ...cfg });
+								h.__supersetDark = true;
+								return h;
+							};
+							let hc = darken(window.hcaptcha);
+							Object.defineProperty(window, "hcaptcha", {
+								configurable: true,
+								get: () => hc,
+								set: (v) => { hc = darken(v); },
+							});
+						}
+						customElements.whenDefined("waas-job-board").then(() => {
+							// !important: Lit's adoptedStyleSheets are ordered after tree styles, so plain rules lose
+							const inject = (root, css) => {
+								if (!root || root.getElementById("superset-overrides")) return;
+								const style = document.createElement("style");
+								style.id = "superset-overrides";
+								style.textContent = css;
+								root.append(style);
+							};
+							// site CTA recipe (see DownloadButton): mono uppercase, foreground/background flip, brand on hover
+							const mono = "font-family:var(--font-ibm-plex-mono),ui-monospace,monospace !important;text-transform:uppercase !important;letter-spacing:0.05em !important";
+							const detailCss = [
+								".two-col{gap:192px !important}",
+								".tabs{margin-bottom:48px !important;gap:40px !important}",
+								".main-content{max-width:760px !important}",
+								".tab{" + mono + ";font-size:13px !important}",
+								".back-link{" + mono + ";font-size:12px !important}",
+								".sidebar-label{" + mono + ";font-size:11px !important}",
+								".sidebar-item{border-bottom:1px solid var(--_border) !important}", // default rgba(0,0,0,.06) vanishes on dark bg
+							].join("");
+							const formCss = [
+								".primary-button{" + mono + ";font-size:13px !important;font-weight:400 !important;background:var(--foreground) !important;color:var(--background) !important;transition:background-color .15s ease,color .15s ease !important}",
+								".primary-button:hover:not(:disabled){background:var(--brand) !important;color:#fff !important;filter:none !important}",
+							].join("");
+							const cardCss = [
+								".job-card{border-bottom:none !important}",
+								".job-card:hover{background:rgba(255,255,255,0.04) !important}", // default rgba(0,0,0,.03) vanishes on dark bg
+								".job-salary{font-family:var(--font-ibm-plex-mono),ui-monospace,monospace !important;letter-spacing:0.02em !important}",
+							].join("");
+							for (const board of document.querySelectorAll("waas-job-board")) {
+								board.showFilters = false;
+								const patch = () => {
+									const detail = board.shadowRoot?.querySelector("waas-job-detail");
+									inject(detail?.shadowRoot, detailCss);
+									inject(detail?.shadowRoot?.querySelector("waas-apply-form")?.shadowRoot, formCss);
+									const list = board.shadowRoot?.querySelector("waas-job-list");
+									for (const card of list?.shadowRoot?.querySelectorAll("waas-job-card") ?? []) {
+										inject(card.shadowRoot, cardCss);
+									}
+								};
+								patch();
+								// nested shadow roots aren't visible to the observer, so poll as a safety net
+								new MutationObserver(patch).observe(board.shadowRoot, { childList: true, subtree: true });
+								setInterval(patch, 500);
+							}
+						});`}
+					</Script>
+					<waas-job-board company="superset" />
+					<noscript>
+						<a href="https://www.ycombinator.com/companies/superset/jobs">
+							View open roles on Y Combinator
+						</a>
+					</noscript>
 				</section>
 			</div>
 		</main>

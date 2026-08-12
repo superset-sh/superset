@@ -1,6 +1,5 @@
 import type { TableOfContents } from "fumadocs-core/toc";
 import { AnchorProvider } from "fumadocs-core/toc";
-import { I18nLabel } from "fumadocs-ui/contexts/i18n";
 import { Edit, Text } from "lucide-react";
 import type { AnchorHTMLAttributes, HTMLAttributes, ReactNode } from "react";
 import { forwardRef } from "react";
@@ -149,7 +148,7 @@ export function DocsPage({
 					{tocOptions.header}
 					<h3 className="inline-flex items-center gap-1.5 text-sm text-muted-foreground">
 						<Text className="size-4" />
-						<I18nLabel label="toc" />
+						On this page
 					</h3>
 					<TOCScrollArea>
 						<TOCItems items={toc} />

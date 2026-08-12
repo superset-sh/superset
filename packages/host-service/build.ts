@@ -40,6 +40,10 @@ const result = await Bun.build({
 		"@duckdb/node-bindings-linux-arm64",
 		"@duckdb/node-bindings-win32-x64",
 		"@duckdb/node-bindings-win32-arm64",
+		// Optional peer of webdriverio; the browser-driver code path never
+		// executes at runtime, so these must not be bundled.
+		"puppeteer-core",
+		"chromium-bidi",
 	],
 });
 

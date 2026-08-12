@@ -6,7 +6,7 @@ import { createTRPCClient, httpLink, type TRPCClient } from "@trpc/client";
 import type { inferRouterOutputs } from "@trpc/server";
 import superjson from "superjson";
 import { getJwt } from "../auth/client";
-import { env } from "../env";
+import { getRelayUrl } from "../host/client";
 
 export type HostServiceClient = TRPCClient<AppRouter>;
 
@@ -30,7 +30,7 @@ export function buildRelayHostUrl(
 	organizationId: string,
 	machineId: string,
 ): string {
-	return `${env.EXPO_PUBLIC_RELAY_URL}/hosts/${buildHostRoutingKey(organizationId, machineId)}`;
+	return `${getRelayUrl()}/hosts/${buildHostRoutingKey(organizationId, machineId)}`;
 }
 
 export function getHostServiceClientByUrl(hostUrl: string): HostServiceClient {

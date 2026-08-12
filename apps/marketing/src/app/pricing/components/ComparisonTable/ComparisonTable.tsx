@@ -30,18 +30,21 @@ export function ComparisonTable() {
 function DesktopTable() {
 	return (
 		<div className="hidden md:block">
-			<table className="w-full table-fixed border-collapse">
+			<table className="w-full table-fixed border-separate border-spacing-0">
 				<thead>
-					<tr className="border-b border-border">
-						<th className="w-2/5 py-4 pr-4 text-left text-sm font-medium text-muted-foreground">
+					<tr>
+						<th className="sticky top-16 z-10 w-2/5 border-b border-border bg-background py-4 pr-4 text-left text-sm font-medium text-muted-foreground">
 							Features
 						</th>
 						{PRICING_TIERS.map((tier) => (
 							<th
 								key={tier.id}
-								className="w-1/5 py-4 px-4 text-left text-sm font-medium text-foreground"
+								className="sticky top-16 z-10 w-1/5 border-b border-border bg-background py-4 px-4 text-left text-sm font-medium text-foreground"
 							>
 								{tier.name}
+								<span className="ml-2 font-normal text-xs text-muted-foreground">
+									{tierPriceLabel(tier)}
+								</span>
 							</th>
 						))}
 					</tr>
@@ -58,6 +61,16 @@ function DesktopTable() {
 			</table>
 		</div>
 	);
+}
+
+function tierPriceLabel(tier: (typeof PRICING_TIERS)[number]): string {
+	if (tier.price.kind === "fixed") {
+		return tier.price.display;
+	}
+	if (tier.price.kind === "variable") {
+		return `from ${tier.price.yearly.display}/user/mo`;
+	}
+	return "Custom";
 }
 
 function DesktopSectionGroup({
@@ -84,8 +97,8 @@ function DesktopSectionGroup({
 
 function DesktopRow({ row }: { row: ComparisonRow }) {
 	return (
-		<tr className="border-b border-border/60">
-			<td className="py-4 pr-4 text-sm text-foreground">
+		<tr>
+			<td className="border-b border-border/60 py-4 pr-4 text-sm text-foreground">
 				<div className="flex items-center gap-2">
 					<span>{row.label}</span>
 					{row.badge && <RowBadge badge={row.badge} />}
@@ -94,7 +107,7 @@ function DesktopRow({ row }: { row: ComparisonRow }) {
 			{row.values.map((value, index) => (
 				<td
 					key={`${row.label}-${index}`}
-					className="px-4 py-4 text-sm text-foreground"
+					className="border-b border-border/60 px-4 py-4 text-sm text-foreground"
 				>
 					<Cell value={value} />
 				</td>

@@ -6,7 +6,7 @@
 
 [![GitHub stars](https://img.shields.io/github/stars/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/stargazers)
 [![GitHub release](https://img.shields.io/github/v/release/superset-sh/superset?style=flat&logo=github)](https://github.com/superset-sh/superset/releases)
-[![License](https://img.shields.io/github/license/superset-sh/superset?style=flat)](LICENSE.md)
+[![License](https://img.shields.io/badge/license-Elastic%20License%202.0-blue?style=flat)](LICENSE.md)
 [![Twitter](https://img.shields.io/badge/@superset__sh-555?logo=x)](https://x.com/superset_sh)
 [![Discord](https://img.shields.io/badge/Discord-555?logo=discord)](https://discord.gg/cZeD9WYcV7)
 
@@ -156,6 +156,7 @@ Jump to any workspace, action, or setting from one search box.
 
 **Also in the box:**
 
+- **[Built-in skills](https://docs.superset.sh/skills)**: agents come pre-loaded with `superset:*` skills — orchestrate parallel agents, schedule automations, file feedback, diagnose issues — provisioned automatically at launch
 - **[Model picker & custom agents](https://docs.superset.sh/agent-integration)**: choose a model and reasoning effort at launch, and add any terminal agent with its own icon
 - **[Workspace setup scripts](https://docs.superset.sh/setup-teardown-scripts)**: automate env setup, dependency installs, and dev servers per workspace
 - **[Terminal presets](https://docs.superset.sh/terminal-presets)**: save agent and shell layouts and open them with one keystroke
@@ -179,6 +180,8 @@ Superset works with any CLI-based coding agent, including:
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/droid-white.svg" /><img height="16" align="top" alt="Droid" src="packages/ui/src/assets/icons/preset-icons/droid.svg" /></picture> &nbsp;[Droid](https://www.factory.ai/) | Fully supported |
 | <img height="16" align="top" alt="Gemini CLI" src="packages/ui/src/assets/icons/preset-icons/gemini.svg" /> &nbsp;[Gemini CLI](https://github.com/google-gemini/gemini-cli) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/copilot-white.svg" /><img height="16" align="top" alt="GitHub Copilot" src="packages/ui/src/assets/icons/preset-icons/copilot.svg" /></picture> &nbsp;[GitHub Copilot](https://github.com/features/copilot) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/grok-white.svg" /><img height="16" align="top" alt="Grok" src="packages/ui/src/assets/icons/preset-icons/grok.svg" /></picture> &nbsp;[Grok](https://x.ai/) | Fully supported |
+| <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/kimi-white.svg" /><img height="16" align="top" alt="Kimi Code" src="packages/ui/src/assets/icons/preset-icons/kimi.svg" /></picture> &nbsp;[Kimi Code](https://www.kimi.com/) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/mastracode-white.svg" /><img height="16" align="top" alt="Mastra Code" src="packages/ui/src/assets/icons/preset-icons/mastracode.svg" /></picture> &nbsp;[Mastra Code](https://mastra.ai/) | Fully supported |
 | <img height="16" align="top" alt="Mistral Vibe" src="packages/ui/src/assets/icons/preset-icons/vibe.svg" /> &nbsp;[Mistral Vibe](https://mistral.ai/) | Fully supported |
 | <picture><source media="(prefers-color-scheme: dark)" srcset="packages/ui/src/assets/icons/preset-icons/opencode-white.svg" /><img height="16" align="top" alt="OpenCode" src="packages/ui/src/assets/icons/preset-icons/opencode.svg" /></picture> &nbsp;[OpenCode](https://github.com/opencode-ai/opencode) | Fully supported |
@@ -217,21 +220,16 @@ brew install superset-sh/tap/superset
 
 An iOS app is coming soon so you can check on your agents from your phone.
 
-## Requirements
-
-| Requirement | Details |
-|:------------|:--------|
-| **OS** | macOS (Windows/Linux untested) |
-| **Runtime** | [Bun](https://bun.sh/) v1.0+ |
-| **Version Control** | Git 2.20+ |
-| **GitHub CLI** | [gh](https://cli.github.com/) |
-| **Caddy** | [caddy](https://caddyserver.com/docs/install) (for dev server) |
-
 ## Install
 
-**[Download Superset for macOS](https://github.com/superset-sh/superset/releases/latest)**
+Download the desktop app:
 
-Builds for Windows and Linux are not yet available.
+- **macOS**: [Apple Silicon (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-arm64.dmg) · [Intel (.dmg)](https://github.com/superset-sh/superset/releases/latest/download/Superset-x64.dmg)
+- **Linux**: [x64 AppImage](https://github.com/superset-sh/superset/releases/latest/download/Superset-x86_64.AppImage) (experimental; macOS is the primary target)
+- **Windows**: not yet available
+- [All builds](https://github.com/superset-sh/superset/releases/latest)
+
+All you need installed is [Git](https://git-scm.com/). [gh](https://cli.github.com/) is optional and unlocks the PR workflows; Superset offers to install it for you.
 
 ## Development
 
@@ -257,7 +255,7 @@ No Neon account or third-party credentials are needed. `setup.local.sh` brings
 up a local Postgres + Electric stack via Docker and seeds a dev account. Sign in
 with the **"Sign in as dev"** button (or `admin@local.test` / `supersetdev`).
 
-Prereqs: `bun`, `docker`, `jq`, `caddy` (`brew install jq caddy && caddy trust`).
+Prereqs: [Bun](https://bun.sh/) v1.3.14+ (pinned in `.bun-version`), `docker`, `jq`, and `caddy`, which `bun dev` runs as the local HTTPS proxy (`brew install jq caddy && caddy trust`).
 
 See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide: what the setup script does, manual setup against real services, common commands, troubleshooting, and how to build the desktop app. Contribution process lives in [**CONTRIBUTING.md**](./CONTRIBUTING.md).
 
@@ -318,6 +316,8 @@ Join the Superset community to get help, share feedback, and connect with other 
 [![Kiet Twitter](https://img.shields.io/badge/Kiet-@flyakiet-555?logo=x)](https://x.com/flyakiet)
 [![Satya Twitter](https://img.shields.io/badge/Satya-@saddle__paddle-555?logo=x)](https://x.com/saddle_paddle)
 
-## License
+## License & what's free forever
 
-Distributed under the Elastic License 2.0 (ELv2). See [LICENSE.md](LICENSE.md) for more information.
+**The desktop app is free forever.** Running agents in parallel on your own machine will never require payment. Anything we charge for will be an optional service on top.
+
+The whole app is in this repo under the [Elastic License 2.0](LICENSE.md): use it, fork it, modify it, self-host it for your team. The only thing off the table is repackaging Superset itself as a service you sell to others.

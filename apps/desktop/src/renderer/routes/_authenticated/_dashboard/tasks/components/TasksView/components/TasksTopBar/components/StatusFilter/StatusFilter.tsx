@@ -7,12 +7,19 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { useState } from "react";
+import type { IconType } from "react-icons";
 import { HiCheck, HiChevronDown } from "react-icons/hi2";
+import {
+	LuCircle,
+	LuCircleCheck,
+	LuCircleDot,
+	LuCircleX,
+} from "react-icons/lu";
 import { ActiveIcon } from "../../../shared/icons/ActiveIcon";
 import { AllIssuesIcon } from "../../../shared/icons/AllIssuesIcon";
 import { BacklogIcon } from "../../../shared/icons/BacklogIcon";
 
-type TabValue = "all" | "active" | "backlog";
+import type { TabValue } from "../../TasksTopBar";
 
 interface StatusFilterProps {
 	value: TabValue;
@@ -22,11 +29,15 @@ interface StatusFilterProps {
 const OPTIONS: ReadonlyArray<{
 	value: TabValue;
 	label: string;
-	Icon: typeof AllIssuesIcon;
+	Icon: IconType;
 }> = [
-	{ value: "all", label: "All issues", Icon: AllIssuesIcon },
+	{ value: "all", label: "All tasks", Icon: AllIssuesIcon },
 	{ value: "active", label: "Active", Icon: ActiveIcon },
 	{ value: "backlog", label: "Backlog", Icon: BacklogIcon },
+	{ value: "unstarted", label: "Todo", Icon: LuCircle },
+	{ value: "started", label: "In progress", Icon: LuCircleDot },
+	{ value: "completed", label: "Done", Icon: LuCircleCheck },
+	{ value: "canceled", label: "Canceled", Icon: LuCircleX },
 ];
 
 export function StatusFilter({ value, onChange }: StatusFilterProps) {

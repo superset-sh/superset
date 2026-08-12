@@ -15,9 +15,9 @@
 		"jose": "6.2.2"
 	},
 	"devDependencies": {
-		"@cloudflare/workers-types": "4.20260329.1",
+		"@cloudflare/workers-types": "5.20260801.1",
 		"@superset/typescript": "workspace:*",
 		"typescript": "6.0.3",
-		"wrangler": "4.78.0"
+		"wrangler": "4.118.0"
 	}
 }

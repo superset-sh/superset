@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import type { PromptTransport } from "@superset/shared/agent-prompt-launch";
 import {
 	getDefaultSeedPresets,
+	getPresetById,
 	type HostAgentPreset,
 } from "@superset/shared/host-agent-presets";
 import { TRPCError } from "@trpc/server";
@@ -26,6 +27,9 @@ export interface HostAgentConfig {
 	args: string[];
 	promptTransport: PromptTransport;
 	promptArgs: string[];
+	/** Args that resume a previous session; the session id is appended after
+	 * them. Empty when the agent has no id-based resume. */
+	resumeArgs: string[];
 	env: Record<string, string>;
 	order: number;
 }
@@ -39,6 +43,7 @@ interface HostAgentConfigRow {
 	argsJson: string;
 	promptTransport: string;
 	promptArgsJson: string;
+	resumeArgsJson: string;
 	envJson: string;
 	displayOrder: number;
 }
@@ -87,6 +92,7 @@ function toOutput(row: HostAgentConfigRow): HostAgentConfig {
 		args: parseArgv(row.argsJson),
 		promptTransport: row.promptTransport as PromptTransport,
 		promptArgs: parseArgv(row.promptArgsJson),
+		resumeArgs: parseArgv(row.resumeArgsJson),
 		env: parseEnv(row.envJson),
 		order: row.displayOrder,
 	};
@@ -105,6 +111,7 @@ function rowFromPreset(
 		argsJson: JSON.stringify(preset.args),
 		promptTransport: preset.promptTransport,
 		promptArgsJson: JSON.stringify(preset.promptArgs),
+		resumeArgsJson: JSON.stringify(preset.resumeArgs),
 		envJson: JSON.stringify(preset.env),
 		displayOrder,
 	};
@@ -144,6 +151,7 @@ const updatePatchSchema = z
 		args: argvSchema.optional(),
 		promptTransport: promptTransportSchema.optional(),
 		promptArgs: argvSchema.optional(),
+		resumeArgs: argvSchema.optional(),
 		env: envSchema.optional(),
 		iconId: iconIdPatchSchema.optional(),
 	})
@@ -154,6 +162,7 @@ const updatePatchSchema = z
 			patch.args !== undefined ||
 			patch.promptTransport !== undefined ||
 			patch.promptArgs !== undefined ||
+			patch.resumeArgs !== undefined ||
 			patch.env !== undefined ||
 			patch.iconId !== undefined,
 		{ message: "Patch must update at least one field" },
@@ -165,6 +174,8 @@ const addInputSchema = z.object({
 	args: argvSchema,
 	promptTransport: promptTransportSchema,
 	promptArgs: argvSchema,
+	// Defaulted so an older desktop client that doesn't send it can still add.
+	resumeArgs: argvSchema.default([]),
 	env: envSchema,
 	presetId: z.string().trim().min(1).optional(),
 	iconId: iconIdSchema.optional(),
@@ -206,6 +217,7 @@ export const agentConfigsRouter = router({
 				argsJson: JSON.stringify(input.args),
 				promptTransport: input.promptTransport,
 				promptArgsJson: JSON.stringify(input.promptArgs),
+				resumeArgsJson: JSON.stringify(input.resumeArgs),
 				envJson: JSON.stringify(input.env),
 				displayOrder: nextOrder,
 			})
@@ -259,6 +271,8 @@ export const agentConfigsRouter = router({
 				update.promptTransport = input.patch.promptTransport;
 			if (input.patch.promptArgs !== undefined)
 				update.promptArgsJson = JSON.stringify(input.patch.promptArgs);
+			if (input.patch.resumeArgs !== undefined)
+				update.resumeArgsJson = JSON.stringify(input.patch.resumeArgs);
 			if (input.patch.env !== undefined)
 				update.envJson = JSON.stringify(input.patch.env);
 			if (input.patch.iconId !== undefined) update.iconId = input.patch.iconId;
@@ -279,6 +293,64 @@ export const agentConfigsRouter = router({
 				});
 			}
 			return toOutput(updated);
+		}),
+
+	/**
+	 * Restore one configured built-in agent to the bundled definition while
+	 * preserving its stable id and display order. This repairs stale defaults
+	 * without replacing unrelated custom agents or breaking linked presets.
+	 */
+	restoreDefault: protectedProcedure
+		.input(z.object({ id: z.string().min(1) }))
+		.mutation(({ ctx, input }) => {
+			const existing = ctx.db
+				.select()
+				.from(hostAgentConfigs)
+				.where(eq(hostAgentConfigs.id, input.id))
+				.get();
+			if (!existing) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: `Host agent config not found: ${input.id}`,
+				});
+			}
+
+			const preset = getPresetById(existing.presetId);
+			if (!preset) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: `Agent config '${input.id}' has no bundled default`,
+				});
+			}
+
+			ctx.db
+				.update(hostAgentConfigs)
+				.set({
+					iconId: null,
+					label: preset.label,
+					command: preset.command,
+					argsJson: JSON.stringify(preset.args),
+					promptTransport: preset.promptTransport,
+					promptArgsJson: JSON.stringify(preset.promptArgs),
+					resumeArgsJson: JSON.stringify(preset.resumeArgs),
+					envJson: JSON.stringify(preset.env),
+					updatedAt: Date.now(),
+				})
+				.where(eq(hostAgentConfigs.id, input.id))
+				.run();
+
+			const restored = ctx.db
+				.select()
+				.from(hostAgentConfigs)
+				.where(eq(hostAgentConfigs.id, input.id))
+				.get();
+			if (!restored) {
+				throw new TRPCError({
+					code: "INTERNAL_SERVER_ERROR",
+					message: "Failed to read back restored host agent config",
+				});
+			}
+			return toOutput(restored);
 		}),
 
 	/** Delete a single host agent config by id. Throws NOT_FOUND if missing. */

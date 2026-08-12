@@ -2,9 +2,9 @@ import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
-import { showWorkspaceAutoNameWarningToast } from "renderer/lib/workspaces/showWorkspaceAutoNameWarningToast";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
+import { usePromptHistoryStore } from "renderer/stores/prompt-history";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
 import type { WorkspaceCreateAgent } from "../../types";
@@ -33,9 +33,15 @@ export function useSubmitWorkspace(
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
+	const isSession = draft.isSession;
+
 	return useCallback(async () => {
-		if (!projectId) {
+		if (!projectId && !isSession) {
 			toast.error("Select a project first");
+			return;
+		}
+		if (isSession && draft.linkedPR !== null) {
+			toast.error("Checking out a PR requires a project");
 			return;
 		}
 		if (!activeOrganizationId) {
@@ -99,29 +105,45 @@ export function useSubmitWorkspace(
 
 		// PR path supplies a name (PR title) so the in-flight UI has
 		// something to show immediately. Branch path leaves both `name`
-		// and `branch` undefined when the user didn't type — the server
-		// generates a friendly random and AI-renames whichever side(s)
-		// the user didn't supply.
+		// and `branch` undefined when the user didn't type — a typed name
+		// seeds the branch slug; otherwise the server creates with a
+		// friendly random and AI-renames once names arrive.
 		const prName = isPrCheckout
 			? draft.linkedPR?.title || `PR #${draft.linkedPR?.prNumber}`
 			: undefined;
 
 		const trimmedPrompt = draft.prompt.trim();
 		const workspaceId = crypto.randomUUID();
-		const snapshot = {
-			id: workspaceId,
-			projectId,
-			name: isPrCheckout ? prName : (workspaceName ?? undefined),
-			branch: isPrCheckout ? undefined : (branchName ?? undefined),
-			pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
-			baseBranch: draft.baseBranch ?? undefined,
-			taskId: linkedTaskId,
-			agents,
-			namingPrompt:
-				!isPrCheckout && !wantAgent && trimmedPrompt
-					? trimmedPrompt
-					: undefined,
-		};
+		const snapshot = isSession
+			? {
+					id: workspaceId,
+					projectId: null,
+					name: workspaceName ?? undefined,
+					agents,
+					namingPrompt: !wantAgent && trimmedPrompt ? trimmedPrompt : undefined,
+				}
+			: {
+					id: workspaceId,
+					projectId: projectId as string,
+					name: isPrCheckout ? prName : (workspaceName ?? undefined),
+					branch: isPrCheckout ? undefined : (branchName ?? undefined),
+					skipBranchPrefix:
+						!isPrCheckout && branchName !== null && draft.branchNameFromProvider
+							? true
+							: undefined,
+					pr: isPrCheckout ? draft.linkedPR?.prNumber : undefined,
+					baseBranch: draft.baseBranch ?? undefined,
+					taskId: linkedTaskId,
+					agents,
+					namingPrompt:
+						!isPrCheckout && !wantAgent && trimmedPrompt
+							? trimmedPrompt
+							: undefined,
+				};
+
+		if (trimmedPrompt) {
+			usePromptHistoryStore.getState().recordPrompt(trimmedPrompt);
+		}
 
 		closeAndResetDraft();
 		const { completed } = submit({ hostId, snapshot });
@@ -144,15 +166,6 @@ export function useSubmitWorkspace(
 		void completed.then((outcome) => {
 			if (!outcome.ok) return;
 
-			if (outcome.autoNameWarning) {
-				showWorkspaceAutoNameWarningToast({
-					description: outcome.autoNameWarning,
-					onOpenModelAuthSettings: () => {
-						void navigate({ to: "/settings/models" });
-					},
-				});
-			}
-
 			// The server can resolve the optimistic workspace to a different
 			// canonical id; follow it only if we're still on the optimistic route.
 			if (outcome.workspaceId === workspaceId) return;
@@ -172,6 +185,7 @@ export function useSubmitWorkspace(
 		activeOrganizationId,
 		closeAndResetDraft,
 		draft,
+		isSession,
 		matchRoute,
 		machineId,
 		navigate,

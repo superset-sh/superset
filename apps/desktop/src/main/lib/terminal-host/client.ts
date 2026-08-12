@@ -147,6 +147,18 @@ interface PendingRequest {
 // TerminalHostClient
 // =============================================================================
 
+/**
+ * Rejection for requests in flight when the client is intentionally torn down
+ * (dispose/disconnect, e.g. during app quit) — distinct from an unexpected
+ * socket drop, which still rejects with a generic "Connection lost" error.
+ */
+export class TerminalHostClientDisposedError extends Error {
+	constructor() {
+		super("Terminal host client disposed");
+		this.name = "TerminalHostClientDisposedError";
+	}
+}
+
 export interface TerminalHostClientEvents {
 	data: (sessionId: string, data: string) => void;
 	exit: (sessionId: string, exitCode: number, signal?: number) => void;
@@ -769,8 +781,10 @@ export class TerminalHostClient extends EventEmitter {
 	 */
 	private resetConnectionState({
 		emitDisconnected,
+		pendingRequestError,
 	}: {
 		emitDisconnected: boolean;
+		pendingRequestError?: Error;
 	}): void {
 		// Destroy sockets (best-effort; close handlers may also fire)
 		try {
@@ -802,7 +816,7 @@ export class TerminalHostClient extends EventEmitter {
 		// Reject all pending requests
 		for (const [id, pending] of this.pendingRequests.entries()) {
 			clearTimeout(pending.timeoutId);
-			pending.reject(new Error("Connection lost"));
+			pending.reject(pendingRequestError ?? new Error("Connection lost"));
 			this.pendingRequests.delete(id);
 		}
 
@@ -1646,7 +1660,10 @@ export class TerminalHostClient extends EventEmitter {
 	disconnect(): void {
 		// Explicit disconnect should not emit a disconnected event (caller controls UX)
 		this.disconnectArmed = true;
-		this.resetConnectionState({ emitDisconnected: false });
+		this.resetConnectionState({
+			emitDisconnected: false,
+			pendingRequestError: new TerminalHostClientDisposedError(),
+		});
 	}
 
 	/**

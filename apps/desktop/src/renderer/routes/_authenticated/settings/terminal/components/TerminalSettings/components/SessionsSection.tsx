@@ -11,8 +11,11 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useMemo, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 export function SessionsSection() {
+	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 
 	const { data: daemonSessions } =
@@ -132,7 +135,9 @@ export function SessionsSection() {
 			<div className="rounded-md border border-border/60 p-4 space-y-3">
 				<div className="space-y-0.5">
 					<div className="flex items-center justify-between">
-						<Label className="text-sm font-medium">Terminal daemon</Label>
+						<Label className="text-sm font-medium">
+							<HighlightText text="Terminal daemon" query={searchQuery} />
+						</Label>
 						<Button
 							variant="ghost"
 							size="sm"

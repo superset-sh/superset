@@ -23,6 +23,8 @@ export function toProjectSnapshot(row: HostProjectRow): ProjectSnapshot {
 		repoName: row.repoName,
 		repoUrl: row.repoUrl,
 		worktreeBaseDir: row.worktreeBaseDir,
+		icon: row.icon,
+		color: row.color,
 		createdAt: row.createdAt,
 		updatedAt: row.updatedAt || row.createdAt,
 	};
@@ -54,6 +56,8 @@ export function emitProjectChanged(
 
 export interface UpdateLocalProjectPatch {
 	name?: string;
+	icon?: string | null;
+	color?: string | null;
 }
 
 /** Patch a local project row, bump `updatedAt`, and broadcast. */

@@ -1,1 +1,0 @@
-ALTER TABLE `settings` ADD `show_ai_usage_indicator` integer;

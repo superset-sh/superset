@@ -5,11 +5,10 @@ import {
 	DropdownMenuItem,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiOutlineUserCircle } from "react-icons/hi2";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 
 interface AssigneePropertyProps {
@@ -17,16 +16,18 @@ interface AssigneePropertyProps {
 }
 
 export function AssigneeProperty({ task }: AssigneePropertyProps) {
-	const collections = useCollections();
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
-	const { data: allUsers } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
+	const { data: members } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
-	const users = useMemo(() => allUsers || [], [allUsers]);
+	const users = useMemo(
+		() => (members ?? []).map((member) => member.user),
+		[members],
+	);
 
 	const handleSelectUser = (userId: string | null) => {
 		if (userId === task.assigneeId && !task.assigneeExternalId) {

@@ -26,6 +26,37 @@ export interface GitStatusSnapshotComputation {
 	baseRefFetchTarget: BaseRefFetchTarget | null;
 }
 
+/**
+ * Expand the `dir/` entries `--untracked-files=normal` collapses back into the
+ * individual files `-uall` would have listed, keyed by the collapsed entry.
+ * The walk is scoped to the untracked directories themselves rather than the
+ * whole worktree, so it costs a fraction of what `-uall` does — and nothing at
+ * all in the common case where there are no untracked directories.
+ */
+async function expandUntrackedDirectories(
+	git: SimpleGit,
+	untrackedPaths: string[],
+): Promise<Map<string, string[]>> {
+	const dirs = untrackedPaths.filter((path) => path.endsWith("/"));
+	const expanded = new Map<string, string[]>();
+	if (dirs.length === 0) return expanded;
+
+	// `--exclude-standard` matches what status itself honours, including
+	// .gitignore files nested inside the untracked directory.
+	const raw = await git
+		.raw(["ls-files", "--others", "--exclude-standard", "-z", "--", ...dirs])
+		.catch(() => "");
+
+	for (const path of raw.split("\0").filter(Boolean)) {
+		const dir = dirs.find((candidate) => path.startsWith(candidate));
+		if (!dir) continue;
+		const files = expanded.get(dir);
+		if (files) files.push(path);
+		else expanded.set(dir, [path]);
+	}
+	return expanded;
+}
+
 export async function getGitStatusSnapshot({
 	git,
 	worktreePath,
@@ -47,7 +78,14 @@ export async function getGitStatusSnapshot({
 		defaultBranchName
 			? buildBranch(git, defaultBranchName, false)
 			: buildBranch(git, currentBranchName, true),
-		git.status(),
+		// Override simple-git's hardcoded bare `-u` (= `all`). Git only consults
+		// `core.untrackedCache` in `normal` mode, so `-uall` silently re-walks the
+		// entire worktree on every refresh — reported at ~1.9s vs ~0.03s on a 60k
+		// file repo. statusTask appends custom args after its own `-u` and git
+		// honours the last flag, so this wins. `normal` collapses a wholly-
+		// untracked directory to one `dir/` entry, which the expansion below
+		// undoes.
+		git.status(["--untracked-files=normal"]),
 		git
 			.raw([
 				"ls-files",
@@ -100,19 +138,30 @@ export async function getGitStatusSnapshot({
 	const unstagedNumstat = parseNumstat(
 		await git.raw(["diff", "--numstat", "-z"]).catch(() => ""),
 	);
+	const expandedUntracked = await expandUntrackedDirectories(
+		git,
+		status.files
+			.filter((file) => file.index === "?" && file.working_dir === "?")
+			.map((file) => file.path),
+	);
+
 	const unstaged: ChangedFile[] = [];
 	const untrackedFiles: ChangedFile[] = [];
 	for (const file of status.files) {
 		const wd = file.working_dir;
 		if (file.index === "?" && wd === "?") {
-			const entry: ChangedFile = {
-				path: file.path,
-				status: "untracked",
-				additions: 0,
-				deletions: 0,
-			};
-			untrackedFiles.push(entry);
-			unstaged.push(entry);
+			// Fall back to the entry itself when a collapsed directory expanded to
+			// nothing, so a path never silently disappears from the panel.
+			for (const path of expandedUntracked.get(file.path) ?? [file.path]) {
+				const entry: ChangedFile = {
+					path,
+					status: "untracked",
+					additions: 0,
+					deletions: 0,
+				};
+				untrackedFiles.push(entry);
+				unstaged.push(entry);
+			}
 		} else if (wd && wd !== " ") {
 			const stats = unstagedNumstat.get(file.path) ?? {
 				additions: 0,

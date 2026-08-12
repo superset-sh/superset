@@ -1,7 +1,13 @@
 import type { CodeViewOptions } from "@pierre/diffs";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { type CSSProperties, useMemo } from "react";
+import {
+	resolveEditorLineHeight,
+	resolveFontVariantLigatures,
+} from "renderer/lib/editor-typography";
+import { FONT_SETTINGS_QUERY_KEY } from "renderer/lib/font-settings";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { DEFAULT_CODE_EDITOR_FONT_SIZE } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/constants";
 import {
 	DIFF_POOL_RENDER_OPTIONS,
 	getDiffsTheme,
@@ -17,7 +23,7 @@ export function useDiffCodeViewTheme() {
 	const activeTheme = useResolvedTheme();
 	const terminalTheme = useTerminalTheme();
 	const { data: fontSettings } = useQuery({
-		queryKey: ["electron", "settings", "getFontSettings"],
+		queryKey: FONT_SETTINGS_QUERY_KEY,
 		queryFn: () => electronTrpcClient.settings.getFontSettings.query(),
 		staleTime: 30_000,
 	});
@@ -28,22 +34,40 @@ export function useDiffCodeViewTheme() {
 			: typeof fontSettings?.editorFontSize === "string"
 				? Number.parseFloat(fontSettings.editorFontSize)
 				: Number.NaN;
+	const editorFontSize = Number.isFinite(parsedEditorFontSize)
+		? parsedEditorFontSize
+		: DEFAULT_CODE_EDITOR_FONT_SIZE;
 	const surfaceBg = terminalTheme?.background ?? "var(--background)";
 
 	const style = useMemo(
-		() => ({
-			...getDiffViewerStyle(activeTheme, {
-				fontFamily: fontSettings?.editorFontFamily ?? undefined,
-				fontSize: Number.isFinite(parsedEditorFontSize)
-					? parsedEditorFontSize
-					: undefined,
-			}),
-			backgroundColor: surfaceBg,
-		}),
+		() =>
+			({
+				...getDiffViewerStyle(activeTheme, {
+					fontFamily: fontSettings?.editorFontFamily ?? undefined,
+					fontSize: editorFontSize,
+				}),
+				"--diffs-line-height": `${resolveEditorLineHeight(
+					editorFontSize,
+					fontSettings?.editorLineHeight ?? undefined,
+				)}px`,
+				fontWeight: fontSettings?.editorFontWeight ?? undefined,
+				letterSpacing:
+					fontSettings?.editorLetterSpacing == null
+						? undefined
+						: `${fontSettings.editorLetterSpacing}px`,
+				fontVariantLigatures: resolveFontVariantLigatures(
+					fontSettings?.editorLigatures ?? undefined,
+				),
+				backgroundColor: surfaceBg,
+			}) as CSSProperties,
 		[
 			activeTheme,
 			fontSettings?.editorFontFamily,
-			parsedEditorFontSize,
+			fontSettings?.editorFontWeight,
+			fontSettings?.editorLetterSpacing,
+			fontSettings?.editorLigatures,
+			fontSettings?.editorLineHeight,
+			editorFontSize,
 			surfaceBg,
 		],
 	);

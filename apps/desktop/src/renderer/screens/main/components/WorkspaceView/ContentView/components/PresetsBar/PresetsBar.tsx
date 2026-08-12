@@ -343,7 +343,7 @@ export function PresetsBar() {
 			style={{ scrollbarWidth: "none" }}
 		>
 			<DropdownMenu>
-				<Tooltip>
+				<Tooltip delayDuration={1000}>
 					<TooltipTrigger asChild>
 						<DropdownMenuTrigger asChild>
 							<Button variant="ghost" size="icon" className="size-6 shrink-0">
@@ -351,9 +351,7 @@ export function PresetsBar() {
 							</Button>
 						</DropdownMenuTrigger>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" sideOffset={4}>
-						Manage Presets
-					</TooltipContent>
+					<TooltipContent side="bottom">Manage Presets</TooltipContent>
 				</Tooltip>
 				<DropdownMenuContent align="start" className="w-56">
 					{managedPresets.map((item) => {

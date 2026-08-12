@@ -101,7 +101,7 @@ export function DownloadInterstitial() {
 							"linear-gradient(to right, transparent 0%, black 18%, black 100%)",
 					}}
 				>
-					<AppMockup activeDemo="Use Any Agents" />
+					<AppMockup activeDemo="Orchestrate Parallel Agents" />
 				</div>
 			</div>
 		</div>

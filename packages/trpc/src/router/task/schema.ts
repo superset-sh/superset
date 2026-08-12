@@ -27,26 +27,37 @@ export const updateTaskSchema = z.object({
 	estimate: z.number().int().positive().nullish(),
 	dueDate: z.coerce.date().nullish(),
 	labels: z.array(z.string()).nullish(),
-	// Deprecated: accepted-but-ignored. Drop in CLI-vNext cleanup PR.
+	// Deprecated input: drop in CLI-vNext cleanup PR. The column stays —
+	// Linear sync stores the issue's branchName in it.
 	branch: z.string().nullish(),
 });
 
-export const taskListInputSchema = z
-	.object({
-		statusId: z.string().uuid().nullish(),
-		priority: z.enum(taskPriorityValues).nullish(),
-		assigneeId: z.string().uuid().nullish(),
-		assigneeMe: z.boolean().nullish(),
-		creatorMe: z.boolean().nullish(),
-		search: z.string().min(1).nullish(),
-		externalProjectId: z.string().min(1).nullish(),
-		externalProjectName: z.string().min(1).nullish(),
-		externalCycleId: z.string().min(1).nullish(),
-		dueDateFrom: z.string().datetime({ offset: true }).nullish(),
-		dueDateTo: z.string().datetime({ offset: true }).nullish(),
+const taskListFilterSchema = z.object({
+	statusId: z.string().uuid().nullish(),
+	priority: z.enum(taskPriorityValues).nullish(),
+	assigneeId: z.string().uuid().nullish(),
+	assigneeMe: z.boolean().nullish(),
+	creatorMe: z.boolean().nullish(),
+	search: z.string().min(1).nullish(),
+	externalProjectId: z.string().min(1).nullish(),
+	externalProjectName: z.string().min(1).nullish(),
+	externalCycleId: z.string().min(1).nullish(),
+	dueDateFrom: z.string().datetime({ offset: true }).nullish(),
+	dueDateTo: z.string().datetime({ offset: true }).nullish(),
+});
+
+export type TaskListFilterInput = z.infer<typeof taskListFilterSchema>;
+
+export const taskListInputSchema = taskListFilterSchema
+	.extend({
 		sortBy: z.enum(taskListSortByValues).nullish(),
 		sortOrder: z.enum(taskListSortOrderValues).nullish(),
 		limit: z.number().int().positive().max(500).default(50),
 		offset: z.number().int().nonnegative().default(0),
 	})
 	.nullish();
+
+export const taskListPageInputSchema = taskListFilterSchema.extend({
+	cursor: z.object({ createdAt: z.coerce.date(), id: z.uuid() }).optional(),
+	limit: z.number().int().min(1).max(200).default(100),
+});

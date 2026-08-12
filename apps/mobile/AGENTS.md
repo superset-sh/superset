@@ -46,13 +46,13 @@ export default function Index() {
 ```tsx
 // app/(authenticated)/_layout.tsx
 import { Stack } from "expo-router";
-import { CollectionsProvider } from "@/providers/CollectionsProvider";
+import { PromptInputProvider } from "@/components/ai-elements/prompt-input";
 
 export default function AuthenticatedLayout() {
   return (
-    <CollectionsProvider>
+    <PromptInputProvider>
       <Stack screenOptions={{ headerShown: false }} />
-    </CollectionsProvider>
+    </PromptInputProvider>
   );
 }
 ```

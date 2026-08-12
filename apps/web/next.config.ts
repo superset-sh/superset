@@ -31,6 +31,16 @@ const relayHttpOrigin = process.env.RELAY_URL
 	: isProduction
 		? "https://relay.superset.sh"
 		: null;
+// Failover relay origin. Env-driven so it flips with the domain at cutover;
+// prod default stays superset.sh until RELAY_BACKUP_URL is set (e.g. boid.so).
+const relayBackupHttpOrigin = process.env.RELAY_BACKUP_URL
+	? new URL(process.env.RELAY_BACKUP_URL).origin
+	: isProduction
+		? "https://relay-backup.superset.sh"
+		: null;
+const relayBackupWsOrigin = relayBackupHttpOrigin
+	? relayBackupHttpOrigin.replace(/^http/, "ws")
+	: null;
 
 const contentSecurityPolicy = [
 	"default-src 'self'",
@@ -40,8 +50,14 @@ const contentSecurityPolicy = [
 		apiOrigin,
 		relayWsOrigin,
 		relayHttpOrigin,
-		"wss://relay-backup.superset.sh",
-		"https://relay-backup.superset.sh",
+		relayBackupWsOrigin,
+		relayBackupHttpOrigin,
+		// The Durable Objects relay a user can be routed to via
+		// relay-url-override; the runtime relay comes from that flag while
+		// this header is built at compile time, so it must be listed
+		// explicitly. Removable once relay2 answers on relay.superset.sh.
+		"https://superset-relay2.avi-6ac.workers.dev",
+		"wss://superset-relay2.avi-6ac.workers.dev",
 		"https://*.ingest.sentry.io",
 		"https://*.sentry.io",
 		"https://us.i.posthog.com",
@@ -57,7 +73,12 @@ const contentSecurityPolicy = [
 	"frame-ancestors 'none'",
 	"img-src 'self' data: blob: https:",
 	"object-src 'none'",
-	["script-src 'self' 'unsafe-inline'", !isProduction && "'unsafe-eval'"]
+	[
+		// wasm-unsafe-eval: WebAssembly.instantiate only — NOT eval()/Function.
+		// Without it Chrome blocks wasm under script-src (WEB-2K, /oauth/consent).
+		"script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'",
+		!isProduction && "'unsafe-eval'",
+	]
 		.filter(Boolean)
 		.join(" "),
 	"style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
@@ -140,6 +161,7 @@ const config: NextConfig = {
 export default withSentryConfig(config, {
 	org: "superset-sh",
 	project: "web",
+	applicationKey: "superset-web",
 	silent: !process.env.CI,
 	authToken: process.env.SENTRY_AUTH_TOKEN,
 	widenClientFileUpload: true,

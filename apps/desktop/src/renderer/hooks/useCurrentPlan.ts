@@ -1,10 +1,6 @@
-import {
-	isActiveSubscriptionStatus,
-	type PlanTier,
-} from "@superset/shared/billing";
-import { useLiveQuery } from "@tanstack/react-db";
+import type { PlanTier } from "@superset/shared/billing";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 interface ResolveCurrentPlanArgs {
 	subscriptionPlan?: string | null;
@@ -12,7 +8,7 @@ interface ResolveCurrentPlanArgs {
 	subscriptionsLoaded: boolean;
 }
 
-function isPaidPlanTier(
+export function isPaidPlanTier(
 	plan: string | null | undefined,
 ): plan is "pro" | "enterprise" {
 	return plan === "pro" || plan === "enterprise";
@@ -40,20 +36,13 @@ export function resolveCurrentPlan({
 
 export function useCurrentPlan(): { plan: PlanTier; isReady: boolean } {
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
 
-	const { data: subscriptionsData = [], isReady } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
-	);
+	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
 
-	const activeSubscription = subscriptionsData.find((subscription) =>
-		isActiveSubscriptionStatus(subscription.status),
-	);
-	const subscriptionsLoaded = isReady || subscriptionsData.length > 0;
+	const subscriptionsLoaded = activePlan !== undefined;
 
 	const plan = resolveCurrentPlan({
-		subscriptionPlan: activeSubscription?.plan,
+		subscriptionPlan: activePlan?.plan,
 		sessionPlan: session?.session?.plan,
 		subscriptionsLoaded,
 	});

@@ -2,6 +2,7 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { access } from "node:fs/promises";
 import { join } from "node:path";
 import { projects, type SelectProject } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
 import type { SetupAction, SetupDetectionResult } from "shared/types/config";
@@ -443,7 +444,10 @@ export const createConfigRouter = () => {
 					.where(eq(projects.id, input.projectId))
 					.get();
 				if (!project) {
-					throw new Error("Project not found");
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Project not found",
+					});
 				}
 
 				return await detectSetupDefaults(project.mainRepoPath);
@@ -466,7 +470,10 @@ export const createConfigRouter = () => {
 					.where(eq(projects.id, input.projectId))
 					.get();
 				if (!project) {
-					throw new Error("Project not found");
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Project not found",
+					});
 				}
 
 				const configPath = ensureConfigExists(project.mainRepoPath);

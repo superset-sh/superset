@@ -8,13 +8,39 @@ import {
 	disposeSessionAndWait,
 	disposeSessionsByWorkspaceId,
 	disposeSessionsByWorktreePath,
-	listWorkspaceTerminalSessions,
+	listLiveTerminalSessions,
 	parseThemeType,
 	sessionHasRunningProcess,
+	snapshotSession,
+	writeFramedInputToSession,
 	writeInputToSession,
 } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, router } from "../../index";
+
+function toTerminalIoError(message: string): TRPCError {
+	if (message.includes("belong")) {
+		return new TRPCError({ code: "FORBIDDEN", message });
+	}
+	// A worktree deleted underneath an open terminal is a routine lifecycle
+	// state, not a bug — the runtime reports it as a plain string, so match
+	// the stable prefix here to keep it out of Sentry.
+	if (message.startsWith("Workspace worktree no longer exists")) {
+		return new TRPCError({
+			code: "NOT_FOUND",
+			message,
+			cause: { kind: "WORKTREE_GONE" },
+		});
+	}
+	if (
+		message.includes("not found") ||
+		message.includes("not active") ||
+		message.includes("exited")
+	) {
+		return new TRPCError({ code: "NOT_FOUND", message });
+	}
+	return new TRPCError({ code: "INTERNAL_SERVER_ERROR", message });
+}
 
 const createSessionInputSchema = z.object({
 	workspaceId: z.string(),
@@ -118,34 +144,19 @@ export const terminalRouter = router({
 		)
 		.mutation(createTerminalSessionFromInput),
 
-	listSessions: protectedProcedure
+	list: protectedProcedure
 		.input(
-			z.object({
-				workspaceId: z.string(),
-			}),
+			z
+				.object({
+					workspaceId: z.string().optional(),
+				})
+				.optional(),
 		)
 		.query(async ({ ctx, input }) => ({
-			sessions: await listWorkspaceTerminalSessions(ctx.db, input.workspaceId),
-		})),
-
-	countBackgroundSessions: protectedProcedure
-		.input(
-			z.object({
-				workspaceId: z.string(),
-				attachedTerminalIds: z.array(z.string()).default([]),
+			sessions: await listLiveTerminalSessions(ctx.db, {
+				workspaceId: input?.workspaceId,
 			}),
-		)
-		.query(async ({ ctx, input }) => {
-			const sessions = await listWorkspaceTerminalSessions(
-				ctx.db,
-				input.workspaceId,
-			);
-			const attached = new Set(input.attachedTerminalIds);
-			return {
-				count: sessions.filter((session) => !attached.has(session.terminalId))
-					.length,
-			};
-		}),
+		})),
 
 	hasRunningProcess: protectedProcedure
 		.input(
@@ -175,6 +186,53 @@ export const terminalRouter = router({
 				});
 			}
 			return { success: true as const };
+		}),
+
+	// Send a follow-up message into an already-running terminal (e.g. a
+	// claude/codex agent) instead of spawning a new session. Multi-line text
+	// is framed as a bracketed paste server-side.
+	send: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				text: z.string().min(1),
+				submit: z.boolean().default(true),
+			}),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const result = await writeFramedInputToSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalIoError(result.error);
+			}
+			return { terminalId: input.terminalId, submitted: input.submit };
+		}),
+
+	// Non-destructive snapshot of the terminal's current screen + recent
+	// scrollback, read off the per-session headless emulator.
+	snapshot: protectedProcedure
+		.input(
+			z.object({
+				terminalId: z.string(),
+				workspaceId: z.string(),
+				maxLines: z.number().int().positive().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			const result = await snapshotSession({
+				...input,
+				db: ctx.db,
+				eventBus: ctx.eventBus,
+			});
+			if ("error" in result) {
+				throw toTerminalIoError(result.error);
+			}
+			const { success: _success, ...snapshot } = result;
+			return { terminalId: input.terminalId, ...snapshot };
 		}),
 
 	killSession: protectedProcedure

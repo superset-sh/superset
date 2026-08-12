@@ -1,21 +1,24 @@
-import { DndContext, DragOverlay } from "@dnd-kit/core";
 import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
-import { createPortal } from "react-dom";
-import { useSidebarDnd } from "../../../../hooks/useSidebarDnd";
-import { parseId } from "../../../../hooks/useSidebarDnd/useSidebarDnd";
-import type { DashboardSidebarProjectChild } from "../../../../types";
-import { SidebarDragOverlay } from "../../../SidebarDragOverlay";
+import { useMemo } from "react";
+import {
+	dropZoneId,
+	parseId,
+	useDashboardSidebarDnd,
+} from "../../../../hooks/useSidebarDnd";
+import { useDashboardSidebarSelection } from "../../../../providers/DashboardSidebarSelectionProvider";
+import { WorkspaceBulkMenuScope } from "../../../DashboardSidebarWorkspaceItem/components/WorkspaceBulkMenuScope";
+import { SidebarDropZone } from "../../../SidebarDropZone";
 import { SortableSectionHeader } from "../../../SortableSectionHeader";
 import { SortableWorkspaceItem } from "../../../SortableWorkspaceItem";
 
 interface DashboardSidebarExpandedProjectContentProps {
 	projectId: string;
 	isCollapsed: boolean;
-	projectChildren: DashboardSidebarProjectChild[];
 	workspaceShortcutLabels: Map<string, string>;
 	onWorkspaceHover: (workspaceId: string) => void | Promise<void>;
 	onDeleteSection: (sectionId: string) => void;
@@ -26,7 +29,6 @@ interface DashboardSidebarExpandedProjectContentProps {
 export function DashboardSidebarExpandedProjectContent({
 	projectId,
 	isCollapsed,
-	projectChildren,
 	workspaceShortcutLabels,
 	onWorkspaceHover,
 	onDeleteSection,
@@ -34,21 +36,48 @@ export function DashboardSidebarExpandedProjectContent({
 	onToggleSectionCollapse,
 }: DashboardSidebarExpandedProjectContentProps) {
 	const {
-		sensors,
-		measuring,
-		collisionDetection,
-		flatItems,
-		sortableItems,
-		activeId,
+		projectItems,
+		getProjectSortableItems,
 		activeType,
-		activeItem,
-		predictedColor,
+		activeContainer,
+		activeWorkspaceHome,
 		groupInfo,
 		collapsedSectionIds,
 		workspacesById,
 		sectionsById,
-		handlers,
-	} = useSidebarDnd({ projectId, projectChildren });
+	} = useDashboardSidebarDnd();
+	const flatItems = useMemo(
+		() => projectItems[projectId] ?? [],
+		[projectItems, projectId],
+	);
+	const sortableItems = getProjectSortableItems(projectId);
+	const { isWorkspaceSelected, selectWorkspaceFromEvent } =
+		useDashboardSidebarSelection();
+
+	// A pinned workspace can only return to its home project; when every row
+	// of that project is pinned, the empty list needs an explicit drop target.
+	const dropZoneEligible =
+		!isCollapsed && flatItems.length === 0 && activeWorkspaceHome === projectId;
+
+	const selectableWorkspaceIds = useMemo(
+		() =>
+			flatItems.flatMap((id) => {
+				const parsed = parseId(id);
+				if (!parsed || parsed.type !== "workspace") return [];
+				const workspace = workspacesById.get(parsed.realId);
+				if (
+					!workspace ||
+					workspace.type !== "worktree" ||
+					workspace.pendingTransaction?.type === "insert"
+				) {
+					return [];
+				}
+				const group = groupInfo.get(parsed.realId);
+				if (group && collapsedSectionIds.has(group.sectionId)) return [];
+				return [parsed.realId];
+			}),
+		[flatItems, workspacesById, groupInfo, collapsedSectionIds],
+	);
 
 	return (
 		<AnimatePresence initial={false}>
@@ -61,11 +90,10 @@ export function DashboardSidebarExpandedProjectContent({
 					className="overflow-hidden"
 				>
 					<div className="pb-1">
-						<DndContext
-							sensors={sensors}
-							collisionDetection={collisionDetection}
-							measuring={measuring}
-							{...handlers}
+						<WorkspaceBulkMenuScope
+							projectId={projectId}
+							workspacesById={workspacesById}
+							groupInfo={groupInfo}
 						>
 							<SortableContext
 								items={sortableItems}
@@ -98,51 +126,71 @@ export function DashboardSidebarExpandedProjectContent({
 										isInSection && collapsedSectionIds.has(group.sectionId);
 									const hidden =
 										isInCollapsedSection ||
-										(activeType === "section" && isInSection);
+										(activeType === "section" &&
+											activeContainer === projectId &&
+											isInSection);
+									const canBulkSelect =
+										workspace.type === "worktree" &&
+										workspace.pendingTransaction?.type !== "insert";
 
+									// Rows collapse via a CSS grid-row transition instead of a
+									// per-row AnimatePresence/motion.div (~80 motion components
+									// cost real render time). Hidden rows stay mounted: `inert`
+									// removes them from focus/hit-testing and the disabled
+									// sortable unregisters their droppable, matching the old
+									// unmount behavior for DnD.
 									return (
-										<AnimatePresence key={String(id)} initial={false}>
-											{!hidden && (
-												<motion.div
-													initial={{ height: 0, opacity: 0 }}
-													animate={{ height: "auto", opacity: 1 }}
-													exit={{ height: 0, opacity: 0 }}
-													transition={{ duration: 0.15, ease: "easeOut" }}
-												>
-													<SortableWorkspaceItem
-														sortableId={String(id)}
-														workspace={workspace}
-														accentColor={
-															activeId === id ? predictedColor : group?.color
-														}
-														isInSection={groupInfo.has(parsed.realId)}
-														onHoverCardOpen={() =>
-															onWorkspaceHover(parsed.realId)
-														}
-														shortcutLabel={workspaceShortcutLabels.get(
-															parsed.realId,
-														)}
-														disabled={
-															workspace.type === "main" &&
-															workspace.hostType === "local-device"
-														}
-													/>
-												</motion.div>
+										<div
+											key={String(id)}
+											className={cn(
+												"grid transition-[grid-template-rows,opacity] duration-150 ease-out",
+												hidden
+													? "grid-rows-[0fr] opacity-0"
+													: "grid-rows-[1fr] opacity-100",
 											)}
-										</AnimatePresence>
+											inert={hidden}
+										>
+											<div className="min-h-0 overflow-hidden">
+												<SortableWorkspaceItem
+													sortableId={String(id)}
+													workspace={workspace}
+													accentColor={group?.color}
+													isInSection={isInSection}
+													onHoverCardOpen={onWorkspaceHover}
+													shortcutLabel={workspaceShortcutLabels.get(
+														parsed.realId,
+													)}
+													isSelected={
+														canBulkSelect && isWorkspaceSelected(parsed.realId)
+													}
+													onSelectionClick={
+														canBulkSelect
+															? (event) =>
+																	selectWorkspaceFromEvent(event, {
+																		workspaceId: parsed.realId,
+																		projectId,
+																		orderedWorkspaceIds: selectableWorkspaceIds,
+																	})
+															: undefined
+													}
+													disabled={
+														hidden ||
+														(workspace.type === "main" &&
+															workspace.hostType === "local-device")
+													}
+												/>
+											</div>
+										</div>
 									);
 								})}
 							</SortableContext>
-
-							{createPortal(
-								<DragOverlay dropAnimation={null}>
-									{activeId ? (
-										<SidebarDragOverlay activeItem={activeItem} />
-									) : null}
-								</DragOverlay>,
-								document.body,
+							{dropZoneEligible && (
+								<SidebarDropZone
+									dropZoneId={dropZoneId(projectId)}
+									label="Drop to unpin"
+								/>
 							)}
-						</DndContext>
+						</WorkspaceBulkMenuScope>
 					</div>
 				</motion.div>
 			)}

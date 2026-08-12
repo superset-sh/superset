@@ -1,22 +1,24 @@
 import {
+	CatchBoundary,
 	createFileRoute,
 	Outlet,
+	useLocation,
 	useMatchRoute,
 	useNavigate,
 } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { CommandPaletteHost } from "renderer/commandPalette";
+import { Redirect } from "renderer/components/Redirect";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { DashboardSidebar } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
-import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useDevSeedV2Sidebar } from "renderer/routes/_authenticated/hooks/useDevSeedV2Sidebar";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { ResizablePanel } from "renderer/screens/main/components/ResizablePanel";
 import { WorkspaceSidebar } from "renderer/screens/main/components/WorkspaceSidebar";
 import { DeleteWorkspaceDialog } from "renderer/screens/main/components/WorkspaceSidebar/WorkspaceListItem/components";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useOpenNewWorkspaceModal } from "renderer/stores/new-workspace-modal";
 import {
 	COLLAPSED_WORKSPACE_SIDEBAR_WIDTH,
@@ -26,32 +28,27 @@ import {
 } from "renderer/stores/workspace-sidebar-state";
 import { AddRepositoryModals } from "./components/AddRepositoryModals";
 import { CrossVersionMismatchState } from "./components/CrossVersionMismatchState";
+import { DashboardContentError } from "./components/DashboardContentError";
 import { TopBar } from "./components/TopBar";
 
 export const Route = createFileRoute("/_authenticated/_dashboard")({
 	component: DashboardLayout,
 });
 
-type DeleteTarget =
-	| {
-			version: "v1";
-			workspaceId: string;
-			workspaceName: string;
-			workspaceType: "worktree" | "branch";
-	  }
-	| {
-			version: "v2";
-			workspaceId: string;
-			workspaceName: string;
-			open: boolean;
-	  };
+/** v1 only — v2 deletes go through the globally-mounted DeleteWorkspaceMount
+ * (see delete-workspace-intent store). */
+type DeleteTarget = {
+	workspaceId: string;
+	workspaceName: string;
+	workspaceType: "worktree" | "branch";
+};
 
 function DashboardLayout() {
 	const navigate = useNavigate();
+	const location = useLocation();
 	const openNewWorkspaceModal = useOpenNewWorkspaceModal();
 	const isV2CloudEnabled = useIsV2CloudEnabled();
 	const { workspaces: hostWorkspaces } = useHostWorkspaces();
-	const { removeWorkspaceFromSidebar } = useDashboardSidebarState();
 	useDevSeedV2Sidebar();
 	// Get current workspace from route to pre-select project in new workspace modal
 	const matchRoute = useMatchRoute();
@@ -69,6 +66,12 @@ function DashboardLayout() {
 		v2WorkspaceMatch !== false ? v2WorkspaceMatch.workspaceId : null;
 	const onV1WorkspaceRoute = currentWorkspaceMatch !== false;
 	const onV2WorkspaceRoute = v2WorkspaceMatch !== false;
+	const onNewWorkspaceRoute = matchRoute({ to: "/new-workspace" }) !== false;
+	const onDashboardViewRoute =
+		matchRoute({ to: "/automations", fuzzy: true }) !== false ||
+		matchRoute({ to: "/tasks", fuzzy: true }) !== false ||
+		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false ||
+		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;
 	const versionMismatch =
 		(isV2CloudEnabled && onV1WorkspaceRoute) ||
 		(!isV2CloudEnabled && onV2WorkspaceRoute);
@@ -110,7 +113,9 @@ function DashboardLayout() {
 		}
 	});
 	useHotkey("NEW_WORKSPACE", () =>
-		openNewWorkspaceModal(currentWorkspace?.projectId),
+		openNewWorkspaceModal(
+			currentWorkspace?.projectId ?? currentV2Workspace?.projectId ?? undefined,
+		),
 	);
 
 	const [deleteTarget, setDeleteTarget] = useState<DeleteTarget | null>(null);
@@ -123,7 +128,6 @@ function DashboardLayout() {
 					workspaceId: currentWorkspaceId,
 					workspaceName: currentWorkspace.name,
 					workspaceType: currentWorkspace.type,
-					version: "v1",
 				});
 				return;
 			}
@@ -133,11 +137,9 @@ function DashboardLayout() {
 				currentV2Workspace &&
 				currentV2Workspace.type !== "main"
 			) {
-				setDeleteTarget({
+				useDeleteWorkspaceIntent.getState().request({
 					workspaceId: currentV2WorkspaceId,
 					workspaceName: currentV2Workspace.name || currentV2Workspace.branch,
-					version: "v2",
-					open: true,
 				});
 			}
 		},
@@ -150,6 +152,17 @@ function DashboardLayout() {
 		},
 	);
 
+	// Collapsed rail on the v2 workspace route: the rail's headroom strip
+	// continues the pane tab bar, so the panel must not draw its own
+	// full-height border — the sidebar's inner border (which stops below the
+	// strip) is the only divider.
+	const railContinuesTabBar =
+		isV2CloudEnabled &&
+		onV2WorkspaceRoute &&
+		!versionMismatch &&
+		isWorkspaceSidebarOpen &&
+		isWorkspaceSidebarCollapsed();
+
 	const sidebarPanel = isWorkspaceSidebarOpen && (
 		<ResizablePanel
 			width={workspaceSidebarWidth}
@@ -160,6 +173,7 @@ function DashboardLayout() {
 			maxWidth={MAX_WORKSPACE_SIDEBAR_WIDTH}
 			handleSide="right"
 			clampWidth={false}
+			className={railContinuesTabBar ? "border-r-0" : undefined}
 			onDoubleClickHandle={() =>
 				setWorkspaceSidebarWidth(DEFAULT_WORKSPACE_SIDEBAR_WIDTH)
 			}
@@ -183,12 +197,22 @@ function DashboardLayout() {
 		isWorkspaceSidebarOpen &&
 		!isWorkspaceSidebarCollapsed();
 
-	// On the v2 workspace route with an expanded sidebar the TopBar row is
-	// merged into the pane tab bar (which provides the drag region and hosts
-	// the right-sidebar toggle). Collapsed/closed sidebars keep the TopBar:
-	// its inset is what keeps content clear of the macOS traffic lights.
+	// On the v2 workspace route with an open sidebar the TopBar row is merged
+	// into the pane tab bar (which provides the drag region and hosts the
+	// right-sidebar toggle). Expanded sidebars host the traffic-light pad in
+	// their header; collapsed rails host it via their headroom spacer plus the
+	// tab bar's leading inset. Only a fully closed sidebar keeps the TopBar,
+	// whose inset then keeps content clear of the macOS traffic lights. The
+	// new-workspace page brings its own drag strip, and the dashboard views
+	// (automations/tasks/workspaces) carry drag fillers in their own headers,
+	// so they hide the TopBar whenever the expanded sidebar sits outside the
+	// column — otherwise it renders as an empty strip above their headers.
 	const hideTopBar =
-		onV2WorkspaceRoute && !versionMismatch && sidebarOutsideColumn;
+		(onV2WorkspaceRoute &&
+			!versionMismatch &&
+			isV2CloudEnabled &&
+			isWorkspaceSidebarOpen) ||
+		((onNewWorkspaceRoute || onDashboardViewRoute) && sidebarOutsideColumn);
 
 	return (
 		<div className="flex h-full w-full overflow-hidden">
@@ -198,14 +222,37 @@ function DashboardLayout() {
 				{!hideTopBar && <TopBar />}
 				<div className="flex flex-1 min-h-0 min-w-0 overflow-hidden">
 					{!sidebarOutsideColumn && sidebarPanel}
-					<div className="flex flex-1 min-h-0 min-w-0">
-						{versionMismatch ? <CrossVersionMismatchState /> : <Outlet />}
+					<div className="relative flex flex-1 min-h-0 min-w-0">
+						{versionMismatch ? (
+							// A v2 user on a stale v1 workspace route has nothing to go
+							// back to, so send them somewhere actionable instead of a
+							// dead-end "pick a workspace" screen. v1 users keep the
+							// static state — /new-workspace is a v2-only surface.
+							isV2CloudEnabled ? (
+								<Redirect to="/new-workspace" replace />
+							) : (
+								<CrossVersionMismatchState />
+							)
+						) : (
+							// Contain content-route crashes to this pane: without a
+							// boundary they bubble to the root and unmount the whole
+							// app, which reads as Superset restarting itself
+							// (SUPER-1814). Resets on navigation.
+							<CatchBoundary
+								// Full href, not just pathname: a same-path search/hash
+								// change (filter, tab) must also clear a stuck error pane.
+								getResetKey={() => location.href}
+								errorComponent={DashboardContentError}
+							>
+								<Outlet />
+							</CatchBoundary>
+						)}
 					</div>
 				</div>
 			</div>
 			<div id="workspace-right-sidebar-slot" className="flex h-full shrink-0" />
 			<AddRepositoryModals />
-			{deleteTarget?.version === "v1" && (
+			{deleteTarget && (
 				<DeleteWorkspaceDialog
 					workspaceId={deleteTarget.workspaceId}
 					workspaceName={deleteTarget.workspaceName}
@@ -213,22 +260,6 @@ function DashboardLayout() {
 					open={true}
 					onOpenChange={(open) => {
 						if (!open) setDeleteTarget(null);
-					}}
-				/>
-			)}
-			{deleteTarget?.version === "v2" && (
-				<DashboardSidebarDeleteDialog
-					workspaceId={deleteTarget.workspaceId}
-					workspaceName={deleteTarget.workspaceName}
-					open={deleteTarget.open}
-					onOpenChange={(open) => {
-						setDeleteTarget((target) =>
-							target?.version === "v2" ? { ...target, open } : target,
-						);
-					}}
-					onDeleted={() => {
-						removeWorkspaceFromSidebar(deleteTarget.workspaceId);
-						setDeleteTarget(null);
 					}}
 				/>
 			)}

@@ -1,13 +1,17 @@
 import { Database } from "bun:sqlite";
-import { describe, expect, test } from "bun:test";
-import { resolve } from "node:path";
+import { describe, expect, setSystemTime, test } from "bun:test";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
 import type { HostDb } from "../../db";
 import * as schema from "../../db/schema";
 import { pullRequests, workspaces } from "../../db/schema";
+import type { WorkspaceChangedMessage } from "../../events/types";
 import { PullRequestRuntimeManager } from "./pull-requests";
+import type { WorkspaceRefsSnapshot } from "./utils/workspace-refs";
 
 // All tests run the real manager against a real, migrated, in-memory SQLite
 // DB. An earlier hand-faked DB ignored query predicates and could only hold a
@@ -51,13 +55,14 @@ function seedWorkspace(
 		upstreamRepo?: string | null;
 		upstreamBranch?: string | null;
 		pullRequestId?: string | null;
+		worktreePath?: string;
 	},
 ) {
 	db.insert(schema.workspaces)
 		.values({
 			id: w.id,
 			projectId: PROJECT_ID,
-			worktreePath: `/repo/.worktrees/${w.id}`,
+			worktreePath: w.worktreePath ?? `/repo/.worktrees/${w.id}`,
 			branch: w.branch,
 			createdAt: Date.now(),
 			headSha: w.headSha ?? null,
@@ -143,6 +148,10 @@ function createManager(
 		execGh?: (args: string[]) => Promise<unknown>;
 		github?: () => Promise<never>;
 		git?: unknown;
+		readWorkspaceRefs?: (
+			worktreePath: string,
+		) => Promise<WorkspaceRefsSnapshot>;
+		worktreeExists?: (worktreePath: string) => boolean;
 	} = {},
 ) {
 	return new PullRequestRuntimeManager({
@@ -163,6 +172,10 @@ function createManager(
 				throw new Error("octokit should not be used");
 			}) as never),
 		gitWatcher: { onChanged: () => () => {} } as never,
+		readWorkspaceRefs: overrides.readWorkspaceRefs,
+		// Seeded worktree paths are fabricated; default the disk gate open so
+		// sync-path tests exercise the git read, not the missing-dir skip.
+		worktreeExists: overrides.worktreeExists ?? (() => true),
 	});
 }
 
@@ -193,6 +206,22 @@ function makePrNode(pr: {
 		},
 		base: { repo: { full_name: `${REPO.owner}/${REPO.name}` } },
 	};
+}
+
+// Typed handle on the private per-repo sweep entrypoint under test; keeps
+// tsc (no private dot-access) and biome (no bracket-access) both satisfied.
+function openPullRequestsSweeper(manager: PullRequestRuntimeManager) {
+	const accessible = manager as unknown as {
+		getCachedOpenPullRequests(repo: {
+			provider: "github";
+			owner: string;
+			name: string;
+			url: string;
+			remoteName: string;
+			defaultBranch: string | null;
+		}): Promise<unknown[]>;
+	};
+	return accessible.getCachedOpenPullRequests.bind(accessible);
 }
 
 // Silences the expected warnings the manager logs on handled failures.
@@ -305,6 +334,112 @@ describe("PullRequestRuntimeManager direct checkout PR linking", () => {
 		await manager.refreshPullRequestsByWorkspaces(["ws"]);
 
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+});
+
+describe("PullRequestRuntimeManager unlink", () => {
+	function seedLinkedWorkspace(db: HostDb) {
+		seedPullRequest(db, {
+			id: "pr-1",
+			prNumber: 101,
+			headBranch: "feature",
+			headSha: "sha-feature",
+		});
+		seedWorkspace(db, {
+			id: "ws",
+			branch: "feature",
+			headSha: "sha-feature",
+			upstreamOwner: REPO.owner,
+			upstreamRepo: REPO.name,
+			upstreamBranch: "feature",
+			pullRequestId: "pr-1",
+		});
+	}
+
+	test("unlink clears the link and the refresh sweep does not re-link the same PR", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db, {
+			execGh: routeGh({
+				feature: makePrNode({
+					number: 101,
+					headRef: "feature",
+					headSha: "sha-feature",
+				}),
+			}),
+		});
+
+		manager.unlinkWorkspacePullRequest("ws");
+
+		const unlinked = getWorkspace(db, "ws");
+		expect(unlinked?.pullRequestId).toBeNull();
+		expect(unlinked?.suppressedPullRequestId).toBe("pr-1");
+
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		expect(getWorkspace(db, "ws")?.pullRequestId).toBeNull();
+	});
+
+	test("a different PR on the same branch still links after unlink", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db, {
+			execGh: routeGh({
+				feature: makePrNode({
+					number: 202,
+					headRef: "feature",
+					headSha: "sha-feature-2",
+				}),
+			}),
+		});
+
+		manager.unlinkWorkspacePullRequest("ws");
+		await manager.refreshPullRequestsByWorkspaces(["ws"]);
+
+		const ws = getWorkspace(db, "ws");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 202)?.id ?? "");
+		expect(ws?.suppressedPullRequestId).toBe("pr-1");
+	});
+
+	test("deleting the suppressed PR row clears the suppression", () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db);
+
+		manager.unlinkWorkspacePullRequest("ws");
+		db.delete(pullRequests).where(eq(pullRequests.id, "pr-1")).run();
+
+		expect(getWorkspace(db, "ws")?.suppressedPullRequestId).toBeNull();
+	});
+
+	test("an explicit checkout link clears the suppression", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedLinkedWorkspace(db);
+		const manager = createManager(db);
+
+		manager.unlinkWorkspacePullRequest("ws");
+		await manager.linkWorkspaceToCheckoutPullRequest({
+			workspaceId: "ws",
+			projectId: PROJECT_ID,
+			pullRequest: {
+				number: 101,
+				url: "https://github.com/base-owner/base-repo/pull/101",
+				title: "PR 101",
+				state: "open",
+				isDraft: false,
+				headRefName: "feature",
+				headRefOid: "sha-feature",
+				isCrossRepository: false,
+			},
+		});
+
+		const ws = getWorkspace(db, "ws");
+		expect(ws?.pullRequestId).toBe("pr-1");
+		expect(ws?.suppressedPullRequestId).toBeNull();
 	});
 });
 
@@ -499,6 +634,123 @@ describe("PullRequestRuntimeManager refresh", () => {
 		);
 
 		expect(getWorkspace(db, "ws")?.pullRequestId).toBe("pr-existing");
+	});
+
+	// A permanently failing fetch (payload over maxBuffer, revoked auth) must
+	// not respawn gh at full 60s-TTL cadence forever: consecutive failures
+	// double the cached rejection's TTL, and a success resets the streak.
+	test("backs off repeated open-PR sweep failures and resets on success", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let attempts = 0;
+			let failing = true;
+			const manager = createManager(db, {
+				execGh: async () => {
+					attempts += 1;
+					if (failing) throw new Error("sweep unavailable");
+					return [];
+				},
+				github: (async () => {
+					throw new Error("octokit unavailable");
+				}) as never,
+			});
+			const repo = {
+				provider: "github" as const,
+				owner: REPO.owner,
+				name: REPO.name,
+				url: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			};
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
+			const sweep = () =>
+				withSilencedWarnings(() => fetchOpenPrs(repo).catch(() => {}));
+
+			// Trigger every 20s for 10 minutes. Without backoff the 60s TTL
+			// admits 11 fetches; doubling admits only t=0, 2min, 6min.
+			for (let t = 0; t <= 10 * 60_000; t += 20_000) {
+				setSystemTime(new Date(t0 + t));
+				await sweep();
+			}
+			expect(attempts).toBe(3);
+
+			// The t=6min failure backed off to 8min: retry fires at 14min.
+			failing = false;
+			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000));
+			await sweep();
+			expect(attempts).toBe(4);
+
+			// Success resets the streak: the base 60s TTL applies again.
+			setSystemTime(new Date(t0 + 14 * 60_000 + 1_000 + 61_000));
+			await sweep();
+			expect(attempts).toBe(5);
+		} finally {
+			setSystemTime();
+		}
+	});
+
+	// A fetch that out-lives its own backoff window before rejecting must
+	// anchor the backoff at the rejection, not the fetch start — otherwise
+	// the cached rejection is born expired and the next trigger refetches
+	// immediately, so slow failures never back off.
+	test("anchors failure backoff at rejection time for slow failures", async () => {
+		const t0 = Date.now();
+		setSystemTime(new Date(t0));
+		try {
+			const db = createRealDb();
+			seedProject(db);
+			let attempts = 0;
+			let rejectInFlight: ((error: Error) => void) | undefined;
+			const manager = createManager(db, {
+				execGh: () => {
+					attempts += 1;
+					if (attempts === 1) {
+						return new Promise((_, reject) => {
+							rejectInFlight = reject;
+						});
+					}
+					return Promise.reject(new Error("sweep unavailable"));
+				},
+				github: (async () => {
+					throw new Error("octokit unavailable");
+				}) as never,
+			});
+			const repo = {
+				provider: "github" as const,
+				owner: REPO.owner,
+				name: REPO.name,
+				url: `https://github.com/${REPO.owner}/${REPO.name}.git`,
+				remoteName: "origin",
+				defaultBranch: "main",
+			};
+			const fetchOpenPrs = openPullRequestsSweeper(manager);
+			const sweep = () =>
+				withSilencedWarnings(() => fetchOpenPrs(repo).catch(() => {}));
+
+			// The fetch hangs past its own post-failure window (120s after the
+			// first failure) and only then rejects.
+			const slow = sweep();
+			expect(attempts).toBe(1);
+			setSystemTime(new Date(t0 + 130_000));
+			rejectInFlight?.(new Error("slow failure"));
+			await slow;
+
+			// Anchored at fetch start the window would already be consumed and
+			// this trigger would refetch; anchored at the rejection it holds.
+			setSystemTime(new Date(t0 + 131_000));
+			await sweep();
+			expect(attempts).toBe(1);
+
+			// The full window measured from the failure elapses: retry admitted.
+			setSystemTime(new Date(t0 + 130_000 + 121_000));
+			await sweep();
+			expect(attempts).toBe(2);
+		} finally {
+			setSystemTime();
+		}
 	});
 });
 
@@ -734,5 +986,281 @@ describe("default-branch guard", () => {
 		expect(getWorkspace(db, "ws-fork")?.pullRequestId).toBe(
 			getPrByNumber(db, 88)?.id,
 		);
+	});
+});
+
+type WorkspaceChangedEvent = Omit<WorkspaceChangedMessage, "type">;
+
+// Minimal in-process stand-in for EventBus.onWorkspaceChanged.
+function createFakeWorkspaceEventBus() {
+	const listeners = new Set<(event: WorkspaceChangedEvent) => void>();
+	return {
+		listeners,
+		onWorkspaceChanged(listener: (event: WorkspaceChangedEvent) => void) {
+			listeners.add(listener);
+			return () => listeners.delete(listener);
+		},
+		emit(event: WorkspaceChangedEvent) {
+			for (const listener of listeners) listener(event);
+		},
+	};
+}
+
+// The subscription handler fires enqueueWorkspaceSync without exposing its
+// promise, so tests observe completion through the DB row.
+async function waitFor(
+	condition: () => boolean,
+	timeoutMs = 2000,
+): Promise<void> {
+	const deadline = Date.now() + timeoutMs;
+	while (!condition() && Date.now() < deadline) {
+		await new Promise((resolve) => setTimeout(resolve, 10));
+	}
+}
+
+describe("workspace-created event trigger", () => {
+	// The manager only consumes workspaceId (it re-reads the row from the DB),
+	// so the snapshot payload can stay null.
+	const createdEvent: WorkspaceChangedEvent = {
+		workspaceId: "ws-new",
+		eventType: "created",
+		workspace: null,
+		occurredAt: 1,
+	};
+
+	function createEventDrivenManager(db: HostDb) {
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({
+				"feat/new-thing": makePrNode({
+					number: 6123,
+					headRef: "feat/new-thing",
+					headSha: "sha-new",
+				}),
+			}),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/new-thing",
+					headSha: "sha-new",
+					upstream: {
+						owner: REPO.owner,
+						name: REPO.name,
+						branch: "feat/new-thing",
+					},
+				};
+			},
+		});
+		return { manager, refsReads: () => refsReads };
+	}
+
+	test("links the PR on a created event without timers or gitWatcher activity", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		// Fresh-insert shape: branch set, headSha/upstream all NULL.
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const { manager } = createEventDrivenManager(db);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		// start() is deliberately never called: no safety-net/refresh timers,
+		// and the fake gitWatcher never emits. The event alone must do it.
+		bus.emit(createdEvent);
+		await waitFor(() => Boolean(getWorkspace(db, "ws-new")?.pullRequestId));
+
+		const ws = getWorkspace(db, "ws-new");
+		expect(ws?.headSha).toBe("sha-new");
+		expect(ws?.upstreamOwner).toBe(REPO.owner);
+		expect(ws?.upstreamRepo).toBe(REPO.name);
+		expect(ws?.upstreamBranch).toBe("feat/new-thing");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 6123)?.id);
+
+		manager.stop();
+		expect(bus.listeners.size).toBe(0);
+	});
+
+	test("ignores updated and deleted events", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-new", branch: "feat/new-thing" });
+		const { manager, refsReads } = createEventDrivenManager(db);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		bus.emit({ ...createdEvent, eventType: "updated" });
+		bus.emit({ ...createdEvent, eventType: "deleted" });
+		await waitFor(() => refsReads() > 0, 100);
+
+		expect(refsReads()).toBe(0);
+		expect(getWorkspace(db, "ws-new")?.pullRequestId).toBeNull();
+	});
+});
+
+describe("missing-worktree degraded state", () => {
+	const createdEvent: WorkspaceChangedEvent = {
+		workspaceId: "ws-dead",
+		eventType: "created",
+		workspace: null,
+		occurredAt: 1,
+	};
+
+	function createGatedManager(db: HostDb, disk: { exists: boolean }) {
+		let refsReads = 0;
+		const manager = createManager(db, {
+			execGh: routeGh({
+				"feat/dead": makePrNode({
+					number: 7001,
+					headRef: "feat/dead",
+					headSha: "sha-dead",
+				}),
+			}),
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/dead",
+					headSha: "sha-dead",
+					upstream: { owner: REPO.owner, name: REPO.name, branch: "feat/dead" },
+				};
+			},
+			worktreeExists: () => disk.exists,
+		});
+		return { manager, refsReads: () => refsReads };
+	}
+
+	async function withCapturedWarnings<T>(
+		fn: () => Promise<T>,
+	): Promise<{ result: T; warnings: string[] }> {
+		const original = console.warn;
+		const warnings: string[] = [];
+		console.warn = (...args: unknown[]) => {
+			warnings.push(String(args[0]));
+		};
+		try {
+			return { result: await fn(), warnings };
+		} finally {
+			console.warn = original;
+		}
+	}
+
+	test("skips git reads and logs one line while the worktree is missing", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-dead", branch: "feat/dead" });
+		const disk = { exists: false };
+		const { manager, refsReads } = createGatedManager(db, disk);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		const { warnings } = await withCapturedWarnings(async () => {
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+		});
+
+		expect(refsReads()).toBe(0);
+		expect(getWorkspace(db, "ws-dead")?.pullRequestId).toBeNull();
+		expect(
+			warnings.filter((w) => w.includes("Worktree missing on disk")),
+		).toHaveLength(1);
+
+		manager.stop();
+	});
+
+	test("resumes sync and logs degraded-exit when the worktree reappears", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		seedWorkspace(db, { id: "ws-dead", branch: "feat/dead" });
+		const disk = { exists: false };
+		const { manager, refsReads } = createGatedManager(db, disk);
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+
+		const { warnings } = await withCapturedWarnings(async () => {
+			bus.emit(createdEvent);
+			await waitFor(() => refsReads() > 0, 100);
+			expect(refsReads()).toBe(0);
+
+			disk.exists = true;
+			bus.emit(createdEvent);
+			await waitFor(() => Boolean(getWorkspace(db, "ws-dead")?.pullRequestId));
+		});
+
+		expect(refsReads()).toBeGreaterThan(0);
+		const ws = getWorkspace(db, "ws-dead");
+		expect(ws?.headSha).toBe("sha-dead");
+		expect(ws?.pullRequestId).toBe(getPrByNumber(db, 7001)?.id);
+		expect(
+			warnings.filter((w) => w.includes("Worktree reappeared")),
+		).toHaveLength(1);
+
+		manager.stop();
+	});
+
+	// Constructed WITHOUT worktreeExists: pins the `?? existsSync` production
+	// default against a real directory, which every other test stubs out.
+	test("default disk gate uses the real filesystem when nothing is injected", async () => {
+		const db = createRealDb();
+		seedProject(db);
+		const dir = mkdtempSync(join(tmpdir(), "prm-default-gate-"));
+		seedWorkspace(db, {
+			id: "ws-real",
+			branch: "feat/real",
+			worktreePath: dir,
+		});
+		let refsReads = 0;
+		const manager = new PullRequestRuntimeManager({
+			db,
+			execGh: routeGh({
+				"feat/real": makePrNode({
+					number: 7002,
+					headRef: "feat/real",
+					headSha: "sha-real",
+				}),
+			}) as never,
+			git: (async () => {
+				throw new Error("git should not be used");
+			}) as never,
+			github: (async () => {
+				throw new Error("octokit should not be used");
+			}) as never,
+			gitWatcher: { onChanged: () => () => {} } as never,
+			readWorkspaceRefs: async () => {
+				refsReads += 1;
+				return {
+					branch: "feat/real",
+					headSha: "sha-real",
+					upstream: { owner: REPO.owner, name: REPO.name, branch: "feat/real" },
+				};
+			},
+		});
+		const bus = createFakeWorkspaceEventBus();
+		manager.subscribeToWorkspaceEvents(bus);
+		const event: WorkspaceChangedEvent = {
+			workspaceId: "ws-real",
+			eventType: "created",
+			workspace: null,
+			occurredAt: 1,
+		};
+
+		try {
+			bus.emit(event);
+			await waitFor(() => refsReads > 0);
+			expect(refsReads).toBeGreaterThan(0);
+
+			const seen = refsReads;
+			rmSync(dir, { recursive: true, force: true });
+			const { warnings } = await withCapturedWarnings(async () => {
+				bus.emit(event);
+				await waitFor(() => refsReads > seen, 100);
+			});
+			expect(refsReads).toBe(seen);
+			expect(
+				warnings.filter((w) => w.includes("Worktree missing on disk")),
+			).toHaveLength(1);
+		} finally {
+			rmSync(dir, { recursive: true, force: true });
+			manager.stop();
+		}
 	});
 });

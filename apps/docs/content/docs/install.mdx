@@ -1,0 +1,35 @@
+---
+title: Install
+description: Requirements, download, and first launch
+---
+
+## Requirements
+
+- **macOS**, Apple Silicon or Intel. A Linux x64 AppImage ships with each release but is experimental; Windows is not yet available.
+- **Git** installed
+- **GitHub CLI** for the PR workflows: optional, and Superset offers to install it during onboarding. Run `gh auth status` to check.
+- At least one coding agent you already use (Claude Code, Codex, Amp, ...). Superset launches agents; it doesn't replace your subscriptions.
+
+## Download
+
+<DownloadButton />
+
+On an Intel Mac? [Download Superset-x64.dmg](https://github.com/superset-sh/superset/releases/latest/download/Superset-x64.dmg) instead.
+
+## First Launch
+
+Onboarding checks your prerequisites with live detection: install or sign in to anything missing and the checklist updates on its own.
+
+1. **GitHub CLI**: install it if needed, then sign in. You can run `gh auth login` right inside the app.
+2. **Agents**: Superset detects Claude Code and Codex automatically. Everything else is configurable later under **Settings → Agents**.
+3. **Add a project**: point Superset at a local folder or a Git URL.
+
+Using Bedrock, Vertex, OpenRouter, or another provider? See [Providers](/providers).
+
+## Staying Updated
+
+Superset checks for updates automatically. New releases ship daily; the [changelog](https://superset.sh/changelog) rounds up each week's highlights.
+
+## Next
+
+You're two minutes in; the next ten are the fun part: [Your First Parallel Session](/first-workspace).

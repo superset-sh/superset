@@ -1,0 +1,1 @@
+export { useResourceNavigation } from "./useResourceNavigation";

@@ -109,6 +109,7 @@ export interface EnrichedSubscription {
 	discount: DiscountInfo | null;
 	accessEndsAt: Date | null;
 	cancellationDetails: CancellationDetails | null;
+	customerEmail: string | null;
 }
 
 // --- Shared field builders ---
@@ -230,16 +231,17 @@ function safeCancellationDetailsBlock(
 
 /**
  * Consistent 2-column field grid used by every event formatter.
- * Row 1: Organization | Plan
- * Row 2: Billing      | Seats
- * Row 3: Price        | Discount
- * Row 4: Total
+ * Row 1: Organization | Email
+ * Row 2: Plan         | Billing
+ * Row 3: Seats        | Price
+ * Row 4: Discount     | Total
  */
 function standardFields(enriched: EnrichedSubscription): unknown {
 	return {
 		type: "section",
 		fields: [
 			{ type: "mrkdwn", text: `*Organization:*\n${enriched.organizationName}` },
+			{ type: "mrkdwn", text: `*Email:*\n${enriched.customerEmail ?? "N/A"}` },
 			{ type: "mrkdwn", text: `*Plan:*\n${enriched.planName}` },
 			{ type: "mrkdwn", text: `*Billing:*\n${enriched.interval}` },
 			{ type: "mrkdwn", text: `*Seats:*\n${enriched.seatCount}` },

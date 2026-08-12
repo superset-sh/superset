@@ -2,6 +2,7 @@ import { existsSync, realpathSync } from "node:fs";
 import { resolve } from "node:path";
 import type { SelectWorktree } from "@superset/local-db";
 import { worktrees } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { track } from "main/lib/analytics";
 import { localDb } from "main/lib/local-db";
@@ -348,7 +349,10 @@ export const createDeleteProcedures = () => {
 				const workspace = getWorkspace(input.id);
 
 				if (!workspace) {
-					throw new Error("Workspace not found");
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Workspace not found",
+					});
 				}
 
 				const terminalResult = await getWorkspaceRuntimeRegistry()

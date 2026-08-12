@@ -624,7 +624,7 @@ step_setup_local_mcp() {
   fi
 
   local api_port="${API_PORT:-$((${SUPERSET_PORT_BASE:-3000} + 1))}"
-  local local_url="http://localhost:${api_port}/api/agent/mcp"
+  local local_url="http://localhost:${api_port}/api/v2/agent/mcp"
 
   # Add or update superset-local entry
   local tmp_file="${mcp_file}.tmp.$$"

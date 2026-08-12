@@ -14,6 +14,7 @@ import type { ITheme } from "@xterm/xterm";
 import { Terminal as XTerm } from "@xterm/xterm";
 import { applyTerminalFontFamilyCssVariable } from "renderer/lib/terminal/appearance";
 import { Utf8Base64 } from "renderer/lib/terminal/clipboard-base64";
+import { FocusAwareClipboardProvider } from "renderer/lib/terminal/clipboard-provider";
 import type { DetectedLink } from "renderer/lib/terminal/links";
 import {
 	createParserIdleGate,
@@ -114,7 +115,10 @@ export function createTerminalInWrapper(options: CreateTerminalOptions = {}): {
 	const searchAddon = new SearchAddon();
 
 	// Utf8Base64 replaces the addon's UTF-8-unsafe default codec (#4839).
-	const clipboardAddon = new ClipboardAddon(new Utf8Base64());
+	const clipboardAddon = new ClipboardAddon(
+		new Utf8Base64(),
+		new FocusAwareClipboardProvider(),
+	);
 	const unicode11Addon = new Unicode11Addon();
 	const imageAddon = new ImageAddon();
 

@@ -5,9 +5,8 @@ import superjson from "superjson";
 import { getAuthToken } from "./auth-client";
 
 /**
- * HTTP tRPC client for calling the API server.
- * Uses bearer token authentication like the auth client.
- * For mutations only - for fetching data we already have electric
+ * Imperative tRPC client for the API server (bearer-token auth). For
+ * component data fetching use the `cloudTrpc` React Query hooks instead.
  */
 export const apiTrpcClient = createTRPCProxyClient<AppRouter>({
 	links: [
@@ -16,12 +15,12 @@ export const apiTrpcClient = createTRPCProxyClient<AppRouter>({
 			transformer: superjson,
 			headers: () => {
 				const token = getAuthToken();
-				if (token) {
-					return {
-						Authorization: `Bearer ${token}`,
-					};
-				}
-				return {};
+				return {
+					...(token ? { Authorization: `Bearer ${token}` } : {}),
+					...(window.App?.appVersion
+						? { "x-superset-client": `desktop/${window.App.appVersion}` }
+						: {}),
+				};
 			},
 		}),
 	],

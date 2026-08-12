@@ -12,6 +12,7 @@ import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 interface CreateTeamButtonProps {
 	organizationId: string;
@@ -30,6 +31,7 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 	const [slug, setSlug] = useState("");
 	const [slugEdited, setSlugEdited] = useState(false);
 	const [isSubmitting, setIsSubmitting] = useState(false);
+	const utils = cloudTrpc.useUtils();
 
 	function handleNameChange(value: string) {
 		setName(value);
@@ -64,6 +66,7 @@ export function CreateTeamButton({ organizationId }: CreateTeamButtonProps) {
 				toast.error(result.error.message ?? "Failed to create team");
 				return;
 			}
+			await utils.organization.listTeams.invalidate();
 			toast.success(`Created team "${trimmedName}"`);
 			reset();
 			setIsOpen(false);

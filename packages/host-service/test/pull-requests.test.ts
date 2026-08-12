@@ -51,6 +51,9 @@ describe("PullRequestRuntimeManager branch sync", () => {
 			git: git as never,
 			github: async () => ({}) as never,
 			gitWatcher: { onChanged: () => () => {} } as never,
+			// Fixture worktree paths are fabricated; open the missing-dir gate
+			// so the sync path under test reaches the mocked git factory.
+			worktreeExists: () => true,
 		});
 		const refreshProjectMock = mock(async () => undefined);
 		(
@@ -133,6 +136,9 @@ describe("PullRequestRuntimeManager branch sync", () => {
 			git: git as never,
 			github: async () => ({}) as never,
 			gitWatcher: { onChanged: () => () => {} } as never,
+			// Fixture worktree paths are fabricated; open the missing-dir gate
+			// so the sync path under test reaches the mocked git factory.
+			worktreeExists: () => true,
 		});
 		const refreshProjectMock = mock(async () => undefined);
 		(

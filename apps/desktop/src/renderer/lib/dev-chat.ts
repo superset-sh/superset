@@ -4,6 +4,11 @@ import { MOCK_ORG_ID } from "shared/constants";
 
 export const DEV_CHAT_MODELS: ModelOption[] = [
 	{
+		id: "anthropic/claude-opus-5",
+		name: "Opus 5",
+		provider: "Anthropic",
+	},
+	{
 		id: "anthropic/claude-opus-4-8",
 		name: "Opus 4.8",
 		provider: "Anthropic",
@@ -29,10 +34,26 @@ export const DEV_CHAT_MODELS: ModelOption[] = [
 		provider: "Anthropic",
 	},
 	{
+		id: "openai/gpt-5.6-sol",
+		name: "GPT-5.6 Sol",
+		provider: "OpenAI",
+	},
+	{
+		id: "openai/gpt-5.6-terra",
+		name: "GPT-5.6 Terra",
+		provider: "OpenAI",
+	},
+	{
+		id: "openai/gpt-5.6-luna",
+		name: "GPT-5.6 Luna",
+		provider: "OpenAI",
+	},
+	{
 		id: "openai/gpt-5.5",
 		name: "GPT-5.5",
 		provider: "OpenAI",
 	},
+	// Retiring from Codex on 2026-08-31; prefer the GPT-5.6 models above.
 	{
 		id: "openai/gpt-5.4",
 		name: "GPT-5.4",
@@ -57,19 +78,6 @@ export function resolveDesktopChatOrganizationId(
 ): string | null {
 	if (skipEnvValidation) return MOCK_ORG_ID;
 	return activeOrganizationId ?? null;
-}
-
-export function isDesktopChatSessionReady({
-	sessionId,
-	hasPersistedSession,
-	skipEnvValidation = env.SKIP_ENV_VALIDATION,
-}: {
-	sessionId: string | null;
-	hasPersistedSession: boolean;
-	skipEnvValidation?: boolean;
-}): boolean {
-	if (skipEnvValidation) return Boolean(sessionId);
-	return hasPersistedSession;
 }
 
 export function getDesktopChatModelOptions(

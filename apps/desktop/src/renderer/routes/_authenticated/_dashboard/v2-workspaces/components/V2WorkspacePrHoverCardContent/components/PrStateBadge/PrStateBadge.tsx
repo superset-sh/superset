@@ -6,6 +6,7 @@ const STATE_BADGE_STYLES: Record<V2WorkspacePrState, string> = {
 	draft: "bg-muted text-muted-foreground",
 	merged: "bg-violet-500/15 text-violet-500",
 	closed: "bg-destructive/15 text-destructive-foreground",
+	queued: "bg-amber-500/15 text-amber-500",
 };
 
 const STATE_BADGE_LABELS: Record<V2WorkspacePrState, string> = {
@@ -13,6 +14,7 @@ const STATE_BADGE_LABELS: Record<V2WorkspacePrState, string> = {
 	draft: "Draft",
 	merged: "Merged",
 	closed: "Closed",
+	queued: "Queued",
 };
 
 interface PrStateBadgeProps {

@@ -1,0 +1,44 @@
+---
+title: Clear PR Feedback in the Background
+description: An agent addresses review comments on your PR while you work on something else
+---
+
+<Callout type="info" title="Use when">
+	a PR comes back with review comments that are legitimate but mechanical: rename this, add a test for that, handle the nil case.
+</Callout>
+
+## The Idea
+
+Addressing review feedback is high-interruption, low-creativity work. Create a workspace from the PR, hand the comments to an agent, and stay in whatever you were doing.
+
+![PR checks and changes in the diff viewer](/images/review-checks.png)
+
+## Steps
+
+1. Press **⌘N** and choose **Pull request**. Search by title or number, or paste the PR URL.
+2. Prompt an agent to work through the feedback. The `gh` CLI is already authenticated in every workspace:
+
+```text
+Read all review feedback on this PR. `gh pr view --comments` misses inline
+code comments, so also run
+`gh api repos/{owner}/{repo}/pulls/{pr}/comments --paginate`
+with this repo's owner/name and this PR's number.
+Address each comment: make the change, or reply explaining why not.
+Commit with one commit per comment, referencing it. Do not force-push.
+Summarize what you changed and what you pushed back on in your final message.
+```
+
+3. Get notified when it finishes. Check the **Changes** tab to review what was done against each comment before it re-requests review.
+4. Push from the diff viewer if the agent didn't, and re-request review on GitHub.
+5. Delete the workspace once the PR merges.
+
+## Tips
+
+- Hover the workspace in the sidebar to watch review status and CI checks without opening GitHub
+- "One commit per comment" keeps the reviewer's second pass trivial
+- If a comment requires a judgment call, the agent should punt: telling it to reply rather than guess is what makes this safe to run unattended
+
+## Variations
+
+- **Teammate's PR**: same recipe works on any PR you can push to, not just your own
+- **CI fixups**: replace the prompt with "CI is failing on this PR; read the failing check logs with `gh`, fix the failures, and push"

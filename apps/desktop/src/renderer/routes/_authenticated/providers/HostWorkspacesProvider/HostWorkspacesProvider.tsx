@@ -11,8 +11,8 @@ const HostWorkspacesContext = createContext<UseHostWorkspacesResult | null>(
 /**
  * Runs the per-host workspace fan-out once (queries, event subscriptions,
  * IndexedDB snapshots) and shares the merged result — consumers must not
- * call the source hook directly or every call site would duplicate the
- * subscriptions.
+ * call the source hook unscoped or every call site would duplicate the
+ * fan-out; single-host scoped calls are fine (they share query keys).
  */
 export function HostWorkspacesProvider({ children }: { children: ReactNode }) {
 	const value = useHostWorkspacesSource();
@@ -24,9 +24,9 @@ export function HostWorkspacesProvider({ children }: { children: ReactNode }) {
 }
 
 /**
- * The workspace read path: every known host's workspaces, merged — local
- * host live (works offline), remote hosts live or last-seen. Replaces
- * `useLiveQuery` over the Electric `v2Workspaces` collection.
+ * The workspace read path: every known host's workspaces, merged — the
+ * local host serves live even offline; a remote host contributes nothing
+ * until it answers.
  */
 export function useHostWorkspaces(): UseHostWorkspacesResult {
 	const value = useContext(HostWorkspacesContext);

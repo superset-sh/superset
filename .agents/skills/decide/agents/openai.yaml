@@ -1,0 +1,4 @@
+interface:
+  display_name: "Decide Together"
+  short_description: "Walk through decisions one choice at a time"
+  default_prompt: "Use $decide to walk me through the key decisions one at a time."

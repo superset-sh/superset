@@ -12,14 +12,13 @@ import {
 } from "@superset/ui/dialog";
 import { Kbd, KbdGroup } from "@superset/ui/kbd";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { HiChevronRight, HiOutlinePaperClip, HiXMark } from "react-icons/hi2";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { PLATFORM } from "renderer/hotkeys";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
 import type { TabValue } from "../../TasksTopBar";
 import { CreateTaskAssigneePicker } from "./components/CreateTaskAssigneePicker";
@@ -41,7 +40,6 @@ export function CreateTaskDialog({
 	searchQuery,
 	assigneeFilter,
 }: CreateTaskDialogProps) {
-	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
 	const modKey = PLATFORM === "mac" ? "⌘" : "Ctrl";
@@ -53,31 +51,25 @@ export function CreateTaskDialog({
 	const [assigneeId, setAssigneeId] = useState<string | null>(null);
 	const [isCreating, setIsCreating] = useState(false);
 
-	const { data: statusData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ taskStatuses: collections.taskStatuses })
-				.select(({ taskStatuses }) => ({ ...taskStatuses })),
-		[collections],
+	const { data: statusData } = cloudTrpc.task.statuses.list.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
-	const { data: userData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ users: collections.users })
-				.select(({ users }) => ({ ...users })),
-		[collections],
+	const { data: memberData } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{ enabled: open },
 	);
-	const { data: organizationData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ organizations: collections.organizations })
-				.select(({ organizations }) => ({ ...organizations })),
-		[collections],
+	const { data: organizationData } = cloudTrpc.organization.list.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
 	const statuses = useMemo(() => statusData ?? [], [statusData]);
-	const users = useMemo(() => userData ?? [], [userData]);
+	const users = useMemo(
+		() => (memberData ?? []).map((member) => member.user),
+		[memberData],
+	);
 	const activeOrganizationId = session?.session?.activeOrganizationId ?? null;
 	const organizationLabel = useMemo(() => {
 		const organization = organizationData?.find(

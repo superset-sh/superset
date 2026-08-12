@@ -1,6 +1,6 @@
 "use server";
 
-import { EnterpriseInquiryEmail } from "@superset/email/emails/enterprise-inquiry";
+import { EnterpriseInquiryEmail } from "@superset/email/emails/internal/enterprise-inquiry";
 import { Resend } from "resend";
 import { z } from "zod";
 import { env } from "@/env";
@@ -72,6 +72,8 @@ export async function submitEnterpriseInquiry(data: unknown) {
 		const { error } = await resend.emails.send({
 			from: "Superset <noreply@superset.sh>",
 			to: "support@superset.sh",
+			// CC the submitter so they keep a copy and stay on the reply thread.
+			cc: sanitizedEmail,
 			replyTo: sanitizedEmail,
 			subject: `Enterprise inquiry from ${sanitizedName} (${sanitizedCompany})`,
 			react: EnterpriseInquiryEmail({

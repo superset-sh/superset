@@ -1,10 +1,83 @@
 import { readdir, stat } from "node:fs/promises";
 import { homedir } from "node:os";
 import { dirname, isAbsolute, join, normalize, resolve } from "node:path";
+import { WorkspaceFsPathError } from "@superset/workspace-fs/host";
 import { TRPCError } from "@trpc/server";
 import { z } from "zod";
+import {
+	ProjectNotFoundError,
+	WorkspaceNotFoundError,
+} from "../../../runtime/filesystem/filesystem";
 import type { HostServiceContext } from "../../../types";
 import { protectedProcedure, queryProcedure, router } from "../../index";
+
+type FsErrnoCode =
+	| "ENOENT"
+	| "EISDIR"
+	| "ENOTDIR"
+	| "EACCES"
+	| "EPERM"
+	| "ENOSPC";
+
+interface FsErrnoCause {
+	kind: "FS_ERRNO";
+	errno: FsErrnoCode;
+}
+
+const ERRNO_TO_TRPC: Record<FsErrnoCode, TRPCError["code"]> = {
+	ENOENT: "NOT_FOUND",
+	EISDIR: "BAD_REQUEST",
+	ENOTDIR: "BAD_REQUEST",
+	EACCES: "FORBIDDEN",
+	EPERM: "FORBIDDEN",
+	ENOSPC: "PRECONDITION_FAILED",
+};
+
+const PATH_ERROR_TO_TRPC: Record<
+	WorkspaceFsPathError["code"],
+	TRPCError["code"]
+> = {
+	INVALID_TARGET: "BAD_REQUEST",
+	SYMLINK_ESCAPE: "FORBIDDEN",
+};
+
+/**
+ * Translates user-environment filesystem failures into typed non-500
+ * TRPCErrors (message preserved verbatim); anything unrecognized rethrows and
+ * stays a reported 500.
+ */
+function translateFsError(error: unknown): never {
+	if (error instanceof WorkspaceFsPathError) {
+		throw new TRPCError({
+			code: PATH_ERROR_TO_TRPC[error.code],
+			message: error.message,
+			cause: { kind: "PATH_VALIDATION", code: error.code },
+		});
+	}
+
+	const errno = (error as NodeJS.ErrnoException | null)?.code;
+	if (typeof errno === "string" && errno in ERRNO_TO_TRPC) {
+		const cause: FsErrnoCause = {
+			kind: "FS_ERRNO",
+			errno: errno as FsErrnoCode,
+		};
+		throw new TRPCError({
+			code: ERRNO_TO_TRPC[errno as FsErrnoCode],
+			message: error instanceof Error ? error.message : String(error),
+			cause,
+		});
+	}
+
+	throw error;
+}
+
+async function withFsErrorTranslation<T>(fn: () => Promise<T>): Promise<T> {
+	try {
+		return await fn();
+	} catch (error) {
+		translateFsError(error);
+	}
+}
 
 function expandTildeAbsolute(input: string): string {
 	const trimmed = input.trim();
@@ -28,10 +101,7 @@ function getFilesystemService(ctx: HostServiceContext, workspaceId: string) {
 	try {
 		return ctx.runtime.filesystem.getServiceForWorkspace(workspaceId);
 	} catch (error) {
-		if (
-			error instanceof Error &&
-			error.message.startsWith("Workspace not found:")
-		) {
+		if (error instanceof WorkspaceNotFoundError) {
 			throw new TRPCError({
 				code: "NOT_FOUND",
 				message: error.message,
@@ -51,10 +121,7 @@ function getProjectFilesystemService(
 		// "Project not found" just means the repo hasn't been cloned on this host
 		// yet (no workspace ever created for it). Return null so callers can degrade
 		// gracefully rather than throwing a 404.
-		if (
-			error instanceof Error &&
-			error.message.startsWith("Project not found:")
-		) {
+		if (error instanceof ProjectNotFoundError) {
 			return null;
 		}
 		throw error;
@@ -161,7 +228,9 @@ export const filesystemRouter = router({
 		.query(async ({ ctx, input, signal }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.listDirectory(serviceInput, { signal });
+			return await withFsErrorTranslation(() =>
+				service.listDirectory(serviceInput, { signal }),
+			);
 		}),
 
 	readFile: queryProcedure
@@ -178,7 +247,9 @@ export const filesystemRouter = router({
 		.query(async ({ ctx, input }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			const result = await service.readFile(serviceInput);
+			const result = await withFsErrorTranslation(() =>
+				service.readFile(serviceInput),
+			);
 
 			if (result.kind === "bytes") {
 				return {
@@ -200,7 +271,9 @@ export const filesystemRouter = router({
 		.query(async ({ ctx, input }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.getMetadata(serviceInput);
+			return await withFsErrorTranslation(() =>
+				service.getMetadata(serviceInput),
+			);
 		}),
 
 	/**
@@ -287,10 +360,12 @@ export const filesystemRouter = router({
 					? rawContent
 					: new Uint8Array(Buffer.from(rawContent.data, "base64"));
 
-			return await service.writeFile({
-				...serviceInput,
-				content,
-			});
+			return await withFsErrorTranslation(() =>
+				service.writeFile({
+					...serviceInput,
+					content,
+				}),
+			);
 		}),
 
 	createDirectory: protectedProcedure
@@ -304,7 +379,9 @@ export const filesystemRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.createDirectory(serviceInput);
+			return await withFsErrorTranslation(() =>
+				service.createDirectory(serviceInput),
+			);
 		}),
 
 	deletePath: protectedProcedure
@@ -318,7 +395,9 @@ export const filesystemRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.deletePath(serviceInput);
+			return await withFsErrorTranslation(() =>
+				service.deletePath(serviceInput),
+			);
 		}),
 
 	movePath: protectedProcedure
@@ -332,7 +411,7 @@ export const filesystemRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.movePath(serviceInput);
+			return await withFsErrorTranslation(() => service.movePath(serviceInput));
 		}),
 
 	copyPath: protectedProcedure
@@ -346,7 +425,7 @@ export const filesystemRouter = router({
 		.mutation(async ({ ctx, input }) => {
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.copyPath(serviceInput);
+			return await withFsErrorTranslation(() => service.copyPath(serviceInput));
 		}),
 
 	searchFiles: queryProcedure
@@ -381,10 +460,12 @@ export const filesystemRouter = router({
 				return { matches: [] };
 			}
 
-			return await service.searchFiles({
-				...serviceInput,
-				query: trimmedQuery,
-			});
+			return await withFsErrorTranslation(() =>
+				service.searchFiles({
+					...serviceInput,
+					query: trimmedQuery,
+				}),
+			);
 		}),
 
 	searchContent: queryProcedure
@@ -407,9 +488,11 @@ export const filesystemRouter = router({
 
 			const { workspaceId, ...serviceInput } = input;
 			const service = getFilesystemService(ctx, workspaceId);
-			return await service.searchContent({
-				...serviceInput,
-				query: trimmedQuery,
-			});
+			return await withFsErrorTranslation(() =>
+				service.searchContent({
+					...serviceInput,
+					query: trimmedQuery,
+				}),
+			);
 		}),
 });

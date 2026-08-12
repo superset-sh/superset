@@ -1,0 +1,107 @@
+---
+title: "Superset vs Paperclip (2026): Agent Workspace vs the Agent Company"
+description: "Compare Superset and Paperclip for managing AI agents — a developer workspace for parallel coding agents vs an open-source platform that runs agents like a company."
+date: 2026-08-07
+lastUpdated: 2026-08-07
+type: "1v1"
+competitors:
+  - paperclip
+keywords:
+  - superset vs paperclip
+  - paperclip alternative
+  - paperclip ai agents
+  - agent orchestration platform
+  - manage ai agents
+---
+
+Superset and Paperclip both answer "how do I manage a lot of AI agents?", at different altitudes. Superset is a developer workspace: coding agents in parallel Git worktrees with terminals, diffs, and automations, on your machines. Paperclip -- one of the most-starred projects in the space -- is a self-hosted platform that runs agents like a company: org charts, budgets, governance, and a ticket system where agents claim work via checkout locks. Its own tagline draws the line: "manage business goals, not pull requests."
+
+---
+
+## At a Glance
+
+| | **Superset** | **Paperclip** |
+|---|---|---|
+| **What it does** | Runs 100+ AI agents in parallel with Git worktree isolation, chat, review, and browser | Orchestrates a team of agents against goals with tickets, org charts, budgets, and governance |
+| **Category** | Local-first agent workspace with remote/cloud hosts | Self-hosted agent-company platform (Node server + web UI) |
+| **Primary user** | Developers shipping code with agents | Anyone running many agents against business goals |
+| **Agent support** | Any CLI agent (Claude Code, Codex, OpenCode, Cursor, Copilot, Gemini, Mistral Vibe, and more) | Adapters for Claude Code, Codex, Cursor/CLI agents, HTTP bots (OpenClaw), plugins |
+| **Work model** | Task → worktree workspace → interactive agent → review | Goal → tickets → agents claim via checkout locks → heartbeat runs |
+| **Interaction** | Live terminals, chat, diff review | Headless heartbeat runs; threaded ticket conversations |
+| **Isolation** | Automatic Git worktree per task on your machines | Server-side worktrees/branches; cloud sandboxes (e2b, Modal, Daytona, Kubernetes) |
+| **Code review** | Built-in diff/file editor, PR flow | Explicitly "not a code review tool" -- bring your own |
+| **License** | Source-available (ELv2) | Open source (MIT) |
+
+---
+
+## What Is Superset?
+
+Superset is a local-first desktop workspace for AI coding agents. It launches Claude Code, Codex, OpenCode, Cursor Agent, Copilot, Gemini CLI, Mistral Vibe, and other agent workflows inside isolated Git worktrees with persistent terminal sessions. Around that core, it adds a built-in diff/file editor, chat panel, in-app browser for docs and dev servers, port management, and MCP tooling. It also runs across your own network devices through remote and cloud workspaces, and it can schedule agent sessions as automations with a TypeScript SDK and a Slack bot. You can review inside Superset or jump into VS Code, Cursor, Windsurf, JetBrains, or Zed. Source-available under Elastic License 2.0 (ELv2).
+
+## What Is Paperclip?
+
+Paperclip, from Paperclip Labs, is an MIT-licensed, self-hosted platform for orchestrating teams of AI agents -- "if OpenClaw is an employee, Paperclip is the company." You define goals, "hire" agent employees into an org chart with roles and reporting lines, set token budgets with hard stops, and let a heartbeat system wake agents on schedules and events to claim tickets through atomic checkout locks so no two agents do the same work. Governance is first-class: approval gates, review stages, config rollback, and an immutable audit log. Agents run headlessly via adapters (Claude Code, Codex, CLI agents, HTTP bots) in server-side worktrees or cloud sandboxes (e2b, Modal, Daytona, Kubernetes), with routines triggered by cron, webhooks, or API. It is a Node.js server with a React web UI you deploy yourself -- there is no desktop app or hosted offering yet -- and it is entirely free, with roughly 75,000 GitHub stars as of August 2026.
+
+## Key Differences
+
+### Workspace vs Company
+
+Superset is where a developer works with agents: live terminals you can type into, diffs you review, a browser for the dev server. Paperclip is where an operator manages agents: goals decompose into tickets, agents claim and execute them headlessly, and you monitor threads, costs, and approvals from a dashboard. Paperclip says it plainly -- if you have one agent you probably don't need it; if you have twenty you might. The two barely overlap in daily experience even though both "manage agents."
+
+### Interactive Coding vs Headless Execution
+
+Superset's agents are interactive terminal sessions in real worktrees on machines you control -- you steer mid-run, open the app being built, and hand off to your IDE. Paperclip's agents wake on heartbeats, do their run, and report back; there are no live terminals to attach to, and it is explicitly not a code review tool -- diffs exist as a workspace viewer, but the PR lifecycle is yours to bring. For shipping code with review, Superset covers the loop; Paperclip orchestrates work above it.
+
+### Governance and Budgets
+
+Paperclip's standout is the management layer nobody else has: per-agent and per-project token budgets enforced atomically with hard stops, board-style approvals, execution policies, config revisioning with rollback, and a full audit trail with actor attribution. Superset's controls are workspace-grade -- permissions, enterprise SSO and audit logs on paid plans -- not budget-enforced agent governance. If you are running dozens of autonomous agents against a budget, Paperclip took that problem seriously first.
+
+### Operations
+
+Superset installs as a desktop app; the CLI, MCP server, and SDK come along free of server operations. Paperclip is infrastructure you run: Node 20+, Postgres in production, deployment, upgrades -- with a web UI usable from your phone once hosted. There is no cloud offering yet on either side beyond what you host; Superset's remote and cloud workspaces stay on your own devices.
+
+---
+
+## Pricing
+
+Superset offers a free tier and Pro at $20/seat/month. Paperclip is entirely free and MIT-licensed with no paid tier or SaaS -- you pay for the infrastructure you host it on and the model tokens your agents burn (which its budget system exists to cap). Both are bring-your-own-provider.
+
+---
+
+## Which Should You Choose?
+
+**Choose Superset if you:**
+
+- Are a developer running coding agents you watch, steer, and review
+- Want worktrees, terminals, diff review, and a browser in one app
+- Need scheduled automations with an SDK, MCP server, and Slack bot
+- Want a product, not a server deployment
+
+**Choose Paperclip if you:**
+
+- Run many autonomous agents and need budgets, governance, and audit trails
+- Want a ticket system where agents claim work without double-doing it
+- Are comfortable self-hosting a Node/Postgres platform
+- Manage agent work beyond code, framed as goals rather than PRs
+
+**Verdict:** These tools live at different layers and could genuinely coexist: Paperclip as the management plane for a large autonomous fleet, Superset as the workspace where engineers actually build with agents and review the results. For software teams whose agents ship code through PRs, Superset is the tool for the job -- Paperclip itself tells you it is not a code review tool. For operators running an agent "company" against budgets and goals, Paperclip has no direct equal.
+
+---
+
+## Frequently Asked Questions
+
+### Do Superset and Paperclip compete?
+
+Less than their star counts suggest. Superset is a developer workspace for interactive parallel coding agents; Paperclip is a self-hosted management platform for autonomous agent teams. The overlap is "many agents, one dashboard" -- the daily experience is very different.
+
+### Is Paperclip free?
+
+Yes -- MIT-licensed, self-hosted, no paid tier or hosted offering as of August 2026. Superset has a free tier and Pro at $20/seat/month.
+
+### Does Paperclip run agents in Git worktrees?
+
+Yes, as server-side plumbing: project workspaces use worktrees and operator branches, plus optional cloud sandboxes. Superset's worktrees are human-facing workspaces on your own machines, with terminals and review attached.
+
+### Can Paperclip review code like Superset?
+
+No -- its README is explicit: "Not a code review tool... Bring your own review process." Superset builds diff review in and integrates the PR flow with GitHub.

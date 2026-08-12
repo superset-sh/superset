@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 
 /** Map of app IDs to their macOS application names */
 const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
@@ -10,7 +11,7 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 	cursor: "Cursor",
 	antigravity: "Antigravity",
 	devin: "Devin",
-	zed: "Zed",
+	zed: null, // Multi-channel, uses bundle IDs (stable/preview/nightly/dev)
 	xcode: "Xcode",
 	iterm: "iTerm",
 	warp: "Warp",
@@ -33,13 +34,25 @@ const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
 };
 
 /**
- * Bundle ID candidates for JetBrains IDEs with multiple editions.
- * `open -b <bundleId>` works regardless of the .app display name,
- * so "IntelliJ IDEA Ultimate.app" and "IntelliJ IDEA CE.app" both resolve correctly.
+ * Bundle ID candidates for apps with multiple installable variants — JetBrains
+ * editions and Zed release channels. `open -b <bundleId>` works regardless of
+ * the .app display name, so "IntelliJ IDEA Ultimate.app"/"IntelliJ IDEA CE.app"
+ * and "Zed.app"/"Zed Preview.app" all resolve correctly. Candidates are tried in
+ * order and the first installed one wins, so a user who has only a non-stable
+ * variant still launches — `open -a Zed` fails outright for someone whose only
+ * install is Zed Preview (its app is named "Zed Preview", not "Zed").
  */
 const BUNDLE_ID_CANDIDATES: Partial<Record<ExternalApp, string[]>> = {
 	intellij: ["com.jetbrains.intellij", "com.jetbrains.intellij.ce"],
 	pycharm: ["com.jetbrains.pycharm", "com.jetbrains.pycharm.ce"],
+	// Zed release channels, most-common first. A user typically installs one
+	// channel; trying stable → preview → nightly → dev launches whichever exists.
+	zed: [
+		"dev.zed.Zed",
+		"dev.zed.Zed-Preview",
+		"dev.zed.Zed-Nightly",
+		"dev.zed.Zed-Dev",
+	],
 };
 
 /** Map of app IDs to their Linux CLI commands */
@@ -372,11 +385,21 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 		});
 
 		child.on("error", (error) => {
-			reject(
-				new Error(
-					`Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`,
-				),
-			);
+			const message = `Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`;
+			// ENOENT means the app's CLI launcher isn't installed / not on PATH —
+			// a user-environment condition, not a bug, so it must not surface as
+			// INTERNAL_SERVER_ERROR (which the Sentry middleware reports).
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+				reject(
+					new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message,
+						cause: { kind: "APP_NOT_INSTALLED", command },
+					}),
+				);
+				return;
+			}
+			reject(new Error(message));
 		});
 
 		child.on("exit", (code) => {

@@ -103,9 +103,7 @@ export function DiffHeaderMetadata({
 							<LuArrowUpRight className="size-3.5" />
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
-						{policy.hint}
-					</TooltipContent>
+					<TooltipContent side="bottom">{policy.hint}</TooltipContent>
 				</Tooltip>
 				<Tooltip>
 					<TooltipTrigger asChild>
@@ -122,7 +120,7 @@ export function DiffHeaderMetadata({
 							)}
 						</button>
 					</TooltipTrigger>
-					<TooltipContent side="bottom" showArrow={false}>
+					<TooltipContent side="bottom">
 						{copied ? "Copied" : "Copy path"}
 					</TooltipContent>
 				</Tooltip>
@@ -154,9 +152,7 @@ export function DiffHeaderMetadata({
 								<LuUndo2 className="size-3.5" />
 							</button>
 						</TooltipTrigger>
-						<TooltipContent side="bottom" showArrow={false}>
-							Discard changes
-						</TooltipContent>
+						<TooltipContent side="bottom">Discard changes</TooltipContent>
 					</Tooltip>
 				) : null}
 			</div>

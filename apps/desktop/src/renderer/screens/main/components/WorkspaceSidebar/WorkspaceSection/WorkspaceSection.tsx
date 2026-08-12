@@ -215,7 +215,7 @@ export function WorkspaceSection({
 						ref={sectionHeaderRef}
 						className={cn(
 							"flex items-center w-full pl-2 pr-2 py-2 text-[11px] font-medium uppercase tracking-wider",
-							"text-muted-foreground hover:bg-muted/50 transition-colors",
+							"text-muted-foreground hover:bg-fill-hover transition-colors",
 							dropZone.isDropTarget &&
 								!dropZone.isDragOver &&
 								"border border-dashed border-primary/20 rounded-sm",

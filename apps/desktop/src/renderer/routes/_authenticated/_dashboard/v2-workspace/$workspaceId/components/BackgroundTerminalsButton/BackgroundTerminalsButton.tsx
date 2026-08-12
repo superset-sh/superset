@@ -38,8 +38,7 @@ import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 import {
 	BACKGROUND_TERMINAL_ATTACHMENT_DEBOUNCE_MS,
 	getAttachedTerminalIdsKey,
-	getBackgroundTerminalCountRefetchInterval,
-	getBackgroundTerminalListRefetchInterval,
+	getBackgroundTerminalRefetchInterval,
 	getBackgroundTerminalSessions,
 	getUnattachedTerminalIds,
 	parseAttachedTerminalIdsKey,
@@ -95,37 +94,26 @@ export const BackgroundTerminalsButton = memo(
 			[backgroundMarkerIds, attachedTerminalIds],
 		);
 		const optimisticBackgroundCount = optimisticBackgroundTerminalIds.length;
-		const backgroundCountInput = useMemo(
-			() => ({
-				workspaceId,
-				attachedTerminalIds: debouncedAttachedTerminalIds,
-			}),
-			[workspaceId, debouncedAttachedTerminalIds],
-		);
 		const sessionsInput = useMemo(() => ({ workspaceId }), [workspaceId]);
 		const utils = workspaceTrpc.useUtils();
 		const killSession = workspaceTrpc.terminal.killSession.useMutation();
-		const backgroundCountQuery =
-			workspaceTrpc.terminal.countBackgroundSessions.useQuery(
-				backgroundCountInput,
-				{
-					enabled: !isOpen,
-					notifyOnChangeProps: ["data", "dataUpdatedAt"],
-					refetchInterval: getBackgroundTerminalCountRefetchInterval(isOpen),
-					refetchOnWindowFocus: false,
-					staleTime: 5_000,
-				},
-			);
-		const sessionsQuery = workspaceTrpc.terminal.listSessions.useQuery(
-			sessionsInput,
-			{
-				enabled: isOpen,
-				notifyOnChangeProps: ["data", "isLoading"],
-				refetchInterval: getBackgroundTerminalListRefetchInterval(isOpen),
-				refetchOnWindowFocus: isOpen,
-				staleTime: 1_000,
-			},
-		);
+		const sessionsQuery = workspaceTrpc.terminal.list.useQuery(sessionsInput, {
+			notifyOnChangeProps: ["data", "dataUpdatedAt", "isLoading"],
+			refetchInterval: getBackgroundTerminalRefetchInterval(isOpen),
+			refetchOnWindowFocus: isOpen,
+			staleTime: isOpen ? 1_000 : 5_000,
+		});
+		// The settled count mirrors the server-side background count the closed
+		// state used to poll: computed against the debounced attachment set so a
+		// pane mid-drag doesn't flap the badge. null until the first fetch lands.
+		const settledBackgroundCount = useMemo(() => {
+			const sessions = sessionsQuery.data?.sessions;
+			if (!sessions) return null;
+			return getBackgroundTerminalSessions(
+				sessions,
+				debouncedAttachedTerminalIds,
+			).length;
+		}, [sessionsQuery.data?.sessions, debouncedAttachedTerminalIds]);
 
 		useRenderStressInstrumentation("BackgroundTerminalsButton", {
 			warnAt: 35,
@@ -133,7 +121,7 @@ export const BackgroundTerminalsButton = memo(
 				isOpen,
 				attachedTerminalCount: attachedTerminalIds.length,
 				optimisticBackgroundCount,
-				closedCount: backgroundCountQuery.data?.count ?? null,
+				closedCount: settledBackgroundCount,
 			}),
 		});
 
@@ -168,8 +156,8 @@ export const BackgroundTerminalsButton = memo(
 		useEffect(() => {
 			if (isOpen || optimisticBackgroundTerminalIds.length === 0) return;
 			if (debouncedAttachedTerminalIdsKey !== attachedTerminalIdsKey) return;
-			if (backgroundCountQuery.data?.count !== 0) return;
-			if (backgroundCountQuery.dataUpdatedAt <= markerObservedAtRef.current) {
+			if (settledBackgroundCount !== 0) return;
+			if (sessionsQuery.dataUpdatedAt <= markerObservedAtRef.current) {
 				return;
 			}
 
@@ -178,8 +166,8 @@ export const BackgroundTerminalsButton = memo(
 			}
 		}, [
 			attachedTerminalIdsKey,
-			backgroundCountQuery.data?.count,
-			backgroundCountQuery.dataUpdatedAt,
+			settledBackgroundCount,
+			sessionsQuery.dataUpdatedAt,
 			debouncedAttachedTerminalIdsKey,
 			isOpen,
 			optimisticBackgroundTerminalIds,
@@ -189,10 +177,7 @@ export const BackgroundTerminalsButton = memo(
 		const backgroundCount =
 			isOpen && sessionsQuery.data
 				? backgroundSessions.length
-				: Math.max(
-						backgroundCountQuery.data?.count ?? 0,
-						optimisticBackgroundCount,
-					);
+				: Math.max(settledBackgroundCount ?? 0, optimisticBackgroundCount);
 
 		if (!isOpen && backgroundCount === 0) return null;
 
@@ -203,8 +188,7 @@ export const BackgroundTerminalsButton = memo(
 		const handleAdopt = (terminalId: string) => {
 			clearTerminalBackgroundMarker(workspaceId, terminalId);
 			const result = focusOrAddTerminalPane(store, terminalId);
-			void utils.terminal.listSessions.invalidate({ workspaceId });
-			void utils.terminal.countBackgroundSessions.invalidate({ workspaceId });
+			void utils.terminal.list.invalidate({ workspaceId });
 			logStressEvent("background-terminals.adopt", { result, workspaceId });
 			setIsOpen(false);
 		};
@@ -220,8 +204,7 @@ export const BackgroundTerminalsButton = memo(
 				);
 				toast.error("Failed to close terminal session");
 			} finally {
-				void utils.terminal.listSessions.invalidate({ workspaceId });
-				void utils.terminal.countBackgroundSessions.invalidate({ workspaceId });
+				void utils.terminal.list.invalidate({ workspaceId });
 			}
 		};
 

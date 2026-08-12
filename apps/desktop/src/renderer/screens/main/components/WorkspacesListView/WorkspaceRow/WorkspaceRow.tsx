@@ -108,7 +108,7 @@ export function WorkspaceRow({
 						)}
 					</div>
 				</TooltipTrigger>
-				<TooltipContent side="top" sideOffset={4}>
+				<TooltipContent side="top">
 					{isBranch ? (
 						<>
 							<p className="text-xs font-medium">Local workspace</p>

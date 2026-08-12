@@ -15,27 +15,14 @@ import {
 	LuX,
 } from "react-icons/lu";
 import { VscChevronRight } from "react-icons/vsc";
+import { CHECK_STATUS_ICONS } from "renderer/routes/_authenticated/_dashboard/utils/checkStatusIcons";
 import type { NormalizedCheck, NormalizedPR } from "../../types";
 
-const checkIconConfig = {
-	success: {
-		icon: LuCheck,
-		className: "text-emerald-600 dark:text-emerald-400",
-	},
-	failure: { icon: LuX, className: "text-red-600 dark:text-red-400" },
-	pending: {
-		icon: LuLoaderCircle,
-		className: "text-amber-600 dark:text-amber-400",
-	},
-	skipped: { icon: LuMinus, className: "text-muted-foreground" },
-	cancelled: { icon: LuMinus, className: "text-muted-foreground" },
-} as const;
-
 const checkSummaryIconConfig = {
-	success: checkIconConfig.success,
-	failure: checkIconConfig.failure,
-	pending: checkIconConfig.pending,
-	none: { icon: LuMinus, className: "text-muted-foreground" },
+	success: CHECK_STATUS_ICONS.success,
+	failure: CHECK_STATUS_ICONS.failure,
+	pending: CHECK_STATUS_ICONS.pending,
+	none: { Icon: LuMinus, className: "text-muted-foreground" },
 } as const;
 
 interface ChecksSectionProps {
@@ -69,7 +56,7 @@ export function ChecksSection({
 			? `${passingChecks}/${relevantChecks.length} checks passing`
 			: "No checks reported";
 	const checksStatusConfig = checkSummaryIconConfig[checksStatus];
-	const ChecksStatusIcon = checksStatusConfig.icon;
+	const ChecksStatusIcon = checksStatusConfig.Icon;
 
 	return (
 		<Collapsible open={open} onOpenChange={setOpen}>
@@ -147,7 +134,7 @@ function CheckRow({
 	check: NormalizedCheck;
 	prUrl: string;
 }) {
-	const { icon: CheckIcon, className } = checkIconConfig[check.status];
+	const { Icon: CheckIcon, className } = CHECK_STATUS_ICONS[check.status];
 	const checkUrl = resolveCheckUrl(check, prUrl);
 	// Mirror the server's guard: only failed github.com Actions job URLs have
 	// downloadable logs, so don't offer copy for non-GitHub CI checks.

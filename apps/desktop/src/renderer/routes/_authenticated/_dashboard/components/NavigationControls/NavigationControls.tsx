@@ -32,35 +32,35 @@ export function NavigationControls() {
 
 	return (
 		<div className="flex items-center">
-			<Tooltip delayDuration={300}>
+			<Tooltip delayDuration={1000}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
 						onClick={() => router.history.back()}
 						disabled={!canGoBack}
-						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-fill-hover transition-colors disabled:opacity-30 disabled:pointer-events-none"
 					>
 						<LuArrowLeft className="size-4" strokeWidth={1.5} />
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<HotkeyLabel label="Go back" id="NAVIGATE_BACK" />
+					<HotkeyLabel fallbackLabel="Go back" id="NAVIGATE_BACK" />
 				</TooltipContent>
 			</Tooltip>
 
-			<Tooltip delayDuration={300}>
+			<Tooltip delayDuration={1000}>
 				<TooltipTrigger asChild>
 					<button
 						type="button"
 						onClick={() => router.history.forward()}
 						disabled={!canGoForward}
-						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent/50 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+						className="no-drag flex items-center justify-center size-7 rounded-md text-muted-foreground hover:bg-fill-hover transition-colors disabled:opacity-30 disabled:pointer-events-none"
 					>
 						<LuArrowRight className="size-4" strokeWidth={1.5} />
 					</button>
 				</TooltipTrigger>
 				<TooltipContent side="bottom">
-					<HotkeyLabel label="Go forward" id="NAVIGATE_FORWARD" />
+					<HotkeyLabel fallbackLabel="Go forward" id="NAVIGATE_FORWARD" />
 				</TooltipContent>
 			</Tooltip>
 

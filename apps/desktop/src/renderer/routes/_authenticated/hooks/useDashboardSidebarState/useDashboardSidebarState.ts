@@ -45,7 +45,8 @@ function compareProjectTopLevelItems(
 
 function getProjectTopLevelItems(
 	collections: ProjectTopLevelCollections,
-	projectId: string,
+	// Null scopes to the Sessions section (project-less workspaces).
+	projectId: string | null,
 	options: { excludeWorkspaceId?: string; excludeSectionId?: string } = {},
 ): ProjectTopLevelItem[] {
 	return [
@@ -87,7 +88,7 @@ function getFirstSectionIndex(items: ProjectTopLevelItem[]): number {
  */
 function writeProjectTopLevelOrder(
 	collections: ProjectTopLevelCollections,
-	projectId: string,
+	projectId: string | null,
 	items: ProjectTopLevelItem[],
 ): void {
 	items.forEach((item, index) => {
@@ -121,7 +122,9 @@ function ensureSidebarProjectRecord(
 	collections.v2SidebarProjects.insert({
 		projectId,
 		createdAt: new Date(),
-		tabOrder: getNextTabOrder([
+		// Prepend, matching new workspaces: the project you just added is
+		// the one you're about to work in.
+		tabOrder: getPrependTabOrder([
 			...collections.v2SidebarProjects.state.values(),
 		]),
 		isCollapsed: false,
@@ -134,7 +137,8 @@ function ensureSidebarWorkspaceRecord(
 		"v2SidebarSections" | "v2WorkspaceLocalState"
 	>,
 	workspaceId: string,
-	projectId: string,
+	// Null places the workspace in the Sessions section.
+	projectId: string | null,
 ): void {
 	const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 	if (existing && isSidebarWorkspaceVisible(existing)) {
@@ -199,8 +203,12 @@ export function useDashboardSidebarState() {
 	);
 
 	const ensureWorkspaceInSidebar = useCallback(
-		(workspaceId: string, projectId: string) => {
-			ensureSidebarProjectRecord(collections, projectId);
+		(workspaceId: string, projectId: string | null) => {
+			// Sessions (null projectId) have no project placement row — the
+			// Sessions section renders unconditionally.
+			if (projectId !== null) {
+				ensureSidebarProjectRecord(collections, projectId);
+			}
 			ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
 		},
 		[collections],
@@ -244,7 +252,7 @@ export function useDashboardSidebarState() {
 
 	const reorderProjectChildren = useCallback(
 		(
-			projectId: string,
+			projectId: string | null,
 			orderedItems: Array<{ type: "workspace" | "section"; id: string }>,
 		) => {
 			orderedItems.forEach((item, index) => {
@@ -271,7 +279,7 @@ export function useDashboardSidebarState() {
 	const moveWorkspaceToSectionAtIndex = useCallback(
 		(
 			workspaceId: string,
-			projectId: string,
+			projectId: string | null,
 			sectionId: string,
 			index: number,
 		) => {
@@ -363,7 +371,11 @@ export function useDashboardSidebarState() {
 	);
 
 	const moveWorkspaceToSection = useCallback(
-		(workspaceId: string, projectId: string, sectionId: string | null) => {
+		(
+			workspaceId: string,
+			projectId: string | null,
+			sectionId: string | null,
+		) => {
 			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
 			if (!existing) return;
 
@@ -444,6 +456,83 @@ export function useDashboardSidebarState() {
 		[collections],
 	);
 
+	const setWorkspacePinned = useCallback(
+		(workspaceId: string, projectId: string | null, pinned: boolean) => {
+			const existing = collections.v2WorkspaceLocalState.get(workspaceId);
+			if (!existing) {
+				if (!pinned) return;
+				// Auto-included local main workspaces have no local-state row yet;
+				// pinning is an explicit placement, so create one first. Sessions
+				// (null projectId) have no project placement row.
+				if (projectId !== null) {
+					ensureSidebarProjectRecord(collections, projectId);
+				}
+				ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+			}
+			// Strictly greater than every existing pin so same-millisecond pins
+			// still order by pin sequence instead of collection iteration order.
+			const maxPinnedAt = Array.from(
+				collections.v2WorkspaceLocalState.state.values(),
+			).reduce((max, row) => Math.max(max, row.sidebarState.pinnedAt ?? 0), 0);
+			collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+				if (pinned) {
+					// Keep the original pin time on repeat pins so the row doesn't
+					// jump to the bottom of the Pinned section.
+					draft.sidebarState.pinnedAt ??= Math.max(Date.now(), maxPinnedAt + 1);
+					draft.sidebarState.isHidden = false;
+				} else {
+					// Only clear the pin — projectId/sectionId/tabOrder stay
+					// untouched so the row returns to its previous spot.
+					draft.sidebarState.pinnedAt = null;
+				}
+			});
+		},
+		[collections],
+	);
+
+	const reorderPinnedWorkspaces = useCallback(
+		(
+			orderedPins: Array<{ workspaceId: string; projectId: string | null }>,
+			options: { allowNewWorkspaceId?: string } = {},
+		) => {
+			// Safety net: a single drop may pin at most ONE new workspace (the
+			// dragged one). Anything else not already pinned is dropped here so a
+			// corrupted caller list can never mass-pin rows.
+			const eligiblePins = orderedPins.filter(
+				({ workspaceId }) =>
+					workspaceId === options.allowNewWorkspaceId ||
+					collections.v2WorkspaceLocalState.get(workspaceId)?.sidebarState
+						.pinnedAt != null,
+			);
+			// Rewrite pinnedAt as a strictly-ascending sequence anchored at the
+			// smallest existing pin time, so the sequence stays below Date.now()
+			// and future pins (which use max(now, max+1)) still append last.
+			const existingPinnedAts = eligiblePins.flatMap(({ workspaceId }) => {
+				const pinnedAt =
+					collections.v2WorkspaceLocalState.get(workspaceId)?.sidebarState
+						.pinnedAt;
+				return pinnedAt != null ? [pinnedAt] : [];
+			});
+			const base =
+				existingPinnedAts.length > 0
+					? Math.min(...existingPinnedAts)
+					: Date.now();
+			eligiblePins.forEach(({ workspaceId, projectId }, index) => {
+				if (!collections.v2WorkspaceLocalState.get(workspaceId)) {
+					if (projectId !== null) {
+						ensureSidebarProjectRecord(collections, projectId);
+					}
+					ensureSidebarWorkspaceRecord(collections, workspaceId, projectId);
+				}
+				collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
+					draft.sidebarState.pinnedAt = base + index;
+					draft.sidebarState.isHidden = false;
+				});
+			});
+		},
+		[collections],
+	);
+
 	const removeWorkspaceFromSidebar = useCallback(
 		(workspaceId: string) => {
 			const workspace = collections.v2WorkspaceLocalState.get(workspaceId);
@@ -455,7 +544,7 @@ export function useDashboardSidebarState() {
 	);
 
 	const hideWorkspaceInSidebar = useCallback(
-		(workspaceId: string, projectId: string) => {
+		(workspaceId: string, projectId: string | null) => {
 			tombstoneSidebarWorkspaceRecord(
 				collections,
 				workspaceId,
@@ -488,12 +577,14 @@ export function useDashboardSidebarState() {
 		moveWorkspaceToSection,
 		moveWorkspaceToSectionAtIndex,
 		removeProjectFromSidebar,
+		reorderPinnedWorkspaces,
 		reorderProjectChildren,
 		removeWorkspaceFromSidebar,
 		reorderProjects,
 		reorderWorkspaces,
 		renameSection,
 		setSectionColor,
+		setWorkspacePinned,
 		toggleProjectCollapsed,
 		toggleSectionCollapsed,
 	};

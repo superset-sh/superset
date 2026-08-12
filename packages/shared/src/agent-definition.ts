@@ -36,6 +36,13 @@ export interface TerminalAgentDefinition extends BaseAgentDefinition {
 	promptCommandSuffix?: string;
 	promptTransport: PromptTransport;
 	/**
+	 * Command that resumes a previous session; the session id is appended as
+	 * the final argument (e.g. "claude … --resume <id>"). Includes the base
+	 * command as a prefix, like `promptCommand`. Omitted when the CLI has no
+	 * id-based resume.
+	 */
+	resumeCommand?: string;
+	/**
 	 * Command for one-shot headless runs: the CLI executes the prompt and
 	 * exits without a TUI. The prompt is appended as the final argument.
 	 * Locked down — no permission bypasses; tools are denied or read-only

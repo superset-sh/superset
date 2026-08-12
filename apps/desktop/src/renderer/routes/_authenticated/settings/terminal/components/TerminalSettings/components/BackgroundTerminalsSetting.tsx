@@ -3,6 +3,8 @@ import { Label } from "@superset/ui/label";
 import { useEffect, useState } from "react";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { terminalRuntimeRegistry } from "renderer/lib/terminal/terminal-runtime-registry";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
 	DEFAULT_TERMINAL_PARKED_RUNTIME_CAP,
 	MAX_TERMINAL_PARKED_RUNTIME_CAP,
@@ -10,6 +12,7 @@ import {
 } from "shared/constants";
 
 export function BackgroundTerminalsSetting() {
+	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 
 	const { data: cap, isLoading } =
@@ -64,7 +67,10 @@ export function BackgroundTerminalsSetting() {
 					htmlFor="terminal-background-limit"
 					className="text-sm font-medium"
 				>
-					Background terminal memory
+					<HighlightText
+						text="Background terminal memory"
+						query={searchQuery}
+					/>
 				</Label>
 				<p className="text-xs text-muted-foreground max-w-md leading-relaxed">
 					How many hidden terminals stay fully loaded (

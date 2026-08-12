@@ -1,7 +1,7 @@
 import {
 	createChatServiceRouter as buildRouter,
 	ChatService,
-} from "@superset/chat/server/desktop";
+} from "@superset/chat-legacy/server/desktop";
 
 export const chatService = new ChatService();
 

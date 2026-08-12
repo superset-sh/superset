@@ -5,15 +5,15 @@ import {
 	CommandItem as RawCommandItem,
 } from "@superset/ui/command";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useDeferredValue, useMemo } from "react";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
 import { useHybridSearch } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useHybridSearch";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { TASK_PICKER_INPUT } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions/useOptimisticActions";
 import { useFrameStackStore } from "../../core/frames";
 import { useCommandPaletteQuery } from "../CommandPalette/CommandPalette";
 
@@ -41,39 +41,32 @@ interface LinkTaskFrameProps {
 }
 
 export function LinkTaskFrame({ workspaceId }: LinkTaskFrameProps) {
-	const collections = useCollections();
 	const query = useCommandPaletteQuery();
 	const deferredQuery = useDeferredValue(query);
 	const setOpen = useFrameStackStore((s) => s.setOpen);
-	const { v2Workspaces } = useOptimisticCollectionActions();
+	const { v2Workspaces } = useOptimisticActions();
 
-	const { data: tasks = [] } = useLiveQuery(
-		(q) =>
-			q.from({ t: collections.tasks }).select(({ t }) => ({
-				id: t.id,
-				slug: t.slug,
-				title: t.title,
-				description: t.description,
-				labels: t.labels,
-				statusId: t.statusId,
-				priority: t.priority,
-				externalUrl: t.externalUrl,
-				updatedAt: t.updatedAt,
+	const { data: taskPage } =
+		cloudTrpc.task.listPage.useQuery(TASK_PICKER_INPUT);
+
+	const tasks = useMemo(
+		() =>
+			(taskPage?.items ?? []).map(({ task }) => ({
+				id: task.id,
+				slug: task.slug,
+				title: task.title,
+				description: task.description,
+				labels: task.labels,
+				statusId: task.statusId,
+				priority: task.priority,
+				externalUrl: task.externalUrl,
+				updatedAt: task.updatedAt,
 			})),
-		[collections.tasks],
+		[taskPage],
 	);
 
-	const { data: statuses = [] } = useLiveQuery(
-		(q) =>
-			q.from({ s: collections.taskStatuses }).select(({ s }) => ({
-				id: s.id,
-				type: s.type,
-				color: s.color,
-				position: s.position,
-				progressPercent: s.progressPercent,
-			})),
-		[collections.taskStatuses],
-	);
+	const { data: statuses = [] } =
+		cloudTrpc.task.statuses.list.useQuery(undefined);
 
 	const statusMap = useMemo(() => {
 		const map = new Map<

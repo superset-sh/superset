@@ -28,6 +28,7 @@ export function useV2AgentChoices(
 				// Prefer the user's icon override (built-in key or uploaded data
 				// URI); fall back to the preset-implied icon.
 				iconId: config.iconId ?? config.presetId,
+				presetId: config.presetId,
 			}),
 		);
 		return [...terminalAgents, SUPERSET_AGENT];

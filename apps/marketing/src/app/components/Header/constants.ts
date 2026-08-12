@@ -18,6 +18,11 @@ export const PRODUCT_LINKS: NavLink[] = [
 		label: "Changelog",
 		description: "New releases and product updates.",
 	},
+	{
+		href: "/roadmap",
+		label: "Roadmap",
+		description: "What we're building now and next.",
+	},
 ];
 
 export const RESOURCE_LINKS: NavLink[] = [

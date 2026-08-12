@@ -116,14 +116,16 @@ export function TabItem<TData>({
 				<div
 					ref={setRef}
 					className={cn(
-						// Inverted scheme: inactive tabs carry the shaded block; the active
-						// tab blends into the content below and is framed by left/right/top
-						// borders. Every state keeps a 1px border on all sides (transparent
-						// where hidden) so tabs don't shift when switching.
-						"group relative flex h-full w-full items-center border transition-colors",
+						// Inverted scheme matching the right sidebar tabs: the active tab is
+						// outlined on left/right/top with a transparent bottom border and an
+						// opaque fill, so it flows straight into the content below. Inactive
+						// tabs keep a 1px border on all sides (transparent except the bottom
+						// line) so the bar's line runs unbroken beneath them and tabs don't
+						// shift when switching.
+						"group relative flex h-full w-full items-center transition-colors",
 						isActive
-							? "text-foreground border-border border-b-transparent"
-							: "bg-border/30 text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground border-transparent",
+							? "border border-border border-b-transparent bg-background text-foreground"
+							: "border border-transparent border-b-border text-muted-foreground/70 hover:bg-border/20 hover:text-muted-foreground",
 						isPaneOver && "bg-primary/5",
 						isDragging && "opacity-30",
 					)}
@@ -167,9 +169,7 @@ export function TabItem<TData>({
 										</OverflowFadeText>
 									</div>
 								</TooltipTrigger>
-								<TooltipContent side="bottom" showArrow={false}>
-									{title}
-								</TooltipContent>
+								<TooltipContent side="bottom">{title}</TooltipContent>
 							</Tooltip>
 							<div className="relative flex h-full w-7 shrink-0 items-center justify-center">
 								{accessory && (

@@ -22,7 +22,8 @@ type HostWorkspacesCreateResult = NonNullable<
  */
 export function writeWorkspacePaneLayout(
 	collections: AppCollections,
-	workspace: { id: string; projectId: string },
+	// projectId null = project-less "session" workspace.
+	workspace: { id: string; projectId: string | null },
 	terminals: HostWorkspacesCreateResult["terminals"],
 	agents: HostWorkspacesCreateResult["agents"],
 ): void {

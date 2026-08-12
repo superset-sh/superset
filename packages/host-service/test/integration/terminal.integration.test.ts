@@ -55,8 +55,8 @@ describe("terminal router integration", () => {
 		await scenario?.dispose();
 	});
 
-	test("listSessions returns empty when no sessions exist", async () => {
-		const result = await scenario.host.trpc.terminal.listSessions.query({
+	test("list returns empty when no sessions exist", async () => {
+		const result = await scenario.host.trpc.terminal.list.query({
 			workspaceId: scenario.workspaceId,
 		});
 		expect(result.sessions).toEqual([]);
@@ -80,9 +80,9 @@ describe("terminal router integration", () => {
 		).rejects.toBeInstanceOf(TRPCClientError);
 	});
 
-	test("listSessions requires authentication", async () => {
+	test("list requires authentication", async () => {
 		await expect(
-			scenario.host.unauthenticatedTrpc.terminal.listSessions.query({
+			scenario.host.unauthenticatedTrpc.terminal.list.query({
 				workspaceId: scenario.workspaceId,
 			}),
 		).rejects.toBeInstanceOf(TRPCClientError);
@@ -127,20 +127,14 @@ describe("terminal router integration", () => {
 				workspaceId: scenario.workspaceId,
 				terminalId,
 			});
-			const detachedCount =
-				await scenario.host.trpc.terminal.countBackgroundSessions.query({
-					workspaceId: scenario.workspaceId,
-					attachedTerminalIds: [],
-				});
-			const attachedCount =
-				await scenario.host.trpc.terminal.countBackgroundSessions.query({
-					workspaceId: scenario.workspaceId,
-					attachedTerminalIds: [terminalId],
-				});
+			const listed = await scenario.host.trpc.terminal.list.query({
+				workspaceId: scenario.workspaceId,
+			});
 
 			expect(spawned).toHaveLength(1);
-			expect(detachedCount.count).toBe(1);
-			expect(attachedCount.count).toBe(0);
+			expect(listed.sessions.map((session) => session.terminalId)).toEqual([
+				terminalId,
+			]);
 			const [{ meta }] = spawned;
 			expect(meta.shell).toBe(fakeFishPath);
 			expect(meta.argv[0]).toBe("-l");
@@ -386,7 +380,7 @@ describe("terminal router integration", () => {
 		}
 	}, 20_000);
 
-	test("listSessions and countBackgroundSessions see unattached daemon sessions after a host-service restart", async () => {
+	test("list sees unattached daemon sessions after a host-service restart", async () => {
 		const tmp = mkdtempSync(join(tmpdir(), "host-service-session-truth-"));
 		const socketPath = join(tmp, "pty-daemon.sock");
 		const terminalId = randomUUID();
@@ -446,7 +440,7 @@ describe("terminal router integration", () => {
 			// no reaper pass, warm-up, or renderer attach in between.
 			__resetSessionsForTesting();
 
-			const listed = await scenario.host.trpc.terminal.listSessions.query({
+			const listed = await scenario.host.trpc.terminal.list.query({
 				workspaceId: scenario.workspaceId,
 			});
 			expect(listed.sessions.map((session) => session.terminalId)).toEqual([
@@ -457,18 +451,13 @@ describe("terminal router integration", () => {
 			expect(restored?.attached).toBe(false);
 			expect(restored?.title).toBeNull();
 
-			const count =
-				await scenario.host.trpc.terminal.countBackgroundSessions.query({
-					workspaceId: scenario.workspaceId,
-					attachedTerminalIds: [],
-				});
-			expect(count.count).toBe(1);
-			const excludedCount =
-				await scenario.host.trpc.terminal.countBackgroundSessions.query({
-					workspaceId: scenario.workspaceId,
-					attachedTerminalIds: [terminalId],
-				});
-			expect(excludedCount.count).toBe(0);
+			// The host-wide (unfiltered) list serves the same daemon-truth view,
+			// with workspaceId recovered from the session's origin row.
+			const listedAll = await scenario.host.trpc.terminal.list.query({});
+			expect(listedAll.sessions.map((session) => session.terminalId)).toEqual([
+				terminalId,
+			]);
+			expect(listedAll.sessions[0]?.workspaceId).toBe(scenario.workspaceId);
 
 			// Listing is read-only: the live PTY must be untouched.
 			const after = await findAlive(terminalId);

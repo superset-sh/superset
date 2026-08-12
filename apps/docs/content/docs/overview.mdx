@@ -1,29 +1,42 @@
 ---
-title: Overview
-description: Get started with Superset.
+title: What is Superset?
+description: The 60-second version
 ---
 
-Superset is an open source AI coding platform. It's available as a desktop IDE, a command-line interface, or an MCP server.
+Superset is a source-available platform for running AI coding agents in parallel, licensed under the Elastic License 2.0. It's available as a desktop IDE, a command-line interface, and an MCP server.
+
+The core move: every task gets its own **workspace**, an isolated git worktree on its own branch. Agents work in workspaces, so three agents (or ten) can run at once without touching each other's changes or your `main`. You review each result in a built-in diff viewer and integrate through ordinary branches and PRs.
 
 <YouTubeVideo id="7jhPfMDwTUc" title="Superset Demo" thumbnail="/images/video-thumbnail.png" />
 
-Each git branch gets its own isolated workspace via git worktrees: no stashing, no `git checkout` whiplash. Run Claude Code, Cursor, and other agents in parallel across workspaces, open any of them in your IDE, and review/commit changes from a built-in diff viewer. Local-first; works offline and syncs when connected.
+## Who It's For
 
-## Requirements
+- You use Claude Code, Codex, Amp, or another CLI agent and keep hitting the one-branch-at-a-time wall
+- You're juggling a feature, a bugfix, and a PR review, and every switch means stash-checkout-rebuild
+- You want scheduled agents doing maintenance while you sleep
 
-- macOS (Apple Silicon or Intel). Windows and Linux coming soon.
-- Git installed
-- GitHub CLI authenticated (`gh auth status`)
+Superset is local-first: it works offline and syncs when connected. Your code never leaves your machine unless you say so.
 
-## Install desktop app
+## What Makes It Different
 
-<DownloadButton />
+- **Worktree isolation, handled for you**: no manual `git worktree` bookkeeping, no stashing, no checkout whiplash
+- **Any agent**: Claude Code, Codex, Amp, Gemini, OpenCode, Cursor Agent, and [more](/agent-integration), or the built-in chat
+- **The whole loop in one place**: terminals, diffs, commits, PRs, ports, and dev servers per workspace
+- **Automations**: agent sessions on a schedule, with a real workspace as the output
 
-## What's next
+## Next Steps
 
-- **[Your First Workspace](/first-workspace)**: Setup walkthrough including IDE integration and AI agents
-- **[Workspaces](/workspaces)**: How worktrees power parallel branch work
-- **[Terminal](/terminal-integration)**: Persistent terminal sessions per workspace
-- **[Diff Viewer](/diff-viewer)**: Review, stage, and commit changes
-- **[AI Agents](/agent-integration)**: Run Claude Code, Cursor, and other agents in isolated workspaces
-- **[CLI](/cli/getting-started)**: Drive Superset from the command line
+<Cards>
+	<Card icon={<Download />} title="Install" href="/install">
+		Requirements and first launch. Two minutes.
+	</Card>
+	<Card icon={<Rocket />} title="Your First Parallel Session" href="/first-workspace">
+		The ten-minute tutorial: three agents in parallel, ship the winner.
+	</Card>
+	<Card icon={<Layers />} title="The Superset Model" href="/superset-model">
+		The five concepts everything else builds on.
+	</Card>
+	<Card icon={<Workflow />} title="Recipes" href="/recipes/race-agents">
+		Named workflows: race agents, fan out a refactor, wake up to an audit.
+	</Card>
+</Cards>

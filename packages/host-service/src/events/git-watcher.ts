@@ -1,7 +1,8 @@
 import { execFile } from "node:child_process";
-import { type FSWatcher, watch } from "node:fs";
+import { existsSync, type FSWatcher, watch } from "node:fs";
 import { promisify } from "node:util";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import { isNull } from "drizzle-orm";
 import type { HostDb } from "../db/index.ts";
 import { workspaces } from "../db/schema.ts";
 import type { WorkspaceFilesystemManager } from "../runtime/filesystem/index.ts";
@@ -284,6 +285,7 @@ export class GitWatcher {
 					worktreePath: workspaces.worktreePath,
 				})
 				.from(workspaces)
+				.where(isNull(workspaces.archivedAt))
 				.all();
 		} catch {
 			return;
@@ -312,6 +314,10 @@ export class GitWatcher {
 		worktreePath: string,
 	): Promise<void> {
 		if (this.closed) return;
+
+		// Deleted-out-from-under worktree: skip the exec attempt; the 30s
+		// rescan re-probes and picks the workspace up when the dir returns.
+		if (!existsSync(worktreePath)) return;
 
 		let gitDir: string;
 		try {

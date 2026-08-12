@@ -16,7 +16,7 @@ export function initSentry(): void {
 		Sentry.init({
 			dsn: env.SENTRY_DSN_DESKTOP,
 			environment: env.NODE_ENV,
-			tracesSampleRate: 0.1,
+			tracesSampleRate: 0,
 			sendDefaultPii: false,
 			ipcMode: IPCMode.Classic,
 			getSessions: () => [

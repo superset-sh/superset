@@ -1,1 +1,4 @@
-export { createSlackClient } from "./slack-client";
+export {
+	createSlackClient,
+	isUnpostableChannelError,
+} from "./slack-client";

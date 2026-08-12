@@ -1,9 +1,8 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { Image } from "expo-image";
 import { useMemo, useState } from "react";
 import { View } from "react-native";
 import { Text } from "@/components/ui/text";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import { useOrgMembers } from "@/screens/(authenticated)/hooks/useOrgMembers";
 
 // GitHub noreply addresses encode the account: `<id>+<login>@` (current) or
 // `<login>@` (legacy) — both resolve to an avatar URL without any lookup.
@@ -34,33 +33,30 @@ export function AuthorAvatar({
 	email: string | undefined;
 	size?: number;
 }) {
-	const collections = useCollections();
-	const { data: users } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
-	);
+	const members = useOrgMembers();
 	const [failed, setFailed] = useState(false);
 
 	const url = useMemo(() => {
 		const normalizedEmail = (email ?? "").trim().toLowerCase();
 		const normalizedName = name.trim().toLowerCase();
 		const byEmail = normalizedEmail
-			? (users ?? []).find(
-					(user) => user.email.toLowerCase() === normalizedEmail,
+			? members.find(
+					(member) => member.user.email.toLowerCase() === normalizedEmail,
 				)
 			: undefined;
 		const byName =
 			normalizedName.length > 0
-				? (users ?? []).find(
-						(user) => user.name.trim().toLowerCase() === normalizedName,
+				? members.find(
+						(member) =>
+							member.user.name.trim().toLowerCase() === normalizedName,
 					)
 				: undefined;
 		return (
-			byEmail?.image ??
-			byName?.image ??
+			byEmail?.user.image ??
+			byName?.user.image ??
 			(normalizedEmail ? githubAvatarUrl(normalizedEmail) : null)
 		);
-	}, [users, email, name]);
+	}, [members, email, name]);
 
 	const dimensions = { width: size, height: size, borderRadius: size / 2 };
 

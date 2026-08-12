@@ -64,6 +64,12 @@ interface PresetEditorDialogProps {
 	 * row has agentId, so the linked branch stays dormant.
 	 */
 	agents?: HostAgentConfig[];
+	/**
+	 * Called after a linked-agent command save succeeds so the owner can keep
+	 * the preset rows' `commands` snapshot (the launch fallback when the agent
+	 * config isn't loaded) in sync with the edited command.
+	 */
+	onLinkedAgentSaved?: (updated: HostAgentConfig) => void;
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	onDeletePreset: () => void;
@@ -186,6 +192,7 @@ export function PresetEditorDialog({
 	preset,
 	projects,
 	agents,
+	onLinkedAgentSaved,
 	open,
 	onOpenChange,
 	onDeletePreset,
@@ -209,7 +216,6 @@ export function PresetEditorDialog({
 		return findLinkedAgent(agents, presetAgentId);
 	}, [preset, agents]);
 	const linkedAgentId = (preset as PresetWithAgent | null)?.agentId;
-	const isLinked = !!linkedAgentId;
 	const liveCommands = useMemo(
 		() =>
 			preset
@@ -257,6 +263,7 @@ export function PresetEditorDialog({
 				),
 			);
 			void queryClient.invalidateQueries(queryFamily);
+			onLinkedAgentSaved?.(updated);
 		},
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to save"),
@@ -369,7 +376,7 @@ export function PresetEditorDialog({
 						</DialogHeader>
 
 						<div className="space-y-3">
-							{isLinked ? (
+							{linkedAgentId ? (
 								<div className="py-2.5 space-y-2">
 									<div className="flex items-center justify-between gap-3">
 										<Label
@@ -383,8 +390,8 @@ export function PresetEditorDialog({
 											Command
 										</Label>
 										<Link
-											to="/settings/agents"
-											search={{ agent: linkedAgentId }}
+											to="/settings/agents/$agentId"
+											params={{ agentId: linkedAgentId }}
 											onClick={() => onOpenChange(false)}
 											className="inline-flex shrink-0 items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
 										>

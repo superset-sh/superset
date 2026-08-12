@@ -1,5 +1,6 @@
 import { workspaces, worktrees } from "@superset/local-db";
 import { deduplicateBranchName } from "@superset/shared/workspace-launch";
+import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
 import { eq } from "drizzle-orm";
 import { localDb } from "main/lib/local-db";
@@ -25,7 +26,10 @@ function getRetryInitRelations(workspaceId: string): {
 } {
 	const relations = getWorkspaceWithRelations(workspaceId);
 	if (!relations) {
-		throw new Error("Workspace not found");
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Workspace not found",
+		});
 	}
 
 	const { workspace, worktree, project } = relations;
@@ -36,7 +40,10 @@ function getRetryInitRelations(workspaceId: string): {
 		throw new Error("Worktree not found");
 	}
 	if (!project) {
-		throw new Error("Project not found");
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: "Project not found",
+		});
 	}
 
 	return { workspace, worktree, project };

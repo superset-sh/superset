@@ -175,8 +175,9 @@ interface BuildV2TerminalEnvParams {
 	agentHookVersion: string;
 	/**
 	 * tRPC URL for the host-service notifications.hook mutation.
-	 * Endpoint is unauthenticated by design — it only broadcasts chimes,
-	 * no state change. See the router for rationale.
+	 * Endpoint is unauthenticated by design — it broadcasts chimes and
+	 * nudges the workspace's linked task to In Progress (idempotent,
+	 * forward-only). See the router for rationale.
 	 */
 	hostAgentHookUrl?: string;
 }
@@ -239,8 +240,9 @@ export function buildV2TerminalEnv(
 	env.SUPERSET_AGENT_HOOK_VERSION = agentHookVersion;
 	// v2 — agent posts to host-service so the renderer can play the sound
 	// client-side. No auth token: the endpoint is unauthenticated by design
-	// (it only broadcasts chimes). The notify-hook script falls back to
-	// the electron endpoint when this URL isn't set.
+	// (chimes plus an idempotent linked-task In Progress nudge). The
+	// notify-hook script falls back to the electron endpoint when this URL
+	// isn't set.
 	if (hostAgentHookUrl) {
 		env.SUPERSET_HOST_AGENT_HOOK_URL = hostAgentHookUrl;
 	}

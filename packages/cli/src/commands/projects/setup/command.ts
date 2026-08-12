@@ -1,6 +1,6 @@
 import { boolean, CLIError, positional, string } from "@superset/cli-framework";
 import { command } from "../../../lib/command";
-import { resolveHostFilter, resolveHostTarget } from "../../../lib/host-target";
+import { requireHostTarget, resolveHostTarget } from "../../../lib/host-target";
 
 export default command({
 	description:
@@ -62,15 +62,16 @@ export default command({
 			);
 		}
 
-		const hostId = resolveHostFilter({
+		const hostId = requireHostTarget({
 			host: options.host ?? undefined,
 			local: options.local ?? undefined,
 		});
 
-		const target = resolveHostTarget({
+		const target = await resolveHostTarget({
 			requestedHostId: hostId,
 			organizationId,
 			userJwt: ctx.bearer,
+			api: ctx.api,
 		});
 
 		const mode = options.parentDir

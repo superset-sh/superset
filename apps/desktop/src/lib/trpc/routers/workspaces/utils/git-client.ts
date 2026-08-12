@@ -5,6 +5,7 @@ import {
 import { promisify } from "node:util";
 import { USER_GIT_ENV_SIMPLE_GIT_OPTIONS } from "@superset/shared/simple-git-options";
 import simpleGit, { type SimpleGit, type SimpleGitOptions } from "simple-git";
+import { GitEnvironmentError } from "./git-errors";
 import { getProcessEnvWithShellPath } from "./shell-env";
 
 const execFileAsync = promisify(execFile);
@@ -16,9 +17,15 @@ const SIMPLE_GIT_OPTIONS =
 	USER_GIT_ENV_SIMPLE_GIT_OPTIONS satisfies Partial<SimpleGitOptions>;
 
 function createUserSimpleGit(repoPath?: string): SimpleGit {
-	return repoPath
-		? simpleGit(repoPath, SIMPLE_GIT_OPTIONS)
-		: simpleGit(SIMPLE_GIT_OPTIONS);
+	try {
+		return repoPath
+			? simpleGit(repoPath, SIMPLE_GIT_OPTIONS)
+			: simpleGit(SIMPLE_GIT_OPTIONS);
+	} catch (error) {
+		throw new GitEnvironmentError(
+			error instanceof Error ? error.message : String(error),
+		);
+	}
 }
 
 export async function getSimpleGitWithShellPath(

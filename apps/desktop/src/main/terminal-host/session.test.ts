@@ -489,3 +489,138 @@ describe("Terminal Host Session emulator backlog backpressure", () => {
 		expect(fakeChildProcess.stdout.resumeCalls).toBe(1);
 	});
 });
+
+describe("PtySubprocessFrameDecoder resync", () => {
+	it("recovers after an oversized frame instead of poisoning the stream", () => {
+		const decoder = new PtySubprocessFrameDecoder();
+
+		// A corrupted stream presents a garbage header whose length field is
+		// far above the cap (observed: 1131308389 = ASCII "Come" read as
+		// u32LE). The decoder must surface the error but reset its internal
+		// state so the NEXT push() can re-sync; otherwise every subsequent
+		// chunk re-throws on the same stale header and the session freezes
+		// (regression #6153).
+		const badHeader = Buffer.alloc(5);
+		badHeader.writeUInt8(PtySubprocessIpcType.Write, 0);
+		badHeader.writeUInt32LE(64 * 1024 * 1024 + 1, 1); // > MAX_FRAME_BYTES
+
+		expect(() => decoder.push(badHeader)).toThrow(/frame too large/);
+
+		// A well-formed frame on the next chunk must decode normally.
+		const goodType = PtySubprocessIpcType.Ready;
+		const goodPayload = Buffer.from("hello");
+		const goodHeader = createFrameHeader(goodType, goodPayload.length);
+		const frames = decoder.push(Buffer.concat([goodHeader, goodPayload]));
+
+		expect(frames).toHaveLength(1);
+		expect(frames[0].type).toBe(goodType);
+		expect(frames[0].payload.toString("utf8")).toBe("hello");
+	});
+
+	it("drops the rest of a chunk that trails an oversized header, then recovers on the next chunk", () => {
+		const decoder = new PtySubprocessFrameDecoder();
+
+		const badHeader = Buffer.alloc(5);
+		badHeader.writeUInt8(PtySubprocessIpcType.Write, 0);
+		badHeader.writeUInt32LE(64 * 1024 * 1024 + 1, 1);
+
+		const goodType = PtySubprocessIpcType.Spawned;
+		const goodPayload = Buffer.from("world");
+		const goodHeader = createFrameHeader(goodType, goodPayload.length);
+
+		// A corrupted header has no framing marker to resync against, so bytes
+		// sharing its chunk are unrecoverable: the throw abandons them rather
+		// than guessing where the next frame starts.
+		expect(() =>
+			decoder.push(Buffer.concat([badHeader, goodHeader, goodPayload])),
+		).toThrow(/frame too large/);
+
+		// State must still be clean, so the following chunk decodes normally.
+		const frames = decoder.push(Buffer.concat([goodHeader, goodPayload]));
+
+		expect(frames).toHaveLength(1);
+		expect(frames[0].type).toBe(goodType);
+		expect(frames[0].payload.toString("utf8")).toBe("world");
+	});
+});
+
+describe("Terminal Host Session stdin backpressure", () => {
+	class BackpressuringStdin extends EventEmitter {
+		readonly writes: Buffer[] = [];
+		private buffered = 0;
+
+		constructor(private readonly highWaterMark = 64 * 1024) {
+			super();
+		}
+
+		write(chunk: Buffer | string): boolean {
+			const buf = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf8");
+			this.writes.push(buf);
+			this.buffered += buf.length;
+			return this.buffered < this.highWaterMark;
+		}
+
+		drain(): void {
+			this.buffered = 0;
+			this.emit("drain");
+		}
+	}
+
+	class BackpressuringChildProcess extends EventEmitter {
+		readonly stdout = new FakeStdout();
+		readonly stdin = new BackpressuringStdin();
+		pid = 4343;
+		kill(): boolean {
+			return true;
+		}
+	}
+
+	it("writes each queued frame exactly once across drain cycles", () => {
+		const child = new BackpressuringChildProcess();
+		const session = new Session({
+			sessionId: "session-stdin-backpressure",
+			workspaceId: "workspace-1",
+			paneId: "pane-1",
+			tabId: "tab-1",
+			cols: 80,
+			rows: 24,
+			cwd: "/tmp",
+			spawnProcess: () => child as unknown as ChildProcess,
+		});
+
+		session.spawn({
+			cwd: "/tmp",
+			cols: 80,
+			rows: 24,
+			env: { PATH: "/usr/bin" },
+		});
+		child.stdout.emit("data", createFrameHeader(PtySubprocessIpcType.Ready, 0));
+		const spawnedPid = Buffer.allocUnsafe(4);
+		spawnedPid.writeUInt32LE(1234, 0);
+		child.stdout.emit(
+			"data",
+			Buffer.concat([
+				createFrameHeader(PtySubprocessIpcType.Spawned, 4),
+				spawnedPid,
+			]),
+		);
+
+		// Large enough to backpressure the pipe several times over.
+		const pasted = "x".repeat(400_000);
+		session.write(pasted);
+		for (let i = 0; i < 200; i++) child.stdin.drain();
+
+		// A backpressured buffer must not be handed to the stream twice: the
+		// duplicate misaligns the frame stream and the subprocess then reads
+		// payload bytes as a header (#6153).
+		const decoder = new PtySubprocessFrameDecoder();
+		const frames = child.stdin.writes.flatMap((chunk) => decoder.push(chunk));
+		const received = Buffer.concat(
+			frames
+				.filter((frame) => frame.type === PtySubprocessIpcType.Write)
+				.map((frame) => frame.payload),
+		).toString("utf8");
+
+		expect(received).toBe(pasted);
+	});
+});

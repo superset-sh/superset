@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { rmSync } from "node:fs";
+import { rm } from "node:fs/promises";
 import { TRPCError } from "@trpc/server";
 import { eq } from "drizzle-orm";
 import { projects } from "../../../db/schema";
@@ -35,6 +35,10 @@ export interface CreateResult {
 	projectId: string;
 	repoPath: string;
 	mainWorkspaceId: string;
+	/** False when an existing local project row for the same repo path was
+	 * reused instead of inserting a new one (importLocal only). Callers use
+	 * this to skip side effects that would clobber user customizations. */
+	created: boolean;
 }
 
 /**
@@ -71,6 +75,7 @@ async function persistFromResolved(
 			projectId,
 			repoPath: args.resolved.repoPath,
 			mainWorkspaceId: mainWorkspace.id,
+			created: true,
 		};
 	} catch (err) {
 		if (localProjectInserted) {
@@ -86,7 +91,7 @@ async function persistFromResolved(
 		}
 		if (args.cleanupRepoPathOnFailure) {
 			try {
-				rmSync(args.resolved.repoPath, { recursive: true, force: true });
+				await rm(args.resolved.repoPath, { recursive: true, force: true });
 			} catch (cleanupErr) {
 				console.warn("[project.create] repo dir cleanup failed", {
 					repoPath: args.resolved.repoPath,
@@ -136,6 +141,28 @@ export async function createFromImportLocal(
 		args.repoPath,
 		args.initIfNeeded ?? false,
 	);
+
+	// Idempotency guard: importing a repo that is already a project on this
+	// device returns the existing project instead of minting a duplicate
+	// row. Deliberately leaves the row untouched (no rename, no repo-field
+	// refresh) — the user may have customized it in v2.
+	const existing = ctx.db.query.projects
+		.findFirst({ where: eq(projects.repoPath, resolved.repoPath) })
+		.sync();
+	if (existing) {
+		const mainWorkspace = await ensureMainWorkspaceStrict(
+			ctx,
+			existing.id,
+			resolved.repoPath,
+		);
+		return {
+			projectId: existing.id,
+			repoPath: resolved.repoPath,
+			mainWorkspaceId: mainWorkspace.id,
+			created: false,
+		};
+	}
+
 	return persistFromResolved(ctx, {
 		name: args.name,
 		resolved,

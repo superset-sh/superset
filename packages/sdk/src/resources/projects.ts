@@ -3,16 +3,25 @@ import { SupersetError } from "../core/error";
 import { APIResource } from "../core/resource";
 import type { RequestOptions } from "../internal/request-options";
 
+/**
+ * Projects are host-owned: each host service serves the projects set up on
+ * that machine. There is no org-wide project registry.
+ */
 export class Projects extends APIResource {
 	/**
-	 * List projects in the active organization.
+	 * List projects set up on a host.
 	 *
-	 * Mirrors `superset projects list`.
+	 * Mirrors `superset projects list --host <id>`.
 	 */
-	list(options?: RequestOptions): APIPromise<ProjectListResponse> {
-		return this._client.query<ProjectListResponse>(
-			"v2Project.list",
-			{ organizationId: this._requireOrgId() },
+	list(
+		params: ProjectListParams,
+		options?: RequestOptions,
+	): APIPromise<ProjectListResponse> {
+		this._requireOrgId();
+		return this._client.hostQuery<ProjectListResponse>(
+			params.hostId,
+			"project.list",
+			undefined,
 			options,
 		);
 	}
@@ -27,16 +36,27 @@ export class Projects extends APIResource {
 	}
 }
 
+/** Project row as served by a host's `project.list`. */
 export interface Project {
 	id: string;
 	name: string;
-	slug: string;
-	repoCloneUrl: string | null;
-	githubRepositoryId: string | null;
+	/** Absolute repo path on the host filesystem. */
+	repoPath: string;
+	repoOwner: string | null;
+	repoName: string | null;
+	repoUrl: string | null;
+	worktreeBaseDir: string | null;
+	createdAt: number;
+	updatedAt: number;
+}
+
+export interface ProjectListParams {
+	/** The host machineId to list (see `hosts.list()`). */
+	hostId: string;
 }
 
 export type ProjectListResponse = Array<Project>;
 
 export declare namespace Projects {
-	export type { Project, ProjectListResponse };
+	export type { Project, ProjectListParams, ProjectListResponse };
 }

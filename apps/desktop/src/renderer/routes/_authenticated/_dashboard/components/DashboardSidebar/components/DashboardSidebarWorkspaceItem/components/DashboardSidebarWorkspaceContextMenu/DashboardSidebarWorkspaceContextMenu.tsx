@@ -22,25 +22,32 @@ import {
 	LuFolderPlus,
 	LuGitBranch,
 	LuPencil,
+	LuPin,
+	LuPinOff,
 	LuRadioTower,
 	LuTrash2,
+	LuUnlink,
 	LuX,
 } from "react-icons/lu";
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
-import { useDashboardSidebarHover } from "../../../../providers/DashboardSidebarHoverProvider";
+import { useDashboardSidebarHoverActions } from "../../../../providers/DashboardSidebarHoverProvider";
 import { useDashboardSidebarWorkspacePorts } from "../../../../providers/DashboardSidebarPortsProvider";
 import { useDashboardSidebarPortKill } from "../../../DashboardSidebarPortsList/hooks/useDashboardSidebarPortKill";
 
 interface DashboardSidebarWorkspaceContextMenuProps {
 	workspaceId: string;
-	projectId: string;
+	/** Null for project-less "session" workspaces (no group actions yet). */
+	projectId: string | null;
 	isInSection?: boolean;
 	isLocalWorkspace: boolean;
-	isPinned?: boolean;
+	isLocalMainWorkspace?: boolean;
+	isPinned: boolean;
 	isUnread: boolean;
 	hasStatus: boolean;
+	hasPullRequest: boolean;
 	showDeleteHotkey?: boolean;
+	onTogglePin: () => void;
 	onCreateSection: () => void;
 	onMoveToSection: (sectionId: string | null) => void;
 	onOpenInFinder: () => void;
@@ -51,6 +58,7 @@ interface DashboardSidebarWorkspaceContextMenuProps {
 	onDelete?: () => void;
 	onToggleUnread: () => void;
 	onClearStatus: () => void;
+	onRemovePullRequest: () => void;
 	children: React.ReactNode;
 }
 
@@ -59,10 +67,13 @@ export function DashboardSidebarWorkspaceContextMenu({
 	projectId,
 	isInSection,
 	isLocalWorkspace,
-	isPinned = false,
+	isLocalMainWorkspace = false,
+	isPinned,
 	isUnread,
 	hasStatus,
+	hasPullRequest,
 	showDeleteHotkey = false,
+	onTogglePin,
 	onCreateSection,
 	onMoveToSection,
 	onOpenInFinder,
@@ -73,10 +84,11 @@ export function DashboardSidebarWorkspaceContextMenu({
 	onDelete,
 	onToggleUnread,
 	onClearStatus,
+	onRemovePullRequest,
 	children,
 }: DashboardSidebarWorkspaceContextMenuProps) {
 	const collections = useCollections();
-	const { setContextMenuOpen } = useDashboardSidebarHover();
+	const { setContextMenuOpen } = useDashboardSidebarHoverActions();
 	const portGroup = useDashboardSidebarWorkspacePorts(workspaceId);
 	const { isPending: isKillingPorts, killPorts } =
 		useDashboardSidebarPortKill();
@@ -88,8 +100,12 @@ export function DashboardSidebarWorkspaceContextMenu({
 		(q) =>
 			q
 				.from({ sidebarSections: collections.v2SidebarSections })
+				// `?? ""` and not null: TanStack DB's eq(col, null) never
+				// matches, and no section can have an empty-string projectId,
+				// so sessions resolve to an empty list without relying on the
+				// eq(null) quirk.
 				.where(({ sidebarSections }) =>
-					eq(sidebarSections.projectId, projectId),
+					eq(sidebarSections.projectId, projectId ?? ""),
 				)
 				.orderBy(({ sidebarSections }) => sidebarSections.tabOrder, "asc")
 				.select(({ sidebarSections }) => ({
@@ -108,6 +124,20 @@ export function DashboardSidebarWorkspaceContextMenu({
 		<ContextMenu onOpenChange={setContextMenuOpen}>
 			<ContextMenuTrigger asChild>{children}</ContextMenuTrigger>
 			<ContextMenuContent onCloseAutoFocus={(event) => event.preventDefault()}>
+				<ContextMenuItem onSelect={onTogglePin}>
+					{isPinned ? (
+						<>
+							<LuPinOff className="size-4 mr-2" />
+							Unpin
+						</>
+					) : (
+						<>
+							<LuPin className="size-4 mr-2" />
+							Pin
+						</>
+					)}
+				</ContextMenuItem>
+				<ContextMenuSeparator />
 				{onRename && (
 					<ContextMenuItem onSelect={onRename}>
 						<LuPencil className="size-4 mr-2" />
@@ -152,7 +182,15 @@ export function DashboardSidebarWorkspaceContextMenu({
 						Clear Status
 					</ContextMenuItem>
 				)}
-				{!isPinned && (
+				{hasPullRequest && (
+					<ContextMenuItem onSelect={onRemovePullRequest}>
+						<LuUnlink className="size-4 mr-2" />
+						Remove PR Link
+					</ContextMenuItem>
+				)}
+				{/* Group actions mutate placement (sectionId/tabOrder), which a pinned
+				    row doesn't display — the change would only surface on unpin. */}
+				{!isPinned && !isLocalMainWorkspace && projectId !== null && (
 					<>
 						<ContextMenuSeparator />
 						<ContextMenuItem onSelect={onCreateSection}>

@@ -1,4 +1,9 @@
-import { FolderInputIcon, LayoutTemplateIcon, PlusIcon } from "lucide-react";
+import {
+	FolderInputIcon,
+	FolderPlusIcon,
+	LayoutTemplateIcon,
+	PlusIcon,
+} from "lucide-react";
 import { useAddRepositoryModalStore } from "renderer/stores/add-repository-modal";
 import { useFolderImportIntent } from "renderer/stores/folder-import-intent";
 import type { Command, CommandProvider } from "../../core/types";
@@ -7,6 +12,16 @@ export const addProjectProvider: CommandProvider = {
 	id: "add-project",
 	provide: () => {
 		const commands: Command[] = [
+			{
+				id: "addProject.createNew",
+				title: "Create new project",
+				section: "add-project",
+				icon: FolderPlusIcon,
+				keywords: ["add project", "new", "blank", "empty", "folder", "init"],
+				run: () => {
+					void useAddRepositoryModalStore.getState().openEmptyProject();
+				},
+			},
 			{
 				id: "addProject.cloneFromUrl",
 				title: "Clone from URL",

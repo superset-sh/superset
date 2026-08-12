@@ -19,7 +19,7 @@ export interface ProjectBackfillContext {
 /**
  * One-time-per-row backfill of `name` for rows that predate host ownership.
  * Targets rows with the empty-name sentinel; steady-state boots are a single
- * indexed query and no cloud calls. Same rules as workspace-backfill:
+ * indexed query and no cloud calls.
  *
  * - Legacy cloud row found → copy its name (that's where names lived before
  *   projects went local-first).

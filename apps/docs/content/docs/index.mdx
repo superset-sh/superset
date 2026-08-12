@@ -1,0 +1,67 @@
+---
+title: Superset Documentation
+description: Run AI coding agents in parallel, each in its own isolated workspace
+full: true
+---
+
+Superset gives every task its own isolated git worktree, so you can delegate to many agents at once and integrate the results through ordinary branches and PRs.
+
+![The Superset home screen: describe a task, pick an agent, go](/images/prompt-first.png)
+
+## Start Here
+
+<Cards>
+	<Card icon={<BookOpen />} title="What is Superset?" href="/overview">
+		The 60-second version.
+	</Card>
+	<Card icon={<Download />} title="Install" href="/install">
+		Requirements and first launch. Two minutes.
+	</Card>
+	<Card icon={<Rocket />} title="Your First Parallel Session" href="/first-workspace">
+		Three agents in parallel, ship the winner. Ten minutes.
+	</Card>
+	<Card icon={<Layers />} title="The Superset Model" href="/superset-model">
+		The five concepts everything else builds on.
+	</Card>
+</Cards>
+
+## What You Can Do
+
+<Cards>
+	<Card icon={<Split />} title="Race agents on one task" href="/recipes/race-agents">
+		Same prompt, multiple agents, isolated branches. Merge the best diff.
+	</Card>
+	<Card icon={<Workflow />} title="Run parallel workstreams" href="/recipes/parallel-workstreams">
+		A feature, a bugfix, and a PR review at once, without branch juggling.
+	</Card>
+	<Card icon={<GitPullRequest />} title="Review and ship" href="/diff-viewer">
+		Stage, commit, push, and open PRs from the built-in diff viewer.
+	</Card>
+	<Card icon={<CalendarClock />} title="Automate maintenance" href="/automations">
+		Schedule agent sessions; wake up to a reviewable workspace.
+	</Card>
+	<Card icon={<Bot />} title="Bring any agent" href="/agent-integration">
+		Claude Code, Codex, Amp, Gemini, and more, or the built-in chat.
+	</Card>
+	<Card icon={<Globe />} title="Work across devices" href="/remote-workspaces">
+		Reach workspaces hosted on another machine through the relay.
+	</Card>
+</Cards>
+
+## Build On It
+
+<Cards>
+	<Card icon={<Terminal />} title="CLI" href="/cli/getting-started">
+		Drive projects, workspaces, and automations from the command line.
+	</Card>
+	<Card icon={<Package />} title="TypeScript SDK" href="/sdk/getting-started">
+		Programmatic access to everything the CLI can do.
+	</Card>
+	<Card icon={<Plug />} title="MCP Server" href="/mcp-server">
+		Let agents drive Superset itself over MCP.
+	</Card>
+</Cards>
+
+## Help
+
+Stuck? Check [Troubleshooting](/troubleshooting) and the [FAQ](/faq), or [open an issue](https://github.com/superset-sh/superset/issues).

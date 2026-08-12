@@ -11,7 +11,6 @@ import {
 	DropdownMenuSubTrigger,
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { FiUsers } from "react-icons/fi";
@@ -25,6 +24,7 @@ import {
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HelpSubMenu } from "./components/HelpSubMenu";
 import { SubmitPromptDialog } from "./components/SubmitPromptDialog";
@@ -42,10 +42,8 @@ export function OrganizationDropdown({
 
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
-	const { data: organizations } = useLiveQuery(
-		(q) => q.from({ organizations: collections.organizations }),
-		[collections],
-	);
+	const { data: organizations } =
+		cloudTrpc.organization.list.useQuery(undefined);
 
 	const activeOrganization = organizations?.find(
 		(o) => o.id === activeOrganizationId,
@@ -76,7 +74,7 @@ export function OrganizationDropdown({
 		variant === "collapsed" ? (
 			<button
 				type="button"
-				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+				className="flex size-8 items-center justify-center rounded-md transition-colors text-muted-foreground hover:bg-fill-hover"
 				aria-label="Organization menu"
 			>
 				<Avatar
@@ -89,7 +87,7 @@ export function OrganizationDropdown({
 		) : variant === "expanded" ? (
 			<button
 				type="button"
-				className="group flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-accent/50 hover:text-foreground min-w-0"
+				className="group flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium text-muted-foreground transition-colors hover:bg-fill-hover hover:text-foreground min-w-0"
 				aria-label="Organization menu"
 			>
 				<Avatar

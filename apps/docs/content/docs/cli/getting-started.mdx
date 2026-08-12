@@ -11,6 +11,8 @@ The Superset CLI (`superset`) is a single static binary that drives the same
 backend as the desktop app. Use it to manage workspaces, tasks, automations,
 and the local host server from your terminal or from CI.
 
+<YouTubeVideo id="8g-l5kYEGBc" title="Superset CLI + Skills Demo" thumbnail="/images/cli-skills-demo.jpg" />
+
 ## Install
 
 ### Desktop app
@@ -32,9 +34,9 @@ export PATH="$HOME/.superset/bin:$PATH"
 curl -fsSL https://superset.sh/cli/install.sh | sh
 ```
 
-The script auto-detects your platform (macOS Apple Silicon or Linux x86_64),
-installs Superset under `~/superset` by default, and adds `~/superset/bin`
-to your shell `PATH`.
+The script auto-detects your platform (macOS on Apple Silicon or Intel, Linux on
+x64 or arm64), installs Superset under `~/superset` by default, and adds
+`~/superset/bin` to your shell `PATH`.
 
 ### Homebrew
 
@@ -164,15 +166,15 @@ calls route through the cloud API and the relay.
 
 ```bash
 superset hosts list
-superset workspaces list
-superset workspaces list --host h_…
-superset workspaces list --local
+superset workspaces list              # this machine
+superset workspaces list --host h_…  # another host
 ```
 
-Mutating host commands (`projects create`, `projects setup`,
-`workspaces create`) require an explicit `--host` or `--local`. There's
-no default. `workspaces list` is organization-wide when neither `--host`
-nor `--local` is provided; pass `--local` to restrict it to this machine.
+Every host-scoped command targets exactly one host. Reads
+(`workspaces list`, `projects list`) default to this machine; mutating
+host commands (`projects create`, `projects setup`, `workspaces create`)
+require an explicit `--host` or `--local`; there's no default. There is
+no org-wide listing; the desktop app is the cross-host view.
 
 ## Where state lives
 

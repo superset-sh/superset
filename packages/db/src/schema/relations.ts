@@ -46,7 +46,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 	v2Hosts: many(v2Hosts),
 	v2Clients: many(v2Clients),
 	v2UsersHosts: many(v2UsersHosts),
-	v2Workspaces: many(v2Workspaces),
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
 }));
@@ -74,7 +73,6 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	v2Clients: many(v2Clients),
 	v2UsersHosts: many(v2UsersHosts),
 	v2Projects: many(v2Projects),
-	v2Workspaces: many(v2Workspaces),
 	secrets: many(secrets),
 	sandboxImages: many(sandboxImages),
 	workspaces: many(workspaces),
@@ -118,7 +116,7 @@ export const subscriptionsRelations = relations(subscriptions, ({ one }) => ({
 	}),
 }));
 
-export const tasksRelations = relations(tasks, ({ one, many }) => ({
+export const tasksRelations = relations(tasks, ({ one }) => ({
 	organization: one(organizations, {
 		fields: [tasks.organizationId],
 		references: [organizations.id],
@@ -137,7 +135,6 @@ export const tasksRelations = relations(tasks, ({ one, many }) => ({
 		references: [users.id],
 		relationName: "creator",
 	}),
-	workspaces: many(v2Workspaces),
 }));
 
 export const taskStatusesRelations = relations(
@@ -268,7 +265,7 @@ export const projectsRelations = relations(projects, ({ one, many }) => ({
 	workspaces: many(workspaces),
 }));
 
-export const v2ProjectsRelations = relations(v2Projects, ({ one, many }) => ({
+export const v2ProjectsRelations = relations(v2Projects, ({ one }) => ({
 	organization: one(organizations, {
 		fields: [v2Projects.organizationId],
 		references: [organizations.id],
@@ -277,7 +274,6 @@ export const v2ProjectsRelations = relations(v2Projects, ({ one, many }) => ({
 		fields: [v2Projects.githubRepositoryId],
 		references: [githubRepositories.id],
 	}),
-	workspaces: many(v2Workspaces),
 }));
 
 export const v2HostsRelations = relations(v2Hosts, ({ one, many }) => ({
@@ -290,7 +286,6 @@ export const v2HostsRelations = relations(v2Hosts, ({ one, many }) => ({
 		references: [users.id],
 	}),
 	usersHosts: many(v2UsersHosts),
-	workspaces: many(v2Workspaces),
 }));
 
 export const v2ClientsRelations = relations(v2Clients, ({ one }) => ({
@@ -319,32 +314,28 @@ export const v2UsersHostsRelations = relations(v2UsersHosts, ({ one }) => ({
 	}),
 }));
 
-export const v2WorkspacesRelations = relations(
-	v2Workspaces,
-	({ one, many }) => ({
-		organization: one(organizations, {
-			fields: [v2Workspaces.organizationId],
-			references: [organizations.id],
-		}),
-		project: one(v2Projects, {
-			fields: [v2Workspaces.projectId],
-			references: [v2Projects.id],
-		}),
-		host: one(v2Hosts, {
-			fields: [v2Workspaces.organizationId, v2Workspaces.hostId],
-			references: [v2Hosts.organizationId, v2Hosts.machineId],
-		}),
-		createdBy: one(users, {
-			fields: [v2Workspaces.createdByUserId],
-			references: [users.id],
-		}),
-		chatSessions: many(chatSessions),
-		task: one(tasks, {
-			fields: [v2Workspaces.taskId],
-			references: [tasks.id],
-		}),
+export const v2WorkspacesRelations = relations(v2Workspaces, ({ one }) => ({
+	organization: one(organizations, {
+		fields: [v2Workspaces.organizationId],
+		references: [organizations.id],
 	}),
-);
+	project: one(v2Projects, {
+		fields: [v2Workspaces.projectId],
+		references: [v2Projects.id],
+	}),
+	host: one(v2Hosts, {
+		fields: [v2Workspaces.organizationId, v2Workspaces.hostId],
+		references: [v2Hosts.organizationId, v2Hosts.machineId],
+	}),
+	createdBy: one(users, {
+		fields: [v2Workspaces.createdByUserId],
+		references: [users.id],
+	}),
+	task: one(tasks, {
+		fields: [v2Workspaces.taskId],
+		references: [tasks.id],
+	}),
+}));
 
 export const secretsRelations = relations(secrets, ({ one }) => ({
 	organization: one(organizations, {
@@ -400,9 +391,5 @@ export const chatSessionsRelations = relations(chatSessions, ({ one }) => ({
 	workspace: one(workspaces, {
 		fields: [chatSessions.workspaceId],
 		references: [workspaces.id],
-	}),
-	v2Workspace: one(v2Workspaces, {
-		fields: [chatSessions.v2WorkspaceId],
-		references: [v2Workspaces.id],
 	}),
 }));

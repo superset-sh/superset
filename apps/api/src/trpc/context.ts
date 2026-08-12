@@ -1,3 +1,4 @@
+import * as Sentry from "@sentry/nextjs";
 import { auth, type Session } from "@superset/auth/server";
 import { db } from "@superset/db/client";
 import * as authSchema from "@superset/db/schema/auth";
@@ -85,9 +86,18 @@ export const createContext = async ({
 		session = await sessionFromOAuthBearer(req.headers);
 	}
 
-	return createTRPCContext({
+	const context = createTRPCContext({
 		session,
 		auth,
 		headers: req.headers,
 	});
+
+	if (context.client) {
+		Sentry.setTag(
+			"client",
+			`${context.client.product}/${context.client.version}`,
+		);
+	}
+
+	return context;
 };

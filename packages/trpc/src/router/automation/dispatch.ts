@@ -15,6 +15,7 @@ import {
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
 import { and, eq } from "drizzle-orm";
+import { fetchRelayPresence } from "../../lib/relay-presence";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 
 type AgentRunResult =
@@ -45,19 +46,20 @@ export async function dispatchAutomation(
 ): Promise<DispatchOutcome> {
 	const { automation, scheduledFor, relayUrl } = opts;
 
-	const resolved = await resolveTargetHost(automation);
-	if (!resolved) {
+	const candidates = await resolveCandidateHosts(automation);
+	if (candidates.length === 0) {
 		const error = "no host available";
 		const inserted = await recordSkipped(automation, scheduledFor, null, error);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
 	}
-	const host = resolved;
-	if (!host.isOnline) {
+
+	const host = await pickOnlineHost(automation, relayUrl, candidates);
+	if (!host) {
 		const error = "target host offline";
 		const inserted = await recordSkipped(
 			automation,
 			scheduledFor,
-			host.machineId,
+			candidates[0]?.machineId ?? null,
 			error,
 		);
 		return { status: "skipped_offline", runId: inserted?.id ?? null, error };
@@ -185,9 +187,9 @@ export async function dispatchAutomation(
 	return { status: "dispatched", runId: run.id };
 }
 
-async function resolveTargetHost(
+async function resolveCandidateHosts(
 	automation: SelectAutomation,
-): Promise<typeof v2Hosts.$inferSelect | null> {
+): Promise<Array<typeof v2Hosts.$inferSelect>> {
 	if (automation.targetHostId) {
 		const [host] = await dbWs
 			.select()
@@ -200,10 +202,10 @@ async function resolveTargetHost(
 			)
 			.limit(1);
 
-		return host ?? null;
+		return host ? [host] : [];
 	}
 
-	const [host] = await dbWs
+	return dbWs
 		.select({
 			organizationId: v2Hosts.organizationId,
 			machineId: v2Hosts.machineId,
@@ -226,13 +228,41 @@ async function resolveTargetHost(
 			and(
 				eq(v2UsersHosts.userId, automation.ownerUserId),
 				eq(v2Hosts.organizationId, automation.organizationId),
-				eq(v2Hosts.isOnline, true),
 			),
 		)
-		.orderBy(v2Hosts.updatedAt)
-		.limit(1);
+		.orderBy(v2Hosts.updatedAt);
+}
 
-	return host ?? null;
+/**
+ * The relay's DOs are the presence authority; the DB flag only decides for
+ * hosts still on the v1 relay (which keeps writing it). First online
+ * candidate wins, preserving the updatedAt ordering.
+ */
+async function pickOnlineHost(
+	automation: SelectAutomation,
+	relayUrl: string,
+	candidates: Array<typeof v2Hosts.$inferSelect>,
+): Promise<typeof v2Hosts.$inferSelect | null> {
+	const jwt = await mintUserJwt({
+		userId: automation.ownerUserId,
+		organizationIds: [automation.organizationId],
+		scope: "automation-presence",
+		ttlSeconds: 60,
+	});
+	const presence = await fetchRelayPresence(
+		relayUrl,
+		jwt,
+		candidates.map((host) =>
+			buildHostRoutingKey(host.organizationId, host.machineId),
+		),
+	);
+	return (
+		candidates.find((host) => {
+			const info =
+				presence?.[buildHostRoutingKey(host.organizationId, host.machineId)];
+			return info ? info.online : host.isOnline;
+		}) ?? null
+	);
 }
 
 async function recordSkipped(
@@ -263,10 +293,29 @@ async function createWorkspaceOnHost(args: {
 	relayUrl: string;
 	hostId: string;
 	jwt: string;
-	projectId: string;
+	projectId: string | null;
 	automation: SelectAutomation;
 	runId: string;
-}): Promise<{ workspaceId: string; branchName: string }> {
+}): Promise<{ workspaceId: string }> {
+	// Session automation: no project, no branch. The host allocates a managed
+	// folder under ~/.superset/sessions and dedupes the name per run.
+	if (args.projectId === null) {
+		const result = await relayMutation<
+			{ name: string },
+			{ workspace: { id: string } }
+		>(
+			{
+				relayUrl: args.relayUrl,
+				hostId: args.hostId,
+				jwt: args.jwt,
+				timeoutMs: 90_000,
+			},
+			"workspaces.createSession",
+			{ name: args.automation.name.slice(0, 100) },
+		);
+		return { workspaceId: result.workspace.id };
+	}
+
 	// Full-precision timestamp keeps branch names readable AND collision-free
 	// for anything coarser than 1 second.
 	// e.g. "2026-04-19-17-30-00"
@@ -313,7 +362,7 @@ async function createWorkspaceOnHost(args: {
 		},
 	);
 
-	return { workspaceId: result.workspace.id, branchName };
+	return { workspaceId: result.workspace.id };
 }
 
 async function runAgentOnHost(args: {

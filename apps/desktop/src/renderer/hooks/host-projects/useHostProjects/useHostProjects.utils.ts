@@ -11,6 +11,10 @@ export interface HostProjectRow {
 	repoName: string | null;
 	repoUrl: string | null;
 	worktreeBaseDir: string | null;
+	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	icon: string | null;
+	/** Accent color as a `#rrggbb` hex, or null for the default. */
+	color: string | null;
 	createdAt: number;
 	updatedAt: number;
 }
@@ -30,6 +34,10 @@ export interface HostProjectItem {
 	repoOwner: string | null;
 	repoName: string | null;
 	repoUrl: string | null;
+	/** Custom icon data-URI, or null to fall back to the GitHub avatar. */
+	icon: string | null;
+	/** Accent color as a `#rrggbb` hex, or null for the default. */
+	color: string | null;
 	/** Hosts that serve this project. */
 	hostIds: string[];
 	/** False when no serving host answered live (snapshot data only). */
@@ -53,14 +61,15 @@ export interface HostRowForTargets {
 }
 
 export function getHostProjectsQueryKey(
-	target: Pick<HostProjectsQueryTarget, "machineId" | "hostUrl">,
+	target: Pick<HostProjectsQueryTarget, "machineId" | "organizationId">,
 ) {
+	// Host identity, never hostUrl — see getHostWorkspacesQueryKey.
 	return [
 		"host-service",
 		"projects",
 		"list",
+		target.organizationId,
 		target.machineId,
-		target.hostUrl,
 	] as const;
 }
 
@@ -131,6 +140,8 @@ export function normalizeHostProjectRow(
 		repoName: row.repoName ?? null,
 		repoUrl: row.repoUrl ?? null,
 		worktreeBaseDir: row.worktreeBaseDir ?? null,
+		icon: row.icon ?? null,
+		color: row.color ?? null,
 		createdAt: row.createdAt ?? 0,
 		updatedAt: row.updatedAt ?? row.createdAt ?? 0,
 	};
@@ -234,6 +245,8 @@ export function applyProjectChangedEvent(
 		repoName: snapshot.repoName,
 		repoUrl: snapshot.repoUrl,
 		worktreeBaseDir: snapshot.worktreeBaseDir,
+		icon: snapshot.icon,
+		color: snapshot.color ?? null,
 		createdAt: snapshot.createdAt,
 		updatedAt: snapshot.updatedAt,
 	};
@@ -274,6 +287,8 @@ export function mergeHostProjects({
 					repoOwner: row.repoOwner,
 					repoName: row.repoName,
 					repoUrl: row.repoUrl,
+					icon: row.icon,
+					color: row.color,
 					hostIds: [result.target.machineId],
 					hostReachable: result.reachable,
 					createdAt: row.createdAt,
@@ -297,6 +312,8 @@ export function mergeHostProjects({
 				existing.repoPath = row.repoPath;
 				existing.repoOwner = row.repoOwner;
 				existing.repoName = row.repoName;
+				existing.icon = row.icon;
+				existing.color = row.color;
 			}
 		}
 	}

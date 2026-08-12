@@ -55,8 +55,11 @@ export function MeshGradient({
 			if (gradient.conf) {
 				gradient.conf.playing = false;
 			}
+			// stripe-gradient's delayed init reads both el.parentElement and el
+			// children after we unmount, so the decoy needs a parent AND a child.
 			const dummy = document.createElement("div");
 			dummy.appendChild(document.createElement("div"));
+			document.createElement("div").appendChild(dummy);
 			gradient.el = dummy;
 			if (gradient.disconnect) {
 				gradient.disconnect();

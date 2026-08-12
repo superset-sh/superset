@@ -94,13 +94,13 @@ async function enrichFromSubscription(
 ): Promise<EnrichedSubscription | null> {
 	const stripeSub = await stripeClient.subscriptions.retrieve(
 		stripeSubscriptionId,
-		{ expand: ["discounts.source.coupon"] },
+		{ expand: ["discounts.source.coupon", "customer"] },
 	);
 
+	const customer =
+		typeof stripeSub.customer === "string" ? null : stripeSub.customer;
 	const customerId =
-		typeof stripeSub.customer === "string"
-			? stripeSub.customer
-			: stripeSub.customer?.id;
+		typeof stripeSub.customer === "string" ? stripeSub.customer : customer?.id;
 
 	if (!customerId) return null;
 
@@ -129,6 +129,7 @@ async function enrichFromSubscription(
 		discount: getDiscountInfo(stripeSub),
 		accessEndsAt: dbSub?.periodEnd ?? null,
 		cancellationDetails: stripeSub.cancellation_details,
+		customerEmail: customer && !customer.deleted ? customer.email : null,
 	};
 }
 
@@ -182,13 +183,23 @@ export async function POST(request: Request) {
 		case "subscription_started":
 			blocks = formatSubscriptionStarted(enriched);
 			break;
-		case "subscription_cancelled":
+		case "subscription_cancelled": {
+			// Prefer fresh fields: the portal attaches feedback after the queued webhook snapshot
+			const queued = payload.cancellationDetails ?? null;
+			const fresh = enriched.cancellationDetails;
 			blocks = formatSubscriptionCancelled({
 				...enriched,
 				cancellationDetails:
-					payload.cancellationDetails ?? enriched.cancellationDetails,
+					fresh || queued
+						? {
+								comment: fresh?.comment ?? queued?.comment,
+								feedback: fresh?.feedback ?? queued?.feedback,
+								reason: fresh?.reason ?? queued?.reason,
+							}
+						: null,
 			});
 			break;
+		}
 		case "seat_added":
 			blocks = formatSeatAdded(
 				enriched,

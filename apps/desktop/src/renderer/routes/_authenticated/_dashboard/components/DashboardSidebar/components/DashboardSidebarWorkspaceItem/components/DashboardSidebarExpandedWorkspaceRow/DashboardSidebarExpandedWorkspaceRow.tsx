@@ -3,13 +3,16 @@ import { cn } from "@superset/ui/utils";
 import {
 	type ComponentPropsWithoutRef,
 	forwardRef,
+	type KeyboardEventHandler,
+	type MouseEventHandler,
 	useEffect,
 	useRef,
 } from "react";
-import { HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
+import { HiCheck, HiMiniMinus, HiMiniXMark } from "react-icons/hi2";
 import type { DiffStats } from "renderer/hooks/host-service/useDiffStats";
 import { HotkeyLabel } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { ProjectThumbnail } from "renderer/routes/_authenticated/components/ProjectThumbnail";
 import { RenameInput } from "renderer/screens/main/components/WorkspaceSidebar/RenameInput";
 import type { ActivePaneStatus } from "shared/tabs-types";
 import type {
@@ -18,6 +21,7 @@ import type {
 } from "../../../../types";
 import { DashboardSidebarWorkspaceDiffStats } from "../DashboardSidebarWorkspaceDiffStats";
 import { DashboardSidebarWorkspaceIcon } from "../DashboardSidebarWorkspaceIcon";
+import { DashboardSidebarWorkspaceChips } from "./components/DashboardSidebarWorkspaceChips";
 
 const PR_STATE_LABEL: Record<
 	DashboardSidebarWorkspacePullRequest["state"],
@@ -40,7 +44,14 @@ interface DashboardSidebarExpandedWorkspaceRowProps
 	diffStats: DiffStats | null;
 	workspaceStatus?: ActivePaneStatus | null;
 	isInSection?: boolean;
-	onClick?: () => void;
+	isBulkSelectable?: boolean;
+	isSelected?: boolean;
+	/** Present when rendered in the Pinned section: shows the project avatar. */
+	/** projectName is null for pinned project-less "session" workspaces. */
+	pinnedContext?: { projectName: string | null; projectIconUrl: string | null };
+	onClick?: MouseEventHandler<HTMLDivElement>;
+	onKeyboardActivate?: KeyboardEventHandler<HTMLDivElement>;
+	onWorkspaceChipsClick?: MouseEventHandler<HTMLDivElement>;
 	onDoubleClick?: () => void;
 	onCloseWorkspaceClick: () => void;
 	onRemoveFromSidebarClick: () => void;
@@ -63,7 +74,12 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			diffStats,
 			workspaceStatus = null,
 			isInSection = false,
+			isBulkSelectable = false,
+			isSelected = false,
+			pinnedContext,
 			onClick,
+			onKeyboardActivate,
+			onWorkspaceChipsClick,
 			onDoubleClick,
 			onCloseWorkspaceClick,
 			onRemoveFromSidebarClick,
@@ -71,13 +87,11 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			onSubmitRename,
 			onCancelRename,
 			className,
-			children,
 			...props
 		},
 		ref,
 	) => {
 		const {
-			accentColor = null,
 			hostType,
 			hostIsOnline,
 			name,
@@ -86,7 +100,6 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 			pendingTransaction,
 		} = workspace;
 		const isPending = pendingTransaction?.type === "insert";
-		const showsStandaloneActiveStripe = accentColor == null;
 		const localRef = useRef<HTMLDivElement>(null);
 		const openUrl = electronTrpc.external.openUrl.useMutation();
 
@@ -101,6 +114,10 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 
 		const creationStatusText = isPending ? "Creating…" : null;
 		const isMainWorkspace = workspace.type === "main";
+		// No hover action button on the local main workspace: a stray click on the
+		// minus would remove the project's anchor row. Removal stays available via
+		// the context menu.
+		const isLocalMainWorkspace = isMainWorkspace && hostType === "local-device";
 		const workspaceKindTitle = isMainWorkspace
 			? "Main workspace"
 			: "Worktree workspace";
@@ -116,121 +133,146 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 					else if (ref) ref.current = node;
 				}}
 				className={cn(
-					"relative w-full text-left text-sm",
-					isActive && "bg-muted",
-					onClick && (isActive ? "hover:bg-muted" : "hover:bg-muted/50"),
+					"relative mx-2 rounded-md text-left text-sm transition-colors",
+					isActive && "bg-fill-selected",
+					isSelected && "bg-fill-selected",
+					onClick &&
+						(isSelected
+							? "hover:bg-fill-selected"
+							: isActive
+								? "hover:bg-fill-selected"
+								: "hover:bg-fill-hover"),
 					className,
 				)}
+				data-selected={isSelected || undefined}
 				{...props}
 			>
-				{isActive && showsStandaloneActiveStripe && (
-					<div
-						className="absolute top-0 bottom-0 left-0 w-0.5 rounded-r"
-						style={{ backgroundColor: "var(--color-foreground)" }}
-					/>
-				)}
-
-				{/* biome-ignore lint/a11y/noStaticElementInteractions: Mirrors the legacy sidebar row UI, which includes nested action buttons. */}
+				{/* biome-ignore lint/a11y/useSemanticElements: The row contains nested action buttons, so it cannot be a native button. */}
 				<div
-					role={onClick ? "button" : undefined}
-					tabIndex={onClick ? 0 : undefined}
+					role="button"
+					tabIndex={0}
 					aria-disabled={isPending ? true : undefined}
+					aria-pressed={isBulkSelectable ? isSelected : undefined}
 					onClick={onClick}
 					onKeyDown={(event) => {
 						if (onClick && (event.key === "Enter" || event.key === " ")) {
 							event.preventDefault();
-							onClick();
+							event.stopPropagation();
+							onKeyboardActivate?.(event);
 						}
 					}}
 					onDoubleClick={onDoubleClick}
 					className={cn(
-						"group relative flex w-full items-center py-2 pr-2",
-						isInSection ? "pl-10" : "pl-5",
+						"group relative flex w-full items-center py-1.5 pr-2",
+						isInSection ? "pl-8" : "pl-3",
 						onClick && "cursor-pointer",
 					)}
 				>
-					<Tooltip delayDuration={500}>
-						<TooltipTrigger asChild>
-							{pullRequest ? (
-								<button
-									type="button"
-									onClick={(event) => {
-										event.stopPropagation();
-										openUrl.mutate(pullRequest.url);
-									}}
-									onKeyDown={(event) => {
-										if (event.key === "Enter" || event.key === " ") {
+					{isSelected ? (
+						<span className="mr-2.5 flex size-5 shrink-0 items-center justify-center text-foreground">
+							<HiCheck className="size-3.5" />
+						</span>
+					) : (
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								{pullRequest ? (
+									<button
+										type="button"
+										onClick={(event) => {
 											event.stopPropagation();
-										}
-									}}
-									aria-label={`Open pull request #${pullRequest.number}`}
-									className="relative mr-2.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
-								>
-									<DashboardSidebarWorkspaceIcon
-										hostType={hostType}
-										workspaceType={workspace.type}
-										hostIsOnline={hostIsOnline}
-										isActive={isActive}
-										variant="expanded"
-										workspaceStatus={workspaceStatus}
-										isCreatePending={isPending}
-										pullRequestState={pullRequest.state}
-									/>
-								</button>
-							) : (
-								<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
-									<DashboardSidebarWorkspaceIcon
-										hostType={hostType}
-										workspaceType={workspace.type}
-										hostIsOnline={hostIsOnline}
-										isActive={isActive}
-										variant="expanded"
-										workspaceStatus={workspaceStatus}
-										isCreatePending={isPending}
-										pullRequestState={null}
+											openUrl.mutate(pullRequest.url);
+										}}
+										onKeyDown={(event) => {
+											if (event.key === "Enter" || event.key === " ") {
+												event.stopPropagation();
+											}
+										}}
+										aria-label={`Open pull request #${pullRequest.number}`}
+										className="relative mr-2.5 flex size-5 shrink-0 cursor-pointer items-center justify-center rounded hover:bg-foreground/10"
+									>
+										<DashboardSidebarWorkspaceIcon
+											hostType={hostType}
+											workspaceType={workspace.type}
+											hostIsOnline={hostIsOnline}
+											isActive={isActive}
+											variant="expanded"
+											workspaceStatus={workspaceStatus}
+											isCreatePending={isPending}
+											pullRequestState={pullRequest.state}
+										/>
+									</button>
+								) : (
+									<div className="relative mr-2.5 flex size-5 shrink-0 items-center justify-center">
+										<DashboardSidebarWorkspaceIcon
+											hostType={hostType}
+											workspaceType={workspace.type}
+											hostIsOnline={hostIsOnline}
+											isActive={isActive}
+											variant="expanded"
+											workspaceStatus={workspaceStatus}
+											isCreatePending={isPending}
+											pullRequestState={null}
+										/>
+									</div>
+								)}
+							</TooltipTrigger>
+							<TooltipContent side="right" sideOffset={8}>
+								{pullRequest ? (
+									<>
+										<p className="text-xs font-medium">
+											PR #{pullRequest.number} —{" "}
+											{PR_STATE_LABEL[pullRequest.state]}
+										</p>
+										<p className="text-xs text-muted-foreground">
+											Click to open on GitHub
+										</p>
+									</>
+								) : (
+									<>
+										<p className="text-xs font-medium">
+											{isMainWorkspace
+												? workspaceKindTitle
+												: hostType === "local-device"
+													? "Local workspace"
+													: hostType === "remote-device"
+														? hostIsOnline === false
+															? "Remote workspace — device offline"
+															: "Remote workspace"
+														: "Cloud workspace"}
+										</p>
+										<p className="text-xs text-muted-foreground">
+											{isMainWorkspace
+												? workspaceKindDescription
+												: hostType === "local-device"
+													? "Running on this device"
+													: hostType === "remote-device"
+														? hostIsOnline === false
+															? "The associated device isn't reachable right now"
+															: "Running on a paired device"
+														: "Hosted in the cloud"}
+										</p>
+									</>
+								)}
+							</TooltipContent>
+						</Tooltip>
+					)}
+
+					{pinnedContext && (
+						<Tooltip delayDuration={500}>
+							<TooltipTrigger asChild>
+								<div className="mr-1.5 flex shrink-0 items-center">
+									<ProjectThumbnail
+										projectName={pinnedContext.projectName ?? "Session"}
+										iconUrl={pinnedContext.projectIconUrl}
+										className="size-3.5 text-[8px]"
 									/>
 								</div>
-							)}
-						</TooltipTrigger>
-						<TooltipContent side="right" sideOffset={8}>
-							{pullRequest ? (
-								<>
-									<p className="text-xs font-medium">
-										PR #{pullRequest.number} —{" "}
-										{PR_STATE_LABEL[pullRequest.state]}
-									</p>
-									<p className="text-xs text-muted-foreground">
-										Click to open on GitHub
-									</p>
-								</>
-							) : (
-								<>
-									<p className="text-xs font-medium">
-										{isMainWorkspace
-											? workspaceKindTitle
-											: hostType === "local-device"
-												? "Local workspace"
-												: hostType === "remote-device"
-													? hostIsOnline === false
-														? "Remote workspace — device offline"
-														: "Remote workspace"
-													: "Cloud workspace"}
-									</p>
-									<p className="text-xs text-muted-foreground">
-										{isMainWorkspace
-											? workspaceKindDescription
-											: hostType === "local-device"
-												? "Running on this device"
-												: hostType === "remote-device"
-													? hostIsOnline === false
-														? "The associated device isn't reachable right now"
-														: "Running on a paired device"
-													: "Hosted in the cloud"}
-									</p>
-								</>
-							)}
-						</TooltipContent>
-					</Tooltip>
+							</TooltipTrigger>
+							<TooltipContent side="right" sideOffset={8}>
+								{pinnedContext.projectName ?? "Session"}
+							</TooltipContent>
+						</Tooltip>
+					)}
 
 					<div className="grid min-w-0 flex-1 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-1.5">
 						{isRenaming ? (
@@ -247,10 +289,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 							<span
 								className={cn(
 									"truncate text-[13px] leading-tight transition-colors",
-									isActive ? "text-foreground" : "text-foreground/80",
+									isActive || isSelected
+										? "text-foreground"
+										: "text-foreground/80",
 								)}
 							>
 								{name || branch}
+								{isSelected && <span className="sr-only">, selected</span>}
 							</span>
 						)}
 
@@ -270,14 +315,14 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 									/>
 								)
 							)}
-							{!isPending && (
-								<div className="hidden items-center justify-end gap-1.5 group-hover:flex">
+							{!isPending && !isSelected && (
+								<div className="hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex">
 									{shortcutLabel && (
 										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
 											{shortcutLabel}
 										</span>
 									)}
-									{isMainWorkspace ? (
+									{isLocalMainWorkspace ? null : isMainWorkspace ? (
 										<Tooltip delayDuration={300}>
 											<TooltipTrigger asChild>
 												<button
@@ -301,7 +346,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													<HiMiniMinus className="size-3.5" />
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
+											<TooltipContent side="top">
 												<HotkeyLabel label="Remove from sidebar" />
 											</TooltipContent>
 										</Tooltip>
@@ -329,7 +374,7 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 													<HiMiniXMark className="size-3.5" />
 												</button>
 											</TooltipTrigger>
-											<TooltipContent side="top" sideOffset={4}>
+											<TooltipContent side="top">
 												<HotkeyLabel
 													label="Close workspace"
 													id={isActive ? "CLOSE_WORKSPACE" : undefined}
@@ -342,7 +387,13 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 						</div>
 					</div>
 				</div>
-				{children}
+				{!isPending && (
+					<DashboardSidebarWorkspaceChips
+						workspaceId={workspace.id}
+						isInSection={isInSection}
+						onClick={onWorkspaceChipsClick}
+					/>
+				)}
 			</div>
 		);
 	},

@@ -6,12 +6,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { HiArrowPath, HiCheck, HiPlay, HiPlus, HiStop } from "react-icons/hi2";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { electronTrpcClient } from "renderer/lib/trpc-client";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import {
 	AVAILABLE_RINGTONES,
 	type Ringtone,
 	useSelectedRingtoneId,
 	useSetRingtone,
 } from "renderer/stores";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { CUSTOM_RINGTONE_ID } from "shared/ringtones";
 import {
 	isItemVisible,
@@ -107,6 +109,7 @@ interface RingtonesSettingsProps {
 }
 
 export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const showNotification = isItemVisible(
 		SETTING_ITEM_ID.RINGTONES_NOTIFICATION,
 		visibleItems,
@@ -286,7 +289,12 @@ export function RingtonesSettings({ visibleItems }: RingtonesSettingsProps) {
 					<div>
 						<div className="mb-3 flex items-start justify-between gap-2">
 							<div>
-								<h3 className="text-sm font-medium mb-1">Notification sound</h3>
+								<h3 className="text-sm font-medium mb-1">
+									<HighlightText
+										text="Notification sound"
+										query={searchQuery}
+									/>
+								</h3>
 								<p className="text-xs text-muted-foreground">
 									Pick a sound or add your own. Custom audio supports .mp3,
 									.wav, and .ogg.

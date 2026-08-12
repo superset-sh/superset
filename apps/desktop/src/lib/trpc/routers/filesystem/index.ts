@@ -1,8 +1,60 @@
-import { toErrorMessage } from "@superset/workspace-fs/host";
+import {
+	toErrorMessage,
+	WorkspaceFsPathError,
+} from "@superset/workspace-fs/host";
+import { TRPCError } from "@trpc/server";
 import { observable } from "@trpc/server/observable";
+import type { FsErrnoCause, FsErrnoCode } from "shared/fs-error-types";
 import { z } from "zod";
 import { publicProcedure, router } from "../..";
 import { getServiceForWorkspace } from "../workspace-fs-service";
+
+const ERRNO_TO_TRPC: Record<FsErrnoCode, TRPCError["code"]> = {
+	ENOENT: "NOT_FOUND",
+	EISDIR: "BAD_REQUEST",
+	ENOTDIR: "BAD_REQUEST",
+	EACCES: "FORBIDDEN",
+	EPERM: "FORBIDDEN",
+	ENOSPC: "PRECONDITION_FAILED",
+};
+
+const PATH_ERROR_TO_TRPC: Record<
+	WorkspaceFsPathError["code"],
+	TRPCError["code"]
+> = {
+	INVALID_TARGET: "BAD_REQUEST",
+	SYMLINK_ESCAPE: "FORBIDDEN",
+};
+
+// User-environment filesystem failures become typed non-500 TRPCErrors
+// (message preserved verbatim); anything unrecognized rethrows and stays a
+// reported 500.
+async function withFsErrorTranslation<T>(fn: () => Promise<T>): Promise<T> {
+	try {
+		return await fn();
+	} catch (error) {
+		if (error instanceof WorkspaceFsPathError) {
+			throw new TRPCError({
+				code: PATH_ERROR_TO_TRPC[error.code],
+				message: error.message,
+				cause: { kind: "PATH_VALIDATION", code: error.code },
+			});
+		}
+		const errno = (error as NodeJS.ErrnoException | null)?.code;
+		if (typeof errno === "string" && errno in ERRNO_TO_TRPC) {
+			const cause: FsErrnoCause = {
+				kind: "FS_ERRNO",
+				errno: errno as FsErrnoCode,
+			};
+			throw new TRPCError({
+				code: ERRNO_TO_TRPC[errno as FsErrnoCode],
+				message: error instanceof Error ? error.message : String(error),
+				cause,
+			});
+		}
+		throw error;
+	}
+}
 
 function isClosedStreamError(error: unknown): boolean {
 	return (
@@ -39,9 +91,11 @@ export const createFilesystemRouter = () => {
 			)
 			.query(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.listDirectory({
-					absolutePath: input.absolutePath,
-				});
+				return await withFsErrorTranslation(() =>
+					service.listDirectory({
+						absolutePath: input.absolutePath,
+					}),
+				);
 			}),
 
 		readFile: publicProcedure
@@ -56,12 +110,14 @@ export const createFilesystemRouter = () => {
 			)
 			.query(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				const result = await service.readFile({
-					absolutePath: input.absolutePath,
-					offset: input.offset,
-					maxBytes: input.maxBytes,
-					encoding: input.encoding,
-				});
+				const result = await withFsErrorTranslation(() =>
+					service.readFile({
+						absolutePath: input.absolutePath,
+						offset: input.offset,
+						maxBytes: input.maxBytes,
+						encoding: input.encoding,
+					}),
+				);
 
 				if (result.kind === "bytes") {
 					return {
@@ -82,9 +138,11 @@ export const createFilesystemRouter = () => {
 			)
 			.query(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.getMetadata({
-					absolutePath: input.absolutePath,
-				});
+				return await withFsErrorTranslation(() =>
+					service.getMetadata({
+						absolutePath: input.absolutePath,
+					}),
+				);
 			}),
 
 		writeFile: publicProcedure
@@ -114,13 +172,15 @@ export const createFilesystemRouter = () => {
 						? input.content
 						: new Uint8Array(Buffer.from(input.content.data, "base64"));
 
-				return await service.writeFile({
-					absolutePath: input.absolutePath,
-					content,
-					encoding: input.encoding,
-					options: input.options,
-					precondition: input.precondition,
-				});
+				return await withFsErrorTranslation(() =>
+					service.writeFile({
+						absolutePath: input.absolutePath,
+						content,
+						encoding: input.encoding,
+						options: input.options,
+						precondition: input.precondition,
+					}),
+				);
 			}),
 
 		createDirectory: publicProcedure
@@ -133,10 +193,12 @@ export const createFilesystemRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.createDirectory({
-					absolutePath: input.absolutePath,
-					recursive: input.recursive,
-				});
+				return await withFsErrorTranslation(() =>
+					service.createDirectory({
+						absolutePath: input.absolutePath,
+						recursive: input.recursive,
+					}),
+				);
 			}),
 
 		deletePath: publicProcedure
@@ -149,10 +211,12 @@ export const createFilesystemRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.deletePath({
-					absolutePath: input.absolutePath,
-					permanent: input.permanent,
-				});
+				return await withFsErrorTranslation(() =>
+					service.deletePath({
+						absolutePath: input.absolutePath,
+						permanent: input.permanent,
+					}),
+				);
 			}),
 
 		movePath: publicProcedure
@@ -165,10 +229,12 @@ export const createFilesystemRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.movePath({
-					sourceAbsolutePath: input.sourceAbsolutePath,
-					destinationAbsolutePath: input.destinationAbsolutePath,
-				});
+				return await withFsErrorTranslation(() =>
+					service.movePath({
+						sourceAbsolutePath: input.sourceAbsolutePath,
+						destinationAbsolutePath: input.destinationAbsolutePath,
+					}),
+				);
 			}),
 
 		copyPath: publicProcedure
@@ -181,10 +247,12 @@ export const createFilesystemRouter = () => {
 			)
 			.mutation(async ({ input }) => {
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.copyPath({
-					sourceAbsolutePath: input.sourceAbsolutePath,
-					destinationAbsolutePath: input.destinationAbsolutePath,
-				});
+				return await withFsErrorTranslation(() =>
+					service.copyPath({
+						sourceAbsolutePath: input.sourceAbsolutePath,
+						destinationAbsolutePath: input.destinationAbsolutePath,
+					}),
+				);
 			}),
 
 		searchFiles: publicProcedure
@@ -205,13 +273,15 @@ export const createFilesystemRouter = () => {
 				}
 
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.searchFiles({
-					query: trimmedQuery,
-					includeHidden: input.includeHidden,
-					includePattern: input.includePattern,
-					excludePattern: input.excludePattern,
-					limit: input.limit,
-				});
+				return await withFsErrorTranslation(() =>
+					service.searchFiles({
+						query: trimmedQuery,
+						includeHidden: input.includeHidden,
+						includePattern: input.includePattern,
+						excludePattern: input.excludePattern,
+						limit: input.limit,
+					}),
+				);
 			}),
 
 		searchContent: publicProcedure
@@ -232,13 +302,15 @@ export const createFilesystemRouter = () => {
 				}
 
 				const service = getServiceForWorkspace(input.workspaceId);
-				return await service.searchContent({
-					query: trimmedQuery,
-					includeHidden: input.includeHidden,
-					includePattern: input.includePattern,
-					excludePattern: input.excludePattern,
-					limit: input.limit,
-				});
+				return await withFsErrorTranslation(() =>
+					service.searchContent({
+						query: trimmedQuery,
+						includeHidden: input.includeHidden,
+						includePattern: input.includePattern,
+						excludePattern: input.excludePattern,
+						limit: input.limit,
+					}),
+				);
 			}),
 
 		watchPath: publicProcedure

@@ -2,6 +2,8 @@ import { Button } from "@superset/ui/button";
 import { Label } from "@superset/ui/label";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 
 interface ConfigRowProps {
 	title: string;
@@ -34,13 +36,17 @@ export function ConfigRow({
 	disableClear,
 	className,
 }: ConfigRowProps) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className={cn("space-y-1.5", className)}>
 			<Label htmlFor={htmlFor} className="text-sm font-medium">
-				{title}
+				<HighlightText text={title} query={searchQuery} />
 			</Label>
 			{description ? (
-				<p className="text-xs text-muted-foreground -mt-1">{description}</p>
+				<p className="text-xs text-muted-foreground -mt-1">
+					<HighlightText text={description} query={searchQuery} />
+				</p>
 			) : null}
 			<div className="flex items-center gap-2">
 				<div className="min-w-0 flex-1">{field}</div>

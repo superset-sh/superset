@@ -345,7 +345,7 @@ export function getShellArgs(
 /**
  * Shell args for non-interactive command execution (`-c`) that sources
  * user profiles via wrappers. Falls back to login shell if wrappers
- * don't exist yet (e.g. before setupAgentHooks runs).
+ * don't exist yet (e.g. before setupAgentIntegrations runs).
  *
  * Unlike getShellArgs (interactive), we must source profiles inline because:
  * - zsh skips .zshrc for non-interactive shells

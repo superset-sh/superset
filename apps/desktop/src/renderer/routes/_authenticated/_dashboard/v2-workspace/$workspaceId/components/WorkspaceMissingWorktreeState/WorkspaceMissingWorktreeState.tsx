@@ -1,8 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Link } from "@tanstack/react-router";
 import { ArrowRight, FolderX, RefreshCw, Trash2 } from "lucide-react";
-import { useState } from "react";
-import { DashboardSidebarDeleteDialog } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarDeleteDialog";
+import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 
 interface WorkspaceMissingWorktreeStateProps {
 	workspaceId: string;
@@ -21,7 +20,6 @@ export function WorkspaceMissingWorktreeState({
 	onRefresh,
 	isRefreshing = false,
 }: WorkspaceMissingWorktreeStateProps) {
-	const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 	const displayName = workspaceName || branch;
 
 	return (
@@ -66,7 +64,12 @@ export function WorkspaceMissingWorktreeState({
 						size="sm"
 						variant="destructive"
 						className="h-7 gap-1.5 px-2.5 text-[13px]"
-						onClick={() => setDeleteDialogOpen(true)}
+						onClick={() =>
+							useDeleteWorkspaceIntent.getState().request({
+								workspaceId,
+								workspaceName: displayName,
+							})
+						}
 					>
 						<Trash2 className="size-3.5" strokeWidth={2} aria-hidden="true" />
 						Delete workspace
@@ -101,13 +104,6 @@ export function WorkspaceMissingWorktreeState({
 						</Link>
 					</Button>
 				</div>
-
-				<DashboardSidebarDeleteDialog
-					workspaceId={workspaceId}
-					workspaceName={displayName}
-					open={deleteDialogOpen}
-					onOpenChange={setDeleteDialogOpen}
-				/>
 			</div>
 		</div>
 	);

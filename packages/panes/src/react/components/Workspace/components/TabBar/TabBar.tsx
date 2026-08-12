@@ -33,6 +33,7 @@ interface TabBarProps<TData> {
 	onMovePaneToNewTab: (paneId: string, toIndex: number) => void;
 	renderTabIcon?: (tab: Tab<TData>) => ReactNode;
 	renderAddTabMenu?: () => ReactNode;
+	renderTabBarLeading?: () => ReactNode;
 	renderTabBarTrailing?: () => ReactNode;
 	renderTabAccessory?: (tab: Tab<TData>) => ReactNode;
 }
@@ -83,6 +84,7 @@ export function TabBar<TData>({
 	onMovePaneToNewTab,
 	renderTabIcon,
 	renderAddTabMenu,
+	renderTabBarLeading,
 	renderTabBarTrailing,
 	renderTabAccessory,
 }: TabBarProps<TData>) {
@@ -165,36 +167,21 @@ export function TabBar<TData>({
 
 	const insertLineLeft = insertIndex !== null ? insertIndex * TAB_WIDTH : null;
 
-	if (tabs.length === 0) {
-		return (
-			<div
-				ref={setRootRef}
-				// `drag`: the bar doubles as the Electron window-drag region (empty
-				// areas only — interactive clusters opt out with `no-drag`).
-				className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background"
-			>
-				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center bg-background">
-					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
-				</div>
-				<div className="flex min-w-0 flex-1 items-stretch" />
-				{renderTabBarTrailing && (
-					<div className="no-drag flex h-full shrink-0 items-center px-1">
-						{renderTabBarTrailing()}
-					</div>
-				)}
-			</div>
-		);
-	}
-
 	return (
 		<div
 			ref={setRootRef}
-			// No border-b: the bar sits flush against whatever renders below it and
-			// the active tab draws its own frame. `drag`: the bar doubles as the
-			// Electron window-drag region (empty areas only — the tabs track and
-			// button clusters opt out with `no-drag`).
-			className="drag group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-background"
+			// Only the empty filler right of the tabs is an
+			// Electron window-drag region — marking the whole bar `drag` and carving
+			// children out with `no-drag` loses the carve-outs once they sit inside
+			// the masked/scrollable OverflowFadeContainer, which made the entire bar
+			// swallow clicks.
+			className="group/root-tabs flex h-10 min-w-0 shrink-0 items-stretch bg-muted/45 dark:bg-muted/35"
 		>
+			{renderTabBarLeading && (
+				<div className="flex h-full shrink-0 items-stretch border-b border-border">
+					{renderTabBarLeading()}
+				</div>
+			)}
 			<OverflowFadeContainer
 				observeChildren
 				onOverflowChange={handleOverflowChange}
@@ -202,7 +189,7 @@ export function TabBar<TData>({
 			>
 				<div
 					ref={tabsTrackRef}
-					className="no-drag relative flex h-full items-stretch"
+					className="no-drag relative flex h-full flex-1 items-stretch"
 				>
 					{tabs.map((tab, i) => (
 						<div
@@ -232,20 +219,23 @@ export function TabBar<TData>({
 							style={{ left: insertLineLeft }}
 						/>
 					)}
-					{!hasHorizontalOverflow && (
-						<div className="flex h-full w-10 shrink-0 items-center justify-center">
+					<div className="flex h-full w-10 shrink-0 items-center justify-center border-b border-border">
+						{!hasHorizontalOverflow && (
 							<AddTabButton renderAddTabMenu={renderAddTabMenu} />
-						</div>
-					)}
+						)}
+					</div>
+					{/* Empty space to the right of the tabs (collapses to 0 when the
+					    tabs overflow); the bar's only window-drag region. */}
+					<div className="drag h-full flex-1 border-b border-border" />
 				</div>
 			</OverflowFadeContainer>
 			{hasHorizontalOverflow && (
-				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center bg-background">
+				<div className="no-drag flex h-full w-10 shrink-0 items-center justify-center border-b border-border">
 					<AddTabButton renderAddTabMenu={renderAddTabMenu} />
 				</div>
 			)}
 			{renderTabBarTrailing && (
-				<div className="no-drag flex h-full shrink-0 items-center px-1">
+				<div className="no-drag flex h-full shrink-0 items-center px-1 border-b border-border">
 					{renderTabBarTrailing()}
 				</div>
 			)}

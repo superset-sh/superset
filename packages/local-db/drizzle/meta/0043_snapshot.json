@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "56c6c99d-c76c-4c44-b274-ab8ccf14e148",
+  "id": "2bbc08d6-93d6-4d00-8ba3-70df14177fec",
   "prevId": "58789f52-14b0-451c-9b60-1be7553e3494",
   "tables": {
     "browser_history": {
@@ -579,6 +579,55 @@
           "notNull": false,
           "autoincrement": false
         },
+        "terminal_line_height": {
+          "name": "terminal_line_height",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_letter_spacing": {
+          "name": "terminal_letter_spacing",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_font_weight": {
+          "name": "terminal_font_weight",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_ligatures": {
+          "name": "terminal_ligatures",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_minimum_contrast": {
+          "name": "terminal_minimum_contrast",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_cursor_style": {
+          "name": "terminal_cursor_style",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "terminal_cursor_blink": {
+          "name": "terminal_cursor_blink",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "terminal_parked_runtime_cap": {
           "name": "terminal_parked_runtime_cap",
           "type": "integer",
@@ -600,15 +649,36 @@
           "notNull": false,
           "autoincrement": false
         },
-        "show_resource_monitor": {
-          "name": "show_resource_monitor",
+        "editor_line_height": {
+          "name": "editor_line_height",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "editor_letter_spacing": {
+          "name": "editor_letter_spacing",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "editor_font_weight": {
+          "name": "editor_font_weight",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "show_ai_usage_indicator": {
-          "name": "show_ai_usage_indicator",
+        "editor_ligatures": {
+          "name": "editor_ligatures",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "show_resource_monitor": {
+          "name": "show_resource_monitor",
           "type": "integer",
           "primaryKey": false,
           "notNull": false,

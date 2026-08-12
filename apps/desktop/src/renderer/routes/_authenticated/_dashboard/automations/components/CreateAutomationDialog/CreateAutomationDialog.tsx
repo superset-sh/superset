@@ -22,6 +22,10 @@ import { useWorkspaceHostOptions } from "renderer/routes/_authenticated/componen
 import { hideAll as hideAllTippy } from "tippy.js";
 import { useProjectFileSearch } from "../../hooks/useProjectFileSearch";
 import type { AutomationTemplate } from "../../templates";
+import {
+	matchAgentChoice,
+	portableAgentValue,
+} from "../../utils/agentIdentity";
 import { AgentPicker } from "../AgentPicker";
 import { ProjectPicker } from "../ProjectPicker";
 import { RelayOfflineNotice } from "../RelayOfflineNotice";
@@ -53,9 +57,11 @@ export function CreateAutomationDialog({
 	const [name, setName] = useState("");
 	const [prompt, setPrompt] = useState("");
 	const [hostId, setHostId] = useState<string | null>(null);
-	const [selectedProjectId, setSelectedProjectId] = useState<string | null>(
-		null,
-	);
+	// Undefined = nothing chosen yet (auto-defaults to the first project);
+	// null = "No project" — session mode, each run creates a session workspace.
+	const [selectedProjectId, setSelectedProjectId] = useState<
+		string | null | undefined
+	>(undefined);
 	const [agent, setAgent] = useState<string | null>(null);
 	const [rrule, setRrule] = useState(DEFAULT_RRULE);
 	const [v2WorkspaceId, setV2WorkspaceId] = useState<string | null>(null);
@@ -72,23 +78,25 @@ export function CreateAutomationDialog({
 	const recentProjects = useRecentProjects();
 	const searchFiles = useProjectFileSearch({
 		hostId,
-		projectId: selectedProjectId,
+		projectId: selectedProjectId ?? null,
 	});
 	const selectedProject = recentProjects.find(
 		(project) => project.id === selectedProjectId,
 	);
-	const selectedAgent = hostAgents.find((option) => option.id === agent);
+	const selectedAgent = matchAgentChoice(hostAgents, agent);
 
 	useEffect(() => {
-		if (agent && hostAgents.some((option) => option.id === agent)) return;
-		const fallback = hostAgents[0]?.id ?? null;
+		if (agent && matchAgentChoice(hostAgents, agent)) return;
+		const first = hostAgents[0];
+		const fallback = first ? portableAgentValue(hostAgents, first) : null;
 		if (fallback !== agent) setAgent(fallback);
 	}, [agent, hostAgents]);
 
-	// Default to first project once the Electric-synced list lands.
+	// Default to first project once the Electric-synced list lands. An
+	// explicit "No project" (null) choice is respected.
 	useEffect(() => {
 		if (!open) return;
-		if (selectedProjectId) return;
+		if (selectedProjectId !== undefined) return;
 		const first = recentProjects[0];
 		if (first) setSelectedProjectId(first.id);
 	}, [open, selectedProjectId, recentProjects]);
@@ -122,12 +130,13 @@ export function CreateAutomationDialog({
 		if (!initialTemplate?.agentType) return;
 		if (appliedAgentForTemplateRef.current === initialTemplate) return;
 		if (hostAgents.length === 0) return;
-		const match = hostAgents.find(
-			(option) =>
-				option.id === initialTemplate.agentType ||
-				option.iconId === initialTemplate.agentType,
-		);
-		if (match) setAgent(match.id);
+		// Resolve id/preset across the whole list first; an earlier agent's
+		// `iconId` override must not win over a later agent whose real presetId
+		// matches, so iconId is only a legacy fallback.
+		const match =
+			matchAgentChoice(hostAgents, initialTemplate.agentType) ??
+			hostAgents.find((option) => option.iconId === initialTemplate.agentType);
+		if (match) setAgent(portableAgentValue(hostAgents, match));
 		appliedAgentForTemplateRef.current = initialTemplate;
 	}, [open, initialTemplate, hostAgents]);
 
@@ -137,7 +146,7 @@ export function CreateAutomationDialog({
 			setName("");
 			setPrompt("");
 			setHostId(null);
-			setSelectedProjectId(null);
+			setSelectedProjectId(undefined);
 			setAgent(null);
 			setRrule(DEFAULT_RRULE);
 			setV2WorkspaceId(null);
@@ -149,11 +158,15 @@ export function CreateAutomationDialog({
 	const createMutation = useMutation({
 		mutationFn: () => {
 			if (!selectedAgent) throw new Error("No agent selected");
-			if (!selectedProjectId) throw new Error("No project selected");
+			if (selectedProjectId === undefined) {
+				throw new Error("No project selected");
+			}
 			return apiTrpcClient.automation.create.mutate({
 				name,
 				prompt,
-				agent: selectedAgent.id,
+				// Preset slug when unambiguous — instance UUIDs die when the host's
+				// agent-config table is re-seeded, orphaning the automation.
+				agent: portableAgentValue(hostAgents, selectedAgent),
 				targetHostId: targetHostId ?? null,
 				v2ProjectId: selectedProjectId,
 				v2WorkspaceId,
@@ -184,7 +197,7 @@ export function CreateAutomationDialog({
 	const canSubmit =
 		name.trim().length > 0 &&
 		prompt.trim().length > 0 &&
-		!!selectedProjectId &&
+		selectedProjectId !== undefined &&
 		!!targetHostId &&
 		!!selectedAgent &&
 		rrule.trim().length > 0 &&
@@ -279,6 +292,7 @@ export function CreateAutomationDialog({
 									<ProjectPicker
 										className="w-[120px]"
 										selectedProject={selectedProject}
+										sessionSelected={selectedProjectId === null}
 										recentProjects={recentProjects}
 										onSelectProject={(id) => {
 											setSelectedProjectId(id);

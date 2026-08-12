@@ -41,8 +41,18 @@ See [**DEVELOPMENT.md**](./DEVELOPMENT.md) for the full guide.
 
 - **A conventional-commit title.** We squash-merge with the title as the commit subject, so it needs to look like `feat(desktop): add copy-logs button` or `fix(web): guard against missing PR`.
 - **One change per PR.** Small PRs get reviewed in hours. If you found an unrelated bug along the way, open a second PR.
-- **Proof it works.** Say what you ran or clicked. UI changes need a screenshot or recording.
+- **Proof it works — screenshots strongly preferred.** Say what you ran or clicked, and show it. Any user-visible change needs a screenshot or recording in the PR description; for bug fixes, before/after screenshots are ideal. A PR with screenshots gets reviewed much faster than one we have to check out and run ourselves. See [capturing screenshots via CDP](#capturing-screenshots-via-cdp) below.
 - **A linked issue for non-trivial changes** so reviewers have the context.
+
+### Capturing screenshots via CDP
+
+The dev desktop app exposes the Chrome DevTools Protocol, so you (or your coding agent) can drive the real app and capture screenshots without manual cropping:
+
+1. Launch the dev app with a debugging port: `RENDERER_REMOTE_DEBUG_PORT=9222 bun dev` (pick an unused port — multiple workspaces often run at once).
+2. Confirm you're attached to *this* workspace's app: fetch `http://127.0.0.1:<port>/json/list` and check the page target's URL matches your workspace's `DESKTOP_VITE_PORT` from `.env`. Never assume a responding CDP endpoint is yours.
+3. Navigate the real UI to the state you changed (real clicks and input, not injected DOM state), then capture with `Page.captureScreenshot`.
+
+For the full workflow — attaching over WebSocket, matching the right renderer, and repairing auth — see [`apps/desktop/AGENTS.md`](./apps/desktop/AGENTS.md) ("Verifying renderer changes via CDP") and the "CDP UI Verification" section of [`AGENTS.md`](./AGENTS.md) for what counts as end-to-end evidence. `apps/desktop/scripts/cdp-smoke-integrations.ts` is a working example script.
 
 ## Style
 

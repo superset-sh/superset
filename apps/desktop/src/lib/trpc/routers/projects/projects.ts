@@ -593,7 +593,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -749,7 +752,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);
@@ -766,7 +772,14 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						hasOrigin = remotes.some((r) => r.name === "origin");
 					} catch {}
 
-					const branchSummary = await git.branch(["-a"]);
+					const branchSummary = await git
+						.branch(["-a"])
+						.catch((error: unknown) => {
+							throw new TRPCError({
+								code: "PRECONDITION_FAILED",
+								message: error instanceof Error ? error.message : String(error),
+							});
+						});
 
 					const localBranchSet = new Set<string>();
 					const remoteBranchSet = new Set<string>();
@@ -943,7 +956,10 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						.where(eq(projects.id, input.projectId))
 						.get();
 					if (!project) {
-						throw new Error(`Project ${input.projectId} not found`);
+						throw new TRPCError({
+							code: "NOT_FOUND",
+							message: `Project ${input.projectId} not found`,
+						});
 					}
 
 					const git = await getSimpleGitWithShellPath(project.mainRepoPath);

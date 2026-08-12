@@ -12,11 +12,21 @@ export function PostHogUserIdentifier() {
 
 	useEffect(() => {
 		if (!user) return;
+		const createdAt = user.createdAt
+			? new Date(user.createdAt).toISOString()
+			: undefined;
 		posthog.identify(user.id, {
 			email: user.email,
 			name: user.name,
 			desktop_version: window.App.appVersion,
+			...(createdAt ? { created_at: createdAt } : {}),
 		});
+		if (createdAt) {
+			// Included in flag evaluation requests so release conditions can
+			// target account age immediately, without waiting for ingestion.
+			// `false` skips the built-in reload; reloadFeatureFlags below covers it.
+			posthog.setPersonPropertiesForFlags({ created_at: createdAt }, false);
+		}
 		posthog.reloadFeatureFlags();
 		setUserId({ userId: user.id });
 	}, [user, setUserId]);

@@ -1,20 +1,28 @@
 import { existsSync } from "node:fs";
+import { rm } from "node:fs/promises";
+import { sanitizePromptForPty } from "@superset/shared/agent-prompt-launch";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { z } from "zod";
+import { pullRequests } from "../../../db/schema";
 import { invalidateLabelCache } from "../../../ports/static-ports";
+import { coercePullRequestState } from "../../../runtime/pull-requests/utils/pull-request-mappers";
 import { runTeardown, type TeardownResult } from "../../../runtime/teardown";
 import { disposeSessionsByWorkspaceId } from "../../../terminal/terminal";
 import type { HostServiceContext } from "../../../types";
-import { deleteLocalWorkspace } from "../../../workspaces/local-workspace-store";
+import type { GitTaskEnv } from "../../../workers/tasks/git";
+import {
+	archiveLocalWorkspace,
+	trackWorkspaceDeleted,
+	unarchiveLocalWorkspace,
+} from "../../../workspaces/local-workspace-store";
 import type {
 	DeleteInProgressCause,
 	TeardownFailureCause,
 } from "../../error-types";
 import { protectedProcedure, router } from "../../index";
-import {
-	normalizeWorktreePath,
-	parseWorktreeList,
-} from "../workspace-creation/shared/worktree-list";
+import { isInsideSessionsRoot } from "../workspace-creation/shared/session-paths";
+import { cleanupGitOps, isIndeterminateGitTaskFailure } from "./git-ops";
 import { isMainWorkspace } from "./is-main-workspace";
 
 /**
@@ -36,6 +44,19 @@ export interface DestroyWorkspaceInput {
 	workspaceId: string;
 	deleteBranch: boolean;
 	force: boolean;
+	/**
+	 * Teardown (step 2) behavior — deliberately separate from `force`, which
+	 * only carries the destructive git semantics (skip preflight, double-force
+	 * worktree removal):
+	 *   - "blocking":    a failed script throws PRECONDITION_FAILED so an
+	 *                    interactive caller can prompt a force-retry.
+	 *   - "best-effort": always runs; a failure degrades to a warning. For
+	 *                    non-interactive callers (CLI/SDK/MCP) with nobody to
+	 *                    prompt — skipping instead would leak the resources the
+	 *                    script provisions (#6174).
+	 *   - "skip":        don't run — the interactive force-retry contract.
+	 */
+	teardownMode: "blocking" | "best-effort" | "skip";
 }
 
 /**
@@ -68,12 +89,12 @@ export const workspaceCleanupRouter = router({
 	 *   - git failures (missing worktree, broken repo) → return as canDelete
 	 *     with no warnings; the destroy saga handles those states best-effort.
 	 *
-	 * Unpushed-commit detection uses `rev-list --not --remotes` so brand-new
-	 * branches with no upstream still report unpushed commits correctly.
+	 * The git reads run in the host worker pool (gitWorktreeStateTask) so a
+	 * slow status on a large worktree can't block the event loop.
 	 */
 	inspect: protectedProcedure
 		.input(z.object({ workspaceId: z.string() }))
-		.query(async ({ ctx, input }): Promise<InspectResult> => {
+		.query(async ({ ctx, input, signal }): Promise<InspectResult> => {
 			const main = await isMainWorkspace(ctx, input.workspaceId);
 			if (main.isMain) {
 				return {
@@ -95,27 +116,23 @@ export const workspaceCleanupRouter = router({
 			}
 
 			try {
-				const git = await ctx.git(local.worktreePath);
-				const status = await git.status();
-				let hasUnpushedCommits = false;
-				try {
-					const result = await git.raw([
-						"rev-list",
-						"--count",
-						"HEAD",
-						"--not",
-						"--remotes",
-					]);
-					const count = Number.parseInt(result.trim(), 10);
-					hasUnpushedCommits = Number.isFinite(count) && count > 0;
-				} catch {
-					// Leave false — `rev-list` failure isn't a signal we can act on.
-				}
+				const gitEnv = await cleanupGitOps.resolveGitEnv(
+					ctx,
+					local.worktreePath,
+				);
+				const state = await cleanupGitOps.readWorktreeState(
+					{
+						worktreePath: local.worktreePath,
+						gitEnv,
+						ignoreInitialCommit: local.type === "session",
+					},
+					signal,
+				);
 				return {
 					canDelete: true,
 					reason: null,
-					hasChanges: !status.isClean(),
-					hasUnpushedCommits,
+					hasChanges: state.hasChanges,
+					hasUnpushedCommits: state.hasUnpushedCommits,
 				};
 			} catch {
 				return {
@@ -128,23 +145,29 @@ export const workspaceCleanupRouter = router({
 		}),
 
 	/**
-	 * Destroy a workspace in five phases:
+	 * Destroy a workspace in phases:
 	 *
-	 *   0. Preflight     — dirty-worktree check (skip if force)
-	 *   1. Teardown      — run .superset/teardown.sh (skip if force)
-	 *   2. Local cleanup — PTYs, worktree
-	 *   3. Cloud delete  ← authoritative UI state
-	 *   4. Branch delete — optional local branch cleanup
-	 *   5. Host sqlite   — local index cleanup
+	 *   0.   Archive      ← the commit point, FIRST: the row tombstones
+	 *                       (archivedAt/archiveReason) and vanishes from
+	 *                       default lists before any slow work, so the
+	 *                       delete feels instant in every client
+	 *   1.   Preflight    — dirty-worktree check (skip if force)
+	 *   2.   Teardown     — run .superset/teardown.sh (per teardownMode)
+	 *   3.   Local cleanup — PTYs, worktree
+	 *   4.   Branch delete — optional local branch cleanup
+	 *   5.   Caches
 	 *
-	 * Worktree removal is intentionally before cloud delete. If it fails
-	 * while the path still exists, the cloud row remains so the workspace is
-	 * still visible and delete can be retried instead of orphaning disk state.
+	 * A thrown failure — preflight conflict, blocking teardown, or the
+	 * unrecoverable parts of step 3 — un-archives the row so the workspace
+	 * reappears and stays retryable instead of orphaning disk state.
+	 * Steps 4-5 (and the tolerated parts of step 3) degrade to warnings on
+	 * a still-successful delete, and telemetry fires on that success. A
+	 * crash after the archive is finished by the startup reconciler
+	 * (runArchivedWorkspaceReconcile) with best-effort teardown.
 	 *
-	 * Force semantics:
-	 *   - skips preflight (step 0)
-	 *   - skips teardown  (step 1)
-	 *   - step 2b always uses `--force --force`
+	 * Force semantics (git only; teardown is governed by teardownMode):
+	 *   - skips preflight (step 1)
+	 *   - step 3b always uses `--force --force`
 	 *   - step 4 always uses `-D` regardless: the `deleteBranch`
 	 *     checkbox is the user's consent, so refusing unmerged branches
 	 *     would just silently drop the opt-in.
@@ -155,7 +178,7 @@ export const workspaceCleanupRouter = router({
 	 *                            different beast — another destroy is in
 	 *                            flight for the same workspace; surface as
 	 *                            a toast and do NOT force-retry.
-	 *   - INTERNAL_SERVER_ERROR with `data.teardownFailure` → teardown
+	 *   - PRECONDITION_FAILED with `data.teardownFailure` → teardown
 	 *                            script failed; prompt force-retry
 	 *   - BAD_REQUEST          → main workspace; cannot be deleted
 	 *   - PRECONDITION_FAILED  → no cloud API configured
@@ -167,9 +190,23 @@ export const workspaceCleanupRouter = router({
 				workspaceId: z.string(),
 				deleteBranch: z.boolean().default(false),
 				force: z.boolean().default(false),
+				// Consent to NOT run the teardown script — set only by the
+				// teardown-failed retry. Deliberately a separate flag from
+				// `force`, which carries only the git-destructive consent
+				// (dirty worktree / unpushed commits): a warned "Delete
+				// anyway" must still run teardown, otherwise editing any
+				// tracked file silently disables the user's cleanup script.
+				skipTeardown: z.boolean().default(false),
 			}),
 		)
-		.mutation(async ({ ctx, input }) => destroyWorkspace(ctx, input)),
+		.mutation(async ({ ctx, input }) =>
+			destroyWorkspace(ctx, {
+				workspaceId: input.workspaceId,
+				deleteBranch: input.deleteBranch,
+				force: input.force,
+				teardownMode: input.skipTeardown ? "skip" : "blocking",
+			}),
+		),
 });
 
 export async function destroyWorkspace(
@@ -205,56 +242,155 @@ async function runDestroy(
 	}
 	const { local, project } = main;
 
-	// ─── Step 0: Preflight ─────────────────────────────────────────
-	// Block only on dirty worktree (the common "I forgot to commit"
-	// case). Missing/broken local state is handled by the cleanup phase.
-	if (!input.force && local && project) {
-		try {
-			const git = await ctx.git(local.worktreePath);
-			const status = await git.status();
-			if (!status.isClean()) {
-				throw new TRPCError({
-					code: "CONFLICT",
-					message: "Worktree has uncommitted changes",
+	// ─── Step 0: Archive (the commit point) ────────────────────────
+	// FIRST, before any slow work (git preflight, teardown script): the
+	// tombstone is a durable delete-intent record, and its broadcast is
+	// what drops the row from every list — archiving up front is what
+	// makes the delete feel instant. If the host crashes mid-cleanup the
+	// startup reconciler finishes the job with best-effort teardown. ANY
+	// failure below un-archives so the workspace reappears live and
+	// retryable. The renderer's delete dialog is globally mounted (not
+	// under the row) so a teardown-failure prompt survives the row
+	// vanishing here. Sessions tombstone too — they're workspaces with
+	// a little missing data (no project, no PRs; reason is always
+	// "deleted"), and session folder names are claimed against ALL rows
+	// including tombstones, so a tombstone's path can't be reused.
+	const marked = local != null;
+	if (marked) {
+		archiveLocalWorkspace(ctx, input.workspaceId, archiveReasonFor(ctx, local));
+	}
+
+	try {
+		// ─── Step 1: Preflight ─────────────────────────────────────
+		// Block only on dirty worktree (the common "I forgot to commit"
+		// case). Missing/broken local state is handled by the cleanup phase.
+		// Sessions are standalone repos — the same dirty check applies even
+		// though they have no project row.
+		if (!input.force && local && (project || local.type === "session")) {
+			try {
+				const gitEnv = await cleanupGitOps.resolveGitEnv(
+					ctx,
+					local.worktreePath,
+				);
+				const state = await cleanupGitOps.readWorktreeState({
+					worktreePath: local.worktreePath,
+					gitEnv,
 				});
+				if (state.hasChanges) {
+					throw new TRPCError({
+						code: "CONFLICT",
+						message: "Worktree has uncommitted changes",
+					});
+				}
+			} catch (err) {
+				if (err instanceof TRPCError) throw err;
+				if (isIndeterminateGitTaskFailure(err)) {
+					// Timeout/pool failure: dirty-state is UNKNOWN. Fail closed on
+					// this destructive path rather than silently skipping the
+					// dirty-worktree block — a retry usually succeeds (the first
+					// attempt warmed the FS cache), and force skips preflight
+					// entirely as the explicit escape hatch.
+					const message = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Couldn't verify worktree state at ${local.worktreePath}: ${message}`,
+					});
+				}
+				// Can't read status (missing worktree dir, etc.) — not a
+				// conflict. Continue; step 3b will skip idempotently.
 			}
-		} catch (err) {
-			if (err instanceof TRPCError) throw err;
-			// Can't read status (missing worktree dir, etc.) — not a
-			// conflict. Continue; step 3b will skip idempotently.
 		}
-	}
 
-	// ─── Step 1: Teardown ──────────────────────────────────────────
-	// Script is the user's last chance to stop services / flush state
-	// before the workspace goes away. Failure here is recoverable
-	// via force-retry, which skips this step.
-	if (!input.force && local && project) {
-		const teardown: TeardownResult = await runTeardown({
-			db: ctx.db,
-			workspaceId: input.workspaceId,
-			worktreePath: local.worktreePath,
-			repoPath: project.repoPath,
-			projectId: local.projectId,
-		});
-		if (teardown.status === "failed") {
-			const cause: TeardownFailureCause = {
-				kind: "TEARDOWN_FAILED",
-				exitCode: teardown.exitCode,
-				signal: teardown.signal,
-				timedOut: teardown.timedOut,
-				outputTail: teardown.outputTail,
-			};
-			throw new TRPCError({
-				code: "INTERNAL_SERVER_ERROR",
-				message: "Teardown script failed",
-				cause,
+		// ─── Step 2: Teardown ──────────────────────────────────────
+		// Script is the user's last chance to stop services / flush state
+		// before the workspace goes away. Runs after the archive so the
+		// (potentially slow) script never delays the row leaving the UI; a
+		// blocking failure throws, the catch below un-archives, and the
+		// globally-mounted dialog re-opens with a force-retry.
+		if (input.teardownMode !== "skip" && local && project) {
+			const teardown: TeardownResult = await runTeardown({
+				db: ctx.db,
+				workspaceId: input.workspaceId,
+				worktreePath: local.worktreePath,
+				repoPath: project.repoPath,
+				projectId: project.id,
 			});
+			if (teardown.status === "failed") {
+				if (input.teardownMode === "blocking") {
+					const cause: TeardownFailureCause = {
+						kind: "TEARDOWN_FAILED",
+						exitCode: teardown.exitCode,
+						signal: teardown.signal,
+						timedOut: teardown.timedOut,
+						outputTail: teardown.outputTail,
+					};
+					// Recoverable via force-retry — an expected user-script failure, not a
+					// service bug; must not be reported as a 500.
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: "Teardown script failed",
+						cause,
+					});
+				}
+				warnings.push(formatTeardownWarning(teardown));
+			}
 		}
-	}
 
-	// ─── Step 2: Local cleanup ─────────────────────────────────────
-	// 2a. PTYs
+		const result = await runDestroyPhases(ctx, input, {
+			local,
+			project,
+			warnings,
+		});
+		// Telemetry at the true commit: a failed destroy un-archives below and
+		// must not count, and a retried destroy must count exactly once.
+		if (marked && local) trackWorkspaceDeleted(ctx, local);
+		return result;
+	} catch (err) {
+		if (marked) unarchiveLocalWorkspace(ctx, input.workspaceId);
+		throw err;
+	}
+}
+
+/** "merged" when the linked PR was observed merged; every other delete —
+ * open/closed/draft PR or none at all — is a plain "deleted". */
+function archiveReasonFor(
+	ctx: HostServiceContext,
+	local: { pullRequestId: string | null },
+): "merged" | "deleted" {
+	if (!local.pullRequestId) return "deleted";
+	try {
+		const pr = ctx.db.query.pullRequests
+			.findFirst({ where: eq(pullRequests.id, local.pullRequestId) })
+			.sync();
+		return coercePullRequestState(pr?.state ?? null) === "merged"
+			? "merged"
+			: "deleted";
+	} catch (err) {
+		// A reason lookup failure must never block the delete — but a merged
+		// workspace misfiled under Deleted deserves a trace.
+		console.warn("[workspace-cleanup] archive reason lookup failed", {
+			pullRequestId: local.pullRequestId,
+			err,
+		});
+		return "deleted";
+	}
+}
+
+async function runDestroyPhases(
+	ctx: HostServiceContext,
+	input: DestroyWorkspaceInput,
+	{
+		local,
+		project,
+		warnings,
+	}: {
+		local: Awaited<ReturnType<typeof isMainWorkspace>>["local"];
+		project: Awaited<ReturnType<typeof isMainWorkspace>>["project"];
+		warnings: string[];
+	},
+) {
+	// ─── Step 3: Local cleanup ─────────────────────────────────────
+	// 3a. PTYs
 	try {
 		const killed = await disposeSessionsByWorkspaceId(
 			input.workspaceId,
@@ -268,12 +404,39 @@ async function runDestroy(
 		warnings.push(`Failed to dispose terminal sessions: ${message}`);
 	}
 
-	// 2b. Worktree. Double-force unlocks the rare locked-worktree case and
+	// 3b. Worktree. Double-force unlocks the rare locked-worktree case and
 	//     clears stale metadata when the directory was manually removed.
+	//     Runs in the worker pool: the removal is a recursive delete of the
+	//     whole worktree directory, which would otherwise stall the loop.
 	let worktreeRemoved = false;
 	let branchDeleted = false;
-	let git: Awaited<ReturnType<typeof ctx.git>> | null = null;
-	if (local && !project) {
+	let repoGitEnv: GitTaskEnv | null = null;
+	if (local?.type === "session") {
+		// Sessions are standalone repos in the managed sessions root — no
+		// `git worktree remove`, just delete the folder. The root guard is
+		// load-bearing: a corrupt worktreePath must never point rm -rf at
+		// user data, so anything outside the root is left on disk (warned)
+		// while the row delete proceeds.
+		worktreeRemoved = !existsSync(local.worktreePath);
+		if (!worktreeRemoved) {
+			if (!isInsideSessionsRoot(local.worktreePath)) {
+				warnings.push(
+					`Skipped folder removal at ${local.worktreePath}: not inside the managed sessions root`,
+				);
+			} else {
+				try {
+					await rm(local.worktreePath, { recursive: true, force: true });
+					worktreeRemoved = true;
+				} catch (err) {
+					const message = err instanceof Error ? err.message : String(err);
+					throw new TRPCError({
+						code: "INTERNAL_SERVER_ERROR",
+						message: `Failed to remove session folder at ${local.worktreePath}: ${message}`,
+					});
+				}
+			}
+		}
+	} else if (local && !project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
 		if (!worktreeRemoved) {
 			warnings.push(
@@ -284,7 +447,7 @@ async function runDestroy(
 	if (local && project) {
 		worktreeRemoved = !existsSync(local.worktreePath);
 		try {
-			git = await ctx.git(project.repoPath);
+			repoGitEnv = await cleanupGitOps.resolveGitEnv(ctx, project.repoPath);
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
 			if (!worktreeRemoved) {
@@ -298,25 +461,17 @@ async function runDestroy(
 			);
 		}
 
-		if (git) {
-			// Remove against git's canonical path so a symlinked stored path
-			// (macOS `/var` → `/private/var`) still matches its registration.
-			const canonicalPath = normalizeWorktreePath(local.worktreePath);
-			// Best-effort: we trust git's registry below, not the command's
-			// exit text, which is locale- and version-dependent. `--force
-			// --force` also unregisters a worktree whose directory is already
-			// gone, so no separate prune (which would clobber other stale
-			// worktrees' metadata) is needed.
-			await git
-				.raw(["worktree", "remove", "--force", "--force", canonicalPath])
-				.catch(() => {});
-
-			// A `worktree list` failure here means the post-remove state is
-			// unknown — treat that like "still registered" and block rather
-			// than risk orphaning disk past the cloud commit point.
+		if (repoGitEnv) {
+			// A task failure here means the post-remove state is unknown —
+			// treat that like "still registered" and block rather than risk
+			// orphaning disk past the archive commit point.
 			let stillRegistered = true;
 			try {
-				stillRegistered = await isRegisteredWorktree(git, local.worktreePath);
+				({ stillRegistered } = await cleanupGitOps.removeWorktree({
+					repoPath: project.repoPath,
+					worktreePath: local.worktreePath,
+					gitEnv: repoGitEnv,
+				}));
 			} catch (err) {
 				const message = err instanceof Error ? err.message : String(err);
 				throw new TRPCError({
@@ -326,8 +481,8 @@ async function runDestroy(
 			}
 			if (stillRegistered) {
 				// git still tracks a live worktree here — removal genuinely
-				// failed. Keep the cloud row so the workspace stays visible and
-				// retryable instead of orphaning disk past the cloud commit point.
+				// failed. Un-archive so the workspace stays visible and
+				// retryable instead of orphaning disk past the commit point.
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Failed to remove worktree at ${local.worktreePath}`,
@@ -337,36 +492,19 @@ async function runDestroy(
 		}
 	}
 
-	// ─── Step 3: Local delete (authoritative) ─────────────────────
-	// The local row is the commit point and the only record. The cloud
-	// delete is best-effort legacy cleanup for rows mirrored before
-	// workspaces went fully local.
-	deleteLocalWorkspace(
-		{ db: ctx.db, eventBus: ctx.eventBus },
-		input.workspaceId,
-	);
-	let cloudDeleted = false;
-	try {
-		await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-		cloudDeleted = true;
-	} catch (err) {
-		const message = err instanceof Error ? err.message : String(err);
-		warnings.push(
-			`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
-		);
-	}
-
 	// ─── Step 4: Optional branch delete ────────────────────────────
 	// After the local commit point so a failure here can't block the delete.
-	if (git && local?.branch && input.deleteBranch) {
+	// An absent ref (renamed, pruned, or never materialized) already
+	// satisfies the goal, so the task skips the delete without a scary
+	// warning; a thrown git failure lands in the warning below rather than
+	// being mistaken for "already gone".
+	if (repoGitEnv && project && local?.branch && input.deleteBranch) {
 		try {
-			// An absent ref (renamed, pruned, or never materialized) already
-			// satisfies the goal, so skip the delete without a scary warning.
-			// A thrown git failure falls through to the warning below rather
-			// than being mistaken for "already gone".
-			if (await localBranchExists(git, local.branch)) {
-				await git.raw(["branch", "-D", local.branch]);
-			}
+			await cleanupGitOps.deleteLocalBranch({
+				repoPath: project.repoPath,
+				branch: local.branch,
+				gitEnv: repoGitEnv,
+			});
 			branchDeleted = true;
 		} catch (err) {
 			const message = err instanceof Error ? err.message : String(err);
@@ -386,35 +524,29 @@ async function runDestroy(
 
 	return {
 		success: true,
-		cloudDeleted,
+		// Workspaces have no cloud row to delete any more. Released CLI/SDK
+		// binaries still read this field, so it stays in the response.
+		cloudDeleted: false,
 		worktreeRemoved,
 		branchDeleted,
 		warnings,
 	};
 }
 
-// Authoritative "is this still a worktree git tracks" check — reads git's own
-// registry (realpath-canonicalized) instead of parsing remove's error text.
-// Calls `git.raw` directly rather than the swallowing `listGitWorktrees` so a
-// failed `worktree list` throws (state unknown) instead of looking empty.
-async function isRegisteredWorktree(
-	git: Awaited<ReturnType<HostServiceContext["git"]>>,
-	worktreePath: string,
-): Promise<boolean> {
-	const target = normalizeWorktreePath(worktreePath);
-	const raw = await git.raw(["worktree", "list", "--porcelain"]);
-	return parseWorktreeList(raw).some(
-		(w) => normalizeWorktreePath(w.path) === target,
-	);
-}
-
-// `branch --list` exits 0 whether or not the branch exists (empty output when
-// absent), so a thrown error is a real git failure — not a missing ref — and
-// propagates instead of being misread as "already deleted".
-async function localBranchExists(
-	git: Awaited<ReturnType<HostServiceContext["git"]>>,
-	branch: string,
-): Promise<boolean> {
-	const out = await git.raw(["branch", "--list", branch]);
-	return out.trim().length > 0;
+function formatTeardownWarning(
+	teardown: Extract<TeardownResult, { status: "failed" }>,
+): string {
+	const detail = teardown.timedOut
+		? "timed out"
+		: teardown.exitCode !== null
+			? `exit code ${teardown.exitCode}`
+			: teardown.signal !== null
+				? `signal ${teardown.signal}`
+				: "unknown failure";
+	// Tail is raw PTY bytes; strip control sequences for the plain-text
+	// warnings channel (CLI/SDK/MCP).
+	const tail = sanitizePromptForPty(teardown.outputTail).trim();
+	return tail
+		? `Teardown script failed (${detail}): ${tail}`
+		: `Teardown script failed (${detail})`;
 }

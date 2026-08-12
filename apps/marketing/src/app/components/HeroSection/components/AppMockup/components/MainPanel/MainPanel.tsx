@@ -1,17 +1,28 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { LuArrowUp } from "react-icons/lu";
-import { SETUP_STEPS } from "../../constants";
+import Image from "next/image";
+import { LuGitPullRequest } from "react-icons/lu";
+import { AUTOMATIONS } from "../../constants";
 import type { ActiveDemo } from "../../types";
 import { AsciiSpinner } from "../AsciiSpinner";
+
+function TokenChip({ children }: { children: React.ReactNode }) {
+	return (
+		<span className="rounded-sm bg-foreground/[0.07] px-1 py-px">
+			{children}
+		</span>
+	);
+}
 
 interface MainPanelProps {
 	activeDemo: ActiveDemo;
 }
 
 export function MainPanel({ activeDemo }: MainPanelProps) {
-	const isSetup = activeDemo === "Create Parallel Branches";
+	const isAutomate = activeDemo === "Automate Tasks";
+	const isRemote = activeDemo === "Remote Workspaces";
+	const isDefault = !isAutomate && !isRemote;
 
 	return (
 		<div className="flex min-w-0 flex-1 flex-col bg-background">
@@ -19,7 +30,7 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 				<motion.div
 					className="flex h-full flex-col"
 					initial={{ opacity: 1 }}
-					animate={{ opacity: isSetup ? 0 : 1 }}
+					animate={{ opacity: isDefault ? 1 : 0 }}
 					transition={{ duration: 0.2 }}
 				>
 					<div>
@@ -45,10 +56,12 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 
 						<div className="mb-5 text-foreground">
 							<span className="text-muted-foreground/55">❯</span>{" "}
-							<span className="text-brand-light">/mcp</span>
+							<TokenChip>
+								<span className="text-brand-light">/mcp</span>
+							</TokenChip>
 						</div>
 
-						<div className="space-y-2.5 border-t border-border pt-4">
+						<div className="space-y-2.5 border-t border-border/60 pt-4">
 							<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
 								MCP Servers
 							</div>
@@ -65,48 +78,128 @@ export function MainPanel({ activeDemo }: MainPanelProps) {
 
 							<div className="text-muted-foreground/65">
 								config:{" "}
-								<span className="text-muted-foreground/50">.mcp.json</span>
+								<TokenChip>
+									<span className="text-muted-foreground/70">.mcp.json</span>
+								</TokenChip>
 							</div>
 						</div>
 					</div>
 
-					<div className="mt-auto border-t border-border pt-4">
-						<div className="flex items-center gap-3 border border-border bg-card/60 px-3 py-2.5">
+					{/* Elevated agent card: the story moment, floating like Linear's
+					    agent panel */}
+					<div className="absolute bottom-16 right-4 z-10 w-[290px] rounded-lg border border-white/[0.08] bg-card font-sans shadow-[0_1px_1px_rgba(0,0,0,0.4),0_16px_50px_-12px_rgba(0,0,0,0.7)]">
+						<div className="pointer-events-none absolute inset-0 rounded-lg shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]" />
+						<div className="flex items-center gap-2 px-3 pt-2.5">
+							<Image
+								src="/app-icons/claude.svg"
+								alt="Claude"
+								width={12}
+								height={12}
+							/>
+							<span className="text-[11px] font-medium text-foreground/95">
+								claude
+							</span>
+							<span className="text-[10px] text-muted-foreground/55">
+								finished · worked for 7s
+							</span>
+						</div>
+						<div className="px-3 pt-1.5 pb-2.5 text-[11px] leading-relaxed text-muted-foreground">
+							Pushed and opened a draft PR.
+						</div>
+						<div className="flex items-center justify-between border-t border-border/60 px-3 py-2">
+							<div className="flex items-center gap-1.5 font-mono text-[10px] tabular-nums">
+								<LuGitPullRequest className="size-2.5 text-muted-foreground/55" />
+								<span className="text-muted-foreground/75">2 files</span>
+								<span className="text-emerald-400/85">+46</span>
+								<span className="text-rose-400/75">−1</span>
+							</div>
+							<button
+								type="button"
+								className="rounded-full border border-white/[0.08] px-2.5 py-0.5 text-[10px] text-foreground/90 hover:bg-foreground/[0.05]"
+							>
+								Preview
+							</button>
+						</div>
+					</div>
+
+					<div className="mt-auto border-t border-border/60 pt-3 pb-1">
+						<div className="flex items-center gap-2.5">
 							<span className="text-muted-foreground/55">❯</span>
-							<span className="flex-1 text-[11px] text-muted-foreground/55">
+							<span className="h-3.5 w-[7px] bg-foreground/60" />
+							<span className="flex-1 text-[11px] text-muted-foreground/40">
 								Type a task for Claude…
 							</span>
-							<div className="flex size-5 items-center justify-center rounded-sm bg-brand/15 text-[11px] text-brand-light">
-								<LuArrowUp className="size-3" />
-							</div>
 						</div>
 					</div>
 				</motion.div>
 
+				{/* Automate Tasks: scheduled agents running on their own */}
 				<motion.div
 					className="absolute inset-0 p-5 font-mono text-[11px] leading-relaxed"
 					initial={{ opacity: 0 }}
-					animate={{ opacity: isSetup ? 1 : 0 }}
+					animate={{ opacity: isAutomate ? 1 : 0 }}
 					transition={{ duration: 0.3, ease: "easeOut" }}
-					style={{ pointerEvents: isSetup ? "auto" : "none" }}
+					style={{ pointerEvents: isAutomate ? "auto" : "none" }}
+				>
+					<div className="mb-5 text-foreground">
+						<span className="text-muted-foreground/55">❯</span>{" "}
+						<TokenChip>
+							<span className="text-brand-light">superset automations</span>
+						</TokenChip>
+					</div>
+					<div className="grid max-w-[380px] grid-cols-[1fr_auto_auto] gap-x-8 gap-y-2">
+						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
+							Name
+						</div>
+						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
+							Schedule
+						</div>
+						<div className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground/65">
+							Last run
+						</div>
+						{AUTOMATIONS.map((automation) => (
+							<div key={automation.name} className="contents">
+								<div className="text-foreground/90">{automation.name}</div>
+								<div className="text-muted-foreground/65">
+									{automation.schedule}
+								</div>
+								{automation.running ? (
+									<div className="flex items-center gap-1.5">
+										<AsciiSpinner
+											className="text-[10px]"
+											toneClassName="text-brand-light"
+										/>
+										<span className="text-brand-light">running</span>
+									</div>
+								) : (
+									<div className="text-muted-foreground/55">
+										{automation.lastRun}
+									</div>
+								)}
+							</div>
+						))}
+					</div>
+				</motion.div>
+
+				{/* Remote Workspaces: same workspace model, on a box that isn't yours */}
+				<motion.div
+					className="absolute inset-0 p-5 font-mono text-[11px] leading-relaxed"
+					initial={{ opacity: 0 }}
+					animate={{ opacity: isRemote ? 1 : 0 }}
+					transition={{ duration: 0.3, ease: "easeOut" }}
+					style={{ pointerEvents: isRemote ? "auto" : "none" }}
 				>
 					<div className="mb-3 text-foreground">
 						<span className="text-muted-foreground/55">❯</span>{" "}
-						<span className="text-brand-light">superset new</span>
+						<TokenChip>
+							<span className="text-brand-light">superset connect gpu-box</span>
+						</TokenChip>
 					</div>
 					<div className="space-y-1.5 text-muted-foreground">
-						<div className="flex items-center gap-2">
-							<AsciiSpinner
-								className="text-[11px]"
-								toneClassName="text-brand-light"
-							/>
-							<span>Setting up new parallel environment...</span>
+						<div>
+							<span className="text-emerald-400/85">✓</span> connected · us-east
+							· 64 cores · 128 GB
 						</div>
-						{SETUP_STEPS.map((step) => (
-							<div key={step} className="ml-5 text-muted-foreground/55">
-								{step}
-							</div>
-						))}
 					</div>
 				</motion.div>
 			</div>

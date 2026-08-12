@@ -4,22 +4,41 @@
 # host-service endpoint, with a v1 Electron hook fallback while both
 # terminal stacks are supported.
 
-# Codex passes JSON as argv; Claude/Mastra/Droid/Kimi pipe via stdin.
+# Codex passes JSON as argv; Claude/Mastra/Droid/Kimi/Grok pipe via stdin.
 if [ -n "$1" ]; then
   INPUT="$1"
 else
   INPUT=$(cat)
 fi
 
+# Agent hook configs are global, so this can fire in sessions launched
+# outside Superset terminals (including via stale entries from older
+# installs). Only Superset terminals set SUPERSET_* vars; the agent-supplied
+# payload alone must never dispatch.
+[ -n "$SUPERSET_TERMINAL_ID" ] || [ -n "$SUPERSET_TAB_ID" ] || exit 0
+
 HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"session_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+if [ -z "$HOOK_SESSION_ID" ]; then
+  # Grok's envelope is camelCase.
+  HOOK_SESSION_ID=$(echo "$INPUT" | grep -oE '"sessionId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
 RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resourceId"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 if [ -z "$RESOURCE_ID" ]; then
   RESOURCE_ID=$(echo "$INPUT" | grep -oE '"resource_id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
 fi
 SESSION_ID=${RESOURCE_ID:-$HOOK_SESSION_ID}
+if [ -z "$SESSION_ID" ]; then
+  # Codex's legacy notify callback (agent-turn-complete) carries the
+  # resumable id as thread-id — the same id `codex resume` takes.
+  SESSION_ID=$(echo "$INPUT" | grep -oE '"thread[-_]id"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
 
-# Claude/Mastra/Droid/Kimi use "hook_event_name"; Codex uses "type".
+# Claude/Mastra/Droid/Kimi use "hook_event_name"; Grok uses camelCase
+# "hookEventName" (snake_case values, mapped server-side); Codex uses "type".
 EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hook_event_name"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+if [ -z "$EVENT_TYPE" ]; then
+  EVENT_TYPE=$(echo "$INPUT" | grep -oE '"hookEventName"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+fi
 if [ -z "$EVENT_TYPE" ]; then
   CODEX_TYPE=$(echo "$INPUT" | grep -oE '"type"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
   case "$CODEX_TYPE" in
@@ -28,6 +47,20 @@ if [ -z "$EVENT_TYPE" ]; then
     exec_approval_request|apply_patch_approval_request|request_user_input)
       EVENT_TYPE="PermissionRequest"
       ;;
+  esac
+fi
+
+# Grok serializes its configured Notification event as lowercase
+# "notification". Only subtypes where the agent is blocked waiting on the
+# user count: permission_prompt (tool/plan approval) and elicitation_dialog
+# (ask_user_question — the common case, since Superset launches grok with
+# --always-approve so tool approvals rarely prompt). Keep the case pattern
+# in sync with GROK_BLOCKING_NOTIFICATION_TYPES in agent-wrappers-grok.ts.
+if [ "$EVENT_TYPE" = "notification" ]; then
+  NOTIFICATION_TYPE=$(echo "$INPUT" | grep -oE '"notificationType"[[:space:]]*:[[:space:]]*"[^"]*"' | grep -oE '"[^"]*"$' | tr -d '"')
+  case "$NOTIFICATION_TYPE" in
+    permission_prompt|elicitation_dialog) EVENT_TYPE="PermissionRequest" ;;
+    *) exit 0 ;;
   esac
 fi
 
@@ -49,7 +82,7 @@ elif [ "$SUPERSET_ENV" = "development" ] || [ "$NODE_ENV" = "development" ]; the
 fi
 
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
-  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
+  echo "[notify-hook] event=$EVENT_TYPE terminalId=$SUPERSET_TERMINAL_ID agentId=$SUPERSET_AGENT_ID sessionId=$SESSION_ID hookSessionId=$HOOK_SESSION_ID resourceId=$RESOURCE_ID paneId=$SUPERSET_PANE_ID tabId=$SUPERSET_TAB_ID workspaceId=$SUPERSET_WORKSPACE_ID" >&2
 fi
 
 debug_log() {
@@ -95,6 +128,9 @@ fi
 # v1 fallback: Electron localhost hook server. Kept while v1 terminals exist.
 [ -z "$SUPERSET_TAB_ID" ] && [ -z "$SESSION_ID" ] && [ -z "$SUPERSET_TERMINAL_ID" ] && exit 0
 
+# rawEventType keeps the un-collapsed event (SessionStart/SessionEnd survive)
+# so the app can tell an agent's own goodbye from a turn Stop — the v1 pane
+# agent-session capture needs that to mirror v2 resume-candidate detection.
 if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
   STATUS_CODE=$(curl -sG "http://127.0.0.1:${SUPERSET_PORT:-{{DEFAULT_PORT}}}/hook/complete" \
     --connect-timeout 1 --max-time 2 \
@@ -106,6 +142,8 @@ if [ "$DEBUG_HOOKS_ENABLED" = "1" ]; then
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
+    --data-urlencode "rawEventType=$EVENT_TYPE" \
+    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     -o /dev/null -w "%{http_code}" 2>/dev/null)
@@ -123,6 +161,8 @@ else
     --data-urlencode "hookSessionId=$HOOK_SESSION_ID" \
     --data-urlencode "resourceId=$RESOURCE_ID" \
     --data-urlencode "eventType=$V1_EVENT_TYPE" \
+    --data-urlencode "rawEventType=$EVENT_TYPE" \
+    --data-urlencode "agentId=$SUPERSET_AGENT_ID" \
     --data-urlencode "env=$SUPERSET_ENV" \
     --data-urlencode "version=$SUPERSET_HOOK_VERSION" \
     > /dev/null 2>&1

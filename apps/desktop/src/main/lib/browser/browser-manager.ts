@@ -1,11 +1,21 @@
 import { EventEmitter } from "node:events";
 import { clipboard, Menu, webContents } from "electron";
 import { safeOpenExternal } from "main/lib/safe-url";
+import { chordFromInput } from "shared/hotkey-chord";
 
 interface ConsoleEntry {
 	level: "log" | "warn" | "error" | "info" | "debug";
 	message: string;
 	timestamp: number;
+}
+
+export interface ForwardedKey {
+	key: string;
+	code: string;
+	meta: boolean;
+	control: boolean;
+	alt: boolean;
+	shift: boolean;
 }
 
 const MAX_CONSOLE_ENTRIES = 500;
@@ -29,6 +39,13 @@ class BrowserManager extends EventEmitter {
 	private consoleListeners = new Map<string, () => void>();
 	private contextMenuListeners = new Map<string, () => void>();
 	private beforeInputListeners = new Map<string, () => void>();
+	// Canonical chords to suppress in the focused guest and forward for the
+	// renderer to replay. Kept override/layout-aware by the renderer.
+	private forwardableChords = new Set<string>();
+
+	setForwardableChords(chords: string[]): void {
+		this.forwardableChords = new Set(chords);
+	}
 
 	register(paneId: string, webContentsId: number): void {
 		// Clean even when prevId === webContentsId so BrowserManager owns
@@ -240,27 +257,38 @@ class BrowserManager extends EventEmitter {
 	// When a webview has focus, keystrokes route to the guest renderer — host
 	// `react-hotkeys-hook` listeners never see them and the menu's CmdOrCtrl+W
 	// accelerator closes the whole window. `before-input-event` fires in the
-	// main process before both, and `preventDefault()` suppresses both.
-	//
-	// keyDown guard prevents a second fire on keyUp. Shift guard preserves
-	// Cmd+Shift+W (CLOSE_TAB) and Cmd+Shift+R (forceReload).
+	// main process before both, so we intercept CmdOrCtrl+W/R and any
+	// renderer-registered forwardable chord here. Everything else falls through
+	// untouched, keeping in-page shortcuts (copy/paste/find/…) working.
 	private setupBeforeInput(paneId: string, wc: Electron.WebContents): void {
 		const handler = (event: Electron.Event, input: Electron.Input): void => {
 			if (input.type !== "keyDown") return;
-			if (input.shift || input.alt) return;
-			if (!(input.meta || input.control)) return;
 
-			const key = input.key.toLowerCase();
-			if (key === "w") {
-				event.preventDefault();
-				this.emit(`close-pane:${paneId}`);
-				return;
+			if ((input.meta || input.control) && !input.shift && !input.alt) {
+				const key = input.key.toLowerCase();
+				if (key === "w") {
+					event.preventDefault();
+					this.emit(`close-pane:${paneId}`);
+					return;
+				}
+				if (key === "r") {
+					event.preventDefault();
+					this.emit(`reload-pane:${paneId}`);
+					return;
+				}
 			}
-			if (key === "r") {
-				event.preventDefault();
-				this.emit(`reload-pane:${paneId}`);
-				return;
-			}
+
+			const chord = chordFromInput(input);
+			if (!chord || !this.forwardableChords.has(chord)) return;
+			event.preventDefault();
+			this.emit(`key-forward:${paneId}`, {
+				key: input.key,
+				code: input.code,
+				meta: input.meta,
+				control: input.control,
+				alt: input.alt,
+				shift: input.shift,
+			} satisfies ForwardedKey);
 		};
 
 		wc.on("before-input-event", handler);

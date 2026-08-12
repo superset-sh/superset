@@ -22,6 +22,7 @@ import { HiEllipsisVertical, HiOutlineTrash } from "react-icons/hi2";
 import { useCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import type { TeamMember } from "../../../../types";
 
 export function MemberActions({
@@ -41,6 +42,7 @@ export function MemberActions({
 	const { refetch: refetchSession } = authClient.useSession();
 	const { plan } = useCurrentPlan();
 	const navigate = useNavigate();
+	const utils = cloudTrpc.useUtils();
 
 	const availableRoles = getAvailableRoleChanges(
 		currentUserRole,
@@ -58,6 +60,7 @@ export function MemberActions({
 			organizationId: result.activeOrganizationId ?? null,
 		});
 		await refetchSession();
+		await utils.organization.listMembers.invalidate();
 		navigate({ to: "/" });
 	}
 
@@ -66,6 +69,7 @@ export function MemberActions({
 			organizationId: member.organizationId,
 			userId: member.userId,
 		});
+		await utils.organization.listMembers.invalidate();
 	}
 
 	function handleRemove(): void {
@@ -114,6 +118,7 @@ export function MemberActions({
 				memberId: member.memberId,
 				role: newRole,
 			});
+			await utils.organization.listMembers.invalidate();
 			toast.success(`Role changed to ${ORGANIZATION_ROLES[newRole].name}`);
 		} catch (error) {
 			toast.error(

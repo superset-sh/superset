@@ -92,3 +92,20 @@ export const automationPromptSourceValues = [
 ] as const;
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
+
+// pgEnum columns; the wire/validation zod lives in @superset/shared/desktop-notices.
+// platforms/channels are stored as text[] (no enum needed).
+export const desktopNoticeSeverityValues = [
+	"info",
+	"warning",
+	"blocking",
+] as const;
+export const desktopNoticeTriggerValues = [
+	"immediate",
+	"pre-update",
+	"post-update",
+] as const;
+export const desktopNoticeCtaActionValues = [
+	"install-update",
+	"open-url",
+] as const;

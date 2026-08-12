@@ -36,6 +36,8 @@ import {
 	useImportAllWorktrees,
 	useOpenExternalWorktree,
 } from "renderer/react-query/workspaces";
+import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
+import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { ClickablePath } from "../../../../components/ClickablePath";
 import {
 	useDefaultWorktreePath,
@@ -63,15 +65,19 @@ export function SettingsSection({
 	description?: string;
 	children: ReactNode;
 }) {
+	const searchQuery = useSettingsSearchQuery();
+
 	return (
 		<div className="space-y-3">
 			<div>
 				<h3 className="text-sm font-medium text-foreground flex items-center gap-2">
 					{icon}
-					{title}
+					<HighlightText text={title} query={searchQuery} />
 				</h3>
 				{description && (
-					<p className="text-sm text-muted-foreground mt-0.5">{description}</p>
+					<p className="text-sm text-muted-foreground mt-0.5">
+						<HighlightText text={description} query={searchQuery} />
+					</p>
 				)}
 			</div>
 			{children}
@@ -88,6 +94,7 @@ export function ProjectSettings({
 	projectId,
 	visibleItems,
 }: ProjectSettingsProps) {
+	const searchQuery = useSettingsSearchQuery();
 	const utils = electronTrpc.useUtils();
 	const { data: project } = electronTrpc.projects.get.useQuery({
 		id: projectId,
@@ -417,7 +424,10 @@ export function ProjectSettings({
 							<div className="flex items-center justify-between">
 								<div className="space-y-0.5">
 									<Label className="text-sm font-medium">
-										Import Worktrees
+										<HighlightText
+											text="Import Worktrees"
+											query={searchQuery}
+										/>
 									</Label>
 									<p className="text-xs text-muted-foreground">
 										{importableExternalWorktrees.length} external worktree

@@ -270,9 +270,7 @@ export function GroupItem({
 											<HiMiniXMark className="size-4" />
 										</Button>
 									</TooltipTrigger>
-									<TooltipContent side="top" showArrow={false}>
-										Close pane
-									</TooltipContent>
+									<TooltipContent side="top">Close pane</TooltipContent>
 								</Tooltip>
 							</div>
 						</>
