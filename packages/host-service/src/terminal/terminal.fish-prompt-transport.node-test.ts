@@ -32,17 +32,37 @@ import {
 } from "./terminal.ts";
 import { __setAccountShellForTesting } from "./user-shell.ts";
 
-const FISH = [
-	"/opt/homebrew/bin/fish",
-	"/usr/local/bin/fish",
-	"/usr/bin/fish",
-].find((candidate) => fs.existsSync(candidate));
+function findOnPath(name: string): string | null {
+	for (const dir of (process.env.PATH ?? "").split(path.delimiter)) {
+		if (!dir) continue;
+		const candidate = path.join(dir, name);
+		try {
+			fs.accessSync(candidate, fs.constants.X_OK);
+			return candidate;
+		} catch {
+			// keep looking
+		}
+	}
+	return null;
+}
+
+const FISH = findOnPath("fish");
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const TEST_HOME = path.join(os.tmpdir(), `host-svc-fishxport-${process.pid}`);
 const SOCK = path.join(os.tmpdir(), `host-svc-fishxport-${process.pid}.sock`);
 const MIGRATIONS = path.resolve(__dirname, "../../drizzle");
 const FAKE_USER_HOME = path.join(TEST_HOME, "user-home");
+
+// The harness overwrites process-wide env; restore whatever was there so this
+// suite composes with others in the same node --test invocation.
+const OVERRIDDEN_ENV_KEYS = [
+	"SUPERSET_PTY_DAEMON_SOCKET",
+	"SUPERSET_HOME_DIR",
+	"HOST_SERVICE_VERSION",
+	"NODE_ENV",
+] as const;
+const savedEnv = new Map<string, string | undefined>();
 
 let server: Server;
 let db: HostDb;
@@ -78,6 +98,7 @@ before(async () => {
 	});
 	await server.listen();
 
+	for (const key of OVERRIDDEN_ENV_KEYS) savedEnv.set(key, process.env[key]);
 	process.env.SUPERSET_PTY_DAEMON_SOCKET = SOCK;
 	process.env.SUPERSET_HOME_DIR = TEST_HOME;
 	process.env.HOST_SERVICE_VERSION = "0.0.0-fishxport-e2e";
@@ -111,6 +132,10 @@ after(async () => {
 	__setAccountShellForTesting(undefined);
 	await disposeDaemonClient();
 	await server.close();
+	for (const [key, value] of savedEnv) {
+		if (value === undefined) delete process.env[key];
+		else process.env[key] = value;
+	}
 	try {
 		fs.rmSync(TEST_HOME, { recursive: true, force: true });
 	} catch {
@@ -135,17 +160,19 @@ describe("fish prompt transport rewrite", () => {
 			});
 
 			const terminalId = await launchAndRead(initialCommand);
-			await waitFor(() => fs.existsSync(outFile), 25_000);
-			await new Promise((r) => setTimeout(r, 300));
-			assert.equal(fs.readFileSync(outFile, "utf8"), PROMPT);
+			try {
+				await waitFor(() => fs.existsSync(outFile), 25_000);
+				await new Promise((r) => setTimeout(r, 300));
+				assert.equal(fs.readFileSync(outFile, "utf8"), PROMPT);
 
-			// The staged prompt file deleted itself when the command consumed it.
-			const leftovers = fs
-				.readdirSync(os.tmpdir())
-				.filter((f) => f.startsWith(`superset-launch-prompt-${terminalId}`));
-			assert.deepEqual(leftovers, []);
-
-			await disposeSessionAndWait(terminalId, db);
+				// The staged prompt file deleted itself when the command consumed it.
+				const leftovers = fs
+					.readdirSync(os.tmpdir())
+					.filter((f) => f.startsWith(`superset-launch-prompt-${terminalId}`));
+				assert.deepEqual(leftovers, []);
+			} finally {
+				await disposeSessionAndWait(terminalId, db);
+			}
 		},
 	);
 
@@ -163,17 +190,19 @@ describe("fish prompt transport rewrite", () => {
 			});
 
 			const terminalId = await launchAndRead(initialCommand);
-			await waitFor(() => fs.existsSync(outFile), 25_000);
-			await new Promise((r) => setTimeout(r, 300));
-			// The heredoc body carries a trailing newline; so does the staged file.
-			assert.equal(fs.readFileSync(outFile, "utf8"), `${PROMPT}\n`);
+			try {
+				await waitFor(() => fs.existsSync(outFile), 25_000);
+				await new Promise((r) => setTimeout(r, 300));
+				// The heredoc body carries a trailing newline; so does the staged file.
+				assert.equal(fs.readFileSync(outFile, "utf8"), `${PROMPT}\n`);
 
-			const leftovers = fs
-				.readdirSync(os.tmpdir())
-				.filter((f) => f.startsWith(`superset-launch-prompt-${terminalId}`));
-			assert.deepEqual(leftovers, []);
-
-			await disposeSessionAndWait(terminalId, db);
+				const leftovers = fs
+					.readdirSync(os.tmpdir())
+					.filter((f) => f.startsWith(`superset-launch-prompt-${terminalId}`));
+				assert.deepEqual(leftovers, []);
+			} finally {
+				await disposeSessionAndWait(terminalId, db);
+			}
 		},
 	);
 });

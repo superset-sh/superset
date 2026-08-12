@@ -41,6 +41,16 @@ const SOCK = path.join(os.tmpdir(), `host-svc-ungated-${process.pid}.sock`);
 const MIGRATIONS = path.resolve(__dirname, "../../drizzle");
 const FAKE_USER_HOME = path.join(TEST_HOME, "user-home");
 
+// The harness overwrites process-wide env; restore whatever was there so this
+// suite composes with others in the same node --test invocation.
+const OVERRIDDEN_ENV_KEYS = [
+	"SUPERSET_PTY_DAEMON_SOCKET",
+	"SUPERSET_HOME_DIR",
+	"HOST_SERVICE_VERSION",
+	"NODE_ENV",
+] as const;
+const savedEnv = new Map<string, string | undefined>();
+
 let server: Server;
 let db: HostDb;
 let workspaceId: string;
@@ -59,13 +69,15 @@ async function launchAndMeasure(
 		initialCommand: `${command} > "${outFile}"`,
 	});
 	assert.ok(!("error" in session), "error" in session ? session.error : "");
-	await waitFor(() => fs.existsSync(outFile), 25_000);
-	const elapsed = Date.now() - start;
-	// Small settle so the redirect finishes writing before we read it back.
-	await new Promise((r) => setTimeout(r, 150));
-	const body = fs.readFileSync(outFile, "utf8").trim();
-	await disposeSessionAndWait(terminalId, db);
-	return { elapsed, body };
+	try {
+		await waitFor(() => fs.existsSync(outFile), 25_000);
+		const elapsed = Date.now() - start;
+		// Small settle so the redirect finishes writing before we read it back.
+		await new Promise((r) => setTimeout(r, 150));
+		return { elapsed, body: fs.readFileSync(outFile, "utf8").trim() };
+	} finally {
+		await disposeSessionAndWait(terminalId, db);
+	}
 }
 
 before(async () => {
@@ -80,6 +92,7 @@ before(async () => {
 	});
 	await server.listen();
 
+	for (const key of OVERRIDDEN_ENV_KEYS) savedEnv.set(key, process.env[key]);
 	process.env.SUPERSET_PTY_DAEMON_SOCKET = SOCK;
 	process.env.SUPERSET_HOME_DIR = TEST_HOME;
 	process.env.HOST_SERVICE_VERSION = "0.0.0-ungated-e2e";
@@ -112,6 +125,10 @@ after(async () => {
 	__setAccountShellForTesting(undefined);
 	await disposeDaemonClient();
 	await server.close();
+	for (const [key, value] of savedEnv) {
+		if (value === undefined) delete process.env[key];
+		else process.env[key] = value;
+	}
 	try {
 		fs.rmSync(TEST_HOME, { recursive: true, force: true });
 	} catch {
