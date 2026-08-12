@@ -28,6 +28,14 @@ bun run --filter @myapp/web dev &    # Specific package
 bun run --filter @myapp/api dev
 ```
 
+## Sparse Checkout
+
+For large monorepos, list the folders your worktrees actually need in the project's **Sparse checkout** setting (v2 project settings). Every worktree Superset creates for that project afterwards materializes only those folders plus the files at the repo root (git cone mode), instead of the whole tree.
+
+- Applies only to worktrees Superset creates after the setting changes; existing worktrees, adopted worktrees, and the main repo are untouched
+- Leave the list empty for a full checkout
+- If git rejects the sparse cone, workspace creation falls back to a full checkout instead of failing
+
 ## Git Submodules
 
 Add to setup script:

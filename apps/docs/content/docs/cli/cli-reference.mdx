@@ -599,11 +599,13 @@ project id when the host doesn't know the project's name.
 <Command
 	name="superset workspaces create"
 	options={[
-		{ flag: "--project <projectId>", required: true, description: "Project ID." },
-		{ flag: "--name <name>", required: true, description: "Workspace name." },
-		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr` is set." },
+		{ flag: "--project <projectId>", description: "Project ID. Omit to create a project-less session (a managed scratch folder)." },
+		{ flag: "--name <name>", description: "Workspace name. Required when `--project` is set; optional for sessions." },
+		{ flag: "--branch <branch>", description: "Workspace branch. Required unless `--pr` or `--task` is set." },
 		{ flag: "--pr <number>", description: "Pull request number. Checks out the verified PR head." },
+		{ flag: "--task <id>", description: "Task ID to link. When `--branch` is omitted, the task's provider branch name (e.g. Linear's) is used verbatim." },
 		{ flag: "--base-branch <branch>", description: "Branch to fork from when `--branch` does not exist. Defaults to the project default branch." },
+		{ flag: "--skip-branch-prefix", description: "Use `--branch` exactly as given instead of namespacing it under the project branch prefix." },
 		{ flag: "--host <id>", description: "Target host machineId. Mutually exclusive with `--local`; one is required." },
 		{ flag: "--local", description: "Target this machine. Mutually exclusive with `--host`; one is required." },
 		{ flag: "--agent <preset|uuid|superset>", description: "Agent to spawn after creation." },
@@ -614,11 +616,18 @@ project id when the host doesn't know the project's name.
 	]}
 	output={`{ workspace: Workspace; alreadyExists: boolean }`}
 >
-Create a workspace on the target host. Specify exactly one of `--branch`
-or `--pr`. If you pass `--agent`, you must also pass `--prompt`. `--command`
+Create a workspace on the target host. With `--project`, specify one of
+`--branch`, `--pr`, or `--task` (`--branch` and `--pr` are mutually
+exclusive). If you pass `--agent`, you must also pass `--prompt`. `--command`
 runs a one-off shell command in the worktree and is independent of
 `--agent`/`--prompt`. Pass either or both. `--effort` requires `--agent`; see
 the [agent effort levels](#agent-effort-levels) below.
+
+Omitting `--project` creates a **session**: a project-less workspace backed
+by a managed folder under `~/.superset/sessions`, initialized as its own git
+repo. Sessions have no branch semantics, so `--branch`, `--pr`, `--task`,
+`--base-branch`, and `--skip-branch-prefix` are rejected, `--name` is
+optional, and the output has no `alreadyExists` field.
 
 ```bash
 superset workspaces create \
@@ -632,6 +641,9 @@ superset workspaces create \
   --name "review-pr-123" \
   --pr 123 \
   --local
+
+# Project-less session with an agent
+superset workspaces create --local --agent claude --prompt "…"
 ```
 </Command>
 
@@ -1114,17 +1126,18 @@ Use [`automations logs`](#superset-automations-logs-id) for run history.
 		{ flag: "--rrule <rrule>", required: true, description: "RFC 5545 RRULE schedule." },
 		{ flag: "--timezone <iana>", description: "Default: host TZ, then UTC." },
 		{ flag: "--dtstart <iso8601>", description: "Default: now." },
-		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace." },
-		{ flag: "--project <projectId>", description: "Project ID for new-workspace-per-run mode." },
+		{ flag: "--workspace <workspaceId>", description: "Reuse an existing workspace (session workspaces are accepted)." },
+		{ flag: "--project <projectId>", description: "Project ID for new-workspace-per-run mode. Omit (with no --workspace) for session mode." },
 		{ flag: "--host <hostId>", description: "Host the automation dispatches to (default: this machine)." },
 		{ flag: "--agent <agent>", description: "Host agent presetId, instance UUID, or 'superset' for built-in chat. Default: claude." },
 	]}
 	output="Automation"
 >
 Create an automation. Provide `--prompt` or `--prompt-file`; if both are
-present, the inline `--prompt` value is used. At least one of `--project`
-or `--workspace` must be provided, and it must exist on the target host;
-the CLI verifies this before creating the automation.
+present, the inline `--prompt` value is used. A `--project` or `--workspace`
+must exist on the target host; the CLI verifies this before creating the
+automation. Omit both for **session mode**: each run creates a project-less
+session workspace on the target host.
 
 ```bash
 superset automations create \
@@ -1149,6 +1162,7 @@ superset automations create \
 		{ flag: "--host <hostId>", description: "New target host." },
 		{ flag: "--project <projectId>", description: "New v2 project ID." },
 		{ flag: "--workspace <workspaceId>", description: "New v2 workspace ID." },
+		{ flag: "--session", description: "Switch to session mode: clears the project and any workspace pin; each run creates a project-less session workspace. Mutually exclusive with --project/--workspace." },
 		{ flag: "--agent <agent>", description: "New host agent presetId, instance UUID, or 'superset'." },
 		{ flag: "--mcp-scope <a,b,c>", description: "Comma-separated MCP scope strings." },
 		{ flag: "--enabled / --no-enabled", description: "Calls automation.setEnabled first." },

@@ -43,6 +43,7 @@ Go to **Settings → Agents** to customize launch behavior for each built-in age
 - **Command (With Prompt)** - Prompt-aware command for terminal agents
 - **Prompt Command Suffix** - Optional flags appended after the prompt payload
 - **Task Prompt Template** - Template used when launching an agent from a task
+- **Resume Args** - Arguments used to restore a killed session by its id (e.g. `--resume`)
 - **Model Override** - Optional model override for Superset Chat
 - **Reset to Defaults** - Restore the shipped configuration for that agent
 
@@ -62,6 +63,16 @@ When launching an agent from a task, the **Auto-run command** toggle controls wh
 - **Off** - Terminal agents stage the command without pressing Enter, and Superset Chat opens as a draft instead
 
 The setting is remembered between sessions.
+
+## Resume Interrupted Sessions
+
+If an agent's terminal dies without the agent exiting cleanly — a crash, a reboot, a killed process — the pane shows an "*Agent* was interrupted" banner with a **Resume** button. Resuming relaunches the agent with its own resume command (e.g. `claude --resume <session-id>`) in the same pane, restoring the full conversation.
+
+This works for agents with an id-based resume command (configurable via **Resume Args** under **Settings → Agents**), including agent sessions carried over from v1 pane migration. From the CLI:
+
+```bash
+superset agents create --workspace ws_… --agent claude --resume-session <sessionId>
+```
 
 ## Parallel Agents
 
