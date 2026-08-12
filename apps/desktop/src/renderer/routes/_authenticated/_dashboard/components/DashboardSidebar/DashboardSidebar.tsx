@@ -13,6 +13,7 @@ import { HiOutlineCog6Tooth } from "react-icons/hi2";
 import { HiringBanner } from "renderer/components/HiringBanner";
 import { UpdatesPill } from "renderer/components/UpdatesPill";
 import { useHotkeyDisplay } from "renderer/hotkeys";
+import { AIUsageIndicator } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/AIUsageIndicator";
 import { OrganizationDropdown } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/OrganizationDropdown";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
@@ -317,6 +318,7 @@ export function DashboardSidebar({
 												</div>
 											)}
 
+											<AIUsageIndicator variant="sidebar" />
 											<UpdatesPill isCollapsed={isCollapsed} />
 											<Tooltip delayDuration={300}>
 												<TooltipTrigger asChild>

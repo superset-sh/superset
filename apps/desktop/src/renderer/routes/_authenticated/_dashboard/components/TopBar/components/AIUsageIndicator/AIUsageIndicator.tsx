@@ -63,7 +63,17 @@ function mutationErrorMessage(error: unknown): string {
 		: "Codex account action failed.";
 }
 
-export function AIUsageIndicator() {
+interface AIUsageIndicatorProps {
+	/**
+	 * "top-bar" renders the compact text summary used in the v1 TopBar;
+	 * "sidebar" renders an icon-only trigger sized for the v2 sidebar footer.
+	 */
+	variant?: "top-bar" | "sidebar";
+}
+
+export function AIUsageIndicator({
+	variant = "top-bar",
+}: AIUsageIndicatorProps) {
 	const [open, setOpen] = useState(false);
 	const [isRefreshing, setIsRefreshing] = useState(false);
 	const [blurEmails, setBlurEmails] = useState(false);
@@ -160,34 +170,60 @@ export function AIUsageIndicator() {
 
 	if (!indicatorEnabled) return null;
 
+	const ariaLabel =
+		remaining === null
+			? "AI provider capacity unavailable"
+			: `AI provider capacity: ${compactAriaLabel}`;
+
 	return (
 		<Popover open={open} onOpenChange={setOpen}>
 			<Tooltip delayDuration={150}>
 				<TooltipTrigger asChild>
 					<PopoverTrigger asChild>
-						<Button
-							variant="ghost"
-							size="sm"
-							aria-label={
-								remaining === null
-									? "AI provider capacity unavailable"
-									: `AI provider capacity: ${compactAriaLabel}`
-							}
-							className="no-drag h-7 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
-						>
-							<HiOutlineChartPie className="size-3.5" />
-							<span className="max-w-28 truncate text-[10px] font-medium tabular-nums">
-								{compactLabel}
-							</span>
-						</Button>
+						{variant === "sidebar" ? (
+							<button
+								type="button"
+								aria-label={ariaLabel}
+								className={cn(
+									"flex size-8 shrink-0 items-center justify-center rounded-md transition-colors",
+									open
+										? "bg-fill-selected text-muted-foreground"
+										: "text-muted-foreground hover:bg-fill-hover",
+								)}
+							>
+								<HiOutlineChartPie className="size-3.5" />
+							</button>
+						) : (
+							<Button
+								variant="ghost"
+								size="sm"
+								aria-label={ariaLabel}
+								className="no-drag h-7 gap-1.5 px-2 text-muted-foreground hover:text-foreground"
+							>
+								<HiOutlineChartPie className="size-3.5" />
+								<span className="max-w-28 truncate text-[10px] font-medium tabular-nums">
+									{compactLabel}
+								</span>
+							</Button>
+						)}
 					</PopoverTrigger>
 				</TooltipTrigger>
-				<TooltipContent side="bottom" sideOffset={6} showArrow={false}>
-					AI capacity remaining
+				<TooltipContent
+					side={variant === "sidebar" ? "top" : "bottom"}
+					sideOffset={6}
+					showArrow={false}
+				>
+					{variant === "sidebar" && summaryParts.length > 0
+						? compactLabel
+						: "AI capacity remaining"}
 				</TooltipContent>
 			</Tooltip>
 
-			<PopoverContent align="end" className="w-80 overflow-hidden p-0">
+			<PopoverContent
+				align={variant === "sidebar" ? "start" : "end"}
+				side={variant === "sidebar" ? "top" : "bottom"}
+				className="w-80 overflow-hidden p-0"
+			>
 				<div className="flex items-center justify-between px-3.5 py-2.5">
 					<div>
 						<h4 className="text-xs font-medium text-foreground">AI capacity</h4>
