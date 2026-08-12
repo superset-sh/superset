@@ -176,7 +176,16 @@ export const workspaceRouter = router({
 		}),
 
 	delete: protectedProcedure
-		.input(z.object({ id: z.string() }))
+		.input(
+			z.object({
+				id: z.string(),
+				// A deleted workspace releases its branch by default so the same
+				// name is genuinely free to reuse (#6380). Callers that need to
+				// keep the branch (e.g. unmerged work they intend to salvage)
+				// pass false explicitly.
+				deleteBranch: z.boolean().optional(),
+			}),
+		)
 		.mutation(async ({ ctx, input }) => {
 			// Legacy external surface used by CLI/SDK/MCP. Preserve its
 			// non-interactive contract while reusing the v2 cleanup path:
@@ -185,7 +194,7 @@ export const workspaceRouter = router({
 			// is nobody to prompt for a force-retry (#6174).
 			return destroyWorkspace(ctx, {
 				workspaceId: input.id,
-				deleteBranch: false,
+				deleteBranch: input.deleteBranch ?? true,
 				force: true,
 				teardownMode: "best-effort",
 			});
