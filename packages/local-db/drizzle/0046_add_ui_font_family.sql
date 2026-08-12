@@ -1,0 +1,1 @@
+ALTER TABLE `settings` ADD `ui_font_family` text;

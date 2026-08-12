@@ -47,6 +47,7 @@ export const setFontSettingsSchema = z.object({
 		.nullable()
 		.optional(),
 	terminalCursorBlink: z.boolean().nullable().optional(),
+	uiFontFamily: z.string().max(500).nullable().optional(),
 	editorFontFamily: z.string().max(500).nullable().optional(),
 	editorFontSize: halfStepNumber(10, 24).nullable().optional(),
 	editorLineHeight: tenthStepNumber(1, 2.5).nullable().optional(),
@@ -88,6 +89,9 @@ export function transformFontSettings(
 	}
 	if (input.terminalCursorBlink !== undefined) {
 		set.terminalCursorBlink = input.terminalCursorBlink;
+	}
+	if (input.uiFontFamily !== undefined) {
+		set.uiFontFamily = input.uiFontFamily?.trim() || null;
 	}
 	if (input.editorFontFamily !== undefined) {
 		set.editorFontFamily = input.editorFontFamily?.trim() || null;

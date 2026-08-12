@@ -5,6 +5,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { FontSettingSection } from "./components/FontSettingSection";
+import { InterfaceFontSection } from "./components/InterfaceFontSection";
 import { MarkdownStyleSection } from "./components/MarkdownStyleSection";
 import { ThemeSection } from "./components/ThemeSection";
 
@@ -49,6 +50,10 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 		SETTING_ITEM_ID.APPEARANCE_CUSTOM_THEMES,
 		visibleItems,
 	);
+	const showInterfaceFont = isItemVisible(
+		SETTING_ITEM_ID.APPEARANCE_INTERFACE_FONT,
+		visibleItems,
+	);
 	const showThemeSection = showTheme || showCustomThemes;
 
 	return (
@@ -63,6 +68,7 @@ export function AppearanceSettings({ visibleItems }: AppearanceSettingsProps) {
 			<SectionList>
 				{showThemeSection && <ThemeSection key="theme" />}
 				{showMarkdown && <MarkdownStyleSection key="markdown" />}
+				{showInterfaceFont && <InterfaceFontSection key="interface-font" />}
 				{(showEditorFont || showTerminalFont) && (
 					<FontSettingSection
 						key="typography"

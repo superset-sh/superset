@@ -47,9 +47,9 @@ import {
 } from "renderer/screens/main/components/WorkspaceView/components/CodeEditor/constants";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { useTerminalTheme } from "renderer/stores/theme";
-import { FontFamilyCombobox } from "./components/FontFamilyCombobox";
+import { FontFamilyCombobox } from "../FontFamilyCombobox";
+import { useSystemFonts } from "../useSystemFonts";
 import { FontPreview } from "./components/FontPreview";
-import { useSystemFonts } from "./hooks/useSystemFonts";
 import { toFontWeightOverride } from "./utils/toFontWeightOverride";
 
 type FontSettingKey = keyof FontSettings;
@@ -71,6 +71,7 @@ const EMPTY_FONT_SETTINGS: FontSettings = {
 	terminalMinimumContrast: null,
 	terminalCursorStyle: null,
 	terminalCursorBlink: null,
+	uiFontFamily: null,
 	editorFontFamily: null,
 	editorFontSize: null,
 	editorLineHeight: null,
