@@ -64,11 +64,11 @@ The host machine must be online and registered with the relay.
 
 **Fix:** on the host, confirm the toggle in **Settings → Security** is on (desktop) or that `superset start --daemon` is running (CLI). See [Remote Workspaces](/remote-workspaces).
 
-## Automation Run Was Skipped
+## Automation Run Failed While the Device Was Offline
 
-Runs marked `skipped (offline)` fired while the target device was offline; the schedule advances normally.
+A run whose target device isn't relay-connected at fire time records as **failed**, with the offline error shown inline under the run; the schedule advances normally.
 
-**Fix:** none needed for one-off skips. If it keeps happening, retarget the automation to a device that stays online. See [Automations](/automations).
+**Fix:** none needed for a one-off. Use **Retry all** in the Automations list once the device is back online, or retarget the automation to a device that stays online. See [Automations](/automations).
 
 ## Still Stuck?
 

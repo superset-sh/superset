@@ -1,6 +1,6 @@
-import type { SelectAutomation, SelectUser } from "@superset/db/schema";
 import { COMPANY } from "@superset/shared/constants";
 import { describeSchedule } from "@superset/shared/rrule";
+import type { RouterOutputs } from "@superset/trpc";
 import {
 	AlertDialog,
 	AlertDialogAction,
@@ -33,7 +33,6 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { cn } from "@superset/ui/utils";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMutation } from "@tanstack/react-query";
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -45,6 +44,7 @@ import {
 	LuSearchX,
 	LuSparkles,
 	LuTerminal,
+	LuTriangleAlert,
 	LuX,
 } from "react-icons/lu";
 import { useRecentProjects } from "renderer/hooks/host-projects/useRecentProjects";
@@ -52,6 +52,7 @@ import { useNow } from "renderer/hooks/useNow";
 import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { DATA_TABLE_HEAD_CELL } from "renderer/routes/_authenticated/_dashboard/components/DataTableHeader";
 import {
 	SortableHeader,
@@ -59,7 +60,6 @@ import {
 } from "renderer/routes/_authenticated/_dashboard/components/SortableHeader";
 import { useFailedAutomations } from "renderer/routes/_authenticated/_dashboard/hooks/useFailedAutomations";
 import { AGENT_STORAGE_KEY } from "renderer/routes/_authenticated/components/DashboardNewWorkspaceModal/components/DashboardNewWorkspaceForm/PromptGroup/types";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { AutomationRow } from "./components/AutomationRow";
@@ -79,6 +79,8 @@ export const Route = createFileRoute("/_authenticated/_dashboard/automations/")(
 
 type Scope = "mine" | "team";
 
+type AutomationListItem = RouterOutputs["automation"]["list"][number];
+
 type AutomationSortField = "name" | "owner" | "schedule" | "status";
 
 // Seeds the "Create with AI" agent session. The skill is provisioned as
@@ -94,7 +96,6 @@ function settledErrorMessage(result: PromiseSettledResult<unknown>) {
 }
 
 function AutomationsPage() {
-	const collections = useCollections();
 	const { data: session } = authClient.useSession();
 	const currentUserId = session?.user?.id;
 
@@ -104,7 +105,7 @@ function AutomationsPage() {
 	const [scope, setScope] = useState<Scope>("mine");
 	const [search, setSearch] = useState("");
 	const [cliHintDismissed, setCliHintDismissed] = useState(false);
-	const [pendingDelete, setPendingDelete] = useState<SelectAutomation | null>(
+	const [pendingDelete, setPendingDelete] = useState<AutomationListItem | null>(
 		null,
 	);
 	const [hostOfflineRun, setHostOfflineRun] = useState<{
@@ -153,7 +154,7 @@ function AutomationsPage() {
 	});
 
 	const retryAllMutation = useMutation({
-		mutationFn: async (targets: SelectAutomation[]) => {
+		mutationFn: async (targets: AutomationListItem[]) => {
 			const results = await Promise.allSettled(
 				targets.map((a) =>
 					apiTrpcClient.automation.runNow.mutate({ id: a.id }),
@@ -200,6 +201,8 @@ function AutomationsPage() {
 		},
 	});
 
+	const utils = cloudTrpc.useUtils();
+
 	const setEnabledMutation = useMutation({
 		mutationFn: ({
 			id,
@@ -209,8 +212,11 @@ function AutomationsPage() {
 			enabled: boolean;
 			name: string;
 		}) => apiTrpcClient.automation.setEnabled.mutate({ id, enabled }),
-		onSuccess: (_, { enabled, name }) =>
-			toast.success(enabled ? `"${name}" resumed` : `"${name}" paused`),
+		onSuccess: (_, { id, enabled, name }) => {
+			void utils.automation.list.invalidate();
+			void utils.automation.get.invalidate({ id });
+			toast.success(enabled ? `"${name}" resumed` : `"${name}" paused`);
+		},
 		onError: (error) =>
 			toast.error(
 				error instanceof Error ? error.message : "Failed to update automation",
@@ -221,6 +227,7 @@ function AutomationsPage() {
 		mutationFn: ({ id }: { id: string; name: string }) =>
 			apiTrpcClient.automation.delete.mutate({ id }),
 		onSuccess: (_, { name }) => {
+			void utils.automation.list.invalidate();
 			setPendingDelete(null);
 			toast.success(`"${name}" deleted`);
 		},
@@ -230,28 +237,19 @@ function AutomationsPage() {
 			),
 	});
 
-	const { data: automationRows = [], isReady: automationsReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ a: collections.automations })
-				.orderBy(({ a }) => a.createdAt, "desc")
-				.select(({ a }) => ({ ...a })),
-		[collections.automations],
-	);
-	// Live queries can briefly surface nullish rows while syncing.
-	const automations = useMemo(
-		() => automationRows.filter((automation) => automation != null),
-		[automationRows],
-	);
+	const {
+		data: automations = [],
+		isPending: automationsPending,
+		isError: automationsFailed,
+		error: automationsError,
+		refetch: refetchAutomations,
+	} = cloudTrpc.automation.list.useQuery(undefined, {
+		refetchInterval: 15_000,
+	});
 
-	const { data: userRows = [] } = useLiveQuery(
-		(q) =>
-			q.from({ u: collections.users }).select(({ u }) => ({
-				id: u.id,
-				name: u.name,
-				email: u.email,
-			})),
-		[collections.users],
+	const { data: memberRows = [] } = cloudTrpc.organization.listMembers.useQuery(
+		undefined,
+		{},
 	);
 	const { lastRunById, failedIds, markMyFailuresSeen } = useFailedAutomations();
 	const now = useNow(30_000);
@@ -264,15 +262,9 @@ function AutomationsPage() {
 
 	const recentProjects = useRecentProjects();
 
-	// Live queries can briefly surface nullish rows while syncing (see #4519).
 	const usersById = useMemo(
-		() =>
-			new Map(
-				(userRows as Pick<SelectUser, "id" | "name" | "email">[])
-					.filter((u) => u != null)
-					.map((u) => [u.id, u]),
-			),
-		[userRows],
+		() => new Map(memberRows.map((member) => [member.user.id, member.user])),
+		[memberRows],
 	);
 	const projectsById = useMemo(
 		() =>
@@ -324,24 +316,15 @@ function AutomationsPage() {
 		return base.filter((a) => a.name.toLowerCase().includes(query));
 	}, [failedOnly, failedInTab, tabVisible, search]);
 
-	const { data: runStatRows = [] } = useLiveQuery(
-		(q) =>
-			q.from({ r: collections.automationRuns }).select(({ r }) => ({
-				automationId: r.automationId,
-				status: r.status,
-				createdAt: r.createdAt,
-			})),
-		[collections.automationRuns],
-	);
+	// Counts the latest run per automation, the only run history the cloud
+	// serves for a whole org in one read.
 	const runStats = useMemo(() => {
-		const tabIds = new Set(tabVisible.map((a) => a.id));
 		const cutoff = now.getTime() - 7 * 24 * 60 * 60 * 1000;
 		let created7d = 0;
 		let failed7d = 0;
-		for (const run of runStatRows) {
-			if (run == null || !tabIds.has(run.automationId)) continue;
-			const at = new Date(run.createdAt as unknown as string).getTime();
-			if (!Number.isFinite(at) || at < cutoff) continue;
+		for (const automation of tabVisible) {
+			const run = lastRunById.get(automation.id);
+			if (!run || run.at < cutoff) continue;
 			if (run.status === "dispatched") created7d++;
 			else if (
 				run.status === "dispatch_failed" ||
@@ -354,7 +337,7 @@ function AutomationsPage() {
 			failed7d,
 			active: tabVisible.filter((a) => a.enabled).length,
 		};
-	}, [runStatRows, tabVisible, now]);
+	}, [lastRunById, tabVisible, now]);
 
 	const [sortField, setSortField] = useState<AutomationSortField | null>(null);
 	const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
@@ -378,7 +361,7 @@ function AutomationsPage() {
 
 	const sortedVisible = useMemo(() => {
 		if (!sortField) return visible;
-		const sortValue = (automation: SelectAutomation): string => {
+		const sortValue = (automation: AutomationListItem): string => {
 			switch (sortField) {
 				case "name":
 					return automation.name;
@@ -476,14 +459,19 @@ function AutomationsPage() {
 	const lastRunWidth = "w-[14%]";
 	const statusWidth = scope === "team" ? "w-[12%]" : "w-[13%]";
 	const columnCount = scope === "team" ? 6 : 5;
-	const showAutomationLoading = !automationsReady && tabVisible.length === 0;
+	const showAutomationLoading = automationsPending && tabVisible.length === 0;
+	// A failed read has no rows either, but it is not an empty org — it must not
+	// strip the page chrome or claim the org has no automations.
+	const showAutomationError = automationsFailed && automations.length === 0;
 	// True first run: nothing in the org — stats/tabs/search are noise.
-	const orgEmpty = automationsReady && automations.length === 0;
-	const tabEmpty = automationsReady && tabVisible.length === 0;
+	const orgEmpty =
+		!automationsPending && !showAutomationError && automations.length === 0;
+	const tabEmpty =
+		!automationsPending && !showAutomationError && tabVisible.length === 0;
 	const showMineEmptyState = tabEmpty && scope === "mine";
 	const showTeamEmptyState = tabEmpty && scope === "team";
 
-	const renderAutomationRow = (automation: SelectAutomation) => (
+	const renderAutomationRow = (automation: AutomationListItem) => (
 		<AutomationRow
 			key={automation.id}
 			automation={automation}
@@ -685,6 +673,33 @@ function AutomationsPage() {
 									<Skeleton key={key} className="h-10 w-full" />
 								))}
 							</div>
+						) : showAutomationError ? (
+							<Empty className="rounded-xl border border-border py-16">
+								<EmptyHeader>
+									<EmptyMedia
+										variant="icon"
+										className="size-14 [&_svg:not([class*='size-'])]:size-7"
+									>
+										<LuTriangleAlert />
+									</EmptyMedia>
+									<EmptyTitle>Couldn't load automations</EmptyTitle>
+									<EmptyDescription className="select-text cursor-text">
+										{automationsError instanceof Error
+											? automationsError.message
+											: "The request failed."}
+									</EmptyDescription>
+								</EmptyHeader>
+								<Button
+									variant="outline"
+									size="sm"
+									onClick={() => {
+										void refetchAutomations();
+									}}
+								>
+									<LuRotateCw className="size-4" />
+									<span>Try again</span>
+								</Button>
+							</Empty>
 						) : showMineEmptyState ? (
 							<div className="flex flex-1 flex-col py-6">
 								<AutomationsEmptyState

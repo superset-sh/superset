@@ -1,6 +1,6 @@
-import type { SelectV2Host } from "@superset/db/schema";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
+import type { OrgHost } from "@/hooks/useOrgHosts";
 import { createHostClient } from "@/lib/trpc/host-client";
 
 export type WorkspaceAttention = "working" | "permission";
@@ -27,7 +27,7 @@ function attentionFromEvent(lastEventType: string): WorkspaceAttention | null {
  * than none) or the query has no data.
  */
 export function useHostTerminalAgents(
-	host: SelectV2Host | null,
+	host: OrgHost | null,
 ): Map<string, WorkspaceAttention> {
 	const organizationId = host?.organizationId ?? null;
 	const hostId = host?.machineId ?? null;

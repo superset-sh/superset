@@ -127,6 +127,27 @@ jobs:
           RELAY_URL: ${{ secrets.RELAY_URL }}
         run: bun run test
 
+      # The terminal launch-protection suites (src/terminal/*.node-test.ts)
+      # need real PTYs + node:test, which bun can't provide.
+      - name: Setup Node.js (terminal node-tests)
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+
+      # bun install ran with --ignore-scripts, so better-sqlite3 has no native
+      # build; fetch the prebuilt binary for the Node ABI using the lockfile-
+      # pinned prebuild-install that ships as its dependency (bun tests use
+      # bun:sqlite and are unaffected).
+      - name: Prepare better-sqlite3 for Node
+        run: |
+          for dir in node_modules/.bun/better-sqlite3@*/node_modules/better-sqlite3; do
+            (cd "$dir" && ../.bin/prebuild-install)
+          done
+
+      - name: Terminal node-tests
+        working-directory: packages/host-service
+        run: bun run test:integration:terminal
+
   typecheck:
     name: Typecheck
     runs-on: ubuntu-latest

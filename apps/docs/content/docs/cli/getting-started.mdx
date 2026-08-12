@@ -91,6 +91,17 @@ Organization: Acme
 Auth: Session (expires in 32 min)
 ```
 
+## Explore interactively
+
+Bare `superset` in a terminal opens an interactive command browser:
+arrow-key through the commands, read their flags, and fill in required
+inputs with guided prompts. The confirmation screen shows the exact
+command before running it. `superset --help` prints the same catalog as
+static, grouped help. Agents and CI always get static help; the browser
+never opens there.
+
+![The interactive command browser](/images/cli-command-browser.png)
+
 ## Run your first commands
 
 List the projects in your organization:

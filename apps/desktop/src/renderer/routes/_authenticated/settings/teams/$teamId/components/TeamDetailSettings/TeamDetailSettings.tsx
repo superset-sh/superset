@@ -21,14 +21,12 @@ import {
 	TableHeader,
 	TableRow,
 } from "@superset/ui/table";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { Link, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { HiArrowLeft } from "react-icons/hi2";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { AddMemberButton } from "./components/AddMemberButton";
 
 interface TeamDetailSettingsProps {
@@ -49,60 +47,42 @@ type OpenDialog = "delete" | "leaveTeam" | null;
 export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	const { data: session } = authClient.useSession();
 	const navigate = useNavigate();
-	const collections = useCollections();
+	const utils = cloudTrpc.useUtils();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 	const currentUserId = session?.user?.id;
 
-	const { data: teamsData, isReady: teamsReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ teams: collections.teams })
-				.select(({ teams }) => ({ ...teams })),
-		[collections],
+	const { data: teamsData, isPending: teamsPending } =
+		cloudTrpc.organization.listTeams.useQuery(undefined);
+
+	const { data: orgMembers, isPending: orgMembersPending } =
+		cloudTrpc.organization.listMembers.useQuery(undefined);
+
+	const orgUsers = useMemo(
+		() => (orgMembers ?? []).map((member) => member.user),
+		[orgMembers],
 	);
 
-	const { data: orgUsers } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.innerJoin({ users: collections.users }, ({ members, users }) =>
-					eq(members.userId, users.id),
-				)
-				.select(({ users }) => ({ ...users })),
-		[collections],
+	const team = useMemo(
+		() => (teamsData ?? []).find((t) => t.id === teamId) ?? null,
+		[teamsData, teamId],
 	);
 
-	const { data: membersRaw, isReady: membersReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ tm: collections.teamMembers })
-				.innerJoin({ users: collections.users }, ({ tm, users }) =>
-					eq(tm.userId, users.id),
-				)
-				.select(({ tm, users }) => ({
-					teamMembershipId: tm.id,
-					teamId: tm.teamId,
-					userId: tm.userId,
-					name: users.name,
-					email: users.email,
-					image: users.image,
-					createdAt: tm.createdAt,
-				})),
-		[collections],
-	);
-
-	const team = (teamsData ?? []).find((t) => t.id === teamId) ?? null;
-	const members: TeamMemberRow[] = (membersRaw ?? [])
-		.filter((r) => r.teamId === teamId)
-		.map((r) => ({
-			teamMembershipId: r.teamMembershipId,
-			userId: r.userId,
-			name: r.name ?? null,
-			email: r.email,
-			image: r.image ?? null,
-			createdAt: r.createdAt ? new Date(r.createdAt) : new Date(0),
-		}))
-		.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+	const members: TeamMemberRow[] = useMemo(() => {
+		const usersById = new Map(orgUsers.map((user) => [user.id, user]));
+		return (team?.members ?? [])
+			.map((row) => {
+				const user = usersById.get(row.userId);
+				return {
+					teamMembershipId: row.id,
+					userId: row.userId,
+					name: user?.name ?? null,
+					email: user?.email ?? "",
+					image: user?.image ?? null,
+					createdAt: row.createdAt ? new Date(row.createdAt) : new Date(0),
+				};
+			})
+			.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+	}, [team, orgUsers]);
 
 	const currentMember = members.find((m) => m.userId === currentUserId);
 
@@ -111,11 +91,11 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 	const [slugValue, setSlugValue] = useState("");
 	const [isSubmitting, setIsSubmitting] = useState(false);
 
-	// Populate form once the team row arrives from Electric (and re-populate
-	// on navigation to a different team). Keyed off team?.id — which is
-	// undefined until the collection hydrates, then becomes teamId — so we
-	// don't seed empty strings before the row is loaded, and subsequent
-	// Electric updates to the same row don't clobber in-progress edits.
+	// Populate form once the team row arrives (and re-populate on navigation to
+	// a different team). Keyed off team?.id — which is undefined until the query
+	// resolves, then becomes teamId — so we don't seed empty strings before the
+	// row is loaded, and later refetches of the same row don't clobber
+	// in-progress edits.
 	// biome-ignore lint/correctness/useExhaustiveDependencies: intentional — only resync when the loaded team's id changes
 	useEffect(() => {
 		if (!team) return;
@@ -146,6 +126,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				toast.error(result.error.message ?? "Failed to save team");
 				return;
 			}
+			await utils.organization.listTeams.invalidate();
 			toast.success("Saved");
 		} catch (error) {
 			toast.error(
@@ -168,6 +149,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				toast.error(result.error.message ?? "Failed to delete team");
 				return;
 			}
+			await utils.organization.listTeams.invalidate();
 			toast.success(`Deleted "${team?.name ?? "team"}"`);
 			navigate({ to: "/settings/teams" });
 		} catch (error) {
@@ -187,6 +169,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 				teamId,
 				userId: currentUserId,
 			});
+			await utils.organization.listTeams.invalidate();
 			toast.success("Left team");
 			setOpenDialog(null);
 			navigate({ to: "/settings/teams" });
@@ -201,7 +184,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 
 	if (!activeOrganizationId) return null;
 
-	const isReady = teamsReady && membersReady;
+	const isPending = teamsPending || orgMembersPending;
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0">
@@ -267,7 +250,7 @@ export function TeamDetailSettings({ teamId }: TeamDetailSettingsProps) {
 							)}
 						</div>
 
-						{!isReady && members.length === 0 ? (
+						{isPending ? (
 							<div className="space-y-2 border rounded-lg">
 								{[1, 2, 3].map((i) => (
 									<div key={i} className="flex items-center gap-4 p-4">

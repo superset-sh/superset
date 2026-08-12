@@ -1,9 +1,7 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
-import { useEffect, useRef } from "react";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useEffect, useMemo, useRef } from "react";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import type { StoreApi } from "zustand/vanilla";
 import type { ChatPaneData, PaneViewerData } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
@@ -30,7 +28,6 @@ export function useConsumeAutomationRunLink({
 	focusRequestId,
 }: UseConsumeAutomationRunLinkArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
-	const collections = useCollections();
 	const terminalSessionsQuery = workspaceTrpc.terminal.list.useQuery(
 		{ workspaceId },
 		{
@@ -38,14 +35,16 @@ export function useConsumeAutomationRunLink({
 			refetchOnWindowFocus: false,
 		},
 	);
-	const { data: chatSessionRows, isReady: chatSessionsReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) => eq(chatSessions.id, chatSessionId ?? "")),
-		[collections, chatSessionId],
+	const { data: chatSessionRows = [], isPending: chatSessionsPending } =
+		cloudTrpc.chat.listSessions.useQuery(
+			{ sessionIds: chatSessionId != null ? [chatSessionId] : [] },
+			{ enabled: chatSessionId != null },
+		);
+	const chatSession = useMemo(
+		() =>
+			chatSessionRows.find((session) => session.id === chatSessionId) ?? null,
+		[chatSessionRows, chatSessionId],
 	);
-	const chatSession = chatSessionRows?.[0] ?? null;
 
 	useEffect(() => {
 		if (!terminalId) return;
@@ -82,7 +81,7 @@ export function useConsumeAutomationRunLink({
 
 	useEffect(() => {
 		if (!chatSessionId) return;
-		if (!chatSessionsReady) return;
+		if (chatSessionsPending) return;
 		if (!chatSession) return;
 		const key = getAutomationRunLinkConsumeKey({
 			type: "chat",
@@ -104,7 +103,7 @@ export function useConsumeAutomationRunLink({
 		chatSessionId,
 		focusRequestId,
 		chatSession,
-		chatSessionsReady,
+		chatSessionsPending,
 		workspaceId,
 	]);
 }

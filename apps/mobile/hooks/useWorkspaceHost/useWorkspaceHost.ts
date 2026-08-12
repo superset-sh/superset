@@ -1,20 +1,19 @@
-import type { SelectV2Host } from "@superset/db/schema";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useQueries } from "@tanstack/react-query";
 import { useMemo } from "react";
+import { useHostsPresence } from "@/hooks/useHostsPresence";
 import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceRow,
 } from "@/hooks/useHostWorkspaces";
+import { NO_HOSTS, type OrgHost, useOrgHostsQuery } from "@/hooks/useOrgHosts";
 import {
 	buildRelayHostUrl,
 	getHostServiceClientByUrl,
 } from "@/lib/host-service/client";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 
 export interface WorkspaceHostResult {
 	workspace: HostWorkspaceRow | null;
-	host: SelectV2Host | null;
+	host: OrgHost | null;
 	/** True while no host has answered yet. */
 	isResolving: boolean;
 }
@@ -27,22 +26,23 @@ export interface WorkspaceHostResult {
 export function useWorkspaceHost(
 	workspaceId: string | null,
 ): WorkspaceHostResult {
-	const collections = useCollections();
-
-	const { data: hosts } = useLiveQuery(
-		(q) => q.from({ v2Hosts: collections.v2Hosts }),
-		[collections],
-	);
+	const hostsQuery = useOrgHostsQuery();
+	const hosts = hostsQuery.data ?? NO_HOSTS;
+	const presence = useHostsPresence(hosts);
 
 	const targets = useMemo(
 		() =>
-			(hosts ?? [])
+			hosts
+				.map((host) => ({
+					...host,
+					isOnline: presence?.get(host.machineId) ?? host.isOnline,
+				}))
 				.filter((host) => host.isOnline)
 				.map((host) => ({
 					host,
 					hostUrl: buildRelayHostUrl(host.organizationId, host.machineId),
 				})),
-		[hosts],
+		[hosts, presence],
 	);
 
 	const queries = useQueries({
@@ -59,7 +59,7 @@ export function useWorkspaceHost(
 
 	return useMemo(() => {
 		let workspace: HostWorkspaceRow | null = null;
-		let host: SelectV2Host | null = null;
+		let host: OrgHost | null = null;
 		targets.forEach(({ host: target }, index) => {
 			if (workspace) return;
 			const match = queries[index]?.data?.find((row) => row.id === workspaceId);
@@ -68,7 +68,9 @@ export function useWorkspaceHost(
 				host = target;
 			}
 		});
-		const isResolving = !workspace && queries.some((query) => query.isLoading);
+		const isResolving =
+			!workspace &&
+			(hostsQuery.isLoading || queries.some((query) => query.isLoading));
 		return { workspace, host, isResolving };
-	}, [targets, queries, workspaceId]);
+	}, [targets, queries, workspaceId, hostsQuery.isLoading]);
 }

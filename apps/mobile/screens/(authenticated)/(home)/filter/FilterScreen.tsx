@@ -11,20 +11,18 @@ import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelec
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 import { ProjectAvatar } from "./components/ProjectAvatar";
 
 export function FilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
-	const _collections = useCollections();
 	const projectFilter = useWorkspacesFilterStore(
 		(store) => store.projectFilter,
 	);
 	const selectedHost = useSelectedHost();
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
-	// Projects are fully local — served by the selected host, not Electric.
+	// Projects are fully local — served by the selected host, not the cloud.
 	const { projects } = useHostProjects(selectedHost);
 
 	const sortedProjects = [...projects].sort((a, b) =>

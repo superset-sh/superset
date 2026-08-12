@@ -7,7 +7,9 @@ interface FeatureDemoProps {
 
 export function FeatureDemo({ children, className = "" }: FeatureDemoProps) {
 	return (
-		<div className={`relative w-full min-h-[300px] lg:aspect-4/3 ${className}`}>
+		<div
+			className={`relative w-full min-h-[300px] lg:aspect-4/3 overflow-hidden max-sm:[mask-image:linear-gradient(to_right,black_82%,transparent)] ${className}`}
+		>
 			{/* Soft ember glow behind the demo window, same stage lighting as the hero */}
 			<div
 				className="pointer-events-none absolute inset-0"

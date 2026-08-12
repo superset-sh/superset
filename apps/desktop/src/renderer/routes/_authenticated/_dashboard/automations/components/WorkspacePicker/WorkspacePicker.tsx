@@ -1,4 +1,3 @@
-import type { SelectV2Host } from "@superset/db/schema";
 import {
 	Command,
 	CommandGroup,
@@ -8,12 +7,11 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { cn } from "@superset/ui/utils";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useMemo, useState } from "react";
 import { HiCheck } from "react-icons/hi2";
 import { LuGitBranch, LuSparkles, LuTriangleAlert } from "react-icons/lu";
 import { PickerTrigger } from "renderer/components/PickerTrigger";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 
 interface WorkspacePickerProps {
@@ -40,7 +38,6 @@ export function WorkspacePicker({
 	disabled,
 }: WorkspacePickerProps) {
 	const [open, setOpen] = useState(false);
-	const collections = useCollections();
 
 	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
 	const workspaceRows = useMemo(
@@ -52,12 +49,7 @@ export function WorkspacePicker({
 		[hostWorkspaces],
 	);
 
-	const { data: allHosts = [] } = useLiveQuery(
-		(q) => q.from({ h: collections.v2Hosts }).select(({ h }) => ({ ...h })),
-		[collections.v2Hosts],
-	);
-
-	const hostRows = allHosts as SelectV2Host[];
+	const { data: hostRows = [] } = cloudTrpc.v2Host.list.useQuery(undefined);
 
 	// Null projectId = session mode: offer the host's session workspaces
 	// (projectId null) as pin targets.

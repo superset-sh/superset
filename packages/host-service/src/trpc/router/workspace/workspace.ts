@@ -144,17 +144,18 @@ export const workspaceRouter = router({
 			return toCloudShape(updated, ctx.organizationId);
 		}),
 
-	cloudList: protectedProcedure.query(async ({ ctx }) => {
-		const rows = await ctx.api.v2Workspace.list.query({
-			organizationId: ctx.organizationId,
-		});
-		return rows.map((row) => ({
-			id: row.id,
-			projectId: row.projectId,
-			branch: row.branch,
-			hostId: row.hostId,
-		}));
-	}),
+	// Workspaces are host-owned now; the cloud list it proxied is gone. Kept as
+	// an empty read so released clients that still call it don't error.
+	cloudList: protectedProcedure.query(
+		async (): Promise<
+			Array<{
+				id: string;
+				projectId: string;
+				branch: string;
+				hostId: string;
+			}>
+		> => [],
+	),
 
 	gitStatus: protectedProcedure
 		.input(z.object({ id: z.string() }))

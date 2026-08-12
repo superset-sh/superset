@@ -1,6 +1,8 @@
 import { describe, expect, it } from "bun:test";
 import {
+	buildFishPromptCommandString,
 	buildPromptCommandString,
+	parsePromptHeredocCommand,
 	sanitizePromptForPty,
 } from "./agent-prompt-launch";
 
@@ -67,6 +69,99 @@ describe("buildPromptCommandString", () => {
 
 		expect(command).toBe(
 			"amp <<'SUPERSET_PROMPT_1234_X'\nSUPERSET_PROMPT_1234\nrm -rf /\nSUPERSET_PROMPT_1234_X",
+		);
+	});
+});
+
+describe("parsePromptHeredocCommand", () => {
+	const trickyPrompt = "line 'one'\n$HOME `pwd` \"two\"\n\nlast";
+
+	it("round-trips the argv transport, prompt bytes exact", () => {
+		const built = buildPromptCommandString({
+			command: "claude --model opus",
+			suffix: "--verbose",
+			transport: "argv",
+			prompt: trickyPrompt,
+			randomId: "abc123",
+		});
+		expect(parsePromptHeredocCommand(built)).toEqual({
+			transport: "argv",
+			command: "claude --model opus",
+			prompt: trickyPrompt,
+			suffix: "--verbose",
+		});
+	});
+
+	it("round-trips the argv transport without a suffix", () => {
+		const built = buildPromptCommandString({
+			command: "claude",
+			transport: "argv",
+			prompt: trickyPrompt,
+			randomId: "abc123",
+		});
+		expect(parsePromptHeredocCommand(built)).toEqual({
+			transport: "argv",
+			command: "claude",
+			prompt: trickyPrompt,
+			suffix: undefined,
+		});
+	});
+
+	it("round-trips the stdin transport", () => {
+		const built = buildPromptCommandString({
+			command: "amp",
+			suffix: "--dangerous",
+			transport: "stdin",
+			prompt: trickyPrompt,
+			randomId: "abc123",
+		});
+		expect(parsePromptHeredocCommand(built)).toEqual({
+			transport: "stdin",
+			command: "amp --dangerous",
+			prompt: trickyPrompt,
+		});
+	});
+
+	it("round-trips a collision-extended delimiter (_X runs)", () => {
+		const prompt = "SUPERSET_PROMPT_1234\nbody";
+		const built = buildPromptCommandString({
+			command: "amp",
+			transport: "stdin",
+			prompt,
+			randomId: "1234",
+		});
+		expect(parsePromptHeredocCommand(built)?.prompt).toBe(prompt);
+	});
+
+	it("returns null for plain commands and foreign heredocs", () => {
+		expect(parsePromptHeredocCommand("claude --resume abc")).toBeNull();
+		expect(parsePromptHeredocCommand("cat <<'EOF'\nhello\nEOF")).toBeNull();
+	});
+});
+
+describe("buildFishPromptCommandString", () => {
+	it("argv transport reads the staged file via string collect and self-deletes", () => {
+		expect(
+			buildFishPromptCommandString({
+				command: "claude",
+				suffix: "--verbose",
+				transport: "argv",
+				promptFilePath: "/tmp/superset-launch-prompt-x.txt",
+			}),
+		).toBe(
+			"claude (begin; cat '/tmp/superset-launch-prompt-x.txt'; command rm -f -- '/tmp/superset-launch-prompt-x.txt'; end | string collect --allow-empty) --verbose",
+		);
+	});
+
+	it("stdin transport redirects the staged file and unlinks it after open", () => {
+		expect(
+			buildFishPromptCommandString({
+				command: "amp --dangerous",
+				transport: "stdin",
+				promptFilePath: "/tmp/p.txt",
+			}),
+		).toBe(
+			"begin; command rm -f -- '/tmp/p.txt'; amp --dangerous; end < '/tmp/p.txt'",
 		);
 	});
 });

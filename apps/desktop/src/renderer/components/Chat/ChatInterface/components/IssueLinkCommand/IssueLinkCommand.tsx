@@ -9,15 +9,15 @@ import {
 } from "@superset/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@superset/ui/popover";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
-import { useLiveQuery } from "@tanstack/react-db";
 import Fuse from "fuse.js";
 import type { ReactNode } from "react";
 import { useId, useMemo, useState } from "react";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	StatusIcon,
 	type StatusType,
 } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/components/shared/StatusIcon";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { TASK_PICKER_INPUT } from "renderer/routes/_authenticated/_dashboard/tasks/components/TasksView/hooks/useTasksData";
 
 const MAX_RESULTS = 20;
 
@@ -46,32 +46,32 @@ export function IssueLinkCommand({
 	const [searchQuery, setSearchQuery] = useState("");
 	const [showClosed, setShowClosed] = useState(false);
 	const showClosedId = useId();
-	const collections = useCollections();
 
-	const { data: allTasks } = useLiveQuery(
-		(q) =>
-			q.from({ t: collections.tasks }).select(({ t }) => ({
-				id: t.id,
-				slug: t.slug,
-				title: t.title,
-				statusId: t.statusId,
-				priority: t.priority,
-				updatedAt: t.updatedAt,
-				externalUrl: t.externalUrl,
-				branch: t.branch,
-			})),
-		[collections.tasks],
+	const { data: taskPage } = cloudTrpc.task.listPage.useQuery(
+		TASK_PICKER_INPUT,
+		{
+			enabled: open,
+		},
 	);
 
-	const { data: allStatuses } = useLiveQuery(
-		(q) =>
-			q.from({ s: collections.taskStatuses }).select(({ s }) => ({
-				id: s.id,
-				type: s.type,
-				color: s.color,
-				progressPercent: s.progressPercent,
+	const allTasks = useMemo(
+		() =>
+			(taskPage?.items ?? []).map(({ task }) => ({
+				id: task.id,
+				slug: task.slug,
+				title: task.title,
+				statusId: task.statusId,
+				priority: task.priority,
+				updatedAt: task.updatedAt,
+				externalUrl: task.externalUrl,
+				branch: task.branch,
 			})),
-		[collections.taskStatuses],
+		[taskPage],
+	);
+
+	const { data: allStatuses } = cloudTrpc.task.statuses.list.useQuery(
+		undefined,
+		{ enabled: open },
 	);
 
 	const statusMap = useMemo(() => {
@@ -113,6 +113,9 @@ export function IssueLinkCommand({
 
 	const filteredTasks = useMemo(() => {
 		if (!allTasks?.length) return [];
+		// An empty status map makes every task read as open, so the open-only
+		// list would show closed issues until the statuses land.
+		if (!showClosed && !allStatuses) return [];
 		const visibleTasks = allTasks.filter((task) => {
 			if (showClosed) return true;
 			const status = task.statusId ? statusMap.get(task.statusId) : undefined;
@@ -129,7 +132,7 @@ export function IssueLinkCommand({
 		return taskFuse
 			.search(searchQuery, { limit: MAX_RESULTS })
 			.map((r) => r.item);
-	}, [allTasks, searchQuery, showClosed, statusMap, taskFuse]);
+	}, [allStatuses, allTasks, searchQuery, showClosed, statusMap, taskFuse]);
 
 	const handleSelect = (
 		slug: string,

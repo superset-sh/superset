@@ -1,5 +1,4 @@
 import { prompt } from "@superset/alert-prompt";
-import type { SelectV2Host } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
 import { useQueryClient } from "@tanstack/react-query";
 import * as Clipboard from "expo-clipboard";
@@ -8,6 +7,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Share } from "react-native";
 import type { HostWorkspaceRow } from "@/hooks/useHostWorkspaces";
+import type { OrgHost } from "@/hooks/useOrgHosts";
 import { createAcpSession } from "@/lib/host/client";
 import {
 	buildRelayHostUrl,
@@ -17,7 +17,7 @@ import { isTrpcErrorWithData } from "@/lib/host-service/errors";
 
 export function useWorkspaceHeaderActions(
 	workspace: HostWorkspaceRow | null,
-	host: SelectV2Host | null,
+	host: OrgHost | null,
 ) {
 	const router = useRouter();
 	const queryClient = useQueryClient();

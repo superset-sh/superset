@@ -1,7 +1,6 @@
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 
 import { adminRouter } from "./router/admin";
-import { agentRouter } from "./router/agent";
 import { analyticsRouter } from "./router/analytics";
 import { apiKeyRouter } from "./router/api-key";
 import { automationRouter } from "./router/automation";
@@ -24,7 +23,6 @@ import { createCallerFactory, createTRPCRouter } from "./trpc";
 
 export const appRouter = createTRPCRouter({
 	admin: adminRouter,
-	agent: agentRouter,
 	apiKey: apiKeyRouter,
 	analytics: analyticsRouter,
 	automation: automationRouter,

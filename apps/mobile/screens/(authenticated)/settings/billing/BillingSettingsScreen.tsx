@@ -1,64 +1,46 @@
-import { useLiveQuery } from "@tanstack/react-db";
 import { ScrollView, Text, View } from "react-native";
 import { useTheme } from "@/hooks/useTheme";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
-import { activeSubscription } from "../utils/activeSubscription";
+import { useActivePlan } from "../hooks/useActivePlan";
 
 export function BillingSettingsScreen() {
 	const theme = useTheme();
-	const collections = useCollections();
-
-	const { data: subscriptions } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
-	);
-
-	const subscription = activeSubscription(subscriptions ?? []);
+	const activePlan = useActivePlan();
+	const isPaid = activePlan != null && activePlan.plan !== "free";
 
 	return (
 		<ScrollView
 			className="bg-background flex-1"
 			contentContainerClassName="px-6 pb-12"
 		>
-			{subscription ? (
+			{isPaid ? (
 				<>
 					<ListRow
 						label="Plan"
 						trailing={
 							<ListRowValue
 								value={
-									subscription.plan[0].toUpperCase() +
-									subscription.plan.slice(1)
+									activePlan.plan[0].toUpperCase() + activePlan.plan.slice(1)
 								}
 								chevron={false}
 							/>
 						}
 					/>
-					<ListRow
-						label="Status"
-						trailing={
-							<ListRowValue value={subscription.status} chevron={false} />
-						}
-					/>
-					{subscription.seats != null ? (
+					{activePlan.status ? (
 						<ListRow
-							label="Seats"
+							label="Status"
 							trailing={
-								<ListRowValue
-									value={String(subscription.seats)}
-									chevron={false}
-								/>
+								<ListRowValue value={activePlan.status} chevron={false} />
 							}
 						/>
 					) : null}
-					{subscription.periodEnd ? (
+					{activePlan.periodEnd ? (
 						<ListRow
-							label={subscription.cancelAtPeriodEnd ? "Cancels" : "Renews"}
+							label={activePlan.cancelAt ? "Cancels" : "Renews"}
 							trailing={
 								<ListRowValue
-									value={subscription.periodEnd.toLocaleDateString()}
+									value={activePlan.periodEnd.toLocaleDateString()}
 									chevron={false}
 								/>
 							}

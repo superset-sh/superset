@@ -31,8 +31,12 @@ import {
 	getDashboardSidebarPullRequestQueryKey,
 	type PullRequestQueryTarget,
 } from "./derivePullRequestQueryTargets";
+import { createPullRequestRefreshGate } from "./pullRequestRefreshCooldown";
 
 const MAIN_WORKSPACE_TAB_ORDER = Number.MIN_SAFE_INTEGER;
+
+// Module-level so remounting the sidebar doesn't reset the cool-down.
+const pullRequestRefreshGate = createPullRequestRefreshGate();
 
 type SidebarPullRequest = DashboardSidebarWorkspace["pullRequest"];
 type PullRequestWorkspaceRow = {
@@ -444,6 +448,9 @@ export function useDashboardSidebarData() {
 				(candidate) => candidate.machineId === workspace.hostId,
 			);
 			if (!target?.hostUrl) return;
+			if (!pullRequestRefreshGate.shouldRefresh(workspaceId, Date.now())) {
+				return;
+			}
 
 			const client = getHostServiceClientByUrl(target.hostUrl);
 			await client.pullRequests.refreshByWorkspaces.mutate({

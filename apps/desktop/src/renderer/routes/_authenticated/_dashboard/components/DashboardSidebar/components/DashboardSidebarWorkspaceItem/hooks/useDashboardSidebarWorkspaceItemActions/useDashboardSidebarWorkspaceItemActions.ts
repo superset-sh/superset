@@ -3,10 +3,6 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { getTerminalAgentBindingsQueryKey } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import {
-	useMarkWorkspaceTerminalsSeen,
-	useV2WorkspaceIsUnread,
-} from "renderer/hooks/host-service/useV2NotificationStatus";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -14,8 +10,12 @@ import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unava
 import { electronTrpcClient } from "renderer/lib/trpc-client";
 import { useDashboardSidebarSectionRename } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/components/DashboardSidebarSectionRenameContext";
 import { DASHBOARD_SIDEBAR_PULL_REQUEST_QUERY_KEY_PREFIX } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
+import {
+	useMarkSidebarWorkspaceTerminalsSeen,
+	useSidebarWorkspaceStatus,
+} from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarWorkspaceStatusProvider";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { useDeleteWorkspaceIntent } from "renderer/stores/delete-workspace-intent";
 import { useRemoveFromSidebarIntent } from "renderer/stores/remove-workspace-from-sidebar-intent";
@@ -44,12 +44,13 @@ export function useDashboardSidebarWorkspaceItemActions({
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const { copyToClipboard } = useCopyToClipboard();
-	const { v2Workspaces: workspaceActions } = useOptimisticCollectionActions();
+	const { v2Workspaces: workspaceActions } = useOptimisticActions();
 	const { requestSectionRename } = useDashboardSidebarSectionRename();
 	const setManualUnread = useV2NotificationStore((s) => s.setManualUnread);
 	const clearManualUnread = useV2NotificationStore((s) => s.clearManualUnread);
-	const markWorkspaceTerminalsSeen = useMarkWorkspaceTerminalsSeen(workspaceId);
-	const isUnread = useV2WorkspaceIsUnread(workspaceId);
+	const markWorkspaceTerminalsSeen =
+		useMarkSidebarWorkspaceTerminalsSeen(workspaceId);
+	const { isUnread } = useSidebarWorkspaceStatus(workspaceId);
 	const workspaceHostUrl = useWorkspaceHostUrl(workspaceId);
 	const queryClient = useQueryClient();
 

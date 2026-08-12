@@ -1,6 +1,4 @@
 import { LegendList } from "@legendapp/list/react-native";
-import type { SelectGithubPullRequest } from "@superset/db/schema";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useQueryClient } from "@tanstack/react-query";
 import { isAfter } from "date-fns";
 import * as Haptics from "expo-haptics";
@@ -18,7 +16,10 @@ import { THEME } from "@/lib/theme";
 import { cn } from "@/lib/utils";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
+import {
+	type OrgPullRequest,
+	usePullRequests,
+} from "@/screens/(authenticated)/hooks/usePullRequests";
 import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
@@ -76,7 +77,6 @@ export function HomeScreen() {
 	const [refreshing, setRefreshing] = useState(false);
 	const { width, height: windowHeight } = useWindowDimensions();
 	const insets = useSafeAreaInsets();
-	const collections = useCollections();
 	const queryClient = useQueryClient();
 	const {
 		organizations,
@@ -89,12 +89,9 @@ export function HomeScreen() {
 	const { workspaces, isReady, cache } = useHostWorkspaces(selectedHost);
 	const attentionByWorkspace = useHostTerminalAgents(selectedHost);
 
-	// Projects are fully local — served by the selected host, not Electric.
+	// Projects are fully local — served by the selected host, not the cloud.
 	const { projects } = useHostProjects(selectedHost);
-	const { data: pullRequests } = useLiveQuery(
-		(q) => q.from({ githubPullRequests: collections.githubPullRequests }),
-		[collections],
-	);
+	const pullRequests = usePullRequests();
 	const { sessionsByWorkspace } = useHostAcpSessions(selectedHost);
 
 	const sortedProjects = useMemo(
@@ -204,8 +201,8 @@ export function HomeScreen() {
 
 	const pullRequestsByRepoBranch = useMemo(() => {
 		const rank = { closed: 3, draft: 1, merged: 2, open: 0 } as const;
-		const byRepoBranch = new Map<string, SelectGithubPullRequest>();
-		for (const pullRequest of pullRequests ?? []) {
+		const byRepoBranch = new Map<string, OrgPullRequest>();
+		for (const pullRequest of pullRequests) {
 			// Key on repo coordinates from the PR URL — host projects don't
 			// know cloud repo UUIDs.
 			const repoPrefix = pullRequest.url
@@ -268,6 +265,7 @@ export function HomeScreen() {
 			.refetchQueries({ queryKey: ["host-service", "workspaces", "list"] })
 			.catch(() => {});
 		void queryClient.invalidateQueries({ queryKey: ["diff-stats"] });
+		void queryClient.invalidateQueries({ queryKey: ["cloud"] });
 		setRefreshing(false);
 	}, [queryClient]);
 

@@ -13,7 +13,6 @@
 	"dependencies": {
 		"@anthropic-ai/sdk": "0.78.0",
 		"@better-auth/oauth-provider": "1.6.22",
-		"@durable-streams/client": "0.2.3",
 		"@linear/sdk": "68.1.1",
 		"@modelcontextprotocol/sdk": "1.30.0",
 		"@octokit/app": "16.1.2",
@@ -28,7 +27,6 @@
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@t3-oss/env-nextjs": "0.13.11",
-		"@tavily/core": "0.7.2",
 		"@trpc/server": "11.16.0",
 		"@upstash/qstash": "2.10.1",
 		"@upstash/ratelimit": "2.0.8",

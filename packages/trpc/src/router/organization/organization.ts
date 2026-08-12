@@ -1,7 +1,13 @@
 import { auth } from "@superset/auth/server";
 import { stripeClient } from "@superset/auth/stripe";
 import { db } from "@superset/db/client";
-import { members, organizations } from "@superset/db/schema";
+import {
+	members,
+	organizations,
+	teamMembers,
+	teams,
+	users,
+} from "@superset/db/schema";
 import {
 	sessions as authSessions,
 	invitations,
@@ -10,11 +16,12 @@ import {
 import { findOrgMembership } from "@superset/db/utils";
 import { canRemoveMember, type OrganizationRole } from "@superset/shared/auth";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, desc, eq, ne, sql } from "drizzle-orm";
 import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { jwtProcedure, protectedProcedure, publicProcedure } from "../../trpc";
 import { verifyOrgAdmin } from "../integration/utils";
+import { requireActiveOrgMembership } from "../utils/active-org";
 import { organizationMembersRouter } from "./members";
 
 async function getInvitationById(invitationId: string) {
@@ -57,6 +64,107 @@ function verificationMatchesInvitation({
 
 export const organizationRouter = {
 	members: organizationMembersRouter,
+
+	list: protectedProcedure.query(async ({ ctx }) => {
+		return db
+			.select({
+				id: organizations.id,
+				name: organizations.name,
+				slug: organizations.slug,
+				logo: organizations.logo,
+			})
+			.from(organizations)
+			.innerJoin(members, eq(members.organizationId, organizations.id))
+			.where(eq(members.userId, ctx.session.user.id))
+			.orderBy(organizations.name);
+	}),
+
+	listMembers: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		return db
+			.select({
+				id: members.id,
+				role: members.role,
+				createdAt: members.createdAt,
+				userId: members.userId,
+				user: users,
+			})
+			.from(members)
+			.innerJoin(users, eq(members.userId, users.id))
+			.where(eq(members.organizationId, organizationId));
+	}),
+
+	listInvitations: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		return db
+			.select({
+				id: invitations.id,
+				email: invitations.email,
+				role: invitations.role,
+				status: invitations.status,
+				expiresAt: invitations.expiresAt,
+				createdAt: invitations.createdAt,
+				inviterId: invitations.inviterId,
+				inviter: {
+					id: users.id,
+					name: users.name,
+					email: users.email,
+					image: users.image,
+				},
+			})
+			.from(invitations)
+			.innerJoin(users, eq(invitations.inviterId, users.id))
+			.where(
+				and(
+					eq(invitations.organizationId, organizationId),
+					eq(invitations.status, "pending"),
+				),
+			)
+			.orderBy(desc(invitations.createdAt));
+	}),
+
+	listTeams: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		const [teamRows, teamMemberRows] = await Promise.all([
+			db
+				.select({
+					id: teams.id,
+					name: teams.name,
+					slug: teams.slug,
+					createdAt: teams.createdAt,
+				})
+				.from(teams)
+				.where(eq(teams.organizationId, organizationId))
+				.orderBy(teams.name),
+			db
+				.select({
+					id: teamMembers.id,
+					teamId: teamMembers.teamId,
+					userId: teamMembers.userId,
+					createdAt: teamMembers.createdAt,
+				})
+				.from(teamMembers)
+				.where(eq(teamMembers.organizationId, organizationId)),
+		]);
+
+		const membersByTeam = new Map<
+			string,
+			{ id: string; userId: string; createdAt: Date | null }[]
+		>();
+		for (const { teamId, ...member } of teamMemberRows) {
+			const existing = membersByTeam.get(teamId);
+			if (existing) {
+				existing.push(member);
+			} else {
+				membersByTeam.set(teamId, [member]);
+			}
+		}
+
+		return teamRows.map((team) => ({
+			...team,
+			members: membersByTeam.get(team.id) ?? [],
+		}));
+	}),
 
 	getActive: protectedProcedure.query(async ({ ctx }) => {
 		const orgId = ctx.activeOrganizationId;

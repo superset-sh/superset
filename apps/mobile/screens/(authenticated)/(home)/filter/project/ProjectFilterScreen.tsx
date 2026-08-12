@@ -8,13 +8,11 @@ import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowCheck } from "@/screens/(authenticated)/components/ListRowCheck";
-import { useCollections } from "@/screens/(authenticated)/providers/CollectionsProvider";
 import { ProjectAvatar } from "../components/ProjectAvatar";
 
 export function ProjectFilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
-	const _collections = useCollections();
 	const selectedHost = useSelectedHost();
 	const { workspaces } = useHostWorkspaces(selectedHost);
 	const projectFilter = useWorkspacesFilterStore(
@@ -24,7 +22,7 @@ export function ProjectFilterScreen() {
 		(store) => store.setProjectFilter,
 	);
 
-	// Projects are fully local — served by the selected host, not Electric.
+	// Projects are fully local — served by the selected host, not the cloud.
 	const { projects } = useHostProjects(selectedHost);
 
 	const sortedProjects = useMemo(

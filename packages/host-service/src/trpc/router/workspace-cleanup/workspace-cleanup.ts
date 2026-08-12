@@ -154,14 +154,13 @@ export const workspaceCleanupRouter = router({
 	 *   1.   Preflight    — dirty-worktree check (skip if force)
 	 *   2.   Teardown     — run .superset/teardown.sh (per teardownMode)
 	 *   3.   Local cleanup — PTYs, worktree
-	 *   4.   Best-effort legacy cloud delete (skipped for sessions)
-	 *   5.   Branch delete — optional local branch cleanup
-	 *   6.   Caches
+	 *   4.   Branch delete — optional local branch cleanup
+	 *   5.   Caches
 	 *
 	 * A thrown failure — preflight conflict, blocking teardown, or the
 	 * unrecoverable parts of step 3 — un-archives the row so the workspace
 	 * reappears and stays retryable instead of orphaning disk state.
-	 * Steps 4-6 (and the tolerated parts of step 3) degrade to warnings on
+	 * Steps 4-5 (and the tolerated parts of step 3) degrade to warnings on
 	 * a still-successful delete, and telemetry fires on that success. A
 	 * crash after the archive is finished by the startup reconciler
 	 * (runArchivedWorkspaceReconcile) with best-effort teardown.
@@ -169,7 +168,7 @@ export const workspaceCleanupRouter = router({
 	 * Force semantics (git only; teardown is governed by teardownMode):
 	 *   - skips preflight (step 1)
 	 *   - step 3b always uses `--force --force`
-	 *   - step 5 always uses `-D` regardless: the `deleteBranch`
+	 *   - step 4 always uses `-D` regardless: the `deleteBranch`
 	 *     checkbox is the user's consent, so refusing unmerged branches
 	 *     would just silently drop the opt-in.
 	 *
@@ -465,7 +464,7 @@ async function runDestroyPhases(
 		if (repoGitEnv) {
 			// A task failure here means the post-remove state is unknown —
 			// treat that like "still registered" and block rather than risk
-			// orphaning disk past the cloud commit point.
+			// orphaning disk past the archive commit point.
 			let stillRegistered = true;
 			try {
 				({ stillRegistered } = await cleanupGitOps.removeWorktree({
@@ -482,8 +481,8 @@ async function runDestroyPhases(
 			}
 			if (stillRegistered) {
 				// git still tracks a live worktree here — removal genuinely
-				// failed. Keep the cloud row so the workspace stays visible and
-				// retryable instead of orphaning disk past the cloud commit point.
+				// failed. Un-archive so the workspace stays visible and
+				// retryable instead of orphaning disk past the commit point.
 				throw new TRPCError({
 					code: "INTERNAL_SERVER_ERROR",
 					message: `Failed to remove worktree at ${local.worktreePath}`,
@@ -493,25 +492,7 @@ async function runDestroyPhases(
 		}
 	}
 
-	// ─── Step 4: Legacy cloud cleanup ──────────────────────────────
-	// The row already committed at step 0 (archived tombstone). The
-	// cloud delete is best-effort legacy cleanup for rows mirrored before
-	// workspaces went fully local.
-	let cloudDeleted = false;
-	// Sessions postdate the cloud mirror — there is no legacy row to clean.
-	if (local?.type !== "session") {
-		try {
-			await ctx.api.v2Workspace.delete.mutate({ id: input.workspaceId });
-			cloudDeleted = true;
-		} catch (err) {
-			const message = err instanceof Error ? err.message : String(err);
-			warnings.push(
-				`Legacy cloud cleanup failed (stale mirror row may remain): ${message}`,
-			);
-		}
-	}
-
-	// ─── Step 5: Optional branch delete ────────────────────────────
+	// ─── Step 4: Optional branch delete ────────────────────────────
 	// After the local commit point so a failure here can't block the delete.
 	// An absent ref (renamed, pruned, or never materialized) already
 	// satisfies the goal, so the task skips the delete without a scary
@@ -531,7 +512,7 @@ async function runDestroyPhases(
 		}
 	}
 
-	// ─── Step 6: Caches ────────────────────────────────────────────
+	// ─── Step 5: Caches ────────────────────────────────────────────
 	if (local) {
 		try {
 			invalidateLabelCache(input.workspaceId);
@@ -543,7 +524,9 @@ async function runDestroyPhases(
 
 	return {
 		success: true,
-		cloudDeleted,
+		// Workspaces have no cloud row to delete any more. Released CLI/SDK
+		// binaries still read this field, so it stays in the response.
+		cloudDeleted: false,
 		worktreeRemoved,
 		branchDeleted,
 		warnings,

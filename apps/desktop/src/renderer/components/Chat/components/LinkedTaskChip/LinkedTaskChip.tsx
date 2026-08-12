@@ -1,24 +1,14 @@
-import { eq, or } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { LinearIcon } from "renderer/components/icons/LinearIcon";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 interface LinkedTaskChipProps {
 	slug: string;
 }
 
 export function LinkedTaskChip({ slug }: LinkedTaskChipProps) {
-	const collections = useCollections();
+	const { data: task } = cloudTrpc.task.byIdOrSlug.useQuery(slug);
 
-	const { data: taskData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ tasks: collections.tasks })
-				.where(({ tasks }) => or(eq(tasks.id, slug), eq(tasks.slug, slug))),
-		[collections, slug],
-	);
-
-	const title = taskData && taskData.length > 0 ? taskData[0].title : null;
+	const title = task?.title ?? null;
 
 	return (
 		<div className="flex items-center gap-2.5 rounded-md border border-border/50 bg-muted/60 px-3 py-2 text-sm select-none">

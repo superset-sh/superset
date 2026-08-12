@@ -1,13 +1,12 @@
 import { Button } from "@superset/ui/button";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { HiArrowRight } from "react-icons/hi2";
 import { env } from "renderer/env.renderer";
 import { resolveCurrentPlan } from "renderer/hooks/useCurrentPlan";
 import { authClient } from "renderer/lib/auth-client";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -27,7 +26,7 @@ interface BillingOverviewProps {
 
 export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	const { data: session } = authClient.useSession();
-	const collections = useCollections();
+	const utils = cloudTrpc.useUtils();
 	const searchQuery = useSettingsSearchQuery();
 	const [isUpgrading, setIsUpgrading] = useState(false);
 	const [isCanceling, setIsCanceling] = useState(false);
@@ -42,37 +41,23 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 	);
 	const isOwner = currentMember?.role === "owner";
 
-	const { data: subscriptionsData, isReady: subscriptionsReady } = useLiveQuery(
-		(q) => q.from({ subscriptions: collections.subscriptions }),
-		[collections],
-	);
-	const subscriptionData = subscriptionsData?.find(
-		(s) => s.status === "active",
-	);
+	const { data: activePlan } = cloudTrpc.billing.activePlan.useQuery(undefined);
 
-	// Subscription rows win over the session (which can lag a checkout), but a
-	// cold collection must not read as "free" — fall back to the session plan
-	// until rows or readiness arrive.
+	// The subscription row wins over the session (which can lag a checkout), but
+	// an unresolved query must not read as "free" — fall back to the session plan
+	// until it arrives.
 	const plan: PlanTier = resolveCurrentPlan({
-		subscriptionPlan: subscriptionData?.plan,
+		subscriptionPlan: activePlan?.plan,
 		sessionPlan: session?.session?.plan,
-		subscriptionsLoaded:
-			subscriptionsReady || (subscriptionsData?.length ?? 0) > 0,
+		subscriptionsLoaded: activePlan !== undefined,
 	});
 
-	const { data: membersData, isReady: membersReady } = useLiveQuery(
-		(q) =>
-			q
-				.from({ members: collections.members })
-				.select(({ members }) => ({ id: members.id })),
-		[collections],
-	);
-	// Seats are billed from this — never derive it from a cold collection.
-	// undefined (not 0) keeps the upgrade action disabled until synced.
+	const { data: membersData } =
+		cloudTrpc.organization.listMembers.useQuery(undefined);
+	// Seats are billed from this — never derive it from an unresolved query.
+	// undefined (not 0) keeps the upgrade action disabled until it loads.
 	const memberCount =
-		membersReady && membersData && membersData.length > 0
-			? membersData.length
-			: undefined;
+		membersData && membersData.length > 0 ? membersData.length : undefined;
 
 	const showOverview = isItemVisible(
 		SETTING_ITEM_ID.BILLING_OVERVIEW,
@@ -104,6 +89,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			);
 		} finally {
 			setIsUpgrading(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -127,6 +113,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			);
 		} finally {
 			setIsCanceling(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -141,6 +128,7 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 			toast.success("Plan restored");
 		} finally {
 			setIsRestoring(false);
+			await utils.billing.activePlan.invalidate();
 		}
 	};
 
@@ -179,8 +167,8 @@ export function BillingOverview({ visibleItems }: BillingOverviewProps) {
 								isCanceling={isCanceling}
 								onRestore={handleRestore}
 								isRestoring={isRestoring}
-								cancelAt={subscriptionData?.cancelAt}
-								periodEnd={subscriptionData?.periodEnd}
+								cancelAt={activePlan?.cancelAt}
+								periodEnd={activePlan?.periodEnd}
 							/>
 							{plan === "free" && (
 								<UpgradeCard

@@ -85,7 +85,7 @@ export function ProductDemo() {
 								"radial-gradient(ellipse 42% 38% at 50% 22%, rgba(232,128,74,0.06), rgba(232,128,74,0.02) 55%, transparent 78%)",
 						}}
 					/>
-					<div className="relative overflow-x-auto scrollbar-hide">
+					<div className="relative overflow-x-auto scrollbar-hide max-md:[mask-image:linear-gradient(to_right,black_88%,transparent)]">
 						<AppMockup activeDemo={activeOption} />
 					</div>
 				</motion.div>

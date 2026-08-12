@@ -1,5 +1,3 @@
-import { captureSentryMessage } from "./sentry";
-
 const CHECK_INTERVAL_MS = 60_000;
 const PROBE_TIMEOUT_MS = 10_000;
 
@@ -79,6 +77,5 @@ async function runProbe(
 	console.log(JSON.stringify(log));
 
 	if (!ok) {
-		captureSentryMessage("relay_synthetic_fail", "error", log);
 	}
 }

@@ -2,13 +2,11 @@ import { Avatar } from "@superset/ui/atoms/Avatar";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { toast } from "@superset/ui/sonner";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useEffect, useState } from "react";
 import { useSignOut } from "renderer/hooks/useSignOut";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import {
@@ -36,19 +34,15 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 		visibleItems,
 	);
 
-	const { data: session } = authClient.useSession();
-	const currentUserId = session?.user?.id;
-	const collections = useCollections();
+	const {
+		data: session,
+		isPending,
+		refetch: refetchSession,
+	} = authClient.useSession();
+	const user = session?.user;
 
 	const [nameValue, setNameValue] = useState("");
 	const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
-
-	const { data: usersData, isReady } = useLiveQuery(
-		(q) => q.from({ users: collections.users }),
-		[collections],
-	);
-
-	const user = usersData?.find((u) => u.id === currentUserId);
 
 	const signOut = useSignOut();
 
@@ -77,6 +71,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 			});
 
 			setAvatarPreview(uploadResult.url);
+			await refetchSession();
 			toast.success("Avatar updated!");
 		} catch {
 			toast.error("Failed to update avatar");
@@ -93,6 +88,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 		try {
 			await apiTrpcClient.user.updateProfile.mutate({ name: nameValue });
+			await refetchSession();
 			toast.success("Name updated!");
 		} catch {
 			toast.error("Failed to update name");
@@ -111,7 +107,7 @@ export function AccountSettings({ visibleItems }: AccountSettingsProps) {
 
 			<div className="space-y-3">
 				{showProfile &&
-					(!isReady && !user ? (
+					(isPending && !user ? (
 						<ProfileSkeleton />
 					) : user ? (
 						<>

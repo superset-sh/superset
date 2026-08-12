@@ -6,7 +6,10 @@ import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
 import { and, eq, ne } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../trpc";
-import { requireActiveOrgId } from "../utils/active-org";
+import {
+	requireActiveOrgId,
+	requireActiveOrgMembership,
+} from "../utils/active-org";
 
 async function requireHostOwner(
 	userId: string,
@@ -68,7 +71,12 @@ export const v2HostRouter = {
 	list: protectedProcedure.query(async ({ ctx }) => {
 		const organizationId = requireActiveOrgId(ctx);
 		return db
-			.select({ machineId: v2Hosts.machineId, name: v2Hosts.name })
+			.select({
+				machineId: v2Hosts.machineId,
+				name: v2Hosts.name,
+				isOnline: v2Hosts.isOnline,
+				organizationId: v2Hosts.organizationId,
+			})
 			.from(v2Hosts)
 			.innerJoin(
 				v2UsersHosts,
@@ -83,6 +91,19 @@ export const v2HostRouter = {
 					eq(v2UsersHosts.userId, ctx.session.user.id),
 				),
 			);
+	}),
+
+	listMembers: protectedProcedure.query(async ({ ctx }) => {
+		const organizationId = await requireActiveOrgMembership(ctx);
+		return db
+			.select({
+				hostId: v2UsersHosts.hostId,
+				userId: v2UsersHosts.userId,
+				role: v2UsersHosts.role,
+				createdAt: v2UsersHosts.createdAt,
+			})
+			.from(v2UsersHosts)
+			.where(eq(v2UsersHosts.organizationId, organizationId));
 	}),
 
 	rename: protectedProcedure

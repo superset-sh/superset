@@ -26,6 +26,7 @@ export default ({ config }: ConfigContext) => ({
 	ios: {
 		supportsTablet: true,
 		bundleIdentifier: "sh.superset.mobile",
+		usesAppleSignIn: true,
 		infoPlist: {
 			ITSAppUsesNonExemptEncryption: false,
 		},
@@ -45,6 +46,7 @@ export default ({ config }: ConfigContext) => ({
 	plugins: [
 		"expo-router",
 		"expo-localization",
+		"expo-apple-authentication",
 		[
 			"expo-image-picker",
 			{

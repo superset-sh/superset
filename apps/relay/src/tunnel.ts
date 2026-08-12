@@ -5,8 +5,8 @@ import type { TunnelHttpResponse, TunnelRequest } from "./types";
 
 /**
  * Expected tunnel churn (host reconnects, offline hosts, request timeouts) —
- * routine at fleet scale. Sentry's beforeSend drops these by type so they
- * don't bury real errors; callers still see them as failures.
+ * routine at fleet scale. Typed so error handling can drop them without
+ * burying real errors; callers still see them as failures.
  */
 export class TunnelLifecycleError extends Error {
 	constructor(message: string) {

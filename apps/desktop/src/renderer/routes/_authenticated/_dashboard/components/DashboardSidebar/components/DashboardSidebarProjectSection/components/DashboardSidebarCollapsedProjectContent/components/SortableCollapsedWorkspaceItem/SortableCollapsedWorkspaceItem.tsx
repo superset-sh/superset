@@ -1,12 +1,13 @@
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { useMemo } from "react";
 import type { DashboardSidebarWorkspace } from "../../../../../../types";
 import { DashboardSidebarWorkspaceItem } from "../../../../../DashboardSidebarWorkspaceItem";
 
 interface SortableCollapsedWorkspaceItemProps {
 	sortableId: string;
 	workspace: DashboardSidebarWorkspace;
-	onHoverCardOpen?: () => void;
+	onHoverCardOpen?: (workspaceId: string) => void | Promise<void>;
 	shortcutLabel?: string;
 	disabled?: boolean;
 }
@@ -27,6 +28,21 @@ export function SortableCollapsedWorkspaceItem({
 		transition,
 	} = useSortable({ id: sortableId, disabled });
 
+	// useSortable re-renders this wrapper on every pointer move of any drag in
+	// the sidebar's DndContext; keep the row body referentially stable so only
+	// the wrapper transform changes.
+	const row = useMemo(
+		() => (
+			<DashboardSidebarWorkspaceItem
+				workspace={workspace}
+				onHoverCardOpen={onHoverCardOpen}
+				shortcutLabel={shortcutLabel}
+				isCollapsed
+			/>
+		),
+		[workspace, onHoverCardOpen, shortcutLabel],
+	);
+
 	return (
 		<div
 			ref={setNodeRef}
@@ -41,12 +57,7 @@ export function SortableCollapsedWorkspaceItem({
 			{...attributes}
 			{...listeners}
 		>
-			<DashboardSidebarWorkspaceItem
-				workspace={workspace}
-				onHoverCardOpen={onHoverCardOpen}
-				shortcutLabel={shortcutLabel}
-				isCollapsed
-			/>
+			{row}
 		</div>
 	);
 }

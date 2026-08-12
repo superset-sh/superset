@@ -3,8 +3,7 @@ import {
 	type AgentIdentityId,
 } from "@superset/shared/agent-catalog";
 import { useMemo } from "react";
-import { useTerminalAgentBindings } from "renderer/hooks/host-service/useTerminalAgentBindings";
-import { useTerminalAgentStatuses } from "renderer/hooks/host-service/useTerminalAgentStatuses";
+import { useSidebarWorkspaceStatus } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/providers/DashboardSidebarWorkspaceStatusProvider";
 import type { V2NotificationSource } from "renderer/stores/v2-notifications";
 import type { PaneStatus } from "shared/tabs-types";
 
@@ -40,10 +39,8 @@ export interface DashboardSidebarRunningAgent {
  */
 export function useDashboardSidebarWorkspaceRunningAgents(
 	workspaceId: string,
-	enabled = true,
 ): DashboardSidebarRunningAgent[] {
-	const bindings = useTerminalAgentBindings(workspaceId, { enabled });
-	const statuses = useTerminalAgentStatuses(workspaceId, { enabled });
+	const { bindings, statuses } = useSidebarWorkspaceStatus(workspaceId);
 
 	return useMemo(() => {
 		const agents: DashboardSidebarRunningAgent[] = [];

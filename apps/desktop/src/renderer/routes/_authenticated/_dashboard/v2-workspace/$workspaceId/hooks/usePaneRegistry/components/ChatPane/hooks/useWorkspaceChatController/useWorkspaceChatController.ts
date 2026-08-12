@@ -1,16 +1,14 @@
 import { workspaceTrpc } from "@superset/workspace-client";
-import { eq } from "@tanstack/db";
-import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback, useMemo } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import {
 	isDesktopChatDevMode,
 	resolveDesktopChatOrganizationId,
 } from "renderer/lib/dev-chat";
 import { posthog } from "renderer/lib/posthog";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
-import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 
 interface SessionSelectorItem {
 	sessionId: string;
@@ -62,27 +60,23 @@ export function useWorkspaceChatController({
 	const organizationId = resolveDesktopChatOrganizationId(
 		session?.session?.activeOrganizationId,
 	);
-	const collections = useCollections();
 	const endSessionMutation = workspaceTrpc.chat.endSession.useMutation();
-	const { chatSessions: chatSessionActions } = useOptimisticCollectionActions();
+	const { chatSessions: chatSessionActions } = useOptimisticActions();
+	const utils = cloudTrpc.useUtils();
 
 	const { data: workspace } = workspaceTrpc.workspace.get.useQuery(
 		{ id: workspaceId },
 		{ enabled: Boolean(workspaceId) },
 	);
 
-	const { data: allSessionsData } = useLiveQuery(
-		(q) =>
-			q
-				.from({ chatSessions: collections.chatSessions })
-				.where(({ chatSessions }) =>
-					eq(chatSessions.v2WorkspaceId, workspaceId),
-				)
-				.orderBy(({ chatSessions }) => chatSessions.lastActiveAt, "desc")
-				.select(({ chatSessions }) => ({ ...chatSessions })),
-		[collections.chatSessions, workspaceId],
+	// Already ordered by lastActiveAt desc server-side.
+	const { data: allSessions = [] } =
+		cloudTrpc.chat.listSessions.useQuery(undefined);
+	const sessions = useMemo(
+		() =>
+			allSessions.filter((session) => session.v2WorkspaceId === workspaceId),
+		[allSessions, workspaceId],
 	);
-	const sessions = allSessionsData ?? [];
 
 	const handleSelectSession = useCallback(
 		(nextSessionId: string) => {
@@ -126,6 +120,20 @@ export function useWorkspaceChatController({
 		],
 	);
 
+	// The selector reads from `chat.listSessions`, so a freshly created session
+	// stays invisible (and is re-created on every send) until that cache is
+	// refreshed.
+	const createAndSyncSession = useCallback(
+		async (nextSessionId: string): Promise<void> => {
+			await createSessionRecord({
+				sessionId: nextSessionId,
+				v2WorkspaceId: workspaceId,
+			});
+			await utils.chat.listSessions.invalidate();
+		},
+		[utils, workspaceId],
+	);
+
 	const getOrCreateSession = useCallback(async (): Promise<string> => {
 		if (!organizationId) {
 			throw new Error("No active organization selected");
@@ -136,18 +144,12 @@ export function useWorkspaceChatController({
 				return sessionId;
 			}
 
-			await createSessionRecord({
-				sessionId,
-				v2WorkspaceId: workspaceId,
-			});
+			await createAndSyncSession(sessionId);
 			return sessionId;
 		}
 
 		const nextSessionId = crypto.randomUUID();
-		await createSessionRecord({
-			sessionId: nextSessionId,
-			v2WorkspaceId: workspaceId,
-		});
+		await createAndSyncSession(nextSessionId);
 		onSessionIdChange(nextSessionId);
 		posthog.capture("chat_session_created", {
 			workspace_id: workspaceId,
@@ -155,7 +157,14 @@ export function useWorkspaceChatController({
 			organization_id: organizationId,
 		});
 		return nextSessionId;
-	}, [onSessionIdChange, organizationId, sessionId, sessions, workspaceId]);
+	}, [
+		createAndSyncSession,
+		onSessionIdChange,
+		organizationId,
+		sessionId,
+		sessions,
+		workspaceId,
+	]);
 
 	const sessionItems = useMemo(() => {
 		const nextItems = sessions.map((item) => toSessionSelectorItem(item));

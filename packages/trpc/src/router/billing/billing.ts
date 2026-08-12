@@ -62,10 +62,18 @@ async function requireOwnerWithCustomer(ctx: {
 	return organization?.stripeCustomerId ?? null;
 }
 
+const EMPTY_ACTIVE_PLAN = {
+	plan: "free" as const,
+	status: null,
+	cancelAt: null,
+	periodStart: null,
+	periodEnd: null,
+};
+
 export const billingRouter = {
 	activePlan: protectedProcedure.query(async ({ ctx }) => {
 		const activeOrgId = ctx.activeOrganizationId;
-		if (!activeOrgId) return { plan: "free" as const, status: null };
+		if (!activeOrgId) return EMPTY_ACTIVE_PLAN;
 
 		const subscription = await db.query.subscriptions.findFirst({
 			where: and(
@@ -76,10 +84,16 @@ export const billingRouter = {
 		});
 
 		if (!subscription) {
-			return { plan: "free" as const, status: null };
+			return EMPTY_ACTIVE_PLAN;
 		}
 
-		return { plan: subscription.plan, status: subscription.status };
+		return {
+			plan: subscription.plan,
+			status: subscription.status,
+			cancelAt: subscription.cancelAt,
+			periodStart: subscription.periodStart,
+			periodEnd: subscription.periodEnd,
+		};
 	}),
 
 	invoices: protectedProcedure.query(async ({ ctx }) => {

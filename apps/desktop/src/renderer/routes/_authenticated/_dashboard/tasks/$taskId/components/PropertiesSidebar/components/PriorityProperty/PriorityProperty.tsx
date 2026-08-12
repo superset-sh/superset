@@ -6,7 +6,7 @@ import {
 	DropdownMenuTrigger,
 } from "@superset/ui/dropdown-menu";
 import { useState } from "react";
-import { useOptimisticCollectionActions } from "renderer/routes/_authenticated/hooks/useOptimisticCollectionActions";
+import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { PriorityIcon } from "../../../../../components/TasksView/components/shared/PriorityIcon";
 import type { TaskWithStatus } from "../../../../../components/TasksView/hooks/useTasksTable";
 import { ALL_PRIORITIES } from "../../../../../components/TasksView/utils/sorting";
@@ -24,7 +24,7 @@ interface PriorityPropertyProps {
 }
 
 export function PriorityProperty({ task }: PriorityPropertyProps) {
-	const { tasks: taskActions } = useOptimisticCollectionActions();
+	const { tasks: taskActions } = useOptimisticActions();
 	const [open, setOpen] = useState(false);
 
 	const currentPriority = task.priority;

@@ -24,6 +24,7 @@ import {
 import { toast } from "@superset/ui/sonner";
 import { useState } from "react";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 
 interface InviteMemberDialogProps {
 	open: boolean;
@@ -45,6 +46,7 @@ export function InviteMemberDialog({
 	const [email, setEmail] = useState("");
 	const [role, setRole] = useState<OrganizationRole>("member");
 	const [isInviting, setIsInviting] = useState(false);
+	const utils = cloudTrpc.useUtils();
 
 	const handleInvite = async () => {
 		if (!canInvite(currentUserRole, role)) {
@@ -60,6 +62,7 @@ export function InviteMemberDialog({
 				role,
 			});
 
+			await utils.organization.listInvitations.invalidate();
 			toast.success(`Invitation sent to ${email}`);
 			setEmail("");
 			setRole("member");
