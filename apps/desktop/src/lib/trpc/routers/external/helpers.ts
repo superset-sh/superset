@@ -1,6 +1,7 @@
 import { spawn } from "node:child_process";
 import nodePath from "node:path";
 import type { ExternalApp } from "@superset/local-db";
+import { TRPCError } from "@trpc/server";
 
 /** Map of app IDs to their macOS application names */
 const MACOS_APP_NAMES: Record<ExternalApp, string | null> = {
@@ -384,11 +385,21 @@ export function spawnAsync(command: string, args: string[]): Promise<void> {
 		});
 
 		child.on("error", (error) => {
-			reject(
-				new Error(
-					`Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`,
-				),
-			);
+			const message = `Failed to spawn '${command}': ${error.message}. Ensure the application is installed.`;
+			// ENOENT means the app's CLI launcher isn't installed / not on PATH —
+			// a user-environment condition, not a bug, so it must not surface as
+			// INTERNAL_SERVER_ERROR (which the Sentry middleware reports).
+			if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+				reject(
+					new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message,
+						cause: { kind: "APP_NOT_INSTALLED", command },
+					}),
+				);
+				return;
+			}
+			reject(new Error(message));
 		});
 
 		child.on("exit", (code) => {
