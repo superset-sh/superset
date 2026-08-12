@@ -3,7 +3,7 @@ import { promisify } from "node:util";
 import {
 	getCredentialsFromAnySource,
 	type ClaudeCredentials as SupersetClaudeCredentials,
-} from "@superset/chat/server/desktop";
+} from "@superset/chat-legacy/server/desktop";
 import type {
 	ProviderUsage,
 	UsageWindow,

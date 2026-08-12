@@ -13,6 +13,7 @@ import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
+import { AIUsageIndicator } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/AIUsageIndicator";
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
 import { WindowControls } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/WindowControls";
 import { CommandPalette } from "renderer/screens/main/components/CommandPalette";
@@ -370,6 +371,9 @@ function V2WorkspaceContent() {
 							}
 							renderTabBarTrailing={() => (
 								<div className="flex items-center gap-1">
+									{/* The TopBar (which hosts the meter elsewhere) is hidden
+									    whenever the sidebar is open on this route. */}
+									{isSidebarPanelOpen && <AIUsageIndicator />}
 									<BackgroundTerminalsButton
 										workspaceId={workspaceId}
 										store={store}
