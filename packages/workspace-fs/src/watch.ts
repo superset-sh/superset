@@ -588,23 +588,17 @@ export class FsWatcherManager {
 	}
 
 	/**
-	 * The watch root was deleted: the native stream is dead and will never
-	 * deliver again (FSEvents keeps following the old inode). Keep the state
-	 * and its listeners, drop the native side, and poll for the path to
-	 * reappear — VS Code's suspend/resume pattern (baseWatcher.ts).
-	 */
-	/**
-	 * Coalesce FSEvents overflows into a per-root trailing rescan. EVERY
-	 * overflow (re)arms the timer to one window after itself, so the rescan
-	 * normally fires only once overflows stop — a second overflow just before
-	 * expiry pushes the rescan out rather than letting it fire mid-burst.
-	 * Sustained overflow can't postpone it forever: a batch deadline (first
-	 * overflow of the batch + the cap) clamps every rearm, forcing a rescan at
-	 * least every OVERFLOW_RESCAN_MAX_MS. A deadline-forced fire re-arms a
-	 * follow-up batch (performOverflowRescan detects an overflow within the
-	 * window it just used), so the final rescan still trails the last overflow
-	 * by one window once churn settles. The window doubles per fired rescan up
-	 * to the cap and resets after a quiet OVERFLOW_BACKOFF_RESET_MS.
+	 * Coalesce FSEvents overflows into a per-root trailing rescan: the rescan
+	 * fires one window after the LAST overflow, so it never lands mid-burst.
+	 * The rearm is lazy — overflows on the hot path only stamp
+	 * `lastOverflowAt`; the armed timer re-checks at fire time and pushes
+	 * itself out if an overflow landed inside its window (no timer-heap churn
+	 * at storm rates). Sustained overflow can't postpone it forever: a batch
+	 * deadline (first overflow + the cap) overrides the trailing wait, forcing
+	 * a rescan at least every OVERFLOW_RESCAN_MAX_MS, and a deadline-forced
+	 * fire arms a follow-up batch so the final rescan still trails the last
+	 * overflow once churn settles. The window doubles per fired rescan up to
+	 * the cap and resets after a quiet OVERFLOW_BACKOFF_RESET_MS.
 	 */
 	private scheduleOverflowRescan(state: WatcherState): void {
 		const now = Date.now();
@@ -614,11 +608,6 @@ export class FsWatcherManager {
 		state.lastOverflowAt = now;
 		state.overflowsCoalesced += 1;
 		if (state.overflowRescanTimer) {
-			// Trailing rearm: push the rescan to one window after THIS overflow,
-			// clamped to the batch deadline.
-			clearTimeout(state.overflowRescanTimer);
-			state.overflowRescanTimer = null;
-			this.armOverflowRescan(state);
 			return;
 		}
 		state.overflowRescanDeadline = now + this.overflowRescanMaxMs;
@@ -629,22 +618,18 @@ export class FsWatcherManager {
 				delayMs: state.overflowRescanDelayMs,
 			},
 		);
-		this.armOverflowRescan(state);
+		this.armOverflowRescan(state, now + state.overflowRescanDelayMs);
 	}
 
-	private armOverflowRescan(state: WatcherState): void {
-		const now = Date.now();
-		const fireAt = Math.min(
-			now + state.overflowRescanDelayMs,
-			state.overflowRescanDeadline,
+	private armOverflowRescan(state: WatcherState, fireAt: number): void {
+		const delayMs = Math.max(
+			0,
+			Math.min(fireAt, state.overflowRescanDeadline) - Date.now(),
 		);
-		const timer = setTimeout(
-			() => {
-				state.overflowRescanTimer = null;
-				this.performOverflowRescan(state);
-			},
-			Math.max(0, fireAt - now),
-		);
+		const timer = setTimeout(() => {
+			state.overflowRescanTimer = null;
+			this.performOverflowRescan(state);
+		}, delayMs);
 		timer.unref?.();
 		state.overflowRescanTimer = timer;
 	}
@@ -653,9 +638,16 @@ export class FsWatcherManager {
 		if (this.watchers.get(state.absolutePath) !== state) {
 			return;
 		}
+		const now = Date.now();
+		const windowMs = state.overflowRescanDelayMs;
+		const trailingFireAt = state.lastOverflowAt + windowMs;
+		if (now < trailingFireAt && now < state.overflowRescanDeadline) {
+			// An overflow landed inside this window — lazy rearm to trail it.
+			this.armOverflowRescan(state, trailingFireAt);
+			return;
+		}
 		const coalescedOverflows = state.overflowsCoalesced;
 		state.overflowsCoalesced = 0;
-		const windowMs = state.overflowRescanDelayMs;
 		state.overflowRescanDelayMs = Math.min(
 			windowMs * 2,
 			this.overflowRescanMaxMs,
@@ -669,10 +661,7 @@ export class FsWatcherManager {
 		invalidateSearchIndexesForRoot(state.absolutePath);
 		// One broad "state changed" signal so consumers (git-watcher, file
 		// tree) refetch instead of trusting per-path events that never arrived.
-		// Delivered directly, not via emit(): the throttler's bounded buffer
-		// drops batches when full — exactly the burst conditions that produced
-		// the overflow — and this one signal is what guarantees convergence.
-		const batch: { events: FsWatchEvent[] } = {
+		this.emitDirect(state, {
 			events: [
 				{
 					kind: "overflow",
@@ -680,26 +669,35 @@ export class FsWatcherManager {
 					isDirectory: true,
 				},
 			],
-		};
+		});
+		// A deadline-forced fire mid-storm hasn't seen the fs settle — arm a
+		// follow-up batch to keep the trailing guarantee.
+		if (now - state.lastOverflowAt < windowMs) {
+			state.overflowRescanDeadline = now + this.overflowRescanMaxMs;
+			this.armOverflowRescan(state, now + state.overflowRescanDelayMs);
+		}
+	}
+
+	/**
+	 * Deliver a batch to listeners directly, bypassing the throttler: for
+	 * convergence signals (overflow rescan, recovery resume) that must not be
+	 * dropped when the bounded buffer is full — exactly the burst conditions
+	 * that produce them. Per-listener throws are contained so one bad
+	 * subscriber can't skip siblings.
+	 */
+	private emitDirect(
+		state: WatcherState,
+		batch: { events: FsWatchEvent[] },
+	): void {
 		for (const listener of state.listeners) {
-			// Contain per-listener throws: one bad subscriber must not skip
-			// siblings or the follow-up arm below.
 			try {
 				listener(batch);
 			} catch (error) {
-				console.error("[workspace-fs/watch] overflow rescan listener threw", {
+				console.error("[workspace-fs/watch] direct emit listener threw", {
 					absolutePath: state.absolutePath,
 					error: toErrorMessage(error),
 				});
 			}
-		}
-		// A deadline-forced fire mid-storm (an overflow landed inside the
-		// window just used) hasn't seen the fs settle — arm a follow-up batch
-		// to keep the trailing guarantee.
-		const now = Date.now();
-		if (now - state.lastOverflowAt < windowMs) {
-			state.overflowRescanDeadline = now + this.overflowRescanMaxMs;
-			this.armOverflowRescan(state);
 		}
 	}
 
@@ -752,6 +750,12 @@ export class FsWatcherManager {
 		state.overflowRootChecksLeft = 0;
 	}
 
+	/**
+	 * The watch root was deleted: the native stream is dead and will never
+	 * deliver again (FSEvents keeps following the old inode). Keep the state
+	 * and its listeners, drop the native side, and poll for the path to
+	 * reappear — VS Code's suspend/resume pattern (baseWatcher.ts).
+	 */
 	private async suspendForRecovery(state: WatcherState): Promise<void> {
 		if (!state.subscription || state.recoveryTimer) {
 			return;
@@ -833,14 +837,16 @@ export class FsWatcherManager {
 			return;
 		}
 		// The recreated tree is unknown: reset per-path tracking, drop the
-		// search index, and emit a root create so consumers refetch.
+		// search index, and emit a root create so consumers refetch. Direct
+		// delivery — this resume signal is a convergence signal like the
+		// overflow rescan and must not be dropped by a full throttler buffer.
 		state.filePaths.clear();
 		state.directoryPaths.clear();
 		invalidateSearchIndexesForRoot(state.absolutePath);
 		console.error("[workspace-fs/watch] watch root recreated — resumed:", {
 			absolutePath: state.absolutePath,
 		});
-		this.emit(state, {
+		this.emitDirect(state, {
 			events: [
 				{
 					kind: "create",

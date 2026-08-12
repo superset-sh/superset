@@ -44,7 +44,9 @@ afterEach(async () => {
 
 async function createTempRoot(): Promise<string> {
 	const tempPath = await fs.mkdtemp(path.join(os.tmpdir(), "watch-overflow-"));
-	return fs.realpath(tempPath);
+	const rootPath = await fs.realpath(tempPath);
+	tempRoots.push(rootPath);
+	return rootPath;
 }
 
 function createManager(options?: FsWatcherManagerOptions): FsWatcherManager {
@@ -56,15 +58,23 @@ function createManager(options?: FsWatcherManagerOptions): FsWatcherManager {
 async function subscribeWithEvents(
 	manager: FsWatcherManager,
 	rootPath: string,
-): Promise<{ events: FsWatchEvent[]; state: WatcherStateView }> {
+): Promise<{
+	events: FsWatchEvent[];
+	overflowTimes: number[];
+	state: WatcherStateView;
+}> {
 	const events: FsWatchEvent[] = [];
+	const overflowTimes: number[] = [];
 	await manager.subscribe({ absolutePath: rootPath }, (batch) => {
 		events.push(...batch.events);
+		for (const event of batch.events) {
+			if (event.kind === "overflow") overflowTimes.push(Date.now());
+		}
 	});
 	const internal = manager as unknown as FsWatcherManagerInternal;
 	const state = internal.watchers.get(rootPath);
 	if (!state) throw new Error("watcher state missing");
-	return { events, state };
+	return { events, overflowTimes, state };
 }
 
 function injectOverflow(manager: FsWatcherManager, state: WatcherStateView) {
@@ -92,7 +102,6 @@ const overflowEvents = (events: FsWatchEvent[]) =>
 describe("FSEvents overflow rescan backoff", () => {
 	it("coalesces an overflow burst into one trailing rescan event", async () => {
 		const rootPath = await createTempRoot();
-		tempRoots.push(rootPath);
 		const manager = createManager({
 			overflowRescanInitialMs: 100,
 			overflowRescanMaxMs: 400,
@@ -123,7 +132,6 @@ describe("FSEvents overflow rescan backoff", () => {
 
 	it("backs off exponentially to the cap while overflows keep arriving, and resets after quiet", async () => {
 		const rootPath = await createTempRoot();
-		tempRoots.push(rootPath);
 		const manager = createManager({
 			overflowRescanInitialMs: 50,
 			overflowRescanMaxMs: 200,
@@ -153,7 +161,6 @@ describe("FSEvents overflow rescan backoff", () => {
 
 	it("a change during the suppressed window is reflected after settle", async () => {
 		const rootPath = await createTempRoot();
-		tempRoots.push(rootPath);
 		const manager = createManager({
 			debounceMs: 25,
 			overflowRescanInitialMs: 150,
@@ -176,22 +183,25 @@ describe("FSEvents overflow rescan backoff", () => {
 
 	it("rearms the trailing window when a second overflow lands near expiry", async () => {
 		const rootPath = await createTempRoot();
-		tempRoots.push(rootPath);
 		const manager = createManager({
 			debounceMs: 25,
 			overflowRescanInitialMs: 300,
 			overflowRescanMaxMs: 2_000,
 			overflowBackoffResetMs: 10_000,
 		});
-		const rescanTimes: number[] = [];
-		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
-			for (const event of batch.events) {
-				if (event.kind === "overflow") rescanTimes.push(Date.now());
-			}
-		});
-		const internal = manager as unknown as FsWatcherManagerInternal;
-		const state = internal.watchers.get(rootPath);
-		if (!state) throw new Error("watcher state missing");
+		const { overflowTimes: rescanTimes, state } = await subscribeWithEvents(
+			manager,
+			rootPath,
+		);
+
+		// Prime the index cache first so the final lookup can't pass by simply
+		// building fresh — it must reflect invalidation/patching after the burst.
+		const primed = await getSearchIndex({ rootPath, includeHidden: false });
+		expect(
+			primed.some((entry) =>
+				entry.absolutePath.endsWith("between-overflows.ts"),
+			),
+		).toBe(false);
 
 		injectOverflow(manager, state);
 		await new Promise((resolve) => setTimeout(resolve, 200));
@@ -216,21 +226,15 @@ describe("FSEvents overflow rescan backoff", () => {
 
 	it("sustained overflow cannot postpone rescans past the cap", async () => {
 		const rootPath = await createTempRoot();
-		tempRoots.push(rootPath);
 		const manager = createManager({
 			overflowRescanInitialMs: 100,
 			overflowRescanMaxMs: 300,
 			overflowBackoffResetMs: 10_000,
 		});
-		const rescanTimes: number[] = [];
-		await manager.subscribe({ absolutePath: rootPath }, (batch) => {
-			for (const event of batch.events) {
-				if (event.kind === "overflow") rescanTimes.push(Date.now());
-			}
-		});
-		const internal = manager as unknown as FsWatcherManagerInternal;
-		const state = internal.watchers.get(rootPath);
-		if (!state) throw new Error("watcher state missing");
+		const { overflowTimes: rescanTimes, state } = await subscribeWithEvents(
+			manager,
+			rootPath,
+		);
 
 		// Overflows every 50ms for ~1s: each rearm (window >= 100ms) would push
 		// the rescan out forever without the batch deadline clamp.
@@ -244,16 +248,24 @@ describe("FSEvents overflow rescan backoff", () => {
 		const duringStorm = rescanTimes.filter((t) => t <= stormEndAt);
 		expect(duringStorm.length).toBeGreaterThanOrEqual(2);
 
-		// And the storm still ends with a trailing rescan after the last overflow.
+		// And the storm still ends with a true trailing rescan: wait for rescans
+		// to stop, then assert the final one trails the last overflow by a full
+		// window (>= initial 100ms, minus scheduler tolerance) — a deadline-forced
+		// fire right after the last overflow doesn't satisfy the guarantee alone.
 		await waitUntil(
-			() => rescanTimes.some((t) => t > lastInjectAt),
-			"trailing rescan after sustained storm",
+			() =>
+				rescanTimes.length > 0 &&
+				Date.now() - (rescanTimes[rescanTimes.length - 1] ?? 0) > 500,
+			"rescans settled after sustained storm",
+			8_000,
 		);
+		const finalRescanAt = rescanTimes[rescanTimes.length - 1] ?? 0;
+		expect(finalRescanAt).toBeGreaterThan(lastInjectAt);
+		expect(finalRescanAt - lastInjectAt).toBeGreaterThanOrEqual(90);
 	});
 
 	it("does not fire a pending rescan after the watcher is disposed", async () => {
 		const rootPath = await createTempRoot();
-		tempRoots.push(rootPath);
 		const manager = createManager({
 			overflowRescanInitialMs: 50,
 			overflowRescanMaxMs: 200,
