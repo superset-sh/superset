@@ -622,6 +622,17 @@ class TerminalRuntimeRegistryImpl {
 		);
 	}
 
+	/**
+	 * True when the transport has stopped retrying for good (access denied,
+	 * fatal server error, PTY exit). A diagnosis without this still means the
+	 * socket is auto-retrying — e.g. a wedged daemon that will self-heal.
+	 */
+	isConnectionTerminated(terminalId: string, instanceId?: string): boolean {
+		return (
+			this.getEntry(terminalId, instanceId)?.transport._terminated ?? false
+		);
+	}
+
 	clearLogs(terminalId: string, instanceId?: string): void {
 		const entry = this.getEntry(terminalId, instanceId);
 		if (!entry) return;

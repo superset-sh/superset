@@ -477,7 +477,6 @@ export function NewWorkspaceScreen({
 			handleGoToSetup();
 			return;
 		}
-		if (isPromptEmpty) return;
 		if (submitBlocker) {
 			if ((draft.hostId ?? machineId) === machineId && !activeHostUrl) {
 				showHostServiceUnavailableToast(hostService, {
@@ -495,7 +494,6 @@ export function NewWorkspaceScreen({
 		draft.hostId,
 		handleGoToSetup,
 		hostService,
-		isPromptEmpty,
 		machineId,
 		needsSetup,
 		submitBlocker,
@@ -759,7 +757,7 @@ export function NewWorkspaceScreen({
 							</Tooltip>
 							<PromptInputSubmit
 								className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-								disabled={needsSetup || isPromptEmpty}
+								disabled={needsSetup}
 								onClick={(e) => {
 									e.preventDefault();
 									handleSubmit();

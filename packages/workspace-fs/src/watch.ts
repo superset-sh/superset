@@ -71,6 +71,38 @@ function escapeGlobMagic(input: string): string {
 // if the scan truncates here.
 const NESTED_REPO_SCAN_DEADLINE_MS = 3_000;
 
+/**
+ * Whether a root-relative path falls under any pruned directory: a static
+ * default (any path segment in DEFAULT_IGNORE_DIR_NAMES, plus the multi-
+ * segment `.claude/worktrees` convention), or one of the per-root dynamic
+ * prefixes (nested repos, gitignored dirs). Mirrors the semantics of the
+ * ignore globs handed to parcel, minus file patterns (`*.tsbuildinfo`) —
+ * over-reporting a file there as watched only costs a missed targeted watch
+ * on a file type nobody opens.
+ */
+export function isRelPathUnderPrunedDirs(
+	relative: string,
+	prunedRelPrefixes: readonly string[],
+): boolean {
+	const segments = relative.split("/");
+	for (let i = 0; i < segments.length - 1; i += 1) {
+		const segment = segments[i] as string;
+		if (DEFAULT_IGNORE_DIR_NAMES.has(segment)) {
+			return true;
+		}
+		// `**/.claude/worktrees/**` is the one multi-segment static glob.
+		if (segment === ".claude" && segments[i + 1] === "worktrees") {
+			return true;
+		}
+	}
+	for (const prefix of prunedRelPrefixes) {
+		if (relative.startsWith(`${prefix}/`)) {
+			return true;
+		}
+	}
+	return false;
+}
+
 // Watches are always recursive — @parcel/watcher offers no shallow mode.
 export interface WatchPathOptions {
 	absolutePath: string;
@@ -120,6 +152,13 @@ interface WatcherState {
 	overflowsCoalesced: number;
 	lastOverflowAt: number;
 	listeners: Set<WatchListener>;
+	/**
+	 * Root-relative directories pruned from the native subscription beyond the
+	 * static defaults (nested repos + gitignored dirs), kept queryable so
+	 * `isPathPruned` can tell callers "this path gets no events — install a
+	 * targeted watch if you need it".
+	 */
+	prunedRelPrefixes: string[];
 	filePaths: Map<string, true>;
 	directoryPaths: Set<string>;
 	pendingEvents: ParcelWatcherEvent[];
@@ -177,6 +216,14 @@ function internalToSearchPatchEvent(
 export interface FsWatcherManagerOptions {
 	debounceMs?: number;
 	ignore?: string[];
+	/**
+	 * Returns watch-root-relative directories that git ignores entirely
+	 * (fully-untracked subtrees like `.next` or `__pycache__`), so they can be
+	 * pruned from the native subscription alongside the static defaults.
+	 * Injected (rather than spawning git here) to mirror how search injects
+	 * `runRipgrep`. Best-effort: failures degrade to the static list.
+	 */
+	listGitIgnoredDirs?: (rootPath: string) => Promise<string[]>;
 	/** Per-watcher LRU cap on tracked file paths. Test-only override. */
 	filePathsMax?: number;
 	/** How often a suspended watcher polls for its deleted root to reappear. */
@@ -190,6 +237,7 @@ export interface FsWatcherManagerOptions {
 export class FsWatcherManager {
 	private readonly debounceMs: number;
 	private readonly ignore: string[];
+	private readonly listGitIgnoredDirs?: (rootPath: string) => Promise<string[]>;
 	private readonly filePathsMax: number;
 	private readonly recoveryPollMs: number;
 	private readonly overflowRescanInitialMs: number;
@@ -211,6 +259,7 @@ export class FsWatcherManager {
 		this.ignore = options.ignore
 			? [...new Set([...DEFAULT_IGNORE_PATTERNS, ...options.ignore])]
 			: DEFAULT_IGNORE_PATTERNS;
+		this.listGitIgnoredDirs = options.listGitIgnoredDirs;
 		this.filePathsMax = options.filePathsMax ?? FILE_PATHS_MAX;
 		this.recoveryPollMs = options.recoveryPollMs ?? 2_000;
 		this.overflowRescanInitialMs =
@@ -434,6 +483,7 @@ export class FsWatcherManager {
 			overflowsCoalesced: 0,
 			lastOverflowAt: 0,
 			listeners: new Set<WatchListener>(),
+			prunedRelPrefixes: [],
 			filePaths: new Map<string, true>(),
 			directoryPaths: new Set<string>(),
 			pendingEvents: [],
@@ -475,7 +525,22 @@ export class FsWatcherManager {
 		// hand parcel a root-relative `<relative>/**` glob per repo, which prunes
 		// the subtree from traversal (same mechanism as the `**/node_modules/**`
 		// default — stops inotify watch creation on Linux, the ENOSPC trigger).
-		const nestedRepoIgnores = await this.computeNestedRepoIgnores(realPath);
+		// Gitignored dirs get the same treatment: repo-specific build output
+		// (`__pycache__`, `packages/*/lib`, …) that the static list can't know
+		// about is pruned via whatever git itself considers fully ignored.
+		const [nestedRepoRelDirs, gitIgnoredRelDirs] = await Promise.all([
+			this.computeNestedRepoRelDirs(realPath),
+			this.computeGitIgnoredRelDirs(realPath),
+		]);
+		state.prunedRelPrefixes = [...nestedRepoRelDirs, ...gitIgnoredRelDirs];
+		// Root-relative escaped globs: parcel matches ignores relative to the
+		// watch root (its defaults are all `**/…`), so an absolute path never
+		// matches. Bare paths aren't safe either — parcel's `is-glob` check
+		// misclassifies paths containing glob magic (a Next.js `app/[id]` route
+		// segment) as patterns. Escaping + relativizing handles both.
+		const prunedDirIgnores = state.prunedRelPrefixes.map(
+			(relDir) => `${escapeGlobMagic(relDir)}/**`,
+		);
 
 		// parcel dedupes native backends by (dir, ignore-set); a wedged backend
 		// from the dead stream (its unsubscribe can hang) would be silently
@@ -486,7 +551,7 @@ export class FsWatcherManager {
 			...(generation === 1
 				? []
 				: [`**/.superset-watch-generation-${generation}/**`]),
-			...nestedRepoIgnores,
+			...prunedDirIgnores,
 		];
 
 		// Subscribe to the resolved real path so kernel paths come back in a
@@ -552,11 +617,12 @@ export class FsWatcherManager {
 	}
 
 	/**
-	 * Best-effort discovery of nested repo/worktree roots to prune. Never blocks
-	 * watching: on failure or a truncated scan we watch with whatever we found
-	 * (an unpruned subtree degrades to the pre-existing behavior, not a crash).
+	 * Best-effort discovery of nested repo/worktree roots to prune, as
+	 * root-relative dir paths. Never blocks watching: on failure or a truncated
+	 * scan we watch with whatever we found (an unpruned subtree degrades to the
+	 * pre-existing behavior, not a crash).
 	 */
-	private async computeNestedRepoIgnores(realPath: string): Promise<string[]> {
+	private async computeNestedRepoRelDirs(realPath: string): Promise<string[]> {
 		try {
 			const { roots, truncated } = await findNestedRepoRoots(realPath, {
 				pruneDirNames: DEFAULT_IGNORE_DIR_NAMES,
@@ -568,16 +634,7 @@ export class FsWatcherManager {
 					{ absolutePath: realPath, found: roots.length },
 				);
 			}
-			// Emit each root as a root-relative, escaped `<relative>/**` glob.
-			// parcel matches ignore globs relative to the watch root (its defaults
-			// are all `**/…`), so an absolute path never matches. Bare absolute
-			// paths aren't a safe alternative either: parcel's `is-glob` check
-			// misclassifies any path containing glob magic (e.g. a Next.js
-			// `app/[id]/` route segment) as a pattern, so it lands in the glob set
-			// too and mis-prunes. Escaping + relativizing handles both.
-			return roots.map(
-				(root) => `${escapeGlobMagic(path.relative(realPath, root))}/**`,
-			);
+			return roots.map((root) => path.relative(realPath, root));
 		} catch (error) {
 			console.error("[workspace-fs/watch] nested-repo scan failed", {
 				absolutePath: realPath,
@@ -585,6 +642,136 @@ export class FsWatcherManager {
 			});
 			return [];
 		}
+	}
+
+	/**
+	 * Fully-gitignored directories as root-relative dir paths, via the injected
+	 * provider (git decides — nested .gitignore, info/exclude, and the global
+	 * excludesfile all honored). Snapshot at attach time: a dir created later
+	 * (first `bun dev` making `.next`) stays watched until the next attach, but
+	 * the git-watcher's own ignored-path filter caps its downstream cost.
+	 */
+	private async computeGitIgnoredRelDirs(realPath: string): Promise<string[]> {
+		if (!this.listGitIgnoredDirs) {
+			return [];
+		}
+		try {
+			const dirs = await this.listGitIgnoredDirs(realPath);
+			return dirs.filter(
+				(dir) =>
+					dir.length > 0 &&
+					!dir.startsWith("/") &&
+					!dir.split("/").includes(".."),
+			);
+		} catch (error) {
+			console.error("[workspace-fs/watch] gitignored-dir scan failed", {
+				absolutePath: realPath,
+				error: toErrorMessage(error),
+			});
+			return [];
+		}
+	}
+
+	/**
+	 * Re-derive the dynamic ignore set (nested repos + gitignored dirs) and
+	 * swap the native subscription to it. Needed when a directory is
+	 * UN-ignored: the attach-time prune otherwise keeps suppressing its events
+	 * until process restart (VS Code re-subscribes on watcherExclude changes
+	 * for the same reason). Growth of the set never requires this — new
+	 * ignored dirs are filtered downstream.
+	 *
+	 * The old stream stays attached until the new one is live, but its events
+	 * are dropped by the generation guard once attach begins, so a short gap
+	 * is possible. Callers should follow up with a broad refresh of whatever
+	 * they derive from events; the search index is invalidated here.
+	 *
+	 * Returns true when the subscription was actually swapped. No-swap cases:
+	 * the fresh ignore set still contains every currently-pruned dir (growth
+	 * is handled downstream without re-attach), or the root is absent,
+	 * suspended, or recovering (the next attach re-runs the providers anyway).
+	 */
+	async refreshIgnores(rootAbsolutePath: string): Promise<boolean> {
+		const state = this.watchers.get(normalizeAbsolutePath(rootAbsolutePath));
+		if (!state || !state.subscription || state.recoveryTimer) {
+			return false;
+		}
+		const [nestedRepoRelDirs, gitIgnoredRelDirs] = await Promise.all([
+			this.computeNestedRepoRelDirs(state.realPath),
+			this.computeGitIgnoredRelDirs(state.realPath),
+		]);
+		const fresh = new Set([...nestedRepoRelDirs, ...gitIgnoredRelDirs]);
+		const shrunk = state.prunedRelPrefixes.some((dir) => !fresh.has(dir));
+		if (!shrunk) {
+			return false;
+		}
+		if (!state.subscription || state.recoveryTimer) {
+			// State changed while the providers ran.
+			return false;
+		}
+		// Detach the old stream BEFORE attaching the new one. Keeping both
+		// alive briefly buys nothing (the generation bump discards old events
+		// anyway) and inotify tears down watch descriptors shared across
+		// coexisting parcel backends on the same dir, leaving the fresh
+		// subscription deaf. The swap gap is covered by the caller's follow-up
+		// broad refresh and the search-index invalidation below.
+		const oldSubscription = state.subscription;
+		state.subscription = null;
+		state.generation += 1;
+		await unsubscribeQuietly(oldSubscription);
+		// Disposal or root-deletion recovery may have raced the detach.
+		if (
+			this.watchers.get(state.absolutePath) !== state ||
+			state.recoveryTimer
+		) {
+			return false;
+		}
+		try {
+			await this.attachNativeSubscription(state);
+		} catch (error) {
+			// The root is now unwatched; a transient failure must not leave it
+			// that way silently. Reuse the root-recovery poll, which re-attaches,
+			// verifies liveness, and emits a root create so consumers refetch.
+			console.error(
+				"[workspace-fs/watch] ignore refresh re-attach failed — entering recovery",
+				{
+					absolutePath: state.absolutePath,
+					error: toErrorMessage(error),
+				},
+			);
+			const timer = setInterval(
+				() => void this.tryRecover(state),
+				this.recoveryPollMs,
+			);
+			timer.unref?.();
+			state.recoveryTimer = timer;
+			return false;
+		}
+		// Events during the swap gap may have been missed.
+		invalidateSearchIndexesForRoot(state.absolutePath);
+		return true;
+	}
+
+	/**
+	 * Whether `absolutePath` gets no events from the recursive watch on
+	 * `rootAbsolutePath` — because it sits inside a pruned subtree (static
+	 * defaults, nested repo, gitignored dir), lies outside the root, or no
+	 * watcher exists for that root at all. Callers use this to decide whether a
+	 * file needs its own targeted watch (see watch-file.ts). Errs toward `true`:
+	 * a spurious targeted watch costs one fd; a missed one costs live reload.
+	 */
+	isPathPruned(rootAbsolutePath: string, absolutePath: string): boolean {
+		const state = this.watchers.get(normalizeAbsolutePath(rootAbsolutePath));
+		if (!state || !state.subscription) {
+			return true;
+		}
+		const relative = path.relative(
+			state.absolutePath,
+			normalizeAbsolutePath(absolutePath),
+		);
+		if (relative === "" || relative.startsWith("..")) {
+			return true;
+		}
+		return isRelPathUnderPrunedDirs(relative, state.prunedRelPrefixes);
 	}
 
 	/**

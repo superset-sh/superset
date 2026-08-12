@@ -1293,6 +1293,9 @@
     "bufferutil",
     "workerd",
   ],
+  "patchedDependencies": {
+    "@xterm/addon-webgl@0.20.0-beta.297": "patches/@xterm%2Faddon-webgl@0.20.0-beta.297.patch",
+  },
   "overrides": {
     "@types/hast": "3.0.5",
     "axios": "1.18.1",

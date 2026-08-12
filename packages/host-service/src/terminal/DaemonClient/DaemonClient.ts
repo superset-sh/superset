@@ -25,6 +25,22 @@ import {
 	type SessionMeta,
 } from "@superset/pty-daemon/protocol";
 
+/**
+ * The daemon didn't answer — the single enumeration of TRANSIENT daemon
+ * failures. Thrown for: socket connect failure/timeout, handshake timeout,
+ * request timeout, disconnect mid-request, and writes on a dead socket.
+ * The supervisor respawns stalled/crashed daemons, so callers retry these.
+ * Everything else stays a plain Error and is treated as permanent: handshake
+ * rejection/protocol mismatch, daemon-reported request errors, and supervisor
+ * bootstrap failures (missing binary, no socket path, crash circuit open).
+ */
+export class DaemonUnavailableError extends Error {
+	constructor(message: string) {
+		super(message);
+		this.name = "DaemonUnavailableError";
+	}
+}
+
 export interface OpenResult {
 	id: string;
 	pid: number;
@@ -300,12 +316,12 @@ export class DaemonClient {
 					settle(m);
 			});
 			const offDisc = this.onDisconnect((err) =>
-				fail(err ?? new Error("daemon disconnected")),
+				fail(new DaemonUnavailableError(err?.message ?? "daemon disconnected")),
 			);
 			const timer = setTimeout(
 				() =>
 					fail(
-						new Error(
+						new DaemonUnavailableError(
 							`daemon ${req.type} ${id}: timed out after ${timeoutMs}ms`,
 						),
 					),
@@ -351,11 +367,15 @@ export class DaemonClient {
 				if (m.type === "error" && m.id === undefined) settle(m);
 			});
 			const offDisc = this.onDisconnect((err) =>
-				fail(err ?? new Error("daemon disconnected")),
+				fail(new DaemonUnavailableError(err?.message ?? "daemon disconnected")),
 			);
 			const timer = setTimeout(
 				() =>
-					fail(new Error(`daemon ${req.type}: timed out after ${timeoutMs}ms`)),
+					fail(
+						new DaemonUnavailableError(
+							`daemon ${req.type}: timed out after ${timeoutMs}ms`,
+						),
+					),
 				timeoutMs,
 			);
 			const cleanup = () => {
@@ -391,7 +411,9 @@ export class DaemonClient {
 			});
 			const timer = setTimeout(() => {
 				off();
-				reject(new Error(`daemon: timed out after ${timeoutMs}ms`));
+				reject(
+					new DaemonUnavailableError(`daemon: timed out after ${timeoutMs}ms`),
+				);
 			}, timeoutMs);
 		});
 	}
@@ -399,7 +421,10 @@ export class DaemonClient {
 	private send(msg: unknown, payload?: Uint8Array): void {
 		const sock = this.socket;
 		if (!sock || sock.destroyed) {
-			throw new Error("DaemonClient: socket not connected");
+			// The socket can die between a caller's isConnected check and this
+			// write (the 'close' event may not have dispatched yet) — same
+			// transient class as a disconnect, so requests reject typed.
+			throw new DaemonUnavailableError("DaemonClient: socket not connected");
 		}
 		sock.write(encodeFrame(msg, payload));
 	}
@@ -464,7 +489,11 @@ function openSocket(opts: DaemonClientOptions): Promise<net.Socket> {
 		const socket = net.createConnection({ path: opts.socketPath });
 		const timer = setTimeout(() => {
 			socket.destroy();
-			reject(new Error(`DaemonClient: connect timed out after ${timeoutMs}ms`));
+			reject(
+				new DaemonUnavailableError(
+					`DaemonClient: connect timed out after ${timeoutMs}ms`,
+				),
+			);
 		}, timeoutMs);
 		socket.once("connect", () => {
 			clearTimeout(timer);
@@ -472,7 +501,13 @@ function openSocket(opts: DaemonClientOptions): Promise<net.Socket> {
 		});
 		socket.once("error", (err) => {
 			clearTimeout(timer);
-			reject(err);
+			// Connect-level failures (ECONNREFUSED after a crash, ENOENT during
+			// a respawn window) heal once the supervisor respawns the daemon.
+			reject(
+				new DaemonUnavailableError(
+					`DaemonClient: connect failed: ${err.message}`,
+				),
+			);
 		});
 	});
 }

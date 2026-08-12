@@ -34,6 +34,7 @@ import { markTerminalAgentBindingEnded } from "../terminal-agents/persistence.ts
 import {
 	DaemonClient,
 	type Signal as DaemonSignal,
+	DaemonUnavailableError,
 } from "./DaemonClient/index.ts";
 import {
 	getDaemonClient,
@@ -57,6 +58,7 @@ import {
 	type ModeTracker,
 	type TerminalSnapshot,
 } from "./terminal-mode-tracker.ts";
+import { toWsCloseReason } from "./ws-close-reason.ts";
 
 /**
  * Thin adapter exposing approximately the IPty surface that the rest of
@@ -91,7 +93,12 @@ function makeDaemonPty(
 	return {
 		pid,
 		write(data) {
-			daemon.input(sessionId, Buffer.from(data, "utf8"));
+			try {
+				daemon.input(sessionId, Buffer.from(data, "utf8"));
+			} catch {
+				// Daemon socket died before the disconnect sweep ran; a throw
+				// here would escape the WS input handler uncaught.
+			}
 		},
 		resize(cols, rows) {
 			try {
@@ -182,8 +189,15 @@ type TerminalServerMessage =
 	| { type: "attached"; terminalId: string }
 	// `code: "session-gone"` marks the session as permanently destroyed (not
 	// found / disposed / exited) so the renderer can drop persisted scrollback;
-	// plain errors leave it unset and the renderer keeps its snapshot.
-	| { type: "error"; message: string; code?: "session-gone" }
+	// `code: "attach-retryable"` marks a transient host-side failure (pty-daemon
+	// stalled/restarting) — the renderer keeps its reconnect loop alive instead
+	// of parking the pane dead. Plain errors leave it unset and the renderer
+	// keeps its snapshot but stops retrying.
+	| {
+			type: "error";
+			message: string;
+			code?: "session-gone" | "attach-retryable";
+	  }
 	| { type: "exit"; exitCode: number; signal: number }
 	| { type: "title"; title: string | null }
 	// Sequence anchor for seq-aware clients (`?seq=` on the attach URL). Sent
@@ -2295,6 +2309,13 @@ function getTerminalWorkspaceMismatchError({
 	return `Terminal session "${terminalId}" belongs to workspace "${ownerWorkspaceId}", not "${requestedWorkspaceId}".`;
 }
 
+/**
+ * `transient: true` = the daemon couldn't be reached (stalled, restarting,
+ * bootstrap pending) — the session may still come up under the same id; the
+ * attach path tells the renderer to keep retrying instead of going dead.
+ */
+type CreateSessionError = { error: string; transient?: boolean };
+
 export async function createTerminalSessionInternal({
 	terminalId,
 	workspaceId,
@@ -2309,7 +2330,9 @@ export async function createTerminalSessionInternal({
 	adoptOnly = false,
 	replayOnAdoption = true,
 	restoredNotice = false,
-}: CreateTerminalSessionOptions): Promise<TerminalSession | { error: string }> {
+}: CreateTerminalSessionOptions): Promise<
+	TerminalSession | CreateSessionError
+> {
 	const existing = sessions.get(terminalId);
 	if (existing) {
 		const mismatchError = getTerminalWorkspaceMismatchError({
@@ -2400,10 +2423,23 @@ export async function createTerminalSessionInternal({
 	});
 
 	let daemon: DaemonClient;
+	try {
+		daemon = await getDaemonClient();
+	} catch (error) {
+		// Transient only for connection-level failures (DaemonClient's typed
+		// taxonomy): the supervisor heals those. Bootstrap failures (missing
+		// daemon binary, no socket path, crash circuit open, handshake
+		// rejection) are permanent — surfacing them beats silently retrying
+		// a bootstrap that will fail the same way forever.
+		return {
+			error:
+				error instanceof Error ? error.message : "Failed to start terminal",
+			transient: error instanceof DaemonUnavailableError,
+		};
+	}
 	let openResult: { pid: number };
 	let isAdopted = false;
 	try {
-		daemon = await getDaemonClient();
 		if (adoptOnly) {
 			const found = (await daemon.list()).find(
 				(s) => s.id === terminalId && s.alive,
@@ -2465,6 +2501,7 @@ export async function createTerminalSessionInternal({
 		return {
 			error:
 				error instanceof Error ? error.message : "Failed to start terminal",
+			transient: error instanceof DaemonUnavailableError,
 		};
 	}
 	const pty: DaemonPty = makeDaemonPty(daemon, terminalId, openResult.pid);
@@ -2692,7 +2729,7 @@ export async function createTerminalSessionInternal({
 // share one spawn instead of racing createTerminalSessionInternal.
 const inflightCreates = new Map<
 	string,
-	Promise<TerminalSession | { error: string }>
+	Promise<TerminalSession | CreateSessionError>
 >();
 
 export function registerWorkspaceTerminalRoute({
@@ -2729,7 +2766,8 @@ export function registerWorkspaceTerminalRoute({
 		});
 
 		if ("error" in result) {
-			return c.json({ error: result.error }, 500);
+			// 503 = daemon unreachable right now; callers may retry the same id.
+			return c.json({ error: result.error }, result.transient ? 503 : 500);
 		}
 
 		return c.json({ terminalId: result.terminalId, status: "active" });
@@ -2821,7 +2859,8 @@ export function registerWorkspaceTerminalRoute({
 				return true;
 			};
 			const resolveSessionForAttach = async (): Promise<
-				TerminalSession | { error: string; code?: "session-gone" }
+				| TerminalSession
+				| { error: string; code?: "session-gone"; transient?: boolean }
 			> => {
 				const existing = sessions.get(terminalId);
 				if (existing) {
@@ -2920,6 +2959,10 @@ export function registerWorkspaceTerminalRoute({
 							: seqRequest.kind === "new",
 				});
 				if (!("error" in adopted)) return adopted;
+				// Daemon unreachable ≠ PTY lost: the shell may still be alive behind
+				// the stall, so don't end agent bindings or respawn — let the
+				// renderer retry until the daemon answers.
+				if (adopted.transient) return adopted;
 
 				// Active row but daemon no longer owns the PTY (laptop sleep,
 				// daemon restart, machine reboot). Respawn rather than dead-end
@@ -2955,12 +2998,16 @@ export function registerWorkspaceTerminalRoute({
 					void (async () => {
 						const session = await resolveSessionForAttach();
 						if ("error" in session) {
+							const transient = !session.code && session.transient;
 							sendMessage(ws, {
 								type: "error",
 								message: session.error,
-								code: session.code,
+								code:
+									session.code ?? (transient ? "attach-retryable" : undefined),
 							});
-							ws.close(1011, session.error);
+							// 1013 "try again later" for transient failures; the renderer
+							// keys off the JSON code, the close code is for log readers.
+							ws.close(transient ? 1013 : 1011, toWsCloseReason(session.error));
 							return;
 						}
 						if (ws.readyState !== SOCKET_OPEN) return;

@@ -1,0 +1,57 @@
+# Patched dependencies
+
+Applied by bun at install time via `patchedDependencies` in the root
+`package.json`. **Keys are pinned to exact versions** — bumping a patched
+package makes its patch stop matching, and the fix silently disappears while
+everything still builds. Every patch listed here must have a CI guard test
+that fails when its markers vanish from the installed package.
+
+## @xterm/addon-webgl (`@xterm%2Faddon-webgl@<version>.patch`)
+
+**Why:** SUPER-1793 / PR #6352. Truecolor-heavy TUI output (e.g. Claude Code's
+animated shimmer) mints a new glyph-atlas entry per distinct RGB color. The
+addon's intended `FORCED_MAX_TEXTURE_SIZE = 4096` clamp is dead code, so atlas
+pages merge-double toward `gl.MAX_TEXTURE_SIZE` (16384² = 1 GiB of RGBA per
+page) and orphaned page canvases only free on lazy GC. Measured: GPU process
+grew to ~11 GB in 90 s; with the patch it plateaus at ~2 GB (video evidence on
+the PR).
+
+**What it changes** (in `lib/addon-webgl.js`, `lib/addon-webgl.mjs`, and the
+matching `src/` files for readability — bundles are what run):
+
+1. `GlyphRenderer`: `TextureAtlas.maxTextureSize = Math.min(4096, gl.MAX_TEXTURE_SIZE)`.
+2. `WebglRenderer`: same clamp on `_deviceMaxTextureSize` (feeds the
+   oversized-glyph overflow page allocation in `TextureAtlas`).
+3. `TextureAtlas`: zero `canvas.width/height` for merged-away and evicted
+   pages so backing stores free immediately instead of waiting for GC.
+
+An app-side safety net lives in
+`apps/desktop/src/renderer/lib/terminal/terminal-addons.ts` (atlas reset after
+32 page-add events) and works without the patch, but the patch is what keeps
+worst-case pages at 64 MiB instead of 1 GiB.
+
+**Guard test:**
+`apps/desktop/src/webgl-atlas-patch.test.ts` asserts the
+patch markers in the installed bundles. If it fails after a version bump,
+regenerate the patch — don't delete the test.
+
+**Regenerating after a version bump** (~10 min):
+
+```bash
+bun patch @xterm/addon-webgl@<new-version>
+# edit node_modules/@xterm/addon-webgl per the three changes above:
+#   - both lib bundles are minified; find `getParameter(<gl>.MAX_TEXTURE_SIZE)`
+#     (2 sites) and wrap each in Math.min(4096, ...)
+#   - find `_onRemoveTextureAtlasCanvas.fire(<p>.canvas)` (merge path) and the
+#     `_evictAllPages` loop; add `<p>.canvas.width=0,<p>.canvas.height=0`
+#   - mirror the edits in src/GlyphRenderer.ts, src/WebglRenderer.ts,
+#     src/TextureAtlas.ts
+bun patch --commit 'node_modules/@xterm/addon-webgl'
+bun test apps/desktop/src/webgl-atlas-patch.test.ts
+```
+
+Before regenerating, check whether the new version made the patch obsolete:
+upstream already absorbed the render-loop page-count clamp and `_evictAllPages`
+from the SUPER-1793 report into 0.20.0-beta.297, and hunks 1–3 are candidates
+for upstreaming. If upstream ships them, delete the patch, the
+`patchedDependencies` entry, and update (not delete) the guard test.

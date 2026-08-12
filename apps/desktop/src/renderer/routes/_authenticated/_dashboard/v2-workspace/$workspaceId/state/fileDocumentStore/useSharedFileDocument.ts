@@ -1,5 +1,7 @@
-import { useWorkspaceClient } from "@superset/workspace-client";
+import { getEventBus, useWorkspaceClient } from "@superset/workspace-client";
 import { useEffect, useState, useSyncExternalStore } from "react";
+import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
+import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
 import { acquireDocument, releaseDocument } from "./fileDocumentStore";
 import type { SharedFileDocument } from "./types";
 
@@ -51,6 +53,21 @@ export function useSharedFileDocument({
 			releaseDocument(workspaceId, absolutePath);
 		};
 	}, [workspaceId, absolutePath]);
+
+	// Declare the open document to the host so files the recursive watcher
+	// can't see (gitignored build dirs, node_modules, nested repos) still get
+	// a targeted watch and live-reload. No-op server-side for covered paths.
+	const hostUrl = useWorkspaceHostUrl(workspaceId);
+	useEffect(() => {
+		if (!hostUrl) return;
+		const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+		bus.watchFsFile(workspaceId, absolutePath);
+		const release = bus.retain();
+		return () => {
+			bus.unwatchFsFile(workspaceId, absolutePath);
+			release();
+		};
+	}, [hostUrl, workspaceId, absolutePath]);
 
 	useSyncExternalStore(
 		state.handle.subscribe,
