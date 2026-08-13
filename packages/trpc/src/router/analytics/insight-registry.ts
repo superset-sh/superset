@@ -2,6 +2,7 @@
 // dashboard 1884562, referenced by short_id. Definitions live in PostHog;
 // recovery from bad edits is via PostHog's activity log (field-level diffs).
 export const ADMIN_INSIGHTS = {
+	dauWau: "7mbktvP7",
 	activationFunnel: "Es6Yu3Lr",
 	activatedRate: "zGsBNGi3",
 	cohortRetention: "l68EUWqk",

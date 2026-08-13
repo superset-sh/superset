@@ -48,6 +48,10 @@ export default function DashboardPage() {
 			<PostHogFunnelTile />
 
 			<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+				<TrendSeriesTile
+					insight="dauWau"
+					description="Unique users creating a real workspace: daily, plus rolling-7d WAU"
+				/>
 				<HogQLLineTile
 					insight="activatedRate"
 					description="Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)"
