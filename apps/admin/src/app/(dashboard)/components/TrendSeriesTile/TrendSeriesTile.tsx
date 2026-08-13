@@ -77,6 +77,8 @@ export function TrendSeriesTile({
 			lastRefresh={query.data?.lastRefresh}
 			isLoading={query.isLoading}
 			error={query.error}
+			onRefresh={() => query.refetch()}
+			isRefreshing={query.isFetching}
 			empty={data.length === 0}
 		>
 			<ChartContainer config={chartConfig} className="h-[240px] w-full">

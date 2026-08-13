@@ -1,6 +1,9 @@
 "use client";
 
+import { Button } from "@superset/ui/button";
+import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
+import { LuRefreshCw } from "react-icons/lu";
 
 import { useTRPC } from "@/trpc/react";
 
@@ -40,6 +43,20 @@ export function PostHogFunnelTile() {
 			data={data}
 			isLoading={insight.isLoading}
 			error={insight.error}
+			headerAction={
+				<Button
+					size="sm"
+					variant="ghost"
+					className="size-6 p-0"
+					onClick={() => insight.refetch()}
+					disabled={insight.isFetching}
+					aria-label="Refresh"
+				>
+					<LuRefreshCw
+						className={cn("size-3.5", insight.isFetching && "animate-spin")}
+					/>
+				</Button>
+			}
 		/>
 	);
 }

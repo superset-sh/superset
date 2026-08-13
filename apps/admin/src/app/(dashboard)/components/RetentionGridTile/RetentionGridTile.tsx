@@ -40,6 +40,8 @@ export function RetentionGridTile() {
 			lastRefresh={query.data?.lastRefresh}
 			isLoading={query.isLoading}
 			error={query.error}
+			onRefresh={() => query.refetch()}
+			isRefreshing={query.isFetching}
 			empty={cohorts.length === 0}
 		>
 			<div className="overflow-x-auto">

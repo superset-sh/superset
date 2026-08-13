@@ -1,5 +1,6 @@
 "use client";
 
+import { Button } from "@superset/ui/button";
 import {
 	Card,
 	CardContent,
@@ -8,7 +9,9 @@ import {
 	CardTitle,
 } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
+import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
+import { LuRefreshCw } from "react-icons/lu";
 
 interface InsightTileFrameProps {
 	title: string;
@@ -19,6 +22,8 @@ interface InsightTileFrameProps {
 	empty?: boolean;
 	emptyLabel?: string;
 	headerAction?: ReactNode;
+	onRefresh?: () => void;
+	isRefreshing?: boolean;
 	children: ReactNode;
 }
 
@@ -31,6 +36,8 @@ export function InsightTileFrame({
 	empty,
 	emptyLabel = "No data",
 	headerAction,
+	onRefresh,
+	isRefreshing,
 	children,
 }: InsightTileFrameProps) {
 	return (
@@ -38,17 +45,33 @@ export function InsightTileFrame({
 			<CardHeader>
 				<div className="flex items-center justify-between gap-2">
 					<CardTitle className="truncate">{title}</CardTitle>
-					{headerAction}
-					{lastRefresh ? (
-						<span className="text-muted-foreground shrink-0 text-xs">
-							{new Date(lastRefresh).toLocaleString(undefined, {
-								month: "short",
-								day: "numeric",
-								hour: "numeric",
-								minute: "2-digit",
-							})}
-						</span>
-					) : null}
+					<div className="flex shrink-0 items-center gap-2">
+						{headerAction}
+						{onRefresh ? (
+							<Button
+								size="sm"
+								variant="ghost"
+								className="size-6 p-0"
+								onClick={onRefresh}
+								disabled={isRefreshing}
+								aria-label="Refresh"
+							>
+								<LuRefreshCw
+									className={cn("size-3.5", isRefreshing && "animate-spin")}
+								/>
+							</Button>
+						) : null}
+						{lastRefresh ? (
+							<span className="text-muted-foreground text-xs">
+								{new Date(lastRefresh).toLocaleString(undefined, {
+									month: "short",
+									day: "numeric",
+									hour: "numeric",
+									minute: "2-digit",
+								})}
+							</span>
+						) : null}
+					</div>
 				</div>
 				{description ? <CardDescription>{description}</CardDescription> : null}
 			</CardHeader>
