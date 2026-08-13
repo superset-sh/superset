@@ -35,6 +35,9 @@ interface TrendSeriesTileProps {
 	insight: AdminInsightKey;
 	description?: string;
 	valueSuffix?: string;
+	// The last bucket is still in progress (weekly intervals): draw the final
+	// segment dashed instead of solid.
+	dashIncompleteLast?: boolean;
 }
 
 const SERIES_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
@@ -43,6 +46,7 @@ export function TrendSeriesTile({
 	insight,
 	description,
 	valueSuffix,
+	dashIncompleteLast,
 }: TrendSeriesTileProps) {
 	const trpc = useTRPC();
 	const query = useQuery(
@@ -58,22 +62,32 @@ export function TrendSeriesTile({
 
 	const xLabels = series[0]?.days ?? series[0]?.labels ?? [];
 	const xAxis = makeDateAxis(xLabels);
+	const lastIndex = xLabels.length - 1;
+	const splitIncomplete = Boolean(dashIncompleteLast) && xLabels.length >= 2;
 	const data = xLabels.map((x, i) => {
 		const point: Record<string, unknown> = { x };
 		series.forEach((s, seriesIndex) => {
-			point[`s${seriesIndex}`] = s.data[i];
+			if (splitIncomplete) {
+				point[`s${seriesIndex}`] = i === lastIndex ? null : s.data[i];
+				point[`s${seriesIndex}partial`] = i >= lastIndex - 1 ? s.data[i] : null;
+			} else {
+				point[`s${seriesIndex}`] = s.data[i];
+			}
 		});
 		return point;
 	});
 
 	const chartConfig = Object.fromEntries(
-		series.map((s, i) => [
-			`s${i}`,
-			{
-				label: s.custom_name ?? s.label ?? `series ${i + 1}`,
-				color: SERIES_COLORS[i % SERIES_COLORS.length],
-			},
-		]),
+		series.flatMap((s, i) => {
+			const label = s.custom_name ?? s.label ?? `series ${i + 1}`;
+			const color = SERIES_COLORS[i % SERIES_COLORS.length];
+			return [
+				[`s${i}`, { label, color }],
+				...(splitIncomplete
+					? [[`s${i}partial`, { label: `${label} (partial week)`, color }]]
+					: []),
+			];
+		}),
 	) satisfies ChartConfig;
 
 	return (
@@ -118,6 +132,21 @@ export function TrendSeriesTile({
 							type="monotone"
 						/>
 					))}
+					{splitIncomplete
+						? series.map((_, i) => (
+								<Line
+									// biome-ignore lint/suspicious/noArrayIndexKey: series order is the identity
+									key={`p${i}`}
+									dataKey={`s${i}partial`}
+									stroke={`var(--color-s${i})`}
+									strokeWidth={2}
+									strokeDasharray="5 5"
+									dot={false}
+									type="monotone"
+									tooltipType={undefined}
+								/>
+							))
+						: null}
 				</LineChart>
 			</ChartContainer>
 		</InsightTileFrame>

@@ -54,7 +54,8 @@ export default function DashboardPage() {
 				/>
 				<TrendSeriesTile
 					insight="wau"
-					description="Rolling 7-day unique users creating a real workspace"
+					description="Unique users creating a real workspace per calendar week; current week dashed"
+					dashIncompleteLast
 				/>
 				<HogQLLineTile
 					insight="activatedRate"
@@ -106,7 +107,8 @@ export default function DashboardPage() {
 				/>
 				<TrendSeriesTile
 					insight="workspacesPerCreator"
-					description="Weekly p50/p90 real workspaces per creator"
+					description="Weekly p50/p90 real workspaces per creator; current week dashed"
+					dashIncompleteLast
 				/>
 				<TrendSeriesTile
 					insight="newSiteVisitors"
@@ -114,8 +116,9 @@ export default function DashboardPage() {
 				/>
 				<TrendSeriesTile
 					insight="downloadCtrMac"
-					description="Weekly pageview → download conversion, Mac visitors"
+					description="Weekly pageview → download conversion, Mac visitors; current week dashed"
 					valueSuffix="%"
+					dashIncompleteLast
 				/>
 			</div>
 
