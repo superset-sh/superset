@@ -82,7 +82,7 @@ None — all resolved in the Decision Log (D-1 through D-12; decision walkthroug
 
 ## Outcomes & Retrospective
 
-(To be completed at closeout.)
+Shipped in PR #6410 (all three milestones, same day as planning). The admin dashboard is now the 1884562 mirror: eight insight-referenced product tiles, live Neon business metrics, Sigma-backed MRR with an explicit unavailable state pending one-time Sigma setup (enable + save Stripe's MRR template as scheduled query "admin-mrr"). Net −738 lines: the purge removed more than the mirror added. Notable divergences from the original draft, all user-directed and logged: no `user_signed_up` event (D-4 reversed), no JSON snapshots (D-2 reversed — activity log is the restore path), users page deleted rather than paginated (D-12), registry lives in `packages/trpc` not `apps/admin` (import direction). Lessons: person-on-events semantics bit three separate times (funnel engine, event-time person properties, `toDateTime` parsing) — the load-bearing facts are recorded in Context and in the PostHog insight descriptions; and "reference by id" turned out to need exactly one id per tile at runtime, validating the thin-proxy design. Remaining follow-ups: enable Sigma (Satya, Stripe dashboard), dollar-NRR as a second Sigma query if wanted, and the project-wide sweep of other cross-boundary funnels in PostHog.
 
 ## Context and Orientation
 
