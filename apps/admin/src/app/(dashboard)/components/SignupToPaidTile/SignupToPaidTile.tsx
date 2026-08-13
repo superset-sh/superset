@@ -11,6 +11,7 @@ import { Bar, ComposedChart, Line, XAxis, YAxis } from "recharts";
 
 import { useTRPC } from "@/trpc/react";
 
+import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const chartConfig = {
@@ -24,6 +25,7 @@ export function SignupToPaidTile() {
 		trpc.business.getSignupToPaid.queryOptions({ weeks: 12 }),
 	);
 	const data = query.data ?? [];
+	const xAxis = makeDateAxis(data.map((row) => row.cohort_week));
 
 	return (
 		<InsightTileFrame
@@ -40,6 +42,8 @@ export function SignupToPaidTile() {
 						tickLine={false}
 						axisLine={false}
 						fontSize={11}
+						ticks={xAxis.ticks}
+						tickFormatter={xAxis.tickFormatter}
 					/>
 					<YAxis
 						yAxisId="left"

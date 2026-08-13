@@ -16,6 +16,7 @@ import { Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { useTRPC } from "@/trpc/react";
 
+import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const STALE_TIME_MS = 10 * 60 * 1000;
@@ -56,6 +57,7 @@ export function TrendSeriesTile({
 		: [];
 
 	const xLabels = series[0]?.days ?? series[0]?.labels ?? [];
+	const xAxis = makeDateAxis(xLabels);
 	const data = xLabels.map((x, i) => {
 		const point: Record<string, unknown> = { x };
 		series.forEach((s, seriesIndex) => {
@@ -88,7 +90,14 @@ export function TrendSeriesTile({
 		>
 			<ChartContainer config={chartConfig} className="h-[240px] w-full">
 				<LineChart data={data}>
-					<XAxis dataKey="x" tickLine={false} axisLine={false} fontSize={11} />
+					<XAxis
+						dataKey="x"
+						tickLine={false}
+						axisLine={false}
+						fontSize={11}
+						ticks={xAxis.ticks}
+						tickFormatter={xAxis.tickFormatter}
+					/>
 					<YAxis
 						tickLine={false}
 						axisLine={false}

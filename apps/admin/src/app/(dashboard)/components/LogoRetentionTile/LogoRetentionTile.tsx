@@ -39,6 +39,11 @@ export function LogoRetentionTile() {
 						tickLine={false}
 						axisLine={false}
 						fontSize={11}
+						tickFormatter={(value: string) =>
+							new Date(`${value}-01`).toLocaleDateString("en-US", {
+								month: "long",
+							})
+						}
 					/>
 					<YAxis
 						tickLine={false}

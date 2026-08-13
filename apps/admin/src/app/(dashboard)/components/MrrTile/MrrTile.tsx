@@ -19,6 +19,7 @@ import { Area, AreaChart, XAxis, YAxis } from "recharts";
 
 import { useTRPC } from "@/trpc/react";
 
+import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 import { type MrrDatum, MrrTooltip } from "./MrrTooltip";
 
@@ -78,6 +79,7 @@ export function MrrTile() {
 		};
 	});
 	const points = bucketPoints(enriched, range);
+	const xAxis = makeDateAxis(points.map((point) => point.date));
 	const latest = points.at(-1);
 	const changePct = latest?.changePct ?? null;
 
@@ -145,6 +147,8 @@ export function MrrTile() {
 							tickLine={false}
 							axisLine={false}
 							fontSize={11}
+							ticks={xAxis.ticks}
+							tickFormatter={xAxis.tickFormatter}
 						/>
 						<YAxis
 							tickLine={false}

@@ -49,8 +49,12 @@ export default function DashboardPage() {
 
 			<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 				<TrendSeriesTile
-					insight="dauWau"
-					description="Unique users creating a real workspace: daily, plus rolling-7d WAU"
+					insight="dau"
+					description="Unique users creating a real workspace, daily"
+				/>
+				<TrendSeriesTile
+					insight="wau"
+					description="Rolling 7-day unique users creating a real workspace"
 				/>
 				<HogQLLineTile
 					insight="activatedRate"

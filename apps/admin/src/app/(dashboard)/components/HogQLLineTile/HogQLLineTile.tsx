@@ -15,6 +15,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Bar, ComposedChart, Line, XAxis, YAxis } from "recharts";
 import { useTRPC } from "@/trpc/react";
 
+import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const STALE_TIME_MS = 10 * 60 * 1000;
@@ -74,6 +75,7 @@ export function HogQLLineTile({
 	) satisfies ChartConfig;
 
 	const hasRightAxis = series.some((s) => s.rightAxis);
+	const xAxis = makeDateAxis(data.map((point) => point.x as string | number));
 
 	return (
 		<InsightTileFrame
@@ -89,7 +91,14 @@ export function HogQLLineTile({
 		>
 			<ChartContainer config={chartConfig} className="h-[240px] w-full">
 				<ComposedChart data={data}>
-					<XAxis dataKey="x" tickLine={false} axisLine={false} fontSize={11} />
+					<XAxis
+						dataKey="x"
+						tickLine={false}
+						axisLine={false}
+						fontSize={11}
+						ticks={xAxis.ticks}
+						tickFormatter={xAxis.tickFormatter}
+					/>
 					<YAxis yAxisId="left" tickLine={false} axisLine={false} width={40} />
 					{hasRightAxis ? (
 						<YAxis yAxisId="right" orientation="right" hide />
