@@ -57,8 +57,8 @@ Create `.superset/ports.json` in your repository:
 
 **HTTPS dev servers:**
 
-A dev server that only speaks TLS — Next's `--experimental-https`, Vite's
-`server.https`, anything behind a local certificate — cannot answer a plain
+A dev server that only speaks TLS (Next's `--experimental-https`, Vite's
+`server.https`, anything behind a local certificate) cannot answer a plain
 `http://` request at all: the connection fails inside the TLS handshake, so the
 browser shows a connection error rather than your app. Declare those ports with
 `"scheme": "https"` so the browser action opens the right URL.
