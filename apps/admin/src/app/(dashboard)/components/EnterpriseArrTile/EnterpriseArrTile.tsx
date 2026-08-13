@@ -30,9 +30,9 @@ export function EnterpriseArrTile() {
 			title="Enterprise ARR by account"
 			description={
 				data?.available
-					? `$${data.arrUsd.toLocaleString()}/yr across ${accounts.length} logos${
+					? `$${data.arrUsd.toLocaleString()}/yr across ${accounts.length} logos — already inside MRR, not additive${
 							data.unbilledLogos > 0
-								? ` — ${data.unbilledLogos} not yet modeled as Stripe subscriptions`
+								? `. ${data.unbilledLogos} not yet modeled as Stripe subscriptions`
 								: ""
 						}`
 					: (data?.reason ?? "Annualized enterprise Stripe subscriptions")

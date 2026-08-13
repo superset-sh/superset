@@ -19,7 +19,9 @@ export function CashRunwayTile() {
 		<div className="grid grid-cols-1 gap-6 md:grid-cols-3">
 			<MetricCard
 				title="Cash"
-				description={reason ?? "All Mercury accounts + Treasury"}
+				description={
+					reason ?? "All Mercury accounts + Treasury, incl. raised capital"
+				}
 				value={available ? data.totalCashUsd : null}
 				isLoading={query.isLoading}
 				error={query.error}
@@ -41,8 +43,7 @@ export function CashRunwayTile() {
 			<MetricCard
 				title="Runway"
 				description={
-					reason ??
-					"Cash ÷ net burn; enterprise wires not netted (indistinguishable from investor wires)"
+					reason ?? "Cash ÷ net burn at the current run rate; no growth assumed"
 				}
 				value={available ? data.runwayMonths : null}
 				isLoading={query.isLoading}
