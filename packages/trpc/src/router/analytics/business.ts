@@ -11,7 +11,91 @@ import { adminProcedure } from "../../trpc";
 // from Neon subscriptions. Metrics whose source is not yet configured return
 // { available: false } so tiles render an explicit state instead of breaking.
 
-const SIGMA_MRR_QUERY_TITLE = "admin-mrr";
+// Stripe's own MRR report SQL (the Sigma template behind the dashboard MRR
+// chart), executed on demand via the Query Run API — no dashboard scheduled
+// query involved. Requires an active Sigma subscription; a full secret key or
+// a restricted key with reporting_write + sigma_api_write.
+const STRIPE_QUERY_RUN_VERSION = "2026-04-22.preview";
+
+const MRR_SQL = `-- This template returns total monthly recurring revenue
+WITH sparse_mrr_changes AS (
+  SELECT
+    DATE_TRUNC('day', DATE(local_event_timestamp)) AS date,
+    currency,
+    SUM(mrr_change) AS mrr_change_on_day
+  FROM subscription_item_change_events_v2_beta
+  GROUP BY 1, 2
+),
+sparse_mrrs AS (
+  SELECT
+    date,
+    currency,
+    mrr_change_on_day,
+    SUM(mrr_change_on_day) OVER (PARTITION BY currency ORDER BY date ASC) AS mrr
+  FROM sparse_mrr_changes
+  ORDER BY currency, date DESC
+),
+fx AS (
+  SELECT
+    date - INTERVAL '1' DAY AS date,
+    cast(JSON_PARSE(buy_currency_exchange_rates) AS MAP(VARCHAR, DOUBLE)) AS rate_per_usd
+  FROM exchange_rates_from_usd
+),
+currencies AS (
+  SELECT DISTINCT(currency) FROM subscription_item_change_events_v2_beta
+),
+date_currency AS (
+  SELECT date, rate_per_usd, currency
+  FROM fx CROSS JOIN currencies
+  ORDER BY date, currency
+),
+date_currency_mrr AS (
+  SELECT
+    dpc.date,
+    dpc.currency,
+    dpc.rate_per_usd,
+    mrr_change_on_day,
+    mrr AS _mrr,
+    LAST_VALUE(mrr) IGNORE NULLS OVER (
+      PARTITION BY dpc.currency
+      ORDER BY dpc.date ASC
+      ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW
+    ) AS mrr
+  FROM date_currency dpc
+  LEFT JOIN sparse_mrrs sm on dpc.date = sm.date AND dpc.currency = sm.currency
+),
+daily_mrrs_pre_fx AS (
+  SELECT date, currency, rate_per_usd, SUM(mrr) AS mrr
+  FROM date_currency_mrr
+  GROUP BY 1, 2, 3
+  ORDER BY date DESC
+),
+daily_mrrs AS (
+  SELECT
+    date,
+    SUM(ROUND(mrr / rate_per_usd [currency] * rate_per_usd ['usd'])) AS total_mrr_in_usd_minor_units
+  FROM daily_mrrs_pre_fx
+  GROUP BY 1
+),
+months AS (
+  SELECT date_col - (INTERVAL '1' DAY) AS month_end
+  FROM UNNEST(
+    SEQUENCE(
+      CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS date) - INTERVAL '24' MONTH,
+      CURRENT_DATE,
+      INTERVAL '1' MONTH
+    )
+  ) t (date_col)
+),
+monthly_mrrs AS (
+  SELECT
+    month_end,
+    DECIMALIZE_AMOUNT_NO_DISPLAY('usd', dm.total_mrr_in_usd_minor_units, 2) AS total_mrr_in_usd
+  FROM months m
+  LEFT JOIN daily_mrrs dm ON m.month_end = dm.date
+  ORDER BY month_end DESC
+)
+SELECT * FROM monthly_mrrs`;
 
 interface MrrPoint {
 	monthEnd: string;
@@ -22,69 +106,46 @@ type MrrResult =
 	| { available: true; dataLoadTime: string | null; points: MrrPoint[] }
 	| { available: false; reason: string };
 
-interface ScheduledQueryRun {
+interface QueryRun {
 	id: string;
 	status: string;
-	title: string | null;
-	created: number;
-	data_load_time: number | null;
-	file: { id: string; url: string | null } | null;
+	result: { file?: { download_url?: { url?: string } } } | null;
+	error?: { message?: string };
 }
 
-async function fetchLatestSigmaMrr(): Promise<MrrResult> {
-	if (!env.STRIPE_SECRET_KEY) {
-		return { available: false, reason: "STRIPE_SECRET_KEY not configured" };
+function stripeHeaders() {
+	return {
+		Authorization: `Bearer ${env.STRIPE_SECRET_KEY}`,
+		"Stripe-Version": STRIPE_QUERY_RUN_VERSION,
+	};
+}
+
+async function pollQueryRun(
+	runId: string,
+	attempts: number,
+): Promise<QueryRun> {
+	let run: QueryRun = { id: runId, status: "running", result: null };
+	for (let i = 0; i < attempts; i++) {
+		await new Promise((resolve) => setTimeout(resolve, 3000));
+		const response = await fetch(
+			`https://api.stripe.com/v2/data/reporting/query_runs/${runId}`,
+			{ headers: stripeHeaders() },
+		);
+		run = (await response.json()) as QueryRun;
+		if (run.status !== "running") return run;
 	}
+	return run;
+}
 
-	const authHeader = { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` };
-	const listResponse = await fetch(
-		"https://api.stripe.com/v1/sigma/scheduled_query_runs?limit=50",
-		{ headers: authHeader },
-	);
-
-	if (!listResponse.ok) {
-		const body = (await listResponse.json().catch(() => null)) as {
-			error?: { message?: string };
-		} | null;
-		return {
-			available: false,
-			reason:
-				body?.error?.message ??
-				`Stripe Sigma unavailable (${listResponse.status})`,
-		};
-	}
-
-	const list = (await listResponse.json()) as { data?: ScheduledQueryRun[] };
-	const run = (list.data ?? []).find(
-		(r) => r.status === "completed" && r.title === SIGMA_MRR_QUERY_TITLE,
-	);
-	if (!run?.file?.url) {
-		return {
-			available: false,
-			reason: `no completed Sigma run titled "${SIGMA_MRR_QUERY_TITLE}"`,
-		};
-	}
-
-	const fileResponse = await fetch(run.file.url, { headers: authHeader });
-	if (!fileResponse.ok) {
-		return {
-			available: false,
-			reason: `Sigma result file fetch failed (${fileResponse.status})`,
-		};
-	}
-
-	const csv = await fileResponse.text();
+function parseMrrCsv(csv: string): MrrPoint[] {
 	const [header, ...rows] = csv.trim().split("\n");
-	const columns = (header ?? "").split(",");
+	const columns = (header ?? "").split(",").map((c) => c.replaceAll('"', ""));
 	const monthIndex = columns.indexOf("month_end");
 	const mrrIndex = columns.indexOf("total_mrr_in_usd");
-	if (monthIndex === -1 || mrrIndex === -1) {
-		return { available: false, reason: "unexpected Sigma CSV columns" };
-	}
-
-	const points = rows
+	if (monthIndex === -1 || mrrIndex === -1) return [];
+	return rows
 		.map((row) => {
-			const cells = row.split(",");
+			const cells = row.split(",").map((c) => c.replaceAll('"', ""));
 			return {
 				monthEnd: cells[monthIndex] ?? "",
 				mrrUsd: Number(cells[mrrIndex] ?? Number.NaN),
@@ -92,14 +153,75 @@ async function fetchLatestSigmaMrr(): Promise<MrrResult> {
 		})
 		.filter((p) => p.monthEnd && Number.isFinite(p.mrrUsd))
 		.sort((a, b) => a.monthEnd.localeCompare(b.monthEnd));
+}
 
-	return {
-		available: true,
-		dataLoadTime: run.data_load_time
-			? new Date(run.data_load_time * 1000).toISOString()
-			: null,
-		points,
-	};
+// Sigma data refreshes ~daily and the query takes ~30-60s, so results are
+// cached in-process for 12h and concurrent callers share one in-flight run.
+const MRR_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+let mrrCache: { fetchedAt: number; result: MrrResult } | null = null;
+let mrrInFlight: Promise<MrrResult> | null = null;
+
+async function runMrrQuery(): Promise<MrrResult> {
+	const createResponse = await fetch(
+		"https://api.stripe.com/v2/data/reporting/query_runs",
+		{
+			method: "POST",
+			headers: { ...stripeHeaders(), "Content-Type": "application/json" },
+			body: JSON.stringify({ sql: MRR_SQL }),
+		},
+	);
+	const created = (await createResponse.json()) as QueryRun;
+	if (!createResponse.ok || !created.id) {
+		return {
+			available: false,
+			reason:
+				created.error?.message ??
+				`Sigma query create failed (${createResponse.status})`,
+		};
+	}
+
+	const run = await pollQueryRun(created.id, 25);
+	if (run.status === "running") {
+		return {
+			available: false,
+			reason: "MRR query still computing — reload in a minute",
+		};
+	}
+	const downloadUrl = run.result?.file?.download_url?.url;
+	if (run.status !== "succeeded" || !downloadUrl) {
+		return { available: false, reason: `Sigma query ${run.status}` };
+	}
+
+	const csv = await (await fetch(downloadUrl)).text();
+	const points = parseMrrCsv(csv);
+	if (!points.length) {
+		return { available: false, reason: "unexpected Sigma CSV columns" };
+	}
+	return { available: true, dataLoadTime: new Date().toISOString(), points };
+}
+
+async function fetchLatestSigmaMrr(): Promise<MrrResult> {
+	if (!env.STRIPE_SECRET_KEY) {
+		return { available: false, reason: "STRIPE_SECRET_KEY not configured" };
+	}
+	if (
+		mrrCache &&
+		Date.now() - mrrCache.fetchedAt < MRR_CACHE_TTL_MS &&
+		mrrCache.result.available
+	) {
+		return mrrCache.result;
+	}
+	if (!mrrInFlight) {
+		mrrInFlight = runMrrQuery()
+			.then((result) => {
+				mrrCache = { fetchedAt: Date.now(), result };
+				return result;
+			})
+			.finally(() => {
+				mrrInFlight = null;
+			});
+	}
+	return mrrInFlight;
 }
 
 export const businessRouter = {

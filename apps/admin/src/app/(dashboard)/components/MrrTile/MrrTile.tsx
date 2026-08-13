@@ -32,16 +32,14 @@ export function MrrTile() {
 			description={
 				latest
 					? `Latest: $${latest.mrrUsd.toLocaleString()} (${latest.monthEnd}) — Stripe's own Sigma MRR report`
-					: 'Stripe\'s own Sigma MRR report (scheduled query "admin-mrr")'
+					: "Stripe's own Sigma MRR report, computed on demand via the Query Run API"
 			}
 			lastRefresh={query.data?.available ? query.data.dataLoadTime : null}
 			isLoading={query.isLoading}
 			error={query.error}
 			empty={points.length === 0}
 			emptyLabel={
-				unavailableReason
-					? `Unavailable: ${unavailableReason}. Enable Sigma and schedule the MRR template daily as "admin-mrr".`
-					: "No data"
+				unavailableReason ? `Unavailable: ${unavailableReason}` : "No data"
 			}
 		>
 			<ChartContainer config={chartConfig} className="h-[240px] w-full">
