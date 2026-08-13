@@ -1,9 +1,9 @@
-# Mobile App Structure
+# Superset Mobile App
+
+## Project Structure
 
 Guidelines for organizing the Superset mobile app mostly follow repo's patterns,
 with some caveats:
-
-## Rules
 
 ### Keep in app/
 1. Any routing related logic i.e. redirects, route guards, etc.
@@ -57,6 +57,11 @@ export default function AuthenticatedLayout() {
 }
 ```
 
-## Key Principle
+### Key Principle
 
 **Separation of concerns**: `app/` owns routing/navigation, `screens/` owns UI/business logic.
+
+## Conventions
+
+- **`apps/mobile` is iOS-only.** No Android fallbacks or platform guards for iOS-only APIs, and
+  Android incompatibility isn't a blocker until Android is explicitly in scope.
