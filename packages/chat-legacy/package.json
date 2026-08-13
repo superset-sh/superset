@@ -20,10 +20,6 @@
 			"types": "./src/server/trpc/index.ts",
 			"default": "./src/server/trpc/index.ts"
 		},
-		"./server/hono": {
-			"types": "./src/server/hono/index.ts",
-			"default": "./src/server/hono/index.ts"
-		},
 		"./server/shared": {
 			"types": "./src/server/shared/index.ts",
 			"default": "./src/server/shared/index.ts"
@@ -44,7 +40,6 @@
 		"@trpc/client": "11.16.0",
 		"@trpc/server": "11.16.0",
 		"ai": "6.0.235",
-		"hono": "4.12.34",
 		"mastracode": "0.18.1",
 		"superjson": "2.2.6",
 		"zod": "4.4.3"

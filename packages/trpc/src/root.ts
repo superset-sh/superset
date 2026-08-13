@@ -6,7 +6,6 @@ import { apiKeyRouter } from "./router/api-key";
 import { automationRouter } from "./router/automation";
 import { billingRouter } from "./router/billing";
 import { chatRouter } from "./router/chat";
-import { deviceRouter } from "./router/device";
 import { hostRouter } from "./router/host";
 import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
@@ -26,7 +25,6 @@ export const appRouter = createTRPCRouter({
 	automation: automationRouter,
 	billing: billingRouter,
 	chat: chatRouter,
-	device: deviceRouter,
 	host: hostRouter,
 	integration: integrationRouter,
 	organization: organizationRouter,
