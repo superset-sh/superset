@@ -11,6 +11,7 @@ import { Bar, BarChart, Cell, XAxis, YAxis } from "recharts";
 
 import { useTRPC } from "@/trpc/react";
 
+import { formatMonth } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const chartConfig = {
@@ -27,7 +28,11 @@ export function NetBurnTile() {
 
 	const unavailableReason =
 		query.data && !query.data.available ? query.data.reason : null;
-	const months = query.data?.available ? query.data.months : [];
+	// Months before the account had outflows are pre-operating noise: they
+	// produce negative "burn" that drags the axis into empty space.
+	const months = (query.data?.available ? query.data.months : []).filter(
+		(month) => month.outUsd > 0,
+	);
 
 	return (
 		<InsightTileFrame
@@ -48,11 +53,7 @@ export function NetBurnTile() {
 						tickLine={false}
 						axisLine={false}
 						fontSize={11}
-						tickFormatter={(value: string) =>
-							new Date(`${value}-01`).toLocaleDateString("en-US", {
-								month: "long",
-							})
-						}
+						tickFormatter={formatMonth}
 					/>
 					<YAxis
 						tickLine={false}

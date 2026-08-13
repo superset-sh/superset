@@ -11,6 +11,7 @@ import { Line, LineChart, XAxis, YAxis } from "recharts";
 
 import { useTRPC } from "@/trpc/react";
 
+import { formatMonth } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const chartConfig = {
@@ -39,11 +40,7 @@ export function LogoRetentionTile() {
 						tickLine={false}
 						axisLine={false}
 						fontSize={11}
-						tickFormatter={(value: string) =>
-							new Date(`${value}-01`).toLocaleDateString("en-US", {
-								month: "long",
-							})
-						}
+						tickFormatter={formatMonth}
 					/>
 					<YAxis
 						tickLine={false}

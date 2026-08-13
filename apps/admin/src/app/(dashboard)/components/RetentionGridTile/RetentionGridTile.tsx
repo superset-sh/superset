@@ -4,11 +4,16 @@ import {
 	ADMIN_INSIGHTS,
 	POSTHOG_PROJECT_URL,
 } from "@superset/trpc/insight-registry";
-import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
 
+import { formatDay } from "../../utils/chartAxis";
+import {
+	type CohortCellState,
+	CohortGrid,
+	type CohortRow,
+} from "../CohortGrid";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const STALE_TIME_MS = 10 * 60 * 1000;
@@ -20,54 +25,17 @@ interface RetentionCohortResult {
 	values: { count: number }[];
 }
 
-type CellState = "complete" | "inProgress" | "future";
-
-function cellState(cohortStart: number, week: number, now: number): CellState {
+function cellState(
+	cohortStart: number,
+	week: number,
+	now: number,
+): CohortCellState {
 	const weekStart = cohortStart + week * WEEK_MS;
 	if (weekStart > now) return "future";
 	if (weekStart + WEEK_MS > now) return "inProgress";
 	return "complete";
 }
 
-function RetentionCell({
-	pct,
-	state,
-	isFirstWeek,
-}: {
-	pct: number | null;
-	state: CellState;
-	isFirstWeek: boolean;
-}) {
-	if (state === "future" || pct === null) {
-		return <div />;
-	}
-	if (state === "inProgress") {
-		return (
-			<div className="border-border text-muted-foreground rounded-md border border-dashed px-1 py-1.5 text-center tabular-nums">
-				{pct.toFixed(1)}%
-			</div>
-		);
-	}
-	return (
-		<div
-			className={cn(
-				"rounded-md px-1 py-1.5 text-center tabular-nums",
-				(isFirstWeek || pct >= 45) && "text-white",
-			)}
-			style={{
-				background: isFirstWeek
-					? "var(--chart-1)"
-					: `color-mix(in oklch, var(--chart-1) ${Math.max(8, Math.round(pct))}%, transparent)`,
-			}}
-		>
-			{pct.toFixed(1)}%
-		</div>
-	);
-}
-
-// PostHog-style cohort triangle: solid chips scaled by retention, dashed
-// outline for the still-in-progress cell, nothing for future weeks, and a
-// size-weighted Mean row over complete cells.
 export function RetentionGridTile() {
 	const trpc = useTRPC();
 	const query = useQuery(
@@ -86,18 +54,24 @@ export function RetentionGridTile() {
 	const now = Date.now();
 
 	// Size-weighted mean per week over every cohort that has reached that
-	// week. A week whose contributing cells are all still in progress is
-	// itself in progress (dashed), matching the cohort rows.
-	const meanRow: { pct: number | null; state: CellState }[] = Array.from(
-		{ length: intervalCount },
-		(_, week) => {
+	// week; a week whose contributors are all mid-flight is itself dashed.
+	const meanRow: CohortRow = {
+		key: "mean",
+		label: "Mean",
+		emphasis: true,
+		size: cohorts.length
+			? Math.round(
+					cohorts.reduce((sum, c) => sum + (c.values[0]?.count ?? 0), 0) /
+						cohorts.length,
+				)
+			: 0,
+		cells: Array.from({ length: intervalCount }, (_, week) => {
 			let returned = 0;
 			let weight = 0;
 			let sawComplete = false;
 			for (const cohort of cohorts) {
 				const size = cohort.values[0]?.count ?? 0;
-				const start = new Date(cohort.date).getTime();
-				const state = cellState(start, week, now);
+				const state = cellState(new Date(cohort.date).getTime(), week, now);
 				if (size === 0 || state === "future") continue;
 				returned += cohort.values[week]?.count ?? 0;
 				weight += size;
@@ -108,14 +82,25 @@ export function RetentionGridTile() {
 				pct: (returned / weight) * 100,
 				state: sawComplete ? ("complete" as const) : ("inProgress" as const),
 			};
-		},
-	);
-	const meanSize = cohorts.length
-		? Math.round(
-				cohorts.reduce((sum, c) => sum + (c.values[0]?.count ?? 0), 0) /
-					cohorts.length,
-			)
-		: 0;
+		}),
+	};
+
+	const rows: CohortRow[] = [
+		meanRow,
+		...cohorts.map((cohort) => {
+			const size = cohort.values[0]?.count ?? 0;
+			const start = new Date(cohort.date).getTime();
+			return {
+				key: cohort.date,
+				label: formatDay(cohort.date),
+				size,
+				cells: cohort.values.map((value, week) => ({
+					pct: size > 0 ? (value.count / size) * 100 : null,
+					state: cellState(start, week, now),
+				})),
+			};
+		}),
+	];
 
 	return (
 		<InsightTileFrame
@@ -129,70 +114,13 @@ export function RetentionGridTile() {
 			onRefresh={() => query.refetch()}
 			isRefreshing={query.isFetching}
 		>
-			<div className="overflow-x-auto">
-				<div
-					className="grid min-w-[860px] items-center gap-1 text-xs"
-					style={{
-						gridTemplateColumns: `5.5rem 3rem repeat(${intervalCount}, minmax(3.5rem, 1fr))`,
-					}}
-				>
-					<span className="text-muted-foreground">Cohort</span>
-					<span className="text-muted-foreground text-right">Size</span>
-					{Array.from({ length: intervalCount }, (_, week) => (
-						<span
-							// biome-ignore lint/suspicious/noArrayIndexKey: columns are week offsets
-							key={week}
-							className="text-muted-foreground text-center"
-						>
-							Week {week}
-						</span>
-					))}
-
-					<span className="font-medium">Mean</span>
-					<span className="pr-1 text-right font-medium tabular-nums">
-						{meanSize}
-					</span>
-					{meanRow.map((cell, week) => (
-						<RetentionCell
-							// biome-ignore lint/suspicious/noArrayIndexKey: columns are week offsets
-							key={week}
-							pct={cell.pct}
-							state={cell.state}
-							isFirstWeek={week === 0}
-						/>
-					))}
-
-					{cohorts.map((cohort) => {
-						const size = cohort.values[0]?.count ?? 0;
-						const start = new Date(cohort.date).getTime();
-						return [
-							<span
-								key={`${cohort.date}-label`}
-								className="text-muted-foreground whitespace-nowrap"
-							>
-								{new Date(cohort.date).toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-								})}
-							</span>,
-							<span
-								key={`${cohort.date}-size`}
-								className="pr-1 text-right tabular-nums"
-							>
-								{size}
-							</span>,
-							...cohort.values.map((value, week) => (
-								<RetentionCell
-									key={`${cohort.date}-w${String(week)}`}
-									pct={size > 0 ? (value.count / size) * 100 : null}
-									state={cellState(start, week, now)}
-									isFirstWeek={week === 0}
-								/>
-							)),
-						];
-					})}
-				</div>
-			</div>
+			<CohortGrid
+				columnLabels={Array.from(
+					{ length: intervalCount },
+					(_, week) => `Week ${week}`,
+				)}
+				rows={rows}
+			/>
 		</InsightTileFrame>
 	);
 }

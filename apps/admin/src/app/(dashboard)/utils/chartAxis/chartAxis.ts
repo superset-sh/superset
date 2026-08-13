@@ -7,6 +7,25 @@ interface DateAxisConfig {
 	tickFormatter: (value: string | number) => string;
 }
 
+// Analytics dates are calendar strings with no timezone meaning ("2026-02-01"
+// is February everywhere), but `new Date("2026-02-01")` parses as UTC
+// midnight and formats in local time — which renders it as January in the
+// Americas. Every formatter here pins to UTC so labels match the data.
+export function formatDay(value: string): string {
+	return new Date(`${value.slice(0, 10)}T00:00:00Z`).toLocaleDateString(
+		"en-US",
+		{ month: "short", day: "numeric", timeZone: "UTC" },
+	);
+}
+
+export function formatMonth(value: string): string {
+	const month = value.length === 7 ? `${value}-01` : value.slice(0, 10);
+	return new Date(`${month}T00:00:00Z`).toLocaleDateString("en-US", {
+		month: "long",
+		timeZone: "UTC",
+	});
+}
+
 // Shared x-axis rule for date-valued charts: multi-month ranges label one
 // tick per month ("January"); shorter ranges label "Aug 8". Non-date axes
 // (percentiles etc.) pass through unchanged.
@@ -19,7 +38,9 @@ export function makeDateAxis(values: (string | number)[]): DateAxisConfig {
 		return { tickFormatter: (value) => String(value) };
 	}
 
-	const times = dateValues.map((value) => new Date(value).getTime());
+	const times = dateValues.map((value) =>
+		new Date(`${value.slice(0, 10)}T00:00:00Z`).getTime(),
+	);
 	const spanDays = (Math.max(...times) - Math.min(...times)) / DAY_MS;
 
 	if (spanDays > MULTI_MONTH_SPAN_DAYS) {
@@ -30,18 +51,11 @@ export function makeDateAxis(values: (string | number)[]): DateAxisConfig {
 		}
 		return {
 			ticks: [...firstOfMonth.values()],
-			tickFormatter: (value) =>
-				new Date(String(value)).toLocaleDateString("en-US", {
-					month: "long",
-				}),
+			tickFormatter: (value) => formatMonth(String(value)),
 		};
 	}
 
 	return {
-		tickFormatter: (value) =>
-			new Date(String(value)).toLocaleDateString("en-US", {
-				month: "short",
-				day: "numeric",
-			}),
+		tickFormatter: (value) => formatDay(String(value)),
 	};
 }

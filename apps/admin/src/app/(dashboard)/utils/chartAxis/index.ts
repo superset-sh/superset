@@ -1,1 +1,1 @@
-export { makeDateAxis } from "./chartAxis";
+export { formatDay, formatMonth, makeDateAxis } from "./chartAxis";
