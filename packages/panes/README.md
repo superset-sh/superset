@@ -2,6 +2,8 @@
 
 A generic, headless workspace layout engine. Tabs hold panes arranged in split layouts. The package provides the data model, store, and React components — you provide the pane content.
 
+<!-- superficial test change -->
+
 ## Concepts
 
 ```

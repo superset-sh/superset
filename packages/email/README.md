@@ -2,6 +2,8 @@
 
 Email templates for Superset, built with [React Email](https://react.email).
 
+<!-- superficial test change -->
+
 ## Images in Email
 
 **Critical:** Email clients require absolute URLs for images. All images must be hosted on your production domain.
