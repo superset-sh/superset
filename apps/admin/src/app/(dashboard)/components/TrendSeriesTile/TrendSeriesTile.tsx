@@ -1,6 +1,10 @@
 "use client";
 
-import type { AdminInsightKey } from "@superset/trpc";
+import {
+	ADMIN_INSIGHTS,
+	type AdminInsightKey,
+	POSTHOG_PROJECT_URL,
+} from "@superset/trpc";
 import {
 	type ChartConfig,
 	ChartContainer,
@@ -77,6 +81,7 @@ export function TrendSeriesTile({
 			lastRefresh={query.data?.lastRefresh}
 			isLoading={query.isLoading}
 			error={query.error}
+			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS[insight]}`}
 			onRefresh={() => query.refetch()}
 			isRefreshing={query.isFetching}
 			empty={data.length === 0}

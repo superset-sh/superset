@@ -1,9 +1,10 @@
 "use client";
 
+import { ADMIN_INSIGHTS, POSTHOG_PROJECT_URL } from "@superset/trpc";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
-import { LuRefreshCw } from "react-icons/lu";
+import { LuExternalLink, LuRefreshCw } from "react-icons/lu";
 
 import { useTRPC } from "@/trpc/react";
 
@@ -44,18 +45,30 @@ export function PostHogFunnelTile() {
 			isLoading={insight.isLoading}
 			error={insight.error}
 			headerAction={
-				<Button
-					size="sm"
-					variant="ghost"
-					className="size-6 p-0"
-					onClick={() => insight.refetch()}
-					disabled={insight.isFetching}
-					aria-label="Refresh"
-				>
-					<LuRefreshCw
-						className={cn("size-3.5", insight.isFetching && "animate-spin")}
-					/>
-				</Button>
+				<div className="flex items-center gap-1">
+					<Button size="sm" variant="ghost" className="size-6 p-0" asChild>
+						<a
+							href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS.activationFunnel}`}
+							target="_blank"
+							rel="noreferrer"
+							aria-label="Open in PostHog"
+						>
+							<LuExternalLink className="size-3.5" />
+						</a>
+					</Button>
+					<Button
+						size="sm"
+						variant="ghost"
+						className="size-6 p-0"
+						onClick={() => insight.refetch()}
+						disabled={insight.isFetching}
+						aria-label="Refresh"
+					>
+						<LuRefreshCw
+							className={cn("size-3.5", insight.isFetching && "animate-spin")}
+						/>
+					</Button>
+				</div>
 			}
 		/>
 	);

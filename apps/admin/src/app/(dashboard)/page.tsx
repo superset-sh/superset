@@ -1,5 +1,6 @@
 "use client";
 
+import { POSTHOG_PROJECT_URL } from "@superset/trpc";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -28,8 +29,16 @@ export default function DashboardPage() {
 			<div>
 				<h1 className="text-2xl font-bold">Company Metrics</h1>
 				<p className="text-muted-foreground">
-					Mirror of the PostHog Success Metrics dashboard — product via saved
-					insights, business live from Stripe/Neon
+					Mirror of the{" "}
+					<a
+						href={`${POSTHOG_PROJECT_URL}/dashboard/1884562`}
+						target="_blank"
+						rel="noreferrer"
+						className="underline underline-offset-2"
+					>
+						PostHog Success Metrics dashboard
+					</a>{" "}
+					— product via saved insights, business live from Stripe/Neon
 				</p>
 			</div>
 

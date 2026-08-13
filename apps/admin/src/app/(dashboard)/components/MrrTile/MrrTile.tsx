@@ -4,7 +4,6 @@ import {
 	type ChartConfig,
 	ChartContainer,
 	ChartTooltip,
-	ChartTooltipContent,
 } from "@superset/ui/chart";
 import {
 	Select,
@@ -21,6 +20,7 @@ import { Area, AreaChart, XAxis, YAxis } from "recharts";
 import { useTRPC } from "@/trpc/react";
 
 import { InsightTileFrame } from "../InsightTileFrame";
+import { type MrrDatum, MrrTooltip } from "./MrrTooltip";
 
 const chartConfig = {
 	mrrUsd: { label: "MRR", color: "var(--chart-1)" },
@@ -28,6 +28,26 @@ const chartConfig = {
 
 const RANGE_DAYS = { "7d": 7, "35d": 35, "180d": 180 } as const;
 type RangeKey = keyof typeof RANGE_DAYS;
+
+// One daily-180d Stripe query serves every range; ranges differ only in
+// sampling: 7d shows days, 35d shows 7d intervals, 180d shows month ends.
+function bucketPoints(all: MrrDatum[], range: RangeKey): MrrDatum[] {
+	if (range === "7d") return all.slice(-7);
+	if (range === "35d") {
+		const window = all.slice(-35);
+		const picked: MrrDatum[] = [];
+		for (let i = window.length - 1; i >= 0; i -= 7) {
+			const point = window[i];
+			if (point) picked.unshift(point);
+		}
+		return picked;
+	}
+	const byMonth = new Map<string, MrrDatum>();
+	for (const point of all.slice(-180)) {
+		byMonth.set(point.date.slice(0, 7), point);
+	}
+	return [...byMonth.values()];
+}
 
 export function MrrTile() {
 	const trpc = useTRPC();
@@ -44,17 +64,22 @@ export function MrrTile() {
 	// Server returns 180 daily points; range switches filter client-side.
 	const days = RANGE_DAYS[range];
 	const allPoints = query.data?.available ? query.data.points : [];
-	const points = allPoints.slice(-days);
+	const enriched: MrrDatum[] = allPoints.map((p, i) => {
+		const prev = allPoints[i - days];
+		return {
+			date: p.date,
+			mrrUsd: p.mrrUsd,
+			prevDate: prev?.date ?? null,
+			prevUsd: prev?.mrrUsd ?? null,
+			changePct:
+				prev && prev.mrrUsd !== 0
+					? ((p.mrrUsd - prev.mrrUsd) / prev.mrrUsd) * 100
+					: null,
+		};
+	});
+	const points = bucketPoints(enriched, range);
 	const latest = points.at(-1);
-	// Previous period = the value exactly one range-length before the latest
-	// point (Stripe's "previous period" comparison), falling back to the
-	// oldest point we have.
-	const previous =
-		allPoints.at(-1 - days) ?? (points.length > 1 ? points[0] : undefined);
-	const changePct =
-		latest && previous && previous.mrrUsd !== 0
-			? ((latest.mrrUsd - previous.mrrUsd) / previous.mrrUsd) * 100
-			: null;
+	const changePct = latest?.changePct ?? null;
 
 	return (
 		<InsightTileFrame
@@ -105,10 +130,10 @@ export function MrrTile() {
 								</span>
 							) : null}
 						</div>
-						{previous ? (
+						{latest?.prevUsd !== null && latest?.prevUsd !== undefined ? (
 							<p className="text-muted-foreground text-sm">
-								${previous.mrrUsd.toLocaleString()} previous period (
-								{previous.date})
+								${latest.prevUsd.toLocaleString()} previous period (
+								{latest.prevDate})
 							</p>
 						) : null}
 					</div>
@@ -128,7 +153,7 @@ export function MrrTile() {
 							domain={["auto", "auto"]}
 							tickFormatter={(v: number) => `$${v.toLocaleString()}`}
 						/>
-						<ChartTooltip content={<ChartTooltipContent />} />
+						<ChartTooltip content={<MrrTooltip />} />
 						<Area
 							dataKey="mrrUsd"
 							stroke="var(--color-mrrUsd)"

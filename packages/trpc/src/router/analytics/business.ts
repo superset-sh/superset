@@ -120,7 +120,8 @@ function parseMrrCsv(csv: string): MrrPoint[] {
 		.map((row) => {
 			const cells = row.split(",").map((c) => c.replaceAll('"', ""));
 			return {
-				date: cells[dayIndex] ?? "",
+				// Sigma emits "2026-08-04 00:00:00.000"; keep the date only
+				date: (cells[dayIndex] ?? "").slice(0, 10),
 				mrrUsd: Number(cells[mrrIndex] ?? Number.NaN),
 			};
 		})

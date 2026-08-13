@@ -11,7 +11,7 @@ import {
 import { Skeleton } from "@superset/ui/skeleton";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
-import { LuRefreshCw } from "react-icons/lu";
+import { LuExternalLink, LuRefreshCw } from "react-icons/lu";
 
 interface InsightTileFrameProps {
 	title: string;
@@ -24,6 +24,7 @@ interface InsightTileFrameProps {
 	headerAction?: ReactNode;
 	onRefresh?: () => void;
 	isRefreshing?: boolean;
+	href?: string;
 	children: ReactNode;
 }
 
@@ -38,13 +39,26 @@ export function InsightTileFrame({
 	headerAction,
 	onRefresh,
 	isRefreshing,
+	href,
 	children,
 }: InsightTileFrameProps) {
 	return (
 		<Card>
 			<CardHeader>
 				<div className="flex items-center justify-between gap-2">
-					<CardTitle className="truncate">{title}</CardTitle>
+					{href ? (
+						<a
+							href={href}
+							target="_blank"
+							rel="noreferrer"
+							className="flex min-w-0 items-center gap-1.5 hover:underline"
+						>
+							<CardTitle className="truncate">{title}</CardTitle>
+							<LuExternalLink className="text-muted-foreground size-3.5 shrink-0" />
+						</a>
+					) : (
+						<CardTitle className="truncate">{title}</CardTitle>
+					)}
 					<div className="flex shrink-0 items-center gap-2">
 						{headerAction}
 						{onRefresh ? (

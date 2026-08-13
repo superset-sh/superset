@@ -1,5 +1,6 @@
 "use client";
 
+import { ADMIN_INSIGHTS, POSTHOG_PROJECT_URL } from "@superset/trpc";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -40,6 +41,7 @@ export function RetentionGridTile() {
 			lastRefresh={query.data?.lastRefresh}
 			isLoading={query.isLoading}
 			error={query.error}
+			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS.cohortRetention}`}
 			onRefresh={() => query.refetch()}
 			isRefreshing={query.isFetching}
 			empty={cohorts.length === 0}

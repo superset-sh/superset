@@ -18,3 +18,5 @@ export const ADMIN_INSIGHT_KEYS = Object.keys(ADMIN_INSIGHTS) as [
 	AdminInsightKey,
 	...AdminInsightKey[],
 ];
+
+export const POSTHOG_PROJECT_URL = "https://us.posthog.com/project/264803";
