@@ -20,6 +20,7 @@ interface RangeModalProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	commits: Commit[];
+	workspaceId: string;
 	onSelect: (fromHash: string, toHash: string) => void;
 }
 
@@ -27,6 +28,7 @@ export function RangeModal({
 	open,
 	onOpenChange,
 	commits,
+	workspaceId,
 	onSelect,
 }: RangeModalProps) {
 	const [fromIdx, setFromIdx] = useState<number | null>(null);
@@ -95,7 +97,7 @@ export function RangeModal({
 											: "hover:bg-accent/50"
 									}`}
 								>
-									<CommitRow commit={commit} wrap />
+									<CommitRow commit={commit} workspaceId={workspaceId} wrap />
 								</button>
 							);
 						})}
