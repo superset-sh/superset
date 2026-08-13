@@ -4,6 +4,7 @@ import {
 	ADMIN_INSIGHTS,
 	POSTHOG_PROJECT_URL,
 } from "@superset/trpc/insight-registry";
+import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
@@ -11,16 +12,62 @@ import { useTRPC } from "@/trpc/react";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const STALE_TIME_MS = 10 * 60 * 1000;
+const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
-// Renders a RetentionQuery result as the classic cohort triangle: one row per
-// weekly cohort, one cell per interval, cell intensity = % of the cohort
-// returning that week. A colored table, not a chart — same as PostHog.
 interface RetentionCohortResult {
 	date: string;
 	label: string;
 	values: { count: number }[];
 }
 
+type CellState = "complete" | "inProgress" | "future";
+
+function cellState(cohortStart: number, week: number, now: number): CellState {
+	const weekStart = cohortStart + week * WEEK_MS;
+	if (weekStart > now) return "future";
+	if (weekStart + WEEK_MS > now) return "inProgress";
+	return "complete";
+}
+
+function RetentionCell({
+	pct,
+	state,
+	isFirstWeek,
+}: {
+	pct: number | null;
+	state: CellState;
+	isFirstWeek: boolean;
+}) {
+	if (state === "future" || pct === null) {
+		return <div />;
+	}
+	if (state === "inProgress") {
+		return (
+			<div className="border-border text-muted-foreground rounded-md border border-dashed px-1 py-1.5 text-center tabular-nums">
+				{pct.toFixed(1)}%
+			</div>
+		);
+	}
+	return (
+		<div
+			className={cn(
+				"rounded-md px-1 py-1.5 text-center tabular-nums",
+				(isFirstWeek || pct >= 45) && "text-white",
+			)}
+			style={{
+				background: isFirstWeek
+					? "var(--chart-1)"
+					: `color-mix(in oklch, var(--chart-1) ${Math.max(8, Math.round(pct))}%, transparent)`,
+			}}
+		>
+			{pct.toFixed(1)}%
+		</div>
+	);
+}
+
+// PostHog-style cohort triangle: solid chips scaled by retention, dashed
+// outline for the still-in-progress cell, nothing for future weeks, and a
+// size-weighted Mean row over complete cells.
 export function RetentionGridTile() {
 	const trpc = useTRPC();
 	const query = useQuery(
@@ -36,6 +83,30 @@ export function RetentionGridTile() {
 			)
 		: [];
 	const intervalCount = cohorts[0]?.values.length ?? 0;
+	const now = Date.now();
+
+	// Size-weighted mean per week over cohorts whose week is complete.
+	const meanRow: (number | null)[] = Array.from(
+		{ length: intervalCount },
+		(_, week) => {
+			let returned = 0;
+			let weight = 0;
+			for (const cohort of cohorts) {
+				const size = cohort.values[0]?.count ?? 0;
+				const start = new Date(cohort.date).getTime();
+				if (size === 0 || cellState(start, week, now) !== "complete") continue;
+				returned += cohort.values[week]?.count ?? 0;
+				weight += size;
+			}
+			return weight > 0 ? (returned / weight) * 100 : null;
+		},
+	);
+	const meanSize = cohorts.length
+		? Math.round(
+				cohorts.reduce((sum, c) => sum + (c.values[0]?.count ?? 0), 0) /
+					cohorts.length,
+			)
+		: 0;
 
 	return (
 		<InsightTileFrame
@@ -44,68 +115,74 @@ export function RetentionGridTile() {
 			lastRefresh={query.data?.lastRefresh}
 			isLoading={query.isLoading}
 			error={query.error}
+			empty={cohorts.length === 0}
 			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS.cohortRetention}`}
 			onRefresh={() => query.refetch()}
 			isRefreshing={query.isFetching}
-			empty={cohorts.length === 0}
 		>
 			<div className="overflow-x-auto">
-				<table className="w-full border-separate border-spacing-0.5 text-xs">
-					<thead>
-						<tr>
-							<th className="text-muted-foreground pr-2 text-left font-normal">
-								Cohort
-							</th>
-							<th className="text-muted-foreground pr-2 text-right font-normal">
-								Size
-							</th>
-							{Array.from({ length: intervalCount }, (_, week) => (
-								<th
-									// biome-ignore lint/suspicious/noArrayIndexKey: columns are week offsets
-									key={week}
-									className="text-muted-foreground min-w-10 text-center font-normal"
-								>
-									W{week}
-								</th>
-							))}
-						</tr>
-					</thead>
-					<tbody>
-						{cohorts.map((cohort) => {
-							const size = cohort.values[0]?.count ?? 0;
-							return (
-								<tr key={cohort.date}>
-									<td className="text-muted-foreground whitespace-nowrap pr-2">
-										{new Date(cohort.date).toLocaleDateString(undefined, {
-											month: "short",
-											day: "numeric",
-										})}
-									</td>
-									<td className="pr-2 text-right tabular-nums">{size}</td>
-									{cohort.values.map((value, week) => {
-										const pct = size > 0 ? (value.count / size) * 100 : null;
-										return (
-											<td
-												// biome-ignore lint/suspicious/noArrayIndexKey: columns are week offsets
-												key={week}
-												className="rounded-sm text-center tabular-nums"
-												style={
-													pct === null
-														? undefined
-														: {
-																backgroundColor: `color-mix(in oklch, var(--chart-1) ${Math.round(pct)}%, transparent)`,
-															}
-												}
-											>
-												{pct === null ? "—" : `${Math.round(pct)}%`}
-											</td>
-										);
-									})}
-								</tr>
-							);
-						})}
-					</tbody>
-				</table>
+				<div
+					className="grid min-w-[860px] items-center gap-1 text-xs"
+					style={{
+						gridTemplateColumns: `5.5rem 3rem repeat(${intervalCount}, minmax(3.5rem, 1fr))`,
+					}}
+				>
+					<span className="text-muted-foreground">Cohort</span>
+					<span className="text-muted-foreground text-right">Size</span>
+					{Array.from({ length: intervalCount }, (_, week) => (
+						<span
+							// biome-ignore lint/suspicious/noArrayIndexKey: columns are week offsets
+							key={week}
+							className="text-muted-foreground text-center"
+						>
+							Week {week}
+						</span>
+					))}
+
+					<span className="font-medium">Mean</span>
+					<span className="pr-1 text-right font-medium tabular-nums">
+						{meanSize}
+					</span>
+					{meanRow.map((pct, week) => (
+						<RetentionCell
+							// biome-ignore lint/suspicious/noArrayIndexKey: columns are week offsets
+							key={week}
+							pct={pct}
+							state={pct === null ? "future" : "complete"}
+							isFirstWeek={week === 0}
+						/>
+					))}
+
+					{cohorts.map((cohort) => {
+						const size = cohort.values[0]?.count ?? 0;
+						const start = new Date(cohort.date).getTime();
+						return [
+							<span
+								key={`${cohort.date}-label`}
+								className="text-muted-foreground whitespace-nowrap"
+							>
+								{new Date(cohort.date).toLocaleDateString("en-US", {
+									month: "short",
+									day: "numeric",
+								})}
+							</span>,
+							<span
+								key={`${cohort.date}-size`}
+								className="pr-1 text-right tabular-nums"
+							>
+								{size}
+							</span>,
+							...cohort.values.map((value, week) => (
+								<RetentionCell
+									key={`${cohort.date}-w${String(week)}`}
+									pct={size > 0 ? (value.count / size) * 100 : null}
+									state={cellState(start, week, now)}
+									isFirstWeek={week === 0}
+								/>
+							)),
+						];
+					})}
+				</div>
 			</div>
 		</InsightTileFrame>
 	);

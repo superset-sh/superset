@@ -20,6 +20,7 @@ interface PostHogFunnelStep {
 	custom_name?: string | null;
 	count: number;
 	median_conversion_time?: number | null;
+	average_conversion_time?: number | null;
 }
 
 // The OR-group step's API name is the mush of its member events
@@ -45,6 +46,7 @@ export function PostHogFunnelTile() {
 		name: step.custom_name ?? STEP_NAME_OVERRIDES[index] ?? step.name,
 		count: step.count,
 		medianSeconds: step.median_conversion_time ?? null,
+		averageSeconds: step.average_conversion_time ?? null,
 	}));
 
 	return (

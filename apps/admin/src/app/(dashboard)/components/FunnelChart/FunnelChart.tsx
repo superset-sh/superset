@@ -8,6 +8,7 @@ import {
 	CardTitle,
 } from "@superset/ui/card";
 import { Skeleton } from "@superset/ui/skeleton";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import type { ReactNode } from "react";
 import { LuClock, LuMoveDownRight, LuMoveRight } from "react-icons/lu";
 
@@ -15,6 +16,7 @@ export interface FunnelStep {
 	name: string;
 	count: number;
 	medianSeconds: number | null;
+	averageSeconds: number | null;
 }
 
 interface FunnelChartProps {
@@ -37,9 +39,30 @@ function formatDuration(seconds: number): string {
 const HATCH_BACKGROUND =
 	"repeating-linear-gradient(135deg, color-mix(in oklch, var(--chart-1) 18%, transparent) 0 6px, color-mix(in oklch, var(--chart-1) 8%, transparent) 6px 12px)";
 
+function TooltipRow({ label, value }: { label: string; value: string }) {
+	return (
+		<div className="flex items-center justify-between gap-6">
+			<span className="opacity-70">{label}</span>
+			<span className="font-semibold tabular-nums">{value}</span>
+		</div>
+	);
+}
+
+function TooltipHeader({ step, name }: { step: number; name: string }) {
+	return (
+		<div className="flex items-center gap-1.5 pb-1 font-medium">
+			<span
+				className="size-2 shrink-0 rounded-full"
+				style={{ background: "var(--chart-1)" }}
+			/>
+			Step {step}: {name}
+		</div>
+	);
+}
+
 // PostHog-style funnel: one column per step, solid fill = % of step 1,
-// hatched remainder = drop-off; converted/dropped counts and median
-// conversion time below each column.
+// hatched remainder = drop-off. Hovering the solid region shows conversion
+// stats; hovering the hatched region shows drop-off stats.
 export function FunnelChart({
 	title,
 	description,
@@ -96,22 +119,90 @@ export function FunnelChart({
 										? (step.count / previous.count) * 100
 										: null;
 								const dropped = previous ? previous.count - step.count : null;
+								const droppedPctOfStart =
+									dropped !== null && firstCount > 0
+										? (dropped / firstCount) * 100
+										: null;
 								return (
 									<div
 										key={step.name + String(index)}
 										className="border-border/60 flex flex-col gap-2 border-l px-2 first:border-l-0"
 									>
-										<div
-											className="relative h-[160px] overflow-hidden rounded-sm"
-											style={{ background: HATCH_BACKGROUND }}
-										>
-											<div
-												className="absolute inset-x-0 bottom-0 rounded-sm"
-												style={{
-													height: `${pctOfFirst}%`,
-													background: "var(--chart-1)",
-												}}
-											/>
+										<div className="relative h-[160px] overflow-hidden rounded-sm">
+											{pctOfFirst < 100 ? (
+												<Tooltip>
+													<TooltipTrigger asChild>
+														<div
+															className="absolute inset-x-0 top-0"
+															style={{
+																height: `${100 - pctOfFirst}%`,
+																background: HATCH_BACKGROUND,
+															}}
+														/>
+													</TooltipTrigger>
+													<TooltipContent side="top" className="text-xs">
+														<TooltipHeader step={index + 1} name={step.name} />
+														{dropped !== null ? (
+															<TooltipRow
+																label="Dropped off"
+																value={dropped.toLocaleString()}
+															/>
+														) : null}
+														{pctOfPrevious !== null ? (
+															<TooltipRow
+																label="Drop-off from previous"
+																value={`${(100 - pctOfPrevious).toFixed(2)}%`}
+															/>
+														) : null}
+														{droppedPctOfStart !== null ? (
+															<TooltipRow
+																label="Drop-off from start"
+																value={`${droppedPctOfStart.toFixed(2)}%`}
+															/>
+														) : null}
+													</TooltipContent>
+												</Tooltip>
+											) : null}
+											<Tooltip>
+												<TooltipTrigger asChild>
+													<div
+														className="absolute inset-x-0 bottom-0 rounded-sm"
+														style={{
+															height: `${pctOfFirst}%`,
+															background: "var(--chart-1)",
+														}}
+													/>
+												</TooltipTrigger>
+												<TooltipContent side="top" className="text-xs">
+													<TooltipHeader step={index + 1} name={step.name} />
+													<TooltipRow
+														label="Converted"
+														value={step.count.toLocaleString()}
+													/>
+													{pctOfPrevious !== null ? (
+														<TooltipRow
+															label="Conversion from previous"
+															value={`${pctOfPrevious.toFixed(2)}%`}
+														/>
+													) : null}
+													<TooltipRow
+														label="Conversion so far"
+														value={`${pctOfFirst.toFixed(2)}%`}
+													/>
+													{step.medianSeconds !== null && index > 0 ? (
+														<TooltipRow
+															label="Median time from previous"
+															value={formatDuration(step.medianSeconds)}
+														/>
+													) : null}
+													{step.averageSeconds !== null && index > 0 ? (
+														<TooltipRow
+															label="Average time from previous"
+															value={formatDuration(step.averageSeconds)}
+														/>
+													) : null}
+												</TooltipContent>
+											</Tooltip>
 										</div>
 										<div className="space-y-1 pb-1 text-xs">
 											<div className="flex items-start gap-1.5">
