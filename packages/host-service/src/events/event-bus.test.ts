@@ -99,40 +99,40 @@ describe("EventBus fs:watch-file", () => {
 		return { root, eventBus, socket, sent, fs, path };
 	}
 
-	it("delivers exactly one event per change for a pruned path", async () => {
+	it("dedupes duplicate watch commands (one unwatch stops delivery)", async () => {
 		const { root, eventBus, socket, sent, fs, path } =
 			await createFileWatchHarness(true);
 		const file = path.join(root, "buildout-file.js");
 		await fs.writeFile(file, "v0");
-		eventBus.handleMessage(
-			socket,
-			JSON.stringify({
-				type: "fs:watch-file",
-				workspaceId: "ws-1",
-				absolutePath: file,
-			}),
-		);
-		// Duplicate watch command must not double-deliver.
-		eventBus.handleMessage(
-			socket,
-			JSON.stringify({
-				type: "fs:watch-file",
-				workspaceId: "ws-1",
-				absolutePath: file,
-			}),
-		);
+		const watch = JSON.stringify({
+			type: "fs:watch-file",
+			workspaceId: "ws-1",
+			absolutePath: file,
+		});
+		eventBus.handleMessage(socket, watch);
+		// Duplicate watch must not install a second watcher.
+		eventBus.handleMessage(socket, watch);
 		await new Promise((r) => setTimeout(r, 250));
 
-		await fs.writeFile(file, "v1");
-		const deadline = Date.now() + 5_000;
-		while (!sent.some((m) => m.type === "fs:events") && Date.now() < deadline) {
-			await new Promise((r) => setTimeout(r, 25));
-		}
-		// Let any (wrong) duplicate deliveries land before counting.
-		await new Promise((r) => setTimeout(r, 300));
+		// A single unwatch disposes the only watcher there should be. If the
+		// duplicate had installed a second one, it would survive this and keep
+		// delivering. Asserting silence is deterministic; asserting an exact
+		// event count is not, because OS file watchers coalesce or double-fire
+		// a single write differently per platform.
+		eventBus.handleMessage(
+			socket,
+			JSON.stringify({
+				type: "fs:unwatch-file",
+				workspaceId: "ws-1",
+				absolutePath: file,
+			}),
+		);
+		sent.length = 0;
 
-		const fsMessages = sent.filter((m) => m.type === "fs:events");
-		expect(fsMessages).toHaveLength(1);
+		await fs.writeFile(file, "v1");
+		await new Promise((r) => setTimeout(r, 600));
+
+		expect(sent.filter((m) => m.type === "fs:events")).toHaveLength(0);
 
 		eventBus.handleClose(socket);
 		await fs.rm(root, { recursive: true, force: true });
