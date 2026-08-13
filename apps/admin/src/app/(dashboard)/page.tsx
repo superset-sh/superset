@@ -5,7 +5,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 
 import { BurnByVendorTile } from "./components/BurnByVendorTile";
 import { CashBalanceTile } from "./components/CashBalanceTile";
-import { CashRunwayTile } from "./components/CashRunwayTile";
 import { ChurnHeatmapTile } from "./components/ChurnHeatmapTile";
 import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
@@ -14,6 +13,7 @@ import { MrrTile } from "./components/MrrTile";
 import { NetBurnTile } from "./components/NetBurnTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
 import { RetentionGridTile } from "./components/RetentionGridTile";
+import { RunwayTile } from "./components/RunwayTile";
 import { SignupToPaidTile } from "./components/SignupToPaidTile";
 import { TrendSeriesTile } from "./components/TrendSeriesTile";
 
@@ -104,10 +104,10 @@ export default function DashboardPage() {
 				</TabsList>
 
 				<TabsContent value="company" className="mt-4 space-y-6">
-					<CashRunwayTile />
+					<CashBalanceTile />
 					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-						<CashBalanceTile />
 						<NetBurnTile />
+						<RunwayTile />
 						<MrrTile />
 						<EnterpriseArrTile />
 						<TrendSeriesTile {...WAU_PROPS} />
