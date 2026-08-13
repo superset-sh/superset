@@ -43,7 +43,7 @@ function TooltipRow({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="flex items-center justify-between gap-6">
 			<span className="opacity-70">{label}</span>
-			<span className="font-semibold tabular-nums">{value}</span>
+			<span className="font-semibold text-white tabular-nums">{value}</span>
 		</div>
 	);
 }
