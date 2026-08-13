@@ -66,11 +66,13 @@ export function CohortGrid({
 			<div
 				className="grid min-w-[860px] items-center gap-1 text-xs"
 				style={{
-					gridTemplateColumns: `5.5rem 3rem repeat(${columnLabels.length}, minmax(3.5rem, 1fr))`,
+					gridTemplateColumns: `5.5rem 3.5rem repeat(${columnLabels.length}, minmax(3.5rem, 1fr))`,
 				}}
 			>
 				<span className="text-muted-foreground">{labelHeader}</span>
-				<span className="text-muted-foreground text-right">{sizeHeader}</span>
+				<span className="text-muted-foreground pr-3 text-right">
+					{sizeHeader}
+				</span>
 				{columnLabels.map((label) => (
 					<span key={label} className="text-muted-foreground text-center">
 						{label}
@@ -90,7 +92,7 @@ export function CohortGrid({
 					<span
 						key={`${row.key}-size`}
 						className={cn(
-							"pr-1 text-right tabular-nums",
+							"pr-3 text-right tabular-nums",
 							row.emphasis && "font-medium",
 						)}
 					>
