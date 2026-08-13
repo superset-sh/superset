@@ -120,23 +120,6 @@ function stripeHeaders() {
 	};
 }
 
-async function pollQueryRun(
-	runId: string,
-	attempts: number,
-): Promise<QueryRun> {
-	let run: QueryRun = { id: runId, status: "running", result: null };
-	for (let i = 0; i < attempts; i++) {
-		await new Promise((resolve) => setTimeout(resolve, 3000));
-		const response = await fetch(
-			`https://api.stripe.com/v2/data/reporting/query_runs/${runId}`,
-			{ headers: stripeHeaders() },
-		);
-		run = (await response.json()) as QueryRun;
-		if (run.status !== "running") return run;
-	}
-	return run;
-}
-
 function parseMrrCsv(csv: string): MrrPoint[] {
 	const [header, ...rows] = csv.trim().split("\n");
 	const columns = (header ?? "").split(",").map((c) => c.replaceAll('"', ""));
@@ -156,12 +139,15 @@ function parseMrrCsv(csv: string): MrrPoint[] {
 }
 
 // Sigma data refreshes ~daily and the query takes ~30-60s, so results are
-// cached in-process for 12h and concurrent callers share one in-flight run.
+// cached in-process for 12h. Requests never block on a running query: the
+// first caller kicks off a run and gets { available: false } immediately;
+// later calls (the tile re-polls) check the same pending run until it lands.
 const MRR_CACHE_TTL_MS = 12 * 60 * 60 * 1000;
+const MRR_COMPUTING_REASON = "computing";
 let mrrCache: { fetchedAt: number; result: MrrResult } | null = null;
-let mrrInFlight: Promise<MrrResult> | null = null;
+let mrrPendingRunId: string | null = null;
 
-async function runMrrQuery(): Promise<MrrResult> {
+async function createMrrRun(): Promise<MrrResult | { runId: string }> {
 	const createResponse = await fetch(
 		"https://api.stripe.com/v2/data/reporting/query_runs",
 		{
@@ -179,19 +165,21 @@ async function runMrrQuery(): Promise<MrrResult> {
 				`Sigma query create failed (${createResponse.status})`,
 		};
 	}
+	return { runId: created.id };
+}
 
-	const run = await pollQueryRun(created.id, 25);
-	if (run.status === "running") {
-		return {
-			available: false,
-			reason: "MRR query still computing — reload in a minute",
-		};
-	}
+async function collectMrrRun(runId: string): Promise<MrrResult | null> {
+	const response = await fetch(
+		`https://api.stripe.com/v2/data/reporting/query_runs/${runId}`,
+		{ headers: stripeHeaders() },
+	);
+	const run = (await response.json()) as QueryRun;
+	if (run.status === "running") return null;
+
 	const downloadUrl = run.result?.file?.download_url?.url;
 	if (run.status !== "succeeded" || !downloadUrl) {
 		return { available: false, reason: `Sigma query ${run.status}` };
 	}
-
 	const csv = await (await fetch(downloadUrl)).text();
 	const points = parseMrrCsv(csv);
 	if (!points.length) {
@@ -211,17 +199,21 @@ async function fetchLatestSigmaMrr(): Promise<MrrResult> {
 	) {
 		return mrrCache.result;
 	}
-	if (!mrrInFlight) {
-		mrrInFlight = runMrrQuery()
-			.then((result) => {
-				mrrCache = { fetchedAt: Date.now(), result };
-				return result;
-			})
-			.finally(() => {
-				mrrInFlight = null;
-			});
+
+	if (mrrPendingRunId) {
+		const finished = await collectMrrRun(mrrPendingRunId);
+		if (!finished) {
+			return { available: false, reason: MRR_COMPUTING_REASON };
+		}
+		mrrPendingRunId = null;
+		mrrCache = { fetchedAt: Date.now(), result: finished };
+		return finished;
 	}
-	return mrrInFlight;
+
+	const kicked = await createMrrRun();
+	if (!("runId" in kicked)) return kicked;
+	mrrPendingRunId = kicked.runId;
+	return { available: false, reason: MRR_COMPUTING_REASON };
 }
 
 export const businessRouter = {

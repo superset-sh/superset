@@ -19,7 +19,12 @@ const chartConfig = {
 
 export function MrrTile() {
 	const trpc = useTRPC();
-	const query = useQuery(trpc.business.getMrr.queryOptions());
+	const query = useQuery(
+		trpc.business.getMrr.queryOptions(undefined, {
+			refetchInterval: (q) =>
+				q.state.data && !q.state.data.available ? 10_000 : false,
+		}),
+	);
 
 	const unavailableReason =
 		query.data && !query.data.available ? query.data.reason : null;
@@ -39,7 +44,11 @@ export function MrrTile() {
 			error={query.error}
 			empty={points.length === 0}
 			emptyLabel={
-				unavailableReason ? `Unavailable: ${unavailableReason}` : "No data"
+				unavailableReason === "computing"
+					? "Computing in Stripe — up to a minute on first load"
+					: unavailableReason
+						? `Unavailable: ${unavailableReason}`
+						: "No data"
 			}
 		>
 			<ChartContainer config={chartConfig} className="h-[240px] w-full">
