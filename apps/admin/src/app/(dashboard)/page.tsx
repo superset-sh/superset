@@ -129,13 +129,21 @@ export default function DashboardPage() {
 					<MetricCard
 						title="Enterprise ARR"
 						description={
-							(enterpriseArr.data && !enterpriseArr.data.available
-								? enterpriseArr.data.reason
-								: null) ?? "Not yet tracked"
+							enterpriseArr.data?.available
+								? `${enterpriseArr.data.billedLogos} of ${enterpriseArr.data.logos} logos billed via Stripe${
+										enterpriseArr.data.unbilledLogos > 0
+											? ` — ${enterpriseArr.data.unbilledLogos} not yet modeled as subscriptions (revenue invisible)`
+											: ""
+									}`
+								: (enterpriseArr.data?.reason ??
+									"Annualized enterprise Stripe subscriptions")
 						}
-						value={null}
+						value={
+							enterpriseArr.data?.available ? enterpriseArr.data.arrUsd : null
+						}
 						isLoading={enterpriseArr.isLoading}
 						error={enterpriseArr.error}
+						formatter={(v) => `$${v.toLocaleString()}/yr`}
 					/>
 				</div>
 			</div>

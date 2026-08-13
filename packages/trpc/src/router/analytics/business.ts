@@ -343,10 +343,70 @@ export const businessRouter = {
 			return result.rows;
 		}),
 
-	// Explicit not-yet-tracked state so the dashboard mirror stays one-to-one
-	// with the PostHog placeholder tile (D-7).
-	getEnterpriseArr: adminProcedure.query(() => ({
-		available: false as const,
-		reason: "enterprise contracts are not tracked in Neon yet",
-	})),
+	// Enterprise ARR = annualized Stripe subscription amounts for orgs whose
+	// Neon subscription row is plan=enterprise. Deals not modeled as priced
+	// Stripe subscriptions are surfaced as "unbilled" instead of hidden —
+	// the bookkeeping contract is: every enterprise contract is a Stripe
+	// subscription (custom annual price, send_invoice, wires marked paid
+	// out-of-band on the subscription invoice).
+	getEnterpriseArr: adminProcedure.query(async () => {
+		if (!env.STRIPE_SECRET_KEY) {
+			return {
+				available: false as const,
+				reason: "STRIPE_SECRET_KEY not configured",
+			};
+		}
+		const result = await db.execute<{
+			stripe_subscription_id: string | null;
+		}>(sql`
+			SELECT stripe_subscription_id
+			FROM subscriptions
+			WHERE plan = 'enterprise' AND status = 'active'
+		`);
+
+		let arrCents = 0;
+		let billedLogos = 0;
+		for (const row of result.rows) {
+			if (!row.stripe_subscription_id) continue;
+			const response = await fetch(
+				`https://api.stripe.com/v1/subscriptions/${row.stripe_subscription_id}`,
+				{ headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+			);
+			if (!response.ok) continue;
+			const sub = (await response.json()) as {
+				status: string;
+				items?: {
+					data?: {
+						quantity?: number;
+						price?: {
+							unit_amount?: number | null;
+							recurring?: { interval?: string } | null;
+						} | null;
+					}[];
+				};
+			};
+			if (sub.status !== "active") continue;
+			let subAnnualCents = 0;
+			for (const item of sub.items?.data ?? []) {
+				const amount = item.price?.unit_amount ?? 0;
+				const quantity = item.quantity ?? 1;
+				const interval = item.price?.recurring?.interval;
+				const perYear = interval === "month" ? 12 : interval === "year" ? 1 : 0;
+				subAnnualCents += amount * quantity * perYear;
+			}
+			if (subAnnualCents > 0) {
+				billedLogos += 1;
+				arrCents += subAnnualCents;
+			}
+		}
+
+		const logos = result.rows.length;
+		return {
+			available: true as const,
+			arrUsd: arrCents / 100,
+			logos,
+			billedLogos,
+			unbilledLogos: logos - billedLogos,
+		};
+	}),
 } satisfies TRPCRouterRecord;
