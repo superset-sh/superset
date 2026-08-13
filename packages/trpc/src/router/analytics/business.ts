@@ -154,9 +154,11 @@ export const businessRouter = {
 				retention_pct: number | null;
 			}>(sql`
 				WITH months AS (
+					-- one month past the last base month, so base month m can find
+					-- its m+1 rows in the join
 					SELECT generate_series(
 						date_trunc('month', now()) - make_interval(months => ${input.months}),
-						date_trunc('month', now()) - make_interval(months => 2),
+						date_trunc('month', now()) - make_interval(months => 1),
 						interval '1 month'
 					) AS m
 				),
@@ -198,9 +200,10 @@ export const businessRouter = {
 			}>(sql`
 				WITH cohort AS (
 					SELECT u.id, u.created_at
-					FROM users u
+					FROM auth.users u
 					WHERE u.created_at >= date_trunc('week', now()) - make_interval(weeks => ${input.weeks})
-						AND u.created_at < now() - interval '30 days'
+						-- whole weeks only: every member must have a complete 30d window
+						AND date_trunc('week', u.created_at) + interval '7 days' <= now() - interval '30 days'
 				)
 				SELECT
 					to_char(date_trunc('week', c.created_at), 'YYYY-MM-DD') AS cohort_week,
@@ -208,7 +211,7 @@ export const businessRouter = {
 					count(*) FILTER (
 						WHERE EXISTS (
 							SELECT 1
-							FROM members m
+							FROM auth.members m
 							JOIN subscriptions s ON s.reference_id = m.organization_id
 							WHERE m.user_id = c.id
 								AND s.status IN ('active', 'past_due')
@@ -219,7 +222,7 @@ export const businessRouter = {
 						100.0 * count(*) FILTER (
 							WHERE EXISTS (
 								SELECT 1
-								FROM members m
+								FROM auth.members m
 								JOIN subscriptions s ON s.reference_id = m.organization_id
 								WHERE m.user_id = c.id
 									AND s.status IN ('active', 'past_due')
