@@ -12,7 +12,6 @@ import { env as sharedEnv } from "shared/env.shared";
 import { getProcessEnvWithShellPath } from "../../lib/trpc/routers/workspaces/utils/shell-env";
 import { env as mainEnv } from "../env.main";
 import { SUPERSET_HOME_DIR } from "./app-environment";
-import { isInternalBuild } from "./build-channel";
 import { acquireSpawnLock } from "./host-service-lock";
 import {
 	isProcessAlive,
@@ -808,10 +807,6 @@ export class HostServiceCoordinator extends EventEmitter {
 			AUTH_TOKEN: config.authToken,
 			SUPERSET_AUTH_CONFIG_PATH: path.join(SUPERSET_HOME_DIR, "config.json"),
 			SUPERSET_API_URL: config.cloudApiUrl,
-			// Pre-release ACP session harness, internal-channel only: enabled on
-			// canary and dev builds, never on stable. The host gates its router
-			// and WS stream route on this env var.
-			...(isInternalBuild() ? { SUPERSET_ACP_SESSIONS: "1" } : {}),
 			// Namespaced so terminals/agents spawned by the host service don't
 			// inherit a generic SENTRY_DSN — third-party tools with a Sentry SDK
 			// auto-pick it up and report into our project.

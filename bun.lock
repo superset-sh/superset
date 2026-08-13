@@ -114,7 +114,6 @@
       "name": "@superset/desktop",
       "version": "1.20.2",
       "dependencies": {
-        "@agentclientprotocol/claude-agent-acp": "0.56.0",
         "@ai-sdk/anthropic": "3.0.64",
         "@ai-sdk/openai": "3.0.36",
         "@ai-sdk/react": "3.0.143",
@@ -922,7 +921,6 @@
       "name": "@superset/host-client",
       "version": "0.0.1",
       "dependencies": {
-        "@superset/session-protocol": "workspace:*",
         "superjson": "2.2.6",
       },
       "devDependencies": {
@@ -936,8 +934,6 @@
       "name": "@superset/host-service",
       "version": "1.20.2",
       "dependencies": {
-        "@agentclientprotocol/claude-agent-acp": "0.56.0",
-        "@agentclientprotocol/sdk": "1.2.0",
         "@hono/node-server": "2.0.10",
         "@hono/node-ws": "1.3.0",
         "@hono/trpc-server": "0.3.4",
@@ -950,7 +946,6 @@
         "@superset/chat-runtime": "workspace:*",
         "@superset/port-scanner": "workspace:*",
         "@superset/pty-daemon": "workspace:*",
-        "@superset/session-protocol": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@superset/workspace-fs": "workspace:*",
@@ -1088,27 +1083,6 @@
         "bun-types": "1.3.14",
         "typescript": "6.0.3",
       },
-    },
-    "packages/session-protocol": {
-      "name": "@superset/session-protocol",
-      "version": "0.0.1",
-      "dependencies": {
-        "@agentclientprotocol/sdk": "1.2.0",
-        "zod": "4.4.3",
-      },
-      "devDependencies": {
-        "@superset/typescript": "workspace:*",
-        "@types/bun": "1.3.14",
-        "@types/node": "24.12.0",
-        "@types/react": "19.2.14",
-        "typescript": "6.0.3",
-      },
-      "peerDependencies": {
-        "react": "19.2.3",
-      },
-      "optionalPeers": [
-        "react",
-      ],
     },
     "packages/shared": {
       "name": "@superset/shared",
@@ -1317,10 +1291,6 @@
     "@a2a-js/sdk": ["@a2a-js/sdk@0.3.14", "", { "dependencies": { "uuid": "^11.1.0" }, "peerDependencies": { "@bufbuild/protobuf": "^2.10.2", "@grpc/grpc-js": "^1.11.0", "express": "^4.21.2 || ^5.1.0" }, "optionalPeers": ["@bufbuild/protobuf", "@grpc/grpc-js", "express"] }, "sha512-F6Ew1AtPzCLhTn8h9yiqTe7DiDf6XVrSnq9V1YqSl9eWqPm6anMveTiKdCSb/76cW0YiJc24rNaUrVezFFHbqQ=="],
 
     "@adobe/css-tools": ["@adobe/css-tools@4.5.0", "", {}, "sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q=="],
-
-    "@agentclientprotocol/claude-agent-acp": ["@agentclientprotocol/claude-agent-acp@0.56.0", "", { "dependencies": { "@agentclientprotocol/sdk": "1.1.0", "@anthropic-ai/claude-agent-sdk": "0.3.201", "zod": "^3.25.0 || ^4.0.0" }, "bin": { "claude-agent-acp": "dist/index.js" } }, "sha512-yo+51zuCLFfrdZ3PusdQcZ8/6l+qkEYcr2JVBtyqh7oWWomeEDUV93d9lr3y5oLVfyUx6bTAo3qml2yieJc6Ww=="],
-
-    "@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.2.0", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-rJ3766M2eouZsNCaK21JbPD++JLBZ0PWq38dzj1sA4/i0njaQEkiC2F5v7MlizFW6akX+qu5Ks8R00Xw+YMHKA=="],
 
     "@ai-sdk/amazon-bedrock": ["@ai-sdk/amazon-bedrock@3.0.112", "", { "dependencies": { "@ai-sdk/anthropic": "2.0.92", "@ai-sdk/provider": "2.0.3", "@ai-sdk/provider-utils": "3.0.31", "@smithy/eventstream-codec": "^4.0.1", "@smithy/util-utf8": "^4.0.0", "aws4fetch": "^1.0.20" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-nvBRPced+MMz4zMScNh/fDo6bPAMr0zJKJvxIdRST4E4ATc+cUPcmOW++IhgkkaW1WfCMNPqEX843BWQXWReXQ=="],
 
@@ -3045,8 +3015,6 @@
     "@superset/relay2": ["@superset/relay2@workspace:apps/relay2"],
 
     "@superset/sdk": ["@superset/sdk@workspace:packages/sdk"],
-
-    "@superset/session-protocol": ["@superset/session-protocol@workspace:packages/session-protocol"],
 
     "@superset/shared": ["@superset/shared@workspace:packages/shared"],
 
@@ -6767,8 +6735,6 @@
     "zx": ["zx@8.8.5", "", { "bin": { "zx": "build/cli.js" } }, "sha512-SNgDF5L0gfN7FwVOdEFguY3orU5AkfFZm9B5YSHog/UDHv+lvmd82ZAsOenOkQixigwH2+yyH198AwNdKhj+RA=="],
 
     "@a2a-js/sdk/uuid": ["uuid@11.1.1", "", { "bin": { "uuid": "dist/esm/bin/uuid" } }, "sha512-vIYxrBCC/N/K+Js3qSN88go7kIfNPssr/hHCesKCQNAjmgvYS2oqr69kIufEG+O4+PfezOH4EbIeHCfFov8ZgQ=="],
-
-    "@agentclientprotocol/claude-agent-acp/@agentclientprotocol/sdk": ["@agentclientprotocol/sdk@1.1.0", "", { "peerDependencies": { "zod": "^3.25.0 || ^4.0.0" } }, "sha512-NT2KqphUJ3w6EksUL51ZhJgIYgq/ZLGcBPkyMKgRSO5PMVwe9DnKKX+Htnvk6KHh6dUuh34UHK4gKp+4te1Mdg=="],
 
     "@ai-sdk/amazon-bedrock/@ai-sdk/anthropic": ["@ai-sdk/anthropic@2.0.92", "", { "dependencies": { "@ai-sdk/provider": "2.0.3", "@ai-sdk/provider-utils": "3.0.31" }, "peerDependencies": { "zod": "^3.25.76 || ^4.1.8" } }, "sha512-MlIQpuOnchlroR93Dq2GNw12jh/SAVjuFARXWRF/2SfowMv3J2fvPBUzA60waoQivZlf3XkzQ2nxSwer7dnh2g=="],
 
