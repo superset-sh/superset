@@ -125,27 +125,26 @@ export default function DashboardPage() {
 				<MrrTile />
 				<LogoRetentionTile />
 				<SignupToPaidTile />
-				<div className="space-y-6">
-					<MetricCard
-						title="Enterprise ARR"
-						description={
-							enterpriseArr.data?.available
-								? `${enterpriseArr.data.billedLogos} of ${enterpriseArr.data.logos} logos billed via Stripe${
-										enterpriseArr.data.unbilledLogos > 0
-											? ` — ${enterpriseArr.data.unbilledLogos} not yet modeled as subscriptions (revenue invisible)`
-											: ""
-									}`
-								: (enterpriseArr.data?.reason ??
-									"Annualized enterprise Stripe subscriptions")
-						}
-						value={
-							enterpriseArr.data?.available ? enterpriseArr.data.arrUsd : null
-						}
-						isLoading={enterpriseArr.isLoading}
-						error={enterpriseArr.error}
-						formatter={(v) => `$${v.toLocaleString()}/yr`}
-					/>
-				</div>
+				<MetricCard
+					className="h-full"
+					title="Enterprise ARR"
+					description={
+						enterpriseArr.data?.available
+							? `${enterpriseArr.data.billedLogos} of ${enterpriseArr.data.logos} logos billed via Stripe${
+									enterpriseArr.data.unbilledLogos > 0
+										? ` — ${enterpriseArr.data.unbilledLogos} not yet modeled as subscriptions (revenue invisible)`
+										: ""
+								}`
+							: (enterpriseArr.data?.reason ??
+								"Annualized enterprise Stripe subscriptions")
+					}
+					value={
+						enterpriseArr.data?.available ? enterpriseArr.data.arrUsd : null
+					}
+					isLoading={enterpriseArr.isLoading}
+					error={enterpriseArr.error}
+					formatter={(v) => `$${v.toLocaleString()}/yr`}
+				/>
 			</div>
 
 			<ChurnHeatmapTile />
