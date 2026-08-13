@@ -4,6 +4,12 @@ import { createTestHost, type TestHost } from "../helpers/createTestHost";
 describe("github router with mocked Octokit", () => {
 	let host: TestHost;
 	const calls: Array<{ method: string; args: unknown }> = [];
+	let repositoryMergeSettings = {
+		allow_merge_commit: true,
+		allow_rebase_merge: true,
+		allow_squash_merge: true,
+	};
+	let repositorySettingsError: Error | null = null;
 
 	const fakeOctokit = {
 		pulls: {
@@ -45,12 +51,16 @@ describe("github router with mocked Octokit", () => {
 		repos: {
 			get: async (args: unknown) => {
 				calls.push({ method: "repos.get", args });
+				if (repositorySettingsError) {
+					throw repositorySettingsError;
+				}
 				return {
 					data: {
 						id: 1,
 						name: "hello",
 						full_name: "octocat/hello",
 						default_branch: "main",
+						...repositoryMergeSettings,
 					},
 				};
 			},
@@ -67,6 +77,10 @@ describe("github router with mocked Octokit", () => {
 				};
 			},
 		},
+		graphql: async (_query: string, args: unknown) => {
+			calls.push({ method: "graphql", args });
+			return { repository: { viewerDefaultMergeMethod: "SQUASH" } };
+		},
 		users: {
 			getAuthenticated: async () => {
 				calls.push({ method: "users.getAuthenticated", args: {} });
@@ -77,6 +91,12 @@ describe("github router with mocked Octokit", () => {
 
 	beforeEach(async () => {
 		calls.length = 0;
+		repositoryMergeSettings = {
+			allow_merge_commit: true,
+			allow_rebase_merge: true,
+			allow_squash_merge: true,
+		};
+		repositorySettingsError = null;
 		host = await createTestHost({
 			githubFactory: async () => fakeOctokit,
 		});
@@ -141,7 +161,9 @@ describe("github router with mocked Octokit", () => {
 			repo: "hello",
 		});
 		expect(result.full_name).toBe("octocat/hello");
+		expect(result.viewerDefaultMergeMethod).toBe("SQUASH");
 		expect(calls[0].method).toBe("repos.get");
+		expect(calls[1].method).toBe("graphql");
 	});
 
 	test("listDeployments forwards filters to octokit", async () => {
@@ -175,7 +197,7 @@ describe("github router with mocked Octokit", () => {
 		expect(result.login).toBe("octocat");
 	});
 
-	test("mergePR forwards mergeMethod to octokit.pulls.merge", async () => {
+	test("mergePR forwards an allowed mergeMethod to octokit.pulls.merge", async () => {
 		const result = await host.trpc.github.mergePR.mutate({
 			owner: "octocat",
 			repo: "hello",
@@ -183,10 +205,45 @@ describe("github router with mocked Octokit", () => {
 			mergeMethod: "squash",
 		});
 		expect(result.merged).toBe(true);
-		expect(calls[0].method).toBe("pulls.merge");
-		expect(calls[0].args).toMatchObject({
+		expect(calls.map(({ method }) => method)).toEqual([
+			"repos.get",
+			"pulls.merge",
+		]);
+		expect(calls[1].args).toMatchObject({
 			pull_number: 42,
 			merge_method: "squash",
 		});
+	});
+
+	test("mergePR does not send a disabled method to GitHub", async () => {
+		repositoryMergeSettings.allow_squash_merge = false;
+
+		await expect(
+			host.trpc.github.mergePR.mutate({
+				owner: "octocat",
+				repo: "hello",
+				pullNumber: 42,
+				mergeMethod: "squash",
+			}),
+		).rejects.toThrow("does not allow squash merges");
+
+		expect(calls.map(({ method }) => method)).toEqual(["repos.get"]);
+	});
+
+	test("mergePR preserves the existing merge when settings are unavailable", async () => {
+		repositorySettingsError = new Error("GitHub settings unavailable");
+
+		const result = await host.trpc.github.mergePR.mutate({
+			owner: "octocat",
+			repo: "hello",
+			pullNumber: 42,
+			mergeMethod: "rebase",
+		});
+
+		expect(result.merged).toBe(true);
+		expect(calls.map(({ method }) => method)).toEqual([
+			"repos.get",
+			"pulls.merge",
+		]);
 	});
 });

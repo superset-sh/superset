@@ -15,6 +15,11 @@ import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useMemo } from "react";
 import { VscChevronDown, VscGitMerge, VscLoading } from "react-icons/vsc";
+import {
+	getAvailableMergeMethods,
+	MERGE_METHOD_LABELS,
+	type MergeMethod,
+} from "renderer/lib/githubMergeMethods";
 import { PRIcon, type PRState } from "renderer/screens/main/components/PRIcon";
 import { computeChecksRollup } from "../../utils/computeChecksStatus";
 import type { PRFlowState } from "../../utils/getPRFlowState";
@@ -79,6 +84,18 @@ export function PRStatusGroup({
 			toast.error(`Merge failed: ${error.message}`, { id: context?.toastId });
 		},
 	});
+	const repoMergeSettingsQuery = workspaceTrpc.github.getRepo.useQuery(
+		{
+			owner: pr?.repoOwner ?? "",
+			repo: pr?.repoName ?? "",
+		},
+		{
+			enabled: Boolean(
+				pr && pr.state === "open" && !pr.isDraft && pr.repoOwner && pr.repoName,
+			),
+			staleTime: 5 * 60 * 1_000,
+		},
+	);
 
 	const checks = useMemo(
 		() => (pr ? computeChecksRollup(pr.checks) : null),
@@ -100,7 +117,7 @@ export function PRStatusGroup({
 	// Queued PRs are still actively running checks, so keep CI/review indicators.
 	const showIndicators = pr.state === "open" || pr.state === "queued";
 
-	const handleMerge = (mergeMethod: "merge" | "squash" | "rebase") => {
+	const handleMerge = (mergeMethod: MergeMethod) => {
 		mergePRMutation.mutate({
 			owner: pr.repoOwner,
 			repo: pr.repoName,
@@ -108,6 +125,17 @@ export function PRStatusGroup({
 			mergeMethod,
 		});
 	};
+	const mergeMethods = getAvailableMergeMethods(
+		repoMergeSettingsQuery.data
+			? {
+					allowMergeCommit: repoMergeSettingsQuery.data.allow_merge_commit,
+					allowRebaseMerge: repoMergeSettingsQuery.data.allow_rebase_merge,
+					allowSquashMerge: repoMergeSettingsQuery.data.allow_squash_merge,
+					viewerDefaultMergeMethod:
+						repoMergeSettingsQuery.data.viewerDefaultMergeMethod,
+				}
+			: null,
+	);
 
 	const tint = stateTintClasses(linkState);
 
@@ -181,30 +209,17 @@ export function PRStatusGroup({
 							<DropdownMenuLabel className="text-xs font-normal text-muted-foreground">
 								Merge
 							</DropdownMenuLabel>
-							<DropdownMenuItem
-								onClick={() => handleMerge("squash")}
-								className="text-xs"
-								disabled={mergePRMutation.isPending}
-							>
-								<VscGitMerge className="size-3.5" />
-								Squash and merge
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => handleMerge("merge")}
-								className="text-xs"
-								disabled={mergePRMutation.isPending}
-							>
-								<VscGitMerge className="size-3.5" />
-								Create merge commit
-							</DropdownMenuItem>
-							<DropdownMenuItem
-								onClick={() => handleMerge("rebase")}
-								className="text-xs"
-								disabled={mergePRMutation.isPending}
-							>
-								<VscGitMerge className="size-3.5" />
-								Rebase and merge
-							</DropdownMenuItem>
+							{mergeMethods.map((method) => (
+								<DropdownMenuItem
+									key={method}
+									onClick={() => handleMerge(method)}
+									className="text-xs"
+									disabled={mergePRMutation.isPending}
+								>
+									<VscGitMerge className="size-3.5" />
+									{MERGE_METHOD_LABELS[method]}
+								</DropdownMenuItem>
+							))}
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</>
