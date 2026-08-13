@@ -372,21 +372,26 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 	// Burn by vendor: average monthly outflow per counterparty over the
 	// trailing complete months — the "where is the money going" view.
 	const trailingMonthSet = new Set(trailing.map((m) => m.month));
-	const vendorTotals = new Map<string, number>();
+	// Group case-insensitively — banks emit "Gusto" and "GUSTO" for the same
+	// counterparty — displaying the first-seen spelling.
+	const vendorTotals = new Map<string, { name: string; total: number }>();
 	for (const transaction of transactions) {
 		if (transaction.amount >= 0) continue;
 		if (!trailingMonthSet.has(transaction.date.slice(0, 7))) continue;
-		vendorTotals.set(
-			transaction.counterparty,
-			(vendorTotals.get(transaction.counterparty) ?? 0) + -transaction.amount,
-		);
+		const key = transaction.counterparty.toLowerCase();
+		const entry = vendorTotals.get(key) ?? {
+			name: transaction.counterparty,
+			total: 0,
+		};
+		entry.total += -transaction.amount;
+		vendorTotals.set(key, entry);
 	}
-	const topVendors: VendorSpend[] = [...vendorTotals.entries()]
-		.sort(([, a], [, b]) => b - a)
+	const topVendors: VendorSpend[] = [...vendorTotals.values()]
+		.sort((a, b) => b.total - a.total)
 		.slice(0, TOP_VENDOR_COUNT)
-		.map(([name, total]) => ({
-			name,
-			avgMonthlyUsd: Math.round(total / Math.max(1, trailing.length)),
+		.map((vendor) => ({
+			name: vendor.name,
+			avgMonthlyUsd: Math.round(vendor.total / Math.max(1, trailing.length)),
 		}));
 
 	// Reconstruct total-cash trajectory by walking back from today's balance.
