@@ -19,7 +19,15 @@ interface PostHogFunnelStep {
 	name: string;
 	custom_name?: string | null;
 	count: number;
+	median_conversion_time?: number | null;
 }
+
+// The OR-group step's API name is the mush of its member events
+// ("$pageview, $pageview, …"); the saved definition's group name isn't
+// echoed in results, so label it here by position.
+const STEP_NAME_OVERRIDES: Record<number, string> = {
+	4: "Reached a dashboard page",
+};
 
 export function PostHogFunnelTile() {
 	const trpc = useTRPC();
@@ -33,18 +41,17 @@ export function PostHogFunnelTile() {
 	const steps = Array.isArray(insight.data?.result)
 		? (insight.data.result as PostHogFunnelStep[])
 		: [];
-	const firstCount = steps[0]?.count ?? 0;
-	const data = steps.map((step) => ({
-		name: step.custom_name ?? step.name,
+	const data = steps.map((step, index) => ({
+		name: step.custom_name ?? STEP_NAME_OVERRIDES[index] ?? step.name,
 		count: step.count,
-		conversionRate: firstCount > 0 ? (step.count / firstCount) * 100 : 0,
+		medianSeconds: step.median_conversion_time ?? null,
 	}));
 
 	return (
 		<FunnelChart
 			title={insight.data?.name ?? "New-user activation"}
 			description="First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
-			data={data}
+			steps={data}
 			isLoading={insight.isLoading}
 			error={insight.error}
 			headerAction={
