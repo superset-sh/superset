@@ -48,7 +48,7 @@ type AppContext = {
 };
 
 const app = new Hono<AppContext>();
-const tunnelManager = new TunnelManager();
+const tunnelManager = new TunnelManager(env.RELAY_TUNNEL_REQUEST_TIMEOUT_MS);
 const { injectWebSocket, upgradeWebSocket } = createNodeWebSocket({ app });
 
 // Graceful drain on Fly's pre-stop signal. Fly's init sends SIGINT (not

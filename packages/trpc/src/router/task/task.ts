@@ -190,7 +190,18 @@ async function createTask(
 	input: z.infer<typeof createTaskSchema>,
 ) {
 	const organizationId = await requireActiveOrgMembership(ctx);
+	return createTaskForOrg(organizationId, ctx.session.user.id, input);
+}
 
+/**
+ * Org-scoped task creation without a request context — the factory's
+ * task mirror creates tasks as the factory owner through this.
+ */
+export async function createTaskForOrg(
+	organizationId: string,
+	creatorId: string,
+	input: z.infer<typeof createTaskSchema>,
+) {
 	for (let attempt = 0; attempt < TASK_SLUG_RETRY_LIMIT; attempt += 1) {
 		try {
 			const result = await dbWs.transaction(async (tx) => {
@@ -236,7 +247,7 @@ async function createTask(
 						statusId,
 						priority: input.priority ?? "none",
 						organizationId,
-						creatorId: ctx.session.user.id,
+						creatorId,
 						assigneeId,
 						estimate: input.estimate ?? null,
 						dueDate: input.dueDate ?? null,

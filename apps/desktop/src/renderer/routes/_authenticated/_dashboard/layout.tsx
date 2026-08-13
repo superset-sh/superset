@@ -69,6 +69,7 @@ function DashboardLayout() {
 	const onNewWorkspaceRoute = matchRoute({ to: "/new-workspace" }) !== false;
 	const onDashboardViewRoute =
 		matchRoute({ to: "/automations", fuzzy: true }) !== false ||
+		matchRoute({ to: "/factory", fuzzy: true }) !== false ||
 		matchRoute({ to: "/tasks", fuzzy: true }) !== false ||
 		matchRoute({ to: "/pull-requests", fuzzy: true }) !== false ||
 		matchRoute({ to: "/v2-workspaces", fuzzy: true }) !== false;

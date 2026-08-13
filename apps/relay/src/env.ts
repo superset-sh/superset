@@ -4,6 +4,14 @@ import { z } from "zod";
 export const env = createEnv({
 	server: {
 		RELAY_PORT: z.coerce.number().int().positive().default(8080),
+		// Cap on any single proxied host request. Worktree creation on large
+		// repos can exceed the old hardcoded 30s; callers (automations,
+		// factory) time out client-side at 90s.
+		RELAY_TUNNEL_REQUEST_TIMEOUT_MS: z.coerce
+			.number()
+			.int()
+			.positive()
+			.default(30_000),
 		NEXT_PUBLIC_API_URL: z.url(),
 		KV_REST_API_URL: z.url(),
 		KV_REST_API_TOKEN: z.string().min(1),

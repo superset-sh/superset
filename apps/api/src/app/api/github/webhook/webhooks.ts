@@ -6,6 +6,10 @@ import {
 	githubPullRequests,
 	githubRepositories,
 } from "@superset/db/schema";
+import {
+	handleFactoryIssueOpened,
+	handleFactoryPrMerged,
+} from "@superset/trpc/factory-webhook";
 import { and, eq } from "drizzle-orm";
 
 import { env } from "@/env";
@@ -255,6 +259,35 @@ webhooks.on(
 		);
 
 		await upsertPullRequest(repo, pr);
+
+		if (pr.merged && payload.installation) {
+			await handleFactoryPrMerged({
+				installationId: payload.installation.id,
+				repoFullName: repository.full_name,
+				prNumber: pr.number,
+			});
+		}
+	},
+);
+
+// Factory intake: new issues on a factory repo become work items
+// (idempotent — the materialization key collapses webhook/poll/paste races).
+webhooks.on(
+	["issues.opened", "issues.reopened"],
+	async ({
+		payload,
+	}: EmitterWebhookEvent<"issues.opened" | "issues.reopened">) => {
+		if (!payload.installation) return;
+		await handleFactoryIssueOpened({
+			installationId: payload.installation.id,
+			repoFullName: payload.repository.full_name,
+			issue: {
+				number: payload.issue.number,
+				title: payload.issue.title,
+				url: payload.issue.html_url,
+				authorLogin: payload.issue.user?.login,
+			},
+		});
 	},
 );
 

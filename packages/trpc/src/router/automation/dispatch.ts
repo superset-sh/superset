@@ -187,8 +187,15 @@ export async function dispatchAutomation(
 	return { status: "dispatched", runId: run.id };
 }
 
-async function resolveCandidateHosts(
-	automation: SelectAutomation,
+/** The fields host resolution actually needs; automations and factories both satisfy it. */
+export interface HostDispatchTarget {
+	organizationId: string;
+	ownerUserId: string;
+	targetHostId: string | null;
+}
+
+export async function resolveCandidateHosts(
+	automation: HostDispatchTarget,
 ): Promise<Array<typeof v2Hosts.$inferSelect>> {
 	if (automation.targetHostId) {
 		const [host] = await dbWs
@@ -238,8 +245,8 @@ async function resolveCandidateHosts(
  * hosts still on the v1 relay (which keeps writing it). First online
  * candidate wins, preserving the updatedAt ordering.
  */
-async function pickOnlineHost(
-	automation: SelectAutomation,
+export async function pickOnlineHost(
+	automation: HostDispatchTarget,
 	relayUrl: string,
 	candidates: Array<typeof v2Hosts.$inferSelect>,
 ): Promise<typeof v2Hosts.$inferSelect | null> {

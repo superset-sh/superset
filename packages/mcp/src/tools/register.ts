@@ -17,6 +17,8 @@ import * as automationsResume from "./automations/resume";
 import * as automationsRun from "./automations/run";
 import * as automationsSetPrompt from "./automations/set_prompt";
 import * as automationsUpdate from "./automations/update";
+import * as factoryProposePrompt from "./factory/propose_prompt";
+import * as factoryReport from "./factory/report";
 import * as hostsList from "./hosts/list";
 import * as organizationMembersList from "./organization/members/list";
 import * as projectsList from "./projects/list";
@@ -55,6 +57,8 @@ const REGISTRARS = [
 	automationsResume,
 	automationsRun,
 	automationsLogs,
+	factoryReport,
+	factoryProposePrompt,
 	workspacesList,
 	workspacesCreate,
 	workspacesUpdate,

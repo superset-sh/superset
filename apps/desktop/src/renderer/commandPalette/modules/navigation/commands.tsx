@@ -1,5 +1,5 @@
 import { BookOpenIcon, HistoryIcon, SettingsIcon } from "lucide-react";
-import { LuLayers } from "react-icons/lu";
+import { LuFactory, LuLayers } from "react-icons/lu";
 import type { Command, CommandProvider } from "../../core/types";
 import { RecentlyViewedFrame } from "../../ui/RecentlyViewed/RecentlyViewedFrame";
 import { WorkspaceListFrame } from "../../ui/WorkspaceList";
@@ -33,6 +33,14 @@ export const navigationProvider: CommandProvider = {
 				icon: LuLayers,
 				keywords: ["workspace", "project", "repo", "repository", "switch"],
 				renderFrame: () => <WorkspaceListFrame />,
+			},
+			{
+				id: "nav.factory",
+				title: "Factory",
+				section: "navigation",
+				icon: LuFactory,
+				keywords: ["factory", "pipeline", "issues", "stages"],
+				run: (ctx) => ctx.navigate("/factory"),
 			},
 			{
 				id: "nav.docs",

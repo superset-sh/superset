@@ -93,6 +93,55 @@ export const automationPromptSourceValues = [
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
 
+export const factoryItemSourceValues = ["github_issue", "github_pr"] as const;
+export const factoryItemSourceEnum = z.enum(factoryItemSourceValues);
+export type FactoryItemSource = z.infer<typeof factoryItemSourceEnum>;
+
+export const factoryStageValues = [
+	"intake",
+	"classify",
+	"analyze",
+	"implement",
+	"review",
+	"human_review",
+	"verify",
+	"done",
+	"rejected",
+] as const;
+export const factoryStageEnum = z.enum(factoryStageValues);
+export type FactoryStage = z.infer<typeof factoryStageEnum>;
+
+export const factoryRunStatusValues = [
+	"dispatching",
+	"dispatched",
+	"skipped_offline",
+	"dispatch_failed",
+	"reported",
+] as const;
+export const factoryRunStatusEnum = z.enum(factoryRunStatusValues);
+export type FactoryRunStatus = z.infer<typeof factoryRunStatusEnum>;
+
+export const factoryRunOutcomeValues = [
+	"success",
+	"flawed",
+	"blocked",
+	"manual",
+] as const;
+export const factoryRunOutcomeEnum = z.enum(factoryRunOutcomeValues);
+export type FactoryRunOutcome = z.infer<typeof factoryRunOutcomeEnum>;
+
+export const factoryPromptStatusValues = [
+	"active",
+	"draft",
+	"archived",
+] as const;
+export const factoryPromptStatusEnum = z.enum(factoryPromptStatusValues);
+export type FactoryPromptStatus = z.infer<typeof factoryPromptStatusEnum>;
+
+export const factoryPromptAuthorValues = ["human", "agent"] as const;
+export const factoryPromptAuthorEnum = z.enum(factoryPromptAuthorValues);
+export type FactoryPromptAuthor = z.infer<typeof factoryPromptAuthorEnum>;
+
 // pgEnum columns; the wire/validation zod lives in @superset/shared/desktop-notices.
 // platforms/channels are stored as text[] (no enum needed).
 export const desktopNoticeSeverityValues = [

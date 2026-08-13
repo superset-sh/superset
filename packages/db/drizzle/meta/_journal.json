@@ -470,6 +470,13 @@
       "when": 1786584902692,
       "tag": "0066_add_user_deletion_requested_at",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1786602704174,
+      "tag": "0067_factory",
+      "breakpoints": true
     }
   ]
 }

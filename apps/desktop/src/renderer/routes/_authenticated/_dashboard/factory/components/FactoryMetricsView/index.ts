@@ -1,0 +1,1 @@
+export { FactoryMetricsView } from "./FactoryMetricsView";

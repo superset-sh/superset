@@ -164,6 +164,10 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["lastViewedWorkspaceId"],
 	],
 	[
+		"src/renderer/routes/_authenticated/_dashboard/factory/components/FactoryItemSheet/FactoryItemSheet.tsx",
+		["lastViewedWorkspaceId"],
+	],
+	[
 		"src/renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/usePaneRegistry/components/TerminalPane/richInputOpenStore.ts",
 		["superset.terminalRichInputOpen"],
 	],
