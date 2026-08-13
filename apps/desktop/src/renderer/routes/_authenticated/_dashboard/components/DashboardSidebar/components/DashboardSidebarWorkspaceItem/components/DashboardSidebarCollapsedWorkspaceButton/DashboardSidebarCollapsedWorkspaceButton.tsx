@@ -39,7 +39,6 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 		},
 		ref,
 	) => {
-		const overlayDigit = shortcutLabel?.match(/[1-9]$/)?.[0];
 		return (
 			<button
 				type="button"
@@ -64,12 +63,12 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 					isCreatePending={isCreatePending}
 					pullRequestState={pullRequestState}
 				/>
-				{overlayDigit && (
+				{shortcutLabel && (
 					<span
 						aria-hidden
-						className="pointer-events-none absolute -right-0.5 -bottom-0.5 hidden min-w-3.5 rounded-sm bg-background px-0.5 text-center font-mono text-[9px] leading-4 text-muted-foreground tabular-nums shadow-sm group-data-[jump-shortcuts]/sidebar:flex"
+						className="pointer-events-none absolute inset-0 hidden items-center justify-center rounded-md bg-background/90 font-mono text-[10px] tabular-nums text-muted-foreground group-data-[jump-shortcuts]/sidebar:flex"
 					>
-						{overlayDigit}
+						{shortcutLabel}
 					</span>
 				)}
 			</button>
