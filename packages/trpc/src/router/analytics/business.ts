@@ -77,28 +77,18 @@ daily_mrrs AS (
   FROM daily_mrrs_pre_fx
   GROUP BY 1
 ),
-months AS (
-  SELECT date_col - (INTERVAL '1' DAY) AS month_end
-  FROM UNNEST(
-    SEQUENCE(
-      CAST(DATE_FORMAT(CURRENT_DATE, '%Y-%m-01') AS date) - INTERVAL '24' MONTH,
-      CURRENT_DATE,
-      INTERVAL '1' MONTH
-    )
-  ) t (date_col)
-),
-monthly_mrrs AS (
+daily_mrr_series AS (
   SELECT
-    month_end,
-    DECIMALIZE_AMOUNT_NO_DISPLAY('usd', dm.total_mrr_in_usd_minor_units, 2) AS total_mrr_in_usd
-  FROM months m
-  LEFT JOIN daily_mrrs dm ON m.month_end = dm.date
-  ORDER BY month_end DESC
+    date AS day,
+    DECIMALIZE_AMOUNT_NO_DISPLAY('usd', total_mrr_in_usd_minor_units, 2) AS total_mrr_in_usd
+  FROM daily_mrrs
+  WHERE date >= CURRENT_DATE - INTERVAL '180' DAY
+  ORDER BY date
 )
-SELECT * FROM monthly_mrrs`;
+SELECT * FROM daily_mrr_series`;
 
 interface MrrPoint {
-	monthEnd: string;
+	date: string;
 	mrrUsd: number;
 }
 
@@ -123,19 +113,19 @@ function stripeHeaders() {
 function parseMrrCsv(csv: string): MrrPoint[] {
 	const [header, ...rows] = csv.trim().split("\n");
 	const columns = (header ?? "").split(",").map((c) => c.replaceAll('"', ""));
-	const monthIndex = columns.indexOf("month_end");
+	const dayIndex = columns.indexOf("day");
 	const mrrIndex = columns.indexOf("total_mrr_in_usd");
-	if (monthIndex === -1 || mrrIndex === -1) return [];
+	if (dayIndex === -1 || mrrIndex === -1) return [];
 	return rows
 		.map((row) => {
 			const cells = row.split(",").map((c) => c.replaceAll('"', ""));
 			return {
-				monthEnd: cells[monthIndex] ?? "",
+				date: cells[dayIndex] ?? "",
 				mrrUsd: Number(cells[mrrIndex] ?? Number.NaN),
 			};
 		})
-		.filter((p) => p.monthEnd && Number.isFinite(p.mrrUsd))
-		.sort((a, b) => a.monthEnd.localeCompare(b.monthEnd));
+		.filter((p) => p.date && Number.isFinite(p.mrrUsd))
+		.sort((a, b) => a.date.localeCompare(b.date));
 }
 
 // Sigma data refreshes ~daily and the query takes ~30-60s, so results are
@@ -352,8 +342,8 @@ export const businessRouter = {
 			return result.rows;
 		}),
 
-	// ARPU = latest Sigma MRR / active paid seats in Neon. Unavailable until
-	// the Sigma query exists.
+	// ARPA = latest Sigma MRR / paying orgs; per-seat shown as detail.
+	// Unavailable until the Sigma MRR query has computed.
 	getArpu: adminProcedure.query(async () => {
 		const mrr = await fetchLatestSigmaMrr();
 		if (!mrr.available) {
@@ -364,18 +354,23 @@ export const businessRouter = {
 			return { available: false as const, reason: "Sigma MRR has no rows" };
 		}
 
-		const result = await db.execute<{ seats: number }>(sql`
-			SELECT coalesce(sum(coalesce(seats, 1)), 0)::int AS seats
+		const result = await db.execute<{ seats: number; orgs: number }>(sql`
+			SELECT
+				coalesce(sum(coalesce(seats, 1)), 0)::int AS seats,
+				count(DISTINCT reference_id)::int AS orgs
 			FROM subscriptions
 			WHERE status = 'active' AND plan != 'enterprise'
 		`);
 		const seats = result.rows[0]?.seats ?? 0;
+		const orgs = result.rows[0]?.orgs ?? 0;
 		return {
 			available: true as const,
-			monthEnd: latest.monthEnd,
+			asOf: latest.date,
 			mrrUsd: latest.mrrUsd,
 			activeSeats: seats,
-			arpuUsd: seats > 0 ? latest.mrrUsd / seats : null,
+			payingOrgs: orgs,
+			arpaUsd: orgs > 0 ? latest.mrrUsd / orgs : null,
+			perSeatUsd: seats > 0 ? latest.mrrUsd / seats : null,
 		};
 	}),
 

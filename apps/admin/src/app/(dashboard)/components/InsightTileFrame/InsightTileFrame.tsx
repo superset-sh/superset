@@ -18,6 +18,7 @@ interface InsightTileFrameProps {
 	error?: { message: string } | null;
 	empty?: boolean;
 	emptyLabel?: string;
+	headerAction?: ReactNode;
 	children: ReactNode;
 }
 
@@ -29,6 +30,7 @@ export function InsightTileFrame({
 	error,
 	empty,
 	emptyLabel = "No data",
+	headerAction,
 	children,
 }: InsightTileFrameProps) {
 	return (
@@ -36,6 +38,7 @@ export function InsightTileFrame({
 			<CardHeader>
 				<div className="flex items-center justify-between gap-2">
 					<CardTitle className="truncate">{title}</CardTitle>
+					{headerAction}
 					{lastRefresh ? (
 						<span className="text-muted-foreground shrink-0 text-xs">
 							{new Date(lastRefresh).toLocaleString(undefined, {

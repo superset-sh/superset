@@ -18,17 +18,17 @@ export function ArpuTile() {
 
 	const description = data
 		? data.available
-			? `Sigma MRR $${data.mrrUsd.toLocaleString()} (${data.monthEnd}) ÷ ${data.activeSeats.toLocaleString()} active seats`
+			? `MRR $${data.mrrUsd.toLocaleString()} ÷ ${data.payingOrgs.toLocaleString()} paying orgs · $${data.perSeatUsd?.toFixed(2) ?? "—"}/seat across ${data.activeSeats.toLocaleString()} seats (${data.asOf})`
 			: data.reason === "computing"
 				? "Waiting for the MRR query…"
 				: data.reason
-		: "Sigma MRR ÷ active paid seats (Neon)";
+		: "Sigma MRR ÷ paying orgs (Neon)";
 
 	return (
 		<MetricCard
-			title="ARPU — per paid seat"
+			title="ARPA — per paying org"
 			description={description}
-			value={data?.available ? data.arpuUsd : null}
+			value={data?.available ? data.arpaUsd : null}
 			isLoading={query.isLoading}
 			error={query.error}
 			formatter={(v) => `$${v.toFixed(2)}/mo`}
