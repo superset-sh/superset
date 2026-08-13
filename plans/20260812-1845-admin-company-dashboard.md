@@ -25,8 +25,8 @@ None — all resolved in the Decision Log (D-1 through D-12; decision walkthroug
 - [x] (2026-08-12) PostHog cleanup completed as prerequisite work: activation funnel `Es6Yu3Lr` corrected (entrance filter + person-mode modifier), previous-week twin `NCtxWd0y` aligned, activated-rate tile `zGsBNGi3` created, seven orphaned stale activation insights soft-deleted.
 - [x] (2026-08-12) `user_signed_up` prototype REVERTED from the working tree per D-4 reversal; `packages/auth` untouched.
 - [x] (2026-08-12) Milestone 1: insight-reference plumbing implemented in working tree — `insight-registry.ts`, `fetchInsightResults` in `posthog-client.ts`, `analytics.getInsightResults` procedure; lint + typecheck pass; credential verified live against project 264803 (returned the activation funnel by short_id alone). Snapshots dropped per D-2 reversal. Remaining: commit + PR.
-- [ ] Milestone 2: admin company dashboard page (behavioral + business sections).
-- [ ] Milestone 3: purge stale admin surfaces (retention card, users page, non-mirror charts, dead procedures — D-11/D-12).
+- [x] (2026-08-12) Milestone 2: mirror page built — `business.ts` router (Sigma MRR with graceful unavailable state, Neon churn cohorts / logo retention / signup→paid, ARPU, enterprise-ARR placeholder), ten tile components (InsightTileFrame, PostHogFunnelTile, HogQLLineTile, TrendSeriesTile, RetentionGridTile, MrrTile, ChurnHeatmapTile, LogoRetentionTile, SignupToPaidTile, ArpuTile), page.tsx rewritten as the 1884562 mirror. Registry + AdminInsightKey exported from `@superset/trpc`.
+- [x] (2026-08-12) Milestone 3: purge — deleted users page + UsersTable, RetentionCard, WAU/Signups/Revenue/Traffic charts, LeaderboardTable, DemoCountdown, TimeRangePicker, WeekPicker; analytics router reduced to captureEvent/featureFlagPayload/getInsightResults; posthog-client reduced to fetchInsightResults (KV cache layer removed with its last consumer); admin router reduced to setMyPassword (NavUser is its live consumer); sidebar Users link removed. Verified no stragglers reference deleted procedures; trpc + admin typecheck clean.
 
 ## Surprises & Discoveries
 

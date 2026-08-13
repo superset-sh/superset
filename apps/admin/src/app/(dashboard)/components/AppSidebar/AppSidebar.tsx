@@ -20,7 +20,7 @@ import {
 	SidebarRail,
 } from "@superset/ui/sidebar";
 import { usePathname } from "next/navigation";
-import { LuChevronRight, LuHouse, LuUsers } from "react-icons/lu";
+import { LuChevronRight, LuHouse } from "react-icons/lu";
 
 import { AppSidebarHeader } from "./components/AppSidebarHeader";
 import { NavUser } from "./components/NavUser";
@@ -34,18 +34,10 @@ const topLevelNav = [
 	},
 ];
 
-const sections = [
-	{
-		title: "User Management",
-		items: [
-			{
-				title: "All Users",
-				url: "/users",
-				icon: LuUsers,
-			},
-		],
-	},
-];
+const sections: {
+	title: string;
+	items: { title: string; url: string; icon: typeof LuHouse }[];
+}[] = [];
 
 export interface AppSidebarProps extends React.ComponentProps<typeof Sidebar> {
 	user: NonNullable<RouterOutputs["user"]["me"]>;

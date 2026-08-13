@@ -11,3 +11,7 @@ export {
 	protectedProcedure,
 	publicProcedure,
 } from "./trpc";
+
+// Admin insight registry (canonical dashboard tiles)
+export type { AdminInsightKey } from "./router/analytics/insight-registry";
+export { ADMIN_INSIGHTS } from "./router/analytics/insight-registry";

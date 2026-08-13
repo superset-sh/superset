@@ -1,172 +1,135 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
 
 import { useTRPC } from "@/trpc/react";
 
-import { DemoCountdown } from "./components/DemoCountdown";
-import { FunnelChart } from "./components/FunnelChart";
-import { LeaderboardTable } from "./components/LeaderboardTable";
-import { RetentionCard } from "./components/RetentionCard";
-import { RevenueTrendChart } from "./components/RevenueTrendChart";
-import { SignupsTrendChart } from "./components/SignupsTrendChart";
-import { type TimeRange, TimeRangePicker } from "./components/TimeRangePicker";
-import { TrafficSourcesChart } from "./components/TrafficSourcesChart";
-import { WAUTrendChart } from "./components/WAUTrendChart";
-import { WeekPicker } from "./components/WeekPicker";
+import { ArpuTile } from "./components/ArpuTile";
+import { ChurnHeatmapTile } from "./components/ChurnHeatmapTile";
+import { HogQLLineTile } from "./components/HogQLLineTile";
+import { LogoRetentionTile } from "./components/LogoRetentionTile";
+import { MetricCard } from "./components/MetricCard";
+import { MrrTile } from "./components/MrrTile";
+import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
+import { RetentionGridTile } from "./components/RetentionGridTile";
+import { SignupToPaidTile } from "./components/SignupToPaidTile";
+import { TrendSeriesTile } from "./components/TrendSeriesTile";
 
+// One-to-one mirror of PostHog dashboard 1884562 (plan D-7): Product tiles
+// reference the saved insights by id; Business tiles compute live from
+// Stripe Sigma and Neon. Each tile renders at its canonical saved range —
+// range changes are definition changes and happen in PostHog (D-14).
 export default function DashboardPage() {
 	const trpc = useTRPC();
-
-	const [activationFunnelRange, setActivationFunnelRange] =
-		useState<TimeRange>("-7d");
-	const [marketingFunnelRange, setMarketingFunnelRange] =
-		useState<TimeRange>("-7d");
-	const [signupsRange, setSignupsRange] = useState<TimeRange>("-30d");
-	const [trafficRange, setTrafficRange] = useState<TimeRange>("-30d");
-	const [revenueRange, setRevenueRange] = useState<TimeRange>("-30d");
-	const [wauRange, setWauRange] = useState<TimeRange>("-30d");
-	const [leaderboardWeekOffset, setLeaderboardWeekOffset] = useState(0);
-
-	const activationFunnel = useQuery(
-		trpc.analytics.getActivationFunnel.queryOptions({
-			dateFrom: activationFunnelRange,
-		}),
-	);
-
-	const marketingFunnel = useQuery(
-		trpc.analytics.getMarketingFunnel.queryOptions({
-			dateFrom: marketingFunnelRange,
-		}),
-	);
-
-	const wau = useQuery(
-		trpc.analytics.getWAUTrend.queryOptions({
-			days: Number.parseInt(wauRange.slice(1, -1), 10),
-		}),
-	);
-
-	const retention = useQuery(trpc.analytics.getRetention.queryOptions());
-
-	const leaderboard = useQuery(
-		trpc.analytics.getWorkspacesLeaderboard.queryOptions({
-			weekOffset: leaderboardWeekOffset,
-		}),
-	);
-
-	const signups = useQuery(
-		trpc.analytics.getSignupsTrend.queryOptions({
-			days: Number.parseInt(signupsRange.slice(1, -1), 10),
-		}),
-	);
-
-	const trafficSources = useQuery(
-		trpc.analytics.getTrafficSources.queryOptions({
-			days: Number.parseInt(trafficRange.slice(1, -1), 10),
-		}),
-	);
-
-	const revenue = useQuery(
-		trpc.analytics.getRevenueTrend.queryOptions({
-			days: Number.parseInt(revenueRange.slice(1, -1), 10),
-		}),
-	);
+	const enterpriseArr = useQuery(trpc.business.getEnterpriseArr.queryOptions());
 
 	return (
 		<div className="space-y-6">
-			<div className="flex items-center justify-between">
-				<div>
-					<h1 className="text-2xl font-bold">Overview</h1>
-					<p className="text-muted-foreground">Company metrics & insights</p>
-				</div>
-				<DemoCountdown />
+			<div>
+				<h1 className="text-2xl font-bold">Company Metrics</h1>
+				<p className="text-muted-foreground">
+					Mirror of the PostHog Success Metrics dashboard — product via saved
+					insights, business live from Stripe/Neon
+				</p>
 			</div>
 
-			<WAUTrendChart
-				data={wau.data}
-				isLoading={wau.isLoading}
-				error={wau.error}
-				headerAction={
-					<TimeRangePicker value={wauRange} onChange={setWauRange} />
-				}
-			/>
+			<h2 className="text-muted-foreground pt-2 text-sm font-medium uppercase tracking-wide">
+				Product
+			</h2>
 
-			<RevenueTrendChart
-				data={revenue.data}
-				isLoading={revenue.isLoading}
-				error={revenue.error}
-				headerAction={
-					<TimeRangePicker value={revenueRange} onChange={setRevenueRange} />
-				}
-			/>
+			<PostHogFunnelTile />
 
-			<SignupsTrendChart
-				data={signups.data}
-				isLoading={signups.isLoading}
-				error={signups.error}
-				headerAction={
-					<TimeRangePicker value={signupsRange} onChange={setSignupsRange} />
-				}
-			/>
+			<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+				<HogQLLineTile
+					insight="activatedRate"
+					description="Real workspaces on 2+ distinct days within week 1 of first workspace (retention-validated definition)"
+					xColumn={0}
+					series={[
+						{
+							column: 3,
+							key: "activation_pct",
+							label: "activation rate",
+							kind: "line",
+							suffix: "%",
+						},
+						{
+							column: 1,
+							key: "new_creators",
+							label: "new workspace creators",
+							kind: "bar",
+							rightAxis: true,
+						},
+					]}
+				/>
+				<HogQLLineTile
+					insight="activeOrgs"
+					description="Weekly orgs with 2+/5+ members creating real workspaces"
+					xColumn={0}
+					series={[
+						{
+							column: 1,
+							key: "orgs_2plus",
+							label: "orgs with 2+ active members",
+							kind: "line",
+						},
+						{
+							column: 2,
+							key: "orgs_5plus",
+							label: "orgs with 5+ active members",
+							kind: "line",
+						},
+					]}
+				/>
+				<HogQLLineTile
+					insight="workspacePercentiles"
+					description="Workspaces created per user in the last 7 days, by percentile"
+					xColumn={0}
+					series={[
+						{ column: 1, key: "workspaces", label: "workspaces", kind: "line" },
+					]}
+				/>
+				<TrendSeriesTile
+					insight="workspacesPerCreator"
+					description="Weekly p50/p90 real workspaces per creator"
+				/>
+				<TrendSeriesTile
+					insight="newSiteVisitors"
+					description="First-ever pageview on superset.sh, daily"
+				/>
+				<TrendSeriesTile
+					insight="downloadCtrMac"
+					description="Weekly pageview → download conversion, Mac visitors"
+					valueSuffix="%"
+				/>
+			</div>
 
-			<RetentionCard
-				data={retention.data}
-				isLoading={retention.isLoading}
-				error={retention.error}
-			/>
+			<RetentionGridTile />
 
-			<FunnelChart
-				title="Activation Funnel"
-				description="From app open to workspace creation"
-				data={activationFunnel.data}
-				isLoading={activationFunnel.isLoading}
-				error={activationFunnel.error}
-				headerAction={
-					<TimeRangePicker
-						value={activationFunnelRange}
-						onChange={setActivationFunnelRange}
+			<h2 className="text-muted-foreground pt-2 text-sm font-medium uppercase tracking-wide">
+				Business
+			</h2>
+
+			<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+				<MrrTile />
+				<LogoRetentionTile />
+				<SignupToPaidTile />
+				<div className="space-y-6">
+					<ArpuTile />
+					<MetricCard
+						title="Enterprise ARR"
+						description={
+							(enterpriseArr.data && !enterpriseArr.data.available
+								? enterpriseArr.data.reason
+								: null) ?? "Not yet tracked"
+						}
+						value={null}
+						isLoading={enterpriseArr.isLoading}
+						error={enterpriseArr.error}
 					/>
-				}
-			/>
+				</div>
+			</div>
 
-			<FunnelChart
-				title="Marketing Funnel"
-				description="From site visit to app download"
-				data={marketingFunnel.data}
-				isLoading={marketingFunnel.isLoading}
-				error={marketingFunnel.error}
-				headerAction={
-					<TimeRangePicker
-						value={marketingFunnelRange}
-						onChange={setMarketingFunnelRange}
-					/>
-				}
-			/>
-
-			<LeaderboardTable
-				title="Workspace Leaderboard"
-				description="Top users by workspaces created"
-				data={leaderboard.data}
-				isLoading={leaderboard.isLoading}
-				error={leaderboard.error}
-				countLabel="Workspaces"
-				headerAction={
-					<WeekPicker
-						weekOffset={leaderboardWeekOffset}
-						onChange={setLeaderboardWeekOffset}
-					/>
-				}
-			/>
-
-			<TrafficSourcesChart
-				data={trafficSources.data}
-				isLoading={trafficSources.isLoading}
-				error={trafficSources.error}
-				headerAction={
-					<TimeRangePicker value={trafficRange} onChange={setTrafficRange} />
-				}
-			/>
+			<ChurnHeatmapTile />
 		</div>
 	);
 }

@@ -32,6 +32,7 @@ export const env = createEnv({
 		RELAY_URL: z.string().url(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
+		STRIPE_SECRET_KEY: z.string().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},
