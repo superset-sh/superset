@@ -33,7 +33,7 @@ export function MetricCard({
 	className,
 }: MetricCardProps) {
 	return (
-		<Card className={cn(className)}>
+		<Card className={cn("flex flex-col", className)}>
 			<CardHeader className="pb-2">
 				<div className="flex items-center justify-between">
 					<CardTitle className="text-sm font-medium">{title}</CardTitle>
@@ -41,7 +41,7 @@ export function MetricCard({
 				</div>
 				{description && <CardDescription>{description}</CardDescription>}
 			</CardHeader>
-			<CardContent>
+			<CardContent className="flex flex-1 items-center justify-center">
 				{isLoading ? (
 					<Skeleton className="h-9 w-24" />
 				) : error ? (
