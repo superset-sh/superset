@@ -33,7 +33,7 @@ function Cell({ cell, isBaseline }: { cell: CohortCell; isBaseline: boolean }) {
 	}
 	if (cell.state === "inProgress") {
 		return (
-			<div className="border-border text-muted-foreground rounded-md border border-dashed px-1 py-1.5 text-center tabular-nums">
+			<div className="border-border text-muted-foreground rounded-md border border-dashed px-1 py-3 text-center tabular-nums">
 				{cell.pct.toFixed(1)}%
 			</div>
 		);
@@ -41,7 +41,7 @@ function Cell({ cell, isBaseline }: { cell: CohortCell; isBaseline: boolean }) {
 	return (
 		<div
 			className={cn(
-				"rounded-md px-1 py-1.5 text-center tabular-nums",
+				"rounded-md px-1 py-3 text-center tabular-nums",
 				(isBaseline || cell.pct >= 45) && "text-white",
 			)}
 			style={{
