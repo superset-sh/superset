@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 
 import { useTRPC } from "@/trpc/react";
 
-import { ArpuTile } from "./components/ArpuTile";
 import { ChurnHeatmapTile } from "./components/ChurnHeatmapTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
 import { LogoRetentionTile } from "./components/LogoRetentionTile";
@@ -123,7 +122,6 @@ export default function DashboardPage() {
 				<LogoRetentionTile />
 				<SignupToPaidTile />
 				<div className="space-y-6">
-					<ArpuTile />
 					<MetricCard
 						title="Enterprise ARR"
 						description={

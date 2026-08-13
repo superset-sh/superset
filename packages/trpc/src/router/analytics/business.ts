@@ -343,38 +343,6 @@ export const businessRouter = {
 			return result.rows;
 		}),
 
-	// ARPA = latest Sigma MRR / paying orgs; per-seat shown as detail.
-	// Unavailable until the Sigma MRR query has computed.
-	getArpu: adminProcedure.query(async () => {
-		const mrr = await fetchLatestSigmaMrr();
-		if (!mrr.available) {
-			return { available: false as const, reason: mrr.reason };
-		}
-		const latest = mrr.points.at(-1);
-		if (!latest) {
-			return { available: false as const, reason: "Sigma MRR has no rows" };
-		}
-
-		const result = await db.execute<{ seats: number; orgs: number }>(sql`
-			SELECT
-				coalesce(sum(coalesce(seats, 1)), 0)::int AS seats,
-				count(DISTINCT reference_id)::int AS orgs
-			FROM subscriptions
-			WHERE status = 'active' AND plan != 'enterprise'
-		`);
-		const seats = result.rows[0]?.seats ?? 0;
-		const orgs = result.rows[0]?.orgs ?? 0;
-		return {
-			available: true as const,
-			asOf: latest.date,
-			mrrUsd: latest.mrrUsd,
-			activeSeats: seats,
-			payingOrgs: orgs,
-			arpaUsd: orgs > 0 ? latest.mrrUsd / orgs : null,
-			perSeatUsd: seats > 0 ? latest.mrrUsd / seats : null,
-		};
-	}),
-
 	// Explicit not-yet-tracked state so the dashboard mirror stays one-to-one
 	// with the PostHog placeholder tile (D-7).
 	getEnterpriseArr: adminProcedure.query(() => ({
