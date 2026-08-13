@@ -17,6 +17,7 @@ export function SamplePrompts({ onSelect }: SamplePromptsProps) {
 					onClick={() => {
 						track("new_workspace_sample_prompt_clicked", {
 							prompt_id: sample.id,
+							layout: "rows",
 						});
 						onSelect(sample.prompt);
 					}}

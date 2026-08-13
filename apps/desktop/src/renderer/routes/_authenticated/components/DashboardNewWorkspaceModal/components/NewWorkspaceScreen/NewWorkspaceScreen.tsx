@@ -48,6 +48,7 @@ import { newWorkspaceAttachmentPaths } from "renderer/stores/new-workspace-attac
 import { useNewWorkspacePromptContext } from "renderer/stores/new-workspace-prompt-context";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../DashboardNewWorkspaceDraftContext";
+import { useNewWorkspacePromptCardsVariant } from "../../hooks/useNewWorkspacePromptCardsVariant";
 import { DevicePicker } from "../DashboardNewWorkspaceForm/components/DevicePicker";
 import { useWorkspaceHostOptions } from "../DashboardNewWorkspaceForm/components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { CompareBaseBranchPicker } from "../DashboardNewWorkspaceForm/PromptGroup/components/CompareBaseBranchPicker";
@@ -73,6 +74,7 @@ import {
 } from "../DashboardNewWorkspaceForm/PromptGroup/types";
 import { useSelectedHostProjectIds } from "../DashboardNewWorkspaceModalContent/hooks/useSelectedHostProjectIds";
 import { AttachmentCard } from "./components/AttachmentCard";
+import { SamplePromptCards } from "./components/SamplePromptCards";
 import { SamplePrompts } from "./components/SamplePrompts";
 
 interface NewWorkspaceScreenProps {
@@ -332,6 +334,9 @@ export function NewWorkspaceScreen({
 			}) ?? null
 		);
 	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
+
+	const promptCardsVariant = useNewWorkspacePromptCardsVariant(isOpen);
+
 	const { agents: v2Agents, isFetched: v2AgentsFetched } =
 		useV2AgentChoices(launchHostUrl);
 	const selectableAgentIds = useMemo(
@@ -575,7 +580,7 @@ export function NewWorkspaceScreen({
 			</div>
 			<div className="relative flex w-full max-w-[640px] flex-col px-6 pb-8">
 				<AnimatePresence initial={false}>
-					{isPromptEmpty && (
+					{isPromptEmpty && promptCardsVariant !== null && (
 						<motion.div
 							key="sample-prompts"
 							initial={{ opacity: 0, y: 12 }}
@@ -584,7 +589,15 @@ export function NewWorkspaceScreen({
 							transition={{ type: "tween", duration: 0.15, ease: "easeOut" }}
 							className="absolute inset-x-6 bottom-full mb-1"
 						>
-							<SamplePrompts onSelect={applyPrompt} />
+							{promptCardsVariant === "test" ? (
+								<SamplePromptCards
+									hostUrl={launchHostUrl}
+									projectId={projectId}
+									onSelect={applyPrompt}
+								/>
+							) : (
+								<SamplePrompts onSelect={applyPrompt} />
+							)}
 						</motion.div>
 					)}
 				</AnimatePresence>

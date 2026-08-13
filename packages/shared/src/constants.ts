@@ -151,6 +151,26 @@ export const FEATURE_FLAGS = {
 	 */
 	NEW_WORKSPACE_SCREEN_OVERRIDE: "new-workspace-screen-override",
 	/**
+	 * Experiment flag (control/test) nested inside the shipped new-workspace
+	 * screen: control keeps the inline sample-prompt rows, test replaces them
+	 * with two cards above the composer. Prompt text is identical in both arms
+	 * so the comparison isolates presentation. Evaluated when the screen opens,
+	 * like NEW_WORKSPACE_SCREEN, so exposure matches the population that sees it.
+	 *
+	 * Eligibility (new accounts only) is a release condition on the flag, not
+	 * code: a `created_at` person property cutoff, which the renderer sends with
+	 * flag requests at identify time. Existing accounts get `false` back and
+	 * render the rows exactly as they do today, with no exposure recorded.
+	 */
+	NEW_WORKSPACE_PROMPT_CARDS: "new-workspace-prompt-cards",
+	/**
+	 * Boolean override that forces the prompt cards without evaluating the
+	 * experiment flag — no exposure event, so team and dev accounts can look at
+	 * the cards without entering the analysis. Checked before the experiment
+	 * flag, same as NEW_WORKSPACE_SCREEN_OVERRIDE.
+	 */
+	NEW_WORKSPACE_PROMPT_CARDS_OVERRIDE: "new-workspace-prompt-cards-override",
+	/**
 	 * Shows the rebuilt chat pane (ChatV3Pane). UI-only: host-service always
 	 * serves its `/chat-v3/*` routes, so this flag decides who sees the pane,
 	 * not what the host can do — flips take effect live, with no host restart.

@@ -1,0 +1,1 @@
+export { useNewWorkspacePromptCardsVariant } from "./useNewWorkspacePromptCardsVariant";
