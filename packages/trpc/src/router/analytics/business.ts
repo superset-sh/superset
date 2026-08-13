@@ -207,6 +207,163 @@ async function fetchLatestSigmaMrr(): Promise<MrrResult> {
 	return { available: false, reason: MRR_COMPUTING_REASON };
 }
 
+interface MercuryAccount {
+	id: string;
+	name: string;
+	availableBalance: number;
+}
+
+interface MercuryTransaction {
+	amount: number;
+	status: string;
+	kind: string | null;
+	postedAt: string | null;
+	createdAt: string;
+}
+
+interface CashFlowMonth {
+	month: string;
+	netUsd: number;
+	outUsd: number;
+	partial: boolean;
+}
+
+type CashFlowResult =
+	| {
+			available: true;
+			asOf: string;
+			totalCashUsd: number;
+			months: CashFlowMonth[];
+			avgMonthlyNetUsd: number | null;
+			avgMonthlyGrossBurnUsd: number | null;
+			runwayMonths: number | null;
+	  }
+	| { available: false; reason: string };
+
+const CASH_FLOW_CACHE_TTL_MS = 60 * 60 * 1000;
+let cashFlowCache: { fetchedAt: number; result: CashFlowResult } | null = null;
+
+async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
+	if (!env.MERCURY_API_TOKEN) {
+		return { available: false, reason: "MERCURY_API_TOKEN not configured" };
+	}
+	if (
+		cashFlowCache &&
+		Date.now() - cashFlowCache.fetchedAt < CASH_FLOW_CACHE_TTL_MS &&
+		cashFlowCache.result.available
+	) {
+		return cashFlowCache.result;
+	}
+
+	const mercuryHeaders = {
+		Authorization: `Bearer ${env.MERCURY_API_TOKEN}`,
+	};
+	const accountsResponse = await fetch(
+		"https://api.mercury.com/api/v1/accounts",
+		{ headers: mercuryHeaders },
+	);
+	if (!accountsResponse.ok) {
+		return {
+			available: false,
+			reason: `Mercury API error (${accountsResponse.status})`,
+		};
+	}
+	const { accounts } = (await accountsResponse.json()) as {
+		accounts: MercuryAccount[];
+	};
+
+	const treasuryResponse = await fetch(
+		"https://api.mercury.com/api/v1/treasury",
+		{ headers: mercuryHeaders },
+	);
+	const treasury = treasuryResponse.ok
+		? ((await treasuryResponse.json()) as { accounts?: MercuryAccount[] })
+		: null;
+	const treasuryCashUsd = (treasury?.accounts ?? []).reduce(
+		(sum, account) => sum + (account.availableBalance ?? 0),
+		0,
+	);
+
+	const now = new Date();
+	const start = new Date(
+		Date.UTC(now.getUTCFullYear(), now.getUTCMonth() - 6, 1),
+	);
+	const startParam = start.toISOString().slice(0, 10);
+
+	const monthlyNet = new Map<string, number>();
+	const monthlyOut = new Map<string, number>();
+	for (const account of accounts) {
+		const transactionsResponse = await fetch(
+			`https://api.mercury.com/api/v1/account/${account.id}/transactions?limit=500&start=${startParam}`,
+			{ headers: mercuryHeaders },
+		);
+		if (!transactionsResponse.ok) {
+			return {
+				available: false,
+				reason: `Mercury transactions error (${transactionsResponse.status})`,
+			};
+		}
+		const { transactions } = (await transactionsResponse.json()) as {
+			transactions: MercuryTransaction[];
+		};
+		for (const transaction of transactions) {
+			if (transaction.status === "failed" || transaction.status === "cancelled")
+				continue;
+			// Sweeps to/from Mercury Treasury are internal, not burn or income.
+			if (transaction.kind === "treasuryTransfer") continue;
+			const month = (transaction.postedAt ?? transaction.createdAt).slice(0, 7);
+			monthlyNet.set(month, (monthlyNet.get(month) ?? 0) + transaction.amount);
+			if (transaction.amount < 0) {
+				monthlyOut.set(
+					month,
+					(monthlyOut.get(month) ?? 0) + -transaction.amount,
+				);
+			}
+		}
+	}
+
+	const currentMonth = now.toISOString().slice(0, 7);
+	const months: CashFlowMonth[] = [...monthlyNet.entries()]
+		.sort(([a], [b]) => a.localeCompare(b))
+		.map(([month, net]) => ({
+			month,
+			netUsd: Math.round(net),
+			outUsd: Math.round(monthlyOut.get(month) ?? 0),
+			partial: month === currentMonth,
+		}));
+
+	const trailing = months.filter((m) => !m.partial).slice(-3);
+	const avgMonthlyNetUsd = trailing.length
+		? Math.round(
+				trailing.reduce((sum, m) => sum + m.netUsd, 0) / trailing.length,
+			)
+		: null;
+	const avgMonthlyGrossBurnUsd = trailing.length
+		? Math.round(
+				trailing.reduce((sum, m) => sum + m.outUsd, 0) / trailing.length,
+			)
+		: null;
+
+	const totalCashUsd =
+		accounts.reduce(
+			(sum, account) => sum + (account.availableBalance ?? 0),
+			0,
+		) + treasuryCashUsd;
+	const result: CashFlowResult = {
+		available: true,
+		asOf: now.toISOString(),
+		totalCashUsd: Math.round(totalCashUsd),
+		months,
+		avgMonthlyNetUsd,
+		avgMonthlyGrossBurnUsd,
+		runwayMonths: avgMonthlyGrossBurnUsd
+			? Math.round((totalCashUsd / avgMonthlyGrossBurnUsd) * 10) / 10
+			: null,
+	};
+	cashFlowCache = { fetchedAt: Date.now(), result };
+	return result;
+}
+
 export const businessRouter = {
 	getMrr: adminProcedure.query(() => fetchLatestSigmaMrr()),
 
@@ -342,6 +499,13 @@ export const businessRouter = {
 			`);
 			return result.rows;
 		}),
+
+	// Cash, monthly net flow, and runway from Mercury. Cash includes the
+	// Treasury balance (where the raise is parked). Treasury sweeps are
+	// internal and excluded; net flow still includes fundraise/revenue wires,
+	// so runway uses gross ops burn: cash / avg outflows over the last 3
+	// complete months.
+	getCashFlow: adminProcedure.query(() => fetchMercuryCashFlow()),
 
 	// Enterprise ARR = annualized Stripe subscription amounts for orgs whose
 	// Neon subscription row is plan=enterprise. Deals not modeled as priced

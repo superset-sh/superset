@@ -33,6 +33,7 @@ export const env = createEnv({
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		STRIPE_SECRET_KEY: z.string().optional(),
+		MERCURY_API_TOKEN: z.string().optional(),
 	},
 	clientPrefix: "PUBLIC_",
 	client: {},

@@ -3,11 +3,13 @@
 import { POSTHOG_PROJECT_URL } from "@superset/trpc/insight-registry";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 
+import { CashRunwayTile } from "./components/CashRunwayTile";
 import { ChurnHeatmapTile } from "./components/ChurnHeatmapTile";
 import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
 import { HogQLLineTile } from "./components/HogQLLineTile";
 import { LogoRetentionTile } from "./components/LogoRetentionTile";
 import { MrrTile } from "./components/MrrTile";
+import { NetBurnTile } from "./components/NetBurnTile";
 import { PostHogFunnelTile } from "./components/PostHogFunnelTile";
 import { RetentionGridTile } from "./components/RetentionGridTile";
 import { SignupToPaidTile } from "./components/SignupToPaidTile";
@@ -105,6 +107,8 @@ export default function DashboardPage() {
 						<TrendSeriesTile {...WAU_PROPS} />
 						<MrrTile />
 						<EnterpriseArrTile />
+						<CashRunwayTile />
+						<NetBurnTile />
 					</div>
 				</TabsContent>
 
