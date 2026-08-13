@@ -108,11 +108,13 @@ export default function DashboardPage() {
 					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
 						<CashBalanceTile />
 						<NetBurnTile />
-						<BurnByVendorTile />
 						<MrrTile />
+						<EnterpriseArrTile />
 						<TrendSeriesTile {...WAU_PROPS} />
 						<TrendSeriesTile {...DAU_PROPS} />
-						<EnterpriseArrTile />
+						<div className="xl:col-span-2">
+							<BurnByVendorTile />
+						</div>
 					</div>
 				</TabsContent>
 

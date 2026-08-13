@@ -14,7 +14,8 @@ import { useTRPC } from "@/trpc/react";
 import { InsightTileFrame } from "../InsightTileFrame";
 
 const chartConfig = {
-	outUsd: { label: "gross ops burn", color: "var(--chart-1)" },
+	netBurnUsd: { label: "net burn", color: "var(--chart-1)" },
+	stripeInUsd: { label: "Stripe revenue", color: "var(--chart-2)" },
 } satisfies ChartConfig;
 
 // Monthly gross operating outflows across all Mercury accounts (treasury
@@ -30,8 +31,8 @@ export function NetBurnTile() {
 
 	return (
 		<InsightTileFrame
-			title="Gross burn — monthly (Mercury)"
-			description="Operating outflows per month across all accounts (treasury sweeps excluded); current month partial"
+			title="Net burn — monthly (Mercury)"
+			description="Outflows less Stripe payouts per month (treasury sweeps excluded); current month partial"
 			lastRefresh={query.data?.available ? query.data.asOf : null}
 			isLoading={query.isLoading}
 			error={query.error}
@@ -60,11 +61,20 @@ export function NetBurnTile() {
 						tickFormatter={(v: number) => `$${v.toLocaleString()}`}
 					/>
 					<ChartTooltip content={<ChartTooltipContent />} />
-					<Bar dataKey="outUsd" radius={3}>
+					<Bar dataKey="netBurnUsd" radius={3}>
 						{months.map((month) => (
 							<Cell
 								key={month.month}
 								fill="color-mix(in oklch, var(--destructive) 80%, transparent)"
+								opacity={month.partial ? 0.45 : 1}
+							/>
+						))}
+					</Bar>
+					<Bar dataKey="stripeInUsd" radius={3}>
+						{months.map((month) => (
+							<Cell
+								key={`${month.month}-rev`}
+								fill="var(--chart-2)"
 								opacity={month.partial ? 0.45 : 1}
 							/>
 						))}

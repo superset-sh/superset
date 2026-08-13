@@ -226,6 +226,8 @@ interface CashFlowMonth {
 	month: string;
 	netUsd: number;
 	outUsd: number;
+	stripeInUsd: number;
+	netBurnUsd: number;
 	partial: boolean;
 }
 
@@ -249,6 +251,7 @@ type CashFlowResult =
 			topVendors: VendorSpend[];
 			avgMonthlyNetUsd: number | null;
 			avgMonthlyGrossBurnUsd: number | null;
+			avgMonthlyNetBurnUsd: number | null;
 			runwayMonths: number | null;
 	  }
 	| { available: false; reason: string };
@@ -341,21 +344,36 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 	const currentMonth = now.toISOString().slice(0, 7);
 	const monthlyNet = new Map<string, number>();
 	const monthlyOut = new Map<string, number>();
+	// Stripe payouts are self-serve revenue landing in the bank; enterprise
+	// wires can't be told apart from fundraise wires, so they are NOT netted
+	// against burn (conservative).
+	const monthlyStripeIn = new Map<string, number>();
 	for (const transaction of transactions) {
 		const month = transaction.date.slice(0, 7);
 		monthlyNet.set(month, (monthlyNet.get(month) ?? 0) + transaction.amount);
 		if (transaction.amount < 0) {
 			monthlyOut.set(month, (monthlyOut.get(month) ?? 0) + -transaction.amount);
+		} else if (transaction.counterparty.toLowerCase().includes("stripe")) {
+			monthlyStripeIn.set(
+				month,
+				(monthlyStripeIn.get(month) ?? 0) + transaction.amount,
+			);
 		}
 	}
 	const months: CashFlowMonth[] = [...monthlyNet.entries()]
 		.sort(([a], [b]) => a.localeCompare(b))
-		.map(([month, net]) => ({
-			month,
-			netUsd: Math.round(net),
-			outUsd: Math.round(monthlyOut.get(month) ?? 0),
-			partial: month === currentMonth,
-		}));
+		.map(([month, net]) => {
+			const out = Math.round(monthlyOut.get(month) ?? 0);
+			const stripeIn = Math.round(monthlyStripeIn.get(month) ?? 0);
+			return {
+				month,
+				netUsd: Math.round(net),
+				outUsd: out,
+				stripeInUsd: stripeIn,
+				netBurnUsd: out - stripeIn,
+				partial: month === currentMonth,
+			};
+		});
 
 	const trailing = months.filter((m) => !m.partial).slice(-3);
 	const avgMonthlyNetUsd = trailing.length
@@ -366,6 +384,11 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 	const avgMonthlyGrossBurnUsd = trailing.length
 		? Math.round(
 				trailing.reduce((sum, m) => sum + m.outUsd, 0) / trailing.length,
+			)
+		: null;
+	const avgMonthlyNetBurnUsd = trailing.length
+		? Math.round(
+				trailing.reduce((sum, m) => sum + m.netBurnUsd, 0) / trailing.length,
 			)
 		: null;
 
@@ -434,9 +457,11 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 		topVendors,
 		avgMonthlyNetUsd,
 		avgMonthlyGrossBurnUsd,
-		runwayMonths: avgMonthlyGrossBurnUsd
-			? Math.round((totalCashUsd / avgMonthlyGrossBurnUsd) * 10) / 10
-			: null,
+		avgMonthlyNetBurnUsd,
+		runwayMonths:
+			avgMonthlyNetBurnUsd && avgMonthlyNetBurnUsd > 0
+				? Math.round((totalCashUsd / avgMonthlyNetBurnUsd) * 10) / 10
+				: null,
 	};
 	cashFlowCache = { fetchedAt: Date.now(), result };
 	return result;
@@ -585,12 +610,10 @@ export const businessRouter = {
 	// complete months.
 	getCashFlow: adminProcedure.query(() => fetchMercuryCashFlow()),
 
-	// Enterprise ARR = annualized Stripe subscription amounts for orgs whose
-	// Neon subscription row is plan=enterprise. Deals not modeled as priced
-	// Stripe subscriptions are surfaced as "unbilled" instead of hidden —
-	// the bookkeeping contract is: every enterprise contract is a Stripe
-	// subscription (custom annual price, send_invoice, wires marked paid
-	// out-of-band on the subscription invoice).
+	// Enterprise ARR = annualized Stripe subscription amounts per
+	// plan=enterprise org, listed per account (name/logo from Neon, money
+	// from Stripe). Deals without a priced Stripe subscription surface as
+	// unbilled rows instead of being hidden.
 	getEnterpriseArr: adminProcedure.query(async () => {
 		if (!env.STRIPE_SECRET_KEY) {
 			return {
@@ -600,55 +623,67 @@ export const businessRouter = {
 		}
 		const result = await db.execute<{
 			stripe_subscription_id: string | null;
+			name: string;
+			logo: string | null;
 		}>(sql`
-			SELECT stripe_subscription_id
-			FROM subscriptions
-			WHERE plan = 'enterprise' AND status = 'active'
+			SELECT s.stripe_subscription_id, o.name, o.logo
+			FROM subscriptions s
+			JOIN auth.organizations o ON o.id = s.reference_id
+			WHERE s.plan = 'enterprise' AND s.status = 'active'
 		`);
 
-		let arrCents = 0;
-		let billedLogos = 0;
+		const accounts: {
+			name: string;
+			logo: string | null;
+			arrUsd: number;
+			billed: boolean;
+		}[] = [];
 		for (const row of result.rows) {
-			if (!row.stripe_subscription_id) continue;
-			const response = await fetch(
-				`https://api.stripe.com/v1/subscriptions/${row.stripe_subscription_id}`,
-				{ headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
-			);
-			if (!response.ok) continue;
-			const sub = (await response.json()) as {
-				status: string;
-				items?: {
-					data?: {
-						quantity?: number;
-						price?: {
-							unit_amount?: number | null;
-							recurring?: { interval?: string } | null;
-						} | null;
-					}[];
-				};
-			};
-			if (sub.status !== "active") continue;
 			let subAnnualCents = 0;
-			for (const item of sub.items?.data ?? []) {
-				const amount = item.price?.unit_amount ?? 0;
-				const quantity = item.quantity ?? 1;
-				const interval = item.price?.recurring?.interval;
-				const perYear = interval === "month" ? 12 : interval === "year" ? 1 : 0;
-				subAnnualCents += amount * quantity * perYear;
+			if (row.stripe_subscription_id) {
+				const response = await fetch(
+					`https://api.stripe.com/v1/subscriptions/${row.stripe_subscription_id}`,
+					{ headers: { Authorization: `Bearer ${env.STRIPE_SECRET_KEY}` } },
+				);
+				if (response.ok) {
+					const sub = (await response.json()) as {
+						status: string;
+						items?: {
+							data?: {
+								quantity?: number;
+								price?: {
+									unit_amount?: number | null;
+									recurring?: { interval?: string } | null;
+								} | null;
+							}[];
+						};
+					};
+					if (sub.status === "active") {
+						for (const item of sub.items?.data ?? []) {
+							const amount = item.price?.unit_amount ?? 0;
+							const quantity = item.quantity ?? 1;
+							const interval = item.price?.recurring?.interval;
+							const perYear =
+								interval === "month" ? 12 : interval === "year" ? 1 : 0;
+							subAnnualCents += amount * quantity * perYear;
+						}
+					}
+				}
 			}
-			if (subAnnualCents > 0) {
-				billedLogos += 1;
-				arrCents += subAnnualCents;
-			}
+			accounts.push({
+				name: row.name,
+				logo: row.logo,
+				arrUsd: subAnnualCents / 100,
+				billed: subAnnualCents > 0,
+			});
 		}
+		accounts.sort((a, b) => b.arrUsd - a.arrUsd);
 
-		const logos = result.rows.length;
 		return {
 			available: true as const,
-			arrUsd: arrCents / 100,
-			logos,
-			billedLogos,
-			unbilledLogos: logos - billedLogos,
+			arrUsd: accounts.reduce((sum, account) => sum + account.arrUsd, 0),
+			accounts,
+			unbilledLogos: accounts.filter((account) => !account.billed).length,
 		};
 	}),
 } satisfies TRPCRouterRecord;

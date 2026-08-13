@@ -85,20 +85,29 @@ export function RetentionGridTile() {
 	const intervalCount = cohorts[0]?.values.length ?? 0;
 	const now = Date.now();
 
-	// Size-weighted mean per week over cohorts whose week is complete.
-	const meanRow: (number | null)[] = Array.from(
+	// Size-weighted mean per week over every cohort that has reached that
+	// week. A week whose contributing cells are all still in progress is
+	// itself in progress (dashed), matching the cohort rows.
+	const meanRow: { pct: number | null; state: CellState }[] = Array.from(
 		{ length: intervalCount },
 		(_, week) => {
 			let returned = 0;
 			let weight = 0;
+			let sawComplete = false;
 			for (const cohort of cohorts) {
 				const size = cohort.values[0]?.count ?? 0;
 				const start = new Date(cohort.date).getTime();
-				if (size === 0 || cellState(start, week, now) !== "complete") continue;
+				const state = cellState(start, week, now);
+				if (size === 0 || state === "future") continue;
 				returned += cohort.values[week]?.count ?? 0;
 				weight += size;
+				if (state === "complete") sawComplete = true;
 			}
-			return weight > 0 ? (returned / weight) * 100 : null;
+			if (weight === 0) return { pct: null, state: "future" as const };
+			return {
+				pct: (returned / weight) * 100,
+				state: sawComplete ? ("complete" as const) : ("inProgress" as const),
+			};
 		},
 	);
 	const meanSize = cohorts.length
@@ -143,12 +152,12 @@ export function RetentionGridTile() {
 					<span className="pr-1 text-right font-medium tabular-nums">
 						{meanSize}
 					</span>
-					{meanRow.map((pct, week) => (
+					{meanRow.map((cell, week) => (
 						<RetentionCell
 							// biome-ignore lint/suspicious/noArrayIndexKey: columns are week offsets
 							key={week}
-							pct={pct}
-							state={pct === null ? "future" : "complete"}
+							pct={cell.pct}
+							state={cell.state}
 							isFirstWeek={week === 0}
 						/>
 					))}

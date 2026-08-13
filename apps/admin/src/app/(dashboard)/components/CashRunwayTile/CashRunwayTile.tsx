@@ -26,9 +26,14 @@ export function CashRunwayTile() {
 				formatter={(v) => `$${(v / 1_000_000).toFixed(2)}M`}
 			/>
 			<MetricCard
-				title="Gross burn"
-				description={reason ?? "Avg monthly outflows, last 3 complete months"}
-				value={available ? data.avgMonthlyGrossBurnUsd : null}
+				title="Net burn"
+				description={
+					reason ??
+					(available && data.avgMonthlyGrossBurnUsd !== null
+						? `$${data.avgMonthlyGrossBurnUsd.toLocaleString()}/mo out less Stripe payouts, last 3 complete months`
+						: "Outflows less Stripe revenue, last 3 complete months")
+				}
+				value={available ? data.avgMonthlyNetBurnUsd : null}
 				isLoading={query.isLoading}
 				error={query.error}
 				formatter={(v) => `$${v.toLocaleString()}/mo`}
@@ -37,11 +42,7 @@ export function CashRunwayTile() {
 				title="Runway"
 				description={
 					reason ??
-					`Cash ÷ gross burn${
-						available && data.avgMonthlyNetUsd !== null
-							? ` · net flow ${data.avgMonthlyNetUsd >= 0 ? "+" : ""}$${data.avgMonthlyNetUsd.toLocaleString()}/mo incl. wires`
-							: ""
-					}`
+					"Cash ÷ net burn; enterprise wires not netted (indistinguishable from investor wires)"
 				}
 				value={available ? data.runwayMonths : null}
 				isLoading={query.isLoading}
