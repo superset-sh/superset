@@ -36,7 +36,7 @@ interface HogQLLineTileProps {
 	insight: AdminInsightKey;
 	description?: string;
 	xColumn: number;
-	series: HogQLSeries[];
+	series: readonly HogQLSeries[];
 }
 
 const SERIES_COLORS = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)"];
