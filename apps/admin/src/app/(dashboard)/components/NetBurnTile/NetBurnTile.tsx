@@ -58,6 +58,9 @@ export function NetBurnTile() {
 						tickLine={false}
 						axisLine={false}
 						width={64}
+						// Clamp at zero: a cash-flow-positive month is a rounding
+						// artifact of the partial current month, not a scale we need.
+						domain={[0, "auto"]}
 						tickFormatter={(v: number) => `$${v.toLocaleString()}`}
 					/>
 					<ChartTooltip content={<ChartTooltipContent />} />
