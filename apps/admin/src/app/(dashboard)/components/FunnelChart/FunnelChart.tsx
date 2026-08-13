@@ -42,8 +42,10 @@ const HATCH_BACKGROUND =
 function TooltipRow({ label, value }: { label: string; value: string }) {
 	return (
 		<div className="flex items-center justify-between gap-6">
-			<span className="opacity-70">{label}</span>
-			<span className="font-semibold text-white tabular-nums">{value}</span>
+			<span className="text-muted-foreground">{label}</span>
+			<span className="text-foreground font-mono font-medium tabular-nums">
+				{value}
+			</span>
 		</div>
 	);
 }
@@ -140,7 +142,10 @@ export function FunnelChart({
 															}}
 														/>
 													</TooltipTrigger>
-													<TooltipContent side="top" className="text-xs">
+													<TooltipContent
+														side="top"
+														className="border-border/50 bg-background text-foreground grid gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
+													>
 														<TooltipHeader step={index + 1} name={step.name} />
 														{dropped !== null ? (
 															<TooltipRow
@@ -173,7 +178,10 @@ export function FunnelChart({
 														}}
 													/>
 												</TooltipTrigger>
-												<TooltipContent side="top" className="text-xs">
+												<TooltipContent
+													side="top"
+													className="border-border/50 bg-background text-foreground grid gap-1.5 rounded-lg border px-2.5 py-1.5 text-xs shadow-xl"
+												>
 													<TooltipHeader step={index + 1} name={step.name} />
 													<TooltipRow
 														label="Converted"
