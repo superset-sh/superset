@@ -11,10 +11,12 @@ import {
 	executeQuery,
 	executeRetentionQuery,
 	type FunnelResult,
+	fetchInsightResults,
 	type InsightVizNode,
 	type RetentionCohort,
 } from "../../lib/posthog-client";
 import { adminProcedure, protectedProcedure } from "../../trpc";
+import { ADMIN_INSIGHT_KEYS, ADMIN_INSIGHTS } from "./insight-registry";
 
 export interface FunnelStepData {
 	name: string;
@@ -100,6 +102,10 @@ export const analyticsRouter = {
 				return null;
 			}
 		}),
+
+	getInsightResults: adminProcedure
+		.input(z.object({ insight: z.enum(ADMIN_INSIGHT_KEYS) }))
+		.query(({ input }) => fetchInsightResults(ADMIN_INSIGHTS[input.insight])),
 
 	getActivationFunnel: adminProcedure
 		.input(
