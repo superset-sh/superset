@@ -4,7 +4,7 @@ import {
 	ADMIN_INSIGHTS,
 	type AdminInsightKey,
 	POSTHOG_PROJECT_URL,
-} from "@superset/trpc";
+} from "@superset/trpc/insight-registry";
 import {
 	type ChartConfig,
 	ChartContainer,

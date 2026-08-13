@@ -1,6 +1,9 @@
 "use client";
 
-import { ADMIN_INSIGHTS, POSTHOG_PROJECT_URL } from "@superset/trpc";
+import {
+	ADMIN_INSIGHTS,
+	POSTHOG_PROJECT_URL,
+} from "@superset/trpc/insight-registry";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import { useQuery } from "@tanstack/react-query";
