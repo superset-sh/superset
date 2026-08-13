@@ -463,6 +463,7 @@ export function updateRuntimeAppearance(
 	terminal.options.minimumContrastRatio = appearance.minimumContrastRatio;
 	terminal.options.cursorStyle = appearance.cursorStyle;
 	terminal.options.cursorBlink = appearance.cursorBlink;
+	terminal.options.macOptionIsMeta = appearance.macOptionIsMeta;
 	if (!measurementsChanged) {
 		terminal.refresh(0, Math.max(0, terminal.rows - 1));
 	}

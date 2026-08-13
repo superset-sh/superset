@@ -175,6 +175,7 @@ describe("terminalRuntimeRegistry eviction cleanup", () => {
 					minimumContrastRatio: 4.5,
 					cursorStyle: "bar",
 					cursorBlink: false,
+					macOptionIsMeta: false,
 				});
 				expect(entry.runtime.ligaturesEnabled).toBe(false);
 			}
