@@ -69,6 +69,7 @@ export function DashboardSidebarSessionsSection({
 						workspace={workspace}
 						isCollapsed
 						isInSection={false}
+						shortcutLabel={workspaceShortcutLabels?.get(workspace.id)}
 						onHoverCardOpen={onWorkspaceHover}
 					/>
 				))}

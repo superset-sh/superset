@@ -17,6 +17,7 @@ interface DashboardSidebarCollapsedWorkspaceButtonProps
 	workspaceStatus?: ActivePaneStatus | null;
 	isCreatePending: boolean;
 	pullRequestState?: DashboardSidebarWorkspacePullRequest["state"] | null;
+	shortcutLabel?: string;
 }
 
 export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
@@ -32,11 +33,13 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 			workspaceStatus = null,
 			isCreatePending,
 			pullRequestState = null,
+			shortcutLabel,
 			className,
 			...props
 		},
 		ref,
 	) => {
+		const overlayDigit = shortcutLabel?.match(/[1-9]$/)?.[0];
 		return (
 			<button
 				type="button"
@@ -61,6 +64,14 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 					isCreatePending={isCreatePending}
 					pullRequestState={pullRequestState}
 				/>
+				{overlayDigit && (
+					<span
+						aria-hidden
+						className="pointer-events-none absolute -right-0.5 -bottom-0.5 hidden min-w-3.5 rounded-sm bg-background px-0.5 text-center font-mono text-[9px] leading-4 text-muted-foreground tabular-nums shadow-sm group-data-[jump-shortcuts]/sidebar:flex"
+					>
+						{overlayDigit}
+					</span>
+				)}
 			</button>
 		);
 	},

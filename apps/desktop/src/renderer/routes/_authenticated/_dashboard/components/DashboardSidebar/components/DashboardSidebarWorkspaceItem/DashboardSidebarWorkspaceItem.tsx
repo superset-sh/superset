@@ -215,6 +215,7 @@ export function DashboardSidebarWorkspaceItem({
 					onClick={handleClick}
 					isCreatePending={isPending}
 					pullRequestState={pullRequest?.state ?? null}
+					shortcutLabel={shortcutLabel}
 					aria-label={isPending ? `Creating workspace: ${name}` : undefined}
 				/>
 			</div>

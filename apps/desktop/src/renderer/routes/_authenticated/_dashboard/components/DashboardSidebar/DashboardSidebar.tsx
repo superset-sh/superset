@@ -30,6 +30,7 @@ import { DashboardSidebarWorkspacesHeader } from "./components/DashboardSidebarW
 import { V2SetupScriptCard } from "./components/V2SetupScriptCard";
 import { useDashboardSidebarData } from "./hooks/useDashboardSidebarData";
 import { useDashboardSidebarShortcuts } from "./hooks/useDashboardSidebarShortcuts";
+import { useHoldJumpShortcutReveal } from "./hooks/useHoldJumpShortcutReveal";
 import { useDashboardSidebarDnd } from "./hooks/useSidebarDnd";
 import { DashboardSidebarDndProvider } from "./providers/DashboardSidebarDndProvider";
 import { DashboardSidebarHoverProvider } from "./providers/DashboardSidebarHoverProvider";
@@ -156,6 +157,7 @@ export function DashboardSidebar({
 		orderedGroups,
 		sessionWorkspaces,
 	);
+	const revealJumpShortcuts = useHoldJumpShortcutReveal();
 	const selectableWorkspaceIds = useMemo(
 		() =>
 			new Set(
@@ -247,7 +249,12 @@ export function DashboardSidebar({
 									workspaceShortcutLabels={workspaceShortcutLabels}
 									onReorderProjects={handleReorderProjects}
 								>
-									<div className="flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35">
+									<div
+										className="group/sidebar flex h-full flex-col border-r border-border bg-muted/45 dark:bg-muted/35"
+										data-jump-shortcuts={
+											revealJumpShortcuts ? "true" : undefined
+										}
+									>
 										<DashboardSidebarHeader isCollapsed={isCollapsed} />
 
 										<OverflowFadeContainer
