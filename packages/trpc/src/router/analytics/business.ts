@@ -217,6 +217,7 @@ interface MercuryTransaction {
 	amount: number;
 	status: string;
 	kind: string | null;
+	counterpartyName: string | null;
 	postedAt: string | null;
 	createdAt: string;
 }
@@ -228,12 +229,24 @@ interface CashFlowMonth {
 	partial: boolean;
 }
 
+interface CashPoint {
+	date: string;
+	cashUsd: number;
+}
+
+interface VendorSpend {
+	name: string;
+	avgMonthlyUsd: number;
+}
+
 type CashFlowResult =
 	| {
 			available: true;
 			asOf: string;
 			totalCashUsd: number;
 			months: CashFlowMonth[];
+			cashSeries: CashPoint[];
+			topVendors: VendorSpend[];
 			avgMonthlyNetUsd: number | null;
 			avgMonthlyGrossBurnUsd: number | null;
 			runwayMonths: number | null;
@@ -241,8 +254,13 @@ type CashFlowResult =
 	| { available: false; reason: string };
 
 const CASH_FLOW_CACHE_TTL_MS = 60 * 60 * 1000;
+const TOP_VENDOR_COUNT = 8;
 let cashFlowCache: { fetchedAt: number; result: CashFlowResult } | null = null;
 
+// Cash includes the Treasury balance (where the raise is parked). Treasury
+// sweeps are internal and excluded everywhere; treasury dividends are not in
+// account transactions, so the reconstructed cash series drifts by roughly
+// the dividend income (~$13k/mo) — acceptable for a trajectory chart.
 async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 	if (!env.MERCURY_API_TOKEN) {
 		return { available: false, reason: "MERCURY_API_TOKEN not configured" };
@@ -290,8 +308,8 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 	);
 	const startParam = start.toISOString().slice(0, 10);
 
-	const monthlyNet = new Map<string, number>();
-	const monthlyOut = new Map<string, number>();
+	const transactions: { date: string; amount: number; counterparty: string }[] =
+		[];
 	for (const account of accounts) {
 		const transactionsResponse = await fetch(
 			`https://api.mercury.com/api/v1/account/${account.id}/transactions?limit=500&start=${startParam}`,
@@ -303,26 +321,33 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 				reason: `Mercury transactions error (${transactionsResponse.status})`,
 			};
 		}
-		const { transactions } = (await transactionsResponse.json()) as {
+		const page = (await transactionsResponse.json()) as {
 			transactions: MercuryTransaction[];
 		};
-		for (const transaction of transactions) {
+		for (const transaction of page.transactions) {
 			if (transaction.status === "failed" || transaction.status === "cancelled")
 				continue;
 			// Sweeps to/from Mercury Treasury are internal, not burn or income.
 			if (transaction.kind === "treasuryTransfer") continue;
-			const month = (transaction.postedAt ?? transaction.createdAt).slice(0, 7);
-			monthlyNet.set(month, (monthlyNet.get(month) ?? 0) + transaction.amount);
-			if (transaction.amount < 0) {
-				monthlyOut.set(
-					month,
-					(monthlyOut.get(month) ?? 0) + -transaction.amount,
-				);
-			}
+			transactions.push({
+				date: (transaction.postedAt ?? transaction.createdAt).slice(0, 10),
+				amount: transaction.amount,
+				counterparty: transaction.counterpartyName ?? "Unknown",
+			});
 		}
 	}
+	transactions.sort((a, b) => a.date.localeCompare(b.date));
 
 	const currentMonth = now.toISOString().slice(0, 7);
+	const monthlyNet = new Map<string, number>();
+	const monthlyOut = new Map<string, number>();
+	for (const transaction of transactions) {
+		const month = transaction.date.slice(0, 7);
+		monthlyNet.set(month, (monthlyNet.get(month) ?? 0) + transaction.amount);
+		if (transaction.amount < 0) {
+			monthlyOut.set(month, (monthlyOut.get(month) ?? 0) + -transaction.amount);
+		}
+	}
 	const months: CashFlowMonth[] = [...monthlyNet.entries()]
 		.sort(([a], [b]) => a.localeCompare(b))
 		.map(([month, net]) => ({
@@ -344,16 +369,64 @@ async function fetchMercuryCashFlow(): Promise<CashFlowResult> {
 			)
 		: null;
 
+	// Burn by vendor: average monthly outflow per counterparty over the
+	// trailing complete months — the "where is the money going" view.
+	const trailingMonthSet = new Set(trailing.map((m) => m.month));
+	const vendorTotals = new Map<string, number>();
+	for (const transaction of transactions) {
+		if (transaction.amount >= 0) continue;
+		if (!trailingMonthSet.has(transaction.date.slice(0, 7))) continue;
+		vendorTotals.set(
+			transaction.counterparty,
+			(vendorTotals.get(transaction.counterparty) ?? 0) + -transaction.amount,
+		);
+	}
+	const topVendors: VendorSpend[] = [...vendorTotals.entries()]
+		.sort(([, a], [, b]) => b - a)
+		.slice(0, TOP_VENDOR_COUNT)
+		.map(([name, total]) => ({
+			name,
+			avgMonthlyUsd: Math.round(total / Math.max(1, trailing.length)),
+		}));
+
+	// Reconstruct total-cash trajectory by walking back from today's balance.
 	const totalCashUsd =
 		accounts.reduce(
 			(sum, account) => sum + (account.availableBalance ?? 0),
 			0,
 		) + treasuryCashUsd;
+	const cashSeries: CashPoint[] = [];
+	let runningCash = totalCashUsd;
+	const reversed = [...transactions].reverse();
+	const today = now.toISOString().slice(0, 10);
+	let cursor = today;
+	cashSeries.push({ date: today, cashUsd: Math.round(runningCash) });
+	for (const transaction of reversed) {
+		if (transaction.date < cursor) {
+			cashSeries.push({
+				date: transaction.date,
+				cashUsd: Math.round(runningCash),
+			});
+			cursor = transaction.date;
+		}
+		runningCash -= transaction.amount;
+	}
+	cashSeries.reverse();
+	// Thin to weekly-ish points to keep the chart light.
+	const thinned = cashSeries.filter(
+		(point, index) =>
+			index === cashSeries.length - 1 ||
+			index === 0 ||
+			new Date(point.date).getUTCDay() === 1,
+	);
+
 	const result: CashFlowResult = {
 		available: true,
 		asOf: now.toISOString(),
 		totalCashUsd: Math.round(totalCashUsd),
 		months,
+		cashSeries: thinned,
+		topVendors,
 		avgMonthlyNetUsd,
 		avgMonthlyGrossBurnUsd,
 		runwayMonths: avgMonthlyGrossBurnUsd

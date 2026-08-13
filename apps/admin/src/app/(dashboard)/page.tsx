@@ -3,6 +3,8 @@
 import { POSTHOG_PROJECT_URL } from "@superset/trpc/insight-registry";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@superset/ui/tabs";
 
+import { BurnByVendorTile } from "./components/BurnByVendorTile";
+import { CashBalanceTile } from "./components/CashBalanceTile";
 import { CashRunwayTile } from "./components/CashRunwayTile";
 import { ChurnHeatmapTile } from "./components/ChurnHeatmapTile";
 import { EnterpriseArrTile } from "./components/EnterpriseArrTile";
@@ -101,14 +103,16 @@ export default function DashboardPage() {
 					<TabsTrigger value="growth">Growth</TabsTrigger>
 				</TabsList>
 
-				<TabsContent value="company" className="mt-4">
+				<TabsContent value="company" className="mt-4 space-y-6">
+					<CashRunwayTile />
 					<div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-						<TrendSeriesTile {...DAU_PROPS} />
-						<TrendSeriesTile {...WAU_PROPS} />
-						<MrrTile />
-						<EnterpriseArrTile />
-						<CashRunwayTile />
+						<CashBalanceTile />
 						<NetBurnTile />
+						<BurnByVendorTile />
+						<MrrTile />
+						<TrendSeriesTile {...WAU_PROPS} />
+						<TrendSeriesTile {...DAU_PROPS} />
+						<EnterpriseArrTile />
 					</div>
 				</TabsContent>
 
