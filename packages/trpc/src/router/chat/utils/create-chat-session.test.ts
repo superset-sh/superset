@@ -142,7 +142,7 @@ describe("createChatSession", () => {
 		expect(result).toEqual({ txid: null });
 	});
 
-	test("logs and retries exactly once on FK violation", async () => {
+	test("logs a fixed reason and retries exactly once on FK violation", async () => {
 		const warnMock = mock();
 		const originalWarn = console.warn;
 		console.warn = warnMock as never;
@@ -151,9 +151,11 @@ describe("createChatSession", () => {
 			const result = await createChatSession(db as never, BASE_VALUES);
 			expect(result).toEqual({ txid: 42 });
 			expect(warnMock).toHaveBeenCalledTimes(1);
-			const [message, details] = warnMock.mock.calls[0];
+			const [message] = warnMock.mock.calls[0] as [string];
 			expect(message).toContain("without v2WorkspaceId");
-			expect(details.sessionId).toBe(BASE_VALUES.id);
+			// The log must not leak raw session/organization ids (#6231 review).
+			expect(message).not.toContain(BASE_VALUES.id);
+			expect(message).not.toContain(BASE_VALUES.organizationId);
 		} finally {
 			console.warn = originalWarn;
 		}

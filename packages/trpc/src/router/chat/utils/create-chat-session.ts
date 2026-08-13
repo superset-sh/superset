@@ -5,7 +5,7 @@ import type { PgTransaction } from "drizzle-orm/pg-core";
 function errorMessage(error: unknown): string {
 	if (error instanceof Error) return error.message;
 	try {
-		return JSON.stringify(error);
+		return JSON.stringify(error) ?? String(error);
 	} catch {
 		return String(error);
 	}
@@ -88,12 +88,11 @@ export async function createChatSession(
 			throw error;
 		}
 
-		console.warn("[chat] retrying chat session insert without v2WorkspaceId", {
-			sessionId: values.id,
-			organizationId: values.organizationId,
-			v2WorkspaceId: values.v2WorkspaceId,
-			error: errorMessage(error),
-		});
+		// Log a fixed retry reason only — never raw session/organization ids
+		// or the raw DB error, which can carry user/workspace correlation data.
+		console.warn(
+			"[chat] retrying chat session insert without v2WorkspaceId (foreign-key constraint)",
+		);
 
 		return db.transaction((tx) =>
 			insertAndGetTxid(tx, {
