@@ -477,6 +477,13 @@
       "when": 1786640555531,
       "tag": "0067_drop_secrets_and_sandbox_images",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1786646300533,
+      "tag": "0068_drop_device_presence",
+      "breakpoints": true
     }
   ]
 }

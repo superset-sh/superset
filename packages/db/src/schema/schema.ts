@@ -24,7 +24,6 @@ import {
 	desktopNoticeCtaActionValues,
 	desktopNoticeSeverityValues,
 	desktopNoticeTriggerValues,
-	deviceTypeValues,
 	integrationProviderValues,
 	taskPriorityValues,
 	taskStatusEnumValues,
@@ -43,7 +42,6 @@ export const integrationProvider = pgEnum(
 	"integration_provider",
 	integrationProviderValues,
 );
-export const deviceType = pgEnum("device_type", deviceTypeValues);
 export const commandStatus = pgEnum("command_status", commandStatusValues);
 export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
@@ -275,41 +273,6 @@ export type SelectSubscription = typeof subscriptions.$inferSelect;
 // Device presence — v1 concept. Tracks per-(user, machine) presence for
 // MCP ownership verification. Untouched by the v2 host consolidation; will
 // be retired when v1 is removed.
-export const devicePresence = pgTable(
-	"device_presence",
-	{
-		id: uuid().primaryKey().defaultRandom(),
-		userId: uuid("user_id")
-			.notNull()
-			.references(() => users.id, { onDelete: "cascade" }),
-		organizationId: uuid("organization_id")
-			.notNull()
-			.references(() => organizations.id, { onDelete: "cascade" }),
-		deviceId: text("device_id").notNull(),
-		deviceName: text("device_name").notNull(),
-		deviceType: deviceType("device_type").notNull(),
-		lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
-			.notNull()
-			.defaultNow(),
-		createdAt: timestamp("created_at", { withTimezone: true })
-			.notNull()
-			.defaultNow(),
-	},
-	(table) => [
-		index("device_presence_user_org_idx").on(
-			table.userId,
-			table.organizationId,
-		),
-		uniqueIndex("device_presence_user_device_idx").on(
-			table.userId,
-			table.deviceId,
-		),
-		index("device_presence_last_seen_idx").on(table.lastSeenAt),
-	],
-);
-
-export type InsertDevicePresence = typeof devicePresence.$inferInsert;
-export type SelectDevicePresence = typeof devicePresence.$inferSelect;
 
 // Agent commands - synced via Electric SQL to executors
 export const agentCommands = pgTable(

@@ -16,7 +16,6 @@ import {
 import {
 	agentCommands,
 	chatSessions,
-	devicePresence,
 	integrationConnections,
 	projects,
 	subscriptions,
@@ -40,7 +39,6 @@ export const usersRelations = relations(users, ({ many }) => ({
 	assignedTasks: many(tasks, { relationName: "assignee" }),
 	connectedIntegrations: many(integrationConnections),
 	githubInstallations: many(githubInstallations),
-	devicePresence: many(devicePresence),
 	v2Hosts: many(v2Hosts),
 	v2Clients: many(v2Clients),
 	v2UsersHosts: many(v2UsersHosts),
@@ -78,7 +76,6 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 	githubInstallations: many(githubInstallations),
 	githubRepositories: many(githubRepositories),
 	githubPullRequests: many(githubPullRequests),
-	devicePresence: many(devicePresence),
 	agentCommands: many(agentCommands),
 	chatSessions: many(chatSessions),
 }));
@@ -206,16 +203,6 @@ export const githubPullRequestsRelations = relations(
 );
 
 // Agent relations
-export const devicePresenceRelations = relations(devicePresence, ({ one }) => ({
-	user: one(users, {
-		fields: [devicePresence.userId],
-		references: [users.id],
-	}),
-	organization: one(organizations, {
-		fields: [devicePresence.organizationId],
-		references: [organizations.id],
-	}),
-}));
 
 export const agentCommandsRelations = relations(agentCommands, ({ one }) => ({
 	user: one(users, {

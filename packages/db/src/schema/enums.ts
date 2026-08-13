@@ -27,10 +27,6 @@ export const integrationProviderValues = ["linear", "github", "slack"] as const;
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
 
-export const deviceTypeValues = ["desktop", "mobile", "web"] as const;
-export const deviceTypeEnum = z.enum(deviceTypeValues);
-export type DeviceType = z.infer<typeof deviceTypeEnum>;
-
 export const v2ClientTypeValues = ["desktop", "mobile", "web"] as const;
 export const v2ClientTypeEnum = z.enum(v2ClientTypeValues);
 export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;
