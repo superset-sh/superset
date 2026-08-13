@@ -164,6 +164,7 @@ describe("resolveTerminalAppearance", () => {
 			minimumContrastRatio: 1,
 			cursorStyle: "block",
 			cursorBlink: true,
+			macOptionIsMeta: false,
 		});
 	});
 
@@ -179,6 +180,7 @@ describe("resolveTerminalAppearance", () => {
 			terminalMinimumContrast: 4.5,
 			terminalCursorStyle: "underline",
 			terminalCursorBlink: false,
+			terminalMacOptionIsMeta: true,
 		});
 
 		expect(appearance).toMatchObject({
@@ -191,6 +193,7 @@ describe("resolveTerminalAppearance", () => {
 			minimumContrastRatio: 4.5,
 			cursorStyle: "underline",
 			cursorBlink: false,
+			macOptionIsMeta: true,
 		});
 	});
 });

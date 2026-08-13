@@ -36,6 +36,7 @@ import {
 	DEFAULT_TERMINAL_FONT_SIZE,
 	DEFAULT_TERMINAL_LIGATURES,
 	DEFAULT_TERMINAL_LINE_HEIGHT,
+	DEFAULT_TERMINAL_MAC_OPTION_IS_META,
 	getDefaultTerminalAppearance,
 	resolveTerminalAppearance,
 } from "renderer/lib/terminal/appearance";
@@ -71,6 +72,7 @@ const EMPTY_FONT_SETTINGS: FontSettings = {
 	terminalMinimumContrast: null,
 	terminalCursorStyle: null,
 	terminalCursorBlink: null,
+	terminalMacOptionIsMeta: null,
 	editorFontFamily: null,
 	editorFontSize: null,
 	editorLineHeight: null,
@@ -123,6 +125,7 @@ const VARIANT_CONFIG = {
 			"terminalMinimumContrast",
 			"terminalCursorStyle",
 			"terminalCursorBlink",
+			"terminalMacOptionIsMeta",
 		] satisfies FontSettingKey[],
 	},
 } as const;
@@ -602,6 +605,30 @@ export function FontSettingSection({
 												}
 												onCheckedChange={(checked) =>
 													mutateSetting("terminalCursorBlink", checked)
+												}
+											/>
+										</div>
+										<div className="flex items-center justify-between gap-3 min-h-14 sm:col-span-2">
+											<div>
+												<Label
+													htmlFor="terminal-mac-option-is-meta"
+													className="text-xs"
+												>
+													Option as Meta (macOS)
+												</Label>
+												<p className="text-[11px] text-muted-foreground">
+													Treat the Option key as Meta so Alt-based TUI
+													shortcuts reach the program.
+												</p>
+											</div>
+											<Switch
+												id="terminal-mac-option-is-meta"
+												checked={
+													settings.terminalMacOptionIsMeta ??
+													DEFAULT_TERMINAL_MAC_OPTION_IS_META
+												}
+												onCheckedChange={(checked) =>
+													mutateSetting("terminalMacOptionIsMeta", checked)
 												}
 											/>
 										</div>
