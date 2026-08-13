@@ -1,6 +1,8 @@
 # Agent tooling config
 
-Commands and skills have a single source of truth so every agent CLI sees the same set.
+Commands and skills have a single source of truth. Each agent CLI then discovers only the paths it
+supports, so the per-tool notes below describe current behavior rather than a guarantee that every
+tool sees everything.
 
 - Commands: `.agents/commands/`
 - Skills: `.agents/skills/`

@@ -96,13 +96,18 @@ When work wants a fresh isolated environment, a parallel agent, or a long-runnin
 `superset` CLI instead of hand-rolling git worktrees or doing it all serially in this one. It's
 already on `PATH` in Superset terminals, and we dogfood it.
 
+Replace the capitalized placeholders before running these:
+
 ```bash
-superset ws create --project <id> --branch <b> --agent claude --prompt "..."  # isolated workspace + agent
-superset agents create --workspace <id> --agent claude --prompt "..."         # another agent, same workspace
-superset ws list                                                             # what's running
-superset terminals read --workspace <id> --terminal <id>                      # what an agent is doing
-superset ws delete <id>                                                      # clean up when done
+superset ws create --project PROJECT_ID --branch BRANCH --agent claude --prompt "..."
+superset agents create --workspace WORKSPACE_ID --agent claude --prompt "..."
+superset ws list
+superset terminals read --workspace WORKSPACE_ID --terminal TERMINAL_ID
+superset ws delete WORKSPACE_ID
 ```
+
+In order: an isolated workspace with an agent already working in it, another agent in an existing
+workspace, what's running, what an agent is doing right now, and cleanup when you're done.
 
 `superset <command> --help` covers the rest (tasks, automations, hosts, settings). Pass `--json` for
 parsable output; it's on by default under agent environments.
