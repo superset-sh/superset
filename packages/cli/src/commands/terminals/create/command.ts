@@ -48,7 +48,8 @@ export default command({
 		});
 
 		return {
-			data: result,
+			// Top-level id so --quiet resolves to the terminal id.
+			data: { id: result.terminalId, ...result },
 			message: `Created terminal ${result.terminalId} in workspace ${options.workspace}`,
 		};
 	},

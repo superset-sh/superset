@@ -84,7 +84,8 @@ export default command({
 				? `chat session ${result.sessionId}`
 				: `terminal ${result.sessionId}`;
 		return {
-			data: result,
+			// Top-level id so --quiet resolves to the session id.
+			data: { id: result.sessionId, ...result },
 			message: `Launched ${result.label} (${sessionDescriptor}) in workspace ${options.workspace}`,
 		};
 	},

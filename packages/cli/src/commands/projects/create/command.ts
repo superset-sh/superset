@@ -71,9 +71,18 @@ export default command({
 			mode,
 		});
 
+		const lines = [
+			`Created project "${options.name}" on host ${target.hostId}`,
+			"",
+			`project        ${result.projectId}`,
+			`mainWorkspace  ${result.mainWorkspaceId}`,
+			`repoPath       ${result.repoPath}`,
+		];
+
 		return {
-			data: result,
-			message: `Created project "${options.name}" on host ${target.hostId}`,
+			// Top-level id so --quiet resolves to the project id.
+			data: { id: result.projectId, ...result },
+			message: lines.join("\n"),
 		};
 	},
 });

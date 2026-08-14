@@ -12,7 +12,20 @@ mock.module("../../../lib/host-target", () => ({
 					mutate: async (input: Record<string, unknown>) => {
 						createInput = input;
 						return {
-							workspace: { name: "agent-effort" },
+							workspace: {
+								id: "ws-1",
+								name: "agent-effort",
+								branch: "agent/effort",
+							},
+							agents: [
+								{
+									ok: true,
+									kind: "terminal",
+									sessionId: "session-1",
+									label: "Claude",
+								},
+							],
+							terminals: [{ terminalId: "terminal-1", label: "Setup" }],
 							alreadyExists: false,
 						};
 					},
@@ -69,6 +82,21 @@ describe("workspaces create", () => {
 				},
 			],
 		});
+	});
+
+	test("surfaces workspace, agent session, and terminal ids in the message", async () => {
+		const result = (await invoke({
+			agent: "claude",
+			prompt: "Implement the feature",
+		})) as { data: { id: string }; message: string };
+
+		expect(result.message).toContain("workspace  ws-1");
+		expect(result.message).toContain("branch     agent/effort");
+		expect(result.message).toContain(
+			"agent      Claude — terminal session session-1",
+		);
+		expect(result.message).toContain("terminal   terminal-1 (Setup)");
+		expect(result.data.id).toBe("ws-1");
 	});
 
 	test("rejects effort when no agent is selected", async () => {

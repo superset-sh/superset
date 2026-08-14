@@ -163,11 +163,31 @@ export default command({
 			command: options.command ?? undefined,
 		});
 
-		return {
-			data: result,
-			message: result.alreadyExists
+		const lines = [
+			result.alreadyExists
 				? `Reused existing workspace "${result.workspace.name}" on host ${target.hostId}`
 				: `Created workspace "${result.workspace.name}" on host ${target.hostId}`,
+			"",
+			`workspace  ${result.workspace.id}`,
+			`branch     ${result.workspace.branch}`,
+		];
+		for (const agent of result.agents ?? []) {
+			lines.push(
+				agent.ok
+					? `agent      ${agent.label} — ${agent.kind} session ${agent.sessionId}`
+					: `agent      failed: ${agent.error}`,
+			);
+		}
+		for (const terminal of result.terminals ?? []) {
+			lines.push(
+				`terminal   ${terminal.terminalId}${terminal.label ? ` (${terminal.label})` : ""}`,
+			);
+		}
+
+		return {
+			// Top-level id so --quiet resolves to the workspace id.
+			data: { id: result.workspace.id, ...result },
+			message: lines.join("\n"),
 		};
 	},
 });
