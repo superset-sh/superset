@@ -60,6 +60,20 @@ describe("tasksSearchFromFilters", () => {
 		});
 	});
 
+	test("serializes the Plain source tab into the URL", () => {
+		expect(
+			tasksSearchFromFilters({
+				tab: "all",
+				assignee: null,
+				search: "",
+				typeTab: "plain",
+				projectFilters: [],
+				linearProjectFilter: null,
+				includeClosedIssues: false,
+			}),
+		).toEqual({ type: "plain" });
+	});
+
 	test("does not leak the issue state filter into Linear tasks", () => {
 		expect(
 			tasksSearchFromFilters({
@@ -115,6 +129,12 @@ describe("migrateTasksFilterState", () => {
 			includeClosedIssues: false,
 			linearProjectFilter: null,
 			projectFilters: [],
+		});
+	});
+
+	test("keeps a persisted Plain source tab", () => {
+		expect(migrateTasksFilterState({ typeTab: "plain" })).toMatchObject({
+			typeTab: "plain",
 		});
 	});
 
