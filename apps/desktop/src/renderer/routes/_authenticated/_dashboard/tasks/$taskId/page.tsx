@@ -38,6 +38,7 @@ function TaskDetailPage() {
 		type,
 		project,
 		projects,
+		linearInitiative,
 		linearProject,
 		state,
 	} = TasksLayoutRoute.useSearch();
@@ -51,6 +52,7 @@ function TaskDetailPage() {
 			search: searchQuery ?? "",
 			typeTab: type === "issues" ? "issues" : "tasks",
 			projectFilters: resolveProjectFilterParams(projects, project, []),
+			linearInitiativeFilter: linearInitiative ?? null,
 			linearProjectFilter: linearProject ?? null,
 			includeClosedIssues: state === "all",
 		});
@@ -61,6 +63,7 @@ function TaskDetailPage() {
 		type,
 		project,
 		projects,
+		linearInitiative,
 		linearProject,
 		state,
 	]);

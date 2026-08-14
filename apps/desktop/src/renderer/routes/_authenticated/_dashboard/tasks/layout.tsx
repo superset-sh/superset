@@ -14,6 +14,7 @@ export type TasksSearch = {
 	type?: "tasks" | "prs" | "issues";
 	project?: string;
 	projects?: string;
+	linearInitiative?: string;
 	linearProject?: string;
 	state?: "open" | "all";
 };
@@ -39,6 +40,10 @@ export const Route = createFileRoute("/_authenticated/_dashboard/tasks")({
 			: undefined,
 		project: typeof search.project === "string" ? search.project : undefined,
 		projects: typeof search.projects === "string" ? search.projects : undefined,
+		linearInitiative:
+			typeof search.linearInitiative === "string"
+				? search.linearInitiative
+				: undefined,
 		linearProject:
 			typeof search.linearProject === "string"
 				? search.linearProject

@@ -33,6 +33,7 @@ describe("tasksSearchFromFilters", () => {
 				search: "",
 				typeTab: "tasks",
 				projectFilters: [],
+				linearInitiativeFilter: null,
 				linearProjectFilter: null,
 				includeClosedIssues: false,
 			}),
@@ -47,6 +48,7 @@ describe("tasksSearchFromFilters", () => {
 				search: "remote host",
 				typeTab: "issues",
 				projectFilters: ["project-1", "project-2"],
+				linearInitiativeFilter: null,
 				linearProjectFilter: null,
 				includeClosedIssues: true,
 			}),
@@ -68,11 +70,13 @@ describe("tasksSearchFromFilters", () => {
 				search: "",
 				typeTab: "tasks",
 				projectFilters: ["project-1"],
+				linearInitiativeFilter: "initiative-1",
 				linearProjectFilter: "linear-project-1",
 				includeClosedIssues: true,
 			}),
 		).toEqual({
 			projects: "project-1",
+			linearInitiative: "initiative-1",
 			linearProject: "linear-project-1",
 		});
 	});
@@ -97,6 +101,7 @@ describe("migrateTasksFilterState", () => {
 			migrateTasksFilterState({
 				tab: "waiting",
 				viewMode: "grid",
+				linearInitiativeFilter: 42,
 				linearProjectFilter: 42,
 				projectFilters: ["project-1", false, "project-1"],
 			}),
@@ -105,6 +110,7 @@ describe("migrateTasksFilterState", () => {
 			typeTab: "tasks",
 			viewMode: "table",
 			includeClosedIssues: false,
+			linearInitiativeFilter: null,
 			linearProjectFilter: null,
 			projectFilters: ["project-1"],
 		});
@@ -113,6 +119,7 @@ describe("migrateTasksFilterState", () => {
 			typeTab: "tasks",
 			viewMode: "table",
 			includeClosedIssues: false,
+			linearInitiativeFilter: null,
 			linearProjectFilter: null,
 			projectFilters: [],
 		});
@@ -125,6 +132,16 @@ describe("migrateTasksFilterState", () => {
 			}),
 		).toMatchObject({
 			linearProjectFilter: "linear-project-1",
+		});
+	});
+
+	test("normalizes a persisted Linear initiative filter", () => {
+		expect(
+			migrateTasksFilterState({
+				linearInitiativeFilter: "  initiative-1  ",
+			}),
+		).toMatchObject({
+			linearInitiativeFilter: "initiative-1",
 		});
 	});
 });

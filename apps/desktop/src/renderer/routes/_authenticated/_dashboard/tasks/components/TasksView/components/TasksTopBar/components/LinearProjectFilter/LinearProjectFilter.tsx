@@ -16,6 +16,8 @@ import { TASK_PICKER_INPUT } from "../../../../hooks/useTasksData";
 interface LinearProjectFilterProps {
 	value: string | null;
 	onChange: (value: string | null) => void;
+	allowedProjectIds?: ReadonlySet<string>;
+	initiativeName?: string;
 }
 
 interface LinearProjectOption {
@@ -26,6 +28,8 @@ interface LinearProjectOption {
 export function LinearProjectFilter({
 	value,
 	onChange,
+	allowedProjectIds,
+	initiativeName,
 }: LinearProjectFilterProps) {
 	const [open, setOpen] = useState(false);
 	const [search, setSearch] = useState("");
@@ -42,8 +46,13 @@ export function LinearProjectFilter({
 				name: task.externalProjectName ?? task.externalProjectId,
 			});
 		}
-		return [...byId.values()].sort((a, b) => a.name.localeCompare(b.name));
-	}, [taskPage]);
+		return [...byId.values()]
+			.filter(
+				(project) =>
+					allowedProjectIds === undefined || allowedProjectIds.has(project.id),
+			)
+			.sort((a, b) => a.name.localeCompare(b.name));
+	}, [allowedProjectIds, taskPage]);
 
 	const selected = useMemo(
 		() => (value ? (projects.find((p) => p.id === value) ?? null) : null),
@@ -93,8 +102,14 @@ export function LinearProjectFilter({
 						onValueChange={setSearch}
 					/>
 					<CommandList className="max-h-80">
-						{filtered.length === 0 && search && (
-							<CommandEmpty>No projects found.</CommandEmpty>
+						{filtered.length === 0 && (
+							<CommandEmpty>
+								{search
+									? "No projects found."
+									: initiativeName
+										? `No synced projects in ${initiativeName}.`
+										: "No synced projects."}
+							</CommandEmpty>
 						)}
 						<CommandGroup>
 							{!search && (

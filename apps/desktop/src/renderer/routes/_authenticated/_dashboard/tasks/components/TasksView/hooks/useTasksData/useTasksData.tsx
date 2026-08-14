@@ -3,6 +3,7 @@ import type { RouterOutputs } from "@superset/trpc";
 import { useCallback, useMemo } from "react";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import type { TabValue } from "../../components/TasksTopBar";
+import { filterTasksByLinearScope } from "../../utils/filterTasksByLinearScope";
 import { matchesTaskStatusFilter } from "../../utils/matchesTaskStatusFilter";
 import { compareTasks } from "../../utils/sorting";
 import { useHybridSearch } from "../useHybridSearch";
@@ -36,6 +37,7 @@ interface UseTasksDataParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	linearInitiativeProjectIds: readonly string[] | null;
 	linearProjectFilter: string | null;
 }
 
@@ -93,6 +95,7 @@ export function useTasksData({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	linearInitiativeProjectIds,
 	linearProjectFilter,
 }: UseTasksDataParams): TasksPagination & {
 	data: TaskWithStatus[];
@@ -118,13 +121,11 @@ export function useTasksData({
 	}, [sortedData, searchQuery, search]);
 
 	const filteredData = useMemo(() => {
-		let result = searchedData;
-
-		if (linearProjectFilter) {
-			result = result.filter(
-				(task) => task.externalProjectId === linearProjectFilter,
-			);
-		}
+		let result = filterTasksByLinearScope(
+			searchedData,
+			linearInitiativeProjectIds,
+			linearProjectFilter,
+		);
 
 		if (filterTab !== "all") {
 			result = result.filter((task) =>
@@ -145,7 +146,13 @@ export function useTasksData({
 		}
 
 		return result;
-	}, [searchedData, filterTab, assigneeFilter, linearProjectFilter]);
+	}, [
+		searchedData,
+		filterTab,
+		assigneeFilter,
+		linearInitiativeProjectIds,
+		linearProjectFilter,
+	]);
 
 	return {
 		data: filteredData,

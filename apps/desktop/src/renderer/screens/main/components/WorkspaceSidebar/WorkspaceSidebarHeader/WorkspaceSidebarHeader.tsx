@@ -49,6 +49,7 @@ export function WorkspaceSidebarHeader({
 		search: lastSearch,
 		typeTab: lastTypeTab,
 		projectFilters: lastProjectFilters,
+		linearInitiativeFilter: lastLinearInitiativeFilter,
 		linearProjectFilter: lastLinearProjectFilter,
 		includeClosedIssues: lastIncludeClosedIssues,
 	} = useTasksFilterStore();
@@ -70,6 +71,7 @@ export function WorkspaceSidebarHeader({
 					search: lastSearch,
 					typeTab: lastTypeTab,
 					projectFilters: lastProjectFilters,
+					linearInitiativeFilter: lastLinearInitiativeFilter,
 					linearProjectFilter: lastLinearProjectFilter,
 					includeClosedIssues: lastIncludeClosedIssues,
 				}),

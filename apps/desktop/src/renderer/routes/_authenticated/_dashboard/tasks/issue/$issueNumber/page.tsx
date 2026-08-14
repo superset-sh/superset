@@ -54,11 +54,13 @@ function IssueDetailPage() {
 				search: search.search ?? "",
 				typeTab: "issues",
 				projectFilters: resolveProjectFilterParams(search.projects, null, []),
+				linearInitiativeFilter: search.linearInitiative ?? null,
 				linearProjectFilter: search.linearProject ?? null,
 				includeClosedIssues: search.state === "all",
 			}),
 		[
 			search.assignee,
+			search.linearInitiative,
 			search.linearProject,
 			search.search,
 			search.projects,

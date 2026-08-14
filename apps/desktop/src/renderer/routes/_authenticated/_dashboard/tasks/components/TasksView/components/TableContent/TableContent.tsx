@@ -11,6 +11,7 @@ interface TableContentProps {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	linearInitiativeProjectIds: readonly string[] | null;
 	linearProjectFilter: string | null;
 	onTaskClick: (task: TaskWithStatus) => void;
 	onSelectionChange?: (
@@ -23,6 +24,7 @@ export function TableContent({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	linearInitiativeProjectIds,
 	linearProjectFilter,
 	onTaskClick,
 	onSelectionChange,
@@ -40,6 +42,7 @@ export function TableContent({
 		filterTab,
 		searchQuery,
 		assigneeFilter,
+		linearInitiativeProjectIds,
 		linearProjectFilter,
 	});
 
@@ -48,7 +51,7 @@ export function TableContent({
 	useAutoLoadEmptyPages({
 		isEmpty: rows.length === 0,
 		isLoading: isLoadingTasks,
-		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearProjectFilter ?? ""}`,
+		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearInitiativeProjectIds?.join(",") ?? ""}\0${linearProjectFilter ?? ""}`,
 		hasNextPage: hasNextTasksPage,
 		isFetchingNextPage: isFetchingNextTasksPage,
 		onLoadMore: fetchNextTasksPage,

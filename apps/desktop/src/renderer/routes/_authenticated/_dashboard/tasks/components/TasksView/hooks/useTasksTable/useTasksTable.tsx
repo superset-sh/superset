@@ -22,6 +22,7 @@ import {
 	type StatusType,
 } from "../../components/shared/StatusIcon";
 import type { TabValue } from "../../components/TasksTopBar";
+import { filterTasksByLinearScope } from "../../utils/filterTasksByLinearScope";
 import { matchesTaskStatusFilter } from "../../utils/matchesTaskStatusFilter";
 import { useHybridSearch } from "../useHybridSearch";
 import {
@@ -57,6 +58,7 @@ interface UseTasksTableParams {
 	filterTab: TabValue;
 	searchQuery: string;
 	assigneeFilter: string | null;
+	linearInitiativeProjectIds: readonly string[] | null;
 	linearProjectFilter: string | null;
 }
 
@@ -64,6 +66,7 @@ export function useTasksTable({
 	filterTab,
 	searchQuery,
 	assigneeFilter,
+	linearInitiativeProjectIds,
 	linearProjectFilter,
 }: UseTasksTableParams): TasksPagination & {
 	table: Table<TaskWithStatus>;
@@ -90,11 +93,12 @@ export function useTasksTable({
 	} = useTasksJoinedWithStatuses();
 
 	const projectScopedData = useMemo(() => {
-		if (!linearProjectFilter) return sortedData;
-		return sortedData.filter(
-			(task) => task.externalProjectId === linearProjectFilter,
+		return filterTasksByLinearScope(
+			sortedData,
+			linearInitiativeProjectIds,
+			linearProjectFilter,
 		);
-	}, [sortedData, linearProjectFilter]);
+	}, [sortedData, linearInitiativeProjectIds, linearProjectFilter]);
 
 	const { search } = useHybridSearch(projectScopedData);
 

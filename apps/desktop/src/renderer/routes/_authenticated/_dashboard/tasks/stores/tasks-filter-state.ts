@@ -38,6 +38,7 @@ interface TasksFilterState {
 	viewMode: ViewMode;
 	typeTab: TypeTab;
 	projectFilters: string[];
+	linearInitiativeFilter: string | null;
 	linearProjectFilter: string | null;
 	includeClosedIssues: boolean;
 	setTab: (tab: FilterTab) => void;
@@ -46,6 +47,7 @@ interface TasksFilterState {
 	setViewMode: (viewMode: ViewMode) => void;
 	setTypeTab: (typeTab: TypeTab) => void;
 	setProjectFilters: (projectFilters: string[]) => void;
+	setLinearInitiativeFilter: (linearInitiativeFilter: string | null) => void;
 	setLinearProjectFilter: (linearProjectFilter: string | null) => void;
 	setIncludeClosedIssues: (includeClosedIssues: boolean) => void;
 }
@@ -56,6 +58,7 @@ type PersistedTasksFilterState = Pick<
 	| "viewMode"
 	| "typeTab"
 	| "projectFilters"
+	| "linearInitiativeFilter"
 	| "linearProjectFilter"
 	| "includeClosedIssues"
 >;
@@ -76,6 +79,11 @@ export function migrateTasksFilterState(
 			state.projectFilters ??
 				(typeof state.projectFilter === "string" ? [state.projectFilter] : []),
 		),
+		linearInitiativeFilter:
+			typeof state.linearInitiativeFilter === "string" &&
+			state.linearInitiativeFilter.trim().length > 0
+				? state.linearInitiativeFilter.trim()
+				: null,
 		linearProjectFilter:
 			typeof state.linearProjectFilter === "string" &&
 			state.linearProjectFilter.trim().length > 0
@@ -93,6 +101,7 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 			viewMode: "table",
 			typeTab: "tasks",
 			projectFilters: [],
+			linearInitiativeFilter: null,
 			linearProjectFilter: null,
 			includeClosedIssues: false,
 			setTab: (tab) => set({ tab }),
@@ -109,6 +118,8 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 						? state
 						: { projectFilters: next };
 				}),
+			setLinearInitiativeFilter: (linearInitiativeFilter) =>
+				set({ linearInitiativeFilter }),
 			setLinearProjectFilter: (linearProjectFilter) =>
 				set({ linearProjectFilter }),
 			setIncludeClosedIssues: (includeClosedIssues) =>
@@ -116,10 +127,11 @@ export const useTasksFilterStore = create<TasksFilterState>()(
 		}),
 		{
 			name: "tasks-filter-state",
-			version: 4,
+			version: 5,
 			migrate: migrateTasksFilterState,
 			partialize: (state) => ({
 				projectFilters: state.projectFilters,
+				linearInitiativeFilter: state.linearInitiativeFilter,
 				linearProjectFilter: state.linearProjectFilter,
 				tab: state.tab,
 				typeTab: state.typeTab,
@@ -136,6 +148,7 @@ export interface TasksFilters {
 	search: string;
 	typeTab: TypeTab;
 	projectFilters: string[];
+	linearInitiativeFilter: string | null;
 	linearProjectFilter: string | null;
 	includeClosedIssues: boolean;
 }
@@ -150,6 +163,8 @@ export function tasksSearchFromFilters(
 	if (filters.typeTab !== "tasks") out.type = filters.typeTab;
 	const projects = serializeProjectFilters(filters.projectFilters);
 	if (projects) out.projects = projects;
+	if (filters.linearInitiativeFilter)
+		out.linearInitiative = filters.linearInitiativeFilter;
 	if (filters.linearProjectFilter)
 		out.linearProject = filters.linearProjectFilter;
 	if (filters.typeTab === "issues" && filters.includeClosedIssues)

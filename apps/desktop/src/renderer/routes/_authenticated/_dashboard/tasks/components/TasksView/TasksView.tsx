@@ -27,6 +27,7 @@ import {
 	type TaskSource,
 	TasksTopBar,
 } from "./components/TasksTopBar";
+import { useLinearInitiatives } from "./hooks/useLinearInitiatives";
 import type { TaskWithStatus } from "./hooks/useTasksData";
 
 interface TasksViewProps {
@@ -35,6 +36,7 @@ interface TasksViewProps {
 	initialSearch?: string;
 	initialType?: "tasks" | "issues";
 	initialProjects?: string[];
+	initialLinearInitiative?: string;
 	initialLinearProject?: string;
 	initialState?: "open" | "all";
 }
@@ -45,6 +47,7 @@ export function TasksView({
 	initialSearch,
 	initialType,
 	initialProjects,
+	initialLinearInitiative,
 	initialLinearProject,
 	initialState,
 }: TasksViewProps) {
@@ -57,12 +60,14 @@ export function TasksView({
 		search: storedSearch,
 		typeTab: storedTypeTab,
 		projectFilters: storedProjectFilters,
+		linearInitiativeFilter: storedLinearInitiativeFilter,
 		linearProjectFilter: storedLinearProjectFilter,
 		setTab: storeSetTab,
 		setAssignee: storeSetAssignee,
 		setSearch: storeSetSearch,
 		setTypeTab: storeSetTypeTab,
 		setProjectFilters: storeSetProjectFilters,
+		setLinearInitiativeFilter: storeSetLinearInitiativeFilter,
 		setLinearProjectFilter: storeSetLinearProjectFilter,
 		includeClosedIssues: storedIncludeClosedIssues,
 		setIncludeClosedIssues: storeSetIncludeClosedIssues,
@@ -75,6 +80,8 @@ export function TasksView({
 	const assigneeFilter = initialAssignee ?? storedAssignee;
 	const typeTab = initialType ?? storedTypeTab;
 	const projectFilters = initialProjects ?? storedProjectFilters;
+	const linearInitiativeFilter =
+		initialLinearInitiative ?? storedLinearInitiativeFilter;
 	const linearProjectFilter = initialLinearProject ?? storedLinearProjectFilter;
 	const includeClosedIssues =
 		initialState === undefined
@@ -95,6 +102,7 @@ export function TasksView({
 			search?: string;
 			type?: "tasks" | "issues";
 			projects?: string[];
+			linearInitiative?: string | null;
 			linearProject?: string | null;
 			includeClosedIssues?: boolean;
 		}) =>
@@ -110,6 +118,10 @@ export function TasksView({
 					overrides.projects !== undefined
 						? overrides.projects
 						: projectFilters,
+				linearInitiativeFilter:
+					overrides.linearInitiative !== undefined
+						? overrides.linearInitiative
+						: linearInitiativeFilter,
 				linearProjectFilter:
 					overrides.linearProject !== undefined
 						? overrides.linearProject
@@ -123,6 +135,7 @@ export function TasksView({
 			searchQuery,
 			typeTab,
 			projectFilters,
+			linearInitiativeFilter,
 			linearProjectFilter,
 			includeClosedIssues,
 		],
@@ -170,6 +183,10 @@ export function TasksView({
 	useEffect(() => {
 		storeSetProjectFilters(projectFilters);
 	}, [projectFilters, storeSetProjectFilters]);
+
+	useEffect(() => {
+		storeSetLinearInitiativeFilter(linearInitiativeFilter);
+	}, [linearInitiativeFilter, storeSetLinearInitiativeFilter]);
 
 	useEffect(() => {
 		storeSetLinearProjectFilter(linearProjectFilter);
@@ -223,6 +240,67 @@ export function TasksView({
 
 	const isLinearConnected =
 		integrations?.some((i) => i.provider === "linear") ?? false;
+	const linearInitiativesQuery = useLinearInitiatives({
+		organizationId: activeOrganizationId ?? null,
+		enabled: isLinearConnected && typeTab === "tasks",
+	});
+	const linearInitiatives = useMemo(
+		() => linearInitiativesQuery.data ?? [],
+		[linearInitiativesQuery.data],
+	);
+	const selectedLinearInitiative = useMemo(
+		() =>
+			linearInitiativeFilter
+				? (linearInitiatives.find(
+						(initiative) => initiative.id === linearInitiativeFilter,
+					) ?? null)
+				: null,
+		[linearInitiativeFilter, linearInitiatives],
+	);
+	const linearInitiativeProjectIds =
+		linearInitiativeFilter && selectedLinearInitiative
+			? selectedLinearInitiative.projectIds
+			: null;
+
+	useEffect(() => {
+		if (!linearInitiativeFilter || !linearInitiativesQuery.isSuccess) return;
+
+		if (!selectedLinearInitiative) {
+			storeSetLinearInitiativeFilter(null);
+			cancelPendingSearchNavigation();
+			navigate({
+				to: "/tasks",
+				search: buildSearch({ linearInitiative: null }),
+				replace: true,
+			});
+			return;
+		}
+
+		if (
+			!linearProjectFilter ||
+			selectedLinearInitiative.projectIds.includes(linearProjectFilter)
+		) {
+			return;
+		}
+
+		storeSetLinearProjectFilter(null);
+		cancelPendingSearchNavigation();
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ linearProject: null }),
+			replace: true,
+		});
+	}, [
+		linearInitiativeFilter,
+		linearProjectFilter,
+		linearInitiativesQuery.isSuccess,
+		selectedLinearInitiative,
+		storeSetLinearInitiativeFilter,
+		storeSetLinearProjectFilter,
+		cancelPendingSearchNavigation,
+		navigate,
+		buildSearch,
+	]);
 
 	// Defaults ("all"/null) are omitted from the URL, so write the store too —
 	// otherwise the render falls back to the stale stored value (no-op select).
@@ -267,6 +345,19 @@ export function TasksView({
 		navigate({
 			to: "/tasks",
 			search: buildSearch({ projects }),
+			replace: true,
+		});
+	};
+
+	const handleLinearInitiativeFilterChange = (
+		linearInitiative: string | null,
+	) => {
+		cancelPendingSearchNavigation();
+		storeSetLinearInitiativeFilter(linearInitiative);
+		storeSetLinearProjectFilter(null);
+		navigate({
+			to: "/tasks",
+			search: buildSearch({ linearInitiative, linearProject: null }),
 			replace: true,
 		});
 	};
@@ -355,6 +446,14 @@ export function TasksView({
 				onTaskSourceChange={handleTaskSourceChange}
 				projectFilters={projectFilters}
 				onProjectFiltersChange={handleProjectFiltersChange}
+				linearInitiatives={linearInitiatives}
+				linearInitiativeFilter={linearInitiativeFilter}
+				onLinearInitiativeFilterChange={handleLinearInitiativeFilterChange}
+				isLoadingLinearInitiatives={linearInitiativesQuery.isLoading}
+				isLinearInitiativesError={linearInitiativesQuery.isError}
+				onRetryLinearInitiatives={() => {
+					void linearInitiativesQuery.refetch();
+				}}
 				linearProjectFilter={linearProjectFilter}
 				onLinearProjectFilterChange={handleLinearProjectFilterChange}
 				includeClosedIssues={includeClosedIssues}
@@ -371,6 +470,7 @@ export function TasksView({
 								filterTab={currentTab}
 								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
+								linearInitiativeProjectIds={linearInitiativeProjectIds}
 								linearProjectFilter={linearProjectFilter}
 								onTaskClick={handleTaskClick}
 							/>
@@ -379,6 +479,7 @@ export function TasksView({
 								filterTab={currentTab}
 								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
+								linearInitiativeProjectIds={linearInitiativeProjectIds}
 								linearProjectFilter={linearProjectFilter}
 								onTaskClick={handleTaskClick}
 								onSelectionChange={handleSelectionChange}

@@ -1,7 +1,7 @@
 import { Button } from "@superset/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@superset/ui/tabs";
 import { cn } from "@superset/ui/utils";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import {
 	HiOutlinePencilSquare,
@@ -15,10 +15,12 @@ import { OpenClosedFilter } from "renderer/routes/_authenticated/_dashboard/comp
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
 import type { ViewMode } from "../../../../stores/tasks-filter-state";
+import type { LinearInitiative } from "../../hooks/useLinearInitiatives";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import type { SelectedIssue } from "../GitHubIssuesContent";
 import { AssigneeFilter } from "./components/AssigneeFilter";
 import { CreateTaskDialog } from "./components/CreateTaskDialog";
+import { LinearInitiativeFilter } from "./components/LinearInitiativeFilter";
 import { LinearProjectFilter } from "./components/LinearProjectFilter";
 import { RunInWorkspacePopover } from "./components/RunInWorkspacePopover";
 import { RunInWorkspacePopoverV2 } from "./components/RunInWorkspacePopoverV2";
@@ -52,6 +54,12 @@ interface TasksTopBarProps {
 	onTaskSourceChange: (taskSource: TaskSource) => void;
 	projectFilters: string[];
 	onProjectFiltersChange: (projectIds: string[]) => void;
+	linearInitiatives: LinearInitiative[];
+	linearInitiativeFilter: string | null;
+	onLinearInitiativeFilterChange: (initiativeId: string | null) => void;
+	isLoadingLinearInitiatives: boolean;
+	isLinearInitiativesError: boolean;
+	onRetryLinearInitiatives: () => void;
 	linearProjectFilter: string | null;
 	onLinearProjectFilterChange: (projectId: string | null) => void;
 	includeClosedIssues: boolean;
@@ -80,6 +88,12 @@ export function TasksTopBar({
 	onTaskSourceChange,
 	projectFilters,
 	onProjectFiltersChange,
+	linearInitiatives,
+	linearInitiativeFilter,
+	onLinearInitiativeFilterChange,
+	isLoadingLinearInitiatives,
+	isLinearInitiativesError,
+	onRetryLinearInitiatives,
 	linearProjectFilter,
 	onLinearProjectFilterChange,
 	includeClosedIssues,
@@ -99,6 +113,22 @@ export function TasksTopBar({
 			: null;
 	const [isCreateTaskOpen, setIsCreateTaskOpen] = useState(false);
 	const isV2CloudEnabled = useIsV2CloudEnabled();
+	const selectedLinearInitiative = useMemo(
+		() =>
+			linearInitiativeFilter
+				? linearInitiatives.find(
+						(initiative) => initiative.id === linearInitiativeFilter,
+					)
+				: undefined,
+		[linearInitiativeFilter, linearInitiatives],
+	);
+	const allowedLinearProjectIds = useMemo(
+		() =>
+			selectedLinearInitiative
+				? new Set(selectedLinearInitiative.projectIds)
+				: undefined,
+		[selectedLinearInitiative],
+	);
 
 	const hasSelection = selectedCount > 0;
 
@@ -174,10 +204,22 @@ export function TasksTopBar({
 
 								{showTaskOnlyControls ? (
 									<>
-										<LinearProjectFilter
-											value={linearProjectFilter}
-											onChange={onLinearProjectFilterChange}
-										/>
+										<div className="flex items-center gap-0.5">
+											<LinearInitiativeFilter
+												initiatives={linearInitiatives}
+												value={linearInitiativeFilter}
+												onChange={onLinearInitiativeFilterChange}
+												isLoading={isLoadingLinearInitiatives}
+												isError={isLinearInitiativesError}
+												onRetry={onRetryLinearInitiatives}
+											/>
+											<LinearProjectFilter
+												value={linearProjectFilter}
+												onChange={onLinearProjectFilterChange}
+												allowedProjectIds={allowedLinearProjectIds}
+												initiativeName={selectedLinearInitiative?.name}
+											/>
+										</div>
 										<div className="h-4 w-px shrink-0 bg-border" />
 										<StatusFilter value={currentTab} onChange={onTabChange} />
 										<div className="h-4 w-px shrink-0 bg-border" />

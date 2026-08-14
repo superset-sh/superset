@@ -31,6 +31,7 @@ function TasksPage() {
 		type,
 		project,
 		projects,
+		linearInitiative,
 		linearProject,
 		state,
 	} = TasksLayoutRoute.useSearch();
@@ -46,6 +47,7 @@ function TasksPage() {
 			initialSearch={search}
 			initialType={type === "prs" ? undefined : type}
 			initialProjects={initialProjects}
+			initialLinearInitiative={linearInitiative}
 			initialLinearProject={linearProject}
 			initialState={state}
 		/>

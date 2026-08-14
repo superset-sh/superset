@@ -11,6 +11,7 @@ import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
+import { getLinearInitiativeProjects } from "./initiative-projects";
 import { callLinear } from "./refresh";
 
 export const linearRouter = {
@@ -133,6 +134,16 @@ export const linearRouter = {
 			);
 			if (!teams) return [];
 			return teams.nodes.map((t) => ({ id: t.id, name: t.name, key: t.key }));
+		}),
+
+	getInitiatives: protectedProcedure
+		.input(z.object({ organizationId: z.uuid() }))
+		.query(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			return (
+				(await callLinear(input.organizationId, getLinearInitiativeProjects)) ??
+				[]
+			);
 		}),
 
 	updateConfig: protectedProcedure
