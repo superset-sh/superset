@@ -21,8 +21,14 @@ export interface FilesTabBridge {
 	knownPaths: Set<string>;
 	/** Relative directory paths whose children we've fetched. "" = root. */
 	loadedDirs: Set<string>;
-	/** Placeholder paths created via "New File/Folder", awaiting rename commit. */
-	pendingCreates: Map<string, "file" | "folder">;
+	/**
+	 * Surface a path in the tree without waiting for the fs watcher. Idempotent.
+	 * Returns false if Pierre rejected it, in which case our bookkeeping is
+	 * rolled back too — callers must not assume the row exists.
+	 */
+	addPath(treePath: string): boolean;
+	/** Drop a path (and, for directories, its cached descendants) from the tree. */
+	removePath(treePath: string): void;
 	/** Lazy-load a directory's children into Pierre. Idempotent + dedup'd. */
 	fetchDir(relDir: string): Promise<void>;
 	/** Re-fetch every loaded directory and resetPaths so drift can't accumulate. */
@@ -47,11 +53,10 @@ export interface FilesTabBridge {
 /**
  * Bridges Pierre's path-flat tree model to our lazy-loading useFileTree backend.
  *
- * Owns three pieces of mutable bookkeeping (mutated in place — never reassigned —
+ * Owns two pieces of mutable bookkeeping (mutated in place — never reassigned —
  * so consumers can hold references safely):
  *   - `knownPaths`: union of every path Pierre has been told about
  *   - `loadedDirs`: directories whose children we've already fetched
- *   - `pendingCreates`: placeholder paths from the inline "New" flow
  *
  * Drives four side-effects:
  *   - Initial load: fetch root on mount / workspace switch
@@ -59,9 +64,8 @@ export interface FilesTabBridge {
  *     that becomes expanded but isn't loaded yet
  *   - Live sync: apply fs:events (create / delete / rename / overflow) to the
  *     model + bookkeeping, falling back to a full refresh on overflow
- *   - Pending-create cleanup: when Pierre's renaming flow is canceled with
- *     `removeIfCanceled`, it fires a `remove` mutation; we use that to drop
- *     the placeholder from our bookkeeping
+ *   - Row removal: mirror Pierre's `remove` mutations into our bookkeeping
+ *     (the Files tab's own cancel handling lives in useFilesTabActions)
  *
  * Workspace-switch races: every async listing captures a `versionRef` snapshot
  * and aborts its mutations if `versionRef` advanced (i.e. workspace/root
@@ -86,7 +90,6 @@ export function useFilesTabBridge({
 	// fetchDir before reveal's own `await fetchDir` runs — without shared
 	// promises, reveal would resolve before children land in knownPaths.
 	const inflightDirsRef = useRef(new Map<string, Promise<void>>());
-	const pendingCreatesRef = useRef(new Map<string, "file" | "folder">());
 
 	// Bumped on workspace/root change so async listings started against an
 	// old workspace can detect they're stale and bail out before mutating.
@@ -211,7 +214,6 @@ export function useFilesTabBridge({
 		knownPathsRef.current.clear();
 		loadedDirsRef.current.clear();
 		inflightDirsRef.current.clear();
-		pendingCreatesRef.current.clear();
 		unloadedDirCandidatesRef.current.clear();
 		model.resetPaths([]);
 		void fetchDir("");
@@ -236,12 +238,13 @@ export function useFilesTabBridge({
 	}, [model, fetchDir]);
 
 	// Pierre fires a `remove` mutation when an inline rename is canceled with
-	// `removeIfCanceled: true`. Mirror that into our bookkeeping so the
-	// placeholder doesn't ghost in pendingCreates / knownPaths. (Renames that
-	// commit fire `move`, not `remove` — those are handled in handleRename.)
+	// `removeIfCanceled: true`. Mirror that into our bookkeeping so the row
+	// doesn't ghost in knownPaths. (Renames that commit fire `move`, not
+	// `remove` — those are handled in handleRename. Deleting the cancelled
+	// entry from disk is useFilesTabActions' job, via its own `remove`
+	// listener; Pierre supports several per mutation type.)
 	useEffect(() => {
 		return model.onMutation("remove", (event) => {
-			pendingCreatesRef.current.delete(event.path);
 			knownPathsRef.current.delete(event.path);
 			if (event.path.endsWith("/")) {
 				const dir = stripTrailingSlash(event.path);
@@ -382,10 +385,49 @@ export function useFilesTabBridge({
 		[],
 	);
 
+	const addPath = useCallback(
+		(treePath: string): boolean => {
+			if (!knownPathsRef.current.has(treePath)) {
+				knownPathsRef.current.add(treePath);
+				try {
+					model.add(treePath);
+				} catch {
+					// Pierre refused the path. Roll our bookkeeping back rather than
+					// claiming to know a row the tree doesn't have.
+					knownPathsRef.current.delete(treePath);
+					return false;
+				}
+			}
+			// A new directory still needs to lazy-load when the user expands it.
+			if (treePath.endsWith("/")) {
+				const dirRel = stripTrailingSlash(treePath);
+				if (!loadedDirsRef.current.has(dirRel)) {
+					unloadedDirCandidatesRef.current.add(dirRel);
+				}
+			}
+			return true;
+		},
+		[model],
+	);
+
+	const removePath = useCallback(
+		(treePath: string): void => {
+			removeKnownPath(model, knownPathsRef.current, treePath);
+			if (treePath.endsWith("/")) {
+				const dirRel = stripTrailingSlash(treePath);
+				loadedDirsRef.current.delete(dirRel);
+				unloadedDirCandidatesRef.current.delete(dirRel);
+				purgeDescendants(knownPathsRef.current, loadedDirsRef.current, dirRel);
+			}
+		},
+		[model],
+	);
+
 	return {
 		knownPaths: knownPathsRef.current,
 		loadedDirs: loadedDirsRef.current,
-		pendingCreates: pendingCreatesRef.current,
+		addPath,
+		removePath,
 		fetchDir,
 		doRefresh,
 		rekeyDescendants: rekeyDescendantsBound,

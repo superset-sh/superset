@@ -10,7 +10,6 @@ import {
 	useFileTree as usePierreFileTree,
 } from "@pierre/trees/react";
 import type { AppRouter } from "@superset/host-service";
-import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import type { inferRouterOutputs } from "@trpc/server";
 import {
@@ -114,6 +113,7 @@ export function FilesTab({
 	const handlersRef = useRef({
 		onSelect(_path: string) {},
 		onRename(_event: FileTreeRenameEvent) {},
+		onRenameError(_message: string) {},
 		renderRowDecoration(
 			_ctx: FileTreeRowDecorationContext,
 		): FileTreeRowDecoration | null {
@@ -128,7 +128,7 @@ export function FilesTab({
 		unsafeCSS: PIERRE_TREE_UNSAFE_CSS,
 		renaming: {
 			onRename: (event) => handlersRef.current.onRename(event),
-			onError: (message) => toast.error(message),
+			onError: (message) => handlersRef.current.onRenameError(message),
 		},
 		gitStatus: initialGitStatusEntriesRef.current,
 		icons: { set: "complete", colored: true },
@@ -147,15 +147,53 @@ export function FilesTab({
 	});
 
 	const bridge = useFilesTabBridge({ model, workspaceId, rootPath });
-	const { reveal, startCreating, handleRename, handleDelete, collapseAll } =
-		useFilesTabActions({
-			model,
-			bridge,
-			rootPath,
-			workspaceId,
-			selectedFilePath,
-			onSelectFile,
-		});
+	const {
+		reveal,
+		startCreating,
+		handleRename,
+		handleRenameError,
+		notifyManualRename,
+		handleDelete,
+		collapseAll,
+	} = useFilesTabActions({
+		model,
+		bridge,
+		rootPath,
+		workspaceId,
+		onSelectFile,
+	});
+
+	// Clicking blank space below the rows clears the selection, so "New Folder"
+	// can target the workspace root. Pierre renders rows in a shadow root and
+	// stamps them with `data-item-path`, so walk composedPath() to tell a row
+	// click from a background click.
+	const handleTreeBackgroundClick = useCallback(
+		(event: React.MouseEvent<HTMLDivElement>) => {
+			for (const node of event.nativeEvent.composedPath()) {
+				if (
+					node instanceof HTMLElement &&
+					node.getAttribute("data-item-path")
+				) {
+					return;
+				}
+			}
+			for (const selectedPath of model.getSelectedPaths()) {
+				model.getItem(selectedPath)?.deselect();
+			}
+		},
+		[model],
+	);
+
+	// A rename the user started themselves, rather than one that follows a
+	// creation. Tells the actions to drop any stale provisional entry so this
+	// session can't be mistaken for naming a freshly created item.
+	const startManualRename = useCallback(
+		(treePath: string) => {
+			notifyManualRename();
+			model.startRenaming(treePath);
+		},
+		[model, notifyManualRename],
+	);
 	const drop = useFilesTabDrop({ model, bridge, rootPath, workspaceId });
 
 	// Push live git status updates into Pierre.
@@ -187,6 +225,7 @@ export function FilesTab({
 	// Wire the ref-based handlers so Pierre's stable callbacks always reach
 	// the latest closures. Updated on every render — no diffing needed.
 	handlersRef.current.onRename = (event) => void handleRename(event);
+	handlersRef.current.onRenameError = (message) => handleRenameError(message);
 	handlersRef.current.onSelect = (treePath) => {
 		const abs = toAbs(rootPath, treePath);
 		// Skip the reveal-induced echo. The reveal flow programmatically
@@ -239,7 +278,7 @@ export function FilesTab({
 							relativePath={rel}
 							onNewFile={() => void startCreating("file", abs)}
 							onNewFolder={() => void startCreating("folder", abs)}
-							onRename={() => model.startRenaming(treePath)}
+							onRename={() => startManualRename(treePath)}
 							onDelete={() => handleDelete(abs, item.name, true)}
 						/>
 					) : (
@@ -249,7 +288,7 @@ export function FilesTab({
 							onOpen={() => onSelectFile(abs)}
 							onOpenInNewTab={() => onSelectFile(abs, true)}
 							onOpenInEditor={() => openInExternalEditor(abs)}
-							onRename={() => model.startRenaming(treePath)}
+							onRename={() => startManualRename(treePath)}
 							onDelete={() => handleDelete(abs, item.name, false)}
 						/>
 					)}
@@ -257,12 +296,12 @@ export function FilesTab({
 			);
 		},
 		[
-			model,
 			rootPath,
 			startCreating,
 			handleDelete,
 			onSelectFile,
 			openInExternalEditor,
+			startManualRename,
 		],
 	);
 
@@ -287,10 +326,12 @@ export function FilesTab({
 
 	return (
 		// biome-ignore lint/a11y/noStaticElementInteractions: Drop zone for external file upload
+		// biome-ignore lint/a11y/useKeyWithClickEvents: click target is the empty background below the rows, used only to clear the selection; keyboard users move between rows directly and never land on it
 		<div
 			ref={fadeContainerRef}
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
+			onClick={handleTreeBackgroundClick}
 			onDragOver={drop.onDragOver}
 			onDragLeave={drop.onDragLeave}
 			onDrop={drop.onDrop}

@@ -8,4 +8,4 @@ export {
 	type PierreGitStatus,
 	type PierreGitStatusEntry,
 } from "./pierreGitStatus";
-export { stripTrailingSlash } from "./treePaths";
+export { canonicalizeTreePath, stripTrailingSlash } from "./treePaths";
