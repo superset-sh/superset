@@ -9,6 +9,7 @@ import {
 	useOptimisticActions,
 } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { ExposeViaRelaySection } from "renderer/routes/_authenticated/settings/components/ExposeViaRelaySection";
 import { HighlightText } from "renderer/routes/_authenticated/settings/components/HighlightText";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import type { CandidateRow } from "./components/AddMemberDropdown";
@@ -165,6 +166,15 @@ export function HostSettings({ hostId }: HostSettingsProps) {
 					isOnline={hostIsOnline || !isRemoteTarget}
 					canEdit={isOwner}
 				/>
+
+				{hostId === machineId && (
+					<section className="space-y-3">
+						<h3 className="text-sm font-medium">
+							<HighlightText text="Remote workspaces" query={searchQuery} />
+						</h3>
+						<ExposeViaRelaySection />
+					</section>
+				)}
 
 				<section className="space-y-3">
 					<div className="flex items-end justify-between gap-4">
