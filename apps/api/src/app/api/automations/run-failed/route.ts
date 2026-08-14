@@ -2,10 +2,11 @@ import * as Sentry from "@sentry/nextjs";
 import { dbWs } from "@superset/db/client";
 import { automationRuns, automations } from "@superset/db/schema";
 import { Receiver } from "@upstash/qstash";
-import { eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 
 import { env } from "@/env";
+import { matchesTerminalOccurrence } from "../terminal-occurrence";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,11 @@ const failurePayloadSchema = z.object({
 const sourceBodySchema = z.object({
 	automationId: z.string().uuid(),
 	scheduledFor: z.string().datetime(),
+	terminal: z.boolean().default(false),
+	terminalDispatchToken: z.string().datetime().optional(),
+	terminalPreviousUpdatedAt: z.string().datetime().optional(),
+	// Accept messages created before the updatedAt reservation was introduced.
+	terminalPendingNextRunAt: z.string().datetime().optional(),
 });
 
 export async function POST(request: Request): Promise<Response> {
@@ -78,6 +84,8 @@ export async function POST(request: Request): Promise<Response> {
 		.select({
 			organizationId: automations.organizationId,
 			name: automations.name,
+			enabled: automations.enabled,
+			nextRunAt: automations.nextRunAt,
 		})
 		.from(automations)
 		.where(eq(automations.id, automationId))
@@ -102,7 +110,50 @@ export async function POST(request: Request): Promise<Response> {
 		.onConflictDoUpdate({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
 			set: { status: "dispatch_failed", error: errorText },
+			// A retry can collide with an already completed or offline run; preserve
+			// that observable outcome.
+			setWhere: eq(automationRuns.status, "dispatching"),
 		});
+
+	const terminalOccurrenceMatches =
+		source.data.terminal &&
+		matchesTerminalOccurrence({
+			nextRunAt: automation.nextRunAt,
+			scheduledFor: new Date(scheduledFor),
+			legacyPendingNextRunAt: source.data.terminalPendingNextRunAt,
+		});
+	const canClaimUnreservedTerminal =
+		terminalOccurrenceMatches &&
+		automation.enabled &&
+		(source.data.terminalDispatchToken === undefined
+			? true
+			: source.data.terminalPreviousUpdatedAt !== undefined);
+
+	if (canClaimUnreservedTerminal) {
+		const terminalDispatchToken = source.data.terminalDispatchToken;
+		await dbWs
+			.update(automations)
+			.set(
+				terminalDispatchToken === undefined
+					? { enabled: false }
+					: {
+							enabled: false,
+							updatedAt: new Date(terminalDispatchToken),
+						},
+			)
+			.where(
+				and(
+					eq(automations.id, automationId),
+					eq(automations.enabled, true),
+					eq(automations.nextRunAt, automation.nextRunAt),
+					...(source.data.terminalPreviousUpdatedAt === undefined
+						? []
+						: [
+								sql`${automations.updatedAt} = ${source.data.terminalPreviousUpdatedAt}::timestamptz`,
+							]),
+				),
+			);
+	}
 
 	Sentry.captureException(
 		new Error(`automation dispatch failed: ${automationId}`),

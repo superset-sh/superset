@@ -369,6 +369,13 @@ export function nextOccurrenceAfter(args: {
 	return next ? rruleDateToUtc(next, args.timezone) : null;
 }
 
+/** Floors a timestamp to the UTC minute used by automation run deduplication. */
+export function bucketToMinute(date: Date): Date {
+	const copy = new Date(date.getTime());
+	copy.setUTCSeconds(0, 0);
+	return copy;
+}
+
 /** Parses + validates an RRule body, returning the next occurrence. */
 export function parseRrule(args: {
 	rrule: string;

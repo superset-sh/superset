@@ -1,8 +1,8 @@
 import { dbWs } from "@superset/db/client";
 import { automations } from "@superset/db/schema";
-import { nextOccurrenceAfter } from "@superset/shared/rrule";
+import { bucketToMinute, nextOccurrenceAfter } from "@superset/shared/rrule";
 import { Client, Receiver } from "@upstash/qstash";
-import { and, eq, lte } from "drizzle-orm";
+import { and, eq, getTableColumns, lte, sql } from "drizzle-orm";
 
 import { env } from "@/env";
 
@@ -18,12 +18,6 @@ const receiver = new Receiver({
 });
 
 const BATCH_SIZE = 2000;
-
-function bucketToMinute(d: Date): Date {
-	const copy = new Date(d.getTime());
-	copy.setUTCSeconds(0, 0);
-	return copy;
-}
 
 export async function POST(request: Request): Promise<Response> {
 	const body = await request.text();
@@ -43,7 +37,11 @@ export async function POST(request: Request): Promise<Response> {
 
 	const now = new Date();
 	const due = await dbWs
-		.select()
+		.select({
+			...getTableColumns(automations),
+			// Keep the database's full timestamp precision in a signed ISO token.
+			updatedAtToken: sql<string>`to_char(${automations.updatedAt} AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`,
+		})
 		.from(automations)
 		.where(and(eq(automations.enabled, true), lte(automations.nextRunAt, now)))
 		.orderBy(automations.nextRunAt)
@@ -53,14 +51,36 @@ export async function POST(request: Request): Promise<Response> {
 		return Response.json({ enqueued: 0 });
 	}
 
+	const dueWithNext = due.map((automation) => {
+		const next = nextOccurrenceAfter({
+			rrule: automation.rrule,
+			dtstart: automation.dtstart,
+			timezone: automation.timezone,
+			after: automation.nextRunAt,
+		});
+		// Derive the token from the occurrence so concurrent evaluators produce
+		// the same signed payload and idempotent reservation value.
+		const terminalDispatchToken =
+			next === null ? new Date(automation.nextRunAt.getTime() + 1) : undefined;
+		return {
+			automation,
+			next,
+			terminalDispatchToken,
+		};
+	});
+
 	await qstash.batchJSON(
-		due.map((automation) => {
+		dueWithNext.map(({ automation, next, terminalDispatchToken }) => {
 			const scheduledFor = bucketToMinute(automation.nextRunAt);
 			return {
 				url: `${env.NEXT_PUBLIC_API_URL}/api/automations/dispatch/${automation.id}`,
 				body: {
 					automationId: automation.id,
 					scheduledFor: scheduledFor.toISOString(),
+					terminal: next === null,
+					terminalDispatchToken: terminalDispatchToken?.toISOString(),
+					terminalPreviousUpdatedAt:
+						next === null ? automation.updatedAtToken : undefined,
 				},
 				deduplicationId: `${automation.id}_${scheduledFor.getTime()}`,
 				retries: 2,
@@ -70,16 +90,31 @@ export async function POST(request: Request): Promise<Response> {
 	);
 
 	const advanceResults = await Promise.allSettled(
-		due.map((automation) => {
-			const next = nextOccurrenceAfter({
-				rrule: automation.rrule,
-				dtstart: automation.dtstart,
-				timezone: automation.timezone,
-				after: automation.nextRunAt,
-			});
+		dueWithNext.map(({ automation, next, terminalDispatchToken }) => {
+			if (!next) {
+				if (!terminalDispatchToken) {
+					throw new Error("Missing terminal dispatch token");
+				}
+
+				// Keep nextRunAt as the real occurrence for API/UI consumers. The
+				// updatedAt token records that this disabled row belongs to the
+				// evaluator's queued terminal occurrence.
+				return dbWs
+					.update(automations)
+					.set({ enabled: false, updatedAt: terminalDispatchToken })
+					.where(
+						and(
+							eq(automations.id, automation.id),
+							eq(automations.enabled, true),
+							eq(automations.nextRunAt, automation.nextRunAt),
+							sql`${automations.updatedAt} = ${automation.updatedAtToken}::timestamptz`,
+						),
+					);
+			}
+
 			return dbWs
 				.update(automations)
-				.set(next ? { nextRunAt: next } : { enabled: false })
+				.set({ nextRunAt: next })
 				.where(eq(automations.id, automation.id));
 		}),
 	);
