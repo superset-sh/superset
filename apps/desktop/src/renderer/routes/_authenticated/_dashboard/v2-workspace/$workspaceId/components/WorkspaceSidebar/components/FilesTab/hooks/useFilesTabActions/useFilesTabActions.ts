@@ -31,7 +31,6 @@ interface UseFilesTabActionsOptions {
 	/** Workspace worktree root (absolute). */
 	rootPath: string;
 	workspaceId: string;
-	onSelectFile: (absolutePath: string, openInNewTab?: boolean) => void;
 }
 
 export interface FilesTabActions {
@@ -41,10 +40,8 @@ export interface FilesTabActions {
 	startCreating(mode: "file" | "folder", parentAbs?: string): Promise<void>;
 	/** Commit a Pierre rename event by moving the entry on disk. */
 	handleRename(event: FileTreeRenameEvent): Promise<void>;
-	/** Surface a name Pierre rejected, and reopen the rename so it can be fixed. */
+	/** Surface a name Pierre rejected and stand the creation flow down. */
 	handleRenameError(message: string): void;
-	/** Tell the actions a user-initiated rename (F2 / context menu) is starting. */
-	notifyManualRename(): void;
 	/** Confirm + delete a file/folder. */
 	handleDelete(absolutePath: string, name: string, isDirectory: boolean): void;
 	/** Collapse every expanded directory in the tree. */
@@ -69,7 +66,6 @@ export function useFilesTabActions({
 	bridge,
 	rootPath,
 	workspaceId,
-	onSelectFile,
 }: UseFilesTabActionsOptions): FilesTabActions {
 	const createUniqueEntry =
 		workspaceTrpc.filesystem.createUniqueEntry.useMutation();
@@ -184,13 +180,6 @@ export function useFilesTabActions({
 			);
 			provisionalRef.current = state;
 
-			if (action.type === "reopen-rename") {
-				// Without removeIfCanceled: by now the entry is no longer provisional,
-				// so cancelling this session must not delete it.
-				model.startRenaming(action.key);
-				return;
-			}
-
 			if (action.type !== "cleanup") return;
 
 			const { entry } = action;
@@ -213,7 +202,7 @@ export function useFilesTabActions({
 					});
 				});
 		},
-		[model, bridge, discardProvisional],
+		[bridge, discardProvisional],
 	);
 
 	const startCreating = useCallback(
@@ -305,8 +294,13 @@ export function useFilesTabActions({
 				return;
 			}
 
+			// A new file opens in the editor, but we deliberately don't call
+			// onSelectFile here: startRenaming selects the row, which emits
+			// onSelectionChange, which already opens it. Opening twice would hit
+			// openFilePaneFromTreeClick's "clicked the active row" branch and pin
+			// the pane — so cancelling would delete the file and strand a pinned
+			// pane pointing at it.
 			provisionalRef.current = entry;
-			if (mode === "file") onSelectFile(entry.absolutePath);
 		},
 		[
 			model,
@@ -315,7 +309,6 @@ export function useFilesTabActions({
 			bridge,
 			createUniqueEntry,
 			discardProvisional,
-			onSelectFile,
 		],
 	);
 
@@ -418,17 +411,13 @@ export function useFilesTabActions({
 	const handleRenameError = useCallback(
 		(message: string): void => {
 			toast.error(message);
-			// Clears provisional state, then reopens the rename so the user can fix
-			// the name. Reopening is deliberately not armed with removeIfCanceled —
-			// see reduceProvisional's `rename-error` case.
+			// Pierre has already ended the rename session. The entry keeps its
+			// current name on disk, so it stays usable — see reduceProvisional's
+			// `rename-error` case for why we don't reopen the inline rename.
 			dispatchProvisional({ type: "rename-error" });
 		},
 		[dispatchProvisional],
 	);
-
-	const notifyManualRename = useCallback((): void => {
-		dispatchProvisional({ type: "manual-rename-started" });
-	}, [dispatchProvisional]);
 
 	const handleDelete = useCallback(
 		(absolutePath: string, name: string, isDirectory: boolean): void => {
@@ -473,7 +462,6 @@ export function useFilesTabActions({
 		startCreating,
 		handleRename,
 		handleRenameError,
-		notifyManualRename,
 		handleDelete,
 		collapseAll,
 	};

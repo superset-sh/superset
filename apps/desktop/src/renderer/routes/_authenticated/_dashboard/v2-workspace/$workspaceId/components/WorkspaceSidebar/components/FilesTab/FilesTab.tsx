@@ -152,7 +152,6 @@ export function FilesTab({
 		startCreating,
 		handleRename,
 		handleRenameError,
-		notifyManualRename,
 		handleDelete,
 		collapseAll,
 	} = useFilesTabActions({
@@ -160,19 +159,26 @@ export function FilesTab({
 		bridge,
 		rootPath,
 		workspaceId,
-		onSelectFile,
 	});
 
 	// Clicking blank space below the rows clears the selection, so "New Folder"
-	// can target the workspace root. Pierre renders rows in a shadow root and
-	// stamps them with `data-item-path`, so walk composedPath() to tell a row
-	// click from a background click.
+	// can target the workspace root.
+	//
+	// This sits on the tab's outermost element, so it sees every click in the
+	// tab — including the header's own buttons, which bubble up here. Only a
+	// click that reaches the empty tree viewport should deselect: Refresh or
+	// Collapse All silently retargeting the next New Folder at the root would be
+	// far worse than a sticky selection. Pierre renders rows in a shadow root
+	// and stamps them with `data-item-path`, so walk composedPath() and bail on
+	// a row, the header, or any interactive control.
 	const handleTreeBackgroundClick = useCallback(
 		(event: React.MouseEvent<HTMLDivElement>) => {
 			for (const node of event.nativeEvent.composedPath()) {
+				if (!(node instanceof HTMLElement)) continue;
 				if (
-					node instanceof HTMLElement &&
-					node.getAttribute("data-item-path")
+					node.dataset.itemPath !== undefined ||
+					node.dataset.fileTreeHeader !== undefined ||
+					node.closest("button, a, input, [role='button'], [role='menuitem']")
 				) {
 					return;
 				}
@@ -184,16 +190,6 @@ export function FilesTab({
 		[model],
 	);
 
-	// A rename the user started themselves, rather than one that follows a
-	// creation. Tells the actions to drop any stale provisional entry so this
-	// session can't be mistaken for naming a freshly created item.
-	const startManualRename = useCallback(
-		(treePath: string) => {
-			notifyManualRename();
-			model.startRenaming(treePath);
-		},
-		[model, notifyManualRename],
-	);
 	const drop = useFilesTabDrop({ model, bridge, rootPath, workspaceId });
 
 	// Push live git status updates into Pierre.
@@ -278,7 +274,7 @@ export function FilesTab({
 							relativePath={rel}
 							onNewFile={() => void startCreating("file", abs)}
 							onNewFolder={() => void startCreating("folder", abs)}
-							onRename={() => startManualRename(treePath)}
+							onRename={() => model.startRenaming(treePath)}
 							onDelete={() => handleDelete(abs, item.name, true)}
 						/>
 					) : (
@@ -288,7 +284,7 @@ export function FilesTab({
 							onOpen={() => onSelectFile(abs)}
 							onOpenInNewTab={() => onSelectFile(abs, true)}
 							onOpenInEditor={() => openInExternalEditor(abs)}
-							onRename={() => startManualRename(treePath)}
+							onRename={() => model.startRenaming(treePath)}
 							onDelete={() => handleDelete(abs, item.name, false)}
 						/>
 					)}
@@ -301,7 +297,7 @@ export function FilesTab({
 			handleDelete,
 			onSelectFile,
 			openInExternalEditor,
-			startManualRename,
+			model.startRenaming,
 		],
 	);
 
@@ -342,7 +338,10 @@ export function FilesTab({
 					className="flex-1 min-h-0"
 					style={TREE_STYLE}
 					header={
-						<div className="group flex h-10 items-center gap-1 bg-background px-2">
+						<div
+							data-file-tree-header="true"
+							className="group flex h-10 items-center gap-1 bg-background px-2"
+						>
 							{onSearch && (
 								<button
 									type="button"

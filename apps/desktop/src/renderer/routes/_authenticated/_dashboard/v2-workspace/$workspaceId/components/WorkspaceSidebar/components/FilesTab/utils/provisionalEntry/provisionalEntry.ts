@@ -27,20 +27,13 @@ export type ProvisionalEvent =
 	| { type: "created"; entry: ProvisionalEntry }
 	| { type: "renamed"; sourceKey: string }
 	| { type: "rename-error" }
-	| { type: "manual-rename-started" }
 	| { type: "removed"; path: string; rootPath: string; versionToken: number }
 	| { type: "workspace-changed" };
 
 export type ProvisionalAction =
 	| { type: "none" }
 	/** Remove the entry from disk — only ever our own, still-provisional entry. */
-	| { type: "cleanup"; entry: ProvisionalEntry }
-	/**
-	 * Reopen the inline rename so the user can fix a rejected name. The caller
-	 * MUST start it without `removeIfCanceled`: by the time this is returned the
-	 * entry is no longer provisional, so cancelling must not delete anything.
-	 */
-	| { type: "reopen-rename"; key: string };
+	| { type: "cleanup"; entry: ProvisionalEntry };
 
 const NONE: { state: ProvisionalEntry | null; action: ProvisionalAction } = {
 	state: null,
@@ -50,8 +43,16 @@ const NONE: { state: ProvisionalEntry | null; action: ProvisionalAction } = {
 /**
  * Decides what happens to the provisional entry as the rename session plays out.
  *
- * Pure and exhaustively tested because getting it wrong deletes user data — see
- * the `rename-error` case below.
+ * Pure and exhaustively tested because getting it wrong deletes user data.
+ *
+ * One state is unavoidable: committing a rename unchanged (New Folder →
+ * Enter) emits no Pierre event at all, so the entry stays armed even though it
+ * is now a committed folder. That is safe here because the only action this
+ * can produce is `cleanup`, which requires a `remove` for that exact path in
+ * the same workspace — and `remove` with cleanup semantics is only ever armed
+ * by our own creation flow. Should one slip through, cleanup is an `rmdir`
+ * that refuses a non-empty directory, so the worst case is an empty folder we
+ * created ourselves disappearing, never user data.
  */
 export function reduceProvisional(
 	state: ProvisionalEntry | null,
@@ -70,21 +71,14 @@ export function reduceProvisional(
 		// Pierre rejected the typed name (collision, or a `/` in it) and ended the
 		// rename session.
 		//
-		// Clearing state here is load-bearing, not tidiness. Pierre emits NO event
-		// when a rename commits unchanged, so after "New Folder → Enter" the entry
-		// stays armed even though it is now committed. If a later F2 rename on that
-		// same folder hit a collision and we re-armed the rename with
-		// `removeIfCanceled`, Esc would delete a folder the user had kept. So:
-		// disarm first, and reopen without `removeIfCanceled`.
+		// The entry keeps its current name on disk, so it stays usable and the
+		// user can rename it again whenever. We deliberately do NOT reopen the
+		// inline rename: Pierre's `onError` reports only a message, never a path,
+		// so we cannot tell which row failed — F2 is handled inside Pierre and
+		// never reaches our wrappers. Reopening would guess, and after an
+		// unchanged commit (which emits no event, leaving this state armed) the
+		// guess would land on a committed folder and re-arm cleanup on it.
 		case "rename-error":
-			return state === null
-				? NONE
-				: { state: null, action: { type: "reopen-rename", key: state.key } };
-
-		// The user started their own rename (F2 / context menu). Anything still
-		// armed from an earlier creation is stale by definition — drop it so a
-		// user-initiated session can never consume it.
-		case "manual-rename-started":
 			return NONE;
 
 		// Pierre removed the row. Only our own provisional entry, in this

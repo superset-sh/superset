@@ -102,42 +102,35 @@ describe("reduceProvisional", () => {
 		expect(result.action).toEqual({ type: "none" });
 	});
 
+	// Accepting the default name commits the folder, but Pierre emits no
+	// rename/error/remove event for an unchanged commit, so the entry stays
+	// armed. A later rename error on any row must not turn that into a delete.
 	describe("stale provisional state cannot delete a committed folder", () => {
-		// Accepting the default name commits the folder, but Pierre emits no
-		// rename/error/remove event for an unchanged commit, so the entry stays
-		// armed. Both guards below must independently prevent a later collision +
-		// Esc on that same folder from deleting it.
 		const staleAfterUnchangedCommit = folderEntry();
 
-		it("disarms when the user starts their own rename (F2 / context menu)", () => {
-			const result = reduceProvisional(staleAfterUnchangedCommit, {
-				type: "manual-rename-started",
-			});
-
-			expect(result.state).toBeNull();
-			expect(result.action).toEqual({ type: "none" });
-			expect(
-				reduceProvisional(result.state, removedHere("Untitled/")).action,
-			).toEqual({ type: "none" });
-		});
-
-		it("disarms on a rename error before reopening the rename", () => {
+		it("disarms on a rename error and asks for nothing", () => {
 			const errored = reduceProvisional(staleAfterUnchangedCommit, {
 				type: "rename-error",
 			});
 
-			// Reopens so the user can fix the name, but is no longer armed — the
-			// caller must start that session without `removeIfCanceled`.
-			expect(errored.action).toEqual({
-				type: "reopen-rename",
-				key: "Untitled/",
-			});
+			// Never reopens a rename: Pierre's onError carries no path, so any
+			// reopen would guess a row — and re-arm cleanup on a committed folder.
+			expect(errored.action).toEqual({ type: "none" });
 			expect(errored.state).toBeNull();
 
 			// The Esc that follows must not delete the committed folder.
 			expect(
 				reduceProvisional(errored.state, removedHere("Untitled/")).action,
 			).toEqual({ type: "none" });
+		});
+
+		it("self-heals when that row is eventually renamed", () => {
+			const renamed = reduceProvisional(staleAfterUnchangedCommit, {
+				type: "renamed",
+				sourceKey: "Untitled/",
+			});
+
+			expect(renamed.state).toBeNull();
 		});
 	});
 
