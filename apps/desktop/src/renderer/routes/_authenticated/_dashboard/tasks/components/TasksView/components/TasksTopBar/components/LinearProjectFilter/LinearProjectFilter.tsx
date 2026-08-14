@@ -102,15 +102,16 @@ export function LinearProjectFilter({
 						onValueChange={setSearch}
 					/>
 					<CommandList className="max-h-80">
-						{filtered.length === 0 && (
-							<CommandEmpty>
-								{search
-									? "No projects found."
-									: initiativeName
+						{filtered.length === 0 &&
+							(search ? (
+								<CommandEmpty>No projects found.</CommandEmpty>
+							) : (
+								<div className="px-3 py-2 text-sm text-muted-foreground">
+									{initiativeName
 										? `No synced projects in ${initiativeName}.`
 										: "No synced projects."}
-							</CommandEmpty>
-						)}
+								</div>
+							))}
 						<CommandGroup>
 							{!search && (
 								<CommandItem onSelect={() => handleSelect(null)}>

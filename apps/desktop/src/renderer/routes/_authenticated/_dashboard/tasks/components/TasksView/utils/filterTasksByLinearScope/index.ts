@@ -1,1 +1,4 @@
-export { filterTasksByLinearScope } from "./filterTasksByLinearScope";
+export {
+	filterTasksByLinearScope,
+	linearInitiativeProjectIdsKey,
+} from "./filterTasksByLinearScope";

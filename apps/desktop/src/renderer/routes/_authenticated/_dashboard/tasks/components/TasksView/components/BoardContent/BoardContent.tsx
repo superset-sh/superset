@@ -3,6 +3,7 @@ import { LuRefreshCw } from "react-icons/lu";
 import { useAutoLoadEmptyPages } from "../../hooks/useAutoLoadEmptyPages";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { useTasksData } from "../../hooks/useTasksData";
+import { linearInitiativeProjectIdsKey } from "../../utils/filterTasksByLinearScope";
 import { TasksBoardView } from "../TasksBoardView";
 import type { TabValue } from "../TasksTopBar";
 
@@ -41,7 +42,7 @@ export function BoardContent({
 	useAutoLoadEmptyPages({
 		isEmpty: data.length === 0,
 		isLoading: isLoadingTasks,
-		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearInitiativeProjectIds?.join(",") ?? ""}\0${linearProjectFilter ?? ""}`,
+		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearInitiativeProjectIdsKey(linearInitiativeProjectIds)}\0${linearProjectFilter ?? ""}`,
 		hasNextPage: hasNextTasksPage,
 		isFetchingNextPage: isFetchingNextTasksPage,
 		onLoadMore: fetchNextTasksPage,

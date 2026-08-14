@@ -24,3 +24,9 @@ export function filterTasksByLinearScope<T extends TaskWithLinearProject>(
 
 	return result;
 }
+
+export function linearInitiativeProjectIdsKey(
+	projectIds: readonly string[] | null,
+): string {
+	return projectIds === null ? "*" : projectIds.join(",");
+}

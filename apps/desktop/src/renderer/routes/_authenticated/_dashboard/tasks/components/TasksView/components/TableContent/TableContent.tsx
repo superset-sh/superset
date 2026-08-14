@@ -3,6 +3,7 @@ import { HiCheckCircle } from "react-icons/hi2";
 import { useAutoLoadEmptyPages } from "../../hooks/useAutoLoadEmptyPages";
 import type { TaskWithStatus } from "../../hooks/useTasksData";
 import { useTasksTable } from "../../hooks/useTasksTable";
+import { linearInitiativeProjectIdsKey } from "../../utils/filterTasksByLinearScope";
 import { TasksTableView } from "../TasksTableView";
 import type { TabValue } from "../TasksTopBar";
 import { getSelectedTasks } from "./utils/getSelectedTasks";
@@ -51,7 +52,7 @@ export function TableContent({
 	useAutoLoadEmptyPages({
 		isEmpty: rows.length === 0,
 		isLoading: isLoadingTasks,
-		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearInitiativeProjectIds?.join(",") ?? ""}\0${linearProjectFilter ?? ""}`,
+		filterKey: `${filterTab}\0${searchQuery}\0${assigneeFilter ?? ""}\0${linearInitiativeProjectIdsKey(linearInitiativeProjectIds)}\0${linearProjectFilter ?? ""}`,
 		hasNextPage: hasNextTasksPage,
 		isFetchingNextPage: isFetchingNextTasksPage,
 		onLoadMore: fetchNextTasksPage,

@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { filterTasksByLinearScope } from "./filterTasksByLinearScope";
+import {
+	filterTasksByLinearScope,
+	linearInitiativeProjectIdsKey,
+} from "./filterTasksByLinearScope";
 
 const tasks = [
 	{ id: "task-1", externalProjectId: "project-1" },
@@ -27,5 +30,18 @@ describe("filterTasksByLinearScope", () => {
 
 	test("shows no tasks when the selected initiative has no projects", () => {
 		expect(filterTasksByLinearScope(tasks, [], null)).toEqual([]);
+	});
+});
+
+describe("linearInitiativeProjectIdsKey", () => {
+	test("distinguishes no initiative from an initiative with no projects", () => {
+		expect(linearInitiativeProjectIdsKey(null)).toBe("*");
+		expect(linearInitiativeProjectIdsKey([])).toBe("");
+	});
+
+	test("serializes selected initiative project ids", () => {
+		expect(linearInitiativeProjectIdsKey(["project-a", "project-b"])).toBe(
+			"project-a,project-b",
+		);
 	});
 });
