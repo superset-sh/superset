@@ -9,7 +9,7 @@ import { seedDefaultStatuses } from "@superset/db/seed-default-statuses";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../../env";
 import { protectedProcedure } from "../../../trpc";
@@ -158,17 +158,24 @@ export const plainRouter = {
 
 				let fallbackStatusId: string | null = null;
 				const otherStatusByType = new Map<string, string>();
-				for (const status of otherStatuses) {
-					if (!otherStatusByType.has(status.type)) {
-						otherStatusByType.set(status.type, status.id);
-					}
-					fallbackStatusId ??= status.id;
-				}
 				if (otherStatuses.length === 0) {
 					fallbackStatusId = await seedDefaultStatuses(
 						input.organizationId,
 						tx,
 					);
+					const seeded = await tx.query.taskStatuses.findMany({
+						where: and(
+							eq(taskStatuses.organizationId, input.organizationId),
+							isNull(taskStatuses.externalProvider),
+						),
+					});
+					otherStatuses.push(...seeded);
+				}
+				for (const status of otherStatuses) {
+					if (!otherStatusByType.has(status.type)) {
+						otherStatusByType.set(status.type, status.id);
+					}
+					fallbackStatusId ??= status.id;
 				}
 
 				for (const status of plainStatuses) {
