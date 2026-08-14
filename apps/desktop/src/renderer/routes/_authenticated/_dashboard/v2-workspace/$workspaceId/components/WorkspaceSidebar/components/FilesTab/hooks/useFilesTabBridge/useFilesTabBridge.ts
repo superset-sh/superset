@@ -3,6 +3,8 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWorkspaceEvent } from "renderer/hooks/host-service/useWorkspaceEvent";
+import type { TreeBookkeeping } from "../../utils/treeBookkeeping";
+import { purgeDirectory, rekeyDirectory } from "../../utils/treeBookkeeping";
 import {
 	asDirectoryHandle,
 	stripTrailingSlash,
@@ -53,10 +55,15 @@ export interface FilesTabBridge {
 /**
  * Bridges Pierre's path-flat tree model to our lazy-loading useFileTree backend.
  *
- * Owns two pieces of mutable bookkeeping (mutated in place — never reassigned —
+ * Owns three pieces of mutable bookkeeping (mutated in place — never reassigned —
  * so consumers can hold references safely):
  *   - `knownPaths`: union of every path Pierre has been told about
  *   - `loadedDirs`: directories whose children we've already fetched
+ *   - `unloadedDirCandidates`: known directories still awaiting a fetch
+ *
+ * All three are path-keyed, so a folder rename or removal invalidates every
+ * entry beneath it at once. `purgeDirectory` / `rekeyDirectory` move them
+ * together — see `utils/treeBookkeeping`.
  *
  * Drives four side-effects:
  *   - Initial load: fetch root on mount / workspace switch
@@ -99,6 +106,18 @@ export function useFilesTabBridge({
 	// Pierre fires model.subscribe (on expansion, selection, etc.) we only
 	// check these candidates instead of iterating the entire knownPaths set.
 	const unloadedDirCandidatesRef = useRef(new Set<string>());
+
+	// The three path-keyed sets always move together on a rename or removal, so
+	// hand them to the helpers as one value rather than passing them separately
+	// and risking one being forgotten.
+	const bookkeeping = useCallback(
+		(): TreeBookkeeping => ({
+			knownPaths: knownPathsRef.current,
+			loadedDirs: loadedDirsRef.current,
+			unloadedDirCandidates: unloadedDirCandidatesRef.current,
+		}),
+		[],
+	);
 
 	const fetchDir = useCallback(
 		async (relDir: string): Promise<void> => {
@@ -249,10 +268,10 @@ export function useFilesTabBridge({
 			if (event.path.endsWith("/")) {
 				const dir = stripTrailingSlash(event.path);
 				loadedDirsRef.current.delete(dir);
-				purgeDescendants(knownPathsRef.current, loadedDirsRef.current, dir);
+				purgeDirectory(bookkeeping(), dir);
 			}
 		});
-	}, [model]);
+	}, [model, bookkeeping]);
 
 	useWorkspaceEvent(
 		"fs:events",
@@ -303,22 +322,13 @@ export function useFilesTabBridge({
 						if (isFolder) {
 							const oldDir = stripTrailingSlash(oldKey);
 							const newDir = stripTrailingSlash(newKey);
-							rekeyDescendants(
-								knownPathsRef.current,
-								loadedDirsRef.current,
-								oldDir,
-								newDir,
-							);
+							rekeyDirectory(bookkeeping(), oldDir, newDir);
 						}
 					} catch {
 						// Pierre rejected the move — fall back to remove + add.
 						removeKnownPath(model, knownPathsRef.current, oldKey);
 						if (isFolder) {
-							purgeDescendants(
-								knownPathsRef.current,
-								loadedDirsRef.current,
-								stripTrailingSlash(oldKey),
-							);
+							purgeDirectory(bookkeeping(), stripTrailingSlash(oldKey));
 						}
 						addKnownPath(model, knownPathsRef.current, newKey);
 					}
@@ -343,11 +353,7 @@ export function useFilesTabBridge({
 				const matched = matchKnown(knownPathsRef.current, rel) ?? key;
 				removeKnownPath(model, knownPathsRef.current, matched);
 				if (isFolder) {
-					purgeDescendants(
-						knownPathsRef.current,
-						loadedDirsRef.current,
-						stripTrailingSlash(matched),
-					);
+					purgeDirectory(bookkeeping(), stripTrailingSlash(matched));
 				}
 				return;
 			}
@@ -369,14 +375,9 @@ export function useFilesTabBridge({
 
 	const rekeyDescendantsBound = useCallback(
 		(oldDir: string, newDir: string) => {
-			rekeyDescendants(
-				knownPathsRef.current,
-				loadedDirsRef.current,
-				oldDir,
-				newDir,
-			);
+			rekeyDirectory(bookkeeping(), oldDir, newDir);
 		},
-		[],
+		[bookkeeping],
 	);
 
 	const getVersion = useCallback(() => versionRef.current, []);
@@ -417,10 +418,10 @@ export function useFilesTabBridge({
 				const dirRel = stripTrailingSlash(treePath);
 				loadedDirsRef.current.delete(dirRel);
 				unloadedDirCandidatesRef.current.delete(dirRel);
-				purgeDescendants(knownPathsRef.current, loadedDirsRef.current, dirRel);
+				purgeDirectory(bookkeeping(), dirRel);
 			}
 		},
-		[model],
+		[model, bookkeeping],
 	);
 
 	return {
@@ -469,51 +470,5 @@ function removeKnownPath(
 		model.remove(path, { recursive: true });
 	} catch {
 		// ignore
-	}
-}
-
-// Walk knownPaths/loadedDirs and remove anything under `dirRel`. Used after a
-// folder is removed (or renamed, paired with rekey) so stale descendants don't
-// pin paths that no longer exist on disk.
-function purgeDescendants(
-	known: Set<string>,
-	loaded: Set<string>,
-	dirRel: string,
-): void {
-	const prefix = `${dirRel}/`;
-	for (const path of known) {
-		if (path.startsWith(prefix)) known.delete(path);
-	}
-	for (const dir of loaded) {
-		if (dir === dirRel || dir.startsWith(prefix)) loaded.delete(dir);
-	}
-}
-
-// Walk knownPaths/loadedDirs and re-key any descendants of `oldDir` to live
-// under `newDir`. Pierre's `model.move(oldKey, newKey)` already moves the
-// renamed subtree on its side, but our bookkeeping is path-keyed — without
-// this, fs reconciliation looks up old paths and skips real changes.
-function rekeyDescendants(
-	known: Set<string>,
-	loaded: Set<string>,
-	oldDir: string,
-	newDir: string,
-): void {
-	const oldPrefix = `${oldDir}/`;
-	const movedKnown: string[] = [];
-	for (const path of known) {
-		if (path.startsWith(oldPrefix)) movedKnown.push(path);
-	}
-	for (const path of movedKnown) {
-		known.delete(path);
-		known.add(newDir + path.slice(oldDir.length));
-	}
-	const movedLoaded: string[] = [];
-	for (const dir of loaded) {
-		if (dir === oldDir || dir.startsWith(oldPrefix)) movedLoaded.push(dir);
-	}
-	for (const dir of movedLoaded) {
-		loaded.delete(dir);
-		loaded.add(newDir + dir.slice(oldDir.length));
 	}
 }
