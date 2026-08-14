@@ -30,6 +30,7 @@ export function useChatWiring(): ChatWiring {
 		});
 		const transport: ChatTransport = {
 			createSession: (input) => client.createSession.mutate(input),
+			forkSession: (input) => client.forkSession.mutate(input),
 			prompt: (input) => client.prompt.mutate(input),
 			cancelTurn: (input) => client.cancelTurn.mutate(input),
 			respondToApproval: (input) => client.respondToApproval.mutate(input),

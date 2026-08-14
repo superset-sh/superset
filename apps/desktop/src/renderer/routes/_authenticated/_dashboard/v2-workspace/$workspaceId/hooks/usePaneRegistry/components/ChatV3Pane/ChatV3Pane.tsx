@@ -34,6 +34,20 @@ export function ChatV3Pane({
 		[wiring.transport, workspaceId, harness, onSessionIdChange],
 	);
 
+	const forkAndSend = useCallback(
+		async (content: UserContent[], nextHarness: HarnessId) => {
+			if (!sessionId) return;
+			const forked = await wiring.transport.forkSession({
+				commandId: crypto.randomUUID(),
+				sessionId,
+				harness: nextHarness,
+			});
+			setPendingFirstPrompt(content);
+			onSessionIdChange(forked.sessionId);
+		},
+		[sessionId, wiring.transport, onSessionIdChange],
+	);
+
 	const picker = (
 		<SessionPicker
 			activeSessionId={sessionId}
@@ -62,6 +76,9 @@ export function ChatV3Pane({
 			headerLeft={picker}
 			key={sessionId}
 			onFirstPromptSent={() => setPendingFirstPrompt(null)}
+			onForkSend={(content, nextHarness) =>
+				void forkAndSend(content, nextHarness)
+			}
 			pendingFirstPrompt={pendingFirstPrompt}
 			sessionId={sessionId}
 		/>

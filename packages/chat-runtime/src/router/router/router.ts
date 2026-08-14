@@ -1,6 +1,7 @@
 import {
 	cancelTurnInputSchema,
 	createSessionInputSchema,
+	forkSessionInputSchema,
 	getItemsInputSchema,
 	getSessionInputSchema,
 	listSessionsInputSchema,
@@ -69,6 +70,20 @@ export function createChatRouter(
 						cwd,
 					}),
 				);
+			}),
+
+		forkSession: t.procedure
+			.input(forkSessionInputSchema)
+			.mutation(async ({ input }) => {
+				const source = runtime.sessions.get(input.sessionId);
+				if (!source) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `chat session ${input.sessionId} is not running`,
+					});
+				}
+				const cwd = await options.resolveCwd(source.scopeId);
+				return guarded(() => runtime.commands.forkSession({ ...input, cwd }));
 			}),
 
 		prompt: t.procedure

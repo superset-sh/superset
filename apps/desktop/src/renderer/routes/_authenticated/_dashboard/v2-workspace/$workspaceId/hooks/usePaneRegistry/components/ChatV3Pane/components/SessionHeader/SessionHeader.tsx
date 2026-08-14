@@ -1,8 +1,10 @@
 import type { StreamStatus } from "@superset/chat/client";
 import type { SessionState, SessionStatus } from "@superset/chat/protocol";
 import { Badge } from "@superset/ui/badge";
+import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
+import { HARNESSES, type HarnessId } from "../NewSessionView";
 
 const STATUS_LABELS: Record<SessionStatus, string> = {
 	starting: "Starting",
@@ -23,6 +25,8 @@ const CONNECTION_LABELS: Record<StreamStatus, string> = {
 export function SessionHeader({
 	connection,
 	left,
+	onHarnessSelect,
+	pendingHarness,
 	right,
 	session,
 }: {
@@ -30,15 +34,35 @@ export function SessionHeader({
 	connection: StreamStatus;
 	left?: ReactNode;
 	right?: ReactNode;
+	pendingHarness?: HarnessId | null;
+	onHarnessSelect?: (harness: HarnessId) => void;
 }) {
 	const status = session?.status ?? null;
 	return (
 		<div className="flex items-center gap-2 border-b border-border px-3 py-2">
 			{left}
-			{session?.harness && (
+			{session?.harness && !onHarnessSelect && (
 				<Badge className="font-mono" variant="outline">
 					{session.harness}
 				</Badge>
+			)}
+			{session?.harness && onHarnessSelect && (
+				<div className="flex items-center gap-1">
+					{HARNESSES.map((candidate) => {
+						const selected = candidate === (pendingHarness ?? session.harness);
+						return (
+							<Button
+								className="h-6 px-2 font-mono text-xs"
+								key={candidate}
+								onClick={() => onHarnessSelect(candidate)}
+								size="sm"
+								variant={selected ? "secondary" : "ghost"}
+							>
+								{candidate}
+							</Button>
+						);
+					})}
+				</div>
 			)}
 			{status && (
 				<Badge

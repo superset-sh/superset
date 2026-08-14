@@ -7,14 +7,16 @@ import {
 } from "@superset/chat/react";
 import { Loader } from "@superset/ui/ai-elements/loader";
 import type { ReactNode } from "react";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Composer } from "../Composer";
+import type { HarnessId } from "../NewSessionView";
 import { SessionHeader } from "../SessionHeader";
 import { Transcript } from "../Transcript";
 
 export function SessionView({
 	client,
 	headerLeft,
+	onForkSend,
 	pendingFirstPrompt,
 	onFirstPromptSent,
 	sessionId,
@@ -24,8 +26,10 @@ export function SessionView({
 	headerLeft?: ReactNode;
 	pendingFirstPrompt: UserContent[] | null;
 	onFirstPromptSent: () => void;
+	onForkSend?: (content: UserContent[], harness: HarnessId) => void;
 }) {
 	const session = useChatSession({ client });
+	const [pendingHarness, setPendingHarness] = useState<HarnessId | null>(null);
 	const timeline = useTimeline(session.snapshot);
 	const approvals = useApprovals(session.snapshot);
 
@@ -50,6 +54,17 @@ export function SessionView({
 			<SessionHeader
 				connection={session.connection}
 				left={headerLeft}
+				onHarnessSelect={
+					onForkSend
+						? (harness) =>
+								setPendingHarness(
+									harness === session.snapshot.session?.harness
+										? null
+										: harness,
+								)
+						: undefined
+				}
+				pendingHarness={pendingHarness}
 				session={session.snapshot.session}
 			/>
 			{session.status === "loading" ? (
@@ -71,13 +86,26 @@ export function SessionView({
 					snapshot={session.snapshot}
 				/>
 			)}
+			{pendingHarness && (
+				<div className="border-t border-border bg-muted/40 px-3 py-1.5 text-xs text-muted-foreground">
+					Next message continues in{" "}
+					<span className="font-mono">{pendingHarness}</span> — a new linked
+					session seeded with this transcript.
+				</div>
+			)}
 			<Composer
 				disabled={session.status !== "ready"}
 				draftKey={`chat-v3-draft:${sessionId}`}
 				onCancelTurn={
 					runningTurnId ? () => void session.cancelTurn(runningTurnId) : null
 				}
-				onSend={(content) => session.sendPrompt(content)}
+				onSend={(content) => {
+					if (pendingHarness && onForkSend) {
+						onForkSend(content, pendingHarness);
+						return null;
+					}
+					return session.sendPrompt(content);
+				}}
 				outbox={session.outbox}
 			/>
 		</div>

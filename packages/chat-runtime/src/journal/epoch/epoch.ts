@@ -14,6 +14,7 @@ export type ChatSessionInit = {
 	harnessSessionId?: string | null;
 	status?: string;
 	title?: string | null;
+	forkedFromSessionId?: string | null;
 };
 
 export type OpenedEpoch = {
@@ -35,6 +36,7 @@ export function openEpoch(db: ChatDb, init: ChatSessionInit): OpenedEpoch {
 			scopeId: init.scopeId,
 			harness: init.harness,
 			harnessSessionId: init.harnessSessionId ?? null,
+			forkedFromSessionId: init.forkedFromSessionId ?? null,
 			epoch,
 			status: init.status ?? "starting",
 			title: init.title ?? null,

@@ -1,0 +1,1 @@
+ALTER TABLE `chat_sessions_local` ADD `forked_from_session_id` text;

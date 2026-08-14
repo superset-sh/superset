@@ -6,6 +6,8 @@ import {
 	type WorkspaceProps,
 	type WorkspaceStore,
 } from "@superset/panes";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useHotkey } from "renderer/hotkeys";
@@ -15,6 +17,7 @@ import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
 	ChatPaneData,
+	ChatV3PaneData,
 	DiffPaneData,
 	PaneViewerData,
 	TerminalPaneData,
@@ -56,6 +59,8 @@ export function useWorkspaceHotkeys({
 		[setRightSidebarOpen],
 	);
 
+	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
+
 	// --- Tab creation ---
 
 	useHotkey("NEW_GROUP", async () => {
@@ -63,6 +68,14 @@ export function useWorkspaceHotkeys({
 	});
 
 	useHotkey("NEW_CHAT", () => {
+		if (isChatV3Enabled) {
+			store.getState().addTab({
+				panes: [
+					{ kind: "chat-v3", data: { sessionId: null } as ChatV3PaneData },
+				],
+			});
+			return;
+		}
 		store.getState().addTab({
 			panes: [{ kind: "chat", data: { sessionId: null } as ChatPaneData }],
 		});

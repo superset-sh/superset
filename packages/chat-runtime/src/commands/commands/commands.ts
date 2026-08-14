@@ -11,6 +11,7 @@ import type {
 import {
 	cancelTurnInputSchema,
 	createSessionInputSchema,
+	forkSessionInputSchema,
 	getItemsInputSchema,
 	getSessionInputSchema,
 	listSessionsInputSchema,
@@ -23,8 +24,12 @@ import type { ChatDb, ChatSessionRow } from "../../db";
 import type { ChatJournal } from "../../journal";
 import type { ChatSessionStore } from "../../projection";
 import type { PageResult } from "../../replay";
-import { readPage } from "../../replay";
+import { readPage, readSince } from "../../replay";
 import type { LiveSessionRegistry, PromptResult } from "../../sessions";
+import {
+	composeHandoffPreamble,
+	projectTranscriptForHandoff,
+} from "../handoff";
 
 export const createSessionCommandSchema = createSessionInputSchema
 	.omit({ workspaceId: true })
@@ -40,6 +45,11 @@ export type ListSessionsCommandInput = z.input<
 	typeof listSessionsCommandSchema
 >;
 
+export const forkSessionCommandSchema = forkSessionInputSchema.extend({
+	cwd: z.string().min(1),
+});
+export type ForkSessionCommandInput = z.input<typeof forkSessionCommandSchema>;
+
 export type CreateSessionResult = {
 	sessionId: string;
 	epoch: string;
@@ -52,6 +62,7 @@ export type GetSessionResult = {
 
 export type ChatCommands = {
 	createSession(input: CreateSessionCommandInput): CreateSessionResult;
+	forkSession(input: ForkSessionCommandInput): CreateSessionResult;
 	prompt(input: PromptInput): PromptResult;
 	cancelTurn(input: CancelTurnInput): void;
 	respondToApproval(input: RespondToApprovalInput): void;
@@ -72,6 +83,7 @@ export type CommandsOptions = {
 
 export function createCommands(options: CommandsOptions): ChatCommands {
 	const mintSessionId = options.mintSessionId ?? randomUUID;
+	const pendingSeeds = new Map<string, string>();
 
 	const listSessions = (input: ListSessionsCommandInput): ChatSessionRow[] => {
 		const parsed = listSessionsCommandSchema.parse(input);
@@ -111,13 +123,66 @@ export function createCommands(options: CommandsOptions): ChatCommands {
 			});
 		},
 
+		forkSession(input) {
+			const parsed = forkSessionCommandSchema.parse(input);
+			return options.dedupe.run(`forkSession:${parsed.commandId}`, () => {
+				const source = options.sessions.get(parsed.sessionId);
+				if (!source) {
+					throw new Error(`chat session ${parsed.sessionId} is not running`);
+				}
+				const harness = parsed.harness ?? source.harness;
+				if (!options.live.supports(harness)) {
+					throw new Error(`unknown harness ${harness}`);
+				}
+				const replay = readSince(options.db, parsed.sessionId, {
+					epoch: source.epoch,
+					seq: 0,
+				});
+				const seed = replay.ok
+					? projectTranscriptForHandoff(replay.envelopes, {
+							untilItemId: parsed.fromItemId,
+						})
+					: "";
+				const sessionId = mintSessionId();
+				const opened = options.journal.open({
+					sessionId,
+					scopeId: source.scopeId,
+					harness,
+					forkedFromSessionId: source.sessionId,
+				});
+				try {
+					options.live.create({
+						sessionId,
+						scopeId: source.scopeId,
+						harness,
+						cwd: parsed.cwd,
+					});
+				} catch (error) {
+					options.journal.discard(sessionId);
+					throw error;
+				}
+				if (seed !== "") pendingSeeds.set(sessionId, seed);
+				return { sessionId, epoch: opened.epoch };
+			});
+		},
+
 		prompt(input) {
 			const parsed: PromptInput = promptInputSchema.parse(input);
-			return options.dedupe.run(`prompt:${parsed.commandId}`, () =>
-				options.live
+			return options.dedupe.run(`prompt:${parsed.commandId}`, () => {
+				const seed = pendingSeeds.get(parsed.sessionId);
+				let content = parsed.content;
+				const first = content[0];
+				if (seed !== undefined && first?.type === "text") {
+					pendingSeeds.delete(parsed.sessionId);
+					content = [
+						{ ...first, text: composeHandoffPreamble(seed, first.text) },
+						...content.slice(1),
+					];
+				}
+				return options.live
 					.require(parsed.sessionId)
-					.prompt(parsed.content, parsed.clientId),
-			);
+					.prompt(content, parsed.clientId);
+			});
 		},
 
 		cancelTurn(input) {

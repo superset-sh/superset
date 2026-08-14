@@ -27,6 +27,7 @@ export const chatSessionsLocal = sqliteTable(
 	{
 		sessionId: text("session_id").primaryKey(),
 		scopeId: text("scope_id").notNull(),
+		forkedFromSessionId: text("forked_from_session_id"),
 		harness: text().notNull(),
 		harnessSessionId: text("harness_session_id"),
 		epoch: text().notNull(),

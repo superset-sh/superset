@@ -59,6 +59,11 @@ export function SessionPicker({
 				</Button>
 			</DropdownMenuTrigger>
 			<DropdownMenuContent align="start">
+				<DropdownMenuItem onSelect={onNewSession}>
+					<Plus className="mr-1 size-3.5" />
+					New session
+				</DropdownMenuItem>
+				{sessions.length > 0 && <DropdownMenuSeparator />}
 				{sessions.map((session) => (
 					<DropdownMenuItem
 						key={session.sessionId}
@@ -68,13 +73,13 @@ export function SessionPicker({
 						<span className="ml-2 font-mono text-xs text-muted-foreground">
 							{session.harness}
 						</span>
+						{session.forkedFromSessionId && (
+							<span className="ml-2 text-xs text-muted-foreground">
+								forked from {session.forkedFromSessionId.slice(0, 8)}
+							</span>
+						)}
 					</DropdownMenuItem>
 				))}
-				{sessions.length > 0 && <DropdownMenuSeparator />}
-				<DropdownMenuItem onSelect={onNewSession}>
-					<Plus className="mr-1 size-3.5" />
-					New session
-				</DropdownMenuItem>
 			</DropdownMenuContent>
 		</DropdownMenu>
 	);
