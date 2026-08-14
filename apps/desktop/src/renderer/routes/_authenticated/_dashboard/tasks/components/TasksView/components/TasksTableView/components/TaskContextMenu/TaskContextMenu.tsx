@@ -21,6 +21,7 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useOptimisticActions } from "renderer/routes/_authenticated/hooks/useOptimisticActions";
 import type { TaskWithStatus } from "../../../../hooks/useTasksTable";
 import { compareStatusesForDropdown } from "../../../../utils/sorting";
+import { statusesForTask } from "../../../../utils/statusesForTask";
 import { AssigneeMenuItems } from "../../../shared/AssigneeMenuItems";
 import { ActiveIcon } from "../../../shared/icons/ActiveIcon";
 import { PriorityMenuIcon } from "../../../shared/icons/PriorityMenuIcon";
@@ -53,8 +54,8 @@ export function TaskContextMenu({
 
 	const sortedStatuses = useMemo(() => {
 		if (!allStatuses) return [];
-		return [...allStatuses].sort(compareStatusesForDropdown);
-	}, [allStatuses]);
+		return statusesForTask(allStatuses, task).sort(compareStatusesForDropdown);
+	}, [allStatuses, task]);
 
 	const users = useMemo(
 		() => (members ?? []).map((member) => member.user),
