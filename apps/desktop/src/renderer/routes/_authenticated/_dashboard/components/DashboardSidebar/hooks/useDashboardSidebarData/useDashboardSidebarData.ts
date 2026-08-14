@@ -309,6 +309,7 @@ export function useDashboardSidebarData() {
 			rawSidebarWorkspaces.map((workspace) => ({
 				...workspace,
 				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+				hostName: hostsByMachineId.get(workspace.hostId)?.name || null,
 				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
 			})),
 		[hostsByMachineId, rawSidebarWorkspaces, workspaceTransactionsById],
@@ -357,6 +358,7 @@ export function useDashboardSidebarData() {
 			rawLocalMainWorkspaces.map((workspace) => ({
 				...workspace,
 				hostIsOnline: hostsByMachineId.get(workspace.hostId)?.isOnline ?? false,
+				hostName: hostsByMachineId.get(workspace.hostId)?.name || null,
 				pendingTransaction: workspaceTransactionsById[workspace.id] ?? null,
 			})),
 		[hostsByMachineId, rawLocalMainWorkspaces, workspaceTransactionsById],

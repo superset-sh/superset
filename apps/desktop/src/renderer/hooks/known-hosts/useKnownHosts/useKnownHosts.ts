@@ -64,6 +64,7 @@ export function useKnownHosts(): {
 				.map((host) => ({
 					organizationId: host.organizationId,
 					machineId: host.machineId,
+					name: host.name,
 					isOnline: host.isOnline,
 				})),
 		[hostRows, organizationId],
