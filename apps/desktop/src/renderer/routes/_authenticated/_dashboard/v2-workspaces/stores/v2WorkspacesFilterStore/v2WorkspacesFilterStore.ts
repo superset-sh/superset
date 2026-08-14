@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 export const DEVICE_FILTER_THIS_DEVICE = "this-device";
+export const DEVICE_FILTER_ALL_DEVICES = "all-devices";
 /** Sentinel for project-less "session" workspaces in the project filter. */
 export const PROJECT_FILTER_SESSIONS = "__sessions__";
 
