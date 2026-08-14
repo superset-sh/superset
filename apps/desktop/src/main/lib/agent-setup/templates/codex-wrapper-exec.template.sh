@@ -1,6 +1,6 @@
-# Codex's native notify callback only reports completion, so the wrapper uses
-# Codex's process-scoped TUI session log for Start/permission events. Avoid
-# tailing global rollout files: concurrent Codex sessions share that directory.
+# The wrapper uses Codex's process-scoped TUI session log for Start/permission
+# events. Avoid tailing global rollout files: concurrent Codex sessions share
+# that directory.
 _superset_debug_enabled="0"
 case "$SUPERSET_DEBUG_HOOKS" in
   1|true|TRUE|True|yes|YES|on|ON) _superset_debug_enabled="1" ;;
@@ -119,9 +119,10 @@ else
   _superset_debug "session watcher disabled hasSupersetContext=$_superset_has_superset_context terminalId=$SUPERSET_TERMINAL_ID tabId=$SUPERSET_TAB_ID paneId=$SUPERSET_PANE_ID notifyExists=$_superset_notify_exists notify=$_superset_notify_path"
 fi
 
-# `hooks` (formerly `codex_hooks`) is stable and default-enabled in codex
-# >=0.129; the legacy `notify=...` callback remains the completion source.
-"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+# Native hooks separate the main Stop event from SubagentStop. Do not inject
+# Codex's legacy notify callback: it reports both as agent-turn-complete without
+# parent metadata, so Superset cannot filter subagent completions.
+"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks "$@"
 SUPERSET_CODEX_STATUS=$?
 _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 

@@ -246,7 +246,7 @@ export function createClaudeWrapper(): void {
 }
 
 /**
- * Creates the Codex wrapper that injects Superset's notify/session-log logic.
+ * Creates the Codex wrapper that enables native hooks and session-log signals.
  */
 export function createCodexWrapper(): void {
 	const notifyPath = getNotifyScriptPath();
