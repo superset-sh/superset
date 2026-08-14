@@ -13,6 +13,19 @@ export const dashboardSidebarProjectSchema = z.object({
 	isCollapsed: z.boolean().default(false),
 	tabOrder: z.number().int().default(0),
 	defaultOpenInApp: z.string().nullable().default(null),
+	// Which refs the git graph paints for this project's workspaces. Mirrors the
+	// host-service GraphRefScope; written by the graph strip's scope chooser.
+	// Rows pre-dating this field read as undefined and fall back to "local" at
+	// the call site (no heal migration needed — projects have none).
+	graphRefScope: z
+		.enum(["local", "open-workspaces", "remote", "all", "head"])
+		.default("local"),
+	// Put commit-graph ref badges on their own line (full-width, untruncated) —
+	// fixes the 12ch/8ch truncation visible at every sidebar width today.
+	graphTwoLineRefs: z.boolean().default(false),
+	// Dim referenced commits so unreferenced refs (no open workspace behind them)
+	// stand out. Dims, never removes — dropping rows would dangle lane edges.
+	graphUnreferencedOnly: z.boolean().default(false),
 });
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
@@ -97,6 +110,21 @@ const changesFilterSchema = z.discriminatedUnion("kind", [
 
 export type ChangesFilter = z.infer<typeof changesFilterSchema>;
 
+// Graph-owned selection: the commit/range the Graph tab highlights. Lives on
+// sidebarState (not changesFilter) so clicking around the graph never retargets
+// the Changes tab — the two surfaces no longer fight over one piece of state.
+// Persisted per workspace, so a selection survives a tab switch and restart.
+const graphSelectionSchema = z.discriminatedUnion("kind", [
+	z.object({ kind: z.literal("commit"), hash: z.string() }),
+	z.object({
+		kind: z.literal("range"),
+		fromHash: z.string(),
+		toHash: z.string(),
+	}),
+]);
+
+export type GraphSelection = z.infer<typeof graphSelectionSchema>;
+
 export type ChangesViewMode = "folders" | "tree";
 
 const workspaceRunStateSchema = z.enum([
@@ -132,8 +160,11 @@ export const workspaceLocalStateSchema = z.object({
 		tabOrder: z.number().int().default(0),
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
+		graphSelection: graphSelectionSchema.nullable().default(null),
 		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
-		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
+		activeTab: z
+			.enum(["changes", "files", "graph", "review"])
+			.default("changes"),
 		isHidden: z.boolean().default(false),
 		// Epoch ms when the user pinned this workspace to the sidebar's Pinned
 		// section; null = not pinned. Ordering is pinnedAt ascending.
@@ -176,6 +207,7 @@ const SIDEBAR_STATE_DEFAULTS = {
 	tabOrder: 0,
 	sectionId: null,
 	changesFilter: { kind: "all" },
+	graphSelection: null,
 	changesViewMode: "folders",
 	activeTab: "changes",
 	isHidden: false,

@@ -9,7 +9,13 @@ import { alert } from "@superset/ui/atoms/Alert";
 import { toast } from "@superset/ui/sonner";
 import { cn } from "@superset/ui/utils";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { Circle, GitCompareArrows, Globe, MessageSquare } from "lucide-react";
+import {
+	Circle,
+	GitCommitHorizontal,
+	GitCompareArrows,
+	Globe,
+	MessageSquare,
+} from "lucide-react";
 import { useFeatureFlagEnabled } from "posthog-js/react";
 import { useCallback, useMemo } from "react";
 import {
@@ -43,6 +49,7 @@ import type {
 	ChatV3PaneData,
 	CommentPaneData,
 	DevtoolsPaneData,
+	DiffPaneData,
 	FilePaneData,
 	PaneViewerData,
 	TerminalPaneData,
@@ -288,8 +295,19 @@ export function usePaneRegistry({
 					),
 			},
 			diff: {
-				getIcon: () => <GitCompareArrows className="size-3.5" />,
-				getTitle: () => "Changes",
+				getIcon: (ctx: RendererContext<PaneViewerData>) =>
+					(ctx.pane.data as DiffPaneData).ref ? (
+						<GitCommitHorizontal className="size-3.5" />
+					) : (
+						<GitCompareArrows className="size-3.5" />
+					),
+				getTitle: (pane) => {
+					const ref = (pane.data as DiffPaneData).ref;
+					if (ref?.kind === "commit") return ref.hash.slice(0, 7);
+					if (ref?.kind === "range")
+						return `${ref.fromHash.slice(0, 7)}..${ref.toHash.slice(0, 7)}`;
+					return "Changes";
+				},
 				renderPane: (ctx: RendererContext<PaneViewerData>) => (
 					<DiffPane
 						context={ctx}

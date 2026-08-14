@@ -1,4 +1,5 @@
 export {
+	applyGraphLaneColors,
 	applyUIColors,
 	clearThemeVariables,
 	updateThemeClass,
