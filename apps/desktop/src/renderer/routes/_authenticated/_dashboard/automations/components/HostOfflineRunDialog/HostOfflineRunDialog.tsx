@@ -70,8 +70,8 @@ export function HostOfflineRunDialog({
 										{remoteHost?.name ?? "the target host"}
 									</span>{" "}
 									isn't connected to the Superset relay. Make sure relay access
-									is on in Settings &gt; Remote Workspaces on that device, then run it
-									again.
+									is on in Settings &gt; Remote Workspaces on that device, then
+									run it again.
 								</p>
 							)}
 						</div>
