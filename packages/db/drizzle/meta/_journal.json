@@ -491,6 +491,27 @@
       "when": 1786649583806,
       "tag": "0069_drop_v2_workspaces_project_fk",
       "breakpoints": true
+    },
+    {
+      "idx": 70,
+      "version": "7",
+      "when": 1786746522498,
+      "tag": "0070_automations_id_org_unique",
+      "breakpoints": true
+    },
+    {
+      "idx": 71,
+      "version": "7",
+      "when": 1786746529695,
+      "tag": "0071_automation_triggers_and_events",
+      "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1786746530402,
+      "tag": "0072_backfill_schedule_triggers",
+      "breakpoints": true
     }
   ]
 }

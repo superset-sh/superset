@@ -73,6 +73,8 @@ export const automationRunStatusValues = [
 	"dispatched",
 	"skipped_offline",
 	"dispatch_failed",
+	"debounced",
+	"rejected",
 ] as const;
 export const automationRunStatusEnum = z.enum(automationRunStatusValues);
 export type AutomationRunStatus = z.infer<typeof automationRunStatusEnum>;
@@ -88,6 +90,17 @@ export const automationPromptSourceValues = [
 ] as const;
 export const automationPromptSourceEnum = z.enum(automationPromptSourceValues);
 export type AutomationPromptSource = z.infer<typeof automationPromptSourceEnum>;
+
+export const automationTriggerKindValues = [
+	"schedule",
+	"webhook",
+	"github",
+	"slack",
+	"linear",
+	"sentry",
+] as const;
+export const automationTriggerKindEnum = z.enum(automationTriggerKindValues);
+export type AutomationTriggerKind = z.infer<typeof automationTriggerKindEnum>;
 
 // pgEnum columns; the wire/validation zod lives in @superset/shared/desktop-notices.
 // platforms/channels are stored as text[] (no enum needed).

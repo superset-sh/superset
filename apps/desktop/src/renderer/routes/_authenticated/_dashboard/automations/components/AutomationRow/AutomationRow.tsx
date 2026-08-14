@@ -55,6 +55,10 @@ const LAST_RUN_META: Record<
 	dispatching: { dot: "bg-amber-500", label: "creating" },
 	skipped_offline: { dot: "bg-red-500", label: "failed", failed: true },
 	dispatch_failed: { dot: "bg-red-500", label: "failed", failed: true },
+	// Neither created a workspace, so neither is `failed` — that flag offers to
+	// open one.
+	debounced: { dot: "bg-slate-400", label: "superseded" },
+	rejected: { dot: "bg-amber-500", label: "blocked" },
 };
 
 function compactUntil(at: number, now: Date): string {
