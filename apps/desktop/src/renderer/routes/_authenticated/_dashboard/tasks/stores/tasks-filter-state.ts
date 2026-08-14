@@ -7,7 +7,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 
 export type ViewMode = "table" | "board";
-export type TypeTab = "tasks" | "issues";
+export type TypeTab = "tasks" | "issues" | "plain";
 export type FilterTab =
 	| "all"
 	| "active"
@@ -69,7 +69,10 @@ export function migrateTasksFilterState(
 			: {};
 	return {
 		tab: isFilterTab(state.tab) ? state.tab : "all",
-		typeTab: state.typeTab === "issues" ? "issues" : "tasks",
+		typeTab:
+			state.typeTab === "issues" || state.typeTab === "plain"
+				? state.typeTab
+				: "tasks",
 		viewMode: state.viewMode === "board" ? "board" : "table",
 		includeClosedIssues: state.includeClosedIssues === true,
 		projectFilters: normalizeProjectFilters(

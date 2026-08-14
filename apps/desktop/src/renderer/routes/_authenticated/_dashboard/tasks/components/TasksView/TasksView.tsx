@@ -21,6 +21,7 @@ import {
 	type SelectedIssue,
 } from "./components/GitHubIssuesContent";
 import { LinearCTA } from "./components/LinearCTA";
+import { PlainCTA } from "./components/PlainCTA";
 import { TableContent } from "./components/TableContent";
 import {
 	type TabValue,
@@ -33,7 +34,7 @@ interface TasksViewProps {
 	initialTab?: TabValue;
 	initialAssignee?: string;
 	initialSearch?: string;
-	initialType?: "tasks" | "issues";
+	initialType?: "tasks" | "issues" | "plain";
 	initialProjects?: string[];
 	initialLinearProject?: string;
 	initialState?: "open" | "all";
@@ -92,7 +93,7 @@ export function TasksView({
 			tab?: TabValue;
 			assignee?: string | null;
 			search?: string;
-			type?: "tasks" | "issues";
+			type?: "tasks" | "issues" | "plain";
 			projects?: string[];
 			linearProject?: string | null;
 			includeClosedIssues?: boolean;
@@ -328,12 +329,18 @@ export function TasksView({
 		});
 	};
 
+	const isPlainConnected =
+		integrations?.some((i) => i.provider === "plain") ?? false;
+
 	const showLinearCTA =
 		integrations !== undefined && !isLinearConnected && typeTab === "tasks";
+	const showPlainCTA =
+		integrations !== undefined && !isPlainConnected && typeTab === "plain";
 
 	const showTasks = typeTab === "tasks";
+	const showPlain = typeTab === "plain";
 	const showIssues = typeTab === "issues";
-	const taskSource: TaskSource = showIssues ? "issues" : "tasks";
+	const taskSource: TaskSource = typeTab;
 
 	return (
 		<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
@@ -362,15 +369,18 @@ export function TasksView({
 
 			{showLinearCTA ? (
 				<LinearCTA />
+			) : showPlainCTA ? (
+				<PlainCTA />
 			) : (
 				<div className="flex-1 flex flex-col min-h-0 min-w-0 overflow-hidden">
-					{showTasks &&
+					{(showTasks || showPlain) &&
 						(viewMode === "board" ? (
 							<BoardContent
 								filterTab={currentTab}
 								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
-								linearProjectFilter={linearProjectFilter}
+								linearProjectFilter={showPlain ? null : linearProjectFilter}
+								taskSource={showPlain ? "plain" : "tasks"}
 								onTaskClick={handleTaskClick}
 							/>
 						) : (
@@ -378,7 +388,8 @@ export function TasksView({
 								filterTab={currentTab}
 								searchQuery={deferredSearchQuery}
 								assigneeFilter={assigneeFilter}
-								linearProjectFilter={linearProjectFilter}
+								linearProjectFilter={showPlain ? null : linearProjectFilter}
+								taskSource={showPlain ? "plain" : "tasks"}
 								onTaskClick={handleTaskClick}
 								onSelectionChange={handleSelectionChange}
 							/>

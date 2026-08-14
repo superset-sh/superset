@@ -59,6 +59,7 @@ interface UseTasksTableParams {
 	searchQuery: string;
 	assigneeFilter: string | null;
 	linearProjectFilter: string | null;
+	taskSource?: "tasks" | "plain";
 }
 
 export function useTasksTable({
@@ -66,6 +67,7 @@ export function useTasksTable({
 	searchQuery,
 	assigneeFilter,
 	linearProjectFilter,
+	taskSource = "tasks",
 }: UseTasksTableParams): TasksPagination & {
 	table: Table<TaskWithStatus>;
 	slugColumnWidth: string;
@@ -91,12 +93,22 @@ export function useTasksTable({
 		isLoadingTasks,
 	} = useTasksJoinedWithStatuses();
 
+	const sourceData = useMemo(
+		() =>
+			sortedData.filter((task) =>
+				taskSource === "plain"
+					? task.externalProvider === "plain"
+					: task.externalProvider !== "plain",
+			),
+		[sortedData, taskSource],
+	);
+
 	const projectScopedData = useMemo(() => {
-		if (!linearProjectFilter) return sortedData;
-		return sortedData.filter(
+		if (!linearProjectFilter) return sourceData;
+		return sourceData.filter(
 			(task) => task.externalProjectId === linearProjectFilter,
 		);
-	}, [sortedData, linearProjectFilter]);
+	}, [sourceData, linearProjectFilter]);
 
 	const { search } = useHybridSearch(projectScopedData);
 
