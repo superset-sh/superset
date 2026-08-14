@@ -11,14 +11,11 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@superset/ui/chart";
-import { useQuery } from "@tanstack/react-query";
 import { Bar, ComposedChart, Line, XAxis, YAxis } from "recharts";
-import { useTRPC } from "@/trpc/react";
 
+import { useInsightResults } from "../../hooks/useInsightResults";
 import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
-
-const STALE_TIME_MS = 10 * 60 * 1000;
 
 // Renders a saved HogQL (DataVisualizationNode) insight whose result is an
 // array of rows. Column order is part of the canonical definition in PostHog,
@@ -47,13 +44,7 @@ export function HogQLLineTile({
 	xColumn,
 	series,
 }: HogQLLineTileProps) {
-	const trpc = useTRPC();
-	const query = useQuery(
-		trpc.analytics.getInsightResults.queryOptions(
-			{ insight },
-			{ staleTime: STALE_TIME_MS },
-		),
-	);
+	const query = useInsightResults(insight);
 
 	const rows = Array.isArray(query.data?.result)
 		? (query.data.result as unknown[][]).filter(Array.isArray)
@@ -82,7 +73,7 @@ export function HogQLLineTile({
 			title={query.data?.name ?? insight}
 			description={description}
 			lastRefresh={query.data?.lastRefresh}
-			isLoading={query.isLoading}
+			isLoading={query.isLoading || query.data?.pending}
 			error={query.error}
 			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS[insight]}`}
 			onRefresh={() => query.refetch()}

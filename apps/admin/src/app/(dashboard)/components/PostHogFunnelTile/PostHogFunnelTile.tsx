@@ -6,14 +6,10 @@ import {
 } from "@superset/trpc/insight-registry";
 import { Button } from "@superset/ui/button";
 import { cn } from "@superset/ui/utils";
-import { useQuery } from "@tanstack/react-query";
 import { LuExternalLink, LuRefreshCw } from "react-icons/lu";
 
-import { useTRPC } from "@/trpc/react";
-
+import { useInsightResults } from "../../hooks/useInsightResults";
 import { FunnelChart } from "../FunnelChart";
-
-const STALE_TIME_MS = 10 * 60 * 1000;
 
 interface PostHogFunnelStep {
 	name: string;
@@ -31,13 +27,7 @@ const STEP_NAME_OVERRIDES: Record<number, string> = {
 };
 
 export function PostHogFunnelTile() {
-	const trpc = useTRPC();
-	const insight = useQuery(
-		trpc.analytics.getInsightResults.queryOptions(
-			{ insight: "activationFunnel" },
-			{ staleTime: STALE_TIME_MS },
-		),
-	);
+	const insight = useInsightResults("activationFunnel");
 
 	const steps = Array.isArray(insight.data?.result)
 		? (insight.data.result as PostHogFunnelStep[])
@@ -54,7 +44,7 @@ export function PostHogFunnelTile() {
 			title={insight.data?.name ?? "New-user activation"}
 			description="First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 			steps={data}
-			isLoading={insight.isLoading}
+			isLoading={insight.isLoading || insight.data?.pending}
 			error={insight.error}
 			headerAction={
 				<div className="flex items-center gap-1">

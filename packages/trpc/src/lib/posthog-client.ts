@@ -4,16 +4,21 @@ export interface InsightResults {
 	name: string;
 	shortId: string;
 	lastRefresh: string | null;
+	// PostHog is recomputing and had nothing cached to serve; the caller polls
+	// until a result lands.
+	pending: boolean;
 	result: unknown;
 }
 
-// No app-side cache: refresh=blocking serves PostHog's own result cache when
-// fresh and recomputes only past its refresh throttle (~15 min).
+// No app-side cache: refresh=lazy_async serves PostHog's own result cache and
+// recomputes in the background past its refresh throttle (~15 min). It must
+// stay async — the heavy HogQL insights take 15-20s to recompute, and
+// refresh=blocking held the request open for all of it.
 export async function fetchInsightResults(
 	shortId: string,
 ): Promise<InsightResults> {
 	const response = await fetch(
-		`${env.POSTHOG_API_HOST}/api/projects/${env.POSTHOG_PROJECT_ID}/insights/?short_id=${shortId}&refresh=blocking`,
+		`${env.POSTHOG_API_HOST}/api/projects/${env.POSTHOG_PROJECT_ID}/insights/?short_id=${shortId}&refresh=lazy_async`,
 		{
 			headers: {
 				Authorization: `Bearer ${env.POSTHOG_API_KEY}`,
@@ -44,6 +49,7 @@ export async function fetchInsightResults(
 		name: insight.name ?? "",
 		shortId: insight.short_id,
 		lastRefresh: insight.last_refresh,
+		pending: insight.result == null,
 		result: insight.result,
 	};
 }

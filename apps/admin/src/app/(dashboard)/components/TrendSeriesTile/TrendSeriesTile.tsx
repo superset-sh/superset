@@ -11,15 +11,11 @@ import {
 	ChartTooltip,
 	ChartTooltipContent,
 } from "@superset/ui/chart";
-import { useQuery } from "@tanstack/react-query";
 import { Line, LineChart, XAxis, YAxis } from "recharts";
 
-import { useTRPC } from "@/trpc/react";
-
+import { useInsightResults } from "../../hooks/useInsightResults";
 import { makeDateAxis } from "../../utils/chartAxis";
 import { InsightTileFrame } from "../InsightTileFrame";
-
-const STALE_TIME_MS = 10 * 60 * 1000;
 
 // Renders TrendsQuery / funnel-trends insight results: an array of series,
 // each carrying parallel `data` values and `labels`/`days` for the x axis.
@@ -48,13 +44,7 @@ export function TrendSeriesTile({
 	valueSuffix,
 	dashIncompleteLast,
 }: TrendSeriesTileProps) {
-	const trpc = useTRPC();
-	const query = useQuery(
-		trpc.analytics.getInsightResults.queryOptions(
-			{ insight },
-			{ staleTime: STALE_TIME_MS },
-		),
-	);
+	const query = useInsightResults(insight);
 
 	const series = Array.isArray(query.data?.result)
 		? (query.data.result as TrendSeries[]).filter((s) => Array.isArray(s.data))
@@ -95,7 +85,7 @@ export function TrendSeriesTile({
 			title={query.data?.name ?? insight}
 			description={description}
 			lastRefresh={query.data?.lastRefresh}
-			isLoading={query.isLoading}
+			isLoading={query.isLoading || query.data?.pending}
 			error={query.error}
 			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS[insight]}`}
 			onRefresh={() => query.refetch()}

@@ -4,10 +4,7 @@ import {
 	ADMIN_INSIGHTS,
 	POSTHOG_PROJECT_URL,
 } from "@superset/trpc/insight-registry";
-import { useQuery } from "@tanstack/react-query";
-
-import { useTRPC } from "@/trpc/react";
-
+import { useInsightResults } from "../../hooks/useInsightResults";
 import { formatDay } from "../../utils/chartAxis";
 import {
 	type CohortCellState,
@@ -16,7 +13,6 @@ import {
 } from "../CohortGrid";
 import { InsightTileFrame } from "../InsightTileFrame";
 
-const STALE_TIME_MS = 10 * 60 * 1000;
 const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
 
 interface RetentionCohortResult {
@@ -37,13 +33,7 @@ function cellState(
 }
 
 export function RetentionGridTile() {
-	const trpc = useTRPC();
-	const query = useQuery(
-		trpc.analytics.getInsightResults.queryOptions(
-			{ insight: "cohortRetention" },
-			{ staleTime: STALE_TIME_MS },
-		),
-	);
+	const query = useInsightResults("cohortRetention");
 
 	const cohorts = Array.isArray(query.data?.result)
 		? (query.data.result as RetentionCohortResult[]).filter((c) =>
@@ -107,7 +97,7 @@ export function RetentionGridTile() {
 			title={query.data?.name ?? "Cohort retention"}
 			description="Weekly cohorts by first real workspace; % returning with another workspace each week"
 			lastRefresh={query.data?.lastRefresh}
-			isLoading={query.isLoading}
+			isLoading={query.isLoading || query.data?.pending}
 			error={query.error}
 			empty={cohorts.length === 0}
 			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS.cohortRetention}`}
