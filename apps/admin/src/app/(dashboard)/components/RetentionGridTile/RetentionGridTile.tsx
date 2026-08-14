@@ -97,7 +97,7 @@ export function RetentionGridTile() {
 			title={query.data?.name ?? "Cohort retention"}
 			description="Weekly cohorts by first real workspace; % returning with another workspace each week"
 			lastRefresh={query.data?.lastRefresh}
-			isLoading={query.isLoading || query.data?.pending}
+			isLoading={query.isLoading || query.data?.result == null}
 			error={query.error}
 			empty={cohorts.length === 0}
 			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS.cohortRetention}`}

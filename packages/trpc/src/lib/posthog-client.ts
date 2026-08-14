@@ -36,6 +36,7 @@ export async function fetchInsightResults(
 			name: string | null;
 			short_id: string;
 			last_refresh: string | null;
+			query_status: { complete?: boolean; error?: boolean } | null;
 			result: unknown;
 		}>;
 	};
@@ -45,11 +46,20 @@ export async function fetchInsightResults(
 		throw new Error(`PostHog insight not found: ${shortId}`);
 	}
 
+	// Past cache_target_age PostHog hands back the stale result *and* a live
+	// query_status for the recompute it just started, so the result being
+	// present is not on its own a sign that there is nothing left to wait for.
+	const recomputing = Boolean(
+		insight.query_status &&
+			!insight.query_status.complete &&
+			!insight.query_status.error,
+	);
+
 	return {
 		name: insight.name ?? "",
 		shortId: insight.short_id,
 		lastRefresh: insight.last_refresh,
-		pending: insight.result == null,
+		pending: insight.result == null || recomputing,
 		result: insight.result,
 	};
 }

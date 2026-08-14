@@ -44,7 +44,7 @@ export function PostHogFunnelTile() {
 			title={insight.data?.name ?? "New-user activation"}
 			description="First sign-in view → auth → onboarding → real workspace (last 7d, 2d window)"
 			steps={data}
-			isLoading={insight.isLoading || insight.data?.pending}
+			isLoading={insight.isLoading || insight.data?.result == null}
 			error={insight.error}
 			headerAction={
 				<div className="flex items-center gap-1">

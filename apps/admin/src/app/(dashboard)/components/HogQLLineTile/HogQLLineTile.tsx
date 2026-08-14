@@ -73,7 +73,7 @@ export function HogQLLineTile({
 			title={query.data?.name ?? insight}
 			description={description}
 			lastRefresh={query.data?.lastRefresh}
-			isLoading={query.isLoading || query.data?.pending}
+			isLoading={query.isLoading || query.data?.result == null}
 			error={query.error}
 			href={`${POSTHOG_PROJECT_URL}/insights/${ADMIN_INSIGHTS[insight]}`}
 			onRefresh={() => query.refetch()}
