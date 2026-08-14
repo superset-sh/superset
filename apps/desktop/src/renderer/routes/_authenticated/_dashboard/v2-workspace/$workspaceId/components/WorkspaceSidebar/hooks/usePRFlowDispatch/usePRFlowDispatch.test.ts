@@ -3,7 +3,7 @@ import type {
 	BranchSyncStatus,
 	PRFlowState,
 } from "../../components/PRActionHeader/utils/getPRFlowState";
-import { planDispatch } from "./usePRFlowDispatch";
+import { getGhCliGateReason, planDispatch } from "./usePRFlowDispatch";
 
 const sync: BranchSyncStatus = {
 	hasRepo: true,
@@ -58,6 +58,26 @@ describe("planDispatch", () => {
 				{ kind: "unavailable", reason: "default-branch" },
 				{ draft: false },
 			),
+		).toBeNull();
+	});
+});
+
+describe("getGhCliGateReason", () => {
+	test("missing gh → not-installed", () => {
+		expect(getGhCliGateReason({ installed: false, authenticated: false })).toBe(
+			"not-installed",
+		);
+	});
+
+	test("installed but signed out → not-authenticated", () => {
+		expect(getGhCliGateReason({ installed: true, authenticated: false })).toBe(
+			"not-authenticated",
+		);
+	});
+
+	test("installed and signed in → no gate", () => {
+		expect(
+			getGhCliGateReason({ installed: true, authenticated: true }),
 		).toBeNull();
 	});
 });
