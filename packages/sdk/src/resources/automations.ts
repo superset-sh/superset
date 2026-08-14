@@ -191,7 +191,6 @@ export interface AutomationSummary {
 	dtstart: string;
 	timezone: string;
 	enabled: boolean;
-	mcpScope: string[];
 	nextRunAt: string;
 	/** Human-readable schedule description, derived from rrule. */
 	scheduleText?: string;
@@ -242,8 +241,6 @@ export interface AutomationCreateParams {
 	targetHostId?: string | null;
 	/** ISO timestamp; defaults to now if omitted. */
 	dtstart?: string;
-	/** MCP server names this automation is allowed to use. */
-	mcpScope?: string[];
 }
 
 export interface AutomationUpdateParams {
@@ -273,7 +270,6 @@ export interface AutomationUpdateParams {
 	rrule?: string;
 	dtstart?: string;
 	timezone?: string;
-	mcpScope?: string[];
 }
 
 export interface AutomationRun {

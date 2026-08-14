@@ -66,7 +66,6 @@ export default command({
 			rrule: options.rrule,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			timezone: options.timezone ?? DEFAULT_TIMEZONE,
-			mcpScope: [],
 		});
 
 		return {

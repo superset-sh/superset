@@ -36,7 +36,6 @@ export const createAutomationSchema = z.object({
 	rrule: rruleBody,
 	dtstart: z.coerce.date().optional(),
 	timezone: iana,
-	mcpScope: z.array(z.string()).default([]),
 });
 
 export const updateAutomationSchema = z.object({
@@ -51,7 +50,6 @@ export const updateAutomationSchema = z.object({
 	rrule: rruleBody.optional(),
 	dtstart: z.coerce.date().optional(),
 	timezone: iana.optional(),
-	mcpScope: z.array(z.string()).optional(),
 });
 
 export const setAutomationPromptSchema = z.object({

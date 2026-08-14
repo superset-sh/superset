@@ -172,7 +172,6 @@ export function CreateAutomationDialog({
 				v2WorkspaceId,
 				rrule: rrule.trim(),
 				timezone: DEFAULT_TIMEZONE,
-				mcpScope: [],
 			});
 		},
 		onSuccess: (result) => {

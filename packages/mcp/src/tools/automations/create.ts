@@ -64,10 +64,6 @@ export function register(server: McpServer): void {
 				.string()
 				.min(1)
 				.describe("IANA timezone (e.g. America/New_York)."),
-			mcpScope: z
-				.array(z.string())
-				.default([])
-				.describe("Optional MCP scope strings the run should request."),
 		},
 		handler: async (input, ctx) => {
 			const caller = createMcpCaller(ctx);
