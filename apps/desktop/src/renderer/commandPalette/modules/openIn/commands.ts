@@ -1,7 +1,7 @@
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import { errorMessage } from "@superset/i18n/errors";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { ArrowUpRightIcon } from "lucide-react";
 import {
@@ -61,10 +61,7 @@ async function resolvePath(context: CommandContext): Promise<string | null> {
 	}
 }
 
-async function openIn(
-	context: CommandContext,
-	app: ExternalApp,
-): Promise<void> {
+async function openIn(context: CommandContext, app: AppRef): Promise<void> {
 	const path = await resolvePath(context);
 	if (!path) return;
 	const projectId = context.workspace?.projectId;
@@ -91,7 +88,7 @@ async function openIn(
 	}
 }
 
-function findOption(app: ExternalApp): OpenInExternalAppOption | undefined {
+function findOption(app: AppRef): OpenInExternalAppOption | undefined {
 	return APP_OPTIONS.find((option) => option.id === app);
 }
 

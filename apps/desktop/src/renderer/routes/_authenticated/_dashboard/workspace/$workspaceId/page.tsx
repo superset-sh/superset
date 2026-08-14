@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { createFileRoute, notFound, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
@@ -287,7 +287,7 @@ function WorkspacePage() {
 		{ projectId: projectId as string },
 		{ enabled: !!projectId },
 	);
-	const resolvedDefaultApp: ExternalApp = defaultApp ?? "cursor";
+	const resolvedDefaultApp: AppRef = defaultApp ?? "cursor";
 	const utils = electronTrpc.useUtils();
 	const { mutate: mutateOpenInApp } =
 		electronTrpc.external.openInApp.useMutation({

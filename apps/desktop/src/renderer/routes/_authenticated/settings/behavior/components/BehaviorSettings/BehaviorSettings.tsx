@@ -19,6 +19,7 @@ import {
 	type SettingItemId,
 } from "../../../utils/settings-search";
 import { GithubStarRow } from "./components/GithubStarRow";
+import { CustomAppsSection } from "./components/CustomAppsSection";
 
 interface BehaviorSettingsProps {
 	visibleItems?: SettingItemId[] | null;
@@ -49,6 +50,8 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 	);
 	const showStarGithub = isItemVisible(
 		SETTING_ITEM_ID.BEHAVIOR_STAR_GITHUB,
+	const showCustomApps = isItemVisible(
+		SETTING_ITEM_ID.BEHAVIOR_CUSTOM_APPS,
 		visibleItems,
 	);
 
@@ -317,6 +320,7 @@ export function BehaviorSettings({ visibleItems }: BehaviorSettingsProps) {
 				)}
 
 				{showStarGithub && <GithubStarRow searchQuery={searchQuery} />}
+				{showCustomApps && <CustomAppsSection />}
 			</div>
 		</div>
 	);

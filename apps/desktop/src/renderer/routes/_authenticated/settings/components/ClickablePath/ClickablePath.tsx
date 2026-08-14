@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -62,7 +62,7 @@ export function ClickablePath({
 
 	const isDark = activeTheme?.type === "dark";
 
-	const handleOpenIn = (app: ExternalApp) => {
+	const handleOpenIn = (app: AppRef) => {
 		openInApp.mutate({ path, app });
 		setIsOpen(false);
 	};

@@ -3,10 +3,63 @@ import os from "node:os";
 import path from "node:path";
 import {
 	getAppCommand,
+	getCustomAppCommand,
 	RelativePathWithoutCwdError,
 	resolvePath,
 	stripPathWrappers,
 } from "./helpers";
+
+describe("getCustomAppCommand", () => {
+	const originalPlatform = process.platform;
+	const setPlatform = (value: string) =>
+		Object.defineProperty(process, "platform", { value });
+
+	afterEach(() => setPlatform(originalPlatform));
+
+	test("prefers the bundle id, then falls back to the app name", () => {
+		setPlatform("darwin");
+		expect(
+			getCustomAppCommand(
+				{ appName: "Xcode-26.5.0", bundleId: "com.apple.dt.Xcode" },
+				"/path/to/file",
+			),
+		).toEqual([
+			{ command: "open", args: ["-b", "com.apple.dt.Xcode", "/path/to/file"] },
+			{ command: "open", args: ["-a", "Xcode-26.5.0", "/path/to/file"] },
+		]);
+	});
+
+	test("uses the app name alone when no bundle id is set", () => {
+		setPlatform("darwin");
+		expect(
+			getCustomAppCommand({ appName: "My Editor" }, "/path/to/file"),
+		).toEqual([
+			{ command: "open", args: ["-a", "My Editor", "/path/to/file"] },
+		]);
+	});
+
+	test("returns null on macOS when neither identifier is set", () => {
+		setPlatform("darwin");
+		expect(getCustomAppCommand({}, "/path/to/file")).toBeNull();
+	});
+
+	test("treats the app name as the binary on Linux", () => {
+		setPlatform("linux");
+		expect(
+			getCustomAppCommand(
+				{ appName: "my-editor", bundleId: "com.example.Ignored" },
+				"/path/to/file",
+			),
+		).toEqual([{ command: "my-editor", args: ["/path/to/file"] }]);
+	});
+
+	test("returns null on Linux when only a bundle id is set", () => {
+		setPlatform("linux");
+		expect(
+			getCustomAppCommand({ bundleId: "com.example.App" }, "/path/to/file"),
+		).toBeNull();
+	});
+});
 
 describe("getAppCommand", () => {
 	const originalPlatform = process.platform;

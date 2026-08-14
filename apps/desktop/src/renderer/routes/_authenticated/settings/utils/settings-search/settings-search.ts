@@ -44,6 +44,7 @@ export const SETTING_ITEM_ID = {
 
 	BROWSER_HOMEPAGE: "browser-homepage",
 	BROWSER_IMPORT_HISTORY: "browser-import-history",
+	BEHAVIOR_CUSTOM_APPS: "behavior-custom-apps",
 
 	GIT_BRANCH_PREFIX: "git-branch-prefix",
 	GIT_DELETE_LOCAL_BRANCH: "git-delete-local-branch",
@@ -189,6 +190,7 @@ export const SETTING_ITEM_VARIANT: Record<SettingItemId, SettingVariant> = {
 	// The in-app browser pane is a v2-only surface.
 	[SETTING_ITEM_ID.BROWSER_HOMEPAGE]: "v2",
 	[SETTING_ITEM_ID.BROWSER_IMPORT_HISTORY]: "v2",
+	[SETTING_ITEM_ID.BEHAVIOR_CUSTOM_APPS]: "shared",
 
 	// Branch prefix exists in both UIs — v1 `GitSettings`, v2 `V2GitSettings`.
 	[SETTING_ITEM_ID.GIT_BRANCH_PREFIX]: "shared",
@@ -925,6 +927,23 @@ export const SETTINGS_ITEMS: SettingsItem[] = [
 			"arc",
 			"chromium",
 			"migrate",
+		],
+	},
+	{
+		id: SETTING_ITEM_ID.BEHAVIOR_CUSTOM_APPS,
+		section: "behavior",
+		title: "Custom apps",
+		description:
+			"Add your own apps to the Open in menus by app name or bundle id",
+		keywords: [
+			"custom",
+			"apps",
+			"open in",
+			"editor",
+			"bundle id",
+			"external",
+			"xcode",
+			"application",
 		],
 	},
 	{

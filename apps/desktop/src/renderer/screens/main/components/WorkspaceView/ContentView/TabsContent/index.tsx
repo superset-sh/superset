@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { useParams } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
 import { useTabsStore } from "renderer/stores/tabs/store";
@@ -7,7 +7,7 @@ import { EmptyTabView } from "./EmptyTabView";
 import { TabView } from "./TabView";
 
 interface TabsContentProps {
-	defaultExternalApp?: ExternalApp | null;
+	defaultExternalApp?: AppRef | null;
 	onOpenInApp: () => void;
 	onOpenQuickOpen: () => void;
 }

@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useSidebarStore } from "renderer/stores/sidebar-state";
 import { SidebarControl } from "../../SidebarControl";
@@ -9,7 +9,7 @@ import { TabsContent } from "./TabsContent";
 import { GroupStrip } from "./TabsContent/GroupStrip";
 
 interface ContentViewProps {
-	defaultExternalApp?: ExternalApp | null;
+	defaultExternalApp?: AppRef | null;
 	onOpenInApp: () => void;
 	onOpenQuickOpen: () => void;
 }

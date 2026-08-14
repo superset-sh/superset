@@ -1,9 +1,9 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { create } from "zustand";
 
 export interface SetPreferredOpenInAppTarget {
 	projectId: string;
-	app: ExternalApp;
+	app: AppRef;
 	tick: number;
 }
 

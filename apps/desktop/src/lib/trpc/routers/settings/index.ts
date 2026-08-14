@@ -7,11 +7,17 @@ import { isSupportedLocale } from "@superset/i18n/locales";
 import {
 	type AgentCustomDefinition,
 	type AgentPresetOverrideEnvelope,
+	appRefSchema,
 	BRANCH_PREFIX_MODES,
+	CUSTOM_APP_ID_PREFIX,
+	type CustomApp,
+	customAppIdSchema,
+	customAppSchema,
 	EXECUTION_MODES,
-	EXTERNAL_APPS,
 	FILE_OPEN_MODES,
+	isCustomAppId,
 	NON_EDITOR_APPS,
+	projects,
 	settings,
 	TERMINAL_LINK_BEHAVIORS,
 	type TerminalPreset,
@@ -40,6 +46,7 @@ import {
 } from "@superset/shared/agent-settings";
 import { NOTIFICATION_VOLUME_LIMITS } from "@superset/shared/settings-constraints";
 import { TRPCError } from "@trpc/server";
+import { eq } from "drizzle-orm";
 import { app } from "electron";
 import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
@@ -143,6 +150,17 @@ function saveTerminalPresets(
 		.onConflictDoUpdate({
 			target: settings.id,
 			set: { terminalPresets: presets, ...options },
+		})
+		.run();
+}
+
+function saveCustomApps(apps: CustomApp[]) {
+	localDb
+		.insert(settings)
+		.values({ id: 1, customApps: apps })
+		.onConflictDoUpdate({
+			target: settings.id,
+			set: { customApps: apps },
 		})
 		.run();
 }
@@ -1174,15 +1192,83 @@ export const createSettingsRouter = () => {
 			return row.defaultEditor ?? null;
 		}),
 
+		getCustomApps: publicProcedure.query((): CustomApp[] => {
+			return getSettings().customApps ?? [];
+		}),
+
+		createCustomApp: publicProcedure
+			.input(customAppSchema.omit({ id: true }))
+			.mutation(({ input }): CustomApp => {
+				const app: CustomApp = {
+					id: `${CUSTOM_APP_ID_PREFIX}${crypto.randomUUID()}`,
+					...input,
+				};
+				saveCustomApps([...(getSettings().customApps ?? []), app]);
+				return app;
+			}),
+
+		updateCustomApp: publicProcedure
+			.input(
+				z.object({
+					id: customAppIdSchema,
+					patch: customAppSchema.omit({ id: true }),
+				}),
+			)
+			.mutation(({ input }): CustomApp => {
+				const apps = getSettings().customApps ?? [];
+				const existing = apps.find((app) => app.id === input.id);
+				if (!existing) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: `Custom app ${input.id} not found`,
+					});
+				}
+				const updated: CustomApp = { ...existing, ...input.patch };
+				saveCustomApps(
+					apps.map((app) => (app.id === input.id ? updated : app)),
+				);
+				return updated;
+			}),
+
+		deleteCustomApp: publicProcedure
+			.input(z.object({ id: customAppIdSchema }))
+			.mutation(({ input }) => {
+				const apps = getSettings().customApps ?? [];
+				saveCustomApps(apps.filter((app) => app.id !== input.id));
+
+				// Clear the ref anywhere it was persisted as a default, so nothing
+				// keeps pointing at an app that no longer exists.
+				const row = getSettings();
+				if (row.defaultEditor === input.id) {
+					localDb
+						.update(settings)
+						.set({ defaultEditor: null })
+						.where(eq(settings.id, 1))
+						.run();
+				}
+				localDb
+					.update(projects)
+					.set({ defaultApp: null })
+					.where(eq(projects.defaultApp, input.id))
+					.run();
+
+				return { success: true };
+			}),
+
 		setDefaultEditor: publicProcedure
 			.input(
 				z.object({
-					editor: z
-						.enum(EXTERNAL_APPS)
+					editor: appRefSchema
 						.nullable()
-						.refine((val) => val === null || !NON_EDITOR_APPS.includes(val), {
-							message: "Non-editor apps cannot be set as the global default",
-						}),
+						.refine(
+							(val) =>
+								val === null ||
+								isCustomAppId(val) ||
+								!NON_EDITOR_APPS.includes(val),
+							{
+								message: "Non-editor apps cannot be set as the global default",
+							},
+						),
 				}),
 			)
 			.mutation(({ input }) => {

@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { useMemo, useRef, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -34,7 +34,7 @@ interface FileListTreeVirtualizedProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 type TreeRow =

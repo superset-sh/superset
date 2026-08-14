@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { useCallback, useMemo, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
@@ -46,7 +46,7 @@ interface FileListTreeProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 function buildFileTree(files: ChangedFile[]): FileTreeNode[] {
@@ -119,7 +119,7 @@ interface TreeNodeComponentProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 function TreeNodeComponent({

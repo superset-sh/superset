@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { Button } from "@superset/ui/button";
 import { ButtonGroup } from "@superset/ui/button-group";
 import {
@@ -50,7 +50,7 @@ export function OpenInButton({
 		{ projectId: projectId as string },
 		{ enabled: !!projectId },
 	);
-	const resolvedApp: ExternalApp = defaultApp ?? "cursor";
+	const resolvedApp: AppRef = defaultApp ?? "cursor";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: () => {
@@ -65,7 +65,7 @@ export function OpenInButton({
 
 	const isDark = activeTheme?.type === "dark";
 	const currentAppIcon = currentApp?.[isDark ? "darkIcon" : "lightIcon"];
-	const handleOpenIn = (app: ExternalApp) => {
+	const handleOpenIn = (app: AppRef) => {
 		if (!path) return;
 		openInApp.mutate({ path, app, projectId });
 		setIsOpen(false);

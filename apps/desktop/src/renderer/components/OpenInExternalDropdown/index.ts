@@ -7,3 +7,4 @@ export {
 } from "./constants";
 export type { OpenInExternalAppGroup } from "./OpenInExternalDropdownItems";
 export { OpenInExternalDropdownItems } from "./OpenInExternalDropdownItems";
+export { useAppOption, useCustomApps } from "./useCustomApps";

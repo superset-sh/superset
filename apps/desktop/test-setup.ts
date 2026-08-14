@@ -258,6 +258,21 @@ const agentCustomDefinitionSchema = z.object({
 	enabled: z.boolean().optional(),
 });
 
+const customAppIdSchema = z.custom<`custom:${string}`>(
+	(value) =>
+		typeof value === "string" &&
+		/^custom:[A-Za-z0-9_-]+$/.test(value as string),
+);
+
+const customAppSchema = z
+	.object({
+		id: customAppIdSchema,
+		label: z.string().trim().min(1).max(60),
+		appName: z.string().trim().min(1).max(200).optional(),
+		bundleId: z.string().trim().min(1).max(200).optional(),
+	})
+	.refine((app) => Boolean(app.appName || app.bundleId));
+
 const localDbMock = () => ({
 	projects: mockTable("projects"),
 	workspaces: mockTable("workspaces"),
@@ -273,6 +288,14 @@ const localDbMock = () => ({
 	agentCustomDefinitionSchema,
 	PROMPT_TRANSPORTS: ["argv", "stdin"],
 	EXTERNAL_APPS: [],
+	NON_EDITOR_APPS: [],
+	CUSTOM_APP_ID_PREFIX: "custom:",
+	isCustomAppId: (id: string) => id.startsWith("custom:"),
+	customAppIdSchema,
+	customAppSchema,
+	// `EXTERNAL_APPS` is mocked empty, so `z.enum([])` would reject everything —
+	// accept any non-custom string here and let the real schema police prod.
+	appRefSchema: z.union([z.string(), customAppIdSchema]),
 	EXECUTION_MODES: [
 		"split-pane",
 		"new-tab",

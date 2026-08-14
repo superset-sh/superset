@@ -1,5 +1,5 @@
 import { errorMessage } from "@superset/i18n/errors";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { useCallback } from "react";
 import { useCopyToClipboard } from "renderer/hooks/useCopyToClipboard";
@@ -11,7 +11,7 @@ interface UsePathActionsProps {
 	/** For files: pass worktreePath to use openFileInEditor. For folders: omit to use openInApp */
 	worktreePath?: string;
 	/** Pre-resolved app to avoid per-row default-app queries */
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 	/** Project identifier for project-scoped actions/metadata */
 	projectId?: string;
 }

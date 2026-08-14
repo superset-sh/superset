@@ -1,6 +1,6 @@
 import { spawn } from "node:child_process";
 import nodePath from "node:path";
-import type { ExternalApp } from "@superset/local-db";
+import type { CustomApp, ExternalApp } from "@superset/local-db";
 import { TRPCError } from "@trpc/server";
 
 /** Map of app IDs to their macOS application names */
@@ -171,6 +171,42 @@ export function getAppCommand(
 	const cliCommand = LINUX_CLI_COMMANDS[app];
 	if (!cliCommand) return null;
 	return [{ command: cliCommand, args: [targetPath] }];
+}
+
+/**
+ * Candidate commands for a user-defined app. Mirrors `getAppCommand`'s contract
+ * (ordered candidates, `null` when unopenable) but is driven by the values the
+ * user typed in settings instead of the built-in lookup tables.
+ *
+ * macOS prefers the bundle id — it survives the user renaming the `.app`, which
+ * is the common reason `open -a` fails (e.g. "Xcode-26.5.0.app"). Both forms are
+ * returned when supplied so a stale bundle id falls back to the name.
+ */
+export function getCustomAppCommand(
+	app: Pick<CustomApp, "appName" | "bundleId">,
+	targetPath: string,
+	platform: NodeJS.Platform = process.platform,
+): { command: string; args: string[] }[] | null {
+	if (platform === "darwin") {
+		const candidates: { command: string; args: string[] }[] = [];
+		if (app.bundleId) {
+			candidates.push({
+				command: "open",
+				args: ["-b", app.bundleId, targetPath],
+			});
+		}
+		if (app.appName) {
+			candidates.push({
+				command: "open",
+				args: ["-a", app.appName, targetPath],
+			});
+		}
+		return candidates.length > 0 ? candidates : null;
+	}
+
+	// Non-macOS: a bundle id is meaningless, so the name is treated as the binary.
+	if (!app.appName) return null;
+	return [{ command: app.appName, args: [targetPath] }];
 }
 
 /**

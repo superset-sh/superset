@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { useParams } from "@tanstack/react-router";
 import { useCallback, useMemo } from "react";
 import type { IconType } from "react-icons";
@@ -18,7 +18,7 @@ import supersetEmptyStateWordmark from "./assets/superset-empty-state-wordmark.s
 import { EmptyTabActionButton } from "./components/EmptyTabActionButton";
 
 interface EmptyTabViewProps {
-	defaultExternalApp?: ExternalApp | null;
+	defaultExternalApp?: AppRef | null;
 	onOpenInApp: () => void;
 	onOpenQuickOpen: () => void;
 }
@@ -53,7 +53,7 @@ export function EmptyTabView({
 	const { keys: quickOpenDisplay } = useHotkeyDisplay("QUICK_OPEN");
 	const { keys: newBrowserDisplay } = useHotkeyDisplay("NEW_BROWSER");
 	const { keys: openInAppDisplay } = useHotkeyDisplay("OPEN_IN_APP");
-	const resolvedExternalApp: ExternalApp = defaultExternalApp ?? "cursor";
+	const resolvedExternalApp: AppRef = defaultExternalApp ?? "cursor";
 
 	const handleShowTerminal = useCallback(() => {
 		addTab(workspaceId);

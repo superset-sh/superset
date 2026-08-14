@@ -1,7 +1,11 @@
 import fs from "node:fs";
 import nodePath from "node:path";
 import {
-	EXTERNAL_APPS,
+	type AppRef,
+	appRefSchema,
+	type CustomApp,
+	type CustomAppId,
+	isCustomAppId,
 	NON_EDITOR_APPS,
 	projects,
 	settings,
@@ -18,6 +22,7 @@ import { getWorkspacePath } from "../workspaces/utils/worktree";
 import {
 	type ExternalApp,
 	getAppCommand,
+	getCustomAppCommand,
 	RelativePathWithoutCwdError,
 	resolvePath,
 	spawnAsync,
@@ -40,13 +45,17 @@ async function withResolveGuard<T>(fn: () => Promise<T> | T): Promise<T> {
 	}
 }
 
-const ExternalAppSchema = z.enum(EXTERNAL_APPS);
-
 const nonEditorSet = new Set<ExternalApp>(NON_EDITOR_APPS);
 
+/** Looks up a user-defined app by its `custom:<id>` ref. */
+function findCustomApp(app: CustomAppId): CustomApp | undefined {
+	const row = localDb.select().from(settings).get();
+	return row?.customApps?.find((candidate) => candidate.id === app);
+}
+
 /** Sets the global default editor if one hasn't been set yet. Skips non-editor apps. */
-function ensureGlobalDefaultEditor(app: ExternalApp) {
-	if (nonEditorSet.has(app)) return;
+function ensureGlobalDefaultEditor(app: AppRef) {
+	if (!isCustomAppId(app) && nonEditorSet.has(app)) return;
 
 	const row = localDb.select().from(settings).get();
 	if (!row?.defaultEditor) {
@@ -62,7 +71,7 @@ function ensureGlobalDefaultEditor(app: ExternalApp) {
 }
 
 /** Resolves the default editor from project setting, then global setting. */
-export function resolveDefaultEditor(projectId?: string): ExternalApp | null {
+export function resolveDefaultEditor(projectId?: string): AppRef | null {
 	if (projectId) {
 		const project = localDb
 			.select()
@@ -75,16 +84,34 @@ export function resolveDefaultEditor(projectId?: string): ExternalApp | null {
 	return row?.defaultEditor ?? null;
 }
 
-async function openPathInApp(
-	filePath: string,
-	app: ExternalApp,
-): Promise<void> {
+async function openPathInApp(filePath: string, app: AppRef): Promise<void> {
 	if (app === "finder") {
 		shell.showItemInFolder(filePath);
 		return;
 	}
 
-	const candidates = getAppCommand(app, filePath);
+	let candidates: { command: string; args: string[] }[] | null;
+	if (isCustomAppId(app)) {
+		const customApp = findCustomApp(app);
+		// A ref can outlive its settings row (app deleted, or a stale per-project
+		// default). Fail loudly rather than silently opening the OS default app.
+		if (!customApp) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Custom app ${app} is no longer configured. Re-add it in Settings → General → Custom apps.`,
+			});
+		}
+		candidates = getCustomAppCommand(customApp, filePath);
+		if (!candidates) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message: `Custom app "${customApp.label}" has no app name or bundle id for this platform.`,
+			});
+		}
+	} else {
+		candidates = getAppCommand(app, filePath);
+	}
+
 	if (candidates) {
 		let lastError: Error | undefined;
 		for (const cmd of candidates) {
@@ -193,7 +220,7 @@ export const createExternalRouter = () => {
 			.input(
 				z.object({
 					path: z.string(),
-					app: ExternalAppSchema,
+					app: appRefSchema,
 					projectId: z.string().optional(),
 				}),
 			)
@@ -300,7 +327,7 @@ export const createExternalRouter = () => {
 					 * which only knows about v1 localDb tables and would
 					 * otherwise return a stale global default for v2 projects.
 					 */
-					app: ExternalAppSchema.optional(),
+					app: appRefSchema.optional(),
 				}),
 			)
 			.mutation(({ input }) =>

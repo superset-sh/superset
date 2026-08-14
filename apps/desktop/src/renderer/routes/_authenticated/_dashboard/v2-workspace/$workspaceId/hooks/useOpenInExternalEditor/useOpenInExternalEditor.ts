@@ -1,5 +1,5 @@
 import { useLingui } from "@lingui/react/macro";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { toast } from "@superset/ui/sonner";
 import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback } from "react";
@@ -16,7 +16,7 @@ export interface OpenInExternalEditorOptions {
 	 * back to the v2 project default when omitted. Routing through this hook
 	 * keeps the remote-host guard below in one place.
 	 */
-	app?: ExternalApp;
+	app?: AppRef;
 }
 
 export function useOpenInExternalEditor(workspaceId: string) {

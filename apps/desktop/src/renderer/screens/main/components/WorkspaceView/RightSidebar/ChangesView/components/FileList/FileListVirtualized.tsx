@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { defaultRangeExtractor, useVirtualizer } from "@tanstack/react-virtual";
 import { useRef } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
@@ -22,7 +22,7 @@ interface FileListVirtualizedProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 export function FileListVirtualized({

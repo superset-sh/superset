@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import {
 	DEFAULT_SIDEBAR_WIDTH,
 	MAX_SIDEBAR_WIDTH,
@@ -13,7 +13,7 @@ import { useBrowserLifecycle } from "../hooks/useBrowserLifecycle";
 import { RightSidebar } from "../RightSidebar";
 
 interface WorkspaceLayoutProps {
-	defaultExternalApp?: ExternalApp | null;
+	defaultExternalApp?: AppRef | null;
 	onOpenInApp: () => void;
 	onOpenQuickOpen: () => void;
 }

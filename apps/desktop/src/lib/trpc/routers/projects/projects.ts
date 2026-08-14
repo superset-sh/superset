@@ -4,8 +4,8 @@ import { basename, join } from "node:path";
 import { msg } from "@lingui/core/macro";
 import { i18n } from "@superset/i18n";
 import {
+	appRefSchema,
 	BRANCH_PREFIX_MODES,
-	EXTERNAL_APPS,
 	projects,
 	type SelectProject,
 	settings,
@@ -1456,7 +1456,7 @@ export const createProjectsRouter = (getWindow: () => BrowserWindow | null) => {
 						workspaceBaseBranch: z.string().nullable().optional(),
 						worktreeBaseDir: z.string().nullable().optional(),
 						hideImage: z.boolean().optional(),
-						defaultApp: z.enum(EXTERNAL_APPS).nullable().optional(),
+						defaultApp: appRefSchema.nullable().optional(),
 					}),
 				}),
 			)

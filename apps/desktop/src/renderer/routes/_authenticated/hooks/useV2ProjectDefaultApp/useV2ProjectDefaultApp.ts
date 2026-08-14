@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import { useCallback } from "react";
@@ -28,10 +28,10 @@ export function useV2ProjectDefaultApp(projectId: string | undefined) {
 		[collections, projectId],
 	);
 	const app =
-		(rows[0]?.defaultOpenInApp as ExternalApp | null | undefined) ?? undefined;
+		(rows[0]?.defaultOpenInApp as AppRef | null | undefined) ?? undefined;
 
 	const setApp = useCallback(
-		(next: ExternalApp) => {
+		(next: AppRef) => {
 			if (!projectId) return;
 			ensureProjectInSidebar(projectId);
 			collections.v2SidebarProjects.update(projectId, (draft) => {

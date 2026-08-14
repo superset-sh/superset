@@ -10,7 +10,7 @@ import {
 	DropdownMenuSubContent,
 	DropdownMenuSubTrigger,
 } from "@superset/ui/dropdown-menu";
-import { ExternalLink } from "lucide-react";
+import { AppWindow, ExternalLink } from "lucide-react";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
 import {
@@ -19,6 +19,7 @@ import {
 	type OpenInExternalAppOption,
 	VSCODE_OPTIONS,
 } from "renderer/components/OpenInExternalDropdown/constants";
+import { useCustomApps } from "renderer/components/OpenInExternalDropdown/useCustomApps";
 import { useOpenInExternalEditor } from "renderer/routes/_authenticated/_dashboard/v2-workspace/$workspaceId/hooks/useOpenInExternalEditor";
 import { useThemeStore } from "renderer/stores";
 
@@ -63,23 +64,27 @@ export function OpenFileInMenuItems({
 }: OpenFileInMenuItemsProps) {
 	const isDark = useThemeStore((state) => state.activeTheme?.type === "dark");
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+	const customApps = useCustomApps();
 	const { Item, Sub, SubTrigger, SubContent } = PRIMITIVES[menuType];
 
 	// Terminals are intentionally omitted — they open a directory, not a file.
 	const appRows = (apps: OpenInExternalAppOption[]) =>
-		apps.map((app) => (
-			<Item
-				key={app.id}
-				onSelect={() => openInExternalEditor(path, { app: app.id })}
-			>
-				<img
-					src={isDark ? app.darkIcon : app.lightIcon}
-					alt=""
-					className="size-4 object-contain"
-				/>
-				{app.label}
-			</Item>
-		));
+		apps.map((app) => {
+			const icon = isDark ? app.darkIcon : app.lightIcon;
+			return (
+				<Item
+					key={app.id}
+					onSelect={() => openInExternalEditor(path, { app: app.id })}
+				>
+					{icon ? (
+						<img src={icon} alt="" className="size-4 object-contain" />
+					) : (
+						<AppWindow />
+					)}
+					{app.label}
+				</Item>
+			);
+		});
 
 	const triggerLabel = (icon: string, label: string) => (
 		<div className="flex items-center gap-2">
@@ -111,6 +116,17 @@ export function OpenFileInMenuItems({
 						</Sub>
 					</SubContent>
 				</Sub>
+				{customApps.length > 0 && (
+					<Sub>
+						<SubTrigger>
+							<div className="flex items-center gap-2">
+								<AppWindow className="size-4" />
+								<span>Custom</span>
+							</div>
+						</SubTrigger>
+						<SubContent>{appRows(customApps)}</SubContent>
+					</Sub>
+				)}
 			</SubContent>
 		</Sub>
 	);

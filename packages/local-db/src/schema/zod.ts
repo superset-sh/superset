@@ -196,6 +196,61 @@ export const NON_EDITOR_APPS: readonly ExternalApp[] = [
 ] as const;
 
 /**
+ * User-defined apps live in a separate `custom:<id>` namespace rather than
+ * widening `ExternalApp`. `EXTERNAL_APPS` stays a closed union so the
+ * exhaustive `Record<ExternalApp, ...>` command tables keep failing to compile
+ * when a built-in app is added — a custom app can never silently fall through
+ * them. Use `AppRef` wherever an app id crosses a boundary (IPC, storage).
+ */
+export const CUSTOM_APP_ID_PREFIX = "custom:";
+
+export type CustomAppId = `${typeof CUSTOM_APP_ID_PREFIX}${string}`;
+
+/** Either a built-in app or a user-defined one. */
+export type AppRef = ExternalApp | CustomAppId;
+
+export function isCustomAppId(id: string): id is CustomAppId {
+	return id.startsWith(CUSTOM_APP_ID_PREFIX);
+}
+
+const CUSTOM_APP_ID_PATTERN = /^custom:[A-Za-z0-9_-]+$/;
+
+/**
+ * `z.custom` rather than `z.string().regex(...)` so the inferred type is the
+ * `custom:${string}` template literal, not `string` — that keeps `AppRef`
+ * assignable to the `$type<AppRef>()` columns without casts at the call sites.
+ */
+export const customAppIdSchema = z.custom<CustomAppId>(
+	(value) => typeof value === "string" && CUSTOM_APP_ID_PATTERN.test(value),
+	{ message: "Custom app ids look like custom:<alphanumeric>" },
+);
+
+/**
+ * A user-defined external app. At least one of `appName`/`bundleId` is
+ * required — both feed macOS `open` (`-a <appName>` / `-b <bundleId>`), and
+ * `appName` doubles as the binary to spawn on Linux.
+ */
+export const customAppSchema = z
+	.object({
+		id: customAppIdSchema,
+		/** Menu label. */
+		label: z.string().trim().min(1).max(60),
+		/** macOS `.app` display name, e.g. "Xcode-26.5.0". Linux: binary name. */
+		appName: z.string().trim().min(1).max(200).optional(),
+		/** macOS bundle id, e.g. "com.apple.dt.Xcode". Preferred over appName. */
+		bundleId: z.string().trim().min(1).max(200).optional(),
+	})
+	.refine((app) => Boolean(app.appName || app.bundleId), {
+		message: "Provide an app name or a bundle id",
+		path: ["appName"],
+	});
+
+export type CustomApp = z.infer<typeof customAppSchema>;
+
+/** Validates any app id crossing a boundary: built-in or `custom:<id>`. */
+export const appRefSchema = z.union([z.enum(EXTERNAL_APPS), customAppIdSchema]);
+
+/**
  * Terminal link behavior options
  */
 export const TERMINAL_LINK_BEHAVIORS = [

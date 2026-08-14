@@ -1,5 +1,5 @@
 import type { MessageDescriptor } from "@lingui/core";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import type { ElementType } from "react";
 import type { HotkeyId } from "renderer/hotkeys/registry";
 import type { HostServiceAvailabilityStatus } from "renderer/lib/host-service-unavailable";
@@ -22,7 +22,7 @@ export interface CommandContext {
 		projectId?: string;
 		workspaceType?: "main" | "worktree" | "session";
 		hostId?: string;
-		preferredOpenInApp?: ExternalApp;
+		preferredOpenInApp?: AppRef;
 	} | null;
 	activeHostUrl: string | null;
 	activeOrganizationId: string | null;

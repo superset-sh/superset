@@ -1,5 +1,5 @@
 import { Trans } from "@lingui/react/macro";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import {
 	DropdownMenuItem,
 	DropdownMenuSeparator,
@@ -9,7 +9,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
 import type { ReactNode } from "react";
-import { LuCopy } from "react-icons/lu";
+import { LuAppWindow, LuCopy } from "react-icons/lu";
 import jetbrainsIcon from "renderer/assets/app-icons/jetbrains.svg";
 import terminalIcon from "renderer/assets/app-icons/terminal.png";
 import vscodeIcon from "renderer/assets/app-icons/vscode.svg";
@@ -21,21 +21,23 @@ import {
 	TERMINAL_OPTIONS,
 	VSCODE_OPTIONS,
 } from "./constants";
+import { useCustomApps } from "./useCustomApps";
 
 export type OpenInExternalAppGroup =
 	| "finder"
 	| "ide"
 	| "terminal"
 	| "vscode"
-	| "jetbrains";
+	| "jetbrains"
+	| "custom";
 
 interface OpenInExternalDropdownItemsProps {
 	isDark: boolean;
-	activeApp?: ExternalApp;
-	onOpenIn: (app: ExternalApp) => void;
+	activeApp?: AppRef;
+	onOpenIn: (app: AppRef) => void;
 	onCopyPath: () => void;
 	renderAppTrailing?: (
-		appId: ExternalApp,
+		appId: AppRef,
 		group: OpenInExternalAppGroup,
 	) => ReactNode;
 	copyPathTrailing?: ReactNode;
@@ -73,27 +75,36 @@ export function OpenInExternalDropdownItems({
 	copyPathIconClassName,
 	copyPathLabelClassName,
 }: OpenInExternalDropdownItemsProps) {
+	const customApps = useCustomApps();
+
 	const renderAppOptions = (
 		apps: OpenInExternalAppOption[],
 		group: OpenInExternalAppGroup,
 	) =>
-		apps.map((app) => (
-			<DropdownMenuItem
-				key={app.id}
-				onClick={() => onOpenIn(app.id)}
-				className={appItemClassName}
-			>
-				<div className={cn("flex items-center gap-2", appContentClassName)}>
-					<img
-						src={isDark ? app.darkIcon : app.lightIcon}
-						alt=""
-						className={cn("size-4 object-contain", appIconClassName)}
-					/>
-					<span className={appLabelClassName}>{app.label}</span>
-				</div>
-				{renderAppTrailing?.(app.id, group)}
-			</DropdownMenuItem>
-		));
+		apps.map((app) => {
+			const icon = isDark ? app.darkIcon : app.lightIcon;
+			return (
+				<DropdownMenuItem
+					key={app.id}
+					onClick={() => onOpenIn(app.id)}
+					className={appItemClassName}
+				>
+					<div className={cn("flex items-center gap-2", appContentClassName)}>
+						{icon ? (
+							<img
+								src={icon}
+								alt=""
+								className={cn("size-4 object-contain", appIconClassName)}
+							/>
+						) : (
+							<LuAppWindow className={cn("size-4", appIconClassName)} />
+						)}
+						<span className={appLabelClassName}>{app.label}</span>
+					</div>
+					{renderAppTrailing?.(app.id, group)}
+				</DropdownMenuItem>
+			);
+		});
 
 	const activeIdeOption = activeApp
 		? [...IDE_OPTIONS, ...VSCODE_OPTIONS, ...JETBRAINS_OPTIONS].find(
@@ -213,6 +224,27 @@ export function OpenInExternalDropdownItems({
 					{renderAppOptions(TERMINAL_OPTIONS, "terminal")}
 				</DropdownMenuSubContent>
 			</DropdownMenuSub>
+			{customApps.length > 0 && (
+				<DropdownMenuSub>
+					<DropdownMenuSubTrigger className={subTriggerClassName}>
+						<div
+							className={cn(
+								"flex items-center gap-2",
+								subTriggerContentClassName,
+							)}
+						>
+							<LuAppWindow className={cn("size-4", subTriggerIconClassName)} />
+							<span>Custom</span>
+						</div>
+					</DropdownMenuSubTrigger>
+					<DropdownMenuSubContent
+						sideOffset={8}
+						className={subContentClassName}
+					>
+						{renderAppOptions(customApps, "custom")}
+					</DropdownMenuSubContent>
+				</DropdownMenuSub>
+			)}
 			<DropdownMenuSeparator />
 			<DropdownMenuItem onClick={onCopyPath} className={copyPathItemClassName}>
 				<div

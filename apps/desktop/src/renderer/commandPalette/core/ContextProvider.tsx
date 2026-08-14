@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
 import {
@@ -71,7 +71,7 @@ export function CommandContextProvider({ children }: { children: ReactNode }) {
 		[collections, projectId],
 	);
 	const preferredOpenInApp =
-		(preferredAppRows[0]?.defaultOpenInApp as ExternalApp | null | undefined) ??
+		(preferredAppRows[0]?.defaultOpenInApp as AppRef | null | undefined) ??
 		undefined;
 
 	const { data: notificationSoundsMuted = false } =

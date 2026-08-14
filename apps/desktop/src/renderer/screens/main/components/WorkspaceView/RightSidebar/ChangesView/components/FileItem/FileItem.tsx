@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import {
 	ContextMenu,
 	ContextMenuContent,
@@ -43,7 +43,7 @@ interface FileItemProps {
 	/** Expanded view uses scroll-sync highlighting; collapsed view uses selection highlighting */
 	isExpandedView?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 function LevelIndicators({ level }: { level: number }) {

@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import { useCallback, useMemo, useState } from "react";
 import type { ChangeCategory, ChangedFile } from "shared/changes-types";
 import { FileItem } from "../FileItem";
@@ -21,7 +21,7 @@ interface FileListGroupedProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 interface FolderGroup {
@@ -79,7 +79,7 @@ interface FolderGroupItemProps {
 	commitHash?: string;
 	isExpandedView?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 function FolderGroupItem({

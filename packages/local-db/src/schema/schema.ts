@@ -12,8 +12,9 @@ import { v4 as uuidv4 } from "uuid";
 import type {
 	AgentCustomDefinition,
 	AgentPresetOverrideEnvelope,
+	AppRef,
 	BranchPrefixMode,
-	ExternalApp,
+	CustomApp,
 	FileOpenMode,
 	GitHubStatus,
 	GitStatus,
@@ -53,7 +54,7 @@ export const projects = sqliteTable(
 		hideImage: integer("hide_image", { mode: "boolean" }),
 		iconUrl: text("icon_url"),
 		neonProjectId: text("neon_project_id"),
-		defaultApp: text("default_app").$type<ExternalApp>(),
+		defaultApp: text("default_app").$type<AppRef>(),
 	},
 	(table) => [
 		index("projects_main_repo_path_idx").on(table.mainRepoPath),
@@ -257,7 +258,9 @@ export const settings = sqliteTable("settings", {
 	worktreeBaseDir: text("worktree_base_dir"),
 	openLinksInApp: integer("open_links_in_app", { mode: "boolean" }),
 	browserHomepageUrl: text("browser_homepage_url"),
-	defaultEditor: text("default_editor").$type<ExternalApp>(),
+	defaultEditor: text("default_editor").$type<AppRef>(),
+	/** User-defined external apps surfaced in the "Open in" menus. */
+	customApps: text("custom_apps", { mode: "json" }).$type<CustomApp[]>(),
 	exposeHostServiceViaRelay: integer("expose_host_service_via_relay", {
 		mode: "boolean",
 	}),

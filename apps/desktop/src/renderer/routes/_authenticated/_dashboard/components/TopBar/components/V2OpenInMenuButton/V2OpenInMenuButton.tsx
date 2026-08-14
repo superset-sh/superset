@@ -1,5 +1,5 @@
 import { Trans, useLingui } from "@lingui/react/macro";
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import {
 	DropdownMenu,
 	DropdownMenuContent,
@@ -38,7 +38,7 @@ export function V2OpenInMenuButton({
 
 	const { app: persistedApp, setApp: persistDefaultApp } =
 		useV2ProjectDefaultApp(projectId ?? undefined);
-	const resolvedApp: ExternalApp = persistedApp ?? "finder";
+	const resolvedApp: AppRef = persistedApp ?? "finder";
 
 	const openInApp = electronTrpc.external.openInApp.useMutation({
 		onSuccess: (_data, variables) => {
@@ -83,7 +83,7 @@ export function V2OpenInMenuButton({
 	}, [worktreePath, resolvedApp, openInApp, copyPath.isPending]);
 
 	const handleOpenInOtherApp = useCallback(
-		(appId: ExternalApp) => {
+		(appId: AppRef) => {
 			if (openInApp.isPending || copyPath.isPending) return;
 			openInApp.mutate({ path: worktreePath, app: appId });
 		},

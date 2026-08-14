@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef } from "@superset/local-db";
 import {
 	Collapsible,
 	CollapsibleContent,
@@ -43,7 +43,7 @@ interface FolderRowProps {
 	onDiscardAll?: () => void;
 	isActioning?: boolean;
 	projectId?: string;
-	defaultApp?: ExternalApp | null;
+	defaultApp?: AppRef | null;
 }
 
 function LevelIndicators({ level }: { level: number }) {

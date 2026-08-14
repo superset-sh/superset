@@ -1,4 +1,4 @@
-import type { ExternalApp } from "@superset/local-db";
+import type { AppRef, CustomApp } from "@superset/local-db";
 import androidStudioIcon from "renderer/assets/app-icons/android-studio.svg";
 import antigravityIcon from "renderer/assets/app-icons/antigravity.svg";
 import appcodeIcon from "renderer/assets/app-icons/appcode.svg";
@@ -27,12 +27,19 @@ import xcodeIcon from "renderer/assets/app-icons/xcode.svg";
 import zedIcon from "renderer/assets/app-icons/zed.png";
 
 export interface OpenInExternalAppOption {
-	id: ExternalApp;
+	id: AppRef;
 	label: string;
-	lightIcon: string;
-	darkIcon: string;
+	/** Omitted for user-defined apps, which have no bundled asset. */
+	lightIcon?: string;
+	darkIcon?: string;
 	displayLabel?: string;
 }
+
+/** Presents a user-defined app with the same shape as the built-in options. */
+export const customAppToOption = (app: CustomApp): OpenInExternalAppOption => ({
+	id: app.id,
+	label: app.label,
+});
 
 export const FINDER_OPTIONS: OpenInExternalAppOption[] = [
 	{
@@ -184,7 +191,10 @@ const ALL_APP_OPTIONS: OpenInExternalAppOption[] = [
 	...JETBRAINS_OPTIONS,
 ];
 
-export const getAppOption = (
-	id: ExternalApp,
-): OpenInExternalAppOption | undefined =>
+/**
+ * Resolves a built-in app id to its option. Returns `undefined` for
+ * `custom:` refs — use `useAppOption` when user-defined apps must resolve too,
+ * since those live in settings rather than this static table.
+ */
+export const getAppOption = (id: AppRef): OpenInExternalAppOption | undefined =>
 	ALL_APP_OPTIONS.find((app) => app.id === id);
