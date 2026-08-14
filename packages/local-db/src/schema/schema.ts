@@ -300,7 +300,7 @@ export type SelectV1MigrationState = typeof v1MigrationState.$inferSelect;
 // =============================================================================
 
 export type TaskPriority = "urgent" | "high" | "medium" | "low" | "none";
-export type IntegrationProvider = "linear";
+export type IntegrationProvider = "linear" | "github" | "slack" | "plain";
 
 /**
  * Users table - synced from cloud

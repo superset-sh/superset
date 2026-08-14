@@ -62,6 +62,13 @@ export const INTEGRATIONS = [
 		category: "Productivity",
 		webPath: "/integrations/google",
 	},
+	{
+		provider: "plain",
+		label: "Plain",
+		description: "Sync Plain support threads as tasks.",
+		category: "Customer Support",
+		webPath: "/integrations/plain",
+	},
 ] as const satisfies readonly Integration[];
 
 export type IntegrationProvider = (typeof INTEGRATIONS)[number]["provider"];

@@ -4,6 +4,7 @@ import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import {
+	HiOutlineChatBubbleLeftRight,
 	HiOutlinePencilSquare,
 	HiOutlineQueueList,
 	HiOutlineViewColumns,
@@ -33,7 +34,7 @@ export type TabValue =
 	| "started"
 	| "completed"
 	| "canceled";
-export type TaskSource = "tasks" | "issues";
+export type TaskSource = "tasks" | "issues" | "plain";
 
 interface TasksTopBarProps {
 	currentTab: TabValue;
@@ -61,6 +62,11 @@ interface TasksTopBarProps {
 const TASK_SOURCES = [
 	{ value: "tasks" as const, label: "Linear", Icon: SiLinear },
 	{ value: "issues" as const, label: "GitHub issues", Icon: GoIssueOpened },
+	{
+		value: "plain" as const,
+		label: "Plain",
+		Icon: HiOutlineChatBubbleLeftRight,
+	},
 ] as const;
 
 export function TasksTopBar({
@@ -85,7 +91,9 @@ export function TasksTopBar({
 	includeClosedIssues,
 	onIncludeClosedIssuesChange,
 }: TasksTopBarProps) {
-	const showTaskOnlyControls = taskSource === "tasks";
+	const showTaskOnlyControls = taskSource !== "issues";
+	const showLinearProjectFilter = taskSource === "tasks";
+	const showCreateTask = taskSource === "tasks";
 	const showIssues = taskSource === "issues";
 	const taskSelectedCount = selectedTasks.length;
 	const issueSelectedCount = selectedIssues.length;
@@ -174,11 +182,15 @@ export function TasksTopBar({
 
 								{showTaskOnlyControls ? (
 									<>
-										<LinearProjectFilter
-											value={linearProjectFilter}
-											onChange={onLinearProjectFilterChange}
-										/>
-										<div className="h-4 w-px shrink-0 bg-border" />
+										{showLinearProjectFilter && (
+											<>
+												<LinearProjectFilter
+													value={linearProjectFilter}
+													onChange={onLinearProjectFilterChange}
+												/>
+												<div className="h-4 w-px shrink-0 bg-border" />
+											</>
+										)}
 										<StatusFilter value={currentTab} onChange={onTabChange} />
 										<div className="h-4 w-px shrink-0 bg-border" />
 										<AssigneeFilter
@@ -214,15 +226,17 @@ export function TasksTopBar({
 					<div className="flex shrink-0 items-center gap-2">
 						{showTaskOnlyControls && (
 							<>
-								<Button
-									variant="outline"
-									size="sm"
-									className="h-8 gap-1.5 px-3"
-									onClick={() => setIsCreateTaskOpen(true)}
-								>
-									<HiOutlinePencilSquare className="size-4" />
-									<span className="hidden @4xl:inline">New task</span>
-								</Button>
+								{showCreateTask && (
+									<Button
+										variant="outline"
+										size="sm"
+										className="h-8 gap-1.5 px-3"
+										onClick={() => setIsCreateTaskOpen(true)}
+									>
+										<HiOutlinePencilSquare className="size-4" />
+										<span className="hidden @4xl:inline">New task</span>
+									</Button>
+								)}
 
 								<fieldset
 									className="flex items-center rounded-md border bg-muted/30 p-0.5"
