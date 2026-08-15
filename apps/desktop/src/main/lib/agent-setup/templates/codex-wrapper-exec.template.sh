@@ -121,7 +121,8 @@ fi
 
 # `hooks` (formerly `codex_hooks`) is stable and default-enabled in codex
 # >=0.129; the legacy `notify=...` callback remains the completion source.
-"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
+# Keep Codex in xterm's primary buffer so reconnects retain scrollback.
+"$REAL_BIN" "${_superset_codex_args[@]}" --enable hooks --no-alt-screen -c 'notify=["bash","{{NOTIFY_PATH}}"]' "$@"
 SUPERSET_CODEX_STATUS=$?
 _superset_debug "codex exited status=$SUPERSET_CODEX_STATUS"
 
