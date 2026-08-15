@@ -45,10 +45,9 @@ export const commandStatusEnum = z.enum(commandStatusValues);
 export type CommandStatus = z.infer<typeof commandStatusEnum>;
 
 /**
- * Lifecycle of a cloud workspace's sandbox. Deliberately not modelling
- * sleep/wake: Blaxel wakes a sandbox on the first inbound connection, so
- * "asleep" is invisible to callers and a status we could only ever report
- * stale. `ready` means provisioned and addressable, awake or not.
+ * No sleep/wake states: the provider wakes a sandbox on the first inbound
+ * connection, so "asleep" is invisible to callers and could only ever be
+ * reported stale. `ready` means addressable, awake or not.
  */
 export const cloudWorkspaceStatusValues = [
 	"provisioning",

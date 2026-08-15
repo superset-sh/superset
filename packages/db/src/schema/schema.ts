@@ -414,13 +414,11 @@ export type InsertV2Project = typeof v2Projects.$inferInsert;
 export type SelectV2Project = typeof v2Projects.$inferSelect;
 
 /**
- * A cloud workspace: one workspace, one sandbox, no host row.
- *
- * Deliberately not a `v2_hosts` entry. A sandbox is 1:1 with a workspace
- * rather than a machine hosting many, and registering one would put it in
- * the device picker and require it to hold an outbound relay socket — which
- * fights the provider's wake-on-inbound sleep. Clients reach it directly at
- * `preview_url` using a short-lived token brokered by the cloud.
+ * Deliberately not a `v2_hosts` row: a sandbox is 1:1 with a workspace rather
+ * than a machine hosting many, and registering one would both put it in the
+ * device picker and require an outbound relay socket, which fights the
+ * provider's wake-on-inbound sleep. Clients reach it directly at `sandbox_url`
+ * with a token brokered by the cloud.
  */
 export const cloudWorkspaces = pgTable(
 	"cloud_workspaces",
@@ -432,20 +430,11 @@ export const cloudWorkspaces = pgTable(
 		projectId: uuid("project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
-		/** Sidebar label, and the basis for the branch name. */
 		name: text().notNull(),
 		branch: text().notNull(),
 		provider: text().notNull().default("blaxel"),
-		/**
-		 * The provider's identifier for the sandbox, not a machine id we mint.
-		 * Blaxel addresses sandboxes by name, so this is what it calls `name`.
-		 */
 		providerSandboxId: text("provider_sandbox_id").notNull(),
-		/**
-		 * Where clients connect. Null until provisioning completes, which is
-		 * why `status` and this column move together.
-		 */
-		previewUrl: text("preview_url"),
+		sandboxUrl: text("sandbox_url"),
 		status: cloudWorkspaceStatus().notNull().default("provisioning"),
 		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
 			onDelete: "set null",
