@@ -7,6 +7,7 @@ import { apiKeyRouter } from "./router/api-key";
 import { automationRouter } from "./router/automation";
 import { billingRouter } from "./router/billing";
 import { chatRouter } from "./router/chat";
+import { cloudWorkspaceRouter } from "./router/cloud-workspace";
 import { hostRouter } from "./router/host";
 import { integrationRouter } from "./router/integration";
 import { organizationRouter } from "./router/organization";
@@ -27,6 +28,7 @@ export const appRouter = createTRPCRouter({
 	business: businessRouter,
 	billing: billingRouter,
 	chat: chatRouter,
+	cloudWorkspace: cloudWorkspaceRouter,
 	host: hostRouter,
 	integration: integrationRouter,
 	organization: organizationRouter,

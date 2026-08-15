@@ -26,6 +26,7 @@
 		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
 	},
 	"dependencies": {
+		"@blaxel/core": "0.3.11",
 		"@linear/sdk": "68.1.1",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
