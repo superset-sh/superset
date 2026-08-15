@@ -1,0 +1,155 @@
+# CLI workspace create → open race: dead screen until the 30s fallback refetch
+
+**Status:** implemented 2026-08-15 (one PR: verdict invariant + manifest claim/ownership guards) · repro + failure-mode matrix verified · owner: Kiet
+
+## Problem
+
+Rosh (wattdata) had an agent recycle a workspace via the CLI (`superset workspaces
+delete` → `create --local` → `open`). The desktop routed to the new workspace ID and
+showed a dead screen — "Workspace not found" in his case — for tens of seconds.
+Opening the same workspace later from the Workspaces list worked fine. His words:
+"from the CLI creation path there seems to be some time in space where you get routed
+to where it's supposed to be and maybe it's not existing."
+
+The same gate causes the known ~0.5s "Workspace not found" flash right after the
+in-app new-workspace dispatch (seen during README film staging, 2026-08-12).
+
+## Root cause
+
+The renderer's host-workspace cache (`useHostWorkspaces`) converges by exactly two
+paths:
+
+1. `workspace:changed` WS broadcast — fire-and-forget. `eventBus.ts` replays only
+   fs-watches on reconnect; a broadcast that fires while the socket is down is lost
+   forever.
+2. A 30s fallback refetch (`WORKSPACES_FALLBACK_REFETCH_INTERVAL_MS`).
+
+`v2-workspace/layout.tsx:79-96` treats "row not in cache" as terminal: blank
+`StateScreenShell` when `!isReady`, `WorkspaceNotFoundState` when `isReady`. Nothing
+attempts to resolve an explicitly-requested workspace ID. So any missed broadcast
+opens an up-to-30s window where a deep link (`superset://v2-workspace/<id>`, fired by
+`workspaces open`) or sidebar click lands on a dead screen.
+
+## Repro (verified, CDP against dev desktop)
+
+Healthy event bus: broadcast lands ~280ms into the create mutation, **before** the
+CLI even gets its response — no repro, not even a flash. The bug requires a missed
+broadcast:
+
+1. `hs.workspaces.create.mutate(...)` and `bus.reconnect()` ~280ms into the in-flight
+   create → the `created` event fires into the closed socket and is lost.
+2. Navigate to the new ID (same as the deep link's `router.navigate`).
+3. Renderer shows a dead screen for **27.3s**, then the fallback refetch heals it and
+   the workspace renders normally.
+
+## Failure-mode matrix (all verified 2026-08-15 unless noted)
+
+**A. Missed broadcast → dead screen ≤30s.** Socket down when `created` fires (the
+event is unrecoverable; only fs-watches replay on reconnect). Repro: drop the bus
+280ms into an in-flight create, navigate → 27.3s dead screen, healed exactly by the
+fallback refetch.
+
+**B. Hanging host queries hold `isReady` false → blank shell for ~a minute.**
+`retry: 1` bounds attempts, not duration: a known host whose relay fetch blackholes
+hangs ~25s per attempt. Measured: navigating to an unknown ID rendered a **blank**
+pane for 50.7s, then flipped to "Workspace not found" when the hanging query finally
+errored. In a team org (Rosh's wattdata knows teammates' hosts) this is routine — it
+explains both of his rendered states, and it means `WorkspaceNotFoundState` can be
+unreachable for the first minute after any window reload.
+
+**C. Manifest points at a different host-service instance → EVERY CLI create
+misses.** The host-service child unconditionally overwrites
+`~/.superset/host/<org>/manifest.json` at boot (`host-service/index.ts:126`, last
+writer wins); the CLI trusts it (`resolveHostTarget.ts`). Coordinator adoption only
+defends the boot ordering — an instance that boots *after* the desktop steals the
+manifest while the desktop keeps its own child. Verified live: a create through a
+second instance lands in the **shared host.db** (so the renderer's refetch eventually
+serves it) while broadcasting on an event bus the renderer never listens to.
+**Found a wild specimen on this machine**: the prod manifest pointed at a host-service
+belonging to the Superset 1.22.0 app run **from the mounted DMG** a day earlier, still
+alive; the installed apps had adopted it. Triggers: DMG test-drives, canary+stable,
+`superset start`, update-surviving instances.
+
+**D. Stale snapshot at boot.** Snapshot hydration counts as "settled" for `isReady`,
+so right after a reload the gate can pass judgment from a stale list while the live
+query is still in flight → not-found for a row that exists. (Code-read; same gate.)
+
+Related defect found on the way: coordinator `stop()` removes the org manifest
+unconditionally — quitting one desktop deletes a manifest now owned by another live
+instance, leaving the CLI with "host service isn't running". Fix separately (only
+remove when `manifest.pid` is the coordinator's own child).
+
+## Not the bug (ruled out during investigation)
+
+- `txId: null` in CLI create output — always null since local-first (#5731), nothing
+  consumes it. Consider deleting the dead field separately.
+- The "spinner" in Rosh's video — that's `superset-empty-state-wordmark.svg`, the
+  static empty-state art. His workspace was open and healthy in those frames.
+- "Workspace not found" after deleting the currently-viewed workspace — by design
+  (`layout.tsx:91`), no auto-navigation.
+
+## Fix
+
+All four modes are different ways the renderer's mirror goes stale, but the bug
+materializes at exactly one line: where the route concludes "this workspace doesn't
+exist" from that mirror. host.db is shared and authoritative, so in every mode the
+row is one refetch away. Fix the verdict site (PR 1); fix mode C's topology at its
+own source (PR 2) because a second instance silences ALL bus-driven UI (ports, git,
+agent status), not just this screen.
+
+### PR 1 — the verdict invariant (`v2-workspace/layout.tsx`, fixes Rosh)
+
+**Never declare not-found from data older than the request.** When the route mounts
+for an ID not in the mirror and there's no `failedEntry`: fire one forced refetch of
+the host workspace lists (add `refetchAll()` to `HostWorkspacesCacheOps`), render the
+loading shell, and render `WorkspaceNotFoundState` only once a fetch that started
+after the route mounted has settled without the row — hard cap ~5s, **independent of
+`isReady`** (mode B holds `isReady` false ~51s via one hanging host; the local host's
+answer is all the verdict needs). Ref-guard one refetch per workspaceId — no loops.
+
+Coverage: mode A heals in ~100ms (was ≤30s), mode C in ~100ms (refetch reads the
+shared DB), mode D at boot, mode B collapses from a 51s blank to a bounded
+shell→verdict. Also kills the in-app dispatch flash. `WorkspaceNotFoundState` here is
+the only place the app draws a "doesn't exist" conclusion from the mirror (checked).
+
+### PR 2 — single-instance the host-service (source fix for mode C)
+
+The host-service child takes an exclusive `flock` on its org dir at boot and exits
+when it's held (flock releases on process death — no stale-lock mode; updates still
+work because the coordinator kills its old child before spawning). Include the
+one-line coordinator fix: `stop()` removes the manifest only when `manifest.pid` is
+our own child. This would have prevented the DMG specimen outright.
+
+### Optional hygiene (fold into PR 1 if trivial, else skip)
+
+- Reconnect heal: on event-bus reopen (not initial connect), invalidate that host's
+  list — background staleness (sidebar rows) heals in ~100ms instead of ≤30s.
+- `AbortSignal.timeout(~10s)` on `workspace.list` fetches so unreachable hosts settle
+  into `isError` in seconds — shrinks mode B for every other `isReady` consumer.
+- `superset doctor` check: multiple live host-services for one org dir, or manifest
+  endpoint ≠ the desktop's active instance.
+
+### Explicitly not doing
+
+- Host-side event queue/replay (protocol change, disproportionate).
+- Auto-navigate away when the viewed workspace is deleted (separate UX decision).
+
+## Tests
+
+- Layout (PR 1): unknown-but-requested ID → loading shell + exactly one forced
+  refetch; post-mount fetch settles with row → workspace renders; without row →
+  not-found; cap expiry → not-found; `isReady` false throughout must not block the
+  verdict. Mutate the fix out to prove each test fails.
+- Host-service (PR 2): second boot on a locked org dir exits without touching the
+  manifest; lock released on process death; coordinator `stop()` leaves a foreign
+  manifest in place.
+
+## Verification
+
+Done 2026-08-15 against the running dev app (ghost-row insert = deterministic
+missed-broadcast sim): before-fix heal at t=26.9s (blank the whole time); with the
+fix the same scenario renders at t=0.6s and a genuinely-missing id reaches
+not-found in 248ms (was 50.7s blank). Normal create→open unchanged (214ms).
+
+Before/after video: `~/Downloads/workspace-notfound-before-after.mp4` (27s, timer
+overlay shows real elapsed time; before segment played at 4x, after in real time).
