@@ -6,15 +6,31 @@ import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import {
+	bootstrapSandbox,
 	deleteSandbox,
 	mintPreviewAccess,
 	provisionSandbox,
 } from "../../lib/blaxel";
+import { resolveCloneTarget } from "../../lib/blaxel/clone-token";
 import { jwtProcedure } from "../../trpc";
 
 /** Derived from the row id so the name is stable and collision-free. */
 function sandboxNameFor(cloudWorkspaceId: string): string {
 	return `ws-${cloudWorkspaceId.replaceAll("-", "").slice(0, 24)}`;
+}
+
+/**
+ * Cloud workspaces are internal-only while the sandbox path is unproven: a
+ * failure here provisions real infrastructure and clones a customer's code
+ * into it, so exposure is limited to us until it has run for a while.
+ */
+function assertInternal(email: string): void {
+	if (!email.toLowerCase().endsWith("@superset.sh")) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "Cloud workspaces are not available yet",
+		});
+	}
 }
 
 function assertMember(organizationIds: string[], organizationId: string): void {
@@ -30,6 +46,7 @@ export const cloudWorkspaceRouter = {
 	list: jwtProcedure
 		.input(z.object({ organizationId: z.string().uuid() }))
 		.query(async ({ ctx, input }) => {
+			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, input.organizationId);
 			return db
 				.select()
@@ -60,6 +77,7 @@ export const cloudWorkspaceRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
+			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, input.organizationId);
 
 			const project = await db.query.v2Projects.findFirst({
@@ -102,6 +120,25 @@ export const cloudWorkspaceRouter = {
 					name: providerSandboxId,
 					image: env.BLAXEL_SANDBOX_IMAGE,
 				});
+				const clone = await resolveCloneTarget(input.projectId);
+				if (!clone) {
+					throw new TRPCError({
+						code: "PRECONDITION_FAILED",
+						message: "Project has no repository to clone",
+					});
+				}
+				await bootstrapSandbox({
+					providerSandboxId,
+					repoCloneUrl: clone.cloneUrl,
+					cloneToken: clone.token,
+					branch: input.branch,
+					organizationId: input.organizationId,
+					projectName: project.name,
+					workspaceName: input.name,
+					hostServiceSecret: env.SANDBOX_HOST_SERVICE_SECRET,
+					apiUrl: env.NEXT_PUBLIC_API_URL,
+					authToken: "sandbox",
+				});
 				const [ready] = await dbWs
 					.update(cloudWorkspaces)
 					.set({
@@ -136,6 +173,7 @@ export const cloudWorkspaceRouter = {
 			if (!row) {
 				throw new TRPCError({ code: "NOT_FOUND", message: "Not found" });
 			}
+			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, row.organizationId);
 			if (row.status !== "ready") {
 				throw new TRPCError({
@@ -149,6 +187,9 @@ export const cloudWorkspaceRouter = {
 				url: access.url,
 				token: access.token,
 				expiresAt: access.expiresAt,
+				// Both layers are required: the preview token gets a request past
+				// the provider's edge, the secret past host-service itself.
+				hostServiceSecret: env.SANDBOX_HOST_SERVICE_SECRET,
 			};
 		}),
 
@@ -159,6 +200,7 @@ export const cloudWorkspaceRouter = {
 				where: eq(cloudWorkspaces.id, input.id),
 			});
 			if (!row) return { deleted: false };
+			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, row.organizationId);
 
 			if (row.providerSandboxId) {

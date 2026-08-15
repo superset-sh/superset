@@ -28,6 +28,7 @@
 	"dependencies": {
 		"@blaxel/core": "0.3.11",
 		"@linear/sdk": "68.1.1",
+		"@octokit/app": "16.1.4",
 		"@superset/auth": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/email": "workspace:*",

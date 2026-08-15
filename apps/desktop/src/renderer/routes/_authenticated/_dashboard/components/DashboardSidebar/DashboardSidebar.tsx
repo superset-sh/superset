@@ -20,6 +20,7 @@ import { useLocalHostService } from "renderer/routes/_authenticated/providers/Lo
 import { useInlineWorkspacePortsEnabled } from "renderer/stores/inline-workspace-ports";
 import { useSidebarSectionsCollapseStore } from "renderer/stores/sidebar-sections-collapse";
 import { DashboardSidebarBulkActions } from "./components/DashboardSidebarBulkActions";
+import { DashboardSidebarCloudSection } from "./components/DashboardSidebarCloudSection";
 import { DashboardSidebarHeader } from "./components/DashboardSidebarHeader";
 import { DashboardSidebarHoverCardOverlay } from "./components/DashboardSidebarHoverCardOverlay";
 import { DashboardSidebarPinnedSection } from "./components/DashboardSidebarPinnedSection";
@@ -278,6 +279,7 @@ export function DashboardSidebar({
 													onWorkspaceHover={refreshWorkspacePullRequest}
 												/>
 											)}
+											<DashboardSidebarCloudSection isCollapsed={isCollapsed} />
 											<DashboardSidebarSessionsSection
 												sessionWorkspaces={sessionWorkspaces}
 												isCollapsed={isCollapsed}

@@ -29,6 +29,11 @@ export const env = createEnv({
 		BLAXEL_WORKSPACE: z.string().optional(),
 		BLAXEL_REGION: z.string().default("us-pdx-1"),
 		BLAXEL_SANDBOX_IMAGE: z.string().default("superset-hostsvc"),
+		// Shared by every sandbox: it is the inner of two auth layers, behind
+		// the provider preview token, and is handed to authorized clients.
+		SANDBOX_HOST_SERVICE_SECRET: z
+			.string()
+			.default("sandbox-dev-secret-change-me-0123456789"),
 		// GitHub App credentials
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),

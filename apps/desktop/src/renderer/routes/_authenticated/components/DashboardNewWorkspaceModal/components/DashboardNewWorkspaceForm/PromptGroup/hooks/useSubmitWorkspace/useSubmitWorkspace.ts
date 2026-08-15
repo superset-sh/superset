@@ -2,11 +2,13 @@ import { toast } from "@superset/ui/sonner";
 import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useCallback } from "react";
 import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import type { NewWorkspacePromptContextApi } from "renderer/stores/new-workspace-prompt-context";
 import { usePromptHistoryStore } from "renderer/stores/prompt-history";
 import { useWorkspaceCreates } from "renderer/stores/workspace-creates";
 import { useDashboardNewWorkspaceDraft } from "../../../../../DashboardNewWorkspaceDraftContext";
+import { CLOUD_HOST_ID } from "../../../components/DevicePicker/DevicePicker";
 import type { WorkspaceCreateAgent } from "../../types";
 import type { UseUploadAttachmentsApi } from "../useUploadAttachments";
 import { resolveNames } from "./resolveNames";
@@ -30,6 +32,7 @@ export function useSubmitWorkspace(
 	const { closeAndResetDraft, draft } = useDashboardNewWorkspaceDraft();
 	const { submit } = useWorkspaceCreates();
 	const { machineId } = useLocalHostService();
+	const createCloudWorkspace = cloudTrpc.cloudWorkspace.create.useMutation();
 	const { data: session } = authClient.useSession();
 	const activeOrganizationId = session?.session?.activeOrganizationId;
 
@@ -68,6 +71,32 @@ export function useSubmitWorkspace(
 		}
 
 		const { branchName, workspaceName } = resolveNames(draft);
+
+		// Cloud workspaces are provisioned by the API, not the local host, so
+		// they bypass the host `workspaces.create` path entirely.
+		if (hostId === CLOUD_HOST_ID) {
+			if (!projectId) {
+				toast.error("Cloud workspaces require a project");
+				return;
+			}
+			try {
+				await createCloudWorkspace.mutateAsync({
+					organizationId: activeOrganizationId,
+					projectId,
+					name: workspaceName ?? "Cloud workspace",
+					branch: branchName ?? "main",
+				});
+				closeAndResetDraft();
+				toast.success("Cloud workspace created");
+			} catch (error) {
+				toast.error(
+					error instanceof Error
+						? error.message
+						: "Could not create cloud workspace",
+				);
+			}
+			return;
+		}
 
 		const isPrCheckout = draft.linkedPR !== null;
 
@@ -184,6 +213,7 @@ export function useSubmitWorkspace(
 	}, [
 		activeOrganizationId,
 		closeAndResetDraft,
+		createCloudWorkspace,
 		draft,
 		isSession,
 		matchRoute,

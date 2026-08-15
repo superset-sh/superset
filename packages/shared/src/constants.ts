@@ -178,6 +178,12 @@ export const FEATURE_FLAGS = {
 	 * not what the host can do — flips take effect live, with no host restart.
 	 */
 	CHAT_V3: "chat-v3",
+	/**
+	 * Shows the cloud-workspace option in the create picker. The API gates
+	 * these to @superset.sh accounts independently, so the flag controls
+	 * visibility rather than access.
+	 */
+	CLOUD_WORKSPACES: "cloud-workspaces",
 } as const;
 
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
