@@ -14,6 +14,10 @@ import { raceWithAbort, throwIfAborted } from "../abort";
 import { buildTerminalEnv, getDefaultShell } from "../env";
 import { TerminalKilledError } from "../errors";
 import { portManager } from "../port-manager";
+import {
+	markSessionLocationExited,
+	upsertSessionLocation,
+} from "../session-location-log";
 import type { CreateSessionParams, SessionResult } from "../types";
 import {
 	CREATE_OR_ATTACH_CONCURRENCY,
@@ -218,6 +222,7 @@ export class DaemonTerminalManager extends EventEmitter {
 				if (session) {
 					session.exitReason = reason;
 				}
+				markSessionLocationExited({ paneId, exitReason: reason });
 				this.emit(`exit:${paneId}`, exitCode, signal, reason);
 				this.emit("terminalExit", { paneId, exitCode, signal, reason });
 
@@ -509,6 +514,17 @@ export class DaemonTerminalManager extends EventEmitter {
 				pid: response.pid,
 				cols: effectiveCols,
 				rows: effectiveRows,
+			});
+			upsertSessionLocation({
+				paneId,
+				tabId,
+				workspaceId,
+				workspaceName,
+				workspacePath,
+				rootPath,
+				cwd: sessionCwd,
+				command,
+				pid: response.pid,
 			});
 
 			portManager.upsertSession(paneId, workspaceId, response.pid);
