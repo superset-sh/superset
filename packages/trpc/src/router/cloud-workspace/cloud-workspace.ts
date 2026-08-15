@@ -84,7 +84,7 @@ export const cloudWorkspaceRouter = {
 					branch: input.branch,
 					provider: "blaxel",
 					// Set below, once the row id it derives from exists.
-					providerSandboxName: "",
+					providerSandboxId: "",
 					status: "provisioning",
 					createdByUserId: ctx.userId,
 				})
@@ -96,19 +96,17 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 
-			const providerSandboxName = sandboxNameFor(row.id);
+			const providerSandboxId = sandboxNameFor(row.id);
 			try {
 				const sandbox = await provisionSandbox({
-					name: providerSandboxName,
+					name: providerSandboxId,
 					image: env.BLAXEL_SANDBOX_IMAGE,
 				});
 				const [ready] = await dbWs
 					.update(cloudWorkspaces)
 					.set({
-						providerSandboxName: sandbox.providerSandboxName,
+						providerSandboxId: sandbox.providerSandboxId,
 						previewUrl: sandbox.previewUrl,
-						region: sandbox.region,
-						memoryMb: sandbox.memoryMb,
 						status: "ready",
 					})
 					.where(eq(cloudWorkspaces.id, row.id))
@@ -117,7 +115,7 @@ export const cloudWorkspaceRouter = {
 			} catch (error) {
 				await dbWs
 					.update(cloudWorkspaces)
-					.set({ status: "failed", providerSandboxName })
+					.set({ status: "failed", providerSandboxId })
 					.where(eq(cloudWorkspaces.id, row.id));
 				throw error;
 			}
@@ -146,7 +144,7 @@ export const cloudWorkspaceRouter = {
 					cause: { kind: "CLOUD_WORKSPACE_NOT_READY", status: row.status },
 				});
 			}
-			const access = await mintPreviewAccess(row.providerSandboxName);
+			const access = await mintPreviewAccess(row.providerSandboxId);
 			return {
 				url: access.url,
 				token: access.token,
@@ -163,8 +161,8 @@ export const cloudWorkspaceRouter = {
 			if (!row) return { deleted: false };
 			assertMember(ctx.organizationIds, row.organizationId);
 
-			if (row.providerSandboxName) {
-				await deleteSandbox(row.providerSandboxName);
+			if (row.providerSandboxId) {
+				await deleteSandbox(row.providerSandboxId);
 			}
 			await dbWs
 				.update(cloudWorkspaces)

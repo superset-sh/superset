@@ -30,10 +30,8 @@ function assertConfigured(): void {
 }
 
 export interface ProvisionedSandbox {
-	providerSandboxName: string;
+	providerSandboxId: string;
 	previewUrl: string;
-	region: string;
-	memoryMb: number;
 }
 
 /**
@@ -73,7 +71,7 @@ export async function provisionSandbox(args: {
 			message: "Sandbox preview has no URL",
 		});
 	}
-	return { providerSandboxName: args.name, previewUrl, region, memoryMb };
+	return { providerSandboxId: args.name, previewUrl };
 }
 
 export interface PreviewAccess {
@@ -83,10 +81,10 @@ export interface PreviewAccess {
 }
 
 export async function mintPreviewAccess(
-	providerSandboxName: string,
+	providerSandboxId: string,
 ): Promise<PreviewAccess> {
 	assertConfigured();
-	const sandbox = await SandboxInstance.get(providerSandboxName);
+	const sandbox = await SandboxInstance.get(providerSandboxId);
 	const preview = await sandbox.previews.get(PREVIEW_NAME);
 	const expiresAt = new Date(Date.now() + PREVIEW_TOKEN_TTL_MS);
 	const token = await preview.tokens.create(expiresAt);
@@ -102,12 +100,10 @@ export async function mintPreviewAccess(
 }
 
 /** Best-effort: a sandbox already gone is the state we wanted. */
-export async function deleteSandbox(
-	providerSandboxName: string,
-): Promise<void> {
+export async function deleteSandbox(providerSandboxId: string): Promise<void> {
 	assertConfigured();
 	try {
-		await SandboxInstance.delete(providerSandboxName);
+		await SandboxInstance.delete(providerSandboxId);
 	} catch (error) {
 		const message = error instanceof Error ? error.message : String(error);
 		if (!/not found|404/i.test(message)) throw error;
