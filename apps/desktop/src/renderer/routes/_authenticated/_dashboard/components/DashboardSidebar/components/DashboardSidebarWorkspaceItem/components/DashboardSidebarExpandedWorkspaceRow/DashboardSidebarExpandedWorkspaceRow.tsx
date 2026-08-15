@@ -316,72 +316,79 @@ export const DashboardSidebarExpandedWorkspaceRow = forwardRef<
 								)
 							)}
 							{!isPending && !isSelected && (
-								<div className="hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex">
+								<div
+									className={cn(
+										"hidden items-center justify-end gap-1.5 group-hover:flex group-focus-within:flex",
+										shortcutLabel && "group-data-[jump-shortcuts]/sidebar:flex",
+									)}
+								>
 									{shortcutLabel && (
 										<span className="shrink-0 font-mono text-[10px] tabular-nums text-muted-foreground">
 											{shortcutLabel}
 										</span>
 									)}
-									{isLocalMainWorkspace ? null : isMainWorkspace ? (
-										<Tooltip delayDuration={300}>
-											<TooltipTrigger asChild>
-												<button
-													type="button"
-													onClick={(event) => {
-														event.stopPropagation();
-														onRemoveFromSidebarClick();
-													}}
-													onKeyDown={(event) => {
-														if (
-															event.key === "Enter" ||
-															event.key === " " ||
-															event.key === "Spacebar"
-														) {
+									<div className="contents group-data-[jump-shortcuts]/sidebar:hidden">
+										{isLocalMainWorkspace ? null : isMainWorkspace ? (
+											<Tooltip delayDuration={300}>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														onClick={(event) => {
 															event.stopPropagation();
-														}
-													}}
-													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label="Remove from sidebar"
-												>
-													<HiMiniMinus className="size-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="top">
-												<HotkeyLabel label="Remove from sidebar" />
-											</TooltipContent>
-										</Tooltip>
-									) : (
-										<Tooltip delayDuration={300}>
-											<TooltipTrigger asChild>
-												<button
-													type="button"
-													onClick={(event) => {
-														event.stopPropagation();
-														onCloseWorkspaceClick();
-													}}
-													onKeyDown={(event) => {
-														if (
-															event.key === "Enter" ||
-															event.key === " " ||
-															event.key === "Spacebar"
-														) {
+															onRemoveFromSidebarClick();
+														}}
+														onKeyDown={(event) => {
+															if (
+																event.key === "Enter" ||
+																event.key === " " ||
+																event.key === "Spacebar"
+															) {
+																event.stopPropagation();
+															}
+														}}
+														className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+														aria-label="Remove from sidebar"
+													>
+														<HiMiniMinus className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="top">
+													<HotkeyLabel label="Remove from sidebar" />
+												</TooltipContent>
+											</Tooltip>
+										) : (
+											<Tooltip delayDuration={300}>
+												<TooltipTrigger asChild>
+													<button
+														type="button"
+														onClick={(event) => {
 															event.stopPropagation();
-														}
-													}}
-													className="flex items-center justify-center text-muted-foreground hover:text-foreground"
-													aria-label="Close workspace"
-												>
-													<HiMiniXMark className="size-3.5" />
-												</button>
-											</TooltipTrigger>
-											<TooltipContent side="top">
-												<HotkeyLabel
-													label="Close workspace"
-													id={isActive ? "CLOSE_WORKSPACE" : undefined}
-												/>
-											</TooltipContent>
-										</Tooltip>
-									)}
+															onCloseWorkspaceClick();
+														}}
+														onKeyDown={(event) => {
+															if (
+																event.key === "Enter" ||
+																event.key === " " ||
+																event.key === "Spacebar"
+															) {
+																event.stopPropagation();
+															}
+														}}
+														className="flex items-center justify-center text-muted-foreground hover:text-foreground"
+														aria-label="Close workspace"
+													>
+														<HiMiniXMark className="size-3.5" />
+													</button>
+												</TooltipTrigger>
+												<TooltipContent side="top">
+													<HotkeyLabel
+														label="Close workspace"
+														id={isActive ? "CLOSE_WORKSPACE" : undefined}
+													/>
+												</TooltipContent>
+											</Tooltip>
+										)}
+									</div>
 								</div>
 							)}
 						</div>

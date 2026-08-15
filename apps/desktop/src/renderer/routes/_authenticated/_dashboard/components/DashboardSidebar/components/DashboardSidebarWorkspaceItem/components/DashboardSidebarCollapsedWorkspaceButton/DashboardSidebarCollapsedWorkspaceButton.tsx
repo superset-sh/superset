@@ -17,6 +17,7 @@ interface DashboardSidebarCollapsedWorkspaceButtonProps
 	workspaceStatus?: ActivePaneStatus | null;
 	isCreatePending: boolean;
 	pullRequestState?: DashboardSidebarWorkspacePullRequest["state"] | null;
+	shortcutLabel?: string;
 }
 
 export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
@@ -32,6 +33,7 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 			workspaceStatus = null,
 			isCreatePending,
 			pullRequestState = null,
+			shortcutLabel,
 			className,
 			...props
 		},
@@ -61,6 +63,14 @@ export const DashboardSidebarCollapsedWorkspaceButton = forwardRef<
 					isCreatePending={isCreatePending}
 					pullRequestState={pullRequestState}
 				/>
+				{shortcutLabel && (
+					<span
+						aria-hidden
+						className="pointer-events-none absolute inset-0 hidden items-center justify-center rounded-md bg-background/90 font-mono text-[10px] tabular-nums text-muted-foreground group-data-[jump-shortcuts]/sidebar:flex"
+					>
+						{shortcutLabel}
+					</span>
+				)}
 			</button>
 		);
 	},
