@@ -7,12 +7,14 @@ function make(overrides: {
 	archiveReason?: "merged" | "deleted" | null;
 	agentStatus?: PaneStatus;
 	prState?: "open" | "draft" | "merged" | "closed" | "queued" | null;
+	type?: "main" | "worktree" | "session";
 }) {
 	return {
 		archivedAt: overrides.archivedAt ?? null,
 		archiveReason: overrides.archiveReason ?? null,
 		agentStatus: overrides.agentStatus ?? ("idle" as const),
 		pr: overrides.prState ? { state: overrides.prState } : null,
+		type: overrides.type ?? ("worktree" as const),
 	};
 }
 
@@ -65,6 +67,26 @@ describe("deriveBoardColumn", () => {
 		expect(deriveBoardColumn(make({ prState: "open" }))).toBe("review");
 		expect(deriveBoardColumn(make({ prState: "draft" }))).toBe("review");
 		expect(deriveBoardColumn(make({ prState: "queued" }))).toBe("review");
+	});
+
+	test("a finished agent on a session or main workspace is Idle, not review", () => {
+		expect(
+			deriveBoardColumn(make({ agentStatus: "review", type: "session" })),
+		).toBe("idle");
+		expect(
+			deriveBoardColumn(make({ agentStatus: "review", type: "main" })),
+		).toBe("idle");
+	});
+
+	test("an open PR means review even on session and main workspaces", () => {
+		expect(
+			deriveBoardColumn(
+				make({ agentStatus: "review", type: "session", prState: "open" }),
+			),
+		).toBe("review");
+		expect(deriveBoardColumn(make({ type: "main", prState: "open" }))).toBe(
+			"review",
+		);
 	});
 
 	test("no signals (or a closed PR) is Idle", () => {

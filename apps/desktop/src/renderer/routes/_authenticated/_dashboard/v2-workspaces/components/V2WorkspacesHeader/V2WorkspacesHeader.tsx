@@ -18,6 +18,7 @@ import {
 import { cn } from "@superset/ui/utils";
 import {
 	LuArchive,
+	LuArrowDownUp,
 	LuBot,
 	LuGitPullRequest,
 	LuLaptop,
@@ -37,10 +38,14 @@ import {
 	PROJECT_FILTER_SESSIONS,
 	useV2WorkspacesFilterStore,
 	V2_WORKSPACES_AGENT_STATUS_FILTERS,
+	V2_WORKSPACES_AGENT_STATUS_LABELS,
 	V2_WORKSPACES_PR_STATE_FILTERS,
+	V2_WORKSPACES_SORT_LABELS,
+	V2_WORKSPACES_SORT_MODES,
 	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesArchivedWindow,
 	type V2WorkspacesPrStateFilter,
+	type V2WorkspacesSortMode,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
@@ -54,14 +59,6 @@ const PR_STATE_LABELS: Record<V2WorkspacesPrStateFilter, string> = {
 	queued: "Queued",
 	merged: "Merged",
 	closed: "Closed",
-};
-
-const AGENT_STATUS_LABELS: Record<V2WorkspacesAgentStatusFilter, string> = {
-	idle: "Idle",
-	working: "Working",
-	permission: "Needs permission",
-	review: "Ready for review",
-	failed: "Failed",
 };
 
 const ARCHIVED_WINDOW_LABELS: Record<V2WorkspacesArchivedWindow, string> = {
@@ -116,6 +113,8 @@ export function V2WorkspacesHeader({
 	);
 	const viewMode = useV2WorkspacesFilterStore((state) => state.viewMode);
 	const setViewMode = useV2WorkspacesFilterStore((state) => state.setViewMode);
+	const sortMode = useV2WorkspacesFilterStore((state) => state.sortMode);
+	const setSortMode = useV2WorkspacesFilterStore((state) => state.setSortMode);
 	const archivedWindow = useV2WorkspacesFilterStore(
 		(state) => state.archivedWindow,
 	);
@@ -221,7 +220,7 @@ export function V2WorkspacesHeader({
 						icon={<LuBot className="size-3.5" />}
 						options={V2_WORKSPACES_AGENT_STATUS_FILTERS.map((status) => ({
 							value: status,
-							label: AGENT_STATUS_LABELS[status],
+							label: V2_WORKSPACES_AGENT_STATUS_LABELS[status],
 						}))}
 						value={agentStatusFilters}
 						onChange={(next) =>
@@ -270,34 +269,57 @@ export function V2WorkspacesHeader({
 						</SelectContent>
 					</Select>
 
-					{viewMode === "board" ? (
-						<Select
-							value={archivedWindow}
-							onValueChange={(next) =>
-								setArchivedWindow(next as V2WorkspacesArchivedWindow)
-							}
+					<Select
+						value={archivedWindow}
+						onValueChange={(next) =>
+							setArchivedWindow(next as V2WorkspacesArchivedWindow)
+						}
+					>
+						<SelectTrigger size="sm" className="min-w-[10rem]">
+							<SelectValue>
+								<span className="flex items-center gap-1.5">
+									<LuArchive className="size-3.5" />
+									{ARCHIVED_WINDOW_LABELS[archivedWindow]}
+								</span>
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent align="end">
+							{(
+								Object.keys(
+									ARCHIVED_WINDOW_LABELS,
+								) as V2WorkspacesArchivedWindow[]
+							).map((window) => (
+								<SelectItem key={window} value={window}>
+									{ARCHIVED_WINDOW_LABELS[window]}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+
+					<Select
+						value={sortMode}
+						onValueChange={(next) => setSortMode(next as V2WorkspacesSortMode)}
+					>
+						<SelectTrigger
+							size="sm"
+							className="min-w-[9rem]"
+							aria-label="Sort workspaces"
 						>
-							<SelectTrigger size="sm" className="min-w-[10rem]">
-								<SelectValue>
-									<span className="flex items-center gap-1.5">
-										<LuArchive className="size-3.5" />
-										{ARCHIVED_WINDOW_LABELS[archivedWindow]}
-									</span>
-								</SelectValue>
-							</SelectTrigger>
-							<SelectContent align="end">
-								{(
-									Object.keys(
-										ARCHIVED_WINDOW_LABELS,
-									) as V2WorkspacesArchivedWindow[]
-								).map((window) => (
-									<SelectItem key={window} value={window}>
-										{ARCHIVED_WINDOW_LABELS[window]}
-									</SelectItem>
-								))}
-							</SelectContent>
-						</Select>
-					) : null}
+							<SelectValue>
+								<span className="flex items-center gap-1.5">
+									<LuArrowDownUp className="size-3.5" />
+									{V2_WORKSPACES_SORT_LABELS[sortMode]}
+								</span>
+							</SelectValue>
+						</SelectTrigger>
+						<SelectContent align="end">
+							{V2_WORKSPACES_SORT_MODES.map((mode) => (
+								<SelectItem key={mode} value={mode}>
+									{V2_WORKSPACES_SORT_LABELS[mode]}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
 
 					<div className="flex items-center rounded-md border border-border p-0.5">
 						<Button

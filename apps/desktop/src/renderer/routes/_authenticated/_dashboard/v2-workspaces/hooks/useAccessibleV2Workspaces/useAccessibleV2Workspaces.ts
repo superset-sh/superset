@@ -61,6 +61,12 @@ export interface V2WorkspacePrSummary {
 	mergedAt: number | null;
 }
 
+export interface V2WorkspaceDiffStats {
+	additions: number;
+	deletions: number;
+	fileCount: number;
+}
+
 export interface AccessibleV2Workspace {
 	id: string;
 	name: string;
@@ -85,6 +91,13 @@ export interface AccessibleV2Workspace {
 	pr: V2WorkspacePrSummary | null;
 	/** Highest-priority live agent status across the workspace's terminals. */
 	agentStatus: PaneStatus;
+	/** Most recent agent event across the workspace's terminals (epoch ms);
+	 * null when no agent has ever run here. */
+	lastAgentEventAt: number | null;
+	/** Distinct agents bound to this workspace's terminals, most recent first. */
+	agentIds: string[];
+	/** Working-tree + against-base churn; null until the host answers. */
+	diffStats: V2WorkspaceDiffStats | null;
 	/** Non-null = archived tombstone (soft-deleted workspace). */
 	archivedAt: number | null;
 	archiveReason: "merged" | "deleted" | null;
@@ -534,11 +547,58 @@ export function useAccessibleV2Workspaces(
 			},
 		})),
 	});
+	// Batched totals, one query per host (mirrors the PR/agent queries above).
+	// Slower cadence: totals only feed row chips, not the Changes tab.
+	const diffStatsQueries = useQueries({
+		queries: pullRequestQueryTargets.map((target) => ({
+			queryKey: [
+				"v2-workspaces",
+				"diff-stats",
+				target.organizationId,
+				target.machineId,
+			] as const,
+			refetchInterval: 30_000,
+			enabled: target.hostUrl !== null,
+			queryFn: async () => {
+				if (!target.hostUrl) return { workspaces: [] };
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.git.getDiffStatsByWorkspaces.query({
+					workspaceIds: target.workspaceIds,
+				});
+			},
+		})),
+	});
+	const diffStatsEntries = useMemo<[string, V2WorkspaceDiffStats][]>(() => {
+		const entries: [string, V2WorkspaceDiffStats][] = [];
+		for (const query of diffStatsQueries) {
+			for (const row of query.data?.workspaces ?? []) {
+				entries.push([
+					row.workspaceId,
+					{
+						additions: row.additions,
+						deletions: row.deletions,
+						fileCount: row.fileCount,
+					},
+				]);
+			}
+		}
+		return entries;
+	}, [diffStatsQueries]);
+	const diffStatsByWorkspaceId = useStableByWorkspaceId(diffStatsEntries);
+
 	const terminalSeenAt = useV2NotificationStore(
 		(state) => state.terminalSeenAt,
 	);
-	const agentStatusEntries = useMemo<[string, PaneStatus][]>(() => {
-		const byWorkspace = new Map<string, PaneStatus>();
+	const agentActivityEntries = useMemo<
+		[
+			string,
+			{ status: PaneStatus; lastEventAt: number; agents: [string, number][] },
+		][]
+	>(() => {
+		const byWorkspace = new Map<
+			string,
+			{ status: PaneStatus; lastEventAt: number; agents: Map<string, number> }
+		>();
 		for (const query of terminalAgentQueries) {
 			for (const binding of query.data ?? []) {
 				const status = deriveTerminalAgentStatus({
@@ -546,15 +606,31 @@ export function useAccessibleV2Workspaces(
 					lastEventAt: binding.lastEventAt,
 					lastSeenAt: terminalSeenAt[binding.terminalId],
 				});
-				byWorkspace.set(
-					binding.workspaceId,
-					pickHigherStatus(byWorkspace.get(binding.workspaceId), status),
+				const prev = byWorkspace.get(binding.workspaceId) ?? {
+					status: "idle" as PaneStatus,
+					lastEventAt: 0,
+					agents: new Map<string, number>(),
+				};
+				prev.status = pickHigherStatus(prev.status, status);
+				prev.lastEventAt = Math.max(prev.lastEventAt, binding.lastEventAt);
+				prev.agents.set(
+					binding.agentId,
+					Math.max(prev.agents.get(binding.agentId) ?? 0, binding.lastEventAt),
 				);
+				byWorkspace.set(binding.workspaceId, prev);
 			}
 		}
-		return [...byWorkspace.entries()];
+		return [...byWorkspace.entries()].map(([id, value]) => [
+			id,
+			{
+				status: value.status,
+				lastEventAt: value.lastEventAt,
+				agents: [...value.agents.entries()],
+			},
+		]);
 	}, [terminalAgentQueries, terminalSeenAt]);
-	const agentStatusByWorkspaceId = useStableByWorkspaceId(agentStatusEntries);
+	const agentActivityByWorkspaceId =
+		useStableByWorkspaceId(agentActivityEntries);
 
 	const enriched = useMemo<AccessibleV2Workspace[]>(() => {
 		const deduped = new Map<string, AccessibleV2Workspace>();
@@ -592,7 +668,13 @@ export function useAccessibleV2Workspaces(
 				hostType,
 				isInSidebar,
 				pr,
-				agentStatus: agentStatusByWorkspaceId.get(row.id) ?? "idle",
+				agentStatus: agentActivityByWorkspaceId.get(row.id)?.status ?? "idle",
+				lastAgentEventAt:
+					agentActivityByWorkspaceId.get(row.id)?.lastEventAt ?? null,
+				agentIds: (agentActivityByWorkspaceId.get(row.id)?.agents ?? [])
+					.sort((a, b) => b[1] - a[1])
+					.map(([agentId]) => agentId),
+				diffStats: diffStatsByWorkspaceId.get(row.id) ?? null,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
 			});
@@ -605,7 +687,8 @@ export function useAccessibleV2Workspaces(
 		machineId,
 		currentUserId,
 		prByWorkspaceId,
-		agentStatusByWorkspaceId,
+		agentActivityByWorkspaceId,
+		diffStatsByWorkspaceId,
 	]);
 
 	const searchFiltered = useMemo(

@@ -32,7 +32,7 @@ export const BOARD_COLUMN_LABELS: Record<BoardColumnKey, string> = {
 
 type BoardColumnInputs = Pick<
 	AccessibleV2Workspace,
-	"archivedAt" | "archiveReason" | "agentStatus"
+	"archivedAt" | "archiveReason" | "agentStatus" | "type"
 > & {
 	pr: { state: V2WorkspacePrState } | null;
 };
@@ -44,8 +44,14 @@ type BoardColumnInputs = Pick<
  *   3. live PR merged                    → Merged
  *   4. agent permission/failed           → Needs attention
  *   5. agent working                     → Working
- *   6. agent review, or PR open/draft/queued → Needs review
- *   7. otherwise                         → Idle
+ *   6. PR open/draft/queued              → Needs review
+ *   7. agent review on a worktree        → Needs review
+ *   8. otherwise                         → Idle
+ *
+ * A finished agent alone only counts as review-worthy on worktree
+ * workspaces: session runs (automations, chats) and main checkouts have no
+ * branch to review, and they arrive in volume — routing them to "review"
+ * buries the real candidates (the bucket answers "what needs me").
  */
 export function deriveBoardColumn(
 	workspace: BoardColumnInputs,
@@ -62,11 +68,13 @@ export function deriveBoardColumn(
 	}
 	if (workspace.agentStatus === "working") return "working";
 	if (
-		workspace.agentStatus === "review" ||
 		workspace.pr?.state === "open" ||
 		workspace.pr?.state === "draft" ||
 		workspace.pr?.state === "queued"
 	) {
+		return "review";
+	}
+	if (workspace.agentStatus === "review" && workspace.type === "worktree") {
 		return "review";
 	}
 	return "idle";

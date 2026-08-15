@@ -29,7 +29,34 @@ export const V2_WORKSPACES_AGENT_STATUS_FILTERS = [
 export type V2WorkspacesAgentStatusFilter =
 	(typeof V2_WORKSPACES_AGENT_STATUS_FILTERS)[number];
 
+/** Shared by the Agent filter dropdown and the list rows' Agent cell. */
+export const V2_WORKSPACES_AGENT_STATUS_LABELS: Record<
+	V2WorkspacesAgentStatusFilter,
+	string
+> = {
+	idle: "Idle",
+	working: "Working",
+	permission: "Needs permission",
+	review: "Ready for review",
+	failed: "Failed",
+};
+
 export type V2WorkspacesViewMode = "list" | "board";
+
+export const V2_WORKSPACES_SORT_MODES = [
+	"activity",
+	"created",
+	"churn",
+	"name",
+] as const;
+export type V2WorkspacesSortMode = (typeof V2_WORKSPACES_SORT_MODES)[number];
+
+export const V2_WORKSPACES_SORT_LABELS: Record<V2WorkspacesSortMode, string> = {
+	activity: "Last activity",
+	created: "Created",
+	churn: "Diff size",
+	name: "Name",
+};
 
 export const V2_WORKSPACES_ARCHIVED_WINDOWS = [
 	"none",
@@ -50,7 +77,9 @@ interface V2WorkspacesFilterState {
 	/** Empty = any agent status. */
 	agentStatusFilters: V2WorkspacesAgentStatusFilter[];
 	viewMode: V2WorkspacesViewMode;
-	/** Board-only: how far back archived tombstones render. */
+	/** Row order inside status groups (both views). */
+	sortMode: V2WorkspacesSortMode;
+	/** How far back archived tombstones render (both views). */
 	archivedWindow: V2WorkspacesArchivedWindow;
 	setSearchQuery: (searchQuery: string) => void;
 	setDeviceFilter: (deviceFilter: V2WorkspacesDeviceFilter) => void;
@@ -60,6 +89,7 @@ interface V2WorkspacesFilterState {
 		agentStatusFilters: V2WorkspacesAgentStatusFilter[],
 	) => void;
 	setViewMode: (viewMode: V2WorkspacesViewMode) => void;
+	setSortMode: (sortMode: V2WorkspacesSortMode) => void;
 	setArchivedWindow: (archivedWindow: V2WorkspacesArchivedWindow) => void;
 	/** Clears filters only — view mode and archived window persist. */
 	reset: () => void;
@@ -73,6 +103,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 		prStateFilters: [],
 		agentStatusFilters: [],
 		viewMode: "list",
+		sortMode: "activity",
 		archivedWindow: "week",
 		setSearchQuery: (searchQuery) => set({ searchQuery }),
 		setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
@@ -80,6 +111,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 		setPrStateFilters: (prStateFilters) => set({ prStateFilters }),
 		setAgentStatusFilters: (agentStatusFilters) => set({ agentStatusFilters }),
 		setViewMode: (viewMode) => set({ viewMode }),
+		setSortMode: (sortMode) => set({ sortMode }),
 		setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
 		reset: () =>
 			set({

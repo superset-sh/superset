@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef } from "react";
+import { useEffect, useRef } from "react";
 import { V2WorkspacesBoard } from "./components/V2WorkspacesBoard";
 import { V2WorkspacesHeader } from "./components/V2WorkspacesHeader";
 import { V2WorkspacesList } from "./components/V2WorkspacesList";
@@ -164,15 +164,10 @@ function V2WorkspacesPage() {
 			projectFilters,
 			prStateFilters,
 			agentStatusFilters,
-			// Tombstones ride along so the board's Merged/Deleted columns work;
-			// the list layout renders live rows only, so it skips the fetch.
-			includeArchived: viewMode === "board",
+			// Tombstones ride along so both views' Merged/Deleted groups work;
+			// each view scopes them by the shared archived window.
+			includeArchived: true,
 		});
-
-	const liveWorkspaces = useMemo(
-		() => all.filter((workspace) => workspace.archivedAt == null),
-		[all],
-	);
 
 	return (
 		<div className="flex h-full w-full flex-1 flex-col overflow-hidden">
@@ -185,7 +180,7 @@ function V2WorkspacesPage() {
 			{viewMode === "board" ? (
 				<V2WorkspacesBoard workspaces={all} isReady={isReady} />
 			) : (
-				<V2WorkspacesList workspaces={liveWorkspaces} isReady={isReady} />
+				<V2WorkspacesList workspaces={all} isReady={isReady} />
 			)}
 		</div>
 	);
