@@ -11,6 +11,7 @@ import type { ILinkHandler, Terminal as XTerm } from "@xterm/xterm";
 import { UrlLinkProvider } from "../../screens/main/components/WorkspaceView/ContentView/TabsContent/Terminal/link-providers";
 import type { DetectedLink } from "./links";
 import {
+	fileUriToPath,
 	LinkDetectorAdapter,
 	LocalLinkDetector,
 	type StatCallback,
@@ -22,12 +23,19 @@ export type LinkHoverInfo =
 	| { kind: "file"; isDirectory: boolean }
 	| { kind: "url" };
 
+const HTTP_SCHEME_PATTERN = /^https?:\/\//i;
+
 /**
  * Link handler callbacks for the v2 terminal.
  */
 export interface TerminalLinkHandlers {
 	/** Called when a file path link is activated (Cmd/Ctrl+click). */
 	onFileLinkClick?: (event: MouseEvent, link: DetectedLink) => void;
+	/**
+	 * Called when an OSC 8 hyperlink pointing at a `file://` URI is activated,
+	 * with the decoded absolute path.
+	 */
+	onFileUrlClick?: (event: MouseEvent, path: string) => void;
 	/** Called when a URL link is activated. */
 	onUrlClick?: (event: MouseEvent, url: string) => void;
 	/** Called when the mouse enters a detected link (file path or URL). */
@@ -149,13 +157,27 @@ export class TerminalLinkManager {
 			// xterm always registers its own OSC 8 hyperlink provider first. Without
 			// this, OSC 8 links use xterm's default confirm() + window.open() path,
 			// which is blocked in Electron and also bypasses our link preferences.
+			//
+			// Non-HTTP protocols are allowed through so that `file://` hyperlinks
+			// (agent CLIs emit them for files they wrote) open like any other file
+			// path. `activate` is the allowlist xterm's docs require: every other
+			// scheme is dropped rather than handed to the URL handler.
+			const onFileUrlClick = handlers.onFileUrlClick;
 			this._oscLinkHandler = {
-				allowNonHttpProtocols: false,
+				allowNonHttpProtocols: true,
 				activate: (event, uri) => {
-					onUrlClick(event, uri);
+					const filePath = fileUriToPath(uri);
+					if (filePath) onFileUrlClick?.(event, filePath);
+					else if (HTTP_SCHEME_PATTERN.test(uri)) onUrlClick(event, uri);
 				},
 				hover: onLinkHover
-					? (event) => onLinkHover(event, { kind: "url" })
+					? (event, uri) => {
+							if (fileUriToPath(uri)) {
+								onLinkHover(event, { kind: "file", isDirectory: false });
+							} else if (HTTP_SCHEME_PATTERN.test(uri)) {
+								onLinkHover(event, { kind: "url" });
+							}
+						}
 					: undefined,
 				leave: onLinkLeave ? () => onLinkLeave() : undefined,
 			};

@@ -45,7 +45,7 @@ describe("TerminalLinkManager", () => {
 
 		const linkHandler = terminal.options.linkHandler;
 		expect(linkHandler).toBeTruthy();
-		expect(linkHandler?.allowNonHttpProtocols).toBe(false);
+		expect(linkHandler?.allowNonHttpProtocols).toBe(true);
 
 		const event = {} as MouseEvent;
 		linkHandler?.activate(event, "https://example.com", {
@@ -64,6 +64,65 @@ describe("TerminalLinkManager", () => {
 		expect(onUrlClick).toHaveBeenCalledWith(event, "https://example.com");
 		expect(onLinkHover).toHaveBeenCalledWith(event, { kind: "url" });
 		expect(onLinkLeave).toHaveBeenCalled();
+	});
+
+	it("routes OSC 8 file:// hyperlinks through the file handler", () => {
+		const { terminal } = createMockTerminal();
+		const manager = new TerminalLinkManager(terminal);
+		const onFileUrlClick = mock();
+		const onUrlClick = mock();
+		const onLinkHover = mock();
+
+		manager.setHandlers({
+			stat: async () => null,
+			onFileUrlClick,
+			onUrlClick,
+			onLinkHover,
+		});
+
+		const linkHandler = terminal.options.linkHandler;
+		const event = {} as MouseEvent;
+		const range = { start: { x: 1, y: 1 }, end: { x: 20, y: 1 } };
+		const uri = "file:///Users/me/.claude/image-cache/a%20b.png";
+
+		linkHandler?.activate(event, uri, range);
+		linkHandler?.hover?.(event, uri, range);
+
+		expect(onFileUrlClick).toHaveBeenCalledWith(
+			event,
+			"/Users/me/.claude/image-cache/a b.png",
+		);
+		expect(onUrlClick).not.toHaveBeenCalled();
+		expect(onLinkHover).toHaveBeenCalledWith(event, {
+			kind: "file",
+			isDirectory: false,
+		});
+	});
+
+	it("ignores OSC 8 hyperlinks using an unsupported scheme", () => {
+		const { terminal } = createMockTerminal();
+		const manager = new TerminalLinkManager(terminal);
+		const onFileUrlClick = mock();
+		const onUrlClick = mock();
+		const onLinkHover = mock();
+
+		manager.setHandlers({
+			stat: async () => null,
+			onFileUrlClick,
+			onUrlClick,
+			onLinkHover,
+		});
+
+		const linkHandler = terminal.options.linkHandler;
+		const event = {} as MouseEvent;
+		const range = { start: { x: 1, y: 1 }, end: { x: 20, y: 1 } };
+
+		linkHandler?.activate(event, "javascript:alert(1)", range);
+		linkHandler?.hover?.(event, "javascript:alert(1)", range);
+
+		expect(onFileUrlClick).not.toHaveBeenCalled();
+		expect(onUrlClick).not.toHaveBeenCalled();
+		expect(onLinkHover).not.toHaveBeenCalled();
 	});
 
 	it("clears only the OSC link handler it installed", () => {

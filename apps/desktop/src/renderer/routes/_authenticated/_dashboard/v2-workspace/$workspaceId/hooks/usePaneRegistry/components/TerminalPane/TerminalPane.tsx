@@ -69,6 +69,28 @@ export function TerminalPane({
 	} = useLinkHoverState();
 	const { hint, showHint } = useLinkClickHint();
 	const openInExternalEditor = useOpenInExternalEditor(workspaceId);
+
+	// Shared by detected file paths and by OSC 8 `file://` hyperlinks.
+	const openFilePath = useCallback(
+		(
+			event: MouseEvent,
+			path: string,
+			position?: { line?: number; column?: number },
+		) => {
+			const action = filePolicy.getAction(event);
+			if (action === null) {
+				showHint(event.clientX, event.clientY);
+				return;
+			}
+			event.preventDefault();
+			if (action === "external") {
+				openInExternalEditor(path, position);
+			} else {
+				onOpenFile(path, action === "newTab");
+			}
+		},
+		[filePolicy, showHint, openInExternalEditor, onOpenFile],
+	);
 	const paneData = ctx.pane.data as TerminalPaneData;
 	const { terminalId } = paneData;
 	const terminalInstanceId = ctx.pane.id;
@@ -276,23 +298,12 @@ export function TerminalPane({
 						return;
 					}
 
-					const action = filePolicy.getAction(event);
-					if (action === null) {
-						showHint(event.clientX, event.clientY);
-						return;
-					}
-					event.preventDefault();
-					if (action === "external") {
-						openInExternalEditor(link.resolvedPath, {
-							line: link.row,
-							column: link.col,
-						});
-					} else if (action === "newTab") {
-						onOpenFile(link.resolvedPath, true);
-					} else {
-						onOpenFile(link.resolvedPath);
-					}
+					openFilePath(event, link.resolvedPath, {
+						line: link.row,
+						column: link.col,
+					});
 				},
+				onFileUrlClick: openFilePath,
 				onUrlClick: (event, url) => {
 					const action = urlPolicy.getAction(event);
 					if (action === null) {
@@ -322,13 +333,12 @@ export function TerminalPane({
 		terminalInstanceId,
 		workspaceId,
 		ctx.store,
-		onOpenFile,
+		openFilePath,
 		onRevealPath,
 		openInExternalEditor,
 		onLinkHover,
 		onLinkLeave,
 		showHint,
-		filePolicy,
 		urlPolicy,
 	]);
 

@@ -4,6 +4,8 @@ export {
 	getXtermLineContent,
 } from "./buffer-helpers";
 
+export { fileUriToPath } from "./file-uri";
+
 export { LinkDetectorAdapter } from "./link-detector-adapter";
 
 export {
