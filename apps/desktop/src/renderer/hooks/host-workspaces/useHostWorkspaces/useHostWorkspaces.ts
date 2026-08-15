@@ -12,6 +12,7 @@ import {
 	getHostWorkspacesQueryKey,
 	type HostWorkspaceItem,
 	type HostWorkspaceRow,
+	isEventBusReopen,
 	loadHostWorkspacesSnapshot,
 	mergeHostWorkspaces,
 	saveHostWorkspacesSnapshot,
@@ -244,9 +245,26 @@ export function useHostWorkspacesSource(
 					}
 				},
 			);
+			// Resync on reopen: events broadcast while the socket was down are
+			// lost (no replay), so every reopen is a potential gap. Invalidate
+			// all of this host's mirrors — workspaces, projects, ports share the
+			// "host-service" key prefix + machineId. Flap cost is bounded by the
+			// bus's own reconnect backoff (≥1s) and scoped to the one host.
+			let hasOpened = bus.getConnectionStatus().state === "open";
+			const removeStatusListener = bus.subscribeConnectionStatus((status) => {
+				const reopened = isEventBusReopen(hasOpened, status.state);
+				if (status.state === "open") hasOpened = true;
+				if (!reopened) return;
+				void queryClient.invalidateQueries({
+					predicate: (query) =>
+						query.queryKey[0] === "host-service" &&
+						query.queryKey.includes(target.machineId),
+				});
+			});
 			const releaseBus = bus.retain();
 			cleanups.push(() => {
 				removeListener();
+				removeStatusListener();
 				releaseBus();
 			});
 		}

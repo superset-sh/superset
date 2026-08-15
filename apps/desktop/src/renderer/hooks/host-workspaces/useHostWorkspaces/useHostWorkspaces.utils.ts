@@ -1,6 +1,9 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
+import type {
+	HostConnectionState,
+	WorkspaceSnapshotPayload,
+} from "@superset/workspace-client";
 import { get as idbGet, set as idbSet } from "idb-keyval";
 
 /**
@@ -154,6 +157,22 @@ export function saveHostWorkspacesSnapshot(
 ): void {
 	if (!organizationId) return;
 	void idbSet(snapshotKey(organizationId, machineId), rows).catch(() => {});
+}
+
+/**
+ * Whether a connection-status transition means the socket came back up after
+ * being down. Events broadcast while down are unrecoverable (the bus has no
+ * replay), so every open after the first is a potential gap and the host's
+ * mirrors must resync. Keyed on "has opened before", not the previous state:
+ * a manual `reconnect()` publishes "connecting" (same as the initial dial)
+ * before reopening, so state pairs can't distinguish retry from boot. The
+ * first open is not a reopen — the queries' first fetch covers it.
+ */
+export function isEventBusReopen(
+	hasOpenedBefore: boolean,
+	next: HostConnectionState,
+): boolean {
+	return next === "open" && hasOpenedBefore;
 }
 
 /**
