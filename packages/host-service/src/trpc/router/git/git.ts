@@ -109,6 +109,10 @@ function assertSafeRelativePath(filePath: string): void {
 	}
 }
 
+/** Upper bound for one getDiffStatsByWorkspaces call — a page's host rarely
+ * has more than a few dozen workspaces; anything larger is a runaway caller. */
+export const MAX_DIFF_STATS_BATCH = 500;
+
 /** Limiter-admitted status snapshot; shared by getStatus and the batched
  * diff-stats query so both see identical numbers for a workspace. */
 function runStatusSnapshot(
@@ -237,9 +241,13 @@ export const gitRouter = router({
 
 	// One request per host for list/board surfaces — totals only, so a
 	// 30-workspace page never fans out 30 getStatus calls from the client.
+	// The batch is bounded so one RPC can't queue unbounded background work;
+	// callers slice to this cap (see useAccessibleV2Workspaces).
 	getDiffStatsByWorkspaces: queryProcedure
 		.meta({ timeoutMs: 60_000 })
-		.input(z.object({ workspaceIds: z.array(z.string()) }))
+		.input(
+			z.object({ workspaceIds: z.array(z.string()).max(MAX_DIFF_STATS_BATCH) }),
+		)
 		.query(async ({ ctx, input }) => {
 			const queue = [...input.workspaceIds];
 			const workspaces: {

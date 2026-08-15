@@ -563,7 +563,9 @@ export function useAccessibleV2Workspaces(
 				if (!target.hostUrl) return { workspaces: [] };
 				const client = getHostServiceClientByUrl(target.hostUrl);
 				return client.git.getDiffStatsByWorkspaces.query({
-					workspaceIds: target.workspaceIds,
+					// Server caps the batch at 500 (MAX_DIFF_STATS_BATCH); rows
+					// beyond it simply show no stats rather than failing the call.
+					workspaceIds: target.workspaceIds.slice(0, 500),
 				});
 			},
 		})),

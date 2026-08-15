@@ -126,9 +126,13 @@ export function V2WorkspacesList({
 		deviceFilter !== DEVICE_FILTER_THIS_DEVICE ||
 		projectFilters.length > 0 ||
 		prStateFilters.length > 0 ||
-		agentStatusFilters.length > 0;
+		agentStatusFilters.length > 0 ||
+		// A narrowed archive window can hide every row (e.g. all tombstones
+		// with "Hide archived") — that's a filter, not an empty account.
+		archivedWindow !== "week";
 
-	if (workspaces.length === 0) {
+	// Sections, not the input rows: the archived window can drop everything.
+	if (sections.length === 0) {
 		// A host that hasn't answered yet must not read as empty (cache-first rule).
 		if (!isReady) return <div className="min-h-0 flex-1" />;
 		return (
@@ -196,20 +200,28 @@ function StatusSectionGroup({
 	const containsCurrent = section.workspaces.some(
 		(workspace) => workspace.id === currentWorkspaceId,
 	);
+	// The current workspace's section never hides, so its toggle is inert —
+	// disable it instead of letting clicks appear to do nothing.
 	const isCollapsed = persistedCollapsed && !containsCurrent;
 	const Chevron = isCollapsed ? LuChevronRight : LuChevronDown;
-	const sectionId = `v2-workspaces-status-${section.column}`;
+	const rowsId = `v2-workspaces-status-${section.column}-rows`;
 
 	return (
-		<section id={sectionId}>
+		<section>
 			{/* A tinted band + uppercase micro-label (same vocabulary as the
 			    sidebar's SESSIONS/PROJECTS headers) so groups never read as
 			    rows; the dot keeps the row-glyph column alignment. */}
 			<button
 				type="button"
 				onClick={() => toggleCollapsed(collapseKey)}
+				disabled={containsCurrent}
+				title={
+					containsCurrent
+						? "Can't collapse the current workspace's section"
+						: undefined
+				}
 				aria-expanded={!isCollapsed}
-				aria-controls={sectionId}
+				aria-controls={rowsId}
 				className="sticky top-0 z-[5] flex w-full items-center gap-2 border-b border-border/60 bg-muted/70 px-6 py-1.5 text-left outline-none backdrop-blur transition-colors hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40 focus-visible:ring-inset"
 			>
 				{/* Disclosure lives in the left padding gutter so the status icon
@@ -228,15 +240,17 @@ function StatusSectionGroup({
 					{section.workspaces.length}
 				</span>
 			</button>
-			{isCollapsed
-				? null
-				: section.workspaces.map((workspace) => (
-						<V2WorkspaceRow
-							key={workspace.id}
-							workspace={workspace}
-							isCurrentRoute={workspace.id === currentWorkspaceId}
-						/>
-					))}
+			<div id={rowsId}>
+				{isCollapsed
+					? null
+					: section.workspaces.map((workspace) => (
+							<V2WorkspaceRow
+								key={workspace.id}
+								workspace={workspace}
+								isCurrentRoute={workspace.id === currentWorkspaceId}
+							/>
+						))}
+			</div>
 		</section>
 	);
 }

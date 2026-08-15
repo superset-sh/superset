@@ -91,7 +91,7 @@ interface V2WorkspacesFilterState {
 	setViewMode: (viewMode: V2WorkspacesViewMode) => void;
 	setSortMode: (sortMode: V2WorkspacesSortMode) => void;
 	setArchivedWindow: (archivedWindow: V2WorkspacesArchivedWindow) => void;
-	/** Clears filters only — view mode and archived window persist. */
+	/** Clears filters (incl. archived window) — view mode and sort persist. */
 	reset: () => void;
 }
 
@@ -120,6 +120,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 				projectFilters: [],
 				prStateFilters: [],
 				agentStatusFilters: [],
+				archivedWindow: "week",
 			}),
 	}),
 );

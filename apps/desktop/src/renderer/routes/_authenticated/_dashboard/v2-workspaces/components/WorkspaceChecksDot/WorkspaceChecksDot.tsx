@@ -21,10 +21,22 @@ export function WorkspaceChecksDot({
 }: WorkspaceChecksDotProps) {
 	if (status === "none") return null;
 	if (status === "success") {
-		return <LuCircleCheck className="size-3 text-emerald-500" />;
+		return (
+			<LuCircleCheck
+				role="img"
+				aria-label="Checks passed"
+				className="size-3 text-emerald-500"
+			/>
+		);
 	}
 	if (status === "failure") {
-		return <LuCircleX className="size-3 text-red-500" />;
+		return (
+			<LuCircleX
+				role="img"
+				aria-label="Checks failed"
+				className="size-3 text-red-500"
+			/>
+		);
 	}
 
 	// Skipped/cancelled aren't outcomes the ring should count either way.
