@@ -4,6 +4,7 @@ import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
+import { CLOUD_HOST_ID } from "../../components/DevicePicker/DevicePicker";
 
 type SearchBranchesInput =
 	inferRouterInputs<AppRouter>["workspaceCreation"]["searchBranches"];
@@ -27,7 +28,11 @@ export function useBranchContext(
 	query: string,
 	filter: BranchFilter = "all",
 ) {
-	const hostUrl = useHostUrl(hostId);
+	// A cloud workspace has no host to search: the sandbox doesn't exist until
+	// create, and `hostId` is a sentinel rather than a machine. Resolving it
+	// would build a relay URL for a machine that isn't there.
+	const isCloud = hostId === CLOUD_HOST_ID;
+	const hostUrl = useHostUrl(isCloud ? null : hostId);
 
 	const q = useInfiniteQuery({
 		queryKey: [
@@ -38,7 +43,7 @@ export function useBranchContext(
 			query,
 			filter,
 		],
-		enabled: !!projectId && !!hostUrl,
+		enabled: !isCloud && !!projectId && !!hostUrl,
 		initialPageParam: undefined as string | undefined,
 		getNextPageParam: (last: BranchPage) => last.nextCursor ?? undefined,
 		queryFn: async ({ pageParam }): Promise<BranchPage> => {
