@@ -351,6 +351,9 @@ export function NewWorkspaceScreen({
 	// ── Agent / model / effort ───────────────────────────────────────
 	const launchHostUrl = useMemo(() => {
 		const id = draft.hostId ?? machineId;
+		// A cloud workspace's sandbox doesn't exist yet, and "cloud" is a
+		// sentinel — resolving it would address a machine that isn't there.
+		if (id === CLOUD_HOST_ID) return null;
 		if (!id || !activeOrganizationId) return null;
 		return (
 			resolveHostUrl({

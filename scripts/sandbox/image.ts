@@ -97,6 +97,12 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	.runCommands(
 		"test -d node_modules/node-pty/prebuilds/linux-x64 || (echo 'node-pty prebuild missing — it would compile at runtime' && exit 1)",
 	)
+	// The agent the sandbox can actually run. Without a CLI installed the
+	// agent picker has nothing to offer, since a sandbox has none of the
+	// user's locally-installed agents.
+	.runCommands(
+		"npm install -g @anthropic-ai/claude-code --no-audit --no-fund && claude --version",
+	)
 	// Lands in /app so the externalised natives resolve from its node_modules.
 	// The third argument is the build-context name, which defaults to the
 	// source's basename — both `dist` directories would otherwise collide and
