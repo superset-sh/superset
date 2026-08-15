@@ -4,19 +4,11 @@
  *   BL_API_KEY=... BL_WORKSPACE=superset bun run scripts/sandbox/image.ts
  *   bun run scripts/sandbox/image.ts --dry   # print the Dockerfile only
  *
- * Two constraints discovered by probing a live sandbox, both load-bearing:
- *
- *  - **Debian, not Alpine.** node-pty's prebuilt binary links glibc
- *    (GLIBC_2.28 / GLIBCXX_3.4.22), so on Alpine's musl it falls back to
- *    compiling, which drags in build-essential + python3 (~315 MiB).
- *  - **The pinned node-pty version.** The stable release ships no prebuilds
- *    at all and compiles on any libc; only the beta this repo pins carries
- *    `prebuilds/linux-x64`. Installing plain `node-pty` reintroduces the
- *    toolchain requirement even on Debian.
- *
- * Versions are read from host-service's package.json rather than hardcoded:
- * a sandbox running a different better-sqlite3 than host-service was built
- * against is a native-ABI mismatch that surfaces as a runtime crash.
+ * Two constraints keep a compiler out of this image, and both must hold:
+ * node-pty's prebuilt binary links glibc, so Alpine's musl would force a
+ * source build; and only the node-pty version this repo pins ships prebuilds
+ * at all, so installing plain `node-pty` compiles even on Debian. A compile
+ * needs build-essential + python3, roughly 315 MiB.
  */
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -34,6 +26,11 @@ const HOST_SERVICE_PKG = join(
 const HOST_SERVICE_PORT = 4879;
 const IMAGE_NAME = process.env.SANDBOX_IMAGE_NAME ?? "superset-hostsvc";
 
+/**
+ * Read from host-service rather than hardcoded: a sandbox running a
+ * different better-sqlite3 than host-service was built against is a
+ * native-ABI mismatch that surfaces as a runtime crash.
+ */
 function pinnedVersion(dep: string): string {
 	const pkg = JSON.parse(readFileSync(HOST_SERVICE_PKG, "utf8")) as {
 		dependencies?: Record<string, string>;
@@ -53,14 +50,9 @@ const natives = [
 ];
 
 /**
- * Packages the bundle marks external and then imports at module load, so they
- * must merely *resolve* even where the code path never runs. Established by
- * booting the bundle in a sandbox and installing whatever it asked for until
- * it reached env validation.
- *
- * Most of this is mastra's storage/embedding stack reached through
- * provider-auth's credential store — onnxruntime and duckdb are not small,
- * and trimming that dependency would shrink this list to nearly nothing.
+ * Imported at module load but never executed, so they only need to resolve.
+ * Mostly mastra's storage stack reached via provider-auth's credential store;
+ * trimming that dependency would shrink both this list and the image.
  */
 const runtimeResolutionOnly = [
 	"@mastra/duckdb",
@@ -71,14 +63,14 @@ const runtimeResolutionOnly = [
 	"@xterm/headless",
 ];
 
-const HOST_SERVICE_DIR = join(REPO_ROOT, "packages", "host-service");
-const BUNDLE = join(HOST_SERVICE_DIR, "dist", "host-service.js");
+const BUNDLE = join(
+	REPO_ROOT,
+	"packages",
+	"host-service",
+	"dist",
+	"host-service.js",
+);
 
-/**
- * The bundle marks native addons external, so they resolve from
- * /app/node_modules at runtime — which is why the bundle lands in /app
- * alongside the npm install above rather than in its own directory.
- */
 function assertBuilt(): void {
 	if (!existsSync(BUNDLE)) {
 		throw new Error(
@@ -105,9 +97,7 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	.runCommands(
 		"test -d node_modules/node-pty/prebuilds/linux-x64 || (echo 'node-pty prebuild missing — it would compile at runtime' && exit 1)",
 	)
-	// host-service itself: the bundle, its worker sibling (the pool resolves it
-	// by path next to host-service.js), and the host.db migrations createDb
-	// applies on first boot.
+	// Lands in /app so the externalised natives resolve from its node_modules.
 	// The third argument is the build-context name, which defaults to the
 	// source's basename — both `dist` directories would otherwise collide and
 	// silently ship host-service's bundle as the pty daemon.
@@ -120,10 +110,9 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	// The supervisor resolves the daemon as ../../../pty-daemon/dist relative
 	// to its own source path, which from /app/host-service.js lands at /.
 	.addLocalDir("packages/pty-daemon/dist", "/pty-daemon/dist", "ptyd-dist")
-	// The daemon is spawned as its own process and imports node-pty, but Node
-	// resolves node_modules upward from /pty-daemon/dist and the install lives
-	// in /app. Link rather than install twice: one copy of the native addon,
-	// so the daemon and host-service can never diverge on its version.
+	// The daemon is a separate process importing node-pty, and Node resolves
+	// upward from /pty-daemon. Linked rather than installed twice so the two
+	// can never diverge on the native addon's version.
 	.runCommands("ln -s /app/node_modules /pty-daemon/node_modules")
 	.env({ NODE_ENV: "production", PORT: String(HOST_SERVICE_PORT) })
 	.expose(HOST_SERVICE_PORT);
