@@ -34,6 +34,7 @@ import { env } from "./env";
 
 const SHUTDOWN_GRACE_MS = 3_000;
 const WATCHDOG_INTERVAL_MS = 2_000;
+const MANIFEST_RECLAIM_INTERVAL_MS = 15_000;
 
 type Server = ReturnType<typeof serve>;
 
@@ -128,15 +129,26 @@ async function main(): Promise<void> {
 			startTerminalReaper(db);
 
 			if (env.ORGANIZATION_ID) {
-				void claimManifest({
+				const manifest: HostServiceManifest = {
 					pid: process.pid,
 					endpoint: `http://127.0.0.1:${info.port}`,
 					authToken: env.HOST_SERVICE_SECRET,
 					startedAt,
 					organizationId: env.ORGANIZATION_ID,
-				}).catch((error) => {
+				};
+				void claimManifest(manifest).catch((error) => {
 					console.error("[host-service] Failed to write manifest:", error);
 				});
+				// Yielding at boot must not be permanent: when the holder later
+				// quits (removing its manifest) or dies, re-claim so the CLI's
+				// routing table always names a live instance.
+				const reclaim = setInterval(() => {
+					if (readManifest(manifest.organizationId)?.pid === process.pid) {
+						return;
+					}
+					void claimManifest(manifest).catch(() => {});
+				}, MANIFEST_RECLAIM_INTERVAL_MS);
+				reclaim.unref();
 			}
 
 			if (env.RELAY_URL && env.ORGANIZATION_ID) {
