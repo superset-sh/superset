@@ -129,6 +129,30 @@ our own child. This would have prevented the DMG specimen outright.
 - `superset doctor` check: multiple live host-services for one org dir, or manifest
   endpoint ≠ the desktop's active instance.
 
+## Future refactors this investigation argues for (not in the PR)
+
+1. **Event-bus resync contract.** Fire-and-forget events with no catch-up is the
+   class bug; the verdict fix covers workspace existence only. Ports, git status,
+   agent lifecycle, and project events all go silently stale on a missed frame. A
+   sequence number (or generation id) in the stream + invalidate-on-gap/reopen would
+   retire the whole class; the fs-watch replay-on-open is precedent.
+2. **Client-level fetch timeouts.** The 2×~25s hang lives in
+   `getHostServiceClientByUrl` consumers generally, not just workspace.list — one
+   `AbortSignal.timeout` at the client link level beats per-query patches.
+3. **Per-host readiness.** `isReady` = "every known host settled" makes any one
+   unreachable teammate host degrade unrelated UI. Most consumers care about one
+   host; per-host readiness (or reachable-quorum semantics) would localize failures.
+4. **Drop `txid` from workspace create responses** (dead since local-first #5731) —
+   it actively misled this investigation.
+
+## Known residual gaps (accepted)
+
+- Remote-host (relay) workspaces: a host slower than the 5s cap can briefly show
+  not-found before self-correcting when its row lands — strictly better than the
+  old 0s-grace behavior; untested live (no second machine in the loop).
+- Windows/Linux deep-link delivery (`second-instance` argv path) — code untouched,
+  not exercised on this macOS pass.
+
 ### Explicitly not doing
 
 - Host-side event queue/replay (protocol change, disproportionate).
