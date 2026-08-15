@@ -1,5 +1,5 @@
 import { dbWs } from "@superset/db/client";
-import { automations } from "@superset/db/schema";
+import { automations, automationTriggers } from "@superset/db/schema";
 import { nextOccurrenceAfter } from "@superset/shared/rrule";
 import { Client, Receiver } from "@upstash/qstash";
 import { and, eq, lte } from "drizzle-orm";
@@ -70,17 +70,30 @@ export async function POST(request: Request): Promise<Response> {
 	);
 
 	const advanceResults = await Promise.allSettled(
-		due.map((automation) => {
+		due.map(async (automation) => {
 			const next = nextOccurrenceAfter({
 				rrule: automation.rrule,
 				dtstart: automation.dtstart,
 				timezone: automation.timezone,
 				after: automation.nextRunAt,
 			});
-			return dbWs
+			await dbWs
 				.update(automations)
 				.set(next ? { nextRunAt: next } : { enabled: false })
 				.where(eq(automations.id, automation.id));
+
+			// Keep the schedule trigger in lockstep so the cutover is a pure
+			// read-source switch. Writing `next` unconditionally also repairs a
+			// trigger that had drifted.
+			await dbWs
+				.update(automationTriggers)
+				.set(next ? { nextRunAt: next } : { enabled: false })
+				.where(
+					and(
+						eq(automationTriggers.automationId, automation.id),
+						eq(automationTriggers.kind, "schedule"),
+					),
+				);
 		}),
 	);
 
