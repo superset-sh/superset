@@ -114,7 +114,7 @@ async function main(): Promise<void> {
 
 		startTerminalReaper(db);
 
-		if (env.RELAY_URL) {
+		if (env.RELAY_URL && env.SUPERSET_HOST_RUN_MODE !== "sandbox") {
 			void connectRelay({
 				api,
 				relayUrl: env.RELAY_URL,
