@@ -14,6 +14,7 @@ import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
 import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
 import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
 import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
+import { useWorkspaceMissVerdict } from "./hooks/useWorkspaceMissVerdict";
 import { WorkspaceProvider } from "./providers/WorkspaceProvider";
 
 export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
@@ -48,7 +49,7 @@ function V2WorkspaceLayout() {
 		},
 	});
 
-	const { workspaces: hostWorkspaces, isReady } = useHostWorkspaces();
+	const { workspaces: hostWorkspaces, cache } = useHostWorkspaces();
 	const workspace = useMemo(
 		() =>
 			workspaceId != null
@@ -76,7 +77,21 @@ function V2WorkspaceLayout() {
 
 	const hostStatus = useRemoteHostStatus(workspace);
 
-	if (!workspaceId || (!workspace && !isReady)) {
+	// "Not found" is a verdict, not a cache read: a CLI-created workspace can
+	// trail its own deep link (missed broadcast, second host-service instance,
+	// stale boot snapshot), so the route forces a refetch and waits for it —
+	// bounded — before declaring the id missing.
+	const missConfirmed = useWorkspaceMissVerdict(
+		{
+			workspaceId,
+			workspaceFound: workspace !== null,
+			suspended: pendingTransaction !== null || failedEntry !== null,
+			hasLiveTargets: cache.hasLiveTargets,
+		},
+		cache.refetchAll,
+	);
+
+	if (!workspaceId) {
 		return <StateScreenShell>{null}</StateScreenShell>;
 	}
 
@@ -87,6 +102,9 @@ function V2WorkspaceLayout() {
 					<WorkspaceCreateErrorState entry={failedEntry} />
 				</StateScreenShell>
 			);
+		}
+		if (!missConfirmed) {
+			return <StateScreenShell>{null}</StateScreenShell>;
 		}
 		return (
 			<StateScreenShell>

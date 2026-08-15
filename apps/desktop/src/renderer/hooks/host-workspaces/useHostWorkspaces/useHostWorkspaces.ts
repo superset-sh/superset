@@ -34,6 +34,16 @@ export interface HostWorkspacesCacheOps {
 	removeWorkspace: (hostId: string, workspaceId: string) => void;
 	/** Rollback hammer: refetch a host's list after a failed write. */
 	invalidateHost: (hostId: string) => void;
+	/** True once at least one host resolved to a reachable URL. */
+	hasLiveTargets: boolean;
+	/**
+	 * Force-refetch every reachable host's live list; resolves when all
+	 * settle (success or error). The workspace route's miss verdict awaits
+	 * this so "not found" is never declared from data older than the request
+	 * — the mirror converges through fire-and-forget events plus a slow
+	 * fallback refetch, so a just-created row can trail its own deep link.
+	 */
+	refetchAll: () => Promise<void>;
 }
 
 export interface UseHostWorkspacesResult {
@@ -337,6 +347,18 @@ export function useHostWorkspacesSource(
 				void queryClient.invalidateQueries({
 					queryKey: getHostWorkspacesQueryKey(target),
 				});
+			},
+			hasLiveTargets: targets.some((target) => target.hostUrl !== null),
+			refetchAll: async () => {
+				await Promise.all(
+					targets
+						.filter((target) => target.hostUrl !== null)
+						.map((target) =>
+							queryClient.refetchQueries({
+								queryKey: getHostWorkspacesQueryKey(target),
+							}),
+						),
+				);
 			},
 		};
 	}, [targets, queryClient]);
