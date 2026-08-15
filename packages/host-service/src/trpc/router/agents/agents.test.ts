@@ -9,7 +9,6 @@ import * as schema from "../../../db/schema";
 import {
 	buildAgentCommandString,
 	buildTerminalAgentLaunch,
-	isChatAgent,
 	validateAgentEffortSelection,
 	validateAgentResumeSelection,
 } from "./agents";
@@ -287,13 +286,6 @@ describe("buildTerminalAgentLaunch", () => {
 				prompt: "p",
 			}),
 		).toThrow(/No host agent config matching 'nope'/);
-	});
-});
-
-describe("isChatAgent", () => {
-	it("is true only for the superset chat agent", () => {
-		expect(isChatAgent("superset")).toBe(true);
-		expect(isChatAgent("claude")).toBe(false);
 	});
 });
 

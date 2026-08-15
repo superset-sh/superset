@@ -572,11 +572,7 @@ export class PullRequestRuntimeManager {
 					upstreamRepo,
 					upstreamBranch,
 					pullRequestId,
-					// Branch is cloud-mirrored; flag the row so the reconciler
-					// pushes the rename (other fields here are machine-state).
-					...(branch !== workspace.branch
-						? { updatedAt: Date.now(), cloudSyncedAt: null }
-						: {}),
+					...(branch !== workspace.branch ? { updatedAt: Date.now() } : {}),
 				})
 				// Guard: the workspace can archive during the awaited ref read;
 				// a tombstone's branch/PR link is frozen.

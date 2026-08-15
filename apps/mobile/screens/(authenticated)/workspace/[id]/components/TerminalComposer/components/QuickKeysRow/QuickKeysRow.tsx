@@ -1,53 +1,63 @@
-import type { LucideIcon } from "lucide-react-native";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp } from "lucide-react-native";
-import { Pressable, ScrollView } from "react-native";
-import { Text } from "@/components/ui/text";
-import { useTheme } from "@/hooks/useTheme";
+import { Button, HStack, Image, ScrollView, Text } from "@expo/ui/swift-ui";
+import {
+	buttonBorderShape,
+	buttonStyle,
+	font,
+	frame,
+	scrollIndicators,
+	tint,
+} from "@expo/ui/swift-ui/modifiers";
+import { FOREGROUND } from "@/screens/(authenticated)/components/GlassComposer";
 import { QUICK_KEYS, type TerminalQuickKey } from "../../constants";
-
-const SYMBOL_ICONS: Record<string, LucideIcon> = {
-	"arrow.up": ArrowUp,
-	"arrow.down": ArrowDown,
-	"arrow.left": ArrowLeft,
-	"arrow.right": ArrowRight,
-};
 
 interface QuickKeysRowProps {
 	onKey: (key: TerminalQuickKey) => void;
 }
 
 /**
- * Free-floating quick-key chips rendered above the composer pill (via its
- * `above` slot) — esc/tab/arrows the soft keyboard lacks. They cast a soft
- * shadow so they read as hovering over the terminal, not painted onto it.
+ * Quick-key chips above the composer pill — esc/tab/arrows the soft keyboard
+ * lacks. SwiftUI rather than React Native on purpose: rendered inside the
+ * composer's `Host`, the gap to the pill is one SwiftUI stack spacing that
+ * tracks the glass exactly. As RN siblings the gap was a hardcoded guess at a
+ * height `Host matchContents` under-reports, so it drifted whenever the pill
+ * grew (attachments, extra lines) and animated on a different curve.
  */
 export function QuickKeysRow({ onKey }: QuickKeysRowProps) {
-	const theme = useTheme();
 	return (
 		<ScrollView
-			horizontal
-			showsHorizontalScrollIndicator={false}
-			keyboardShouldPersistTaps="always"
-			contentContainerClassName="gap-2 px-1"
+			axes="horizontal"
+			modifiers={[scrollIndicators("hidden", "horizontal")]}
 		>
-			{QUICK_KEYS.map((key) => {
-				const Icon = key.symbol ? SYMBOL_ICONS[key.symbol] : undefined;
-				return (
-					<Pressable
+			<HStack spacing={8}>
+				{QUICK_KEYS.map((key) => (
+					<Button
 						key={key.id}
 						onPress={() => onKey(key)}
-						className="bg-secondary/90 min-w-11 items-center justify-center rounded-lg px-3 py-1.5 shadow-md active:opacity-60"
+						modifiers={[
+							buttonStyle("bordered"),
+							buttonBorderShape("roundedRectangle", 10),
+							tint(FOREGROUND),
+						]}
 					>
-						{Icon ? (
-							<Icon size={14} color={theme.secondaryForeground} />
+						{key.symbol ? (
+							<Image
+								systemName={key.symbol}
+								size={13}
+								modifiers={[frame({ width: 24, height: 17 })]}
+							/>
 						) : (
-							<Text className="text-secondary-foreground font-mono text-xs">
-								{key.label}
+							<Text
+								modifiers={[
+									font({ size: 12, design: "monospaced" }),
+									frame({ minWidth: 24, height: 17 }),
+								]}
+							>
+								{key.label ?? ""}
 							</Text>
 						)}
-					</Pressable>
-				);
-			})}
+					</Button>
+				))}
+			</HStack>
 		</ScrollView>
 	);
 }

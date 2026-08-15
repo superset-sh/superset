@@ -370,15 +370,13 @@ describe("workspace.create + workspace.delete integration", () => {
 		expect(result.workspace.id).toBeDefined();
 		expect(result.alreadyExists).toBe(false);
 
-		// The local row is authoritative and stays cloud-dirty so the
-		// reconciler pushes it once the cloud is reachable again.
+		// The local row is authoritative; a cloud failure never rolls it back.
 		const rows = scenario.host.db
 			.select()
 			.from(workspaces)
 			.where(eq(workspaces.name, "ws"))
 			.all();
 		expect(rows).toHaveLength(1);
-		expect(rows[0]?.cloudSyncedAt).toBeNull();
 		expect(existsSync(rows[0]?.worktreePath ?? "")).toBe(true);
 	});
 

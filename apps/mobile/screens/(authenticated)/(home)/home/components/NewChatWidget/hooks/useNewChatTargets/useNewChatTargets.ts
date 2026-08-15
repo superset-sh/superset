@@ -43,6 +43,12 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 	const projectFilter = useWorkspacesFilterStore(
 		(state) => state.projectFilter,
 	);
+	const preferencesHydrated = useNewSessionPreferencesStore(
+		(state) => state.hasHydrated,
+	);
+	const filtersHydrated = useWorkspacesFilterStore(
+		(state) => state.hasHydrated,
+	);
 
 	const presence = useHostsPresence(hosts);
 	const onlineHosts = useMemo(
@@ -89,6 +95,10 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 
 	const defaultTarget = useMemo<NewChatTarget | null>(() => {
 		if (targets.length === 0) return null;
+		// Both the last used target and the project filter are read back from
+		// storage asynchronously — defaulting first would land on the wrong
+		// project, and a send in that window would create the workspace there.
+		if (!preferencesHydrated || !filtersHydrated) return null;
 
 		const persisted = targets.find(
 			(target) => target.key === persistedTargetKey,
@@ -114,7 +124,14 @@ export function useNewChatTargets(workspaces: HostWorkspaceItem[] = []): {
 			if (match) return match;
 		}
 		return targets[0] ?? null;
-	}, [targets, persistedTargetKey, projectFilter, workspaces]);
+	}, [
+		targets,
+		persistedTargetKey,
+		projectFilter,
+		workspaces,
+		preferencesHydrated,
+		filtersHydrated,
+	]);
 
 	return { targets, defaultTarget };
 }

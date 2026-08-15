@@ -24,6 +24,8 @@ const STATUS_DOT: Record<SelectAutomationRun["status"], string> = {
 	dispatching: "bg-amber-500",
 	skipped_offline: "bg-red-500",
 	dispatch_failed: "bg-red-500",
+	debounced: "bg-slate-400",
+	rejected: "bg-amber-500",
 };
 
 interface PreviousRunsListProps {
@@ -52,7 +54,6 @@ export function PreviousRunsList({ runs }: PreviousRunsListProps) {
 			params: { workspaceId: run.v2WorkspaceId },
 			search: {
 				terminalId: run.terminalSessionId ?? undefined,
-				chatSessionId: run.chatSessionId ?? undefined,
 			},
 		});
 	};

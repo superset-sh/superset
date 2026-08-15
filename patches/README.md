@@ -6,6 +6,46 @@ package makes its patch stop matching, and the fix silently disappears while
 everything still builds. Every patch listed here must have a CI guard test
 that fails when its markers vanish from the installed package.
 
+## metro (`metro@<version>.patch`)
+
+**Why:** `apps/mobile` runs worklets Bundle Mode (`react-native-streamdown`, see
+`apps/mobile/babel.config.js`). Its Babel plugin writes each worklet to
+`node_modules/react-native-worklets/.worklets/<hash>.js` *during* the transform
+pass — after Metro has crawled the filesystem — so a one-shot bundle can't hash
+files that didn't exist at crawl time and dies with `Failed to get the SHA-1`.
+The dev server survives on re-crawls; `expo export` and every EAS build fail
+100% of the time from a clean install, which is what errored the first two
+production builds (2026-08-13). Upgrading worklets does not fix it — 0.11.4
+fails identically.
+
+**What it changes** (`src/node-haste/DependencyGraph.js`): `getOrComputeSha1`
+returns a synthetic hash for any path under `react-native-worklets/.worklets`
+instead of consulting the file map. Taken verbatim from upstream —
+[`bundleMode/patches/patch-package/metro`](https://github.com/software-mansion/react-native-reanimated/tree/main/packages/react-native-worklets/bundleMode/patches)
+— and documented as the recommended fix in the [Bundle Mode setup
+guide](https://docs.swmansion.com/react-native-worklets/docs/bundleMode/setup/).
+Temporary until the change lands in Metro.
+
+**Guard test:** `apps/mobile/metro-worklets-patch.test.ts`.
+
+**Regenerating after a version bump** (~5 min): upstream keeps one patch per
+Metro version. Find yours with `bun why metro --top`, then:
+
+```bash
+bun patch metro
+curl -L "https://github.com/software-mansion/react-native-reanimated/raw/main/packages/react-native-worklets/bundleMode/patches/patch-package/metro/metro%2B<version>.patch" | git apply
+bun patch --commit 'node_modules/metro'
+bun test apps/mobile/metro-worklets-patch.test.ts
+```
+
+If upstream has no patch for the new Metro yet, the previous version's patch
+usually still applies — the touched function is stable. Verify with a cold
+bundle: delete `node_modules/react-native-worklets/.worklets/*.js`, then
+`npx expo export --platform ios --clear` from `apps/mobile`.
+
+Worklets also publishes a `metro-runtime` patch that extends Fast Refresh to
+worklet runtimes. Not applied here — it's dev-only ergonomics, not a build fix.
+
 ## @xterm/addon-webgl (`@xterm%2Faddon-webgl@<version>.patch`)
 
 **Why:** SUPER-1793 / PR #6352. Truecolor-heavy TUI output (e.g. Claude Code's

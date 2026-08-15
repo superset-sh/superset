@@ -12,9 +12,7 @@ import { createDb, type HostDb } from "./db";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
-import type { ModelProviderRuntimeResolver } from "./providers/model-providers";
 import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
-import { ChatRuntimeManager } from "./runtime/chat";
 import { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider } from "./runtime/git";
 import { createGitEnvResolver, createGitFactory } from "./runtime/git";
@@ -47,21 +45,18 @@ export interface CreateAppOptions {
 		auth: ApiAuthProvider;
 		hostAuth: HostAuthProvider;
 		credentials: GitCredentialProvider;
-		modelResolver: ModelProviderRuntimeResolver;
 	};
 	/**
 	 * Test-harness override hooks. Production never sets these — `createApp`
 	 * builds each subsystem itself when omitted. `db` is overridden so tests
 	 * can swap in `bun:sqlite` (better-sqlite3 isn't loadable under Bun;
-	 * prod uses it on bundled Node). `api`, `github`, `chatRuntime`, and
-	 * `chatService` are overridden to keep tests off the network and out of
-	 * mastra storage.
+	 * prod uses it on bundled Node). `api`, `github`, and `chatService` are
+	 * overridden to keep tests off the network and out of provider-auth storage.
 	 */
 	db?: HostDb;
 	api?: ApiClient;
 	github?: () => Promise<Octokit>;
 	execGh?: ExecGh;
-	chatRuntime?: ChatRuntimeManager;
 	chatService?: ChatService;
 }
 
@@ -131,15 +126,9 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		},
 	});
 	pullRequestRuntime.start();
-	const chatRuntime =
-		options.chatRuntime ??
-		new ChatRuntimeManager({
-			db,
-			runtimeResolver: providers.modelResolver,
-		});
 	// Provider auth (Anthropic / OpenAI OAuth + API keys) is per-machine, not
-	// per-workspace. ChatService is a long-lived singleton wrapping mastra's
-	// auth storage; the `host.auth.*` router proxies to it.
+	// per-workspace. ChatService is a long-lived singleton wrapping the
+	// provider auth storage; the `host.auth.*` router proxies to it.
 	const chatService = options.chatService ?? new ChatService();
 
 	// Chat v3 runtime (plans/chat-v3-pane-mount.md). Registered unconditionally:
@@ -151,7 +140,6 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 
 	const runtime = {
 		auth: chatService,
-		chat: chatRuntime,
 		filesystem,
 		pullRequests: pullRequestRuntime,
 	};

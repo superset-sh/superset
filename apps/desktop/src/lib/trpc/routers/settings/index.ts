@@ -374,7 +374,6 @@ export const createSettingsRouter = () => {
 				}
 
 				const normalizedPatch = normalizeAgentPresetPatch({
-					definition,
 					patch: input.patch,
 				});
 				const nextOverrides = createOverrideEnvelopeWithPatch({

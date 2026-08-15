@@ -1,0 +1,35 @@
+{
+	"name": "@superset/chat-ui",
+	"private": true,
+	"version": "0.1.0",
+	"type": "module",
+	"exports": {
+		"./*": "./src/components/*/index.ts"
+	},
+	"scripts": {
+		"clean": "git clean -xdf .cache .turbo dist node_modules",
+		"typecheck": "tsc --noEmit --emitDeclarationOnly false"
+	},
+	"dependencies": {
+		"@lexical/react": "0.41.0",
+		"@shadcn/react": "0.2.1",
+		"@superset/chat": "workspace:*",
+		"@superset/ui": "workspace:*",
+		"lexical": "0.41.0",
+		"lucide-react": "0.563.0"
+	},
+	"devDependencies": {
+		"@storybook/react-vite": "10.4.2",
+		"@superset/typescript": "workspace:*",
+		"@types/node": "24.12.0",
+		"@types/react": "19.2.14",
+		"@types/react-dom": "19.2.3",
+		"react": "19.2.3",
+		"react-dom": "19.2.3",
+		"storybook": "10.4.2",
+		"typescript": "6.0.3"
+	},
+	"peerDependencies": {
+		"react": "19.2.3"
+	}
+}

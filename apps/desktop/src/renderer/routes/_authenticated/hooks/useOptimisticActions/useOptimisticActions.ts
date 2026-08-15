@@ -6,7 +6,6 @@ import { getQueryKey } from "@trpc/react-query";
 import { useCallback, useMemo } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import {
@@ -222,11 +221,6 @@ export function useOptimisticActions() {
 			mutation: () => PersistableTransaction,
 		) => runMutation("optimistic.v2Workspaces", failureTitle, mutation);
 
-		const runChatSessionMutation = (
-			failureTitle: string,
-			mutation: () => PersistableTransaction,
-		) => runMutation("optimistic.chatSessions", failureTitle, mutation);
-
 		const runUsersHostsMutation = (
 			failureTitle: string,
 			mutation: () => PersistableTransaction,
@@ -393,27 +387,6 @@ export function useOptimisticActions() {
 					trackedWorkspaceWrite("Failed to rename workspace", workspaceId, {
 						name,
 					}),
-			},
-			chatSessions: {
-				deleteSession: (sessionId: string) => {
-					if (isDesktopChatDevMode()) return null;
-
-					return runChatSessionMutation("Failed to delete chat session", () => {
-						const promise = apiTrpcClient.chat.deleteSession
-							.mutate({ sessionId })
-							.then((result) => {
-								if (!result.deleted) {
-									throw new Error("Chat session was not deleted");
-								}
-								return result;
-							})
-							.finally(() => {
-								void utils.chat.listSessions.invalidate();
-							});
-
-						return makeTransaction("delete", promise);
-					});
-				},
 			},
 			v2Hosts: {
 				deleteHost: (hostId: string) =>

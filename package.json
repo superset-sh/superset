@@ -77,6 +77,7 @@
 		"workerd"
 	],
 	"patchedDependencies": {
-		"@xterm/addon-webgl@0.20.0-beta.297": "patches/@xterm%2Faddon-webgl@0.20.0-beta.297.patch"
+		"@xterm/addon-webgl@0.20.0-beta.297": "patches/@xterm%2Faddon-webgl@0.20.0-beta.297.patch",
+		"metro@0.84.4": "patches/metro@0.84.4.patch"
 	}
 }

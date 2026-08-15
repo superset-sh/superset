@@ -259,7 +259,6 @@ export const automationRouter = {
 						rrule: input.rrule,
 						dtstart,
 						timezone: input.timezone,
-						mcpScope: input.mcpScope,
 						nextRunAt,
 					})
 					.returning();
@@ -409,7 +408,6 @@ export const automationRouter = {
 					rrule: nextRrule,
 					dtstart: nextDtstart,
 					timezone: nextTimezone,
-					mcpScope: input.mcpScope ?? existing.mcpScope,
 					nextRunAt: recomputedNextRunAt,
 				})
 				.where(eq(automations.id, input.id))

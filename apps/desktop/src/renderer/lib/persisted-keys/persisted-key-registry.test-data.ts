@@ -65,7 +65,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	["src/renderer/stores/ringtone/store.ts", ["ringtone-storage"]],
 	["src/renderer/stores/settings.ts", ["settings"]],
-	["src/renderer/stores/chat-preferences/store.ts", ["chat-preferences"]],
 	[
 		"src/renderer/stores/markdown-preferences/store.ts",
 		["markdown-preferences"],
@@ -98,6 +97,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 		["v2-available-banner-v1"],
 	],
 	["src/renderer/stores/hiring-banner/store.ts", ["hiring-banner-v1"]],
+	["src/renderer/stores/star-nag/store.ts", ["star-nag-v1"]],
 	[
 		"src/renderer/stores/terminal-close-confirm/store.ts",
 		["terminal-close-confirm-v1"],

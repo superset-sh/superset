@@ -37,6 +37,7 @@ const PRODUCT_LINKS: FooterLink[] = [
 	{ href: "/#how-it-works", label: "How it works" },
 	{ href: "/#features", label: "Features" },
 	{ href: "/#security", label: "Security" },
+	{ href: "/mcp-install", label: "MCP" },
 	{ href: "/marketplace", label: "Marketplace" },
 	{ href: "/compare", label: "Compare" },
 ];

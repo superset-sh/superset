@@ -6,6 +6,8 @@ export {
 	type EventBusHandle,
 	type GitChangedPayload,
 	getEventBus,
+	type HostConnectionState,
+	type HostConnectionStatus,
 	type PortChangedPayload,
 	type ProjectChangedPayload,
 	type ProjectSnapshotPayload,

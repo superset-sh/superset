@@ -45,10 +45,11 @@ export function register(server: McpServer): void {
 				),
 		},
 		handler: async (input, ctx) => {
-			return hostServiceCall<
-				| { kind: "terminal"; sessionId: string; label: string }
-				| { kind: "chat"; sessionId: string; label: string }
-			>(
+			return hostServiceCall<{
+				kind: "terminal";
+				sessionId: string;
+				label: string;
+			}>(
 				{
 					relayUrl: ctx.relayUrl,
 					organizationId: ctx.organizationId,

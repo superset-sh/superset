@@ -91,7 +91,7 @@ export interface AgentCreateParams {
 	hostId: string;
 	/** Workspace UUID to launch the agent session in. */
 	workspaceId: string;
-	/** Agent preset id (e.g. `"claude"`, `"superset"`) or HostAgentConfig instance UUID. */
+	/** Agent preset id (e.g. `"claude"`) or HostAgentConfig instance UUID. */
 	agent: string;
 	/** Prompt sent to the agent. Optional when `resumeSessionId` is provided. */
 	prompt?: string;
@@ -103,9 +103,11 @@ export interface AgentCreateParams {
 	attachmentIds?: string[];
 }
 
-export type AgentCreateResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
+export type AgentCreateResult = {
+	kind: "terminal";
+	sessionId: string;
+	label: string;
+};
 
 export declare namespace Agents {
 	export type {

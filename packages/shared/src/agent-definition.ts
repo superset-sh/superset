@@ -5,7 +5,7 @@ import {
 } from "./agent-prompt-template";
 
 export type AgentDefinitionSource = "builtin" | "user";
-export type AgentKind = "terminal" | "chat";
+export type AgentKind = "terminal";
 
 interface BaseAgentDefinition {
 	id: string;
@@ -68,12 +68,7 @@ export interface TerminalAgentDefinitionInput
 	contextPromptTemplateUser?: string;
 }
 
-export interface ChatAgentDefinition extends BaseAgentDefinition {
-	kind: "chat";
-	model?: string;
-}
-
-export type AgentDefinition = TerminalAgentDefinition | ChatAgentDefinition;
+export type AgentDefinition = TerminalAgentDefinition;
 
 export function createTerminalAgentDefinition(
 	input: TerminalAgentDefinitionInput,
@@ -94,10 +89,4 @@ export function isTerminalAgentDefinition(
 	definition: AgentDefinition,
 ): definition is TerminalAgentDefinition {
 	return definition.kind === "terminal";
-}
-
-export function isChatAgentDefinition(
-	definition: AgentDefinition,
-): definition is ChatAgentDefinition {
-	return definition.kind === "chat";
 }

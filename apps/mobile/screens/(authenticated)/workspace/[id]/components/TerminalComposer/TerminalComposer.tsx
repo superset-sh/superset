@@ -1,142 +1,98 @@
+import { forwardRef, useImperativeHandle, useRef } from "react";
+import { Alert, View } from "react-native";
+import type { PromptInputMessage } from "@/components/ai-elements/prompt-input";
 import {
-	Button,
-	Host,
-	HStack,
-	Image,
-	TextField,
-	type TextFieldRef,
-	VStack,
-} from "@expo/ui/swift-ui";
-import {
-	buttonBorderShape,
-	buttonStyle,
-	clipped,
-	contentShape,
-	disabled,
-	environment,
-	frame,
-	glassEffect,
-	lineLimit,
-	onTapGesture,
-	opacity,
-	padding,
-	shapes,
-	tint,
-	truncationMode,
-} from "@expo/ui/swift-ui/modifiers";
-import { useRef, useState } from "react";
-import { View } from "react-native";
+	GlassComposer,
+	type GlassComposerHandle,
+} from "@/screens/(authenticated)/components/GlassComposer";
 import { QuickKeysRow } from "./components/QuickKeysRow";
-import { PILL_RADIUS, type TerminalQuickKey } from "./constants";
+import type { TerminalQuickKey } from "./constants";
+import {
+	type TerminalAttachmentTarget,
+	useWriteTerminalAttachments,
+} from "./hooks/useWriteTerminalAttachments";
 
 interface TerminalComposerProps {
 	placeholder?: string;
-	/** Submit the current draft. Return true to clear the field. */
+	/** Submit the current draft to the PTY. */
 	onSubmit: (text: string) => void;
 	onQuickKey: (key: TerminalQuickKey) => void;
+	/** Where attachments land; null while the workspace or host is unresolved. */
+	attachmentTarget: TerminalAttachmentTarget | null;
+	/**
+	 * Only agent sessions can use an attachment: they read the paths out of the
+	 * prompt. A plain shell tries to EXECUTE them ("permission denied:
+	 * .superset/attachments/IMG_0006.HEIC"), so it doesn't get the + button.
+	 */
+	allowAttachments: boolean;
+	/** Focused, or the keyboard is up — the screen covers the terminal with a
+	 *  tap-to-dismiss target while this is true. */
+	onActiveChange?: (active: boolean) => void;
 }
 
 /**
- * Terminal input, ported from the home glass composer (NewChatWidget): the
- * same SwiftUI glass pill + draft-ref TextField, trimmed to the terminal's
- * needs — no project/branch chips, no attachments, no expand chrome. The
- * quick-keys float above the pill (esc/tab/arrows); the pill sends the draft.
- * Keyboard avoidance is the parent screen's job (inline KeyboardAvoidingView),
- * so this component is a plain bottom-anchored column.
+ * Terminal input: the shared glass composer with the terminal's own chrome —
+ * quick keys (esc/tab/arrows) floating above the pill, and a submit that
+ * frames the draft for a live PTY. The project/branch/agent pickers are the
+ * home composer's alone; the + button, mic and send are shared.
  */
-export function TerminalComposer({
-	placeholder = "Send input",
-	onSubmit,
-	onQuickKey,
-}: TerminalComposerProps) {
-	const fieldRef = useRef<TextFieldRef>(null);
-	// The draft lives in a ref, never provider state — mirroring the home
-	// composer, so each keystroke doesn't re-render the SwiftUI Host.
-	const draftRef = useRef("");
-	const [hasText, setHasText] = useState(false);
+export const TerminalComposer = forwardRef<
+	GlassComposerHandle,
+	TerminalComposerProps
+>(function TerminalComposer(
+	{
+		placeholder = "Send input",
+		onSubmit,
+		onQuickKey,
+		attachmentTarget,
+		allowAttachments,
+		onActiveChange,
+	},
+	ref,
+) {
+	const composerRef = useRef<GlassComposerHandle>(null);
+	// The screen owns the tap-to-dismiss target over the terminal, so it needs
+	// the composer's blur: Keyboard.dismiss() alone can't lower the keyboard,
+	// the SwiftUI field sits outside RN's responder chain.
+	useImperativeHandle(ref, () => ({
+		focus: () => composerRef.current?.focus(),
+		blur: () => composerRef.current?.blur(),
+		clear: () => composerRef.current?.clear(),
+	}));
+	const writeAttachments = useWriteTerminalAttachments();
 
-	const writeDraft = (text: string) => {
-		draftRef.current = text;
-		setHasText(text.trim().length > 0);
-	};
-
-	const submit = () => {
-		const text = draftRef.current;
-		if (text.trim().length === 0) return;
-		onSubmit(text);
-		draftRef.current = "";
-		setHasText(false);
-		void fieldRef.current?.clear();
+	const submit = ({ text, attachments }: PromptInputMessage) => {
+		if (attachments.length === 0) {
+			onSubmit(text);
+			composerRef.current?.clear();
+			return;
+		}
+		if (!attachmentTarget) {
+			Alert.alert("Attachments need an online host");
+			return;
+		}
+		writeAttachments
+			.mutateAsync({ target: attachmentTarget, attachments })
+			.then((paths) => {
+				// A PTY takes bytes, not files: the agent gets the attachments as
+				// worktree-relative paths appended to the message.
+				onSubmit(text ? `${text}\n\n${paths.join("\n")}` : paths.join("\n"));
+				composerRef.current?.clear();
+			})
+			.catch(() => {});
 	};
 
 	return (
-		<View className="gap-2 px-3 pb-2">
-			{/* z-10: the settled glass Host renders taller than the frame
-			    matchContents reports and, as the later sibling, sits above the
-			    chips — without the raise its invisible top edge swallows their
-			    taps (the pill's tap-to-focus fires instead). */}
-			<View className="z-10 flex-row pl-1">
-				<QuickKeysRow onKey={onQuickKey} />
-			</View>
-			<Host matchContents={{ vertical: true }} style={{ width: "100%" }}>
-				<VStack
-					spacing={0}
-					modifiers={[
-						environment("colorScheme", "dark"),
-						frame({ maxWidth: 100_000 }),
-						glassEffect({
-							glass: { variant: "regular", interactive: true },
-							shape: "roundedRectangle",
-							cornerRadius: PILL_RADIUS,
-						}),
-						contentShape(shapes.rectangle()),
-						onTapGesture(() => void fieldRef.current?.focus()),
-					]}
-				>
-					<HStack
-						spacing={6}
-						modifiers={[padding({ horizontal: 12, vertical: 6 })]}
-					>
-						<TextField
-							ref={fieldRef}
-							axis="vertical"
-							placeholder={placeholder}
-							onTextChange={writeDraft}
-							modifiers={[
-								padding({ horizontal: 4 }),
-								frame({ minHeight: 38 }),
-								lineLimit(5),
-								truncationMode("tail"),
-							]}
-						/>
-						<HStack
-							spacing={0}
-							modifiers={[
-								frame({ width: hasText ? undefined : 0 }),
-								opacity(hasText ? 1 : 0),
-								clipped(),
-							]}
-						>
-							<Button
-								onPress={submit}
-								modifiers={[
-									buttonStyle("borderedProminent"),
-									buttonBorderShape("circle"),
-									tint("#ffffff"),
-									disabled(!hasText),
-								]}
-							>
-								<Image
-									systemName="arrow.up"
-									size={16}
-									color="#1c1c1e"
-									modifiers={[frame({ width: 16, height: 16 })]}
-								/>
-							</Button>
-						</HStack>
-					</HStack>
-				</VStack>
-			</Host>
+		<View className="px-3 pb-2">
+			<GlassComposer
+				ref={composerRef}
+				above={<QuickKeysRow onKey={onQuickKey} />}
+				isSending={writeAttachments.isPending}
+				showAttachments={allowAttachments}
+				onActiveChange={onActiveChange}
+				onSubmit={submit}
+				placeholder={placeholder}
+			/>
 		</View>
 	);
-}
+});

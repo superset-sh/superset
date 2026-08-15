@@ -27,17 +27,6 @@ export default function HomeLayout() {
 					sheetGrabberVisible: true,
 				}}
 			/>
-			<Stack.Screen
-				name="attachments"
-				options={{
-					presentation: "formSheet",
-					headerShown: false,
-					// Single detent: multi-detent resizes corrupt expo-image frames.
-					// Content (incl. the screenshots grid) is sized to fit 0.5.
-					sheetAllowedDetents: [0.5],
-					sheetGrabberVisible: true,
-				}}
-			/>
 		</Stack>
 	);
 }

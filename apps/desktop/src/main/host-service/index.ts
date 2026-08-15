@@ -14,7 +14,6 @@ import {
 	installUpgradeSocketGuard,
 	JwtApiAuthProvider,
 	LocalGitCredentialProvider,
-	LocalModelProvider,
 	PskHostAuthProvider,
 	startTerminalReaper,
 } from "@superset/host-service";
@@ -108,7 +107,6 @@ async function main(): Promise<void> {
 			auth: authProvider,
 			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
 			credentials: new LocalGitCredentialProvider(),
-			modelResolver: new LocalModelProvider(),
 		},
 	});
 

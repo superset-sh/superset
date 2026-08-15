@@ -13,5 +13,4 @@ export type AgentEditableField =
 	| "command"
 	| "promptCommand"
 	| "promptCommandSuffix"
-	| "taskPromptTemplate"
-	| "model";
+	| "taskPromptTemplate";

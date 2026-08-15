@@ -79,13 +79,9 @@ export default command({
 			attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
 		});
 
-		const sessionDescriptor =
-			result.kind === "chat"
-				? `chat session ${result.sessionId}`
-				: `terminal ${result.sessionId}`;
 		return {
 			data: result,
-			message: `Launched ${result.label} (${sessionDescriptor}) in workspace ${options.workspace}`,
+			message: `Launched ${result.label} (terminal ${result.sessionId}) in workspace ${options.workspace}`,
 		};
 	},
 });

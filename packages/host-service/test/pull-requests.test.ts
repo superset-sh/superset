@@ -89,9 +89,7 @@ describe("PullRequestRuntimeManager branch sync", () => {
 			upstreamRepo: null,
 			upstreamBranch: null,
 			pullRequestId: null,
-			// Branch changed → flagged for the cloud reconciler.
 			updatedAt: expect.any(Number),
-			cloudSyncedAt: null,
 		});
 		expect(refreshProjectMock).toHaveBeenCalledWith("project-1");
 	});

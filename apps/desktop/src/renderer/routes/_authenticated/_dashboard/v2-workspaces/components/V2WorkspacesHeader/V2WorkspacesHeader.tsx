@@ -23,6 +23,7 @@ import {
 	LuLaptop,
 	LuList,
 	LuMonitor,
+	LuMonitorSmartphone,
 	LuSearch,
 	LuSquareKanban,
 	LuTerminal,
@@ -33,6 +34,7 @@ import type {
 	V2WorkspaceProjectOption,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
 import {
+	DEVICE_FILTER_ALL_DEVICES,
 	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_SESSIONS,
 	useV2WorkspacesFilterStore,
@@ -128,7 +130,9 @@ export function V2WorkspacesHeader({
 		(host) => host.hostId === deviceFilter,
 	);
 	const selectedHostFallback =
-		!selectedRemoteHostFromOptions && deviceFilter !== DEVICE_FILTER_THIS_DEVICE
+		!selectedRemoteHostFromOptions &&
+		deviceFilter !== DEVICE_FILTER_THIS_DEVICE &&
+		deviceFilter !== DEVICE_FILTER_ALL_DEVICES
 			? hostsById.get(deviceFilter)
 			: undefined;
 	const selectedHostLabel = selectedRemoteHostFromOptions
@@ -240,6 +244,12 @@ export function V2WorkspacesHeader({
 						</SelectTrigger>
 						<SelectContent align="end" className="min-w-[16rem]">
 							<SelectGroup>
+								<SelectItem value={DEVICE_FILTER_ALL_DEVICES}>
+									<DeviceOptionLabel
+										icon={<LuMonitorSmartphone className="size-3.5" />}
+										label="All devices"
+									/>
+								</SelectItem>
 								<SelectItem value={DEVICE_FILTER_THIS_DEVICE}>
 									<DeviceOptionLabel
 										icon={<LuLaptop className="size-3.5" />}

@@ -69,7 +69,7 @@ export function CreateAutomationDialog({
 	const { localHostId, localHostIsOnline } = useWorkspaceHostOptions();
 	const targetHostId = hostId ?? localHostId;
 	// The local device is only dispatchable once relay access is enabled in
-	// Settings > Security; block creation until then. Offline remote hosts
+	// Settings > Remote Workspaces; block creation until then. Offline remote hosts
 	// only warn — they may reconnect by the time a run is scheduled.
 	const localRelayBlocked =
 		targetHostId === localHostId && localHostIsOnline === false;
@@ -172,7 +172,6 @@ export function CreateAutomationDialog({
 				v2WorkspaceId,
 				rrule: rrule.trim(),
 				timezone: DEFAULT_TIMEZONE,
-				mcpScope: [],
 			});
 		},
 		onSuccess: (result) => {

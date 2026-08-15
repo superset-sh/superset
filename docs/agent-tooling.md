@@ -16,8 +16,6 @@ Everything else links to those:
 | `.cursor/commands` | `../.agents/commands` |
 | `.codex/commands`, `.codex/prompts` | `../.agents/commands` |
 
-`packages/chat-legacy` discovers slash commands from `.claude/commands`.
-
 ## Per-tool notes
 
 - **Codex** layers trusted repo settings from `.codex/config.toml`; launch it normally from the repo

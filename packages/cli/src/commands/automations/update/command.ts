@@ -19,7 +19,6 @@ export default command({
 		session: boolean().desc(
 			"Switch to session mode: no project, each run creates a project-less session workspace",
 		),
-		mcpScope: string().desc("Comma-separated MCP scope strings"),
 		enabled: boolean().desc("Enable or pause the automation"),
 	},
 	run: async ({ ctx, args, options }) => {
@@ -39,14 +38,6 @@ export default command({
 				enabled: options.enabled,
 			});
 		}
-
-		const mcpScope =
-			options.mcpScope !== undefined
-				? options.mcpScope
-						.split(",")
-						.map((s) => s.trim())
-						.filter(Boolean)
-				: undefined;
 
 		// Retargeting (--workspace or --project) re-derives targetHostId +
 		// v2ProjectId; the resource must exist on the target host.
@@ -88,7 +79,6 @@ export default command({
 			// Session mode clears both the project and any workspace pin.
 			...(options.session ? { v2ProjectId: null, v2WorkspaceId: null } : {}),
 			...target,
-			...(mcpScope !== undefined ? { mcpScope } : {}),
 		});
 
 		return {

@@ -83,7 +83,7 @@ export function PullRequestsContent({
 				const firstProject = target.projects[0];
 				if (!target.hostUrl || !firstProject) return null;
 				const client = getHostServiceClientByUrl(target.hostUrl);
-				return client.workspaceCreation.searchPullRequests.query({
+				const result = await client.workspaceCreation.searchPullRequests.query({
 					projectId: firstProject.projectId,
 					projectIds: target.projects.map((project) => project.projectId),
 					query: debouncedQuery.trim() || undefined,
@@ -93,6 +93,18 @@ export function PullRequestsContent({
 					includeClosed,
 					page,
 				});
+				// The router types come from this build, the rows come from
+				// whichever host-service the host actually runs — hosts update
+				// independently and the list is not version-gated. Rows only
+				// gained `checks` in host-service 1.20.0, so an older host
+				// answers without it. Absent checks read as "none reported".
+				return {
+					...result,
+					pullRequests: result.pullRequests.map((pullRequest) => ({
+						...pullRequest,
+						checks: pullRequest.checks ?? [],
+					})),
+				};
 			},
 			enabled: !!target.hostUrl,
 			staleTime: 30_000,

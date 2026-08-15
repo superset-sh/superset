@@ -119,9 +119,10 @@ const TABS: SettingsTab[] = [
 	},
 	{
 		id: "security",
-		title: "Security",
+		title: "Remote Workspaces",
 		path: "/settings/security",
 		icon: KeyRoundIcon,
+		keywords: ["security", "relay"],
 	},
 	{ id: "agents", title: "Agents", path: "/settings/agents", icon: WrenchIcon },
 	{

@@ -2,7 +2,7 @@
 	"name": "@superset/desktop",
 	"productName": "Superset",
 	"description": "The last developer tool you'll ever need",
-	"version": "1.21.0",
+	"version": "1.22.0",
 	"main": "./dist/main/index.js",
 	"resources": "src/resources",
 	"repository": {
@@ -38,9 +38,6 @@
 		"test": "bun test"
 	},
 	"dependencies": {
-		"@ai-sdk/anthropic": "3.0.64",
-		"@ai-sdk/openai": "3.0.36",
-		"@ai-sdk/react": "3.0.143",
 		"@ast-grep/napi": "0.41.1",
 		"@better-auth/api-key": "1.6.22",
 		"@better-auth/stripe": "1.6.22",
@@ -73,7 +70,6 @@
 		"@hono/node-server": "2.0.10",
 		"@hookform/resolvers": "5.2.2",
 		"@lezer/highlight": "1.2.3",
-		"@mastra/core": "1.33.1",
 		"@paper-design/shaders-react": "0.0.77",
 		"@parcel/watcher": "2.5.6",
 		"@pierre/diffs": "1.2.12",
@@ -85,7 +81,6 @@
 		"@streamdown/mermaid": "1.0.2",
 		"@superset/auth": "workspace:*",
 		"@superset/chat": "workspace:*",
-		"@superset/chat-legacy": "workspace:*",
 		"@superset/db": "workspace:*",
 		"@superset/host-service": "workspace:*",
 		"@superset/local-db": "workspace:*",

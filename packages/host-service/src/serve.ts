@@ -8,7 +8,6 @@ import {
 } from "./providers/auth";
 import { LocalGitCredentialProvider } from "./providers/git";
 import { PskHostAuthProvider } from "./providers/host-auth";
-import { LocalModelProvider } from "./providers/model-providers";
 import { installProcessSafetyNet, installUpgradeSocketGuard } from "./safety";
 import { captureFatalStartupError, initSentry } from "./sentry";
 import { startTerminalBaseEnvResolution } from "./terminal/env";
@@ -63,7 +62,6 @@ async function main(): Promise<void> {
 			auth: authProvider,
 			hostAuth: new PskHostAuthProvider(env.HOST_SERVICE_SECRET),
 			credentials: new LocalGitCredentialProvider(),
-			modelResolver: new LocalModelProvider(),
 		},
 	});
 

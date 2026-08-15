@@ -14,6 +14,7 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { derivePullRequestQueryTargets } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import {
+	DEVICE_FILTER_ALL_DEVICES,
 	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_SESSIONS,
 	type V2WorkspacesAgentStatusFilter,
@@ -209,19 +210,24 @@ export function useAccessibleV2Workspaces(
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
-	// With a device filter (the page), rows come from a single `workspace.list`
-	// against that host — no fan-out, so ten idle hosts can't slow down or
-	// silently thin out the list. Without one (palette, dev seeding), rows come
-	// from the provider's already-running fan-out. Both hooks always run per the
-	// rules of hooks; the unused one is passed null / left unread and does no
-	// work of its own.
-	const selectedHostId =
+	// With a specific device filter (the page), rows come from a single
+	// `workspace.list` against that host — no fan-out, so ten idle hosts can't
+	// slow down or silently thin out the list. "All devices" is the user opting
+	// into that fan-out: the scoped source runs unscoped (undefined), sharing
+	// query keys with the provider so nothing fetches twice, and archived
+	// tombstones still ride along. Without a filter (palette, dev seeding),
+	// rows come from the provider's already-running fan-out. Both hooks always
+	// run per the rules of hooks; the unused one is passed null / left unread
+	// and does no work of its own.
+	const scopedHostId =
 		deviceFilter === undefined
 			? null
-			: deviceFilter === DEVICE_FILTER_THIS_DEVICE
-				? machineId
-				: deviceFilter;
-	const scopedSource = useHostWorkspacesSource(selectedHostId, {
+			: deviceFilter === DEVICE_FILTER_ALL_DEVICES
+				? undefined
+				: deviceFilter === DEVICE_FILTER_THIS_DEVICE
+					? machineId
+					: deviceFilter;
+	const scopedSource = useHostWorkspacesSource(scopedHostId, {
 		includeArchived: options.includeArchived ?? false,
 	});
 	const fanoutSource = useHostWorkspaces();
@@ -439,10 +445,11 @@ export function useAccessibleV2Workspaces(
 	]);
 
 	// The authoritative link lives in host.db (`workspace.pullRequestId`), not
-	// any collection. With host-scoped rows this derives a single target; a
-	// client-side `repositoryId::branch` map mistracks on fork branch
-	// collisions. Unscoped callers (palette, dev seeding) don't render PR data,
-	// so skip the queries entirely rather than fanning them out per host.
+	// any collection. With host-scoped rows this derives a single target ("All
+	// devices" derives one per host with visible rows); a client-side
+	// `repositoryId::branch` map mistracks on fork branch collisions. Unscoped
+	// callers (palette, dev seeding) don't render PR data, so skip the queries
+	// entirely rather than fanning them out per host.
 	const pullRequestQueryTargets = useMemo(
 		() =>
 			deviceFilter === undefined

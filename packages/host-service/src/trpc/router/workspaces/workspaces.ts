@@ -20,11 +20,7 @@ import {
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
 import { createCallerFactory, protectedProcedure, router } from "../../index";
-import {
-	buildTerminalAgentLaunch,
-	isChatAgent,
-	validateAgentLaunchEffort,
-} from "../agents";
+import { buildTerminalAgentLaunch, validateAgentLaunchEffort } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
@@ -1099,19 +1095,14 @@ export const workspacesRouter = router({
 
 			// Wait-for-setup gate: chain a single terminal agent behind the setup
 			// commands in the setup terminal, so the agent starts only after setup
-			// succeeds and no second terminal is created. Chat agents and
-			// multi-agent launches keep the parallel path, mirroring the renderer's
-			// v1 gating. Build the agent command up-front; if it fails (unknown
-			// agent, missing attachment) fall back to the parallel dispatch, which
-			// surfaces the error in the agents result.
+			// succeeds and no second terminal is created. Multi-agent launches keep
+			// the parallel path, mirroring the renderer's v1 gating. Build the agent
+			// command up-front; if it fails (unknown agent, missing attachment) fall
+			// back to the parallel dispatch, which surfaces the error in the agents
+			// result.
 			let chainAgent: { fullCommand: string; label: string } | null = null;
 			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
-			if (
-				!alreadyExists &&
-				input.waitForSetupBeforeAgents &&
-				soleLaunch &&
-				!isChatAgent(soleLaunch.agent)
-			) {
+			if (!alreadyExists && input.waitForSetupBeforeAgents && soleLaunch) {
 				try {
 					chainAgent = buildTerminalAgentLaunch(ctx.db, {
 						workspaceId: workspaceRow.id,

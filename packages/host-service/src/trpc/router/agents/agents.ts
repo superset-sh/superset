@@ -1,4 +1,3 @@
-import { readFileSync } from "node:fs";
 import {
 	buildAgentEffortArgs,
 	buildAgentModelArgs,
@@ -182,12 +181,11 @@ export interface AgentRunInput {
 	resumeSessionId?: string;
 }
 
-export type AgentRunResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
-
-const SUPERSET_AGENT_ID = "superset";
-const SUPERSET_AGENT_LABEL = "Superset";
+export type AgentRunResult = {
+	kind: "terminal";
+	sessionId: string;
+	label: string;
+};
 
 /**
  * Validate an explicit effort override before launch. Omitting effort always
@@ -251,14 +249,6 @@ export function validateAgentLaunchEffort(
 	input: Pick<AgentRunInput, "agent" | "effort">,
 ): void {
 	if (!input.effort) return;
-	if (input.agent === SUPERSET_AGENT_ID) {
-		validateAgentEffortSelection(
-			SUPERSET_AGENT_ID,
-			SUPERSET_AGENT_LABEL,
-			input.effort,
-		);
-		return;
-	}
 
 	const config = resolveHostAgentConfig(db, input.agent);
 	if (!config) {
@@ -268,64 +258,6 @@ export function validateAgentLaunchEffort(
 		});
 	}
 	validateAgentEffortSelection(config.presetId, config.label, input.effort);
-}
-
-async function resolveAttachmentsAsFiles(
-	attachmentIds: string[],
-): Promise<Array<{ data: string; mediaType: string; filename?: string }>> {
-	return attachmentIds.map((attachmentId) => {
-		const resolved = resolveAttachmentPath(attachmentId);
-		if (!resolved) {
-			throw new TRPCError({
-				code: "NOT_FOUND",
-				message: `Attachment not found: ${attachmentId}`,
-			});
-		}
-		const bytes = readFileSync(resolved.path);
-		const data = `data:${resolved.metadata.mediaType};base64,${bytes.toString("base64")}`;
-		return {
-			data,
-			mediaType: resolved.metadata.mediaType,
-			...(resolved.metadata.originalFilename
-				? { filename: resolved.metadata.originalFilename }
-				: {}),
-		};
-	});
-}
-
-async function runChatAgent(
-	ctx: HostServiceContext,
-	input: AgentRunInput,
-	label: string,
-): Promise<AgentRunResult> {
-	const sessionId = crypto.randomUUID();
-	const files = await resolveAttachmentsAsFiles(input.attachmentIds ?? []);
-
-	await ctx.api.chat.createSession.mutate({
-		sessionId,
-		v2WorkspaceId: input.workspaceId,
-	});
-
-	// Errors surface via `getSnapshot.displayState.errorMessage` when a
-	// chat pane attaches.
-	void ctx.runtime.chat
-		.sendMessage({
-			sessionId,
-			workspaceId: input.workspaceId,
-			payload: {
-				content: input.prompt,
-				...(files.length > 0 ? { files } : {}),
-			},
-			...(input.model ? { metadata: { model: input.model } } : {}),
-		})
-		.catch((error) => {
-			console.error(
-				`[runChatAgent] sendMessage failed for ${sessionId}:`,
-				error,
-			);
-		});
-
-	return { kind: "chat", sessionId, label };
 }
 
 /**
@@ -405,11 +337,6 @@ async function runTerminalAgent(
 	};
 }
 
-/** Sugar agents that run as chat sessions rather than terminal commands. */
-export function isChatAgent(agent: string): boolean {
-	return agent === SUPERSET_AGENT_ID;
-}
-
 export async function runAgentInWorkspace(
 	ctx: HostServiceContext,
 	input: AgentRunInput,
@@ -425,27 +352,6 @@ export async function runAgentInWorkspace(
 			message: `Workspace ${input.workspaceId} not found on this host — it may have been deleted.`,
 		});
 	}
-	if (input.agent === SUPERSET_AGENT_ID) {
-		validateAgentEffortSelection(
-			SUPERSET_AGENT_ID,
-			SUPERSET_AGENT_LABEL,
-			input.effort,
-		);
-		if (input.resumeSessionId !== undefined) {
-			// Chat sessions restore through the chat runtime, not a relaunch.
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `${SUPERSET_AGENT_LABEL} does not support resuming a session by id. Omit resumeSessionId to start a new session.`,
-			});
-		}
-		if (input.prompt.length === 0) {
-			throw new TRPCError({
-				code: "BAD_REQUEST",
-				message: `${SUPERSET_AGENT_LABEL} requires a prompt to start a session.`,
-			});
-		}
-		return runChatAgent(ctx, input, SUPERSET_AGENT_LABEL);
-	}
 	return runTerminalAgent(ctx, input);
 }
 
@@ -455,9 +361,8 @@ export const agentsRouter = router({
 			z.object({
 				workspaceId: z.string().uuid(),
 				agent: z.string().min(1),
-				// Optional for terminal agents: an empty prompt launches the bare
-				// agent (the builder drops promptArgs). Chat agents still require
-				// one — enforced in runAgentInWorkspace where the branch is known.
+				// Optional: an empty prompt launches the bare agent (the builder
+				// drops promptArgs).
 				prompt: z.string().default(""),
 				attachmentIds: z.array(z.string().uuid()).optional(),
 				model: z.string().min(1).optional(),

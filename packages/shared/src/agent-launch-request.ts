@@ -40,7 +40,6 @@ export function buildPromptAgentLaunchRequest({
 	selectedAgent,
 	prompt,
 	initialFiles,
-	taskSlug,
 	configsById,
 }: {
 	workspaceId: string;
@@ -52,27 +51,11 @@ export function buildPromptAgentLaunchRequest({
 		mediaType: string;
 		filename?: string;
 	}>;
-	taskSlug?: string;
 	configsById: ReadonlyMap<AgentDefinitionId, ResolvedAgentConfig>;
 }): AgentLaunchRequest | null {
 	if (selectedAgent === "none") return null;
 
 	const config = getRequiredAgentConfig(configsById, selectedAgent);
-
-	if (config.kind === "chat") {
-		return {
-			kind: "chat",
-			workspaceId,
-			agentType: config.id,
-			source,
-			chat: {
-				initialPrompt: prompt || undefined,
-				initialFiles: initialFiles?.length ? initialFiles : undefined,
-				model: config.model,
-				taskSlug,
-			},
-		};
-	}
 
 	// For terminal agents with files, append file information to the prompt
 	// Use the same filename sanitization logic as terminal-adapter.ts to ensure paths match
@@ -172,25 +155,6 @@ export function buildTaskAgentLaunchRequest({
 	if (selectedAgent === "none") return null;
 
 	const config = getRequiredAgentConfig(configsById, selectedAgent);
-
-	if (config.kind === "chat") {
-		return {
-			kind: "chat",
-			workspaceId,
-			agentType: config.id,
-			source,
-			chat: {
-				initialPrompt: renderTaskPromptTemplate(
-					config.taskPromptTemplate,
-					task,
-				),
-				model: config.model,
-				retryCount: 1,
-				autoExecute: autoRun,
-				taskSlug: task.slug,
-			},
-		};
-	}
 
 	const terminalConfig = requireTerminalConfig(config);
 	const renderedPrompt = renderTaskPromptTemplate(

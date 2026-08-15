@@ -1,5 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { TRPCError } from "@trpc/server";
+import { simpleGit } from "simple-git";
 import { rethrowEnvironmentalGitError } from "./classify-git-error";
 
 function capture(error: unknown): TRPCError | null {
@@ -53,6 +54,30 @@ describe("rethrowEnvironmentalGitError", () => {
 		expect(thrown?.message).toBe(message);
 	});
 
+	test("simple-git construct error → NOT_FOUND / WORKTREE_MISSING", () => {
+		const message = "Cannot use simple-git on a directory that does not exist";
+		const thrown = capture(new Error(message));
+		expect(thrown?.code).toBe("NOT_FOUND");
+		expect(causeKind(thrown)).toBe("WORKTREE_MISSING");
+		expect(thrown?.message).toBe(message);
+	});
+
+	test("simple-git construct errors arrive named Error, not GitConstructError", () => {
+		// simple-git's GitError never assigns `this.name`, so the subclass name is
+		// invisible at runtime — matching on it would make the branch above dead
+		// code. The worker boundary drops `config` too, leaving only the message.
+		let caught: unknown;
+		try {
+			simpleGit("/superset-classifier-probe/does/not/exist");
+		} catch (error) {
+			caught = error;
+		}
+		expect((caught as Error).name).toBe("Error");
+		expect((caught as Error).message).toBe(
+			"Cannot use simple-git on a directory that does not exist",
+		);
+	});
+
 	test("no-ops for TRPCErrors and genuine failures", () => {
 		expect(
 			capture(new TRPCError({ code: "NOT_FOUND", message: "missing" })),
@@ -70,5 +95,36 @@ describe("rethrowEnvironmentalGitError", () => {
 		).toBeNull();
 		expect(capture(new Error("fatal: cannot chdir to work tree\n"))).toBeNull();
 		expect(capture("string error")).toBeNull();
+	});
+
+	test("does not swallow other 'does not exist' failures", () => {
+		// The construct-error branch must key on simple-git's own sentence, not on
+		// the phrase "does not exist" — git says that about refs, paths and remotes
+		// all the time, and those are ordinary failures the caller should see.
+		expect(
+			capture(new Error("fatal: path 'src/app.ts' does not exist in 'HEAD'\n")),
+		).toBeNull();
+		expect(
+			capture(new Error("error: remote origin does not exist.\n")),
+		).toBeNull();
+		expect(
+			capture(
+				new Error(
+					"fatal: invalid object name 'feature/directory-that-does-not-exist'\n",
+				),
+			),
+		).toBeNull();
+	});
+
+	test("keeps our own simple-git misconfiguration reporting as a 500", () => {
+		// simple-git raises GitConstructError for more than one condition. Only the
+		// missing-directory one is environmental; anything else on that path is a
+		// bug in how we construct the client and must stay unclassified.
+		expect(
+			capture(new Error("Cannot use simple-git with an invalid configuration")),
+		).toBeNull();
+		expect(
+			capture(new Error("Unable to find path to repository in parent tree")),
+		).toBeNull();
 	});
 });

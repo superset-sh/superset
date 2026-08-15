@@ -58,6 +58,7 @@ export function HomeScreen() {
 		(store) => store.projectFilter,
 	);
 	const sort = useWorkspacesFilterStore((store) => store.sort);
+	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [visibleIds, setVisibleIds] = useState<string[]>([]);
 	const [refreshing, setRefreshing] = useState(false);
@@ -99,7 +100,11 @@ export function HomeScreen() {
 		return newest?.projectId ?? sortedProjects[0]?.id ?? null;
 	}, [workspaces, sortedProjects]);
 
-	const selectedProjectId = projectFilter ?? defaultProjectId;
+	// The saved project arrives a beat after mount; picking a default before
+	// then flashes the wrong project's list on every cold start.
+	const selectedProjectId = hasHydrated
+		? (projectFilter ?? defaultProjectId)
+		: null;
 
 	const projectNamesById = useMemo(
 		() => new Map(projects.map((project) => [project.id, project.name])),
@@ -393,7 +398,7 @@ export function HomeScreen() {
 						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
 					ListEmptyComponent={
-						isReady ? (
+						isReady && hasHydrated ? (
 							<View className="items-center justify-center py-20">
 								<Text className="text-center text-muted-foreground">
 									{searchQuery.trim()

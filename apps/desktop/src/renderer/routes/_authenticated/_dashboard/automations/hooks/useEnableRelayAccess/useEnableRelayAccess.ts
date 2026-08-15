@@ -1,7 +1,7 @@
 import { toast } from "@superset/ui/sonner";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 
-/** Enable relay access with the same mutation + feedback as Settings > Security. */
+/** Enable relay access with the same mutation + feedback as Settings > Remote Workspaces. */
 export function useEnableRelayAccess() {
 	const utils = electronTrpc.useUtils();
 	const setExpose =

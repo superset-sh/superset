@@ -7,6 +7,7 @@ import {
 	Keyboard,
 	LayoutAnimation,
 	Pressable,
+	StyleSheet,
 	View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -20,6 +21,7 @@ import {
 	getHostTerminalsQueryKey,
 	useHostTerminals,
 } from "@/screens/(authenticated)/(home)/home/hooks/useHostTerminals";
+import type { GlassComposerHandle } from "@/screens/(authenticated)/components/GlassComposer";
 import { PressableScale } from "@/screens/(authenticated)/components/PressableScale";
 import { useTerminalSeenStore } from "@/screens/(authenticated)/stores/terminalSeenStore";
 import {
@@ -141,6 +143,8 @@ export function WorkspaceScreen() {
 		useState<TerminalConnectionState>("connecting");
 	const [composerHeight, setComposerHeight] = useState(0);
 	const [keyboardHeight, setKeyboardHeight] = useState(0);
+	const [composerActive, setComposerActive] = useState(false);
+	const composerRef = useRef<GlassComposerHandle>(null);
 
 	useEffect(() => {
 		const show = Keyboard.addListener("keyboardWillShow", (event) => {
@@ -188,6 +192,14 @@ export function WorkspaceScreen() {
 	const banner = STATE_BANNERS[connectionState];
 	const hasChanges = changeset.files.length > 0;
 	const showComposer = activeTerminalId !== null && routingKey !== null;
+
+	const attachmentTarget = useMemo(
+		() =>
+			id && hostUrl && workspace?.worktreePath
+				? { workspaceId: id, hostUrl, worktreePath: workspace.worktreePath }
+				: null,
+		[id, hostUrl, workspace],
+	);
 
 	return (
 		<View className="bg-background flex-1">
@@ -255,14 +267,26 @@ export function WorkspaceScreen() {
 				}}
 			>
 				{activeTerminalId && routingKey && id ? (
-					<TerminalWebView
-						ref={terminalRef}
-						workspaceId={id}
-						terminalId={activeTerminalId}
-						routingKey={routingKey}
-						onStateChange={setConnectionState}
-						onControl={handleControl}
-					/>
+					<>
+						<TerminalWebView
+							ref={terminalRef}
+							workspaceId={id}
+							terminalId={activeTerminalId}
+							routingKey={routingKey}
+							onStateChange={setConnectionState}
+							onControl={handleControl}
+						/>
+						{/* Tap-outside-to-dismiss, the terminal's answer to the home
+						    composer's backdrop. Transparent, not a scrim: the point of
+						    typing here is watching the output above. */}
+						{composerActive ? (
+							<Pressable
+								accessibilityLabel="Dismiss keyboard"
+								onPress={() => composerRef.current?.blur()}
+								style={StyleSheet.absoluteFill}
+							/>
+						) : null}
+					</>
 				) : isResolving || (!isReady && host) ? (
 					<Centered>
 						<ActivityIndicator />
@@ -296,8 +320,12 @@ export function WorkspaceScreen() {
 					}
 				>
 					<TerminalComposer
+						ref={composerRef}
 						onSubmit={handleSubmit}
 						onQuickKey={handleQuickKey}
+						attachmentTarget={attachmentTarget}
+						allowAttachments={activeRow?.agentId != null}
+						onActiveChange={setComposerActive}
 					/>
 				</View>
 			) : null}

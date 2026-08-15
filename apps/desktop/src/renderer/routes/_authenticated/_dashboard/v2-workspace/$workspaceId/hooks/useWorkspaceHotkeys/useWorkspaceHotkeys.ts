@@ -14,7 +14,6 @@ import { useRightSidebarToggleIntent } from "renderer/stores/right-sidebar-toggl
 import type { StoreApi } from "zustand";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
 	DiffPaneData,
 	PaneViewerData,
 	TerminalPaneData,
@@ -60,12 +59,6 @@ export function useWorkspaceHotkeys({
 
 	useHotkey("NEW_GROUP", async () => {
 		await addTerminalTab();
-	});
-
-	useHotkey("NEW_CHAT", () => {
-		store.getState().addTab({
-			panes: [{ kind: "chat", data: { sessionId: null } as ChatPaneData }],
-		});
 	});
 
 	useHotkey("NEW_BROWSER", () => {
@@ -273,21 +266,6 @@ export function useWorkspaceHotkeys({
 					terminalId: launcher.mint(),
 					createOnAttach: true,
 				} as TerminalPaneData,
-			},
-		});
-	});
-
-	useHotkey("SPLIT_WITH_CHAT", () => {
-		const state = store.getState();
-		const active = state.getActivePane();
-		if (!active) return;
-		state.splitPane({
-			tabId: active.tabId,
-			paneId: active.pane.id,
-			position: "right",
-			newPane: {
-				kind: "chat",
-				data: { sessionId: null } as ChatPaneData,
 			},
 		});
 	});

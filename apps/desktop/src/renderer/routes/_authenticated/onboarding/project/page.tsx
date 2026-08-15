@@ -10,6 +10,7 @@ import {
 	LuGitBranch,
 	LuLayoutTemplate,
 } from "react-icons/lu";
+import { showStarNagOnboardingToast } from "renderer/components/StarNagToast";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { track } from "renderer/lib/analytics";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
@@ -103,6 +104,9 @@ function OnboardingProjectPage() {
 			toast.error("Could not finish onboarding. Please try again.");
 			return;
 		}
+		// Fires at most once, and only if the user isn't already muted/in
+		// cooldown — see useStarNagStore.isEligible().
+		showStarNagOnboardingToast();
 		if (isV2CloudEnabled) {
 			// Land on the dashboard first, then open the modal. Opening it in the
 			// same tick as navigate mounts the Dialog mid-route-transition, which

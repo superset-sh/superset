@@ -390,12 +390,10 @@ describe("workspaces.create PR checkout integration", () => {
 			pr: prNumber,
 		});
 
-		// Cloud create failing no longer rolls anything back — the local row
-		// is authoritative and stays cloud-dirty for the reconciler.
+		// The local row is authoritative; a cloud failure never rolls it back.
 		expect(result.workspace.id).toBeDefined();
 		const persisted = getWorkspaceRow(scenario, expectedBranch);
 		expect(persisted).toBeDefined();
-		expect(persisted?.cloudSyncedAt).toBeNull();
 		expect(existsSync(expectedWorktreePath)).toBe(true);
 		const branchStillExists = await scenario.repo.git
 			.raw(["rev-parse", "--verify", `refs/heads/${expectedBranch}`])

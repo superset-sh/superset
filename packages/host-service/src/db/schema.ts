@@ -239,7 +239,6 @@ export const workspaces = sqliteTable(
 		updatedAt: integer("updated_at").notNull().default(0),
 		// Null = local changes not yet pushed to the cloud mirror (dual-write
 		// era only; the column and reconciler go away in R3).
-		cloudSyncedAt: integer("cloud_synced_at"),
 		// Tombstone: null = live. Set at the destroy commit point; rows are
 		// kept forever and surface on the board's Merged/Deleted columns.
 		archivedAt: integer("archived_at"),
@@ -260,15 +259,3 @@ export const workspaces = sqliteTable(
 			.where(sql`type = 'main'`),
 	],
 );
-
-/**
- * Tombstones for workspaces deleted while the cloud was unreachable. The
- * reconciler drains this into `v2Workspace.delete` calls; rows are removed
- * once the cloud confirms. Dual-write era only — dropped in R3.
- */
-export const workspaceCloudDeletes = sqliteTable("workspace_cloud_deletes", {
-	id: text().primaryKey(),
-	queuedAt: integer("queued_at")
-		.notNull()
-		.$defaultFn(() => Date.now()),
-});
