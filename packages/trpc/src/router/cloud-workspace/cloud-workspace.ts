@@ -106,7 +106,7 @@ export const cloudWorkspaceRouter = {
 					.update(cloudWorkspaces)
 					.set({
 						providerSandboxId: sandbox.providerSandboxId,
-						previewUrl: sandbox.previewUrl,
+						sandboxUrl: sandbox.sandboxUrl,
 						status: "ready",
 					})
 					.where(eq(cloudWorkspaces.id, row.id))
@@ -166,7 +166,7 @@ export const cloudWorkspaceRouter = {
 			}
 			await dbWs
 				.update(cloudWorkspaces)
-				.set({ status: "deleted", previewUrl: null })
+				.set({ status: "deleted", sandboxUrl: null })
 				.where(eq(cloudWorkspaces.id, row.id));
 			return { deleted: true };
 		}),

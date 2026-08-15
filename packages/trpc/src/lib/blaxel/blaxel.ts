@@ -32,7 +32,7 @@ function assertConfigured(): void {
 
 export interface ProvisionedSandbox {
 	providerSandboxId: string;
-	previewUrl: string;
+	sandboxUrl: string;
 }
 
 /**
@@ -65,14 +65,14 @@ export async function provisionSandbox(args: {
 		spec: { port: HOST_SERVICE_PORT, public: false },
 	} as never);
 
-	const previewUrl = preview.spec?.url;
-	if (!previewUrl) {
+	const sandboxUrl = preview.spec?.url;
+	if (!sandboxUrl) {
 		throw new TRPCError({
 			code: "INTERNAL_SERVER_ERROR",
 			message: "Sandbox preview has no URL",
 		});
 	}
-	return { providerSandboxId: args.name, previewUrl };
+	return { providerSandboxId: args.name, sandboxUrl };
 }
 
 export interface PreviewAccess {
