@@ -111,16 +111,22 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 
+			// The id is generated here rather than by the database so the sandbox
+			// name can be derived before the insert. A placeholder would briefly
+			// leave two rows sharing ("blaxel", ""), which the unique constraint
+			// rejects whenever two creates overlap.
+			const id = crypto.randomUUID();
+			const providerSandboxId = sandboxNameFor(id);
 			const [row] = await dbWs
 				.insert(cloudWorkspaces)
 				.values({
+					id,
 					organizationId: input.organizationId,
 					projectId: input.projectId,
 					name: input.name,
 					branch: input.branch,
 					provider: "blaxel",
-					// Set below, once the row id it derives from exists.
-					providerSandboxId: "",
+					providerSandboxId,
 					status: "provisioning",
 					createdByUserId: ctx.userId,
 				})
@@ -132,7 +138,6 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 
-			const providerSandboxId = sandboxNameFor(row.id);
 			try {
 				const sandbox = await provisionSandbox({
 					name: providerSandboxId,
@@ -170,7 +175,7 @@ export const cloudWorkspaceRouter = {
 			} catch (error) {
 				await dbWs
 					.update(cloudWorkspaces)
-					.set({ status: "failed", providerSandboxId })
+					.set({ status: "failed" })
 					.where(eq(cloudWorkspaces.id, row.id));
 				throw error;
 			}
