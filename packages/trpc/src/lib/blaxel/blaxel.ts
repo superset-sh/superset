@@ -7,7 +7,7 @@
  * before they reach host-service. Clients connect directly with a brokered
  * token — no relay hop, so websockets work and the sandbox can still sleep.
  */
-import { SandboxInstance } from "@blaxel/core";
+import { SandboxInstance, settings } from "@blaxel/core";
 import { TRPCError } from "@trpc/server";
 import { env } from "../../env";
 
@@ -24,9 +24,10 @@ function assertConfigured(): void {
 			cause: { kind: "BLAXEL_NOT_CONFIGURED" },
 		});
 	}
-	// The SDK reads these from the environment rather than taking arguments.
-	process.env.BL_API_KEY = env.BLAXEL_API_KEY;
-	process.env.BL_WORKSPACE = env.BLAXEL_WORKSPACE;
+	settings.setConfig({
+		apiKey: env.BLAXEL_API_KEY,
+		workspace: env.BLAXEL_WORKSPACE,
+	});
 }
 
 export interface ProvisionedSandbox {
