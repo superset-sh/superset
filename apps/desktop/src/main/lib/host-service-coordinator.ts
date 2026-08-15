@@ -312,7 +312,14 @@ export class HostServiceCoordinator extends EventEmitter {
 			try {
 				if (instance.pid > 0) killProcess(instance.pid, "SIGTERM");
 			} catch {}
-			removeManifest(organizationId);
+			// Another live instance may have claimed the manifest since we
+			// spawned; deleting its claim would strand the CLI ("host service
+			// isn't running") while that instance still serves. Remove only a
+			// manifest our own child wrote (or an unreadable one).
+			const manifest = readManifest(organizationId);
+			if (manifest === null || manifest.pid === instance.pid) {
+				removeManifest(organizationId);
+			}
 		}
 
 		this.instances.delete(organizationId);

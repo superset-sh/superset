@@ -65,6 +65,27 @@ export function readManifest(
 	}
 }
 
+/**
+ * Whether a booting host-service must leave the manifest alone. The manifest
+ * is the CLI's routing table; stealing it from a live, healthy instance
+ * routes CLI writes to a host-service the desktop renderer isn't listening
+ * to — its broadcasts become invisible and CLI-created workspaces render
+ * "not found" until a fallback refetch. A dead or unhealthy holder forfeits
+ * its claim.
+ */
+export async function shouldYieldManifest(
+	existing: HostServiceManifest | null,
+	selfPid: number,
+	deps: {
+		isAlive: (pid: number) => boolean;
+		probeHealthy: (endpoint: string, authToken: string) => Promise<boolean>;
+	},
+): Promise<boolean> {
+	if (!existing || existing.pid === selfPid) return false;
+	if (!deps.isAlive(existing.pid)) return false;
+	return deps.probeHealthy(existing.endpoint, existing.authToken);
+}
+
 export function removeManifest(organizationId: string): void {
 	const filePath = manifestPath(organizationId);
 	try {

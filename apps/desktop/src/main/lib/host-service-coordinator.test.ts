@@ -876,6 +876,70 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 	});
 });
 
+describe("HostServiceCoordinator.stop manifest ownership", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+	let internals: { instances: Map<string, unknown> };
+
+	function trackOwned(pid: number): void {
+		internals.instances.set("org-1", {
+			pid,
+			port: 55555,
+			secret: "secret",
+			status: "running",
+			spawnedAt: Date.now(),
+			outputTail: "",
+			redactions: ["secret"],
+			owned: true,
+		});
+	}
+
+	beforeEach(() => {
+		resetMocks();
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		coordinator = new HostServiceCoordinator();
+		internals = coordinator as unknown as typeof internals;
+		coordinator.setConfigProvider(async () => spawnConfig);
+	});
+
+	afterEach(() => {
+		coordinator.stopAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("removes the manifest our own child wrote", () => {
+		trackOwned(4242);
+		manifestStore.current = baseManifest(4242);
+
+		coordinator.stop("org-1");
+
+		expect(removeManifestMock).toHaveBeenCalled();
+		expect(manifestStore.current).toBeNull();
+	});
+
+	test("leaves a manifest claimed by another live instance, but still kills our child", () => {
+		trackOwned(4242);
+		manifestStore.current = baseManifest(9999);
+
+		coordinator.stop("org-1");
+
+		expect(removeManifestMock).not.toHaveBeenCalled();
+		expect(manifestStore.current?.pid).toBe(9999);
+		expect(killedPids).toEqual([{ pid: 4242, signal: "SIGTERM" }]);
+	});
+
+	test("removes an unreadable manifest so a corrupt file cannot linger", () => {
+		trackOwned(4242);
+		manifestStore.current = null;
+
+		coordinator.stop("org-1");
+
+		expect(removeManifestMock).toHaveBeenCalled();
+	});
+});
+
 afterAll(() => {
 	mock.restore();
 });

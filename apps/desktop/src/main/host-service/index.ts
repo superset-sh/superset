@@ -23,7 +23,13 @@ import {
 } from "@superset/host-service/terminal-env";
 import { connectRelay } from "@superset/host-service/tunnel";
 import { loadToken } from "lib/trpc/routers/auth/utils/auth-functions";
-import { writeManifest } from "main/lib/host-service-manifest";
+import {
+	type HostServiceManifest,
+	isProcessAlive,
+	readManifest,
+	shouldYieldManifest,
+	writeManifest,
+} from "main/lib/host-service-manifest";
 import { env } from "./env";
 
 const SHUTDOWN_GRACE_MS = 3_000;
@@ -122,17 +128,15 @@ async function main(): Promise<void> {
 			startTerminalReaper(db);
 
 			if (env.ORGANIZATION_ID) {
-				try {
-					writeManifest({
-						pid: process.pid,
-						endpoint: `http://127.0.0.1:${info.port}`,
-						authToken: env.HOST_SERVICE_SECRET,
-						startedAt,
-						organizationId: env.ORGANIZATION_ID,
-					});
-				} catch (error) {
+				void claimManifest({
+					pid: process.pid,
+					endpoint: `http://127.0.0.1:${info.port}`,
+					authToken: env.HOST_SERVICE_SECRET,
+					startedAt,
+					organizationId: env.ORGANIZATION_ID,
+				}).catch((error) => {
 					console.error("[host-service] Failed to write manifest:", error);
-				}
+				});
 			}
 
 			if (env.RELAY_URL && env.ORGANIZATION_ID) {
@@ -158,6 +162,40 @@ function isParentAlive(parentPid: number): boolean {
 		return process.ppid === parentPid;
 	} catch {
 		return false;
+	}
+}
+
+async function claimManifest(manifest: HostServiceManifest): Promise<void> {
+	const existing = readManifest(manifest.organizationId);
+	const yieldToHolder = await shouldYieldManifest(existing, process.pid, {
+		isAlive: isProcessAlive,
+		probeHealthy: probeManifestHolder,
+	});
+	if (yieldToHolder) {
+		console.warn(
+			`[host-service] manifest for ${manifest.organizationId} held by live pid ${existing?.pid} at ${existing?.endpoint}; not claiming`,
+		);
+		return;
+	}
+	writeManifest(manifest);
+}
+
+async function probeManifestHolder(
+	endpoint: string,
+	authToken: string,
+): Promise<boolean> {
+	const controller = new AbortController();
+	const timeout = setTimeout(() => controller.abort(), 1_500);
+	try {
+		const res = await fetch(`${endpoint}/trpc/health.check`, {
+			signal: controller.signal,
+			headers: { Authorization: `Bearer ${authToken}` },
+		});
+		return res.ok;
+	} catch {
+		return false;
+	} finally {
+		clearTimeout(timeout);
 	}
 }
 
