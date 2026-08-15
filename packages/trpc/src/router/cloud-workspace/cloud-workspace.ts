@@ -8,9 +8,9 @@ import { env } from "../../env";
 import {
 	bootstrapSandbox,
 	deleteSandbox,
-	listRemoteBranches,
 	mintPreviewAccess,
 	provisionSandbox,
+	repoForProject,
 } from "../../lib/blaxel";
 import { resolveCloneTarget } from "../../lib/blaxel/clone-token";
 import { jwtProcedure } from "../../trpc";
@@ -63,19 +63,21 @@ export const cloudWorkspaceRouter = {
 				.orderBy(desc(cloudWorkspaces.createdAt));
 		}),
 
-	/** Branches come from the GitHub remote: there is no host to search yet. */
-	listBranches: jwtProcedure
+	/**
+	 * The repo a cloud workspace would clone. Branch listing itself runs
+	 * through the local host's `gh`, so this only resolves the coordinates.
+	 */
+	repoForProject: jwtProcedure
 		.input(
 			z.object({
 				organizationId: z.string().uuid(),
 				projectId: z.string().uuid(),
-				query: z.string().optional(),
 			}),
 		)
 		.query(async ({ ctx, input }) => {
 			assertInternal(ctx.email);
 			assertMember(ctx.organizationIds, input.organizationId);
-			return listRemoteBranches(input.projectId, input.query);
+			return repoForProject(input.projectId);
 		}),
 
 	/**

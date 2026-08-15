@@ -6,4 +6,4 @@ export {
 	provisionSandbox,
 } from "./blaxel";
 export { bootstrapSandbox } from "./bootstrap";
-export { listRemoteBranches, type RemoteBranchPage } from "./list-branches";
+export { type ProjectRepo, repoForProject } from "./repo-for-project";

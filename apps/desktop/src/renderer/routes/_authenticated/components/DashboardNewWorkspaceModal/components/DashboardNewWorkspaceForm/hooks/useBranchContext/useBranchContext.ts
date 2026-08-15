@@ -1,5 +1,5 @@
 import type { AppRouter } from "@superset/host-service";
-import { useInfiniteQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
@@ -36,14 +36,37 @@ export function useBranchContext(
 	const hostUrl = useHostUrl(isCloud ? null : hostId);
 	const { data: session } = authClient.useSession();
 	const organizationId = session?.session?.activeOrganizationId ?? null;
-	const cloudBranches = cloudTrpc.cloudWorkspace.listBranches.useQuery(
-		{
-			organizationId: organizationId ?? "",
-			projectId: projectId ?? "",
-			query: query || undefined,
-		},
+	// Resolve the repo first: branches are read from GitHub by owner/name, not
+	// from a project id, since a cloud workspace has no checkout to enumerate.
+	const cloudRepo = cloudTrpc.cloudWorkspace.repoForProject.useQuery(
+		{ organizationId: organizationId ?? "", projectId: projectId ?? "" },
 		{ enabled: isCloud && !!organizationId && !!projectId },
 	);
+	// Read through the local host's `gh` — the same path issue and PR lookups
+	// take — so it uses the user's own auth rather than an App installation.
+	const localHostUrl = useHostUrl(null);
+	const cloudBranches = useQuery({
+		queryKey: [
+			"cloudBranches",
+			localHostUrl,
+			cloudRepo.data?.owner,
+			cloudRepo.data?.name,
+			query,
+		],
+		enabled:
+			isCloud &&
+			!!localHostUrl &&
+			!!cloudRepo.data?.owner &&
+			!!cloudRepo.data?.name,
+		queryFn: async () => {
+			const client = getHostServiceClientByUrl(localHostUrl as string);
+			return client.workspaceCreation.searchRemoteBranches.query({
+				owner: cloudRepo.data?.owner as string,
+				repo: cloudRepo.data?.name as string,
+				query: query || undefined,
+			});
+		},
+	});
 
 	const q = useInfiniteQuery({
 		queryKey: [
@@ -75,8 +98,8 @@ export function useBranchContext(
 
 	const cloudRows = useMemo<BranchRow[]>(
 		() =>
-			(cloudBranches.data?.items ?? []).map((branch) => ({
-				name: branch.name,
+			(cloudBranches.data?.items ?? []).map((name) => ({
+				name,
 				lastCommitDate: 0,
 				isLocal: false,
 				isRemote: true,
@@ -99,7 +122,7 @@ export function useBranchContext(
 	if (isCloud) {
 		return {
 			branches: cloudRows,
-			defaultBranch: cloudBranches.data?.defaultBranch ?? null,
+			defaultBranch: cloudRepo.data?.defaultBranch ?? null,
 			isLoading: cloudBranches.isLoading,
 			isError: cloudBranches.isError,
 			isFetchingNextPage: false,

@@ -5,6 +5,7 @@ import {
 	searchBranches,
 	searchGitHubIssues,
 	searchPullRequests,
+	searchRemoteBranches,
 } from "./procedures";
 
 export const workspaceCreationRouter = router({
@@ -13,4 +14,5 @@ export const workspaceCreationRouter = router({
 	listProjectWorktrees,
 	searchGitHubIssues,
 	searchPullRequests,
+	searchRemoteBranches,
 });
