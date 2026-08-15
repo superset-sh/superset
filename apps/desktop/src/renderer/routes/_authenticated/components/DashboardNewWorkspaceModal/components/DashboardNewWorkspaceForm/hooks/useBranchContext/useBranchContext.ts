@@ -3,6 +3,8 @@ import { useInfiniteQuery } from "@tanstack/react-query";
 import type { inferRouterInputs, inferRouterOutputs } from "@trpc/server";
 import { useMemo } from "react";
 import { useHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
+import { authClient } from "renderer/lib/auth-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { CLOUD_HOST_ID } from "../../components/DevicePicker/DevicePicker";
 
@@ -28,11 +30,20 @@ export function useBranchContext(
 	query: string,
 	filter: BranchFilter = "all",
 ) {
-	// A cloud workspace has no host to search: the sandbox doesn't exist until
-	// create, and `hostId` is a sentinel rather than a machine. Resolving it
-	// would build a relay URL for a machine that isn't there.
+	// A cloud workspace has no host to search — the sandbox doesn't exist until
+	// create — so its branches come from the GitHub remote instead.
 	const isCloud = hostId === CLOUD_HOST_ID;
 	const hostUrl = useHostUrl(isCloud ? null : hostId);
+	const { data: session } = authClient.useSession();
+	const organizationId = session?.session?.activeOrganizationId ?? null;
+	const cloudBranches = cloudTrpc.cloudWorkspace.listBranches.useQuery(
+		{
+			organizationId: organizationId ?? "",
+			projectId: projectId ?? "",
+			query: query || undefined,
+		},
+		{ enabled: isCloud && !!organizationId && !!projectId },
+	);
 
 	const q = useInfiniteQuery({
 		queryKey: [
@@ -62,6 +73,21 @@ export function useBranchContext(
 		},
 	});
 
+	const cloudRows = useMemo<BranchRow[]>(
+		() =>
+			(cloudBranches.data?.items ?? []).map((branch) => ({
+				name: branch.name,
+				lastCommitDate: 0,
+				isLocal: false,
+				isRemote: true,
+				recency: null,
+				worktreePath: null,
+				hasWorkspace: false,
+				isCheckedOut: false,
+			})),
+		[cloudBranches.data],
+	);
+
 	const pages = q.data?.pages as BranchPage[] | undefined;
 	const branches = useMemo<BranchRow[]>(
 		() => pages?.flatMap((p) => p.items) ?? [],
@@ -69,6 +95,18 @@ export function useBranchContext(
 	);
 
 	const defaultBranch = pages?.[0]?.defaultBranch ?? null;
+
+	if (isCloud) {
+		return {
+			branches: cloudRows,
+			defaultBranch: cloudBranches.data?.defaultBranch ?? null,
+			isLoading: cloudBranches.isLoading,
+			isError: cloudBranches.isError,
+			isFetchingNextPage: false,
+			hasNextPage: false,
+			fetchNextPage: () => {},
+		};
+	}
 
 	return {
 		branches,

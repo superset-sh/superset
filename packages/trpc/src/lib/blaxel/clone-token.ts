@@ -16,6 +16,18 @@ import {
 import { eq } from "drizzle-orm";
 import { env } from "../../env";
 
+/** Shared by the clone and branch-listing paths. */
+export async function installationOctokit(installationId: string) {
+	if (!env.GH_APP_ID || !env.GH_APP_PRIVATE_KEY) {
+		throw new Error("GitHub App is not configured");
+	}
+	const app = new App({
+		appId: env.GH_APP_ID,
+		privateKey: env.GH_APP_PRIVATE_KEY,
+	});
+	return app.getInstallationOctokit(Number(installationId));
+}
+
 export interface CloneTarget {
 	cloneUrl: string;
 	token: string | null;
@@ -59,13 +71,7 @@ export async function resolveCloneTarget(
 		return { cloneUrl, token: null, defaultBranch: repo.defaultBranch };
 	}
 
-	const app = new App({
-		appId: env.GH_APP_ID,
-		privateKey: env.GH_APP_PRIVATE_KEY,
-	});
-	const octokit = await app.getInstallationOctokit(
-		Number(installation.installationId),
-	);
+	const octokit = await installationOctokit(installation.installationId);
 	const { token } = (await octokit.auth({ type: "installation" })) as {
 		token: string;
 	};

@@ -8,6 +8,7 @@ import { env } from "../../env";
 import {
 	bootstrapSandbox,
 	deleteSandbox,
+	listRemoteBranches,
 	mintPreviewAccess,
 	provisionSandbox,
 } from "../../lib/blaxel";
@@ -60,6 +61,21 @@ export const cloudWorkspaceRouter = {
 					),
 				)
 				.orderBy(desc(cloudWorkspaces.createdAt));
+		}),
+
+	/** Branches come from the GitHub remote: there is no host to search yet. */
+	listBranches: jwtProcedure
+		.input(
+			z.object({
+				organizationId: z.string().uuid(),
+				projectId: z.string().uuid(),
+				query: z.string().optional(),
+			}),
+		)
+		.query(async ({ ctx, input }) => {
+			assertInternal(ctx.email);
+			assertMember(ctx.organizationIds, input.organizationId);
+			return listRemoteBranches(input.projectId, input.query);
 		}),
 
 	/**
