@@ -1,7 +1,6 @@
 /**
- * Exercises the Blaxel integration end to end without the tRPC stack:
- * provision → mint a private-preview token → prove the URL rejects
- * unauthenticated callers and accepts authenticated ones → tear down.
+ * Exercises the Blaxel integration without the tRPC stack: provision, mint a
+ * preview token, prove the URL rejects unauthenticated callers, tear down.
  *
  *   BLAXEL_API_KEY=... BLAXEL_WORKSPACE=superset bun run scripts/sandbox/smoke.ts
  *

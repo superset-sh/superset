@@ -12,7 +12,7 @@ import {
 } from "../../lib/blaxel";
 import { jwtProcedure } from "../../trpc";
 
-/** Blaxel sandbox names are DNS-ish; keep them short, lowercase and stable. */
+/** Derived from the row id so the name is stable and collision-free. */
 function sandboxNameFor(cloudWorkspaceId: string): string {
 	return `ws-${cloudWorkspaceId.replaceAll("-", "").slice(0, 24)}`;
 }
@@ -83,8 +83,7 @@ export const cloudWorkspaceRouter = {
 					name: input.name,
 					branch: input.branch,
 					provider: "blaxel",
-					// Derived from the row id, so the provider name is stable and
-					// collision-free without a second identifier to reconcile.
+					// Set below, once the row id it derives from exists.
 					providerSandboxName: "",
 					status: "provisioning",
 					createdByUserId: ctx.userId,
@@ -125,9 +124,10 @@ export const cloudWorkspaceRouter = {
 		}),
 
 	/**
-	 * Brokers access: org membership is checked here, then a short-lived
-	 * provider token is minted. This is the only authorization gate — the
-	 * sandbox itself trusts whatever Blaxel's edge lets through.
+	 * Checks org membership, then mints a short-lived provider token. This is
+	 * the outer of two independent gates: Blaxel's edge rejects requests
+	 * without the token, and host-service still rejects them without its own
+	 * secret, so a leaked token alone reaches nothing protected.
 	 */
 	access: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))

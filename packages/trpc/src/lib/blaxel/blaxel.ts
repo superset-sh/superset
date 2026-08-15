@@ -1,21 +1,18 @@
 /**
- * Blaxel sandbox operations, called directly rather than behind a provider
- * interface. There is one provider; an interface would be a second thing to
- * keep in sync with no second implementation to justify it.
+ * Called directly rather than behind a provider interface: there is one
+ * provider, so an interface would be a second thing to keep in sync with no
+ * second implementation to justify it.
  *
- * Auth model: a sandbox's preview URL is private, so Blaxel's edge rejects
- * unauthenticated requests before they reach host-service. We mint a
- * short-lived token per access after checking org membership, and the client
- * connects directly — no relay hop, so websockets work and the sandbox is
- * free to sleep between connections.
+ * Previews are private, so Blaxel's edge rejects unauthenticated requests
+ * before they reach host-service. Clients connect directly with a brokered
+ * token — no relay hop, so websockets work and the sandbox can still sleep.
  */
 import { SandboxInstance } from "@blaxel/core";
 import { TRPCError } from "@trpc/server";
 import { env } from "../../env";
 
-/** Preview tokens are minted per access; short enough that a leak is bounded. */
+/** Short enough that a leaked token is bounded; minted per access. */
 const PREVIEW_TOKEN_TTL_MS = 10 * 60 * 1000;
-/** The single named preview that fronts host-service inside every sandbox. */
 const PREVIEW_NAME = "hostsvc";
 const HOST_SERVICE_PORT = 4879;
 
@@ -85,7 +82,6 @@ export interface PreviewAccess {
 	expiresAt: Date;
 }
 
-/** Mints a short-lived token for an existing sandbox's preview. */
 export async function mintPreviewAccess(
 	providerSandboxName: string,
 ): Promise<PreviewAccess> {
