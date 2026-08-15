@@ -45,8 +45,11 @@ export async function GET(request: Request) {
 		userId: session.user.id,
 	});
 
+	// The slug must match GH_APP_ID: installing a different App produces an
+	// installation this deployment cannot mint tokens for, which surfaces much
+	// later as a 404 from create-an-installation-access-token.
 	const installUrl = new URL(
-		"https://github.com/apps/superset-app/installations/new",
+		`https://github.com/apps/${env.GH_APP_SLUG}/installations/new`,
 	);
 	installUrl.searchParams.set("state", state);
 	installUrl.searchParams.set(
