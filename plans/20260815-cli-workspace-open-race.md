@@ -145,6 +145,23 @@ our own child. This would have prevented the DMG specimen outright.
 4. **Drop `txid` from workspace create responses** (dead since local-first #5731) —
    it actively misled this investigation.
 
+## Adversarial review round (2026-08-16, commit 2ef8329)
+
+A 12-finding multi-agent review (9 confirmed) drove a rework: the verdict hook's
+cross-navigation latch was replaced with per-id state + effect cancellation (fixed
+stale-verdict-on-revisit, late-window clobber → permanent blank, offline permanent
+shell), the verdict now waits for `knownHostsSettled` (no remote-host not-found flash
+after boot/org switch), reopen tracking moved to a host-keyed ref (effect re-runs no
+longer skip gap resyncs), and the manifest lifecycle was hardened (all removal sites
+ownership-guarded, atomic writes, reclaim timer cleared on shutdown, shared
+pollHealthCheck probe). Deferred: the stable split-brain topology (see refactor #5).
+
+5. **Single-instance topology for host-service.** The coordinator can bind a renderer
+   to its own child while a foreign healthy holder keeps the manifest — a stable
+   split-brain the yield protocol cannot resolve. One lock-owning supervisor per org
+   dir (or handoff-on-claim like the pty-daemon socket adoption) removes the whole
+   multi-writer class; the manifest guards in this PR are the pragmatic interim.
+
 ## Known residual gaps (accepted)
 
 - Remote-host (relay) workspaces: a host slower than the 5s cap can briefly show
