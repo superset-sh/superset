@@ -8,13 +8,10 @@
  */
 import { App } from "@octokit/app";
 import { db } from "@superset/db/client";
-import {
-	githubInstallations,
-	githubRepositories,
-	v2Projects,
-} from "@superset/db/schema";
+import { githubInstallations, githubRepositories } from "@superset/db/schema";
 import { eq } from "drizzle-orm";
 import { env } from "../../env";
+import { repoForProject } from "./repo-for-project";
 
 /** Shared by the clone and branch-listing paths. */
 export async function installationOctokit(installationId: string) {
@@ -41,31 +38,21 @@ export interface CloneTarget {
 export async function resolveCloneTarget(
 	projectId: string,
 ): Promise<CloneTarget | null> {
-	const project = await db.query.v2Projects.findFirst({
-		where: eq(v2Projects.id, projectId),
-	});
-	if (!project) return null;
-
-	if (!project.githubRepositoryId) {
-		return project.repoCloneUrl
-			? { cloneUrl: project.repoCloneUrl, token: null, defaultBranch: "main" }
-			: null;
-	}
-
-	const repo = await db.query.githubRepositories.findFirst({
-		where: eq(githubRepositories.id, project.githubRepositoryId),
-	});
+	const repo = await repoForProject(projectId);
 	if (!repo) return null;
 
-	const cloneUrl =
-		project.repoCloneUrl ?? `https://github.com/${repo.fullName}.git`;
-
-	if (!env.GH_APP_ID || !env.GH_APP_PRIVATE_KEY) {
+	const cloneUrl = `https://github.com/${repo.owner}/${repo.name}.git`;
+	if (!repo.repositoryId || !env.GH_APP_ID || !env.GH_APP_PRIVATE_KEY) {
 		return { cloneUrl, token: null, defaultBranch: repo.defaultBranch };
 	}
 
+	const row = await db.query.githubRepositories.findFirst({
+		where: eq(githubRepositories.id, repo.repositoryId),
+	});
+	if (!row) return { cloneUrl, token: null, defaultBranch: repo.defaultBranch };
+
 	const installation = await db.query.githubInstallations.findFirst({
-		where: eq(githubInstallations.id, repo.installationId),
+		where: eq(githubInstallations.id, row.installationId),
 	});
 	if (!installation) {
 		return { cloneUrl, token: null, defaultBranch: repo.defaultBranch };
