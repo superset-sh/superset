@@ -547,6 +547,13 @@
       "when": 1786902304650,
       "tag": "0077_users_deleted_at",
       "breakpoints": true
+    },
+    {
+      "idx": 78,
+      "version": "7",
+      "when": 1786921238279,
+      "tag": "0078_cloud_workspaces",
+      "breakpoints": true
     }
   ]
 }
