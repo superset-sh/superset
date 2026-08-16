@@ -1,11 +1,11 @@
-import { getEventBus } from "@superset/workspace-client";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import {
 	applyWorkspaceChangedEvent,
 	deriveHostWorkspacesQueryTargets,
@@ -99,6 +99,7 @@ export function useHostWorkspacesSource(
 		organizationId: knownHostsOrgId,
 		settled: knownHostsSettled,
 	} = useKnownHosts();
+	const { targets: sandboxes, isReady: sandboxesReady } = useSandboxAccess();
 
 	const targets = useMemo(() => {
 		const all = deriveHostWorkspacesQueryTargets({
@@ -107,6 +108,7 @@ export function useHostWorkspacesSource(
 			machineId,
 			relayUrl,
 			fallbackOrganizationId: knownHostsOrgId,
+			sandboxes,
 		});
 		return scopedHostId === undefined
 			? all
@@ -117,6 +119,7 @@ export function useHostWorkspacesSource(
 		knownHostsOrgId,
 		machineId,
 		relayUrl,
+		sandboxes,
 		scopedHostId,
 	]);
 
@@ -166,8 +169,15 @@ export function useHostWorkspacesSource(
 			queryFn: async (): Promise<HostWorkspaceRow[]> => {
 				if (!target.hostUrl) return [];
 				const client = getHostServiceClientByUrl(target.hostUrl);
-				const rows =
+				const served =
 					(await client.workspace.list.query()) as HostWorkspaceRow[];
+				// A sandbox reports the machine id of the container it happens to
+				// be running in, which addresses nothing from here. Restate it as
+				// the cloud workspace's id so every host-keyed lookup downstream
+				// (pull requests, agent status, diff stats) resolves.
+				const rows = target.isSandbox
+					? served.map((row) => ({ ...row, hostId: target.machineId }))
+					: served;
 				saveHostWorkspacesSnapshot(
 					target.organizationId,
 					target.machineId,
@@ -212,7 +222,7 @@ export function useHostWorkspacesSource(
 		for (const target of targets) {
 			if (!target.hostUrl) continue;
 			const hostUrl = target.hostUrl;
-			const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+			const bus = getHostEventBus(hostUrl);
 			const removeListener = bus.on(
 				"workspace:changed",
 				"*",
@@ -332,6 +342,9 @@ export function useHostWorkspacesSource(
 	// snapshot settles the host without a live answer).
 	const isReady =
 		knownHostsSettled &&
+		// A cloud workspace is only addressable once its sandbox is brokered, so
+		// answering ready before that flashes not-found on every cloud open.
+		sandboxesReady &&
 		(scopedHostId === undefined || targets.length > 0) &&
 		queries.every(
 			(query, index) =>

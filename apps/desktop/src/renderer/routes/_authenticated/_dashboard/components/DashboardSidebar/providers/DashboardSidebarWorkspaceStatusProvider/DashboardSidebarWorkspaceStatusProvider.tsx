@@ -1,4 +1,3 @@
-import { getEventBus } from "@superset/workspace-client";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import {
 	createContext,
@@ -21,7 +20,7 @@ import {
 	type TerminalAgentBinding,
 } from "renderer/hooks/host-service/useTerminalAgentBindings";
 import { deriveTerminalAgentStatus } from "renderer/hooks/host-service/useTerminalAgentStatuses";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useV2NotificationStore } from "renderer/stores/v2-notifications";
@@ -226,7 +225,7 @@ export function DashboardSidebarWorkspaceStatusProvider({
 		const retainedHostUrls = new Set<string>();
 		for (const { workspaceId, hostUrl } of targets) {
 			if (!hostUrl) continue;
-			const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+			const bus = getHostEventBus(hostUrl);
 			if (!retainedHostUrls.has(hostUrl)) {
 				retainedHostUrls.add(hostUrl);
 				cleanups.push(bus.retain());

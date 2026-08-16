@@ -1,12 +1,9 @@
-import {
-	getEventBus,
-	type PortChangedPayload,
-} from "@superset/workspace-client";
+import type { PortChangedPayload } from "@superset/workspace-client";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useVisibleSidebarWorkspaceIds } from "renderer/routes/_authenticated/hooks/useVisibleSidebarWorkspaceIds";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
@@ -115,9 +112,7 @@ export function useDashboardSidebarPortsData(): {
 					PORT_EVENT_CACHE_BATCH_DELAY_MS,
 				);
 			};
-			const bus = getEventBus(host.hostUrl, () =>
-				getHostServiceWsToken(host.hostUrl),
-			);
+			const bus = getHostEventBus(host.hostUrl);
 			const removeListener = bus.on(
 				"port:changed",
 				"*",

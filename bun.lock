@@ -1114,9 +1114,10 @@
       "name": "@superset/trpc",
       "version": "0.1.0",
       "dependencies": {
+        "@anthropic-ai/sdk": "0.78.0",
         "@blaxel/core": "0.3.11",
         "@linear/sdk": "68.1.1",
-        "@octokit/app": "16.1.4",
+        "@octokit/app": "16.1.2",
         "@superset/auth": "workspace:*",
         "@superset/db": "workspace:*",
         "@superset/email": "workspace:*",
@@ -7212,8 +7213,6 @@
 
     "@storybook/react-native-ui-common/@storybook/react": ["@storybook/react@10.5.5", "", { "dependencies": { "@storybook/global": "^5.0.0", "@storybook/react-dom-shim": "10.5.5", "react-docgen": "^8.0.2", "react-docgen-typescript": "^2.2.2" }, "peerDependencies": { "@types/react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "@types/react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "storybook": "^10.5.5", "typescript": ">= 4.9.x" }, "optionalPeers": ["@types/react", "@types/react-dom", "typescript"] }, "sha512-T2Xj0ey7a9RHU6coYLC0L5lhjcdyhLCs9wNv15FvHvgmrRobkynEV72kq5vGW8tFkahNWI1X9+GZPQ6r8Nm38w=="],
 
-    "@superset/trpc/@octokit/app": ["@octokit/app@16.1.4", "", { "dependencies": { "@octokit/auth-app": "^8.3.0", "@octokit/auth-unauthenticated": "^7.0.4", "@octokit/core": "^7.0.7", "@octokit/oauth-app": "^8.0.4", "@octokit/plugin-paginate-rest": "^15.0.0", "@octokit/types": "^17.0.0", "@octokit/webhooks": "^14.0.0" } }, "sha512-g70WONQyGoBgqIJtv4O0MUEfOF1iJpTfFt3qAW7HaiwiJ6k607xg/gBezCa4tuq6BpO6qXn7qvq8v9tjWtgGQg=="],
-
     "@tailwindcss/node/jiti": ["jiti@2.7.0", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-AC/7JofJvZGrrneWNaEnJeOLUx+JlGt7tNa0wZiRPT4MY1wmfKjt2+6O2p2uz2+skll8OZZmJMNqeke7kKbNgQ=="],
 
     "@tailwindcss/node/lightningcss": ["lightningcss@1.32.0", "", { "dependencies": { "detect-libc": "^2.0.3" }, "optionalDependencies": { "lightningcss-android-arm64": "1.32.0", "lightningcss-darwin-arm64": "1.32.0", "lightningcss-darwin-x64": "1.32.0", "lightningcss-freebsd-x64": "1.32.0", "lightningcss-linux-arm-gnueabihf": "1.32.0", "lightningcss-linux-arm64-gnu": "1.32.0", "lightningcss-linux-arm64-musl": "1.32.0", "lightningcss-linux-x64-gnu": "1.32.0", "lightningcss-linux-x64-musl": "1.32.0", "lightningcss-win32-arm64-msvc": "1.32.0", "lightningcss-win32-x64-msvc": "1.32.0" } }, "sha512-NXYBzinNrblfraPGyrbPoD19C1h9lfI/1mzgWYvXUTe414Gz/X1FD2XBZSZM7rRTrMA8JL3OtAaGifrIKhQ5yQ=="],
@@ -8286,18 +8285,6 @@
 
     "@storybook/react-native/@storybook/react/@storybook/react-dom-shim": ["@storybook/react-dom-shim@10.5.5", "", { "peerDependencies": { "@types/react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "@types/react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "react-dom": "^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0", "storybook": "^10.5.5" }, "optionalPeers": ["@types/react", "@types/react-dom"] }, "sha512-PIk7N3LLrZIxfNxmkvmQN1d5UQ70XEedT8n0GhBiXnM6XL09xPGB8n8TZXeJBRYluKhDQcAyQeT0/OZmcDVQJg=="],
 
-    "@superset/trpc/@octokit/app/@octokit/auth-app": ["@octokit/auth-app@8.3.0", "", { "dependencies": { "@octokit/auth-oauth-app": "^9.0.4", "@octokit/auth-oauth-user": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0", "toad-cache": "^3.7.0", "universal-github-app-jwt": "^2.2.0", "universal-user-agent": "^7.0.0" } }, "sha512-/UaKmJCsOc5XBZwhnFiGNdLH/FkDF8lYtBn1QlKxtX7IpgaRB/XOXjixFtERAknyUZHxp3oDuoiG0En4VptJSg=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-unauthenticated": ["@octokit/auth-unauthenticated@7.0.4", "", { "dependencies": { "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0" } }, "sha512-j4zgVdP8C8C53PNsj4LLI+WFtoykaQARwwrIBILTdxwZ2Ljaa9YUxb1yQ7/seGVnmWPdC3OBefX3LLbh28gKtw=="],
-
-    "@superset/trpc/@octokit/app/@octokit/core": ["@octokit/core@7.0.7", "", { "dependencies": { "@octokit/auth-token": "^6.0.0", "@octokit/graphql": "^9.0.4", "@octokit/request": "^10.0.13", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0", "before-after-hook": "^4.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-DcB0M3KFgr9ECI328lhBMVsyFT2DnmNucSBTqEN3exyNKUzkkpUSCHmTRcunF41Eou2TIQKW4seewri8ON9bSA=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app": ["@octokit/oauth-app@8.0.4", "", { "dependencies": { "@octokit/auth-oauth-app": "^9.0.4", "@octokit/auth-oauth-user": "^6.0.3", "@octokit/auth-unauthenticated": "^7.0.4", "@octokit/core": "^7.0.7", "@octokit/oauth-authorization-url": "^8.0.0", "@octokit/oauth-methods": "^6.0.3", "@types/aws-lambda": "^8.10.83", "universal-user-agent": "^7.0.0" } }, "sha512-Ji5JpRwAJcbOJkO4ij0tW6+GrQ8efpICnAca3o5xI8/HUNjqJu3hhG4cCZdXAHMKaOaQTFX0Yl+cpu61Rsx94A=="],
-
-    "@superset/trpc/@octokit/app/@octokit/plugin-paginate-rest": ["@octokit/plugin-paginate-rest@15.0.0", "", { "dependencies": { "@octokit/types": "^17.0.0" }, "peerDependencies": { "@octokit/core": ">=6" } }, "sha512-lw9A9YL5s4VPj+VEx8uMxaxQm2YTgrPDkrLEuZuu18R8TK3oPcXF4K6t52nx6xn1RcogZC9i188sAr/4XYJaQQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/types": ["@octokit/types@17.0.0", "", { "dependencies": { "@octokit/openapi-types": "^28.0.0" } }, "sha512-ByP1v7YL5SMveFPP7+sj0/ZuWCOOg/Chs4NafOMpq6WNIM/hdGY0S7C0TCGDBWu1aGmOxmUIhMx3cO+IdwYZ1Q=="],
-
     "@tailwindcss/node/lightningcss/detect-libc": ["detect-libc@2.1.2", "", {}, "sha512-Btj2BOOO83o3WyH59e8MgXsxEQVcarkUOpEYrubB0urwnN10yQ364rsiByU11nZlqWYZm05i/of7io4mzihBtQ=="],
 
     "@tailwindcss/node/lightningcss/lightningcss-darwin-arm64": ["lightningcss-darwin-arm64@1.32.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-RzeG9Ju5bag2Bv1/lwlVJvBE3q6TtXskdZLLCyfg5pt+HLz9BqlICO7LZM7VHNTTn/5PRhHFBSjk5lc4cmscPQ=="],
@@ -9332,30 +9319,6 @@
 
     "@sentry/electron/@sentry/node/import-in-the-middle/cjs-module-lexer": ["cjs-module-lexer@2.2.0", "", {}, "sha512-4bHTS2YuzUvtoLjdy+98ykbNB5jS0+07EvFNXerqZQJ89F7DI6ET7OQo/HJuW6K0aVsKA9hj9/RVb2kQVOrPDQ=="],
 
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/auth-oauth-app": ["@octokit/auth-oauth-app@9.0.4", "", { "dependencies": { "@octokit/auth-oauth-device": "^8.0.4", "@octokit/auth-oauth-user": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-Pe3du5LrC6dlv10b0RbarBlJtIT1Urq8BFoQklK8WmBw8YKnGgrANn7cQmHiA1v8AVihgi7YutV8MncP57I4og=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/auth-oauth-user": ["@octokit/auth-oauth-user@6.0.3", "", { "dependencies": { "@octokit/auth-oauth-device": "^8.0.4", "@octokit/oauth-methods": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-t4OKUhrI5britmpRiSzPAz1TJPyUN/Hw1HEE3Hz/uElxcmnf/YCRSKtFRNc5gy4yJFTlXgk34H1lvxiotQJQvQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/request": ["@octokit/request@10.0.13", "", { "dependencies": { "@octokit/endpoint": "^11.0.3", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0", "content-type": "^2.0.0", "json-with-bigint": "^3.5.3", "universal-user-agent": "^7.0.2" } }, "sha512-v2269YxL9Yf+x3d+gRI63FP0vFQEiWgLyBzxe/Y+0yFDg2B/Tzf5dhh9VNfccVAQnfcfwQWyk/y6Bn7rUXXs7A=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/request-error": ["@octokit/request-error@7.1.1", "", { "dependencies": { "@octokit/types": "^17.0.0" } }, "sha512-+eaY7G2VVpSf2pc5Gn1+mph837V/d/TYTJAgWL9Tb0ogGYcpN3IlAVFgjL+Vv93F/sevrxkvsYCedtpLdcFLzA=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-unauthenticated/@octokit/request-error": ["@octokit/request-error@7.1.1", "", { "dependencies": { "@octokit/types": "^17.0.0" } }, "sha512-+eaY7G2VVpSf2pc5Gn1+mph837V/d/TYTJAgWL9Tb0ogGYcpN3IlAVFgjL+Vv93F/sevrxkvsYCedtpLdcFLzA=="],
-
-    "@superset/trpc/@octokit/app/@octokit/core/@octokit/graphql": ["@octokit/graphql@9.0.4", "", { "dependencies": { "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-5s15CCiY8XXQ+FG+b1YQcl6Z2FA++nwAz/tg2VUrTmnMncP+2nnGUEYANImdnxsA2Fnq+Mbl7hDjUTw7cFAwcg=="],
-
-    "@superset/trpc/@octokit/app/@octokit/core/@octokit/request": ["@octokit/request@10.0.13", "", { "dependencies": { "@octokit/endpoint": "^11.0.3", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0", "content-type": "^2.0.0", "json-with-bigint": "^3.5.3", "universal-user-agent": "^7.0.2" } }, "sha512-v2269YxL9Yf+x3d+gRI63FP0vFQEiWgLyBzxe/Y+0yFDg2B/Tzf5dhh9VNfccVAQnfcfwQWyk/y6Bn7rUXXs7A=="],
-
-    "@superset/trpc/@octokit/app/@octokit/core/@octokit/request-error": ["@octokit/request-error@7.1.1", "", { "dependencies": { "@octokit/types": "^17.0.0" } }, "sha512-+eaY7G2VVpSf2pc5Gn1+mph837V/d/TYTJAgWL9Tb0ogGYcpN3IlAVFgjL+Vv93F/sevrxkvsYCedtpLdcFLzA=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-app": ["@octokit/auth-oauth-app@9.0.4", "", { "dependencies": { "@octokit/auth-oauth-device": "^8.0.4", "@octokit/auth-oauth-user": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-Pe3du5LrC6dlv10b0RbarBlJtIT1Urq8BFoQklK8WmBw8YKnGgrANn7cQmHiA1v8AVihgi7YutV8MncP57I4og=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-user": ["@octokit/auth-oauth-user@6.0.3", "", { "dependencies": { "@octokit/auth-oauth-device": "^8.0.4", "@octokit/oauth-methods": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-t4OKUhrI5britmpRiSzPAz1TJPyUN/Hw1HEE3Hz/uElxcmnf/YCRSKtFRNc5gy4yJFTlXgk34H1lvxiotQJQvQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/oauth-methods": ["@octokit/oauth-methods@6.0.4", "", { "dependencies": { "@octokit/oauth-authorization-url": "^8.0.0", "@octokit/request": "^10.0.13", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0" } }, "sha512-96RsnxS7Hk/BQhUA1Qo2pmcYP6LWQRWMdo7bVbNE7ZCkFLhSUYBXVUj9tVnvhl4jzbwHYt/dcIG+ioY427b2sg=="],
-
-    "@superset/trpc/@octokit/app/@octokit/types/@octokit/openapi-types": ["@octokit/openapi-types@28.0.0", "", {}, "sha512-0rFyLuyHvIj6uuZWuDslxkowFYdPXoNIkeAv4b27dzm2Tf4vGWXnPsMcxs7d65kLdMERgP3wc1AEPlqMz8e1cQ=="],
-
     "@wdio/config/glob/jackspeak/@isaacs/cliui": ["@isaacs/cliui@8.0.2", "", { "dependencies": { "string-width": "^5.1.2", "string-width-cjs": "npm:string-width@^4.2.0", "strip-ansi": "^7.0.1", "strip-ansi-cjs": "npm:strip-ansi@^6.0.1", "wrap-ansi": "^8.1.0", "wrap-ansi-cjs": "npm:wrap-ansi@^7.0.0" } }, "sha512-O8jcjabXaleOG9DQ0+ARXWZBTfnP4WNAqzuiJK7ll44AmxGKv/J2M4TPjxjY3znBCfvBXFzucm1twdyFybFqEA=="],
 
     "@wdio/config/glob/minimatch/brace-expansion": ["brace-expansion@2.1.4", "", { "dependencies": { "balanced-match": "^1.0.0" } }, "sha512-hGfVzPxthbf3+2yjg/RBs60cB0FhqBS/zvdV/4wn4/BmN0bNMMHPc4V/BbFieqf1TKAGGAHnY4eSjajCl0f2Xg=="],
@@ -9614,28 +9577,6 @@
 
     "@rn-primitives/tabs/@radix-ui/react-tabs/@radix-ui/react-roving-focus/@radix-ui/react-collection/@radix-ui/react-slot": ["@radix-ui/react-slot@1.3.3", "", { "dependencies": { "@radix-ui/react-compose-refs": "1.1.5" }, "peerDependencies": { "@types/react": "*", "react": "^16.8 || ^17.0 || ^18.0 || ^19.0 || ^19.0.0-rc" }, "optionalPeers": ["@types/react"] }, "sha512-qx7oqnYbxnK9kYI9m317qmFmEgo6ywqWvbTogdj7cL9p3/yx4M48p7Rnw5z3H890cL/ow/EeWJsuTykeZVXP5Q=="],
 
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/auth-oauth-app/@octokit/auth-oauth-device": ["@octokit/auth-oauth-device@8.0.4", "", { "dependencies": { "@octokit/oauth-methods": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-M/+34rmkxMvUnnTo/uqNeVRCXJoJ+5N34eNTbL1KMtIyJpedCTsu/iFL1cWdL+w5hQMlYt6xzXoyux2gn0OVnw=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/auth-oauth-user/@octokit/auth-oauth-device": ["@octokit/auth-oauth-device@8.0.4", "", { "dependencies": { "@octokit/oauth-methods": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-M/+34rmkxMvUnnTo/uqNeVRCXJoJ+5N34eNTbL1KMtIyJpedCTsu/iFL1cWdL+w5hQMlYt6xzXoyux2gn0OVnw=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/auth-oauth-user/@octokit/oauth-methods": ["@octokit/oauth-methods@6.0.4", "", { "dependencies": { "@octokit/oauth-authorization-url": "^8.0.0", "@octokit/request": "^10.0.13", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0" } }, "sha512-96RsnxS7Hk/BQhUA1Qo2pmcYP6LWQRWMdo7bVbNE7ZCkFLhSUYBXVUj9tVnvhl4jzbwHYt/dcIG+ioY427b2sg=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/request/content-type": ["content-type@2.0.0", "", {}, "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/core/@octokit/request/content-type": ["content-type@2.0.0", "", {}, "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-app/@octokit/auth-oauth-device": ["@octokit/auth-oauth-device@8.0.4", "", { "dependencies": { "@octokit/oauth-methods": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-M/+34rmkxMvUnnTo/uqNeVRCXJoJ+5N34eNTbL1KMtIyJpedCTsu/iFL1cWdL+w5hQMlYt6xzXoyux2gn0OVnw=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-app/@octokit/request": ["@octokit/request@10.0.13", "", { "dependencies": { "@octokit/endpoint": "^11.0.3", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0", "content-type": "^2.0.0", "json-with-bigint": "^3.5.3", "universal-user-agent": "^7.0.2" } }, "sha512-v2269YxL9Yf+x3d+gRI63FP0vFQEiWgLyBzxe/Y+0yFDg2B/Tzf5dhh9VNfccVAQnfcfwQWyk/y6Bn7rUXXs7A=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-user/@octokit/auth-oauth-device": ["@octokit/auth-oauth-device@8.0.4", "", { "dependencies": { "@octokit/oauth-methods": "^6.0.3", "@octokit/request": "^10.0.13", "@octokit/types": "^17.0.0", "universal-user-agent": "^7.0.0" } }, "sha512-M/+34rmkxMvUnnTo/uqNeVRCXJoJ+5N34eNTbL1KMtIyJpedCTsu/iFL1cWdL+w5hQMlYt6xzXoyux2gn0OVnw=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-user/@octokit/request": ["@octokit/request@10.0.13", "", { "dependencies": { "@octokit/endpoint": "^11.0.3", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0", "content-type": "^2.0.0", "json-with-bigint": "^3.5.3", "universal-user-agent": "^7.0.2" } }, "sha512-v2269YxL9Yf+x3d+gRI63FP0vFQEiWgLyBzxe/Y+0yFDg2B/Tzf5dhh9VNfccVAQnfcfwQWyk/y6Bn7rUXXs7A=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/oauth-methods/@octokit/request": ["@octokit/request@10.0.13", "", { "dependencies": { "@octokit/endpoint": "^11.0.3", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0", "content-type": "^2.0.0", "json-with-bigint": "^3.5.3", "universal-user-agent": "^7.0.2" } }, "sha512-v2269YxL9Yf+x3d+gRI63FP0vFQEiWgLyBzxe/Y+0yFDg2B/Tzf5dhh9VNfccVAQnfcfwQWyk/y6Bn7rUXXs7A=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/oauth-methods/@octokit/request-error": ["@octokit/request-error@7.1.1", "", { "dependencies": { "@octokit/types": "^17.0.0" } }, "sha512-+eaY7G2VVpSf2pc5Gn1+mph837V/d/TYTJAgWL9Tb0ogGYcpN3IlAVFgjL+Vv93F/sevrxkvsYCedtpLdcFLzA=="],
-
     "@wdio/config/glob/jackspeak/@isaacs/cliui/string-width": ["string-width@5.1.2", "", { "dependencies": { "eastasianwidth": "^0.2.0", "emoji-regex": "^9.2.2", "strip-ansi": "^7.0.1" } }, "sha512-HnLOCR3vjcY8beoNLtcjZ5/nxn2afmME6lhrDrebokqMap+XbeW8n9TXpPDOqdGK5qcI3oT0GKTW6wC7EMiVqA=="],
 
     "@wdio/config/glob/jackspeak/@isaacs/cliui/wrap-ansi": ["wrap-ansi@8.1.0", "", { "dependencies": { "ansi-styles": "^6.1.0", "string-width": "^5.0.1", "strip-ansi": "^7.0.1" } }, "sha512-si7QWI6zUMq56bESFvagtmzMdGOtoxfR+Sez11Mobfc7tm+VkUckk9bW2UeffTGVUbOksxmSw0AA2gs8g71NCQ=="],
@@ -9681,18 +9622,6 @@
     "@expo/package-manager/ora/chalk/ansi-styles/color-convert/color-name": ["color-name@1.1.3", "", {}, "sha512-72fSenhMw2HZMTVHeCA9KCmpEIbzWiQsjN+BHcBbS9vr1mtt+vJjPdksIBNUmKAW8TFUDPJK5SUU3QhE9NEXDw=="],
 
     "@expo/package-manager/ora/cli-cursor/restore-cursor/onetime/mimic-fn": ["mimic-fn@1.2.0", "", {}, "sha512-jf84uxzwiuiIVKiOLpfYk7N46TSy8ubTonmneY9vrpHNAnp0QBt2BxWV9dO3/j+BoVAb+a5G6YDPW3M5HOdMWQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/auth-app/@octokit/auth-oauth-app/@octokit/auth-oauth-device/@octokit/oauth-methods": ["@octokit/oauth-methods@6.0.4", "", { "dependencies": { "@octokit/oauth-authorization-url": "^8.0.0", "@octokit/request": "^10.0.13", "@octokit/request-error": "^7.1.1", "@octokit/types": "^17.0.0" } }, "sha512-96RsnxS7Hk/BQhUA1Qo2pmcYP6LWQRWMdo7bVbNE7ZCkFLhSUYBXVUj9tVnvhl4jzbwHYt/dcIG+ioY427b2sg=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-app/@octokit/request/@octokit/request-error": ["@octokit/request-error@7.1.1", "", { "dependencies": { "@octokit/types": "^17.0.0" } }, "sha512-+eaY7G2VVpSf2pc5Gn1+mph837V/d/TYTJAgWL9Tb0ogGYcpN3IlAVFgjL+Vv93F/sevrxkvsYCedtpLdcFLzA=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-app/@octokit/request/content-type": ["content-type@2.0.0", "", {}, "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-user/@octokit/request/@octokit/request-error": ["@octokit/request-error@7.1.1", "", { "dependencies": { "@octokit/types": "^17.0.0" } }, "sha512-+eaY7G2VVpSf2pc5Gn1+mph837V/d/TYTJAgWL9Tb0ogGYcpN3IlAVFgjL+Vv93F/sevrxkvsYCedtpLdcFLzA=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/auth-oauth-user/@octokit/request/content-type": ["content-type@2.0.0", "", {}, "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="],
-
-    "@superset/trpc/@octokit/app/@octokit/oauth-app/@octokit/oauth-methods/@octokit/request/content-type": ["content-type@2.0.0", "", {}, "sha512-j/O/d7GcZCyNl7/hwZAb606rzqkyvaDctLmckbxLzHvFBzTJHuGEdodATcP3yIRoDrLHkIATJuvzbFlp/ki2cQ=="],
 
     "@wdio/config/glob/jackspeak/@isaacs/cliui/string-width/emoji-regex": ["emoji-regex@9.2.2", "", {}, "sha512-L18DaJsXSUk2+42pv8mLs5jJT2hqFkFE4j21wOmgbUqsZ2hL72NsUU785g9RXgo3s0ZNgVl42TiHp3ZtOv/Vyg=="],
 

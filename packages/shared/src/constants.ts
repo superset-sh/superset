@@ -186,6 +186,25 @@ export const FEATURE_FLAGS = {
 	CLOUD_WORKSPACES: "cloud-workspaces",
 } as const;
 
+/**
+ * What a cloud workspace sandbox holds in place of a real model API key. The
+ * provider's egress proxy substitutes the real one after the request leaves,
+ * so this is the only credential-shaped string inside a sandbox.
+ *
+ * Shared because two places must agree on it byte-for-byte: the sandbox spec
+ * that sets it as an env var, and the image's pre-seeded Claude config, which
+ * pre-approves it by its last 20 characters.
+ */
+export const SANDBOX_CREDENTIAL_PLACEHOLDER =
+	"proxy-injected-see-network-routing";
+
+/**
+ * Where a cloud workspace's checkout lives. The sandbox's checkout *is* the
+ * workspace, so this is both the clone target and the path the image marks as
+ * trusted ahead of time.
+ */
+export const SANDBOX_WORKSPACE_PATH = "/workspace";
+
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
 // agent TUIs (claude-code especially) tune wheel-scroll compensation per
 // TERM_PROGRAM, and our terminals install the full-fidelity wheel handler

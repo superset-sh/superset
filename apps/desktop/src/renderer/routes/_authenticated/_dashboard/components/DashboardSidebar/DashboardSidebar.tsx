@@ -279,7 +279,10 @@ export function DashboardSidebar({
 													onWorkspaceHover={refreshWorkspacePullRequest}
 												/>
 											)}
-											<DashboardSidebarCloudSection isCollapsed={isCollapsed} />
+											<DashboardSidebarCloudSection
+												isCollapsed={isCollapsed}
+												onWorkspaceHover={refreshWorkspacePullRequest}
+											/>
 											<DashboardSidebarSessionsSection
 												sessionWorkspaces={sessionWorkspaces}
 												isCollapsed={isCollapsed}

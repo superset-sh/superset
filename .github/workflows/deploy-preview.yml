@@ -168,6 +168,12 @@ jobs:
           SLACK_BILLING_WEBHOOK_URL: ${{ secrets.SLACK_BILLING_WEBHOOK_URL }}
           SECRETS_ENCRYPTION_KEY: ${{ secrets.SECRETS_ENCRYPTION_KEY }}
           RELAY_URL: ${{ secrets.RELAY_URL }}
+          BLAXEL_API_KEY: ${{ secrets.BLAXEL_API_KEY }}
+          BLAXEL_WORKSPACE: ${{ secrets.BLAXEL_WORKSPACE }}
+          BLAXEL_REGION: ${{ vars.BLAXEL_REGION }}
+          BLAXEL_SANDBOX_IMAGE: ${{ vars.BLAXEL_SANDBOX_IMAGE }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GH_APP_SLUG: ${{ vars.GH_APP_SLUG }}
         run: |
           vercel pull --yes --environment=preview --token=$VERCEL_TOKEN
           vercel build --token=$VERCEL_TOKEN
@@ -216,7 +222,13 @@ jobs:
             --env STRIPE_ENTERPRISE_YEARLY_PRICE_ID=$STRIPE_ENTERPRISE_YEARLY_PRICE_ID \
             --env SLACK_BILLING_WEBHOOK_URL=$SLACK_BILLING_WEBHOOK_URL \
             --env SECRETS_ENCRYPTION_KEY=$SECRETS_ENCRYPTION_KEY \
-            --env RELAY_URL=$RELAY_URL)
+            --env RELAY_URL=$RELAY_URL \
+            --env BLAXEL_API_KEY=$BLAXEL_API_KEY \
+            --env BLAXEL_WORKSPACE=$BLAXEL_WORKSPACE \
+            --env BLAXEL_REGION=$BLAXEL_REGION \
+            --env BLAXEL_SANDBOX_IMAGE=$BLAXEL_SANDBOX_IMAGE \
+            --env OPENAI_API_KEY=$OPENAI_API_KEY \
+            --env GH_APP_SLUG=$GH_APP_SLUG)
           vercel alias $VERCEL_URL ${{ env.API_ALIAS }} --scope=$VERCEL_ORG_ID --token=$VERCEL_TOKEN
           echo "vercel_url=$VERCEL_URL" >> $GITHUB_OUTPUT
 

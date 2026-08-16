@@ -430,6 +430,11 @@ export const cloudWorkspaces = pgTable(
 		projectId: uuid("project_id")
 			.notNull()
 			.references(() => v2Projects.id, { onDelete: "cascade" }),
+		// Creation inputs, not the workspace's identity: the sandbox's own
+		// host.db owns the workspace row (name, branch) once it is seeded, the
+		// same way every other host does. Read these to provision a sandbox,
+		// never to display one — a rename lands on the sandbox and leaves these
+		// behind.
 		name: text().notNull(),
 		branch: text().notNull(),
 		provider: text().notNull().default("blaxel"),

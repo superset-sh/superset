@@ -4,6 +4,8 @@ import type {
 } from "@superset/host-service";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
+import { apiTrpcClient } from "renderer/lib/api-trpc-client";
+import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import {
@@ -126,16 +128,37 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 		? "ready"
 		: hostTarget.status;
 
+	const isSandbox =
+		hostTarget.status === "ready" && hostTarget.kind === "sandbox";
+	const utils = cloudTrpc.useUtils();
+
 	const destroy = useCallback(
 		async (
 			input: DestroyWorkspaceInput = {},
 		): Promise<DestroyWorkspaceSuccess> => {
+			// Destroying a cloud workspace at its host would delete the row
+			// inside a sandbox that then keeps running — and billing — with the
+			// cloud row still listing it. The sandbox is the thing to destroy,
+			// and only the API can do that.
+			if (isSandbox) {
+				await apiTrpcClient.cloudWorkspace.delete.mutate({ id: workspaceId });
+				await utils.cloudWorkspace.list.invalidate();
+				return {
+					success: true,
+					// The whole machine goes away, so there is no worktree or branch
+					// left behind to report on.
+					worktreeRemoved: true,
+					branchDeleted: false,
+					cloudDeleted: true,
+					warnings: [],
+				};
+			}
 			return destroyWorkspaceAtHost(
 				{ workspaceId, hostUrl, hostStatus },
 				input,
 			);
 		},
-		[hostUrl, hostStatus, workspaceId],
+		[hostUrl, hostStatus, isSandbox, utils, workspaceId],
 	);
 
 	const inspect = useCallback(async (): Promise<DestroyWorkspacePreview> => {

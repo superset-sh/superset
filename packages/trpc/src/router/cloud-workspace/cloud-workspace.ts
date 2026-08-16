@@ -14,6 +14,9 @@ import {
 } from "../../lib/blaxel";
 import { resolveCloneTarget } from "../../lib/blaxel/clone-token";
 import { jwtProcedure } from "../../trpc";
+import { generateCloudWorkspaceName } from "./generate-name";
+
+const FALLBACK_NAME = "Cloud workspace";
 
 /** Derived from the row id so the name is stable and collision-free. */
 function sandboxNameFor(cloudWorkspaceId: string): string {
@@ -90,7 +93,9 @@ export const cloudWorkspaceRouter = {
 			z.object({
 				organizationId: z.string().uuid(),
 				projectId: z.string().uuid(),
-				name: z.string().min(1).max(200),
+				/** Omitted when the user didn't type one; then `prompt` names it. */
+				name: z.string().min(1).max(200).optional(),
+				prompt: z.string().max(20000).optional(),
 				branch: z.string().min(1).max(300),
 			}),
 		)
@@ -111,6 +116,12 @@ export const cloudWorkspaceRouter = {
 				});
 			}
 
+			// Naming is a model call and provisioning takes seconds, so start it
+			// here and await it during provisioning rather than before it.
+			const namePromise: Promise<string | null> = input.name
+				? Promise.resolve(input.name)
+				: generateCloudWorkspaceName(input.prompt ?? "");
+
 			// The id is generated here rather than by the database so the sandbox
 			// name can be derived before the insert. A placeholder would briefly
 			// leave two rows sharing ("blaxel", ""), which the unique constraint
@@ -123,7 +134,7 @@ export const cloudWorkspaceRouter = {
 					id,
 					organizationId: input.organizationId,
 					projectId: input.projectId,
-					name: input.name,
+					name: input.name ?? FALLBACK_NAME,
 					branch: input.branch,
 					provider: "blaxel",
 					providerSandboxId,
@@ -143,6 +154,7 @@ export const cloudWorkspaceRouter = {
 					name: providerSandboxId,
 					image: env.BLAXEL_SANDBOX_IMAGE,
 				});
+				const resolvedName = (await namePromise) ?? FALLBACK_NAME;
 				const clone = await resolveCloneTarget(input.projectId);
 				if (!clone) {
 					throw new TRPCError({
@@ -152,19 +164,20 @@ export const cloudWorkspaceRouter = {
 				}
 				await bootstrapSandbox({
 					providerSandboxId,
+					workspaceId: row.id,
 					repoCloneUrl: clone.cloneUrl,
 					cloneToken: clone.token,
 					branch: input.branch,
 					organizationId: input.organizationId,
 					projectName: project.name,
-					workspaceName: input.name,
-					hostServiceSecret: env.SANDBOX_HOST_SERVICE_SECRET,
+					workspaceName: resolvedName,
 					apiUrl: env.NEXT_PUBLIC_API_URL,
 					authToken: "sandbox",
 				});
 				const [ready] = await dbWs
 					.update(cloudWorkspaces)
 					.set({
+						name: resolvedName,
 						providerSandboxId: sandbox.providerSandboxId,
 						sandboxUrl: sandbox.sandboxUrl,
 						status: "ready",
@@ -173,12 +186,49 @@ export const cloudWorkspaceRouter = {
 					.returning();
 				return ready ?? row;
 			} catch (error) {
+				// Billing starts at provision, not at ready: everything after that
+				// call — resolving the repo, cloning, booting — can fail with a
+				// sandbox already running. Without this the failure is silent and
+				// permanent, because nothing else ever looks at a `failed` row.
+				// The row survives as the record of what went wrong.
+				await deleteSandbox(providerSandboxId).catch((teardownError) => {
+					console.error(
+						`[cloud-workspace] leaked sandbox ${providerSandboxId}`,
+						teardownError,
+					);
+				});
 				await dbWs
 					.update(cloudWorkspaces)
 					.set({ status: "failed" })
 					.where(eq(cloudWorkspaces.id, row.id));
 				throw error;
 			}
+		}),
+
+	/**
+	 * The workspace's name lives here, not on the sandbox. A cloud workspace
+	 * is created, named and listed by this API; the row inside the sandbox
+	 * exists only so host-service has something to serve panes against.
+	 */
+	rename: jwtProcedure
+		.input(
+			z.object({ id: z.string().uuid(), name: z.string().min(1).max(200) }),
+		)
+		.mutation(async ({ ctx, input }) => {
+			const row = await db.query.cloudWorkspaces.findFirst({
+				where: eq(cloudWorkspaces.id, input.id),
+			});
+			if (!row) {
+				throw new TRPCError({ code: "NOT_FOUND", message: "Not found" });
+			}
+			assertInternal(ctx.email);
+			assertMember(ctx.organizationIds, row.organizationId);
+			const [renamed] = await dbWs
+				.update(cloudWorkspaces)
+				.set({ name: input.name })
+				.where(eq(cloudWorkspaces.id, input.id))
+				.returning();
+			return renamed ?? row;
 		}),
 
 	/**
@@ -210,9 +260,6 @@ export const cloudWorkspaceRouter = {
 				url: access.url,
 				token: access.token,
 				expiresAt: access.expiresAt,
-				// Both layers are required: the preview token gets a request past
-				// the provider's edge, the secret past host-service itself.
-				hostServiceSecret: env.SANDBOX_HOST_SERVICE_SECRET,
 			};
 		}),
 

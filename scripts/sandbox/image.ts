@@ -13,6 +13,10 @@
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { ImageInstance } from "@blaxel/core";
+import {
+	SANDBOX_CREDENTIAL_PLACEHOLDER,
+	SANDBOX_WORKSPACE_PATH,
+} from "../../packages/shared/src/constants.ts";
 
 const REPO_ROOT = join(import.meta.dir, "..", "..");
 const HOST_SERVICE_PKG = join(
@@ -97,11 +101,35 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 	.runCommands(
 		"test -d node_modules/node-pty/prebuilds/linux-x64 || (echo 'node-pty prebuild missing — it would compile at runtime' && exit 1)",
 	)
-	// The agent the sandbox can actually run. Without a CLI installed the
+	// The agents the sandbox can actually run. Without a CLI installed the
 	// agent picker has nothing to offer, since a sandbox has none of the
-	// user's locally-installed agents.
+	// user's locally-installed agents. Both read their key from the
+	// environment, which is how the sandbox is handed credentials.
 	.runCommands(
-		"npm install -g @anthropic-ai/claude-code --no-audit --no-fund && claude --version",
+		"npm install -g @anthropic-ai/claude-code @openai/codex --no-audit --no-fund && claude --version && codex --version",
+	)
+	// Every first run of the Claude TUI otherwise opens with a theme picker, an
+	// "approve this API key?" prompt and a workspace trust dialog — three
+	// confirmations before a sandbox agent can do anything, on a machine whose
+	// answers are the same every time. These are the keys the TUI writes when
+	// you answer them; `-p` runs never write them, which is why the prompts
+	// survive a headless smoke test. `customApiKeyResponses` matches on the
+	// key's last 20 characters, so it stays valid as long as the placeholder does.
+	.runCommands(
+		`printf '%s' '${JSON.stringify({
+			hasCompletedOnboarding: true,
+			theme: "dark",
+			customApiKeyResponses: {
+				approved: [SANDBOX_CREDENTIAL_PLACEHOLDER.slice(-20)],
+				rejected: [],
+			},
+			projects: {
+				[SANDBOX_WORKSPACE_PATH]: {
+					hasTrustDialogAccepted: true,
+					projectOnboardingSeenCount: 1,
+				},
+			},
+		})}' > /root/.claude.json`,
 	)
 	// Lands in /app so the externalised natives resolve from its node_modules.
 	// The third argument is the build-context name, which defaults to the

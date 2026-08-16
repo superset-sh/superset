@@ -1,13 +1,12 @@
-import {
-	type AgentLifecyclePayload,
-	type GitChangedPayload,
-	getEventBus,
-	type PortChangedPayload,
-	type TerminalLifecyclePayload,
+import type {
+	AgentLifecyclePayload,
+	GitChangedPayload,
+	PortChangedPayload,
+	TerminalLifecyclePayload,
 } from "@superset/workspace-client";
 import type { FsWatchEvent } from "@superset/workspace-fs/client";
 import { useEffect, useEffectEvent } from "react";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { useWorkspaceHostUrl } from "../useWorkspaceHostUrl";
 
 /**
@@ -66,7 +65,7 @@ export function useWorkspaceEvent(
 	useEffect(() => {
 		if (!enabled || !hostUrl) return;
 
-		const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+		const bus = getHostEventBus(hostUrl);
 		const cleanups: Array<() => void> = [];
 
 		if (type === "fs:events") {

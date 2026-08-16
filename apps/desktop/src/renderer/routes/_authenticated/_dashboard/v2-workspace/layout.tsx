@@ -7,6 +7,7 @@ import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
 import { StateScreenShell } from "./components/StateScreenShell";
 import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
@@ -63,6 +64,13 @@ function V2WorkspaceLayout() {
 				: null,
 		[hostWorkspaces, workspaceId],
 	);
+	// A sandbox joins the fan-out as its own host, so a cloud workspace is
+	// found the same way as any other — but it has no v2_hosts row for the
+	// remote version gate to check.
+	const { targets: sandboxes } = useSandboxAccess();
+	const isCloud = sandboxes.some(
+		(sandbox) => sandbox.workspaceId === workspaceId,
+	);
 	const { data: failedEntries } = useLiveQuery(
 		(q) =>
 			q
@@ -80,7 +88,9 @@ function V2WorkspaceLayout() {
 		ensureWorkspaceInSidebar(workspace.id, workspace.projectId);
 	}, [ensureWorkspaceInSidebar, workspace]);
 
-	const hostStatus = useRemoteHostStatus(workspace);
+	// Sandboxes ship with the app's own host-service build, so the remote
+	// version gate has nothing to check and no host row to check it against.
+	const hostStatus = useRemoteHostStatus(isCloud ? null : workspace);
 
 	// "Not found" is a verdict, not a cache read: a CLI-created workspace can
 	// trail its own deep link (missed broadcast, second host-service instance,
@@ -132,19 +142,21 @@ function V2WorkspaceLayout() {
 		);
 	}
 
-	if (hostStatus.status === "incompatible") {
-		return (
-			<StateScreenShell>
-				<WorkspaceHostIncompatibleState
-					hostName={hostStatus.hostName}
-					hostVersion={hostStatus.hostVersion}
-					minVersion={hostStatus.minVersion}
-				/>
-			</StateScreenShell>
-		);
-	}
-	if (hostStatus.status === "loading") {
-		return <StateScreenShell>{null}</StateScreenShell>;
+	if (!isCloud) {
+		if (hostStatus.status === "incompatible") {
+			return (
+				<StateScreenShell>
+					<WorkspaceHostIncompatibleState
+						hostName={hostStatus.hostName}
+						hostVersion={hostStatus.hostVersion}
+						minVersion={hostStatus.minVersion}
+					/>
+				</StateScreenShell>
+			);
+		}
+		if (hostStatus.status === "loading") {
+			return <StateScreenShell>{null}</StateScreenShell>;
+		}
 	}
 
 	return (

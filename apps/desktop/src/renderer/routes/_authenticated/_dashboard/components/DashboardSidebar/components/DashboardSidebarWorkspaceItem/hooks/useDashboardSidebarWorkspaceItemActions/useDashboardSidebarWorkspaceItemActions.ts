@@ -63,6 +63,18 @@ export function useDashboardSidebarWorkspaceItemActions({
 
 	const [isRenaming, setIsRenaming] = useState(false);
 	const [renameValue, setRenameValue] = useState(workspaceName);
+	/**
+	 * The submitted name, held until the store catches up.
+	 *
+	 * Closing the editor is a React state update while the optimistic cache
+	 * patch reaches this row through react-query's notifier, which flushes on
+	 * a microtask — so the row renders once with the pre-rename prop in
+	 * between, and the old name flashes for a frame.
+	 */
+	const [pendingName, setPendingName] = useState<string | null>(null);
+	if (pendingName !== null && pendingName === workspaceName) {
+		setPendingName(null);
+	}
 
 	const isActive = !!matchRoute({
 		to: "/v2-workspace/$workspaceId",
@@ -93,6 +105,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		setIsRenaming(false);
 		const trimmed = renameValue.trim();
 		if (!trimmed || trimmed === workspaceName) return;
+		setPendingName(trimmed);
 		workspaceActions.renameWorkspace(workspaceId, trimmed);
 	};
 
@@ -250,6 +263,7 @@ export function useDashboardSidebarWorkspaceItemActions({
 		isRenaming,
 		isUnread,
 		moveWorkspaceToSection,
+		pendingName,
 		renameValue,
 		requestDelete,
 		setRenameValue,

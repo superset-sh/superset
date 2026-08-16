@@ -299,6 +299,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 function getOrCreateConnection(
 	hostUrl: string,
 	getWsToken: () => string | null,
+	getUrlParams?: () => Record<string, string> | null,
 ): ConnectionState {
 	const key = hostUrl;
 	const existing = connections.get(key);
@@ -309,7 +310,15 @@ function getOrCreateConnection(
 	// inside partysocket. Buffering is disabled so command semantics stay
 	// "send only while open" — watches are replayed from state on each open.
 	const socket = createRelaySocket({
-		buildUrl: () => `${hostUrl.replace(/\/$/, "")}/events`,
+		// Params are read per attempt, not captured: a sandbox's edge token
+		// expires, and the connection outlives any single one.
+		buildUrl: () => {
+			const url = new URL(`${hostUrl.replace(/\/$/, "")}/events`);
+			for (const [key, value] of Object.entries(getUrlParams?.() ?? {})) {
+				url.searchParams.set(key, value);
+			}
+			return url.toString();
+		},
 		getToken: getWsToken,
 		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,
 		minReconnectionDelay: RECONNECT_BASE_MS,
@@ -413,8 +422,14 @@ export interface EventBusHandle {
 export function getEventBus(
 	hostUrl: string,
 	getWsToken: () => string | null,
+	/**
+	 * Extra query params for the socket URL. A browser can't set headers on a
+	 * WebSocket upgrade, so a host fronted by a gateway that authenticates on
+	 * one (a cloud workspace sandbox) has to pass it here instead.
+	 */
+	getUrlParams?: () => Record<string, string> | null,
 ): EventBusHandle {
-	const state = getOrCreateConnection(hostUrl, getWsToken);
+	const state = getOrCreateConnection(hostUrl, getWsToken, getUrlParams);
 
 	return {
 		on<T extends EventType>(

@@ -79,20 +79,28 @@ export function useSubmitWorkspace(
 				toast.error("Cloud workspaces require a project");
 				return;
 			}
+			// Provisioning takes several seconds and the prompt has no progress
+			// affordance of its own, so the toast is the only signal the click
+			// registered.
+			const pending = toast.loading("Creating cloud workspace…");
 			try {
+				// A typed name wins; otherwise the API names it from the prompt,
+				// since nothing about a cloud workspace runs on this device.
 				await createCloudWorkspace.mutateAsync({
 					organizationId: activeOrganizationId,
 					projectId,
-					name: workspaceName ?? "Cloud workspace",
+					name: workspaceName ?? undefined,
+					prompt: draft.prompt.trim() || undefined,
 					branch: branchName ?? "main",
 				});
 				closeAndResetDraft();
-				toast.success("Cloud workspace created");
+				toast.success("Cloud workspace created", { id: pending });
 			} catch (error) {
 				toast.error(
 					error instanceof Error
 						? error.message
 						: "Could not create cloud workspace",
+					{ id: pending },
 				);
 			}
 			return;

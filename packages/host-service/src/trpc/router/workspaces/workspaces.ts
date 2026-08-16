@@ -19,7 +19,12 @@ import {
 	insertLocalWorkspace,
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
-import { createCallerFactory, protectedProcedure, router } from "../../index";
+import {
+	createCallerFactory,
+	machineOnlyProcedure,
+	protectedProcedure,
+	router,
+} from "../../index";
 import { buildTerminalAgentLaunch, validateAgentLaunchEffort } from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
@@ -503,7 +508,7 @@ async function registerLocalWorkspace(args: {
 
 export const workspacesRouter = router({
 	createSession,
-	create: protectedProcedure
+	create: machineOnlyProcedure
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			for (const launch of input.agents ?? []) {

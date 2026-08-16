@@ -12,6 +12,7 @@ import {
 	getHostServiceHeaders,
 	getHostServiceWsToken,
 } from "renderer/lib/host-service-auth";
+import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { WorkspaceTrpcProvider } from "../WorkspaceTrpcProvider";
 import { WorkspaceHostGate } from "./components/WorkspaceHostGate";
@@ -45,13 +46,19 @@ export function WorkspaceProvider({
 	}, [activeHostUrl]);
 	const localHostUrl = activeHostUrl ?? lastLocalHostUrlRef.current;
 
+	// The fan-out already knows how to address every host it serves — including
+	// a sandbox, whose URL is brokered and derives from neither the local port
+	// nor a relay routing key. Recomputing it here is how a cloud workspace
+	// ended up pointed at the relay.
+	const { cache } = useHostWorkspaces();
 	const hostUrl =
-		workspace.hostId === machineId
+		cache.resolveHostUrl(workspace.hostId) ??
+		(workspace.hostId === machineId
 			? localHostUrl
 			: `${relayUrl}/hosts/${buildHostRoutingKey(
 					workspace.organizationId,
 					workspace.hostId,
-				)}`;
+				)}`);
 
 	// Only before the local host service has ever reported a port — there is
 	// nothing to point a client at, so this can't go through WorkspaceHostGate.

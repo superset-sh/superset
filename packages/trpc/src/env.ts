@@ -23,22 +23,17 @@ export const env = createEnv({
 		NEXT_PUBLIC_WEB_URL: z.string().url(),
 		KV_REST_API_URL: z.string().url().optional(),
 		KV_REST_API_TOKEN: z.string().optional(),
-		// Blaxel (cloud workspace sandboxes). Optional: deployments without
-		// these simply can't create cloud workspaces, and say so.
-		BLAXEL_API_KEY: z.string().optional(),
-		BLAXEL_WORKSPACE: z.string().optional(),
-		BLAXEL_REGION: z.string().default("us-pdx-1"),
-		BLAXEL_SANDBOX_IMAGE: z.string().default("superset-hostsvc"),
-		// Shared by every sandbox: it is the inner of two auth layers, behind
-		// the provider preview token, and is handed to authorized clients.
-		SANDBOX_HOST_SERVICE_SECRET: z
-			.string()
-			.default("sandbox-dev-secret-change-me-0123456789"),
+		// Blaxel (cloud workspace sandboxes).
+		BLAXEL_API_KEY: z.string().min(1),
+		BLAXEL_WORKSPACE: z.string().min(1),
+		BLAXEL_REGION: z.string().min(1),
+		BLAXEL_SANDBOX_IMAGE: z.string().min(1),
 		// GitHub App credentials
 		GH_APP_ID: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
 		ANTHROPIC_API_KEY: z.string(),
+		OPENAI_API_KEY: z.string().min(1),
 		RELAY_URL: z.string().url(),
 		LINEAR_CLIENT_ID: z.string().min(1),
 		LINEAR_CLIENT_SECRET: z.string().min(1),

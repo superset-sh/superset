@@ -8,6 +8,7 @@
  * token — no relay hop, so websockets work and the sandbox can still sleep.
  */
 import { SandboxInstance, settings } from "@blaxel/core";
+import { SANDBOX_CREDENTIAL_PLACEHOLDER } from "@superset/shared/constants";
 import { TRPCError } from "@trpc/server";
 import { env } from "../../env";
 
@@ -16,14 +17,42 @@ const PREVIEW_TOKEN_TTL_MS = 10 * 60 * 1000;
 const PREVIEW_NAME = "hostsvc";
 const HOST_SERVICE_PORT = 4879;
 
-function assertConfigured(): void {
-	if (!env.BLAXEL_API_KEY || !env.BLAXEL_WORKSPACE) {
-		throw new TRPCError({
-			code: "PRECONDITION_FAILED",
-			message: "Cloud workspaces are not configured on this deployment",
-			cause: { kind: "BLAXEL_NOT_CONFIGURED" },
-		});
-	}
+interface ProxyRoute {
+	destinations: string[];
+	headers: Record<string, string>;
+	secrets: Record<string, string>;
+}
+
+/**
+ * One route per model provider, each carrying the header that provider
+ * authenticates with. Secrets are scoped to their own rule — a key declared
+ * here cannot be resolved by any other destination.
+ */
+function agentCredentialRoutes(): {
+	envs: Array<{ name: string; value: string }>;
+	routing: ProxyRoute[];
+} {
+	const envs = [
+		{ name: "ANTHROPIC_API_KEY", value: SANDBOX_CREDENTIAL_PLACEHOLDER },
+		{ name: "OPENAI_API_KEY", value: SANDBOX_CREDENTIAL_PLACEHOLDER },
+	];
+	const routing: ProxyRoute[] = [
+		{
+			destinations: ["api.anthropic.com"],
+			headers: { "x-api-key": "{{SECRET:anthropic-api-key}}" },
+			secrets: { "anthropic-api-key": env.ANTHROPIC_API_KEY },
+		},
+		{
+			destinations: ["api.openai.com"],
+			headers: { Authorization: "Bearer {{SECRET:openai-api-key}}" },
+			secrets: { "openai-api-key": env.OPENAI_API_KEY },
+		},
+	];
+
+	return { envs, routing };
+}
+
+function configureBlaxel(): void {
 	settings.setConfig({
 		apiKey: env.BLAXEL_API_KEY,
 		workspace: env.BLAXEL_WORKSPACE,
@@ -45,9 +74,10 @@ export async function provisionSandbox(args: {
 	memoryMb?: number;
 	region?: string;
 }): Promise<ProvisionedSandbox> {
-	assertConfigured();
+	configureBlaxel();
 	const memoryMb = args.memoryMb ?? 4096;
 	const region = args.region ?? env.BLAXEL_REGION;
+	const { envs, routing } = agentCredentialRoutes();
 
 	const sandbox = await SandboxInstance.createIfNotExists({
 		name: args.name,
@@ -58,11 +88,28 @@ export async function provisionSandbox(args: {
 		storageMb: 20480,
 		ports: [{ target: HOST_SERVICE_PORT, protocol: "HTTP" }],
 		region,
+		envs,
+		// Routing is fixed at creation, so a sandbox can never be re-pointed at
+		// a different secret later in its life.
+		network: { proxy: { routing } },
 	} as never);
 
+	// The desktop renderer is a browser: without CORS on the provider's edge
+	// every request to the sandbox fails preflight. A wildcard origin costs
+	// nothing here — the preview token and the host-service secret are what
+	// actually gate the sandbox, and neither is a cookie the browser would
+	// attach on its own.
 	const preview = await sandbox.previews.createIfNotExists({
 		metadata: { name: PREVIEW_NAME },
-		spec: { port: HOST_SERVICE_PORT, public: false },
+		spec: {
+			port: HOST_SERVICE_PORT,
+			public: false,
+			responseHeaders: {
+				"Access-Control-Allow-Origin": "*",
+				"Access-Control-Allow-Headers": "*",
+				"Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+			},
+		},
 	} as never);
 
 	const sandboxUrl = preview.spec?.url;
@@ -84,7 +131,7 @@ export interface PreviewAccess {
 export async function mintPreviewAccess(
 	providerSandboxId: string,
 ): Promise<PreviewAccess> {
-	assertConfigured();
+	configureBlaxel();
 	const sandbox = await SandboxInstance.get(providerSandboxId);
 	const preview = await sandbox.previews.get(PREVIEW_NAME);
 	const expiresAt = new Date(Date.now() + PREVIEW_TOKEN_TTL_MS);
@@ -102,7 +149,7 @@ export async function mintPreviewAccess(
 
 /** Best-effort: a sandbox already gone is the state we wanted. */
 export async function deleteSandbox(providerSandboxId: string): Promise<void> {
-	assertConfigured();
+	configureBlaxel();
 	try {
 		await SandboxInstance.delete(providerSandboxId);
 	} catch (error) {

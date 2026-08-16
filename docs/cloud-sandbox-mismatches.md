@@ -1,0 +1,139 @@
+# Where cloud sandboxes don't fit the app
+
+A cloud workspace runs host-service inside a provider sandbox, which lets it
+reuse the whole v2 stack — panes, terminals, git, agents — for free. The price
+is a set of places where the app's assumptions were written for *a machine a
+person owns* and a sandbox isn't one.
+
+**This list is load-bearing, not documentation.** Every entry below cost
+someone a debugging session. When you hit a new one, add it here in the same
+shape (what the app assumes → what a sandbox actually is → what we did), even
+if you worked around it in five minutes. The next person will not have your
+context.
+
+## Identity and ownership
+
+**The workspace's name belongs to the cloud row, not the sandbox.** For a local
+or remote host, `host.db` owns the workspace because the user created it there.
+A cloud workspace is created, named (by the API's namer) and listed by the
+cloud API; the sandbox's `workspaces` row exists only so host-service has
+something to serve panes against. Renaming through the generic host path writes
+a name nothing reads — `workspaces.rename` routes to `cloudWorkspace.rename`
+for these. Treat the sandbox's copy as scratch.
+
+**The seeded project + workspace rows are a fake.** `bootstrapSandbox` inserts
+one `projects` row and one `workspaces` row straight into `host.db` rather than
+calling host-service's create procedures, because those build a worktree off a
+base repo and a sandbox's checkout *is* the workspace. Consequences: the
+project id is meaningless to the client (which is why cloud rows can't group
+under a project and get their own sidebar section), and any host-service
+migration that changes those tables' shape silently breaks bootstrap — the seed
+is raw SQL against a schema it doesn't share types with.
+
+**The sandbox's `hostId` addresses nothing.** `workspace.list` reports the
+container's machine id. The fan-out restates it as the cloud workspace's id so
+every host-keyed lookup (pull requests, agent status, diff stats) resolves.
+Anything reading `hostId` off a raw sandbox response gets a dead id.
+
+**There is no `v2_hosts` row.** Sandboxes are deliberately absent from the
+hosts table, so anything that resolves a host through it degrades: the remote
+version gate has nothing to check (skipped for cloud), and the unreachable
+overlay renders "Unknown host".
+
+## Addressing and auth
+
+**The address is brokered and expires.** A sandbox has no stable URL — a
+preview token is minted per workspace and re-minted before expiry
+(`SandboxAccessProvider`). Code that caches a sandbox URL for longer than the
+token's life will start 401ing. `mintPreviewAccess` talks to the provider's
+control plane, not the sandbox, so it works even when the sandbox itself is
+asleep or wedged.
+
+**Three separate gates sit between the renderer and a sandbox**, and all three
+fail as a bare `TypeError: Failed to fetch`: the renderer's CSP `connect-src`
+allowlist, CORS on the provider's edge (set via the preview's
+`responseHeaders`), and the WebSocket, which can't carry a header from a
+browser and so takes the preview token as a `bl_preview_token` query param.
+Testing from Node proves nothing about the renderer here.
+
+**The host-service secret does not apply, and a sandbox says so instead of
+pretending otherwise.** Locally the secret stops anything else on the machine
+from talking to a host-service bound to loopback; desktop and service share
+one trusted device. A sandbox is reached across the internet, where the gate
+that actually holds is the provider's private preview: the edge turns away
+anything without a preview token, and only our API can mint one.
+
+Keeping the PSK as a second layer was tried and rejected. One secret baked
+into every sandbox is a cross-tenant credential, and every sandbox hands an
+agent a shell that can read its own env — a second factor each tenant can read
+is not a second factor, it just makes the posture look deeper than it is.
+Generating one per sandbox would have worked, but it buys a layer whose only
+job is to survive a misconfigured preview, at the cost of a stored secret per
+workspace.
+
+So in sandbox mode host-service uses `EdgeGuardedHostAuthProvider`, which
+accepts everything, and the honest statement of the posture is: **one gate, at
+the edge.** A sandbox whose preview is ever made public is open to anyone with
+the URL. Treat preview configuration (`public: false`) as the security-
+critical setting it now is.
+
+**Model credentials never enter the sandbox.** The provider's egress proxy
+substitutes them at the edge from a `{{SECRET:...}}` routing rule; the sandbox
+env holds only `SANDBOX_CREDENTIAL_PLACEHOLDER`. The placeholder must still be
+*set* — an unset key reads as "not logged in" and produces no request for the
+proxy to rewrite.
+
+**Credentials are fixed at creation, so a sandbox can't gain one later.** The
+routing rules that carry them are part of the create call, which is the
+property that stops a sandbox being re-pointed at a different secret mid-life.
+The cost is that adding a provider, or rotating a key, reaches only sandboxes
+created afterwards — existing ones keep the credential set they were born
+with, and have to be recreated to change it.
+
+## Runtime environment
+
+**No user, no login shell, no rc files.** host-service builds PTY env from a
+login-shell snapshot and deliberately never from its own `process.env`. In a
+sandbox that yields a terminal with no credentials at all — the symptom is
+Claude reporting "Not logged in" while the key is plainly in the sandbox env.
+`buildV2TerminalEnv` forwards an explicit credential allowlist in sandbox mode
+only.
+
+**Agent CLIs are pre-configured in the image.** A first run otherwise opens a
+theme picker, an API-key approval and a workspace trust dialog — three
+confirmations no one is there to answer. The image bakes `/root/.claude.json`.
+Note that a headless `-p` run writes none of those keys, so a smoke test passes
+while the interactive TUI still blocks.
+
+**The checkout is the workspace.** No worktrees, no base repo, no branch
+creation — anything assuming a worktree can be created or discarded next to a
+main checkout has nothing to work with.
+
+## Lifecycle
+
+**Delete is not wired.** The generic delete routes to the owning host, which
+for a cloud workspace deletes the row *inside* the sandbox and leaves the
+sandbox running (and billing) plus the `cloud_workspaces` row intact — the
+workspace reappears on the next refetch. It needs to call
+`cloudWorkspace.delete`. **Open.**
+
+**Sidebar affordances are driven by local state, not by the row.** Visibility,
+pinning and ordering live in `v2WorkspaceLocalState`; a section that renders
+straight off an API list will show "Remove from sidebar" doing nothing. Cloud
+rows read the same collection as every other row.
+
+**Drag ordering isn't wired** — the cloud section sits outside the DnD
+containers. **Open.**
+
+## Provider constraints
+
+**Proxy secret injection needs the workspace entitlement.** Routing rules send
+egress through the workspace's egress gateway; without it every request fails
+its upstream CONNECT with a 407. Enabled for `superset` on 2026-08-16. Note
+`/egressgateways` and `/vpcs` still 403 with "Dedicated IPs feature is not
+enabled" even though routing works, so don't use those as a health check.
+
+**Native modules pin the image.** node-pty's prebuild links glibc (so no
+Alpine) and only the pinned version ships prebuilds at all; better-sqlite3 must
+match what host-service was built against or it crashes on load. The image
+asserts the prebuild exists rather than letting something compile silently.

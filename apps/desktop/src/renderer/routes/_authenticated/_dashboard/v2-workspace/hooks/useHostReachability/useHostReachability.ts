@@ -1,10 +1,7 @@
-import {
-	getEventBus,
-	type HostConnectionStatus,
-} from "@superset/workspace-client";
+import type { HostConnectionStatus } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useSyncExternalStore } from "react";
 import { useDelayElapsed } from "renderer/hooks/useDelayElapsed";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 
 /**
  * How long the host has to stay unreachable before the workspace hands over to
@@ -70,10 +67,7 @@ function describeFailure(
  * flag (which drifts through relay redeploys and API blips).
  */
 export function useHostReachability(hostUrl: string): HostReachability {
-	const bus = useMemo(
-		() => getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl)),
-		[hostUrl],
-	);
+	const bus = useMemo(() => getHostEventBus(hostUrl), [hostUrl]);
 	// Hold the connection open for as long as this screen is mounted: the
 	// panes that normally keep the bus alive are gone once we take over, and a
 	// closed socket would never observe the host coming back.

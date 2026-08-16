@@ -66,6 +66,7 @@ export function DashboardSidebarWorkspaceItem({
 	const { status: workspaceStatus, diffStats } = useSidebarWorkspaceStatus(id);
 	const {
 		cancelRename,
+		pendingName,
 		handleClearStatus,
 		handleClick,
 		handleCopyPath,
@@ -93,6 +94,14 @@ export function DashboardSidebarWorkspaceItem({
 		isMainWorkspace,
 		isPinned: workspace.isPinned,
 	});
+
+	// Renders the submitted name until the store reports it, so the row never
+	// falls back to the pre-rename value for a frame.
+	const displayWorkspace = useMemo(
+		() =>
+			pendingName === null ? workspace : { ...workspace, name: pendingName },
+		[pendingName, workspace],
+	);
 
 	const { v2Workspaces: v2WorkspaceActions } = useOptimisticActions();
 	const [renameBranchTarget, setRenameBranchTarget] = useState<string | null>(
@@ -282,7 +291,7 @@ export function DashboardSidebarWorkspaceItem({
 			onMouseLeave={handleMouseLeave}
 		>
 			<DashboardSidebarExpandedWorkspaceRow
-				workspace={workspace}
+				workspace={displayWorkspace}
 				isActive={isActive}
 				isRenaming={isRenaming}
 				renameValue={renameValue}

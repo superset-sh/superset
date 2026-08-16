@@ -184,7 +184,16 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	// Startup sweeps run in the background so they don't block server
 	// startup. Ordering matters: the project backfill fills identity fields
 	// on pre-existing rows before the main-workspace sweep touches them.
+	//
+	// None of them run in a sandbox. Every one repairs state a long-lived
+	// machine accumulates — rows that predate a column, a delete a previous
+	// process crashed out of — and a sandbox is provisioned fresh with exactly
+	// one project and one workspace, seeded by us, that no earlier build ever
+	// touched. There is nothing to recover, so the sweeps can only invent:
+	// the main-workspace sweep already added a phantom second workspace here
+	// before bootstrap started seeding `type='main'`.
 	void (async () => {
+		if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") return;
 		await runProjectBackfill({
 			db,
 			eventBus,

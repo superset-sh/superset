@@ -9,15 +9,20 @@
  * from yet.
  */
 import { SandboxInstance } from "@blaxel/core";
+import { SANDBOX_WORKSPACE_PATH as WORKSPACE_PATH } from "@superset/shared/constants";
 import { TRPCError } from "@trpc/server";
 
-/** Where the checkout lives, and therefore what every path in host.db points at. */
-const WORKSPACE_PATH = "/workspace";
 const HOST_DB_PATH = "/data/host.db";
 const HOST_SERVICE_PORT = 4879;
 
 export interface BootstrapArgs {
 	providerSandboxId: string;
+	/**
+	 * The cloud workspace's own id. The sandbox seeds its workspace row under
+	 * it so the desktop can open `/v2-workspace/<id>` against the sandbox the
+	 * same way it opens one against a host.
+	 */
+	workspaceId: string;
 	repoCloneUrl: string;
 	/** Short-lived GitHub App installation token; never persisted in the sandbox. */
 	cloneToken: string | null;
@@ -25,7 +30,6 @@ export interface BootstrapArgs {
 	organizationId: string;
 	projectName: string;
 	workspaceName: string;
-	hostServiceSecret: string;
 	apiUrl: string;
 	authToken: string;
 }
@@ -73,7 +77,7 @@ export async function bootstrapSandbox(args: BootstrapArgs): Promise<void> {
 	// before the seed has tables to write into.
 	await exec(
 		sandbox,
-		`mkdir -p /data && cd /app && ORGANIZATION_ID=${args.organizationId} HOST_DB_PATH=${HOST_DB_PATH} HOST_MIGRATIONS_FOLDER=/app/drizzle AUTH_TOKEN=bootstrap SUPERSET_API_URL=${args.apiUrl} HOST_SERVICE_SECRET=${args.hostServiceSecret} SUPERSET_HOST_RUN_MODE=sandbox timeout 25 node host-service.js > /data/migrate.log 2>&1; grep -q "Initialized at" /data/migrate.log`,
+		`mkdir -p /data && cd /app && ORGANIZATION_ID=${args.organizationId} HOST_DB_PATH=${HOST_DB_PATH} HOST_MIGRATIONS_FOLDER=/app/drizzle AUTH_TOKEN=bootstrap SUPERSET_API_URL=${args.apiUrl} SUPERSET_HOST_RUN_MODE=sandbox timeout 25 node host-service.js > /data/migrate.log 2>&1; grep -q "Initialized at" /data/migrate.log`,
 		"migrate",
 	);
 
@@ -84,11 +88,15 @@ export async function bootstrapSandbox(args: BootstrapArgs): Promise<void> {
 		`const db = new Database(${JSON.stringify(HOST_DB_PATH)});`,
 		"const now = Date.now();",
 		"const projectId = crypto.randomUUID();",
-		"const workspaceId = crypto.randomUUID();",
+		`const workspaceId = ${JSON.stringify(args.workspaceId)};`,
 		'db.prepare("INSERT INTO projects (id, repo_path, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?)")',
 		`  .run(projectId, ${JSON.stringify(WORKSPACE_PATH)}, ${JSON.stringify(args.projectName)}, now, now);`,
-		'db.prepare("INSERT INTO workspaces (id, project_id, worktree_path, branch, name, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)")',
-		`  .run(workspaceId, projectId, ${JSON.stringify(WORKSPACE_PATH)}, ${JSON.stringify(args.branch)}, ${JSON.stringify(args.workspaceName)}, now, now);`,
+		// type='main' because the checkout *is* the repo here — there is no base
+		// repo it was branched from. It also keeps host-service's boot-time
+		// main-workspace sweep from adding a second, phantom workspace to satisfy
+		// its one-main-per-project index.
+		'db.prepare("INSERT INTO workspaces (id, project_id, worktree_path, branch, name, type, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?)")',
+		`  .run(workspaceId, projectId, ${JSON.stringify(WORKSPACE_PATH)}, ${JSON.stringify(args.branch)}, ${JSON.stringify(args.workspaceName)}, "main", now, now);`,
 		"console.log(JSON.stringify({ projectId, workspaceId }));",
 	].join("\n");
 	await sandbox.fs.write("/app/seed.cjs", seed);
@@ -100,7 +108,6 @@ export async function bootstrapSandbox(args: BootstrapArgs): Promise<void> {
 		"HOST_MIGRATIONS_FOLDER=/app/drizzle",
 		`AUTH_TOKEN=${args.authToken}`,
 		`SUPERSET_API_URL=${args.apiUrl}`,
-		`HOST_SERVICE_SECRET=${args.hostServiceSecret}`,
 		"SUPERSET_HOST_RUN_MODE=sandbox",
 		`PORT=${HOST_SERVICE_PORT}`,
 	].join(" ");

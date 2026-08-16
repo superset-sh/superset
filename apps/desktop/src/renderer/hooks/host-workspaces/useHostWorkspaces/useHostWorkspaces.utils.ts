@@ -49,6 +49,12 @@ export interface HostWorkspacesQueryTarget {
 	/** Null when the host is known but unreachable (offline remote). */
 	hostUrl: string | null;
 	isLocal: boolean;
+	/**
+	 * A cloud workspace's sandbox, addressed by a brokered URL rather than by
+	 * machine identity. Its `machineId` is the cloud workspace's own id — the
+	 * sandbox reports an internal one that means nothing to this client.
+	 */
+	isSandbox?: boolean;
 }
 
 export interface HostRowForTargets {
@@ -82,6 +88,7 @@ export function deriveHostWorkspacesQueryTargets({
 	machineId,
 	relayUrl,
 	fallbackOrganizationId,
+	sandboxes = [],
 }: {
 	activeHostUrl: string | null;
 	hosts: HostRowForTargets[];
@@ -89,6 +96,12 @@ export function deriveHostWorkspacesQueryTargets({
 	relayUrl: string;
 	/** Org for the synthesized local target — see derivePullRequestQueryTargets. */
 	fallbackOrganizationId?: string | null;
+	/** Cloud workspaces whose sandbox currently has a brokered address. */
+	sandboxes?: Array<{
+		workspaceId: string;
+		organizationId: string;
+		url: string;
+	}>;
 }): HostWorkspacesQueryTarget[] {
 	const targets: HostWorkspacesQueryTarget[] = hosts.map((host) => {
 		const isLocal = host.machineId === machineId;
@@ -117,6 +130,16 @@ export function deriveHostWorkspacesQueryTargets({
 			organizationId: hosts[0]?.organizationId ?? fallbackOrganizationId ?? "",
 			hostUrl: activeHostUrl,
 			isLocal: true,
+		});
+	}
+
+	for (const sandbox of sandboxes) {
+		targets.push({
+			machineId: sandbox.workspaceId,
+			organizationId: sandbox.organizationId,
+			hostUrl: sandbox.url,
+			isLocal: false,
+			isSandbox: true,
 		});
 	}
 
