@@ -95,10 +95,11 @@ export async function provisionSandbox(args: {
 	} as never);
 
 	// The desktop renderer is a browser: without CORS on the provider's edge
-	// every request to the sandbox fails preflight. A wildcard origin costs
-	// nothing here — the preview token and the host-service secret are what
-	// actually gate the sandbox, and neither is a cookie the browser would
-	// attach on its own.
+	// every request to the sandbox fails preflight. The wildcard origin grants
+	// no ambient authority — the preview token gates the sandbox and a browser
+	// never attaches it on its own, so a hostile page can't ride a user's
+	// session the way it could with a cookie. It does mean a *leaked* token is
+	// usable from any origin, which is one more reason the TTL is short.
 	const preview = await sandbox.previews.createIfNotExists({
 		metadata: { name: PREVIEW_NAME },
 		spec: {

@@ -48,9 +48,35 @@ keys by using the egress proxy, left open for a credential that can write to the
 repo. Either strip the remote after cloning and supply credentials per
 operation, or route git through the proxy the same way.
 
-**One host-service secret for every sandbox. gated** `SANDBOX_HOST_SERVICE_SECRET`
-is a single value, so a leak from one sandbox authenticates against all of them
-(behind their preview tokens). Should be per-sandbox and stored with the row.
+**A sandbox has exactly one gate. gated** The shared host-service secret this
+entry used to describe is gone: host-service in a sandbox trusts the provider's
+edge and checks nothing itself (`EdgeGuardedHostAuthProvider`). That removed a
+cross-tenant credential every tenant could read, and it left the preview token
+as the whole of a sandbox's access control. Anything that defeats the edge —
+a preview drifted to `public: true`, a provider bug, a leaked token — yields
+terminals, git and the filesystem, with nothing second to get past.
+
+What makes that worth more than the sandbox itself: code execution inside gets
+the customer's repo, the write-scoped GitHub token in `.git/config` above, and
+the ability to *spend* our model keys through the egress proxy. The proxy stops
+an attacker reading those keys; it does not stop them using them.
+
+Four things to settle before the gate comes off, none of them needed while it
+is only us:
+
+- **Watch for `public: true`.** Preview configuration is now security-critical
+  and nothing alerts on drift. An automated check over live previews is cheap.
+- **Get the token out of the query string.** A browser can't set headers on a
+  WebSocket upgrade, so the preview token rides as `bl_preview_token` in the
+  URL, where it reaches logs and proxies far more readily than a header would.
+  Single-use or shorter-lived tokens for the socket path bound it.
+- **Narrow CORS.** `Access-Control-Allow-Origin: *` grants no ambient authority
+  (the token is not a cookie), but it does make a leaked token usable from any
+  origin. Pin it to the app's origins.
+- **Reconsider a second layer.** Per-sandbox secrets were rejected deliberately
+  — see the mismatches doc — on the grounds that a shared one obfuscated the
+  posture. A *per-sandbox* one would not have. Worth revisiting when the
+  population stops being us.
 
 ## Untested behaviour
 

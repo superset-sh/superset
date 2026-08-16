@@ -232,10 +232,14 @@ export const cloudWorkspaceRouter = {
 		}),
 
 	/**
-	 * Checks org membership, then mints a short-lived provider token. This is
-	 * the outer of two independent gates: Blaxel's edge rejects requests
-	 * without the token, and host-service still rejects them without its own
-	 * secret, so a leaked token alone reaches nothing protected.
+	 * Checks org membership, then mints a short-lived provider token.
+	 *
+	 * This is the *only* gate. host-service inside a sandbox trusts the
+	 * provider's edge and checks nothing itself (`EdgeGuardedHostAuthProvider`),
+	 * so this token is the whole of the sandbox's access control: whoever holds
+	 * an unexpired one has terminals, git and the filesystem. Hence the short
+	 * TTL, and hence the checks above running before it is minted rather than
+	 * anywhere later.
 	 */
 	access: jwtProcedure
 		.input(z.object({ id: z.string().uuid() }))
