@@ -67,8 +67,9 @@ next-env.d.ts
 .env.local
 .env
 
-# Reference material downloaded for agents
-examples
+# Reference material downloaded for agents (repo root only — a bare
+# `examples` would also swallow tracked dirs like packages/plugin-sdk/examples)
+/examples/
 
 # Claude binaries - downloaded at build time
 apps/desktop/resources/bin/

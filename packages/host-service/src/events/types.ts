@@ -146,6 +146,17 @@ export interface EventBusErrorMessage {
 	message: string;
 }
 
+/**
+ * Ephemeral payload published by a plugin backend (`api.realtime.publish`)
+ * for its own mounted UI components. Clients filter by `pluginId`.
+ */
+export interface PluginEventMessage {
+	type: "plugin:event";
+	pluginId: string;
+	payload: unknown;
+	occurredAt: number;
+}
+
 export type ServerMessage =
 	| FsEventsMessage
 	| GitChangedMessage
@@ -155,6 +166,7 @@ export type ServerMessage =
 	| WorkspaceChangedMessage
 	| WorkspaceCreateSettledMessage
 	| ProjectChangedMessage
+	| PluginEventMessage
 	| EventBusErrorMessage;
 
 // ── Client → Server ────────────────────────────────────────────────

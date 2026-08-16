@@ -133,7 +133,10 @@ export const workspaceLocalStateSchema = z.object({
 		sectionId: z.string().uuid().nullable().default(null),
 		changesFilter: changesFilterSchema.default({ kind: "all" }),
 		changesViewMode: z.enum(["folders", "tree"]).default("folders"),
-		activeTab: z.enum(["changes", "files", "review"]).default("changes"),
+		// Open string: built-in tab ids plus plugin-contributed tabs
+		// (`plugin:<pluginId>:<tabId>`). Consumers fall back to "changes"
+		// when the id doesn't resolve to a mounted tab.
+		activeTab: z.string().default("changes"),
 		isHidden: z.boolean().default(false),
 		// Epoch ms when the user pinned this workspace to the sidebar's Pinned
 		// section; null = not pinned. Ordering is pinnedAt ascending.

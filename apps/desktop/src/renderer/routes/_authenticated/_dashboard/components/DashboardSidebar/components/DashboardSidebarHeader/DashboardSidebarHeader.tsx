@@ -11,7 +11,7 @@ import { useMatchRoute, useNavigate } from "@tanstack/react-router";
 import { useRef } from "react";
 import { GoGitPullRequest } from "react-icons/go";
 import { HiOutlineClipboardDocumentList } from "react-icons/hi2";
-import { LuClock, LuLayers, LuPlus, LuSearch } from "react-icons/lu";
+import { LuClock, LuLayers, LuPlus, LuPuzzle, LuSearch } from "react-icons/lu";
 import {
 	VscFolderOpened,
 	VscGithubAlt,
@@ -120,6 +120,7 @@ export function DashboardSidebarHeader({
 		fuzzy: true,
 	});
 	const isAutomationsOpen = !!matchRoute({ to: "/automations", fuzzy: true });
+	const isPluginsOpen = !!matchRoute({ to: "/plugins", fuzzy: true });
 	const { myFailedCount } = useFailedAutomations();
 
 	const {
@@ -145,6 +146,10 @@ export function DashboardSidebarHeader({
 
 	const handleAutomationsClick = () => {
 		navigate({ to: "/automations" });
+	};
+
+	const handlePluginsClick = () => {
+		navigate({ to: "/plugins" });
 	};
 
 	const handleTasksClick = () => {
@@ -322,6 +327,26 @@ export function DashboardSidebarHeader({
 							</button>
 						</TooltipTrigger>
 						<TooltipContent side="right">Pull requests</TooltipContent>
+					</Tooltip>
+
+					<Tooltip delayDuration={300}>
+						<TooltipTrigger asChild>
+							<button
+								type="button"
+								onClick={handlePluginsClick}
+								aria-label="Plugins"
+								aria-current={isPluginsOpen ? "page" : undefined}
+								className={cn(
+									"flex size-7 items-center justify-center rounded-md transition-colors",
+									isPluginsOpen
+										? "bg-fill-selected text-muted-foreground"
+										: "text-muted-foreground hover:bg-fill-hover",
+								)}
+							>
+								<LuPuzzle className="size-3.5" strokeWidth={1.5} />
+							</button>
+						</TooltipTrigger>
+						<TooltipContent side="right">Plugins</TooltipContent>
 					</Tooltip>
 
 					<DropdownMenu>
@@ -502,6 +527,25 @@ export function DashboardSidebarHeader({
 			>
 				<GoGitPullRequest className="size-3.5 shrink-0 text-muted-foreground" />
 				<span className="flex-1 text-left">Pull requests</span>
+			</button>
+
+			<button
+				type="button"
+				onClick={handlePluginsClick}
+				aria-label="Plugins"
+				aria-current={isPluginsOpen ? "page" : undefined}
+				className={cn(
+					"flex w-full items-center gap-2 rounded-md px-2 py-1 text-[13px] font-medium transition-colors",
+					isPluginsOpen
+						? "bg-fill-selected text-foreground"
+						: "text-muted-foreground hover:bg-fill-hover hover:text-foreground",
+				)}
+			>
+				<LuPuzzle
+					className="size-3.5 shrink-0 text-muted-foreground"
+					strokeWidth={1.5}
+				/>
+				<span className="flex-1 text-left">Plugins</span>
 			</button>
 		</div>
 	);

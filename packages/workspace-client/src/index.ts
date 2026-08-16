@@ -1,5 +1,6 @@
 export { useEventBus } from "./hooks/useEventBus";
 export { useGitChangeEvents } from "./hooks/useGitChangeEvents";
+export { usePluginEvents } from "./hooks/usePluginEvents";
 export {
 	type AgentIdentity,
 	type AgentLifecyclePayload,
@@ -8,6 +9,7 @@ export {
 	getEventBus,
 	type HostConnectionState,
 	type HostConnectionStatus,
+	type PluginEventPayload,
 	type PortChangedPayload,
 	type ProjectChangedPayload,
 	type ProjectSnapshotPayload,

@@ -1,0 +1,38 @@
+{
+	"id": "superset.agent-board",
+	"name": "Agent Board",
+	"version": "0.1.0",
+	"description": "Live board of every agent across your workspaces: working, needs you, done. A port of herdr's most popular plugin category onto the Superset plugin API.",
+	"permissions": ["events:subscribe", "workspaces:read"],
+	"server": "dist/server.js",
+	"app": "dist/app.js",
+	"contributes": {
+		"commands": [
+			{
+				"id": "open",
+				"title": "Agent Board: Open",
+				"run": { "type": "open-sidebar-tab", "tabId": "board" }
+			},
+			{
+				"id": "open-pane",
+				"title": "Agent Board: Open as Pane",
+				"run": { "type": "open-pane", "kind": "superset.agent-board.pane" }
+			},
+			{
+				"id": "clear",
+				"title": "Agent Board: Clear Finished",
+				"run": { "type": "action", "action": "clear-finished" }
+			}
+		],
+		"sidebarTabs": [
+			{ "id": "board", "label": "Agents", "component": "AgentBoard" }
+		],
+		"panes": [
+			{
+				"kind": "superset.agent-board.pane",
+				"title": "Agent Board",
+				"component": "AgentBoardPane"
+			}
+		]
+	}
+}

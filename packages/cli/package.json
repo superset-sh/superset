@@ -18,6 +18,7 @@
 		"@superset/cli-framework": "workspace:*",
 		"@superset/host-service": "workspace:*",
 		"@superset/local-db": "workspace:*",
+		"@superset/plugin-sdk": "workspace:*",
 		"@superset/shared": "workspace:*",
 		"@superset/trpc": "workspace:*",
 		"@trpc/client": "11.16.0",

@@ -76,7 +76,7 @@ export function Pane<TData>({
 	paneActions,
 	contextMenuActions,
 }: PaneComponentProps<TData>) {
-	const definition = registry[pane.kind];
+	const definition = registry[pane.kind] ?? registry["*"];
 
 	const tabs = store.getState().tabs;
 	const tabPosition = tabs.findIndex((t) => t.id === tab.id);

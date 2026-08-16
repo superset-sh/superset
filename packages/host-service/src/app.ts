@@ -3,13 +3,16 @@ import { trpcServer } from "@hono/trpc-server";
 import { Octokit } from "@octokit/rest";
 import { ChatService } from "@superset/provider-auth/server";
 import { TRPCError } from "@trpc/server";
+import { isNull } from "drizzle-orm";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
+import { workspaces as workspacesTable } from "./db/schema";
 import { EventBus, GitWatcher, registerEventBusRoute } from "./events";
+import { PluginRuntime, PluginStore } from "./plugins";
 import type { ApiAuthProvider } from "./providers/auth";
 import type { HostAuthProvider } from "./providers/host-auth";
 import { runArchivedWorkspaceReconcile } from "./runtime/archived-workspace-reconcile";
@@ -181,6 +184,29 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 	}
 	const terminalAgentStore = new TerminalAgentStore(terminalAgentPersistence);
 
+	const pluginStore = new PluginStore(db);
+	const pluginRuntime = new PluginRuntime({
+		store: pluginStore,
+		eventBus,
+		listWorkspaces: () =>
+			db.query.workspaces
+				.findMany({ where: isNull(workspacesTable.archivedAt) })
+				.sync()
+				.map((row) => ({
+					id: row.id,
+					name: row.name,
+					branch: row.branch,
+					type: row.type,
+					projectId: row.projectId,
+					worktreePath: row.worktreePath,
+				})),
+	});
+	// Plugin backends load in the background; a broken plugin is recorded as
+	// `error` on its row and must never block host startup.
+	void pluginRuntime.start().catch((err) => {
+		console.warn("[host-service] plugin runtime start failed:", err);
+	});
+
 	// Startup sweeps run in the background so they don't block server
 	// startup. Ordering matters: the project backfill fills identity fields
 	// on pre-existing rows before the main-workspace sweep touches them.
@@ -257,6 +283,8 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					runtime,
 					eventBus,
 					terminalAgentStore,
+					pluginRuntime,
+					pluginStore,
 					organizationId: config.organizationId,
 					isAuthenticated,
 					clientMachineId:
@@ -275,6 +303,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			pullRequestRuntime.stop();
 		} catch (err) {
 			console.warn("[host-service] pullRequestRuntime.stop failed:", err);
+		}
+		try {
+			await pluginRuntime.dispose();
+		} catch (err) {
+			console.warn("[host-service] pluginRuntime.dispose failed:", err);
 		}
 		try {
 			await chatV3.dispose();

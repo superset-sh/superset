@@ -1,0 +1,25 @@
+{
+	"id": "superset.fleet-review",
+	"name": "Fleet Review",
+	"version": "0.1.0",
+	"description": "Center-pane review queue showing every workspace's pending git diff. A port of herdr's most popular plugin (reviewr) onto the Superset plugin API.",
+	"permissions": ["workspaces:read", "git:read"],
+	"server": "dist/server.js",
+	"app": "dist/app.js",
+	"contributes": {
+		"commands": [
+			{
+				"id": "open",
+				"title": "Fleet Review: Open",
+				"run": { "type": "open-pane", "kind": "superset.fleet-review.pane" }
+			}
+		],
+		"panes": [
+			{
+				"kind": "superset.fleet-review.pane",
+				"title": "Fleet Review",
+				"component": "FleetReview"
+			}
+		]
+	}
+}

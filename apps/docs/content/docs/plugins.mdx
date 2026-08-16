@@ -1,0 +1,147 @@
+---
+title: Plugins
+description: Extend Superset with sidebar tabs, panes, and palette commands
+---
+
+## Overview
+
+A plugin is a directory with a `superset-plugin.json` manifest plus up to two entries: a backend that runs in-process inside the host-service on the machine that owns your workspaces, and a UI bundle whose React components render in native slots of the desktop app (right-sidebar tabs, panes, command palette). One package can serve a panel for humans and actions/events for the system at the same time.
+
+<Callout type="warn" title="Trust model">
+Plugins are full-trust code, the same class as `.superset/config.json` setup scripts. There is no sandbox. There is containment: every handler is time-boxed and error-contained, a plugin that throws at load lands as `status: error` without affecting other plugins or the host, and UI slots are wrapped in error boundaries. Only install plugins from authors you trust, and read the manifest (including `permissions`) before installing.
+</Callout>
+
+## Installing and Managing Plugins
+
+### In the app
+
+Open **Plugins** from the dashboard sidebar. The page lists installed plugins with their status and lets you enable, disable, reload, or uninstall each one. Install new plugins from a GitHub `owner/repo` shorthand, a git URL, or a local path (local paths are dev-linked, so the plugin runs from your directory in place).
+
+### From the CLI
+
+```bash
+superset plugin install owner/repo             # git clone (GitHub shorthand)
+superset plugin install owner/repo --ref v1.2  # pinned to a tag/branch, commit recorded
+superset plugin install ./some-dir             # copy into ~/.superset/plugins/<id>
+superset plugin link .                         # dev: run from the directory in place
+superset plugin list                           # every plugin with status + load errors
+superset plugin enable <id>
+superset plugin disable <id>
+superset plugin reload <id>
+superset plugin uninstall <id>
+```
+
+Install shows a preview (id, version, permissions, contribution counts) before anything runs. The app picks up install/enable/disable/reload within about 2 seconds, no restart needed. Plugin state and storage live in the host database and survive app and host restarts. `uninstall` removes the managed copy, but a linked directory is never deleted.
+
+## What Plugins Can Extend
+
+| Contribution | What it does | Runs code? |
+|--------------|--------------|------------|
+| `sidebarTabs` | A tab in the workspace right sidebar, next to Files/Changes/Review | UI |
+| `panes` | A full pane kind in the workspace pane grid (splittable, persists in the layout) | UI |
+| `commands` | Command-palette entries that invoke a backend action, open a sidebar tab, or open a pane | Backend / none |
+| `events` | Spawn a command on a lifecycle event, with `SUPERSET_PLUGIN_*` env context. No backend needed | Child process |
+| `themes` | Reserved (not wired yet) | None |
+
+## Building Your First Plugin
+
+```bash
+superset plugin new my-plugin   # scaffold: manifest + server.ts + app.tsx
+cd my-plugin
+superset plugin build .         # esbuild the UI bundle into dist/app.js
+superset plugin link .          # register the directory in place (dev mode)
+```
+
+Open any v2 workspace: your sidebar tab appears next to Files/Changes/Review and your commands appear in the command palette. After edits:
+
+```bash
+superset plugin build .              # if you changed the UI
+superset plugin reload my.plugin-id  # re-reads manifest + reloads backend and UI
+```
+
+A minimal manifest:
+
+```json
+{
+  "id": "acme.hello",
+  "name": "Hello",
+  "version": "0.1.0",
+  "server": "src/server.ts",
+  "app": "dist/app.js",
+  "contributes": {
+    "sidebarTabs": [{ "id": "hello", "label": "Hello", "component": "HelloTab" }],
+    "commands": [
+      { "id": "open", "title": "Hello: Open", "run": { "type": "open-sidebar-tab", "tabId": "hello" } }
+    ]
+  }
+}
+```
+
+Plugin ids are lowercase and dot-namespaced (`author.plugin-name`). A TypeScript `server` entry works for dev links; publish prebuilt JS (`dist/server.js`) for installs.
+
+The backend default-exports a factory:
+
+```ts
+import type { SupersetPluginApi } from "@superset/plugin-sdk";
+
+export default async function plugin(api: SupersetPluginApi) {
+  api.actions.register("refresh", async () => ({ ok: true }));
+  api.events.on("agent.lifecycle", (event) => {
+    api.realtime.publish({ type: "update", event });
+  });
+}
+```
+
+UI components are named exports of the `app` bundle, referenced by `component` in the manifest:
+
+```tsx
+import type { PluginSlotProps } from "@superset/plugin-sdk/ui";
+import { useEffect, useState } from "react";
+
+export function HelloTab({ ctx }: PluginSlotProps) {
+  const [state, setState] = useState<unknown>(null);
+  useEffect(() => ctx.onRealtime(setState), [ctx]);
+  return <div style={{ padding: 16 }}>{JSON.stringify(state)}</div>;
+}
+```
+
+`superset plugin build` handles the bundling: components render in the host's React tree (hooks work, one React), so don't import `react-dom`. Tailwind classes aren't available; use inline styles or ship a `dist/app.css` sibling (auto-injected). Theme colors are available as the host's CSS variables.
+
+For the full authoring guide, see the [plugin SDK README](https://github.com/superset-sh/superset/tree/main/packages/plugin-sdk).
+
+## API Summary
+
+The backend `api` object:
+
+| Namespace | Purpose |
+|-----------|---------|
+| `api.log(message, data?)` | Structured log line, attributed to the plugin in host logs |
+| `api.storage` | Persistent per-plugin KV (`get`/`set`/`delete`/`keys`, JSON values up to 256KB) |
+| `api.events.on(kind, handler)` | Lifecycle event subscription; `"*"` receives every kind |
+| `api.actions.register(name, handler)` | Named actions invokable from the UI, palette commands, and `superset plugin invoke` |
+| `api.realtime.publish(payload)` | Push ephemeral payloads to the plugin's mounted UI components |
+| `api.background.interval(ms, fn)` | Supervised repeating task, cleared on unload/reload |
+| `api.workspaces.list()` | Live (non-archived) workspaces on this host |
+
+Event kinds: `workspace.created|updated|deleted`, `project.created|updated|deleted`, `agent.lifecycle` (normalized agent hook events: `Start`, `Stop`, `PermissionRequest`, `Failed`, `Attached`, `Detached`), `terminal.exit`, `port.added|removed`. High-volume streams (terminal output, filesystem events) are deliberately not exposed.
+
+Containment: the factory has 10s to return, action handlers are time-boxed at 10s, event handlers at 5s (fire-and-forget, errors logged). A failed load tears down everything the factory registered.
+
+UI components receive a `ctx` prop: `ctx.pluginId` and `ctx.workspaceId`, `ctx.invokeAction(name, params?)` to call a backend action, `ctx.onRealtime(handler)` for backend pushes, and `ctx.postMessage(payload)` / `ctx.onMessage(handler)` for renderer-local messaging between the plugin's own mounted surfaces in the same workspace (pane to sidebar tab, for example).
+
+## Examples
+
+The SDK ships runnable examples in [`packages/plugin-sdk/examples/`](https://github.com/superset-sh/superset/tree/main/packages/plugin-sdk/examples):
+
+- **hello-superset**: minimal counter tab, palette commands, realtime push, KV persistence
+- **agent-board**: live board of every agent across workspaces (working / needs you / done), built on `agent.lifecycle` events
+- **flock**: pixel-art pasture where every agent is a sheep, grazing when idle and bleating when it needs you
+- **fleet-review**: center-pane review queue showing every workspace's pending git diff
+- **agent-usage**: center-pane dashboard of per-agent activity gauges
+
+## Current Limits
+
+- UI slots today: right-sidebar tabs, pane kinds, palette commands. File views, settings pages, and keybindings are not wired yet
+- `permissions` are declared and shown at install, not yet enforced; the backend runs with the host-service's full capability
+- No marketplace or registry yet; install is path/git only
+- The SDK is 0.x: contracts may change until the first tagged release

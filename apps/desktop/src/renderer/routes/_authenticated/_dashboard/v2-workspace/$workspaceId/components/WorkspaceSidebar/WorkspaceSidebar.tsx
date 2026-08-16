@@ -10,6 +10,7 @@ import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
+import { usePluginSidebarTabs } from "./hooks/usePluginSidebarTabs";
 import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
@@ -18,13 +19,7 @@ import type { SidebarTabDefinition } from "./types";
 // exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
 // always renders so users can see PR state and merge once a PR exists.
 
-type SidebarTabId = "changes" | "files" | "review";
-
-const VALID_TAB_IDS: readonly SidebarTabId[] = ["changes", "files", "review"];
-
-function isSidebarTabId(tab: string): tab is SidebarTabId {
-	return (VALID_TAB_IDS as readonly string[]).includes(tab);
-}
+const BUILTIN_TAB_IDS: readonly string[] = ["changes", "files", "review"];
 
 export interface PendingReveal {
 	path: string;
@@ -65,13 +60,19 @@ export function WorkspaceSidebar({
 				.where(({ localState }) => eq(localState.workspaceId, workspaceId)),
 		[collections, workspaceId],
 	);
-	const activeTab: SidebarTabId =
-		localState && isSidebarTabId(localState.sidebarState.activeTab)
-			? localState.sidebarState.activeTab
-			: "changes";
+	const pluginTabs = usePluginSidebarTabs(workspaceId);
+	const knownTabIds = new Set([
+		...BUILTIN_TAB_IDS,
+		...pluginTabs.map((tab) => tab.id),
+	]);
+	const storedTab = localState?.sidebarState.activeTab;
+	// A stored plugin tab id resolves once its plugin loads; until then (or if
+	// the plugin was uninstalled) fall back without rewriting the stored value.
+	const activeTab: string =
+		storedTab && knownTabIds.has(storedTab) ? storedTab : "changes";
 
 	function setActiveTab(tab: string) {
-		if (!isSidebarTabId(tab)) return;
+		if (!knownTabIds.has(tab)) return;
 		if (!collections.v2WorkspaceLocalState.get(workspaceId)) return;
 		collections.v2WorkspaceLocalState.update(workspaceId, (draft) => {
 			draft.sidebarState.activeTab = tab;
@@ -137,7 +138,12 @@ export function WorkspaceSidebar({
 		),
 	};
 
-	const tabs: SidebarTabDefinition[] = [filesTab, changesTab, reviewTab];
+	const tabs: SidebarTabDefinition[] = [
+		filesTab,
+		changesTab,
+		reviewTab,
+		...pluginTabs,
+	];
 	const activeTabDef = tabs.find((t) => t.id === activeTab);
 
 	return (

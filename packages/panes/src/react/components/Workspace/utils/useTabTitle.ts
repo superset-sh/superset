@@ -52,7 +52,7 @@ export function useTabTitle<TData>(
 	if (titlePane?.titleOverride) return titlePane.titleOverride;
 	if (reactiveTitle) return reactiveTitle;
 	const staticTitle = titlePane
-		? registry[titlePane.kind]?.getTitle?.(titlePane)
+		? (registry[titlePane.kind] ?? registry["*"])?.getTitle?.(titlePane)
 		: undefined;
 	if (staticTitle) return staticTitle;
 	return `Tab ${tabs.indexOf(tab) + 1}`;

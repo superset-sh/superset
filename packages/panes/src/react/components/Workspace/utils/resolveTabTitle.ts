@@ -20,7 +20,10 @@ function paneTitle<TData>(
 	registry: PaneRegistry<TData>,
 ): string | undefined {
 	if (!pane) return undefined;
-	return pane.titleOverride ?? registry[pane.kind]?.getTitle?.(pane);
+	return (
+		pane.titleOverride ??
+		(registry[pane.kind] ?? registry["*"])?.getTitle?.(pane)
+	);
 }
 
 export function resolveTabTitle<TData>(

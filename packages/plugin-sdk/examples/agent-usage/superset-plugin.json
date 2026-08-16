@@ -1,0 +1,25 @@
+{
+	"id": "superset.agent-usage",
+	"name": "Agent Usage",
+	"version": "0.1.0",
+	"description": "Center-pane dashboard of animated per-agent activity gauges: turns, blocked counts, and a rolling two-minute activity ring per terminal. A port of herdr's agent-usage plugin category onto the Superset plugin API.",
+	"permissions": ["events:subscribe", "workspaces:read"],
+	"server": "dist/server.js",
+	"app": "dist/app.js",
+	"contributes": {
+		"commands": [
+			{
+				"id": "open",
+				"title": "Agent Usage: Open",
+				"run": { "type": "open-pane", "kind": "superset.agent-usage.pane" }
+			}
+		],
+		"panes": [
+			{
+				"kind": "superset.agent-usage.pane",
+				"title": "Agent Usage",
+				"component": "AgentUsage"
+			}
+		]
+	}
+}

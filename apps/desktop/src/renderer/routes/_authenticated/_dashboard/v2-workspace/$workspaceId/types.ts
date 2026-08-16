@@ -56,6 +56,11 @@ export interface ChatV3PaneData {
 	sessionId: string | null;
 }
 
+/** Data payload for plugin-contributed pane kinds (`plugin.manifest.contributes.panes`). */
+export interface PluginPaneData {
+	pluginId: string;
+}
+
 export type PaneViewerData =
 	| FilePaneData
 	| TerminalPaneData
@@ -63,4 +68,5 @@ export type PaneViewerData =
 	| BrowserPaneData
 	| DevtoolsPaneData
 	| DiffPaneData
-	| CommentPaneData;
+	| CommentPaneData
+	| PluginPaneData;

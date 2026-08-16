@@ -1,0 +1,1 @@
+export { PluginDetailPage } from "./PluginDetailPage";

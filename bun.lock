@@ -163,6 +163,7 @@
         "@superset/local-db": "workspace:*",
         "@superset/macos-process-metrics": "workspace:*",
         "@superset/panes": "workspace:*",
+        "@superset/plugin-sdk": "workspace:*",
         "@superset/port-scanner": "workspace:*",
         "@superset/provider-auth": "workspace:*",
         "@superset/pty-daemon": "workspace:*",
@@ -818,6 +819,7 @@
         "@superset/cli-framework": "workspace:*",
         "@superset/host-service": "workspace:*",
         "@superset/local-db": "workspace:*",
+        "@superset/plugin-sdk": "workspace:*",
         "@superset/shared": "workspace:*",
         "@superset/trpc": "workspace:*",
         "@trpc/client": "11.16.0",
@@ -919,6 +921,7 @@
         "@superset/agent-setup": "workspace:*",
         "@superset/chat": "workspace:*",
         "@superset/chat-runtime": "workspace:*",
+        "@superset/plugin-sdk": "workspace:*",
         "@superset/port-scanner": "workspace:*",
         "@superset/provider-auth": "workspace:*",
         "@superset/pty-daemon": "workspace:*",
@@ -932,6 +935,7 @@
         "better-sqlite3": "12.11.1",
         "drizzle-orm": "0.45.2",
         "hono": "4.12.34",
+        "jiti": "2.6.1",
         "mastracode": "0.18.1",
         "mime-types": "3.0.2",
         "node-pty": "1.2.0-beta.14",
@@ -1021,6 +1025,19 @@
       },
       "peerDependencies": {
         "react": "19.2.3",
+      },
+    },
+    "packages/plugin-sdk": {
+      "name": "@superset/plugin-sdk",
+      "version": "0.1.0",
+      "dependencies": {
+        "zod": "4.4.3",
+      },
+      "devDependencies": {
+        "@superset/typescript": "workspace:*",
+        "@types/bun": "1.3.14",
+        "@types/react": "19.2.14",
+        "typescript": "6.0.3",
       },
     },
     "packages/port-scanner": {
@@ -3008,6 +3025,8 @@
 
     "@superset/panes": ["@superset/panes@workspace:packages/panes"],
 
+    "@superset/plugin-sdk": ["@superset/plugin-sdk@workspace:packages/plugin-sdk"],
+
     "@superset/port-scanner": ["@superset/port-scanner@workspace:packages/port-scanner"],
 
     "@superset/provider-auth": ["@superset/provider-auth@workspace:packages/provider-auth"],
@@ -4982,7 +5001,7 @@
 
     "jimp-compact": ["jimp-compact@0.16.1", "", {}, "sha512-dZ6Ra7u1G8c4Letq/B5EzAxj4tLFHL+cGtdpR+PVm4yzPDj+lCk+AbivWt1eOM+ikzkowtyV7qSqX6qr3t71Ww=="],
 
-    "jiti": ["jiti@2.4.2", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-rg9zJN+G4n2nfJl5MW3BMygZX56zKPNVEYYqq7adpmMh4Jn2QNEwhvQlFy6jPVdcod7txZtKHWnyZiA3a0zP7A=="],
+    "jiti": ["jiti@2.6.1", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-ekilCSN1jwRvIbgeg/57YFh8qQDNbwDb9xT/qu2DAHbFFZUicIl4ygVaAvzveMhMVr3LnpSKTNnwt8PoOfmKhQ=="],
 
     "jose": ["jose@6.2.2", "", {}, "sha512-d7kPDd34KO/YnzaDOlikGpOurfF0ByC2sEV4cANCtdqLlTfBlw2p14O/5d/zv40gJPbIQxfES3nSx1/oYNyuZQ=="],
 
@@ -7669,6 +7688,8 @@
     "react-email/chokidar": ["chokidar@4.0.3", "", { "dependencies": { "readdirp": "^4.0.1" } }, "sha512-Qgzu8kfBvo+cA4962jnP1KkS6Dop5NS6g7R5LFYJr4b8Ub94PPQXUksCw9PvXoeXPRRddRNC5C1JQUR2SMGtnA=="],
 
     "react-email/glob": ["glob@11.1.0", "", { "dependencies": { "foreground-child": "^3.3.1", "jackspeak": "^4.1.1", "minimatch": "^10.1.1", "minipass": "^7.1.2", "package-json-from-dist": "^1.0.0", "path-scurry": "^2.0.0" }, "bin": { "glob": "dist/esm/bin.mjs" } }, "sha512-vuNwKSaKiqm7g0THUBu2x7ckSs3XJLXE+2ssL7/MfTGPLLcrJQ/4Uq1CjPTtO5cCIiRxqvN6Twy1qOwhL0Xjcw=="],
+
+    "react-email/jiti": ["jiti@2.4.2", "", { "bin": { "jiti": "lib/jiti-cli.mjs" } }, "sha512-rg9zJN+G4n2nfJl5MW3BMygZX56zKPNVEYYqq7adpmMh4Jn2QNEwhvQlFy6jPVdcod7txZtKHWnyZiA3a0zP7A=="],
 
     "react-mosaic-component/uuid": ["uuid@9.0.1", "", { "bin": { "uuid": "dist/bin/uuid" } }, "sha512-b+1eJOlsR9K8HJpow9Ok3fiWOWSIcIzXodvv0rQjVoOVNpWMpxf1wZNpt4y9h10odCNrqnYp1OBzRktckBe3sA=="],
 

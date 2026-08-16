@@ -199,6 +199,46 @@ export const hostAgentConfigs = sqliteTable(
 	],
 );
 
+export const plugins = sqliteTable("plugins", {
+	// The manifest id (`author.plugin-name`); doubles as the managed dir name.
+	id: text().primaryKey(),
+	name: text().notNull(),
+	version: text().notNull(),
+	description: text(),
+	// "link" rows run from `sourcePath` in place (dev flow); "git" and "path"
+	// installs run from the managed checkout under ~/.superset/plugins/<id>.
+	sourceType: text("source_type").$type<"link" | "path" | "git">().notNull(),
+	// For link/path: the original directory. For git: the clone URL.
+	source: text().notNull(),
+	// Resolved commit for git installs; null otherwise.
+	sourceCommit: text("source_commit"),
+	manifestJson: text("manifest_json").notNull(),
+	enabled: integer({ mode: "boolean" }).notNull().default(true),
+	installedAt: integer("installed_at")
+		.notNull()
+		.$defaultFn(() => Date.now()),
+	updatedAt: integer("updated_at")
+		.notNull()
+		.$defaultFn(() => Date.now()),
+});
+
+export const pluginKv = sqliteTable(
+	"plugin_kv",
+	{
+		pluginId: text("plugin_id")
+			.notNull()
+			.references(() => plugins.id, { onDelete: "cascade" }),
+		key: text().notNull(),
+		valueJson: text("value_json").notNull(),
+		updatedAt: integer("updated_at")
+			.notNull()
+			.$defaultFn(() => Date.now()),
+	},
+	(table) => [
+		uniqueIndex("plugin_kv_plugin_key_unique").on(table.pluginId, table.key),
+	],
+);
+
 export const workspaces = sqliteTable(
 	"workspaces",
 	{

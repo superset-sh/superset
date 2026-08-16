@@ -87,6 +87,7 @@
 		"@superset/local-db": "workspace:*",
 		"@superset/macos-process-metrics": "workspace:*",
 		"@superset/panes": "workspace:*",
+		"@superset/plugin-sdk": "workspace:*",
 		"@superset/port-scanner": "workspace:*",
 		"@superset/provider-auth": "workspace:*",
 		"@superset/pty-daemon": "workspace:*",

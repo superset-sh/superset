@@ -1,0 +1,26 @@
+{
+	"id": "superset.hello",
+	"name": "Hello Superset",
+	"version": "0.1.0",
+	"description": "Example plugin: sidebar tab with a persistent counter, palette commands, realtime push, and an event log.",
+	"permissions": ["events:subscribe"],
+	"server": "dist/server.js",
+	"app": "dist/app.js",
+	"contributes": {
+		"commands": [
+			{
+				"id": "increment",
+				"title": "Hello Plugin: Increment Counter",
+				"run": { "type": "action", "action": "increment" }
+			},
+			{
+				"id": "open",
+				"title": "Hello Plugin: Open Tab",
+				"run": { "type": "open-sidebar-tab", "tabId": "hello" }
+			}
+		],
+		"sidebarTabs": [
+			{ "id": "hello", "label": "Hello", "component": "HelloTab" }
+		]
+	}
+}

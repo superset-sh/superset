@@ -11,6 +11,7 @@ import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { useZoomFactor } from "renderer/hooks/useZoomFactor";
 import { useHotkey } from "renderer/hotkeys";
 import { electronTrpc } from "renderer/lib/electron-trpc";
+import { PluginPaletteBridge } from "renderer/plugins/PluginPaletteBridge";
 import { NavigationControls } from "renderer/routes/_authenticated/_dashboard/components/NavigationControls";
 import { SidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/SidebarToggle";
 import { RightSidebarToggle } from "renderer/routes/_authenticated/_dashboard/components/TopBar/components/RightSidebarToggle";
@@ -295,6 +296,7 @@ function V2WorkspaceContent() {
 
 	return (
 		<FileDocumentStoreProvider>
+			<PluginPaletteBridge workspaceId={workspaceId} store={store} />
 			<WorkspaceGitStatusProvider
 				workspaceId={workspaceId}
 				store={store}

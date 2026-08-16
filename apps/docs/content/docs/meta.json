@@ -29,6 +29,7 @@
 		"automations",
 		"skills",
 		"mcp-server",
+		"plugins",
 		"---CLI---",
 		"cli/getting-started",
 		"cli/cli-reference",

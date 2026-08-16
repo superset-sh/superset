@@ -1,0 +1,1 @@
+export { PluginPaletteBridge } from "./PluginPaletteBridge";

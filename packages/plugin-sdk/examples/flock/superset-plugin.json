@@ -1,0 +1,21 @@
+{
+	"id": "superset.flock",
+	"name": "Flock",
+	"version": "0.1.0",
+	"description": "A pixel-art pasture where every agent is a sheep: grazing when idle, scurrying when working, bleating when it needs you. A port of herdr-flock.",
+	"permissions": ["events:subscribe", "workspaces:read"],
+	"server": "dist/server.js",
+	"app": "dist/app.js",
+	"contributes": {
+		"commands": [
+			{
+				"id": "open",
+				"title": "Flock: Open",
+				"run": { "type": "open-pane", "kind": "superset.flock.pane" }
+			}
+		],
+		"panes": [
+			{ "kind": "superset.flock.pane", "title": "Flock", "component": "Flock" }
+		]
+	}
+}

@@ -87,6 +87,9 @@ export class EventBus {
 	private readonly clients = new Map<WsSocket, ClientState>();
 	private readonly workspaceChangedListeners =
 		new Set<WorkspaceChangedListener>();
+	private readonly broadcastListeners = new Set<
+		(message: ServerMessage) => void
+	>();
 	private readonly gitWatcher: GitWatcher;
 	private readonly filesystem: WorkspaceFilesystemManager;
 	private removeGitListener: (() => void) | null = null;
@@ -172,6 +175,15 @@ export class EventBus {
 	}
 
 	private broadcast(message: ServerMessage): void {
+		// In-process taps (plugin runtime) see every broadcast fan-out; a
+		// throwing tap must not skip the client broadcast.
+		for (const listener of this.broadcastListeners) {
+			try {
+				listener(message);
+			} catch (error) {
+				console.error("[event-bus] broadcast listener failed", { error });
+			}
+		}
 		// One bad socket must not block fan-out to the rest. Drop dead sockets
 		// rather than logging on every broadcast forever.
 		const dead: WsSocket[] = [];
@@ -239,6 +251,26 @@ export class EventBus {
 			}
 		}
 		this.broadcast({ type: "workspace:changed", ...message });
+	}
+
+	/**
+	 * In-process tap on every broadcast fan-out (all message types except
+	 * per-socket `fs:events`). For the plugin runtime, which maps these to
+	 * plugin lifecycle events. Returns an unsubscribe function.
+	 */
+	onBroadcast(listener: (message: ServerMessage) => void): () => void {
+		this.broadcastListeners.add(listener);
+		return () => this.broadcastListeners.delete(listener);
+	}
+
+	/**
+	 * Fan out a plugin backend's `realtime.publish` payload to clients; the
+	 * plugin's mounted UI components filter by `pluginId`.
+	 */
+	broadcastPluginEvent(
+		message: Omit<Extract<ServerMessage, { type: "plugin:event" }>, "type">,
+	): void {
+		this.broadcast({ type: "plugin:event", ...message });
 	}
 
 	/**

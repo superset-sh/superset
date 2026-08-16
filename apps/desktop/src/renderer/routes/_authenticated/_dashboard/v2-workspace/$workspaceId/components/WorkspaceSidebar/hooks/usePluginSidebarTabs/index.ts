@@ -1,0 +1,1 @@
+export { usePluginSidebarTabs } from "./usePluginSidebarTabs";

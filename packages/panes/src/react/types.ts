@@ -91,6 +91,12 @@ export interface PaneDefinition<TData> {
 		  ) => ContextMenuActionConfig<TData>[]);
 }
 
+/**
+ * Pane definitions keyed by `Pane.kind`. The reserved key `"*"` is a
+ * fallback definition for kinds with no registered entry (e.g. a persisted
+ * layout referencing a pane whose provider was uninstalled) — it renders and
+ * titles such panes but never receives lifecycle hooks like `onAfterClose`.
+ */
 export type PaneRegistry<TData> = Record<string, PaneDefinition<TData>>;
 
 export interface WorkspaceInteractionState {

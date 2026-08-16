@@ -60,6 +60,7 @@ import { TerminalPane } from "./components/TerminalPane";
 import { TerminalPaneHeaderExtras } from "./components/TerminalPane/components/TerminalPaneHeaderExtras";
 import { TerminalPaneIcon } from "./components/TerminalPane/components/TerminalPaneIcon";
 import { TerminalSessionDropdown } from "./components/TerminalPane/components/TerminalSessionDropdown";
+import { usePluginPaneDefinitions } from "./hooks/usePluginPaneDefinitions";
 
 function getFileName(filePath: string): string {
 	return getBaseName(filePath);
@@ -118,6 +119,7 @@ export function usePaneRegistry({
 	store,
 }: UsePaneRegistryOptions): PaneRegistry<PaneViewerData> {
 	const { workspace } = useWorkspace();
+	const pluginPaneDefinitions = usePluginPaneDefinitions(workspace.id);
 	const workspaceId = workspace.id;
 	const isChatV3Enabled = useFeatureFlagEnabled(FEATURE_FLAGS.CHAT_V3) ?? false;
 	const runAgent = workspaceTrpc.agents.run.useMutation();
@@ -210,6 +212,8 @@ export function usePaneRegistry({
 
 	return useMemo<PaneRegistry<PaneViewerData>>(
 		() => ({
+			// Plugin kinds first: a plugin pane can never shadow a builtin kind.
+			...pluginPaneDefinitions,
 			file: {
 				getIcon: (ctx: RendererContext<PaneViewerData>) => {
 					const data = ctx.pane.data as FilePaneData;
@@ -576,6 +580,7 @@ export function usePaneRegistry({
 		}),
 		[
 			workspaceId,
+			pluginPaneDefinitions,
 			isChatV3Enabled,
 			clearWorkspaceRunTerminal,
 			clearShortcut,

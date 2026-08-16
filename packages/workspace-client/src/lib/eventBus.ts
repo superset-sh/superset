@@ -18,7 +18,8 @@ type EventType =
 	| "port:changed"
 	| "workspace:changed"
 	| "workspace:create-settled"
-	| "project:changed";
+	| "project:changed"
+	| "plugin:event";
 
 interface FsEventsPayload {
 	events: FsWatchEvent[];
@@ -99,6 +100,11 @@ export interface ProjectChangedPayload {
 	occurredAt: number;
 }
 
+export interface PluginEventPayload {
+	payload: unknown;
+	occurredAt: number;
+}
+
 type EventListener<T extends EventType> = T extends "fs:events"
 	? (workspaceId: string, payload: FsEventsPayload) => void
 	: T extends "git:changed"
@@ -118,7 +124,9 @@ type EventListener<T extends EventType> = T extends "fs:events"
 								) => void
 							: T extends "project:changed"
 								? (projectId: string, payload: ProjectChangedPayload) => void
-								: never;
+								: T extends "plugin:event"
+									? (pluginId: string, payload: PluginEventPayload) => void
+									: never;
 
 interface ListenerEntry {
 	type: EventType;
@@ -225,7 +233,9 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 				? message.workspaceId
 				: message.type === "project:changed"
 					? message.projectId
-					: null;
+					: message.type === "plugin:event"
+						? message.pluginId
+						: null;
 
 		if (
 			workspaceId &&
@@ -290,6 +300,11 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 			(entry.callback as EventListener<"project:changed">)(message.projectId, {
 				eventType: message.eventType,
 				project: message.project,
+				occurredAt: message.occurredAt,
+			});
+		} else if (message.type === "plugin:event") {
+			(entry.callback as EventListener<"plugin:event">)(message.pluginId, {
+				payload: message.payload,
 				occurredAt: message.occurredAt,
 			});
 		}

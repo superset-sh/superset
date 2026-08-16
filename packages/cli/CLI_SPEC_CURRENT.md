@@ -35,6 +35,7 @@ superset auth
 superset automations
 superset hosts
 superset organization
+superset plugin
 superset projects
 superset start
 superset status
@@ -85,6 +86,17 @@ organization
   members
     list
   switch
+plugin
+  build
+  disable
+  enable
+  install
+  invoke
+  link
+  list
+  new
+  reload
+  uninstall
 projects
   create
   list
