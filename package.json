@@ -12,7 +12,7 @@
 		"dotenv-cli": "11.0.0",
 		"semver": "7.7.4",
 		"sherif": "1.11.0",
-		"turbo": "2.9.14",
+		"turbo": "2.10.9",
 		"typescript": "6.0.3"
 	},
 	"description": "Superset Monorepo",
