@@ -25,6 +25,7 @@ function makeProject(
 		createdAt: DATE,
 		updatedAt: DATE,
 		isCollapsed: false,
+		folderId: null,
 		...overrides,
 	};
 }

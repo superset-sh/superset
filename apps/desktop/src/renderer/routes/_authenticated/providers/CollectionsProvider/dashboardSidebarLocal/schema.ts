@@ -13,7 +13,34 @@ export const dashboardSidebarProjectSchema = z.object({
 	isCollapsed: z.boolean().default(false),
 	tabOrder: z.number().int().default(0),
 	defaultOpenInApp: z.string().nullable().default(null),
+	// Folder this project belongs to, or null when it sits at the sidebar root.
+	// Mirrors how a workspace points at its section via sidebarState.sectionId.
+	folderId: z.string().uuid().nullable().default(null),
 });
+
+/**
+ * A sidebar folder groups PROJECTS (repos) at the sidebar root — the level above
+ * projects. Deliberately named "folder" rather than "group": the UI already uses
+ * "group" for a section of workspaces *inside* one project, so a second meaning
+ * would be ambiguous.
+ *
+ * Shape intentionally mirrors `dashboardSidebarSectionSchema` (the workspace
+ * grouping one level down) so ordering, collapse and colour behave identically.
+ */
+export const dashboardSidebarFolderSchema = z.object({
+	folderId: z.string().uuid(),
+	name: z.string().trim().min(1),
+	createdAt: persistedDateSchema,
+	tabOrder: z.number().int().default(0),
+	isCollapsed: z.boolean().default(false),
+	color: z.string().nullable().default(null),
+	/** Emoji shown before the folder name; null renders none. */
+	icon: z.string().nullable().default(null),
+});
+
+export type DashboardSidebarFolderRow = z.infer<
+	typeof dashboardSidebarFolderSchema
+>;
 
 const paneWorkspaceStateSchema = z.custom<WorkspaceState<unknown>>();
 
@@ -424,6 +451,23 @@ export const DEFAULT_V2_USER_PREFERENCES: V2UserPreferencesRow = {
  * the stored row — they have no synthesizable default. Optional fields with
  * intrinsic defaults get filled at both the top level and inside sidebarState.
  */
+/**
+ * Rows written before folders existed have no `folderId` at all, and a
+ * localStorage read bypasses the schema default — leaving it `undefined`
+ * rather than `null`. The menu tests `folderId !== null` to decide whether to
+ * offer "Remove from folder", so a legacy root project offered it and did
+ * nothing. Normalise on read.
+ */
+export function healSidebarProject(raw: unknown): DashboardSidebarProjectRow {
+	const row = (
+		raw && typeof raw === "object" ? raw : {}
+	) as Partial<DashboardSidebarProjectRow>;
+	return {
+		...row,
+		folderId: row.folderId ?? null,
+	} as DashboardSidebarProjectRow;
+}
+
 export function healWorkspaceLocalState(raw: unknown): WorkspaceLocalStateRow {
 	const r = (
 		raw && typeof raw === "object" ? raw : {}

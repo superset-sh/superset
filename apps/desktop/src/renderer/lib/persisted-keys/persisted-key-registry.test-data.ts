@@ -12,6 +12,7 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 			"v2-workspace-local-state-*",
 			"v2-sidebar-projects-*",
 			"v2-sidebar-sections-*",
+			"v2-sidebar-folders-*",
 			"v2-terminal-presets-*",
 			"v2-user-preferences-*",
 			"failed-workspace-creates-*",
