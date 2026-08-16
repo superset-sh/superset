@@ -312,18 +312,23 @@ export class HostServiceCoordinator extends EventEmitter {
 			try {
 				if (instance.pid > 0) killProcess(instance.pid, "SIGTERM");
 			} catch {}
-			// Another live instance may have claimed the manifest since we
-			// spawned; deleting its claim would strand the CLI ("host service
-			// isn't running") while that instance still serves. Remove only a
-			// manifest our own child wrote (or an unreadable one).
-			const manifest = readManifest(organizationId);
-			if (manifest === null || manifest.pid === instance.pid) {
-				removeManifest(organizationId);
-			}
+			this.removeManifestIfHeldBy(organizationId, instance.pid);
 		}
 
 		this.instances.delete(organizationId);
 		this.emitStatus(organizationId, "stopped", previousStatus);
+	}
+
+	/**
+	 * Remove the manifest only when `pid` holds it. Another live instance may
+	 * have claimed it since we spawned; deleting that claim would strand the
+	 * CLI ("host service isn't running") while the claimant still serves. An
+	 * unreadable manifest is left alone too — a torn read of a concurrent
+	 * writer's claim must not read as license to delete.
+	 */
+	private removeManifestIfHeldBy(organizationId: string, pid: number): void {
+		if (readManifest(organizationId)?.pid !== pid) return;
+		removeManifest(organizationId);
 	}
 
 	stopAll(): void {
@@ -788,7 +793,9 @@ export class HostServiceCoordinator extends EventEmitter {
 			if (this.instances.get(organizationId) === instance) {
 				this.instances.delete(organizationId);
 			}
-			if (!isStartAllowed()) removeManifest(organizationId);
+			if (!isStartAllowed() && childPid != null) {
+				this.removeManifestIfHeldBy(organizationId, childPid);
+			}
 			throw new Error(
 				!isStartAllowed()
 					? "Host service start cancelled"
@@ -925,7 +932,7 @@ export class HostServiceCoordinator extends EventEmitter {
 		const previousStatus = current.status;
 		this.rememberPort(organizationId, current.port);
 		this.instances.delete(organizationId);
-		removeManifest(organizationId);
+		this.removeManifestIfHeldBy(organizationId, childPid);
 		this.emitStatus(organizationId, "stopped", previousStatus);
 
 		if (previousStatus !== "running") return;

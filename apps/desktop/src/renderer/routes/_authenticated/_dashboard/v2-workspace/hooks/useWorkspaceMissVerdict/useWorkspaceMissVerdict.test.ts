@@ -1,52 +1,58 @@
 import { describe, expect, it } from "bun:test";
 import {
 	type MissVerdictInput,
+	planVerdictAction,
 	runVerdictWindow,
-	shouldStartResolution,
 } from "./useWorkspaceMissVerdict";
 
 const base: MissVerdictInput = {
 	workspaceId: "ws-1",
 	workspaceFound: false,
 	suspended: false,
+	hostsEnumerated: true,
 	hasLiveTargets: true,
+	mirrorSettled: true,
 };
 
-describe("shouldStartResolution", () => {
-	it("starts for a routed, unfound, unsuspended id with live targets", () => {
-		expect(shouldStartResolution(base, null)).toBe(true);
+describe("planVerdictAction", () => {
+	it("opens a window for a routed, unfound, unsuspended id with live targets", () => {
+		expect(planVerdictAction(base)).toBe("open-window");
 	});
 
-	it("does not start without a routed workspaceId", () => {
-		expect(shouldStartResolution({ ...base, workspaceId: null }, null)).toBe(
-			false,
-		);
+	it("does nothing without a routed workspaceId", () => {
+		expect(planVerdictAction({ ...base, workspaceId: null })).toBe("none");
 	});
 
-	it("does not start when the row is already in the mirror", () => {
-		expect(shouldStartResolution({ ...base, workspaceFound: true }, null)).toBe(
-			false,
-		);
+	it("does nothing when the row is already in the mirror", () => {
+		expect(planVerdictAction({ ...base, workspaceFound: true })).toBe("none");
 	});
 
-	it("does not start while a create transaction or failed entry owns the id", () => {
-		expect(shouldStartResolution({ ...base, suspended: true }, null)).toBe(
-			false,
-		);
+	it("does nothing while a create transaction or failed entry owns the id", () => {
+		expect(planVerdictAction({ ...base, suspended: true })).toBe("none");
 	});
 
-	it("waits for a reachable host before starting", () => {
+	it("waits for the host list to settle before judging (remote hosts may be unenumerated)", () => {
+		expect(planVerdictAction({ ...base, hostsEnumerated: false })).toBe("none");
+	});
+
+	it("waits while no host is reachable and the mirror has not settled (boot)", () => {
 		expect(
-			shouldStartResolution({ ...base, hasLiveTargets: false }, null),
-		).toBe(false);
+			planVerdictAction({
+				...base,
+				hasLiveTargets: false,
+				mirrorSettled: false,
+			}),
+		).toBe("none");
 	});
 
-	it("does not restart an already-attempted id", () => {
-		expect(shouldStartResolution(base, "ws-1")).toBe(false);
-	});
-
-	it("restarts when the routed id changes", () => {
-		expect(shouldStartResolution(base, "ws-0")).toBe(true);
+	it("declares an immediate miss when offline with a settled mirror", () => {
+		expect(
+			planVerdictAction({
+				...base,
+				hasLiveTargets: false,
+				mirrorSettled: true,
+			}),
+		).toBe("immediate-miss");
 	});
 });
 

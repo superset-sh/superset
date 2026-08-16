@@ -1,6 +1,6 @@
 import { getEventBus } from "@superset/workspace-client";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useKnownHosts } from "renderer/hooks/known-hosts/useKnownHosts";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
@@ -54,6 +54,13 @@ export interface UseHostWorkspacesResult {
 	 * empty states only — existing rows always render (cache-first rule).
 	 */
 	isReady: boolean;
+	/**
+	 * The org's host list itself is trustworthy (useKnownHosts settled) —
+	 * weaker than isReady: it does not wait for any host's list to answer, so
+	 * one unreachable host cannot hold it. Until this is true the fan-out may
+	 * cover only the local host.
+	 */
+	hostsSettled: boolean;
 	cache: HostWorkspacesCacheOps;
 }
 
@@ -196,6 +203,8 @@ export function useHostWorkspacesSource(
 		})),
 	});
 
+	const busEverOpenedRef = useRef<Set<string>>(new Set());
+
 	// Live updates: each reachable host's workspace:changed patches its own
 	// cached list without a refetch.
 	useEffect(() => {
@@ -250,10 +259,19 @@ export function useHostWorkspacesSource(
 			// all of this host's mirrors — workspaces, projects, ports share the
 			// "host-service" key prefix + machineId. Flap cost is bounded by the
 			// bus's own reconnect backoff (≥1s) and scoped to the one host.
-			let hasOpened = bus.getConnectionStatus().state === "open";
+			// Whether this bus ever opened must survive effect re-runs: targets
+			// churn on presence flips, which correlate with outages — a re-run
+			// mid-outage that re-derived "never opened" from current state would
+			// silently skip the gap resync on the next reopen.
+			if (bus.getConnectionStatus().state === "open") {
+				busEverOpenedRef.current.add(hostUrl);
+			}
 			const removeStatusListener = bus.subscribeConnectionStatus((status) => {
-				const reopened = isEventBusReopen(hasOpened, status.state);
-				if (status.state === "open") hasOpened = true;
+				const reopened = isEventBusReopen(
+					busEverOpenedRef.current.has(hostUrl),
+					status.state,
+				);
+				if (status.state === "open") busEverOpenedRef.current.add(hostUrl);
 				if (!reopened) return;
 				void queryClient.invalidateQueries({
 					predicate: (query) =>
@@ -381,5 +399,5 @@ export function useHostWorkspacesSource(
 		};
 	}, [targets, queryClient]);
 
-	return { workspaces, isReady, cache };
+	return { workspaces, isReady, hostsSettled: knownHostsSettled, cache };
 }

@@ -30,6 +30,7 @@ import {
 	shouldYieldManifest,
 	writeManifest,
 } from "main/lib/host-service-manifest";
+import { pollHealthCheck } from "main/lib/host-service-utils";
 import { env } from "./env";
 
 const SHUTDOWN_GRACE_MS = 3_000;
@@ -46,9 +47,13 @@ async function main(): Promise<void> {
 	// serve() returns; shutdown handles both pre- and post-bind states.
 	const serverRef: { current: Server | null } = { current: null };
 	let shuttingDown = false;
+	let manifestReclaimTimer: NodeJS.Timeout | null = null;
 	const shutdown = (reason: string) => {
 		if (shuttingDown) return;
 		shuttingDown = true;
+		// A reclaim tick during the drain window would resurrect the manifest
+		// the coordinator just removed, leaving it naming a dead pid.
+		if (manifestReclaimTimer) clearInterval(manifestReclaimTimer);
 		console.log(`[host-service] shutdown (${reason}), draining connections`);
 		const server = serverRef.current;
 		if (!server) {
@@ -142,13 +147,13 @@ async function main(): Promise<void> {
 				// Yielding at boot must not be permanent: when the holder later
 				// quits (removing its manifest) or dies, re-claim so the CLI's
 				// routing table always names a live instance.
-				const reclaim = setInterval(() => {
+				manifestReclaimTimer = setInterval(() => {
 					if (readManifest(manifest.organizationId)?.pid === process.pid) {
 						return;
 					}
 					void claimManifest(manifest).catch(() => {});
 				}, MANIFEST_RECLAIM_INTERVAL_MS);
-				reclaim.unref();
+				manifestReclaimTimer.unref();
 			}
 
 			if (env.RELAY_URL && env.ORGANIZATION_ID) {
@@ -177,11 +182,16 @@ function isParentAlive(parentPid: number): boolean {
 	}
 }
 
+// Same retrying probe the coordinator's adopt decision uses — a holder that
+// is momentarily slow (mid-GC, DB migration) must not get its claim taken.
+const MANIFEST_HOLDER_PROBE_TIMEOUT_MS = 2_500;
+
 async function claimManifest(manifest: HostServiceManifest): Promise<void> {
 	const existing = readManifest(manifest.organizationId);
 	const yieldToHolder = await shouldYieldManifest(existing, process.pid, {
 		isAlive: isProcessAlive,
-		probeHealthy: probeManifestHolder,
+		probeHealthy: (endpoint, authToken) =>
+			pollHealthCheck(endpoint, authToken, MANIFEST_HOLDER_PROBE_TIMEOUT_MS),
 	});
 	if (yieldToHolder) {
 		console.warn(
@@ -190,25 +200,6 @@ async function claimManifest(manifest: HostServiceManifest): Promise<void> {
 		return;
 	}
 	writeManifest(manifest);
-}
-
-async function probeManifestHolder(
-	endpoint: string,
-	authToken: string,
-): Promise<boolean> {
-	const controller = new AbortController();
-	const timeout = setTimeout(() => controller.abort(), 1_500);
-	try {
-		const res = await fetch(`${endpoint}/trpc/health.check`, {
-			signal: controller.signal,
-			headers: { Authorization: `Bearer ${authToken}` },
-		});
-		return res.ok;
-	} catch {
-		return false;
-	} finally {
-		clearTimeout(timeout);
-	}
 }
 
 void main().catch(async (error) => {

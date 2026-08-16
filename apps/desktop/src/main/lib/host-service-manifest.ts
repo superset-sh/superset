@@ -2,6 +2,7 @@ import {
 	existsSync,
 	mkdirSync,
 	readFileSync,
+	renameSync,
 	unlinkSync,
 	writeFileSync,
 } from "node:fs";
@@ -29,14 +30,16 @@ export function writeManifest(manifest: HostServiceManifest): void {
 	if (!existsSync(dir)) {
 		mkdirSync(dir, { recursive: true, mode: 0o700 });
 	}
-	writeFileSync(
-		manifestPath(manifest.organizationId),
-		JSON.stringify(manifest),
-		{
-			encoding: "utf-8",
-			mode: 0o600,
-		},
-	);
+	// Write-then-rename so concurrent readers (the CLI, other instances'
+	// claim/ownership checks) never see a torn file — a torn read parses as
+	// null, which callers must not mistake for "no claim".
+	const finalPath = manifestPath(manifest.organizationId);
+	const tempPath = `${finalPath}.${process.pid}.tmp`;
+	writeFileSync(tempPath, JSON.stringify(manifest), {
+		encoding: "utf-8",
+		mode: 0o600,
+	});
+	renameSync(tempPath, finalPath);
 }
 
 export function readManifest(

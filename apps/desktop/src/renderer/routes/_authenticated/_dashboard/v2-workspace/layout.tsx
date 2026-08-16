@@ -49,7 +49,12 @@ function V2WorkspaceLayout() {
 		},
 	});
 
-	const { workspaces: hostWorkspaces, cache } = useHostWorkspaces();
+	const {
+		workspaces: hostWorkspaces,
+		isReady,
+		hostsSettled,
+		cache,
+	} = useHostWorkspaces();
 	const workspace = useMemo(
 		() =>
 			workspaceId != null
@@ -86,7 +91,9 @@ function V2WorkspaceLayout() {
 			workspaceId,
 			workspaceFound: workspace !== null,
 			suspended: pendingTransaction !== null || failedEntry !== null,
+			hostsEnumerated: hostsSettled,
 			hasLiveTargets: cache.hasLiveTargets,
+			mirrorSettled: isReady,
 		},
 		cache.refetchAll,
 	);
