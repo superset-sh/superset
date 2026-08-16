@@ -793,7 +793,10 @@ export class HostServiceCoordinator extends EventEmitter {
 			if (this.instances.get(organizationId) === instance) {
 				this.instances.delete(organizationId);
 			}
-			if (!isStartAllowed() && childPid != null) {
+			// Whether cancelled or failed-to-start, the dying child must not
+			// leave a manifest naming its dead pid (the CLI would report
+			// "manifest is stale" instead of the clean no-manifest path).
+			if (childPid != null) {
 				this.removeManifestIfHeldBy(organizationId, childPid);
 			}
 			throw new Error(

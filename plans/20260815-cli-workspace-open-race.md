@@ -112,13 +112,25 @@ shared DB), mode D at boot, mode B collapses from a 51s blank to a bounded
 shell→verdict. Also kills the in-app dispatch flash. `WorkspaceNotFoundState` here is
 the only place the app draws a "doesn't exist" conclusion from the mirror (checked).
 
-### PR 2 — single-instance the host-service (source fix for mode C)
+### PR 2 — manifest claim protocol (source fix for mode C's CLI routing)
 
-The host-service child takes an exclusive `flock` on its org dir at boot and exits
-when it's held (flock releases on process death — no stale-lock mode; updates still
-work because the coordinator kills its old child before spawning). Include the
-one-line coordinator fix: `stop()` removes the manifest only when `manifest.pid` is
-our own child. This would have prevented the DMG specimen outright.
+As implemented (flock was considered but Node has no native flock; the claim
+protocol below approximates it without new dependencies):
+
+- Boot: the child yields the manifest to a live, health-probed holder; dead or
+  unhealthy holders forfeit (`shouldYieldManifest`, probe = the coordinator's
+  retrying `pollHealthCheck`).
+- A 15s reclaim tick re-runs the claim whenever the manifest doesn't name us, so a
+  yielded instance takes over when the holder quits or dies; cleared during
+  shutdown so a tick in the drain window can't resurrect a dying pid.
+- Every coordinator removal site (`stop`, `handleChildExit`, failed/cancelled
+  start) deletes the manifest only when it names the child being torn down;
+  unreadable manifests are left alone, and writes are atomic (tmp+rename) so torn
+  reads can't occur.
+
+Residual TOCTOU: read→probe→write and read→unlink are not one atomic operation, so
+two instances racing the same dead holder can both claim briefly (converges within
+one reclaim tick). The full fix is the single-instance topology — refactor #5.
 
 ### Optional hygiene (fold into PR 1 if trivial, else skip)
 
