@@ -25,6 +25,10 @@ import { Link } from "@tanstack/react-router";
 import { ExternalLink, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { HiExclamationTriangle, HiOutlineFolderOpen } from "react-icons/hi2";
+import {
+	classifyHostAgentUpdateInvalidation,
+	invalidateHostAgentQueries,
+} from "renderer/hooks/useV2AgentChoices";
 import { V2_AGENT_CONFIGS_QUERY_KEY } from "renderer/hooks/useV2AgentConfigs";
 import {
 	findLinkedAgent,
@@ -226,7 +230,10 @@ export function PresetEditorDialog({
 	const hostService = useLocalHostService();
 	const { activeHostUrl } = hostService;
 	const queryClient = useQueryClient();
-	const queryFamily = { queryKey: V2_AGENT_CONFIGS_QUERY_KEY };
+	const agentConfigsQueryKey = [
+		...V2_AGENT_CONFIGS_QUERY_KEY,
+		activeHostUrl,
+	] as const;
 	const [linkedCommandText, setLinkedCommandText] = useState(() =>
 		linkedAgent ? getAgentCommandText(linkedAgent) : "",
 	);
@@ -256,13 +263,21 @@ export function PresetEditorDialog({
 				activeHostUrl,
 			).settings.agentConfigs.update.mutate({ id, patch });
 		},
-		onSuccess: (updated) => {
-			queryClient.setQueriesData<HostAgentConfig[]>(queryFamily, (current) =>
-				current?.map((config) =>
-					config.id === updated.id ? { ...config, ...updated } : config,
-				),
+		onSuccess: (updated, { patch }) => {
+			queryClient.setQueryData<HostAgentConfig[]>(
+				agentConfigsQueryKey,
+				(current) =>
+					current?.map((config) =>
+						config.id === updated.id ? { ...config, ...updated } : config,
+					),
 			);
-			void queryClient.invalidateQueries(queryFamily);
+			if (activeHostUrl && linkedAgent) {
+				invalidateHostAgentQueries(
+					queryClient,
+					activeHostUrl,
+					classifyHostAgentUpdateInvalidation(linkedAgent, patch),
+				);
+			}
 			onLinkedAgentSaved?.(updated);
 		},
 		onError: (err) =>

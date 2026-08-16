@@ -8,6 +8,18 @@ import {
 import { getPresetById } from "./host-agent-presets";
 
 describe("buildAgentPromptCommand", () => {
+	it("launches Antigravity prompts interactively", () => {
+		const command = buildAgentPromptCommand({
+			prompt: "hello",
+			randomId: "agy-1234",
+			agent: "antigravity",
+		});
+
+		expect(command).toStartWith(
+			"agy --mode=accept-edits --prompt-interactive \"$(cat <<'SUPERSET_PROMPT_agy1234'",
+		);
+	});
+
 	it("adds `--` before codex prompt payload", () => {
 		const command = buildAgentPromptCommand({
 			prompt: "- Only modified file: runtime.ts",

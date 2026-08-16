@@ -186,6 +186,7 @@ export const hostAgentConfigs = sqliteTable(
 		// them. Empty means the agent has no id-based resume.
 		resumeArgsJson: text("resume_args_json").notNull().default("[]"),
 		envJson: text("env_json").notNull().default("{}"),
+		capabilityRevision: integer("capability_revision").notNull().default(1),
 		displayOrder: integer("display_order").notNull(),
 		createdAt: integer("created_at")
 			.notNull()
@@ -196,6 +197,31 @@ export const hostAgentConfigs = sqliteTable(
 	},
 	(table) => [
 		index("host_agent_configs_display_order_idx").on(table.displayOrder),
+	],
+);
+
+export const hostAgentCapabilitySnapshots = sqliteTable(
+	"host_agent_capability_snapshots",
+	{
+		agentId: text("agent_id")
+			.primaryKey()
+			.references(() => hostAgentConfigs.id, { onDelete: "cascade" }),
+		presetId: text("preset_id").notNull(),
+		configRevision: integer("config_revision").notNull(),
+		schemaVersion: integer("schema_version").notNull(),
+		inventoryJson: text("inventory_json"),
+		status: text().notNull(),
+		installed: integer({ mode: "boolean" }),
+		auth: text().notNull(),
+		errorKind: text("error_kind"),
+		message: text(),
+		resolverSource: text("resolver_source"),
+		inventoryCheckedAt: integer("inventory_checked_at"),
+		statusCheckedAt: integer("status_checked_at").notNull(),
+		writtenAt: integer("written_at").notNull(),
+	},
+	(table) => [
+		index("host_agent_capability_snapshots_written_at_idx").on(table.writtenAt),
 	],
 );
 

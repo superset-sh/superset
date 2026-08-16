@@ -58,6 +58,17 @@ function createBuiltinTerminalAgent<
 
 export const BUILTIN_TERMINAL_AGENTS = [
 	createBuiltinTerminalAgent({
+		id: "antigravity",
+		label: "Antigravity",
+		description:
+			"Google's terminal agent for subscription-backed coding and multi-step workflows.",
+		command: "agy --mode=accept-edits",
+		promptCommand: "agy --mode=accept-edits --prompt-interactive",
+		resumeCommand: "agy --mode=accept-edits --conversation",
+		nonInteractiveCommand: "agy --mode=plan --print",
+		includeInDefaultTerminalPresets: true,
+	}),
+	createBuiltinTerminalAgent({
 		id: "claude",
 		label: "Claude",
 		description:

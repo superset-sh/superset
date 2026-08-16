@@ -3,6 +3,9 @@ export {
 	type AgentRunResult,
 	agentsRouter,
 	buildTerminalAgentLaunch,
+	buildValidatedTerminalAgentLaunch,
+	resolveValidatedLaunchCommand,
 	runAgentInWorkspace,
-	validateAgentLaunchEffort,
+	type ValidatedLaunchSelection,
+	validateAgentLaunchSelection,
 } from "./agents";

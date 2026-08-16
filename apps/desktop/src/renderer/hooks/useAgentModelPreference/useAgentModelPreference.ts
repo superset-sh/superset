@@ -1,4 +1,7 @@
-import { getAgentModelSupport } from "@superset/shared/agent-models";
+import {
+	type AgentModelSupport,
+	getAgentModelSupport,
+} from "@superset/shared/agent-models";
 import { useCallback, useEffect, useState } from "react";
 
 function readStoredMap(storageKey: string): Record<string, string> {
@@ -22,38 +25,47 @@ function readStoredMap(storageKey: string): Record<string, string> {
 function readStoredModel(
 	storageKey: string,
 	presetId: string | null,
+	supportOverride?: AgentModelSupport,
 ): string | null {
 	if (!presetId) return null;
-	const stored = readStoredMap(storageKey)[presetId];
+	const support = supportOverride ?? getAgentModelSupport(presetId);
+	const stored = readStoredMap(storageKey)[presetId] ?? support?.defaultModelId;
 	if (!stored) return null;
-	// Drop ids that fell out of the curated registry — "Default" beats a
-	// flag value the CLI no longer accepts.
-	const support = getAgentModelSupport(presetId);
-	return support?.models.some((model) => model.id === stored) ? stored : null;
+	const resolvedStored = support?.modelAliases?.[stored] ?? stored;
+	// Drop ids that fell out of the curated registry so a stale preference
+	// cannot launch the CLI with an unsupported model.
+	return support?.models.some((model) => model.id === resolvedStored)
+		? resolvedStored
+		: null;
 }
 
 /**
  * Last-selected model per agent preset, persisted as a JSON map in
  * localStorage. Keyed by presetId (not config UUID) so the preference
- * survives host switches and agent-config re-creation. `null` means
- * "Default" — no stored entry, no model flag at launch.
+ * survives host switches and agent-config re-creation. Catalogs with an
+ * explicit default select it immediately; `null` omits the model flag for
+ * agents that still expose a synthetic default choice.
  */
 export function useAgentModelPreference(
 	storageKey: string,
 	presetId: string | null,
+	supportOverride?: AgentModelSupport,
 ) {
 	const [selectedModel, setSelectedModelState] = useState<string | null>(() =>
-		readStoredModel(storageKey, presetId),
+		readStoredModel(storageKey, presetId, supportOverride),
 	);
 
 	useEffect(() => {
-		setSelectedModelState(readStoredModel(storageKey, presetId));
-	}, [storageKey, presetId]);
+		setSelectedModelState(
+			readStoredModel(storageKey, presetId, supportOverride),
+		);
+	}, [storageKey, presetId, supportOverride]);
 
 	const setSelectedModel = useCallback(
 		(model: string | null) => {
+			if (!presetId) return;
 			setSelectedModelState(model);
-			if (typeof window === "undefined" || !presetId) return;
+			if (typeof window === "undefined") return;
 			const map = readStoredMap(storageKey);
 			if (model) {
 				map[presetId] = model;

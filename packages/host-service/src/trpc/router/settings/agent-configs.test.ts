@@ -5,8 +5,12 @@ import {
 	getDefaultSeedPresets,
 	getPresetById,
 } from "@superset/shared/host-agent-presets";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/bun-sqlite";
 import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { CapabilityRefreshService } from "../../../agent-capabilities/capability-refresh-service";
+import { CAPABILITY_INVENTORY_SCHEMA_VERSION } from "../../../agent-capabilities/capability-snapshot-repository";
+import type { HostDb } from "../../../db";
 import * as schema from "../../../db/schema";
 import type { HostServiceContext } from "../../../types";
 import { agentConfigsRouter } from "./agent-configs";
@@ -20,17 +24,53 @@ function presetBody(presetId: string) {
 
 const MIGRATIONS_FOLDER = resolve(import.meta.dir, "../../../../drizzle");
 
-function createTestDb() {
+function createTestDb(): HostDb {
 	const sqlite = new Database(":memory:");
 	const db = drizzle(sqlite, { schema });
 	migrate(db, { migrationsFolder: MIGRATIONS_FOLDER });
-	return db;
+	sqlite.exec("PRAGMA foreign_keys = ON");
+	// SAFETY: Tests use Bun's SQLite driver, whose run result differs nominally from HostDb; router operations used here are otherwise identical.
+	return db as unknown as HostDb;
+}
+
+function createCallerWithDb() {
+	const db = createTestDb();
+	const ctx = {
+		db,
+		capabilityRefresh: new CapabilityRefreshService(db),
+		isAuthenticated: true,
+	};
+	// SAFETY: agentConfigsRouter uses only the database, refresh service, and authentication flag supplied here.
+	const routerContext = ctx as HostServiceContext;
+	return { db, caller: agentConfigsRouter.createCaller(routerContext) };
 }
 
 function createCaller() {
-	const db = createTestDb();
-	const ctx = { db, isAuthenticated: true } as unknown as HostServiceContext;
-	return agentConfigsRouter.createCaller(ctx);
+	return createCallerWithDb().caller;
+}
+
+function insertHealthSnapshot(
+	db: ReturnType<typeof createTestDb>,
+	config: { id: string; presetId: string; capabilityRevision?: number },
+) {
+	db.delete(schema.hostAgentCapabilitySnapshots)
+		.where(eq(schema.hostAgentCapabilitySnapshots.agentId, config.id))
+		.run();
+	db.insert(schema.hostAgentCapabilitySnapshots)
+		.values({
+			agentId: config.id,
+			presetId: config.presetId,
+			configRevision: config.capabilityRevision ?? 1,
+			schemaVersion: CAPABILITY_INVENTORY_SCHEMA_VERSION,
+			inventoryJson: null,
+			status: "ready",
+			installed: true,
+			auth: "authenticated",
+			inventoryCheckedAt: null,
+			statusCheckedAt: Date.now(),
+			writtenAt: Date.now(),
+		})
+		.run();
 }
 
 async function listFirst(
@@ -47,6 +87,13 @@ const DEFAULT_PRESET_ORDERS = DEFAULT_PRESET_IDS.map((_, i) => i);
 
 describe("agentConfigsRouter", () => {
 	describe("list()", () => {
+		it("seeds bundled defaults alphabetically", () => {
+			const labels = getDefaultSeedPresets().map((preset) => preset.label);
+			expect(labels).toEqual(
+				[...labels].sort((left, right) => left.localeCompare(right)),
+			);
+		});
+
 		it("seeds bundled defaults on first call", async () => {
 			const caller = createCaller();
 
@@ -119,6 +166,122 @@ describe("agentConfigsRouter", () => {
 				[...DEFAULT_PRESET_IDS].reverse(),
 			);
 			expect(reordered.map((row) => row.order)).toEqual(DEFAULT_PRESET_ORDERS);
+		});
+	});
+
+	describe("capability snapshots", () => {
+		it("reads persisted health without probing the configured command", async () => {
+			const { db, caller } = createCallerWithDb();
+			const config = await caller.add({
+				label: "Cached only",
+				command: "/definitely/not/an/executable",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+			insertHealthSnapshot(db, config);
+
+			const snapshots = await caller.listCapabilitySnapshots();
+
+			const snapshot = snapshots.find((entry) => entry.agentId === config.id);
+			expect(snapshot).toEqual({
+				agentId: config.id,
+				presetId: config.presetId,
+				inventory: null,
+				inventoryOrigin: "none",
+				health: {
+					status: "ready",
+					installed: true,
+					auth: "authenticated",
+					checkedAt: expect.any(String),
+					errorKind: null,
+					message: null,
+				},
+				healthOrigin: "persisted",
+			});
+			expect(Object.keys(snapshot ?? {}).sort()).toEqual([
+				"agentId",
+				"health",
+				"healthOrigin",
+				"inventory",
+				"inventoryOrigin",
+				"presetId",
+			]);
+		});
+
+		it("preserves unknown installed null on the read-only snapshot API", async () => {
+			const { db, caller } = createCallerWithDb();
+			const config = await caller.add({
+				label: "Unknown install",
+				command: "/definitely/not/an/executable",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+			db.delete(schema.hostAgentCapabilitySnapshots)
+				.where(eq(schema.hostAgentCapabilitySnapshots.agentId, config.id))
+				.run();
+			db.insert(schema.hostAgentCapabilitySnapshots)
+				.values({
+					agentId: config.id,
+					presetId: config.presetId,
+					configRevision: 1,
+					schemaVersion: CAPABILITY_INVENTORY_SCHEMA_VERSION,
+					inventoryJson: null,
+					status: "unknown",
+					installed: null,
+					auth: "unknown",
+					inventoryCheckedAt: null,
+					statusCheckedAt: Date.now(),
+					writtenAt: Date.now(),
+				})
+				.run();
+
+			const snapshots = await caller.listCapabilitySnapshots();
+			expect(
+				snapshots.find((snapshot) => snapshot.agentId === config.id),
+			).toMatchObject({
+				inventory: null,
+				inventoryOrigin: "none",
+				health: {
+					status: "unknown",
+					installed: null,
+					auth: "unknown",
+				},
+				healthOrigin: "persisted",
+			});
+		});
+
+		it("targeted refresh probes even with a recent persisted snapshot", async () => {
+			const { db, caller } = createCallerWithDb();
+			const config = await caller.add({
+				label: "Fresh cached agent",
+				command: "/definitely/not/an/executable",
+				args: [],
+				promptTransport: "argv",
+				promptArgs: [],
+				env: {},
+			});
+			insertHealthSnapshot(db, config);
+
+			const refreshed = await caller.refreshCapabilities({
+				agentIds: [config.id],
+			});
+
+			expect(refreshed).toHaveLength(1);
+			expect(refreshed[0]).toMatchObject({
+				agentId: config.id,
+				inventory: null,
+				inventoryOrigin: "none",
+				health: {
+					status: "unavailable",
+					installed: false,
+					auth: "unknown",
+				},
+				healthOrigin: "live",
+			});
 		});
 	});
 
@@ -355,6 +518,123 @@ describe("agentConfigsRouter", () => {
 			expect(cleared.iconId).toBeNull();
 		});
 
+		it("increments capability revision and deletes snapshots for command, args, and env changes", async () => {
+			const { db, caller } = createCallerWithDb();
+			const first = await listFirst(caller);
+			const original = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, first.id))
+				.get();
+			expect(original).toBeDefined();
+			if (!original) return;
+			insertHealthSnapshot(db, original);
+
+			await caller.update({
+				id: first.id,
+				patch: { command: `${first.command}-new` },
+			});
+			const afterCommand = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, first.id))
+				.get();
+			expect(afterCommand?.capabilityRevision).toBe(
+				original.capabilityRevision + 1,
+			);
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, first.id))
+					.get()?.configRevision,
+			).toBe(afterCommand?.capabilityRevision);
+
+			expect(afterCommand).toBeDefined();
+			if (!afterCommand) return;
+			insertHealthSnapshot(db, afterCommand);
+			await caller.update({
+				id: first.id,
+				patch: { args: [...first.args, "--new-discovery-arg"] },
+			});
+			const afterArgs = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, first.id))
+				.get();
+			expect(afterArgs?.capabilityRevision).toBe(
+				afterCommand.capabilityRevision + 1,
+			);
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, first.id))
+					.get()?.configRevision,
+			).toBe(afterArgs?.capabilityRevision);
+
+			expect(afterArgs).toBeDefined();
+			if (!afterArgs) return;
+			insertHealthSnapshot(db, afterArgs);
+			await caller.update({
+				id: first.id,
+				patch: { env: { TEST_CAPABILITY_ENV: "changed" } },
+			});
+			const afterEnv = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, first.id))
+				.get();
+			expect(afterEnv?.capabilityRevision).toBe(
+				afterArgs.capabilityRevision + 1,
+			);
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, first.id))
+					.get()?.configRevision,
+			).toBe(afterEnv?.capabilityRevision);
+		});
+
+		it("preserves capability revision and snapshots for launch-only or display changes", async () => {
+			const { db, caller } = createCallerWithDb();
+			const first = await listFirst(caller);
+			const original = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, first.id))
+				.get();
+			expect(original).toBeDefined();
+			if (!original) return;
+			insertHealthSnapshot(db, original);
+
+			await caller.update({
+				id: first.id,
+				patch: {
+					label: "Display Only",
+					command: first.command,
+					promptArgs: ["--prompt"],
+					resumeArgs: ["--resume-new"],
+					iconId: "codex",
+					env: { ...first.env },
+				},
+			});
+			const updated = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, first.id))
+				.get();
+			expect(updated?.capabilityRevision).toBe(original.capabilityRevision);
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, first.id))
+					.get(),
+			).toBeDefined();
+		});
+
 		it("rejects invalid promptTransport", async () => {
 			const caller = createCaller();
 			const first = await listFirst(caller);
@@ -407,14 +687,29 @@ describe("agentConfigsRouter", () => {
 
 	describe("remove()", () => {
 		it("deletes a config by id", async () => {
-			const caller = createCaller();
+			const { db, caller } = createCallerWithDb();
 			const first = await listFirst(caller);
+			const row = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, first.id))
+				.get();
+			expect(row).toBeDefined();
+			if (!row) return;
+			insertHealthSnapshot(db, row);
 
 			const result = await caller.remove({ id: first.id });
 
 			expect(result.success).toBe(true);
 			const remaining = await caller.list();
 			expect(remaining.find((row) => row.id === first.id)).toBeUndefined();
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, first.id))
+					.get(),
+			).toBeUndefined();
 		});
 
 		it("throws NOT_FOUND for an unknown id", async () => {
@@ -428,7 +723,7 @@ describe("agentConfigsRouter", () => {
 
 	describe("restoreDefault()", () => {
 		it("repairs a malformed built-in config without replacing its row", async () => {
-			const caller = createCaller();
+			const { db, caller } = createCallerWithDb();
 			const configs = await caller.list();
 			const codex = configs.find((row) => row.presetId === "codex");
 			expect(codex).toBeDefined();
@@ -452,6 +747,14 @@ describe("agentConfigsRouter", () => {
 					iconId: "claude",
 				},
 			});
+			const broken = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, codex.id))
+				.get();
+			expect(broken).toBeDefined();
+			if (!broken) return;
+			insertHealthSnapshot(db, broken);
 
 			const restored = await caller.restoreDefault({ id: codex.id });
 			const preset = getPresetById("codex");
@@ -471,6 +774,21 @@ describe("agentConfigsRouter", () => {
 				env: preset.env,
 				order: codex.order,
 			});
+			const restoredRow = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, codex.id))
+				.get();
+			expect(restoredRow?.capabilityRevision).toBe(
+				broken.capabilityRevision + 1,
+			);
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, codex.id))
+					.get()?.configRevision,
+			).toBe(restoredRow?.capabilityRevision);
 		});
 
 		it("rejects custom agents and unknown ids", async () => {
@@ -495,14 +813,29 @@ describe("agentConfigsRouter", () => {
 
 	describe("reorder()", () => {
 		it("persists the submitted id order", async () => {
-			const caller = createCaller();
+			const { db, caller } = createCallerWithDb();
 			const seeded = await caller.list();
+			const firstRow = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, seeded[0]?.id ?? ""))
+				.get();
+			expect(firstRow).toBeDefined();
+			if (!firstRow) return;
+			insertHealthSnapshot(db, firstRow);
 			const reversed = [...seeded.map((row) => row.id)].reverse();
 
 			const result = await caller.reorder({ ids: reversed });
 
 			expect(result.map((row) => row.id)).toEqual(reversed);
 			expect(result.map((row) => row.order)).toEqual(DEFAULT_PRESET_ORDERS);
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, firstRow.id))
+					.get(),
+			).toBeDefined();
 		});
 
 		it("rejects when ids do not match existing configs", async () => {
@@ -527,8 +860,16 @@ describe("agentConfigsRouter", () => {
 
 	describe("resetToDefaults()", () => {
 		it("replaces current configs with bundled defaults", async () => {
-			const caller = createCaller();
+			const { db, caller } = createCallerWithDb();
 			const seedFirst = await listFirst(caller);
+			const originalRow = db
+				.select()
+				.from(schema.hostAgentConfigs)
+				.where(eq(schema.hostAgentConfigs.id, seedFirst.id))
+				.get();
+			expect(originalRow).toBeDefined();
+			if (!originalRow) return;
+			insertHealthSnapshot(db, originalRow);
 			await caller.update({
 				id: seedFirst.id,
 				patch: { label: "Renamed" },
@@ -542,6 +883,13 @@ describe("agentConfigsRouter", () => {
 			// `pi` is in defaults now, so reset re-seeds exactly one — the
 			// extra row added above is dropped.
 			expect(result.filter((row) => row.presetId === "pi")).toHaveLength(1);
-		});
+			expect(
+				db
+					.select()
+					.from(schema.hostAgentCapabilitySnapshots)
+					.where(eq(schema.hostAgentCapabilitySnapshots.agentId, seedFirst.id))
+					.get(),
+			).toBeUndefined();
+		}, 15_000);
 	});
 });

@@ -20,7 +20,10 @@ import {
 	toCloudShape,
 } from "../../../workspaces/local-workspace-store";
 import { createCallerFactory, protectedProcedure, router } from "../../index";
-import { buildTerminalAgentLaunch, validateAgentLaunchEffort } from "../agents";
+import {
+	buildValidatedTerminalAgentLaunch,
+	validateAgentLaunchSelection,
+} from "../agents";
 import { ensureMainWorkspace } from "../project/utils/ensure-main-workspace";
 import { getHostWorktreeBaseDir } from "../settings/worktree-location";
 import { createSession } from "../workspace-creation/procedures/create-session";
@@ -507,7 +510,7 @@ export const workspacesRouter = router({
 		.input(createInputSchema)
 		.mutation(async ({ ctx, input }) => {
 			for (const launch of input.agents ?? []) {
-				validateAgentLaunchEffort(ctx.db, launch);
+				await validateAgentLaunchSelection(ctx.db, launch);
 			}
 
 			const localProject = requireLocalProject(ctx, input.projectId);
@@ -1104,13 +1107,16 @@ export const workspacesRouter = router({
 			const soleLaunch = sugarLaunches.length === 1 ? sugarLaunches[0] : null;
 			if (!alreadyExists && input.waitForSetupBeforeAgents && soleLaunch) {
 				try {
-					chainAgent = buildTerminalAgentLaunch(ctx.db, {
+					chainAgent = await buildValidatedTerminalAgentLaunch(ctx.db, {
 						workspaceId: workspaceRow.id,
 						agent: soleLaunch.agent,
 						prompt: soleLaunch.prompt,
 						attachmentIds: soleLaunch.attachmentIds,
 						model: soleLaunch.model,
 						effort: soleLaunch.effort,
+						mode: soleLaunch.mode,
+						speed: soleLaunch.speed,
+						contextWindow: soleLaunch.contextWindow,
 					});
 				} catch (err) {
 					console.warn(
@@ -1214,7 +1220,7 @@ export const workspacesRouter = router({
 	 */
 	createEnqueued: protectedProcedure
 		.input(createInputSchema)
-		.mutation(({ ctx, input }) => {
+		.mutation(async ({ ctx, input }) => {
 			const workspaceId = input.id;
 			if (!workspaceId) {
 				throw new TRPCError({
@@ -1223,7 +1229,7 @@ export const workspacesRouter = router({
 				});
 			}
 			for (const launch of input.agents ?? []) {
-				validateAgentLaunchEffort(ctx.db, launch);
+				await validateAgentLaunchSelection(ctx.db, launch);
 			}
 			requireLocalProject(ctx, input.projectId);
 

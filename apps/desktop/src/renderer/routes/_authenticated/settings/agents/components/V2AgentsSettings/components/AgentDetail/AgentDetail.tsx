@@ -22,6 +22,10 @@ import { useMutation } from "@tanstack/react-query";
 import { Info, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
+	classifyHostAgentUpdateInvalidation,
+	type HostAgentQueryInvalidation,
+} from "renderer/hooks/useV2AgentChoices";
+import {
 	getAgentCommandText,
 	isAgentCommandPatchChanged,
 	parseAgentCommandText,
@@ -41,7 +45,10 @@ import { AgentIconPicker } from "../AgentIconPicker";
 interface AgentDetailProps {
 	config: HostAgentConfig;
 	description: string;
-	onChanged: (updated: HostAgentConfig) => void;
+	onChanged: (
+		updated: HostAgentConfig,
+		invalidation: HostAgentQueryInvalidation,
+	) => void;
 	onDeleted: () => void;
 }
 
@@ -129,7 +136,8 @@ export function AgentDetail({
 				activeHostUrl,
 			).settings.agentConfigs.update.mutate({ id: config.id, patch });
 		},
-		onSuccess: (updated) => onChanged(updated),
+		onSuccess: (updated, patch) =>
+			onChanged(updated, classifyHostAgentUpdateInvalidation(config, patch)),
 		onError: (err) =>
 			toast.error(err instanceof Error ? err.message : "Failed to save"),
 	});
@@ -166,7 +174,7 @@ export function AgentDetail({
 			).settings.agentConfigs.restoreDefault.mutate({ id: config.id });
 		},
 		onSuccess: (updated) => {
-			onChanged(updated);
+			onChanged(updated, "config-and-capabilities");
 			toast.success(`${updated.label} restored to defaults`);
 		},
 		onError: (err) =>

@@ -11,6 +11,8 @@ import {
 } from "@superset/ui/dialog";
 import { useNavigate } from "@tanstack/react-router";
 import { useEffect, useRef } from "react";
+import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { newWorkspaceAttachmentsStore } from "renderer/stores/new-workspace-attachments";
 import {
 	useCloseNewWorkspaceModal,
@@ -43,6 +45,10 @@ function PromptInputResetSync() {
 }
 
 export function DashboardNewWorkspaceModal() {
+	const { activeHostUrl } = useLocalHostService();
+	// This component stays mounted for the authenticated shell, so it owns the
+	// single active-host capability refresh for this renderer session.
+	useV2AgentChoices(activeHostUrl);
 	const isOpen = useNewWorkspaceModalOpen();
 	const closeModal = useCloseNewWorkspaceModal();
 	const preSelectedProjectId = usePreSelectedProjectId();

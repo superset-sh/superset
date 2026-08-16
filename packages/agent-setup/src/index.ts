@@ -56,6 +56,8 @@ export function setupAgentIntegrations(
 
 export { setupSingleAgent, teardownSingleAgent };
 
+export { WRAPPER_MARKER } from "./agent-wrappers-common";
+
 export { getCommandShellArgs, getShellArgs, getShellEnv };
 
 export {

@@ -75,7 +75,7 @@ export function AgentSelect<T extends string>({
 
 	return (
 		<Select
-			value={selectedValue}
+			value={selectedValue ?? ""}
 			onValueChange={handleValueChange}
 			disabled={disabled}
 		>

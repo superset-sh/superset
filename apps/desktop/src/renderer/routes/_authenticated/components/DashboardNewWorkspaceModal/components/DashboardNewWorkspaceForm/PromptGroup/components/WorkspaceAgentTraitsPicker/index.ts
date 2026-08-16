@@ -1,0 +1,1 @@
+export { WorkspaceAgentTraitsPicker } from "./WorkspaceAgentTraitsPicker";

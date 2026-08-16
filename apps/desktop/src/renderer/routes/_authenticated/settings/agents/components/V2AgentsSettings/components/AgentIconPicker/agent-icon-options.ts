@@ -9,6 +9,7 @@ export interface AgentIconOption {
 }
 
 export const AGENT_ICON_OPTIONS: readonly AgentIconOption[] = [
+	{ id: "antigravity", label: "Antigravity" },
 	{ id: "claude", label: "Claude" },
 	{ id: "codex", label: "Codex" },
 	{ id: "cursor-agent", label: "Cursor" },

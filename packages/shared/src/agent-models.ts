@@ -15,17 +15,46 @@
 export interface AgentModelOption {
 	id: string;
 	label: string;
+	provider?: string;
 }
+
+/**
+ * Structured dimensions for an exact runtime model id. Some CLIs, notably
+ * Cursor, encode launch traits into the model id instead of accepting
+ * independent flags. Keeping the exact id alongside these dimensions lets the
+ * UI present compact pickers without synthesizing unsupported combinations.
+ */
+export interface AgentRuntimeModelVariant {
+	familyId: string;
+	familyLabel: string;
+	effort: string;
+	speed: "standard" | "fast";
+	mode: "standard" | "thinking";
+	contextWindow: "default" | "1m";
+}
+
+export type AgentCapabilityTrait<TOption> =
+	| { state: "unknown" }
+	| { state: "unsupported" }
+	| {
+			state: "supported";
+			options: TOption[];
+			defaultId?: string;
+	  };
 
 export interface AgentModelSupport {
 	presetId: string;
 	modelFlag: string | null;
+	/** Model selected when the picker intentionally has no synthetic default. */
+	defaultModelId?: string;
 	/**
 	 * Env var that carries the model when the CLI has no model flag (e.g. Vibe's
 	 * `VIBE_ACTIVE_MODEL`). Mutually exclusive with `modelFlag` in practice.
 	 */
 	modelEnv?: string;
 	models: AgentModelOption[];
+	/** Maps previously persisted exact runtime ids to their current UI family. */
+	modelAliases?: Readonly<Record<string, string>>;
 }
 
 export interface SupersetChatModel extends AgentModelOption {
@@ -67,17 +96,23 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 	{
 		presetId: "claude",
 		modelFlag: "--model",
+		defaultModelId: "claude-fable-5",
 		models: [
-			{ id: "fable", label: "Fable" },
-			{ id: "opus", label: "Opus" },
+			{ id: "claude-fable-5", label: "Fable 5" },
 			{ id: "claude-opus-5", label: "Opus 5" },
-			{ id: "sonnet", label: "Sonnet" },
-			{ id: "haiku", label: "Haiku" },
+			{ id: "claude-sonnet-5", label: "Sonnet 5" },
+			{ id: "claude-opus-4-8", label: "Opus 4.8" },
+			{ id: "claude-opus-4-7", label: "Opus 4.7" },
+			{ id: "claude-opus-4-6", label: "Opus 4.6" },
+			{ id: "claude-opus-4-5", label: "Opus 4.5" },
+			{ id: "claude-sonnet-4-6", label: "Sonnet 4.6" },
+			{ id: "claude-haiku-4-5", label: "Haiku 4.5" },
 		],
 	},
 	{
 		presetId: "codex",
 		modelFlag: "--model",
+		defaultModelId: "gpt-5.6-sol",
 		models: [
 			{ id: "gpt-5.6-sol", label: "GPT-5.6 Sol" },
 			{ id: "gpt-5.6-terra", label: "GPT-5.6 Terra" },
@@ -92,17 +127,26 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 		presetId: "gemini",
 		modelFlag: "--model",
 		models: [
+			{ id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
+			{ id: "gemini-3-flash-preview", label: "Gemini 3 Flash Preview" },
 			{ id: "gemini-2.5-pro", label: "Gemini 2.5 Pro" },
 			{ id: "gemini-2.5-flash", label: "Gemini 2.5 Flash" },
+			{ id: "gemini-2.5-flash-lite", label: "Gemini 2.5 Flash Lite" },
 		],
 	},
+	{ presetId: "antigravity", modelFlag: "--model", models: [] },
 	{
 		presetId: "copilot",
 		modelFlag: "--model",
 		models: [
-			{ id: "claude-fable-5", label: "Claude Fable 5" },
-			{ id: "claude-sonnet-4.5", label: "Claude Sonnet 4.5" },
-			{ id: "gpt-5.1", label: "GPT-5.1" },
+			{ id: "claude-sonnet-4.6", label: "Claude Sonnet 4.6" },
+			{ id: "gpt-5.4", label: "GPT-5.4" },
+			{ id: "claude-haiku-4.5", label: "Claude Haiku 4.5" },
+			{ id: "gpt-5.3-codex", label: "GPT-5.3 Codex" },
+			{ id: "gemini-3.1-pro-preview", label: "Gemini 3.1 Pro Preview" },
+			{ id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+			{ id: "gemini-3.6-flash", label: "Gemini 3.6 Flash" },
+			{ id: "mai-code-1-flash", label: "MAI-Code-1 Flash" },
 		],
 	},
 	{
@@ -137,12 +181,32 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			// no longer lists the old `openai/gpt-5`. anthropic ids follow the
 			// same models.dev catalog but need an authed anthropic provider to
 			// appear in that listing.
-			{ id: "anthropic/claude-opus-5", label: "Claude Opus 5" },
-			{ id: "anthropic/claude-fable-5", label: "Claude Fable 5" },
-			{ id: "anthropic/claude-sonnet-4-5", label: "Claude Sonnet 4.5" },
-			{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol" },
-			{ id: "openai/gpt-5.6-terra", label: "GPT-5.6 Terra" },
-			{ id: "openai/gpt-5.6-luna", label: "GPT-5.6 Luna" },
+			{
+				id: "anthropic/claude-opus-5",
+				label: "Claude Opus 5",
+				provider: "Anthropic",
+			},
+			{
+				id: "anthropic/claude-fable-5",
+				label: "Claude Fable 5",
+				provider: "Anthropic",
+			},
+			{
+				id: "anthropic/claude-sonnet-4-5",
+				label: "Claude Sonnet 4.5",
+				provider: "Anthropic",
+			},
+			{ id: "openai/gpt-5.6-sol", label: "GPT-5.6 Sol", provider: "OpenAI" },
+			{
+				id: "openai/gpt-5.6-terra",
+				label: "GPT-5.6 Terra",
+				provider: "OpenAI",
+			},
+			{
+				id: "openai/gpt-5.6-luna",
+				label: "GPT-5.6 Luna",
+				provider: "OpenAI",
+			},
 		],
 	},
 	{
@@ -154,6 +218,9 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 			{ id: "devstral-small", label: "Devstral Small" },
 		],
 	},
+	{ presetId: "pi", modelFlag: "--model", models: [] },
+	{ presetId: "grok", modelFlag: "--model", models: [] },
+	{ presetId: "kimi", modelFlag: "--model", models: [] },
 	{
 		// Polygraph's picker selects the harness it launches, not a model: the
 		// selection rides `polygraph session start --agent <id>`. The launch
@@ -172,7 +239,10 @@ export const AGENT_MODEL_SUPPORT: readonly AgentModelSupport[] = [
 
 export interface AgentEffortSupport {
 	presetId: string;
+	label?: string;
 	effortFlag: string;
+	/** Agent/model default. It is displayed without requiring an override flag. */
+	defaultEffortId?: string;
 	/**
 	 * Prepended to the selected effort id to form the flag's value token.
 	 * Codex has no dedicated effort flag, so effort rides a config override:
@@ -180,7 +250,107 @@ export interface AgentEffortSupport {
 	 */
 	effortValuePrefix?: string;
 	efforts: AgentModelOption[];
+	modelProfiles?: Readonly<
+		Record<
+			string,
+			{
+				defaultEffortId: string;
+				label?: string;
+				efforts: readonly AgentModelOption[];
+			}
+		>
+	>;
 }
+
+export interface AgentRuntimeEffortProfile {
+	defaultEffortId?: string;
+	efforts: readonly AgentModelOption[];
+}
+
+export interface AgentModeOption extends AgentModelOption {
+	/** Exact argv tokens appended when this mode is selected. */
+	args: readonly string[];
+}
+
+export interface AgentModeSupport {
+	presetId: string;
+	label: string;
+	defaultModeId?: string;
+	modes: readonly AgentModeOption[];
+}
+
+export interface AgentSpeedOption extends AgentModelOption {
+	/** Exact argv tokens appended when this speed is selected. */
+	args: readonly string[];
+}
+
+export interface AgentSpeedSupport {
+	presetId: string;
+	label: string;
+	defaultSpeedId?: string;
+	supportedModelIds?: readonly string[];
+	speeds: AgentSpeedOption[];
+}
+
+export interface AgentContextWindowSupport {
+	presetId: string;
+	defaultContextWindowId: string;
+	contextWindows: AgentModelOption[];
+}
+
+interface AgentContextWindowEnv {
+	CLAUDE_CODE_DISABLE_1M_CONTEXT?: "0" | "1";
+}
+
+function createClaudeContextWindowSupport(
+	defaultContextWindowId: "200k" | "1m",
+): AgentContextWindowSupport {
+	return {
+		presetId: "claude",
+		defaultContextWindowId,
+		contextWindows: [
+			{ id: "200k", label: "200k" },
+			{ id: "1m", label: "1M" },
+		],
+	};
+}
+
+const LOW_TO_MAX_EFFORTS: readonly AgentModelOption[] = [
+	{ id: "low", label: "Low" },
+	{ id: "medium", label: "Medium" },
+	{ id: "high", label: "High" },
+	{ id: "xhigh", label: "Extra High" },
+	{ id: "max", label: "Max" },
+];
+
+const LOW_TO_MAX_WITH_ADVANCED_EFFORTS: readonly AgentModelOption[] = [
+	...LOW_TO_MAX_EFFORTS,
+	{ id: "ultracode", label: "Ultracode" },
+];
+
+const LOW_TO_HIGH_WITH_MAX_EFFORTS: readonly AgentModelOption[] = [
+	{ id: "low", label: "Low" },
+	{ id: "medium", label: "Medium" },
+	{ id: "high", label: "High" },
+	{ id: "max", label: "Max" },
+];
+
+const CODEX_STANDARD_EFFORTS: readonly AgentModelOption[] = [
+	{ id: "low", label: "Low" },
+	{ id: "medium", label: "Medium" },
+	{ id: "high", label: "High" },
+	{ id: "xhigh", label: "Extra High" },
+];
+
+const CODEX_MAX_EFFORTS: readonly AgentModelOption[] = [
+	...CODEX_STANDARD_EFFORTS,
+	{ id: "max", label: "Max" },
+];
+
+const CODEX_ULTRA_EFFORTS: readonly AgentModelOption[] = [
+	...CODEX_MAX_EFFORTS,
+	{ id: "ultra", label: "Ultra" },
+];
 
 /**
  * Curated per-agent reasoning-effort catalogs, mirroring
@@ -191,15 +361,75 @@ export interface AgentEffortSupport {
  */
 export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 	{
-		presetId: "claude",
+		presetId: "antigravity",
 		effortFlag: "--effort",
+		defaultEffortId: "high",
 		efforts: [
 			{ id: "low", label: "Low" },
 			{ id: "medium", label: "Medium" },
 			{ id: "high", label: "High" },
-			{ id: "xhigh", label: "xHigh" },
+		],
+	},
+	{
+		presetId: "opencode",
+		effortFlag: "--variant",
+		label: "Reasoning",
+		efforts: [
+			{ id: "none", label: "None" },
+			{ id: "low", label: "Low" },
+			{ id: "medium", label: "Medium" },
+			{ id: "high", label: "High" },
+			{ id: "xhigh", label: "Extra High" },
 			{ id: "max", label: "Max" },
 		],
+	},
+	{
+		presetId: "claude",
+		effortFlag: "--effort",
+		label: "Reasoning",
+		efforts: [...LOW_TO_MAX_WITH_ADVANCED_EFFORTS],
+		modelProfiles: {
+			"claude-fable-5": {
+				defaultEffortId: "high",
+				efforts: LOW_TO_MAX_WITH_ADVANCED_EFFORTS,
+			},
+			"claude-opus-5": {
+				defaultEffortId: "high",
+				efforts: LOW_TO_MAX_WITH_ADVANCED_EFFORTS,
+			},
+			"claude-sonnet-5": {
+				defaultEffortId: "high",
+				efforts: LOW_TO_MAX_EFFORTS,
+			},
+			"claude-opus-4-8": {
+				defaultEffortId: "high",
+				efforts: LOW_TO_MAX_WITH_ADVANCED_EFFORTS,
+			},
+			"claude-opus-4-7": {
+				defaultEffortId: "xhigh",
+				efforts: LOW_TO_MAX_EFFORTS,
+			},
+			"claude-opus-4-6": {
+				defaultEffortId: "high",
+				efforts: LOW_TO_HIGH_WITH_MAX_EFFORTS,
+			},
+			"claude-opus-4-5": {
+				defaultEffortId: "high",
+				efforts: LOW_TO_HIGH_WITH_MAX_EFFORTS,
+			},
+			"claude-sonnet-4-6": {
+				defaultEffortId: "high",
+				efforts: LOW_TO_HIGH_WITH_MAX_EFFORTS,
+			},
+			"claude-haiku-4-5": {
+				defaultEffortId: "off",
+				label: "Thinking",
+				efforts: [
+					{ id: "off", label: "Off" },
+					{ id: "on", label: "On" },
+				],
+			},
+		},
 	},
 	{
 		presetId: "amp",
@@ -218,12 +448,30 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 		presetId: "codex",
 		effortFlag: "-c",
 		effortValuePrefix: "model_reasoning_effort=",
-		efforts: [
-			{ id: "low", label: "Low" },
-			{ id: "medium", label: "Medium" },
-			{ id: "high", label: "High" },
-			{ id: "xhigh", label: "xHigh" },
-		],
+		defaultEffortId: "low",
+		efforts: [...CODEX_ULTRA_EFFORTS],
+		modelProfiles: {
+			"gpt-5.6-sol": {
+				defaultEffortId: "low",
+				efforts: CODEX_ULTRA_EFFORTS,
+			},
+			"gpt-5.6-terra": {
+				defaultEffortId: "medium",
+				efforts: CODEX_ULTRA_EFFORTS,
+			},
+			"gpt-5.6-luna": {
+				defaultEffortId: "medium",
+				efforts: CODEX_MAX_EFFORTS,
+			},
+			"gpt-5.5": {
+				defaultEffortId: "medium",
+				efforts: CODEX_STANDARD_EFFORTS,
+			},
+			"gpt-5.4": {
+				defaultEffortId: "medium",
+				efforts: CODEX_STANDARD_EFFORTS,
+			},
+		},
 	},
 	{
 		presetId: "mastracode",
@@ -260,6 +508,100 @@ export const AGENT_EFFORT_SUPPORT: readonly AgentEffortSupport[] = [
 	},
 ];
 
+/** Launch-time performance choices that are independent from reasoning. */
+export const AGENT_SPEED_SUPPORT: readonly AgentSpeedSupport[] = [
+	{
+		presetId: "codex",
+		label: "Service Tier",
+		defaultSpeedId: "standard",
+		supportedModelIds: [
+			"gpt-5.6-sol",
+			"gpt-5.6-terra",
+			"gpt-5.6-luna",
+			"gpt-5.5",
+			"gpt-5.4",
+		],
+		speeds: [
+			{
+				id: "standard",
+				label: "Standard",
+				args: ["--disable", "fast_mode"],
+			},
+			{ id: "fast", label: "Fast", args: ["--enable", "fast_mode"] },
+		],
+	},
+	{
+		presetId: "claude",
+		label: "Fast Mode",
+		defaultSpeedId: "standard",
+		supportedModelIds: [
+			"claude-opus-5",
+			"claude-opus-4-8",
+			"claude-opus-4-7",
+			"claude-opus-4-6",
+			"claude-opus-4-5",
+		],
+		speeds: [
+			{
+				id: "standard",
+				label: "Off",
+				args: ["--settings", '{"fastMode":false}'],
+			},
+			{
+				id: "fast",
+				label: "On",
+				args: ["--settings", '{"fastMode":true}'],
+			},
+		],
+	},
+];
+
+/** Agent personas that are independent from model reasoning. */
+export const AGENT_MODE_SUPPORT: readonly AgentModeSupport[] = [
+	{
+		presetId: "opencode",
+		label: "Agent",
+		defaultModeId: "build",
+		modes: [
+			{ id: "build", label: "Build", args: ["--agent", "build"] },
+			{ id: "plan", label: "Plan", args: ["--agent", "plan"] },
+		],
+	},
+];
+
+const AGENT_CONTEXT_WINDOW_SUPPORT: Readonly<
+	Record<string, AgentContextWindowSupport>
+> = {
+	"claude:claude-fable-5": createClaudeContextWindowSupport("1m"),
+	"claude:claude-opus-5": createClaudeContextWindowSupport("1m"),
+	"claude:claude-opus-4-6": createClaudeContextWindowSupport("1m"),
+	"claude:claude-sonnet-5": createClaudeContextWindowSupport("200k"),
+	"claude:claude-sonnet-4-6": createClaudeContextWindowSupport("200k"),
+};
+
+function normalizeAgentEffort(
+	presetId: string,
+	model: string | undefined,
+	effort: string,
+): string {
+	if (presetId === "claude" && effort === "ultracode") return "xhigh";
+	if (
+		presetId === "claude" &&
+		model === "claude-opus-4-7" &&
+		effort === "xhigh"
+	) {
+		return "max";
+	}
+	if (
+		presetId === "claude" &&
+		model === "claude-sonnet-4-6" &&
+		effort === "max"
+	) {
+		return "high";
+	}
+	return effort;
+}
+
 export function getAgentModelSupport(
 	presetId: string,
 ): AgentModelSupport | undefined {
@@ -268,8 +610,94 @@ export function getAgentModelSupport(
 
 export function getAgentEffortSupport(
 	presetId: string,
+	model?: string | null,
 ): AgentEffortSupport | undefined {
-	return AGENT_EFFORT_SUPPORT.find((entry) => entry.presetId === presetId);
+	const support = AGENT_EFFORT_SUPPORT.find(
+		(entry) => entry.presetId === presetId,
+	);
+	if (!support?.modelProfiles) return support;
+	if (!model) return support;
+	const profile = support.modelProfiles[model];
+	if (!profile) return undefined;
+	return {
+		...support,
+		defaultEffortId: profile.defaultEffortId,
+		label: profile.label ?? support.label,
+		efforts: [...profile.efforts],
+	};
+}
+
+export function resolveAgentEffortSupport(
+	presetId: string,
+	model: string | null | undefined,
+	reasoning: AgentCapabilityTrait<AgentModelOption> | undefined,
+): AgentEffortSupport | undefined {
+	const staticSupport = getAgentEffortSupport(presetId, model);
+	if (!reasoning || reasoning.state === "unknown") return staticSupport;
+	if (reasoning.state === "unsupported") return undefined;
+	const transport = AGENT_EFFORT_SUPPORT.find(
+		(entry) => entry.presetId === presetId,
+	);
+	if (!transport) return undefined;
+	return reasoning.options.length > 0
+		? {
+				...transport,
+				defaultEffortId: reasoning.defaultId,
+				efforts: [...reasoning.options],
+			}
+		: undefined;
+}
+
+export function getAgentSpeedSupport(
+	presetId: string,
+	model?: string | null,
+): AgentSpeedSupport | undefined {
+	const support = AGENT_SPEED_SUPPORT.find(
+		(entry) => entry.presetId === presetId,
+	);
+	if (!support) return undefined;
+	if (
+		support.supportedModelIds &&
+		(!model || !support.supportedModelIds.includes(model))
+	) {
+		return undefined;
+	}
+	return support;
+}
+
+export function getAgentModeSupport(
+	presetId: string,
+): AgentModeSupport | undefined {
+	return AGENT_MODE_SUPPORT.find((entry) => entry.presetId === presetId);
+}
+
+export function getAgentContextWindowSupport(
+	presetId: string,
+	model?: string | null,
+): AgentContextWindowSupport | undefined {
+	if (!model) return undefined;
+	return AGENT_CONTEXT_WINDOW_SUPPORT[`${presetId}:${model}`];
+}
+
+export function buildAgentSpeedArgs(
+	presetId: string,
+	speed: string | undefined,
+	model?: string,
+): string[] {
+	if (!speed) return [];
+	const support = getAgentSpeedSupport(presetId, model);
+	const option = support?.speeds.find((candidate) => candidate.id === speed);
+	return option ? [...option.args] : [];
+}
+
+export function buildAgentModeArgs(
+	presetId: string,
+	mode: string | undefined,
+): string[] {
+	if (!mode) return [];
+	const support = getAgentModeSupport(presetId);
+	const option = support?.modes.find((candidate) => candidate.id === mode);
+	return option ? [...option.args] : [];
 }
 
 /**
@@ -281,12 +709,69 @@ export function getAgentEffortSupport(
 export function buildAgentEffortArgs(
 	presetId: string,
 	effort: string | undefined,
+	model?: string,
+	runtimeProfile?: AgentRuntimeEffortProfile,
 ): string[] {
 	if (!effort) return [];
-	const support = getAgentEffortSupport(presetId);
+	const transport = runtimeProfile
+		? AGENT_EFFORT_SUPPORT.find((entry) => entry.presetId === presetId)
+		: getAgentEffortSupport(presetId, model);
+	const support =
+		transport && runtimeProfile
+			? { ...transport, efforts: [...runtimeProfile.efforts] }
+			: transport;
 	if (!support) return [];
 	if (!support.efforts.some((option) => option.id === effort)) return [];
-	return [support.effortFlag, `${support.effortValuePrefix ?? ""}${effort}`];
+	if (presetId === "claude" && model === "claude-haiku-4-5") return [];
+	const normalizedEffort = normalizeAgentEffort(presetId, model, effort);
+	return [
+		support.effortFlag,
+		`${support.effortValuePrefix ?? ""}${normalizedEffort}`,
+	];
+}
+
+interface AgentRuntimeTraits {
+	model?: string;
+	effort?: string;
+	speed?: string;
+}
+
+/** Claude settings must be emitted once because repeated flags do not compose. */
+export function buildAgentRuntimeTraitArgs(
+	presetId: string,
+	traits: AgentRuntimeTraits,
+): string[] {
+	if (presetId !== "claude") {
+		return buildAgentSpeedArgs(presetId, traits.speed, traits.model);
+	}
+
+	const settings: Record<string, boolean> = {};
+	const speedSupport = getAgentSpeedSupport(presetId, traits.model);
+	if (
+		traits.speed &&
+		speedSupport?.speeds.some((option) => option.id === traits.speed)
+	) {
+		settings.fastMode = traits.speed === "fast";
+	}
+
+	const effortSupport = getAgentEffortSupport(presetId, traits.model);
+	const effortSupported = effortSupport?.efforts.some(
+		(option) => option.id === traits.effort,
+	);
+	if (effortSupported && traits.effort === "ultracode") {
+		settings.ultracode = true;
+	}
+	if (
+		effortSupported &&
+		traits.model === "claude-haiku-4-5" &&
+		(traits.effort === "on" || traits.effort === "off")
+	) {
+		settings.alwaysThinkingEnabled = traits.effort === "on";
+	}
+
+	return Object.keys(settings).length > 0
+		? ["--settings", JSON.stringify(settings)]
+		: [];
 }
 
 /**
@@ -300,12 +785,45 @@ export function buildAgentEffortArgs(
 export function buildAgentModelArgs(
 	presetId: string,
 	model: string | undefined,
+	contextWindow?: string,
+	runtimeModelIds?: readonly string[],
 ): string[] {
 	if (!model) return [];
 	const support = getAgentModelSupport(presetId);
 	if (!support?.modelFlag) return [];
-	if (!support.models.some((option) => option.id === model)) return [];
-	return [support.modelFlag, model];
+	const allowedModelIds =
+		runtimeModelIds ?? support.models.map((option) => option.id);
+	if (!allowedModelIds.includes(model)) return [];
+	const contextSupport = getAgentContextWindowSupport(presetId, model);
+	const resolvedModel =
+		contextSupport?.contextWindows.some(
+			(option) => option.id === contextWindow,
+		) && contextWindow === "1m"
+			? `${model}[1m]`
+			: model;
+	return [support.modelFlag, resolvedModel];
+}
+
+/** Environment overrides required to honor an explicit context-window choice. */
+export function buildAgentContextWindowEnv(
+	presetId: string,
+	model: string | undefined,
+	contextWindow?: string,
+): AgentContextWindowEnv {
+	if (
+		presetId !== "claude" ||
+		!model ||
+		(contextWindow !== "200k" && contextWindow !== "1m")
+	) {
+		return {};
+	}
+	const support = getAgentContextWindowSupport(presetId, model);
+	if (!support?.contextWindows.some((option) => option.id === contextWindow)) {
+		return {};
+	}
+	return {
+		CLAUDE_CODE_DISABLE_1M_CONTEXT: contextWindow === "200k" ? "1" : "0",
+	};
 }
 
 /**
@@ -317,10 +835,13 @@ export function buildAgentModelArgs(
 export function buildAgentModelEnv(
 	presetId: string,
 	model: string | undefined,
+	runtimeModelIds?: readonly string[],
 ): Record<string, string> {
 	if (!model) return {};
 	const support = getAgentModelSupport(presetId);
 	if (!support?.modelEnv) return {};
-	if (!support.models.some((option) => option.id === model)) return {};
+	const allowedModelIds =
+		runtimeModelIds ?? support.models.map((option) => option.id);
+	if (!allowedModelIds.includes(model)) return {};
 	return { [support.modelEnv]: model };
 }

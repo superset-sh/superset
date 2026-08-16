@@ -6,6 +6,7 @@ import { TRPCError } from "@trpc/server";
 import type { MiddlewareHandler } from "hono";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
+import { initializeHostCapabilitySnapshots } from "./agent-capabilities/capability-startup";
 import { createApiClient } from "./api";
 import { createChatV3Mount, registerChatV3Routes } from "./chat-v3";
 import { createDb, type HostDb } from "./db";
@@ -76,6 +77,9 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.api ??
 		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
+	// Startup hydration is SQLite-only. Retention cleanup must never spawn an
+	// agent CLI or turn application startup into a capability refresh.
+	const { capabilityRefresh } = initializeHostCapabilitySnapshots(db);
 	const git = createGitFactory(providers.credentials);
 	const github =
 		options.github ??
@@ -210,6 +214,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			execGh,
 			api,
 			db,
+			capabilityRefresh,
 			runtime,
 			eventBus,
 			terminalAgentStore,
@@ -254,6 +259,7 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 					execGh,
 					api,
 					db,
+					capabilityRefresh,
 					runtime,
 					eventBus,
 					terminalAgentStore,
@@ -290,6 +296,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 			gitWatcher.close();
 		} catch (err) {
 			console.warn("[host-service] gitWatcher.close failed:", err);
+		}
+		try {
+			await capabilityRefresh.dispose();
+		} catch (err) {
+			console.warn("[host-service] capability refresh dispose failed:", err);
 		}
 		if (ownsDb) {
 			try {

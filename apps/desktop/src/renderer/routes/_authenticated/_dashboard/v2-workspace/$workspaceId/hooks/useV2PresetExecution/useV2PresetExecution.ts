@@ -12,7 +12,6 @@ import {
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import type { V2TerminalPresetRow } from "renderer/routes/_authenticated/providers/CollectionsProvider/dashboardSidebarLocal";
-import { useLocalHostService } from "renderer/routes/_authenticated/providers/LocalHostServiceProvider";
 import { getPresetLaunchPlan } from "renderer/stores/tabs/preset-launch";
 import { toAbsoluteWorkspacePath } from "shared/absolute-paths";
 import {
@@ -23,6 +22,7 @@ import { quote } from "shell-quote";
 import type { StoreApi } from "zustand/vanilla";
 import type { PaneViewerData, TerminalPaneData } from "../../types";
 import type { TerminalLauncher } from "../useV2TerminalLauncher";
+import { resolveLinkedPresetLaunchCommand } from "./resolveLinkedPresetLaunch";
 
 function makeTerminalPane(
 	terminalId: string,
@@ -31,8 +31,16 @@ function makeTerminalPane(
 	return {
 		kind: "terminal",
 		titleOverride,
-		data: { terminalId } as TerminalPaneData,
+		data: { terminalId },
 	};
+}
+
+function requireFirst<T>(items: T[]): [T, ...T[]] {
+	const [first, ...rest] = items;
+	if (first === undefined) {
+		throw new Error("Expected at least one item");
+	}
+	return [first, ...rest];
 }
 
 function resolveTarget(executionMode: V2TerminalPresetRow["executionMode"]) {
@@ -107,7 +115,7 @@ export function useV2PresetExecution({
 	store,
 	launcher,
 }: UseV2PresetExecutionArgs) {
-	const { workspace } = useWorkspace();
+	const { workspace, hostUrl } = useWorkspace();
 	const workspaceId = workspace.id;
 	const projectId = workspace.projectId;
 	const collections = useCollections();
@@ -128,11 +136,10 @@ export function useV2PresetExecution({
 		[collections],
 	);
 
-	// Read v2 agent configs from the host service — same data source as the
-	// /settings/agents page, so user edits there propagate here. The hook is
-	// already invalidated by mutations in the agents settings page.
-	const { activeHostUrl } = useLocalHostService();
-	const { data: agents = [] } = useV2AgentConfigs(activeHostUrl);
+	// Read v2 agent configs from the workspace host — same cached source as
+	// /settings/agents. Display/workspace-run still resolve snapshot commands
+	// from this list; linked preset launches validate on the host first.
+	const { data: agents = [] } = useV2AgentConfigs(hostUrl);
 
 	const matchedPresets = useMemo(
 		() => filterMatchingPresetsForProject(allPresets, projectId),
@@ -164,7 +171,28 @@ export function useV2PresetExecution({
 			const activeTabId = state.activeTabId;
 			const target = options?.target ?? resolveTarget(preset.executionMode);
 			const title = preset.name || undefined;
-			const commands = resolvePresetCommands(preset);
+			let commands: string[];
+			try {
+				if (preset.agentId) {
+					commands = [
+						await resolveLinkedPresetLaunchCommand({
+							hostUrl,
+							agentId: preset.agentId,
+						}),
+					];
+				} else {
+					commands = resolvePresetCommands(preset);
+				}
+			} catch (err) {
+				console.error("[useV2PresetExecution] Failed to execute preset:", err);
+				toast.error("Failed to run preset", {
+					description:
+						err instanceof Error
+							? err.message
+							: "Agent launch validation failed.",
+				});
+				return;
+			}
 			const activeTerminal =
 				target === "active-tab" && preset.executionMode === "sequential"
 					? getActiveTerminalPane(state)
@@ -238,10 +266,7 @@ export function useV2PresetExecution({
 								: [createTerminal()],
 						);
 						state.addTab({
-							panes: ids.map((id) => makeTerminalPane(id, title)) as [
-								CreatePaneInput<PaneViewerData>,
-								...CreatePaneInput<PaneViewerData>[],
-							],
+							panes: requireFirst(ids.map((id) => makeTerminalPane(id, title))),
 						});
 						break;
 					}
@@ -276,10 +301,7 @@ export function useV2PresetExecution({
 						const panes = ids.map((id) => makeTerminalPane(id, title));
 						if (!activeTabId) {
 							state.addTab({
-								panes: panes as [
-									CreatePaneInput<PaneViewerData>,
-									...CreatePaneInput<PaneViewerData>[],
-								],
+								panes: requireFirst(panes),
 							});
 							break;
 						}
@@ -303,6 +325,7 @@ export function useV2PresetExecution({
 			store,
 			launcher,
 			resolvePresetCommands,
+			hostUrl,
 			workspaceId,
 			workspaceQuery.data?.worktreePath,
 			writeInput,

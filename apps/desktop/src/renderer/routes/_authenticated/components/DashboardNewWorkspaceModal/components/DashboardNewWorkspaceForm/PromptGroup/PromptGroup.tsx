@@ -1,7 +1,3 @@
-import {
-	getAgentEffortSupport,
-	getAgentModelSupport,
-} from "@superset/shared/agent-models";
 import { sanitizeUserBranchName } from "@superset/shared/workspace-launch";
 import {
 	PromptInput,
@@ -30,11 +26,12 @@ import { IssueLinkCommand } from "renderer/components/IssueLinkCommand";
 import { LinkedIssuePill } from "renderer/components/LinkedIssuePill";
 import { MarkdownEditor } from "renderer/components/MarkdownEditor";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
-import { useAgentEffortPreference } from "renderer/hooks/useAgentEffortPreference";
 import { useAgentLaunchPreferences } from "renderer/hooks/useAgentLaunchPreferences";
-import { useAgentModelPreference } from "renderer/hooks/useAgentModelPreference";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
-import { useV2AgentChoices } from "renderer/hooks/useV2AgentChoices";
+import {
+	getCapabilityDisplayInventory,
+	useV2AgentChoices,
+} from "renderer/hooks/useV2AgentChoices";
 import { PLATFORM } from "renderer/hotkeys";
 import { authClient } from "renderer/lib/auth-client";
 import { showHostServiceUnavailableToast } from "renderer/lib/host-service-unavailable";
@@ -43,6 +40,7 @@ import { useNewWorkspaceModalOpen } from "renderer/stores/new-workspace-modal";
 import { useNewWorkspacePromptContext } from "renderer/stores/new-workspace-prompt-context";
 import { useV2WorkspaceCreateDefaultsStore } from "renderer/stores/v2-workspace-create-defaults";
 import { useDashboardNewWorkspaceDraft } from "../../../DashboardNewWorkspaceDraftContext";
+import { useWorkspaceAgentRuntimeSelection } from "../../../hooks/useWorkspaceAgentRuntimeSelection";
 import { DevicePicker } from "../components/DevicePicker";
 import { useWorkspaceHostOptions } from "../components/DevicePicker/hooks/useWorkspaceHostOptions";
 import { AttachmentButtons } from "./components/AttachmentButtons";
@@ -54,6 +52,8 @@ import { PRLinkCommand } from "./components/PRLinkCommand";
 import { ProjectPickerPill } from "./components/ProjectPickerPill";
 import { PromptHistoryCommand } from "./components/PromptHistoryCommand";
 import { UploadingAttachmentPill } from "./components/UploadingAttachmentPill";
+import { WorkspaceAgentTraitsPicker } from "./components/WorkspaceAgentTraitsPicker";
+import { getAgentSelectionBlocker } from "./getAgentSelectionBlocker";
 import { useBranchPickerController } from "./hooks/useBranchPickerController";
 import { useLinkedContext } from "./hooks/useLinkedContext";
 import { useSubmitWorkspace } from "./hooks/useSubmitWorkspace";
@@ -63,10 +63,13 @@ import {
 } from "./hooks/useUploadAttachments";
 import {
 	AGENT_STORAGE_KEY,
+	CONTEXT_WINDOW_STORAGE_KEY,
 	EFFORT_STORAGE_KEY,
+	MODE_TRAIT_STORAGE_KEY,
 	MODEL_STORAGE_KEY,
 	PILL_BUTTON_CLASS,
 	type ProjectOption,
+	SPEED_STORAGE_KEY,
 	type WorkspaceCreateAgent,
 } from "./types";
 
@@ -143,6 +146,10 @@ export function PromptGroup({
 			},
 		});
 	}, [closeModal, draft.hostId, machineId, navigate, selectedProject?.id]);
+	const handleConfigureAgents = useCallback(() => {
+		closeModal();
+		void navigate({ to: "/settings/agents" });
+	}, [closeModal, navigate]);
 	const {
 		baseBranch,
 		hostId,
@@ -172,8 +179,11 @@ export function PromptGroup({
 			}) ?? null
 		);
 	}, [draft.hostId, machineId, activeHostUrl, activeOrganizationId, relayUrl]);
-	const { agents: v2Agents, isFetched: v2AgentsFetched } =
-		useV2AgentChoices(launchHostUrl);
+	const {
+		agents: v2Agents,
+		capabilitiesByAgentId,
+		isFetched: v2AgentsFetched,
+	} = useV2AgentChoices(launchHostUrl);
 	const selectableAgentIds = useMemo(
 		() => v2Agents.map((agent) => agent.id),
 		[v2Agents],
@@ -186,43 +196,57 @@ export function PromptGroup({
 			validAgents: ["none", ...selectableAgentIds],
 			agentsReady: v2AgentsFetched,
 		});
+	const agentSelectionBlocker = getAgentSelectionBlocker({
+		isFetched: v2AgentsFetched,
+		selectableAgentIds,
+		selectedAgent,
+	});
+	const noSelectableAgents = v2AgentsFetched && selectableAgentIds.length === 0;
+	const agentPickerDisabled = !v2AgentsFetched || noSelectableAgents;
+	let agentSelectPlaceholder = "Select agent";
+	if (!v2AgentsFetched) agentSelectPlaceholder = "Loading agents...";
+	else if (noSelectableAgents) agentSelectPlaceholder = "No agents available";
 
 	// ── Model picker (per agent preset) ──────────────────────────────
-	// `iconId` carries the presetId for v2 agents ("superset" for chat).
-	const selectedPresetId = useMemo(
-		() => v2Agents.find((agent) => agent.id === selectedAgent)?.iconId ?? null,
-		[v2Agents, selectedAgent],
-	);
-	const modelSupport = selectedPresetId
-		? getAgentModelSupport(selectedPresetId)
-		: undefined;
-	const { selectedModel, setSelectedModel } = useAgentModelPreference(
-		MODEL_STORAGE_KEY,
-		modelSupport ? selectedPresetId : null,
-	);
-	const effortSupport = selectedPresetId
-		? getAgentEffortSupport(selectedPresetId)
-		: undefined;
-	const { selectedEffort, setSelectedEffort } = useAgentEffortPreference(
-		EFFORT_STORAGE_KEY,
-		effortSupport ? selectedPresetId : null,
-	);
+	// `presetId` is stable even when a host config uses a custom icon.
+	const selectedPresetId = useMemo(() => {
+		const agent = v2Agents.find((candidate) => candidate.id === selectedAgent);
+		return agent?.presetId ?? agent?.iconId ?? null;
+	}, [v2Agents, selectedAgent]);
+	const selectedCapability = capabilitiesByAgentId.get(selectedAgent);
+	const displayInventory = getCapabilityDisplayInventory(selectedCapability);
+	const {
+		modelSupport,
+		resolvedModel,
+		launchModel,
+		setSelectedModel,
+		effortSupport,
+		modeSupport,
+		speedSupport,
+		contextWindowSupport,
+		resolvedEffort,
+		resolvedMode,
+		resolvedSpeed,
+		resolvedContextWindow,
+		onEffortChange,
+		onModeChange,
+		onSpeedChange,
+		onContextWindowChange,
+		traitsForLaunch,
+	} = useWorkspaceAgentRuntimeSelection(selectedPresetId, displayInventory, {
+		model: MODEL_STORAGE_KEY,
+		effort: EFFORT_STORAGE_KEY,
+		mode: MODE_TRAIT_STORAGE_KEY,
+		speed: SPEED_STORAGE_KEY,
+		contextWindow: CONTEXT_WINDOW_STORAGE_KEY,
+	});
 
-	// Promote the placeholder "none" → first configured agent whenever the
-	// current selection isn't a real agent and the user hasn't explicitly
-	// chosen "none". Fires on initial open (where useState init captured
-	// "none" before the query resolved) AND on host switch (where the
-	// previous host's UUID isn't valid here, so the corrective effect inside
-	// useAgentLaunchPreferences resets to "none"). The corrective effect
-	// can't rescue these on its own because "none" is always in validAgents.
+	// Promote the internal "none" placeholder to the first configured agent.
+	// The create-workspace picker no longer offers a no-agent choice, so stale
+	// preferences from the old UI must not leave the control unselectable.
 	useEffect(() => {
 		if (!v2AgentsFetched) return;
 		if (selectedAgent !== "none") return;
-		const stored =
-			typeof window !== "undefined"
-				? window.localStorage.getItem(AGENT_STORAGE_KEY)
-				: null;
-		if (stored === "none") return;
 		const first = selectableAgentIds[0];
 		if (first) setSelectedAgent(first);
 	}, [v2AgentsFetched, selectableAgentIds, selectedAgent, setSelectedAgent]);
@@ -310,6 +334,7 @@ export function PromptGroup({
 	const { otherHosts } = useWorkspaceHostOptions();
 	const submitBlocker = useMemo<string | null>(() => {
 		if (!projectId && !draft.isSession) return "Select a project";
+		if (agentSelectionBlocker) return agentSelectionBlocker;
 		const selectedHostId = draft.hostId ?? machineId;
 		if (!selectedHostId) return "No active host";
 		if (selectedHostId !== machineId) {
@@ -322,6 +347,7 @@ export function PromptGroup({
 	}, [
 		projectId,
 		draft.isSession,
+		agentSelectionBlocker,
 		draft.hostId,
 		machineId,
 		activeHostUrl,
@@ -340,8 +366,11 @@ export function PromptGroup({
 	const createWorkspace = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
-		modelSupport ? selectedModel : null,
-		effortSupport ? selectedEffort : null,
+		modelSupport ? launchModel : null,
+		traitsForLaunch.effort,
+		traitsForLaunch.mode,
+		traitsForLaunch.speed,
+		traitsForLaunch.contextWindow,
 		uploadAttachments,
 		promptContext,
 	);
@@ -562,31 +591,53 @@ export function PromptGroup({
 						<AgentSelect<WorkspaceCreateAgent>
 							agents={v2Agents}
 							value={selectedAgent}
-							placeholder="No agent"
+							placeholder={agentSelectPlaceholder}
+							disabled={agentPickerDisabled}
 							onValueChange={setSelectedAgent}
 							onBeforeConfigureAgents={closeModal}
 							triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							iconClassName="size-3 object-contain"
-							allowNone
-							noneLabel="No agent"
-							noneValue="none"
 						/>
+						{noSelectableAgents && (
+							<Button
+								type="button"
+								variant="ghost"
+								size="sm"
+								className={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-muted-foreground`}
+								onClick={handleConfigureAgents}
+							>
+								<Settings2Icon className="size-3" />
+								Configure agents
+							</Button>
+						)}
 						{modelSupport && (
 							<AgentModelSelect
 								models={modelSupport.models}
-								value={selectedModel}
+								value={resolvedModel ?? null}
 								onValueChange={setSelectedModel}
 								defaultLabel="Default model"
+								includeDefault={modelSupport.defaultModelId === undefined}
 								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							/>
 						)}
-						{effortSupport && (
-							<AgentModelSelect
-								models={effortSupport.efforts}
-								value={selectedEffort}
-								onValueChange={setSelectedEffort}
-								defaultLabel="Default effort"
-								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
+						{(effortSupport ||
+							modeSupport ||
+							speedSupport ||
+							contextWindowSupport) && (
+							<WorkspaceAgentTraitsPicker
+								effortSupport={effortSupport}
+								modeSupport={modeSupport}
+								speedSupport={speedSupport}
+								contextWindowSupport={contextWindowSupport}
+								effort={resolvedEffort}
+								mode={resolvedMode}
+								speed={resolvedSpeed}
+								contextWindow={resolvedContextWindow}
+								onEffortChange={onEffortChange}
+								onModeChange={onModeChange}
+								onSpeedChange={onSpeedChange}
+								onContextWindowChange={onContextWindowChange}
+								triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[220px]`}
 							/>
 						)}
 					</PromptInputTools>
@@ -645,7 +696,7 @@ export function PromptGroup({
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-							disabled={needsSetup}
+							disabled={needsSetup || !!agentSelectionBlocker}
 							onClick={(e) => {
 								e.preventDefault();
 								handleSubmit();

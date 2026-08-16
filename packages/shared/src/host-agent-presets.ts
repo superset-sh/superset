@@ -57,7 +57,7 @@ export const HOST_AGENT_PRESETS: readonly HostAgentPreset[] =
 			resumeArgs: deriveSuffixArgs(commandTokens, agent.resumeCommand),
 			env: {},
 		};
-	});
+	}).sort((left, right) => left.label.localeCompare(right.label));
 
 function clonePreset(preset: HostAgentPreset): HostAgentPreset {
 	return {

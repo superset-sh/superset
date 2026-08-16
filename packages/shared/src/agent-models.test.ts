@@ -2,11 +2,19 @@ import { describe, expect, it } from "bun:test";
 import {
 	AGENT_EFFORT_SUPPORT,
 	AGENT_MODEL_SUPPORT,
+	buildAgentContextWindowEnv,
 	buildAgentEffortArgs,
+	buildAgentModeArgs,
 	buildAgentModelArgs,
 	buildAgentModelEnv,
+	buildAgentRuntimeTraitArgs,
+	buildAgentSpeedArgs,
+	getAgentContextWindowSupport,
 	getAgentEffortSupport,
 	getAgentModelSupport,
+	getAgentModeSupport,
+	getAgentSpeedSupport,
+	resolveAgentEffortSupport,
 	SUPERSET_CHAT_MODELS,
 } from "./agent-models";
 import { BUILTIN_TERMINAL_AGENT_TYPES } from "./builtin-terminal-agents";
@@ -40,7 +48,11 @@ describe("AGENT_MODEL_SUPPORT", () => {
 
 	it("lists at least one model per entry", () => {
 		for (const entry of AGENT_MODEL_SUPPORT) {
-			expect(entry.models.length).toBeGreaterThan(0);
+			if (["antigravity", "pi", "grok", "kimi"].includes(entry.presetId)) {
+				expect(entry.models).toEqual([]);
+			} else {
+				expect(entry.models.length).toBeGreaterThan(0);
+			}
 		}
 	});
 });
@@ -64,13 +76,31 @@ describe("getAgentModelSupport", () => {
 		expect(getAgentModelSupport("amp")).toBeUndefined();
 		expect(getAgentModelSupport("nonexistent")).toBeUndefined();
 	});
+
+	it("keeps the versioned Claude catalog and known model defaults", () => {
+		const claude = getAgentModelSupport("claude");
+		expect(claude?.defaultModelId).toBe("claude-fable-5");
+		expect(claude?.models).toContainEqual({
+			id: "claude-sonnet-5",
+			label: "Sonnet 5",
+		});
+		expect(claude?.models.some((model) => model.id === "sonnet")).toBe(false);
+		expect(getAgentModelSupport("codex")?.defaultModelId).toBe("gpt-5.6-sol");
+	});
 });
 
 describe("buildAgentModelArgs", () => {
+	it("accepts a model returned by runtime discovery", () => {
+		expect(
+			buildAgentModelArgs("antigravity", "runtime-model", undefined, [
+				"runtime-model",
+			]),
+		).toEqual(["--model", "runtime-model"]);
+	});
 	it("builds flag + value tokens", () => {
-		expect(buildAgentModelArgs("claude", "sonnet")).toEqual([
+		expect(buildAgentModelArgs("claude", "claude-sonnet-5")).toEqual([
 			"--model",
-			"sonnet",
+			"claude-sonnet-5",
 		]);
 	});
 
@@ -94,10 +124,10 @@ describe("buildAgentModelArgs", () => {
 		).toEqual([]);
 	});
 
-	it("includes fable in claude's curated list", () => {
-		expect(buildAgentModelArgs("claude", "fable")).toEqual([
+	it("includes the versioned fable id in claude's curated list", () => {
+		expect(buildAgentModelArgs("claude", "claude-fable-5")).toEqual([
 			"--model",
-			"fable",
+			"claude-fable-5",
 		]);
 	});
 
@@ -109,10 +139,6 @@ describe("buildAgentModelArgs", () => {
 	});
 
 	it("includes fable for the other CLIs that support it", () => {
-		expect(buildAgentModelArgs("copilot", "claude-fable-5")).toEqual([
-			"--model",
-			"claude-fable-5",
-		]);
 		expect(
 			buildAgentModelArgs("cursor-agent", "claude-fable-5-thinking-high"),
 		).toEqual(["--model", "claude-fable-5-thinking-high"]);
@@ -170,6 +196,27 @@ describe("buildAgentModelArgs", () => {
 	});
 });
 
+describe("buildAgentContextWindowEnv", () => {
+	it("enforces an explicit 200k Claude context window", () => {
+		expect(
+			buildAgentContextWindowEnv("claude", "claude-opus-5", "200k"),
+		).toEqual({ CLAUDE_CODE_DISABLE_1M_CONTEXT: "1" });
+	});
+
+	it("re-enables 1m when the inherited environment disables it", () => {
+		expect(buildAgentContextWindowEnv("claude", "claude-opus-5", "1m")).toEqual(
+			{ CLAUDE_CODE_DISABLE_1M_CONTEXT: "0" },
+		);
+	});
+
+	it("does not override the environment for omitted or unsupported contexts", () => {
+		expect(buildAgentContextWindowEnv("claude", "claude-opus-5")).toEqual({});
+		expect(buildAgentContextWindowEnv("codex", "gpt-5.6-sol", "200k")).toEqual(
+			{},
+		);
+	});
+});
+
 describe("AGENT_EFFORT_SUPPORT", () => {
 	it("only references builtin presets", () => {
 		const validIds = new Set<string>(BUILTIN_TERMINAL_AGENT_TYPES);
@@ -194,6 +241,47 @@ describe("getAgentEffortSupport", () => {
 		expect(getAgentEffortSupport("gemini")).toBeUndefined();
 		expect(getAgentEffortSupport("superset")).toBeUndefined();
 	});
+
+	it("keeps Codex fallback levels scoped to each model", () => {
+		expect(getAgentEffortSupport("codex", "gpt-5.6-sol")).toMatchObject({
+			defaultEffortId: "low",
+			efforts: expect.arrayContaining([
+				{ id: "max", label: "Max" },
+				{ id: "ultra", label: "Ultra" },
+			]),
+		});
+		expect(
+			getAgentEffortSupport("codex", "gpt-5.6-luna")?.efforts.map(
+				(effort) => effort.id,
+			),
+		).toEqual(["low", "medium", "high", "xhigh", "max"]);
+		expect(
+			getAgentEffortSupport("codex", "gpt-5.5")?.efforts.map(
+				(effort) => effort.id,
+			),
+		).toEqual(["low", "medium", "high", "xhigh"]);
+	});
+});
+
+describe("resolveAgentEffortSupport", () => {
+	it("uses runtime reasoning options with the curated transport", () => {
+		const support = resolveAgentEffortSupport("opencode", "runtime-model", {
+			state: "supported",
+			options: [{ id: "ultra", label: "Ultra" }],
+			defaultId: "ultra",
+		});
+
+		expect(support?.efforts).toEqual([{ id: "ultra", label: "Ultra" }]);
+		expect(support?.defaultEffortId).toBe("ultra");
+	});
+
+	it("does not fall back when runtime reports unsupported", () => {
+		expect(
+			resolveAgentEffortSupport("codex", "gpt-5.6-sol", {
+				state: "unsupported",
+			}),
+		).toBeUndefined();
+	});
 });
 
 describe("buildAgentEffortArgs", () => {
@@ -211,6 +299,14 @@ describe("buildAgentEffortArgs", () => {
 		]);
 	});
 
+	it("accepts runtime effort levels for newly discovered Codex models", () => {
+		expect(
+			buildAgentEffortArgs("codex", "ultra", "future-model", {
+				efforts: [{ id: "ultra", label: "Ultra" }],
+			}),
+		).toEqual(["-c", "model_reasoning_effort=ultra"]);
+	});
+
 	it("returns [] when no effort is set", () => {
 		expect(buildAgentEffortArgs("claude", undefined)).toEqual([]);
 		expect(buildAgentEffortArgs("claude", "")).toEqual([]);
@@ -223,6 +319,50 @@ describe("buildAgentEffortArgs", () => {
 	it("returns [] for effort ids outside the preset's curated list", () => {
 		expect(buildAgentEffortArgs("claude", "bogus")).toEqual([]);
 		expect(buildAgentEffortArgs("copilot", "max")).toEqual([]);
+	});
+});
+
+describe("agent launch traits", () => {
+	it("exposes Claude Ultracode, Fast Mode, and model-specific context", () => {
+		expect(
+			getAgentEffortSupport("claude", "claude-opus-5")?.efforts,
+		).toContainEqual({ id: "ultracode", label: "Ultracode" });
+		expect(getAgentSpeedSupport("claude", "claude-opus-5")).toMatchObject({
+			label: "Fast Mode",
+			defaultSpeedId: "standard",
+		});
+		expect(
+			getAgentContextWindowSupport("claude", "claude-opus-5")
+				?.defaultContextWindowId,
+		).toBe("1m");
+		expect(buildAgentModelArgs("claude", "claude-opus-5", "1m")).toEqual([
+			"--model",
+			"claude-opus-5[1m]",
+		]);
+		expect(
+			buildAgentRuntimeTraitArgs("claude", {
+				model: "claude-opus-5",
+				effort: "ultracode",
+				speed: "fast",
+			}),
+		).toEqual(["--settings", '{"fastMode":true,"ultracode":true}']);
+	});
+
+	it("exposes Codex Service Tier and maps it to the stable feature flag", () => {
+		expect(getAgentSpeedSupport("codex", "gpt-5.6-sol")).toMatchObject({
+			label: "Service Tier",
+			defaultSpeedId: "standard",
+		});
+		expect(buildAgentSpeedArgs("codex", "fast", "gpt-5.6-sol")).toEqual([
+			"--enable",
+			"fast_mode",
+		]);
+	});
+
+	it("keeps OpenCode reasoning variants separate from agent modes", () => {
+		expect(getAgentEffortSupport("opencode")?.label).toBe("Reasoning");
+		expect(getAgentModeSupport("opencode")?.label).toBe("Agent");
+		expect(buildAgentModeArgs("opencode", "plan")).toEqual(["--agent", "plan"]);
 	});
 });
 

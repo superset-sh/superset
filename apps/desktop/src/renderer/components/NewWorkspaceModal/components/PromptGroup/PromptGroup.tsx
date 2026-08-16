@@ -575,8 +575,8 @@ function PromptGroupInner({
 		useAgentLaunchPreferences<WorkspaceCreateAgent>({
 			agentStorageKey: AGENT_STORAGE_KEY,
 			defaultAgent: "claude",
-			fallbackAgent: "none",
-			validAgents: ["none", ...selectableAgentIds],
+			fallbackAgent: selectableAgentIds[0] ?? "none",
+			validAgents: selectableAgentIds,
 			agentsReady: agentPresetsQuery.isFetched,
 		});
 	const [gitHubIssueLinkOpen, setGitHubIssueLinkOpen] = useState(false);
@@ -1276,14 +1276,11 @@ ${sanitizeText(truncatedBody)}`;
 						<AgentSelect<WorkspaceCreateAgent>
 							agents={enabledAgentPresets}
 							value={selectedAgent}
-							placeholder="No agent"
+							placeholder="Select agent"
 							onValueChange={setSelectedAgent}
 							onBeforeConfigureAgents={closeModal}
 							triggerClassName={`${PILL_BUTTON_CLASS} px-1.5 gap-1 text-foreground w-auto max-w-[160px]`}
 							iconClassName="size-3 object-contain"
-							allowNone
-							noneLabel="No agent"
-							noneValue="none"
 						/>
 					</PromptInputTools>
 					<div className="flex items-center gap-2">

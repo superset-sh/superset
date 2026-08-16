@@ -2,6 +2,7 @@ import type { Octokit } from "@octokit/rest";
 import type { ChatService } from "@superset/provider-auth/server";
 import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
+import type { CapabilityRefreshService } from "./agent-capabilities/capability-refresh-service";
 import type { HostDb } from "./db";
 import type { EventBus } from "./events";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
@@ -25,6 +26,7 @@ export interface HostServiceContext {
 	execGh: ExecGh;
 	api: ApiClient;
 	db: HostDb;
+	capabilityRefresh: CapabilityRefreshService;
 	runtime: HostServiceRuntime;
 	eventBus: EventBus;
 	terminalAgentStore: TerminalAgentStore;

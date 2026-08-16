@@ -1,4 +1,7 @@
-import { getAgentEffortSupport } from "@superset/shared/agent-models";
+import {
+	type AgentEffortSupport,
+	getAgentEffortSupport,
+} from "@superset/shared/agent-models";
 import { useCallback, useEffect, useState } from "react";
 
 function readStoredMap(storageKey: string): Record<string, string> {
@@ -22,45 +25,52 @@ function readStoredMap(storageKey: string): Record<string, string> {
 function readStoredEffort(
 	storageKey: string,
 	presetId: string | null,
+	model: string | null,
+	supportOverride?: AgentEffortSupport,
 ): string | null {
 	if (!presetId) return null;
-	const stored = readStoredMap(storageKey)[presetId];
+	const preferenceKey = model ? `${presetId}:${model}` : presetId;
+	const stored = readStoredMap(storageKey)[preferenceKey];
 	if (!stored) return null;
 	// Drop ids that fell out of the curated registry — "Default" beats a
 	// flag value the CLI no longer accepts.
-	const support = getAgentEffortSupport(presetId);
+	const support = supportOverride ?? getAgentEffortSupport(presetId, model);
 	return support?.efforts.some((effort) => effort.id === stored)
 		? stored
 		: null;
 }
 
 /**
- * Last-selected reasoning effort per agent preset, persisted as a JSON map in
- * localStorage. Same contract as `useAgentModelPreference`: keyed by presetId
- * so the preference survives host switches; `null` means "Default" — no
- * stored entry, no effort flag at launch.
+ * Last-selected reasoning effort per agent model, persisted as a JSON map in
+ * localStorage. Model-scoped keys prevent a value supported by one model from
+ * leaking into another; `null` means no override flag at launch.
  */
 export function useAgentEffortPreference(
 	storageKey: string,
 	presetId: string | null,
+	model: string | null,
+	supportOverride?: AgentEffortSupport,
 ) {
 	const [selectedEffort, setSelectedEffortState] = useState<string | null>(() =>
-		readStoredEffort(storageKey, presetId),
+		readStoredEffort(storageKey, presetId, model, supportOverride),
 	);
 
 	useEffect(() => {
-		setSelectedEffortState(readStoredEffort(storageKey, presetId));
-	}, [storageKey, presetId]);
+		setSelectedEffortState(
+			readStoredEffort(storageKey, presetId, model, supportOverride),
+		);
+	}, [storageKey, presetId, model, supportOverride]);
 
 	const setSelectedEffort = useCallback(
 		(effort: string | null) => {
 			setSelectedEffortState(effort);
 			if (typeof window === "undefined" || !presetId) return;
 			const map = readStoredMap(storageKey);
+			const preferenceKey = model ? `${presetId}:${model}` : presetId;
 			if (effort) {
-				map[presetId] = effort;
+				map[preferenceKey] = effort;
 			} else {
-				delete map[presetId];
+				delete map[preferenceKey];
 			}
 			try {
 				window.localStorage.setItem(storageKey, JSON.stringify(map));
@@ -69,7 +79,7 @@ export function useAgentEffortPreference(
 				// the in-memory selection above still applies to this dialog.
 			}
 		},
-		[storageKey, presetId],
+		[storageKey, presetId, model],
 	);
 
 	return { selectedEffort, setSelectedEffort };
