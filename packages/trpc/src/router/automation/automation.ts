@@ -35,6 +35,7 @@ import {
 	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
+import { automationTriggersRouter } from "./triggers";
 import { automationVersionsRouter } from "./versions";
 
 function escapeLikePattern(value: string): string {
@@ -114,6 +115,7 @@ async function verifyWorkspaceInOrg(
 
 export const automationRouter = {
 	versions: automationVersionsRouter,
+	triggers: automationTriggersRouter,
 
 	/**
 	 * List automations scoped to the caller's active organization. The
