@@ -178,6 +178,15 @@ reads `PORT`, so a sandbox that doesn't override it tries to bind 80 — reserve
 along with 443 and 8080 — and exits with `EADDRINUSE` before serving anything.
 `start.sh` exports the port it means to use.
 
+**The first two sandboxes after an image build take ~35s; the rest take ~0.3s.**
+Measured on a freshly built image: 37.3s, 35.2s, then 0.3s, 0.2s, 0.3s. It is an
+image pull, and the image is around a gigabyte — 766 MB of that `node_modules`,
+230 MB the baked repo, 18 MB host-service itself. Two consequences worth knowing
+rather than fixing: a stopwatch started right after a rebuild measures the pull,
+not the product (which is how a 5s path got reported here as 40s), and most of
+the weight is packages host-service imports at module load and never calls, so
+the lever is that import graph rather than anything about sandboxes.
+
 **host-service has no HTTP health route.** Readiness is the `health.check` tRPC
 procedure; `GET /health` 404s. A probe on the wrong path looks exactly like a
 sandbox that never came up, which cost an afternoon here.
