@@ -10,7 +10,6 @@ import { FilesTab } from "./components/FilesTab";
 import { PRActionHeader } from "./components/PRActionHeader";
 import { SidebarHeader } from "./components/SidebarHeader";
 import { useChangesTab } from "./hooks/useChangesTab";
-import { type OpenChatFn, usePRFlowDispatch } from "./hooks/usePRFlowDispatch";
 import { usePRFlowState } from "./hooks/usePRFlowState";
 import { useReviewTab } from "./hooks/useReviewTab";
 import type { SidebarTabDefinition } from "./types";
@@ -18,7 +17,6 @@ import type { SidebarTabDefinition } from "./types";
 // Gates the "Create PR" button only — the chat-driven create flow doesn't
 // exist in v2 yet. The PR status group (link + merge dropdown for an open PR)
 // always renders so users can see PR state and merge once a PR exists.
-const CREATE_PR_BUTTON_ENABLED = false;
 
 type SidebarTabId = "changes" | "files" | "review";
 
@@ -43,7 +41,6 @@ interface WorkspaceSidebarProps {
 		changeKey?: string,
 	) => void;
 	onOpenComment?: (comment: CommentPaneData) => void;
-	onOpenChat?: OpenChatFn;
 	onSearch?: () => void;
 	selectedFilePath?: string;
 	pendingReveal?: PendingReveal | null;
@@ -54,7 +51,6 @@ export function WorkspaceSidebar({
 	onSelectFile,
 	onSelectDiffFile,
 	onOpenComment,
-	onOpenChat,
 	onSearch,
 	selectedFilePath,
 	pendingReveal,
@@ -125,10 +121,6 @@ export function WorkspaceSidebar({
 	});
 
 	const { flowState, onRetry } = usePRFlowState(workspaceId);
-	const dispatch = usePRFlowDispatch({
-		onOpenChat: onOpenChat ?? (() => {}),
-	});
-
 	const filesTab: SidebarTabDefinition = {
 		id: "files",
 		label: "Files",
@@ -156,9 +148,7 @@ export function WorkspaceSidebar({
 			<PRActionHeader
 				workspaceId={workspaceId}
 				state={flowState}
-				dispatch={dispatch}
 				onRetry={onRetry}
-				createPREnabled={CREATE_PR_BUTTON_ENABLED}
 			/>
 			<SidebarHeader
 				tabs={tabs}

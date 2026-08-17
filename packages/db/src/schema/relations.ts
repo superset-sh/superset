@@ -21,7 +21,6 @@ import {
 	subscriptions,
 	taskStatuses,
 	tasks,
-	usersSlackUsers,
 	v2Clients,
 	v2Hosts,
 	v2Projects,
@@ -219,20 +218,6 @@ export const agentCommandsRelations = relations(agentCommands, ({ one }) => ({
 		relationName: "parentCommand",
 	}),
 }));
-
-export const usersSlackUsersRelations = relations(
-	usersSlackUsers,
-	({ one }) => ({
-		user: one(users, {
-			fields: [usersSlackUsers.userId],
-			references: [users.id],
-		}),
-		organization: one(organizations, {
-			fields: [usersSlackUsers.organizationId],
-			references: [organizations.id],
-		}),
-	}),
-);
 
 export const projectsRelations = relations(projects, ({ one, many }) => ({
 	organization: one(organizations, {

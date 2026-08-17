@@ -1,6 +1,7 @@
 import { db } from "@superset/db/client";
-import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
+import { integrationConnections } from "@superset/db/schema";
 import { and, desc, eq, isNull } from "drizzle-orm";
+import { findSlackUserLink } from "../../lib/find-slack-user-link";
 import { generateConnectUrl } from "../utils/generate-connect-url";
 import { createSlackClient } from "../utils/slack-client";
 import { buildHomeView } from "./build-home-view";
@@ -35,12 +36,10 @@ export async function processAppHomeOpened({
 		return;
 	}
 
-	const slackUserLink = await db.query.usersSlackUsers.findFirst({
-		where: and(
-			eq(usersSlackUsers.slackUserId, event.user),
-			eq(usersSlackUsers.teamId, teamId),
-		),
-		with: { user: true },
+	const slackUserLink = await findSlackUserLink({
+		organizationId: connection.organizationId,
+		slackUserId: event.user,
+		teamId,
 	});
 
 	const isUserLinked = !!slackUserLink;

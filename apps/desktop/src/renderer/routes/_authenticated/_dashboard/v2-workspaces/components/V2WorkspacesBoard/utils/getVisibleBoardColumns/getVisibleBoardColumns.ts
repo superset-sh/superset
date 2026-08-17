@@ -1,5 +1,8 @@
 import type { V2WorkspacesArchivedWindow } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
-import { BOARD_COLUMN_ORDER, type BoardColumnKey } from "../deriveBoardColumn";
+import {
+	BOARD_COLUMN_ORDER,
+	type BoardColumnKey,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 
 const ARCHIVED_COLUMNS = new Set<BoardColumnKey>(["merged", "deleted"]);
 

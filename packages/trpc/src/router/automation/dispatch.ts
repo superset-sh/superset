@@ -14,13 +14,11 @@ import {
 	sanitizeBranchNameWithMaxLength,
 	slugifyForBranch,
 } from "@superset/shared/workspace-launch";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { RelayDispatchError, relayMutation } from "./relay-client";
 
-type AgentRunResult =
-	| { kind: "terminal"; sessionId: string; label: string }
-	| { kind: "chat"; sessionId: string; label: string };
+type AgentRunResult = { kind: "terminal"; sessionId: string; label: string };
 
 export type DispatchOutcome =
 	| { status: "dispatched"; runId: string }
@@ -28,11 +26,32 @@ export type DispatchOutcome =
 	| { status: "dispatch_failed"; runId: string | null; error: string }
 	| { status: "conflict" };
 
-export interface DispatchOptions {
-	automation: SelectAutomation;
-	scheduledFor: Date;
+/**
+ * Only what dispatch actually reads. Deliberately excludes the schedule
+ * columns, which live on the automation's trigger.
+ */
+export type DispatchableAutomation = Pick<
+	SelectAutomation,
+	| "id"
+	| "name"
+	| "organizationId"
+	| "ownerUserId"
+	| "agent"
+	| "prompt"
+	| "targetHostId"
+	| "v2ProjectId"
+	| "v2WorkspaceId"
+>;
+
+/** What caused this run: a schedule with a due minute, or a matched event. */
+export type DispatchCause =
+	| { scheduledFor: Date; trigger?: null }
+	| { scheduledFor?: null; trigger: { triggerId: string; eventId: string } };
+
+export type DispatchOptions = {
+	automation: DispatchableAutomation;
 	relayUrl: string;
-}
+} & DispatchCause;
 
 /**
  * Run one automation: resolve host, (maybe) create a workspace, start the
@@ -44,7 +63,9 @@ export interface DispatchOptions {
 export async function dispatchAutomation(
 	opts: DispatchOptions,
 ): Promise<DispatchOutcome> {
-	const { automation, scheduledFor, relayUrl } = opts;
+	const { automation, relayUrl } = opts;
+	const scheduledFor = opts.scheduledFor ?? null;
+	const trigger = opts.trigger ?? null;
 
 	const candidates = await resolveCandidateHosts(automation);
 	if (candidates.length === 0) {
@@ -72,11 +93,14 @@ export async function dispatchAutomation(
 			organizationId: automation.organizationId,
 			title: automation.name,
 			scheduledFor,
+			triggerId: trigger?.triggerId ?? null,
+			eventId: trigger?.eventId ?? null,
 			hostId: host.machineId,
 			status: "dispatching",
 		})
 		.onConflictDoNothing({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
+			where: sql`${automationRuns.scheduledFor} IS NOT NULL`,
 		})
 		.returning();
 
@@ -165,8 +189,8 @@ export async function dispatchAutomation(
 			.set({
 				status: "dispatched",
 				sessionKind: result.kind,
-				chatSessionId: result.kind === "chat" ? result.sessionId : null,
-				terminalSessionId: result.kind === "terminal" ? result.sessionId : null,
+				chatSessionId: null,
+				terminalSessionId: result.sessionId,
 				v2WorkspaceId: workspaceId,
 				dispatchedAt: new Date(),
 			})
@@ -188,7 +212,7 @@ export async function dispatchAutomation(
 }
 
 async function resolveCandidateHosts(
-	automation: SelectAutomation,
+	automation: DispatchableAutomation,
 ): Promise<Array<typeof v2Hosts.$inferSelect>> {
 	if (automation.targetHostId) {
 		const [host] = await dbWs
@@ -239,7 +263,7 @@ async function resolveCandidateHosts(
  * candidate wins, preserving the updatedAt ordering.
  */
 async function pickOnlineHost(
-	automation: SelectAutomation,
+	automation: DispatchableAutomation,
 	relayUrl: string,
 	candidates: Array<typeof v2Hosts.$inferSelect>,
 ): Promise<typeof v2Hosts.$inferSelect | null> {
@@ -266,8 +290,8 @@ async function pickOnlineHost(
 }
 
 async function recordSkipped(
-	automation: SelectAutomation,
-	scheduledFor: Date,
+	automation: DispatchableAutomation,
+	scheduledFor: Date | null,
 	hostId: string | null,
 	error: string,
 ): Promise<{ id: string } | undefined> {
@@ -284,6 +308,7 @@ async function recordSkipped(
 		})
 		.onConflictDoNothing({
 			target: [automationRuns.automationId, automationRuns.scheduledFor],
+			where: sql`${automationRuns.scheduledFor} IS NOT NULL`,
 		})
 		.returning({ id: automationRuns.id });
 	return row;
@@ -294,7 +319,7 @@ async function createWorkspaceOnHost(args: {
 	hostId: string;
 	jwt: string;
 	projectId: string | null;
-	automation: SelectAutomation;
+	automation: DispatchableAutomation;
 	runId: string;
 }): Promise<{ workspaceId: string }> {
 	// Session automation: no project, no branch. The host allocates a managed

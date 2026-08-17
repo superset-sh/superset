@@ -2,8 +2,6 @@ import {
 	type AgentDefinition,
 	type AgentDefinitionId,
 	BUILTIN_AGENT_DEFINITIONS,
-	type ChatAgentDefinition,
-	isTerminalAgentDefinition,
 	type TerminalAgentDefinition,
 } from "./agent-catalog";
 import type { TaskInput } from "./agent-command";
@@ -22,7 +20,6 @@ import {
 	type PromptTransport,
 } from "./agent-prompt-launch";
 import {
-	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
 	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
 	getSupportedTaskPromptVariables,
 	renderTaskPromptTemplate,
@@ -41,16 +38,6 @@ const TERMINAL_OVERRIDE_FIELDS = [
 	"contextPromptTemplateUser",
 ] as const satisfies readonly AgentPresetField[];
 
-const CHAT_OVERRIDE_FIELDS = [
-	"enabled",
-	"label",
-	"description",
-	"taskPromptTemplate",
-	"contextPromptTemplateSystem",
-	"contextPromptTemplateUser",
-	"model",
-] as const satisfies readonly AgentPresetField[];
-
 const EMPTY_AGENT_PRESET_OVERRIDE_ENVELOPE: AgentPresetOverrideEnvelope = {
 	version: 1,
 	presets: [],
@@ -64,14 +51,7 @@ export type TerminalResolvedAgentConfig = Omit<
 	overriddenFields: AgentPresetField[];
 };
 
-export type ChatResolvedAgentConfig = Omit<ChatAgentDefinition, "id"> & {
-	id: AgentDefinitionId;
-	overriddenFields: AgentPresetField[];
-};
-
-export type ResolvedAgentConfig =
-	| TerminalResolvedAgentConfig
-	| ChatResolvedAgentConfig;
+export type ResolvedAgentConfig = TerminalResolvedAgentConfig;
 
 export type AgentPresetPatch = Partial<{
 	enabled: boolean;
@@ -83,7 +63,6 @@ export type AgentPresetPatch = Partial<{
 	taskPromptTemplate: string;
 	contextPromptTemplateSystem: string;
 	contextPromptTemplateUser: string;
-	model: string | null;
 }>;
 
 export type CustomAgentDefinitionPatch = Partial<{
@@ -268,16 +247,13 @@ export function deleteCustomAgentDefinition({
 
 function getOverriddenFields(
 	override: AgentPresetOverride | undefined,
-	definition: AgentDefinition,
+	_definition: AgentDefinition,
 ): AgentPresetField[] {
 	if (!override) return [];
 
-	const fields =
-		definition.kind === "terminal"
-			? TERMINAL_OVERRIDE_FIELDS
-			: CHAT_OVERRIDE_FIELDS;
-
-	return fields.filter((field) => Object.hasOwn(override, field));
+	return TERMINAL_OVERRIDE_FIELDS.filter((field) =>
+		Object.hasOwn(override, field),
+	);
 }
 
 function resolveDescription(
@@ -302,52 +278,22 @@ function resolvePromptCommandSuffix(
 	return override.promptCommandSuffix ?? undefined;
 }
 
-function resolveModel(
-	model: string | undefined,
-	override: AgentPresetOverride | undefined,
-): string | undefined {
-	if (!override || !Object.hasOwn(override, "model")) {
-		return model;
-	}
-
-	return override.model?.trim() || undefined;
-}
-
 function resolveAgentConfig(
 	definition: AgentDefinition,
 	override: AgentPresetOverride | undefined,
 ): ResolvedAgentConfig {
-	if (isTerminalAgentDefinition(definition)) {
-		return {
-			...definition,
-			id: definition.id as AgentDefinitionId,
-			label: override?.label ?? definition.label,
-			description: resolveDescription(definition.description, override),
-			enabled: override?.enabled ?? definition.enabled,
-			command: override?.command ?? definition.command,
-			promptCommand: override?.promptCommand ?? definition.promptCommand,
-			promptCommandSuffix: resolvePromptCommandSuffix(
-				definition.promptCommandSuffix,
-				override,
-			),
-			taskPromptTemplate:
-				override?.taskPromptTemplate ?? definition.taskPromptTemplate,
-			contextPromptTemplateSystem:
-				override?.contextPromptTemplateSystem ??
-				definition.contextPromptTemplateSystem,
-			contextPromptTemplateUser:
-				override?.contextPromptTemplateUser ??
-				definition.contextPromptTemplateUser,
-			overriddenFields: getOverriddenFields(override, definition),
-		};
-	}
-
 	return {
 		...definition,
 		id: definition.id as AgentDefinitionId,
 		label: override?.label ?? definition.label,
 		description: resolveDescription(definition.description, override),
 		enabled: override?.enabled ?? definition.enabled,
+		command: override?.command ?? definition.command,
+		promptCommand: override?.promptCommand ?? definition.promptCommand,
+		promptCommandSuffix: resolvePromptCommandSuffix(
+			definition.promptCommandSuffix,
+			override,
+		),
 		taskPromptTemplate:
 			override?.taskPromptTemplate ?? definition.taskPromptTemplate,
 		contextPromptTemplateSystem:
@@ -356,7 +302,6 @@ function resolveAgentConfig(
 		contextPromptTemplateUser:
 			override?.contextPromptTemplateUser ??
 			definition.contextPromptTemplateUser,
-		model: resolveModel(definition.model, override),
 		overriddenFields: getOverriddenFields(override, definition),
 	};
 }
@@ -473,12 +418,7 @@ export function buildDefaultTerminalTaskPrompt(task: TaskInput): string {
 	return renderTaskPromptTemplate(DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE, task);
 }
 
-export function buildDefaultChatTaskPrompt(task: TaskInput): string {
-	return renderTaskPromptTemplate(DEFAULT_CHAT_TASK_PROMPT_TEMPLATE, task);
-}
-
 export {
-	DEFAULT_CHAT_TASK_PROMPT_TEMPLATE,
 	DEFAULT_TERMINAL_TASK_PROMPT_TEMPLATE,
 	getSupportedTaskPromptVariables,
 	renderTaskPromptTemplate,
@@ -555,38 +495,26 @@ export function createOverrideEnvelopeWithPatch({
 		);
 	}
 
-	if (definition.kind === "terminal") {
-		if (hasField("command")) {
-			setOrDelete(
-				"command",
-				patch.command,
-				patch.command !== definition.command,
-			);
-		}
-		if (hasField("promptCommand")) {
-			setOrDelete(
-				"promptCommand",
-				patch.promptCommand,
-				patch.promptCommand !== definition.promptCommand,
-			);
-		}
-		if (hasField("promptCommandSuffix")) {
-			const shouldPersist =
-				patch.promptCommandSuffix === null
-					? definition.promptCommandSuffix !== undefined
-					: patch.promptCommandSuffix !== definition.promptCommandSuffix;
-			setOrDelete(
-				"promptCommandSuffix",
-				patch.promptCommandSuffix,
-				shouldPersist,
-			);
-		}
-	} else if (hasField("model")) {
+	if (hasField("command")) {
+		setOrDelete("command", patch.command, patch.command !== definition.command);
+	}
+	if (hasField("promptCommand")) {
+		setOrDelete(
+			"promptCommand",
+			patch.promptCommand,
+			patch.promptCommand !== definition.promptCommand,
+		);
+	}
+	if (hasField("promptCommandSuffix")) {
 		const shouldPersist =
-			patch.model === null
-				? definition.model !== undefined
-				: patch.model !== definition.model;
-		setOrDelete("model", patch.model ?? undefined, shouldPersist);
+			patch.promptCommandSuffix === null
+				? definition.promptCommandSuffix !== undefined
+				: patch.promptCommandSuffix !== definition.promptCommandSuffix;
+		setOrDelete(
+			"promptCommandSuffix",
+			patch.promptCommandSuffix,
+			shouldPersist,
+		);
 	}
 
 	const fields = Object.keys(next).filter((field) => field !== "id");

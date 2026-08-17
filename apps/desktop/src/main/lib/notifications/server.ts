@@ -99,7 +99,6 @@ app.get("/hook/complete", (req, res) => {
 		paneId as string | undefined,
 		tabId as string | undefined,
 		workspaceId as string | undefined,
-		sessionId as string | undefined,
 	);
 
 	// v1 pane agent-session capture for the v1→v2 migration's resume seeding.

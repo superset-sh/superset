@@ -92,7 +92,10 @@ function BoardCardBody({
 					<span className="flex items-center gap-1 rounded-md bg-muted/60 px-1.5 py-0.5 text-[11px] tabular-nums text-muted-foreground">
 						<PRIcon state={workspace.pr.state} className="size-3" />#
 						{workspace.pr.prNumber}
-						<WorkspaceChecksDot status={workspace.pr.checksStatus} />
+						<WorkspaceChecksDot
+							status={workspace.pr.checksStatus}
+							checks={workspace.pr.checks}
+						/>
 					</span>
 				) : null}
 				{isArchived ? (

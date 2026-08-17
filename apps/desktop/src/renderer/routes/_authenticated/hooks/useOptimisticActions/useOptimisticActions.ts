@@ -6,9 +6,9 @@ import { getQueryKey } from "@trpc/react-query";
 import { useCallback, useMemo } from "react";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
-import { isDesktopChatDevMode } from "renderer/lib/dev-chat";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
+import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import {
 	type TrackableWorkspaceTransactionState,
 	useWorkspaceTransactionsStore,
@@ -32,6 +32,7 @@ interface V2WorkspacePatch {
 }
 
 type TaskListRow = RouterOutputs["task"]["list"][number];
+type CloudWorkspaceRow = RouterOutputs["cloudWorkspace"]["list"][number];
 type TaskRecord = TaskListRow["task"];
 type TaskPatch = Partial<TaskRecord>;
 type TaskRowPatch = Partial<Omit<TaskListRow, "task">>;
@@ -202,11 +203,17 @@ function useTaskCachePatcher() {
 }
 
 export function useOptimisticActions() {
+	const queryClient = useQueryClient();
 	const { workspaces: hostWorkspaces, cache: hostWorkspacesCache } =
 		useHostWorkspaces();
 	const runMutation = useOptimisticMutationRunner();
 	const patchTaskCaches = useTaskCachePatcher();
 	const utils = cloudTrpc.useUtils();
+	const { targets: sandboxTargets } = useSandboxAccess();
+	const sandboxIds = useMemo(
+		() => new Set(sandboxTargets.map((target) => target.workspaceId)),
+		[sandboxTargets],
+	);
 	const trackWorkspaceTransaction = useWorkspaceTransactionsStore(
 		(state) => state.track,
 	);
@@ -222,15 +229,35 @@ export function useOptimisticActions() {
 			mutation: () => PersistableTransaction,
 		) => runMutation("optimistic.v2Workspaces", failureTitle, mutation);
 
-		const runChatSessionMutation = (
-			failureTitle: string,
-			mutation: () => PersistableTransaction,
-		) => runMutation("optimistic.chatSessions", failureTitle, mutation);
-
 		const runUsersHostsMutation = (
 			failureTitle: string,
 			mutation: () => PersistableTransaction,
 		) => runMutation("optimistic.v2UsersHosts", failureTitle, mutation);
+
+		/**
+		 * Patch the cloud list the way the host cache is patched for a local
+		 * rename: the row reads from this query, so without it the old name
+		 * sits there for a round trip. Returns the rollback.
+		 */
+		const patchCloudWorkspaceName = (workspaceId: string, name: string) => {
+			const listKey = getQueryKey(cloudTrpc.cloudWorkspace.list);
+			// An in-flight refetch would otherwise land after the patch and
+			// overwrite it with the pre-rename row.
+			void queryClient.cancelQueries({ queryKey: listKey });
+			const previous = queryClient.getQueriesData<CloudWorkspaceRow[]>({
+				queryKey: listKey,
+			});
+			queryClient.setQueriesData<CloudWorkspaceRow[]>(
+				{ queryKey: listKey },
+				(rows) =>
+					rows?.map((row) => (row.id === workspaceId ? { ...row, name } : row)),
+			);
+			return () => {
+				for (const [queryKey, rows] of previous) {
+					queryClient.setQueryData(queryKey, rows);
+				}
+			};
+		};
 
 		const runHostsMutation = (
 			failureTitle: string,
@@ -389,31 +416,30 @@ export function useOptimisticActions() {
 						workspaceId,
 						patch,
 					),
+				// A cloud workspace is named by the API that created it, not by the
+				// sandbox underneath it — the sandbox's own row exists only to give
+				// host-service something to serve. Renaming through the host would
+				// write to a name nothing reads.
 				renameWorkspace: (workspaceId: string, name: string) =>
-					trackedWorkspaceWrite("Failed to rename workspace", workspaceId, {
-						name,
-					}),
-			},
-			chatSessions: {
-				deleteSession: (sessionId: string) => {
-					if (isDesktopChatDevMode()) return null;
-
-					return runChatSessionMutation("Failed to delete chat session", () => {
-						const promise = apiTrpcClient.chat.deleteSession
-							.mutate({ sessionId })
-							.then((result) => {
-								if (!result.deleted) {
-									throw new Error("Chat session was not deleted");
-								}
-								return result;
+					sandboxIds.has(workspaceId)
+						? runWorkspaceMutation("Failed to rename workspace", () => {
+								const rollback = patchCloudWorkspaceName(workspaceId, name);
+								return makeTransaction(
+									"update",
+									apiTrpcClient.cloudWorkspace.rename
+										.mutate({ id: workspaceId, name })
+										.catch((error) => {
+											rollback();
+											throw error;
+										})
+										.finally(() => {
+											void utils.cloudWorkspace.list.invalidate();
+										}),
+								);
 							})
-							.finally(() => {
-								void utils.chat.listSessions.invalidate();
-							});
-
-						return makeTransaction("delete", promise);
-					});
-				},
+						: trackedWorkspaceWrite("Failed to rename workspace", workspaceId, {
+								name,
+							}),
 			},
 			v2Hosts: {
 				deleteHost: (hostId: string) =>
@@ -488,7 +514,9 @@ export function useOptimisticActions() {
 		hostWorkspaces,
 		hostWorkspacesCache,
 		patchTaskCaches,
+		queryClient,
 		runMutation,
+		sandboxIds,
 		trackWorkspaceTransaction,
 		utils,
 	]);

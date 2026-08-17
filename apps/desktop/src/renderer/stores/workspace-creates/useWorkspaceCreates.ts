@@ -1,14 +1,11 @@
-import {
-	getEventBus,
-	type WorkspaceCreateSettledPayload,
-} from "@superset/workspace-client";
+import type { WorkspaceCreateSettledPayload } from "@superset/workspace-client";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
 import { resolveHostUrl } from "renderer/hooks/host-service/useHostTargetUrl";
 import { useRelayUrl } from "renderer/hooks/useRelayUrl";
 import { authClient } from "renderer/lib/auth-client";
 import { electronTrpc } from "renderer/lib/electron-trpc";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import {
 	getHostServiceClientByUrl,
 	type HostServiceClient,
@@ -62,7 +59,7 @@ interface CreateOutcome {
 	workspace: { id: string; projectId: string | null };
 	terminals: Array<{ terminalId: string; label?: string }>;
 	agents: Array<
-		| { ok: true; kind: "terminal" | "chat"; sessionId: string; label: string }
+		| { ok: true; kind: "terminal"; sessionId: string; label: string }
 		| { ok: false; error: string }
 	>;
 	/**
@@ -149,7 +146,7 @@ async function createViaEnqueue(
 	workspaceId: string,
 	payload: WorkspacesCreateInput,
 ): Promise<CreateOutcome> {
-	const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+	const bus = getHostEventBus(hostUrl);
 	const releaseBus = bus.retain();
 	let unsubscribe: () => void = () => {};
 	try {

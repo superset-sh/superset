@@ -74,7 +74,7 @@ export function WorkspaceRow({
 			    owns the hold animation, and custom press feedback fights it. */}
 			<Pressable
 				className={cn(
-					"flex-row items-center gap-3 rounded-xl px-4 py-2.5",
+					"flex-row items-center gap-3 rounded-xl py-2 pl-10 pr-3",
 					targeted ? "bg-foreground/5" : "bg-background",
 				)}
 				onPress={() =>
@@ -128,20 +128,26 @@ export function WorkspaceRow({
 					</View>
 				)}
 				<View className="flex-1">
-					<Text className="font-semibold text-base" numberOfLines={1}>
+					<Text className="font-medium text-[15px]" numberOfLines={1}>
 						{workspace.name}
 					</Text>
 					<View className="flex-row items-center gap-2">
-						<Text
-							className="text-muted-foreground shrink text-xs"
-							numberOfLines={1}
-						>
-							{workspace.branch}
-						</Text>
+						{/* A workspace named after its branch says it twice otherwise —
+						    common now that every project shows its `main`. */}
+						{workspace.branch === workspace.name ? null : (
+							<Text
+								className="text-muted-foreground shrink text-xs"
+								numberOfLines={1}
+							>
+								{workspace.branch}
+							</Text>
+						)}
 						{diffStats &&
 						(diffStats.additions > 0 || diffStats.deletions > 0) ? (
 							<>
-								<Text className="text-muted-foreground text-xs">·</Text>
+								{workspace.branch === workspace.name ? null : (
+									<Text className="text-muted-foreground text-xs">·</Text>
+								)}
 								<Text className="text-muted-foreground font-mono text-xs">
 									+{diffStats.additions} −{diffStats.deletions}
 								</Text>

@@ -20,6 +20,7 @@
 import { readFileSync } from "node:fs";
 import { rename, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { resolveSupersetHomeDir } from "@superset/agent-setup/paths";
 
 export type ShellReadyEvidence = "delivered" | "missing";
 
@@ -31,7 +32,7 @@ let cache: { dir: string; evidence: EvidenceMap } | null = null;
 let warnedReadError = false;
 
 function evidenceDir(): string {
-	return process.env.SUPERSET_HOME_DIR || "";
+	return resolveSupersetHomeDir();
 }
 
 function loadEvidence(dir: string): EvidenceMap {

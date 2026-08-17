@@ -1,7 +1,5 @@
-import type {
-	SelectAutomation,
-	SelectAutomationRun,
-} from "@superset/db/schema";
+import type { SelectAutomationRun } from "@superset/db/schema";
+import type { RouterOutputs } from "@superset/trpc";
 import { toast } from "@superset/ui/sonner";
 import { Switch } from "@superset/ui/switch";
 import { cn } from "@superset/ui/utils";
@@ -29,7 +27,8 @@ export function AutomationBody({
 	onToggleEnabled,
 	toggleDisabled,
 }: {
-	automation: SelectAutomation;
+	/** `get` output plus the prompt body, which rides its own procedure. */
+	automation: RouterOutputs["automation"]["get"] & { prompt: string };
 	recentRuns: SelectAutomationRun[];
 	ownerName?: string | null;
 	readOnly?: boolean;

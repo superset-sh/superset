@@ -1,14 +1,19 @@
+import type { Image } from "@expo/ui/swift-ui";
+import type { ComponentProps } from "react";
+
 export const FOREGROUND = "#e5e5e5";
 export const MUTED = "#8e8e93";
 
-export const PILL_RADIUS = 26;
+/** Borrowed off the component rather than depending on sf-symbols-typescript
+ *  directly — it reaches us only as an @expo/ui transitive dependency. */
+type SFSymbolName = NonNullable<ComponentProps<typeof Image>["systemName"]>;
 
 export interface TerminalQuickKey {
 	id: string;
 	/** Monospaced label; ignored when `symbol` is set. */
 	label?: string;
 	/** SF Symbol name (e.g. "arrow.up"). */
-	symbol?: string;
+	symbol?: SFSymbolName;
 	/** Raw bytes written into the PTY. */
 	data: string;
 }

@@ -150,6 +150,30 @@ describe("buildDashboardSidebarProjects", () => {
 		).toEqual(["section-b", "section-a"]);
 	});
 
+	it("keeps an ungrouped workspace top-level below a section instead of absorbing it", () => {
+		const [project] = build({
+			sidebarSections: [makeSection({ id: "section-1", tabOrder: 2 })],
+			visibleSidebarWorkspaces: [
+				makeWorkspace({ id: "ws-above", sectionId: null, tabOrder: 1 }),
+				makeWorkspace({ id: "ws-member", sectionId: "section-1", tabOrder: 1 }),
+				makeWorkspace({ id: "ws-below", sectionId: null, tabOrder: 3 }),
+			],
+		});
+
+		expect(
+			project.children.map((child) =>
+				child.type === "section"
+					? `section:${child.section.id}`
+					: child.workspace.id,
+			),
+		).toEqual(["ws-above", "section:section-1", "ws-below"]);
+		const section = project.children.find((child) => child.type === "section");
+		if (section?.type !== "section") throw new Error("expected section");
+		expect(section.section.workspaces.map((workspace) => workspace.id)).toEqual(
+			["ws-member"],
+		);
+	});
+
 	it("orders multiple orphaned workspaces by tabOrder above the sections", () => {
 		const [project] = build({
 			sidebarSections: [makeSection({ id: "section-1", tabOrder: 5 })],

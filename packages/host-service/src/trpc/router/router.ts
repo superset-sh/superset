@@ -2,7 +2,7 @@ import { router } from "../index";
 import { agentsRouter } from "./agents";
 import { attachmentsRouter } from "./attachments";
 import { authRouter } from "./auth";
-import { chatRouter } from "./chat";
+import { browserRouter } from "./browser/browser";
 import { configRouter } from "./config";
 import { filesystemRouter } from "./filesystem";
 import { gitRouter } from "./git";
@@ -17,6 +17,7 @@ import { pullRequestsRouter } from "./pull-requests";
 import { settingsRouter } from "./settings";
 import { terminalRouter } from "./terminal";
 import { terminalAgentsRouter } from "./terminal-agents";
+import { usageRouter } from "./usage";
 import { workspaceRouter } from "./workspace";
 import { workspaceCleanupRouter } from "./workspace-cleanup";
 import { workspaceCreationRouter } from "./workspace-creation";
@@ -26,9 +27,9 @@ export const appRouter = router({
 	agents: agentsRouter,
 	attachments: attachmentsRouter,
 	auth: authRouter,
+	browser: browserRouter,
 	health: healthRouter,
 	host: hostRouter,
-	chat: chatRouter,
 	config: configRouter,
 	filesystem: filesystemRouter,
 	git: gitRouter,
@@ -41,6 +42,7 @@ export const appRouter = router({
 	settings: settingsRouter,
 	terminal: terminalRouter,
 	terminalAgents: terminalAgentsRouter,
+	usage: usageRouter,
 	workspace: workspaceRouter,
 	workspaces: workspacesRouter,
 	workspaceCleanup: workspaceCleanupRouter,

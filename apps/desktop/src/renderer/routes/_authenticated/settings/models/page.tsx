@@ -1,7 +1,7 @@
 import { ChatServiceProvider } from "@superset/provider-auth/client";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
-import { createChatServiceIpcClient } from "renderer/components/Chat/utils/chat-service-client";
+import { createChatServiceIpcClient } from "renderer/components/ProviderAuth/provider-auth-client";
 import { electronQueryClient } from "renderer/providers/ElectronTRPCProvider";
 import { useSettingsSearchQuery } from "renderer/stores/settings-state";
 import { getMatchingItemsForSection } from "../utils/settings-search";

@@ -12,6 +12,15 @@ const NOT_GIT_REPO_PATTERN = /not a git repository/i;
 // or pruned. Distinct from CWD_GONE_PATTERN, where the directory itself is
 // unlinked from under the running process.
 const NOT_A_WORK_TREE_PATTERN = /this operation must be run in a work tree/i;
+// simple-git's own text, thrown from its factory before any git process is
+// spawned, when baseDir is gone. Same condition as CWD_GONE_PATTERN, caught one
+// step earlier. Matched on the sentence rather than the error type: simple-git's
+// GitError never assigns `this.name`, so a GitConstructError arrives named
+// "Error", and the worker boundary keeps only name/message/stack. The sentence
+// is also the narrower matcher — GitConstructError covers our own construction
+// mistakes too, and those must keep reporting as 500s.
+const SIMPLE_GIT_BASE_DIR_MISSING_PATTERN =
+	/cannot use simple-git on a directory that does not exist/i;
 
 /**
  * Rethrows environmental git failures as typed non-500 TRPCErrors — the same
@@ -36,6 +45,13 @@ export function rethrowEnvironmentalGitError(error: unknown): void {
 		});
 	}
 	if (CWD_GONE_PATTERN.test(error.message)) {
+		throw new TRPCError({
+			code: "NOT_FOUND",
+			message: error.message,
+			cause: { kind: "WORKTREE_MISSING" },
+		});
+	}
+	if (SIMPLE_GIT_BASE_DIR_MISSING_PATTERN.test(error.message)) {
 		throw new TRPCError({
 			code: "NOT_FOUND",
 			message: error.message,

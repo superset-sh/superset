@@ -109,6 +109,90 @@ function assertSafeRelativePath(filePath: string): void {
 	}
 }
 
+/** Delete for a discard. Recursive because an untracked or staged-as-added
+ * path can be a directory (an embedded git repository is reported as one
+ * entry, never expanded into files), and confined to the worktree because
+ * assertSafeRelativePath runs on the caller-relative path first. */
+async function removeFromWorktree(
+	worktreePath: string,
+	relativePath: string,
+): Promise<void> {
+	assertSafeRelativePath(relativePath);
+	await rm(join(worktreePath, relativePath), { recursive: true, force: true });
+}
+
+/** Upper bound for one getDiffStatsByWorkspaces call — a page's host rarely
+ * has more than a few dozen workspaces; anything larger is a runaway caller. */
+export const MAX_DIFF_STATS_BATCH = 500;
+
+/** Limiter-admitted status snapshot; shared by getStatus and the batched
+ * diff-stats query so both see identical numbers for a workspace. */
+function runStatusSnapshot(
+	ctx: Parameters<typeof resolveWorktreePath>[0] &
+		Pick<HostServiceContext, "credentials">,
+	input: {
+		workspaceId: string;
+		baseBranch?: string;
+		priority?: "foreground" | "background";
+	},
+) {
+	const requestKey = JSON.stringify({ baseBranch: input.baseBranch ?? null });
+	return gitStatusRefreshLimiter.run({
+		workspaceId: input.workspaceId,
+		requestKey,
+		priority: input.priority,
+		run: async () => {
+			const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
+			const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
+			const workerPool = getHostWorkerPool();
+			const result = await workerPool.run(
+				gitStatusSnapshotTask,
+				{ worktreePath, baseBranch: input.baseBranch, gitEnv },
+				{ timeoutMs: 15_000 },
+			);
+			if (result.baseRefFetchTarget) {
+				const target = result.baseRefFetchTarget;
+				const coordinatorGit = createUserSimpleGit(worktreePath).env(gitEnv);
+				// The coordinator maps live in this process, not in individual
+				// workers, so worktrees sharing one common Git dir share one TTL
+				// and in-flight fetch. The network fetch itself remains off-loop.
+				scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
+					workerPool.run(
+						gitFetchBaseRefTask,
+						{ worktreePath, target, gitEnv },
+						{
+							timeoutMs: 30_000,
+							strategy: "coalesce",
+							dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
+						},
+					),
+				);
+			}
+			return result.snapshot;
+		},
+	});
+}
+
+/** Same union the desktop Changes tab renders: staged/unstaged override the
+ * against-base entry for a path, so totals match what the workspace shows. */
+function sumSnapshotDiffStats(snapshot: {
+	againstBase: ChangedFile[];
+	staged: ChangedFile[];
+	unstaged: ChangedFile[];
+}): { additions: number; deletions: number; fileCount: number } {
+	const byPath = new Map<string, ChangedFile>();
+	for (const file of snapshot.againstBase) byPath.set(file.path, file);
+	for (const file of snapshot.staged) byPath.set(file.path, file);
+	for (const file of snapshot.unstaged) byPath.set(file.path, file);
+	let additions = 0;
+	let deletions = 0;
+	for (const file of byPath.values()) {
+		additions += file.additions;
+		deletions += file.deletions;
+	}
+	return { additions, deletions, fileCount: byPath.size };
+}
+
 export const gitRouter = router({
 	listBranches: queryProcedure
 		.input(z.object({ workspaceId: z.string() }))
@@ -155,45 +239,8 @@ export const gitRouter = router({
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const requestKey = JSON.stringify({
-				baseBranch: input.baseBranch ?? null,
-			});
 			try {
-				return await gitStatusRefreshLimiter.run({
-					workspaceId: input.workspaceId,
-					requestKey,
-					priority: input.priority,
-					run: async () => {
-						const worktreePath = resolveWorktreePath(ctx, input.workspaceId);
-						const gitEnv = await resolveGitTaskEnv(ctx, worktreePath);
-						const workerPool = getHostWorkerPool();
-						const result = await workerPool.run(
-							gitStatusSnapshotTask,
-							{ worktreePath, baseBranch: input.baseBranch, gitEnv },
-							{ timeoutMs: 15_000 },
-						);
-						if (result.baseRefFetchTarget) {
-							const target = result.baseRefFetchTarget;
-							const coordinatorGit =
-								createUserSimpleGit(worktreePath).env(gitEnv);
-							// The coordinator maps live in this process, not in individual
-							// workers, so worktrees sharing one common Git dir share one TTL
-							// and in-flight fetch. The network fetch itself remains off-loop.
-							scheduleBaseRefFetch(coordinatorGit, worktreePath, target, () =>
-								workerPool.run(
-									gitFetchBaseRefTask,
-									{ worktreePath, target, gitEnv },
-									{
-										timeoutMs: 30_000,
-										strategy: "coalesce",
-										dedupeKey: `${worktreePath}:base-ref:${target.remote}/${target.branch}`,
-									},
-								),
-							);
-						}
-						return result.snapshot;
-					},
-				});
+				return await runStatusSnapshot(ctx, input);
 			} catch (error) {
 				// The worker boundary strips prototypes, so a simple-git failure
 				// arrives as a plain error — classify it by message here. The
@@ -202,6 +249,54 @@ export const gitRouter = router({
 				rethrowEnvironmentalGitError(error);
 				throw error;
 			}
+		}),
+
+	// One request per host for list/board surfaces — totals only, so a
+	// 30-workspace page never fans out 30 getStatus calls from the client.
+	// The batch is bounded so one RPC can't queue unbounded background work;
+	// callers slice to this cap (see useAccessibleV2Workspaces).
+	getDiffStatsByWorkspaces: queryProcedure
+		.meta({ timeoutMs: 60_000 })
+		.input(
+			z.object({ workspaceIds: z.array(z.string()).max(MAX_DIFF_STATS_BATCH) }),
+		)
+		.query(async ({ ctx, input }) => {
+			const queue = [...input.workspaceIds];
+			const workspaces: {
+				workspaceId: string;
+				additions: number;
+				deletions: number;
+				fileCount: number;
+			}[] = [];
+			// Small local cap; each status is additionally admitted by
+			// gitStatusRefreshLimiter at background priority, so this batch can
+			// never crowd out a foreground Changes-tab refresh.
+			const workers = Array.from(
+				{ length: Math.min(4, queue.length) },
+				async () => {
+					for (
+						let workspaceId = queue.shift();
+						workspaceId !== undefined;
+						workspaceId = queue.shift()
+					) {
+						try {
+							const snapshot = await runStatusSnapshot(ctx, {
+								workspaceId,
+								priority: "background",
+							});
+							workspaces.push({
+								workspaceId,
+								...sumSnapshotDiffStats(snapshot),
+							});
+						} catch {
+							// Missing worktree, wedged repo, etc. — omit the row rather
+							// than failing the whole batch.
+						}
+					}
+				},
+			);
+			await Promise.all(workers);
+			return { workspaces };
 		}),
 
 	listCommits: queryProcedure
@@ -380,7 +475,7 @@ export const gitRouter = router({
 			const status = await git.status();
 			const isUntracked = status.not_added.includes(input.filePath);
 			if (isUntracked) {
-				await rm(join(worktreePath, input.filePath), { force: true });
+				await removeFromWorktree(worktreePath, input.filePath);
 			} else {
 				await git.raw(["checkout", "HEAD", "--", input.filePath]);
 			}
@@ -444,7 +539,7 @@ export const gitRouter = router({
 				await git.raw(["checkout", "HEAD", "--", ...checkoutHeadPaths]);
 			}
 			for (const filePath of deletePaths) {
-				await rm(join(worktreePath, filePath), { force: true });
+				await removeFromWorktree(worktreePath, filePath);
 			}
 			return { success: true };
 		}),

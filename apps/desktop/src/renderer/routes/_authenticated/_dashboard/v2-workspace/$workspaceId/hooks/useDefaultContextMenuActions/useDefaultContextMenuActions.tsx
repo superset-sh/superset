@@ -9,7 +9,6 @@ import {
 	LuColumns2,
 	LuEqual,
 	LuGlobe,
-	LuMessageSquare,
 	LuMoveRight,
 	LuPlus,
 	LuRows2,
@@ -18,7 +17,6 @@ import {
 import { useHotkeyDisplay } from "renderer/hotkeys";
 import type {
 	BrowserPaneData,
-	ChatPaneData,
 	PaneViewerData,
 	TerminalPaneData,
 } from "../../types";
@@ -33,7 +31,6 @@ export function useDefaultContextMenuActions({
 }): ContextMenuActionConfig<PaneViewerData>[] {
 	const splitDownShortcut = useHotkeyDisplay("SPLIT_DOWN").text;
 	const splitRightShortcut = useHotkeyDisplay("SPLIT_RIGHT").text;
-	const splitWithChatShortcut = useHotkeyDisplay("SPLIT_WITH_CHAT").text;
 	const splitWithBrowserShortcut = useHotkeyDisplay("SPLIT_WITH_BROWSER").text;
 	const equalizePaneSplitsShortcut = useHotkeyDisplay(
 		"EQUALIZE_PANE_SPLITS",
@@ -71,21 +68,6 @@ export function useDefaultContextMenuActions({
 							terminalId: launcher.mint(),
 							createOnAttach: true,
 						} as TerminalPaneData,
-					});
-				},
-			},
-			{
-				key: "split-with-chat",
-				label: "Split with New Chat",
-				icon: <LuMessageSquare />,
-				shortcut:
-					splitWithChatShortcut !== "Unassigned"
-						? splitWithChatShortcut
-						: undefined,
-				onSelect: (ctx) => {
-					ctx.actions.split("right", {
-						kind: "chat",
-						data: { sessionId: null } as ChatPaneData,
 					});
 				},
 			},
@@ -164,7 +146,6 @@ export function useDefaultContextMenuActions({
 		[
 			splitDownShortcut,
 			splitRightShortcut,
-			splitWithChatShortcut,
 			splitWithBrowserShortcut,
 			equalizePaneSplitsShortcut,
 			closePaneShortcut,

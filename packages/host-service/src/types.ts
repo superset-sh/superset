@@ -4,7 +4,6 @@ import type { AppRouter } from "@superset/trpc";
 import type { TRPCClient } from "@trpc/client";
 import type { HostDb } from "./db";
 import type { EventBus } from "./events";
-import type { ChatRuntimeManager } from "./runtime/chat";
 import type { WorkspaceFilesystemManager } from "./runtime/filesystem";
 import type { GitCredentialProvider, GitFactory } from "./runtime/git";
 import type { PullRequestRuntimeManager } from "./runtime/pull-requests";
@@ -15,7 +14,6 @@ export type ApiClient = TRPCClient<AppRouter>;
 
 export interface HostServiceRuntime {
 	auth: ChatService;
-	chat: ChatRuntimeManager;
 	filesystem: WorkspaceFilesystemManager;
 	pullRequests: PullRequestRuntimeManager;
 }
@@ -33,4 +31,11 @@ export interface HostServiceContext {
 	organizationId: string;
 	isAuthenticated: boolean;
 	clientMachineId?: string;
+	/** Present only when a desktop app spawned this host (has browser panes). */
+	browserBridge?: BrowserBridgeConfig;
+}
+
+export interface BrowserBridgeConfig {
+	url: string;
+	secret: string;
 }

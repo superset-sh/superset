@@ -13,7 +13,6 @@ import {
 	useHostWorkspaces,
 } from "@/hooks/useHostWorkspaces";
 import { THEME } from "@/lib/theme";
-import { cn } from "@/lib/utils";
 import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelectedHost";
 import { useOrganizations } from "@/screens/(authenticated)/hooks/useOrganizations";
 import {
@@ -25,11 +24,19 @@ import { HostOfflineView } from "./components/HostOfflineView";
 import { NewChatWidget } from "./components/NewChatWidget";
 import { OrganizationHeaderButton } from "./components/OrganizationHeaderButton";
 import { OrganizationSwitcherSheet } from "./components/OrganizationSwitcherSheet";
+import { ProjectSectionHeader } from "./components/ProjectSectionHeader";
+import { ScopeBar } from "./components/ScopeBar";
 import { WorkspaceRow } from "./components/WorkspaceRow";
 import { useHostTerminals } from "./hooks/useHostTerminals";
 import { useVisibleDiffStats } from "./hooks/useVisibleDiffStats";
-import { useWorkspacesFilterStore } from "./stores/workspacesFilterStore";
-import { activityDateGroup } from "./utils/activityDateGroup";
+import {
+	collapsedProjectKey,
+	useCollapsedProjectsStore,
+} from "./stores/collapsedProjectsStore";
+import {
+	SORT_OPTIONS,
+	useWorkspacesFilterStore,
+} from "./stores/workspacesFilterStore";
 import { prStateFor } from "./utils/prStateFor";
 
 const VIEWABILITY_CONFIG = {
@@ -42,22 +49,33 @@ const MAX_VISIBLE_DIFF_STATS = 20;
 const NAVIGATION_BAR_HEIGHT = 44;
 
 type HomeListItem =
-	| { kind: "dateHeader"; label: string }
-	| { kind: "workspace"; workspace: HostWorkspaceItem };
+	| {
+			kind: "projectHeader";
+			projectId: string;
+			name: string;
+			iconUrl?: string | null;
+			count: number;
+			collapsed: boolean;
+	  }
+	| { kind: "workspace"; workspace: HostWorkspaceItem }
+	| { kind: "note"; label: string };
 
 function homeListItemKey(item: HomeListItem): string {
-	return item.kind === "dateHeader"
-		? `date:${item.label}`
-		: `ws:${item.workspace.id}`;
+	switch (item.kind) {
+		case "projectHeader":
+			return `project:${item.projectId}`;
+		case "workspace":
+			return `ws:${item.workspace.id}`;
+		default:
+			return `note:${item.label}`;
+	}
 }
 
 export function HomeScreen() {
 	const router = useRouter();
 	const [sheetOpen, setSheetOpen] = useState(false);
-	const projectFilter = useWorkspacesFilterStore(
-		(store) => store.projectFilter,
-	);
 	const sort = useWorkspacesFilterStore((store) => store.sort);
+	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [visibleIds, setVisibleIds] = useState<string[]>([]);
 	const [refreshing, setRefreshing] = useState(false);
@@ -81,33 +99,18 @@ export function HomeScreen() {
 	const { projects } = useHostProjects(selectedHost);
 	const pullRequests = usePullRequests();
 
-	const sortedProjects = useMemo(
-		() => [...projects].sort((a, b) => a.name.localeCompare(b.name)),
-		[projects],
+	const collapsed = useCollapsedProjectsStore((state) => state.collapsed);
+	const collapseHydrated = useCollapsedProjectsStore(
+		(state) => state.hasHydrated,
+	);
+	const toggleProject = useCollapsedProjectsStore(
+		(state) => state.toggleProject,
 	);
 
-	// Default to where the user actually works — the most recently updated
-	// workspace's project — not the alphabetically first project.
-	const defaultProjectId = useMemo(() => {
-		let newest: HostWorkspaceItem | null = null;
-		for (const workspace of workspaces) {
-			if (!workspace.projectId) continue;
-			if (!newest || isAfter(workspace.updatedAt, newest.updatedAt)) {
-				newest = workspace;
-			}
-		}
-		return newest?.projectId ?? sortedProjects[0]?.id ?? null;
-	}, [workspaces, sortedProjects]);
+	const searching = searchQuery.trim().length > 0;
 
-	const selectedProjectId = projectFilter ?? defaultProjectId;
-
-	const projectNamesById = useMemo(
-		() => new Map(projects.map((project) => [project.id, project.name])),
-		[projects],
-	);
-
-	// Recency ranks a group by its latest activity — the newest of the
-	// workspace's own update and its terminals' activity.
+	// Recency ranks a workspace by its latest activity — the newest of its own
+	// update and its terminals'.
 	const activityTs = useCallback(
 		(workspace: HostWorkspaceItem) => {
 			const workspaceTs = new Date(workspace[sort]).getTime();
@@ -121,38 +124,9 @@ export function HomeScreen() {
 		[sort, terminalsByWorkspace],
 	);
 
-	const visibleWorkspaces = useMemo<HostWorkspaceItem[]>(() => {
-		const needle = searchQuery.trim().toLowerCase();
-		const sessionsMatch = (workspaceId: string) =>
-			(terminalsByWorkspace.get(workspaceId) ?? []).some((row) =>
-				row.title.toLowerCase().includes(needle),
-			);
-		// A record whose worktree folder is gone from the host's disk is a
-		// stale shell nothing can run in — not worth a list slot.
-		const withWorktree = workspaces.filter(
-			(workspace) => workspace.worktreeExists !== false,
-		);
-		const matches = needle
-			? withWorktree.filter(
-					(workspace) =>
-						workspace.name.toLowerCase().includes(needle) ||
-						workspace.branch.toLowerCase().includes(needle) ||
-						(
-							(workspace.projectId
-								? projectNamesById.get(workspace.projectId)
-								: undefined) ?? ""
-						)
-							.toLowerCase()
-							.includes(needle) ||
-						sessionsMatch(workspace.id),
-				)
-			: withWorktree.filter(
-					(workspace) =>
-						workspace.projectId === selectedProjectId &&
-						workspace.hostId === selectedHost?.machineId,
-				);
-		// Pinned first (oldest pin leads, desktop's ordering), then activity.
-		return matches.sort((a, b) => {
+	// Pinned first (oldest pin leads, desktop's ordering), then activity.
+	const byPinThenActivity = useCallback(
+		(a: HostWorkspaceItem, b: HostWorkspaceItem) => {
 			const aPin = pinnedAt[a.id];
 			const bPin = pinnedAt[b.id];
 			if (aPin !== undefined || bPin !== undefined) {
@@ -161,31 +135,147 @@ export function HomeScreen() {
 				return aPin - bPin;
 			}
 			return activityTs(b) - activityTs(a);
-		});
-	}, [
-		workspaces,
-		selectedProjectId,
-		selectedHost,
-		searchQuery,
-		projectNamesById,
-		terminalsByWorkspace,
-		activityTs,
-		pinnedAt,
-	]);
+		},
+		[pinnedAt, activityTs],
+	);
+
+	// A record whose worktree folder is gone from the host's disk is a stale
+	// shell nothing can run in — not worth a list slot.
+	const liveWorkspaces = useMemo(
+		() => workspaces.filter((workspace) => workspace.worktreeExists !== false),
+		[workspaces],
+	);
+
+	const projectNamesById = useMemo(
+		() => new Map(projects.map((project) => [project.id, project.name])),
+		[projects],
+	);
+
+	const matchesQuery = useCallback(
+		(workspace: HostWorkspaceItem) => {
+			const needle = searchQuery.trim().toLowerCase();
+			if (!needle) return true;
+			const sessions = terminalsByWorkspace.get(workspace.id) ?? [];
+			return (
+				workspace.name.toLowerCase().includes(needle) ||
+				workspace.branch.toLowerCase().includes(needle) ||
+				(
+					(workspace.projectId
+						? projectNamesById.get(workspace.projectId)
+						: undefined) ?? ""
+				)
+					.toLowerCase()
+					.includes(needle) ||
+				sessions.some((row) => row.title.toLowerCase().includes(needle))
+			);
+		},
+		[searchQuery, projectNamesById, terminalsByWorkspace],
+	);
 
 	const listItems = useMemo<HomeListItem[]>(() => {
 		const items: HomeListItem[] = [];
-		let lastGroup: string | null = null;
-		for (const workspace of visibleWorkspaces) {
-			const group = activityDateGroup(activityTs(workspace));
-			if (group !== lastGroup) {
-				items.push({ kind: "dateHeader", label: group });
-				lastGroup = group;
-			}
-			items.push({ kind: "workspace", workspace });
+		const onThisHost = liveWorkspaces.filter(
+			(workspace) => workspace.hostId === selectedHost?.machineId,
+		);
+
+		// Search reaches every project on this host but no further — the
+		// workspace query is per-host, so other machines aren't in memory to
+		// search. The count says "on this host" rather than implying otherwise.
+		const pool = searching ? onThisHost.filter(matchesQuery) : onThisHost;
+
+		if (searching) {
+			items.push({
+				kind: "note",
+				label: `${pool.length} ${pool.length === 1 ? "result" : "results"} on this host`,
+			});
 		}
+
+		// A project id the host no longer reports is as good as none: grouping
+		// under it would render the workspace nowhere, since sections come from
+		// the reported list. Also covers the beat where workspaces have loaded
+		// and projects haven't.
+		const knownProjectIds = new Set(projects.map((project) => project.id));
+		const byProject = new Map<string, HostWorkspaceItem[]>();
+		for (const workspace of pool) {
+			const projectId =
+				workspace.projectId && knownProjectIds.has(workspace.projectId)
+					? workspace.projectId
+					: "__none";
+			const group = byProject.get(projectId);
+			if (group) group.push(workspace);
+			else byProject.set(projectId, [workspace]);
+		}
+
+		const sections = projects
+			.map((project) => ({
+				project,
+				workspaces: (byProject.get(project.id) ?? []).sort(byPinThenActivity),
+			}))
+			// An empty section is a row that says nothing and does nothing — the
+			// composer's project picker is where you start work in a project that
+			// has none yet.
+			.filter((section) => section.workspaces.length > 0)
+			.sort((a, b) => {
+				// Sections rank by their liveliest workspace, so the project you
+				// were last in leads; empty ones fall to the bottom alphabetically.
+				const first = (section: (typeof sections)[number]) =>
+					section.workspaces[0];
+				const aFirst = first(a);
+				const bFirst = first(b);
+				const aTs = aFirst ? activityTs(aFirst) : 0;
+				const bTs = bFirst ? activityTs(bFirst) : 0;
+				if (aTs !== bTs) return bTs - aTs;
+				return a.project.name.localeCompare(b.project.name);
+			});
+
+		for (const section of sections) {
+			const isCollapsed =
+				!searching &&
+				collapseHydrated &&
+				!!collapsed[
+					collapsedProjectKey(selectedHost?.machineId ?? "", section.project.id)
+				];
+			items.push({
+				kind: "projectHeader",
+				projectId: section.project.id,
+				name: section.project.name,
+				iconUrl: section.project.iconUrl,
+				count: section.workspaces.length,
+				collapsed: isCollapsed,
+			});
+			if (isCollapsed) continue;
+			for (const workspace of section.workspaces) {
+				items.push({ kind: "workspace", workspace });
+			}
+		}
+
+		// Workspaces whose project the host no longer reports still need a home.
+		const orphans = (byProject.get("__none") ?? []).sort(byPinThenActivity);
+		if (orphans.length) {
+			items.push({
+				kind: "projectHeader",
+				projectId: "__none",
+				name: "No project",
+				count: orphans.length,
+				collapsed: false,
+			});
+			for (const workspace of orphans) {
+				items.push({ kind: "workspace", workspace });
+			}
+		}
+
 		return items;
-	}, [visibleWorkspaces, activityTs]);
+	}, [
+		liveWorkspaces,
+		selectedHost,
+		projects,
+		searching,
+		matchesQuery,
+		byPinThenActivity,
+		activityTs,
+		collapsed,
+		collapseHydrated,
+	]);
 
 	const workspacesById = useMemo(
 		() => new Map(workspaces.map((workspace) => [workspace.id, workspace])),
@@ -280,17 +370,26 @@ export function HomeScreen() {
 	);
 
 	const renderItem = useCallback(
-		({ item, index }: { item: HomeListItem; index: number }) => {
-			if (item.kind === "dateHeader") {
+		({ item }: { item: HomeListItem }) => {
+			if (item.kind === "note") {
 				return (
-					<Text
-						className={cn(
-							"text-muted-foreground px-4 pb-1 font-semibold text-xs",
-							index === 0 ? undefined : "mt-6",
-						)}
-					>
+					<Text className="text-muted-foreground px-4 pb-1 pt-3 font-semibold text-xs">
 						{item.label}
 					</Text>
+				);
+			}
+			if (item.kind === "projectHeader") {
+				return (
+					<ProjectSectionHeader
+						name={item.name}
+						iconUrl={item.iconUrl}
+						count={item.count}
+						collapsed={item.collapsed}
+						onToggle={() => {
+							void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+							toggleProject(selectedHost?.machineId ?? "", item.projectId);
+						}}
+					/>
 				);
 			}
 			const { workspace } = item;
@@ -321,6 +420,8 @@ export function HomeScreen() {
 			cache,
 			attentionByWorkspace,
 			terminalsByWorkspace,
+			toggleProject,
+			selectedHost,
 		],
 	);
 
@@ -328,6 +429,24 @@ export function HomeScreen() {
 		setSheetOpen(false);
 		switchOrganization(organizationId);
 	};
+
+	const scopeBar = (
+		<ScopeBar
+			hostName={selectedHost?.name ?? null}
+			hostOnline={selectedHost?.isOnline ?? false}
+			sortLabel={
+				SORT_OPTIONS.find((option) => option.value === sort)?.label ?? ""
+			}
+			onPressHost={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				router.push("/(authenticated)/(home)/filter/host");
+			}}
+			onPressSort={() => {
+				void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+				router.push("/(authenticated)/(home)/filter/sort");
+			}}
+		/>
+	);
 
 	return (
 		<>
@@ -354,15 +473,6 @@ export function HomeScreen() {
 				onChangeText={(event) => setSearchQuery(event.nativeEvent.text)}
 				onCancelButtonPress={() => setSearchQuery("")}
 			/>
-			<Stack.Toolbar placement="right">
-				<Stack.Toolbar.Button
-					icon="line.3.horizontal.decrease"
-					onPress={() => {
-						void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-						router.push("/(authenticated)/(home)/filter");
-					}}
-				/>
-			</Stack.Toolbar>
 			{selectedHost && !selectedHost.isOnline ? (
 				<View
 					className="bg-background flex-1"
@@ -371,6 +481,7 @@ export function HomeScreen() {
 							windowHeight - insets.top - NAVIGATION_BAR_HEIGHT - insets.bottom,
 					}}
 				>
+					{scopeBar}
 					<HostOfflineView hostName={selectedHost.name} />
 				</View>
 			) : (
@@ -387,18 +498,19 @@ export function HomeScreen() {
 					extraData={renderItem}
 					keyExtractor={homeListItemKey}
 					renderItem={renderItem}
+					ListHeaderComponent={scopeBar}
 					viewabilityConfig={VIEWABILITY_CONFIG}
 					onViewableItemsChanged={onViewableItemsChanged}
 					refreshControl={
 						<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
 					}
 					ListEmptyComponent={
-						isReady ? (
+						isReady && hasHydrated ? (
 							<View className="items-center justify-center py-20">
 								<Text className="text-center text-muted-foreground">
-									{searchQuery.trim()
+									{searching
 										? "No workspaces match your search"
-										: "No workspaces in this project yet"}
+										: "No projects on this host yet"}
 								</Text>
 							</View>
 						) : null

@@ -12,7 +12,6 @@ interface FileEditorContextMenuProps {
 	filePath: string;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
-	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
 	onEqualizePaneSplits?: () => void;
 	onClosePane: () => void;
@@ -28,7 +27,6 @@ export function FileEditorContextMenu({
 	filePath,
 	onSplitHorizontal,
 	onSplitVertical,
-	onSplitWithNewChat,
 	onSplitWithNewBrowser,
 	onEqualizePaneSplits,
 	onClosePane,
@@ -51,7 +49,6 @@ export function FileEditorContextMenu({
 			paneActions={{
 				onSplitHorizontal,
 				onSplitVertical,
-				onSplitWithNewChat,
 				onSplitWithNewBrowser,
 				onEqualizePaneSplits,
 				onClosePane,

@@ -119,3 +119,8 @@ parsable output; it's on by default under agent environments.
 - `docs/agent-tooling.md`: where commands, skills, and per-agent-CLI config live.
 - `apps/desktop/AGENTS.md`: desktop specifics (notices, persisted renderer state).
 - `apps/mobile/AGENTS.md`: mobile structure and iOS-only scope.
+- `docs/cloud-sandbox-mismatches.md`: where cloud workspace sandboxes don't fit assumptions the
+  app makes about a machine someone owns. Read it before touching sandboxes, and add to it when
+  you find a new one.
+- `docs/cloud-sandbox-considerations.md`: what cloud sandboxes still owe before they leave the
+  team — billing, credential blast radius, untested behaviour.

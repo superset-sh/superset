@@ -8,7 +8,6 @@ import {
 	useRef,
 	useState,
 } from "react";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { usePresets } from "renderer/react-query/presets";
 import { requestTabClose } from "renderer/stores/editor-state/editorCoordinator";
@@ -34,7 +33,6 @@ export function GroupStrip() {
 	const panes = useTabsStore((s) => s.panes);
 	const activeTabIds = useTabsStore((s) => s.activeTabIds);
 	const tabHistoryStacks = useTabsStore((s) => s.tabHistoryStacks);
-	const addChatTab = useTabsStore((s) => s.addChatTab);
 	const addBrowserTab = useTabsStore((s) => s.addBrowserTab);
 	const renameTab = useTabsStore((s) => s.renameTab);
 	const setActiveTab = useTabsStore((s) => s.setActiveTab);
@@ -43,8 +41,8 @@ export function GroupStrip() {
 	const reorderTabs = useTabsStore((s) => s.reorderTabs);
 	const setPaneStatus = useTabsStore((s) => s.setPaneStatus);
 
-	const setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
-	const setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
+	const _setTabAutoTitle = useTabsStore((s) => s.setTabAutoTitle);
+	const _setPaneAutoTitle = useTabsStore((s) => s.setPaneAutoTitle);
 	const navigate = useNavigate();
 	const { data: workspace } = electronTrpc.workspaces.get.useQuery(
 		{ id: activeWorkspaceId ?? "" },
@@ -116,69 +114,9 @@ export function GroupStrip() {
 		return result;
 	}, [panes]);
 
-	// Sync chat session titles → tab and pane names for chat panes in this workspace
-	const chatSessionTargets = useMemo(() => {
-		const map = new Map<
-			string,
-			{ tabIds: Set<string>; paneIds: Set<string> }
-		>();
-		for (const pane of Object.values(panes)) {
-			if (pane.type === "chat" && pane.chat?.sessionId) {
-				const tab = tabs.find((t) => t.id === pane.tabId);
-				if (!tab) continue;
-				const sessionId = pane.chat.sessionId;
-				const existing = map.get(sessionId) ?? {
-					tabIds: new Set<string>(),
-					paneIds: new Set<string>(),
-				};
-				existing.tabIds.add(tab.id);
-				existing.paneIds.add(pane.id);
-				map.set(sessionId, existing);
-			}
-		}
-		return map;
-	}, [panes, tabs]);
-	const targetSessionIds = useMemo(
-		() => Array.from(chatSessionTargets.keys()),
-		[chatSessionTargets],
-	);
-	const shouldSyncChatTitles =
-		Boolean(activeWorkspaceId) && targetSessionIds.length > 0;
-
-	const { data: chatSessions = [] } = cloudTrpc.chat.listSessions.useQuery(
-		{ sessionIds: targetSessionIds },
-		{ refetchInterval: 30_000, enabled: shouldSyncChatTitles },
-	);
-
-	useEffect(() => {
-		if (!shouldSyncChatTitles) return;
-		for (const session of chatSessions) {
-			const target = chatSessionTargets.get(session.id);
-			const title = session.title?.trim();
-			if (!target || !title) continue;
-			for (const tabId of target.tabIds) {
-				setTabAutoTitle(tabId, title);
-			}
-			for (const paneId of target.paneIds) {
-				setPaneAutoTitle(paneId, title);
-			}
-		}
-	}, [
-		chatSessions,
-		chatSessionTargets,
-		setPaneAutoTitle,
-		setTabAutoTitle,
-		shouldSyncChatTitles,
-	]);
-
 	const handleAddGroup = () => {
 		if (!activeWorkspaceId) return;
 		addTab(activeWorkspaceId);
-	};
-
-	const handleAddChat = () => {
-		if (!activeWorkspaceId) return;
-		addChatTab(activeWorkspaceId);
 	};
 
 	const handleAddBrowser = () => {
@@ -276,7 +214,6 @@ export function GroupStrip() {
 			onDropToNewTab={movePaneToNewTab}
 			isLastPaneInTab={checkIsLastPaneInTab}
 			onAddTerminal={handleAddGroup}
-			onAddChat={handleAddChat}
 			onAddBrowser={handleAddBrowser}
 			onOpenPreset={handleOpenPreset}
 			onConfigurePresets={handleOpenPresetsSettings}

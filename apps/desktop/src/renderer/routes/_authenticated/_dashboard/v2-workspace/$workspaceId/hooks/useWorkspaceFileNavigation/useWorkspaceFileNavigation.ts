@@ -3,7 +3,9 @@ import { workspaceTrpc } from "@superset/workspace-client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { V2UserPreferencesApi } from "renderer/hooks/useV2UserPreferences";
 import { useWorkspace } from "renderer/routes/_authenticated/_dashboard/v2-workspace/providers/WorkspaceProvider";
+import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
 import {
+	isWithinWorkspacePath,
 	toAbsoluteWorkspacePath,
 	toRelativeWorkspacePath,
 } from "shared/absolute-paths";
@@ -14,6 +16,7 @@ import {
 	type RecentFile,
 	useRecentlyViewedFiles,
 } from "../useRecentlyViewedFiles";
+import { useRevealInFinder } from "../useRevealInFinder";
 
 interface PendingReveal {
 	path: string;
@@ -49,6 +52,8 @@ export function useWorkspaceFileNavigation({
 	const worktreePath = workspaceQuery.data?.worktreePath ?? "";
 
 	const { recentFiles, recordView } = useRecentlyViewedFiles(workspace.id);
+	const revealInFinder = useRevealInFinder(workspace.id);
+	const collections = useCollections();
 
 	const activeFilePanePath = useStore(store, (state) => {
 		const tab = state.tabs.find(
@@ -178,12 +183,34 @@ export function useWorkspaceFileNavigation({
 
 	const revealPath = useCallback(
 		(path: string, options?: { isDirectory?: boolean }) => {
+			const isDirectory = options?.isDirectory === true;
+			// The sidebar file tree only spans the worktree; paths outside it
+			// (e.g. a ~/some/dir link from the terminal) are revealed in Finder.
+			if (worktreePath && !isWithinWorkspacePath(worktreePath, path)) {
+				revealInFinder(path, { isDirectory });
+				return;
+			}
 			setRightSidebarOpen(true);
 			setRightSidebarTab("files");
+			// The workspace sidebar reads its active tab from per-workspace local
+			// state, not the global preference above — switch it too, or the
+			// reveal lands behind the Changes tab.
+			if (collections.v2WorkspaceLocalState.get(workspace.id)) {
+				collections.v2WorkspaceLocalState.update(workspace.id, (draft) => {
+					draft.sidebarState.activeTab = "files";
+				});
+			}
 			setSelectedFilePath(path);
-			setPendingReveal({ path, isDirectory: options?.isDirectory === true });
+			setPendingReveal({ path, isDirectory });
 		},
-		[setRightSidebarOpen, setRightSidebarTab],
+		[
+			setRightSidebarOpen,
+			setRightSidebarTab,
+			worktreePath,
+			revealInFinder,
+			collections,
+			workspace.id,
+		],
 	);
 
 	return {

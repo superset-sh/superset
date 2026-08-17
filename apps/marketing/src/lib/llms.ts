@@ -1,10 +1,10 @@
 import { COMPANY } from "@superset/shared/constants";
 import { FAQ_ITEMS } from "@/app/components/FAQSection/constants";
+import { API_URL, MCP_SERVER_URL } from "./api-url";
 import { getBlogPosts } from "./blog";
 import { getComparisonPages } from "./compare";
 
-export const API_URL = "https://api.superset.sh";
-export const MCP_SERVER_URL = `${API_URL}/mcp`;
+export { API_URL, MCP_SERVER_URL };
 
 export function stripMdxSyntax(content: string): string {
 	return (

@@ -8,6 +8,9 @@ export type GithubStarState = "starred" | "not_starred" | "unknown";
 const STARRED_REPO_PATH = "user/starred/superset-sh/superset";
 // A hung `gh` process must not leave the query/mutation pending forever —
 // both callers already treat any failure as a safe "unknown"/false outcome.
+// This only bounds the `gh` call itself: execWithShellEnv resolves the shell
+// environment first, which has its own ~8s timeout (shell-env.ts) on a cache
+// miss — worst case end-to-end is closer to 18s, not 10s.
 const GH_CALL_TIMEOUT_MS = 10_000;
 
 /**

@@ -1,4 +1,9 @@
 import {
+	setupSingleAgent,
+	teardownSingleAgent,
+	writeSharedDisabledAgentIds,
+} from "@superset/agent-setup";
+import {
 	type AgentCustomDefinition,
 	type AgentPresetOverrideEnvelope,
 	BRANCH_PREFIX_MODES,
@@ -37,7 +42,6 @@ import { TRPCError } from "@trpc/server";
 import { app } from "electron";
 import { env } from "main/env.main";
 import { exitImmediately } from "main/index";
-import { setupSingleAgent, teardownSingleAgent } from "main/lib/agent-setup";
 import { hasCustomRingtone } from "main/lib/custom-ringtones";
 import { getHostServiceCoordinator } from "main/lib/host-service-coordinator";
 import { localDb } from "main/lib/local-db";
@@ -374,7 +378,6 @@ export const createSettingsRouter = () => {
 				}
 
 				const normalizedPatch = normalizeAgentPresetPatch({
-					definition,
 					patch: input.patch,
 				});
 				const nextOverrides = createOverrideEnvelopeWithPatch({
@@ -1102,6 +1105,7 @@ export const createSettingsRouter = () => {
 							set: { disabledAgentHooks: next },
 						})
 						.run();
+					writeSharedDisabledAgentIds(next);
 				}
 				const ran = setupSingleAgent(input.agentId);
 				return { ran };
@@ -1135,6 +1139,7 @@ export const createSettingsRouter = () => {
 						set: { disabledAgentHooks: next },
 					})
 					.run();
+				writeSharedDisabledAgentIds(next);
 
 				const ran = input.enabled
 					? setupSingleAgent(input.agentId)

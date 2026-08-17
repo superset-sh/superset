@@ -1,1 +1,4 @@
-export { useNewWorkspacePromptCardsVariant } from "./useNewWorkspacePromptCardsVariant";
+export {
+	type PromptCardsVariant,
+	useNewWorkspacePromptCardsVariant,
+} from "./useNewWorkspacePromptCardsVariant";

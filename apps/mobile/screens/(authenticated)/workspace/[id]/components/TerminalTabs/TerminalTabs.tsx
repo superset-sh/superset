@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react-native";
+import { List, Plus } from "lucide-react-native";
 import { Alert, Pressable, ScrollView, View } from "react-native";
 import { Text } from "@/components/ui/text";
 import { useTheme } from "@/hooks/useTheme";
@@ -12,19 +12,22 @@ interface TerminalTabsProps {
 	activeTerminalId: string | null;
 	onSelect: (terminalId: string) => void;
 	onAdd: () => void;
+	onManage: () => void;
 	onClose: (terminalId: string) => void;
 }
 
 /**
  * The workspace's sessions as iOS-style pill chips (Safari tab bar, not
  * browser tabs): agent mark + name, active chip filled, closing via
- * long-press. The trailing circular + opens the new-session sheet.
+ * long-press. The trailing buttons open the sessions sheet (reorder, close)
+ * and the new-session sheet.
  */
 export function TerminalTabs({
 	rows,
 	activeTerminalId,
 	onSelect,
 	onAdd,
+	onManage,
 	onClose,
 }: TerminalTabsProps) {
 	const theme = useTheme();
@@ -86,6 +89,13 @@ export function TerminalTabs({
 					);
 				})}
 			</ScrollView>
+			<Pressable
+				onPress={onManage}
+				accessibilityLabel="Manage sessions"
+				className="bg-secondary/40 size-7 items-center justify-center rounded-md active:opacity-60"
+			>
+				<List size={15} color={theme.foreground} strokeWidth={2.25} />
+			</Pressable>
 			<Pressable
 				onPress={onAdd}
 				accessibilityLabel="New session"

@@ -1,6 +1,9 @@
 import type { SelectV2Workspace } from "@superset/db/schema";
 import { buildHostRoutingKey } from "@superset/shared/host-routing";
-import type { WorkspaceSnapshotPayload } from "@superset/workspace-client";
+import type {
+	HostConnectionState,
+	WorkspaceSnapshotPayload,
+} from "@superset/workspace-client";
 import { get as idbGet, set as idbSet } from "idb-keyval";
 
 /**
@@ -46,6 +49,12 @@ export interface HostWorkspacesQueryTarget {
 	/** Null when the host is known but unreachable (offline remote). */
 	hostUrl: string | null;
 	isLocal: boolean;
+	/**
+	 * A cloud workspace's sandbox, addressed by a brokered URL rather than by
+	 * machine identity. Its `machineId` is the cloud workspace's own id — the
+	 * sandbox reports an internal one that means nothing to this client.
+	 */
+	isSandbox?: boolean;
 }
 
 export interface HostRowForTargets {
@@ -79,6 +88,7 @@ export function deriveHostWorkspacesQueryTargets({
 	machineId,
 	relayUrl,
 	fallbackOrganizationId,
+	sandboxes = [],
 }: {
 	activeHostUrl: string | null;
 	hosts: HostRowForTargets[];
@@ -86,6 +96,12 @@ export function deriveHostWorkspacesQueryTargets({
 	relayUrl: string;
 	/** Org for the synthesized local target — see derivePullRequestQueryTargets. */
 	fallbackOrganizationId?: string | null;
+	/** Cloud workspaces whose sandbox currently has a brokered address. */
+	sandboxes?: Array<{
+		workspaceId: string;
+		organizationId: string;
+		url: string;
+	}>;
 }): HostWorkspacesQueryTarget[] {
 	const targets: HostWorkspacesQueryTarget[] = hosts.map((host) => {
 		const isLocal = host.machineId === machineId;
@@ -114,6 +130,16 @@ export function deriveHostWorkspacesQueryTargets({
 			organizationId: hosts[0]?.organizationId ?? fallbackOrganizationId ?? "",
 			hostUrl: activeHostUrl,
 			isLocal: true,
+		});
+	}
+
+	for (const sandbox of sandboxes) {
+		targets.push({
+			machineId: sandbox.workspaceId,
+			organizationId: sandbox.organizationId,
+			hostUrl: sandbox.url,
+			isLocal: false,
+			isSandbox: true,
 		});
 	}
 
@@ -154,6 +180,22 @@ export function saveHostWorkspacesSnapshot(
 ): void {
 	if (!organizationId) return;
 	void idbSet(snapshotKey(organizationId, machineId), rows).catch(() => {});
+}
+
+/**
+ * Whether a connection-status transition means the socket came back up after
+ * being down. Events broadcast while down are unrecoverable (the bus has no
+ * replay), so every open after the first is a potential gap and the host's
+ * mirrors must resync. Keyed on "has opened before", not the previous state:
+ * a manual `reconnect()` publishes "connecting" (same as the initial dial)
+ * before reopening, so state pairs can't distinguish retry from boot. The
+ * first open is not a reopen — the queries' first fetch covers it.
+ */
+export function isEventBusReopen(
+	hasOpenedBefore: boolean,
+	next: HostConnectionState,
+): boolean {
+	return next === "open" && hasOpenedBefore;
 }
 
 /**

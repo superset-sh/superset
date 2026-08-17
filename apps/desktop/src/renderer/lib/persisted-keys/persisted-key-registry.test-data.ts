@@ -65,7 +65,6 @@ export const PERSISTED_KEY_REGISTRY: ReadonlyArray<
 	],
 	["src/renderer/stores/ringtone/store.ts", ["ringtone-storage"]],
 	["src/renderer/stores/settings.ts", ["settings"]],
-	["src/renderer/stores/chat-preferences/store.ts", ["chat-preferences"]],
 	[
 		"src/renderer/stores/markdown-preferences/store.ts",
 		["markdown-preferences"],

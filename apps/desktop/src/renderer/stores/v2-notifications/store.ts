@@ -5,9 +5,7 @@ import { devtools, persist } from "zustand/middleware";
 export type V2NotificationPaneLike = Pick<Pane<unknown>, "kind" | "data">;
 export type V2NotificationTabLike = Pick<Tab<unknown>, "panes">;
 
-export type V2NotificationSource =
-	| { type: "terminal"; id: string }
-	| { type: "chat"; id: string };
+export type V2NotificationSource = { type: "terminal"; id: string };
 
 export type V2NotificationSourceKey =
 	`${V2NotificationSource["type"]}:${string}`;
@@ -150,8 +148,6 @@ export function getV2NotificationSourcesForPane(
 ): V2NotificationSource[] {
 	const terminalId = getTerminalIdForPane(pane);
 	if (terminalId) return [getV2TerminalNotificationSource(terminalId)];
-	const chatId = getChatIdForPane(pane);
-	if (chatId) return [{ type: "chat", id: chatId }];
 	return [];
 }
 
@@ -175,13 +171,4 @@ function getTerminalIdForPane(
 	if (!pane.data || typeof pane.data !== "object") return null;
 	const terminalId = (pane.data as { terminalId?: unknown }).terminalId;
 	return typeof terminalId === "string" && terminalId ? terminalId : null;
-}
-
-function getChatIdForPane(
-	pane: V2NotificationPaneLike | null | undefined,
-): string | null {
-	if (!pane || pane.kind !== "chat") return null;
-	if (!pane.data || typeof pane.data !== "object") return null;
-	const sessionId = (pane.data as { sessionId?: unknown }).sessionId;
-	return typeof sessionId === "string" && sessionId ? sessionId : null;
 }

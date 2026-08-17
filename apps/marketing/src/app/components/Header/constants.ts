@@ -23,6 +23,11 @@ export const PRODUCT_LINKS: NavLink[] = [
 		label: "Roadmap",
 		description: "What we're building now and next.",
 	},
+	{
+		href: "/mcp-install",
+		label: "MCP",
+		description: "Connect any AI agent to Superset.",
+	},
 ];
 
 export const RESOURCE_LINKS: NavLink[] = [

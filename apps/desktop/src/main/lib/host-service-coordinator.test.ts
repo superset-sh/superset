@@ -571,6 +571,7 @@ describe("HostServiceCoordinator single-flight / adoption", () => {
 			status: "running",
 			owned: true,
 		});
+		manifestStore.current = baseManifest(4321);
 
 		coordinator.stop("org-1");
 
@@ -873,6 +874,111 @@ describe("HostServiceCoordinator respawn after a crash", () => {
 
 		// The freshly started child must not be left running past teardown.
 		expect(stopSpy).toHaveBeenCalledWith("org-1");
+	});
+});
+
+describe("HostServiceCoordinator.stop manifest ownership", () => {
+	let coordinator: InstanceType<typeof HostServiceCoordinator>;
+	let internals: { instances: Map<string, unknown> };
+
+	function trackOwned(
+		pid: number,
+		status: "running" | "starting" = "running",
+	): void {
+		internals.instances.set("org-1", {
+			pid,
+			port: 55555,
+			secret: "secret",
+			status,
+			spawnedAt: Date.now(),
+			outputTail: "",
+			redactions: ["secret"],
+			owned: true,
+		});
+	}
+
+	beforeEach(() => {
+		resetMocks();
+		testManifestRoot = fs.mkdtempSync(path.join(os.tmpdir(), "hsc-test-"));
+		coordinator = new HostServiceCoordinator();
+		internals = coordinator as unknown as typeof internals;
+		coordinator.setConfigProvider(async () => spawnConfig);
+	});
+
+	afterEach(() => {
+		coordinator.stopAll();
+		if (testManifestRoot) {
+			fs.rmSync(testManifestRoot, { recursive: true, force: true });
+			testManifestRoot = "";
+		}
+	});
+
+	test("removes the manifest our own child wrote", () => {
+		trackOwned(4242);
+		manifestStore.current = baseManifest(4242);
+
+		coordinator.stop("org-1");
+
+		expect(removeManifestMock).toHaveBeenCalled();
+		expect(manifestStore.current).toBeNull();
+	});
+
+	test("leaves a manifest claimed by another live instance, but still kills our child", () => {
+		trackOwned(4242);
+		manifestStore.current = baseManifest(9999);
+
+		coordinator.stop("org-1");
+
+		expect(removeManifestMock).not.toHaveBeenCalled();
+		expect(manifestStore.current?.pid).toBe(9999);
+		expect(killedPids).toEqual([{ pid: 4242, signal: "SIGTERM" }]);
+	});
+
+	test("leaves an unreadable manifest alone (a torn read of a concurrent claim must not be deleted)", () => {
+		trackOwned(4242);
+		manifestStore.current = null;
+
+		coordinator.stop("org-1");
+
+		expect(removeManifestMock).not.toHaveBeenCalled();
+	});
+
+	test("handleChildExit removes only a manifest the dead child held", () => {
+		const internalsWithExit = coordinator as unknown as {
+			instances: Map<string, unknown>;
+			handleChildExit(
+				organizationId: string,
+				childPid: number,
+				code: number | null,
+				signal: NodeJS.Signals | null,
+			): void;
+		};
+		trackOwned(4242, "starting");
+		manifestStore.current = baseManifest(9999);
+
+		internalsWithExit.handleChildExit("org-1", 4242, null, "SIGKILL");
+
+		expect(removeManifestMock).not.toHaveBeenCalled();
+		expect(manifestStore.current?.pid).toBe(9999);
+	});
+
+	test("handleChildExit removes the dead child's own manifest", () => {
+		const internalsWithExit = coordinator as unknown as {
+			instances: Map<string, unknown>;
+			handleChildExit(
+				organizationId: string,
+				childPid: number,
+				code: number | null,
+				signal: NodeJS.Signals | null,
+			): void;
+		};
+		trackOwned(4242, "starting");
+		manifestStore.current = baseManifest(4242);
+
+		internalsWithExit.handleChildExit("org-1", 4242, null, "SIGKILL");
+
+		expect(removeManifestMock).toHaveBeenCalled();
+		expect(manifestStore.current).toBeNull();
 	});
 });
 

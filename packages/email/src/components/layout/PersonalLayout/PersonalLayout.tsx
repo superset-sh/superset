@@ -74,13 +74,19 @@ export function PersonalLayout({
 								color: "#8E8E8E",
 							}}
 						>
-							Superset, Inc., San Francisco, CA &middot;{" "}
-							<Link
-								href={unsubscribeUrl ?? "https://superset.sh/contact"}
-								style={{ color: "#8E8E8E", textDecoration: "underline" }}
-							>
-								Unsubscribe
-							</Link>
+							Superset, Inc., San Francisco, CA
+							{unsubscribeUrl ? (
+								<>
+									{" "}
+									&middot;{" "}
+									<Link
+										href={unsubscribeUrl}
+										style={{ color: "#8E8E8E", textDecoration: "underline" }}
+									>
+										Unsubscribe
+									</Link>
+								</>
+							) : null}
 						</Text>
 					</Container>
 				</Body>

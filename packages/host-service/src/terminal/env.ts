@@ -35,6 +35,21 @@ import { getShellBootstrapEnv } from "./shell-launch.ts";
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedMacosSystemCertAvailable: boolean | null = null;
 
+/**
+ * Agent credentials, forwarded to terminals in sandbox mode only.
+ *
+ * The rule everywhere else is that PTY env comes from a login-shell snapshot
+ * and never from this process — a local machine's host-service env is
+ * Electron's, and leaking it into every terminal would hand agents things
+ * they have no business reading. A sandbox has no user, no rc files and no
+ * login shell, so the process env is the *only* way a credential can arrive,
+ * and these keys are exactly what was provisioned for the agents to use.
+ *
+ * Read from `process.env` rather than the validated `env` so that importing
+ * this module doesn't require a fully-populated host environment.
+ */
+const SANDBOX_AGENT_CREDENTIAL_KEYS = ["ANTHROPIC_API_KEY", "OPENAI_API_KEY"];
+
 function hasMacosSystemCertBundle(): boolean {
 	if (cachedMacosSystemCertAvailable !== null) {
 		return cachedMacosSystemCertAvailable;
@@ -249,6 +264,13 @@ export function buildV2TerminalEnv(
 
 	if (supersetHomeDir) {
 		env.SUPERSET_HOME_DIR = supersetHomeDir;
+	}
+
+	if (process.env.SUPERSET_HOST_RUN_MODE === "sandbox") {
+		for (const key of SANDBOX_AGENT_CREDENTIAL_KEYS) {
+			const value = process.env[key];
+			if (value) env[key] = value;
+		}
 	}
 
 	// Electron child processes can't access macOS Keychain for TLS cert verification,

@@ -24,6 +24,7 @@ delete process.env.SUPERSET_API_KEY;
 afterEach(() => {
 	clearConfig();
 	delete process.env.SUPERSET_API_KEY;
+	delete process.env.SUPERSET_ORGANIZATION_ID;
 });
 
 afterAll(() => {
@@ -110,6 +111,19 @@ describe("resolveAuth", () => {
 		const result = await resolveAuth(undefined);
 		expect(result.bearer).toBe("sk_live_env");
 		expect(result.authSource).toBe("override");
+	});
+
+	it("overrides the stored org with SUPERSET_ORGANIZATION_ID", async () => {
+		writeConfig({ apiKey: "sk_live_stored", organizationId: "org_stored" });
+		process.env.SUPERSET_ORGANIZATION_ID = "org_env";
+		const result = await resolveAuth(undefined);
+		expect(result.config.organizationId).toBe("org_env");
+	});
+
+	it("keeps the stored org when SUPERSET_ORGANIZATION_ID is unset", async () => {
+		writeConfig({ apiKey: "sk_live_stored", organizationId: "org_stored" });
+		const result = await resolveAuth(undefined);
+		expect(result.config.organizationId).toBe("org_stored");
 	});
 
 	it("prefers a stored apiKey over a stored OAuth session", async () => {

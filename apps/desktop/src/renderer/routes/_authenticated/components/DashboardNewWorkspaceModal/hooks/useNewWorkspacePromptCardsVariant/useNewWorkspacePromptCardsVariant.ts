@@ -3,10 +3,23 @@ import { usePostHog } from "posthog-js/react";
 import { useLayoutEffect, useState } from "react";
 
 /**
- * Assigns the prompt-cards arm for the new-workspace screen. Same imperative
- * `getFeatureFlag` shape as `useNewWorkspaceScreenVariant`: exposure fires only
- * once the screen is actually open, and only after flags have loaded — reading
- * the flag earlier returns undefined, which would show control to a test user.
+ * Arms of the new-workspace prompt form-factor experiment:
+ * - `control`  three inline prompt rows (what ships today)
+ * - `cards2`   two cards above the composer
+ * - `cards4`   four cards in a 2x2 grid
+ *
+ * The prompt sets are nested prefixes of one fixed pool, so the only thing
+ * that varies is form factor. `cards2` vs `cards4` is the decision-paralysis
+ * question — read it as "do the extra two prompts earn their slot", since
+ * count and the marginal prompts' quality move together.
+ */
+export type PromptCardsVariant = "control" | "cards2" | "cards4";
+
+/**
+ * Assigns the prompt-cards arm. Same imperative `getFeatureFlag` shape as
+ * `useNewWorkspaceScreenVariant`: exposure fires only once the screen is
+ * actually open, and only after flags have loaded — reading the flag earlier
+ * returns undefined, which would show control to a test user.
  *
  * Both flags are read inside the loaded callback rather than through
  * `useFeatureFlagEnabled`: that hook returns undefined until its own passive
@@ -21,9 +34,9 @@ import { useLayoutEffect, useState } from "react";
  */
 export function useNewWorkspacePromptCardsVariant(
 	isOpen: boolean,
-): "control" | "test" | null {
+): PromptCardsVariant | null {
 	const posthog = usePostHog();
-	const [variant, setVariant] = useState<"control" | "test" | null>(null);
+	const [variant, setVariant] = useState<PromptCardsVariant | null>(null);
 
 	useLayoutEffect(() => {
 		if (!isOpen) return;
@@ -33,13 +46,13 @@ export function useNewWorkspacePromptCardsVariant(
 					FEATURE_FLAGS.NEW_WORKSPACE_PROMPT_CARDS_OVERRIDE,
 				)
 			) {
-				setVariant("test");
+				setVariant("cards2");
 				return;
 			}
 			const value = posthog.getFeatureFlag(
 				FEATURE_FLAGS.NEW_WORKSPACE_PROMPT_CARDS,
 			);
-			setVariant(value === "test" ? "test" : "control");
+			setVariant(value === "cards2" || value === "cards4" ? value : "control");
 		};
 		const unsubscribe = posthog.onFeatureFlags(evaluate);
 		const fallback = window.setTimeout(

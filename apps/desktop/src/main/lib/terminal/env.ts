@@ -1,13 +1,13 @@
 import { exec } from "node:child_process";
 import fs from "node:fs";
 import os from "node:os";
+import { getShellEnv } from "@superset/agent-setup/shell-wrappers";
 import {
 	TERMINAL_TERM_PROGRAM,
 	TERMINAL_TERM_PROGRAM_VERSION,
 } from "@superset/shared/constants";
 import defaultShell from "default-shell";
 import { env } from "shared/env.shared";
-import { getShellEnv } from "../agent-setup/shell-wrappers";
 
 const MACOS_SYSTEM_CERT_FILE = "/etc/ssl/cert.pem";
 let cachedUtf8Locale: string | null = null;

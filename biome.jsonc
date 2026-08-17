@@ -90,7 +90,6 @@
 			// Legacy on-loop sync-subprocess call sites, frozen by the
 			// no-*-blocking ratchet tests — delete entries here as they're fixed.
 			"includes": [
-				"apps/desktop/src/main/lib/agent-setup/utils.ts",
 				"apps/desktop/src/main/lib/terminal-host/client.ts",
 				"packages/provider-auth/src/server/auth/anthropic/anthropic.ts",
 				"packages/host-service/src/providers/model-providers/LocalModelProvider/utils/resolveAnthropicCredential.ts",

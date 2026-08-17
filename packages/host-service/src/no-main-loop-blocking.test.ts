@@ -31,10 +31,7 @@ const RULES: Rule[] = [
 	{
 		name: "sync subprocess (execSync/spawnSync/execFileSync)",
 		pattern: /\b(execSync|spawnSync|execFileSync)\b/,
-		allowedCounts: {
-			// Reads a shell-configured credential command at provider init.
-			"providers/model-providers/LocalModelProvider/utils/resolveAnthropicCredential.ts": 2,
-		},
+		allowedCounts: {},
 		advice:
 			"Sync subprocesses freeze this org's only event loop until the child exits — every tRPC response, status poll, and watcher callback queues behind it. Prefer async spawn/execFile: the caller awaits the same result, but the loop keeps serving while the child runs. Git reads belong in a worker task (workers/tasks/git.ts via getHostWorkerPool()).",
 	},

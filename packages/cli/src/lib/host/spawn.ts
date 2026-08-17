@@ -8,6 +8,7 @@ import {
 	openRotatingLogFd,
 } from "@superset/shared/rotating-log";
 import type { ApiClient } from "../api-client";
+import { SUPERSET_HOME_DIR } from "../config";
 import { env, isDesktopBundled } from "../env";
 import {
 	ensureManifestDir,
@@ -144,6 +145,11 @@ export async function spawnHostService(
 			HOST_SERVICE_SECRET: secret,
 			HOST_DB_PATH: hostDbPath(options.organizationId),
 			HOST_MIGRATIONS_FOLDER: migrationsFolder,
+			// The desktop injects this into hosts it spawns
+			// (host-service-coordinator.ts); without it the host's PTYs get no
+			// SUPERSET_HOME_DIR and every managed agent hook self-disables on
+			// its own guard (#6254).
+			SUPERSET_HOME_DIR,
 		},
 	});
 

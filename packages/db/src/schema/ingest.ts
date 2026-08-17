@@ -22,8 +22,10 @@ export const webhookEvents = ingestSchema.table(
 		eventId: text("event_id").notNull(),
 		eventType: text("event_type"),
 
-		// Raw payload
-		payload: jsonb().notNull(),
+		// Raw payload, kept only for debugging recent deliveries. Nothing reads it
+		// back; it is nulled once the row ages out so this table stops growing
+		// without bound. NULL means pruned, not "arrived empty".
+		payload: jsonb(),
 
 		// Processing state
 		status: text().notNull().default("pending"), // pending | processed | failed | skipped

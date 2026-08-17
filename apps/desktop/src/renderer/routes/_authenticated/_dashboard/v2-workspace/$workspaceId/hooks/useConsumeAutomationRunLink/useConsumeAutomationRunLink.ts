@@ -1,30 +1,27 @@
 import type { WorkspaceStore } from "@superset/panes";
 import { workspaceTrpc } from "@superset/workspace-client";
-import { useEffect, useMemo, useRef } from "react";
-import { cloudTrpc } from "renderer/lib/cloud-trpc";
+import { useEffect, useRef } from "react";
 import type { StoreApi } from "zustand/vanilla";
-import type { ChatPaneData, PaneViewerData } from "../../types";
+import type { PaneViewerData } from "../../types";
 import { focusOrAddTerminalPane } from "../../utils/focusTerminalPane";
 
 interface UseConsumeAutomationRunLinkArgs {
 	store: StoreApi<WorkspaceStore<PaneViewerData>>;
 	workspaceId: string;
 	terminalId: string | undefined;
-	chatSessionId: string | undefined;
 	focusRequestId: string | undefined;
 }
 
 /**
  * When the workspace is opened via a deep link from an automation run
- * (`?terminalId=...` or `?chatSessionId=...`), ensure the corresponding pane
- * is present and focused. The underlying session already exists on the
- * host-service from the dispatcher — we just re-adopt it in the pane store.
+ * (`?terminalId=...`), ensure the corresponding pane is present and focused.
+ * The underlying session already exists on the host-service from the
+ * dispatcher — we just re-adopt it in the pane store.
  */
 export function useConsumeAutomationRunLink({
 	store,
 	workspaceId,
 	terminalId,
-	chatSessionId,
 	focusRequestId,
 }: UseConsumeAutomationRunLinkArgs): void {
 	const consumedRef = useRef<Set<string>>(new Set());
@@ -35,17 +32,6 @@ export function useConsumeAutomationRunLink({
 			refetchOnWindowFocus: false,
 		},
 	);
-	const { data: chatSessionRows = [], isPending: chatSessionsPending } =
-		cloudTrpc.chat.listSessions.useQuery(
-			{ sessionIds: chatSessionId != null ? [chatSessionId] : [] },
-			{ enabled: chatSessionId != null },
-		);
-	const chatSession = useMemo(
-		() =>
-			chatSessionRows.find((session) => session.id === chatSessionId) ?? null,
-		[chatSessionRows, chatSessionId],
-	);
-
 	useEffect(() => {
 		if (!terminalId) return;
 		if (!terminalSessionsQuery.isSuccess) return;
@@ -78,34 +64,6 @@ export function useConsumeAutomationRunLink({
 		terminalSessionsQuery.data,
 		workspaceId,
 	]);
-
-	useEffect(() => {
-		if (!chatSessionId) return;
-		if (chatSessionsPending) return;
-		if (!chatSession) return;
-		const key = getAutomationRunLinkConsumeKey({
-			type: "chat",
-			id: chatSessionId,
-			focusRequestId,
-		});
-		if (consumedRef.current.has(key)) return;
-		consumedRef.current.add(key);
-		if (!chatSessionBelongsToWorkspace({ chatSession, workspaceId })) {
-			console.warn(
-				"[automation-run-link] Ignoring chat link for another workspace",
-				{ chatSessionId, workspaceId },
-			);
-			return;
-		}
-		focusOrAddChatPane(store, chatSessionId);
-	}, [
-		store,
-		chatSessionId,
-		focusRequestId,
-		chatSession,
-		chatSessionsPending,
-		workspaceId,
-	]);
 }
 
 export function getAutomationRunLinkConsumeKey({
@@ -113,7 +71,7 @@ export function getAutomationRunLinkConsumeKey({
 	id,
 	focusRequestId,
 }: {
-	type: "terminal" | "chat";
+	type: "terminal";
 	id: string;
 	focusRequestId: string | undefined;
 }): string {
@@ -135,40 +93,4 @@ export function terminalSessionBelongsToWorkspace({
 		(session) =>
 			session.terminalId === terminalId && session.workspaceId === workspaceId,
 	);
-}
-
-export function chatSessionBelongsToWorkspace({
-	chatSession,
-	workspaceId,
-}: {
-	chatSession: { v2WorkspaceId: string | null } | null;
-	workspaceId: string;
-}): boolean {
-	return chatSession?.v2WorkspaceId === workspaceId;
-}
-
-function focusOrAddChatPane(
-	store: StoreApi<WorkspaceStore<PaneViewerData>>,
-	sessionId: string,
-): void {
-	const state = store.getState();
-	for (const tab of state.tabs) {
-		for (const pane of Object.values(tab.panes)) {
-			if (pane.kind !== "chat") continue;
-			const data = pane.data as ChatPaneData;
-			if (data.sessionId === sessionId) {
-				state.setActiveTab(tab.id);
-				state.setActivePane({ tabId: tab.id, paneId: pane.id });
-				return;
-			}
-		}
-	}
-	state.addTab({
-		panes: [
-			{
-				kind: "chat",
-				data: { sessionId } as PaneViewerData,
-			},
-		],
-	});
 }

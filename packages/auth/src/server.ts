@@ -33,7 +33,6 @@ import type Stripe from "stripe";
 import { env } from "./env";
 import { acceptInvitationEndpoint } from "./lib/accept-invitation-endpoint";
 import { generateMagicTokenForInvite } from "./lib/generate-magic-token";
-import { getActivationVariant } from "./lib/lifecycle";
 import { invitationRateLimit } from "./lib/rate-limit";
 import { resend } from "./lib/resend";
 import {
@@ -251,39 +250,42 @@ export const auth = betterAuth({
 							.where(eq(authSchema.sessions.userId, user.id));
 					}
 
-					const variant = await getActivationVariant(user.id);
-					if (variant === "test") {
-						try {
-							await resend.emails.send({
-								from: "Superset <noreply@superset.sh>",
-								replyTo: "founders@superset.sh",
-								to: user.email,
-								subject: "Welcome to Superset",
-								react: WelcomeEmail({
-									userName: user.name,
-									userEmail: user.email,
-								}),
-							});
-						} catch (error) {
-							console.error(
-								`[lifecycle] Failed to send welcome email to ${user.id}:`,
-								error,
-							);
-						}
+					// Lifecycle emails ship to every signup. The A/B (experiment
+					// 387868) was retired inconclusive: at ~143 signups/day the
+					// diluted intent-to-treat effect would need years to resolve.
+					// Kill switch for the nudges is the Resend automation toggle.
+					try {
+						const { error } = await resend.emails.send({
+							from: "Superset <noreply@superset.sh>",
+							replyTo: "founders@superset.sh",
+							to: user.email,
+							subject: "Welcome to Superset",
+							react: WelcomeEmail({
+								userName: user.name,
+								userEmail: user.email,
+							}),
+						});
+						// Resend reports API failures in `error` rather than throwing.
+						if (error) throw new Error(error.message);
+					} catch (error) {
+						console.error(
+							`[lifecycle] Failed to send welcome email to ${user.id}:`,
+							error,
+						);
+					}
 
-						try {
-							const { error } = await resend.events.send({
-								event: "user.signed_up",
-								email: user.email,
-								payload: { userId: user.id, name: user.name },
-							});
-							if (error) throw new Error(error.message);
-						} catch (error) {
-							console.error(
-								`[lifecycle] Failed to emit signup event for ${user.id}:`,
-								error,
-							);
-						}
+					try {
+						const { error } = await resend.events.send({
+							event: "user.signed_up",
+							email: user.email,
+							payload: { userId: user.id, name: user.name },
+						});
+						if (error) throw new Error(error.message);
+					} catch (error) {
+						console.error(
+							`[lifecycle] Failed to emit signup event for ${user.id}:`,
+							error,
+						);
 					}
 				},
 			},

@@ -1,35 +1,15 @@
 import { useMemo } from "react";
 import type { AccessibleV2Workspace } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/hooks/useAccessibleV2Workspaces";
-import {
-	useV2WorkspacesFilterStore,
-	type V2WorkspacesArchivedWindow,
-} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
-import { V2WorkspacesBoardColumn } from "./components/V2WorkspacesBoardColumn";
+import { useV2WorkspacesFilterStore } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { isWithinArchivedWindow } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/archivedWindow";
 import {
 	BOARD_COLUMN_ORDER,
 	type BoardColumnKey,
 	deriveBoardColumn,
-} from "./utils/deriveBoardColumn";
+} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
+import { compareWorkspaces } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/sortWorkspaces";
+import { V2WorkspacesBoardColumn } from "./components/V2WorkspacesBoardColumn";
 import { getVisibleBoardColumns } from "./utils/getVisibleBoardColumns";
-
-const DAY_MS = 24 * 60 * 60 * 1000;
-const ARCHIVED_WINDOW_MS: Record<
-	Exclude<V2WorkspacesArchivedWindow, "none" | "all">,
-	number
-> = {
-	week: 7 * DAY_MS,
-	month: 30 * DAY_MS,
-};
-
-function isWithinArchivedWindow(
-	archivedAt: number,
-	window: V2WorkspacesArchivedWindow,
-	now: number,
-): boolean {
-	if (window === "none") return false;
-	if (window === "all") return true;
-	return archivedAt >= now - ARCHIVED_WINDOW_MS[window];
-}
 
 interface V2WorkspacesBoardProps {
 	workspaces: AccessibleV2Workspace[];
@@ -43,6 +23,7 @@ export function V2WorkspacesBoard({
 	const archivedWindow = useV2WorkspacesFilterStore(
 		(state) => state.archivedWindow,
 	);
+	const sortMode = useV2WorkspacesFilterStore((state) => state.sortMode);
 
 	const byColumn = useMemo(() => {
 		const now = Date.now();
@@ -58,8 +39,11 @@ export function V2WorkspacesBoard({
 			}
 			map.get(deriveBoardColumn(workspace))?.push(workspace);
 		}
+		for (const column of map.values()) {
+			column.sort((a, b) => compareWorkspaces(a, b, sortMode));
+		}
 		return map;
-	}, [workspaces, archivedWindow]);
+	}, [workspaces, archivedWindow, sortMode]);
 
 	const isEmpty = workspaces.length === 0;
 	if (isEmpty && !isReady) {

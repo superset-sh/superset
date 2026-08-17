@@ -2,7 +2,6 @@ import {
 	SortableContext,
 	verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { cn } from "@superset/ui/utils";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo } from "react";
 import {
@@ -124,63 +123,48 @@ export function DashboardSidebarExpandedProjectContent({
 									const isInSection = !!group;
 									const isInCollapsedSection =
 										isInSection && collapsedSectionIds.has(group.sectionId);
+									const sectionDragActive =
+										activeType === "section" && activeContainer === projectId;
 									const hidden =
-										isInCollapsedSection ||
-										(activeType === "section" &&
-											activeContainer === projectId &&
-											isInSection);
+										isInCollapsedSection || (sectionDragActive && isInSection);
 									const canBulkSelect =
 										workspace.type === "worktree" &&
 										workspace.pendingTransaction?.type !== "insert";
 
-									// Rows collapse via a CSS grid-row transition instead of a
-									// per-row AnimatePresence/motion.div (~80 motion components
-									// cost real render time). Hidden rows stay mounted: `inert`
-									// removes them from focus/hit-testing and the disabled
-									// sortable unregisters their droppable, matching the old
-									// unmount behavior for DnD.
+									// The zero-height collapse lives inside the sortable wrapper
+									// (see SortableWorkspaceItem) so the clip box moves with the
+									// dnd translate — wrapping here would clip displaced rows
+									// out of view mid-drag.
 									return (
-										<div
+										<SortableWorkspaceItem
 											key={String(id)}
-											className={cn(
-												"grid transition-[grid-template-rows,opacity] duration-150 ease-out",
-												hidden
-													? "grid-rows-[0fr] opacity-0"
-													: "grid-rows-[1fr] opacity-100",
-											)}
-											inert={hidden}
-										>
-											<div className="min-h-0 overflow-hidden">
-												<SortableWorkspaceItem
-													sortableId={String(id)}
-													workspace={workspace}
-													accentColor={group?.color}
-													isInSection={isInSection}
-													onHoverCardOpen={onWorkspaceHover}
-													shortcutLabel={workspaceShortcutLabels.get(
-														parsed.realId,
-													)}
-													isSelected={
-														canBulkSelect && isWorkspaceSelected(parsed.realId)
-													}
-													onSelectionClick={
-														canBulkSelect
-															? (event) =>
-																	selectWorkspaceFromEvent(event, {
-																		workspaceId: parsed.realId,
-																		projectId,
-																		orderedWorkspaceIds: selectableWorkspaceIds,
-																	})
-															: undefined
-													}
-													disabled={
-														hidden ||
-														(workspace.type === "main" &&
-															workspace.hostType === "local-device")
-													}
-												/>
-											</div>
-										</div>
+											sortableId={String(id)}
+											workspace={workspace}
+											accentColor={group?.color}
+											isInSection={isInSection}
+											onHoverCardOpen={onWorkspaceHover}
+											shortcutLabel={workspaceShortcutLabels.get(parsed.realId)}
+											isSelected={
+												canBulkSelect && isWorkspaceSelected(parsed.realId)
+											}
+											onSelectionClick={
+												canBulkSelect
+													? (event) =>
+															selectWorkspaceFromEvent(event, {
+																workspaceId: parsed.realId,
+																projectId,
+																orderedWorkspaceIds: selectableWorkspaceIds,
+															})
+													: undefined
+											}
+											collapsed={hidden}
+											collapseInstantly={sectionDragActive}
+											disabled={
+												hidden ||
+												(workspace.type === "main" &&
+													workspace.hostType === "local-device")
+											}
+										/>
 									);
 								})}
 							</SortableContext>

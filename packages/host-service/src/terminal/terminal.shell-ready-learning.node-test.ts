@@ -74,7 +74,7 @@ let workspaceId: string;
 
 /**
  * Faithful copy of the zsh wrapper chain that
- * apps/desktop/src/main/lib/agent-setup/shell-wrappers.ts writes (minus the
+ * packages/agent-setup/src/shell-wrappers.ts writes (minus the
  * PATH-prepend helpers, which don't affect readiness): ZDOTDIR redirection
  * through .zshenv/.zprofile/.zshrc, marker hook registered last in .zlogin.
  */

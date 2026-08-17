@@ -4,9 +4,17 @@ import { db } from "@superset/db/client";
 import {
 	accounts,
 	members,
+	oauthAccessTokens,
+	oauthConsents,
+	oauthRefreshTokens,
 	organizations,
+	sessions,
 	subscriptions,
+	teamMembers,
+	userIdentities,
 	users,
+	v2Clients,
+	v2UsersHosts,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { and, count, eq, ne } from "drizzle-orm";
@@ -85,7 +93,53 @@ export const adminRouter = {
 					.where(eq(organizations.id, membership.organizationId));
 			}
 
-			await db.delete(users).where(eq(users.id, input.userId));
+			// Tombstone rather than delete. `tasks.creator_id`,
+			// `integration_connections.connected_by_user_id`,
+			// `github_installations.connected_by_user_id` and
+			// `automations.owner_user_id` all cascade from `auth.users`, so removing
+			// the row would take an organization's tasks, its Slack and Linear
+			// connections and its GitHub install with it — including for orgs the
+			// loop above deliberately kept alive because other members remain.
+			await db.transaction(async (tx) => {
+				// Everything that lets this person sign in or act on anything.
+				await tx.delete(sessions).where(eq(sessions.userId, input.userId));
+				await tx.delete(accounts).where(eq(accounts.userId, input.userId));
+				await tx
+					.delete(oauthAccessTokens)
+					.where(eq(oauthAccessTokens.userId, input.userId));
+				await tx
+					.delete(oauthRefreshTokens)
+					.where(eq(oauthRefreshTokens.userId, input.userId));
+				await tx
+					.delete(oauthConsents)
+					.where(eq(oauthConsents.userId, input.userId));
+				await tx.delete(members).where(eq(members.userId, input.userId));
+				await tx
+					.delete(teamMembers)
+					.where(eq(teamMembers.userId, input.userId));
+				await tx
+					.delete(v2UsersHosts)
+					.where(eq(v2UsersHosts.userId, input.userId));
+				await tx.delete(v2Clients).where(eq(v2Clients.userId, input.userId));
+				await tx
+					.delete(userIdentities)
+					.where(eq(userIdentities.userId, input.userId));
+
+				// The row survives so authorship still resolves, but carries nothing
+				// identifying. The email is rewritten rather than blanked so it is
+				// released for re-registration without breaking the unique index.
+				await tx
+					.update(users)
+					.set({
+						deletedAt: new Date(),
+						name: "Deleted user",
+						email: `deleted+${input.userId}@deleted.invalid`,
+						emailVerified: false,
+						image: null,
+						organizationIds: [],
+					})
+					.where(eq(users.id, input.userId));
+			});
 			return { success: true };
 		}),
 

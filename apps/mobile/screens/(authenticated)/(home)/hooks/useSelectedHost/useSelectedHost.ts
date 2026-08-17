@@ -6,14 +6,18 @@ import { useWorkspacesFilterStore } from "@/screens/(authenticated)/(home)/home/
 /**
  * The list view is always scoped to one host: the explicit filter pick if
  * that host still exists, else the first online host, else the first host.
+ * Null until the saved pick has been read back from storage — falling back
+ * before then scopes the whole screen to the wrong host for a few frames.
  */
 export function useSelectedHost(): OrgHost | null {
 	const hosts = useOrgHosts();
 	const hostFilter = useWorkspacesFilterStore((store) => store.hostFilter);
+	const hasHydrated = useWorkspacesFilterStore((store) => store.hasHydrated);
 
 	const presence = useHostsPresence(hosts);
 
 	return useMemo(() => {
+		if (!hasHydrated) return null;
 		const sorted = hosts
 			.map((host) => ({
 				...host,
@@ -26,5 +30,5 @@ export function useSelectedHost(): OrgHost | null {
 			sorted[0] ??
 			null
 		);
-	}, [hosts, hostFilter, presence]);
+	}, [hosts, hostFilter, presence, hasHydrated]);
 }

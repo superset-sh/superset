@@ -1,8 +1,13 @@
 import { db } from "@superset/db/client";
 import { webhookEvents } from "@superset/db/schema";
 import { eq, sql } from "drizzle-orm";
-
 import { stripNullChars } from "@/lib/strip-null-chars";
+import { dispatchMatchingTriggers } from "./dispatchMatchingTriggers";
+import {
+	type GithubPayload,
+	qualifiedEventType,
+	recordAutomationEvent,
+} from "./recordAutomationEvent";
 import { webhooks } from "./webhooks";
 
 export async function POST(request: Request) {
@@ -75,6 +80,44 @@ export async function POST(request: Request) {
 			payload,
 			// biome-ignore lint/suspicious/noExplicitAny: GitHub webhook event types are complex unions
 		} as any);
+
+		// Recorded after processing and deliberately not inside the try above:
+		// nothing reads these rows yet, so a failure here must not fail a
+		// delivery GitHub would then retry.
+		try {
+			const recorded = await recordAutomationEvent({
+				eventType: eventType ?? "unknown",
+				deliveryId: eventId,
+				payload,
+				webhookEventId: webhookEvent.id,
+			});
+			if (recorded.recorded && recorded.eventId && recorded.organizationId) {
+				const result = await dispatchMatchingTriggers({
+					organizationId: recorded.organizationId,
+					eventId: recorded.eventId,
+					eventType: qualifiedEventType(
+						eventType ?? "unknown",
+						payload as GithubPayload,
+					),
+					repositoryId: recorded.repositoryId ?? null,
+					ref: recorded.ref ?? null,
+					payload: payload as GithubPayload,
+				});
+				if (result.matched > 0) {
+					console.log(
+						`[github/webhook] ${result.matched}/${result.considered} triggers matched:`,
+						eventId,
+					);
+				}
+			} else {
+				console.log(
+					`[github/webhook] Not recorded as automation event (${recorded.reason}):`,
+					eventId,
+				);
+			}
+		} catch (error) {
+			console.error("[github/webhook] recordAutomationEvent failed:", error);
+		}
 
 		await db
 			.update(webhookEvents)

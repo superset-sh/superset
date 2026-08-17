@@ -64,9 +64,14 @@ export async function resolveAuth(
 		);
 	}
 
-	const api = createApiClient({
-		bearer,
-		organizationId: config.organizationId,
-	});
-	return { config, api, bearer, authSource };
+	// SUPERSET_ORGANIZATION_ID overrides the stored org for this invocation
+	// (headless/CI, and dev where the CLI must target a specific local org),
+	// mirroring how SUPERSET_API_KEY overrides the stored credential. Not
+	// persisted to disk.
+	const organizationId =
+		process.env.SUPERSET_ORGANIZATION_ID?.trim() || config.organizationId;
+	const resolvedConfig: SupersetConfig = { ...config, organizationId };
+
+	const api = createApiClient({ bearer, organizationId });
+	return { config: resolvedConfig, api, bearer, authSource };
 }

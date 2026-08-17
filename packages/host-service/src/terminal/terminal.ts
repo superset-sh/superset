@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { basename, isAbsolute, join } from "node:path";
 import { StringDecoder } from "node:string_decoder";
 import type { NodeWebSocket } from "@hono/node-ws";
+import { resolveSupersetHomeDir } from "@superset/agent-setup/paths";
 import { hasRunningForegroundProcess } from "@superset/pty-daemon/process-tree";
 import {
 	buildFishPromptCommandString,
@@ -2452,7 +2453,10 @@ export async function createTerminalSessionInternal({
 	// wait for it here before the first PTY needs the snapshot.
 	await waitForTerminalBaseEnv();
 	const baseEnv = getTerminalBaseEnv();
-	const supersetHomeDir = process.env.SUPERSET_HOME_DIR || "";
+	// Fallback matters for hosts not spawned by the desktop (CLI/systemd):
+	// without it the wrapper paths, hook guard env, and shell bootstrap all
+	// silently disable (#6254).
+	const supersetHomeDir = resolveSupersetHomeDir();
 	const shell = resolveLaunchShell(baseEnv);
 	const shellArgs = getShellLaunchArgs({ shell, supersetHomeDir });
 	const ptyEnv = buildV2TerminalEnv({

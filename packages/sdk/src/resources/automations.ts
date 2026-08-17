@@ -181,7 +181,7 @@ export interface AutomationSummary {
 	organizationId: string;
 	ownerUserId: string;
 	name: string;
-	/** Host agent instance id (UUID) or presetId. 'superset' = built-in chat. */
+	/** Host agent instance id (UUID) or presetId. */
 	agent: string;
 	targetHostId: string | null;
 	/** Null = session automation: runs use project-less session workspaces. */
@@ -191,7 +191,6 @@ export interface AutomationSummary {
 	dtstart: string;
 	timezone: string;
 	enabled: boolean;
-	mcpScope: string[];
 	nextRunAt: string;
 	/** Human-readable schedule description, derived from rrule. */
 	scheduleText?: string;
@@ -217,7 +216,7 @@ export interface AutomationListParams {
 export interface AutomationCreateParams {
 	name: string;
 	prompt: string;
-	/** Host agent instance id (UUID) or presetId. 'superset' = built-in chat. */
+	/** Host agent instance id (UUID) or presetId. */
 	agent: string;
 	rrule: string;
 	timezone: string;
@@ -242,8 +241,6 @@ export interface AutomationCreateParams {
 	targetHostId?: string | null;
 	/** ISO timestamp; defaults to now if omitted. */
 	dtstart?: string;
-	/** MCP server names this automation is allowed to use. */
-	mcpScope?: string[];
 }
 
 export interface AutomationUpdateParams {
@@ -273,7 +270,6 @@ export interface AutomationUpdateParams {
 	rrule?: string;
 	dtstart?: string;
 	timezone?: string;
-	mcpScope?: string[];
 }
 
 export interface AutomationRun {

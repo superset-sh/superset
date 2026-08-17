@@ -1,7 +1,7 @@
 /**
  * Shell launch configuration for v2 terminals.
  *
- * Behavioral reference: apps/desktop/src/main/lib/agent-setup/shell-wrappers.ts
+ * Behavioral reference: packages/agent-setup/src/shell-wrappers.ts
  *
  * Upstream patterns:
  * - VS Code: ZDOTDIR for zsh, --init-file for bash, --init-command for fish

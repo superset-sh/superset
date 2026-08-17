@@ -1,7 +1,7 @@
 import { createHmac } from "node:crypto";
 import { auth } from "@superset/auth/server";
 import { db } from "@superset/db/client";
-import { integrationConnections, usersSlackUsers } from "@superset/db/schema";
+import { integrationConnections, userIdentities } from "@superset/db/schema";
 import { findOrgMembership } from "@superset/db/utils";
 import { and, desc, eq, isNull } from "drizzle-orm";
 import { headers } from "next/headers";
@@ -80,19 +80,24 @@ export async function GET(request: Request) {
 	}
 
 	await db
-		.insert(usersSlackUsers)
+		.insert(userIdentities)
 		.values({
-			slackUserId: payload.slackUserId,
-			teamId: payload.teamId,
+			provider: "slack",
+			externalId: payload.slackUserId,
+			// A Slack user id is only unique within a workspace.
+			externalScopeId: payload.teamId,
 			userId: session.user.id,
 			organizationId: connection.organizationId,
 		})
+		// Re-linking claims the Slack account for whoever linked it last.
 		.onConflictDoUpdate({
-			target: [usersSlackUsers.slackUserId, usersSlackUsers.teamId],
-			set: {
-				userId: session.user.id,
-				organizationId: connection.organizationId,
-			},
+			target: [
+				userIdentities.organizationId,
+				userIdentities.provider,
+				userIdentities.externalScopeId,
+				userIdentities.externalId,
+			],
+			set: { userId: session.user.id },
 		});
 
 	return Response.redirect(

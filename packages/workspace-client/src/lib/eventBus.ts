@@ -5,6 +5,7 @@ import type {
 } from "@superset/host-service/events";
 import type { AgentIdentity } from "@superset/shared/agent-identity";
 import type { FsWatchEvent } from "@superset/workspace-fs/host";
+import type { RelayAffinityProbe } from "./primeRelayAffinity";
 import { createRelaySocket, type RelaySocket } from "./relaySocket";
 
 export type { AgentIdentity };
@@ -132,6 +133,26 @@ const RECONNECT_MAX_MS = 30_000;
 // outright so access granted later (host sharing) is picked up eventually.
 const ACCESS_DENIED_RETRY_MS = 5 * 60_000;
 
+export type HostConnectionState =
+	| "connecting"
+	| "open"
+	| "reconnecting"
+	| "closed";
+
+export interface HostConnectionStatus {
+	state: HostConnectionState;
+	/** Timestamp of the last transition into `state`. */
+	since: number;
+	/**
+	 * Last `_whoowns` preflight result: 503 host not connected to the relay,
+	 * 401/403 unauthorized, null for a direct (non-relay) host URL or when the
+	 * relay itself couldn't be reached. Names *why* the socket is down.
+	 */
+	probe: RelayAffinityProbe | null;
+}
+
+type ConnectionStatusListener = (status: HostConnectionStatus) => void;
+
 interface ConnectionState {
 	socket: RelaySocket;
 	refCount: number;
@@ -139,10 +160,30 @@ interface ConnectionState {
 	fsWatchedWorkspaces: Map<string, number>;
 	/** Refcounted per-file watches, keyed `${workspaceId}\0${absolutePath}`. */
 	fsWatchedFiles: Map<string, number>;
+	/** Replaced, never mutated, so `useSyncExternalStore` snapshots stay stable. */
+	status: HostConnectionStatus;
+	statusListeners: Set<ConnectionStatusListener>;
 }
 
 function fileWatchKey(workspaceId: string, absolutePath: string): string {
 	return `${workspaceId}\0${absolutePath}`;
+}
+
+function setConnectionStatus(
+	state: ConnectionState,
+	next: { state?: HostConnectionState; probe?: RelayAffinityProbe | null },
+): void {
+	const current = state.status;
+	const nextState = next.state ?? current.state;
+	const nextProbe = "probe" in next ? (next.probe ?? null) : current.probe;
+	if (nextState === current.state && nextProbe === current.probe) return;
+
+	state.status = {
+		state: nextState,
+		since: nextState === current.state ? current.since : Date.now(),
+		probe: nextProbe,
+	};
+	for (const listener of state.statusListeners) listener(state.status);
 }
 
 const connections = new Map<string, ConnectionState>();
@@ -258,6 +299,7 @@ function handleMessage(state: ConnectionState, data: unknown): void {
 function getOrCreateConnection(
 	hostUrl: string,
 	getWsToken: () => string | null,
+	getUrlParams?: () => Record<string, string> | null,
 ): ConnectionState {
 	const key = hostUrl;
 	const existing = connections.get(key);
@@ -268,12 +310,23 @@ function getOrCreateConnection(
 	// inside partysocket. Buffering is disabled so command semantics stay
 	// "send only while open" — watches are replayed from state on each open.
 	const socket = createRelaySocket({
-		buildUrl: () => `${hostUrl.replace(/\/$/, "")}/events`,
+		// Params are read per attempt, not captured: a sandbox's edge token
+		// expires, and the connection outlives any single one.
+		buildUrl: () => {
+			const url = new URL(`${hostUrl.replace(/\/$/, "")}/events`);
+			for (const [key, value] of Object.entries(getUrlParams?.() ?? {})) {
+				url.searchParams.set(key, value);
+			}
+			return url.toString();
+		},
 		getToken: getWsToken,
 		accessDeniedRetryMs: ACCESS_DENIED_RETRY_MS,
 		minReconnectionDelay: RECONNECT_BASE_MS,
 		maxReconnectionDelay: RECONNECT_MAX_MS,
 		maxEnqueuedMessages: 0,
+		onProbe: (probe) => {
+			setConnectionStatus(state, { probe });
+		},
 	});
 
 	const state: ConnectionState = {
@@ -282,9 +335,21 @@ function getOrCreateConnection(
 		listeners: new Set(),
 		fsWatchedWorkspaces: new Map(),
 		fsWatchedFiles: new Map(),
+		status: { state: "connecting", since: Date.now(), probe: null },
+		statusListeners: new Set(),
 	};
 
+	socket.addEventListener("close", () => {
+		// partysocket keeps dialling on its own backoff unless the close was
+		// terminal (explicit close, retries exhausted), so "reconnecting" is the
+		// normal outcome here — the socket is still working toward a connection.
+		setConnectionStatus(state, {
+			state: socket.shouldReconnect ? "reconnecting" : "closed",
+		});
+	});
 	socket.addEventListener("open", () => {
+		setConnectionStatus(state, { state: "open" });
+
 		// Re-send all active fs:watch commands
 		for (const workspaceId of state.fsWatchedWorkspaces.keys()) {
 			sendCommand(state, { type: "fs:watch", workspaceId });
@@ -313,7 +378,13 @@ function maybeCleanupConnection(hostUrl: string): void {
 	const state = connections.get(key);
 	if (!state) return;
 
-	if (state.refCount > 0 || state.listeners.size > 0) return;
+	if (
+		state.refCount > 0 ||
+		state.listeners.size > 0 ||
+		state.statusListeners.size > 0
+	) {
+		return;
+	}
 
 	state.socket.close(1000, "No more subscribers");
 	connections.delete(key);
@@ -337,6 +408,11 @@ export interface EventBusHandle {
 	watchFsFile(workspaceId: string, absolutePath: string): void;
 	unwatchFsFile(workspaceId: string, absolutePath: string): void;
 	retain(): () => void;
+	/** Live reachability of this host, as observed on the real data path. */
+	getConnectionStatus(): HostConnectionStatus;
+	subscribeConnectionStatus(listener: ConnectionStatusListener): () => void;
+	/** Dial now instead of waiting out the backoff (retry buttons). */
+	reconnect(): void;
 }
 
 /**
@@ -346,8 +422,14 @@ export interface EventBusHandle {
 export function getEventBus(
 	hostUrl: string,
 	getWsToken: () => string | null,
+	/**
+	 * Extra query params for the socket URL. A browser can't set headers on a
+	 * WebSocket upgrade, so a host fronted by a gateway that authenticates on
+	 * one (a cloud workspace sandbox) has to pass it here instead.
+	 */
+	getUrlParams?: () => Record<string, string> | null,
 ): EventBusHandle {
-	const state = getOrCreateConnection(hostUrl, getWsToken);
+	const state = getOrCreateConnection(hostUrl, getWsToken, getUrlParams);
 
 	return {
 		on<T extends EventType>(
@@ -424,6 +506,25 @@ export function getEventBus(
 				state.refCount = Math.max(0, state.refCount - 1);
 				maybeCleanupConnection(hostUrl);
 			};
+		},
+
+		getConnectionStatus(): HostConnectionStatus {
+			return state.status;
+		},
+
+		subscribeConnectionStatus(listener: ConnectionStatusListener): () => void {
+			state.statusListeners.add(listener);
+			return () => {
+				state.statusListeners.delete(listener);
+				maybeCleanupConnection(hostUrl);
+			};
+		},
+
+		reconnect(): void {
+			// The synthetic close partysocket dispatches lands first, so publish
+			// "connecting" after it — otherwise the retry reads as a fresh failure.
+			state.socket.reconnect(1000, "manual reconnect");
+			setConnectionStatus(state, { state: "connecting" });
 		},
 	};
 }

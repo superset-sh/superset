@@ -1,5 +1,8 @@
 import { describe, expect, test } from "bun:test";
-import { BOARD_COLUMN_ORDER, type BoardColumnKey } from "../deriveBoardColumn";
+import {
+	BOARD_COLUMN_ORDER,
+	type BoardColumnKey,
+} from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 import { getVisibleBoardColumns } from "./getVisibleBoardColumns";
 
 describe("getVisibleBoardColumns", () => {

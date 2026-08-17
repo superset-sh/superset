@@ -1,4 +1,5 @@
 import type { RendererContext } from "@superset/panes";
+import { useParams } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef } from "react";
 import {
 	getDispatchChord,
@@ -49,6 +50,9 @@ export function usePersistentWebview({
 	const placeholderRef = useRef<HTMLDivElement | null>(null);
 	const ctxRef = useRef(ctx);
 	ctxRef.current = ctx;
+	// Workspace scoping for the browser bridge (CLI/agent control). Panes only
+	// render inside the $workspaceId route, so this is always present.
+	const { workspaceId } = useParams({ strict: false });
 
 	const paneData = ctx.pane.data as BrowserPaneData;
 	// Read through a ref so attach keys on paneId alone: navigation echoes
@@ -67,6 +71,7 @@ export function usePersistentWebview({
 			paneId,
 			placeholder,
 			attachUrlRef.current,
+			workspaceId ?? "",
 			({ url, pageTitle, faviconUrl }) => {
 				const current = ctxRef.current.pane.data as BrowserPaneData;
 				if (
@@ -87,7 +92,7 @@ export function usePersistentWebview({
 		return () => {
 			browserRuntimeRegistry.detach(paneId);
 		};
-	}, [paneId]);
+	}, [paneId, workspaceId]);
 
 	useEffect(() => {
 		const newWindowSub = electronTrpcClient.browser.onNewWindow.subscribe(

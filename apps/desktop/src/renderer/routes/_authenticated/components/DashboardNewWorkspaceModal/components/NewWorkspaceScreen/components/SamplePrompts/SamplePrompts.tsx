@@ -1,15 +1,27 @@
 import { SparklesIcon } from "lucide-react";
 import { track } from "renderer/lib/analytics";
-import { SAMPLE_PROMPTS } from "./constants";
+import { DismissSuggestionsButton } from "../DismissSuggestionsButton";
+import type { SamplePrompt, SamplePromptTier } from "./constants";
 
 interface SamplePromptsProps {
+	prompts: SamplePrompt[];
 	onSelect: (prompt: string) => void;
+	onDismiss: () => void;
+	canDismiss: boolean;
+	tier: SamplePromptTier;
 }
 
-export function SamplePrompts({ onSelect }: SamplePromptsProps) {
+export function SamplePrompts({
+	prompts,
+	onSelect,
+	onDismiss,
+	canDismiss,
+	tier,
+}: SamplePromptsProps) {
 	return (
-		<div className="flex flex-col items-start gap-0.5 px-1 pb-2">
-			{SAMPLE_PROMPTS.map((sample) => (
+		<div className="group relative flex flex-col items-start gap-0.5 px-1 pb-2">
+			{canDismiss && <DismissSuggestionsButton onDismiss={onDismiss} />}
+			{prompts.map((sample) => (
 				<button
 					key={sample.id}
 					type="button"
@@ -18,6 +30,7 @@ export function SamplePrompts({ onSelect }: SamplePromptsProps) {
 						track("new_workspace_sample_prompt_clicked", {
 							prompt_id: sample.id,
 							layout: "rows",
+							tier,
 						});
 						onSelect(sample.prompt);
 					}}

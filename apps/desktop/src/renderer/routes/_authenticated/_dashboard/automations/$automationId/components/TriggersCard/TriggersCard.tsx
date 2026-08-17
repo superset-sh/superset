@@ -1,8 +1,8 @@
-import type { SelectAutomation } from "@superset/db/schema";
 import {
 	formatDateTimeInTimezone,
 	nextOccurrenceAfter,
 } from "@superset/shared/rrule";
+import type { RouterOutputs } from "@superset/trpc";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { formatDistanceStrict } from "date-fns";
 import { useMemo } from "react";
@@ -18,8 +18,10 @@ export type AutomationUpdatePatch = Partial<
 	Omit<Parameters<typeof apiTrpcClient.automation.update.mutate>[0], "id">
 >;
 
+type AutomationDetail = RouterOutputs["automation"]["get"];
+
 interface TriggersCardProps {
-	automation: SelectAutomation;
+	automation: AutomationDetail;
 	hostId: string | null;
 	readOnly?: boolean;
 	onUpdate: (patch: AutomationUpdatePatch) => void;

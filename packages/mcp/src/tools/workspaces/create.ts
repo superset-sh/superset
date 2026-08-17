@@ -100,7 +100,6 @@ export function register(server: McpServer): void {
 					terminals: Array<{ terminalId: string; label?: string }>;
 					agents: Array<
 						| { ok: true; kind: "terminal"; sessionId: string; label: string }
-						| { ok: true; kind: "chat"; sessionId: string; label: string }
 						| { ok: false; error: string }
 					>;
 				}>(
@@ -129,7 +128,6 @@ export function register(server: McpServer): void {
 				terminals: Array<{ terminalId: string; label?: string }>;
 				agents: Array<
 					| { ok: true; kind: "terminal"; sessionId: string; label: string }
-					| { ok: true; kind: "chat"; sessionId: string; label: string }
 					| { ok: false; error: string }
 				>;
 				alreadyExists: boolean;

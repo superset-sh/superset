@@ -29,9 +29,7 @@ export default command({
 		),
 		agent: string()
 			.default("claude")
-			.desc(
-				"Host agent instance id or presetId (claude, codex, ...). Use 'superset' for the built-in chat agent.",
-			),
+			.desc("Host agent instance id or presetId (claude, codex, ...)."),
 	},
 	run: async ({ ctx, options }) => {
 		const prompt = options.prompt
@@ -66,7 +64,6 @@ export default command({
 			rrule: options.rrule,
 			dtstart: options.dtstart ? new Date(options.dtstart) : undefined,
 			timezone: options.timezone ?? DEFAULT_TIMEZONE,
-			mcpScope: [],
 		});
 
 		return {

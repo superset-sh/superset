@@ -1,7 +1,6 @@
 import Ionicons from "@expo/vector-icons/Ionicons";
 import { Stack, useRouter } from "expo-router";
 import { View } from "react-native";
-import { useHostProjects } from "@/hooks/useHostProjects";
 import { useTheme } from "@/hooks/useTheme";
 import {
 	SORT_OPTIONS,
@@ -11,26 +10,13 @@ import { useSelectedHost } from "@/screens/(authenticated)/(home)/hooks/useSelec
 import { HostStatusDot } from "@/screens/(authenticated)/components/HostStatusDot";
 import { ListRow } from "@/screens/(authenticated)/components/ListRow";
 import { ListRowValue } from "@/screens/(authenticated)/components/ListRowValue";
-import { ProjectAvatar } from "./components/ProjectAvatar";
 
 export function FilterScreen() {
 	const router = useRouter();
 	const theme = useTheme();
-	const projectFilter = useWorkspacesFilterStore(
-		(store) => store.projectFilter,
-	);
 	const selectedHost = useSelectedHost();
 	const sort = useWorkspacesFilterStore((store) => store.sort);
 
-	// Projects are fully local — served by the selected host, not the cloud.
-	const { projects } = useHostProjects(selectedHost);
-
-	const sortedProjects = [...projects].sort((a, b) =>
-		a.name.localeCompare(b.name),
-	);
-	const selectedProject =
-		sortedProjects.find((project) => project.id === projectFilter) ??
-		sortedProjects[0];
 	const sortLabel =
 		SORT_OPTIONS.find((option) => option.value === sort)?.label ?? "";
 
@@ -39,31 +25,6 @@ export function FilterScreen() {
 			<Stack.Toolbar placement="left">
 				<Stack.Toolbar.Button icon="xmark" onPress={() => router.back()} />
 			</Stack.Toolbar>
-			<ListRow
-				icon={
-					<Ionicons
-						name="folder-outline"
-						size={20}
-						color={theme.mutedForeground}
-					/>
-				}
-				label="Project"
-				trailing={
-					<ListRowValue
-						value={selectedProject?.name ?? "All"}
-						accessory={
-							selectedProject ? (
-								<ProjectAvatar
-									name={selectedProject.name}
-									iconUrl={selectedProject.iconUrl}
-									size={22}
-								/>
-							) : undefined
-						}
-					/>
-				}
-				onPress={() => router.push("/(authenticated)/(home)/filter/project")}
-			/>
 			<ListRow
 				icon={
 					<Ionicons

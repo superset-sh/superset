@@ -956,6 +956,126 @@ Close (dispose) a terminal running in a workspace. This ends the session.
 
 ---
 
+### browser
+
+Drive a workspace's [in-app browser](/browser) panes: open and navigate URLs,
+screenshot, read console, evaluate JavaScript, and get a raw Chrome DevTools
+Protocol endpoint for click/type/scroll automation. Every operation runs in the
+pane the user sees, against the browser's real session. Browser panes live in
+the desktop app, so a standalone host with no desktop attached has no panes and
+these commands error. A `paneId` is scoped to its workspace — pass the same
+`--workspace` it was opened under. See the [`browser` skill](/skills) for the
+agent-facing protocol.
+
+<Command
+	name="superset browser list"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{
+  panes: Array<{ paneId; workspaceId; url; title; isLoading }>;
+}`}
+>
+List the browser panes open in a workspace.
+</Command>
+
+<Command
+	name="superset browser open"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--url <url>", required: true, description: "URL to open (http/https)." },
+		{ flag: "--target <t>", description: "`current-tab` (default) or `new-tab`." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{
+  paneId: string;
+  url: string;
+  title: string;
+}`}
+>
+Open a URL in a browser pane and return its `paneId`. Requires the workspace to
+be visible in the desktop app (the renderer creates the pane).
+
+```bash
+superset browser open --workspace ws_… --url http://localhost:3000 --target new-tab
+```
+</Command>
+
+<Command
+	name="superset browser navigate"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID (from `browser list`)." },
+		{ flag: "--url <url>", required: true, description: "URL to navigate to (http/https)." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+>
+Point an existing pane at a new URL. `file://`, `chrome://`, and custom schemes
+are refused.
+</Command>
+
+<Command
+	name="superset browser screenshot"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--out <path>", description: "Write a PNG file instead of printing base64." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ base64: string }  // or { path } with --out`}
+>
+Capture a PNG screenshot of the pane's page.
+</Command>
+
+<Command
+	name="superset browser eval"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--code <js>", required: true, description: "JavaScript expression to evaluate in the page." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ result: unknown }`}
+>
+Evaluate JavaScript in the page and return the result — the ergonomic path for
+reading or nudging the DOM.
+
+```bash
+superset browser eval --workspace ws_… --pane pane_… \
+  --code "document.querySelector('h1')?.textContent"
+```
+</Command>
+
+<Command
+	name="superset browser console"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--max-lines <n>", description: "Cap returned entries from the bottom." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ entries: Array<{ level; message; timestamp }> }`}
+>
+Read the pane's captured console output.
+</Command>
+
+<Command
+	name="superset browser cdp"
+	options={[
+		{ flag: "--workspace <id>", required: true, description: "Workspace UUID." },
+		{ flag: "--pane <id>", required: true, description: "Pane ID." },
+		{ flag: "--host <id>", description: "Host the workspace lives on (default: this machine)." },
+	]}
+	output={`{ url: string }  // a CDP WebSocket URL`}
+>
+Print a raw Chrome DevTools Protocol WebSocket endpoint for the pane, for
+browser-use / Playwright-class tools (mouse, keyboard, scroll, DOM, network).
+The URL embeds an auth token — treat it as a secret.
+</Command>
+
+---
+
 ### tasks (alias: `t`)
 
 Tasks are units of work in your organization's task tracker.

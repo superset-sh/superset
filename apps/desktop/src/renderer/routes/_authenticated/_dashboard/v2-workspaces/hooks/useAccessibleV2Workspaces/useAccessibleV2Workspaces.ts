@@ -14,10 +14,12 @@ import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
 import { derivePullRequestQueryTargets } from "renderer/routes/_authenticated/_dashboard/components/DashboardSidebar/hooks/useDashboardSidebarData/derivePullRequestQueryTargets";
 import {
+	DEVICE_FILTER_ALL_DEVICES,
 	DEVICE_FILTER_THIS_DEVICE,
 	PROJECT_FILTER_SESSIONS,
 	type V2WorkspacesAgentStatusFilter,
 	type V2WorkspacesDeviceFilter,
+	type V2WorkspacesPinFilter,
 	type V2WorkspacesPrStateFilter,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
 import { useCollections } from "renderer/routes/_authenticated/providers/CollectionsProvider";
@@ -61,6 +63,12 @@ export interface V2WorkspacePrSummary {
 	mergedAt: number | null;
 }
 
+export interface V2WorkspaceDiffStats {
+	additions: number;
+	deletions: number;
+	fileCount: number;
+}
+
 export interface AccessibleV2Workspace {
 	id: string;
 	name: string;
@@ -85,6 +93,13 @@ export interface AccessibleV2Workspace {
 	pr: V2WorkspacePrSummary | null;
 	/** Highest-priority live agent status across the workspace's terminals. */
 	agentStatus: PaneStatus;
+	/** Most recent agent event across the workspace's terminals (epoch ms);
+	 * null when no agent has ever run here. */
+	lastAgentEventAt: number | null;
+	/** Distinct agents bound to this workspace's terminals, most recent first. */
+	agentIds: string[];
+	/** Working-tree + against-base churn; null until the host answers. */
+	diffStats: V2WorkspaceDiffStats | null;
 	/** Non-null = archived tombstone (soft-deleted workspace). */
 	archivedAt: number | null;
 	archiveReason: "merged" | "deleted" | null;
@@ -127,6 +142,8 @@ interface UseAccessibleV2WorkspacesOptions {
 	prStateFilters?: V2WorkspacesPrStateFilter[];
 	/** Empty/omitted = any agent status. */
 	agentStatusFilters?: V2WorkspacesAgentStatusFilter[];
+	/** Omitted = "all" — sidebar-pinned and unpinned alike. */
+	pinFilter?: V2WorkspacesPinFilter;
 	/**
 	 * Also surface archived tombstones (with `archivedAt` set). Requires a
 	 * device filter — the archived fetch rides the scoped host source.
@@ -170,6 +187,19 @@ function matchesPrStateFilters(
 	return workspace.pr != null && prStateFilters.includes(workspace.pr.state);
 }
 
+function matchesPinFilter(
+	workspace: AccessibleV2Workspace,
+	pinFilter: V2WorkspacesPinFilter,
+): boolean {
+	if (pinFilter === "all") return true;
+	// Archived tombstones may keep stale sidebar metadata; they are never
+	// pinned regardless of what that metadata says.
+	if (workspace.archivedAt !== null) return pinFilter === "unpinned";
+	return pinFilter === "pinned"
+		? workspace.isInSidebar
+		: !workspace.isInSidebar;
+}
+
 function matchesAgentStatusFilters(
 	workspace: AccessibleV2Workspace,
 	agentStatusFilters: V2WorkspacesAgentStatusFilter[],
@@ -199,6 +229,7 @@ export function useAccessibleV2Workspaces(
 	const projectFilters = options.projectFilters ?? [];
 	const prStateFilters = options.prStateFilters ?? [];
 	const agentStatusFilters = options.agentStatusFilters ?? [];
+	const pinFilter = options.pinFilter ?? "all";
 	const { data: session } = authClient.useSession();
 	const collections = useCollections();
 	const { machineId, activeHostUrl } = useLocalHostService();
@@ -209,19 +240,24 @@ export function useAccessibleV2Workspaces(
 		: (session?.session?.activeOrganizationId ?? null);
 	const currentUserId = session?.user?.id ?? null;
 
-	// With a device filter (the page), rows come from a single `workspace.list`
-	// against that host — no fan-out, so ten idle hosts can't slow down or
-	// silently thin out the list. Without one (palette, dev seeding), rows come
-	// from the provider's already-running fan-out. Both hooks always run per the
-	// rules of hooks; the unused one is passed null / left unread and does no
-	// work of its own.
-	const selectedHostId =
+	// With a specific device filter (the page), rows come from a single
+	// `workspace.list` against that host — no fan-out, so ten idle hosts can't
+	// slow down or silently thin out the list. "All devices" is the user opting
+	// into that fan-out: the scoped source runs unscoped (undefined), sharing
+	// query keys with the provider so nothing fetches twice, and archived
+	// tombstones still ride along. Without a filter (palette, dev seeding),
+	// rows come from the provider's already-running fan-out. Both hooks always
+	// run per the rules of hooks; the unused one is passed null / left unread
+	// and does no work of its own.
+	const scopedHostId =
 		deviceFilter === undefined
 			? null
-			: deviceFilter === DEVICE_FILTER_THIS_DEVICE
-				? machineId
-				: deviceFilter;
-	const scopedSource = useHostWorkspacesSource(selectedHostId, {
+			: deviceFilter === DEVICE_FILTER_ALL_DEVICES
+				? undefined
+				: deviceFilter === DEVICE_FILTER_THIS_DEVICE
+					? machineId
+					: deviceFilter;
+	const scopedSource = useHostWorkspacesSource(scopedHostId, {
 		includeArchived: options.includeArchived ?? false,
 	});
 	const fanoutSource = useHostWorkspaces();
@@ -439,10 +475,11 @@ export function useAccessibleV2Workspaces(
 	]);
 
 	// The authoritative link lives in host.db (`workspace.pullRequestId`), not
-	// any collection. With host-scoped rows this derives a single target; a
-	// client-side `repositoryId::branch` map mistracks on fork branch
-	// collisions. Unscoped callers (palette, dev seeding) don't render PR data,
-	// so skip the queries entirely rather than fanning them out per host.
+	// any collection. With host-scoped rows this derives a single target ("All
+	// devices" derives one per host with visible rows); a client-side
+	// `repositoryId::branch` map mistracks on fork branch collisions. Unscoped
+	// callers (palette, dev seeding) don't render PR data, so skip the queries
+	// entirely rather than fanning them out per host.
 	const pullRequestQueryTargets = useMemo(
 		() =>
 			deviceFilter === undefined
@@ -534,11 +571,60 @@ export function useAccessibleV2Workspaces(
 			},
 		})),
 	});
+	// Batched totals, one query per host (mirrors the PR/agent queries above).
+	// Slower cadence: totals only feed row chips, not the Changes tab.
+	const diffStatsQueries = useQueries({
+		queries: pullRequestQueryTargets.map((target) => ({
+			queryKey: [
+				"v2-workspaces",
+				"diff-stats",
+				target.organizationId,
+				target.machineId,
+			] as const,
+			refetchInterval: 30_000,
+			enabled: target.hostUrl !== null,
+			queryFn: async () => {
+				if (!target.hostUrl) return { workspaces: [] };
+				const client = getHostServiceClientByUrl(target.hostUrl);
+				return client.git.getDiffStatsByWorkspaces.query({
+					// Server caps the batch at 500 (MAX_DIFF_STATS_BATCH); rows
+					// beyond it simply show no stats rather than failing the call.
+					workspaceIds: target.workspaceIds.slice(0, 500),
+				});
+			},
+		})),
+	});
+	const diffStatsEntries = useMemo<[string, V2WorkspaceDiffStats][]>(() => {
+		const entries: [string, V2WorkspaceDiffStats][] = [];
+		for (const query of diffStatsQueries) {
+			for (const row of query.data?.workspaces ?? []) {
+				entries.push([
+					row.workspaceId,
+					{
+						additions: row.additions,
+						deletions: row.deletions,
+						fileCount: row.fileCount,
+					},
+				]);
+			}
+		}
+		return entries;
+	}, [diffStatsQueries]);
+	const diffStatsByWorkspaceId = useStableByWorkspaceId(diffStatsEntries);
+
 	const terminalSeenAt = useV2NotificationStore(
 		(state) => state.terminalSeenAt,
 	);
-	const agentStatusEntries = useMemo<[string, PaneStatus][]>(() => {
-		const byWorkspace = new Map<string, PaneStatus>();
+	const agentActivityEntries = useMemo<
+		[
+			string,
+			{ status: PaneStatus; lastEventAt: number; agents: [string, number][] },
+		][]
+	>(() => {
+		const byWorkspace = new Map<
+			string,
+			{ status: PaneStatus; lastEventAt: number; agents: Map<string, number> }
+		>();
 		for (const query of terminalAgentQueries) {
 			for (const binding of query.data ?? []) {
 				const status = deriveTerminalAgentStatus({
@@ -546,15 +632,31 @@ export function useAccessibleV2Workspaces(
 					lastEventAt: binding.lastEventAt,
 					lastSeenAt: terminalSeenAt[binding.terminalId],
 				});
-				byWorkspace.set(
-					binding.workspaceId,
-					pickHigherStatus(byWorkspace.get(binding.workspaceId), status),
+				const prev = byWorkspace.get(binding.workspaceId) ?? {
+					status: "idle" as PaneStatus,
+					lastEventAt: 0,
+					agents: new Map<string, number>(),
+				};
+				prev.status = pickHigherStatus(prev.status, status);
+				prev.lastEventAt = Math.max(prev.lastEventAt, binding.lastEventAt);
+				prev.agents.set(
+					binding.agentId,
+					Math.max(prev.agents.get(binding.agentId) ?? 0, binding.lastEventAt),
 				);
+				byWorkspace.set(binding.workspaceId, prev);
 			}
 		}
-		return [...byWorkspace.entries()];
+		return [...byWorkspace.entries()].map(([id, value]) => [
+			id,
+			{
+				status: value.status,
+				lastEventAt: value.lastEventAt,
+				agents: [...value.agents.entries()],
+			},
+		]);
 	}, [terminalAgentQueries, terminalSeenAt]);
-	const agentStatusByWorkspaceId = useStableByWorkspaceId(agentStatusEntries);
+	const agentActivityByWorkspaceId =
+		useStableByWorkspaceId(agentActivityEntries);
 
 	const enriched = useMemo<AccessibleV2Workspace[]>(() => {
 		const deduped = new Map<string, AccessibleV2Workspace>();
@@ -592,7 +694,13 @@ export function useAccessibleV2Workspaces(
 				hostType,
 				isInSidebar,
 				pr,
-				agentStatus: agentStatusByWorkspaceId.get(row.id) ?? "idle",
+				agentStatus: agentActivityByWorkspaceId.get(row.id)?.status ?? "idle",
+				lastAgentEventAt:
+					agentActivityByWorkspaceId.get(row.id)?.lastEventAt ?? null,
+				agentIds: (agentActivityByWorkspaceId.get(row.id)?.agents ?? [])
+					.sort((a, b) => b[1] - a[1])
+					.map(([agentId]) => agentId),
+				diffStats: diffStatsByWorkspaceId.get(row.id) ?? null,
 				archivedAt: row.archivedAt,
 				archiveReason: row.archiveReason,
 			});
@@ -605,7 +713,8 @@ export function useAccessibleV2Workspaces(
 		machineId,
 		currentUserId,
 		prByWorkspaceId,
-		agentStatusByWorkspaceId,
+		agentActivityByWorkspaceId,
+		diffStatsByWorkspaceId,
 	]);
 
 	const searchFiltered = useMemo(
@@ -622,9 +731,16 @@ export function useAccessibleV2Workspaces(
 				(workspace) =>
 					matchesProjectFilters(workspace, projectFilters) &&
 					matchesPrStateFilters(workspace, prStateFilters) &&
-					matchesAgentStatusFilters(workspace, agentStatusFilters),
+					matchesAgentStatusFilters(workspace, agentStatusFilters) &&
+					matchesPinFilter(workspace, pinFilter),
 			),
-		[searchFiltered, projectFilters, prStateFilters, agentStatusFilters],
+		[
+			searchFiltered,
+			projectFilters,
+			prStateFilters,
+			agentStatusFilters,
+			pinFilter,
+		],
 	);
 
 	// Hosts come straight from the (locally cached) hosts collections so the

@@ -121,7 +121,6 @@ interface FileViewerContentProps {
 	onSwitchToRawAtLocation: (line: number, column: number) => void;
 	onSplitHorizontal: () => void;
 	onSplitVertical: () => void;
-	onSplitWithNewChat?: () => void;
 	onSplitWithNewBrowser?: () => void;
 	onEqualizePaneSplits?: () => void;
 	onClosePane: () => void;
@@ -156,7 +155,6 @@ export function FileViewerContent({
 	onSwitchToRawAtLocation,
 	onSplitHorizontal,
 	onSplitVertical,
-	onSplitWithNewChat,
 	onSplitWithNewBrowser,
 	onEqualizePaneSplits,
 	onClosePane,
@@ -300,7 +298,6 @@ export function FileViewerContent({
 				getSelectionLines={getDiffSelectionLines}
 				onSplitHorizontal={onSplitHorizontal}
 				onSplitVertical={onSplitVertical}
-				onSplitWithNewChat={onSplitWithNewChat}
 				onSplitWithNewBrowser={onSplitWithNewBrowser}
 				onEqualizePaneSplits={onEqualizePaneSplits}
 				onClosePane={onClosePane}
@@ -474,7 +471,6 @@ export function FileViewerContent({
 			filePath={filePath}
 			onSplitHorizontal={onSplitHorizontal}
 			onSplitVertical={onSplitVertical}
-			onSplitWithNewChat={onSplitWithNewChat}
 			onSplitWithNewBrowser={onSplitWithNewBrowser}
 			onEqualizePaneSplits={onEqualizePaneSplits}
 			onClosePane={onClosePane}

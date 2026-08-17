@@ -38,3 +38,21 @@ Open the DevTools pane alongside any browser tab to inspect and debug the page r
 When Superset detects a port in use (e.g. `localhost:3000`), clicking its external link icon opens it in an in-app browser tab instead of the system browser.
 
 For [remote workspaces](/remote-workspaces), ports listen on the remote host and aren't forwarded locally; see [forward a port yourself](/ports#forward-a-port-yourself).
+
+## Drive it from the CLI and agents
+
+Browser panes can be driven programmatically with the [`superset browser`](/cli/cli-reference#browser) commands, so an agent can open a page, read it, screenshot it, and interact with it — in the same pane you're watching.
+
+```bash
+# Open a page and get its pane id back
+superset browser open --workspace <id> --url http://localhost:3000 --target new-tab
+
+# Read, screenshot, and evaluate in the pane
+superset browser eval --workspace <id> --pane <paneId> --code "document.title"
+superset browser screenshot --workspace <id> --pane <paneId> --out shot.png
+superset browser console --workspace <id> --pane <paneId>
+```
+
+For full interaction — clicking, typing, scrolling, form flows — `superset browser cdp` prints a raw [Chrome DevTools Protocol](https://chromedevtools.github.io/devtools-protocol/) WebSocket endpoint you can point a browser-use / Playwright-class client at. The endpoint drives only that pane's page (never the Superset app itself), and pane operations are scoped to their workspace.
+
+Agents pick this up automatically through the [`superset:browser` skill](/skills). A pane runs against the browser's real, logged-in session — agents are instructed to treat it accordingly and to confirm before consequential actions.

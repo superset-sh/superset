@@ -71,7 +71,12 @@ export function SortableSectionHeader({
 			style={{
 				transform: CSS.Translate.toString(transform),
 				transition,
-				opacity: isDragging ? 0.5 : undefined,
+				// Fully hidden while dragging (the DragOverlay ghost is the drag
+				// representation): the section pickup collapses the member rows,
+				// which invalidates dnd-kit's cached initial rect for this node —
+				// its in-list preview transform then points rows away from the
+				// real drop slot. Displaced siblings still open the correct gap.
+				opacity: isDragging ? 0 : undefined,
 				borderLeft: hasColor
 					? `2px solid ${section.color}`
 					: "2px solid var(--color-border)",

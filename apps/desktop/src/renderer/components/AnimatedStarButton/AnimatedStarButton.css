@@ -1,0 +1,116 @@
+/* Ported directly from the reference: same padding/font/line-height/border,
+ * same color-mix background formula (canvas/canvasText -> this app's own
+ * --background/--foreground so it tracks the in-app theme toggle, not just
+ * the OS scheme), same corner offset-path geometry and 0.26s/0.12s timing.
+ *
+ * One deliberate departure from the reference's own CSS: `transition` lives
+ * on the resting selector, not inside `:hover`. The reference scopes it only
+ * inside `:hover`, which is what caused corner marks to get stuck mid-flight
+ * on mouse-leave in this app's Chromium (verified via a full
+ * hover-then-leave cycle, not just hover-in). Same visual values, same
+ * timing — just placed so the reverse direction has a transition to run
+ * under too. */
+
+.star-button {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	gap: 0.625rem;
+	padding: 0.75rem 1rem;
+	font-family: ui-monospace, "SF Mono", Menlo, monospace;
+	font-size: 0.75rem;
+	text-transform: uppercase;
+	line-height: 1;
+	border: 0;
+	cursor: pointer;
+	background: color-mix(in oklch, var(--background), var(--foreground) 4%);
+	color: color-mix(in oklch, var(--foreground), transparent 25%);
+	transition-property: background, color;
+	transition-duration: 0.26s;
+	transition-timing-function: ease-out;
+}
+
+.star-button.star-button--compact {
+	gap: 0.4375rem;
+	padding: 0.4375rem 0.625rem;
+	font-size: 0.625rem;
+}
+
+.star-button:focus-visible {
+	outline: color-mix(in oklch, var(--foreground), transparent) dashed 1px;
+	outline-offset: 0.5rem;
+}
+
+.star-button:is(:hover, :focus-visible) {
+	color: var(--foreground);
+	background: color-mix(in oklch, var(--background), var(--foreground) 10%);
+}
+
+.star-button:disabled {
+	cursor: not-allowed;
+	opacity: 0.6;
+}
+
+.star-button__corners {
+	container-type: size;
+	pointer-events: none;
+	position: absolute;
+	inset: 0;
+	z-index: 0;
+}
+
+.star-button__corners span {
+	position: absolute;
+	width: 10px;
+	height: 10px;
+	display: grid;
+	place-items: center;
+	offset-path: border-box;
+	color: currentColor;
+}
+
+.star-button__corners span svg {
+	width: 100%;
+}
+
+.star-button__corners span:nth-of-type(1) {
+	offset-distance: 0;
+}
+.star-button__corners span:nth-of-type(2) {
+	offset-distance: 100cqi;
+}
+.star-button__corners span:nth-of-type(3) {
+	offset-rotate: 180deg;
+	offset-distance: calc(100cqi + 100cqh);
+}
+.star-button__corners span:nth-of-type(4) {
+	offset-rotate: 180deg;
+	offset-distance: -100cqh;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+	.star-button__corners span {
+		transition: transform 0.26s ease-out;
+	}
+	.star-button__corners span svg {
+		transition: rotate 0.26s ease-out;
+	}
+
+	.star-button:is(:hover, :focus-visible) .star-button__corners span {
+		transition-delay: 0.12s;
+	}
+	.star-button:is(:hover, :focus-visible)
+		.star-button__corners
+		span:nth-of-type(even) {
+		transform: translateY(100cqh);
+	}
+	.star-button:is(:hover, :focus-visible)
+		.star-button__corners
+		span:nth-of-type(odd) {
+		transform: translateX(100cqi);
+	}
+	.star-button:is(:hover, :focus-visible) .star-button__corners span svg {
+		rotate: 360deg;
+		transition-delay: 0.12s;
+	}
+}

@@ -189,7 +189,7 @@ const SECTION_GROUPS: SectionGroup[] = [
 			{
 				id: "/settings/security",
 				section: "security",
-				label: "Security",
+				label: "Remote Workspaces",
 				icon: <HiOutlineLockClosed className="h-4 w-4" />,
 			},
 			{

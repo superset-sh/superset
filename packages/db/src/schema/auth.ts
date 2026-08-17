@@ -24,6 +24,10 @@ export const users = authSchema.table(
 		organizationIds: uuid("organization_ids").array().default([]).notNull(),
 		onboardedAt: timestamp("onboarded_at"),
 		deletionRequestedAt: timestamp("deletion_requested_at"),
+		// Set when the account is deleted. The row is kept and its PII scrubbed
+		// rather than removed, because tasks, integrations and automations belong
+		// to the organization and ON DELETE CASCADE would take them too.
+		deletedAt: timestamp("deleted_at"),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
 		updatedAt: timestamp("updated_at")
 			.defaultNow()

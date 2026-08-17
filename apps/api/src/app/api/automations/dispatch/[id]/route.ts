@@ -16,10 +16,28 @@ const receiver = new Receiver({
 	nextSigningKey: env.QSTASH_NEXT_SIGNING_KEY,
 });
 
-const payloadSchema = z.object({
-	automationId: z.string().uuid(),
-	scheduledFor: z.string().datetime(),
-});
+/**
+ * A run comes from a schedule or from an event, never both. Scheduled runs
+ * carry the minute they were due, which is also their dedupe key; event runs
+ * carry the trigger and the event instead, and have no scheduled time.
+ */
+const payloadSchema = z.union([
+	// Strict, so a payload carrying both causes is rejected rather than
+	// silently treated as whichever branch happens to match first.
+	z
+		.object({
+			automationId: z.string().uuid(),
+			scheduledFor: z.string().datetime(),
+		})
+		.strict(),
+	z
+		.object({
+			automationId: z.string().uuid(),
+			triggerId: z.string().uuid(),
+			eventId: z.string().uuid(),
+		})
+		.strict(),
+]);
 
 export async function POST(
 	request: Request,
@@ -60,13 +78,25 @@ export async function POST(
 		return Response.json({ ok: true, skipped: "disabled" });
 	}
 
-	const outcome = await dispatchAutomation({
-		automation,
-		scheduledFor: new Date(parsed.data.scheduledFor),
-		// The owner's host may be on an overridden relay (relay-url-override);
-		// env.RELAY_URL alone reaches only hosts still on the default relay.
-		relayUrl: await getRelayUrl(automation.ownerUserId),
-	});
+	// The owner's host may be on an overridden relay (relay-url-override);
+	// env.RELAY_URL alone reaches only hosts still on the default relay.
+	const relayUrl = await getRelayUrl(automation.ownerUserId);
+	const outcome = await dispatchAutomation(
+		"scheduledFor" in parsed.data
+			? {
+					automation,
+					relayUrl,
+					scheduledFor: new Date(parsed.data.scheduledFor),
+				}
+			: {
+					automation,
+					relayUrl,
+					trigger: {
+						triggerId: parsed.data.triggerId,
+						eventId: parsed.data.eventId,
+					},
+				},
+	);
 
 	return Response.json({ ok: true, outcome });
 }

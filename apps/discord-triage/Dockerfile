@@ -4,7 +4,7 @@ WORKDIR /app
 # Stage 1: Prune monorepo to discord-triage's dependency graph
 FROM base AS prune
 COPY . .
-RUN bunx turbo@2.8.7 prune @superset/discord-triage --docker
+RUN bunx turbo@2.10.9 prune @superset/discord-triage --docker
 
 # Stage 2: Install deps + copy full source
 FROM base AS builder

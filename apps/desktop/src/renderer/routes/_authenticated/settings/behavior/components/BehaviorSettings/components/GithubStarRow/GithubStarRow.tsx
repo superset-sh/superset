@@ -10,7 +10,12 @@ interface GithubStarRowProps {
 }
 
 export function GithubStarRow({ searchQuery }: GithubStarRowProps) {
-	const { state, activate, isBusy } = useGithubStarAction();
+	// A status row the user navigated to specifically to check, not an
+	// ambient surface — worth a fresh check on every visit rather than
+	// trusting up to 10 minutes of staleness.
+	const { state, activate, isBusy } = useGithubStarAction({
+		alwaysFreshOnMount: true,
+	});
 
 	function handleClick() {
 		track(state === "unknown" ? "star_nag_opened_web" : "star_nag_starred", {

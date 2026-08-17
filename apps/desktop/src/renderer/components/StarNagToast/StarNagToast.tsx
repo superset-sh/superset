@@ -53,6 +53,7 @@ function StarNagToastContent({ toastId }: { toastId: string | number }) {
 				busy={isBusy}
 				onActivate={handleAction}
 				className="mt-3 w-full justify-center"
+				compact
 			/>
 		</div>
 	);
@@ -81,10 +82,14 @@ export function showStarNagOnboardingToast() {
 		duration: TOAST_DURATION_MS,
 		// Only fires when the toast's own duration elapses naturally — a
 		// manual toast.dismiss() from starring or clicking the X does not
-		// trigger this, so it can't double-count a dismissal.
+		// trigger this, so it can't double-count a dismissal. Ignoring the
+		// toast isn't an explicit "no thanks", so it starts the same cooldown
+		// as a real dismiss() without also doubling the sidebar card's
+		// threshold — the default new-user path (see the toast, keep working)
+		// would otherwise make the card nearly impossible to trigger.
 		onAutoClose: () => {
 			track("star_nag_dismissed", { surface: "toast" });
-			useStarNagStore.getState().dismiss();
+			useStarNagStore.getState().snoozeThresholdCard();
 		},
 	});
 }

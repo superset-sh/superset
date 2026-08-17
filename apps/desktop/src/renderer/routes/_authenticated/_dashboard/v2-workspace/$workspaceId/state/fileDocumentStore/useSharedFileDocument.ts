@@ -1,7 +1,7 @@
-import { getEventBus, useWorkspaceClient } from "@superset/workspace-client";
+import { useWorkspaceClient } from "@superset/workspace-client";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { useWorkspaceHostUrl } from "renderer/hooks/host-service/useWorkspaceHostUrl";
-import { getHostServiceWsToken } from "renderer/lib/host-service-auth";
+import { getHostEventBus } from "renderer/lib/host-event-bus";
 import { acquireDocument, releaseDocument } from "./fileDocumentStore";
 import type { SharedFileDocument } from "./types";
 
@@ -60,7 +60,7 @@ export function useSharedFileDocument({
 	const hostUrl = useWorkspaceHostUrl(workspaceId);
 	useEffect(() => {
 		if (!hostUrl) return;
-		const bus = getEventBus(hostUrl, () => getHostServiceWsToken(hostUrl));
+		const bus = getHostEventBus(hostUrl);
 		bus.watchFsFile(workspaceId, absolutePath);
 		const release = bus.retain();
 		return () => {

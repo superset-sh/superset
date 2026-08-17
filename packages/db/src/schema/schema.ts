@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
 	boolean,
+	check,
 	foreignKey,
 	index,
 	integer,
@@ -20,6 +21,8 @@ import {
 	automationPromptSourceValues,
 	automationRunStatusValues,
 	automationSessionKindValues,
+	automationTriggerKindValues,
+	cloudWorkspaceStatusValues,
 	commandStatusValues,
 	desktopNoticeCtaActionValues,
 	desktopNoticeSeverityValues,
@@ -33,7 +36,11 @@ import {
 	workspaceTypeValues,
 } from "./enums";
 import { githubRepositories } from "./github";
-import type { IntegrationConfig } from "./types";
+import type {
+	IntegrationConfig,
+	TriggerConfig,
+	UserIdentityMetadata,
+} from "./types";
 import type { WorkspaceConfig } from "./zod";
 
 export const taskStatus = pgEnum("task_status", taskStatusEnumValues);
@@ -43,6 +50,10 @@ export const integrationProvider = pgEnum(
 	integrationProviderValues,
 );
 export const commandStatus = pgEnum("command_status", commandStatusValues);
+export const cloudWorkspaceStatus = pgEnum(
+	"cloud_workspace_status",
+	cloudWorkspaceStatusValues,
+);
 export const v2ClientType = pgEnum("v2_client_type", v2ClientTypeValues);
 export const v2UsersHostRole = pgEnum(
 	"v2_users_host_role",
@@ -315,30 +326,71 @@ export const agentCommands = pgTable(
 export type InsertAgentCommand = typeof agentCommands.$inferInsert;
 export type SelectAgentCommand = typeof agentCommands.$inferSelect;
 
-export const usersSlackUsers = pgTable(
-	"users__slack_users",
+/**
+ * A person's identity at an external provider, per organization.
+ *
+ * Org-scoped rather than global, matching how Linear handles it: connecting
+ * GitHub in one workspace leaves another workspace untouched, and the same
+ * account can be connected in both. Verified by experiment — their docs claim
+ * one workspace per account, and the product does not enforce it.
+ *
+ * Not one table per provider. `users__slack_users` predates this and is the
+ * shape being replaced.
+ */
+export const userIdentities = pgTable(
+	"user_identities",
 	{
 		id: uuid().primaryKey().defaultRandom(),
-		slackUserId: text("slack_user_id").notNull(),
-		teamId: text("team_id").notNull(),
 		userId: uuid("user_id")
 			.notNull()
 			.references(() => users.id, { onDelete: "cascade" }),
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
-		modelPreference: text("model_preference"),
-		createdAt: timestamp("created_at").notNull().defaultNow(),
+
+		// Text rather than integration_provider: this also holds sign-in providers
+		// like google, which have no connection row behind them.
+		provider: text().notNull(),
+		// The provider's stable id. Matching keys off this because a handle can be
+		// renamed and an id cannot.
+		externalId: text("external_id").notNull(),
+		// The workspace, tenant or account the id belongs to, for providers whose
+		// user ids are not global. Null for GitHub and Google, set for Slack,
+		// Linear, Teams and PagerDuty.
+		externalScopeId: text("external_scope_id"),
+
+		// Display only, and nullable: an OAuth sign-in yields the id without the
+		// handle ever being fetched.
+		handle: text(),
+		displayName: text("display_name"),
+
+		// Provider-specific extras, typed as a union per provider rather than a
+		// free blob. Slack's chosen model lives here; it is the only occupant.
+		metadata: jsonb().$type<UserIdentityMetadata>(),
+
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
 	},
-	(table) => [
-		unique("users__slack_users_unique").on(table.slackUserId, table.teamId),
-		index("users__slack_users_user_idx").on(table.userId),
-		index("users__slack_users_org_idx").on(table.organizationId),
+	(t) => [
+		// One external account per org. NULLS NOT DISTINCT so providers with a
+		// null scope still collide with themselves.
+		unique("user_identities_account_unique")
+			.on(t.organizationId, t.provider, t.externalScopeId, t.externalId)
+			.nullsNotDistinct(),
+		// Deliberately no constraint limiting a person to one account per
+		// provider: linking both a work and a personal account is supported.
+		index("user_identities_user_idx").on(t.userId),
+		index("user_identities_org_provider_idx").on(t.organizationId, t.provider),
 	],
 );
 
-export type InsertUsersSlackUsers = typeof usersSlackUsers.$inferInsert;
-export type SelectUsersSlackUsers = typeof usersSlackUsers.$inferSelect;
+export type InsertUserIdentity = typeof userIdentities.$inferInsert;
+export type SelectUserIdentity = typeof userIdentities.$inferSelect;
 
 export const workspaceType = pgEnum("workspace_type", workspaceTypeValues);
 
@@ -405,6 +457,58 @@ export const v2Projects = pgTable(
 
 export type InsertV2Project = typeof v2Projects.$inferInsert;
 export type SelectV2Project = typeof v2Projects.$inferSelect;
+
+/**
+ * Deliberately not a `v2_hosts` row: a sandbox is 1:1 with a workspace rather
+ * than a machine hosting many, and registering one would both put it in the
+ * device picker and require an outbound relay socket, which fights the
+ * provider's wake-on-inbound sleep. Clients reach it directly at `sandbox_url`
+ * with a token brokered by the cloud.
+ */
+export const cloudWorkspaces = pgTable(
+	"cloud_workspaces",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+		projectId: uuid("project_id")
+			.notNull()
+			.references(() => v2Projects.id, { onDelete: "cascade" }),
+		// Creation inputs, not the workspace's identity: the sandbox's own
+		// host.db owns the workspace row (name, branch) once it is seeded, the
+		// same way every other host does. Read these to provision a sandbox,
+		// never to display one — a rename lands on the sandbox and leaves these
+		// behind.
+		name: text().notNull(),
+		branch: text().notNull(),
+		provider: text().notNull().default("blaxel"),
+		providerSandboxId: text("provider_sandbox_id").notNull(),
+		sandboxUrl: text("sandbox_url"),
+		status: cloudWorkspaceStatus().notNull().default("provisioning"),
+		createdByUserId: uuid("created_by_user_id").references(() => users.id, {
+			onDelete: "set null",
+		}),
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(table) => [
+		index("cloud_workspaces_organization_id_idx").on(table.organizationId),
+		index("cloud_workspaces_project_id_idx").on(table.projectId),
+		unique("cloud_workspaces_provider_sandbox_id_unique").on(
+			table.provider,
+			table.providerSandboxId,
+		),
+	],
+);
+
+export type InsertCloudWorkspace = typeof cloudWorkspaces.$inferInsert;
+export type SelectCloudWorkspace = typeof cloudWorkspaces.$inferSelect;
 
 export const v2Hosts = pgTable(
 	"v2_hosts",
@@ -659,6 +763,11 @@ export const automationPromptSource = pgEnum(
 	automationPromptSourceValues,
 );
 
+export const automationTriggerKind = pgEnum(
+	"automation_trigger_kind",
+	automationTriggerKindValues,
+);
+
 export const automations = pgTable(
 	"automations",
 	{
@@ -682,15 +791,8 @@ export const automations = pgTable(
 		v2ProjectId: uuid("v2_project_id"),
 		v2WorkspaceId: uuid("v2_workspace_id"),
 
-		rrule: text().notNull(),
-		dtstart: timestamp("dtstart", { withTimezone: true }).notNull(),
-		timezone: text().notNull(),
-
+		// The schedule lives in the automation's `schedule` trigger.
 		enabled: boolean().notNull().default(true),
-
-		mcpScope: jsonb("mcp_scope").$type<string[]>().notNull().default([]),
-
-		nextRunAt: timestamp("next_run_at", { withTimezone: true }).notNull(),
 
 		createdAt: timestamp("created_at", { withTimezone: true })
 			.notNull()
@@ -701,7 +803,9 @@ export const automations = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(t) => [
-		index("automations_dispatcher_idx").on(t.enabled, t.nextRunAt),
+		// No dispatcher index here — the dispatcher scans automation_triggers.
+		// Target for automation_triggers' composite FK.
+		unique("automations_id_org_unique").on(t.id, t.organizationId),
 		index("automations_owner_idx").on(t.ownerUserId),
 		index("automations_organization_idx").on(t.organizationId),
 	],
@@ -710,20 +814,148 @@ export const automations = pgTable(
 export type InsertAutomation = typeof automations.$inferInsert;
 export type SelectAutomation = typeof automations.$inferSelect;
 
+export const automationTriggers = pgTable(
+	"automation_triggers",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		automationId: uuid("automation_id").notNull(),
+		// Denormalized so the matcher never joins to find candidates.
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
+		kind: automationTriggerKind().notNull(),
+		config: jsonb().$type<TriggerConfig>().notNull(),
+		enabled: boolean().notNull().default(true),
+
+		// Schedule kind only. A column rather than config because the dispatcher
+		// indexes and sorts on it.
+		nextRunAt: timestamp("next_run_at", { withTimezone: true }),
+
+		// Webhook kind only. Argon2 hash, never the raw key.
+		secretHash: text("secret_hash"),
+		secretPrefix: text("secret_prefix"),
+		secretRotatedAt: timestamp("secret_rotated_at", { withTimezone: true }),
+
+		createdAt: timestamp("created_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+		updatedAt: timestamp("updated_at", { withTimezone: true })
+			.notNull()
+			.defaultNow()
+			.$onUpdate(() => new Date()),
+	},
+	(t) => [
+		// Composite, so a trigger cannot name an automation in another org.
+		foreignKey({
+			columns: [t.automationId, t.organizationId],
+			foreignColumns: [automations.id, automations.organizationId],
+			name: "automation_triggers_automation_org_fk",
+		}).onDelete("cascade"),
+		check(
+			"automation_triggers_kind_matches_config",
+			sql`config->>'kind' = kind::text`,
+		),
+		index("automation_triggers_dispatcher_idx")
+			.on(t.enabled, t.nextRunAt)
+			.where(sql`kind = 'schedule'`),
+		index("automation_triggers_matcher_idx")
+			.on(t.organizationId, t.kind)
+			.where(sql`enabled`),
+		index("automation_triggers_automation_idx").on(t.automationId),
+		// At most one schedule trigger per automation. The dispatcher reads
+		// triggers, so a duplicate would double-dispatch; this also gives the
+		// dual-write and the lazy repair a conflict target.
+		uniqueIndex("automation_triggers_schedule_unique")
+			.on(t.automationId)
+			.where(sql`kind = 'schedule'`),
+	],
+);
+
+export type InsertAutomationTrigger = typeof automationTriggers.$inferInsert;
+export type SelectAutomationTrigger = typeof automationTriggers.$inferSelect;
+
+export const automationEvents = pgTable(
+	"automation_events",
+	{
+		id: uuid().primaryKey().defaultRandom(),
+		organizationId: uuid("organization_id")
+			.notNull()
+			.references(() => organizations.id, { onDelete: "cascade" }),
+
+		// Text, not integration_provider: this must hold "webhook" and
+		// "superset", which have no connection behind them.
+		// Which connection produced this. Null for webhook and superset events.
+		// Not backfillable later: provider payloads do not always name it.
+		integrationConnectionId: uuid("integration_connection_id").references(
+			() => integrationConnections.id,
+			{ onDelete: "set null" },
+		),
+
+		provider: text().notNull(),
+		eventType: text("event_type").notNull(),
+		externalEventId: text("external_event_id").notNull(),
+
+		resourceKey: text("resource_key"),
+
+		title: text().notNull(),
+		url: text(),
+		repositoryId: text("repository_id"),
+		ref: text(),
+		actorLogin: text("actor_login"),
+		actorIsExternal: boolean("actor_is_external"),
+
+		// Its own copy: ingest is prunable and the prompt needs this at dispatch.
+		payload: jsonb().notNull(),
+
+		// Provenance pointer, deliberately not a foreign key, so ingest stays
+		// prunable. Null for webhook and superset events.
+		webhookEventId: uuid("webhook_event_id"),
+
+		receivedAt: timestamp("received_at", { withTimezone: true })
+			.notNull()
+			.defaultNow(),
+	},
+	(t) => [
+		// Connection-scoped: two orgs can legitimately receive the same
+		// external id, and a customer-chosen Idempotency-Key certainly can.
+		unique("automation_events_dedup_unique")
+			.on(t.integrationConnectionId, t.provider, t.externalEventId)
+			.nullsNotDistinct(),
+		index("automation_events_org_received_idx").on(
+			t.organizationId,
+			t.receivedAt,
+		),
+		index("automation_events_resource_idx").on(t.resourceKey),
+	],
+);
+
+export type InsertAutomationEvent = typeof automationEvents.$inferInsert;
+export type SelectAutomationEvent = typeof automationEvents.$inferSelect;
+
 export const automationRuns = pgTable(
 	"automation_runs",
 	{
 		id: uuid().primaryKey().defaultRandom(),
-		automationId: uuid("automation_id")
-			.notNull()
-			.references(() => automations.id, { onDelete: "cascade" }),
+		automationId: uuid("automation_id").notNull(),
 		organizationId: uuid("organization_id")
 			.notNull()
 			.references(() => organizations.id, { onDelete: "cascade" }),
 
 		title: text().notNull(),
 
-		scheduledFor: timestamp("scheduled_for", { withTimezone: true }).notNull(),
+		triggerId: uuid("trigger_id").references(() => automationTriggers.id, {
+			onDelete: "set null",
+		}),
+		eventId: uuid("event_id").references(() => automationEvents.id, {
+			onDelete: "set null",
+		}),
+
+		// Nullable now: schedule runs keep it, event runs have no schedule.
+		scheduledFor: timestamp("scheduled_for", { withTimezone: true }),
+
+		// Denormalized from the event so the debounce index stays local.
+		resourceKey: text("resource_key"),
 
 		hostId: text("host_id"),
 		v2WorkspaceId: uuid("v2_workspace_id"),
@@ -743,7 +975,23 @@ export const automationRuns = pgTable(
 			.defaultNow(),
 	},
 	(t) => [
-		uniqueIndex("automation_runs_dedup_idx").on(t.automationId, t.scheduledFor),
+		// Composite, so a run cannot name an automation in another org.
+		foreignKey({
+			columns: [t.automationId, t.organizationId],
+			foreignColumns: [automations.id, automations.organizationId],
+			name: "automation_runs_automation_org_fk",
+		}).onDelete("cascade"),
+		// Replaces automation_runs_dedup_idx, which was UNIQUE(automation_id,
+		// scheduled_for) and stops deduping the moment scheduled_for is nullable.
+		uniqueIndex("automation_runs_schedule_dedup_idx")
+			.on(t.automationId, t.scheduledFor)
+			.where(sql`scheduled_for IS NOT NULL`),
+		uniqueIndex("automation_runs_event_dedup_idx")
+			.on(t.triggerId, t.eventId)
+			.where(sql`event_id IS NOT NULL`),
+		index("automation_runs_inflight_resource_idx")
+			.on(t.triggerId, t.resourceKey)
+			.where(sql`status IN ('dispatching', 'dispatched')`),
 		index("automation_runs_history_idx").on(t.automationId, t.createdAt),
 		index("automation_runs_status_idx").on(t.status),
 		index("automation_runs_workspace_idx").on(t.v2WorkspaceId),

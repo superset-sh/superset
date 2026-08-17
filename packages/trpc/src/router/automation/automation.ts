@@ -2,26 +2,33 @@ import { db, dbWs } from "@superset/db/client";
 import {
 	automationRuns,
 	automations,
+	automationTriggers,
 	v2Hosts,
 	v2UsersHosts,
 	v2Workspaces,
 } from "@superset/db/schema";
+import type { DraftTrigger } from "@superset/shared/automation-triggers";
 import {
 	describeSchedule,
+	nextOccurrenceAfter,
 	nextOccurrences,
 	parseRrule,
 } from "@superset/shared/rrule";
 import { TRPCError, type TRPCRouterRecord } from "@trpc/server";
-import { and, desc, eq, getTableColumns, ilike } from "drizzle-orm";
+import { and, desc, eq, ilike } from "drizzle-orm";
 import { z } from "zod";
 import { resolveUserRelayUrl } from "../../lib/relay-url";
 import { protectedProcedure } from "../../trpc";
 import { requireActiveOrgMembership } from "../utils/active-org";
 import { dispatchAutomation } from "./dispatch";
 import {
+	automationBaseColumns,
 	getAutomationForUser,
+	onScheduleTrigger,
 	promptSourceFromSession,
 	recordPromptVersion,
+	scheduleTriggerColumns,
+	syncScheduleTrigger,
 } from "./helpers";
 import {
 	createAutomationSchema,
@@ -30,6 +37,7 @@ import {
 	setAutomationPromptSchema,
 	updateAutomationSchema,
 } from "./schema";
+import { saveTriggerSet } from "./triggerSet";
 import { automationVersionsRouter } from "./versions";
 
 function escapeLikePattern(value: string): string {
@@ -107,6 +115,62 @@ async function verifyWorkspaceInOrg(
 	};
 }
 
+/**
+ * Builds the schedule half of a mutation response from what was actually saved.
+ *
+ * An automation may now have no schedule at all — an event-only trigger set is
+ * the normal case for a GitHub or Slack automation — so every schedule field is
+ * nullable here, and reporting the input back would describe a schedule that was
+ * never written.
+ */
+function withSchedule<T>(
+	row: T,
+	triggers: DraftTrigger[] | null,
+	legacy: {
+		rrule: string;
+		dtstart: Date;
+		timezone: string;
+		nextRunAt: Date;
+	} | null,
+) {
+	const scheduled = triggers?.find((t) => t.config.kind === "schedule");
+	if (scheduled && scheduled.config.kind === "schedule") {
+		const { rrule, dtstart, timezone } = scheduled.config;
+		return {
+			...row,
+			rrule,
+			dtstart: new Date(dtstart),
+			timezone,
+			nextRunAt: nextOccurrenceAfter({
+				rrule,
+				dtstart: new Date(dtstart),
+				timezone,
+				after: new Date(),
+			}),
+			scheduleText: safeDescribeRrule({ rrule }),
+		};
+	}
+	if (triggers) {
+		// Event-only: no schedule to report.
+		return {
+			...row,
+			rrule: null,
+			dtstart: null,
+			timezone: null,
+			nextRunAt: null,
+			scheduleText: null,
+		};
+	}
+	return {
+		...row,
+		rrule: legacy?.rrule ?? null,
+		dtstart: legacy?.dtstart ?? null,
+		timezone: legacy?.timezone ?? null,
+		nextRunAt: legacy?.nextRunAt ?? null,
+		scheduleText: legacy ? safeDescribeRrule({ rrule: legacy.rrule }) : null,
+	};
+}
+
 export const automationRouter = {
 	versions: automationVersionsRouter,
 
@@ -130,10 +194,10 @@ export const automationRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 
-			const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
 			const rows = await db
-				.select(summaryCols)
+				.select({ ...automationBaseColumns, ...scheduleTriggerColumns })
 				.from(automations)
+				.leftJoin(automationTriggers, onScheduleTrigger)
 				.where(
 					and(
 						eq(automations.organizationId, organizationId),
@@ -160,10 +224,10 @@ export const automationRouter = {
 		.query(async ({ ctx, input }) => {
 			const organizationId = await requireActiveOrgMembership(ctx);
 
-			const { prompt: _prompt, ...summaryCols } = getTableColumns(automations);
 			const [row] = await db
-				.select(summaryCols)
+				.select({ ...automationBaseColumns, ...scheduleTriggerColumns })
 				.from(automations)
+				.leftJoin(automationTriggers, onScheduleTrigger)
 				.where(
 					and(
 						eq(automations.id, input.id),
@@ -237,12 +301,23 @@ export const automationRouter = {
 				);
 			}
 
-			const dtstart = input.dtstart ?? new Date();
-			const { nextRunAt } = parseRrule({
-				rrule: input.rrule,
-				dtstart,
-				timezone: input.timezone,
-			});
+			// Only the legacy shape carries a top-level schedule; a trigger set
+			// describes its own, or has none at all.
+			const legacySchedule = input.rrule
+				? (() => {
+						const dtstart = input.dtstart ?? new Date();
+						return {
+							rrule: input.rrule,
+							dtstart,
+							timezone: input.timezone ?? "UTC",
+							nextRunAt: parseRrule({
+								rrule: input.rrule,
+								dtstart,
+								timezone: input.timezone ?? "UTC",
+							}).nextRunAt,
+						};
+					})()
+				: null;
 
 			const created = await dbWs.transaction(async (tx) => {
 				const inserted = await tx
@@ -256,11 +331,6 @@ export const automationRouter = {
 						targetHostId,
 						v2ProjectId,
 						v2WorkspaceId: input.v2WorkspaceId ?? null,
-						rrule: input.rrule,
-						dtstart,
-						timezone: input.timezone,
-						mcpScope: input.mcpScope,
-						nextRunAt,
 					})
 					.returning();
 
@@ -269,6 +339,22 @@ export const automationRouter = {
 					throw new TRPCError({
 						code: "INTERNAL_SERVER_ERROR",
 						message: "Failed to create automation",
+					});
+				}
+
+				if (input.triggers) {
+					await saveTriggerSet(tx, {
+						automationId: row.id,
+						organizationId,
+						triggers: input.triggers,
+					});
+				} else if (legacySchedule) {
+					// Legacy shape: a top-level rrule becomes the schedule trigger.
+					await syncScheduleTrigger(tx, {
+						automationId: row.id,
+						organizationId,
+						...legacySchedule,
+						enabled: row.enabled,
 					});
 				}
 
@@ -282,7 +368,9 @@ export const automationRouter = {
 				return row;
 			});
 
-			return { ...created, scheduleText: safeDescribeRrule(created) };
+			// Reported from what was actually written, not from the input: a
+			// trigger set may describe a different schedule, or none at all.
+			return withSchedule(created, input.triggers ?? null, legacySchedule);
 		}),
 
 	update: protectedProcedure
@@ -398,24 +486,61 @@ export const automationRouter = {
 					}).nextRunAt
 				: existing.nextRunAt;
 
-			const [updated] = await dbWs
-				.update(automations)
-				.set({
-					name: input.name ?? existing.name,
-					agent: input.agent ?? existing.agent,
-					targetHostId: nextTargetHostId,
-					v2ProjectId: nextProjectId,
-					v2WorkspaceId: nextWorkspaceId,
-					rrule: nextRrule,
-					dtstart: nextDtstart,
-					timezone: nextTimezone,
-					mcpScope: input.mcpScope ?? existing.mcpScope,
-					nextRunAt: recomputedNextRunAt,
-				})
-				.where(eq(automations.id, input.id))
-				.returning();
+			const updated = await dbWs.transaction(async (tx) => {
+				const [row] = await tx
+					.update(automations)
+					.set({
+						name: input.name ?? existing.name,
+						agent: input.agent ?? existing.agent,
+						targetHostId: nextTargetHostId,
+						v2ProjectId: nextProjectId,
+						v2WorkspaceId: nextWorkspaceId,
+					})
+					.where(eq(automations.id, input.id))
+					.returning();
 
-			return { ...updated, scheduleText: safeDescribeRrule(updated) };
+				if (!row) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Automation not found",
+					});
+				}
+
+				if (input.triggers) {
+					await saveTriggerSet(tx, {
+						automationId: row.id,
+						organizationId,
+						triggers: input.triggers,
+					});
+				} else {
+					await syncScheduleTrigger(tx, {
+						automationId: row.id,
+						organizationId,
+						rrule: nextRrule,
+						dtstart: nextDtstart,
+						timezone: nextTimezone,
+						nextRunAt: recomputedNextRunAt,
+						enabled: row.enabled,
+					});
+				}
+
+				return row;
+			});
+
+			// Same as create: a trigger set may have replaced or removed the
+			// schedule, so the response reflects what was saved.
+			return withSchedule(
+				updated,
+				input.triggers ?? null,
+				nextRrule && recomputedNextRunAt
+					? {
+							rrule: nextRrule,
+							dtstart: nextDtstart,
+							timezone: nextTimezone,
+							nextRunAt: recomputedNextRunAt,
+						}
+					: null,
+			);
 		}),
 
 	getPrompt: protectedProcedure
@@ -479,7 +604,15 @@ export const automationRouter = {
 				return row;
 			});
 
-			return { ...updated, scheduleText: safeDescribeRrule(updated) };
+			// `updated` is the automations row; the schedule comes from the trigger.
+			return {
+				...updated,
+				rrule: existing.rrule,
+				dtstart: existing.dtstart,
+				timezone: existing.timezone,
+				nextRunAt: existing.nextRunAt,
+				scheduleText: describeSchedule(existing.rrule),
+			};
 		}),
 
 	delete: protectedProcedure
@@ -503,27 +636,53 @@ export const automationRouter = {
 				input.id,
 			);
 
-			// When resuming, recompute next_run_at from now so we don't fire stale
+			// When resuming, recompute the next run from now so we don't fire stale
 			// occurrences that accumulated while paused.
-			const patch: { enabled: boolean; nextRunAt?: Date } = {
-				enabled: input.enabled,
-			};
-			if (input.enabled && !existing.enabled) {
-				patch.nextRunAt = parseRrule({
+			const resumedNextRunAt =
+				input.enabled && !existing.enabled
+					? parseRrule({
+							rrule: existing.rrule,
+							dtstart: existing.dtstart,
+							timezone: existing.timezone,
+							after: new Date(),
+						}).nextRunAt
+					: existing.nextRunAt;
+
+			const updated = await dbWs.transaction(async (tx) => {
+				const [row] = await tx
+					.update(automations)
+					.set({ enabled: input.enabled })
+					.where(eq(automations.id, input.id))
+					.returning();
+
+				if (!row) {
+					throw new TRPCError({
+						code: "NOT_FOUND",
+						message: "Automation not found",
+					});
+				}
+
+				await syncScheduleTrigger(tx, {
+					automationId: row.id,
+					organizationId,
 					rrule: existing.rrule,
 					dtstart: existing.dtstart,
 					timezone: existing.timezone,
-					after: new Date(),
-				}).nextRunAt;
-			}
+					nextRunAt: resumedNextRunAt,
+					enabled: row.enabled,
+				});
 
-			const [updated] = await dbWs
-				.update(automations)
-				.set(patch)
-				.where(eq(automations.id, input.id))
-				.returning();
+				return row;
+			});
 
-			return { ...updated, scheduleText: safeDescribeRrule(updated) };
+			return {
+				...updated,
+				rrule: existing.rrule,
+				dtstart: existing.dtstart,
+				timezone: existing.timezone,
+				nextRunAt: resumedNextRunAt,
+				scheduleText: describeSchedule(existing.rrule),
+			};
 		}),
 
 	runNow: protectedProcedure
