@@ -8,9 +8,9 @@ import {
 } from "@superset/ui/card";
 import { AlertTriangle, ArrowLeft, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { HiOutlineChatBubbleLeftRight } from "react-icons/hi2";
 import { env } from "@/env";
 import { api } from "@/trpc/server";
+import { PlainIcon } from "../components/PlainIcon";
 import { PlainConnectionControls } from "./components/PlainConnectionControls";
 
 export default async function PlainIntegrationPage() {
@@ -46,7 +46,7 @@ export default async function PlainIntegrationPage() {
 
 			<div className="flex items-start gap-6">
 				<div className="flex size-16 items-center justify-center rounded-xl border bg-card p-3">
-					<HiOutlineChatBubbleLeftRight className="size-10" />
+					<PlainIcon className="size-10" />
 				</div>
 				<div className="flex-1">
 					<div className="flex items-center gap-3">
