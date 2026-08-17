@@ -255,7 +255,7 @@ export const auth = betterAuth({
 					// diluted intent-to-treat effect would need years to resolve.
 					// Kill switch for the nudges is the Resend automation toggle.
 					try {
-						await resend.emails.send({
+						const { error } = await resend.emails.send({
 							from: "Superset <noreply@superset.sh>",
 							replyTo: "founders@superset.sh",
 							to: user.email,
@@ -265,6 +265,8 @@ export const auth = betterAuth({
 								userEmail: user.email,
 							}),
 						});
+						// Resend reports API failures in `error` rather than throwing.
+						if (error) throw new Error(error.message);
 					} catch (error) {
 						console.error(
 							`[lifecycle] Failed to send welcome email to ${user.id}:`,
