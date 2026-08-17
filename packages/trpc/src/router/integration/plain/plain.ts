@@ -14,26 +14,43 @@ import { z } from "zod";
 import { env } from "../../../env";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
-import { PlainApiError, PlainClient } from "./client";
+import { isPlainAuthError, PlainApiError, PlainClient } from "./client";
 import { MY_WORKSPACE_QUERY, type MyWorkspaceResponse } from "./threads";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
 async function fetchWorkspaceForApiKey(apiKey: string) {
+	let response: MyWorkspaceResponse;
 	try {
-		const response = await new PlainClient(apiKey).request<
+		response = await new PlainClient(apiKey).request<
 			MyWorkspaceResponse,
 			Record<string, never>
 		>(MY_WORKSPACE_QUERY, {});
-		if (response.myWorkspace) return response.myWorkspace;
 	} catch (error) {
-		if (!(error instanceof PlainApiError)) throw error;
+		// Only auth failures mean a bad key; a 429/5xx/timeout must not tell
+		// the operator to rotate a working key.
+		if (isPlainAuthError(error)) {
+			throw new TRPCError({
+				code: "BAD_REQUEST",
+				message:
+					"Plain rejected the API key. Create a machine user API key with the thread:read, customer:read, and labelType:read permissions and try again.",
+			});
+		}
+		if (error instanceof PlainApiError) {
+			throw new TRPCError({
+				code: "INTERNAL_SERVER_ERROR",
+				message: `Could not reach Plain (${error.message}). Try again.`,
+			});
+		}
+		throw error;
 	}
-	throw new TRPCError({
-		code: "BAD_REQUEST",
-		message:
-			"Plain rejected the API key. Create a machine user API key with the thread:read, customer:read, and labelType:read permissions and try again.",
-	});
+	if (!response.myWorkspace) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "The API key is valid but has no workspace attached.",
+		});
+	}
+	return response.myWorkspace;
 }
 
 export const plainRouter = {
@@ -77,7 +94,12 @@ export const plainRouter = {
 			const workspace = await fetchWorkspaceForApiKey(input.apiKey);
 
 			const config: PlainConfig = { provider: "plain" };
+			// Omitted secret = keep whatever is stored, so reconnecting with only
+			// a new API key doesn't silently break webhook verification.
+			// updateWebhookSecret handles explicit changes and clears.
 			const webhookSecret = input.webhookSecret?.trim() || null;
+			const webhookSecretUpdate =
+				input.webhookSecret === undefined ? {} : { webhookSecret };
 
 			await db
 				.insert(integrationConnections)
@@ -99,7 +121,7 @@ export const plainRouter = {
 					set: {
 						connectedByUserId: ctx.session.user.id,
 						accessToken: input.apiKey,
-						webhookSecret,
+						...webhookSecretUpdate,
 						externalOrgId: workspace.id,
 						externalOrgName: workspace.name,
 						config,
@@ -232,7 +254,7 @@ export const plainRouter = {
 		.mutation(async ({ ctx, input }) => {
 			await verifyOrgAdmin(ctx.session.user.id, input.organizationId);
 
-			await db
+			const updated = await db
 				.update(integrationConnections)
 				.set({ webhookSecret: input.webhookSecret.trim() || null })
 				.where(
@@ -240,7 +262,15 @@ export const plainRouter = {
 						eq(integrationConnections.organizationId, input.organizationId),
 						eq(integrationConnections.provider, "plain"),
 					),
-				);
+				)
+				.returning({ id: integrationConnections.id });
+
+			if (updated.length === 0) {
+				throw new TRPCError({
+					code: "NOT_FOUND",
+					message: "No Plain connection found for this organization.",
+				});
+			}
 
 			return { success: true };
 		}),

@@ -3,6 +3,7 @@ import {
 	mapPriorityFromPlain,
 	mapThreadToTask,
 	type PlainThread,
+	plainSlugFromRef,
 } from "./threads";
 
 const ORG_ID = "org-1";
@@ -41,6 +42,13 @@ function buildThread(overrides: Partial<PlainThread> = {}): PlainThread {
 	};
 }
 
+describe("plainSlugFromRef", () => {
+	test("namespaces refs so they can't collide with other providers", () => {
+		expect(plainSlugFromRef("T-1327")).toBe("PL-1327");
+		expect(plainSlugFromRef("X-9")).toBe("PL-X-9");
+	});
+});
+
 describe("mapPriorityFromPlain", () => {
 	test("maps Plain's integer priorities", () => {
 		expect(mapPriorityFromPlain(0)).toBe("urgent");
@@ -62,7 +70,7 @@ describe("mapThreadToTask", () => {
 		);
 
 		expect(task).not.toBeNull();
-		expect(task?.slug).toBe("T-42");
+		expect(task?.slug).toBe("PL-42");
 		expect(task?.externalKey).toBe("T-42");
 		expect(task?.externalId).toBe("th_123");
 		expect(task?.externalProvider).toBe("plain");

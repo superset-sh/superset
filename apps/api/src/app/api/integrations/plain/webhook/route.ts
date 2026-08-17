@@ -8,9 +8,9 @@ import {
 	webhookEvents,
 } from "@superset/db/schema";
 import {
+	callPlain,
 	ensurePlainStatuses,
 	fetchThread,
-	getPlainClient,
 	mapThreadToTask,
 } from "@superset/trpc/integrations/plain";
 import { and, asc, eq, isNull, sql } from "drizzle-orm";
@@ -119,16 +119,18 @@ export async function POST(request: Request) {
 	if (anyFailed) {
 		console.error("[plain/webhook] processing failures:", results);
 	}
+	// Any failure returns 500 so Plain redelivers; per-connection rows in
+	// webhookEvents make redelivery a no-op for the connections that succeeded.
 	return Response.json(
 		{
-			success: !allFailed,
+			success: !anyFailed,
 			status: allFailed
 				? "failed"
 				: anyFailed
 					? "partial_failure"
 					: "processed",
 		},
-		{ status: allFailed ? 500 : 200 },
+		{ status: anyFailed ? 500 : 200 },
 	);
 }
 
@@ -216,15 +218,25 @@ async function syncThreadForConnection(
 
 	// Webhook thread payloads lack `ref` and `description`, so the thread is
 	// refetched instead of trusting the (possibly stale, retried) payload.
-	const client = await getPlainClient(connection.organizationId);
-	if (!client) {
-		return "skipped";
-	}
-
-	const thread = await fetchThread(client, threadId);
-	if (!thread) {
-		console.warn(`[plain/webhook] Thread ${threadId} not found, skipping`);
-		return "skipped";
+	// callPlain marks the connection disconnected when the key was revoked.
+	const thread = await callPlain(connection.organizationId, (client) =>
+		fetchThread(client, threadId),
+	);
+	if (thread === null) {
+		// Distinguish "no usable connection" (final) from "thread not readable
+		// yet" (retryable): a thrown error keeps the event row failed so
+		// Plain's redelivery re-drives it.
+		const stillConnected = await db.query.integrationConnections.findFirst({
+			where: and(
+				eq(integrationConnections.id, connection.id),
+				isNull(integrationConnections.disconnectedAt),
+			),
+			columns: { id: true },
+		});
+		if (!stillConnected) {
+			return "skipped";
+		}
+		throw new Error(`Thread ${threadId} not readable yet`);
 	}
 
 	const statusByExternalId = await ensurePlainStatuses(

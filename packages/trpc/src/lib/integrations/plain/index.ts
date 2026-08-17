@@ -18,6 +18,7 @@ export {
 	type PlainThread,
 	type PlainThreadAssignee,
 	type PlainThreadStatus,
+	plainSlugFromRef,
 } from "../../../router/integration/plain/threads";
 export {
 	callPlain,
