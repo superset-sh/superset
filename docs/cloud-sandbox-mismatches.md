@@ -125,6 +125,40 @@ rows read the same collection as every other row.
 **Drag ordering isn't wired** — the cloud section sits outside the DnD
 containers. **Open.**
 
+**A sandbox's host-service is frozen at the version it was provisioned with,
+and nothing updates it. Open, and the most consequential item on this list.**
+On a machine someone owns, the desktop app ships host-service and updates it:
+new app version, new binary, one restart. A sandbox instead bakes
+`packages/host-service/dist` into the image, so its host-service is whatever
+the image held on the day it was created. There is no updater in there, and
+the app can't push one.
+
+Every release therefore widens a gap between a desktop that has moved on and
+sandboxes that haven't. The failure mode is not a clean version error — it is
+a client calling a procedure the sandbox's router doesn't have, or sending an
+auth shape it no longer expects, and the user seeing a workspace that is
+simply broken with no way to fix it short of recreating it and losing the
+uncommitted work inside. Long-lived sandboxes are exactly the ones people will
+care about most, so this gets worse with time rather than better.
+
+What it needs, roughly in order of how much it buys:
+
+- **A version handshake.** The sandbox reports the host-service version it is
+  running and the app compares it against what it expects, so a mismatch
+  surfaces as a clear "this workspace needs updating" instead of a broken
+  pane. Nothing else is safe to build until the app can tell.
+- **In-place update.** Ship a new `dist` into a running sandbox and restart
+  host-service, the way the desktop does — the sandbox has a filesystem and a
+  process supervisor, so this is mechanically possible.
+- **Recreate-with-carryover** as the fallback for a sandbox too old to update:
+  push the branch, provision a fresh sandbox, restore the checkout. Slower,
+  but it must exist for the cases where in-place fails.
+
+Note that the *image tag* is a deploy-time env var (`BLAXEL_SANDBOX_IMAGE`),
+so new sandboxes pick up a rebuilt image for free. It is only existing ones
+that strand — which is why this reads as fine right up until the first
+long-lived workspace.
+
 ## Provider constraints
 
 **Proxy secret injection needs the workspace entitlement.** Routing rules send
