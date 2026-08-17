@@ -1,6 +1,6 @@
 import { Button } from "@superset/ui/button";
 import { useNavigate } from "@tanstack/react-router";
-import { HiOutlineChatBubbleLeftRight } from "react-icons/hi2";
+import { PlainIcon } from "renderer/components/icons/PlainIcon";
 
 export function PlainCTA() {
 	const navigate = useNavigate();
@@ -13,7 +13,7 @@ export function PlainCTA() {
 		<div className="flex-1 flex items-center justify-center p-6">
 			<div className="flex flex-col items-center gap-4 max-w-md text-center">
 				<div className="flex size-16 items-center justify-center rounded-xl border bg-muted/50">
-					<HiOutlineChatBubbleLeftRight className="size-8" />
+					<PlainIcon className="size-8" />
 				</div>
 				<div className="space-y-2">
 					<h3 className="text-lg font-semibold">Connect Plain</h3>
