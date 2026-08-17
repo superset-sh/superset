@@ -4,13 +4,13 @@ import { cn } from "@superset/ui/utils";
 import { useState } from "react";
 import { GoIssueOpened } from "react-icons/go";
 import {
-	HiOutlineChatBubbleLeftRight,
 	HiOutlinePencilSquare,
 	HiOutlineQueueList,
 	HiOutlineViewColumns,
 	HiXMark,
 } from "react-icons/hi2";
 import { SiLinear } from "react-icons/si";
+import { PlainIcon } from "renderer/components/icons/PlainIcon";
 import { useIsV2CloudEnabled } from "renderer/hooks/useIsV2CloudEnabled";
 import { OpenClosedFilter } from "renderer/routes/_authenticated/_dashboard/components/OpenClosedFilter";
 import { ProjectFilter } from "renderer/routes/_authenticated/_dashboard/components/ProjectFilter";
@@ -62,11 +62,7 @@ interface TasksTopBarProps {
 const TASK_SOURCES = [
 	{ value: "tasks" as const, label: "Linear", Icon: SiLinear },
 	{ value: "issues" as const, label: "GitHub issues", Icon: GoIssueOpened },
-	{
-		value: "plain" as const,
-		label: "Plain",
-		Icon: HiOutlineChatBubbleLeftRight,
-	},
+	{ value: "plain" as const, label: "Plain", Icon: PlainIcon },
 ] as const;
 
 export function TasksTopBar({
