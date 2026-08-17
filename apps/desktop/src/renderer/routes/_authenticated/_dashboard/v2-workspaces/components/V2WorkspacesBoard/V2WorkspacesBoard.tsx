@@ -16,6 +16,12 @@ interface V2WorkspacesBoardProps {
 	isReady: boolean;
 }
 
+/**
+ * Renders workspaces in status lanes using the active archive window and sort.
+ *
+ * @param props - Workspaces to group and whether the workspace source is ready.
+ * @returns The workspace board, or no content while an empty source is loading.
+ */
 export function V2WorkspacesBoard({
 	workspaces,
 	isReady,

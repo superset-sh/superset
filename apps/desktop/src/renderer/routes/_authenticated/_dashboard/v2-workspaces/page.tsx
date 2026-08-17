@@ -33,6 +33,13 @@ export type V2WorkspacesSearch = {
 	archived?: V2WorkspacesArchivedWindow;
 };
 
+/**
+ * Parses a comma-separated search parameter and optionally filters its values.
+ *
+ * @param raw - Untrusted search parameter value.
+ * @param allowed - Optional allowlist for parsed values.
+ * @returns Valid, non-empty list entries.
+ */
 function parseList<T extends string>(
 	raw: unknown,
 	allowed?: readonly T[],
@@ -78,6 +85,11 @@ export const Route = createFileRoute(
 	}),
 });
 
+/**
+ * Synchronizes workspace filters with the URL and renders the selected view.
+ *
+ * @returns The Workspaces page in board or list mode.
+ */
 function V2WorkspacesPage() {
 	const search = Route.useSearch();
 	const navigate = useNavigate({ from: Route.fullPath });

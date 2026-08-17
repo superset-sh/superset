@@ -55,9 +55,14 @@ const LIST_SECTION_ORDER: BoardColumnKey[] = [
 	"deleted",
 ];
 
-/** Same buckets as the board — the two views must agree on what
- * "needs attention" means. Row order inside a section follows the user's
- * sort mode. */
+/**
+ * Groups workspaces into the same status buckets used by the board.
+ *
+ * @param workspaces - Workspaces available to the current filters.
+ * @param archivedWindow - Archived-workspace window selected by the user.
+ * @param sortMode - Row ordering to apply inside each status section.
+ * @returns Non-empty status sections in urgency order.
+ */
 function groupByStatus(
 	workspaces: AccessibleV2Workspace[],
 	archivedWindow: V2WorkspacesArchivedWindow,
@@ -86,6 +91,12 @@ function groupByStatus(
 	return sections;
 }
 
+/**
+ * Renders the status-grouped workspace list and its settled empty states.
+ *
+ * @param props - Workspaces to group and whether the workspace source is ready.
+ * @returns The workspace list or its loading or empty representation.
+ */
 export function V2WorkspacesList({
 	workspaces,
 	isReady,
@@ -186,6 +197,12 @@ interface StatusSectionGroupProps {
 	currentWorkspaceId: string | null;
 }
 
+/**
+ * Renders one collapsible workspace status section.
+ *
+ * @param props - The section and currently selected workspace identifier.
+ * @returns A status header followed by its visible workspace rows.
+ */
 function StatusSectionGroup({
 	section,
 	currentWorkspaceId,

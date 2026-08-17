@@ -10,6 +10,10 @@ const ARCHIVED_COLUMNS = new Set<BoardColumnKey>(["merged", "deleted"]);
  * Returns board columns that match the archived-workspace filter.
  * Empty terminal columns stay hidden when archived workspaces are hidden, while
  * populated terminal columns remain visible for live merged or deleted states.
+ *
+ * @param archivedWindow - The archived-workspace window selected by the user.
+ * @param workspaceCount - Returns the number of workspaces in a board column.
+ * @returns Board columns that should be rendered in workflow order.
  */
 export function getVisibleBoardColumns(
 	archivedWindow: V2WorkspacesArchivedWindow,
