@@ -458,7 +458,7 @@ export function NewWorkspaceScreen({
 		linkedPR: draft.linkedPR,
 		linkedIssues: draft.linkedIssues,
 	});
-	const createWorkspace = useSubmitWorkspace(
+	const { submitWorkspace: createWorkspace, isCreating } = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
 		modelSupport ? selectedModel : null,
@@ -819,13 +819,17 @@ export function NewWorkspaceScreen({
 							</Tooltip>
 							<PromptInputSubmit
 								className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-								disabled={needsSetup}
+								disabled={needsSetup || isCreating}
+								status={isCreating ? "submitted" : undefined}
 								onClick={(e) => {
 									e.preventDefault();
 									handleSubmit();
 								}}
 							>
-								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+								{/* children win over the status icon, so stand aside for the spinner */}
+								{isCreating ? null : (
+									<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+								)}
 							</PromptInputSubmit>
 						</div>
 					</PromptInputFooter>

@@ -38,7 +38,7 @@ export function useSubmitWorkspace(
 
 	const isSession = draft.isSession;
 
-	return useCallback(async () => {
+	const submitWorkspace = useCallback(async () => {
 		if (!projectId && !isSession) {
 			toast.error("Select a project first");
 			return;
@@ -82,7 +82,6 @@ export function useSubmitWorkspace(
 			// Provisioning takes several seconds and the prompt has no progress
 			// affordance of its own, so the toast is the only signal the click
 			// registered.
-			const pending = toast.loading("Creating cloud workspace…");
 			try {
 				// A typed name wins; otherwise the API names it from the prompt,
 				// since nothing about a cloud workspace runs on this device.
@@ -94,13 +93,11 @@ export function useSubmitWorkspace(
 					branch: branchName ?? "main",
 				});
 				closeAndResetDraft();
-				toast.success("Cloud workspace created", { id: pending });
 			} catch (error) {
 				toast.error(
 					error instanceof Error
 						? error.message
 						: "Could not create cloud workspace",
-					{ id: pending },
 				);
 			}
 			return;
@@ -235,4 +232,10 @@ export function useSubmitWorkspace(
 		submit,
 		uploadAttachments,
 	]);
+
+	// Cloud creation is the one path the user waits on — a sandbox is
+	// provisioned before this resolves. Returned so the submit control can
+	// carry its own pending state, instead of progress appearing in a toast in
+	// the corner, detached from the button that was pressed.
+	return { submitWorkspace, isCreating: createCloudWorkspace.isPending };
 }

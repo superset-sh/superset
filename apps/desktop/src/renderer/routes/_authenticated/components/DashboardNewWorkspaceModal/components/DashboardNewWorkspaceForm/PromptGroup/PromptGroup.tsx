@@ -341,7 +341,7 @@ export function PromptGroup({
 	});
 
 	// ── Submit (fork) ────────────────────────────────────────────────
-	const createWorkspace = useSubmitWorkspace(
+	const { submitWorkspace: createWorkspace, isCreating } = useSubmitWorkspace(
 		projectId,
 		selectedAgent,
 		modelSupport ? selectedModel : null,
@@ -649,13 +649,18 @@ export function PromptGroup({
 						/>
 						<PromptInputSubmit
 							className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
-							disabled={needsSetup}
+							disabled={needsSetup || isCreating}
 							onClick={(e) => {
 								e.preventDefault();
 								handleSubmit();
 							}}
+							status={isCreating ? "submitted" : undefined}
 						>
-							<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+							{/* PromptInputSubmit renders `children ?? statusIcon`, so the
+							    arrow has to stand aside for the spinner to show. */}
+							{isCreating ? null : (
+								<ArrowUpIcon className="size-3.5 text-muted-foreground" />
+							)}
 						</PromptInputSubmit>
 					</div>
 				</PromptInputFooter>
