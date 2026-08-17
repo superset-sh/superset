@@ -24,6 +24,7 @@ export function V2WorkspacesBoard({
 		(state) => state.archivedWindow,
 	);
 	const sortMode = useV2WorkspacesFilterStore((state) => state.sortMode);
+	const hiddenLanes = useV2WorkspacesFilterStore((state) => state.hiddenLanes);
 
 	const byColumn = useMemo(() => {
 		const now = Date.now();
@@ -54,7 +55,7 @@ export function V2WorkspacesBoard({
 	const visibleColumns = getVisibleBoardColumns(
 		archivedWindow,
 		(column) => byColumn.get(column)?.length ?? 0,
-	);
+	).filter((column) => !hiddenLanes.includes(column));
 
 	return (
 		<div className="flex-1 overflow-x-auto overflow-y-hidden">

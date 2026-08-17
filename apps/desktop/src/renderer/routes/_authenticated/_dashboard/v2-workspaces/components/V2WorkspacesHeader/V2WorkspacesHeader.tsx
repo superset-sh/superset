@@ -30,6 +30,7 @@ import {
 	LuTerminal,
 } from "react-icons/lu";
 import { WorkItemsSearch } from "renderer/routes/_authenticated/_dashboard/components/WorkItemsSearch";
+import { BoardColumnIcon } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/components/BoardColumnIcon";
 import type {
 	V2WorkspaceHostOption,
 	V2WorkspaceProjectOption,
@@ -41,6 +42,7 @@ import {
 	useV2WorkspacesFilterStore,
 	V2_WORKSPACES_AGENT_STATUS_FILTERS,
 	V2_WORKSPACES_AGENT_STATUS_LABELS,
+	V2_WORKSPACES_BOARD_LANES,
 	V2_WORKSPACES_PIN_FILTER_LABELS,
 	V2_WORKSPACES_PIN_FILTERS,
 	V2_WORKSPACES_PR_STATE_FILTERS,
@@ -52,6 +54,7 @@ import {
 	type V2WorkspacesPrStateFilter,
 	type V2WorkspacesSortMode,
 } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/stores/v2WorkspacesFilterStore";
+import { BOARD_COLUMN_LABELS } from "renderer/routes/_authenticated/_dashboard/v2-workspaces/utils/deriveBoardColumn";
 import { PRIcon } from "renderer/screens/main/components/PRIcon/PRIcon";
 import { V2WorkspaceProjectIcon } from "../V2WorkspaceProjectIcon";
 import { DeviceOptionLabel } from "./components/DeviceOptionLabel";
@@ -137,6 +140,8 @@ export function V2WorkspacesHeader({
 	const setArchivedWindow = useV2WorkspacesFilterStore(
 		(state) => state.setArchivedWindow,
 	);
+	const hiddenLanes = useV2WorkspacesFilterStore((state) => state.hiddenLanes);
+	const toggleLane = useV2WorkspacesFilterStore((state) => state.toggleLane);
 
 	const remoteHosts = hostOptions.filter((host) => !host.isLocal);
 	const deviceLabel =
@@ -467,6 +472,27 @@ export function V2WorkspacesHeader({
 									</DropdownMenuRadioItem>
 								))}
 							</DropdownMenuRadioGroup>
+							{viewMode === "board" && (
+								<>
+									<DropdownMenuSeparator />
+									<DropdownMenuLabel className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70">
+										Lanes
+									</DropdownMenuLabel>
+									{V2_WORKSPACES_BOARD_LANES.map((lane) => (
+										<DropdownMenuCheckboxItem
+											key={lane}
+											checked={!hiddenLanes.includes(lane)}
+											onCheckedChange={() => toggleLane(lane)}
+											onSelect={(event) => event.preventDefault()}
+										>
+											<span className="flex items-center gap-1.5">
+												<BoardColumnIcon column={lane} className="size-3" />
+												{BOARD_COLUMN_LABELS[lane]}
+											</span>
+										</DropdownMenuCheckboxItem>
+									))}
+								</>
+							)}
 						</DropdownMenuContent>
 					</DropdownMenu>
 				</div>

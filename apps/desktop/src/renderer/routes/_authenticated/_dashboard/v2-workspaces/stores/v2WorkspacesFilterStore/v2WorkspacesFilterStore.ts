@@ -80,6 +80,18 @@ export const V2_WORKSPACES_ARCHIVED_WINDOWS = [
 export type V2WorkspacesArchivedWindow =
 	(typeof V2_WORKSPACES_ARCHIVED_WINDOWS)[number];
 
+// Mirrors BoardColumnKey; self-contained to avoid the store → deriveBoardColumn
+// → useAccessibleV2Workspaces → store import cycle.
+export const V2_WORKSPACES_BOARD_LANES = [
+	"idle",
+	"working",
+	"attention",
+	"review",
+	"merged",
+	"deleted",
+] as const;
+export type V2WorkspacesBoardLane = (typeof V2_WORKSPACES_BOARD_LANES)[number];
+
 interface V2WorkspacesFilterState {
 	searchQuery: string;
 	deviceFilter: V2WorkspacesDeviceFilter;
@@ -96,6 +108,8 @@ interface V2WorkspacesFilterState {
 	sortMode: V2WorkspacesSortMode;
 	/** How far back archived tombstones render (both views). */
 	archivedWindow: V2WorkspacesArchivedWindow;
+	/** Board lanes the user unchecked in Display; empty = all lanes. */
+	hiddenLanes: V2WorkspacesBoardLane[];
 	setSearchQuery: (searchQuery: string) => void;
 	setDeviceFilter: (deviceFilter: V2WorkspacesDeviceFilter) => void;
 	setProjectFilters: (projectFilters: string[]) => void;
@@ -107,6 +121,7 @@ interface V2WorkspacesFilterState {
 	setViewMode: (viewMode: V2WorkspacesViewMode) => void;
 	setSortMode: (sortMode: V2WorkspacesSortMode) => void;
 	setArchivedWindow: (archivedWindow: V2WorkspacesArchivedWindow) => void;
+	toggleLane: (lane: V2WorkspacesBoardLane) => void;
 	/** Clears filters (incl. archived window) — view mode and sort persist. */
 	reset: () => void;
 }
@@ -122,6 +137,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 		viewMode: "board",
 		sortMode: "activity",
 		archivedWindow: "none",
+		hiddenLanes: [],
 		setSearchQuery: (searchQuery) => set({ searchQuery }),
 		setDeviceFilter: (deviceFilter) => set({ deviceFilter }),
 		setProjectFilters: (projectFilters) => set({ projectFilters }),
@@ -131,6 +147,12 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 		setViewMode: (viewMode) => set({ viewMode }),
 		setSortMode: (sortMode) => set({ sortMode }),
 		setArchivedWindow: (archivedWindow) => set({ archivedWindow }),
+		toggleLane: (lane) =>
+			set((state) => ({
+				hiddenLanes: state.hiddenLanes.includes(lane)
+					? state.hiddenLanes.filter((hidden) => hidden !== lane)
+					: [...state.hiddenLanes, lane],
+			})),
 		reset: () =>
 			set({
 				searchQuery: "",
@@ -140,6 +162,7 @@ export const useV2WorkspacesFilterStore = create<V2WorkspacesFilterState>()(
 				agentStatusFilters: [],
 				pinFilter: "all",
 				archivedWindow: "none",
+				hiddenLanes: [],
 			}),
 	}),
 );
