@@ -23,6 +23,11 @@ export type BranchSearchResult =
 	RouterOutputs["workspaceCreation"]["searchBranches"];
 export type BranchSearchRow = BranchSearchResult["items"][number];
 export type HostProjectRow = RouterOutputs["project"]["list"][number];
+export type PullRequestThreads = RouterOutputs["git"]["getPullRequestThreads"];
+export type PullRequestReviewThread =
+	PullRequestThreads["reviewThreads"][number];
+export type PullRequestConversationComment =
+	PullRequestThreads["conversationComments"][number];
 
 const clientCache = new Map<string, HostServiceClient>();
 

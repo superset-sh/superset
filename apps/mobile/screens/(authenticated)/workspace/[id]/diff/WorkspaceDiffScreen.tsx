@@ -17,14 +17,9 @@ import { cn } from "@/lib/utils";
 import { useWorkspaceChangeset } from "../hooks/useWorkspaceChangeset";
 import { useWorkspaceCommits } from "../hooks/useWorkspaceCommits";
 import { useWorkspacePullRequest } from "../hooks/useWorkspacePullRequest";
-
-function SectionLabel({ children }: { children: string }) {
-	return (
-		<Text className="text-muted-foreground px-4 pb-2 pt-6 font-semibold text-xs uppercase tracking-wider">
-			{children}
-		</Text>
-	);
-}
+import { ReviewThreadsSection } from "./components/ReviewThreadsSection";
+import { SectionLabel } from "./components/SectionLabel";
+import { useReviewThreads } from "./hooks/useReviewThreads";
 
 function CardRow({
 	icon,
@@ -88,16 +83,19 @@ export function WorkspaceDiffScreen() {
 	const changeset = useWorkspaceChangeset(workspaceId);
 	const { commits } = useWorkspaceCommits(workspaceId);
 	const pullRequest = useWorkspacePullRequest(workspaceId);
+	const reviewThreads = useReviewThreads(workspaceId, {
+		enabled: pullRequest != null,
+	});
 
 	const [refreshing, setRefreshing] = useState(false);
 	const onRefresh = useCallback(async () => {
 		setRefreshing(true);
 		try {
-			await changeset.refetch();
+			await Promise.all([changeset.refetch(), reviewThreads.refetch()]);
 		} finally {
 			setRefreshing(false);
 		}
-	}, [changeset.refetch]);
+	}, [changeset.refetch, reviewThreads.refetch]);
 
 	const fileCount = changeset.files.length;
 	const latestCommit = commits[0] ?? null;
@@ -236,6 +234,14 @@ export function WorkspaceDiffScreen() {
 					</Text>
 				</View>
 			)}
+
+			{pullRequest ? (
+				<ReviewThreadsSection
+					pullRequestUrl={pullRequest.url}
+					threads={reviewThreads}
+					workspaceId={workspaceId}
+				/>
+			) : null}
 
 			{changeset.isReady && fileCount === 0 ? (
 				<View className="items-center gap-2 px-10 py-16">
