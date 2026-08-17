@@ -11,6 +11,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { cn } from "@superset/ui/utils";
 import { useFeatureFlagEnabled } from "posthog-js/react";
+import { useEffect } from "react";
 import {
 	HiCheck,
 	HiChevronUpDown,
@@ -95,6 +96,14 @@ export function DevicePicker({
 	const cloudEnabled = useFeatureFlagEnabled(FEATURE_FLAGS.CLOUD_WORKSPACES);
 	const { currentDeviceName, localHostIsOnline, otherHosts } =
 		useWorkspaceHostOptions();
+	// A remembered cloud target outlives the flag that offers it, and the menu
+	// then has no cloud entry to point at what the trigger claims is selected.
+	// Undefined means the flags haven't resolved, which is not a "no".
+	useEffect(() => {
+		if (hostId === CLOUD_HOST_ID && cloudEnabled === false) {
+			onSelectHostId(machineId);
+		}
+	}, [cloudEnabled, hostId, machineId, onSelectHostId]);
 	const isLocal = hostId === null || hostId === machineId;
 	const selectedLabel = getSelectedLabel(
 		hostId,

@@ -13,6 +13,7 @@ import {
 import { Button } from "@superset/ui/button";
 import { isEnterSubmit } from "@superset/ui/lib/keyboard";
 import { toast } from "@superset/ui/sonner";
+import { Spinner } from "@superset/ui/spinner";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@superset/ui/tooltip";
 import { useNavigate } from "@tanstack/react-router";
 import { AnimatePresence, motion } from "framer-motion";
@@ -862,14 +863,14 @@ export function NewWorkspaceScreen({
 							<PromptInputSubmit
 								className="size-[22px] rounded-full border border-transparent bg-foreground/10 shadow-none p-[5px] hover:bg-foreground/20"
 								disabled={needsSetup || isCreating}
-								status={isCreating ? "submitted" : undefined}
 								onClick={(e) => {
 									e.preventDefault();
 									handleSubmit();
 								}}
 							>
-								{/* children win over the status icon, so stand aside for the spinner */}
-								{isCreating ? null : (
+								{isCreating ? (
+									<Spinner className="size-3.5 text-muted-foreground" />
+								) : (
 									<ArrowUpIcon className="size-3.5 text-muted-foreground" />
 								)}
 							</PromptInputSubmit>

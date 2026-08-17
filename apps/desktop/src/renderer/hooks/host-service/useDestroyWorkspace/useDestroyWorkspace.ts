@@ -4,6 +4,7 @@ import type {
 } from "@superset/host-service";
 import { TRPCClientError } from "@trpc/client";
 import { useCallback } from "react";
+import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { apiTrpcClient } from "renderer/lib/api-trpc-client";
 import { cloudTrpc } from "renderer/lib/cloud-trpc";
 import { getHostServiceClientByUrl } from "renderer/lib/host-service-client";
@@ -128,8 +129,12 @@ export function useDestroyWorkspace(workspaceId: string): UseDestroyWorkspace {
 		? "ready"
 		: hostTarget.status;
 
-	const isSandbox =
-		hostTarget.status === "ready" && hostTarget.kind === "sandbox";
+	// The cloud row decides this, not whether we currently hold an address for
+	// it: a workspace still provisioning, or one whose sandbox stopped
+	// answering, is no less a cloud workspace — and deleting it anywhere but at
+	// the API would leave the sandbox running.
+	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const isSandbox = cloudWorkspaces.some((row) => row.id === workspaceId);
 	const utils = cloudTrpc.useUtils();
 
 	const destroy = useCallback(

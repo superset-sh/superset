@@ -12,6 +12,10 @@
 			"types": "./src/lib/integrations/*/index.ts",
 			"default": "./src/lib/integrations/*/index.ts"
 		},
+		"./cloud-workspace-provision": {
+			"types": "./src/router/cloud-workspace/provision.ts",
+			"default": "./src/router/cloud-workspace/provision.ts"
+		},
 		"./automation-dispatch": {
 			"types": "./src/router/automation/dispatch.ts",
 			"default": "./src/router/automation/dispatch.ts"

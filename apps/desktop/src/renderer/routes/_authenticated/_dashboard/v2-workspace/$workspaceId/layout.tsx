@@ -1,7 +1,8 @@
 import { eq } from "@tanstack/db";
 import { useLiveQuery } from "@tanstack/react-db";
-import { createFileRoute, Outlet, useMatchRoute } from "@tanstack/react-router";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef } from "react";
+import { useCloudWorkspaces } from "renderer/hooks/useCloudWorkspaces";
 import { useV2UserPreferences } from "renderer/hooks/useV2UserPreferences";
 import { electronTrpc } from "renderer/lib/electron-trpc";
 import { useDashboardSidebarState } from "renderer/routes/_authenticated/hooks/useDashboardSidebarState";
@@ -9,28 +10,28 @@ import { useCollections } from "renderer/routes/_authenticated/providers/Collect
 import { useHostWorkspaces } from "renderer/routes/_authenticated/providers/HostWorkspacesProvider";
 import { useSandboxAccess } from "renderer/routes/_authenticated/providers/SandboxAccessProvider";
 import { useWorkspaceTransactionsStore } from "renderer/stores/workspace-creates";
-import { StateScreenShell } from "./components/StateScreenShell";
-import { WorkspaceCreateErrorState } from "./components/WorkspaceCreateErrorState";
-import { WorkspaceCreatingState } from "./components/WorkspaceCreatingState";
-import { WorkspaceHostIncompatibleState } from "./components/WorkspaceHostIncompatibleState";
-import { WorkspaceNotFoundState } from "./components/WorkspaceNotFoundState";
-import { useRemoteHostStatus } from "./hooks/useRemoteHostStatus";
-import { useWorkspaceMissVerdict } from "./hooks/useWorkspaceMissVerdict";
-import { WorkspaceProvider } from "./providers/WorkspaceProvider";
+import { CloudWorkspaceProvisioningState } from "../components/CloudWorkspaceProvisioningState";
+import { StateScreenShell } from "../components/StateScreenShell";
+import { WorkspaceCreateErrorState } from "../components/WorkspaceCreateErrorState";
+import { WorkspaceCreatingState } from "../components/WorkspaceCreatingState";
+import { WorkspaceHostIncompatibleState } from "../components/WorkspaceHostIncompatibleState";
+import { WorkspaceNotFoundState } from "../components/WorkspaceNotFoundState";
+import { useRemoteHostStatus } from "../hooks/useRemoteHostStatus";
+import { useWorkspaceMissVerdict } from "../hooks/useWorkspaceMissVerdict";
+import { WorkspaceProvider } from "../providers/WorkspaceProvider";
 
-export const Route = createFileRoute("/_authenticated/_dashboard/v2-workspace")(
-	{
-		component: V2WorkspaceLayout,
-	},
-);
+export const Route = createFileRoute(
+	"/_authenticated/_dashboard/v2-workspace/$workspaceId",
+)({
+	component: V2WorkspaceLayout,
+});
 
 function V2WorkspaceLayout() {
-	const matchRoute = useMatchRoute();
-	const workspaceMatch = matchRoute({
-		to: "/v2-workspace/$workspaceId",
-	});
-	const workspaceId =
-		workspaceMatch !== false ? workspaceMatch.workspaceId : null;
+	// Owned by this segment, so the param is available by definition. This used
+	// to live on the parent route, which had to match its own child to recover
+	// the id and then render an empty shell for the "no id" case that route
+	// could always reach and this one cannot.
+	const { workspaceId } = Route.useParams();
 	const collections = useCollections();
 	const { ensureWorkspaceInSidebar } = useDashboardSidebarState();
 	const pendingTransaction = useWorkspaceTransactionsStore((state) =>
@@ -71,6 +72,11 @@ function V2WorkspaceLayout() {
 	const isCloud = sandboxes.some(
 		(sandbox) => sandbox.workspaceId === workspaceId,
 	);
+	// The cloud row exists from the moment the workspace is created, which is
+	// well before there is a sandbox to serve it.
+	const { workspaces: cloudWorkspaces } = useCloudWorkspaces();
+	const cloudWorkspace =
+		cloudWorkspaces.find((row) => row.id === workspaceId) ?? null;
 	const { data: failedEntries } = useLiveQuery(
 		(q) =>
 			q
@@ -108,8 +114,23 @@ function V2WorkspaceLayout() {
 		cache.refetchAll,
 	);
 
-	if (!workspaceId) {
-		return <StateScreenShell>{null}</StateScreenShell>;
+	// Before "not found": a cloud workspace is navigated to as soon as its row
+	// exists, so for the first seconds of its life there is nothing in the
+	// fan-out to find. The same screen covers a ready sandbox that hasn't been
+	// addressed yet (access minting, host-service booting) — that gap used to
+	// be a blank frame, and letting it reach the host-unreachable takeover
+	// would tell the user their machine is down while it is simply starting.
+	if (!workspace && cloudWorkspace) {
+		return (
+			<StateScreenShell>
+				<CloudWorkspaceProvisioningState
+					workspaceId={cloudWorkspace.id}
+					name={cloudWorkspace.name}
+					branch={cloudWorkspace.branch}
+					status={cloudWorkspace.status}
+				/>
+			</StateScreenShell>
+		);
 	}
 
 	if (!workspace) {

@@ -124,9 +124,15 @@ export const useNewWorkspaceDraftStore = create<NewWorkspaceDraftState>(
 				),
 			})),
 		// set() merges, so the store's actions survive the reset.
+		// hostId is a target preference, not draft content: someone who just
+		// created in the cloud means the next one to go there too. The persisted
+		// lastHostId only re-seeds a draft once per create surface open, and the
+		// main create surface never closes, so the reset has to carry it — the
+		// alternative is a silent create on the wrong machine.
 		resetDraft: () =>
 			set((state) => ({
 				...buildInitialDraft(),
+				hostId: state.hostId,
 				resetKey: state.resetKey + 1,
 			})),
 	}),

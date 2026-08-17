@@ -50,8 +50,12 @@ export function useWorkspaceHostTarget(
 	const cloudWorkspaces = cloudQuery.data ?? [];
 	const cloudPending =
 		Boolean(organizationId) && !match && !cloudQuery.isFetched;
+	// Only a `ready` row has an address to broker: the list carries workspaces
+	// that are still provisioning, and `access` refuses those.
 	const cloudMatch = workspaceId
-		? (cloudWorkspaces.find((w) => w.id === workspaceId) ?? null)
+		? (cloudWorkspaces.find(
+				(w) => w.id === workspaceId && w.status === "ready",
+			) ?? null)
 		: null;
 	const access = cloudTrpc.cloudWorkspace.access.useMutation();
 	const [sandboxUrl, setSandboxUrl] = useState<string | null>(null);
