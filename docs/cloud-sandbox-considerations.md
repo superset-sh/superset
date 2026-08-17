@@ -116,10 +116,13 @@ it in the image, or hide the option for cloud workspaces until it is there.
 in the sidebar, and the user has to click it. Every other creation path lands
 you in the thing you just made.
 
-**Submit should show a spinner, not a toast. Open.** Creation reports progress
-through a toast ("Creating cloud workspace…" → "Cloud workspace created"), which
-puts the state of a thing you are waiting on in a corner, detached from the
-button you pressed. The submit control should carry its own pending state.
+**Submit shows a pending state rather than a toast. Done.** Creation used to
+report progress through a toast ("Creating cloud workspace…" → "Cloud workspace
+created"), which put the state of a thing you were waiting on in a corner,
+detached from the button you pressed. The submit control now carries it —
+spinner, disabled in flight — and only failures toast. Kept here as the
+reasoning, since the same argument applies to any other await we add to this
+flow.
 
 ## Provider
 
