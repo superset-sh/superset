@@ -1,25 +1,15 @@
 "use client";
 
-import {
-	AlertDialog,
-	AlertDialogAction,
-	AlertDialogCancel,
-	AlertDialogContent,
-	AlertDialogDescription,
-	AlertDialogFooter,
-	AlertDialogHeader,
-	AlertDialogTitle,
-	AlertDialogTrigger,
-} from "@superset/ui/alert-dialog";
 import { Button } from "@superset/ui/button";
 import { Input } from "@superset/ui/input";
 import { Label } from "@superset/ui/label";
 import { toast } from "@superset/ui/sonner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { AlertTriangle, Unplug } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { useTRPC } from "@/trpc/react";
+import { DisconnectDialog } from "./components/DisconnectDialog";
 
 interface PlainConnectionControlsProps {
 	organizationId: string;
@@ -70,7 +60,13 @@ export function PlainConnectionControls({
 
 	const disconnectMutation = useMutation(
 		trpc.integration.plain.disconnect.mutationOptions({
-			onSuccess: invalidateConnection,
+			onSuccess: () => {
+				toast.success("Disconnected Plain");
+				invalidateConnection();
+			},
+			onError: (error) => {
+				toast.error(error.message);
+			},
 		}),
 	);
 
@@ -78,6 +74,7 @@ export function PlainConnectionControls({
 		connectMutation.mutate({
 			organizationId,
 			apiKey,
+			// undefined keeps a previously stored secret on reconnect.
 			webhookSecret: webhookSecret || undefined,
 		});
 	};
@@ -112,6 +109,7 @@ export function PlainConnectionControls({
 				<p className="text-sm text-muted-foreground">
 					Needed to receive webhooks, so thread changes sync without a manual
 					refresh.
+					{needsReconnect && " Leave empty to keep the stored secret."}
 				</p>
 			</div>
 			<Button
@@ -163,38 +161,4 @@ export function PlainConnectionControls({
 	}
 
 	return connectForm;
-}
-
-interface DisconnectDialogProps {
-	onDisconnect: () => void;
-	isPending: boolean;
-}
-
-function DisconnectDialog({ onDisconnect, isPending }: DisconnectDialogProps) {
-	return (
-		<AlertDialog>
-			<AlertDialogTrigger asChild>
-				<Button variant="outline" disabled={isPending}>
-					<Unplug className="mr-2 size-4" />
-					{isPending ? "Disconnecting..." : "Disconnect"}
-				</Button>
-			</AlertDialogTrigger>
-			<AlertDialogContent>
-				<AlertDialogHeader>
-					<AlertDialogTitle>Disconnect Plain?</AlertDialogTitle>
-					<AlertDialogDescription>
-						This removes the connection and deletes the synced Plain tasks from
-						Superset. Threads in Plain are not touched. You can reconnect at any
-						time.
-					</AlertDialogDescription>
-				</AlertDialogHeader>
-				<AlertDialogFooter>
-					<AlertDialogCancel>Cancel</AlertDialogCancel>
-					<AlertDialogAction onClick={onDisconnect}>
-						Disconnect
-					</AlertDialogAction>
-				</AlertDialogFooter>
-			</AlertDialogContent>
-		</AlertDialog>
-	);
 }

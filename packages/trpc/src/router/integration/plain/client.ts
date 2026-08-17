@@ -35,11 +35,14 @@ export class PlainClient {
 		variables: TVariables,
 	): Promise<TData> {
 		const controller = new AbortController();
+		// Covers the body read too, not just the connection: a stalled response
+		// stream would otherwise hang webhook and sync handlers without bound.
 		const timeout = setTimeout(
 			() => controller.abort(),
 			PLAIN_REQUEST_TIMEOUT_MS,
 		);
 		let response: Response;
+		let json: { data?: TData; errors?: PlainGraphqlError[] };
 		try {
 			response = await fetch(PLAIN_API_URL, {
 				method: "POST",
@@ -50,21 +53,28 @@ export class PlainClient {
 				signal: controller.signal,
 				body: JSON.stringify({ query, variables }),
 			});
+
+			if (!response.ok) {
+				throw new PlainApiError(
+					`Plain API request failed: ${response.status} ${response.statusText}`,
+					response.status,
+				);
+			}
+
+			json = (await response.json()) as {
+				data?: TData;
+				errors?: PlainGraphqlError[];
+			};
+		} catch (error) {
+			if (error instanceof Error && error.name === "AbortError") {
+				throw new PlainApiError(
+					`Plain API request timed out after ${PLAIN_REQUEST_TIMEOUT_MS}ms`,
+				);
+			}
+			throw error;
 		} finally {
 			clearTimeout(timeout);
 		}
-
-		if (!response.ok) {
-			throw new PlainApiError(
-				`Plain API request failed: ${response.status} ${response.statusText}`,
-				response.status,
-			);
-		}
-
-		const json = (await response.json()) as {
-			data?: TData;
-			errors?: PlainGraphqlError[];
-		};
 
 		const firstError = json.errors?.[0];
 		if (firstError) {

@@ -161,6 +161,9 @@ interface ThreadQueryResponse {
 }
 
 const PAGE_SIZE = 100;
+// Bounds one backfill invocation; anything beyond stays in Plain until the
+// webhook (or a reconnect) picks it up.
+const MAX_PAGES = 50;
 const BACKFILL_WINDOW_MS = 90 * 24 * 60 * 60 * 1000;
 
 export async function fetchAllThreads(
@@ -168,6 +171,7 @@ export async function fetchAllThreads(
 ): Promise<PlainThread[]> {
 	const allThreads: PlainThread[] = [];
 	let cursor: string | undefined;
+	let pages = 0;
 	const threeMonthsAgo = new Date(Date.now() - BACKFILL_WINDOW_MS);
 
 	do {
@@ -180,11 +184,18 @@ export async function fetchAllThreads(
 			filters: { updatedAt: { after: threeMonthsAgo.toISOString() } },
 		});
 		allThreads.push(...response.threads.edges.map((edge) => edge.node));
+		pages += 1;
 		cursor =
 			response.threads.pageInfo.hasNextPage &&
 			response.threads.pageInfo.endCursor
 				? response.threads.pageInfo.endCursor
 				: undefined;
+		if (cursor && pages >= MAX_PAGES) {
+			console.warn(
+				`[plain] Backfill hit the ${MAX_PAGES * PAGE_SIZE}-thread cap; older threads sync via webhooks`,
+			);
+			cursor = undefined;
+		}
 	} while (cursor);
 
 	return allThreads;
@@ -199,6 +210,15 @@ export async function fetchThread(
 		{ threadId: string }
 	>(THREAD_QUERY, { threadId });
 	return response.thread;
+}
+
+/**
+ * `tasks` slugs are unique per org across all providers, and Plain refs
+ * ("T-1234") could collide with a Linear team keyed "T". Namespace them;
+ * the untouched ref stays in `externalKey`.
+ */
+export function plainSlugFromRef(ref: string): string {
+	return `PL-${ref.replace(/^T-/, "")}`;
 }
 
 function buildDescription(thread: PlainThread): string {
@@ -245,7 +265,7 @@ export function mapThreadToTask(
 	return {
 		organizationId,
 		creatorId,
-		slug: thread.ref,
+		slug: plainSlugFromRef(thread.ref),
 		title: thread.title,
 		description: buildDescription(thread),
 		statusId,

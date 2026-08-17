@@ -1,9 +1,9 @@
 import { buildConflictUpdateColumns, db } from "@superset/db";
 import { members, tasks, users } from "@superset/db/schema";
 import {
+	callPlain,
 	ensurePlainStatuses,
 	fetchAllThreads,
-	getPlainClient,
 	mapThreadToTask,
 	type PlainClient,
 } from "@superset/trpc/integrations/plain";
@@ -21,8 +21,8 @@ const receiver = new Receiver({
 });
 
 const payloadSchema = z.object({
-	organizationId: z.string().min(1),
-	creatorUserId: z.string().min(1),
+	organizationId: z.uuid(),
+	creatorUserId: z.uuid(),
 });
 
 export async function POST(request: Request) {
@@ -48,31 +48,39 @@ export async function POST(request: Request) {
 		}
 	}
 
-	const parsed = payloadSchema.safeParse(JSON.parse(body));
+	let parsedBody: unknown;
+	try {
+		parsedBody = JSON.parse(body);
+	} catch {
+		return Response.json({ error: "Invalid JSON" }, { status: 400 });
+	}
+	const parsed = payloadSchema.safeParse(parsedBody);
 	if (!parsed.success) {
 		return Response.json({ error: "Invalid payload" }, { status: 400 });
 	}
 
 	const { organizationId, creatorUserId } = parsed.data;
 
-	const client = await getPlainClient(organizationId);
-	if (!client) {
+	// callPlain marks the connection disconnected on an auth failure, so a
+	// revoked key surfaces as "reconnect required" instead of silent retries.
+	const result = await callPlain(organizationId, (client) =>
+		performInitialSync(client, organizationId, creatorUserId),
+	);
+	if (result === null) {
 		return Response.json({
 			error: "No Plain connection or connection disconnected",
 			skipped: true,
 		});
 	}
 
-	await performInitialSync(client, organizationId, creatorUserId);
-
-	return Response.json({ success: true });
+	return Response.json({ success: true, synced: result.synced });
 }
 
 async function performInitialSync(
 	client: PlainClient,
 	organizationId: string,
 	creatorUserId: string,
-) {
+): Promise<{ synced: number }> {
 	// Plain statuses are additive: existing default or Linear statuses stay
 	// untouched, unlike the Linear initial sync which replaces the defaults.
 	const statusByExternalId = await ensurePlainStatuses(organizationId);
@@ -80,7 +88,7 @@ async function performInitialSync(
 	const threads = await fetchAllThreads(client);
 
 	if (threads.length === 0) {
-		return;
+		return { synced: 0 };
 	}
 
 	const assigneeEmails = [
@@ -125,6 +133,7 @@ async function performInitialSync(
 
 	const batches = chunk(taskValues, BATCH_SIZE);
 
+	let synced = 0;
 	for (const batch of batches) {
 		await db
 			.insert(tasks)
@@ -154,5 +163,8 @@ async function performInitialSync(
 					syncError: null,
 				},
 			});
+		synced += batch.length;
 	}
+
+	return { synced };
 }
