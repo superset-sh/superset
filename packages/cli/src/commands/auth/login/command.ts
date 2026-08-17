@@ -147,7 +147,7 @@ export default command({
 	skipMiddleware: true,
 	options: {
 		organization: string().desc(
-			"Organization id or slug, required for non-TTY logins when you belong to multiple orgs",
+			"Organization id or slug (required for non-TTY logins when you belong to multiple orgs)",
 		),
 		apiKey: string().desc(
 			"Store a Superset API key (sk_live_…) at ~/.superset/config.json instead of running the OAuth flow",
