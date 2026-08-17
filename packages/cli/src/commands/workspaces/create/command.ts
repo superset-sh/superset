@@ -13,7 +13,7 @@ export default command({
 		),
 		name: string().desc("Workspace name"),
 		branch: string().desc("Git branch (required unless --pr or --task is set)"),
-		pr: number().desc("PR number — checks out the verified PR head"),
+		pr: number().desc("PR number, checks out the verified PR head"),
 		task: string().desc(
 			"Task ID to link. When --branch is omitted, the task's provider branch name (e.g. Linear's) is used verbatim",
 		),

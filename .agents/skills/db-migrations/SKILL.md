@@ -6,7 +6,7 @@ description: Create a database migration with Drizzle on a fresh Neon branch. Us
 # DB migrations
 
 - Always spin up a new neon branch to create migrations. Update our root .env files to point at the neon branch locally.
-- Use drizzle to manage the migration. You can see the schema at packages/db/src/schema. Generating a migration is fine; never *apply* one yourself, and never against a shared or production database — migrations apply through the normal deploy flow.
+- Use drizzle to manage the migration. You can see the schema at packages/db/src/schema. Generating a migration is fine; never *apply* one yourself, and never against a shared or production database; migrations apply through the normal deploy flow.
 - Create migrations by changing drizzle schema then running `bunx drizzle-kit generate --name="<sample_name_snake_case>"`
 - `NEON_ORG_ID` and `NEON_PROJECT_ID` env vars are set in .env
 - list_projects tool requires org_id passed in

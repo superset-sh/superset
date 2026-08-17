@@ -16,9 +16,9 @@ Where the ticket came from. Omit section if none.
 | Slack #feedback | @alice | [thread](…) | 2026-05-10 |
 
 ## Implementation notes
-Agent-groomed. Leave empty if you don't have codebase context — a later grooming pass will fill it in. When you do fill it in, use these sub-headings and skip what doesn't apply:
+Agent-groomed. Leave empty if you don't have codebase context; a later grooming pass will fill it in. When you do fill it in, use these sub-headings and skip what doesn't apply:
 
-- `### Files` — `path:line` + why relevant
-- `### Approach` — one paragraph
-- `### Related code` — similar patterns in the repo
-- `### Gotchas` — constraints, prior incidents
+- `### Files`: `path:line` + why relevant
+- `### Approach`: one paragraph
+- `### Related code`: similar patterns in the repo
+- `### Gotchas`: constraints, prior incidents

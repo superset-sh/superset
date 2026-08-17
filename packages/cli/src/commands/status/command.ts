@@ -119,7 +119,7 @@ export default command({
 			health.healthy && cloudRegistered === false
 				? `\nWarning: not registered with the cloud for ${organization.name}${
 						health.registrationError ? ` (${health.registrationError})` : ""
-					} — hosts list and automations won't see this machine\nHint: check host-service.log; registration retries automatically, or run: superset stop && superset start`
+					}; hosts list and automations won't see this machine\nHint: check host-service.log; registration retries automatically, or run: superset stop && superset start`
 				: "";
 
 		return {
@@ -139,7 +139,7 @@ export default command({
 				uptimeSec: Math.floor((Date.now() - manifest.startedAt) / 1000),
 			},
 			message: `${organization.name}: ${cloudHost.name ? `${cloudHost.name} (${localHostId.slice(0, 8)}…)` : `host ${localHostId.slice(0, 8)}…`} running (pid ${manifest.pid}, up ${uptime})${
-				health.healthy ? "" : " — not responding to health check"
+				health.healthy ? "" : " (not responding to health check)"
 			}${registrationWarning}`,
 		};
 	},

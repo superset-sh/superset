@@ -46,7 +46,7 @@ export default command({
 			spinner.stop(
 				`Host service running on port ${result.port} (pid ${result.pid})`,
 			);
-			p.log.info("Connected to relay — machine is now accessible.");
+			p.log.info("Connected to relay. Machine is now accessible.");
 
 			if (options.daemon) {
 				p.outro("Running in background.");
