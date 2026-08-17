@@ -185,7 +185,8 @@ export const sandboxImage = ImageInstance.fromRegistry("node:24-bookworm-slim")
 		`cd /app && node -e 'const D = require("better-sqlite3"); const d = new D("/app/host.db.template"); d.pragma("journal_mode = DELETE"); d.close();' && test "$(stat -c %s /app/host.db.template)" -gt 100000 && rm -f /app/host.db.template-wal /app/host.db.template-shm`,
 	)
 	.addLocalFile("scripts/sandbox/start.sh", "/app/start.sh")
-	.runCommands("chmod +x /app/start.sh")
+	.addLocalFile("scripts/sandbox/git-askpass.sh", "/app/git-askpass.sh")
+	.runCommands("chmod +x /app/start.sh /app/git-askpass.sh")
 	.env({ NODE_ENV: "production", PORT: String(HOST_SERVICE_PORT) })
 	.expose(HOST_SERVICE_PORT);
 // No .entrypoint(): the SDK only appends

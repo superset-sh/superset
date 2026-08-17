@@ -12,6 +12,7 @@ set -uo pipefail
 
 WORKSPACE="${SUPERSET_SANDBOX_WORKSPACE_PATH:-/workspace}"
 BRANCH="${SUPERSET_SANDBOX_BRANCH:-}"
+REPO_URL="${SUPERSET_SANDBOX_REPO_URL:-}"
 
 # The platform injects its own PORT into the sandbox environment, which beats
 # the image's ENV. host-service reads PORT, so without this it tries to bind 80
@@ -25,21 +26,33 @@ if [ ! -f /data/host.db ] && [ -f /app/host.db.template ]; then
   cp /app/host.db.template /data/host.db
 fi
 
-# The baked clone sits on the default branch as of image build. Moving it to the
-# requested branch is a one-ref fetch against an object store that is already
-# warm, not a clone. The token lives in the environment for the length of the
-# fetch and is never written to .git/config.
-if [ -n "$BRANCH" ] && [ -d "$WORKSPACE/.git" ]; then
-  (
-    cd "$WORKSPACE" || exit 0
-    if [ -n "${SUPERSET_SANDBOX_GIT_TOKEN:-}" ]; then
-      git config --local credential.helper \
-        '!f() { echo username=x-access-token; echo "password=${SUPERSET_SANDBOX_GIT_TOKEN}"; }; f'
-    fi
-    git fetch --depth 1 origin "$BRANCH" >/dev/null 2>&1 &&
-      git checkout -q -B "$BRANCH" FETCH_HEAD >/dev/null 2>&1
-    git config --local --unset credential.helper >/dev/null 2>&1 || true
-  )
+# The image bakes one repo. When the workspace wants that repo, moving to its
+# branch is a one-ref fetch against an object store that is already warm. When
+# it wants a different one — any project that isn't the baked one — the baked
+# objects are useless and it clones instead, which is what provisioning did for
+# every workspace before the repo was baked.
+#
+# Getting this wrong is silent rather than loud: fetching the requested branch
+# from the wrong origin leaves a sandbox serving somebody else's code, so the
+# URLs are compared rather than assumed to match.
+if [ -n "$REPO_URL" ]; then
+  BAKED_URL=$(git -C "$WORKSPACE" remote get-url origin 2>/dev/null || echo "")
+  if [ -n "${SUPERSET_SANDBOX_GIT_TOKEN:-}" ]; then
+    export GIT_ASKPASS=/app/git-askpass.sh
+  fi
+  if [ "$BAKED_URL" = "$REPO_URL" ] && [ -d "$WORKSPACE/.git" ]; then
+    (
+      cd "$WORKSPACE" || exit 0
+      git fetch --depth 1 origin "$BRANCH" >/dev/null 2>&1 &&
+        git checkout -q -B "$BRANCH" FETCH_HEAD >/dev/null 2>&1
+    )
+  else
+    rm -rf "$WORKSPACE"
+    git clone --depth 1 --single-branch --branch "$BRANCH" "$REPO_URL" "$WORKSPACE" \
+      >/dev/null 2>&1 ||
+      git clone --depth 1 "$REPO_URL" "$WORKSPACE" >/dev/null 2>&1
+  fi
+  unset GIT_ASKPASS
 fi
 
 cd /app

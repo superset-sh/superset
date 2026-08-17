@@ -179,6 +179,10 @@ export const cloudWorkspaceRouter = {
 						SUPERSET_SANDBOX_PROJECT_NAME: project.name,
 						SUPERSET_SANDBOX_BRANCH: input.branch,
 						SUPERSET_SANDBOX_WORKSPACE_PATH: SANDBOX_WORKSPACE_PATH,
+						// Compared against the URL baked into the image: a workspace
+						// for any other project clones instead of fetching, rather
+						// than silently serving the baked repo's code.
+						SUPERSET_SANDBOX_REPO_URL: clone.cloneUrl,
 						...(clone.token ? { SUPERSET_SANDBOX_GIT_TOKEN: clone.token } : {}),
 					},
 				});
