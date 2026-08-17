@@ -57,7 +57,8 @@ export const terminalAgentBindings = sqliteTable(
 		lastEventType: text("last_event_type").notNull(),
 		// Set when the agent session ended. "detached" = the agent reported its
 		// own end (SessionEnd hook) — not resumable; "terminal-exited" = the
-		// terminal died under it (kill, crash, reboot) — resume candidate.
+		// terminal died under it (kill, crash, reboot) — resume candidate;
+		// "resumed" = the candidate was consumed by an auto-resume.
 		endedAt: integer("ended_at"),
 		endReason: text("end_reason"),
 	},
