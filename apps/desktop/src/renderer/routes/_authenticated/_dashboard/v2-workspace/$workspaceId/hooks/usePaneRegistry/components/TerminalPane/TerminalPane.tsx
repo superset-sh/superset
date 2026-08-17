@@ -38,7 +38,7 @@ import { TerminalSearch } from "renderer/screens/main/components/WorkspaceView/C
 import { useTheme } from "renderer/stores/theme";
 import { resolveTerminalThemeType } from "renderer/stores/theme/utils";
 import { isWithinWorkspacePath } from "shared/absolute-paths";
-import { TerminalAgentResumeBanner } from "./components/TerminalAgentResumeBanner";
+import { TerminalAgentAutoResume } from "./components/TerminalAgentAutoResume";
 import { TerminalRichInput } from "./components/TerminalRichInput";
 import { useLinkClickHint } from "./hooks/useLinkClickHint";
 import { type HoveredLink, useLinkHoverState } from "./hooks/useLinkHoverState";
@@ -472,7 +472,7 @@ export function TerminalPane({
 					style={{ backgroundColor: appearance.background }}
 				/>
 				<ScrollToBottomButton terminal={terminal} />
-				<TerminalAgentResumeBanner
+				<TerminalAgentAutoResume
 					key={terminalId}
 					workspaceId={workspaceId}
 					terminalId={terminalId}

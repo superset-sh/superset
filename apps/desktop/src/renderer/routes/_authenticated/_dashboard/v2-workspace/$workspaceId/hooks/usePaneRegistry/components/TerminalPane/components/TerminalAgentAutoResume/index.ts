@@ -1,1 +1,1 @@
-export { TerminalAgentResumeBanner } from "./TerminalAgentResumeBanner";
+export { TerminalAgentAutoResume } from "./TerminalAgentAutoResume";
