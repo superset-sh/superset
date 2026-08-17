@@ -34,11 +34,20 @@ export async function POST(request: Request): Promise<Response> {
 		return Response.json({ error: "Missing signature" }, { status: 401 });
 	}
 
-	const valid = await receiver.verify({
-		body,
-		signature,
-		url: `${env.NEXT_PUBLIC_API_URL}/api/cloud-workspaces/provision`,
-	});
+	// `verify` throws rather than returning false on a signature it can't even
+	// parse, so a malformed header answered 500 — reported as a server fault,
+	// noisy in Sentry, and a different answer than a well-formed wrong
+	// signature gets. Both are the same refusal.
+	let valid = false;
+	try {
+		valid = await receiver.verify({
+			body,
+			signature,
+			url: `${env.NEXT_PUBLIC_API_URL}/api/cloud-workspaces/provision`,
+		});
+	} catch {
+		valid = false;
+	}
 	if (!valid) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
