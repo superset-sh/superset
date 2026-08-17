@@ -62,6 +62,8 @@ export function PlainConnectionControls({
 		trpc.integration.plain.disconnect.mutationOptions({
 			onSuccess: () => {
 				toast.success("Disconnected Plain");
+				setApiKey("");
+				setWebhookSecret("");
 				invalidateConnection();
 			},
 			onError: (error) => {
