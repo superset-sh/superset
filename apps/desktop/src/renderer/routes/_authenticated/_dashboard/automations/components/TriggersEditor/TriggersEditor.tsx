@@ -193,7 +193,7 @@ export function TriggersEditor({
 							type="button"
 							variant="ghost"
 							size="sm"
-							className="h-10 w-full justify-start gap-2 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
+							className="mb-1.5 h-10 w-full justify-start gap-2 rounded-[8px] px-2 font-normal text-[13px] text-muted-foreground hover:bg-foreground/[0.06] hover:text-foreground"
 						>
 							<LuCirclePlus className="size-4" />
 							Add Trigger
