@@ -144,7 +144,7 @@ function waitForCallback({
 				response
 					.writeHead(400, { "Content-Type": "text/html" })
 					.end("<h1>State mismatch</h1>");
-				finish(new CLIError("State mismatch — possible CSRF"));
+				finish(new CLIError("State mismatch (possible CSRF)"));
 				return;
 			}
 			response
