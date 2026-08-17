@@ -111,8 +111,19 @@ export const githubProvider: TriggerProvider<GithubConfig> = {
 	label: "GitHub",
 	icon: FaGithub,
 	menu: GITHUB_MENU,
-	renderSentence: (config, ctx) =>
-		GITHUB_SENTENCES[config.event].map((part, index) =>
-			renderPart(config, part, index, ctx),
-		),
+	renderSentence: (config, ctx) => {
+		// The event comes from a persisted config. If its grammar entry is ever
+		// removed or renamed, the row must still render — a thrown error here
+		// takes the whole editor down with it — so an unknown event reads as
+		// its raw name rather than as nothing.
+		const parts = GITHUB_SENTENCES[config.event];
+		if (!parts) {
+			return (
+				<span className="text-[13px] text-muted-foreground">
+					{config.event}
+				</span>
+			);
+		}
+		return parts.map((part, index) => renderPart(config, part, index, ctx));
+	},
 };
