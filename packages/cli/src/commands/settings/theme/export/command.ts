@@ -5,7 +5,7 @@ import { exportTheme } from "../../../../lib/settings";
 
 export default command({
 	description:
-		"Export a theme (built-in or custom) as JSON, a starting point for custom themes",
+		"Export a theme (built-in or custom) as JSON: a starting point for custom themes",
 	args: [
 		positional("id").required().desc("Theme id (see: settings theme list)"),
 	],
