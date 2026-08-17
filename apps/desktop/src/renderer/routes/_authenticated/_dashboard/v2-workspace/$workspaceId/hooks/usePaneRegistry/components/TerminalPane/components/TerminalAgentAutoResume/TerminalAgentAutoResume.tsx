@@ -44,6 +44,19 @@ export function TerminalAgentAutoResume({
 	const [dismissed, setDismissed] = useState(false);
 	const attemptedSessionRef = useRef<string | null>(null);
 
+	// A cold-respawned shell can host a fresh agent session in this same
+	// terminal and die again — failure/dismissal state belongs to one
+	// candidate session, not the pane's lifetime.
+	const candidateSessionId = candidate?.agentSessionId;
+	const seenSessionRef = useRef(candidateSessionId);
+	useEffect(() => {
+		if (!candidateSessionId || seenSessionRef.current === candidateSessionId)
+			return;
+		seenSessionRef.current = candidateSessionId;
+		setFailed(false);
+		setDismissed(false);
+	}, [candidateSessionId]);
+
 	// The host marks the binding ended during the attach that cold-respawns a
 	// lost pty, so every transport transition is a reason to re-check.
 	useEffect(() => {
@@ -55,7 +68,6 @@ export function TerminalAgentAutoResume({
 		workspaceTrpc.terminalAgents.resume.useMutation();
 
 	const shouldResume = Boolean(candidate?.resumeSupported) && !failed;
-	const candidateSessionId = candidate?.agentSessionId;
 	useEffect(() => {
 		if (!shouldResume || !candidateSessionId) return;
 		// One attempt per candidate session: remounts and re-renders must not
@@ -66,9 +78,13 @@ export function TerminalAgentAutoResume({
 		void (async () => {
 			try {
 				const result = await resumeAsync({ workspaceId, terminalId });
-				// Not resumed means another caller consumed the candidate (or it
-				// vanished) — the candidate query invalidates via lifecycle events.
-				if (!result.resumed) return;
+				if (!result.resumed) {
+					// Another caller consumed the candidate (or it vanished).
+					// Lifecycle events are fire-and-forget, so refetch explicitly
+					// rather than leaving the pill up on a stale candidate.
+					invalidate();
+					return;
+				}
 				const state = ctx.store.getState();
 				state.setPaneData({
 					paneId: ctx.pane.id,
@@ -82,19 +98,26 @@ export function TerminalAgentAutoResume({
 				terminalRuntimeRegistry.dispose(terminalId);
 			} catch (error) {
 				// The banner only says "Failed to resume" — keep the detail
-				// reachable for support via the console/main.log mirror.
+				// reachable for support via the console/main.log mirror, which
+				// serializes plain fields but drops Error's non-enumerable ones.
 				console.error("[terminal-agents] auto-resume failed", {
 					workspaceId,
 					terminalId,
-					error,
+					message: error instanceof Error ? error.message : String(error),
+					stack: error instanceof Error ? error.stack : undefined,
 				});
-				setFailed(true);
+				// A late failure from a superseded candidate must not mark the
+				// current one failed.
+				if (attemptedSessionRef.current === candidateSessionId) {
+					setFailed(true);
+				}
 			}
 		})();
 	}, [
 		shouldResume,
 		candidateSessionId,
 		resumeAsync,
+		invalidate,
 		workspaceId,
 		terminalId,
 		ctx,
