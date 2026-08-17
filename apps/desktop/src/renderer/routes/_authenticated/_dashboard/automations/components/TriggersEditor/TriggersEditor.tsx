@@ -14,16 +14,17 @@ import { Input } from "@superset/ui/input";
 import { Separator } from "@superset/ui/separator";
 import { type ReactNode, useMemo, useState } from "react";
 import { LuCirclePlus, LuTriangleAlert } from "react-icons/lu";
-import { type ScopeOption, TriggerSentence } from "../TriggerSentence";
+import { type ProviderOptions, TRIGGER_PROVIDERS } from "../providers";
+import { TriggerSentence } from "../TriggerSentence";
 import { TriggerMenuItems } from "./TriggerMenuItems";
-import { flattenTriggerMenu, matchesQuery, TRIGGER_MENU } from "./triggerMenu";
+import { flattenTriggerMenu, matchesQuery } from "./triggerMenu";
 
 interface TriggersEditorProps {
 	triggers: DraftTrigger[];
 	/** Resolves once the set is written; rejects if it was refused. */
 	onChange: (next: DraftTrigger[]) => undefined | Promise<unknown>;
-	repositories: ScopeOption[];
-	people: ScopeOption[];
+	/** Pickable values per provider, fetched by the card. */
+	options: ProviderOptions;
 	/** Trailing "Next run ..." text for one schedule row, by trigger id. */
 	renderNextRun?: (triggerId?: string) => ReactNode;
 	readOnly?: boolean;
@@ -40,8 +41,7 @@ interface TriggersEditorProps {
 export function TriggersEditor({
 	triggers,
 	onChange,
-	repositories,
-	people,
+	options,
 	renderNextRun,
 	readOnly,
 }: TriggersEditorProps) {
@@ -167,8 +167,7 @@ export function TriggersEditor({
 							edit(drafts.map((t, i) => (i === index ? next : t)))
 						}
 						onRemove={() => edit(drafts.filter((_, i) => i !== index))}
-						repositories={repositories}
-						people={people}
+						options={options}
 						problems={shownProblems.filter((p) => p.index === index)}
 						nextRun={
 							trigger.config.kind === "schedule"
@@ -223,11 +222,9 @@ export function TriggersEditor({
 									return (
 										<DropdownMenuItem
 											key={leaf.path.join(">")}
-											onSelect={() => add(leaf.config())}
+											onSelect={() => add(leaf.create())}
 										>
-											{Icon && (
-												<Icon className="size-3.5 shrink-0 text-current" />
-											)}
+											<Icon className="size-3.5 shrink-0 text-current" />
 											{/* The trail disambiguates "Approved" from the other three
 											    review outcomes, but it is the trail that gives way when
 											    the row is too narrow — truncating the leaf would hide
@@ -248,7 +245,7 @@ export function TriggersEditor({
 								)}
 							</>
 						) : (
-							<TriggerMenuItems entries={TRIGGER_MENU} onPick={add} />
+							<TriggerMenuItems providers={TRIGGER_PROVIDERS} onPick={add} />
 						)}
 					</DropdownMenuContent>
 				</DropdownMenu>

@@ -2,13 +2,12 @@ import { dbWs } from "@superset/db/client";
 import {
 	automations,
 	automationTriggers,
-	type GithubTriggerConfig,
 	userIdentities,
 } from "@superset/db/schema";
 import {
 	githubEventNames,
-	githubTriggerMatches,
 	type MatchableEvent,
+	triggerMatches,
 } from "@superset/shared/automation-matching";
 import { Client } from "@upstash/qstash";
 import { and, eq } from "drizzle-orm";
@@ -128,17 +127,17 @@ export async function dispatchMatchingTriggers(params: {
 		params.ref,
 	);
 
-	const matched = candidates.filter((candidate) => {
-		const config = candidate.config as GithubTriggerConfig;
-		if (config.kind !== "github") return false;
-		return githubTriggerMatches(
-			config as never,
-			event,
-			// Resolved per candidate: two automations can watch the same event on
-			// behalf of different owners.
-			{ names, ownerIds: githubIdsByUser.get(candidate.ownerUserId) ?? [] },
-		).matches;
-	});
+	const matched = candidates.filter(
+		(candidate) =>
+			triggerMatches(candidate.config, event, {
+				// Resolved per candidate: two automations can watch the same event
+				// on behalf of different owners.
+				github: {
+					names,
+					ownerIds: githubIdsByUser.get(candidate.ownerUserId) ?? [],
+				},
+			}).matches,
+	);
 
 	if (matched.length === 0) {
 		return { matched: 0, considered: candidates.length };

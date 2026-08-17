@@ -1,3 +1,9 @@
+import type {
+	TriggerActor as TriggerConfigActor,
+	TriggerConfigInput,
+	TriggerScope as TriggerConfigScope,
+} from "@superset/shared/automation-triggers";
+
 export type LinearConfig = {
 	provider: "linear";
 	newTasksTeamId?: string;
@@ -10,67 +16,25 @@ export type SlackConfig = {
 export type IntegrationConfig = LinearConfig | SlackConfig;
 
 /**
- * A trigger scope slot. `null` is unconfigured and never matches; it is
- * deliberately distinct from `{ mode: "any" }` so a half-filled trigger cannot
- * act on everything. Tagged rather than type-discriminated because ids are
- * user-defined strings, and a GitHub label named "any" is legal.
+ * The trigger config column, typed from the zod schema that validates every
+ * write to it. Derived rather than restated: a hand-written copy here had
+ * already drifted (`events: string[]` where the schema says `event: string`,
+ * an `"org_members"` actor the schema never had), and the only thing keeping
+ * it from a runtime mismatch was an `as never` at the read site.
  */
-export type TriggerScope =
-	| null
-	| { mode: "any" }
-	| { mode: "list"; ids: string[] };
+export type TriggerConfig = TriggerConfigInput;
+export type TriggerScope = TriggerConfigScope;
+export type TriggerActor = TriggerConfigActor;
 
-export type TriggerActor = "anyone" | "org_members" | { ids: string[] };
-
-export type ScheduleTriggerConfig = {
-	kind: "schedule";
-	rrule: string;
-	dtstart: string;
-	timezone: string;
-};
-
-export type WebhookTriggerConfig = { kind: "webhook" };
-
-export type GithubTriggerConfig = {
-	kind: "github";
-	events: string[];
-	repositories: TriggerScope;
-	branches: TriggerScope;
-	labels: TriggerScope;
-	actor: TriggerActor;
-	includeForks: false;
-};
-
-export type SlackTriggerConfig = {
-	kind: "slack";
-	events: string[];
-	channels: TriggerScope;
-	emoji: TriggerScope;
-	actor: TriggerActor;
-	keyword?: string;
-};
-
-export type LinearTriggerConfig = {
-	kind: "linear";
-	events: string[];
-	teams: TriggerScope;
-	projects: TriggerScope;
-};
-
-export type SentryTriggerConfig = {
-	kind: "sentry";
-	events: string[];
-	projects: TriggerScope;
-	level: TriggerScope;
-};
-
-export type TriggerConfig =
-	| ScheduleTriggerConfig
-	| WebhookTriggerConfig
-	| GithubTriggerConfig
-	| SlackTriggerConfig
-	| LinearTriggerConfig
-	| SentryTriggerConfig;
+export type ScheduleTriggerConfig = Extract<
+	TriggerConfig,
+	{ kind: "schedule" }
+>;
+export type WebhookTriggerConfig = Extract<TriggerConfig, { kind: "webhook" }>;
+export type GithubTriggerConfig = Extract<TriggerConfig, { kind: "github" }>;
+export type SlackTriggerConfig = Extract<TriggerConfig, { kind: "slack" }>;
+export type LinearTriggerConfig = Extract<TriggerConfig, { kind: "linear" }>;
+export type SentryTriggerConfig = Extract<TriggerConfig, { kind: "sentry" }>;
 
 /**
  * Provider-specific extras on a user identity.

@@ -6,7 +6,6 @@ import {
 import { Input } from "@superset/ui/input";
 import { cn } from "@superset/ui/utils";
 import { type ReactNode, useMemo, useRef, useState } from "react";
-import { LuClock } from "react-icons/lu";
 import {
 	DAY_OPTIONS,
 	formatTimeInputValue,
@@ -94,8 +93,6 @@ export function ScheduleSentence({
 	return (
 		<div className={cn("flex flex-col gap-1.5", className)}>
 			<div className="flex flex-wrap items-center gap-x-1.5 gap-y-1 text-[13px]">
-				<LuClock className="mr-0.5 size-4 shrink-0 text-muted-foreground" />
-
 				<SelectChip
 					value={state.kind}
 					disabled={disabled}

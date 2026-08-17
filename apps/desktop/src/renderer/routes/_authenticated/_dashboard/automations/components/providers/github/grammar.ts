@@ -1,4 +1,10 @@
-import type { GithubTriggerEvent } from "@superset/shared/automation-triggers";
+import type {
+	GithubTriggerEvent,
+	TriggerConfigInput,
+} from "@superset/shared/automation-triggers";
+import type { TriggerMenuEntry } from "../types";
+
+export type GithubConfig = Extract<TriggerConfigInput, { kind: "github" }>;
 
 /**
  * The sentence a GitHub trigger reads as.
@@ -140,57 +146,58 @@ export const GITHUB_SENTENCES: Record<GithubTriggerEvent, SentencePart[]> = {
 	],
 };
 
-/** The Add Trigger menu, grouped the way the events actually divide. */
-export const GITHUB_MENU: Array<{
-	label: string;
-	children?: Array<{ label: string; event: GithubTriggerEvent }>;
-	event?: GithubTriggerEvent;
-}> = [
-	{ label: "Draft opened", event: "draft_opened" },
+/**
+ * The Add Trigger subtree, grouped the way the events actually divide. Leaves
+ * create a config directly, so the menu renderer never needs to know what a
+ * GitHub event is.
+ */
+export const GITHUB_MENU: TriggerMenuEntry<GithubConfig>[] = [
+	leaf("Draft opened", "draft_opened"),
 	{
 		label: "Pull request…",
 		children: [
-			{ label: "Opened", event: "pull_request.opened" },
-			{ label: "Pushed", event: "pull_request.pushed" },
-			{ label: "Merged", event: "pull_request.merged" },
+			leaf("Opened", "pull_request.opened"),
+			leaf("Pushed", "pull_request.pushed"),
+			leaf("Merged", "pull_request.merged"),
 		],
 	},
-	{ label: "Comment added", event: "comment_added" },
-	{ label: "New push to branch", event: "push_to_branch" },
-	{ label: "Label change", event: "label_change" },
-	{ label: "Checks completed", event: "checks_completed" },
-	{ label: "Issue comment", event: "issue_comment" },
-	{ label: "PR review comment", event: "pr_review_comment" },
+	leaf("Comment added", "comment_added"),
+	leaf("New push to branch", "push_to_branch"),
+	leaf("Label change", "label_change"),
+	leaf("Checks completed", "checks_completed"),
+	leaf("Issue comment", "issue_comment"),
+	leaf("PR review comment", "pr_review_comment"),
 	{
 		label: "PR review submitted…",
 		children: [
-			{ label: "Approved", event: "pr_review_submitted.approved" },
-			{
-				label: "Changes requested",
-				event: "pr_review_submitted.changes_requested",
-			},
-			{ label: "Commented", event: "pr_review_submitted.commented" },
-			{ label: "Any review", event: "pr_review_submitted.any" },
+			leaf("Approved", "pr_review_submitted.approved"),
+			leaf("Changes requested", "pr_review_submitted.changes_requested"),
+			leaf("Commented", "pr_review_submitted.commented"),
+			leaf("Any review", "pr_review_submitted.any"),
 		],
 	},
 	{
 		label: "Review thread…",
 		children: [
-			{ label: "Resolved", event: "review_thread.resolved" },
-			{ label: "Unresolved", event: "review_thread.unresolved" },
-			{ label: "Any thread event", event: "review_thread.any" },
+			leaf("Resolved", "review_thread.resolved"),
+			leaf("Unresolved", "review_thread.unresolved"),
+			leaf("Any thread event", "review_thread.any"),
 		],
 	},
 	{
 		label: "Workflow run completed…",
 		children: [
-			{ label: "Success", event: "workflow_run.success" },
-			{ label: "Failure", event: "workflow_run.failure" },
-			{ label: "Cancelled", event: "workflow_run.cancelled" },
-			{ label: "Any conclusion", event: "workflow_run.any" },
+			leaf("Success", "workflow_run.success"),
+			leaf("Failure", "workflow_run.failure"),
+			leaf("Cancelled", "workflow_run.cancelled"),
+			leaf("Any conclusion", "workflow_run.any"),
 		],
 	},
 ];
+
+function leaf(label: string, event: GithubTriggerEvent) {
+	return { label, create: () => createGithubConfig(event) };
+}
 
 /** Events whose sentence carries a second person and a body filter. */
 const COMMENT_EVENTS = new Set<GithubTriggerEvent>([

@@ -1,86 +1,53 @@
 import type { TriggerConfigInput } from "@superset/shared/automation-triggers";
 import type { IconType } from "react-icons";
-import { FaGithub } from "react-icons/fa";
-import { LuClock, LuWebhook } from "react-icons/lu";
-import { createGithubConfig, GITHUB_MENU } from "../TriggerSentence";
+import {
+	TRIGGER_PROVIDERS,
+	type TriggerMenuEntry,
+	type TriggerProvider,
+} from "../providers";
 
 /**
- * The Add Trigger menu.
- *
- * One recursive shape for every level, so the same table drives both the
- * browsable submenus and the flat list search falls back to — a second,
- * hand-maintained list of searchable events would drift the moment a provider
- * is added.
+ * A leaf of the Add Trigger menu, carrying the trail that leads to it so search
+ * can show the path — "GitHub › PR review submitted › Approved" is what tells
+ * Approved apart from the other three review outcomes.
  */
-export type TriggerMenuEntry = {
-	label: string;
-	/**
-	 * Brand marks for providers, matching the integrations settings page —
-	 * Lucide's outline glyphs are drawn to sit with the interface icons, so a
-	 * GitHub outline next to a real Slack logo reads as two different products.
-	 */
-	icon?: IconType;
-	/** Leaf: choosing it adds this trigger. */
-	config?: () => TriggerConfigInput;
-	children?: TriggerMenuEntry[];
-};
-
-/**
- * dtstart anchors the recurrence, so it is read when the trigger is added
- * rather than when this module loads — otherwise every schedule created in a
- * long-lived window shares the timestamp the app booted at.
- */
-function createScheduleConfig(): TriggerConfigInput {
-	return {
-		kind: "schedule",
-		rrule: "FREQ=DAILY;BYHOUR=9;BYMINUTE=0",
-		dtstart: new Date().toISOString(),
-		timezone: Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC",
-	};
-}
-
-export const TRIGGER_MENU: TriggerMenuEntry[] = [
-	{ label: "Scheduled", icon: LuClock, config: createScheduleConfig },
-	{
-		label: "GitHub",
-		icon: FaGithub,
-		children: GITHUB_MENU.map((entry) => ({
-			label: entry.label,
-			...(entry.children
-				? {
-						children: entry.children.map((child) => ({
-							label: child.label,
-							config: () => createGithubConfig(child.event),
-						})),
-					}
-				: { config: () => createGithubConfig(entry.event as never) }),
-		})),
-	},
-	{
-		label: "Webhook Triggered",
-		icon: LuWebhook,
-		config: () => ({ kind: "webhook" }),
-	},
-];
-
-/** A leaf, carrying the trail that leads to it so search can show the path. */
 export type TriggerMenuLeaf = {
 	path: string[];
-	icon?: IconType;
-	config: () => TriggerConfigInput;
+	icon: IconType;
+	create: () => TriggerConfigInput;
 };
 
+/**
+ * Every leaf across every provider, for search. The submenus and this list are
+ * both read off the same registry, so they cannot drift apart.
+ *
+ * A provider whose menu is one leaf (Scheduled, Webhook) contributes a
+ * one-segment path; wrapping it under the provider label would only make the
+ * result read "Scheduled › Scheduled".
+ */
 export function flattenTriggerMenu(
-	entries: TriggerMenuEntry[] = TRIGGER_MENU,
-	trail: string[] = [],
-	icon?: IconType,
+	providers: TriggerProvider[] = TRIGGER_PROVIDERS,
+): TriggerMenuLeaf[] {
+	return providers.flatMap((provider) => {
+		const single =
+			provider.menu.length === 1 && "create" in (provider.menu[0] ?? {});
+		return flattenEntries(
+			provider.menu,
+			single ? [] : [provider.label],
+			provider.icon,
+		);
+	});
+}
+
+function flattenEntries(
+	entries: TriggerMenuEntry[],
+	trail: string[],
+	icon: IconType,
 ): TriggerMenuLeaf[] {
 	return entries.flatMap((entry) => {
 		const path = [...trail, entry.label.replace(/…$/, "")];
-		const carried = entry.icon ?? icon;
-		if (entry.children)
-			return flattenTriggerMenu(entry.children, path, carried);
-		return entry.config ? [{ path, icon: carried, config: entry.config }] : [];
+		if ("children" in entry) return flattenEntries(entry.children, path, icon);
+		return [{ path, icon, create: entry.create }];
 	});
 }
 

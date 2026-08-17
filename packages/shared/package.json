@@ -5,8 +5,8 @@
 	"type": "module",
 	"exports": {
 		"./automation-matching": {
-			"types": "./src/automation-matching.ts",
-			"default": "./src/automation-matching.ts"
+			"types": "./src/automation-matching/index.ts",
+			"default": "./src/automation-matching/index.ts"
 		},
 		"./automation-triggers": {
 			"types": "./src/automation-triggers.ts",
