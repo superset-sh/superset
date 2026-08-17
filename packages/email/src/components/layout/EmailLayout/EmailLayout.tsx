@@ -214,17 +214,21 @@ export function EmailLayout({
 													.{" "}
 												</>
 											) : null}
-											To opt out of future emails, click{" "}
-											<Link
-												href={unsubscribeUrl ?? "https://superset.sh/contact"}
-												style={{
-													color: emailTheme.colors.footerMuted,
-													textDecoration: "underline",
-												}}
-											>
-												unsubscribe
-											</Link>
-											.
+											{unsubscribeUrl ? (
+												<>
+													To opt out of future emails, click{" "}
+													<Link
+														href={unsubscribeUrl}
+														style={{
+															color: emailTheme.colors.footerMuted,
+															textDecoration: "underline",
+														}}
+													>
+														unsubscribe
+													</Link>
+													.
+												</>
+											) : null}
 										</Text>
 									</Section>
 								</Column>
