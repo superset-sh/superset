@@ -105,6 +105,18 @@ the first thing to prove, ahead of any polish.
 **No fleet view.** Nothing in the product lists running sandboxes, their cost,
 or lets you stop one. Today that lives in the provider console.
 
+**Nothing reaps a row stuck in `provisioning`. Open.** A create that dies
+between inserting the row and reporting the sandbox leaves a `cloud_workspaces`
+row in `provisioning` forever: the sidebar shows a workspace that cannot open,
+`access` refuses it because the status isn't `ready`, and no code path ever looks
+at it again. It happened for real — a production create hit the API function's
+60s limit mid-bootstrap, and the row outlived the sandbox it named. Provisioning
+is ~5s now, so the window is small rather than gone; a killed function, a
+provider timeout or a crash still lands there. Wanted: a sweep that fails rows
+older than a few minutes and tears down any sandbox they name, plus the same
+teardown on the paths that can't currently reach it. One row from that incident
+had to be cleared by hand.
+
 **The Superset CLI is offered but not installed. Open.** A cloud workspace's
 agent row includes "Superset CLI" alongside Claude, Codex and Copilot, and
 picking it fails with command-not-found: the image installs the agent CLIs but
