@@ -13,35 +13,9 @@ minimumReleaseAge = 259200
 # hono 4.12.34 (published 2026-08-03) is a security release fixing a ReDoS
 # in the CORS middleware (GHSA-8j4g-w8fx-2239); version is pinned exact.
 # Safe to remove this exclusion after 2026-08-06.
-# Expo SDK 56 native modules must install as one same-day batch: a module built
-# against a newer expo-modules-core than the installed one crashes at launch with
-# a DYLD "Symbol not found" SIGABRT, and core patches also drop symbols older
-# precompiled modules need, so the skew breaks in both directions. The release-age
-# floor holds back only part of a batch (seen here: core pinned at 56.0.15 while
-# expo-media-library moved to 56.0.10), which is precisely the broken pairing.
-# Exclude the batch so `expo install` can align it. Every version here is pinned
-# exact in apps/mobile/package.json, so this only affects resolution, not drift.
-# Safe to delete this whole block after 2026-08-16, when the batch clears the
-# 3-day floor on its own.
 minimumReleaseAgeExcludes = [
 	"next",
 	"hono",
-	"expo",
-	"expo-asset",
-	"expo-constants",
-	"expo-dev-client",
-	"expo-file-system",
-	"expo-font",
-	"expo-image",
-	"expo-image-manipulator",
-	"expo-image-picker",
-	"expo-linking",
-	"expo-media-library",
-	"expo-modules-core",
-	"expo-router",
-	"expo-web-browser",
-	"@expo/ui",
-	"react-native-screens",
 	"@next/env",
 	"@next/swc-darwin-arm64",
 	"@next/swc-darwin-x64",
