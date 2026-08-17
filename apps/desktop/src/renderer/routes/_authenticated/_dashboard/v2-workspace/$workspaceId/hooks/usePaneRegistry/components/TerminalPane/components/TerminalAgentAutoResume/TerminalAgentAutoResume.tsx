@@ -80,7 +80,14 @@ export function TerminalAgentAutoResume({
 					titleOverride: result.label,
 				});
 				terminalRuntimeRegistry.dispose(terminalId);
-			} catch {
+			} catch (error) {
+				// The banner only says "Failed to resume" — keep the detail
+				// reachable for support via the console/main.log mirror.
+				console.error("[terminal-agents] auto-resume failed", {
+					workspaceId,
+					terminalId,
+					error,
+				});
 				setFailed(true);
 			}
 		})();
@@ -107,7 +114,11 @@ export function TerminalAgentAutoResume({
 					aria-hidden="true"
 					className="size-3.5 shrink-0 text-muted-foreground"
 				/>
-				<span className="whitespace-nowrap text-xs text-muted-foreground">
+				<span
+					role="status"
+					aria-live="polite"
+					className="whitespace-nowrap text-xs text-muted-foreground"
+				>
 					{failed
 						? `Failed to resume ${candidate.agentLabel}`
 						: `Resuming ${candidate.agentLabel}…`}
