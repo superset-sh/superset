@@ -1,5 +1,7 @@
 # Where cloud sandboxes don't fit the app
 
+**Tickets live in the Linear "Sandboxes" project** (https://linear.app/superset-sh/project/sandboxes-a52055bc936e). This file is the reasoning — what a sandbox is and why it differs from a machine someone owns — and stays the thing to read before changing this code. When you find something new, write it here and file the ticket there; when an item is fixed, say so here rather than deleting it, so the next person can see the shape of the trap.
+
 A cloud workspace runs host-service inside a provider sandbox, which lets it
 reuse the whole v2 stack — panes, terminals, git, agents — for free. The price
 is a set of places where the app's assumptions were written for *a machine a

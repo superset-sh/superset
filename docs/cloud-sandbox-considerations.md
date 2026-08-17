@@ -1,5 +1,7 @@
 # Cloud sandboxes: what to settle before this leaves the team
 
+**Tickets live in the Linear "Sandboxes" project** (https://linear.app/superset-sh/project/sandboxes-a52055bc936e). This file is the reasoning — what a sandbox is and why it differs from a machine someone owns — and stays the thing to read before changing this code. When you find something new, write it here and file the ticket there; when an item is fixed, say so here rather than deleting it, so the next person can see the shape of the trap.
+
 Companion to `cloud-sandbox-mismatches.md`. That file is about where a sandbox
 doesn't behave like a machine someone owns; this one is about what we still owe
 before people outside the team can create one.
