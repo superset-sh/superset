@@ -1,12 +1,15 @@
 import { db, dbWs } from "@superset/db/client";
 import { cloudWorkspaces, v2Projects } from "@superset/db/schema";
+import {
+	SANDBOX_HOST_DB_PATH,
+	SANDBOX_WORKSPACE_PATH,
+} from "@superset/shared/constants";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
 import { and, desc, eq } from "drizzle-orm";
 import { z } from "zod";
 import { env } from "../../env";
 import {
-	bootstrapSandbox,
 	deleteSandbox,
 	mintPreviewAccess,
 	provisionSandbox,
@@ -150,10 +153,6 @@ export const cloudWorkspaceRouter = {
 			}
 
 			try {
-				const sandbox = await provisionSandbox({
-					name: providerSandboxId,
-					image: env.BLAXEL_SANDBOX_IMAGE,
-				});
 				const resolvedName = (await namePromise) ?? FALLBACK_NAME;
 				const clone = await resolveCloneTarget(input.projectId);
 				if (!clone) {
@@ -162,17 +161,26 @@ export const cloudWorkspaceRouter = {
 						message: "Project has no repository to clone",
 					});
 				}
-				await bootstrapSandbox({
-					providerSandboxId,
-					workspaceId: row.id,
-					repoCloneUrl: clone.cloneUrl,
-					cloneToken: clone.token,
-					branch: input.branch,
-					organizationId: input.organizationId,
-					projectName: project.name,
-					workspaceName: resolvedName,
-					apiUrl: env.NEXT_PUBLIC_API_URL,
-					authToken: "sandbox",
+				// The sandbox configures itself from these on boot: the image
+				// already holds the repo and the schema, so there is nothing to
+				// run inside it and nothing to wait for. Provisioning is one call.
+				const sandbox = await provisionSandbox({
+					name: providerSandboxId,
+					image: env.BLAXEL_SANDBOX_IMAGE,
+					workspaceEnv: {
+						ORGANIZATION_ID: input.organizationId,
+						HOST_DB_PATH: SANDBOX_HOST_DB_PATH,
+						HOST_MIGRATIONS_FOLDER: "/app/drizzle",
+						AUTH_TOKEN: "sandbox",
+						SUPERSET_API_URL: env.NEXT_PUBLIC_API_URL,
+						SUPERSET_HOST_RUN_MODE: "sandbox",
+						SUPERSET_SANDBOX_WORKSPACE_ID: row.id,
+						SUPERSET_SANDBOX_WORKSPACE_NAME: resolvedName,
+						SUPERSET_SANDBOX_PROJECT_NAME: project.name,
+						SUPERSET_SANDBOX_BRANCH: input.branch,
+						SUPERSET_SANDBOX_WORKSPACE_PATH: SANDBOX_WORKSPACE_PATH,
+						...(clone.token ? { SUPERSET_SANDBOX_GIT_TOKEN: clone.token } : {}),
+					},
 				});
 				const [ready] = await dbWs
 					.update(cloudWorkspaces)

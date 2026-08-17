@@ -19,6 +19,10 @@ import { createGitEnvResolver, createGitFactory } from "./runtime/git";
 import { runMainWorkspaceSweep } from "./runtime/main-workspace-sweep";
 import { runProjectBackfill } from "./runtime/project-backfill";
 import { PullRequestRuntimeManager } from "./runtime/pull-requests";
+import {
+	readSandboxIdentity,
+	runSandboxSelfSeed,
+} from "./runtime/sandbox-self-seed";
 import { registerWorkspaceTerminalRoute } from "./terminal/terminal";
 import {
 	SqliteTerminalAgentBindingPersistence,
@@ -76,6 +80,11 @@ export function createApp(options: CreateAppOptions): CreateAppResult {
 		options.api ??
 		createApiClient(config.cloudApiUrl, providers.auth, config.organizationId);
 	const db = options.db ?? createDb(config.dbPath, config.migrationsFolder);
+	// A sandbox is provisioned for exactly one workspace, and the env says
+	// which. Seeding it here rather than from the API keeps the schema in one
+	// place and leaves provisioning with nothing to orchestrate.
+	const sandboxIdentity = readSandboxIdentity();
+	if (sandboxIdentity) runSandboxSelfSeed(db, sandboxIdentity);
 	const git = createGitFactory(providers.credentials);
 	const github =
 		options.github ??

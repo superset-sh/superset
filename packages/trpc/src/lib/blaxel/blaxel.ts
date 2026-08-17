@@ -71,13 +71,26 @@ export interface ProvisionedSandbox {
 export async function provisionSandbox(args: {
 	name: string;
 	image: string;
+	/**
+	 * Everything the sandbox needs to configure itself. It reads these on boot
+	 * and seeds its own project and workspace rows, which is why provisioning
+	 * has nothing to run inside it afterwards.
+	 */
+	workspaceEnv: Record<string, string>;
 	memoryMb?: number;
 	region?: string;
 }): Promise<ProvisionedSandbox> {
 	configureBlaxel();
 	const memoryMb = args.memoryMb ?? 4096;
 	const region = args.region ?? env.BLAXEL_REGION;
-	const { envs, routing } = agentCredentialRoutes();
+	const { envs: credentialEnvs, routing } = agentCredentialRoutes();
+	const envs = [
+		...credentialEnvs,
+		...Object.entries(args.workspaceEnv).map(([name, value]) => ({
+			name,
+			value,
+		})),
+	];
 
 	const sandbox = await SandboxInstance.createIfNotExists({
 		name: args.name,
@@ -120,6 +133,17 @@ export async function provisionSandbox(args: {
 			message: "Sandbox preview has no URL",
 		});
 	}
+
+	// Start host-service and return — the only thing provisioning runs inside a
+	// sandbox, and it is not awaited. The script needs a second or two; the
+	// client discovers the result by polling the health endpoint it already
+	// polls, so there is nothing to wait for here.
+	await sandbox.process.exec({
+		name: "host-service",
+		command: "/app/start.sh",
+		waitForCompletion: false,
+	} as never);
+
 	return { providerSandboxId: args.name, sandboxUrl };
 }
 

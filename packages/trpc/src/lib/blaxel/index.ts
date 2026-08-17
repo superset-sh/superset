@@ -5,5 +5,4 @@ export {
 	type ProvisionedSandbox,
 	provisionSandbox,
 } from "./blaxel";
-export { bootstrapSandbox } from "./bootstrap";
 export { type ProjectRepo, repoForProject } from "./repo-for-project";

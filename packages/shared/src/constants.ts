@@ -205,6 +205,13 @@ export const SANDBOX_CREDENTIAL_PLACEHOLDER =
  */
 export const SANDBOX_WORKSPACE_PATH = "/workspace";
 
+/**
+ * host.db inside a sandbox. Separate from the checkout so a persistent volume
+ * can mount over it without touching the workspace, and so the image can ship
+ * a pre-migrated template alongside it.
+ */
+export const SANDBOX_HOST_DB_PATH = "/data/host.db";
+
 // Terminal identity presented to shell programs via TERM_PROGRAM. kitty:
 // agent TUIs (claude-code especially) tune wheel-scroll compensation per
 // TERM_PROGRAM, and our terminals install the full-fidelity wheel handler
