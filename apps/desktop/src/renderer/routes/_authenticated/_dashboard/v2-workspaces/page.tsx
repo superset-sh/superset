@@ -25,7 +25,7 @@ export type V2WorkspacesSearch = {
 	pr?: string;
 	/** Comma-joined agent statuses. */
 	agent?: string;
-	view?: "board";
+	view?: V2WorkspacesViewMode;
 	archived?: V2WorkspacesArchivedWindow;
 };
 
@@ -59,7 +59,10 @@ export const Route = createFileRoute(
 			typeof search.agent === "string" && search.agent
 				? search.agent
 				: undefined,
-		view: search.view === "board" ? "board" : undefined,
+		view:
+			search.view === "board" || search.view === "list"
+				? search.view
+				: undefined,
 		archived: V2_WORKSPACES_ARCHIVED_WINDOWS.includes(
 			search.archived as V2WorkspacesArchivedWindow,
 		)
@@ -118,9 +121,7 @@ function V2WorkspacesPage() {
 					V2_WORKSPACES_AGENT_STATUS_FILTERS,
 				),
 			}),
-			...(search.view !== undefined && {
-				viewMode: "board" as V2WorkspacesViewMode,
-			}),
+			...(search.view !== undefined && { viewMode: search.view }),
 			...(search.archived !== undefined && {
 				archivedWindow: search.archived,
 			}),
@@ -138,8 +139,8 @@ function V2WorkspacesPage() {
 				agent: agentStatusFilters.length
 					? agentStatusFilters.join(",")
 					: undefined,
-				view: viewMode === "board" ? "board" : undefined,
-				archived: archivedWindow !== "week" ? archivedWindow : undefined,
+				view: viewMode !== "board" ? viewMode : undefined,
+				archived: archivedWindow !== "none" ? archivedWindow : undefined,
 			},
 			replace: true,
 		});

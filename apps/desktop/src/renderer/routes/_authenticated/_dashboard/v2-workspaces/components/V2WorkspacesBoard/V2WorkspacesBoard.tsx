@@ -10,6 +10,7 @@ import {
 	type BoardColumnKey,
 	deriveBoardColumn,
 } from "./utils/deriveBoardColumn";
+import { getVisibleBoardColumns } from "./utils/getVisibleBoardColumns";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 const ARCHIVED_WINDOW_MS: Record<
@@ -66,10 +67,15 @@ export function V2WorkspacesBoard({
 		return null;
 	}
 
+	const visibleColumns = getVisibleBoardColumns(
+		archivedWindow,
+		(column) => byColumn.get(column)?.length ?? 0,
+	);
+
 	return (
 		<div className="flex-1 overflow-x-auto overflow-y-hidden">
 			<div className="flex h-full min-w-max gap-2 px-6 py-4">
-				{BOARD_COLUMN_ORDER.map((column) => (
+				{visibleColumns.map((column) => (
 					<V2WorkspacesBoardColumn
 						key={column}
 						column={column}
