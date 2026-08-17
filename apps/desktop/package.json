@@ -238,7 +238,7 @@
 		"use-resize-observer": "9.1.0",
 		"utf-8-validate": "6.0.6",
 		"uuid": "14.0.0",
-		"ws": "8.18.3",
+		"ws": "8.21.0",
 		"zod": "4.4.3",
 		"zustand": "5.0.12"
 	},
