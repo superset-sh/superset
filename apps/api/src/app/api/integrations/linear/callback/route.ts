@@ -7,7 +7,7 @@ import {
 } from "@superset/db/schema";
 import { linearTokenResponseSchema } from "@superset/trpc/integrations/linear";
 import { Client } from "@upstash/qstash";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 
 import { env } from "@/env";
 import { verifySignedState } from "@/lib/oauth-state";
@@ -105,6 +105,9 @@ export async function GET(request: Request) {
 				integrationConnections.organizationId,
 				integrationConnections.provider,
 			],
+			// The org-scoped uniqueness is a partial index (Google connections
+			// are per user); Postgres only infers it when the predicate is named.
+			targetWhere: sql`${integrationConnections.provider} <> 'google'`,
 			set: {
 				accessToken: tokenData.access_token,
 				refreshToken: tokenData.refresh_token,

@@ -224,10 +224,17 @@ export const integrationConnections = pgTable(
 			.$onUpdate(() => new Date()),
 	},
 	(table) => [
-		unique("integration_connections_unique").on(
-			table.organizationId,
-			table.provider,
-		),
+		// One connection per organization for org-scoped providers (Linear,
+		// Slack, ...). Google is the exception: Calendar and Gmail are one
+		// person's, so each member connects their own account. Two partial
+		// indexes rather than one constraint, and callers name the predicate in
+		// their ON CONFLICT target so Postgres can infer the right one.
+		uniqueIndex("integration_connections_org_provider_unique")
+			.on(table.organizationId, table.provider)
+			.where(sql`${table.provider} <> 'google'`),
+		uniqueIndex("integration_connections_google_user_unique")
+			.on(table.organizationId, table.provider, table.connectedByUserId)
+			.where(sql`${table.provider} = 'google'`),
 		uniqueIndex("integration_connections_slack_external_org_active_unique")
 			.on(table.externalOrgId)
 			.where(

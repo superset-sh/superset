@@ -2,7 +2,7 @@ import { WebClient } from "@slack/web-api";
 import { db } from "@superset/db/client";
 import type { SlackConfig } from "@superset/db/schema";
 import { integrationConnections, members, users } from "@superset/db/schema";
-import { and, eq, isNull, ne } from "drizzle-orm";
+import { and, eq, isNull, ne, sql } from "drizzle-orm";
 
 import { env } from "@/env";
 import { posthog } from "@/lib/analytics";
@@ -117,6 +117,9 @@ export async function GET(request: Request) {
 					integrationConnections.organizationId,
 					integrationConnections.provider,
 				],
+				// The org-scoped uniqueness is a partial index (Google connections
+				// are per user); Postgres only infers it when the predicate is named.
+				targetWhere: sql`${integrationConnections.provider} <> 'google'`,
 				set: {
 					accessToken: tokenData.access_token,
 					externalOrgId: tokenData.team.id,
