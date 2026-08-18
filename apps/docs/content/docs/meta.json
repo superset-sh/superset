@@ -22,6 +22,7 @@
 		"terminal-integration",
 		"ports",
 		"browser",
+		"computer",
 		"agent-integration",
 		"agent-status",
 		"tasks",

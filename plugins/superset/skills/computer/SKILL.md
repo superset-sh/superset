@@ -39,9 +39,9 @@ targeted input without making the agent guess at stale screen coordinates.
    missing, ask the user to run `cua-driver permissions grant` and complete the
    OS prompts. Never work around missing OS permissions with AppleScript,
    synthetic shell input, or another GUI driver.
-3. If the daemon is not running, start `cua-driver serve` in a long-lived
-   terminal. Preserve an already-running daemon's permission mode; do not
-   restart it merely to broaden permissions.
+3. Preserve an already-running daemon's permission mode; do not restart it
+   merely to broaden permissions. If the environment needs explicit service
+   setup, follow the platform-specific guidance reported by `doctor`.
 4. Inspect the installed tool surface instead of assuming a version-specific
    schema:
 
@@ -53,6 +53,18 @@ targeted input without making the agent guess at stale screen coordinates.
 
 Invoke tools with `cua-driver call <tool> '<json>'`. Use `describe` whenever an
 argument is uncertain.
+
+## Declare a task session
+
+Create a unique session before the first GUI observation:
+
+```bash
+cua-driver call start_session '{"session":"superset-computer-<unique>"}'
+```
+
+Pass the same `session` to every tool that accepts it. It owns this run's agent
+cursor and lifecycle cleanup. It does not select the capture mode or grant
+access beyond the daemon's fixed permission mode.
 
 ## Snapshot, act, verify
 
@@ -73,9 +85,9 @@ Minimal shape:
 
 ```bash
 cua-driver call get_accessibility_tree '{}'
-cua-driver call get_window_state '{"pid":844,"window_id":10725}'
-cua-driver call click '{"pid":844,"element_token":"s0000002a:14"}'
-cua-driver call verify_state '{"pid":844,"window_id":10725,"expect":[{"element":{"selector":{"label_contains":"Saved"},"exists":true}}]}'
+cua-driver call get_window_state '{"pid":844,"window_id":10725,"session":"superset-computer-<unique>"}'
+cua-driver call click '{"pid":844,"element_token":"s0000002a:14","session":"superset-computer-<unique>"}'
+cua-driver call verify_state '{"pid":844,"window_id":10725,"session":"superset-computer-<unique>","expect":[{"element":{"selector":{"label_contains":"Saved"},"exists":true}}]}'
 ```
 
 Re-snapshot before every later action. Never reuse a token after a snapshot of
@@ -100,10 +112,25 @@ the same window, navigation, modal transition, or substantial repaint.
   application menus before escalating.
 - If an action has no verified effect, retry only the narrowest failed step:
   background accessibility, then background pixel input, then foreground input.
+- Escalate to full-desktop control only after semantic, accessibility, pixel,
+  and foreground-window routes are exhausted, and only through the mechanism
+  advertised by the installed driver version.
 - If the target or resulting state is ambiguous, stop and report what is
   visible. Do not click through unknown dialogs or retry destructive actions.
 - Leave the user's windows, focus, tabs, and clipboard as you found them unless
   changing them is part of the request.
+
+## Finish cleanly
+
+Take a final fresh snapshot or semantic readback, report the observable result,
+and end only the session created for this task:
+
+```bash
+cua-driver call end_session '{"session":"superset-computer-<unique>"}'
+```
+
+Do not stop a shared driver daemon or close unrelated windows when the task
+ends.
 
 ## Safety
 
