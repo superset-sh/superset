@@ -14,7 +14,10 @@ import { z } from "zod";
 import { generateImagePathname, uploadImage } from "../../lib/upload";
 import { protectedProcedure } from "../../trpc";
 
+import { userSettingsRouter } from "./settings";
+
 export const userRouter = {
+	settings: userSettingsRouter,
 	me: protectedProcedure.query(({ ctx }) => ctx.session.user),
 
 	myOrganization: protectedProcedure.query(async ({ ctx }) => {

@@ -3,6 +3,7 @@ import {
 	githubInstallations,
 	githubPullRequests,
 	githubRepositories,
+	integrationConnections,
 } from "@superset/db/schema";
 import type { TRPCRouterRecord } from "@trpc/server";
 import { TRPCError } from "@trpc/server";
@@ -13,6 +14,12 @@ import { env } from "../../../env";
 import { protectedProcedure } from "../../../trpc";
 import { verifyOrgAdmin, verifyOrgMembership } from "../utils";
 import { listGithubPeople } from "./people";
+import {
+	findGithubUserConnection,
+	githubConfigOf,
+	isGithubUserAuthConfigured,
+	revokeGithubUserGrant,
+} from "./user-connection";
 
 const qstash = new Client({ token: env.QSTASH_TOKEN });
 
@@ -51,6 +58,74 @@ export const githubRouter = {
 				return { success: false, error: "No installation found" };
 			}
 
+			return { success: true };
+		}),
+
+	/**
+	 * The caller's own connected GitHub account in this org, if any. Per
+	 * member: another member's account is not this person's to see or manage.
+	 * `available` is false where the App's OAuth client is not configured, so
+	 * the page can hide the control rather than offer a dead button.
+	 */
+	getUserConnection: protectedProcedure
+		.input(z.object({ organizationId: z.uuid() }))
+		.query(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const available = isGithubUserAuthConfigured();
+			const connection = await db.query.integrationConnections.findFirst({
+				where: and(
+					eq(integrationConnections.organizationId, input.organizationId),
+					eq(integrationConnections.provider, "github"),
+					eq(integrationConnections.connectedByUserId, ctx.session.user.id),
+				),
+				columns: {
+					id: true,
+					config: true,
+					disconnectedAt: true,
+					disconnectReason: true,
+					createdAt: true,
+				},
+			});
+			if (!connection) return { available, connection: null };
+			const config = githubConfigOf(connection.config);
+			return {
+				available,
+				connection: {
+					id: connection.id,
+					login: config?.login ?? null,
+					avatarUrl: config?.avatarUrl ?? null,
+					connectedAt: connection.createdAt,
+					needsReconnect: connection.disconnectedAt !== null,
+				},
+			};
+		}),
+
+	disconnectUser: protectedProcedure
+		.input(z.object({ organizationId: z.uuid() }))
+		.mutation(async ({ ctx, input }) => {
+			await verifyOrgMembership(ctx.session.user.id, input.organizationId);
+			const connection = await findGithubUserConnection(
+				input.organizationId,
+				ctx.session.user.id,
+			);
+			if (connection) {
+				await revokeGithubUserGrant(connection.accessToken).catch((error) => {
+					console.warn("[github] grant revoke failed", error);
+				});
+			}
+			const result = await db
+				.delete(integrationConnections)
+				.where(
+					and(
+						eq(integrationConnections.organizationId, input.organizationId),
+						eq(integrationConnections.provider, "github"),
+						eq(integrationConnections.connectedByUserId, ctx.session.user.id),
+					),
+				)
+				.returning({ id: integrationConnections.id });
+			if (result.length === 0) {
+				return { success: false, error: "No connection found" };
+			}
 			return { success: true };
 		}),
 

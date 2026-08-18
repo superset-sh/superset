@@ -155,6 +155,8 @@ jobs:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           GH_APP_ID: ${{ secrets.GH_APP_ID }}
           GH_APP_PRIVATE_KEY: ${{ secrets.GH_APP_PRIVATE_KEY }}
+          GH_APP_CLIENT_ID: ${{ secrets.GH_APP_CLIENT_ID }}
+          GH_APP_CLIENT_SECRET: ${{ secrets.GH_APP_CLIENT_SECRET }}
           GH_WEBHOOK_SECRET: ${{ secrets.GH_WEBHOOK_SECRET }}
           QSTASH_TOKEN: ${{ secrets.QSTASH_TOKEN }}
           QSTASH_URL: ${{ secrets.QSTASH_URL }}
@@ -210,6 +212,8 @@ jobs:
             --env ANTHROPIC_API_KEY=$ANTHROPIC_API_KEY \
             --env GH_APP_ID="$GH_APP_ID" \
             --env GH_APP_PRIVATE_KEY="$GH_APP_PRIVATE_KEY" \
+            --env GH_APP_CLIENT_ID="$GH_APP_CLIENT_ID" \
+            --env GH_APP_CLIENT_SECRET="$GH_APP_CLIENT_SECRET" \
             --env GH_WEBHOOK_SECRET="$GH_WEBHOOK_SECRET" \
             --env QSTASH_TOKEN=$QSTASH_TOKEN \
             --env QSTASH_URL=$QSTASH_URL \

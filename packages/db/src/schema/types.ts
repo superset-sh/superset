@@ -14,6 +14,17 @@ export type SlackConfig = {
 };
 
 /**
+ * A member's own GitHub account, connected through the GitHub App's user
+ * authorization. Per member, unlike the installation, which is the org's.
+ */
+export type GithubConfig = {
+	provider: "github";
+	login: string;
+	githubUserId: string;
+	avatarUrl?: string;
+};
+
+/**
  * One Graph change-notification subscription this connection holds. Kept on
  * the connection because it is the connection's: renewed by the cron, replaced
  * on reconnect, deleted on disconnect.
@@ -88,7 +99,8 @@ export type IntegrationConfig =
 	| SlackConfig
 	| MicrosoftTeamsConfig
 	| SentryConfig
-	| GoogleConfig;
+	| GoogleConfig
+	| GithubConfig;
 
 /**
  * The trigger config column, typed from the zod schema that validates every

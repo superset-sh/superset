@@ -31,6 +31,46 @@ export type ProvisionCloudWorkspaceOutcome =
 	| "skipped"
 	| "failed";
 
+interface GitPerson {
+	name: string;
+	email: string;
+}
+
+/**
+ * The git identity a workspace commits with, from the creator's settings.
+ * Author and committer can be different people (Devin's authoring modes);
+ * the Superset side is the App's bot address so GitHub attributes it to the
+ * App rather than to nobody. Pure git config — the token that pushes is the
+ * actor policy's business, not this.
+ */
+export function composeGitIdentity(args: {
+	mode:
+		| "you_only"
+		| "superset_only"
+		| "you_author_superset_committer"
+		| "superset_author_you_committer";
+	user: GitPerson | null;
+	appSlug: string;
+}): { author: GitPerson; committer: GitPerson } | null {
+	const superset: GitPerson = {
+		name: "Superset",
+		email: `${args.appSlug}[bot]@users.noreply.github.com`,
+	};
+	// Without a user there is no "you"; every mode degrades to the bot so the
+	// sandbox can still commit at all.
+	const you = args.user ?? superset;
+	switch (args.mode) {
+		case "you_only":
+			return args.user ? { author: you, committer: you } : null;
+		case "superset_only":
+			return { author: superset, committer: superset };
+		case "you_author_superset_committer":
+			return { author: you, committer: superset };
+		case "superset_author_you_committer":
+			return { author: superset, committer: you };
+	}
+}
+
 /**
  * Everything a cloud workspace needs after its row exists: a name, a sandbox,
  * and the `ready` status that makes it openable.

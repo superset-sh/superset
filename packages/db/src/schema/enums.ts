@@ -37,6 +37,36 @@ export const integrationProviderValues = [
 export const integrationProviderEnum = z.enum(integrationProviderValues);
 export type IntegrationProvider = z.infer<typeof integrationProviderEnum>;
 
+/**
+ * Who acts on GitHub for an organization when both the App installation and a
+ * member's own connected account could. `bot` is always the App;
+ * `user_or_bot` is the member when they have connected, otherwise the App;
+ * `user_only` is the member, and refuses when they have not connected
+ * (automations, having no member, still fall back to the App).
+ */
+/**
+ * Whose name goes on commits made in a cloud workspace. Pure git config — no
+ * token involved; the GitHub actor policy is separate. Co-authored modes are
+ * absent on purpose: they need Co-authored-by trailers in the commit message,
+ * which git config cannot add.
+ */
+export const gitCommitAuthorModeValues = [
+	"you_only",
+	"superset_only",
+	"you_author_superset_committer",
+	"superset_author_you_committer",
+] as const;
+export const gitCommitAuthorModeEnum = z.enum(gitCommitAuthorModeValues);
+export type GitCommitAuthorMode = z.infer<typeof gitCommitAuthorModeEnum>;
+
+export const githubActorPolicyValues = [
+	"bot",
+	"user_or_bot",
+	"user_only",
+] as const;
+export const githubActorPolicyEnum = z.enum(githubActorPolicyValues);
+export type GithubActorPolicy = z.infer<typeof githubActorPolicyEnum>;
+
 export const v2ClientTypeValues = ["desktop", "mobile", "web"] as const;
 export const v2ClientTypeEnum = z.enum(v2ClientTypeValues);
 export type V2ClientType = z.infer<typeof v2ClientTypeEnum>;

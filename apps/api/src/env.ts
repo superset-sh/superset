@@ -59,6 +59,12 @@ export const env = createEnv({
 		SENTRY_AUTH_TOKEN: z.string().optional(),
 		// Public Sentry integration (OAuth app). Optional: unset where the app
 		// is not registered yet, in which case the connect flow 400s.
+		// The GitHub App's own OAuth client, for a member connecting their
+		// account (user-to-server tokens). Distinct from GH_CLIENT_*, which is
+		// the sign-in OAuth App. Optional the way Sentry's is: connecting is off
+		// wherever these are unset, and every environment keeps booting.
+		GH_APP_CLIENT_ID: z.string().min(1).optional(),
+		GH_APP_CLIENT_SECRET: z.string().min(1).optional(),
 		SENTRY_CLIENT_ID: z.string().optional(),
 		SENTRY_CLIENT_SECRET: z.string().optional(),
 		// The published app's slug, used to build the install URL.

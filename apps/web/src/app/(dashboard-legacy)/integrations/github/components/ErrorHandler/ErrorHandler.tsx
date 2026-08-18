@@ -14,6 +14,13 @@ const ERROR_MESSAGES: Record<string, string> = {
 	already_connected:
 		"This GitHub installation is already connected to another Superset organization. Disconnect it there, or uninstall the Superset GitHub App, then try again.",
 	unexpected: "Something went wrong. Please try again.",
+	// Account connection (the App's user authorization).
+	not_configured: "Connecting a GitHub account isn't set up on this server.",
+	oauth_denied: "GitHub authorization was cancelled.",
+	unauthorized: "You are not a member of this organization.",
+	token_exchange_failed:
+		"GitHub didn't accept the authorization. Please try again.",
+	userinfo_failed: "Couldn't read your GitHub account. Please try again.",
 };
 
 const WARNING_MESSAGES: Record<string, string> = {

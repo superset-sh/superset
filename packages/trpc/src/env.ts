@@ -30,6 +30,7 @@ export const env = createEnv({
 		BLAXEL_SANDBOX_IMAGE: z.string().min(1),
 		// GitHub App credentials
 		GH_APP_ID: z.string().min(1),
+		GH_APP_SLUG: z.string().min(1),
 		GH_APP_PRIVATE_KEY: z.string().min(1),
 		GH_WEBHOOK_SECRET: z.string().min(1),
 		ANTHROPIC_API_KEY: z.string(),
@@ -39,6 +40,10 @@ export const env = createEnv({
 		LINEAR_CLIENT_SECRET: z.string().min(1),
 		GOOGLE_CLIENT_ID: z.string().min(1),
 		GOOGLE_CLIENT_SECRET: z.string().min(1),
+		// See apps/api/src/env.ts: the App's own OAuth client, used here to
+		// refresh a member's user-to-server token.
+		GH_APP_CLIENT_ID: z.string().min(1).optional(),
+		GH_APP_CLIENT_SECRET: z.string().min(1).optional(),
 		SENTRY_CLIENT_ID: z.string().optional(),
 		SENTRY_CLIENT_SECRET: z.string().optional(),
 		// Optional: the Teams integration is off wherever these are unset, and
