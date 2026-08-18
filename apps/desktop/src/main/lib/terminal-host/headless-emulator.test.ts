@@ -238,12 +238,12 @@ describe("HeadlessEmulator", () => {
 			// The rehydrate preamble is an authoritative resync: an attaching
 			// xterm may have stale modes armed (missed disarm bytes across a
 			// sleep gap), so defaults are asserted too, not just diffs.
-			expect(snapshot.rehydrateSequences).toContain("?1l"); // app cursor off
-			expect(snapshot.rehydrateSequences).toContain("?1003l"); // mouse off
-			expect(snapshot.rehydrateSequences).toContain("?1006l"); // SGR encoding off
-			expect(snapshot.rehydrateSequences).toContain("?1004l"); // focus off
-			expect(snapshot.rehydrateSequences).toContain("?2004l"); // bracketed paste off
-			expect(snapshot.rehydrateSequences).toContain("?25h"); // cursor visible
+			expect(snapshot.rehydrateSequences).toContain(DISABLE_APP_CURSOR);
+			expect(snapshot.rehydrateSequences).toContain(`${CSI}?1003l`); // mouse off
+			expect(snapshot.rehydrateSequences).toContain(DISABLE_MOUSE_SGR);
+			expect(snapshot.rehydrateSequences).toContain(`${CSI}?1004l`); // focus off
+			expect(snapshot.rehydrateSequences).toContain(DISABLE_BRACKETED_PASTE);
+			expect(snapshot.rehydrateSequences).toContain(SHOW_CURSOR);
 		});
 
 		test("should set the active mouse level after every inactive level's reset", async () => {

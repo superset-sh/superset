@@ -110,6 +110,8 @@ export function createModeTracker(
 	// no-op. Set it on rawOptions directly.
 	optionsRaw.vtExtensions = { kittyKeyboard: true };
 
+	let disposed = false;
+
 	// Host-side leaked-input-mode reclaim (#4949): observe mode arming and the
 	// OSC 777 shell-ready marker through this mirror's parser — the same
 	// adapter shape as the renderer's terminalInputModeReclaimer, but acting at
@@ -178,7 +180,6 @@ export function createModeTracker(
 			return false;
 		});
 	}
-	let disposed = false;
 
 	// `Terminal.write` is async-buffered, so `term.modes` lags behind feeds.
 	// Pump synchronously through the internal WriteBuffer so the preamble can
