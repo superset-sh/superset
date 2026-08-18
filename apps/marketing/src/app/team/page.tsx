@@ -86,19 +86,18 @@ export default function TeamPage() {
 							Superset is a local-first workspace for running parallel coding
 							agents. Every task gets its own isolated Git worktree and a
 							persistent terminal session, so Claude Code, Codex, OpenCode, or
-							any other CLI agent can work on many branches of one repository
-							at once without collisions. Around that core sit a diff review
+							any other CLI agent can work on many branches of one repository at
+							once without collisions. Around that core sit a diff review
 							surface, an in-app browser, port management, scheduled
 							automations, and an MCP server so scripts and other agents can
 							orchestrate the fleet programmatically.
 						</p>
 						<p>
 							It's built for developers who have outgrown a single agent
-							session: solo builders dispatching a handful of tasks in
-							parallel, and engineering teams making agent fleets part of how
-							they ship. Superset is the orchestration layer, not the agent;
-							you bring your own agents and API keys, and nothing is proxied
-							through us.
+							session: solo builders dispatching a handful of tasks in parallel,
+							and engineering teams making agent fleets part of how they ship.
+							Superset is the orchestration layer, not the agent; you bring your
+							own agents and API keys, and nothing is proxied through us.
 						</p>
 					</div>
 
