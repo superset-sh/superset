@@ -8,4 +8,4 @@ tokens:
   - 'unlock(?:s|ed|ing)?'
   - 'supercharge(?:s|d|ing)?'
   - 'revolutioniz\w+'
-  - 'game.chang\w+'
+  - 'game[- ]chang\w+'

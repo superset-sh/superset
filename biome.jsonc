@@ -15,7 +15,9 @@
 			"!**/plans",
 			"!**/*.generated.ts",
 			"!apps/mobile/uniwind-types.d.ts",
-			"!packages/sdk/src"
+			"!packages/sdk/src",
+			// Vendored Vale style packages (synced by `vale sync`); don't reformat.
+			"!apps/marketing/vale-styles"
 		]
 	},
 	"formatter": {

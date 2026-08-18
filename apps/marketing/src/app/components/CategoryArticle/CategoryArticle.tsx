@@ -32,6 +32,7 @@ export function CategoryArticle({ page }: CategoryArticleProps) {
 				description={page.description}
 				author={{ name: COMPANY.NAME, url: COMPANY.MARKETING_URL }}
 				publishedTime={new Date(page.date).toISOString()}
+				modifiedTime={new Date(page.lastUpdated ?? page.date).toISOString()}
 				url={url}
 			/>
 			<BreadcrumbJsonLd
