@@ -161,7 +161,11 @@ export async function dispatchAutomation(
 			: null;
 		const prompt = promptWithTriggerContext(
 			automation.prompt,
-			{ automationId: automation.id, triggerId: cause.triggerId },
+			{
+				automationId: automation.id,
+				triggerId: cause.triggerId,
+				scheduledFor: cause.scheduledFor,
+			},
 			event,
 		);
 

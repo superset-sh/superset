@@ -23,19 +23,23 @@ type TriggerEvent = Pick<
  * The prompt the agent runs opens with a machine-readable block describing
  * what fired it, then the automation's prompt verbatim. The block, not the
  * prompt, carries the event: users write "review the PR" and the agent finds
- * which PR here. Schedule runs have no event and get the prompt alone.
+ * which PR here. Every run gets one; a schedule run's block says when it was
+ * due.
  */
 export function promptWithTriggerContext(
 	prompt: string,
-	context: { automationId: string; triggerId: string | null },
+	context: {
+		automationId: string;
+		triggerId: string | null;
+		scheduledFor: Date | null;
+	},
 	event: TriggerEvent | null,
 ): string {
-	if (!event) return prompt;
-
-	const payload = boundedPayload(event.payload);
-	const triggerContext =
-		event.provider === "webhook"
-			? { webhookPayload: payload.value }
+	const payload = event ? boundedPayload(event.payload) : null;
+	const triggerContext = !event
+		? { schedule: { scheduledFor: context.scheduledFor?.toISOString() } }
+		: event.provider === "webhook"
+			? { webhookPayload: payload?.value }
 			: {
 					[event.provider]: {
 						eventType: event.eventType,
@@ -44,16 +48,16 @@ export function promptWithTriggerContext(
 						actor: event.actorLogin,
 						ref: event.ref,
 						repositoryId: event.repositoryId,
-						payload: payload.value,
+						payload: payload?.value,
 					},
 				};
 
 	const info = {
 		automationId: context.automationId,
 		triggerId: context.triggerId,
-		receivedAt: event.receivedAt.toISOString(),
+		...(event ? { receivedAt: event.receivedAt.toISOString() } : {}),
 		triggerContext,
-		...(payload.truncated ? { payloadTruncated: true } : {}),
+		...(payload?.truncated ? { payloadTruncated: true } : {}),
 	};
 
 	return [
