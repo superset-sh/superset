@@ -24,11 +24,16 @@ export async function POST(request: Request) {
 		return Response.json({ error: "Invalid JSON payload" }, { status: 400 });
 	}
 
-	// Verify signature BEFORE storing to prevent spam from unverified requests
+	// Verify signature BEFORE storing to prevent spam from unverified requests.
+	// `verify` returns false on a mismatch and only throws when the signature is
+	// missing, so both outcomes have to be checked.
+	let signatureValid = false;
 	try {
-		await webhooks.verify(body, signature ?? "");
+		signatureValid = await webhooks.verify(body, signature ?? "");
 	} catch (error) {
 		console.error("[github/webhook] Signature verification failed:", error);
+	}
+	if (!signatureValid) {
 		return Response.json({ error: "Invalid signature" }, { status: 401 });
 	}
 
