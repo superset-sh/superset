@@ -1,6 +1,7 @@
 import { mintUserJwt } from "@superset/auth/server";
 import { dbWs } from "@superset/db/client";
 import {
+	automationEvents,
 	automationRuns,
 	automations,
 	type SelectAutomation,
@@ -17,6 +18,7 @@ import {
 import { and, eq, sql } from "drizzle-orm";
 import { fetchRelayPresence } from "../../lib/relay-presence";
 import { RelayDispatchError, relayMutation } from "./relay-client";
+import { promptWithTriggerContext } from "./triggerContext";
 
 type AgentRunResult = { kind: "terminal"; sessionId: string; label: string };
 
@@ -141,6 +143,28 @@ export async function dispatchAutomation(
 			return created.workspaceId;
 		};
 
+		const event = cause.eventId
+			? ((await dbWs.query.automationEvents.findFirst({
+					where: eq(automationEvents.id, cause.eventId),
+					columns: {
+						provider: true,
+						eventType: true,
+						title: true,
+						url: true,
+						actorLogin: true,
+						ref: true,
+						repositoryId: true,
+						payload: true,
+						receivedAt: true,
+					},
+				})) ?? null)
+			: null;
+		const prompt = promptWithTriggerContext(
+			automation.prompt,
+			{ automationId: automation.id, triggerId: cause.triggerId },
+			event,
+		);
+
 		const runAgent = (targetWorkspaceId: string) =>
 			runAgentOnHost({
 				relayUrl,
@@ -148,7 +172,7 @@ export async function dispatchAutomation(
 				jwt,
 				workspaceId: targetWorkspaceId,
 				agent: automation.agent,
-				prompt: automation.prompt,
+				prompt,
 			});
 
 		workspaceId = automation.v2WorkspaceId ?? (await createFreshWorkspace());
