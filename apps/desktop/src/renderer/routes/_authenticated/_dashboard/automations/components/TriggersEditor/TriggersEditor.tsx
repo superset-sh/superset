@@ -3,6 +3,7 @@ import {
 	describeTriggerProblems,
 	summarizeTriggerProblems,
 } from "@superset/shared/automation-triggers";
+import { FEATURE_FLAGS } from "@superset/shared/constants";
 import { Button } from "@superset/ui/button";
 import {
 	DropdownMenu,
@@ -12,6 +13,7 @@ import {
 } from "@superset/ui/dropdown-menu";
 import { Input } from "@superset/ui/input";
 import { Separator } from "@superset/ui/separator";
+import { useFeatureFlagEnabled } from "posthog-js/react";
 import { type ReactNode, useMemo, useState } from "react";
 import { LuCirclePlus, LuTriangleAlert } from "react-icons/lu";
 import { type ProviderOptions, TRIGGER_PROVIDERS } from "../providers";
@@ -74,8 +76,19 @@ export function TriggersEditor({
 	const shownProblems = submitted ? problems : [];
 	const banner = submitted ? summarizeTriggerProblems(problems) : null;
 
+	const eventTriggersEnabled = useFeatureFlagEnabled(
+		FEATURE_FLAGS.AUTOMATION_EVENT_TRIGGERS,
+	);
+	const providers = useMemo(
+		() =>
+			eventTriggersEnabled
+				? TRIGGER_PROVIDERS
+				: TRIGGER_PROVIDERS.filter((provider) => provider.kind === "schedule"),
+		[eventTriggersEnabled],
+	);
+
 	const [query, setQuery] = useState("");
-	const leaves = useMemo(() => flattenTriggerMenu(), []);
+	const leaves = useMemo(() => flattenTriggerMenu(providers), [providers]);
 	const results = query
 		? leaves.filter((leaf) => matchesQuery(leaf, query))
 		: [];
@@ -202,18 +215,20 @@ export function TriggersEditor({
 						{/* Radix runs a typeahead on printable keys and would swallow what
 					    is being typed here; Escape and the arrows still need to reach
 					    the menu, so only the characters are stopped. */}
-						<Input
-							autoFocus
-							value={query}
-							placeholder="Search triggers..."
-							onChange={(event) => setQuery(event.target.value)}
-							onKeyDown={(event) => {
-								if (event.key.length === 1 || event.key === "Backspace") {
-									event.stopPropagation();
-								}
-							}}
-							className="mb-1 h-8 border-none bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-0 dark:bg-transparent"
-						/>
+						{leaves.length > 1 && (
+							<Input
+								autoFocus
+								value={query}
+								placeholder="Search triggers..."
+								onChange={(event) => setQuery(event.target.value)}
+								onKeyDown={(event) => {
+									if (event.key.length === 1 || event.key === "Backspace") {
+										event.stopPropagation();
+									}
+								}}
+								className="mb-1 h-8 border-none bg-transparent px-2 text-[13px] shadow-none focus-visible:ring-0 dark:bg-transparent"
+							/>
+						)}
 
 						{query ? (
 							<>
@@ -245,7 +260,7 @@ export function TriggersEditor({
 								)}
 							</>
 						) : (
-							<TriggerMenuItems providers={TRIGGER_PROVIDERS} onPick={add} />
+							<TriggerMenuItems providers={providers} onPick={add} />
 						)}
 					</DropdownMenuContent>
 				</DropdownMenu>

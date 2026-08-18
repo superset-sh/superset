@@ -138,6 +138,12 @@ export const FEATURE_FLAGS = {
 	/** Shows the "Star Superset on GitHub" sidebar card once a user crosses the workspace-count threshold. Lets us kill the nag instantly without a release if it reads as annoying. */
 	STAR_NAG_CARD: "star-nag-card",
 	/**
+	 * Shows every trigger provider in the Add Trigger menu. Off, unloaded, or
+	 * offline all mean Scheduled only — the event providers exist on main
+	 * ahead of their credentials being provisioned.
+	 */
+	AUTOMATION_EVENT_TRIGGERS: "automation-event-triggers",
+	/**
 	 * Experiment flag (control/test): renders the new-workspace surface as a
 	 * full-screen view with sample prompts instead of the dense modal.
 	 * Eligibility (new accounts only) is a release condition on the flag —
