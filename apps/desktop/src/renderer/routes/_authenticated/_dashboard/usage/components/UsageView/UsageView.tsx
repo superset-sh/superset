@@ -202,6 +202,10 @@ export function UsageView({ hostUrl }: { hostUrl: string | null }) {
 				onSuccess: () => {
 					toast.success(
 						`New ${PROVIDER_LABELS[account.provider]} terminals and agents will use ${account.email ?? account.sourceLabel}.`,
+						{
+							description:
+								"Running sessions keep their current account — restart them to switch.",
+						},
 					);
 				},
 				onError: (error) => toast.error(error.message),

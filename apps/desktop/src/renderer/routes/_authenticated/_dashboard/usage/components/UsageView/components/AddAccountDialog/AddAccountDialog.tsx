@@ -261,7 +261,10 @@ export function AddAccountDialog({
 											{ provider, selection: found.selection },
 											{
 												onSuccess: () => {
-													toast.success(`New agents will use ${found.label}.`);
+													toast.success(`New agents will use ${found.label}.`, {
+														description:
+															"Running sessions keep their current account — restart them to switch.",
+													});
 													onOpenChange(false);
 												},
 												onError: (error) => toast.error(error.message),
