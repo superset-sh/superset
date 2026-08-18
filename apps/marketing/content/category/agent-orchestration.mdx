@@ -48,6 +48,8 @@ Agent sessions need to survive the app restarting, the terminal closing, and the
 
 A fleet view: which agents are running, which are waiting for input, which finished, what changed. This is the piece that turns "check every tab in rotation" into "get pulled in only when needed", and it matters more than any other UI decision in the category.
 
+![An agent finishing its task and the workspace status flipping from working to done in the sidebar](/images/readme/agent-monitoring.gif)
+
 ### Review and merge
 
 Per-task diffs, reviewed centrally, merged or discarded independently. Orchestration without a review surface just moves the bottleneck from dispatching to merging.
@@ -55,6 +57,8 @@ Per-task diffs, reviewed centrally, merged or discarded independently. Orchestra
 ### Scheduling and automations
 
 Recurring prompts on a schedule: nightly dependency bumps, morning triage of new issues, a weekly dead-code sweep. Scheduled runs are where agent work compounds, because they happen whether or not anyone remembered to ask.
+
+![A team's scheduled agent automations: daily standup digests, Linear ticket grooming, CRM syncs, each running an agent prompt on a schedule in its own workspace](/changelog/automations.png)
 
 ### Programmatic control
 
