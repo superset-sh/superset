@@ -42,16 +42,15 @@ export function resolveDeleteTreePath(
 	isDirectory: boolean | undefined,
 ): { treePath: string; isDirectory: boolean } {
 	const directoryPath = `${rel}/`;
-	const treePath = known.has(rel)
-		? rel
-		: known.has(directoryPath)
-			? directoryPath
-			: isDirectory
-				? directoryPath
-				: rel;
+	const resolvedIsDirectory = known.has(directoryPath)
+		? true
+		: known.has(rel)
+			? false
+			: isDirectory === true;
+	const treePath = resolvedIsDirectory ? directoryPath : rel;
 	return {
 		treePath,
-		isDirectory: isDirectory ?? treePath.endsWith("/"),
+		isDirectory: resolvedIsDirectory,
 	};
 }
 

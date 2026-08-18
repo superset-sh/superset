@@ -19,6 +19,13 @@ describe("resolveDeleteTreePath", () => {
 		).toEqual({ treePath: "src/index.ts", isDirectory: false });
 	});
 
+	it("trusts a tracked canonical directory over conflicting metadata", () => {
+		expect(resolveDeleteTreePath(new Set(["src/"]), "src", false)).toEqual({
+			treePath: "src/",
+			isDirectory: true,
+		});
+	});
+
 	it("uses explicit directory metadata for an unknown path", () => {
 		expect(resolveDeleteTreePath(new Set(), "docs", true)).toEqual({
 			treePath: "docs/",
