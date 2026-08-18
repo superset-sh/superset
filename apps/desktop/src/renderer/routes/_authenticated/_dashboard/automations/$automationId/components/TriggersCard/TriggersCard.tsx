@@ -55,23 +55,28 @@ export function TriggersCard({
 		// The zone travels with the date: schedules on one automation can sit in
 		// different timezones, so formatting them all in the automation-level one
 		// would label the tooltip wrongly for every schedule but the soonest.
-		const entries = new Map<string, { at: Date; timezone: string }>();
+		const entries = new Map<
+			string,
+			{ at: Date; timezone: string; exhausted: boolean }
+		>();
 
 		for (const trigger of automation.triggers) {
 			const config = trigger.config as DraftTrigger["config"];
 			if (config.kind !== "schedule") continue;
 
-			// A paused automation keeps a stale nextRunAt, so compute what this
-			// schedule would fire next — the row is previewable before resuming.
-			if (automation.enabled) {
-				if (trigger.nextRunAt) {
-					entries.set(trigger.id, {
-						at: new Date(trigger.nextRunAt),
-						timezone: config.timezone,
-					});
-				}
+			// The evaluator disables a schedule once its last occurrence fires
+			// (COUNT/UNTIL) and leaves nextRunAt at that final time — so a
+			// disabled trigger's nextRunAt is when it last ran, not when it will.
+			if (automation.enabled && trigger.nextRunAt) {
+				entries.set(trigger.id, {
+					at: new Date(trigger.nextRunAt),
+					timezone: config.timezone,
+					exhausted: !trigger.enabled,
+				});
 				continue;
 			}
+			// A paused automation keeps a stale nextRunAt, so compute what this
+			// schedule would fire next — the row is previewable before resuming.
 			try {
 				const next = nextOccurrenceAfter({
 					rrule: config.rrule,
@@ -80,7 +85,11 @@ export function TriggersCard({
 					after: new Date(),
 				});
 				if (next)
-					entries.set(trigger.id, { at: next, timezone: config.timezone });
+					entries.set(trigger.id, {
+						at: next,
+						timezone: config.timezone,
+						exhausted: false,
+					});
 			} catch (error) {
 				console.warn(
 					`[TriggersCard] failed to compute next occurrence for trigger ${trigger.id}`,
@@ -107,7 +116,11 @@ export function TriggersCard({
 			<Tooltip>
 				<TooltipTrigger asChild>
 					<span>
-						{automation.enabled ? "Next run " : "Would run "}
+						{run.exhausted
+							? "Ran "
+							: automation.enabled
+								? "Next run "
+								: "Would run "}
 						{formatDistanceStrict(run.at, new Date(), { addSuffix: true })}
 					</span>
 				</TooltipTrigger>

@@ -1,5 +1,5 @@
 import {
-	isValidRrule,
+	rruleProblem,
 	timezoneAbbreviation,
 	type Weekday,
 } from "@superset/shared/rrule";
@@ -77,10 +77,14 @@ export function ScheduleSentence({
 	};
 
 	const customDraft = state.customRrule.trim();
-	const customValid = useMemo(() => isValidRrule(customDraft), [customDraft]);
+	const customProblem = useMemo(() => rruleProblem(customDraft), [customDraft]);
+	// The saved rule itself can be exhausted (a run-once schedule that already
+	// ran); that is history, not an edit gone wrong, so only a changed draft
+	// gets the complaint.
+	const draftEdited = customDraft !== "" && customDraft !== rrule;
 
 	const commitCustom = () => {
-		if (!customDraft || customDraft === rrule || !customValid) return;
+		if (!draftEdited || customProblem) return;
 		emit(customDraft);
 	};
 
@@ -161,9 +165,11 @@ export function ScheduleSentence({
 							if (event.key === "Enter") commitCustom();
 						}}
 					/>
-					{customDraft && !customValid && (
+					{draftEdited && customProblem && (
 						<span className="select-text cursor-text text-xs text-destructive">
-							Invalid recurrence rule — changes aren't saved
+							{customProblem === "exhausted"
+								? "No upcoming runs — changes aren't saved"
+								: "Invalid recurrence rule — changes aren't saved"}
 						</span>
 					)}
 				</div>

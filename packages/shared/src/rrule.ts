@@ -397,18 +397,29 @@ export function parseRrule(args: {
  * editors can gate saves instead of persisting rules the server will reject.
  */
 export function isValidRrule(rrule: string): boolean {
-	if (!parseRruleParts(rrule)) return false;
+	return rruleProblem(rrule) === null;
+}
+
+/**
+ * Why a rule can't be saved: `unparseable` (not an RRULE at all) or
+ * `exhausted` (well-formed, but COUNT/UNTIL leaves nothing in the future —
+ * a run-once schedule that already ran looks exactly like this). Null when
+ * the rule is fine.
+ */
+export function rruleProblem(
+	rrule: string,
+): "unparseable" | "exhausted" | null {
+	if (!parseRruleParts(rrule)) return "unparseable";
 	try {
-		return (
-			nextOccurrenceAfter({
-				rrule,
-				dtstart: new Date(),
-				timezone: "UTC",
-				after: new Date(),
-			}) !== null
-		);
+		const next = nextOccurrenceAfter({
+			rrule,
+			dtstart: new Date(),
+			timezone: "UTC",
+			after: new Date(),
+		});
+		return next === null ? "exhausted" : null;
 	} catch {
-		return false;
+		return "unparseable";
 	}
 }
 
