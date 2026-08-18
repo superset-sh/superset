@@ -16,7 +16,9 @@ const SETTLE_MS = 1500;
  * or opened a session an agent finished for them (qualifies on the third
  * distinct one). The only UI is Apple's own sheet, which may decline to show,
  * caps itself at three a year, and honours the system-wide opt-out; on top of
- * that we never ask twice about the same build or within 90 days.
+ * that we never ask twice about the same version or within 90 days. The
+ * prompted mark is written before the settle delay so two qualifying moments
+ * in quick succession can't both schedule a request.
  */
 export function useAppReviewPrompt() {
 	const posthog = usePostHog();
@@ -37,10 +39,10 @@ export function useAppReviewPrompt() {
 			) {
 				return;
 			}
+			store.markPrompted(now, version);
 			setTimeout(() => {
 				void StoreReview.isAvailableAsync().then((available) => {
 					if (!available) return;
-					useAppReviewStore.getState().markPrompted(now, version);
 					posthog.capture("app_review_prompt_requested", {
 						moment,
 						positive_moments: moments,
