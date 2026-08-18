@@ -114,6 +114,8 @@ interface AddAccountDialogProps {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	hostUrl: string | null;
+	/** Provider being added; the per-provider Add buttons preselect it. */
+	provider: Provider;
 	/** Called once when the new sign-in is detected, to refresh quota. */
 	onAccountAdded: () => void;
 	/** When set, the dialog re-signs this existing login instead of adding a
@@ -132,11 +134,11 @@ export function AddAccountDialog({
 	open,
 	onOpenChange,
 	hostUrl,
+	provider: addProvider,
 	onAccountAdded,
 	switchTarget = null,
 }: AddAccountDialogProps) {
-	const [pickedProvider, setPickedProvider] = useState<Provider>("claude");
-	const provider = switchTarget?.provider ?? pickedProvider;
+	const provider = switchTarget?.provider ?? addProvider;
 	const [name, setName] = useState("work");
 	const [copied, setCopied] = useState(false);
 	const [found, setFound] = useState<{
@@ -229,7 +231,9 @@ export function AddAccountDialog({
 			<DialogContent className="max-w-md">
 				<DialogHeader>
 					<DialogTitle>
-						{switchTarget ? "Switch sign-in" : "Add account"}
+						{switchTarget
+							? "Switch sign-in"
+							: `Add ${PROVIDER_LABELS[provider]} account`}
 					</DialogTitle>
 					<DialogDescription>
 						{switchDescription ??
@@ -273,34 +277,17 @@ export function AddAccountDialog({
 				) : (
 					<div className="flex flex-col gap-3">
 						{!switchTarget && (
-							<>
-								<div className="flex gap-1">
-									{(Object.keys(PROVIDER_LABELS) as Provider[]).map(
-										(option) => (
-											<Button
-												key={option}
-												size="sm"
-												variant={provider === option ? "secondary" : "ghost"}
-												onClick={() => setPickedProvider(option)}
-											>
-												{PROVIDER_LABELS[option]}
-											</Button>
-										),
-									)}
-								</div>
-
-								<div className="flex items-center gap-2">
-									<span className="text-xs text-muted-foreground">
-										Profile name
-									</span>
-									<Input
-										value={name}
-										onChange={(event) => setName(event.target.value)}
-										className="h-7 flex-1 text-xs"
-										placeholder="work"
-									/>
-								</div>
-							</>
+							<div className="flex items-center gap-2">
+								<span className="text-xs text-muted-foreground">
+									Profile name
+								</span>
+								<Input
+									value={name}
+									onChange={(event) => setName(event.target.value)}
+									className="h-7 flex-1 text-xs"
+									placeholder="work"
+								/>
+							</div>
 						)}
 
 						<div className="flex flex-col gap-1">
