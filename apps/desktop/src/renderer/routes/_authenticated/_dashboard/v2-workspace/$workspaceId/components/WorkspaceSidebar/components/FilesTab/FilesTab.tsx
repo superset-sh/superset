@@ -46,6 +46,7 @@ import {
 } from "./constants";
 import { useFilesTabActions } from "./hooks/useFilesTabActions";
 import { useFilesTabBridge } from "./hooks/useFilesTabBridge";
+import { useFilesTabDragSource } from "./hooks/useFilesTabDragSource";
 import { useFilesTabDrop } from "./hooks/useFilesTabDrop";
 import { useFileTreeScrollFade } from "./hooks/useFileTreeScrollFade";
 import { buildPierreGitStatus } from "./utils/buildPierreGitStatus";
@@ -157,6 +158,7 @@ export function FilesTab({
 			onSelectFile,
 		});
 	const drop = useFilesTabDrop({ model, bridge, rootPath, workspaceId });
+	const dragSource = useFilesTabDragSource({ rootPath });
 
 	// Push live git status updates into Pierre.
 	useEffect(() => {
@@ -291,6 +293,11 @@ export function FilesTab({
 			ref={fadeContainerRef}
 			className="relative flex h-full min-h-0 flex-col overflow-hidden"
 			onClickCapture={handleClickCapture}
+			onPointerDownCapture={dragSource.onPointerDownCapture}
+			onPointerUpCapture={dragSource.onPointerUpCapture}
+			onPointerCancelCapture={dragSource.onPointerCancelCapture}
+			onDragStart={dragSource.onDragStart}
+			onDragEnd={dragSource.onDragEnd}
 			onDragOver={drop.onDragOver}
 			onDragLeave={drop.onDragLeave}
 			onDrop={drop.onDrop}
