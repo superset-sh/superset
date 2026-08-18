@@ -343,6 +343,20 @@ describe("binding end marking and resume candidates", () => {
 		expect(claimResumeCandidateBinding(db, "ws-1", "t1")).toBeDefined();
 	});
 
+	it("disposed is sticky: neither death-gasp nor terminal death revives it", () => {
+		// A deliberate kill (pane close, CLI kill) marks "disposed" before the
+		// SIGHUP goodbye and pty-exit events land — none of them may turn the
+		// row back into a resume candidate, or auto-resume resurrects a
+		// session the user chose to end at the next pane mount.
+		const db = createTestDb();
+		seedWithSessionId(db, "t1");
+		markTerminalAgentBindingEnded(db, "t1", "disposed", 10_000);
+		markTerminalAgentBindingEnded(db, "t1", "detached", 10_500);
+		markTerminalAgentBindingEnded(db, "t1", "terminal-exited", 11_000);
+		expect(findResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+		expect(claimResumeCandidateBinding(db, "ws-1", "t1")).toBeUndefined();
+	});
+
 	it("a claimed row survives late terminal-death marking untouched", () => {
 		// Disposing the dead terminal after a successful resume routes through
 		// markTerminalExited — that must not resurrect the candidate.

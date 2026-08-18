@@ -250,8 +250,12 @@ export const terminalRouter = router({
 				});
 			}
 
+			// Mark the binding disposed BEFORE the kill: the SIGHUP death-gasp and
+			// pty-exit events that follow would otherwise stamp it
+			// "terminal-exited" and auto-resume would resurrect a deliberately
+			// killed session at the next pane mount.
+			ctx.terminalAgentStore.markTerminalDisposed(input.terminalId);
 			await disposeSessionAndWait(input.terminalId, ctx.db);
-			ctx.terminalAgentStore.markTerminalExited(input.terminalId);
 			return { terminalId: input.terminalId, status: "disposed" as const };
 		}),
 

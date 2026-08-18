@@ -116,7 +116,7 @@ export async function resumeTerminalAgentSession(
 				{ terminalId, cleanupError },
 			);
 		});
-		deps.terminalAgentStore.markTerminalExited(terminalId);
+		deps.terminalAgentStore.markTerminalDisposed(terminalId);
 
 		return {
 			resumed: true,
